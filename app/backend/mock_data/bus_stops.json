@@ -1,0 +1,178 @@
+[
+    {
+        "route_id": 1,
+        "stop_name": "Сортировка (конечная)",
+        "lat": 49.8348,
+        "lng": 73.0856,
+        "stop_order": 1,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 1,
+        "stop_name": "ул. Железнодорожная",
+        "lat": 49.8365,
+        "lng": 73.089,
+        "stop_order": 2,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 1,
+        "stop_name": "ул. Вокзальная",
+        "lat": 49.839,
+        "lng": 73.092,
+        "stop_order": 3,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 1,
+        "stop_name": "Школа №45",
+        "lat": 49.842,
+        "lng": 73.0955,
+        "stop_order": 4,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 1,
+        "stop_name": "ул. Абая",
+        "lat": 49.8455,
+        "lng": 73.101,
+        "stop_order": 5,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 1,
+        "stop_name": "Парк Победы",
+        "lat": 49.849,
+        "lng": 73.106,
+        "stop_order": 6,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 1,
+        "stop_name": "Центральный рынок",
+        "lat": 49.852,
+        "lng": 73.112,
+        "stop_order": 7,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 2,
+        "stop_name": "Сортировка (конечная)",
+        "lat": 49.8348,
+        "lng": 73.0856,
+        "stop_order": 1,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 2,
+        "stop_name": "ул. Сортировочная",
+        "lat": 49.837,
+        "lng": 73.088,
+        "stop_order": 2,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 2,
+        "stop_name": "Поликлиника №3",
+        "lat": 49.84,
+        "lng": 73.093,
+        "stop_order": 3,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 2,
+        "stop_name": "ул. Гоголя",
+        "lat": 49.844,
+        "lng": 73.098,
+        "stop_order": 4,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 2,
+        "stop_name": "Площадь Независимости",
+        "lat": 49.848,
+        "lng": 73.105,
+        "stop_order": 5,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 2,
+        "stop_name": "Юго-Восток",
+        "lat": 49.853,
+        "lng": 73.115,
+        "stop_order": 6,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 3,
+        "stop_name": "Сортировка (конечная)",
+        "lat": 49.8348,
+        "lng": 73.0856,
+        "stop_order": 1,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 3,
+        "stop_name": "Депо",
+        "lat": 49.833,
+        "lng": 73.082,
+        "stop_order": 2,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 3,
+        "stop_name": "Промзона",
+        "lat": 49.83,
+        "lng": 73.078,
+        "stop_order": 3,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 3,
+        "stop_name": "Заводская",
+        "lat": 49.827,
+        "lng": 73.074,
+        "stop_order": 4,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 3,
+        "stop_name": "Михайловка",
+        "lat": 49.823,
+        "lng": 73.069,
+        "stop_order": 5,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 4,
+        "stop_name": "Сортировка (конечная)",
+        "lat": 49.8348,
+        "lng": 73.0856,
+        "stop_order": 1,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 4,
+        "stop_name": "ул. Абая",
+        "lat": 49.8455,
+        "lng": 73.101,
+        "stop_order": 2,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 4,
+        "stop_name": "Центр города",
+        "lat": 49.85,
+        "lng": 73.11,
+        "stop_order": 3,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_id": 4,
+        "stop_name": "Аэропорт",
+        "lat": 49.6708,
+        "lng": 73.3344,
+        "stop_order": 4,
+        "created_at": "2026-03-31 10:00:00"
+    }
+]

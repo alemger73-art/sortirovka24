@@ -1,0 +1,32 @@
+[
+    {
+        "setting_key": "whatsapp_number",
+        "setting_value": "+77001234567",
+        "is_active": true
+    },
+    {
+        "setting_key": "hero_banner_title",
+        "setting_value": "Вкусная еда с доставкой",
+        "is_active": true
+    },
+    {
+        "setting_key": "hero_banner_subtitle",
+        "setting_value": "Свежие блюда домашней кухни прямо к вашей двери",
+        "is_active": true
+    },
+    {
+        "setting_key": "hero_banner_image",
+        "setting_value": "",
+        "is_active": true
+    },
+    {
+        "setting_key": "min_order_amount",
+        "setting_value": "2000",
+        "is_active": true
+    },
+    {
+        "setting_key": "delivery_price",
+        "setting_value": "500",
+        "is_active": true
+    }
+]

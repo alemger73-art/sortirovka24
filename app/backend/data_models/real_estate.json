@@ -1,0 +1,81 @@
+{
+    "title": "real_estate",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "estate_type": {
+            "type": "string",
+            "description": "Type of real estate"
+        },
+        "title": {
+            "type": "string",
+            "description": "Title"
+        },
+        "description": {
+            "type": "string",
+            "description": "Description"
+        },
+        "price": {
+            "type": "string",
+            "description": "Price"
+        },
+        "address": {
+            "type": "string",
+            "description": "Address"
+        },
+        "rooms": {
+            "type": "integer",
+            "description": "Number of rooms"
+        },
+        "area": {
+            "type": "number",
+            "description": "Area in sq meters"
+        },
+        "floor": {
+            "type": "string",
+            "description": "Floor"
+        },
+        "image_url": {
+            "type": "string",
+            "description": "Image URL"
+        },
+        "gallery_images": {
+            "type": "string",
+            "description": "Gallery images"
+        },
+        "phone": {
+            "type": "string",
+            "description": "Phone"
+        },
+        "whatsapp": {
+            "type": "string",
+            "description": "WhatsApp"
+        },
+        "telegram": {
+            "type": "string",
+            "description": "Telegram"
+        },
+        "author_name": {
+            "type": "string",
+            "description": "Author name"
+        },
+        "active": {
+            "type": "boolean",
+            "description": "Is active"
+        },
+        "status": {
+            "type": "string",
+            "description": "Status"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

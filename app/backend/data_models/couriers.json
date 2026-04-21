@@ -1,0 +1,33 @@
+{
+    "title": "couriers",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "name": {
+            "type": "string",
+            "description": "Courier name"
+        },
+        "phone": {
+            "type": "string",
+            "description": "Phone"
+        },
+        "is_active": {
+            "type": "boolean",
+            "description": "Is active"
+        },
+        "pin_code": {
+            "type": "string",
+            "description": "PIN code"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

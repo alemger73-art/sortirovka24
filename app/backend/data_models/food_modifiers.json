@@ -1,0 +1,31 @@
+{
+    "title": "food_modifiers",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "name": {
+            "type": "string",
+            "description": "Modifier name e.g. cheese, double meat"
+        },
+        "price": {
+            "type": "integer",
+            "description": "Additional price in tenge"
+        },
+        "is_active": {
+            "type": "boolean",
+            "description": "Is active"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation date"
+        }
+    },
+    "required": [
+        "id",
+        "name",
+        "price"
+    ]
+}

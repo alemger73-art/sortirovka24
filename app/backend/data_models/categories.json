@@ -1,0 +1,53 @@
+{
+    "title": "categories",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "name": {
+            "type": "string",
+            "description": "Category name"
+        },
+        "slug": {
+            "type": "string",
+            "description": "URL slug"
+        },
+        "cat_type": {
+            "type": "string",
+            "description": "Category type"
+        },
+        "icon": {
+            "type": "string",
+            "description": "Icon"
+        },
+        "description": {
+            "type": "string",
+            "description": "Description"
+        },
+        "parent_id": {
+            "type": "integer",
+            "description": "Parent category ID"
+        },
+        "sort_order": {
+            "type": "integer",
+            "description": "Sort order"
+        },
+        "show_on_main": {
+            "type": "boolean",
+            "description": "Show on main page"
+        },
+        "is_active": {
+            "type": "boolean",
+            "description": "Is active"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

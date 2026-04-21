@@ -1,0 +1,44 @@
+{
+    "title": "banners",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "banner_title": {
+            "type": "string",
+            "description": "Banner title"
+        },
+        "banner_text": {
+            "type": "string",
+            "description": "Banner text"
+        },
+        "image_url": {
+            "type": "string",
+            "description": "Banner image URL"
+        },
+        "link_url": {
+            "type": "string",
+            "description": "Click URL"
+        },
+        "banner_type": {
+            "type": "string",
+            "description": "Type: food_delivery/shop"
+        },
+        "active": {
+            "type": "boolean",
+            "description": "Is active"
+        },
+        "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Created date"
+        }
+    },
+    "required": [
+        "id",
+        "banner_title",
+        "banner_type"
+    ]
+}

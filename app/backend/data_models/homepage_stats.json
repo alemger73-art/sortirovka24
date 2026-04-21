@@ -1,0 +1,33 @@
+{
+    "title": "homepage_stats",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "masters_count": {
+            "type": "integer",
+            "description": "Masters count"
+        },
+        "ads_count": {
+            "type": "integer",
+            "description": "Ads count"
+        },
+        "cafes_count": {
+            "type": "integer",
+            "description": "Cafes count"
+        },
+        "is_auto": {
+            "type": "boolean",
+            "description": "Is auto-calculated"
+        },
+        "updated_at": {
+            "type": "string",
+            "description": "Last updated"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

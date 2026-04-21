@@ -1,0 +1,25 @@
+{
+    "title": "food_settings",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "setting_key": {
+            "type": "string",
+            "description": "Setting key"
+        },
+        "setting_value": {
+            "type": "string",
+            "description": "Setting value"
+        },
+        "is_active": {
+            "type": "boolean",
+            "description": "Is active"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

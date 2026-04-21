@@ -1,0 +1,1382 @@
+2026-03-23 03:14:55,863 - main - INFO - === Logging system initialized ===
+2026-03-23 03:14:55,863 - main - INFO - Log file: logs/app_20260323_031455.log
+2026-03-23 03:14:55,863 - main - INFO - Log level: INFO
+2026-03-23 03:14:55,863 - main - INFO - Timestamp: 20260323_031455
+2026-03-23 03:14:56,729 - main - INFO - Included router: routers.aihub.router
+2026-03-23 03:14:56,783 - main - INFO - Included router: routers.announcements.router
+2026-03-23 03:14:56,803 - main - INFO - Included router: routers.auth.router
+2026-03-23 03:14:56,852 - main - INFO - Included router: routers.banners.router
+2026-03-23 03:14:57,012 - main - INFO - Included router: routers.become_master_requests.router
+2026-03-23 03:14:57,078 - main - INFO - Included router: routers.categories.router
+2026-03-23 03:14:57,121 - main - INFO - Included router: routers.complaints.router
+2026-03-23 03:14:57,123 - main - WARNING - Failed to import module 'routers.debug_schema': cannot import name 'async_engine' from 'core.database' (/workspace/app/backend/core/database.py)
+2026-03-23 03:14:57,166 - main - INFO - Included router: routers.directory_entries.router
+2026-03-23 03:14:57,208 - main - INFO - Included router: routers.food_categories.router
+2026-03-23 03:14:57,246 - main - INFO - Included router: routers.food_item_modifiers.router
+2026-03-23 03:14:57,293 - main - INFO - Included router: routers.food_items.router
+2026-03-23 03:14:57,333 - main - INFO - Included router: routers.food_modifiers.router
+2026-03-23 03:14:57,378 - main - INFO - Included router: routers.food_orders.router
+2026-03-23 03:14:57,414 - main - INFO - Included router: routers.food_settings.router
+2026-03-23 03:14:57,438 - main - INFO - Included router: routers.frontpad.router
+2026-03-23 03:14:57,477 - main - INFO - Included router: routers.frontpad_settings.router
+2026-03-23 03:14:57,529 - main - INFO - Included router: routers.frontpad_sync_log.router
+2026-03-23 03:14:57,532 - main - INFO - Included router: routers.health.router
+2026-03-23 03:14:57,583 - main - INFO - Included router: routers.history_events.router
+2026-03-23 03:14:57,713 - main - INFO - Included router: routers.homepage_stats.router
+2026-03-23 03:14:57,761 - main - INFO - Included router: routers.inspectors.router
+2026-03-23 03:14:57,799 - main - INFO - Included router: routers.item_modifier_groups.router
+2026-03-23 03:14:57,855 - main - INFO - Included router: routers.jobs.router
+2026-03-23 03:14:57,917 - main - INFO - Included router: routers.master_requests.router
+2026-03-23 03:14:57,975 - main - INFO - Included router: routers.masters.router
+2026-03-23 03:14:58,039 - main - INFO - Included router: routers.modifier_groups.router
+2026-03-23 03:14:58,096 - main - INFO - Included router: routers.modifier_options.router
+2026-03-23 03:14:58,156 - main - INFO - Included router: routers.news.router
+2026-03-23 03:14:58,207 - main - INFO - Included router: routers.question_answers.router
+2026-03-23 03:14:58,249 - main - INFO - Included router: routers.questions.router
+2026-03-23 03:14:58,308 - main - INFO - Included router: routers.real_estate.router
+2026-03-23 03:14:58,421 - main - INFO - Included router: routers.settings.router
+2026-03-23 03:14:58,454 - main - INFO - Included router: routers.storage.router
+2026-03-23 03:14:58,477 - main - INFO - Included router: routers.telegram.router
+2026-03-23 03:14:58,485 - main - INFO - Included router: routers.user.router
+2026-03-23 03:14:58,525 - main - INFO - Included router: routers.user_preferences.router
+2026-03-23 03:14:58,526 - main - INFO - === Application startup initiated ===
+2026-03-23 03:14:58,526 - services.database - INFO - Ignore creating tables
+2026-03-23 03:14:58,526 - services.mock_data - INFO - Ignore initialize data
+2026-03-23 03:14:58,527 - services.auth - INFO - Ignore initialize admin
+2026-03-23 03:14:58,527 - main - INFO - === Application startup completed successfully ===
+2026-03-23 03:15:02,688 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:15:02,688 - core.database - WARNING - Database session maker not available, attempting lazy initialization...
+2026-03-23 03:15:02,688 - core.database - WARNING - Database not initialized, attempting lazy initialization...
+2026-03-23 03:15:02,689 - core.database - INFO - Starting database initialization...
+2026-03-23 03:15:02,689 - core.config - DEBUG - Read dynamic attribute database_url from environment variable DATABASE_URL
+2026-03-23 03:15:02,689 - core.database - INFO - Normalizing database URL for async compatibility...
+2026-03-23 03:15:02,690 - core.database - INFO - Creating async database engine...
+2026-03-23 03:15:02,690 - core.database - INFO - Using QueuePool with connection pooling for non-Lambda environment
+2026-03-23 03:15:02,740 - core.database - INFO - Database engine created successfully
+2026-03-23 03:15:02,740 - core.database - INFO - Creating async session maker...
+2026-03-23 03:15:02,740 - core.database - INFO - Async session maker created successfully
+2026-03-23 03:15:02,740 - core.database - INFO - Database connection initialized successfully
+2026-03-23 03:15:02,741 - core.database - DEBUG - [DB_OP] Starting create_tables
+2026-03-23 03:15:02,741 - core.database - INFO - 🔧 Starting table creation...
+2026-03-23 03:15:02,747 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:15:02,747 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-23 03:15:02,748 - routers.announcements - DEBUG - Querying announcementss: query={"active":true,"status":"approved"}, sort=-created_at, skip=0, limit=6, fields=None
+2026-03-23 03:15:02,753 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:15:02,754 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-23 03:15:02,754 - routers.jobs - DEBUG - Querying jobss: query={"active":true}, sort=-created_at, skip=0, limit=6, fields=None
+2026-03-23 03:15:02,760 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:15:02,761 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-23 03:15:02,763 - routers.master_requests - DEBUG - Querying master_requestss: query=None, sort=-created_at, skip=0, limit=6, fields=None
+2026-03-23 03:15:02,768 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:15:02,769 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-23 03:15:02,769 - routers.food_categories - DEBUG - Querying food_categoriess: query=None, sort=None, skip=0, limit=1, fields=None
+2026-03-23 03:15:02,774 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:15:02,774 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-23 03:15:02,774 - routers.categories - DEBUG - Querying categoriess: query=None, sort=sort_order, skip=0, limit=200, fields=None
+2026-03-23 03:15:02,779 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:15:02,779 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-23 03:15:02,780 - routers.complaints - DEBUG - Querying complaintss: query=None, sort=-created_at, skip=0, limit=6, fields=None
+2026-03-23 03:15:02,785 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:15:02,785 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-23 03:15:02,785 - routers.banners - DEBUG - Querying bannerss: query={"active":true}, sort=None, skip=0, limit=4, fields=None
+2026-03-23 03:15:02,790 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:15:02,790 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-23 03:15:02,790 - routers.homepage_stats - DEBUG - Querying homepage_statss: query=None, sort=None, skip=0, limit=1, fields=None
+2026-03-23 03:15:02,794 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:15:02,795 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-23 03:15:02,795 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=6, fields=None
+2026-03-23 03:15:02,798 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:15:02,798 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-23 03:15:02,798 - routers.announcements - DEBUG - Querying announcementss: query={"active":true,"status":"approved"}, sort=None, skip=0, limit=1, fields=None
+2026-03-23 03:15:02,821 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:15:02,822 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-23 03:15:02,822 - routers.food_items - DEBUG - Querying food_itemss: query=None, sort=sort_order, skip=0, limit=200, fields=None
+2026-03-23 03:15:04,241 - routers.master_requests - DEBUG - Found 12 master_requestss
+2026-03-23 03:15:04,242 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.4819s
+2026-03-23 03:15:04,243 - routers.jobs - DEBUG - Found 5 jobss
+2026-03-23 03:15:04,244 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.4904s
+2026-03-23 03:15:04,249 - routers.complaints - DEBUG - Found 11 complaintss
+2026-03-23 03:15:04,249 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.4705s
+2026-03-23 03:15:04,250 - routers.announcements - DEBUG - Found 1 announcementss
+2026-03-23 03:15:04,251 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.5042s
+2026-03-23 03:15:04,255 - routers.banners - DEBUG - Found 2 bannerss
+2026-03-23 03:15:04,255 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.4709s
+2026-03-23 03:15:04,256 - services.food_items - ERROR - Error fetching food_items list: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-23 03:15:04,257 - routers.food_items - ERROR - Error querying food_itemss: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column food_items.frontpad_id does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/food_items.py", line 118, in query_food_itemss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/food_items.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-23 03:15:04,266 - core.database - ERROR - Database session error: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column food_items.frontpad_id does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/food_items.py", line 118, in query_food_itemss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/food_items.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/food_items.py", line 130, in query_food_itemss
+    raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-23 03:15:04,269 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.4478s
+2026-03-23 03:15:04,270 - routers.news - DEBUG - Found 10 newss
+2026-03-23 03:15:04,273 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.4782s
+2026-03-23 03:15:04,273 - routers.announcements - DEBUG - Found 1 announcementss
+2026-03-23 03:15:04,274 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.4760s
+2026-03-23 03:15:04,274 - routers.homepage_stats - DEBUG - Found 1 homepage_statss
+2026-03-23 03:15:04,274 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.4846s
+2026-03-23 03:15:04,276 - routers.food_categories - DEBUG - Found 6 food_categoriess
+2026-03-23 03:15:04,276 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.5081s
+2026-03-23 03:15:04,308 - routers.categories - DEBUG - Found 45 categoriess
+2026-03-23 03:15:04,310 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.5364s
+2026-03-23 03:15:04,334 - core.database - ERROR - Failed to create database session: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column food_items.frontpad_id does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/food_items.py", line 118, in query_food_itemss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/food_items.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/food_items.py", line 130, in query_food_itemss
+    raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-23 03:15:05,739 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:15:05,739 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0009s
+2026-03-23 03:15:05,741 - routers.news - DEBUG - Querying newss: query=None, sort=-created_at, skip=0, limit=100, fields=None
+2026-03-23 03:15:05,832 - core.database - INFO - Tables initialized successfully
+2026-03-23 03:15:05,832 - core.database - DEBUG - [DB_OP] Create tables completed in 3.0913s
+2026-03-23 03:15:05,891 - core.database - INFO - Lazy database initialization completed successfully
+2026-03-23 03:15:05,891 - core.database - DEBUG - [DB_OP] Database session created successfully in 3.2032s
+2026-03-23 03:15:05,892 - routers.masters - DEBUG - Querying masterss: query=None, sort=None, skip=0, limit=1, fields=None
+2026-03-23 03:15:06,321 - routers.news - DEBUG - Found 10 newss
+2026-03-23 03:15:06,322 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5832s
+2026-03-23 03:15:06,420 - routers.masters - DEBUG - Found 8 masterss
+2026-03-23 03:15:06,421 - core.database - DEBUG - [DB_OP] Database session cleanup after 3.7331s
+2026-03-23 03:15:06,658 - core.config - DEBUG - Read dynamic attribute jwt_secret_key from environment variable JWT_SECRET_KEY
+2026-03-23 03:15:06,658 - core.config - DEBUG - Read dynamic attribute jwt_algorithm from environment variable JWT_ALGORITHM
+2026-03-23 03:15:06,668 - core.auth - DEBUG - Authentication token validated for user hash: 1b536645
+2026-03-23 03:15:06,668 - core.config - DEBUG - Read dynamic attribute oss_service_url from environment variable OSS_SERVICE_URL
+2026-03-23 03:15:06,668 - core.config - DEBUG - Read dynamic attribute oss_api_key from environment variable OSS_API_KEY
+2026-03-23 03:15:06,750 - httpcore.connection - DEBUG - connect_tcp.started host='atoms.dev' port=443 local_address=None timeout=120.0 socket_options=None
+2026-03-23 03:15:06,751 - core.auth - DEBUG - Authentication token validated for user hash: 1b536645
+2026-03-23 03:15:06,781 - httpcore.connection - DEBUG - connect_tcp.started host='atoms.dev' port=443 local_address=None timeout=120.0 socket_options=None
+2026-03-23 03:15:06,783 - core.auth - DEBUG - Authentication token validated for user hash: 1b536645
+2026-03-23 03:15:06,812 - httpcore.connection - DEBUG - connect_tcp.started host='atoms.dev' port=443 local_address=None timeout=120.0 socket_options=None
+2026-03-23 03:15:06,815 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f4e8f0d95a0>
+2026-03-23 03:15:06,815 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x7f4e884ee0c0> server_hostname='atoms.dev' timeout=120.0
+2026-03-23 03:15:06,815 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f4e887c2980>
+2026-03-23 03:15:06,816 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x7f4e884ee040> server_hostname='atoms.dev' timeout=120.0
+2026-03-23 03:15:06,820 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f4e8f0daf80>
+2026-03-23 03:15:06,820 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x7f4e884ee240> server_hostname='atoms.dev' timeout=120.0
+2026-03-23 03:15:06,824 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f4e887c2b30>
+2026-03-23 03:15:06,826 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2026-03-23 03:15:06,827 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f4e887c26e0>
+2026-03-23 03:15:06,829 - httpcore.http11 - DEBUG - send_request_headers.complete
+2026-03-23 03:15:06,829 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2026-03-23 03:15:06,829 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2026-03-23 03:15:06,830 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f4e8f0dad10>
+2026-03-23 03:15:06,830 - httpcore.http11 - DEBUG - send_request_body.complete
+2026-03-23 03:15:06,830 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2026-03-23 03:15:06,831 - httpcore.http11 - DEBUG - send_request_headers.complete
+2026-03-23 03:15:06,831 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2026-03-23 03:15:06,831 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2026-03-23 03:15:06,831 - httpcore.http11 - DEBUG - send_request_body.complete
+2026-03-23 03:15:06,831 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2026-03-23 03:15:06,832 - httpcore.http11 - DEBUG - send_request_headers.complete
+2026-03-23 03:15:06,832 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2026-03-23 03:15:06,832 - httpcore.http11 - DEBUG - send_request_body.complete
+2026-03-23 03:15:06,832 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2026-03-23 03:15:06,855 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Mon, 23 Mar 2026 10:15:06 GMT'), (b'Content-Type', b'application/json; charset=utf-8'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Access-Control-Allow-Headers', b'Origin, Content-Type, Accept, Authorization'), (b'Access-Control-Allow-Methods', b'GET, POST, PUT, DELETE, OPTIONS'), (b'Access-Control-Allow-Origin', b'*'), (b'Access-Control-Max-Age', b'86400'), (b'X-Request-Id', b'ff4a1abd5f77476d3e3e4b0fd854ae2b'), (b'X-Trace-Id', b'7a7e958bd48846739731b6bea9215975'), (b'Content-Security-Policy', b"frame-ancestors 'self' https://atoms.dev"), (b'Strict-Transport-Security', b'max-age=63072000; includeSubDomains; preload'), (b'X-Content-Type-Options', b'nosniff'), (b'X-XSS-Protection', b'1; mode=block'), (b'Referrer-Policy', b'strict-origin-when-cross-origin'), (b'cf-cache-status', b'DYNAMIC'), (b'Content-Encoding', b'gzip'), (b'Server', b'cloudflare'), (b'CF-RAY', b'9e0cac4bbd39cba4-LAX')])
+2026-03-23 03:15:06,857 - httpx - INFO - HTTP Request: POST https://atoms.dev/api/v1/infra/client/oss/buckets/portal-images/objects/download_url "HTTP/1.1 200 OK"
+2026-03-23 03:15:06,857 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2026-03-23 03:15:06,858 - httpcore.http11 - DEBUG - receive_response_body.complete
+2026-03-23 03:15:06,858 - httpcore.http11 - DEBUG - response_closed.started
+2026-03-23 03:15:06,859 - httpcore.http11 - DEBUG - response_closed.complete
+2026-03-23 03:15:06,859 - httpcore.connection - DEBUG - close.started
+2026-03-23 03:15:06,860 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Mon, 23 Mar 2026 10:15:06 GMT'), (b'Content-Type', b'application/json; charset=utf-8'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Access-Control-Allow-Headers', b'Origin, Content-Type, Accept, Authorization'), (b'Access-Control-Allow-Methods', b'GET, POST, PUT, DELETE, OPTIONS'), (b'Access-Control-Allow-Origin', b'*'), (b'Access-Control-Max-Age', b'86400'), (b'X-Request-Id', b'b7e2227a32fe5568c67c796f4dfb5981'), (b'X-Trace-Id', b'10585ba4676f449cb6495488f6525e65'), (b'Content-Security-Policy', b"frame-ancestors 'self' https://atoms.dev"), (b'Strict-Transport-Security', b'max-age=63072000; includeSubDomains; preload'), (b'X-Content-Type-Options', b'nosniff'), (b'X-XSS-Protection', b'1; mode=block'), (b'Referrer-Policy', b'strict-origin-when-cross-origin'), (b'cf-cache-status', b'DYNAMIC'), (b'Content-Encoding', b'gzip'), (b'Server', b'cloudflare'), (b'CF-RAY', b'9e0cac4bba057a17-LAX')])
+2026-03-23 03:15:06,860 - httpx - INFO - HTTP Request: POST https://atoms.dev/api/v1/infra/client/oss/buckets/portal-images/objects/download_url "HTTP/1.1 200 OK"
+2026-03-23 03:15:06,860 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2026-03-23 03:15:06,861 - httpcore.http11 - DEBUG - receive_response_body.complete
+2026-03-23 03:15:06,861 - httpcore.http11 - DEBUG - response_closed.started
+2026-03-23 03:15:06,861 - httpcore.connection - DEBUG - close.complete
+2026-03-23 03:15:06,862 - httpcore.http11 - DEBUG - response_closed.complete
+2026-03-23 03:15:06,862 - httpcore.connection - DEBUG - close.started
+2026-03-23 03:15:06,863 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Mon, 23 Mar 2026 10:15:06 GMT'), (b'Content-Type', b'application/json; charset=utf-8'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Access-Control-Allow-Headers', b'Origin, Content-Type, Accept, Authorization'), (b'Access-Control-Allow-Methods', b'GET, POST, PUT, DELETE, OPTIONS'), (b'Access-Control-Allow-Origin', b'*'), (b'Access-Control-Max-Age', b'86400'), (b'X-Request-Id', b'c3c2180d3a48988b604c64b69a015757'), (b'X-Trace-Id', b'd55243a3d4f84ff4b4f3036a1de92ce2'), (b'Content-Security-Policy', b"frame-ancestors 'self' https://atoms.dev"), (b'Strict-Transport-Security', b'max-age=63072000; includeSubDomains; preload'), (b'X-Content-Type-Options', b'nosniff'), (b'X-XSS-Protection', b'1; mode=block'), (b'Referrer-Policy', b'strict-origin-when-cross-origin'), (b'cf-cache-status', b'DYNAMIC'), (b'Content-Encoding', b'gzip'), (b'Server', b'cloudflare'), (b'CF-RAY', b'9e0cac4bb83e2b81-LAX')])
+2026-03-23 03:15:06,863 - httpx - INFO - HTTP Request: POST https://atoms.dev/api/v1/infra/client/oss/buckets/portal-images/objects/download_url "HTTP/1.1 200 OK"
+2026-03-23 03:15:06,864 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2026-03-23 03:15:06,864 - httpcore.http11 - DEBUG - receive_response_body.complete
+2026-03-23 03:15:06,864 - httpcore.http11 - DEBUG - response_closed.started
+2026-03-23 03:15:06,864 - httpcore.connection - DEBUG - close.complete
+2026-03-23 03:15:06,865 - httpcore.http11 - DEBUG - response_closed.complete
+2026-03-23 03:15:06,865 - httpcore.connection - DEBUG - close.started
+2026-03-23 03:15:06,866 - httpcore.connection - DEBUG - close.complete
+2026-03-23 03:16:19,963 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:16:19,964 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-23 03:16:19,965 - routers.master_requests - DEBUG - Querying master_requestss: query=None, sort=-created_at, skip=0, limit=6, fields=None
+2026-03-23 03:16:19,967 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:16:19,968 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-23 03:16:19,968 - routers.banners - DEBUG - Querying bannerss: query={"active":true}, sort=None, skip=0, limit=4, fields=None
+2026-03-23 03:16:19,970 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:16:19,971 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-23 03:16:19,971 - routers.jobs - DEBUG - Querying jobss: query={"active":true}, sort=-created_at, skip=0, limit=6, fields=None
+2026-03-23 03:16:19,977 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:16:19,978 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0009s
+2026-03-23 03:16:19,978 - routers.food_categories - DEBUG - Querying food_categoriess: query=None, sort=None, skip=0, limit=1, fields=None
+2026-03-23 03:16:19,979 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:16:19,979 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-23 03:16:19,980 - routers.categories - DEBUG - Querying categoriess: query=None, sort=sort_order, skip=0, limit=200, fields=None
+2026-03-23 03:16:19,980 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:16:19,981 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0001s
+2026-03-23 03:16:19,981 - routers.homepage_stats - DEBUG - Querying homepage_statss: query=None, sort=None, skip=0, limit=1, fields=None
+2026-03-23 03:16:19,981 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:16:19,982 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0001s
+2026-03-23 03:16:19,982 - routers.announcements - DEBUG - Querying announcementss: query={"active":true,"status":"approved"}, sort=None, skip=0, limit=1, fields=None
+2026-03-23 03:16:19,983 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:16:19,983 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0001s
+2026-03-23 03:16:19,983 - routers.announcements - DEBUG - Querying announcementss: query={"active":true,"status":"approved"}, sort=-created_at, skip=0, limit=6, fields=None
+2026-03-23 03:16:19,984 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:16:19,984 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0001s
+2026-03-23 03:16:19,984 - routers.masters - DEBUG - Querying masterss: query=None, sort=None, skip=0, limit=1, fields=None
+2026-03-23 03:16:19,986 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:16:19,990 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0036s
+2026-03-23 03:16:19,990 - routers.complaints - DEBUG - Querying complaintss: query=None, sort=-created_at, skip=0, limit=6, fields=None
+2026-03-23 03:16:19,992 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:16:19,992 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-23 03:16:19,993 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=6, fields=None
+2026-03-23 03:16:20,033 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:16:20,034 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0007s
+2026-03-23 03:16:20,035 - routers.food_items - DEBUG - Querying food_itemss: query=None, sort=sort_order, skip=0, limit=200, fields=None
+2026-03-23 03:16:20,458 - routers.complaints - DEBUG - Found 11 complaintss
+2026-03-23 03:16:20,459 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4724s
+2026-03-23 03:16:20,512 - routers.master_requests - DEBUG - Found 12 master_requestss
+2026-03-23 03:16:20,513 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5491s
+2026-03-23 03:16:20,514 - routers.food_categories - DEBUG - Found 6 food_categoriess
+2026-03-23 03:16:20,515 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5380s
+2026-03-23 03:16:20,518 - routers.jobs - DEBUG - Found 5 jobss
+2026-03-23 03:16:20,519 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5487s
+2026-03-23 03:16:20,520 - routers.homepage_stats - DEBUG - Found 1 homepage_statss
+2026-03-23 03:16:20,522 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5413s
+2026-03-23 03:16:20,523 - routers.banners - DEBUG - Found 2 bannerss
+2026-03-23 03:16:20,524 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5568s
+2026-03-23 03:16:20,525 - routers.announcements - DEBUG - Found 1 announcementss
+2026-03-23 03:16:20,526 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5442s
+2026-03-23 03:16:20,526 - routers.masters - DEBUG - Found 8 masterss
+2026-03-23 03:16:20,528 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5435s
+2026-03-23 03:16:20,529 - routers.announcements - DEBUG - Found 1 announcementss
+2026-03-23 03:16:20,530 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5469s
+2026-03-23 03:16:20,575 - routers.categories - DEBUG - Found 45 categoriess
+2026-03-23 03:16:20,577 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5974s
+2026-03-23 03:16:20,706 - routers.news - DEBUG - Found 10 newss
+2026-03-23 03:16:20,707 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.7149s
+2026-03-23 03:16:20,738 - services.food_items - ERROR - Error fetching food_items list: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-23 03:16:20,739 - routers.food_items - ERROR - Error querying food_itemss: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column food_items.frontpad_id does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/food_items.py", line 118, in query_food_itemss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/food_items.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-23 03:16:20,741 - core.database - ERROR - Database session error: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column food_items.frontpad_id does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/food_items.py", line 118, in query_food_itemss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/food_items.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/food_items.py", line 130, in query_food_itemss
+    raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-23 03:16:20,742 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.7082s
+2026-03-23 03:16:20,862 - core.database - ERROR - Failed to create database session: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column food_items.frontpad_id does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/food_items.py", line 118, in query_food_itemss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/food_items.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/food_items.py", line 130, in query_food_itemss
+    raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-23 03:17:44,618 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:17:44,618 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-23 03:17:44,618 - routers.categories - DEBUG - Querying categoriess: query=None, sort=sort_order, skip=0, limit=200, fields=None
+2026-03-23 03:17:44,620 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:17:44,620 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-23 03:17:44,620 - routers.master_requests - DEBUG - Querying master_requestss: query=None, sort=-created_at, skip=0, limit=6, fields=None
+2026-03-23 03:17:44,621 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:17:44,622 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-23 03:17:44,622 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=6, fields=None
+2026-03-23 03:17:44,623 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:17:44,623 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-23 03:17:44,623 - routers.complaints - DEBUG - Querying complaintss: query=None, sort=-created_at, skip=0, limit=6, fields=None
+2026-03-23 03:17:44,624 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:17:44,624 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0001s
+2026-03-23 03:17:44,624 - routers.announcements - DEBUG - Querying announcementss: query={"active":true,"status":"approved"}, sort=-created_at, skip=0, limit=6, fields=None
+2026-03-23 03:17:44,625 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:17:44,625 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-23 03:17:44,626 - routers.jobs - DEBUG - Querying jobss: query={"active":true}, sort=-created_at, skip=0, limit=6, fields=None
+2026-03-23 03:17:44,968 - routers.master_requests - DEBUG - Found 12 master_requestss
+2026-03-23 03:17:44,970 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.3500s
+2026-03-23 03:17:44,977 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:17:44,977 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-23 03:17:44,978 - routers.banners - DEBUG - Querying bannerss: query={"active":true}, sort=None, skip=0, limit=4, fields=None
+2026-03-23 03:17:45,033 - routers.announcements - DEBUG - Found 1 announcementss
+2026-03-23 03:17:45,037 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4127s
+2026-03-23 03:17:45,047 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:17:45,048 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0007s
+2026-03-23 03:17:45,048 - routers.homepage_stats - DEBUG - Querying homepage_statss: query=None, sort=None, skip=0, limit=1, fields=None
+2026-03-23 03:17:45,087 - routers.complaints - DEBUG - Found 11 complaintss
+2026-03-23 03:17:45,088 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4650s
+2026-03-23 03:17:45,089 - routers.news - DEBUG - Found 10 newss
+2026-03-23 03:17:45,089 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4677s
+2026-03-23 03:17:45,098 - routers.jobs - DEBUG - Found 5 jobss
+2026-03-23 03:17:45,100 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4742s
+2026-03-23 03:17:45,142 - routers.categories - DEBUG - Found 45 categoriess
+2026-03-23 03:17:45,143 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5252s
+2026-03-23 03:17:45,454 - routers.banners - DEBUG - Found 2 bannerss
+2026-03-23 03:17:45,455 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4776s
+2026-03-23 03:17:45,522 - routers.homepage_stats - DEBUG - Found 1 homepage_statss
+2026-03-23 03:17:45,522 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4750s
+2026-03-23 03:17:45,533 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:17:45,533 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-23 03:17:45,534 - routers.masters - DEBUG - Querying masterss: query=None, sort=None, skip=0, limit=1, fields=None
+2026-03-23 03:17:45,534 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:17:45,535 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-23 03:17:45,535 - routers.announcements - DEBUG - Querying announcementss: query={"active":true,"status":"approved"}, sort=None, skip=0, limit=1, fields=None
+2026-03-23 03:17:45,536 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:17:45,536 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-23 03:17:45,536 - routers.food_categories - DEBUG - Querying food_categoriess: query=None, sort=None, skip=0, limit=1, fields=None
+2026-03-23 03:17:46,001 - routers.food_categories - DEBUG - Found 6 food_categoriess
+2026-03-23 03:17:46,002 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4660s
+2026-03-23 03:17:46,003 - routers.announcements - DEBUG - Found 1 announcementss
+2026-03-23 03:17:46,004 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4694s
+2026-03-23 03:17:46,006 - routers.masters - DEBUG - Found 8 masterss
+2026-03-23 03:17:46,007 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4741s
+2026-03-23 03:17:46,051 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:17:46,052 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0012s
+2026-03-23 03:17:46,053 - routers.food_categories - DEBUG - Querying food_categoriess: query=None, sort=sort_order, skip=0, limit=50, fields=None
+2026-03-23 03:17:46,055 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:17:46,055 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-23 03:17:46,055 - routers.food_items - DEBUG - Querying food_itemss: query=None, sort=sort_order, skip=0, limit=200, fields=None
+2026-03-23 03:17:46,056 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:17:46,056 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-23 03:17:46,056 - routers.masters - DEBUG - Querying masterss: query=None, sort=-rating, skip=0, limit=50, fields=None
+2026-03-23 03:17:46,057 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:17:46,058 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-23 03:17:46,058 - routers.announcements - DEBUG - Querying announcementss: query={"active":true,"status":"approved"}, sort=-created_at, skip=0, limit=50, fields=None
+2026-03-23 03:17:46,407 - routers.announcements - DEBUG - Found 1 announcementss
+2026-03-23 03:17:46,408 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.3509s
+2026-03-23 03:17:46,461 - services.food_items - ERROR - Error fetching food_items list: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-23 03:17:46,461 - routers.food_items - ERROR - Error querying food_itemss: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column food_items.frontpad_id does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/food_items.py", line 118, in query_food_itemss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/food_items.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-23 03:17:46,465 - core.database - ERROR - Database session error: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column food_items.frontpad_id does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/food_items.py", line 118, in query_food_itemss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/food_items.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/food_items.py", line 130, in query_food_itemss
+    raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-23 03:17:46,466 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4114s
+2026-03-23 03:17:46,524 - core.database - ERROR - Failed to create database session: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column food_items.frontpad_id does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/food_items.py", line 118, in query_food_itemss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/food_items.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/food_items.py", line 130, in query_food_itemss
+    raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column food_items.frontpad_id does not exist
+[SQL: SELECT food_items.id, food_items.category_id, food_items.name, food_items.description, food_items.price, food_items.image_url, food_items.is_active, food_items.is_recommended, food_items.weight, food_items.sort_order, food_items.created_at, food_items.frontpad_id, food_items.photo_locked 
+FROM food_items ORDER BY food_items.sort_order 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (200, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-23 03:17:46,526 - routers.masters - DEBUG - Found 8 masterss
+2026-03-23 03:17:46,527 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4712s
+2026-03-23 03:17:46,528 - routers.food_categories - DEBUG - Found 6 food_categoriess
+2026-03-23 03:17:46,529 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4776s
+2026-03-23 03:18:13,306 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:18:13,307 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-23 03:18:13,307 - routers.news - DEBUG - Querying newss: query=None, sort=-created_at, skip=0, limit=100, fields=None
+2026-03-23 03:18:13,711 - routers.news - DEBUG - Found 10 newss
+2026-03-23 03:18:13,712 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4053s
+2026-03-23 03:18:14,058 - core.auth - DEBUG - Authentication token validated for user hash: 1b536645
+2026-03-23 03:18:14,099 - httpcore.connection - DEBUG - connect_tcp.started host='atoms.dev' port=443 local_address=None timeout=120.0 socket_options=None
+2026-03-23 03:18:14,101 - core.auth - DEBUG - Authentication token validated for user hash: 1b536645
+2026-03-23 03:18:14,130 - httpcore.connection - DEBUG - connect_tcp.started host='atoms.dev' port=443 local_address=None timeout=120.0 socket_options=None
+2026-03-23 03:18:14,131 - core.auth - DEBUG - Authentication token validated for user hash: 1b536645
+2026-03-23 03:18:14,159 - httpcore.connection - DEBUG - connect_tcp.started host='atoms.dev' port=443 local_address=None timeout=120.0 socket_options=None
+2026-03-23 03:18:14,162 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f4e8f0f8f70>
+2026-03-23 03:18:14,162 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x7f4e884eec40> server_hostname='atoms.dev' timeout=120.0
+2026-03-23 03:18:14,163 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f4e8f0fae60>
+2026-03-23 03:18:14,163 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x7f4e884ef5c0> server_hostname='atoms.dev' timeout=120.0
+2026-03-23 03:18:14,169 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f4e8f0f9f90>
+2026-03-23 03:18:14,172 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2026-03-23 03:18:14,173 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f4e8f0fb010>
+2026-03-23 03:18:14,173 - httpcore.http11 - DEBUG - send_request_headers.complete
+2026-03-23 03:18:14,173 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2026-03-23 03:18:14,174 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2026-03-23 03:18:14,174 - httpcore.http11 - DEBUG - send_request_body.complete
+2026-03-23 03:18:14,175 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2026-03-23 03:18:14,175 - httpcore.http11 - DEBUG - send_request_headers.complete
+2026-03-23 03:18:14,175 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2026-03-23 03:18:14,176 - httpcore.http11 - DEBUG - send_request_body.complete
+2026-03-23 03:18:14,176 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2026-03-23 03:18:14,179 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f4e8f0f8af0>
+2026-03-23 03:18:14,179 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x7f4e8f17dbc0> server_hostname='atoms.dev' timeout=120.0
+2026-03-23 03:18:14,187 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f4e8f129b70>
+2026-03-23 03:18:14,188 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2026-03-23 03:18:14,188 - httpcore.http11 - DEBUG - send_request_headers.complete
+2026-03-23 03:18:14,188 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2026-03-23 03:18:14,188 - httpcore.http11 - DEBUG - send_request_body.complete
+2026-03-23 03:18:14,189 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2026-03-23 03:18:14,202 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Mon, 23 Mar 2026 10:18:14 GMT'), (b'Content-Type', b'application/json; charset=utf-8'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Access-Control-Allow-Headers', b'Origin, Content-Type, Accept, Authorization'), (b'Access-Control-Allow-Methods', b'GET, POST, PUT, DELETE, OPTIONS'), (b'Access-Control-Allow-Origin', b'*'), (b'Access-Control-Max-Age', b'86400'), (b'X-Request-Id', b'46b741d763887547791a159f6c59b961'), (b'X-Trace-Id', b'a9375dd7676b412da960de7d05e3eefe'), (b'Content-Security-Policy', b"frame-ancestors 'self' https://atoms.dev"), (b'Strict-Transport-Security', b'max-age=63072000; includeSubDomains; preload'), (b'X-Content-Type-Options', b'nosniff'), (b'X-XSS-Protection', b'1; mode=block'), (b'Referrer-Policy', b'strict-origin-when-cross-origin'), (b'cf-cache-status', b'DYNAMIC'), (b'Content-Encoding', b'gzip'), (b'Server', b'cloudflare'), (b'CF-RAY', b'9e0cb0de9b1ca5f0-LAX')])
+2026-03-23 03:18:14,203 - httpx - INFO - HTTP Request: POST https://atoms.dev/api/v1/infra/client/oss/buckets/portal-images/objects/download_url "HTTP/1.1 200 OK"
+2026-03-23 03:18:14,203 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2026-03-23 03:18:14,204 - httpcore.http11 - DEBUG - receive_response_body.complete
+2026-03-23 03:18:14,204 - httpcore.http11 - DEBUG - response_closed.started
+2026-03-23 03:18:14,204 - httpcore.http11 - DEBUG - response_closed.complete
+2026-03-23 03:18:14,204 - httpcore.connection - DEBUG - close.started
+2026-03-23 03:18:14,205 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Mon, 23 Mar 2026 10:18:14 GMT'), (b'Content-Type', b'application/json; charset=utf-8'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Access-Control-Allow-Headers', b'Origin, Content-Type, Accept, Authorization'), (b'Access-Control-Allow-Methods', b'GET, POST, PUT, DELETE, OPTIONS'), (b'Access-Control-Allow-Origin', b'*'), (b'Access-Control-Max-Age', b'86400'), (b'X-Request-Id', b'a601240d9bdceacf2fad6fdbb8427618'), (b'X-Trace-Id', b'dad26a051f1e4bb28417b2487516e09e'), (b'Content-Security-Policy', b"frame-ancestors 'self' https://atoms.dev"), (b'Strict-Transport-Security', b'max-age=63072000; includeSubDomains; preload'), (b'X-Content-Type-Options', b'nosniff'), (b'X-XSS-Protection', b'1; mode=block'), (b'Referrer-Policy', b'strict-origin-when-cross-origin'), (b'cf-cache-status', b'DYNAMIC'), (b'Content-Encoding', b'gzip'), (b'Server', b'cloudflare'), (b'CF-RAY', b'9e0cb0de99e2d12a-LAX')])
+2026-03-23 03:18:14,205 - httpx - INFO - HTTP Request: POST https://atoms.dev/api/v1/infra/client/oss/buckets/portal-images/objects/download_url "HTTP/1.1 200 OK"
+2026-03-23 03:18:14,205 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2026-03-23 03:18:14,206 - httpcore.http11 - DEBUG - receive_response_body.complete
+2026-03-23 03:18:14,206 - httpcore.http11 - DEBUG - response_closed.started
+2026-03-23 03:18:14,206 - httpcore.connection - DEBUG - close.complete
+2026-03-23 03:18:14,207 - httpcore.http11 - DEBUG - response_closed.complete
+2026-03-23 03:18:14,207 - httpcore.connection - DEBUG - close.started
+2026-03-23 03:18:14,207 - httpcore.connection - DEBUG - close.complete
+2026-03-23 03:18:14,219 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Mon, 23 Mar 2026 10:18:14 GMT'), (b'Content-Type', b'application/json; charset=utf-8'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Access-Control-Allow-Headers', b'Origin, Content-Type, Accept, Authorization'), (b'Access-Control-Allow-Methods', b'GET, POST, PUT, DELETE, OPTIONS'), (b'Access-Control-Allow-Origin', b'*'), (b'Access-Control-Max-Age', b'86400'), (b'X-Request-Id', b'236b22493d6cf297e814b0f5b1bd9264'), (b'X-Trace-Id', b'76d0b0a7f46f4373b1ff030d600130a8'), (b'Content-Security-Policy', b"frame-ancestors 'self' https://atoms.dev"), (b'Strict-Transport-Security', b'max-age=63072000; includeSubDomains; preload'), (b'X-Content-Type-Options', b'nosniff'), (b'X-XSS-Protection', b'1; mode=block'), (b'Referrer-Policy', b'strict-origin-when-cross-origin'), (b'cf-cache-status', b'DYNAMIC'), (b'Content-Encoding', b'gzip'), (b'Server', b'cloudflare'), (b'CF-RAY', b'9e0cb0deaeda69a4-LAX')])
+2026-03-23 03:18:14,219 - httpx - INFO - HTTP Request: POST https://atoms.dev/api/v1/infra/client/oss/buckets/portal-images/objects/download_url "HTTP/1.1 200 OK"
+2026-03-23 03:18:14,219 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2026-03-23 03:18:14,220 - httpcore.http11 - DEBUG - receive_response_body.complete
+2026-03-23 03:18:14,220 - httpcore.http11 - DEBUG - response_closed.started
+2026-03-23 03:18:14,220 - httpcore.http11 - DEBUG - response_closed.complete
+2026-03-23 03:18:14,220 - httpcore.connection - DEBUG - close.started
+2026-03-23 03:18:14,221 - httpcore.connection - DEBUG - close.complete
+2026-03-23 03:18:23,767 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:18:23,767 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-23 03:18:23,769 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:18:23,769 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-23 03:18:24,243 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4756s
+2026-03-23 03:18:24,422 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.6526s
+2026-03-23 03:18:27,575 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:18:27,575 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-23 03:18:28,459 - services.frontpad_settings - INFO - Created frontpad_settings with id: 1
+2026-03-23 03:18:28,871 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.2965s
+2026-03-23 03:18:29,230 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:18:29,231 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-23 03:18:29,641 - httpcore.connection - DEBUG - connect_tcp.started host='app.frontpad.ru' port=443 local_address=None timeout=30.0 socket_options=None
+2026-03-23 03:18:30,123 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f4e8f129b40>
+2026-03-23 03:18:30,124 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x7f4e8f130cc0> server_hostname='app.frontpad.ru' timeout=30.0
+2026-03-23 03:18:30,151 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f4e8f12a560>
+2026-03-23 03:18:30,152 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2026-03-23 03:18:30,154 - httpcore.http11 - DEBUG - send_request_headers.complete
+2026-03-23 03:18:30,154 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2026-03-23 03:18:30,155 - httpcore.http11 - DEBUG - send_request_body.complete
+2026-03-23 03:18:30,156 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2026-03-23 03:18:30,734 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Server', b'QRATOR'), (b'Date', b'Mon, 23 Mar 2026 10:18:30 GMT'), (b'Content-Type', b'text/html; charset=UTF-8'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Keep-Alive', b'timeout=15'), (b'Strict-Transport-Security', b'max-age=31536000;'), (b'Content-Encoding', b'gzip')])
+2026-03-23 03:18:30,735 - httpx - INFO - HTTP Request: POST https://app.frontpad.ru/api/index.php "HTTP/1.1 200 OK"
+2026-03-23 03:18:30,735 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2026-03-23 03:18:30,736 - httpcore.http11 - DEBUG - receive_response_body.complete
+2026-03-23 03:18:30,736 - httpcore.http11 - DEBUG - response_closed.started
+2026-03-23 03:18:30,736 - httpcore.http11 - DEBUG - response_closed.complete
+2026-03-23 03:18:30,737 - httpcore.connection - DEBUG - close.started
+2026-03-23 03:18:30,737 - httpcore.connection - DEBUG - close.complete
+2026-03-23 03:18:30,737 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.5071s
+2026-03-23 03:18:36,722 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:18:36,723 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-23 03:18:37,722 - services.frontpad_settings - INFO - Updated frontpad_settings 1
+2026-03-23 03:18:38,372 - services.frontpad_settings - INFO - Created frontpad_settings with id: 2
+2026-03-23 03:18:39,021 - services.frontpad_settings - INFO - Created frontpad_settings with id: 3
+2026-03-23 03:18:39,433 - core.database - DEBUG - [DB_OP] Database session cleanup after 2.7110s
+2026-03-23 03:18:39,582 - services.database - DEBUG - [DB_OP] Starting database close
+2026-03-23 03:18:40,192 - core.database - INFO - Database connection closed and engine disposed
+2026-03-23 03:18:40,193 - services.database - INFO - Database connections closed
+2026-03-23 03:18:40,193 - services.database - DEBUG - [DB_OP] Database close completed in 0.6114s

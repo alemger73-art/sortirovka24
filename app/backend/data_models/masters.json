@@ -1,0 +1,77 @@
+{
+    "title": "masters",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "name": {
+            "type": "string",
+            "description": "Name"
+        },
+        "category": {
+            "type": "string",
+            "description": "Category"
+        },
+        "phone": {
+            "type": "string",
+            "description": "Phone"
+        },
+        "whatsapp": {
+            "type": "string",
+            "description": "WhatsApp"
+        },
+        "telegram": {
+            "type": "string",
+            "description": "Telegram"
+        },
+        "district": {
+            "type": "string",
+            "description": "District"
+        },
+        "description": {
+            "type": "string",
+            "description": "Description"
+        },
+        "rating": {
+            "type": "number",
+            "description": "Rating"
+        },
+        "reviews_count": {
+            "type": "integer",
+            "description": "Reviews count"
+        },
+        "photo_url": {
+            "type": "string",
+            "description": "Photo URL"
+        },
+        "gallery_images": {
+            "type": "string",
+            "description": "Gallery images"
+        },
+        "verified": {
+            "type": "boolean",
+            "description": "Is verified"
+        },
+        "available_today": {
+            "type": "boolean",
+            "description": "Available today"
+        },
+        "services": {
+            "type": "string",
+            "description": "Services"
+        },
+        "experience_years": {
+            "type": "integer",
+            "description": "Years of experience"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

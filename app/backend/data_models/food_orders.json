@@ -1,0 +1,49 @@
+{
+    "title": "food_orders",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "order_items": {
+            "type": "string",
+            "description": "Order items JSON"
+        },
+        "total_amount": {
+            "type": "number",
+            "description": "Total amount"
+        },
+        "customer_name": {
+            "type": "string",
+            "description": "Customer name"
+        },
+        "customer_phone": {
+            "type": "string",
+            "description": "Customer phone"
+        },
+        "delivery_address": {
+            "type": "string",
+            "description": "Delivery address"
+        },
+        "comment": {
+            "type": "string",
+            "description": "Comment"
+        },
+        "delivery_method": {
+            "type": "string",
+            "description": "Delivery method"
+        },
+        "status": {
+            "type": "string",
+            "description": "Order status"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

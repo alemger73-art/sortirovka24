@@ -1,0 +1,2139 @@
+2026-03-18 07:19:12,773 - main - INFO - === Logging system initialized ===
+2026-03-18 07:19:12,774 - main - INFO - Log file: logs/app_20260318_071912.log
+2026-03-18 07:19:12,774 - main - INFO - Log level: INFO
+2026-03-18 07:19:12,775 - main - INFO - Timestamp: 20260318_071912
+2026-03-18 07:19:13,691 - main - INFO - Included router: routers.aihub.router
+2026-03-18 07:19:13,760 - main - INFO - Included router: routers.announcements.router
+2026-03-18 07:19:13,785 - main - INFO - Included router: routers.auth.router
+2026-03-18 07:19:13,861 - main - INFO - Included router: routers.banners.router
+2026-03-18 07:19:14,045 - main - INFO - Included router: routers.become_master_requests.router
+2026-03-18 07:19:14,138 - main - INFO - Included router: routers.categories.router
+2026-03-18 07:19:14,201 - main - INFO - Included router: routers.complaints.router
+2026-03-18 07:19:14,205 - main - WARNING - Failed to import module 'routers.debug_schema': cannot import name 'async_engine' from 'core.database' (/workspace/app/backend/core/database.py)
+2026-03-18 07:19:14,280 - main - INFO - Included router: routers.directory_entries.router
+2026-03-18 07:19:14,284 - main - INFO - Included router: routers.health.router
+2026-03-18 07:19:14,366 - main - INFO - Included router: routers.jobs.router
+2026-03-18 07:19:14,430 - main - INFO - Included router: routers.master_requests.router
+2026-03-18 07:19:14,520 - main - INFO - Included router: routers.masters.router
+2026-03-18 07:19:14,608 - main - INFO - Included router: routers.news.router
+2026-03-18 07:19:14,668 - main - INFO - Included router: routers.question_answers.router
+2026-03-18 07:19:14,737 - main - INFO - Included router: routers.questions.router
+2026-03-18 07:19:14,766 - main - INFO - Included router: routers.settings.router
+2026-03-18 07:19:14,822 - main - INFO - Included router: routers.storage.router
+2026-03-18 07:19:14,858 - main - INFO - Included router: routers.telegram.router
+2026-03-18 07:19:14,875 - main - INFO - Included router: routers.user.router
+2026-03-18 07:19:14,877 - main - INFO - === Application startup initiated ===
+2026-03-18 07:19:14,878 - services.database - INFO - Ignore creating tables
+2026-03-18 07:19:14,878 - services.mock_data - INFO - Ignore initialize data
+2026-03-18 07:19:14,879 - services.auth - INFO - Ignore initialize admin
+2026-03-18 07:19:14,879 - main - INFO - === Application startup completed successfully ===
+2026-03-18 07:20:13,190 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:13,191 - core.database - WARNING - Database session maker not available, attempting lazy initialization...
+2026-03-18 07:20:13,191 - core.database - WARNING - Database not initialized, attempting lazy initialization...
+2026-03-18 07:20:13,191 - core.database - INFO - Starting database initialization...
+2026-03-18 07:20:13,191 - core.config - DEBUG - Read dynamic attribute database_url from environment variable DATABASE_URL
+2026-03-18 07:20:13,191 - core.database - INFO - Normalizing database URL for async compatibility...
+2026-03-18 07:20:13,192 - core.database - INFO - Creating async database engine...
+2026-03-18 07:20:13,192 - core.database - INFO - Using QueuePool with connection pooling for non-Lambda environment
+2026-03-18 07:20:13,442 - core.database - INFO - Database engine created successfully
+2026-03-18 07:20:13,443 - core.database - INFO - Creating async session maker...
+2026-03-18 07:20:13,443 - core.database - INFO - Async session maker created successfully
+2026-03-18 07:20:13,443 - core.database - INFO - Database connection initialized successfully
+2026-03-18 07:20:13,444 - core.database - DEBUG - [DB_OP] Starting create_tables
+2026-03-18 07:20:13,444 - core.database - INFO - 🔧 Starting table creation...
+2026-03-18 07:20:13,451 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:13,452 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-18 07:20:13,452 - routers.master_requests - DEBUG - Querying master_requestss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-18 07:20:13,458 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:13,459 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-18 07:20:13,459 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-18 07:20:13,465 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:13,465 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-18 07:20:13,465 - routers.complaints - DEBUG - Querying complaintss: query=None, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-18 07:20:13,471 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:13,471 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0006s
+2026-03-18 07:20:13,472 - routers.announcements - DEBUG - Querying announcementss: query={"active":true,"status":"approved"}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-18 07:20:13,479 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:13,479 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-18 07:20:13,479 - routers.jobs - DEBUG - Querying jobss: query={"active":true}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-18 07:20:14,858 - routers.master_requests - DEBUG - Found 6 master_requestss
+2026-03-18 07:20:14,859 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.4075s
+2026-03-18 07:20:14,859 - services.news - ERROR - Error fetching news list: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:14,860 - routers.news - ERROR - Error querying newss: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/news.py", line 125, in query_newss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/news.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:15,188 - core.database - ERROR - Database session error: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/news.py", line 125, in query_newss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/news.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/news.py", line 137, in query_newss
+    raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:15,226 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.7680s
+2026-03-18 07:20:15,229 - routers.complaints - DEBUG - Found 6 complaintss
+2026-03-18 07:20:15,230 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.7656s
+2026-03-18 07:20:15,231 - routers.announcements - DEBUG - Found 1 announcementss
+2026-03-18 07:20:15,232 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.7608s
+2026-03-18 07:20:15,232 - routers.jobs - DEBUG - Found 5 jobss
+2026-03-18 07:20:15,235 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.7564s
+2026-03-18 07:20:15,243 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:15,243 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-18 07:20:15,244 - routers.questions - DEBUG - Querying questionss: query=None, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-18 07:20:15,256 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:15,256 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-18 07:20:15,257 - routers.directory_entries - DEBUG - Querying directory_entriess: query=None, sort=None, skip=0, limit=8, fields=None
+2026-03-18 07:20:15,262 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:15,263 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-18 07:20:15,263 - routers.banners - DEBUG - Querying bannerss: query={"active":true}, sort=None, skip=0, limit=2, fields=None
+2026-03-18 07:20:15,302 - core.database - ERROR - Failed to create database session: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/news.py", line 125, in query_newss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/news.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/news.py", line 137, in query_newss
+    raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:15,953 - routers.questions - DEBUG - Found 8 questionss
+2026-03-18 07:20:15,954 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.7108s
+2026-03-18 07:20:16,011 - routers.banners - DEBUG - Found 2 bannerss
+2026-03-18 07:20:16,012 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.7500s
+2026-03-18 07:20:16,017 - core.database - INFO - Tables initialized successfully
+2026-03-18 07:20:16,018 - core.database - DEBUG - [DB_OP] Create tables completed in 2.5740s
+2026-03-18 07:20:16,021 - routers.directory_entries - DEBUG - Found 10 directory_entriess
+2026-03-18 07:20:16,022 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.7657s
+2026-03-18 07:20:16,081 - core.database - INFO - Lazy database initialization completed successfully
+2026-03-18 07:20:16,081 - core.database - DEBUG - [DB_OP] Database session created successfully in 2.8914s
+2026-03-18 07:20:16,082 - routers.categories - DEBUG - Querying categoriess: query=None, sort=sort_order, skip=0, limit=200, fields=None
+2026-03-18 07:20:16,685 - routers.categories - DEBUG - Found 44 categoriess
+2026-03-18 07:20:16,687 - core.database - DEBUG - [DB_OP] Database session cleanup after 3.4972s
+2026-03-18 07:20:16,815 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:16,815 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-18 07:20:16,816 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-18 07:20:17,294 - services.news - ERROR - Error fetching news list: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:17,295 - routers.news - ERROR - Error querying newss: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/news.py", line 125, in query_newss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/news.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:17,309 - core.database - ERROR - Database session error: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/news.py", line 125, in query_newss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/news.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/news.py", line 137, in query_newss
+    raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:17,311 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4957s
+2026-03-18 07:20:17,371 - core.database - ERROR - Failed to create database session: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/news.py", line 125, in query_newss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/news.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/news.py", line 137, in query_newss
+    raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:18,416 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:18,416 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0006s
+2026-03-18 07:20:18,417 - routers.master_requests - DEBUG - Querying master_requestss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-18 07:20:18,419 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:18,420 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0006s
+2026-03-18 07:20:18,420 - routers.announcements - DEBUG - Querying announcementss: query={"active":true,"status":"approved"}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-18 07:20:18,424 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:18,424 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-18 07:20:18,424 - routers.banners - DEBUG - Querying bannerss: query={"active":true}, sort=None, skip=0, limit=2, fields=None
+2026-03-18 07:20:18,426 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:18,426 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-18 07:20:18,426 - routers.questions - DEBUG - Querying questionss: query=None, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-18 07:20:18,427 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:18,428 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-18 07:20:18,428 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-18 07:20:18,429 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:18,430 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-18 07:20:18,431 - routers.complaints - DEBUG - Querying complaintss: query=None, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-18 07:20:18,432 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:18,432 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-18 07:20:18,432 - routers.categories - DEBUG - Querying categoriess: query=None, sort=sort_order, skip=0, limit=200, fields=None
+2026-03-18 07:20:18,434 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:18,434 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-18 07:20:18,434 - routers.directory_entries - DEBUG - Querying directory_entriess: query=None, sort=None, skip=0, limit=8, fields=None
+2026-03-18 07:20:18,674 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:18,675 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0015s
+2026-03-18 07:20:18,676 - routers.jobs - DEBUG - Querying jobss: query={"active":true}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-18 07:20:18,849 - routers.questions - DEBUG - Found 8 questionss
+2026-03-18 07:20:18,850 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4238s
+2026-03-18 07:20:18,863 - routers.announcements - DEBUG - Found 1 announcementss
+2026-03-18 07:20:18,864 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4453s
+2026-03-18 07:20:18,911 - routers.directory_entries - DEBUG - Found 10 directory_entriess
+2026-03-18 07:20:18,912 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4787s
+2026-03-18 07:20:18,967 - services.news - ERROR - Error fetching news list: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:18,967 - routers.news - ERROR - Error querying newss: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/news.py", line 125, in query_newss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/news.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:18,971 - core.database - ERROR - Database session error: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/news.py", line 125, in query_newss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/news.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/news.py", line 137, in query_newss
+    raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:18,972 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5448s
+2026-03-18 07:20:18,974 - routers.master_requests - DEBUG - Found 6 master_requestss
+2026-03-18 07:20:18,975 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5593s
+2026-03-18 07:20:18,995 - routers.complaints - DEBUG - Found 6 complaintss
+2026-03-18 07:20:18,995 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5661s
+2026-03-18 07:20:19,023 - routers.banners - DEBUG - Found 2 bannerss
+2026-03-18 07:20:19,024 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.6006s
+2026-03-18 07:20:19,032 - core.database - ERROR - Failed to create database session: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/news.py", line 125, in query_newss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/news.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/news.py", line 137, in query_newss
+    raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:19,053 - routers.categories - DEBUG - Found 44 categoriess
+2026-03-18 07:20:19,055 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.6228s
+2026-03-18 07:20:19,157 - routers.jobs - DEBUG - Found 5 jobss
+2026-03-18 07:20:19,158 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4837s
+2026-03-18 07:20:21,558 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:21,559 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0006s
+2026-03-18 07:20:21,559 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-18 07:20:22,044 - services.news - ERROR - Error fetching news list: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:22,044 - routers.news - ERROR - Error querying newss: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/news.py", line 125, in query_newss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/news.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:22,063 - core.database - ERROR - Database session error: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/news.py", line 125, in query_newss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/news.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/news.py", line 137, in query_newss
+    raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:22,064 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5060s
+2026-03-18 07:20:22,125 - core.database - ERROR - Failed to create database session: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/news.py", line 125, in query_newss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/news.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/news.py", line 137, in query_newss
+    raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:25,566 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:25,567 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-18 07:20:25,568 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-18 07:20:26,073 - services.news - ERROR - Error fetching news list: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:26,074 - routers.news - ERROR - Error querying newss: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/news.py", line 125, in query_newss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/news.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:26,078 - core.database - ERROR - Database session error: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/news.py", line 125, in query_newss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/news.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/news.py", line 137, in query_newss
+    raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:26,079 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5122s
+2026-03-18 07:20:26,141 - core.database - ERROR - Failed to create database session: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/news.py", line 125, in query_newss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/news.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/news.py", line 137, in query_newss
+    raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:31,547 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-18 07:20:31,548 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0007s
+2026-03-18 07:20:31,549 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-18 07:20:32,028 - services.news - ERROR - Error fetching news list: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:32,029 - routers.news - ERROR - Error querying newss: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/news.py", line 125, in query_newss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/news.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:32,041 - core.database - ERROR - Database session error: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/news.py", line 125, in query_newss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/news.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/news.py", line 137, in query_newss
+    raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:32,042 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4946s
+2026-03-18 07:20:32,103 - core.database - ERROR - Failed to create database session: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/news.py", line 125, in query_newss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/news.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/news.py", line 137, in query_newss
+    raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column news.status does not exist
+[SQL: SELECT news.id, news.title, news.content, news.short_description, news.category, news.image_url, news.gallery_images, news.youtube_url, news.published, news.status, news.created_at 
+FROM news 
+WHERE news.published = true ORDER BY news.created_at DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (4, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-18 07:20:56,979 - services.database - DEBUG - [DB_OP] Starting database close
+2026-03-18 07:20:57,568 - core.database - INFO - Database connection closed and engine disposed
+2026-03-18 07:20:57,569 - services.database - INFO - Database connections closed
+2026-03-18 07:20:57,569 - services.database - DEBUG - [DB_OP] Database close completed in 0.5903s

@@ -1,0 +1,190 @@
+2026-03-31 09:19:30,377 - main - INFO - === Logging system initialized ===
+2026-03-31 09:19:30,377 - main - INFO - Log file: logs/app_20260331_091930.log
+2026-03-31 09:19:30,377 - main - INFO - Log level: INFO
+2026-03-31 09:19:30,377 - main - INFO - Timestamp: 20260331_091930
+2026-03-31 09:19:30,384 - main - INFO - Included router: routers.admin_auth.router
+2026-03-31 09:19:31,875 - main - INFO - Included router: routers.aihub.router
+2026-03-31 09:19:31,941 - main - INFO - Included router: routers.announcements.router
+2026-03-31 09:19:31,985 - main - INFO - Included router: routers.auth.router
+2026-03-31 09:19:32,039 - main - INFO - Included router: routers.banners.router
+2026-03-31 09:19:32,200 - main - INFO - Included router: routers.become_master_requests.router
+2026-03-31 09:19:32,261 - main - INFO - Included router: routers.categories.router
+2026-03-31 09:19:32,313 - main - INFO - Included router: routers.complaints.router
+2026-03-31 09:19:32,315 - main - WARNING - Failed to import module 'routers.debug_schema': cannot import name 'async_engine' from 'core.database' (/workspace/app/backend/core/database.py)
+2026-03-31 09:19:32,378 - main - INFO - Included router: routers.directory_entries.router
+2026-03-31 09:19:32,421 - main - INFO - Included router: routers.food_categories.router
+2026-03-31 09:19:32,460 - main - INFO - Included router: routers.food_item_modifiers.router
+2026-03-31 09:19:32,520 - main - INFO - Included router: routers.food_items.router
+2026-03-31 09:19:32,565 - main - INFO - Included router: routers.food_modifiers.router
+2026-03-31 09:19:32,615 - main - INFO - Included router: routers.food_orders.router
+2026-03-31 09:19:32,653 - main - INFO - Included router: routers.food_settings.router
+2026-03-31 09:19:32,687 - main - INFO - Included router: routers.frontpad.router
+2026-03-31 09:19:32,722 - main - INFO - Included router: routers.frontpad_settings.router
+2026-03-31 09:19:32,760 - main - INFO - Included router: routers.frontpad_sync_log.router
+2026-03-31 09:19:32,763 - main - INFO - Included router: routers.health.router
+2026-03-31 09:19:32,937 - main - INFO - Included router: routers.history_events.router
+2026-03-31 09:19:32,998 - main - INFO - Included router: routers.homepage_stats.router
+2026-03-31 09:19:33,045 - main - INFO - Included router: routers.inspectors.router
+2026-03-31 09:19:33,084 - main - INFO - Included router: routers.item_modifier_groups.router
+2026-03-31 09:19:33,131 - main - INFO - Included router: routers.jobs.router
+2026-03-31 09:19:33,172 - main - INFO - Included router: routers.master_requests.router
+2026-03-31 09:19:33,220 - main - INFO - Included router: routers.masters.router
+2026-03-31 09:19:33,262 - main - INFO - Included router: routers.modifier_groups.router
+2026-03-31 09:19:33,300 - main - INFO - Included router: routers.modifier_options.router
+2026-03-31 09:19:33,356 - main - INFO - Included router: routers.news.router
+2026-03-31 09:19:33,396 - main - INFO - Included router: routers.question_answers.router
+2026-03-31 09:19:33,443 - main - INFO - Included router: routers.questions.router
+2026-03-31 09:19:33,650 - main - INFO - Included router: routers.real_estate.router
+2026-03-31 09:19:33,670 - main - INFO - Included router: routers.settings.router
+2026-03-31 09:19:33,691 - main - INFO - Included router: routers.storage.router
+2026-03-31 09:19:33,713 - main - INFO - Included router: routers.telegram.router
+2026-03-31 09:19:33,722 - main - INFO - Included router: routers.user.router
+2026-03-31 09:19:33,764 - main - INFO - Included router: routers.user_preferences.router
+2026-03-31 09:19:33,765 - main - INFO - === Application startup initiated ===
+2026-03-31 09:19:33,765 - services.database - INFO - Ignore creating tables
+2026-03-31 09:19:33,765 - services.mock_data - INFO - Ignore initialize data
+2026-03-31 09:19:33,765 - services.auth - INFO - Ignore initialize admin
+2026-03-31 09:19:33,765 - core.database - WARNING - Database not initialized, attempting lazy initialization...
+2026-03-31 09:19:33,766 - core.database - INFO - Starting database initialization...
+2026-03-31 09:19:33,766 - core.config - DEBUG - Read dynamic attribute database_url from environment variable DATABASE_URL
+2026-03-31 09:19:33,766 - core.database - INFO - Normalizing database URL for async compatibility...
+2026-03-31 09:19:33,767 - core.database - INFO - Creating async database engine...
+2026-03-31 09:19:33,767 - core.database - INFO - Using QueuePool with connection pooling for non-Lambda environment
+2026-03-31 09:19:33,819 - core.database - INFO - Database engine created successfully
+2026-03-31 09:19:33,819 - core.database - INFO - Creating async session maker...
+2026-03-31 09:19:33,819 - core.database - INFO - Async session maker created successfully
+2026-03-31 09:19:33,819 - core.database - INFO - Database connection initialized successfully
+2026-03-31 09:19:33,819 - core.database - DEBUG - [DB_OP] Starting create_tables
+2026-03-31 09:19:33,820 - core.database - INFO - 🔧 Starting table structure repair...
+2026-03-31 09:19:35,158 - core.database - INFO - 🔧 Repairing 33 existing tables...
+2026-03-31 09:19:35,159 - core.database - DEBUG - Checking table structure for: users
+2026-03-31 09:19:35,160 - core.database - DEBUG - Checking table structure for: oidc_states
+2026-03-31 09:19:35,161 - core.database - DEBUG - Checking table structure for: admin_credentials
+2026-03-31 09:19:35,162 - core.database - DEBUG - Checking table structure for: admin_login_attempts
+2026-03-31 09:19:35,163 - core.database - DEBUG - Checking table structure for: admin_login_lockouts
+2026-03-31 09:19:35,164 - core.database - DEBUG - Checking table structure for: announcements
+2026-03-31 09:19:35,166 - core.database - DEBUG - Checking table structure for: banners
+2026-03-31 09:19:35,167 - core.database - DEBUG - Checking table structure for: become_master_requests
+2026-03-31 09:19:35,170 - core.database - DEBUG - Checking table structure for: categories
+2026-03-31 09:19:35,171 - core.database - DEBUG - Checking table structure for: complaints
+2026-03-31 09:19:35,894 - core.database - DEBUG - Table users structure is up to date
+2026-03-31 09:19:35,894 - core.database - INFO - Table users repaired in 0.74s
+2026-03-31 09:19:35,894 - core.database - DEBUG - Checking table structure for: directory_entries
+2026-03-31 09:19:36,000 - core.database - DEBUG - Table oidc_states structure is up to date
+2026-03-31 09:19:36,001 - core.database - INFO - Table oidc_states repaired in 0.84s
+2026-03-31 09:19:36,001 - core.database - DEBUG - Checking table structure for: food_categories
+2026-03-31 09:19:36,068 - core.database - DEBUG - Table admin_login_lockouts structure is up to date
+2026-03-31 09:19:36,069 - core.database - INFO - Table admin_login_lockouts repaired in 0.91s
+2026-03-31 09:19:36,069 - core.database - DEBUG - Checking table structure for: food_item_modifiers
+2026-03-31 09:19:36,088 - core.database - DEBUG - Table categories structure is up to date
+2026-03-31 09:19:36,089 - core.database - INFO - Table categories repaired in 0.92s
+2026-03-31 09:19:36,089 - core.database - DEBUG - Checking table structure for: food_items
+2026-03-31 09:19:36,097 - core.database - DEBUG - Table announcements structure is up to date
+2026-03-31 09:19:36,097 - core.database - INFO - Table announcements repaired in 0.93s
+2026-03-31 09:19:36,097 - core.database - DEBUG - Checking table structure for: food_modifiers
+2026-03-31 09:19:36,099 - core.database - DEBUG - Table admin_credentials structure is up to date
+2026-03-31 09:19:36,099 - core.database - INFO - Table admin_credentials repaired in 0.94s
+2026-03-31 09:19:36,099 - core.database - DEBUG - Checking table structure for: food_orders
+2026-03-31 09:19:36,101 - core.database - DEBUG - Table banners structure is up to date
+2026-03-31 09:19:36,101 - core.database - INFO - Table banners repaired in 0.93s
+2026-03-31 09:19:36,101 - core.database - DEBUG - Checking table structure for: food_settings
+2026-03-31 09:19:36,105 - core.database - DEBUG - Table admin_login_attempts structure is up to date
+2026-03-31 09:19:36,105 - core.database - INFO - Table admin_login_attempts repaired in 0.94s
+2026-03-31 09:19:36,105 - core.database - DEBUG - Checking table structure for: frontpad_settings
+2026-03-31 09:19:36,110 - core.database - DEBUG - Table become_master_requests structure is up to date
+2026-03-31 09:19:36,110 - core.database - INFO - Table become_master_requests repaired in 0.94s
+2026-03-31 09:19:36,111 - core.database - DEBUG - Checking table structure for: frontpad_sync_log
+2026-03-31 09:19:36,111 - core.database - DEBUG - Table complaints structure is up to date
+2026-03-31 09:19:36,112 - core.database - INFO - Table complaints repaired in 0.94s
+2026-03-31 09:19:36,112 - core.database - DEBUG - Checking table structure for: history_events
+2026-03-31 09:19:36,271 - core.database - DEBUG - Table directory_entries structure is up to date
+2026-03-31 09:19:36,271 - core.database - INFO - Table directory_entries repaired in 1.10s
+2026-03-31 09:19:36,272 - core.database - DEBUG - Checking table structure for: homepage_stats
+2026-03-31 09:19:36,439 - core.database - DEBUG - Table food_categories structure is up to date
+2026-03-31 09:19:36,439 - core.database - INFO - Table food_categories repaired in 1.27s
+2026-03-31 09:19:36,439 - core.database - DEBUG - Checking table structure for: inspectors
+2026-03-31 09:19:36,510 - core.database - DEBUG - Table food_item_modifiers structure is up to date
+2026-03-31 09:19:36,511 - core.database - INFO - Table food_item_modifiers repaired in 1.34s
+2026-03-31 09:19:36,511 - core.database - DEBUG - Checking table structure for: item_modifier_groups
+2026-03-31 09:19:36,525 - core.database - DEBUG - Table food_items structure is up to date
+2026-03-31 09:19:36,525 - core.database - INFO - Table food_items repaired in 1.35s
+2026-03-31 09:19:36,526 - core.database - DEBUG - Checking table structure for: jobs
+2026-03-31 09:19:36,533 - core.database - DEBUG - Table food_orders structure is up to date
+2026-03-31 09:19:36,533 - core.database - INFO - Table food_orders repaired in 1.36s
+2026-03-31 09:19:36,534 - core.database - DEBUG - Checking table structure for: master_requests
+2026-03-31 09:19:36,534 - core.database - DEBUG - Table food_settings structure is up to date
+2026-03-31 09:19:36,534 - core.database - INFO - Table food_settings repaired in 1.36s
+2026-03-31 09:19:36,534 - core.database - DEBUG - Checking table structure for: masters
+2026-03-31 09:19:36,535 - core.database - DEBUG - Table food_modifiers structure is up to date
+2026-03-31 09:19:36,535 - core.database - INFO - Table food_modifiers repaired in 1.36s
+2026-03-31 09:19:36,535 - core.database - DEBUG - Checking table structure for: modifier_groups
+2026-03-31 09:19:36,549 - core.database - DEBUG - Table frontpad_settings structure is up to date
+2026-03-31 09:19:36,550 - core.database - INFO - Table frontpad_settings repaired in 1.38s
+2026-03-31 09:19:36,550 - core.database - DEBUG - Checking table structure for: modifier_options
+2026-03-31 09:19:36,555 - core.database - DEBUG - Table history_events structure is up to date
+2026-03-31 09:19:36,555 - core.database - INFO - Table history_events repaired in 1.38s
+2026-03-31 09:19:36,556 - core.database - DEBUG - Checking table structure for: news
+2026-03-31 09:19:36,557 - core.database - DEBUG - Table frontpad_sync_log structure is up to date
+2026-03-31 09:19:36,557 - core.database - INFO - Table frontpad_sync_log repaired in 1.38s
+2026-03-31 09:19:36,557 - core.database - DEBUG - Checking table structure for: question_answers
+2026-03-31 09:19:36,646 - core.database - DEBUG - Table homepage_stats structure is up to date
+2026-03-31 09:19:36,646 - core.database - INFO - Table homepage_stats repaired in 1.47s
+2026-03-31 09:19:36,646 - core.database - DEBUG - Checking table structure for: questions
+2026-03-31 09:19:36,876 - core.database - DEBUG - Table inspectors structure is up to date
+2026-03-31 09:19:36,876 - core.database - INFO - Table inspectors repaired in 1.70s
+2026-03-31 09:19:36,877 - core.database - DEBUG - Checking table structure for: real_estate
+2026-03-31 09:19:36,889 - core.database - DEBUG - Table item_modifier_groups structure is up to date
+2026-03-31 09:19:36,889 - core.database - INFO - Table item_modifier_groups repaired in 1.72s
+2026-03-31 09:19:36,889 - core.database - DEBUG - Checking table structure for: user_preferences
+2026-03-31 09:19:36,912 - core.database - DEBUG - Table master_requests structure is up to date
+2026-03-31 09:19:36,912 - core.database - INFO - Table master_requests repaired in 1.74s
+2026-03-31 09:19:36,927 - core.database - DEBUG - Table modifier_options structure is up to date
+2026-03-31 09:19:36,927 - core.database - INFO - Table modifier_options repaired in 1.75s
+2026-03-31 09:19:36,942 - core.database - DEBUG - Table question_answers structure is up to date
+2026-03-31 09:19:36,942 - core.database - INFO - Table question_answers repaired in 1.77s
+2026-03-31 09:19:36,961 - core.database - DEBUG - Table jobs structure is up to date
+2026-03-31 09:19:36,962 - core.database - INFO - Table jobs repaired in 1.79s
+2026-03-31 09:19:36,971 - core.database - DEBUG - Table modifier_groups structure is up to date
+2026-03-31 09:19:36,971 - core.database - INFO - Table modifier_groups repaired in 1.80s
+2026-03-31 09:19:36,972 - core.database - DEBUG - Table masters structure is up to date
+2026-03-31 09:19:36,972 - core.database - INFO - Table masters repaired in 1.80s
+2026-03-31 09:19:37,003 - core.database - DEBUG - Table news structure is up to date
+2026-03-31 09:19:37,003 - core.database - INFO - Table news repaired in 1.83s
+2026-03-31 09:19:37,020 - core.database - DEBUG - Table questions structure is up to date
+2026-03-31 09:19:37,020 - core.database - INFO - Table questions repaired in 1.85s
+2026-03-31 09:19:37,253 - core.database - DEBUG - Table real_estate structure is up to date
+2026-03-31 09:19:37,254 - core.database - INFO - Table real_estate repaired in 2.08s
+2026-03-31 09:19:37,267 - core.database - DEBUG - Table user_preferences structure is up to date
+2026-03-31 09:19:37,268 - core.database - INFO - Table user_preferences repaired in 2.10s
+2026-03-31 09:19:37,268 - core.database - INFO - 🔧 Table structure repair completed in 3.4482s
+2026-03-31 09:19:37,268 - core.database - INFO - 🔧 Table structure repair completed
+2026-03-31 09:19:37,268 - core.database - INFO - 🔧 Starting table creation...
+2026-03-31 09:19:39,641 - core.database - INFO - Tables initialized successfully
+2026-03-31 09:19:39,641 - core.database - DEBUG - [DB_OP] Create tables completed in 5.8216s
+2026-03-31 09:19:39,703 - core.database - INFO - Lazy database initialization completed successfully
+2026-03-31 09:19:40,114 - routers.admin_auth - DEBUG - [Admin Auth] Admin credentials already exist
+2026-03-31 09:19:40,177 - core.config - DEBUG - Read dynamic attribute oss_service_url from environment variable OSS_SERVICE_URL
+2026-03-31 09:19:40,178 - core.config - DEBUG - Read dynamic attribute oss_api_key from environment variable OSS_API_KEY
+2026-03-31 09:19:40,272 - httpcore.connection - DEBUG - connect_tcp.started host='atoms.dev' port=443 local_address=None timeout=120.0 socket_options=None
+2026-03-31 09:19:40,279 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7fb3f62b5180>
+2026-03-31 09:19:40,279 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x7fb3f630b440> server_hostname='atoms.dev' timeout=120.0
+2026-03-31 09:19:40,288 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7fb3f62b4070>
+2026-03-31 09:19:40,289 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'GET']>
+2026-03-31 09:19:40,289 - httpcore.http11 - DEBUG - send_request_headers.complete
+2026-03-31 09:19:40,289 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'GET']>
+2026-03-31 09:19:40,290 - httpcore.http11 - DEBUG - send_request_body.complete
+2026-03-31 09:19:40,290 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'GET']>
+2026-03-31 09:19:40,317 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Tue, 31 Mar 2026 16:19:40 GMT'), (b'Content-Type', b'application/json; charset=utf-8'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Access-Control-Allow-Headers', b'Origin, Content-Type, Accept, Authorization'), (b'Access-Control-Allow-Methods', b'GET, POST, PUT, DELETE, OPTIONS'), (b'Access-Control-Allow-Origin', b'*'), (b'Access-Control-Max-Age', b'86400'), (b'X-Request-Id', b'fbcd7b7f2768ec750d0d52082dc89d31'), (b'X-Trace-Id', b'154db955813e49ffb94b0a70bb34e4a7'), (b'Content-Security-Policy', b"frame-ancestors 'self' https://atoms.dev"), (b'Strict-Transport-Security', b'max-age=63072000; includeSubDomains; preload'), (b'X-Content-Type-Options', b'nosniff'), (b'X-XSS-Protection', b'1; mode=block'), (b'Referrer-Policy', b'strict-origin-when-cross-origin'), (b'cf-cache-status', b'DYNAMIC'), (b'Content-Encoding', b'gzip'), (b'Server', b'cloudflare'), (b'CF-RAY', b'9e50ad50cb059dea-LAX')])
+2026-03-31 09:19:40,319 - httpx - INFO - HTTP Request: GET https://atoms.dev/api/v1/infra/client/oss/buckets "HTTP/1.1 200 OK"
+2026-03-31 09:19:40,319 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'GET']>
+2026-03-31 09:19:40,320 - httpcore.http11 - DEBUG - receive_response_body.complete
+2026-03-31 09:19:40,320 - httpcore.http11 - DEBUG - response_closed.started
+2026-03-31 09:19:40,320 - httpcore.http11 - DEBUG - response_closed.complete
+2026-03-31 09:19:40,320 - httpcore.connection - DEBUG - close.started
+2026-03-31 09:19:40,321 - httpcore.connection - DEBUG - close.complete
+2026-03-31 09:19:40,321 - services.bucket_init - INFO - Bucket 'portal-images' already exists
+2026-03-31 09:19:40,321 - main - INFO - === Application startup completed successfully ===
+2026-03-31 09:23:50,154 - services.database - DEBUG - [DB_OP] Starting database close
+2026-03-31 09:23:50,812 - core.database - INFO - Database connection closed and engine disposed
+2026-03-31 09:23:50,813 - services.database - INFO - Database connections closed
+2026-03-31 09:23:50,813 - services.database - DEBUG - [DB_OP] Database close completed in 0.6586s

@@ -1,0 +1,45 @@
+{
+    "title": "modifier_groups",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "name": {
+            "type": "string",
+            "description": "Group name"
+        },
+        "type": {
+            "type": "string",
+            "description": "Type"
+        },
+        "is_required": {
+            "type": "boolean",
+            "description": "Is required"
+        },
+        "min_select": {
+            "type": "integer",
+            "description": "Min selections"
+        },
+        "max_select": {
+            "type": "integer",
+            "description": "Max selections"
+        },
+        "sort_order": {
+            "type": "integer",
+            "description": "Sort order"
+        },
+        "is_active": {
+            "type": "boolean",
+            "description": "Is active"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

@@ -1,0 +1,43 @@
+{
+    "title": "frontpad_sync_log",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "sync_type": {
+            "type": "string",
+            "description": "Type of sync: full, manual, auto"
+        },
+        "status": {
+            "type": "string",
+            "description": "Status: success, failed, in_progress"
+        },
+        "products_synced": {
+            "type": "integer",
+            "description": "Number of products synced"
+        },
+        "categories_synced": {
+            "type": "integer",
+            "description": "Number of categories synced"
+        },
+        "errors": {
+            "type": "string",
+            "description": "Error details if any"
+        },
+        "started_at": {
+            "type": "string",
+            "description": "Sync start timestamp"
+        },
+        "completed_at": {
+            "type": "string",
+            "description": "Sync completion timestamp"
+        }
+    },
+    "required": [
+        "id",
+        "sync_type",
+        "status"
+    ]
+}

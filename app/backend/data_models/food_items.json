@@ -1,0 +1,53 @@
+{
+    "title": "food_items",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "category_id": {
+            "type": "integer",
+            "description": "Category ID"
+        },
+        "name": {
+            "type": "string",
+            "description": "Item name"
+        },
+        "description": {
+            "type": "string",
+            "description": "Description"
+        },
+        "price": {
+            "type": "number",
+            "description": "Price"
+        },
+        "image_url": {
+            "type": "string",
+            "description": "Image URL"
+        },
+        "is_active": {
+            "type": "boolean",
+            "description": "Is active"
+        },
+        "is_recommended": {
+            "type": "boolean",
+            "description": "Is recommended"
+        },
+        "weight": {
+            "type": "string",
+            "description": "Weight"
+        },
+        "sort_order": {
+            "type": "integer",
+            "description": "Sort order"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

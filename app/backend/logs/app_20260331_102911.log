@@ -1,0 +1,217 @@
+2026-03-31 10:29:11,605 - main - INFO - === Logging system initialized ===
+2026-03-31 10:29:11,605 - main - INFO - Log file: logs/app_20260331_102911.log
+2026-03-31 10:29:11,606 - main - INFO - Log level: INFO
+2026-03-31 10:29:11,606 - main - INFO - Timestamp: 20260331_102911
+2026-03-31 10:29:11,611 - main - INFO - Included router: routers.admin_auth.router
+2026-03-31 10:29:12,329 - main - INFO - Included router: routers.aihub.router
+2026-03-31 10:29:12,380 - main - INFO - Included router: routers.announcements.router
+2026-03-31 10:29:12,398 - main - INFO - Included router: routers.auth.router
+2026-03-31 10:29:12,439 - main - INFO - Included router: routers.banners.router
+2026-03-31 10:29:12,574 - main - INFO - Included router: routers.become_master_requests.router
+2026-03-31 10:29:12,616 - main - INFO - Included router: routers.categories.router
+2026-03-31 10:29:12,660 - main - INFO - Included router: routers.complaints.router
+2026-03-31 10:29:12,661 - main - WARNING - Failed to import module 'routers.debug_schema': cannot import name 'async_engine' from 'core.database' (/workspace/app/backend/core/database.py)
+2026-03-31 10:29:12,700 - main - INFO - Included router: routers.directory_entries.router
+2026-03-31 10:29:12,744 - main - INFO - Included router: routers.food_categories.router
+2026-03-31 10:29:12,779 - main - INFO - Included router: routers.food_item_modifiers.router
+2026-03-31 10:29:12,834 - main - INFO - Included router: routers.food_items.router
+2026-03-31 10:29:12,873 - main - INFO - Included router: routers.food_modifiers.router
+2026-03-31 10:29:12,916 - main - INFO - Included router: routers.food_orders.router
+2026-03-31 10:29:12,955 - main - INFO - Included router: routers.food_settings.router
+2026-03-31 10:29:12,988 - main - INFO - Included router: routers.frontpad.router
+2026-03-31 10:29:13,020 - main - INFO - Included router: routers.frontpad_settings.router
+2026-03-31 10:29:13,063 - main - INFO - Included router: routers.frontpad_sync_log.router
+2026-03-31 10:29:13,066 - main - INFO - Included router: routers.health.router
+2026-03-31 10:29:13,242 - main - INFO - Included router: routers.history_events.router
+2026-03-31 10:29:13,281 - main - INFO - Included router: routers.homepage_stats.router
+2026-03-31 10:29:13,327 - main - INFO - Included router: routers.inspectors.router
+2026-03-31 10:29:13,362 - main - INFO - Included router: routers.item_modifier_groups.router
+2026-03-31 10:29:13,428 - main - INFO - Included router: routers.jobs.router
+2026-03-31 10:29:13,484 - main - INFO - Included router: routers.master_requests.router
+2026-03-31 10:29:13,545 - main - INFO - Included router: routers.masters.router
+2026-03-31 10:29:13,588 - main - INFO - Included router: routers.modifier_groups.router
+2026-03-31 10:29:13,628 - main - INFO - Included router: routers.modifier_options.router
+2026-03-31 10:29:13,674 - main - INFO - Included router: routers.news.router
+2026-03-31 10:29:13,720 - main - INFO - Included router: routers.question_answers.router
+2026-03-31 10:29:13,759 - main - INFO - Included router: routers.questions.router
+2026-03-31 10:29:13,953 - main - INFO - Included router: routers.real_estate.router
+2026-03-31 10:29:13,989 - main - INFO - Included router: routers.settings.router
+2026-03-31 10:29:14,014 - main - INFO - Included router: routers.storage.router
+2026-03-31 10:29:14,051 - main - INFO - Included router: routers.telegram.router
+2026-03-31 10:29:14,060 - main - INFO - Included router: routers.user.router
+2026-03-31 10:29:14,102 - main - INFO - Included router: routers.user_preferences.router
+2026-03-31 10:29:14,106 - main - INFO - Included router: routers.weather.router
+2026-03-31 10:29:14,107 - main - INFO - === Application startup initiated ===
+2026-03-31 10:29:14,107 - services.database - INFO - Ignore creating tables
+2026-03-31 10:29:14,107 - services.mock_data - INFO - Ignore initialize data
+2026-03-31 10:29:14,107 - services.auth - INFO - Ignore initialize admin
+2026-03-31 10:29:14,107 - core.database - WARNING - Database not initialized, attempting lazy initialization...
+2026-03-31 10:29:14,108 - core.database - INFO - Starting database initialization...
+2026-03-31 10:29:14,108 - core.config - DEBUG - Read dynamic attribute database_url from environment variable DATABASE_URL
+2026-03-31 10:29:14,108 - core.database - INFO - Normalizing database URL for async compatibility...
+2026-03-31 10:29:14,109 - core.database - INFO - Creating async database engine...
+2026-03-31 10:29:14,109 - core.database - INFO - Using QueuePool with connection pooling for non-Lambda environment
+2026-03-31 10:29:14,152 - core.database - INFO - Database engine created successfully
+2026-03-31 10:29:14,152 - core.database - INFO - Creating async session maker...
+2026-03-31 10:29:14,152 - core.database - INFO - Async session maker created successfully
+2026-03-31 10:29:14,152 - core.database - INFO - Database connection initialized successfully
+2026-03-31 10:29:14,153 - core.database - DEBUG - [DB_OP] Starting create_tables
+2026-03-31 10:29:14,153 - core.database - INFO - 🔧 Starting table structure repair...
+2026-03-31 10:29:14,579 - core.database - ERROR - Failed to get existing tables: password authentication failed for user 'neondb_owner'
+2026-03-31 10:29:14,580 - core.database - INFO - No existing tables found, skipping repair
+2026-03-31 10:29:14,580 - core.database - INFO - 🔧 Table structure repair completed
+2026-03-31 10:29:14,580 - core.database - INFO - 🔧 Starting table creation...
+2026-03-31 10:29:15,020 - core.database - ERROR - Failed to create tables: password authentication failed for user 'neondb_owner'
+2026-03-31 10:29:15,020 - core.database - ERROR - Failed to lazy initialize database: password authentication failed for user 'neondb_owner'
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 530, in ensure_initialized
+    await self.create_tables()
+  File "/workspace/app/backend/core/database.py", line 212, in create_tables
+    async with self.engine.begin() as conn:
+  File "/opt/python/base/cpython-3.10.18-linux-x86_64-gnu/lib/python3.10/contextlib.py", line 199, in __aenter__
+    return await anext(self.gen)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/engine.py", line 1068, in begin
+    async with conn:
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/base.py", line 121, in __aenter__
+    return await self.start(is_ctxmanager=True)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/engine.py", line 275, in start
+    await greenlet_spawn(self.sync_engine.connect)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3293, in connect
+    return self._connection_cls(self)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3317, in raw_connection
+    return self.pool.connect()
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 448, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1272, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 712, in checkout
+    rec = pool._do_get()
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 389, in _create_connection
+    return _ConnectionRecord(self)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 674, in __init__
+    self.__connect()
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 900, in __connect
+    with util.safe_reraise():
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 667, in connect
+    return dialect.connect(*cargs_tup, **cparams)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 630, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 955, in connect
+    await_only(creator_fn(*arg, **kw)),
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 2443, in connect
+    return await connect_utils._connect(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connect_utils.py", line 1218, in _connect
+    conn = await _connect_addr(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connect_utils.py", line 1050, in _connect_addr
+    return await __connect_addr(params, False, *args)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connect_utils.py", line 1102, in __connect_addr
+    await connected
+asyncpg.exceptions.InvalidPasswordError: password authentication failed for user 'neondb_owner'
+2026-03-31 10:29:15,045 - routers.admin_auth - ERROR - [Admin Auth] Failed to initialize admin credentials: password authentication failed for user 'neondb_owner'
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/admin_auth.py", line 505, in initialize_admin_credentials
+    await db_manager.ensure_initialized()
+  File "/workspace/app/backend/core/database.py", line 530, in ensure_initialized
+    await self.create_tables()
+  File "/workspace/app/backend/core/database.py", line 212, in create_tables
+    async with self.engine.begin() as conn:
+  File "/opt/python/base/cpython-3.10.18-linux-x86_64-gnu/lib/python3.10/contextlib.py", line 199, in __aenter__
+    return await anext(self.gen)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/engine.py", line 1068, in begin
+    async with conn:
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/base.py", line 121, in __aenter__
+    return await self.start(is_ctxmanager=True)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/engine.py", line 275, in start
+    await greenlet_spawn(self.sync_engine.connect)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3293, in connect
+    return self._connection_cls(self)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3317, in raw_connection
+    return self.pool.connect()
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 448, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1272, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 712, in checkout
+    rec = pool._do_get()
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 389, in _create_connection
+    return _ConnectionRecord(self)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 674, in __init__
+    self.__connect()
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 900, in __connect
+    with util.safe_reraise():
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 667, in connect
+    return dialect.connect(*cargs_tup, **cparams)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 630, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 955, in connect
+    await_only(creator_fn(*arg, **kw)),
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 2443, in connect
+    return await connect_utils._connect(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connect_utils.py", line 1218, in _connect
+    conn = await _connect_addr(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connect_utils.py", line 1050, in _connect_addr
+    return await __connect_addr(params, False, *args)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/connect_utils.py", line 1102, in __connect_addr
+    await connected
+asyncpg.exceptions.InvalidPasswordError: password authentication failed for user 'neondb_owner'
+2026-03-31 10:29:15,046 - core.config - DEBUG - Read dynamic attribute oss_service_url from environment variable OSS_SERVICE_URL
+2026-03-31 10:29:15,046 - core.config - DEBUG - Read dynamic attribute oss_api_key from environment variable OSS_API_KEY
+2026-03-31 10:29:15,139 - httpcore.connection - DEBUG - connect_tcp.started host='atoms.dev' port=443 local_address=None timeout=120.0 socket_options=None
+2026-03-31 10:29:15,147 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7fca9880f280>
+2026-03-31 10:29:15,147 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x7fca9897f7c0> server_hostname='atoms.dev' timeout=120.0
+2026-03-31 10:29:15,156 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7fca9880f100>
+2026-03-31 10:29:15,157 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'GET']>
+2026-03-31 10:29:15,158 - httpcore.http11 - DEBUG - send_request_headers.complete
+2026-03-31 10:29:15,158 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'GET']>
+2026-03-31 10:29:15,158 - httpcore.http11 - DEBUG - send_request_body.complete
+2026-03-31 10:29:15,158 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'GET']>
+2026-03-31 10:29:15,193 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Tue, 31 Mar 2026 17:29:15 GMT'), (b'Content-Type', b'application/json; charset=utf-8'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Access-Control-Allow-Headers', b'Origin, Content-Type, Accept, Authorization'), (b'Access-Control-Allow-Methods', b'GET, POST, PUT, DELETE, OPTIONS'), (b'Access-Control-Allow-Origin', b'*'), (b'Access-Control-Max-Age', b'86400'), (b'X-Request-Id', b'e293272197a85342d173d19958c45d50'), (b'X-Trace-Id', b'f035ab9edc2b4155a23a28aa431f660b'), (b'Content-Security-Policy', b"frame-ancestors 'self' https://atoms.dev"), (b'Strict-Transport-Security', b'max-age=63072000; includeSubDomains; preload'), (b'X-Content-Type-Options', b'nosniff'), (b'X-XSS-Protection', b'1; mode=block'), (b'Referrer-Policy', b'strict-origin-when-cross-origin'), (b'cf-cache-status', b'DYNAMIC'), (b'Content-Encoding', b'gzip'), (b'Server', b'cloudflare'), (b'CF-RAY', b'9e51133dbd682f14-LAX')])
+2026-03-31 10:29:15,194 - httpx - INFO - HTTP Request: GET https://atoms.dev/api/v1/infra/client/oss/buckets "HTTP/1.1 200 OK"
+2026-03-31 10:29:15,194 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'GET']>
+2026-03-31 10:29:15,194 - httpcore.http11 - DEBUG - receive_response_body.complete
+2026-03-31 10:29:15,195 - httpcore.http11 - DEBUG - response_closed.started
+2026-03-31 10:29:15,195 - httpcore.http11 - DEBUG - response_closed.complete
+2026-03-31 10:29:15,195 - httpcore.connection - DEBUG - close.started
+2026-03-31 10:29:15,196 - httpcore.connection - DEBUG - close.complete
+2026-03-31 10:29:15,196 - services.bucket_init - INFO - Bucket 'portal-images' already exists
+2026-03-31 10:29:15,196 - main - INFO - === Application startup completed successfully ===
+2026-03-31 10:30:57,570 - services.database - DEBUG - [DB_OP] Starting database close
+2026-03-31 10:30:57,571 - core.database - INFO - Database connection closed and engine disposed
+2026-03-31 10:30:57,571 - services.database - INFO - Database connections closed
+2026-03-31 10:30:57,571 - services.database - DEBUG - [DB_OP] Database close completed in 0.0010s

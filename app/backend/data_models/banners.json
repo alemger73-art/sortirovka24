@@ -1,0 +1,53 @@
+{
+    "title": "banners",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "title": {
+            "type": "string",
+            "description": "Banner title"
+        },
+        "banner_text": {
+            "type": "string",
+            "description": "Banner text"
+        },
+        "subtitle": {
+            "type": "string",
+            "description": "Subtitle"
+        },
+        "image_url": {
+            "type": "string",
+            "description": "Image URL"
+        },
+        "link_url": {
+            "type": "string",
+            "description": "Link URL"
+        },
+        "button_text": {
+            "type": "string",
+            "description": "Button text"
+        },
+        "button_url": {
+            "type": "string",
+            "description": "Button URL"
+        },
+        "banner_type": {
+            "type": "string",
+            "description": "Banner type"
+        },
+        "active": {
+            "type": "boolean",
+            "description": "Is active"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

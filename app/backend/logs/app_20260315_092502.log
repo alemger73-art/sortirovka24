@@ -1,0 +1,1224 @@
+2026-03-15 09:25:02,724 - main - INFO - === Logging system initialized ===
+2026-03-15 09:25:02,724 - main - INFO - Log file: logs/app_20260315_092502.log
+2026-03-15 09:25:02,725 - main - INFO - Log level: INFO
+2026-03-15 09:25:02,725 - main - INFO - Timestamp: 20260315_092502
+2026-03-15 09:25:03,493 - main - INFO - Included router: routers.aihub.router
+2026-03-15 09:25:03,554 - main - INFO - Included router: routers.announcements.router
+2026-03-15 09:25:03,574 - main - INFO - Included router: routers.auth.router
+2026-03-15 09:25:03,681 - main - INFO - Included router: routers.banners.router
+2026-03-15 09:25:03,722 - main - INFO - Included router: routers.become_master_requests.router
+2026-03-15 09:25:03,764 - main - INFO - Included router: routers.complaints.router
+2026-03-15 09:25:03,807 - main - INFO - Included router: routers.directory_entries.router
+2026-03-15 09:25:03,813 - main - INFO - Included router: routers.health.router
+2026-03-15 09:25:03,859 - main - INFO - Included router: routers.jobs.router
+2026-03-15 09:25:03,900 - main - INFO - Included router: routers.master_requests.router
+2026-03-15 09:25:03,951 - main - INFO - Included router: routers.masters.router
+2026-03-15 09:25:03,996 - main - INFO - Included router: routers.news.router
+2026-03-15 09:25:04,032 - main - INFO - Included router: routers.question_answers.router
+2026-03-15 09:25:04,082 - main - INFO - Included router: routers.questions.router
+2026-03-15 09:25:04,104 - main - INFO - Included router: routers.settings.router
+2026-03-15 09:25:04,139 - main - INFO - Included router: routers.storage.router
+2026-03-15 09:25:04,156 - main - INFO - Included router: routers.telegram.router
+2026-03-15 09:25:04,164 - main - INFO - Included router: routers.user.router
+2026-03-15 09:25:04,165 - main - INFO - === Application startup initiated ===
+2026-03-15 09:25:04,165 - services.database - DEBUG - [DB_OP] Starting database initialization
+2026-03-15 09:25:04,165 - services.database - INFO - 🔧 Starting database initialization...
+2026-03-15 09:25:04,165 - core.database - INFO - Starting database initialization...
+2026-03-15 09:25:04,165 - core.config - DEBUG - Read dynamic attribute database_url from environment variable DATABASE_URL
+2026-03-15 09:25:04,165 - core.database - INFO - Normalizing database URL for async compatibility...
+2026-03-15 09:25:04,166 - core.database - INFO - Creating async database engine...
+2026-03-15 09:25:04,167 - core.database - INFO - Using QueuePool with connection pooling for non-Lambda environment
+2026-03-15 09:25:04,300 - core.database - INFO - Database engine created successfully
+2026-03-15 09:25:04,300 - core.database - INFO - Creating async session maker...
+2026-03-15 09:25:04,301 - core.database - INFO - Async session maker created successfully
+2026-03-15 09:25:04,301 - core.database - INFO - Database connection initialized successfully
+2026-03-15 09:25:04,301 - services.database - INFO - 🔧 Database connection initialized, now creating tables if tables not exist...
+2026-03-15 09:25:04,301 - core.database - DEBUG - [DB_OP] Starting create_tables
+2026-03-15 09:25:04,301 - core.database - INFO - 🔧 Starting table creation...
+2026-03-15 09:25:06,157 - core.database - INFO - Tables initialized successfully
+2026-03-15 09:25:06,157 - core.database - DEBUG - [DB_OP] Create tables completed in 1.8563s
+2026-03-15 09:25:06,215 - services.database - INFO - 🔧 Table creation completed
+2026-03-15 09:25:06,216 - services.database - INFO - Database initialized successfully
+2026-03-15 09:25:06,216 - services.database - DEBUG - [DB_OP] Database initialization completed in 2.0507s
+2026-03-15 09:25:06,217 - services.mock_data - INFO - Processing mock data file announcements.json for table announcements
+2026-03-15 09:25:06,217 - services.mock_data - INFO - Processing mock data file banners.json for table banners
+2026-03-15 09:25:06,218 - services.mock_data - INFO - Processing mock data file complaints.json for table complaints
+2026-03-15 09:25:06,219 - services.mock_data - INFO - Processing mock data file directory_entries.json for table directory_entries
+2026-03-15 09:25:06,221 - services.mock_data - INFO - Processing mock data file jobs.json for table jobs
+2026-03-15 09:25:08,172 - services.mock_data - INFO - Table announcements already has 7 rows; skipping mock insert
+2026-03-15 09:25:08,230 - services.mock_data - INFO - Processing mock data file master_requests.json for table master_requests
+2026-03-15 09:25:08,292 - services.mock_data - INFO - Table complaints already has 6 rows; skipping mock insert
+2026-03-15 09:25:08,312 - services.mock_data - INFO - Table directory_entries already has 10 rows; skipping mock insert
+2026-03-15 09:25:08,349 - services.mock_data - INFO - Table banners already has 2 rows; skipping mock insert
+2026-03-15 09:25:08,352 - services.mock_data - INFO - Processing mock data file masters.json for table masters
+2026-03-15 09:25:08,356 - services.mock_data - INFO - Table jobs already has 5 rows; skipping mock insert
+2026-03-15 09:25:08,371 - services.mock_data - INFO - Processing mock data file news.json for table news
+2026-03-15 09:25:08,407 - services.mock_data - INFO - Processing mock data file question_answers.json for table question_answers
+2026-03-15 09:25:08,416 - services.mock_data - INFO - Processing mock data file questions.json for table questions
+2026-03-15 09:25:09,171 - services.mock_data - INFO - Table master_requests already has 6 rows; skipping mock insert
+2026-03-15 09:25:09,360 - services.mock_data - INFO - Table masters already has 8 rows; skipping mock insert
+2026-03-15 09:25:09,373 - services.mock_data - INFO - Table news already has 5 rows; skipping mock insert
+2026-03-15 09:25:09,406 - services.mock_data - INFO - Table question_answers already has 9 rows; skipping mock insert
+2026-03-15 09:25:09,443 - services.mock_data - INFO - Table questions already has 7 rows; skipping mock insert
+2026-03-15 09:25:09,503 - services.database - DEBUG - [DB_OP] Starting database initialization
+2026-03-15 09:25:09,503 - services.database - INFO - 🔧 Starting database initialization...
+2026-03-15 09:25:09,503 - core.database - INFO - Starting database initialization...
+2026-03-15 09:25:09,504 - core.database - INFO - Database already initialized
+2026-03-15 09:25:09,504 - services.database - INFO - 🔧 Database connection initialized, now creating tables if tables not exist...
+2026-03-15 09:25:09,504 - core.database - DEBUG - [DB_OP] Starting create_tables
+2026-03-15 09:25:09,504 - core.database - INFO - Tables already initialized
+2026-03-15 09:25:09,504 - services.database - INFO - 🔧 Table creation completed
+2026-03-15 09:25:09,504 - services.database - INFO - Database initialized successfully
+2026-03-15 09:25:09,504 - services.database - DEBUG - [DB_OP] Database initialization completed in 0.0012s
+2026-03-15 09:25:09,504 - core.config - DEBUG - Read dynamic attribute admin_user_id from environment variable ADMIN_USER_ID
+2026-03-15 09:25:09,504 - core.config - DEBUG - Read dynamic attribute admin_user_email from environment variable ADMIN_USER_EMAIL
+2026-03-15 09:25:09,867 - services.auth - DEBUG - Admin user 1029346 already exists
+2026-03-15 09:25:09,925 - main - INFO - === Application startup completed successfully ===
+2026-03-15 09:25:51,660 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:25:51,661 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-15 09:25:51,661 - routers.announcements - DEBUG - Querying announcementss: query={"active":true}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-15 09:25:51,666 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:25:51,666 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-15 09:25:51,666 - routers.questions - DEBUG - Querying questionss: query=None, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-15 09:25:51,670 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:25:51,670 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-15 09:25:51,671 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-15 09:25:51,674 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:25:51,674 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-15 09:25:51,674 - routers.master_requests - DEBUG - Querying master_requestss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-15 09:25:51,678 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:25:51,678 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-15 09:25:51,679 - routers.directory_entries - DEBUG - Querying directory_entriess: query=None, sort=None, skip=0, limit=8, fields=None
+2026-03-15 09:25:51,682 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:25:51,682 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-15 09:25:51,683 - routers.jobs - DEBUG - Querying jobss: query={"active":true}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-15 09:25:51,904 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:25:51,905 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-15 09:25:51,905 - routers.banners - DEBUG - Querying bannerss: query={"active":true}, sort=None, skip=0, limit=2, fields=None
+2026-03-15 09:25:51,910 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:25:51,910 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-15 09:25:51,910 - routers.complaints - DEBUG - Querying complaintss: query=None, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-15 09:25:52,147 - routers.news - DEBUG - Found 5 newss
+2026-03-15 09:25:52,148 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4781s
+2026-03-15 09:25:52,155 - routers.directory_entries - DEBUG - Found 10 directory_entriess
+2026-03-15 09:25:52,155 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4776s
+2026-03-15 09:25:52,156 - routers.questions - DEBUG - Found 7 questionss
+2026-03-15 09:25:52,157 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4917s
+2026-03-15 09:25:52,158 - routers.announcements - DEBUG - Found 7 announcementss
+2026-03-15 09:25:52,158 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4979s
+2026-03-15 09:25:52,160 - routers.master_requests - DEBUG - Found 6 master_requestss
+2026-03-15 09:25:52,160 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4867s
+2026-03-15 09:25:52,384 - routers.jobs - DEBUG - Found 5 jobss
+2026-03-15 09:25:52,384 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.7023s
+2026-03-15 09:25:52,591 - routers.banners - DEBUG - Found 2 bannerss
+2026-03-15 09:25:52,592 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.6878s
+2026-03-15 09:25:52,619 - routers.complaints - DEBUG - Found 6 complaintss
+2026-03-15 09:25:52,620 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.7105s
+2026-03-15 09:34:29,492 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:34:29,492 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-15 09:34:29,493 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-15 09:34:29,494 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:34:29,494 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-15 09:34:29,494 - routers.questions - DEBUG - Querying questionss: query=None, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-15 09:34:29,495 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:34:29,495 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-15 09:34:29,496 - routers.complaints - DEBUG - Querying complaintss: query=None, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-15 09:34:29,498 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:34:29,498 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-15 09:34:29,499 - routers.master_requests - DEBUG - Querying master_requestss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-15 09:34:29,501 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:34:29,501 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-15 09:34:29,501 - routers.jobs - DEBUG - Querying jobss: query={"active":true}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-15 09:34:29,502 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:34:29,503 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-15 09:34:29,503 - routers.directory_entries - DEBUG - Querying directory_entriess: query=None, sort=None, skip=0, limit=8, fields=None
+2026-03-15 09:34:29,504 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:34:29,504 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-15 09:34:29,504 - routers.banners - DEBUG - Querying bannerss: query={"active":true}, sort=None, skip=0, limit=2, fields=None
+2026-03-15 09:34:29,736 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:34:29,737 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-15 09:34:29,737 - routers.announcements - DEBUG - Querying announcementss: query={"active":true}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-15 09:34:29,910 - services.banners - ERROR - Error fetching banners list: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-15 09:34:29,910 - routers.banners - ERROR - Error querying bannerss: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 550, in _prepare_and_execute
+    self._rows = deque(await prepared_stmt.fetch(*parameters))
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/prepared_stmt.py", line 177, in fetch
+    data = await self.__bind_execute(args, 0, timeout)
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/prepared_stmt.py", line 268, in __bind_execute
+    data, status, _ = await self.__do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/prepared_stmt.py", line 257, in __do_execute
+    return await executor(protocol)
+  File "asyncpg/protocol/protocol.pyx", line 205, in bind_execute
+asyncpg.exceptions.UndefinedColumnError: column banners.banner_title does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/banners.py", line 110, in query_bannerss
+    except json.JSONDecodeError:
+  File "/workspace/app/backend/services/banners.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-15 09:34:30,286 - core.database - ERROR - Database session error: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 550, in _prepare_and_execute
+    self._rows = deque(await prepared_stmt.fetch(*parameters))
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/prepared_stmt.py", line 177, in fetch
+    data = await self.__bind_execute(args, 0, timeout)
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/prepared_stmt.py", line 268, in __bind_execute
+    data, status, _ = await self.__do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/prepared_stmt.py", line 257, in __do_execute
+    return await executor(protocol)
+  File "asyncpg/protocol/protocol.pyx", line 205, in bind_execute
+asyncpg.exceptions.UndefinedColumnError: column banners.banner_title does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/banners.py", line 110, in query_bannerss
+    except json.JSONDecodeError:
+  File "/workspace/app/backend/services/banners.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/banners.py", line 122, in query_bannerss
+    raise
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-15 09:34:30,315 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.8107s
+2026-03-15 09:34:30,376 - core.database - ERROR - Failed to create database session: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 550, in _prepare_and_execute
+    self._rows = deque(await prepared_stmt.fetch(*parameters))
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/prepared_stmt.py", line 177, in fetch
+    data = await self.__bind_execute(args, 0, timeout)
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/prepared_stmt.py", line 268, in __bind_execute
+    data, status, _ = await self.__do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/prepared_stmt.py", line 257, in __do_execute
+    return await executor(protocol)
+  File "asyncpg/protocol/protocol.pyx", line 205, in bind_execute
+asyncpg.exceptions.UndefinedColumnError: column banners.banner_title does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/banners.py", line 110, in query_bannerss
+    except json.JSONDecodeError:
+  File "/workspace/app/backend/services/banners.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/banners.py", line 122, in query_bannerss
+    raise
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-15 09:34:30,435 - routers.directory_entries - DEBUG - Found 10 directory_entriess
+2026-03-15 09:34:30,435 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.9329s
+2026-03-15 09:34:30,494 - routers.news - DEBUG - Found 5 newss
+2026-03-15 09:34:30,495 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.0028s
+2026-03-15 09:34:30,610 - routers.complaints - DEBUG - Found 6 complaintss
+2026-03-15 09:34:30,612 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.1167s
+2026-03-15 09:34:30,614 - routers.master_requests - DEBUG - Found 6 master_requestss
+2026-03-15 09:34:30,614 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.1162s
+2026-03-15 09:34:30,614 - routers.questions - DEBUG - Found 7 questionss
+2026-03-15 09:34:30,615 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.1207s
+2026-03-15 09:34:30,673 - routers.announcements - DEBUG - Found 7 announcementss
+2026-03-15 09:34:30,674 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.9375s
+2026-03-15 09:34:30,675 - routers.jobs - DEBUG - Found 5 jobss
+2026-03-15 09:34:30,675 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.1744s
+2026-03-15 09:34:35,980 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:34:35,980 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-15 09:34:35,981 - routers.master_requests - DEBUG - Querying master_requestss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-15 09:34:35,982 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:34:35,983 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-15 09:34:35,983 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-15 09:34:35,984 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:34:35,984 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0001s
+2026-03-15 09:34:35,984 - routers.complaints - DEBUG - Querying complaintss: query=None, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-15 09:34:35,985 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:34:35,985 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0001s
+2026-03-15 09:34:35,986 - routers.announcements - DEBUG - Querying announcementss: query={"active":true}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-15 09:34:35,986 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:34:35,986 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0001s
+2026-03-15 09:34:35,987 - routers.jobs - DEBUG - Querying jobss: query={"active":true}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-15 09:34:35,987 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:34:35,987 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0001s
+2026-03-15 09:34:35,988 - routers.questions - DEBUG - Querying questionss: query=None, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-15 09:34:36,339 - routers.questions - DEBUG - Found 7 questionss
+2026-03-15 09:34:36,340 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.3528s
+2026-03-15 09:34:36,346 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:34:36,347 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-15 09:34:36,348 - routers.directory_entries - DEBUG - Querying directory_entriess: query=None, sort=None, skip=0, limit=8, fields=None
+2026-03-15 09:34:36,448 - routers.master_requests - DEBUG - Found 6 master_requestss
+2026-03-15 09:34:36,449 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4691s
+2026-03-15 09:34:36,450 - routers.complaints - DEBUG - Found 6 complaintss
+2026-03-15 09:34:36,450 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4664s
+2026-03-15 09:34:36,450 - routers.announcements - DEBUG - Found 7 announcementss
+2026-03-15 09:34:36,451 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4657s
+2026-03-15 09:34:36,452 - routers.news - DEBUG - Found 5 newss
+2026-03-15 09:34:36,452 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4700s
+2026-03-15 09:34:36,453 - routers.jobs - DEBUG - Found 5 jobss
+2026-03-15 09:34:36,453 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4668s
+2026-03-15 09:34:36,467 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:34:36,468 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0006s
+2026-03-15 09:34:36,468 - routers.banners - DEBUG - Querying bannerss: query={"active":true}, sort=None, skip=0, limit=2, fields=None
+2026-03-15 09:34:36,814 - routers.directory_entries - DEBUG - Found 10 directory_entriess
+2026-03-15 09:34:36,814 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4678s
+2026-03-15 09:34:36,943 - services.banners - ERROR - Error fetching banners list: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-15 09:34:36,943 - routers.banners - ERROR - Error querying bannerss: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column banners.banner_title does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/banners.py", line 110, in query_bannerss
+    except json.JSONDecodeError:
+  File "/workspace/app/backend/services/banners.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-15 09:34:37,049 - core.database - ERROR - Database session error: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column banners.banner_title does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/banners.py", line 110, in query_bannerss
+    except json.JSONDecodeError:
+  File "/workspace/app/backend/services/banners.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/banners.py", line 122, in query_bannerss
+    raise
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-15 09:34:37,051 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5835s
+2026-03-15 09:34:37,110 - core.database - ERROR - Failed to create database session: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column banners.banner_title does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/banners.py", line 110, in query_bannerss
+    except json.JSONDecodeError:
+  File "/workspace/app/backend/services/banners.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/banners.py", line 122, in query_bannerss
+    raise
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-15 09:35:26,091 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:35:26,092 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-15 09:35:26,092 - routers.master_requests - DEBUG - Querying master_requestss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-15 09:35:26,093 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:35:26,093 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-15 09:35:26,094 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-15 09:35:26,094 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:35:26,095 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-15 09:35:26,095 - routers.complaints - DEBUG - Querying complaintss: query=None, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-15 09:35:26,096 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:35:26,096 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-15 09:35:26,096 - routers.announcements - DEBUG - Querying announcementss: query={"active":true}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-15 09:35:26,097 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:35:26,098 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-15 09:35:26,098 - routers.jobs - DEBUG - Querying jobss: query={"active":true}, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-15 09:35:26,100 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:35:26,100 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-15 09:35:26,101 - routers.questions - DEBUG - Querying questionss: query=None, sort=-created_at, skip=0, limit=4, fields=None
+2026-03-15 09:35:26,442 - routers.complaints - DEBUG - Found 6 complaintss
+2026-03-15 09:35:26,443 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.3485s
+2026-03-15 09:35:26,448 - routers.jobs - DEBUG - Found 5 jobss
+2026-03-15 09:35:26,449 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.3513s
+2026-03-15 09:35:26,449 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:35:26,449 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-15 09:35:26,449 - routers.directory_entries - DEBUG - Querying directory_entriess: query=None, sort=None, skip=0, limit=8, fields=None
+2026-03-15 09:35:26,454 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-15 09:35:26,454 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-15 09:35:26,454 - routers.banners - DEBUG - Querying bannerss: query={"active":true}, sort=None, skip=0, limit=2, fields=None
+2026-03-15 09:35:26,561 - routers.announcements - DEBUG - Found 7 announcementss
+2026-03-15 09:35:26,562 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4662s
+2026-03-15 09:35:26,563 - routers.news - DEBUG - Found 5 newss
+2026-03-15 09:35:26,564 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4706s
+2026-03-15 09:35:26,564 - routers.master_requests - DEBUG - Found 6 master_requestss
+2026-03-15 09:35:26,565 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4737s
+2026-03-15 09:35:26,567 - routers.questions - DEBUG - Found 7 questionss
+2026-03-15 09:35:26,568 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4675s
+2026-03-15 09:35:26,799 - routers.directory_entries - DEBUG - Found 10 directory_entriess
+2026-03-15 09:35:26,800 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.3509s
+2026-03-15 09:35:26,873 - services.banners - ERROR - Error fetching banners list: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-15 09:35:26,874 - routers.banners - ERROR - Error querying bannerss: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column banners.banner_title does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/banners.py", line 110, in query_bannerss
+    except json.JSONDecodeError:
+  File "/workspace/app/backend/services/banners.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-15 09:35:26,878 - core.database - ERROR - Database session error: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column banners.banner_title does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/banners.py", line 110, in query_bannerss
+    except json.JSONDecodeError:
+  File "/workspace/app/backend/services/banners.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/banners.py", line 122, in query_bannerss
+    raise
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-15 09:35:26,879 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4246s
+2026-03-15 09:35:26,939 - core.database - ERROR - Failed to create database session: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Traceback (most recent call last):
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 526, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 773, in _prepare
+    prepared_stmt = await self._connection.prepare(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 638, in prepare
+    return await self._prepare(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+  File "/data/.cache/python/lib/python3.10/site-packages/asyncpg/connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedColumnError: column banners.banner_title does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/banners.py", line 110, in query_bannerss
+    except json.JSONDecodeError:
+  File "/workspace/app/backend/services/banners.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/banners.py", line 122, in query_bannerss
+    raise
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedColumnError'>: column banners.banner_title does not exist
+[SQL: SELECT banners.id, banners.banner_title, banners.banner_text, banners.image_url, banners.link_url, banners.banner_type, banners.active, banners.created_at 
+FROM banners 
+WHERE banners.active = true ORDER BY banners.id DESC 
+ LIMIT $1::INTEGER OFFSET $2::INTEGER]
+[parameters: (2, 0)]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-03-15 09:35:51,551 - services.database - DEBUG - [DB_OP] Starting database close
+2026-03-15 09:35:52,042 - core.database - INFO - Database connection closed and engine disposed
+2026-03-15 09:35:52,043 - services.database - INFO - Database connections closed
+2026-03-15 09:35:52,043 - services.database - DEBUG - [DB_OP] Database close completed in 0.4921s

@@ -1,0 +1,23 @@
+[
+    {
+        "name": "Алексей",
+        "phone": "+77001112233",
+        "is_active": true,
+        "pin_code": "1234",
+        "created_at": "2026-04-06 10:00:00"
+    },
+    {
+        "name": "Дмитрий",
+        "phone": "+77004445566",
+        "is_active": true,
+        "pin_code": "5678",
+        "created_at": "2026-04-06 10:00:00"
+    },
+    {
+        "name": "Ержан",
+        "phone": "+77007778899",
+        "is_active": true,
+        "pin_code": "9012",
+        "created_at": "2026-04-06 10:00:00"
+    }
+]

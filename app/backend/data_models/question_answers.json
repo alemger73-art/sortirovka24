@@ -1,0 +1,29 @@
+{
+    "title": "question_answers",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "question_id": {
+            "type": "integer",
+            "description": "Question ID"
+        },
+        "answer_text": {
+            "type": "string",
+            "description": "Answer text"
+        },
+        "author_name": {
+            "type": "string",
+            "description": "Author name"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

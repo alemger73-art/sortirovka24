@@ -1,0 +1,62 @@
+[
+    {
+        "route_number": "27",
+        "route_name": "Сортировка — Центральный рынок",
+        "description": "Маршрут через основные улицы района Сортировка до Центрального рынка города Караганды",
+        "color": "#3B82F6",
+        "first_departure_weekday": "06:00",
+        "last_departure_weekday": "22:00",
+        "interval_weekday": "10-15 мин",
+        "first_departure_weekend": "06:30",
+        "last_departure_weekend": "21:30",
+        "interval_weekend": "15-20 мин",
+        "is_active": true,
+        "sort_order": 1,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_number": "42",
+        "route_name": "Сортировка — Юго-Восток",
+        "description": "Маршрут из района Сортировка в Юго-Восточный район через центр города",
+        "color": "#10B981",
+        "first_departure_weekday": "06:15",
+        "last_departure_weekday": "21:45",
+        "interval_weekday": "12-18 мин",
+        "first_departure_weekend": "07:00",
+        "last_departure_weekend": "21:00",
+        "interval_weekend": "18-25 мин",
+        "is_active": true,
+        "sort_order": 2,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_number": "69",
+        "route_name": "Сортировка — Михайловка",
+        "description": "Маршрут из района Сортировка до посёлка Михайловка через промышленную зону",
+        "color": "#F59E0B",
+        "first_departure_weekday": "06:30",
+        "last_departure_weekday": "21:00",
+        "interval_weekday": "15-20 мин",
+        "first_departure_weekend": "07:00",
+        "last_departure_weekend": "20:30",
+        "interval_weekend": "20-30 мин",
+        "is_active": true,
+        "sort_order": 3,
+        "created_at": "2026-03-31 10:00:00"
+    },
+    {
+        "route_number": "118",
+        "route_name": "Экспресс: Сортировка — Аэропорт",
+        "description": "Экспресс-маршрут из района Сортировка до аэропорта Караганды с минимальным количеством остановок",
+        "color": "#EF4444",
+        "first_departure_weekday": "05:30",
+        "last_departure_weekday": "23:00",
+        "interval_weekday": "20-30 мин",
+        "first_departure_weekend": "06:00",
+        "last_departure_weekend": "22:30",
+        "interval_weekend": "25-35 мин",
+        "is_active": true,
+        "sort_order": 4,
+        "created_at": "2026-03-31 10:00:00"
+    }
+]

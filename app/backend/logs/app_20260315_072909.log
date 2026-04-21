@@ -1,0 +1,79 @@
+2026-03-15 07:29:09,818 - main - INFO - === Logging system initialized ===
+2026-03-15 07:29:09,819 - main - INFO - Log file: logs/app_20260315_072909.log
+2026-03-15 07:29:09,819 - main - INFO - Log level: INFO
+2026-03-15 07:29:09,819 - main - INFO - Timestamp: 20260315_072909
+2026-03-15 07:29:11,612 - main - INFO - Included router: routers.aihub.router
+2026-03-15 07:29:11,792 - main - INFO - Included router: routers.announcements.router
+2026-03-15 07:29:11,818 - main - INFO - Included router: routers.auth.router
+2026-03-15 07:29:11,997 - main - INFO - Included router: routers.banners.router
+2026-03-15 07:29:12,171 - main - INFO - Included router: routers.become_master_requests.router
+2026-03-15 07:29:12,305 - main - INFO - Included router: routers.complaints.router
+2026-03-15 07:29:12,463 - main - INFO - Included router: routers.directory_entries.router
+2026-03-15 07:29:12,466 - main - INFO - Included router: routers.health.router
+2026-03-15 07:29:12,655 - main - INFO - Included router: routers.jobs.router
+2026-03-15 07:29:12,813 - main - INFO - Included router: routers.master_requests.router
+2026-03-15 07:29:12,955 - main - INFO - Included router: routers.masters.router
+2026-03-15 07:29:13,184 - main - INFO - Included router: routers.news.router
+2026-03-15 07:29:13,323 - main - INFO - Included router: routers.question_answers.router
+2026-03-15 07:29:13,468 - main - INFO - Included router: routers.questions.router
+2026-03-15 07:29:13,503 - main - INFO - Included router: routers.settings.router
+2026-03-15 07:29:13,565 - main - INFO - Included router: routers.storage.router
+2026-03-15 07:29:13,581 - main - INFO - Included router: routers.user.router
+2026-03-15 07:29:13,583 - main - INFO - === Application startup initiated ===
+2026-03-15 07:29:13,583 - services.database - DEBUG - [DB_OP] Starting database initialization
+2026-03-15 07:29:13,583 - services.database - INFO - 🔧 Starting database initialization...
+2026-03-15 07:29:13,583 - core.database - INFO - Starting database initialization...
+2026-03-15 07:29:13,584 - core.config - DEBUG - Read dynamic attribute database_url from environment variable DATABASE_URL
+2026-03-15 07:29:13,584 - core.database - INFO - Normalizing database URL for async compatibility...
+2026-03-15 07:29:13,585 - core.database - INFO - Creating async database engine...
+2026-03-15 07:29:13,586 - core.database - INFO - Using QueuePool with connection pooling for non-Lambda environment
+2026-03-15 07:29:13,675 - core.database - INFO - Database engine created successfully
+2026-03-15 07:29:13,675 - core.database - INFO - Creating async session maker...
+2026-03-15 07:29:13,676 - core.database - INFO - Async session maker created successfully
+2026-03-15 07:29:13,676 - core.database - INFO - Database connection initialized successfully
+2026-03-15 07:29:13,676 - services.database - INFO - 🔧 Database connection initialized, now creating tables if tables not exist...
+2026-03-15 07:29:13,677 - core.database - DEBUG - [DB_OP] Starting create_tables
+2026-03-15 07:29:13,677 - core.database - INFO - 🔧 Starting table creation...
+2026-03-15 07:29:16,123 - core.database - INFO - Tables initialized successfully
+2026-03-15 07:29:16,123 - core.database - DEBUG - [DB_OP] Create tables completed in 2.4465s
+2026-03-15 07:29:16,182 - services.database - INFO - 🔧 Table creation completed
+2026-03-15 07:29:16,228 - services.database - INFO - Database initialized successfully
+2026-03-15 07:29:16,230 - services.database - DEBUG - [DB_OP] Database initialization completed in 2.6467s
+2026-03-15 07:29:16,232 - services.mock_data - INFO - Processing mock data file announcements.json for table announcements
+2026-03-15 07:29:16,233 - services.mock_data - INFO - Processing mock data file banners.json for table banners
+2026-03-15 07:29:16,234 - services.mock_data - INFO - Processing mock data file complaints.json for table complaints
+2026-03-15 07:29:16,236 - services.mock_data - INFO - Processing mock data file directory_entries.json for table directory_entries
+2026-03-15 07:29:16,238 - services.mock_data - INFO - Processing mock data file jobs.json for table jobs
+2026-03-15 07:29:18,904 - services.mock_data - INFO - Table announcements already has 6 rows; skipping mock insert
+2026-03-15 07:29:18,929 - services.mock_data - INFO - Table banners already has 2 rows; skipping mock insert
+2026-03-15 07:29:18,952 - services.mock_data - INFO - Table directory_entries already has 10 rows; skipping mock insert
+2026-03-15 07:29:18,955 - services.mock_data - INFO - Table complaints already has 5 rows; skipping mock insert
+2026-03-15 07:29:18,956 - services.mock_data - INFO - Table jobs already has 5 rows; skipping mock insert
+2026-03-15 07:29:18,963 - services.mock_data - INFO - Processing mock data file master_requests.json for table master_requests
+2026-03-15 07:29:18,989 - services.mock_data - INFO - Processing mock data file masters.json for table masters
+2026-03-15 07:29:19,011 - services.mock_data - INFO - Processing mock data file news.json for table news
+2026-03-15 07:29:19,013 - services.mock_data - INFO - Processing mock data file question_answers.json for table question_answers
+2026-03-15 07:29:19,015 - services.mock_data - INFO - Processing mock data file questions.json for table questions
+2026-03-15 07:29:19,906 - services.mock_data - INFO - Table master_requests already has 5 rows; skipping mock insert
+2026-03-15 07:29:20,008 - services.mock_data - INFO - Table masters already has 8 rows; skipping mock insert
+2026-03-15 07:29:20,024 - services.mock_data - INFO - Table news already has 5 rows; skipping mock insert
+2026-03-15 07:29:20,026 - services.mock_data - INFO - Table questions already has 6 rows; skipping mock insert
+2026-03-15 07:29:20,026 - services.mock_data - INFO - Table question_answers already has 8 rows; skipping mock insert
+2026-03-15 07:29:20,085 - services.database - DEBUG - [DB_OP] Starting database initialization
+2026-03-15 07:29:20,085 - services.database - INFO - 🔧 Starting database initialization...
+2026-03-15 07:29:20,085 - core.database - INFO - Starting database initialization...
+2026-03-15 07:29:20,085 - core.database - INFO - Database already initialized
+2026-03-15 07:29:20,086 - services.database - INFO - 🔧 Database connection initialized, now creating tables if tables not exist...
+2026-03-15 07:29:20,086 - core.database - DEBUG - [DB_OP] Starting create_tables
+2026-03-15 07:29:20,086 - core.database - INFO - Tables already initialized
+2026-03-15 07:29:20,086 - services.database - INFO - 🔧 Table creation completed
+2026-03-15 07:29:20,086 - services.database - INFO - Database initialized successfully
+2026-03-15 07:29:20,086 - services.database - DEBUG - [DB_OP] Database initialization completed in 0.0015s
+2026-03-15 07:29:20,086 - core.config - DEBUG - Read dynamic attribute admin_user_id from environment variable ADMIN_USER_ID
+2026-03-15 07:29:20,086 - core.config - DEBUG - Read dynamic attribute admin_user_email from environment variable ADMIN_USER_EMAIL
+2026-03-15 07:29:20,453 - services.auth - DEBUG - Admin user 1029346 already exists
+2026-03-15 07:29:20,512 - main - INFO - === Application startup completed successfully ===
+2026-03-15 07:29:20,614 - services.database - DEBUG - [DB_OP] Starting database close
+2026-03-15 07:29:20,933 - core.database - INFO - Database connection closed and engine disposed
+2026-03-15 07:29:20,934 - services.database - INFO - Database connections closed
+2026-03-15 07:29:20,934 - services.database - DEBUG - [DB_OP] Database close completed in 0.3199s

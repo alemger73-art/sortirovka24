@@ -1,0 +1,29 @@
+{
+    "title": "item_modifier_groups",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "food_item_id": {
+            "type": "integer",
+            "description": "Food item ID"
+        },
+        "modifier_group_id": {
+            "type": "integer",
+            "description": "Modifier group ID"
+        },
+        "sort_order": {
+            "type": "integer",
+            "description": "Sort order"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

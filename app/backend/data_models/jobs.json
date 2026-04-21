@@ -1,0 +1,69 @@
+{
+    "title": "jobs",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "job_title": {
+            "type": "string",
+            "description": "Job title"
+        },
+        "employer": {
+            "type": "string",
+            "description": "Employer"
+        },
+        "category": {
+            "type": "string",
+            "description": "Category"
+        },
+        "description": {
+            "type": "string",
+            "description": "Description"
+        },
+        "salary": {
+            "type": "string",
+            "description": "Salary"
+        },
+        "schedule": {
+            "type": "string",
+            "description": "Schedule"
+        },
+        "district": {
+            "type": "string",
+            "description": "District"
+        },
+        "phone": {
+            "type": "string",
+            "description": "Phone"
+        },
+        "whatsapp": {
+            "type": "string",
+            "description": "WhatsApp"
+        },
+        "telegram": {
+            "type": "string",
+            "description": "Telegram"
+        },
+        "image_url": {
+            "type": "string",
+            "description": "Image URL"
+        },
+        "active": {
+            "type": "boolean",
+            "description": "Is active"
+        },
+        "status": {
+            "type": "string",
+            "description": "Status"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

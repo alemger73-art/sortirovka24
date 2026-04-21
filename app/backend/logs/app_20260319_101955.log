@@ -1,0 +1,825 @@
+2026-03-19 10:19:55,932 - main - INFO - === Logging system initialized ===
+2026-03-19 10:19:55,932 - main - INFO - Log file: logs/app_20260319_101955.log
+2026-03-19 10:19:55,933 - main - INFO - Log level: INFO
+2026-03-19 10:19:55,933 - main - INFO - Timestamp: 20260319_101955
+2026-03-19 10:20:11,573 - main - INFO - Included router: routers.aihub.router
+2026-03-19 10:20:11,683 - main - INFO - Included router: routers.announcements.router
+2026-03-19 10:20:11,780 - main - INFO - Included router: routers.auth.router
+2026-03-19 10:20:11,850 - main - INFO - Included router: routers.banners.router
+2026-03-19 10:20:11,990 - main - INFO - Included router: routers.become_master_requests.router
+2026-03-19 10:20:12,102 - main - INFO - Included router: routers.categories.router
+2026-03-19 10:20:12,206 - main - INFO - Included router: routers.complaints.router
+2026-03-19 10:20:12,247 - main - WARNING - Failed to import module 'routers.debug_schema': cannot import name 'async_engine' from 'core.database' (/workspace/app/backend/core/database.py)
+2026-03-19 10:20:12,360 - main - INFO - Included router: routers.directory_entries.router
+2026-03-19 10:20:12,512 - main - INFO - Included router: routers.health.router
+2026-03-19 10:20:12,596 - main - INFO - Included router: routers.jobs.router
+2026-03-19 10:20:12,691 - main - INFO - Included router: routers.master_requests.router
+2026-03-19 10:20:12,806 - main - INFO - Included router: routers.masters.router
+2026-03-19 10:20:12,893 - main - INFO - Included router: routers.news.router
+2026-03-19 10:20:12,984 - main - INFO - Included router: routers.question_answers.router
+2026-03-19 10:20:13,133 - main - INFO - Included router: routers.questions.router
+2026-03-19 10:20:13,199 - main - INFO - Included router: routers.settings.router
+2026-03-19 10:20:13,326 - main - INFO - Included router: routers.storage.router
+2026-03-19 10:20:13,415 - main - INFO - Included router: routers.telegram.router
+2026-03-19 10:20:13,497 - main - INFO - Included router: routers.user.router
+2026-03-19 10:20:13,498 - main - INFO - === Application startup initiated ===
+2026-03-19 10:20:13,498 - services.database - INFO - Ignore creating tables
+2026-03-19 10:20:13,498 - services.mock_data - INFO - Ignore initialize data
+2026-03-19 10:20:13,498 - services.auth - INFO - Ignore initialize admin
+2026-03-19 10:20:13,498 - main - INFO - === Application startup completed successfully ===
+2026-03-19 10:20:26,371 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:20:26,371 - core.database - WARNING - Database session maker not available, attempting lazy initialization...
+2026-03-19 10:20:26,371 - core.database - WARNING - Database not initialized, attempting lazy initialization...
+2026-03-19 10:20:26,372 - core.database - INFO - Starting database initialization...
+2026-03-19 10:20:26,372 - core.config - DEBUG - Read dynamic attribute database_url from environment variable DATABASE_URL
+2026-03-19 10:20:26,372 - core.database - INFO - Normalizing database URL for async compatibility...
+2026-03-19 10:20:26,373 - core.database - INFO - Creating async database engine...
+2026-03-19 10:20:26,373 - core.database - INFO - Using QueuePool with connection pooling for non-Lambda environment
+2026-03-19 10:20:26,578 - core.database - INFO - Database engine created successfully
+2026-03-19 10:20:26,578 - core.database - INFO - Creating async session maker...
+2026-03-19 10:20:26,579 - core.database - INFO - Async session maker created successfully
+2026-03-19 10:20:26,579 - core.database - INFO - Database connection initialized successfully
+2026-03-19 10:20:26,579 - core.database - DEBUG - [DB_OP] Starting create_tables
+2026-03-19 10:20:26,579 - core.database - INFO - 🔧 Starting table creation...
+2026-03-19 10:20:26,601 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:20:26,601 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-19 10:20:26,602 - routers.jobs - DEBUG - Querying jobss: query={"active":true}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:20:26,655 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:20:26,655 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-19 10:20:26,655 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:20:26,675 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:20:26,675 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-19 10:20:26,676 - routers.master_requests - DEBUG - Querying master_requestss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:20:26,697 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:20:26,698 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-19 10:20:26,698 - routers.complaints - DEBUG - Querying complaintss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:20:26,731 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:20:26,732 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-19 10:20:26,733 - routers.questions - DEBUG - Querying questionss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:20:26,760 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:20:26,760 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-19 10:20:26,761 - routers.announcements - DEBUG - Querying announcementss: query={"active":true,"status":"approved"}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:20:26,804 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:20:26,804 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0006s
+2026-03-19 10:20:26,805 - routers.directory_entries - DEBUG - Querying directory_entriess: query=None, sort=None, skip=0, limit=8, fields=None
+2026-03-19 10:20:26,844 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:20:26,844 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-19 10:20:26,845 - routers.banners - DEBUG - Querying bannerss: query={"active":true}, sort=None, skip=0, limit=2, fields=None
+2026-03-19 10:20:28,210 - routers.master_requests - DEBUG - Found 11 master_requestss
+2026-03-19 10:20:28,211 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.5357s
+2026-03-19 10:20:28,216 - routers.questions - DEBUG - Found 11 questionss
+2026-03-19 10:20:28,217 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.4857s
+2026-03-19 10:20:28,218 - routers.banners - DEBUG - Found 2 bannerss
+2026-03-19 10:20:28,219 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.3754s
+2026-03-19 10:20:28,220 - routers.news - DEBUG - Found 11 newss
+2026-03-19 10:20:28,220 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.5658s
+2026-03-19 10:20:28,221 - routers.complaints - DEBUG - Found 11 complaintss
+2026-03-19 10:20:28,222 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.5241s
+2026-03-19 10:20:28,223 - routers.announcements - DEBUG - Found 1 announcementss
+2026-03-19 10:20:28,224 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.4637s
+2026-03-19 10:20:28,224 - routers.directory_entries - DEBUG - Found 14 directory_entriess
+2026-03-19 10:20:28,225 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.4208s
+2026-03-19 10:20:28,225 - routers.jobs - DEBUG - Found 5 jobss
+2026-03-19 10:20:28,226 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.6251s
+2026-03-19 10:20:28,851 - core.database - INFO - Tables initialized successfully
+2026-03-19 10:20:28,852 - core.database - DEBUG - [DB_OP] Create tables completed in 2.2728s
+2026-03-19 10:20:28,911 - core.database - INFO - Lazy database initialization completed successfully
+2026-03-19 10:20:28,911 - core.database - DEBUG - [DB_OP] Database session created successfully in 2.5400s
+2026-03-19 10:20:28,912 - routers.categories - DEBUG - Querying categoriess: query=None, sort=sort_order, skip=0, limit=200, fields=None
+2026-03-19 10:20:29,497 - routers.categories - DEBUG - Found 44 categoriess
+2026-03-19 10:20:29,499 - core.database - DEBUG - [DB_OP] Database session cleanup after 3.1279s
+2026-03-19 10:21:09,297 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:21:09,297 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-19 10:21:09,297 - routers.announcements - DEBUG - Querying announcementss: query={}, sort=-created_at, skip=0, limit=50, fields=None
+2026-03-19 10:21:09,882 - routers.announcements - DEBUG - Found 13 announcementss
+2026-03-19 10:21:09,883 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5869s
+2026-03-19 10:21:11,299 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:21:11,299 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-19 10:21:11,300 - routers.complaints - DEBUG - Querying complaintss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:21:11,301 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:21:11,301 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:21:11,301 - routers.master_requests - DEBUG - Querying master_requestss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:21:11,304 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:21:11,304 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-19 10:21:11,305 - routers.categories - DEBUG - Querying categoriess: query=None, sort=sort_order, skip=0, limit=200, fields=None
+2026-03-19 10:21:11,306 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:21:11,306 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:21:11,307 - routers.directory_entries - DEBUG - Querying directory_entriess: query=None, sort=None, skip=0, limit=8, fields=None
+2026-03-19 10:21:11,308 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:21:11,309 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:21:11,309 - routers.banners - DEBUG - Querying bannerss: query={"active":true}, sort=None, skip=0, limit=2, fields=None
+2026-03-19 10:21:11,311 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:21:11,311 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-19 10:21:11,312 - routers.announcements - DEBUG - Querying announcementss: query={"active":true,"status":"approved"}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:21:11,313 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:21:11,313 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:21:11,313 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:21:11,314 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:21:11,315 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:21:11,315 - routers.jobs - DEBUG - Querying jobss: query={"active":true}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:21:11,316 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:21:11,316 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:21:11,316 - routers.questions - DEBUG - Querying questionss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:21:11,664 - routers.questions - DEBUG - Found 11 questionss
+2026-03-19 10:21:11,665 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.3488s
+2026-03-19 10:21:11,778 - routers.directory_entries - DEBUG - Found 14 directory_entriess
+2026-03-19 10:21:11,779 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4727s
+2026-03-19 10:21:11,781 - routers.jobs - DEBUG - Found 5 jobss
+2026-03-19 10:21:11,782 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4676s
+2026-03-19 10:21:11,826 - routers.master_requests - DEBUG - Found 11 master_requestss
+2026-03-19 10:21:11,827 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5263s
+2026-03-19 10:21:11,828 - routers.complaints - DEBUG - Found 11 complaintss
+2026-03-19 10:21:11,828 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5293s
+2026-03-19 10:21:11,838 - routers.banners - DEBUG - Found 2 bannerss
+2026-03-19 10:21:11,839 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5302s
+2026-03-19 10:21:11,840 - routers.news - DEBUG - Found 11 newss
+2026-03-19 10:21:11,840 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5272s
+2026-03-19 10:21:11,840 - routers.announcements - DEBUG - Found 1 announcementss
+2026-03-19 10:21:11,841 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5297s
+2026-03-19 10:21:11,891 - routers.categories - DEBUG - Found 44 categoriess
+2026-03-19 10:21:11,892 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5886s
+2026-03-19 10:21:25,608 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:21:25,609 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0008s
+2026-03-19 10:21:25,610 - routers.categories - DEBUG - Querying categoriess: query=None, sort=sort_order, skip=0, limit=200, fields=None
+2026-03-19 10:21:25,611 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:21:25,612 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:21:25,612 - routers.announcements - DEBUG - Querying announcementss: query={"active":true,"status":"approved"}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:21:25,615 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:21:25,615 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-19 10:21:25,616 - routers.directory_entries - DEBUG - Querying directory_entriess: query=None, sort=None, skip=0, limit=8, fields=None
+2026-03-19 10:21:25,618 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:21:25,618 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-19 10:21:25,619 - routers.banners - DEBUG - Querying bannerss: query={"active":true}, sort=None, skip=0, limit=2, fields=None
+2026-03-19 10:21:25,620 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:21:25,620 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:21:25,620 - routers.master_requests - DEBUG - Querying master_requestss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:21:25,621 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:21:25,621 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:21:25,622 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:21:25,624 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:21:25,627 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0021s
+2026-03-19 10:21:25,627 - routers.questions - DEBUG - Querying questionss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:21:25,628 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:21:25,629 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:21:25,629 - routers.jobs - DEBUG - Querying jobss: query={"active":true}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:21:25,630 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:21:25,630 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:21:25,630 - routers.complaints - DEBUG - Querying complaintss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:21:25,975 - routers.banners - DEBUG - Found 2 bannerss
+2026-03-19 10:21:25,976 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.3576s
+2026-03-19 10:21:25,984 - routers.complaints - DEBUG - Found 11 complaintss
+2026-03-19 10:21:25,985 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.3550s
+2026-03-19 10:21:26,013 - routers.master_requests - DEBUG - Found 11 master_requestss
+2026-03-19 10:21:26,014 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.3941s
+2026-03-19 10:21:26,084 - routers.directory_entries - DEBUG - Found 14 directory_entriess
+2026-03-19 10:21:26,085 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4701s
+2026-03-19 10:21:26,094 - routers.news - DEBUG - Found 11 newss
+2026-03-19 10:21:26,095 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4734s
+2026-03-19 10:21:26,096 - routers.jobs - DEBUG - Found 5 jobss
+2026-03-19 10:21:26,097 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4683s
+2026-03-19 10:21:26,159 - routers.announcements - DEBUG - Found 1 announcementss
+2026-03-19 10:21:26,160 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5486s
+2026-03-19 10:21:26,204 - routers.questions - DEBUG - Found 11 questionss
+2026-03-19 10:21:26,205 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5805s
+2026-03-19 10:21:26,208 - routers.categories - DEBUG - Found 44 categoriess
+2026-03-19 10:21:26,209 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.6002s
+2026-03-19 10:22:22,243 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:22:22,244 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-19 10:22:22,244 - routers.news - DEBUG - Querying newss: query=None, sort=-created_at, skip=0, limit=100, fields=None
+2026-03-19 10:22:22,776 - routers.news - DEBUG - Found 11 newss
+2026-03-19 10:22:22,777 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5345s
+2026-03-19 10:22:37,430 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:22:37,430 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-19 10:22:37,431 - routers.news - DEBUG - Querying newss: query=None, sort=-created_at, skip=0, limit=100, fields=None
+2026-03-19 10:22:37,960 - routers.news - DEBUG - Found 11 newss
+2026-03-19 10:22:37,961 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5316s
+2026-03-19 10:22:38,407 - core.config - DEBUG - Read dynamic attribute jwt_secret_key from environment variable JWT_SECRET_KEY
+2026-03-19 10:22:38,407 - core.config - DEBUG - Read dynamic attribute jwt_algorithm from environment variable JWT_ALGORITHM
+2026-03-19 10:22:38,649 - core.auth - DEBUG - Authentication token validated for user hash: 1b536645
+2026-03-19 10:22:38,650 - core.config - DEBUG - Read dynamic attribute oss_service_url from environment variable OSS_SERVICE_URL
+2026-03-19 10:22:38,650 - core.config - DEBUG - Read dynamic attribute oss_api_key from environment variable OSS_API_KEY
+2026-03-19 10:22:40,111 - httpcore.connection - DEBUG - connect_tcp.started host='atoms.dev' port=443 local_address=None timeout=120.0 socket_options=None
+2026-03-19 10:22:40,125 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f3be853d8a0>
+2026-03-19 10:22:40,125 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x7f3be847bc40> server_hostname='atoms.dev' timeout=120.0
+2026-03-19 10:22:40,135 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f3be9a26fe0>
+2026-03-19 10:22:40,136 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2026-03-19 10:22:40,136 - httpcore.http11 - DEBUG - send_request_headers.complete
+2026-03-19 10:22:40,137 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2026-03-19 10:22:40,138 - httpcore.http11 - DEBUG - send_request_body.complete
+2026-03-19 10:22:40,138 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2026-03-19 10:22:40,176 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Thu, 19 Mar 2026 17:22:40 GMT'), (b'Content-Type', b'application/json; charset=utf-8'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Access-Control-Allow-Headers', b'Origin, Content-Type, Accept, Authorization'), (b'Access-Control-Allow-Methods', b'GET, POST, PUT, DELETE, OPTIONS'), (b'Access-Control-Allow-Origin', b'*'), (b'Access-Control-Max-Age', b'86400'), (b'X-Request-Id', b'434e29855fb333a89547a2dde86383a7'), (b'X-Trace-Id', b'bf4dbdf0251745c19fa0f07de11a0178'), (b'Content-Security-Policy', b"frame-ancestors 'self' https://atoms.dev"), (b'Strict-Transport-Security', b'max-age=63072000; includeSubDomains; preload'), (b'X-Content-Type-Options', b'nosniff'), (b'X-XSS-Protection', b'1; mode=block'), (b'Referrer-Policy', b'strict-origin-when-cross-origin'), (b'cf-cache-status', b'DYNAMIC'), (b'Content-Encoding', b'gzip'), (b'Server', b'cloudflare'), (b'CF-RAY', b'9dee2918ddfc0b78-LAX')])
+2026-03-19 10:22:40,177 - httpx - INFO - HTTP Request: POST https://atoms.dev/api/v1/infra/client/oss/buckets/portal-images/objects/download_url "HTTP/1.1 200 OK"
+2026-03-19 10:22:40,178 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2026-03-19 10:22:40,179 - httpcore.http11 - DEBUG - receive_response_body.complete
+2026-03-19 10:22:40,179 - httpcore.http11 - DEBUG - response_closed.started
+2026-03-19 10:22:40,179 - httpcore.http11 - DEBUG - response_closed.complete
+2026-03-19 10:22:40,180 - httpcore.connection - DEBUG - close.started
+2026-03-19 10:22:40,181 - httpcore.connection - DEBUG - close.complete
+2026-03-19 10:22:44,752 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:22:44,752 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-19 10:22:44,752 - routers.banners - DEBUG - Querying bannerss: query=None, sort=-created_at, skip=0, limit=50, fields=None
+2026-03-19 10:22:45,223 - routers.banners - DEBUG - Found 2 bannerss
+2026-03-19 10:22:45,224 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4722s
+2026-03-19 10:23:44,934 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:44,934 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-19 10:23:44,935 - routers.categories - DEBUG - Querying categoriess: query=None, sort=sort_order, skip=0, limit=200, fields=None
+2026-03-19 10:23:44,936 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:44,936 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-19 10:23:44,937 - routers.master_requests - DEBUG - Querying master_requestss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:23:44,937 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:44,937 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0001s
+2026-03-19 10:23:44,938 - routers.complaints - DEBUG - Querying complaintss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:23:44,938 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:44,938 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0001s
+2026-03-19 10:23:44,938 - routers.announcements - DEBUG - Querying announcementss: query={"active":true,"status":"approved"}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:23:44,943 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:44,943 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:23:44,944 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:23:44,945 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:44,945 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0001s
+2026-03-19 10:23:44,945 - routers.jobs - DEBUG - Querying jobss: query={"active":true}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:23:45,300 - routers.news - DEBUG - Found 11 newss
+2026-03-19 10:23:45,301 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.3581s
+2026-03-19 10:23:45,302 - services.announcements - ERROR - Error fetching announcements list: (sqlalchemy.dialects.postgresql.asyncpg.InvalidCachedStatementError) <class 'asyncpg.exceptions.InvalidCachedStatementError'>: cached statement plan is invalid due to a database schema or configuration change (SQLAlchemy asyncpg dialect will now invalidate all prepared caches in response to this exception)
+[SQL: SELECT announcements.id, announcements.ann_type, announcements.title, announcements.description, announcements.price, announcements.address, announcements.image_url, announcements.gallery_images, announcements.phone, announcements.whatsapp, announcements.telegram, announcements.author_name, announcements.active, announcements.status, announcements.created_at 
+FROM announcements 
+WHERE announcements.active = true AND announcements.status = $1::VARCHAR ORDER BY announcements.created_at DESC 
+ LIMIT $2::INTEGER OFFSET $3::INTEGER]
+[parameters: ('approved', 5, 0)]
+(Background on this error at: https://sqlalche.me/e/20/tw8g)
+2026-03-19 10:23:45,302 - routers.announcements - ERROR - Error querying announcementss: (sqlalchemy.dialects.postgresql.asyncpg.InvalidCachedStatementError) <class 'asyncpg.exceptions.InvalidCachedStatementError'>: cached statement plan is invalid due to a database schema or configuration change (SQLAlchemy asyncpg dialect will now invalidate all prepared caches in response to this exception)
+[SQL: SELECT announcements.id, announcements.ann_type, announcements.title, announcements.description, announcements.price, announcements.address, announcements.image_url, announcements.gallery_images, announcements.phone, announcements.whatsapp, announcements.telegram, announcements.author_name, announcements.active, announcements.status, announcements.created_at 
+FROM announcements 
+WHERE announcements.active = true AND announcements.status = $1::VARCHAR ORDER BY announcements.created_at DESC 
+ LIMIT $2::INTEGER OFFSET $3::INTEGER]
+[parameters: ('approved', 5, 0)]
+(Background on this error at: https://sqlalche.me/e/20/tw8g)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 550, in _prepare_and_execute
+    self._rows = deque(await prepared_stmt.fetch(*parameters))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/prepared_stmt.py", line 177, in fetch
+    data = await self.__bind_execute(args, 0, timeout)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/prepared_stmt.py", line 268, in __bind_execute
+    data, status, _ = await self.__do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/prepared_stmt.py", line 257, in __do_execute
+    return await executor(protocol)
+  File "asyncpg/protocol/protocol.pyx", line 205, in bind_execute
+asyncpg.exceptions.InvalidCachedStatementError: cached statement plan is invalid due to a database schema or configuration change
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.InvalidCachedStatementError: <class 'asyncpg.exceptions.InvalidCachedStatementError'>: cached statement plan is invalid due to a database schema or configuration change (SQLAlchemy asyncpg dialect will now invalidate all prepared caches in response to this exception)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/announcements.py", line 134, in query_announcementss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/announcements.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.NotSupportedError: (sqlalchemy.dialects.postgresql.asyncpg.InvalidCachedStatementError) <class 'asyncpg.exceptions.InvalidCachedStatementError'>: cached statement plan is invalid due to a database schema or configuration change (SQLAlchemy asyncpg dialect will now invalidate all prepared caches in response to this exception)
+[SQL: SELECT announcements.id, announcements.ann_type, announcements.title, announcements.description, announcements.price, announcements.address, announcements.image_url, announcements.gallery_images, announcements.phone, announcements.whatsapp, announcements.telegram, announcements.author_name, announcements.active, announcements.status, announcements.created_at 
+FROM announcements 
+WHERE announcements.active = true AND announcements.status = $1::VARCHAR ORDER BY announcements.created_at DESC 
+ LIMIT $2::INTEGER OFFSET $3::INTEGER]
+[parameters: ('approved', 5, 0)]
+(Background on this error at: https://sqlalche.me/e/20/tw8g)
+2026-03-19 10:23:45,832 - core.database - ERROR - Database session error: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.InvalidCachedStatementError) <class 'asyncpg.exceptions.InvalidCachedStatementError'>: cached statement plan is invalid due to a database schema or configuration change (SQLAlchemy asyncpg dialect will now invalidate all prepared caches in response to this exception)
+[SQL: SELECT announcements.id, announcements.ann_type, announcements.title, announcements.description, announcements.price, announcements.address, announcements.image_url, announcements.gallery_images, announcements.phone, announcements.whatsapp, announcements.telegram, announcements.author_name, announcements.active, announcements.status, announcements.created_at 
+FROM announcements 
+WHERE announcements.active = true AND announcements.status = $1::VARCHAR ORDER BY announcements.created_at DESC 
+ LIMIT $2::INTEGER OFFSET $3::INTEGER]
+[parameters: ('approved', 5, 0)]
+(Background on this error at: https://sqlalche.me/e/20/tw8g)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 550, in _prepare_and_execute
+    self._rows = deque(await prepared_stmt.fetch(*parameters))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/prepared_stmt.py", line 177, in fetch
+    data = await self.__bind_execute(args, 0, timeout)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/prepared_stmt.py", line 268, in __bind_execute
+    data, status, _ = await self.__do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/prepared_stmt.py", line 257, in __do_execute
+    return await executor(protocol)
+  File "asyncpg/protocol/protocol.pyx", line 205, in bind_execute
+asyncpg.exceptions.InvalidCachedStatementError: cached statement plan is invalid due to a database schema or configuration change
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.InvalidCachedStatementError: <class 'asyncpg.exceptions.InvalidCachedStatementError'>: cached statement plan is invalid due to a database schema or configuration change (SQLAlchemy asyncpg dialect will now invalidate all prepared caches in response to this exception)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/announcements.py", line 134, in query_announcementss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/announcements.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.NotSupportedError: (sqlalchemy.dialects.postgresql.asyncpg.InvalidCachedStatementError) <class 'asyncpg.exceptions.InvalidCachedStatementError'>: cached statement plan is invalid due to a database schema or configuration change (SQLAlchemy asyncpg dialect will now invalidate all prepared caches in response to this exception)
+[SQL: SELECT announcements.id, announcements.ann_type, announcements.title, announcements.description, announcements.price, announcements.address, announcements.image_url, announcements.gallery_images, announcements.phone, announcements.whatsapp, announcements.telegram, announcements.author_name, announcements.active, announcements.status, announcements.created_at 
+FROM announcements 
+WHERE announcements.active = true AND announcements.status = $1::VARCHAR ORDER BY announcements.created_at DESC 
+ LIMIT $2::INTEGER OFFSET $3::INTEGER]
+[parameters: ('approved', 5, 0)]
+(Background on this error at: https://sqlalche.me/e/20/tw8g)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/announcements.py", line 146, in query_announcementss
+    raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.InvalidCachedStatementError) <class 'asyncpg.exceptions.InvalidCachedStatementError'>: cached statement plan is invalid due to a database schema or configuration change (SQLAlchemy asyncpg dialect will now invalidate all prepared caches in response to this exception)
+[SQL: SELECT announcements.id, announcements.ann_type, announcements.title, announcements.description, announcements.price, announcements.address, announcements.image_url, announcements.gallery_images, announcements.phone, announcements.whatsapp, announcements.telegram, announcements.author_name, announcements.active, announcements.status, announcements.created_at 
+FROM announcements 
+WHERE announcements.active = true AND announcements.status = $1::VARCHAR ORDER BY announcements.created_at DESC 
+ LIMIT $2::INTEGER OFFSET $3::INTEGER]
+[parameters: ('approved', 5, 0)]
+(Background on this error at: https://sqlalche.me/e/20/tw8g)
+2026-03-19 10:23:45,906 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.9680s
+2026-03-19 10:23:45,908 - routers.categories - DEBUG - Found 44 categoriess
+2026-03-19 10:23:45,909 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.9750s
+2026-03-19 10:23:45,910 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:45,910 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:23:45,911 - routers.questions - DEBUG - Querying questionss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:23:45,913 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:45,914 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-19 10:23:45,914 - routers.directory_entries - DEBUG - Querying directory_entriess: query=None, sort=None, skip=0, limit=8, fields=None
+2026-03-19 10:23:45,968 - routers.master_requests - DEBUG - Found 11 master_requestss
+2026-03-19 10:23:45,969 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.0332s
+2026-03-19 10:23:45,970 - routers.jobs - DEBUG - Found 5 jobss
+2026-03-19 10:23:45,971 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.0260s
+2026-03-19 10:23:45,971 - routers.complaints - DEBUG - Found 11 complaintss
+2026-03-19 10:23:45,972 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.0345s
+2026-03-19 10:23:45,974 - core.database - ERROR - Failed to create database session: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.InvalidCachedStatementError) <class 'asyncpg.exceptions.InvalidCachedStatementError'>: cached statement plan is invalid due to a database schema or configuration change (SQLAlchemy asyncpg dialect will now invalidate all prepared caches in response to this exception)
+[SQL: SELECT announcements.id, announcements.ann_type, announcements.title, announcements.description, announcements.price, announcements.address, announcements.image_url, announcements.gallery_images, announcements.phone, announcements.whatsapp, announcements.telegram, announcements.author_name, announcements.active, announcements.status, announcements.created_at 
+FROM announcements 
+WHERE announcements.active = true AND announcements.status = $1::VARCHAR ORDER BY announcements.created_at DESC 
+ LIMIT $2::INTEGER OFFSET $3::INTEGER]
+[parameters: ('approved', 5, 0)]
+(Background on this error at: https://sqlalche.me/e/20/tw8g)
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 550, in _prepare_and_execute
+    self._rows = deque(await prepared_stmt.fetch(*parameters))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/prepared_stmt.py", line 177, in fetch
+    data = await self.__bind_execute(args, 0, timeout)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/prepared_stmt.py", line 268, in __bind_execute
+    data, status, _ = await self.__do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/asyncpg/prepared_stmt.py", line 257, in __do_execute
+    return await executor(protocol)
+  File "asyncpg/protocol/protocol.pyx", line 205, in bind_execute
+asyncpg.exceptions.InvalidCachedStatementError: cached statement plan is invalid due to a database schema or configuration change
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.InvalidCachedStatementError: <class 'asyncpg.exceptions.InvalidCachedStatementError'>: cached statement plan is invalid due to a database schema or configuration change (SQLAlchemy asyncpg dialect will now invalidate all prepared caches in response to this exception)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/routers/announcements.py", line 134, in query_announcementss
+    result = await service.get_list(
+  File "/workspace/app/backend/services/announcements.py", line 75, in get_list
+    result = await self.db.execute(query.offset(skip).limit(limit))
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 585, in execute
+    self._adapt_connection.await_(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 563, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 513, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.NotSupportedError: (sqlalchemy.dialects.postgresql.asyncpg.InvalidCachedStatementError) <class 'asyncpg.exceptions.InvalidCachedStatementError'>: cached statement plan is invalid due to a database schema or configuration change (SQLAlchemy asyncpg dialect will now invalidate all prepared caches in response to this exception)
+[SQL: SELECT announcements.id, announcements.ann_type, announcements.title, announcements.description, announcements.price, announcements.address, announcements.image_url, announcements.gallery_images, announcements.phone, announcements.whatsapp, announcements.telegram, announcements.author_name, announcements.active, announcements.status, announcements.created_at 
+FROM announcements 
+WHERE announcements.active = true AND announcements.status = $1::VARCHAR ORDER BY announcements.created_at DESC 
+ LIMIT $2::INTEGER OFFSET $3::INTEGER]
+[parameters: ('approved', 5, 0)]
+(Background on this error at: https://sqlalche.me/e/20/tw8g)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/app/backend/core/database.py", line 534, in get_db
+    yield session
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+  File "/data/chats/fb49573987034a9b83c183f78c0a552e/.cache/python/lib/python3.10/site-packages/fastapi/routing.py", line 324, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/workspace/app/backend/routers/announcements.py", line 146, in query_announcementss
+    raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+fastapi.exceptions.HTTPException: 500: Internal server error: (sqlalchemy.dialects.postgresql.asyncpg.InvalidCachedStatementError) <class 'asyncpg.exceptions.InvalidCachedStatementError'>: cached statement plan is invalid due to a database schema or configuration change (SQLAlchemy asyncpg dialect will now invalidate all prepared caches in response to this exception)
+[SQL: SELECT announcements.id, announcements.ann_type, announcements.title, announcements.description, announcements.price, announcements.address, announcements.image_url, announcements.gallery_images, announcements.phone, announcements.whatsapp, announcements.telegram, announcements.author_name, announcements.active, announcements.status, announcements.created_at 
+FROM announcements 
+WHERE announcements.active = true AND announcements.status = $1::VARCHAR ORDER BY announcements.created_at DESC 
+ LIMIT $2::INTEGER OFFSET $3::INTEGER]
+[parameters: ('approved', 5, 0)]
+(Background on this error at: https://sqlalche.me/e/20/tw8g)
+2026-03-19 10:23:45,984 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:45,985 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:23:45,985 - routers.banners - DEBUG - Querying bannerss: query={"active":true}, sort=None, skip=0, limit=2, fields=None
+2026-03-19 10:23:46,441 - routers.questions - DEBUG - Found 11 questionss
+2026-03-19 10:23:46,441 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5313s
+2026-03-19 10:23:46,446 - routers.directory_entries - DEBUG - Found 14 directory_entriess
+2026-03-19 10:23:46,446 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5332s
+2026-03-19 10:23:46,508 - routers.banners - DEBUG - Found 2 bannerss
+2026-03-19 10:23:46,509 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5247s
+2026-03-19 10:23:47,489 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:47,489 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0007s
+2026-03-19 10:23:47,490 - routers.announcements - DEBUG - Querying announcementss: query={"active":true,"status":"approved"}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:23:47,805 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:47,805 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0006s
+2026-03-19 10:23:47,806 - routers.categories - DEBUG - Querying categoriess: query=None, sort=sort_order, skip=0, limit=200, fields=None
+2026-03-19 10:23:47,808 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:47,809 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-19 10:23:47,809 - routers.banners - DEBUG - Querying bannerss: query={"active":true}, sort=None, skip=0, limit=2, fields=None
+2026-03-19 10:23:47,811 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:47,812 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:23:47,812 - routers.master_requests - DEBUG - Querying master_requestss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:23:47,813 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:47,814 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-19 10:23:47,815 - routers.announcements - DEBUG - Querying announcementss: query={"active":true,"status":"approved"}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:23:47,816 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:47,816 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:23:47,816 - routers.complaints - DEBUG - Querying complaintss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:23:47,817 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:47,818 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:23:47,818 - routers.questions - DEBUG - Querying questionss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:23:47,819 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:47,819 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-19 10:23:47,819 - routers.jobs - DEBUG - Querying jobss: query={"active":true}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:23:47,820 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:47,821 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-19 10:23:47,821 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:23:48,022 - routers.announcements - DEBUG - Found 1 announcementss
+2026-03-19 10:23:48,023 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5341s
+2026-03-19 10:23:48,078 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:48,079 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0007s
+2026-03-19 10:23:48,079 - routers.directory_entries - DEBUG - Querying directory_entriess: query=None, sort=None, skip=0, limit=8, fields=None
+2026-03-19 10:23:48,224 - routers.questions - DEBUG - Found 11 questionss
+2026-03-19 10:23:48,225 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4073s
+2026-03-19 10:23:48,281 - routers.master_requests - DEBUG - Found 11 master_requestss
+2026-03-19 10:23:48,282 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4704s
+2026-03-19 10:23:48,285 - routers.complaints - DEBUG - Found 11 complaintss
+2026-03-19 10:23:48,285 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4694s
+2026-03-19 10:23:48,340 - routers.banners - DEBUG - Found 2 bannerss
+2026-03-19 10:23:48,341 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5323s
+2026-03-19 10:23:48,342 - routers.announcements - DEBUG - Found 1 announcementss
+2026-03-19 10:23:48,342 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5287s
+2026-03-19 10:23:48,345 - routers.jobs - DEBUG - Found 5 jobss
+2026-03-19 10:23:48,346 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5274s
+2026-03-19 10:23:48,427 - routers.news - DEBUG - Found 11 newss
+2026-03-19 10:23:48,428 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.6082s
+2026-03-19 10:23:48,447 - routers.categories - DEBUG - Found 44 categoriess
+2026-03-19 10:23:48,449 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.6439s
+2026-03-19 10:23:48,787 - routers.directory_entries - DEBUG - Found 14 directory_entriess
+2026-03-19 10:23:48,788 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.7103s
+2026-03-19 10:23:56,920 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:56,920 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-19 10:23:56,921 - routers.master_requests - DEBUG - Querying master_requestss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:23:56,923 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:56,923 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-19 10:23:56,923 - routers.announcements - DEBUG - Querying announcementss: query={"active":true,"status":"approved"}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:23:56,925 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:56,926 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-19 10:23:56,926 - routers.complaints - DEBUG - Querying complaintss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:23:56,927 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:56,927 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0001s
+2026-03-19 10:23:56,928 - routers.banners - DEBUG - Querying bannerss: query={"active":true}, sort=None, skip=0, limit=2, fields=None
+2026-03-19 10:23:56,929 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:56,929 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:23:56,929 - routers.jobs - DEBUG - Querying jobss: query={"active":true}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:23:56,930 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:56,931 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0001s
+2026-03-19 10:23:56,931 - routers.questions - DEBUG - Querying questionss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:23:56,932 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:56,932 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-19 10:23:56,932 - routers.categories - DEBUG - Querying categoriess: query=None, sort=sort_order, skip=0, limit=200, fields=None
+2026-03-19 10:23:56,933 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:56,933 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:23:56,934 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:23:56,935 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:23:56,936 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-19 10:23:56,936 - routers.directory_entries - DEBUG - Querying directory_entriess: query=None, sort=None, skip=0, limit=8, fields=None
+2026-03-19 10:23:57,284 - routers.news - DEBUG - Found 11 newss
+2026-03-19 10:23:57,284 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.3511s
+2026-03-19 10:23:57,395 - routers.announcements - DEBUG - Found 1 announcementss
+2026-03-19 10:23:57,396 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4728s
+2026-03-19 10:23:57,455 - routers.master_requests - DEBUG - Found 11 master_requestss
+2026-03-19 10:23:57,456 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5357s
+2026-03-19 10:23:57,462 - routers.jobs - DEBUG - Found 5 jobss
+2026-03-19 10:23:57,463 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5339s
+2026-03-19 10:23:57,512 - routers.complaints - DEBUG - Found 11 complaintss
+2026-03-19 10:23:57,513 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5875s
+2026-03-19 10:23:57,514 - routers.questions - DEBUG - Found 11 questionss
+2026-03-19 10:23:57,514 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5835s
+2026-03-19 10:23:57,515 - routers.banners - DEBUG - Found 2 bannerss
+2026-03-19 10:23:57,515 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5878s
+2026-03-19 10:23:57,520 - routers.categories - DEBUG - Found 44 categoriess
+2026-03-19 10:23:57,521 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5891s
+2026-03-19 10:23:57,574 - routers.directory_entries - DEBUG - Found 14 directory_entriess
+2026-03-19 10:23:57,575 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.6393s
+2026-03-19 10:24:34,496 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:24:34,497 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-19 10:24:34,497 - routers.categories - DEBUG - Querying categoriess: query=None, sort=sort_order, skip=0, limit=200, fields=None
+2026-03-19 10:24:34,499 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:24:34,499 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-19 10:24:34,499 - routers.master_requests - DEBUG - Querying master_requestss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:24:34,500 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:24:34,500 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:24:34,501 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:24:34,502 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:24:34,502 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:24:34,502 - routers.complaints - DEBUG - Querying complaintss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:24:34,503 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:24:34,503 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0001s
+2026-03-19 10:24:34,504 - routers.announcements - DEBUG - Querying announcementss: query={"active":true,"status":"approved"}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:24:34,505 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:24:34,505 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:24:34,505 - routers.jobs - DEBUG - Querying jobss: query={"active":true}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:24:34,966 - routers.news - DEBUG - Found 11 newss
+2026-03-19 10:24:34,968 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4675s
+2026-03-19 10:24:34,969 - routers.complaints - DEBUG - Found 11 complaintss
+2026-03-19 10:24:34,969 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4671s
+2026-03-19 10:24:34,970 - routers.jobs - DEBUG - Found 5 jobss
+2026-03-19 10:24:34,972 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4670s
+2026-03-19 10:24:34,974 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:24:34,975 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-19 10:24:34,975 - routers.questions - DEBUG - Querying questionss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:24:34,979 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:24:34,980 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0014s
+2026-03-19 10:24:34,981 - routers.directory_entries - DEBUG - Querying directory_entriess: query=None, sort=None, skip=0, limit=8, fields=None
+2026-03-19 10:24:34,983 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:24:34,984 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-19 10:24:34,984 - routers.banners - DEBUG - Querying bannerss: query={"active":true}, sort=None, skip=0, limit=2, fields=None
+2026-03-19 10:24:35,029 - routers.announcements - DEBUG - Found 1 announcementss
+2026-03-19 10:24:35,029 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5261s
+2026-03-19 10:24:35,083 - routers.master_requests - DEBUG - Found 11 master_requestss
+2026-03-19 10:24:35,083 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5848s
+2026-03-19 10:24:35,085 - routers.categories - DEBUG - Found 44 categoriess
+2026-03-19 10:24:35,086 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5894s
+2026-03-19 10:24:35,327 - routers.questions - DEBUG - Found 11 questionss
+2026-03-19 10:24:35,328 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.3540s
+2026-03-19 10:24:35,454 - routers.directory_entries - DEBUG - Found 14 directory_entriess
+2026-03-19 10:24:35,455 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4761s
+2026-03-19 10:24:35,515 - routers.banners - DEBUG - Found 2 bannerss
+2026-03-19 10:24:35,516 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5327s
+2026-03-19 10:26:17,787 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:26:17,788 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-19 10:26:17,788 - routers.master_requests - DEBUG - Querying master_requestss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:26:17,790 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:26:17,790 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-19 10:26:17,790 - routers.announcements - DEBUG - Querying announcementss: query={"active":true,"status":"approved"}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:26:17,796 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:26:17,796 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0006s
+2026-03-19 10:26:17,797 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:26:17,799 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:26:17,799 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0007s
+2026-03-19 10:26:17,800 - routers.jobs - DEBUG - Querying jobss: query={"active":true}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:26:17,803 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:26:17,803 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-19 10:26:17,803 - routers.directory_entries - DEBUG - Querying directory_entriess: query=None, sort=None, skip=0, limit=8, fields=None
+2026-03-19 10:26:17,804 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:26:17,805 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:26:17,805 - routers.categories - DEBUG - Querying categoriess: query=None, sort=sort_order, skip=0, limit=200, fields=None
+2026-03-19 10:26:17,806 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:26:17,806 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:26:17,807 - routers.questions - DEBUG - Querying questionss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:26:18,060 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:26:18,060 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-19 10:26:18,061 - routers.banners - DEBUG - Querying bannerss: query={"active":true}, sort=None, skip=0, limit=2, fields=None
+2026-03-19 10:26:18,093 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:26:18,093 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-19 10:26:18,094 - routers.complaints - DEBUG - Querying complaintss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:26:18,143 - routers.announcements - DEBUG - Found 1 announcementss
+2026-03-19 10:26:18,144 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.3542s
+2026-03-19 10:26:18,154 - routers.jobs - DEBUG - Found 5 jobss
+2026-03-19 10:26:18,155 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.3566s
+2026-03-19 10:26:18,275 - routers.questions - DEBUG - Found 11 questionss
+2026-03-19 10:26:18,276 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4700s
+2026-03-19 10:26:18,326 - routers.news - DEBUG - Found 11 newss
+2026-03-19 10:26:18,327 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5313s
+2026-03-19 10:26:18,368 - routers.master_requests - DEBUG - Found 11 master_requestss
+2026-03-19 10:26:18,369 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5817s
+2026-03-19 10:26:18,387 - routers.categories - DEBUG - Found 44 categoriess
+2026-03-19 10:26:18,389 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5849s
+2026-03-19 10:26:18,391 - routers.directory_entries - DEBUG - Found 14 directory_entriess
+2026-03-19 10:26:18,391 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5884s
+2026-03-19 10:26:18,451 - routers.complaints - DEBUG - Found 11 complaintss
+2026-03-19 10:26:18,452 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.3588s
+2026-03-19 10:26:18,586 - routers.banners - DEBUG - Found 2 bannerss
+2026-03-19 10:26:18,587 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5271s
+2026-03-19 10:26:27,015 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:26:27,016 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-19 10:26:27,016 - routers.announcements - DEBUG - Querying announcementss: query={"active":true,"status":"approved"}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:26:27,017 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:26:27,017 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:26:27,018 - routers.categories - DEBUG - Querying categoriess: query=None, sort=sort_order, skip=0, limit=200, fields=None
+2026-03-19 10:26:27,019 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:26:27,019 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:26:27,019 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:26:27,021 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:26:27,022 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-19 10:26:27,022 - routers.directory_entries - DEBUG - Querying directory_entriess: query=None, sort=None, skip=0, limit=8, fields=None
+2026-03-19 10:26:27,023 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:26:27,023 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:26:27,023 - routers.questions - DEBUG - Querying questionss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:26:27,024 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:26:27,024 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:26:27,025 - routers.complaints - DEBUG - Querying complaintss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:26:27,025 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:26:27,026 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-19 10:26:27,026 - routers.master_requests - DEBUG - Querying master_requestss: query=None, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:26:27,027 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:26:27,027 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:26:27,027 - routers.banners - DEBUG - Querying bannerss: query={"active":true}, sort=None, skip=0, limit=2, fields=None
+2026-03-19 10:26:27,030 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-19 10:26:27,030 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-19 10:26:27,031 - routers.jobs - DEBUG - Querying jobss: query={"active":true}, sort=-created_at, skip=0, limit=5, fields=None
+2026-03-19 10:26:27,376 - routers.master_requests - DEBUG - Found 11 master_requestss
+2026-03-19 10:26:27,377 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.3516s
+2026-03-19 10:26:27,386 - routers.banners - DEBUG - Found 2 bannerss
+2026-03-19 10:26:27,387 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.3601s
+2026-03-19 10:26:27,430 - routers.directory_entries - DEBUG - Found 14 directory_entriess
+2026-03-19 10:26:27,431 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4094s
+2026-03-19 10:26:27,487 - routers.announcements - DEBUG - Found 1 announcementss
+2026-03-19 10:26:27,488 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4729s
+2026-03-19 10:26:27,544 - routers.categories - DEBUG - Found 44 categoriess
+2026-03-19 10:26:27,545 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5282s
+2026-03-19 10:26:27,547 - routers.complaints - DEBUG - Found 11 complaintss
+2026-03-19 10:26:27,548 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5234s
+2026-03-19 10:26:27,550 - routers.news - DEBUG - Found 11 newss
+2026-03-19 10:26:27,551 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5320s
+2026-03-19 10:26:27,561 - routers.jobs - DEBUG - Found 5 jobss
+2026-03-19 10:26:27,562 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5315s
+2026-03-19 10:26:27,611 - routers.questions - DEBUG - Found 11 questionss
+2026-03-19 10:26:27,612 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5889s
+2026-03-19 10:27:30,829 - services.database - DEBUG - [DB_OP] Starting database close
+2026-03-19 10:27:31,451 - core.database - INFO - Database connection closed and engine disposed
+2026-03-19 10:27:31,451 - services.database - INFO - Database connections closed
+2026-03-19 10:27:31,451 - services.database - DEBUG - [DB_OP] Database close completed in 0.6218s

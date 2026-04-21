@@ -1,0 +1,26 @@
+{
+    "title": "frontpad_settings",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "setting_key": {
+            "type": "string",
+            "description": "Setting key name (e.g. api_key, affiliate_id, sync_interval, last_sync_status, last_sync_at, last_sync_error)"
+        },
+        "setting_value": {
+            "type": "string",
+            "description": "Setting value"
+        },
+        "updated_at": {
+            "type": "string",
+            "description": "Last updated timestamp"
+        }
+    },
+    "required": [
+        "id",
+        "setting_key"
+    ]
+}

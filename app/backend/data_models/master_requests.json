@@ -1,0 +1,41 @@
+{
+    "title": "master_requests",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "category": {
+            "type": "string",
+            "description": "Category"
+        },
+        "problem_description": {
+            "type": "string",
+            "description": "Problem description"
+        },
+        "address": {
+            "type": "string",
+            "description": "Address"
+        },
+        "phone": {
+            "type": "string",
+            "description": "Phone"
+        },
+        "client_name": {
+            "type": "string",
+            "description": "Client name"
+        },
+        "status": {
+            "type": "string",
+            "description": "Status"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

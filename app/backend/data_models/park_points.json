@@ -1,0 +1,41 @@
+{
+    "title": "park_points",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "name": {
+            "type": "string",
+            "description": "Point name"
+        },
+        "lat": {
+            "type": "number",
+            "description": "Latitude"
+        },
+        "lng": {
+            "type": "number",
+            "description": "Longitude"
+        },
+        "description": {
+            "type": "string",
+            "description": "Description"
+        },
+        "is_active": {
+            "type": "boolean",
+            "description": "Is active"
+        },
+        "sort_order": {
+            "type": "integer",
+            "description": "Sort order"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

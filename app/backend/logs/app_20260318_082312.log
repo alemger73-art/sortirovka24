@@ -1,0 +1,32 @@
+2026-03-18 08:23:12,467 - main - INFO - === Logging system initialized ===
+2026-03-18 08:23:12,467 - main - INFO - Log file: logs/app_20260318_082312.log
+2026-03-18 08:23:12,467 - main - INFO - Log level: INFO
+2026-03-18 08:23:12,467 - main - INFO - Timestamp: 20260318_082312
+2026-03-18 08:23:13,483 - main - INFO - Included router: routers.aihub.router
+2026-03-18 08:23:13,556 - main - INFO - Included router: routers.announcements.router
+2026-03-18 08:23:13,584 - main - INFO - Included router: routers.auth.router
+2026-03-18 08:23:13,660 - main - INFO - Included router: routers.banners.router
+2026-03-18 08:23:13,807 - main - INFO - Included router: routers.become_master_requests.router
+2026-03-18 08:23:13,881 - main - INFO - Included router: routers.categories.router
+2026-03-18 08:23:13,939 - main - INFO - Included router: routers.complaints.router
+2026-03-18 08:23:13,941 - main - WARNING - Failed to import module 'routers.debug_schema': cannot import name 'async_engine' from 'core.database' (/workspace/app/backend/core/database.py)
+2026-03-18 08:23:13,994 - main - INFO - Included router: routers.directory_entries.router
+2026-03-18 08:23:13,997 - main - INFO - Included router: routers.health.router
+2026-03-18 08:23:14,088 - main - INFO - Included router: routers.jobs.router
+2026-03-18 08:23:14,142 - main - INFO - Included router: routers.master_requests.router
+2026-03-18 08:23:14,221 - main - INFO - Included router: routers.masters.router
+2026-03-18 08:23:14,287 - main - INFO - Included router: routers.news.router
+2026-03-18 08:23:14,345 - main - INFO - Included router: routers.question_answers.router
+2026-03-18 08:23:14,393 - main - INFO - Included router: routers.questions.router
+2026-03-18 08:23:14,421 - main - INFO - Included router: routers.settings.router
+2026-03-18 08:23:14,471 - main - INFO - Included router: routers.storage.router
+2026-03-18 08:23:14,500 - main - INFO - Included router: routers.telegram.router
+2026-03-18 08:23:14,513 - main - INFO - Included router: routers.user.router
+2026-03-18 08:23:14,514 - main - INFO - === Application startup initiated ===
+2026-03-18 08:23:14,514 - services.database - INFO - Ignore creating tables
+2026-03-18 08:23:14,514 - services.mock_data - INFO - Ignore initialize data
+2026-03-18 08:23:14,515 - services.auth - INFO - Ignore initialize admin
+2026-03-18 08:23:14,515 - main - INFO - === Application startup completed successfully ===
+2026-03-18 08:23:14,616 - services.database - DEBUG - [DB_OP] Starting database close
+2026-03-18 08:23:14,617 - services.database - INFO - Database connections closed
+2026-03-18 08:23:14,617 - services.database - DEBUG - [DB_OP] Database close completed in 0.0006s

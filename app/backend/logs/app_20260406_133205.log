@@ -1,0 +1,311 @@
+2026-04-06 13:32:05,932 - main - INFO - === Logging system initialized ===
+2026-04-06 13:32:05,932 - main - INFO - Log file: logs/app_20260406_133205.log
+2026-04-06 13:32:05,932 - main - INFO - Log level: INFO
+2026-04-06 13:32:05,933 - main - INFO - Timestamp: 20260406_133205
+2026-04-06 13:32:05,941 - main - INFO - Included router: routers.admin_auth.router
+2026-04-06 13:32:07,197 - main - INFO - Included router: routers.aihub.router
+2026-04-06 13:32:07,283 - main - INFO - Included router: routers.announcements.router
+2026-04-06 13:32:07,315 - main - INFO - Included router: routers.auth.router
+2026-04-06 13:32:07,383 - main - INFO - Included router: routers.banners.router
+2026-04-06 13:32:07,537 - main - INFO - Included router: routers.become_master_requests.router
+2026-04-06 13:32:07,588 - main - INFO - Included router: routers.bus_notifications.router
+2026-04-06 13:32:07,644 - main - INFO - Included router: routers.bus_routes.router
+2026-04-06 13:32:07,690 - main - INFO - Included router: routers.bus_stops.router
+2026-04-06 13:32:07,749 - main - INFO - Included router: routers.categories.router
+2026-04-06 13:32:07,825 - main - INFO - Included router: routers.complaints.router
+2026-04-06 13:32:07,876 - main - INFO - Included router: routers.couriers.router
+2026-04-06 13:32:07,882 - main - INFO - Included router: routers.debug_schema.router
+2026-04-06 13:32:07,937 - main - INFO - Included router: routers.directory_entries.router
+2026-04-06 13:32:07,984 - main - INFO - Included router: routers.food_categories.router
+2026-04-06 13:32:08,032 - main - INFO - Included router: routers.food_item_modifiers.router
+2026-04-06 13:32:08,101 - main - INFO - Included router: routers.food_items.router
+2026-04-06 13:32:08,150 - main - INFO - Included router: routers.food_modifiers.router
+2026-04-06 13:32:08,381 - main - INFO - Included router: routers.food_orders.router
+2026-04-06 13:32:08,461 - main - INFO - Included router: routers.food_settings.router
+2026-04-06 13:32:08,653 - main - INFO - Included router: routers.frontpad.router
+2026-04-06 13:32:08,702 - main - INFO - Included router: routers.frontpad_settings.router
+2026-04-06 13:32:08,756 - main - INFO - Included router: routers.frontpad_sync_log.router
+2026-04-06 13:32:08,761 - main - INFO - Included router: routers.health.router
+2026-04-06 13:32:08,834 - main - INFO - Included router: routers.health_check.router
+2026-04-06 13:32:08,895 - main - INFO - Included router: routers.history_events.router
+2026-04-06 13:32:08,960 - main - INFO - Included router: routers.homepage_stats.router
+2026-04-06 13:32:09,034 - main - INFO - Included router: routers.inspectors.router
+2026-04-06 13:32:09,101 - main - INFO - Included router: routers.item_modifier_groups.router
+2026-04-06 13:32:09,169 - main - INFO - Included router: routers.jobs.router
+2026-04-06 13:32:09,234 - main - INFO - Included router: routers.master_requests.router
+2026-04-06 13:32:09,313 - main - INFO - Included router: routers.masters.router
+2026-04-06 13:32:09,612 - main - INFO - Included router: routers.modifier_groups.router
+2026-04-06 13:32:09,703 - main - INFO - Included router: routers.modifier_options.router
+2026-04-06 13:32:09,757 - main - INFO - Included router: routers.news.router
+2026-04-06 13:32:09,826 - main - INFO - Included router: routers.park_orders.router
+2026-04-06 13:32:09,893 - main - INFO - Included router: routers.park_points.router
+2026-04-06 13:32:09,944 - main - INFO - Included router: routers.question_answers.router
+2026-04-06 13:32:10,010 - main - INFO - Included router: routers.questions.router
+2026-04-06 13:32:10,105 - main - INFO - Included router: routers.real_estate.router
+2026-04-06 13:32:10,135 - main - INFO - Included router: routers.settings.router
+2026-04-06 13:32:10,186 - main - INFO - Included router: routers.storage.router
+2026-04-06 13:32:10,215 - main - INFO - Included router: routers.telegram.router
+2026-04-06 13:32:10,232 - main - INFO - Included router: routers.user.router
+2026-04-06 13:32:10,312 - main - INFO - Included router: routers.user_preferences.router
+2026-04-06 13:32:10,315 - main - INFO - Included router: routers.weather.router
+2026-04-06 13:32:10,318 - main - INFO - === Application startup initiated ===
+2026-04-06 13:32:10,318 - services.database - INFO - Ignore creating tables
+2026-04-06 13:32:10,318 - services.mock_data - INFO - Ignore initialize data
+2026-04-06 13:32:10,318 - services.auth - INFO - Ignore initialize admin
+2026-04-06 13:32:10,318 - core.database - WARNING - Database not initialized, attempting lazy initialization...
+2026-04-06 13:32:10,318 - core.database - INFO - Starting database initialization...
+2026-04-06 13:32:10,319 - core.config - DEBUG - Read dynamic attribute database_url from environment variable DATABASE_URL
+2026-04-06 13:32:10,319 - core.database - INFO - Database init attempt 1/5...
+2026-04-06 13:32:10,320 - core.database - INFO - Normalized database URL (masked): postgresql+asyncpg://neondb_owner:***@ep-cool-wave-ad8598va.c-2.us-east-1.aws.neon.tech/neondb?ssl=require
+2026-04-06 13:32:10,320 - core.database - INFO - Using QueuePool with connection pooling
+2026-04-06 13:32:11,691 - core.database - INFO - Database connection initialized successfully
+2026-04-06 13:32:11,692 - core.database - DEBUG - [DB_OP] Starting create_tables
+2026-04-06 13:32:11,692 - core.database - INFO - 🔧 Table creation attempt 1/3...
+2026-04-06 13:32:11,692 - core.database - INFO - 🔧 Starting table structure repair...
+2026-04-06 13:32:12,264 - core.database - INFO - 🔧 Repairing 40 existing tables...
+2026-04-06 13:32:12,265 - core.database - DEBUG - Checking table structure for: users
+2026-04-06 13:32:12,266 - core.database - DEBUG - Checking table structure for: oidc_states
+2026-04-06 13:32:12,267 - core.database - DEBUG - Checking table structure for: admin_credentials
+2026-04-06 13:32:12,269 - core.database - DEBUG - Checking table structure for: admin_login_attempts
+2026-04-06 13:32:12,270 - core.database - DEBUG - Checking table structure for: admin_login_lockouts
+2026-04-06 13:32:12,272 - core.database - DEBUG - Checking table structure for: announcements
+2026-04-06 13:32:12,273 - core.database - DEBUG - Checking table structure for: banners
+2026-04-06 13:32:12,274 - core.database - DEBUG - Checking table structure for: become_master_requests
+2026-04-06 13:32:12,275 - core.database - DEBUG - Checking table structure for: bus_notifications
+2026-04-06 13:32:12,276 - core.database - DEBUG - Checking table structure for: bus_routes
+2026-04-06 13:32:12,934 - core.database - DEBUG - Table users structure is up to date
+2026-04-06 13:32:12,934 - core.database - INFO - Table users repaired in 0.67s
+2026-04-06 13:32:12,934 - core.database - DEBUG - Checking table structure for: bus_stops
+2026-04-06 13:32:13,135 - core.database - DEBUG - Table admin_credentials structure is up to date
+2026-04-06 13:32:13,136 - core.database - INFO - Table admin_credentials repaired in 0.87s
+2026-04-06 13:32:13,136 - core.database - DEBUG - Checking table structure for: categories
+2026-04-06 13:32:13,203 - core.database - DEBUG - Table become_master_requests structure is up to date
+2026-04-06 13:32:13,204 - core.database - INFO - Table become_master_requests repaired in 0.93s
+2026-04-06 13:32:13,205 - core.database - DEBUG - Checking table structure for: complaints
+2026-04-06 13:32:13,234 - core.database - DEBUG - Table oidc_states structure is up to date
+2026-04-06 13:32:13,234 - core.database - INFO - Table oidc_states repaired in 0.97s
+2026-04-06 13:32:13,235 - core.database - DEBUG - Checking table structure for: couriers
+2026-04-06 13:32:13,235 - core.database - DEBUG - Table bus_notifications structure is up to date
+2026-04-06 13:32:13,236 - core.database - INFO - Table bus_notifications repaired in 0.96s
+2026-04-06 13:32:13,236 - core.database - DEBUG - Checking table structure for: directory_entries
+2026-04-06 13:32:13,237 - core.database - DEBUG - Table bus_routes structure is up to date
+2026-04-06 13:32:13,237 - core.database - INFO - Table bus_routes repaired in 0.96s
+2026-04-06 13:32:13,238 - core.database - DEBUG - Table admin_login_lockouts structure is up to date
+2026-04-06 13:32:13,238 - core.database - INFO - Table admin_login_lockouts repaired in 0.97s
+2026-04-06 13:32:13,238 - core.database - DEBUG - Checking table structure for: food_categories
+2026-04-06 13:32:13,238 - core.database - DEBUG - Checking table structure for: food_item_modifiers
+2026-04-06 13:32:13,239 - core.database - DEBUG - Table admin_login_attempts structure is up to date
+2026-04-06 13:32:13,239 - core.database - INFO - Table admin_login_attempts repaired in 0.97s
+2026-04-06 13:32:13,239 - core.database - DEBUG - Checking table structure for: food_items
+2026-04-06 13:32:13,240 - core.database - DEBUG - Table announcements structure is up to date
+2026-04-06 13:32:13,240 - core.database - INFO - Table announcements repaired in 0.97s
+2026-04-06 13:32:13,240 - core.database - DEBUG - Checking table structure for: food_modifiers
+2026-04-06 13:32:13,241 - core.database - DEBUG - Table banners structure is up to date
+2026-04-06 13:32:13,241 - core.database - INFO - Table banners repaired in 0.97s
+2026-04-06 13:32:13,241 - core.database - DEBUG - Checking table structure for: food_orders
+2026-04-06 13:32:13,313 - core.database - DEBUG - Table bus_stops structure is up to date
+2026-04-06 13:32:13,314 - core.database - INFO - Table bus_stops repaired in 1.04s
+2026-04-06 13:32:13,315 - core.database - DEBUG - Checking table structure for: food_settings
+2026-04-06 13:32:13,576 - core.database - DEBUG - Table categories structure is up to date
+2026-04-06 13:32:13,576 - core.database - INFO - Table categories repaired in 1.30s
+2026-04-06 13:32:13,576 - core.database - DEBUG - Checking table structure for: frontpad_settings
+2026-04-06 13:32:13,643 - core.database - DEBUG - Table complaints structure is up to date
+2026-04-06 13:32:13,644 - core.database - INFO - Table complaints repaired in 1.37s
+2026-04-06 13:32:13,644 - core.database - DEBUG - Checking table structure for: frontpad_sync_log
+2026-04-06 13:32:13,673 - core.database - DEBUG - Table couriers structure is up to date
+2026-04-06 13:32:13,673 - core.database - INFO - Table couriers repaired in 1.40s
+2026-04-06 13:32:13,674 - core.database - DEBUG - Checking table structure for: health_check
+2026-04-06 13:32:13,677 - core.database - DEBUG - Table directory_entries structure is up to date
+2026-04-06 13:32:13,677 - core.database - INFO - Table directory_entries repaired in 1.40s
+2026-04-06 13:32:13,678 - core.database - DEBUG - Checking table structure for: history_events
+2026-04-06 13:32:13,679 - core.database - DEBUG - Table food_orders structure is up to date
+2026-04-06 13:32:13,680 - core.database - INFO - Table food_orders repaired in 1.40s
+2026-04-06 13:32:13,680 - core.database - DEBUG - Checking table structure for: homepage_stats
+2026-04-06 13:32:13,683 - core.database - DEBUG - Table food_modifiers structure is up to date
+2026-04-06 13:32:13,683 - core.database - INFO - Table food_modifiers repaired in 1.41s
+2026-04-06 13:32:13,683 - core.database - DEBUG - Checking table structure for: inspectors
+2026-04-06 13:32:13,684 - core.database - DEBUG - Table food_categories structure is up to date
+2026-04-06 13:32:13,684 - core.database - INFO - Table food_categories repaired in 1.41s
+2026-04-06 13:32:13,685 - core.database - DEBUG - Checking table structure for: item_modifier_groups
+2026-04-06 13:32:13,685 - core.database - DEBUG - Table food_items structure is up to date
+2026-04-06 13:32:13,685 - core.database - INFO - Table food_items repaired in 1.41s
+2026-04-06 13:32:13,686 - core.database - DEBUG - Checking table structure for: jobs
+2026-04-06 13:32:13,686 - core.database - DEBUG - Table food_item_modifiers structure is up to date
+2026-04-06 13:32:13,686 - core.database - INFO - Table food_item_modifiers repaired in 1.41s
+2026-04-06 13:32:13,687 - core.database - DEBUG - Checking table structure for: master_requests
+2026-04-06 13:32:13,690 - core.database - DEBUG - Table food_settings structure is up to date
+2026-04-06 13:32:13,690 - core.database - INFO - Table food_settings repaired in 1.41s
+2026-04-06 13:32:13,690 - core.database - DEBUG - Checking table structure for: masters
+2026-04-06 13:32:13,952 - core.database - DEBUG - Table frontpad_settings structure is up to date
+2026-04-06 13:32:13,953 - core.database - INFO - Table frontpad_settings repaired in 1.68s
+2026-04-06 13:32:13,953 - core.database - DEBUG - Checking table structure for: modifier_groups
+2026-04-06 13:32:14,049 - core.database - DEBUG - Table health_check structure is up to date
+2026-04-06 13:32:14,049 - core.database - INFO - Table health_check repaired in 1.77s
+2026-04-06 13:32:14,049 - core.database - DEBUG - Checking table structure for: modifier_options
+2026-04-06 13:32:14,053 - core.database - DEBUG - Table homepage_stats structure is up to date
+2026-04-06 13:32:14,054 - core.database - INFO - Table homepage_stats repaired in 1.78s
+2026-04-06 13:32:14,054 - core.database - DEBUG - Checking table structure for: news
+2026-04-06 13:32:14,055 - core.database - DEBUG - Table history_events structure is up to date
+2026-04-06 13:32:14,055 - core.database - INFO - Table history_events repaired in 1.78s
+2026-04-06 13:32:14,055 - core.database - DEBUG - Checking table structure for: park_orders
+2026-04-06 13:32:14,059 - core.database - DEBUG - Table item_modifier_groups structure is up to date
+2026-04-06 13:32:14,060 - core.database - INFO - Table item_modifier_groups repaired in 1.78s
+2026-04-06 13:32:14,060 - core.database - DEBUG - Checking table structure for: park_points
+2026-04-06 13:32:14,069 - core.database - DEBUG - Table masters structure is up to date
+2026-04-06 13:32:14,070 - core.database - INFO - Table masters repaired in 1.79s
+2026-04-06 13:32:14,071 - core.database - DEBUG - Checking table structure for: question_answers
+2026-04-06 13:32:14,072 - core.database - DEBUG - Table master_requests structure is up to date
+2026-04-06 13:32:14,073 - core.database - INFO - Table master_requests repaired in 1.79s
+2026-04-06 13:32:14,073 - core.database - DEBUG - Checking table structure for: questions
+2026-04-06 13:32:14,079 - core.database - DEBUG - Table frontpad_sync_log structure is up to date
+2026-04-06 13:32:14,080 - core.database - INFO - Table frontpad_sync_log repaired in 1.80s
+2026-04-06 13:32:14,080 - core.database - DEBUG - Checking table structure for: real_estate
+2026-04-06 13:32:14,125 - core.database - DEBUG - Table inspectors structure is up to date
+2026-04-06 13:32:14,125 - core.database - INFO - Table inspectors repaired in 1.85s
+2026-04-06 13:32:14,125 - core.database - DEBUG - Checking table structure for: user_preferences
+2026-04-06 13:32:14,126 - core.database - DEBUG - Table jobs structure is up to date
+2026-04-06 13:32:14,126 - core.database - INFO - Table jobs repaired in 1.85s
+2026-04-06 13:32:14,390 - core.database - DEBUG - Table modifier_groups structure is up to date
+2026-04-06 13:32:14,390 - core.database - INFO - Table modifier_groups repaired in 2.11s
+2026-04-06 13:32:14,425 - core.database - DEBUG - Table modifier_options structure is up to date
+2026-04-06 13:32:14,425 - core.database - INFO - Table modifier_options repaired in 2.15s
+2026-04-06 13:32:14,427 - core.database - DEBUG - Table news structure is up to date
+2026-04-06 13:32:14,427 - core.database - INFO - Table news repaired in 2.15s
+2026-04-06 13:32:14,431 - core.database - DEBUG - Table park_orders structure is up to date
+2026-04-06 13:32:14,432 - core.database - INFO - Table park_orders repaired in 2.15s
+2026-04-06 13:32:14,500 - core.database - DEBUG - Table park_points structure is up to date
+2026-04-06 13:32:14,501 - core.database - INFO - Table park_points repaired in 2.22s
+2026-04-06 13:32:14,510 - core.database - DEBUG - Table question_answers structure is up to date
+2026-04-06 13:32:14,511 - core.database - INFO - Table question_answers repaired in 2.23s
+2026-04-06 13:32:14,519 - core.database - DEBUG - Table real_estate structure is up to date
+2026-04-06 13:32:14,520 - core.database - INFO - Table real_estate repaired in 2.24s
+2026-04-06 13:32:14,535 - core.database - DEBUG - Table questions structure is up to date
+2026-04-06 13:32:14,536 - core.database - INFO - Table questions repaired in 2.26s
+2026-04-06 13:32:14,567 - core.database - DEBUG - Table user_preferences structure is up to date
+2026-04-06 13:32:14,568 - core.database - INFO - Table user_preferences repaired in 2.29s
+2026-04-06 13:32:14,568 - core.database - INFO - 🔧 Table structure repair completed in 2.8761s
+2026-04-06 13:32:14,568 - core.database - INFO - 🔧 Table structure repair completed
+2026-04-06 13:32:14,568 - core.database - INFO - 🔧 Starting table creation...
+2026-04-06 13:32:17,417 - core.database - INFO - Tables initialized successfully
+2026-04-06 13:32:17,417 - core.database - DEBUG - [DB_OP] Create tables completed in 5.7257s
+2026-04-06 13:32:17,480 - core.database - INFO - Lazy database initialization completed successfully
+2026-04-06 13:32:18,558 - routers.admin_auth - INFO - [Admin Auth] Pre-computed 4 alternative password hashes for 'admin' account
+2026-04-06 13:32:19,416 - routers.admin_auth - INFO - [Admin Auth] Admin credentials reset (username: admin, password: Admin123@)
+2026-04-06 13:32:19,919 - core.config - DEBUG - Read dynamic attribute oss_service_url from environment variable OSS_SERVICE_URL
+2026-04-06 13:32:19,919 - core.config - DEBUG - Read dynamic attribute oss_api_key from environment variable OSS_API_KEY
+2026-04-06 13:32:20,314 - httpcore.connection - DEBUG - connect_tcp.started host='atoms.dev' port=443 local_address=None timeout=120.0 socket_options=None
+2026-04-06 13:32:20,334 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f530ce82980>
+2026-04-06 13:32:20,335 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x7f530cee7dc0> server_hostname='atoms.dev' timeout=120.0
+2026-04-06 13:32:20,346 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f530ce81870>
+2026-04-06 13:32:20,347 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'GET']>
+2026-04-06 13:32:20,347 - httpcore.http11 - DEBUG - send_request_headers.complete
+2026-04-06 13:32:20,348 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'GET']>
+2026-04-06 13:32:20,348 - httpcore.http11 - DEBUG - send_request_body.complete
+2026-04-06 13:32:20,349 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'GET']>
+2026-04-06 13:32:20,380 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Mon, 06 Apr 2026 20:32:20 GMT'), (b'Content-Type', b'application/json; charset=utf-8'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Access-Control-Allow-Headers', b'Origin, Content-Type, Accept, Authorization'), (b'Access-Control-Allow-Methods', b'GET, POST, PUT, DELETE, OPTIONS'), (b'Access-Control-Allow-Origin', b'*'), (b'Access-Control-Max-Age', b'86400'), (b'X-Request-Id', b'3e1863c2989f5ebf052ff6fe9bd2c509'), (b'X-Trace-Id', b'2f5683883b7d4db58b589ae25bd3e79e'), (b'Content-Security-Policy', b"frame-ancestors 'self' https://atoms.dev"), (b'Strict-Transport-Security', b'max-age=63072000; includeSubDomains; preload'), (b'X-Content-Type-Options', b'nosniff'), (b'X-XSS-Protection', b'1; mode=block'), (b'Referrer-Policy', b'strict-origin-when-cross-origin'), (b'cf-cache-status', b'DYNAMIC'), (b'Content-Encoding', b'gzip'), (b'Server', b'cloudflare'), (b'CF-RAY', b'9e838faf29f48e7f-LAX')])
+2026-04-06 13:32:20,381 - httpx - INFO - HTTP Request: GET https://atoms.dev/api/v1/infra/client/oss/buckets "HTTP/1.1 200 OK"
+2026-04-06 13:32:20,381 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'GET']>
+2026-04-06 13:32:20,381 - httpcore.http11 - DEBUG - receive_response_body.complete
+2026-04-06 13:32:20,382 - httpcore.http11 - DEBUG - response_closed.started
+2026-04-06 13:32:20,382 - httpcore.http11 - DEBUG - response_closed.complete
+2026-04-06 13:32:20,382 - httpcore.connection - DEBUG - close.started
+2026-04-06 13:32:20,383 - httpcore.connection - DEBUG - close.complete
+2026-04-06 13:32:20,384 - services.bucket_init - INFO - Bucket 'portal-images' already exists
+2026-04-06 13:32:20,384 - main - INFO - === Application startup completed ===
+2026-04-06 13:32:25,386 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-04-06 13:32:25,386 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-04-06 13:32:25,387 - routers.categories - DEBUG - Querying categoriess: query=None, sort=None, skip=0, limit=1, fields=None
+2026-04-06 13:32:25,889 - routers.categories - DEBUG - Found 45 categoriess
+2026-04-06 13:32:25,890 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5048s
+2026-04-06 13:32:26,467 - httpcore.connection - DEBUG - connect_tcp.started host='api.openweathermap.org' port=443 local_address=None timeout=10.0 socket_options=None
+2026-04-06 13:32:26,471 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-04-06 13:32:26,471 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-04-06 13:32:26,472 - routers.jobs - DEBUG - Querying jobss: query={"active":true}, sort=-created_at, skip=0, limit=3, fields=None
+2026-04-06 13:32:26,476 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-04-06 13:32:26,476 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-04-06 13:32:26,477 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=6, fields=None
+2026-04-06 13:32:26,482 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-04-06 13:32:26,482 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-04-06 13:32:26,483 - routers.complaints - DEBUG - Querying complaintss: query=None, sort=-created_at, skip=0, limit=3, fields=None
+2026-04-06 13:32:26,516 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f531343cca0>
+2026-04-06 13:32:26,517 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x7f53134218c0> server_hostname='api.openweathermap.org' timeout=10.0
+2026-04-06 13:32:26,552 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f531343ca90>
+2026-04-06 13:32:26,553 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'GET']>
+2026-04-06 13:32:26,554 - httpcore.http11 - DEBUG - send_request_headers.complete
+2026-04-06 13:32:26,554 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'GET']>
+2026-04-06 13:32:26,554 - httpcore.http11 - DEBUG - send_request_body.complete
+2026-04-06 13:32:26,556 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'GET']>
+2026-04-06 13:32:26,598 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Mon, 06 Apr 2026 20:32:26 GMT'), (b'Content-Type', b'application/json; charset=utf-8'), (b'Content-Length', b'553'), (b'Connection', b'keep-alive'), (b'X-Cache-Key', b'/data/2.5/weather?lang=ru&q=karaganda&units=metric'), (b'Access-Control-Allow-Origin', b'*'), (b'Access-Control-Allow-Credentials', b'true'), (b'Access-Control-Allow-Methods', b'GET, POST')])
+2026-04-06 13:32:26,598 - httpx - INFO - HTTP Request: GET https://api.openweathermap.org/data/2.5/weather?q=Karaganda&units=metric&lang=ru&appid=ae3471b8d67a2e46b753ece3875423c9 "HTTP/1.1 200 OK"
+2026-04-06 13:32:26,599 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'GET']>
+2026-04-06 13:32:26,599 - httpcore.http11 - DEBUG - receive_response_body.complete
+2026-04-06 13:32:26,600 - httpcore.http11 - DEBUG - response_closed.started
+2026-04-06 13:32:26,601 - httpcore.http11 - DEBUG - response_closed.complete
+2026-04-06 13:32:26,601 - httpcore.connection - DEBUG - close.started
+2026-04-06 13:32:26,602 - httpcore.connection - DEBUG - close.complete
+2026-04-06 13:32:26,602 - routers.weather - INFO - [Weather] Fetched: 2°C, облачно с прояснениями
+2026-04-06 13:32:26,827 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-04-06 13:32:26,828 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0009s
+2026-04-06 13:32:26,829 - routers.homepage_stats - DEBUG - Querying homepage_statss: query=None, sort=None, skip=0, limit=1, fields=None
+2026-04-06 13:32:26,833 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-04-06 13:32:26,833 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-04-06 13:32:26,834 - routers.banners - DEBUG - Querying bannerss: query={"active":true}, sort=None, skip=0, limit=4, fields=None
+2026-04-06 13:32:26,984 - routers.complaints - DEBUG - Found 12 complaintss
+2026-04-06 13:32:26,985 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5026s
+2026-04-06 13:32:26,986 - routers.news - DEBUG - Found 10 newss
+2026-04-06 13:32:26,986 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5104s
+2026-04-06 13:32:26,987 - routers.jobs - DEBUG - Found 5 jobss
+2026-04-06 13:32:26,987 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5166s
+2026-04-06 13:32:27,331 - routers.homepage_stats - DEBUG - Found 1 homepage_statss
+2026-04-06 13:32:27,332 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5049s
+2026-04-06 13:32:27,333 - routers.banners - DEBUG - Found 2 bannerss
+2026-04-06 13:32:27,334 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5010s
+2026-04-06 13:32:27,407 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-04-06 13:32:27,407 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-04-06 13:32:27,408 - routers.food_items - DEBUG - Querying food_itemss: query=None, sort=sort_order, skip=0, limit=200, fields=None
+2026-04-06 13:32:27,411 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-04-06 13:32:27,411 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-04-06 13:32:27,411 - routers.masters - DEBUG - Querying masterss: query=None, sort=-rating, skip=0, limit=50, fields=None
+2026-04-06 13:32:27,414 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-04-06 13:32:27,414 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-04-06 13:32:27,414 - routers.food_categories - DEBUG - Querying food_categoriess: query=None, sort=sort_order, skip=0, limit=50, fields=None
+2026-04-06 13:32:27,417 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-04-06 13:32:27,417 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-04-06 13:32:27,417 - routers.announcements - DEBUG - Querying announcementss: query={"active":true,"status":"approved"}, sort=-created_at, skip=0, limit=50, fields=None
+2026-04-06 13:32:27,913 - routers.masters - DEBUG - Found 8 masterss
+2026-04-06 13:32:27,915 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5038s
+2026-04-06 13:32:27,916 - routers.food_categories - DEBUG - Found 18 food_categoriess
+2026-04-06 13:32:27,917 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5034s
+2026-04-06 13:32:27,918 - routers.announcements - DEBUG - Found 1 announcementss
+2026-04-06 13:32:27,919 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5023s
+2026-04-06 13:32:27,975 - routers.food_items - DEBUG - Found 96 food_itemss
+2026-04-06 13:32:27,977 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5706s
+2026-04-06 13:32:30,894 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-04-06 13:32:30,894 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-04-06 13:32:30,894 - routers.complaints - DEBUG - Querying complaintss: query=None, sort=-created_at, skip=0, limit=50, fields=None
+2026-04-06 13:32:30,896 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-04-06 13:32:30,896 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-04-06 13:32:30,897 - routers.jobs - DEBUG - Querying jobss: query={"active":true}, sort=-created_at, skip=0, limit=50, fields=None
+2026-04-06 13:32:30,904 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-04-06 13:32:30,905 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0008s
+2026-04-06 13:32:30,905 - routers.news - DEBUG - Querying newss: query={"published":true}, sort=-created_at, skip=0, limit=50, fields=None
+2026-04-06 13:32:31,274 - routers.jobs - DEBUG - Found 5 jobss
+2026-04-06 13:32:31,275 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.3792s
+2026-04-06 13:32:31,350 - routers.news - DEBUG - Found 10 newss
+2026-04-06 13:32:31,351 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4468s
+2026-04-06 13:32:31,455 - routers.complaints - DEBUG - Found 12 complaintss
+2026-04-06 13:32:31,456 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5622s
+2026-04-06 13:32:33,978 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-04-06 13:32:33,978 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-04-06 13:32:33,979 - routers.real_estate - DEBUG - Querying real_estates: query=None, sort=-created_at, skip=0, limit=100, fields=None
+2026-04-06 13:32:34,480 - routers.real_estate - DEBUG - Found 0 real_estates
+2026-04-06 13:32:34,481 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5031s
+2026-04-06 13:36:07,843 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-04-06 13:36:07,843 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-04-06 13:36:07,844 - routers.directory_entries - DEBUG - Querying directory_entriess: query={}, sort=category, skip=0, limit=50, fields=None
+2026-04-06 13:36:08,413 - routers.directory_entries - DEBUG - Found 14 directory_entriess
+2026-04-06 13:36:08,415 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5716s
+2026-04-06 13:36:31,656 - services.database - DEBUG - [DB_OP] Starting database close
+2026-04-06 13:36:31,993 - core.database - INFO - Database connection closed and engine disposed
+2026-04-06 13:36:31,994 - services.database - INFO - Database connections closed
+2026-04-06 13:36:31,994 - services.database - DEBUG - [DB_OP] Database close completed in 0.3376s

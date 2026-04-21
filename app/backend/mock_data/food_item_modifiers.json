@@ -1,0 +1,78 @@
+[
+    {
+        "food_item_id": 1,
+        "modifier_id": 1
+    },
+    {
+        "food_item_id": 1,
+        "modifier_id": 2
+    },
+    {
+        "food_item_id": 1,
+        "modifier_id": 3
+    },
+    {
+        "food_item_id": 1,
+        "modifier_id": 4
+    },
+    {
+        "food_item_id": 1,
+        "modifier_id": 6
+    },
+    {
+        "food_item_id": 2,
+        "modifier_id": 2
+    },
+    {
+        "food_item_id": 2,
+        "modifier_id": 3
+    },
+    {
+        "food_item_id": 2,
+        "modifier_id": 4
+    },
+    {
+        "food_item_id": 2,
+        "modifier_id": 5
+    },
+    {
+        "food_item_id": 3,
+        "modifier_id": 5
+    },
+    {
+        "food_item_id": 3,
+        "modifier_id": 6
+    },
+    {
+        "food_item_id": 4,
+        "modifier_id": 3
+    },
+    {
+        "food_item_id": 4,
+        "modifier_id": 6
+    },
+    {
+        "food_item_id": 5,
+        "modifier_id": 3
+    },
+    {
+        "food_item_id": 5,
+        "modifier_id": 4
+    },
+    {
+        "food_item_id": 6,
+        "modifier_id": 1
+    },
+    {
+        "food_item_id": 6,
+        "modifier_id": 3
+    },
+    {
+        "food_item_id": 9,
+        "modifier_id": 1
+    },
+    {
+        "food_item_id": 9,
+        "modifier_id": 3
+    }
+]

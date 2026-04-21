@@ -1,0 +1,28 @@
+[
+    {
+        "id": 2,
+        "title": "Найдите мастера рядом",
+        "banner_text": "",
+        "subtitle": "Электрики, сварщики, сантехники — проверенные специалисты вашего района",
+        "image_url": "https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-15/3f0221f8-8557-4925-998b-1274ee24657e.png",
+        "link_url": "https://wa.me/77009876543",
+        "button_text": "Найти мастера",
+        "button_url": "/masters",
+        "banner_type": "",
+        "active": true,
+        "created_at": "2026-03-01 08:00:00"
+    },
+    {
+        "id": 1,
+        "title": "DAM ALEM — Доставка еды",
+        "banner_text": "",
+        "subtitle": "Быстрая доставка из кафе и ресторанов Сортировки",
+        "image_url": "https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-15/fe194ca1-0095-44bf-a906-e50cb844ad56.png",
+        "link_url": "https://wa.me/77470304096",
+        "button_text": "Заказать",
+        "button_url": "/food",
+        "banner_type": "shop",
+        "active": true,
+        "created_at": "2026-03-01 08:00:00"
+    }
+]

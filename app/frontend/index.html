@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="%VITE_APP_LOGO_URL%" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>%VITE_APP_TITLE%</title>
+    <meta name="description" content="%VITE_APP_DESCRIPTION%" />
+    <meta name="author" content="Atoms" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="S24" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
+    <link rel="dns-prefetch" href="https://mgx-backend-cdn.metadl.com" />
+    <link rel="preconnect" href="https://mgx-backend-cdn.metadl.com" crossorigin />
+
+    <meta property="og:title" content="%VITE_APP_TITLE%" />
+    <meta property="og:description" content="%VITE_APP_DESCRIPTION%" />
+    <meta property="og:type" content="website" />
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script>
+      // Early error suppression + overlay removal.
+      // The @metagptx/web-sdk injects an error overlay with id="custom-vite-error-overlay"
+      // whenever an unhandled error/rejection occurs. We use multiple strategies:
+      // 1. Suppress errors at capture phase (stopImmediatePropagation)
+      // 2. MutationObserver to immediately remove the overlay DOM element if it appears
+      // 3. CSS to hide the overlay as a fallback
+      (function() {
+        // Strategy 1: Inject CSS to hide the overlay immediately
+        var style = document.createElement('style');
+        style.textContent = '#custom-vite-error-overlay { display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; }';
+        document.head.appendChild(style);
+
+        // Strategy 2: MutationObserver to remove overlay DOM element
+        var observer = new MutationObserver(function(mutations) {
+          for (var i = 0; i < mutations.length; i++) {
+            var added = mutations[i].addedNodes;
+            for (var j = 0; j < added.length; j++) {
+              var node = added[j];
+              if (node.nodeType === 1) {
+                if (node.id === 'custom-vite-error-overlay') {
+                  node.remove();
+                  console.warn('[Overlay suppressed] Removed error overlay');
+                }
+              }
+            }
+          }
+        });
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+
+        // Strategy 3: Suppress error/rejection events at capture phase
+        var SUPPRESSED = /dns|fetch|network|timeout|balancer|econnrefused|enotfound|econnreset|service.unavailable|failed.to.fetch|load.failed|not.ready|lambda|502|503|504|chunk|dynamically.imported|script.error|query|entities|api|request|status|response|abort|cancel/i;
+
+        window.addEventListener('error', function(e) {
+          var m = String(e.message || '') + ' ' + String(e.error && e.error.message || '');
+          if (SUPPRESSED.test(m)) {
+            e.stopImmediatePropagation();
+            console.warn('[Early suppress] error:', m.slice(0, 120));
+          }
+        }, true);
+
+        window.addEventListener('unhandledrejection', function(e) {
+          var m = String(e.reason && e.reason.message || e.reason || '');
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          if (SUPPRESSED.test(m)) {
+            console.warn('[Early suppress] rejection:', m.slice(0, 120));
+          } else {
+            console.error('[Suppressed rejection]', m.slice(0, 200));
+          }
+        }, true);
+      })();
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

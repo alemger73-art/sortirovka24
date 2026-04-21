@@ -1,0 +1,23 @@
+{
+    "title": "food_item_modifiers",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "food_item_id": {
+            "type": "integer",
+            "description": "FK to food_items"
+        },
+        "modifier_id": {
+            "type": "integer",
+            "description": "FK to food_modifiers"
+        }
+    },
+    "required": [
+        "id",
+        "food_item_id",
+        "modifier_id"
+    ]
+}

@@ -1,0 +1,45 @@
+{
+    "title": "history_events",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "year": {
+            "type": "string",
+            "description": "Year"
+        },
+        "title": {
+            "type": "string",
+            "description": "Title"
+        },
+        "description": {
+            "type": "string",
+            "description": "Description"
+        },
+        "image_url": {
+            "type": "string",
+            "description": "Image URL"
+        },
+        "image_url_after": {
+            "type": "string",
+            "description": "After image URL"
+        },
+        "category": {
+            "type": "string",
+            "description": "Category"
+        },
+        "is_published": {
+            "type": "boolean",
+            "description": "Is published"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

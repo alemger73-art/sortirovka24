@@ -1,0 +1,53 @@
+{
+    "title": "complaints",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "category": {
+            "type": "string",
+            "description": "Complaint category"
+        },
+        "address": {
+            "type": "string",
+            "description": "Address"
+        },
+        "description": {
+            "type": "string",
+            "description": "Description"
+        },
+        "photo_url": {
+            "type": "string",
+            "description": "Photo URL"
+        },
+        "gallery_images": {
+            "type": "string",
+            "description": "Gallery images"
+        },
+        "complaint_video": {
+            "type": "string",
+            "description": "Video URL"
+        },
+        "author_name": {
+            "type": "string",
+            "description": "Author name"
+        },
+        "phone": {
+            "type": "string",
+            "description": "Phone"
+        },
+        "status": {
+            "type": "string",
+            "description": "Status"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

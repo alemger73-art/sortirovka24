@@ -1,0 +1,37 @@
+{
+    "title": "bus_stops",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "route_id": {
+            "type": "integer",
+            "description": "Route ID"
+        },
+        "stop_name": {
+            "type": "string",
+            "description": "Stop name"
+        },
+        "lat": {
+            "type": "number",
+            "description": "Latitude"
+        },
+        "lng": {
+            "type": "number",
+            "description": "Longitude"
+        },
+        "stop_order": {
+            "type": "integer",
+            "description": "Stop order"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

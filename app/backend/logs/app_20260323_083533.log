@@ -1,0 +1,47 @@
+2026-03-23 08:35:33,567 - main - INFO - === Logging system initialized ===
+2026-03-23 08:35:33,567 - main - INFO - Log file: logs/app_20260323_083533.log
+2026-03-23 08:35:33,567 - main - INFO - Log level: INFO
+2026-03-23 08:35:33,567 - main - INFO - Timestamp: 20260323_083533
+2026-03-23 08:35:33,573 - main - INFO - Included router: routers.admin_auth.router
+2026-03-23 08:35:34,844 - main - INFO - Included router: routers.aihub.router
+2026-03-23 08:35:34,918 - main - INFO - Included router: routers.announcements.router
+2026-03-23 08:35:34,951 - main - INFO - Included router: routers.auth.router
+2026-03-23 08:35:35,017 - main - INFO - Included router: routers.banners.router
+2026-03-23 08:35:35,207 - main - INFO - Included router: routers.become_master_requests.router
+2026-03-23 08:35:35,264 - main - INFO - Included router: routers.categories.router
+2026-03-23 08:35:35,327 - main - INFO - Included router: routers.complaints.router
+2026-03-23 08:35:35,329 - main - WARNING - Failed to import module 'routers.debug_schema': cannot import name 'async_engine' from 'core.database' (/workspace/app/backend/core/database.py)
+2026-03-23 08:35:35,393 - main - INFO - Included router: routers.directory_entries.router
+2026-03-23 08:35:35,459 - main - INFO - Included router: routers.food_categories.router
+2026-03-23 08:35:35,517 - main - INFO - Included router: routers.food_item_modifiers.router
+2026-03-23 08:35:35,583 - main - INFO - Included router: routers.food_items.router
+2026-03-23 08:35:35,630 - main - INFO - Included router: routers.food_modifiers.router
+2026-03-23 08:35:35,681 - main - INFO - Included router: routers.food_orders.router
+2026-03-23 08:35:35,726 - main - INFO - Included router: routers.food_settings.router
+2026-03-23 08:35:35,764 - main - INFO - Included router: routers.frontpad.router
+2026-03-23 08:35:35,808 - main - INFO - Included router: routers.frontpad_settings.router
+2026-03-23 08:35:35,857 - main - INFO - Included router: routers.frontpad_sync_log.router
+2026-03-23 08:35:35,863 - main - INFO - Included router: routers.health.router
+2026-03-23 08:35:35,999 - main - INFO - Included router: routers.history_events.router
+2026-03-23 08:35:36,074 - main - INFO - Included router: routers.homepage_stats.router
+2026-03-23 08:35:36,125 - main - INFO - Included router: routers.inspectors.router
+2026-03-23 08:35:36,165 - main - INFO - Included router: routers.item_modifier_groups.router
+2026-03-23 08:35:36,223 - main - INFO - Included router: routers.jobs.router
+2026-03-23 08:35:36,272 - main - INFO - Included router: routers.master_requests.router
+2026-03-23 08:35:36,330 - main - INFO - Included router: routers.masters.router
+2026-03-23 08:35:36,378 - main - INFO - Included router: routers.modifier_groups.router
+2026-03-23 08:35:36,421 - main - INFO - Included router: routers.modifier_options.router
+2026-03-23 08:35:36,474 - main - INFO - Included router: routers.news.router
+2026-03-23 08:35:36,516 - main - INFO - Included router: routers.question_answers.router
+2026-03-23 08:35:36,564 - main - INFO - Included router: routers.questions.router
+2026-03-23 08:35:36,827 - main - INFO - Included router: routers.real_estate.router
+2026-03-23 08:35:36,851 - main - INFO - Included router: routers.settings.router
+2026-03-23 08:35:36,900 - main - INFO - Included router: routers.storage.router
+2026-03-23 08:35:36,931 - main - INFO - Included router: routers.telegram.router
+2026-03-23 08:35:36,943 - main - INFO - Included router: routers.user.router
+2026-03-23 08:35:36,997 - main - INFO - Included router: routers.user_preferences.router
+2026-03-23 08:35:36,999 - main - INFO - === Application startup initiated ===
+2026-03-23 08:35:36,999 - services.database - INFO - Ignore creating tables
+2026-03-23 08:35:36,999 - services.mock_data - INFO - Ignore initialize data
+2026-03-23 08:35:36,999 - services.auth - INFO - Ignore initialize admin
+2026-03-23 08:35:36,999 - services.database - INFO - Ignore creating tables

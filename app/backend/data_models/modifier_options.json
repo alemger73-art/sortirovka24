@@ -1,0 +1,37 @@
+{
+    "title": "modifier_options",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "group_id": {
+            "type": "integer",
+            "description": "Modifier group ID"
+        },
+        "name": {
+            "type": "string",
+            "description": "Option name"
+        },
+        "price": {
+            "type": "number",
+            "description": "Price"
+        },
+        "sort_order": {
+            "type": "integer",
+            "description": "Sort order"
+        },
+        "is_active": {
+            "type": "boolean",
+            "description": "Is active"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

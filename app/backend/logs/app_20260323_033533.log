@@ -1,0 +1,335 @@
+2026-03-23 03:35:33,974 - main - INFO - === Logging system initialized ===
+2026-03-23 03:35:33,975 - main - INFO - Log file: logs/app_20260323_033533.log
+2026-03-23 03:35:33,975 - main - INFO - Log level: INFO
+2026-03-23 03:35:33,975 - main - INFO - Timestamp: 20260323_033533
+2026-03-23 03:35:34,919 - main - INFO - Included router: routers.aihub.router
+2026-03-23 03:35:34,985 - main - INFO - Included router: routers.announcements.router
+2026-03-23 03:35:35,060 - main - INFO - Included router: routers.auth.router
+2026-03-23 03:35:35,113 - main - INFO - Included router: routers.banners.router
+2026-03-23 03:35:35,224 - main - INFO - Included router: routers.become_master_requests.router
+2026-03-23 03:35:35,269 - main - INFO - Included router: routers.categories.router
+2026-03-23 03:35:35,321 - main - INFO - Included router: routers.complaints.router
+2026-03-23 03:35:35,323 - main - WARNING - Failed to import module 'routers.debug_schema': cannot import name 'async_engine' from 'core.database' (/workspace/app/backend/core/database.py)
+2026-03-23 03:35:35,371 - main - INFO - Included router: routers.directory_entries.router
+2026-03-23 03:35:35,418 - main - INFO - Included router: routers.food_categories.router
+2026-03-23 03:35:35,458 - main - INFO - Included router: routers.food_item_modifiers.router
+2026-03-23 03:35:35,504 - main - INFO - Included router: routers.food_items.router
+2026-03-23 03:35:35,552 - main - INFO - Included router: routers.food_modifiers.router
+2026-03-23 03:35:35,606 - main - INFO - Included router: routers.food_orders.router
+2026-03-23 03:35:35,650 - main - INFO - Included router: routers.food_settings.router
+2026-03-23 03:35:35,679 - main - INFO - Included router: routers.frontpad.router
+2026-03-23 03:35:35,715 - main - INFO - Included router: routers.frontpad_settings.router
+2026-03-23 03:35:35,758 - main - INFO - Included router: routers.frontpad_sync_log.router
+2026-03-23 03:35:35,761 - main - INFO - Included router: routers.health.router
+2026-03-23 03:35:35,807 - main - INFO - Included router: routers.history_events.router
+2026-03-23 03:35:35,930 - main - INFO - Included router: routers.homepage_stats.router
+2026-03-23 03:35:35,985 - main - INFO - Included router: routers.inspectors.router
+2026-03-23 03:35:36,026 - main - INFO - Included router: routers.item_modifier_groups.router
+2026-03-23 03:35:36,095 - main - INFO - Included router: routers.jobs.router
+2026-03-23 03:35:36,152 - main - INFO - Included router: routers.master_requests.router
+2026-03-23 03:35:36,206 - main - INFO - Included router: routers.masters.router
+2026-03-23 03:35:36,260 - main - INFO - Included router: routers.modifier_groups.router
+2026-03-23 03:35:36,303 - main - INFO - Included router: routers.modifier_options.router
+2026-03-23 03:35:36,352 - main - INFO - Included router: routers.news.router
+2026-03-23 03:35:36,403 - main - INFO - Included router: routers.question_answers.router
+2026-03-23 03:35:36,447 - main - INFO - Included router: routers.questions.router
+2026-03-23 03:35:36,630 - main - INFO - Included router: routers.real_estate.router
+2026-03-23 03:35:36,661 - main - INFO - Included router: routers.settings.router
+2026-03-23 03:35:36,697 - main - INFO - Included router: routers.storage.router
+2026-03-23 03:35:36,718 - main - INFO - Included router: routers.telegram.router
+2026-03-23 03:35:36,725 - main - INFO - Included router: routers.user.router
+2026-03-23 03:35:36,769 - main - INFO - Included router: routers.user_preferences.router
+2026-03-23 03:35:36,770 - main - INFO - === Application startup initiated ===
+2026-03-23 03:35:36,770 - services.database - INFO - Ignore creating tables
+2026-03-23 03:35:36,770 - services.mock_data - INFO - Ignore initialize data
+2026-03-23 03:35:36,770 - services.auth - INFO - Ignore initialize admin
+2026-03-23 03:35:36,771 - main - INFO - === Application startup completed successfully ===
+2026-03-23 03:37:12,554 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:37:12,554 - core.database - WARNING - Database session maker not available, attempting lazy initialization...
+2026-03-23 03:37:12,554 - core.database - WARNING - Database not initialized, attempting lazy initialization...
+2026-03-23 03:37:12,554 - core.database - INFO - Starting database initialization...
+2026-03-23 03:37:12,554 - core.config - DEBUG - Read dynamic attribute database_url from environment variable DATABASE_URL
+2026-03-23 03:37:12,555 - core.database - INFO - Normalizing database URL for async compatibility...
+2026-03-23 03:37:12,555 - core.database - INFO - Creating async database engine...
+2026-03-23 03:37:12,555 - core.database - INFO - Using QueuePool with connection pooling for non-Lambda environment
+2026-03-23 03:37:12,599 - core.database - INFO - Database engine created successfully
+2026-03-23 03:37:12,599 - core.database - INFO - Creating async session maker...
+2026-03-23 03:37:12,600 - core.database - INFO - Async session maker created successfully
+2026-03-23 03:37:12,600 - core.database - INFO - Database connection initialized successfully
+2026-03-23 03:37:12,600 - core.database - DEBUG - [DB_OP] Starting create_tables
+2026-03-23 03:37:12,600 - core.database - INFO - 🔧 Starting table structure repair...
+2026-03-23 03:37:12,605 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:37:12,605 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-23 03:37:13,809 - core.database - INFO - 🔧 Repairing 30 existing tables...
+2026-03-23 03:37:13,810 - core.database - DEBUG - Checking table structure for: users
+2026-03-23 03:37:13,810 - core.database - DEBUG - Checking table structure for: oidc_states
+2026-03-23 03:37:13,812 - core.database - DEBUG - Checking table structure for: announcements
+2026-03-23 03:37:13,813 - core.database - DEBUG - Checking table structure for: banners
+2026-03-23 03:37:13,814 - core.database - DEBUG - Checking table structure for: become_master_requests
+2026-03-23 03:37:13,814 - core.database - DEBUG - Checking table structure for: categories
+2026-03-23 03:37:13,815 - core.database - DEBUG - Checking table structure for: complaints
+2026-03-23 03:37:13,816 - core.database - DEBUG - Checking table structure for: directory_entries
+2026-03-23 03:37:13,817 - core.database - DEBUG - Checking table structure for: food_categories
+2026-03-23 03:37:13,817 - core.database - DEBUG - Checking table structure for: food_item_modifiers
+2026-03-23 03:37:14,071 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.4657s
+2026-03-23 03:37:14,518 - core.database - DEBUG - Table users structure is up to date
+2026-03-23 03:37:14,518 - core.database - INFO - Table users repaired in 0.71s
+2026-03-23 03:37:14,518 - core.database - DEBUG - Checking table structure for: food_items
+2026-03-23 03:37:14,600 - core.database - DEBUG - Table oidc_states structure is up to date
+2026-03-23 03:37:14,601 - core.database - INFO - Table oidc_states repaired in 0.79s
+2026-03-23 03:37:14,601 - core.database - DEBUG - Checking table structure for: food_modifiers
+2026-03-23 03:37:14,655 - core.database - DEBUG - Table announcements structure is up to date
+2026-03-23 03:37:14,655 - core.database - INFO - Table announcements repaired in 0.84s
+2026-03-23 03:37:14,655 - core.database - DEBUG - Checking table structure for: food_orders
+2026-03-23 03:37:14,666 - core.database - DEBUG - Table become_master_requests structure is up to date
+2026-03-23 03:37:14,666 - core.database - INFO - Table become_master_requests repaired in 0.85s
+2026-03-23 03:37:14,666 - core.database - DEBUG - Checking table structure for: food_settings
+2026-03-23 03:37:14,667 - core.database - DEBUG - Table food_categories structure is up to date
+2026-03-23 03:37:14,667 - core.database - INFO - Table food_categories repaired in 0.85s
+2026-03-23 03:37:14,667 - core.database - DEBUG - Checking table structure for: frontpad_settings
+2026-03-23 03:37:14,673 - core.database - DEBUG - Table complaints structure is up to date
+2026-03-23 03:37:14,673 - core.database - INFO - Table complaints repaired in 0.86s
+2026-03-23 03:37:14,673 - core.database - DEBUG - Checking table structure for: frontpad_sync_log
+2026-03-23 03:37:14,674 - core.database - DEBUG - Table categories structure is up to date
+2026-03-23 03:37:14,675 - core.database - INFO - Table categories repaired in 0.86s
+2026-03-23 03:37:14,675 - core.database - DEBUG - Checking table structure for: history_events
+2026-03-23 03:37:14,677 - core.database - DEBUG - Table banners structure is up to date
+2026-03-23 03:37:14,678 - core.database - INFO - Table banners repaired in 0.87s
+2026-03-23 03:37:14,678 - core.database - DEBUG - Checking table structure for: homepage_stats
+2026-03-23 03:37:14,687 - core.database - DEBUG - Table directory_entries structure is up to date
+2026-03-23 03:37:14,687 - core.database - INFO - Table directory_entries repaired in 0.87s
+2026-03-23 03:37:14,688 - core.database - DEBUG - Checking table structure for: inspectors
+2026-03-23 03:37:14,782 - core.database - DEBUG - Table food_item_modifiers structure is up to date
+2026-03-23 03:37:14,783 - core.database - INFO - Table food_item_modifiers repaired in 0.97s
+2026-03-23 03:37:14,783 - core.database - DEBUG - Checking table structure for: item_modifier_groups
+2026-03-23 03:37:14,972 - core.database - DEBUG - Table food_modifiers structure is up to date
+2026-03-23 03:37:14,973 - core.database - INFO - Table food_modifiers repaired in 1.15s
+2026-03-23 03:37:14,973 - core.database - DEBUG - Checking table structure for: jobs
+2026-03-23 03:37:15,055 - core.database - DEBUG - Table food_items structure is up to date
+2026-03-23 03:37:15,056 - core.database - INFO - Table food_items repaired in 1.24s
+2026-03-23 03:37:15,056 - core.database - DEBUG - Checking table structure for: master_requests
+2026-03-23 03:37:15,067 - core.database - DEBUG - Table food_orders structure is up to date
+2026-03-23 03:37:15,067 - core.database - INFO - Table food_orders repaired in 1.25s
+2026-03-23 03:37:15,067 - core.database - DEBUG - Checking table structure for: masters
+2026-03-23 03:37:15,086 - core.database - DEBUG - Table food_settings structure is up to date
+2026-03-23 03:37:15,087 - core.database - INFO - Table food_settings repaired in 1.27s
+2026-03-23 03:37:15,087 - core.database - DEBUG - Checking table structure for: modifier_groups
+2026-03-23 03:37:15,092 - core.database - DEBUG - Table history_events structure is up to date
+2026-03-23 03:37:15,092 - core.database - INFO - Table history_events repaired in 1.27s
+2026-03-23 03:37:15,093 - core.database - DEBUG - Checking table structure for: modifier_options
+2026-03-23 03:37:15,094 - core.database - DEBUG - Table frontpad_sync_log structure is up to date
+2026-03-23 03:37:15,094 - core.database - INFO - Table frontpad_sync_log repaired in 1.28s
+2026-03-23 03:37:15,094 - core.database - DEBUG - Checking table structure for: news
+2026-03-23 03:37:15,095 - core.database - DEBUG - Table frontpad_settings structure is up to date
+2026-03-23 03:37:15,096 - core.database - INFO - Table frontpad_settings repaired in 1.28s
+2026-03-23 03:37:15,096 - core.database - DEBUG - Checking table structure for: question_answers
+2026-03-23 03:37:15,097 - core.database - DEBUG - Table homepage_stats structure is up to date
+2026-03-23 03:37:15,097 - core.database - INFO - Table homepage_stats repaired in 1.28s
+2026-03-23 03:37:15,098 - core.database - DEBUG - Checking table structure for: questions
+2026-03-23 03:37:15,098 - core.database - DEBUG - Table inspectors structure is up to date
+2026-03-23 03:37:15,099 - core.database - INFO - Table inspectors repaired in 1.28s
+2026-03-23 03:37:15,101 - core.database - DEBUG - Checking table structure for: real_estate
+2026-03-23 03:37:15,211 - core.database - DEBUG - Table item_modifier_groups structure is up to date
+2026-03-23 03:37:15,211 - core.database - INFO - Table item_modifier_groups repaired in 1.39s
+2026-03-23 03:37:15,212 - core.database - DEBUG - Checking table structure for: user_preferences
+2026-03-23 03:37:15,386 - core.database - DEBUG - Table jobs structure is up to date
+2026-03-23 03:37:15,387 - core.database - INFO - Table jobs repaired in 1.57s
+2026-03-23 03:37:15,408 - core.database - DEBUG - Table master_requests structure is up to date
+2026-03-23 03:37:15,410 - core.database - INFO - Table master_requests repaired in 1.59s
+2026-03-23 03:37:15,419 - core.database - DEBUG - Table masters structure is up to date
+2026-03-23 03:37:15,420 - core.database - INFO - Table masters repaired in 1.60s
+2026-03-23 03:37:15,438 - core.database - DEBUG - Table modifier_groups structure is up to date
+2026-03-23 03:37:15,438 - core.database - INFO - Table modifier_groups repaired in 1.62s
+2026-03-23 03:37:15,442 - core.database - DEBUG - Table modifier_options structure is up to date
+2026-03-23 03:37:15,443 - core.database - INFO - Table modifier_options repaired in 1.62s
+2026-03-23 03:37:15,449 - core.database - DEBUG - Table question_answers structure is up to date
+2026-03-23 03:37:15,450 - core.database - INFO - Table question_answers repaired in 1.63s
+2026-03-23 03:37:15,451 - core.database - DEBUG - Table questions structure is up to date
+2026-03-23 03:37:15,451 - core.database - INFO - Table questions repaired in 1.63s
+2026-03-23 03:37:15,504 - core.database - DEBUG - Table news structure is up to date
+2026-03-23 03:37:15,504 - core.database - INFO - Table news repaired in 1.69s
+2026-03-23 03:37:15,521 - core.database - DEBUG - Table real_estate structure is up to date
+2026-03-23 03:37:15,521 - core.database - INFO - Table real_estate repaired in 1.70s
+2026-03-23 03:37:15,623 - core.database - DEBUG - Table user_preferences structure is up to date
+2026-03-23 03:37:15,624 - core.database - INFO - Table user_preferences repaired in 1.81s
+2026-03-23 03:37:15,624 - core.database - INFO - 🔧 Table structure repair completed in 3.0242s
+2026-03-23 03:37:15,624 - core.database - INFO - 🔧 Table structure repair completed
+2026-03-23 03:37:15,625 - core.database - INFO - 🔧 Starting table creation...
+2026-03-23 03:37:17,702 - core.database - INFO - Tables initialized successfully
+2026-03-23 03:37:17,702 - core.database - DEBUG - [DB_OP] Create tables completed in 5.1021s
+2026-03-23 03:37:17,761 - core.database - INFO - Lazy database initialization completed successfully
+2026-03-23 03:37:17,762 - core.database - DEBUG - [DB_OP] Database session created successfully in 5.2079s
+2026-03-23 03:37:18,234 - core.database - DEBUG - [DB_OP] Database session cleanup after 5.6796s
+2026-03-23 03:38:44,213 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:38:44,214 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0007s
+2026-03-23 03:38:45,109 - services.frontpad_sync_log - INFO - Created frontpad_sync_log with id: 4
+2026-03-23 03:38:45,816 - services.frontpad_settings - INFO - Updated frontpad_settings 4
+2026-03-23 03:38:46,516 - services.frontpad_settings - INFO - Updated frontpad_settings 5
+2026-03-23 03:38:47,218 - services.frontpad_settings - INFO - Updated frontpad_settings 6
+2026-03-23 03:38:47,219 - routers.frontpad - INFO - ============================================================
+2026-03-23 03:38:47,219 - routers.frontpad - INFO - [FrontPad Sync] Starting full menu synchronization
+2026-03-23 03:38:47,219 - routers.frontpad - INFO - ============================================================
+2026-03-23 03:38:47,219 - routers.frontpad - INFO - [FrontPad API] Calling method=get_products, url=https://app.frontpad.ru/api/index.php?get_products
+2026-03-23 03:38:47,303 - httpcore.connection - DEBUG - connect_tcp.started host='app.frontpad.ru' port=443 local_address=None timeout=60.0 socket_options=None
+2026-03-23 03:38:47,499 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f6b9e6e5a80>
+2026-03-23 03:38:47,499 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x7f6b9e7efcc0> server_hostname='app.frontpad.ru' timeout=60.0
+2026-03-23 03:38:47,521 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f6b9e6e57e0>
+2026-03-23 03:38:47,522 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2026-03-23 03:38:47,522 - httpcore.http11 - DEBUG - send_request_headers.complete
+2026-03-23 03:38:47,522 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2026-03-23 03:38:47,522 - httpcore.http11 - DEBUG - send_request_body.complete
+2026-03-23 03:38:47,522 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2026-03-23 03:38:48,086 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Server', b'QRATOR'), (b'Date', b'Mon, 23 Mar 2026 10:38:48 GMT'), (b'Content-Type', b'text/html; charset=UTF-8'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Keep-Alive', b'timeout=15'), (b'Strict-Transport-Security', b'max-age=31536000;'), (b'Content-Encoding', b'gzip')])
+2026-03-23 03:38:48,087 - httpx - INFO - HTTP Request: POST https://app.frontpad.ru/api/index.php?get_products "HTTP/1.1 200 OK"
+2026-03-23 03:38:48,087 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2026-03-23 03:38:48,088 - httpcore.http11 - DEBUG - receive_response_body.complete
+2026-03-23 03:38:48,088 - httpcore.http11 - DEBUG - response_closed.started
+2026-03-23 03:38:48,088 - httpcore.http11 - DEBUG - response_closed.complete
+2026-03-23 03:38:48,089 - routers.frontpad - INFO - [FrontPad API] Response status=200, length=15341
+2026-03-23 03:38:48,089 - routers.frontpad - INFO - [FrontPad API] Response keys: ['result', 'product_id', 'name', 'price', 'sale']
+2026-03-23 03:38:48,089 - httpcore.connection - DEBUG - close.started
+2026-03-23 03:38:48,090 - httpcore.connection - DEBUG - close.complete
+2026-03-23 03:38:48,090 - routers.frontpad - INFO - [FrontPad] Parsed 0 products from response
+2026-03-23 03:38:48,090 - routers.frontpad - INFO - [FrontPad Sync] Получено товаров из API: 0
+2026-03-23 03:38:48,090 - routers.frontpad - WARNING - [FrontPad Sync] API вернул пустой список товаров. Проверьте настройки FrontPad.
+2026-03-23 03:38:48,090 - routers.frontpad - INFO - [FrontPad Sync] Raw response keys: ['result', 'product_id', 'name', 'price', 'sale']
+2026-03-23 03:38:48,090 - routers.frontpad - INFO - [FrontPad Sync] Raw response (truncated): {"result": "success", "product_id": ["092", "084", "054", "2013", "2014", "070", "066", "073", "071", "068", "2068", "072", "065", "067", "069", "2025", "081", "082", "053", "052", "2026", "2032", "2030", "058", "059", "060", "051", "2023", "2021", "102", "057", "2067", "2005", "6868", "2008", "007", "2027", "009", "2002", "2012", "2006", "005", "2020", "112", "107", "2004", "6666", "2061", "010", "004", "011", "111", "105", "2024", "110", "2001", "109", "2022", "2066", "2037", "2036", "2035", "108", "2028", "2071", "2072", "106", "2050", "0105", "0107", "2046", "2045", "1107", "1106", "104", "2038", "2029", "2031", "003", "100", "101", "001", "2007", "6969", "20250820", "8484", "6767", "6565", "2099", "2100", "9595", "1105", "116", "2105", "2106", "3131", "3030", "8282", "113", "1430", "1432", "115", "1108", "2003", "2101", "0121", "2016", "2102", "2103", "2104", "7070", "061", "1002", "6464", "1001", "1003", "1005", "1220", "1216", "1219", "1217", "1218", "1416", "8686", "9191", "909
+2026-03-23 03:38:48,796 - services.frontpad_settings - INFO - Updated frontpad_settings 4
+2026-03-23 03:38:49,525 - services.frontpad_settings - INFO - Updated frontpad_settings 6
+2026-03-23 03:38:50,180 - services.frontpad_sync_log - INFO - Updated frontpad_sync_log 4
+2026-03-23 03:38:50,181 - core.database - DEBUG - [DB_OP] Database session cleanup after 5.9675s
+2026-03-23 03:38:50,489 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:38:50,489 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-23 03:38:51,145 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.6563s
+2026-03-23 03:38:52,101 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:38:52,101 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-23 03:38:52,451 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.3497s
+2026-03-23 03:41:12,175 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:41:12,175 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-23 03:41:12,469 - routers.frontpad - INFO - [FrontPad API] Calling method=get_products, url=https://app.frontpad.ru/api/index.php?get_products
+2026-03-23 03:41:12,497 - httpcore.connection - DEBUG - connect_tcp.started host='app.frontpad.ru' port=443 local_address=None timeout=60.0 socket_options=None
+2026-03-23 03:41:12,909 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f6b9e6e6ef0>
+2026-03-23 03:41:12,910 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x7f6b9e7ed640> server_hostname='app.frontpad.ru' timeout=60.0
+2026-03-23 03:41:12,929 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f6b9e6e6c80>
+2026-03-23 03:41:12,929 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2026-03-23 03:41:12,929 - httpcore.http11 - DEBUG - send_request_headers.complete
+2026-03-23 03:41:12,929 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2026-03-23 03:41:12,930 - httpcore.http11 - DEBUG - send_request_body.complete
+2026-03-23 03:41:12,930 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2026-03-23 03:41:13,520 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Server', b'QRATOR'), (b'Date', b'Mon, 23 Mar 2026 10:41:13 GMT'), (b'Content-Type', b'text/html; charset=UTF-8'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Keep-Alive', b'timeout=15'), (b'Strict-Transport-Security', b'max-age=31536000;'), (b'Content-Encoding', b'gzip')])
+2026-03-23 03:41:13,521 - httpx - INFO - HTTP Request: POST https://app.frontpad.ru/api/index.php?get_products "HTTP/1.1 200 OK"
+2026-03-23 03:41:13,521 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2026-03-23 03:41:13,521 - httpcore.http11 - DEBUG - receive_response_body.complete
+2026-03-23 03:41:13,521 - httpcore.http11 - DEBUG - response_closed.started
+2026-03-23 03:41:13,522 - httpcore.http11 - DEBUG - response_closed.complete
+2026-03-23 03:41:13,522 - routers.frontpad - INFO - [FrontPad API] Response status=200, length=15341
+2026-03-23 03:41:13,522 - routers.frontpad - INFO - [FrontPad API] Response keys: ['result', 'product_id', 'name', 'price', 'sale']
+2026-03-23 03:41:13,522 - httpcore.connection - DEBUG - close.started
+2026-03-23 03:41:13,523 - httpcore.connection - DEBUG - close.complete
+2026-03-23 03:41:13,523 - routers.frontpad - INFO - [FrontPad] Parsed 0 products from response
+2026-03-23 03:41:13,523 - routers.frontpad - INFO - [FrontPad] Extracted 0 unique categories from products
+2026-03-23 03:41:13,523 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.3484s
+2026-03-23 03:41:14,875 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:41:14,876 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0008s
+2026-03-23 03:41:15,695 - services.frontpad_sync_log - INFO - Created frontpad_sync_log with id: 5
+2026-03-23 03:41:16,219 - services.frontpad_settings - INFO - Updated frontpad_settings 4
+2026-03-23 03:41:16,745 - services.frontpad_settings - INFO - Updated frontpad_settings 5
+2026-03-23 03:41:17,274 - services.frontpad_settings - INFO - Updated frontpad_settings 6
+2026-03-23 03:41:17,274 - routers.frontpad - INFO - ============================================================
+2026-03-23 03:41:17,274 - routers.frontpad - INFO - [FrontPad Sync] Starting full menu synchronization
+2026-03-23 03:41:17,275 - routers.frontpad - INFO - ============================================================
+2026-03-23 03:41:17,275 - routers.frontpad - INFO - [FrontPad API] Calling method=get_products, url=https://app.frontpad.ru/api/index.php?get_products
+2026-03-23 03:41:17,303 - httpcore.connection - DEBUG - connect_tcp.started host='app.frontpad.ru' port=443 local_address=None timeout=60.0 socket_options=None
+2026-03-23 03:41:17,325 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f6ba510eb00>
+2026-03-23 03:41:17,326 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x7f6b9e7ee1c0> server_hostname='app.frontpad.ru' timeout=60.0
+2026-03-23 03:41:17,347 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f6ba510e9b0>
+2026-03-23 03:41:17,347 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2026-03-23 03:41:17,348 - httpcore.http11 - DEBUG - send_request_headers.complete
+2026-03-23 03:41:17,348 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2026-03-23 03:41:17,349 - httpcore.http11 - DEBUG - send_request_body.complete
+2026-03-23 03:41:17,349 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2026-03-23 03:41:17,984 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Server', b'QRATOR'), (b'Date', b'Mon, 23 Mar 2026 10:41:17 GMT'), (b'Content-Type', b'text/html; charset=UTF-8'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Keep-Alive', b'timeout=15'), (b'Strict-Transport-Security', b'max-age=31536000;'), (b'Content-Encoding', b'gzip')])
+2026-03-23 03:41:17,985 - httpx - INFO - HTTP Request: POST https://app.frontpad.ru/api/index.php?get_products "HTTP/1.1 200 OK"
+2026-03-23 03:41:17,985 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2026-03-23 03:41:17,985 - httpcore.http11 - DEBUG - receive_response_body.complete
+2026-03-23 03:41:17,985 - httpcore.http11 - DEBUG - response_closed.started
+2026-03-23 03:41:17,986 - httpcore.http11 - DEBUG - response_closed.complete
+2026-03-23 03:41:17,987 - routers.frontpad - INFO - [FrontPad API] Response status=200, length=15341
+2026-03-23 03:41:17,987 - routers.frontpad - INFO - [FrontPad API] Response keys: ['result', 'product_id', 'name', 'price', 'sale']
+2026-03-23 03:41:17,987 - httpcore.connection - DEBUG - close.started
+2026-03-23 03:41:17,988 - httpcore.connection - DEBUG - close.complete
+2026-03-23 03:41:17,988 - routers.frontpad - INFO - [FrontPad] Parsed 0 products from response
+2026-03-23 03:41:17,988 - routers.frontpad - INFO - [FrontPad Sync] Получено товаров из API: 0
+2026-03-23 03:41:17,988 - routers.frontpad - WARNING - [FrontPad Sync] API вернул пустой список товаров. Проверьте настройки FrontPad.
+2026-03-23 03:41:17,988 - routers.frontpad - INFO - [FrontPad Sync] Raw response keys: ['result', 'product_id', 'name', 'price', 'sale']
+2026-03-23 03:41:17,988 - routers.frontpad - INFO - [FrontPad Sync] Raw response (truncated): {"result": "success", "product_id": ["092", "084", "054", "2013", "2014", "070", "066", "073", "071", "068", "2068", "072", "065", "067", "069", "2025", "081", "082", "053", "052", "2026", "2032", "2030", "058", "059", "060", "051", "2023", "2021", "102", "057", "2067", "2005", "6868", "2008", "007", "2027", "009", "2002", "2012", "2006", "005", "2020", "112", "107", "2004", "6666", "2061", "010", "004", "011", "111", "105", "2024", "110", "2001", "109", "2022", "2066", "2037", "2036", "2035", "108", "2028", "2071", "2072", "106", "2050", "0105", "0107", "2046", "2045", "1107", "1106", "104", "2038", "2029", "2031", "003", "100", "101", "001", "2007", "6969", "20250820", "8484", "6767", "6565", "2099", "2100", "9595", "1105", "116", "2105", "2106", "3131", "3030", "8282", "113", "1430", "1432", "115", "1108", "2003", "2101", "0121", "2016", "2102", "2103", "2104", "7070", "061", "1002", "6464", "1001", "1003", "1005", "1220", "1216", "1219", "1217", "1218", "1416", "8686", "9191", "909
+2026-03-23 03:41:18,539 - services.frontpad_settings - INFO - Updated frontpad_settings 4
+2026-03-23 03:41:19,244 - services.frontpad_settings - INFO - Updated frontpad_settings 6
+2026-03-23 03:41:19,836 - services.frontpad_sync_log - INFO - Updated frontpad_sync_log 5
+2026-03-23 03:41:19,836 - core.database - DEBUG - [DB_OP] Database session cleanup after 4.9615s
+2026-03-23 03:41:20,283 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:41:20,284 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-23 03:41:20,928 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.6445s
+2026-03-23 03:41:21,256 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:41:21,257 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0003s
+2026-03-23 03:41:21,726 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.4691s
+2026-03-23 03:43:35,406 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:43:35,407 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0004s
+2026-03-23 03:43:35,821 - routers.frontpad - INFO - [FrontPad API] Calling method=get_products, url=https://app.frontpad.ru/api/index.php?get_products
+2026-03-23 03:43:35,851 - httpcore.connection - DEBUG - connect_tcp.started host='app.frontpad.ru' port=443 local_address=None timeout=60.0 socket_options=None
+2026-03-23 03:43:36,335 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f6ba8eb90c0>
+2026-03-23 03:43:36,335 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x7f6b9e7ecdc0> server_hostname='app.frontpad.ru' timeout=60.0
+2026-03-23 03:43:36,354 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f6ba8eb8310>
+2026-03-23 03:43:36,355 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2026-03-23 03:43:36,356 - httpcore.http11 - DEBUG - send_request_headers.complete
+2026-03-23 03:43:36,356 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2026-03-23 03:43:36,356 - httpcore.http11 - DEBUG - send_request_body.complete
+2026-03-23 03:43:36,357 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2026-03-23 03:43:36,944 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Server', b'QRATOR'), (b'Date', b'Mon, 23 Mar 2026 10:43:36 GMT'), (b'Content-Type', b'text/html; charset=UTF-8'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Keep-Alive', b'timeout=15'), (b'Strict-Transport-Security', b'max-age=31536000;'), (b'Content-Encoding', b'gzip')])
+2026-03-23 03:43:36,944 - httpx - INFO - HTTP Request: POST https://app.frontpad.ru/api/index.php?get_products "HTTP/1.1 200 OK"
+2026-03-23 03:43:36,945 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2026-03-23 03:43:36,945 - httpcore.http11 - DEBUG - receive_response_body.complete
+2026-03-23 03:43:36,945 - httpcore.http11 - DEBUG - response_closed.started
+2026-03-23 03:43:36,946 - httpcore.http11 - DEBUG - response_closed.complete
+2026-03-23 03:43:36,946 - routers.frontpad - INFO - [FrontPad API] Response status=200, length=15341
+2026-03-23 03:43:36,946 - routers.frontpad - INFO - [FrontPad API] Response keys: ['result', 'product_id', 'name', 'price', 'sale']
+2026-03-23 03:43:36,946 - httpcore.connection - DEBUG - close.started
+2026-03-23 03:43:36,947 - httpcore.connection - DEBUG - close.complete
+2026-03-23 03:43:36,947 - routers.frontpad - INFO - [FrontPad] Parsed 0 products from response
+2026-03-23 03:43:36,947 - routers.frontpad - INFO - [FrontPad] Extracted 0 unique categories from products
+2026-03-23 03:43:36,947 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.5411s
+2026-03-23 03:45:10,941 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:45:10,941 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0005s
+2026-03-23 03:45:10,944 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:45:10,945 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0002s
+2026-03-23 03:45:11,524 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.5831s
+2026-03-23 03:45:11,655 - core.database - DEBUG - [DB_OP] Database session cleanup after 0.7106s
+2026-03-23 03:45:24,748 - core.database - DEBUG - [DB_OP] Starting get_db session creation
+2026-03-23 03:45:24,749 - core.database - DEBUG - [DB_OP] Database session created successfully in 0.0008s
+2026-03-23 03:45:25,160 - routers.frontpad - INFO - [FrontPad API] Calling method=get_products, url=https://app.frontpad.ru/api/index.php?get_products
+2026-03-23 03:45:25,195 - httpcore.connection - DEBUG - connect_tcp.started host='app.frontpad.ru' port=443 local_address=None timeout=60.0 socket_options=None
+2026-03-23 03:45:25,678 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f6b9e6e7820>
+2026-03-23 03:45:25,678 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x7f6b9e7ecd40> server_hostname='app.frontpad.ru' timeout=60.0
+2026-03-23 03:45:25,699 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x7f6b9e6e72b0>
+2026-03-23 03:45:25,700 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2026-03-23 03:45:25,700 - httpcore.http11 - DEBUG - send_request_headers.complete
+2026-03-23 03:45:25,701 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2026-03-23 03:45:25,701 - httpcore.http11 - DEBUG - send_request_body.complete
+2026-03-23 03:45:25,701 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2026-03-23 03:45:26,304 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Server', b'QRATOR'), (b'Date', b'Mon, 23 Mar 2026 10:45:26 GMT'), (b'Content-Type', b'text/html; charset=UTF-8'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Keep-Alive', b'timeout=15'), (b'Strict-Transport-Security', b'max-age=31536000;'), (b'Content-Encoding', b'gzip')])
+2026-03-23 03:45:26,305 - httpx - INFO - HTTP Request: POST https://app.frontpad.ru/api/index.php?get_products "HTTP/1.1 200 OK"
+2026-03-23 03:45:26,305 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2026-03-23 03:45:26,305 - httpcore.http11 - DEBUG - receive_response_body.complete
+2026-03-23 03:45:26,306 - httpcore.http11 - DEBUG - response_closed.started
+2026-03-23 03:45:26,306 - httpcore.http11 - DEBUG - response_closed.complete
+2026-03-23 03:45:26,306 - routers.frontpad - INFO - [FrontPad API] Response status=200, length=15341
+2026-03-23 03:45:26,307 - routers.frontpad - INFO - [FrontPad API] Response keys: ['result', 'product_id', 'name', 'price', 'sale']
+2026-03-23 03:45:26,307 - httpcore.connection - DEBUG - close.started
+2026-03-23 03:45:26,307 - httpcore.connection - DEBUG - close.complete
+2026-03-23 03:45:26,307 - routers.frontpad - INFO - [FrontPad] Parsed 0 products from response
+2026-03-23 03:45:26,307 - routers.frontpad - INFO - [FrontPad] Extracted 0 unique categories from products
+2026-03-23 03:45:26,308 - core.database - DEBUG - [DB_OP] Database session cleanup after 1.5596s
+2026-03-23 03:46:17,238 - services.database - DEBUG - [DB_OP] Starting database close
+2026-03-23 03:46:17,854 - core.database - INFO - Database connection closed and engine disposed
+2026-03-23 03:46:17,855 - services.database - INFO - Database connections closed
+2026-03-23 03:46:17,855 - services.database - DEBUG - [DB_OP] Database close completed in 0.6169s

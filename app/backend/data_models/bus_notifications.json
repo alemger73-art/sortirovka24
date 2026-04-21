@@ -1,0 +1,33 @@
+{
+    "title": "bus_notifications",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "route_id": {
+            "type": "integer",
+            "description": "Route ID"
+        },
+        "title": {
+            "type": "string",
+            "description": "Title"
+        },
+        "message": {
+            "type": "string",
+            "description": "Message"
+        },
+        "is_active": {
+            "type": "boolean",
+            "description": "Is active"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

@@ -1,0 +1,49 @@
+{
+    "title": "complaints",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "category": {
+            "type": "string",
+            "description": "Complaint category"
+        },
+        "address": {
+            "type": "string",
+            "description": "Address of problem"
+        },
+        "description": {
+            "type": "string",
+            "description": "Problem description"
+        },
+        "photo_url": {
+            "type": "string",
+            "description": "Photo URL"
+        },
+        "author_name": {
+            "type": "string",
+            "description": "Author name"
+        },
+        "phone": {
+            "type": "string",
+            "description": "Contact phone"
+        },
+        "status": {
+            "type": "string",
+            "description": "Status: new/in_progress/resolved"
+        },
+        "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Created date"
+        }
+    },
+    "required": [
+        "id",
+        "category",
+        "address",
+        "description"
+    ]
+}

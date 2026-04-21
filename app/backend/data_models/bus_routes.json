@@ -1,0 +1,65 @@
+{
+    "title": "bus_routes",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "route_number": {
+            "type": "string",
+            "description": "Route number"
+        },
+        "route_name": {
+            "type": "string",
+            "description": "Route name"
+        },
+        "description": {
+            "type": "string",
+            "description": "Description"
+        },
+        "color": {
+            "type": "string",
+            "description": "Color"
+        },
+        "first_departure_weekday": {
+            "type": "string",
+            "description": "First departure weekday"
+        },
+        "last_departure_weekday": {
+            "type": "string",
+            "description": "Last departure weekday"
+        },
+        "interval_weekday": {
+            "type": "string",
+            "description": "Interval weekday"
+        },
+        "first_departure_weekend": {
+            "type": "string",
+            "description": "First departure weekend"
+        },
+        "last_departure_weekend": {
+            "type": "string",
+            "description": "Last departure weekend"
+        },
+        "interval_weekend": {
+            "type": "string",
+            "description": "Interval weekend"
+        },
+        "is_active": {
+            "type": "boolean",
+            "description": "Is active"
+        },
+        "sort_order": {
+            "type": "integer",
+            "description": "Sort order"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

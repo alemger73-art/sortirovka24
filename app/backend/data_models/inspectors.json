@@ -1,0 +1,81 @@
+{
+    "title": "inspectors",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "full_name": {
+            "type": "string",
+            "description": "Full name"
+        },
+        "position": {
+            "type": "string",
+            "description": "Position"
+        },
+        "photo_url": {
+            "type": "string",
+            "description": "Photo URL"
+        },
+        "precinct_number": {
+            "type": "string",
+            "description": "Precinct number"
+        },
+        "district": {
+            "type": "string",
+            "description": "District"
+        },
+        "address": {
+            "type": "string",
+            "description": "Address"
+        },
+        "schedule": {
+            "type": "string",
+            "description": "Schedule"
+        },
+        "phone": {
+            "type": "string",
+            "description": "Phone"
+        },
+        "whatsapp": {
+            "type": "string",
+            "description": "WhatsApp"
+        },
+        "streets": {
+            "type": "string",
+            "description": "Streets"
+        },
+        "description": {
+            "type": "string",
+            "description": "Description"
+        },
+        "lat": {
+            "type": "number",
+            "description": "Latitude"
+        },
+        "lng": {
+            "type": "number",
+            "description": "Longitude"
+        },
+        "boundary_coords": {
+            "type": "string",
+            "description": "Boundary coordinates JSON"
+        },
+        "is_leadership": {
+            "type": "boolean",
+            "description": "Is leadership"
+        },
+        "leadership_order": {
+            "type": "integer",
+            "description": "Leadership order"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

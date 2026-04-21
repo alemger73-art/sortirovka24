@@ -1,0 +1,49 @@
+{
+    "title": "become_master_requests",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "name": {
+            "type": "string",
+            "description": "Master name"
+        },
+        "category": {
+            "type": "string",
+            "description": "Service category"
+        },
+        "phone": {
+            "type": "string",
+            "description": "Phone"
+        },
+        "whatsapp": {
+            "type": "string",
+            "description": "WhatsApp"
+        },
+        "district": {
+            "type": "string",
+            "description": "Working district"
+        },
+        "description": {
+            "type": "string",
+            "description": "About master"
+        },
+        "status": {
+            "type": "string",
+            "description": "Status: pending/approved/rejected"
+        },
+        "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Created date"
+        }
+    },
+    "required": [
+        "id",
+        "name",
+        "category",
+        "phone"
+    ]
+}

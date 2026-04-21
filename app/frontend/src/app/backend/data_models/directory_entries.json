@@ -1,0 +1,41 @@
+{
+    "title": "directory_entries",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "entry_name": {
+            "type": "string",
+            "description": "Organization name"
+        },
+        "category": {
+            "type": "string",
+            "description": "Category"
+        },
+        "address": {
+            "type": "string",
+            "description": "Address"
+        },
+        "phone": {
+            "type": "string",
+            "description": "Phone number"
+        },
+        "description": {
+            "type": "string",
+            "description": "Short description"
+        },
+        "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Created date"
+        }
+    },
+    "required": [
+        "id",
+        "entry_name",
+        "category",
+        "phone"
+    ]
+}

@@ -1,0 +1,53 @@
+{
+    "title": "news",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "title": {
+            "type": "string",
+            "description": "News title"
+        },
+        "content": {
+            "type": "string",
+            "description": "Full news content"
+        },
+        "short_description": {
+            "type": "string",
+            "description": "Short description"
+        },
+        "category": {
+            "type": "string",
+            "description": "News category"
+        },
+        "image_url": {
+            "type": "string",
+            "description": "Main image URL"
+        },
+        "gallery_images": {
+            "type": "string",
+            "description": "Gallery images JSON"
+        },
+        "youtube_url": {
+            "type": "string",
+            "description": "YouTube video URL"
+        },
+        "published": {
+            "type": "boolean",
+            "description": "Is published"
+        },
+        "status": {
+            "type": "string",
+            "description": "Status"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

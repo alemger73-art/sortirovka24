@@ -1,0 +1,13 @@
+{
+    "title": "health_check",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}

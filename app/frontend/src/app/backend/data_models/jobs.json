@@ -1,0 +1,57 @@
+{
+    "title": "jobs",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "job_title": {
+            "type": "string",
+            "description": "Job title"
+        },
+        "employer": {
+            "type": "string",
+            "description": "Employer name"
+        },
+        "salary": {
+            "type": "string",
+            "description": "Salary range"
+        },
+        "schedule": {
+            "type": "string",
+            "description": "Work schedule"
+        },
+        "district": {
+            "type": "string",
+            "description": "District"
+        },
+        "description": {
+            "type": "string",
+            "description": "Job description"
+        },
+        "phone": {
+            "type": "string",
+            "description": "Contact phone"
+        },
+        "whatsapp": {
+            "type": "string",
+            "description": "WhatsApp"
+        },
+        "active": {
+            "type": "boolean",
+            "description": "Is active"
+        },
+        "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Created date"
+        }
+    },
+    "required": [
+        "id",
+        "job_title",
+        "employer",
+        "phone"
+    ]
+}

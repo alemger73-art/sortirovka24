@@ -1,0 +1,73 @@
+{
+    "title": "masters",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "name": {
+            "type": "string",
+            "description": "Master name"
+        },
+        "category": {
+            "type": "string",
+            "description": "Service category"
+        },
+        "phone": {
+            "type": "string",
+            "description": "Phone number"
+        },
+        "whatsapp": {
+            "type": "string",
+            "description": "WhatsApp number"
+        },
+        "district": {
+            "type": "string",
+            "description": "Working district"
+        },
+        "description": {
+            "type": "string",
+            "description": "About master"
+        },
+        "rating": {
+            "type": "number",
+            "description": "Rating 1-5"
+        },
+        "reviews_count": {
+            "type": "integer",
+            "description": "Number of reviews"
+        },
+        "photo_url": {
+            "type": "string",
+            "description": "Photo URL"
+        },
+        "verified": {
+            "type": "boolean",
+            "description": "Is verified master"
+        },
+        "available_today": {
+            "type": "boolean",
+            "description": "Available today"
+        },
+        "services": {
+            "type": "string",
+            "description": "List of services comma separated"
+        },
+        "experience_years": {
+            "type": "integer",
+            "description": "Years of experience"
+        },
+        "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Created date"
+        }
+    },
+    "required": [
+        "id",
+        "name",
+        "category",
+        "phone"
+    ]
+}

@@ -1,0 +1,62 @@
+{
+    "title": "announcements",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "ann_type": {
+            "type": "string",
+            "description": "Type: sell/buy/rent/services/job/realestate/free"
+        },
+        "title": {
+            "type": "string",
+            "description": "Announcement title"
+        },
+        "description": {
+            "type": "string",
+            "description": "Description"
+        },
+        "price": {
+            "type": "string",
+            "description": "Price"
+        },
+        "address": {
+            "type": "string",
+            "description": "Address"
+        },
+        "image_url": {
+            "type": "string",
+            "description": "Image URL"
+        },
+        "phone": {
+            "type": "string",
+            "description": "Contact phone"
+        },
+        "whatsapp": {
+            "type": "string",
+            "description": "WhatsApp"
+        },
+        "author_name": {
+            "type": "string",
+            "description": "Author name"
+        },
+        "active": {
+            "type": "boolean",
+            "description": "Is active"
+        },
+        "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Created date"
+        }
+    },
+    "required": [
+        "id",
+        "ann_type",
+        "title",
+        "description",
+        "phone"
+    ]
+}

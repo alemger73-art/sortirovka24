@@ -1,0 +1,41 @@
+{
+    "title": "park_orders",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Primary key, auto-increment"
+        },
+        "customer_name": {
+            "type": "string",
+            "description": "Customer name"
+        },
+        "customer_phone": {
+            "type": "string",
+            "description": "Customer phone"
+        },
+        "point_id": {
+            "type": "integer",
+            "description": "Park point ID"
+        },
+        "order_items": {
+            "type": "string",
+            "description": "Order items JSON"
+        },
+        "total_amount": {
+            "type": "number",
+            "description": "Total amount"
+        },
+        "status": {
+            "type": "string",
+            "description": "Order status"
+        },
+        "created_at": {
+            "type": "string",
+            "description": "Creation timestamp"
+        }
+    },
+    "required": [
+        "id"
+    ]
+}
