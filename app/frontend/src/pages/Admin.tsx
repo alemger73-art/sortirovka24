@@ -58,7 +58,7 @@ function AdminLogin({ onLogin }: { onLogin: (token: string) => void }) {
     setError('');
 
     try {
-      const resp = await fetch('/api/v1/admin-auth/login', {
+      const resp = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/v1/admin-auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
