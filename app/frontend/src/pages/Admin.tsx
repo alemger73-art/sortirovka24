@@ -198,7 +198,7 @@ export default function AdminPanel() {
     }
 
     try {
-      const resp = await fetch('/api/v1/admin-auth/verify-session', {
+      const resp = await fetch((window.VITE_API_BASE_URL  import.meta.env.VITE_API_BASE_URL  '') + '/api/v1/admin-auth/verify-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -237,7 +237,7 @@ export default function AdminPanel() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/v1/admin-auth/logout', {
+      await fetch((window.VITE_API_BASE_URL  import.meta.env.VITE_API_BASE_URL  '') + '/api/v1/admin-auth/logout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
