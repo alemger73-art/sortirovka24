@@ -7,7 +7,7 @@ import os
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 import cloudinary
 import cloudinary.api
@@ -45,12 +45,13 @@ def _b64url_decode(text: str) -> bytes:
 def _parse_cloudinary_url(raw_url: str) -> tuple[str, str, str]:
     """Parse CLOUDINARY_URL format: cloudinary://api_key:api_secret@cloud_name"""
     try:
-        parsed = urlparse(raw_url.strip())
-        if parsed.scheme != "cloudinary":
+        cleaned = (raw_url or "").strip()
+        parsed = urlparse(cleaned)
+        if parsed.scheme.lower() != "cloudinary":
             return "", "", ""
         cloud_name = (parsed.hostname or "").strip()
-        api_key = (parsed.username or "").strip()
-        api_secret = (parsed.password or "").strip()
+        api_key = unquote((parsed.username or "").strip())
+        api_secret = unquote((parsed.password or "").strip())
         return cloud_name, api_key, api_secret
     except Exception:
         return "", "", ""
@@ -99,7 +100,20 @@ class StorageService:
     """Storage service backed by Cloudinary."""
 
     def __init__(self):
-        self.cloud_name, self.api_key, self.api_secret = _resolve_cloudinary_config()
+        self.cloud_name = ""
+        self.api_key = ""
+        self.api_secret = ""
+
+        cloudinary_url = _env_ci("CLOUDINARY_URL")
+        if cloudinary_url:
+            # Let Cloudinary SDK parse CLOUDINARY_URL directly (more reliable for special chars).
+            cloudinary.config(cloudinary_url=cloudinary_url, secure=True)
+            cfg = cloudinary.config()
+            self.cloud_name = _clean_env_value(str(getattr(cfg, "cloud_name", "") or ""))
+            self.api_key = _clean_env_value(str(getattr(cfg, "api_key", "") or ""))
+            self.api_secret = _clean_env_value(str(getattr(cfg, "api_secret", "") or ""))
+        else:
+            self.cloud_name, self.api_key, self.api_secret = _resolve_cloudinary_config()
 
         if not self.cloud_name or not self.api_key or not self.api_secret:
             logger.error(
@@ -114,12 +128,8 @@ class StorageService:
                 "(or CLOUDINARY_URL)."
             )
 
-        cloudinary.config(
-            cloud_name=self.cloud_name,
-            api_key=self.api_key,
-            api_secret=self.api_secret,
-            secure=True,
-        )
+        # Re-apply explicit config to ensure SDK uses normalized values.
+        cloudinary.config(cloud_name=self.cloud_name, api_key=self.api_key, api_secret=self.api_secret, secure=True)
 
     def _make_upload_token(self, bucket_name: str, object_key: str, expires_in_seconds: int = 15 * 60) -> str:
         payload = {
