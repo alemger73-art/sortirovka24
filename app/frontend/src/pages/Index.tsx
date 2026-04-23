@@ -7,12 +7,11 @@ import { fetchWithCache } from '@/lib/cache';
 import { prefetchFromIndex } from '@/lib/prefetch';
 import { preloadCriticalImages, preloadImagesOnIdle, extractImageUrls } from '@/lib/imageCache';
 import { resolveImageSrc } from '@/lib/storage';
-import { Button } from '@/components/ui/button';
 import {
   Wrench, AlertTriangle, Megaphone, ChevronRight, ChevronLeft,
   MapPin, Phone as PhoneIcon, Clock, Briefcase, Sun, Snowflake, Cloud, CloudRain,
   Home, ShoppingBag, Utensils, FileText, BookOpen,
-  ArrowRight, Send, Building2, HardHat, Car,
+  ArrowRight, Send, Building2, HardHat, Users, Coffee,
   Shield, Heart, Siren, Landmark
 } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
@@ -424,81 +423,61 @@ export default function Index() {
 
         <div className="relative z-10 max-w-6xl mx-auto px-4 pt-6 pb-14 md:pt-14 md:pb-20 flex flex-col min-h-[400px] md:min-h-[480px]">
           {/* Top bar */}
-          <div className="flex flex-wrap items-center gap-3 mb-6">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2.5 border border-white/20 animate-in fade-in duration-700">
-              <p className="text-white text-sm font-semibold">Портал района Сортировка</p>
-            </div>
+          <div className="flex items-center justify-end gap-3 mb-6">
             <WeatherWidget />
           </div>
 
           {/* Hero text */}
-          <div className="mt-auto animate-in fade-in slide-in-from-bottom-2 duration-700 text-center flex flex-col items-center">
-            <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white mb-3 leading-[1.05] max-w-4xl animate-in fade-in duration-700">
-              Сортировка — всё рядом
+          <div className="mt-auto animate-in fade-in slide-in-from-bottom-2 duration-700 flex flex-col items-start">
+            <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white mb-3 leading-[1.02] max-w-2xl animate-in fade-in duration-700">
+              Сортировка — <br />
+              <span className="text-yellow-400">всё</span> для жизни рядом
             </h1>
-            <p className="text-base md:text-lg text-white/80 mb-7 max-w-2xl">
-              Еда, мастера, объявления, работа и жалобы — всё под рукой
+            <p className="text-base md:text-2xl text-white/80 mb-7 max-w-xl">
+              Еда, услуги, объявления и помощь — в одном сервисе
             </p>
 
-            {/* Service cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-4xl text-left">
-              <Link
-                to="/transport"
-                className="group rounded-2xl p-5 bg-white/90 backdrop-blur-md border border-white/40 shadow-lg hover:shadow-2xl hover:scale-[1.04] transition-all duration-200"
-              >
-                <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center mb-3">
-                  <Car className="w-5 h-5 text-orange-600" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900">Такси</h3>
-                <p className="text-sm text-gray-600 mt-1">По району быстро</p>
-              </Link>
+            {/* Main actions */}
+            <div className="flex flex-wrap items-center gap-3 w-full max-w-3xl">
               <Link
                 to="/food"
-                className="group rounded-2xl p-5 bg-white/90 backdrop-blur-md border border-white/40 shadow-lg hover:shadow-2xl hover:scale-[1.04] transition-all duration-200"
+                className="inline-flex items-center justify-center rounded-2xl bg-yellow-400 px-8 py-4 text-base font-bold text-gray-900 shadow-xl transition-all duration-200 hover:scale-[1.03] hover:shadow-2xl hover:bg-yellow-300 min-w-[240px]"
               >
-                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center mb-3">
-                  <Utensils className="w-5 h-5 text-amber-600" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900">Еда</h3>
-                <p className="text-sm text-gray-600 mt-1">Доставка рядом</p>
+                Заказать еду
               </Link>
               <Link
                 to="/masters"
-                className="group rounded-2xl p-5 bg-white/90 backdrop-blur-md border border-white/40 shadow-lg hover:shadow-2xl hover:scale-[1.04] transition-all duration-200"
+                className="inline-flex items-center justify-center rounded-2xl border border-white/60 bg-black/35 px-8 py-4 text-base font-semibold text-white shadow-lg transition-all duration-200 hover:scale-[1.03] hover:bg-black/45 hover:shadow-2xl min-w-[240px]"
               >
-                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center mb-3">
-                  <Wrench className="w-5 h-5 text-blue-600" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900">Мастера</h3>
-                <p className="text-sm text-gray-600 mt-1">Все услуги</p>
-              </Link>
-              <Link
-                to="/announcements"
-                className="group rounded-2xl p-5 bg-white/90 backdrop-blur-md border border-white/40 shadow-lg hover:shadow-2xl hover:scale-[1.04] transition-all duration-200"
-              >
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center mb-3">
-                  <Megaphone className="w-5 h-5 text-emerald-600" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900">Объявления</h3>
-                <p className="text-sm text-gray-600 mt-1">Купить / продать</p>
+                Найти услугу
               </Link>
             </div>
 
-            <p className="text-white/75 text-sm md:text-base mt-6">
-              Уже используют: 8+ мастеров • 6+ кафе • жители района
-            </p>
-
-            {/* Stats */}
-            {heroStats.length > 0 && (
-              <div className="flex items-center gap-6 mt-6">
-                {heroStats.map(s => (
-                  <div key={s.labelKey} className="text-center">
-                    <p className="text-2xl md:text-3xl font-extrabold text-white"><AnimatedNumber target={s.num} suffix={s.suffix} /></p>
-                    <p className="text-white/50 text-xs">{t(s.labelKey)}</p>
+            <div className="mt-6 w-full max-w-3xl rounded-2xl border border-white/10 bg-black/35 backdrop-blur-md px-5 py-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-white/80" />
+                  <div>
+                    <p className="text-2xl font-extrabold text-white leading-none">8+</p>
+                    <p className="text-xs text-white/70">мастеров</p>
                   </div>
-                ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Coffee className="h-5 w-5 text-white/80" />
+                  <div>
+                    <p className="text-2xl font-extrabold text-white leading-none">6+</p>
+                    <p className="text-xs text-white/70">кафе и ресторанов</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-white/80" />
+                  <div>
+                    <p className="text-2xl font-extrabold text-white leading-none">1000+</p>
+                    <p className="text-xs text-white/70">жителей района</p>
+                  </div>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </section>
