@@ -13,6 +13,40 @@ from jose.exceptions import ExpiredSignatureError, JWSSignatureError, JWTClaimsE
 logger = logging.getLogger(__name__)
 
 
+def _get_jwt_secret_key() -> str:
+    """Resolve JWT secret key with backward-compatible fallbacks."""
+    jwt_secret = getattr(settings, "jwt_secret_key", "")
+    if jwt_secret:
+        return jwt_secret
+
+    # Backward compatibility: some deployments still use SECRET_KEY.
+    legacy_secret = getattr(settings, "secret_key", "")
+    if legacy_secret:
+        logger.warning("Using SECRET_KEY as JWT secret fallback; prefer JWT_SECRET_KEY")
+        return legacy_secret
+
+    return ""
+
+
+def _get_jwt_algorithm() -> str:
+    """Resolve JWT algorithm with safe default."""
+    algorithm = getattr(settings, "jwt_algorithm", "")
+    return algorithm or "HS256"
+
+
+def _get_jwt_expire_minutes(expires_minutes: Optional[int] = None) -> int:
+    """Resolve JWT expiry minutes with validation and fallback."""
+    if expires_minutes is not None:
+        return int(expires_minutes)
+
+    configured = getattr(settings, "jwt_expire_minutes", 60)
+    try:
+        return int(configured)
+    except (TypeError, ValueError):
+        logger.warning("Invalid JWT_EXPIRE_MINUTES value '%s'; fallback to 60", configured)
+        return 60
+
+
 def generate_state() -> str:
     """Generate a secure state parameter for OIDC."""
     return secrets.token_urlsafe(32)
@@ -75,14 +109,15 @@ class AccessTokenError(Exception):
 
 def create_access_token(claims: Dict[str, Any], expires_minutes: Optional[int] = None) -> str:
     """Create signed JWT access token from provided claims."""
-    if not settings.jwt_secret_key:
+    jwt_secret_key = _get_jwt_secret_key()
+    if not jwt_secret_key:
         logger.error("JWT secret key is not configured")
         raise ValueError("JWT secret key is not configured")
 
     now = datetime.now(timezone.utc)
     token_claims = claims.copy()
 
-    expiry_minutes = expires_minutes if expires_minutes is not None else int(settings.jwt_expire_minutes)
+    expiry_minutes = _get_jwt_expire_minutes(expires_minutes)
     expire_at = now + timedelta(minutes=expiry_minutes)
 
     token_claims.update(
@@ -93,7 +128,7 @@ def create_access_token(claims: Dict[str, Any], expires_minutes: Optional[int] =
         }
     )
 
-    token = jwt.encode(token_claims, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+    token = jwt.encode(token_claims, jwt_secret_key, algorithm=_get_jwt_algorithm())
     # Log user hash instead of actual user ID to avoid exposing sensitive information
     user_id = token_claims.get("sub", "unknown")
     user_hash = hashlib.sha256(str(user_id).encode()).hexdigest()[:8] if user_id != "unknown" else "unknown"
@@ -103,12 +138,13 @@ def create_access_token(claims: Dict[str, Any], expires_minutes: Optional[int] =
 
 def decode_access_token(token: str) -> Dict[str, Any]:
     """Decode and validate JWT access token."""
-    if not settings.jwt_secret_key:
+    jwt_secret_key = _get_jwt_secret_key()
+    if not jwt_secret_key:
         logger.error("JWT secret key is not configured")
         raise AccessTokenError("Authentication service is misconfigured")
 
     try:
-        payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+        payload = jwt.decode(token, jwt_secret_key, algorithms=[_get_jwt_algorithm()])
         # Log user hash instead of actual user ID to avoid exposing sensitive information
         user_id = payload.get("sub", "unknown")
         user_hash = hashlib.sha256(str(user_id).encode()).hexdigest()[:8] if user_id != "unknown" else "unknown"
