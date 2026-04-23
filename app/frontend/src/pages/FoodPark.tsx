@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { client, withRetry } from '@/lib/api';
 import { resolveImageSrc } from '@/lib/storage';
@@ -13,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import ParkMap from '@/components/ParkMap';
 import type { ParkPoint } from '@/components/ParkMap';
+import { pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
 
 /* ─── Types ─── */
 interface FoodCategory { id: number; name: string; icon: string; sort_order: number; is_active: boolean; }
@@ -38,6 +40,7 @@ const ORDER_STATUSES: Record<string, { label: string; color: string; emoji: stri
 type ViewState = 'menu' | 'map' | 'cart' | 'checkout' | 'tracking';
 
 export default function FoodPark() {
+  const navigate = useNavigate();
   const [parkPoints, setParkPoints] = useState<ParkPoint[]>([]);
   const [categories, setCategories] = useState<FoodCategory[]>([]);
   const [items, setItems] = useState<FoodItem[]>([]);
@@ -180,6 +183,7 @@ export default function FoodPark() {
   }
 
   async function submitOrder() {
+    if (!requireAuthDialog(navigate)) return;
     if (!selectedPoint) { toast.error('Выберите точку доставки на карте'); return; }
     if (!customerPhone.trim()) { toast.error('Укажите номер телефона'); return; }
     if (!parkNote.trim()) { toast.error('Укажите ориентир — как вас найти'); return; }
@@ -209,6 +213,10 @@ export default function FoodPark() {
           updated_at: new Date().toISOString(),
         }
       }));
+      pushCabinetItem('foodOrders', {
+        title: `Парк-заказ на ${cartTotal.toLocaleString('ru-RU')} ₸`,
+        subtitle: selectedPoint.name,
+      });
 
       const orderId = result?.data?.id;
       toast.success(`Заказ #${orderId || ''} оформлен!`);

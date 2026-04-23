@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, MapPin, Globe } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { prefetchPage, routeToPage } from '@/lib/prefetch';
+import { getCurrentUser, logoutLocalUser, onAuthChanged } from '@/lib/localAuth';
 
 const NAV_ITEMS = [
   { path: '/', label: 'Главная' },
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState(getCurrentUser());
   const location = useLocation();
   const { lang, setLang } = useLanguage();
 
@@ -24,6 +26,10 @@ export default function Header() {
   const handlePrefetch = useCallback((path: string) => {
     const page = routeToPage(path);
     if (page) prefetchPage(page);
+  }, []);
+
+  useEffect(() => {
+    return onAuthChanged(() => setUser(getCurrentUser()));
   }, []);
 
   return (
@@ -61,12 +67,29 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link
-            to="/account"
-            className="hidden rounded-lg bg-white px-3 py-2 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-100 sm:inline-flex"
-          >
-            Войти / Кабинет
-          </Link>
+          {user ? (
+            <>
+              <Link
+                to="/cabinet"
+                className="hidden rounded-lg bg-white px-3 py-2 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-100 sm:inline-flex"
+              >
+                Кабинет
+              </Link>
+              <button
+                onClick={logoutLocalUser}
+                className="hidden rounded-lg border border-white/20 px-3 py-2 text-sm font-semibold text-white hover:bg-white/10 sm:inline-flex"
+              >
+                Выйти
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/login"
+              className="hidden rounded-lg bg-white px-3 py-2 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-100 sm:inline-flex"
+            >
+              Войти
+            </Link>
+          )}
           <button
             onClick={toggleLang}
             className="inline-flex items-center gap-1 rounded-lg border border-white/20 px-2.5 py-2 text-sm font-semibold text-white/90 transition-colors hover:bg-white/10"
@@ -108,13 +131,34 @@ export default function Header() {
                 </Link>
               );
             })}
-            <Link
-              to="/account"
-              onClick={() => setMobileOpen(false)}
-              className="mt-2 block rounded-lg bg-white px-3 py-2.5 text-center text-sm font-semibold text-gray-900 hover:bg-gray-100"
-            >
-              Войти / Кабинет
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  to="/cabinet"
+                  onClick={() => setMobileOpen(false)}
+                  className="mt-2 block rounded-lg bg-white px-3 py-2.5 text-center text-sm font-semibold text-gray-900 hover:bg-gray-100"
+                >
+                  Кабинет
+                </Link>
+                <button
+                  onClick={() => {
+                    logoutLocalUser();
+                    setMobileOpen(false);
+                  }}
+                  className="mt-2 w-full rounded-lg border border-white/20 px-3 py-2.5 text-center text-sm font-semibold text-white hover:bg-white/10"
+                >
+                  Выйти
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                onClick={() => setMobileOpen(false)}
+                className="mt-2 block rounded-lg bg-white px-3 py-2.5 text-center text-sm font-semibold text-gray-900 hover:bg-gray-100"
+              >
+                Войти
+              </Link>
+            )}
           </nav>
         </div>
       )}

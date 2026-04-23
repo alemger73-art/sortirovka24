@@ -5,6 +5,7 @@ import { client, withRetry, MASTER_CATEGORIES, CATEGORY_ICONS, timeAgo } from '@
 import { fetchWithCache } from '@/lib/cache';
 import { Star, Phone, MessageCircle, MapPin, CheckCircle, Clock, ChevronLeft, Search, Send, UserPlus, Shield, Zap, Award, Sparkles, Users, LayoutGrid, TrendingUp, AlertTriangle } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
+import { pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
 
 /* ─── Category gradient map ─── */
 const CATEGORY_GRADIENTS: Record<string, string> = {
@@ -593,12 +594,17 @@ export function MasterRequestForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!requireAuthDialog(navigate)) return;
     if (!form.category || !form.problem_description || !form.phone) return;
     setSubmitting(true);
     try {
       await withRetry(() => client.entities.master_requests.create({
         data: { ...form, status: 'new', created_at: new Date().toISOString() }
       }));
+      pushCabinetItem('masterRequests', {
+        title: form.category,
+        subtitle: form.problem_description.slice(0, 80),
+      });
       setSuccess(true);
       client.apiCall.invoke({
         url: '/api/v1/telegram/notify/master-request',

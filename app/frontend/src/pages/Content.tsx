@@ -10,6 +10,7 @@ import StorageImg from "@/components/StorageImg";
 import MultiImageUpload, { StorageGallery } from '@/components/MultiImageUpload';
 import VideoUpload from '@/components/VideoUpload';
 import StorageVideo from '@/components/StorageVideo';
+import { pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
 
 function normalizeYoutubeWatchUrl(value: string): string {
   const raw = (value || '').trim();
@@ -242,6 +243,7 @@ export function NewComplaintForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!requireAuthDialog(navigate)) return;
     if (!form.category || !form.address || !form.description) return;
     if (submitted) return;
     setSubmitting(true);
@@ -258,6 +260,10 @@ export function NewComplaintForm() {
         },
       }));
       setSuccess(true);
+      pushCabinetItem('complaints', {
+        title: form.category || 'Жалоба',
+        subtitle: form.address || form.description.slice(0, 60),
+      });
       const photoCount = galleryKeys ? galleryKeys.split(',').filter((k: string) => k.trim()).length : 0;
       const totalPhotos = (photoKey ? 1 : 0) + photoCount;
       client.apiCall.invoke({
@@ -443,6 +449,7 @@ export function AnnouncementsList() {
 
 /* ============ NEW ANNOUNCEMENT FORM ============ */
 export function NewAnnouncementForm() {
+  const navigate = useNavigate();
   const [form, setForm] = useState({ ann_type: '', title: '', description: '', price: '', address: '', phone: '', whatsapp: '', author_name: '' });
   const [galleryKeys, setGalleryKeys] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -451,6 +458,7 @@ export function NewAnnouncementForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!requireAuthDialog(navigate)) return;
     if (!form.ann_type || !form.title || !form.description || !form.phone) return;
     if (submitted) return;
     setSubmitting(true);
@@ -460,6 +468,10 @@ export function NewAnnouncementForm() {
         data: { ...form, active: true, status: 'pending', gallery_images: galleryKeys, created_at: new Date().toISOString() },
       }));
       setSuccess(true);
+      pushCabinetItem('announcements', {
+        title: form.title,
+        subtitle: form.price || form.ann_type,
+      });
       const photoCount = galleryKeys ? galleryKeys.split(',').filter((k: string) => k.trim()).length : 0;
       client.apiCall.invoke({
         url: '/api/v1/telegram/notify/announcement',

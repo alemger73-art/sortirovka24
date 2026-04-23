@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { client, withRetry } from '@/lib/api';
@@ -14,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
 
 /* ─── CDN images ─── */
 const HERO_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/615378ae-f490-4345-9544-e4ae6d37b614.png';
@@ -67,6 +69,7 @@ function AddedFeedback({ show }: { show: boolean }) {
 }
 
 export default function Food() {
+  const navigate = useNavigate();
   const { t, localized, lang } = useLanguage();
   const [categories, setCategories] = useState<FoodCategory[]>([]);
   const [items, setItems] = useState<FoodItem[]>([]);
@@ -400,6 +403,7 @@ export default function Food() {
   }
 
   async function submitOrder() {
+    if (!requireAuthDialog(navigate)) return;
     if (!customerName.trim() || !customerPhone.trim()) { toast.error('Заполните имя и телефон'); return; }
     if (deliveryMethod === 'delivery' && (!street.trim() || !house.trim())) { toast.error('Укажите улицу и дом'); return; }
     if (cartTotal < minOrder) { toast.error(`${t('food.minOrder')}: ${minOrder} ₸`); return; }
@@ -423,6 +427,10 @@ export default function Food() {
           status: 'new', created_at: new Date().toISOString()
         }
       }));
+      pushCabinetItem('foodOrders', {
+        title: `Заказ на ${total.toLocaleString('ru-RU')} ₸`,
+        subtitle: deliveryMethod === 'delivery' ? fullAddress : 'Самовывоз',
+      });
       const whatsappNumber = settings.whatsapp_number.replace(/[^0-9]/g, '');
       let msg = `🍽 *Новый заказ*\n\n👤 ${customerName}\n📞 ${customerPhone}\n`;
       if (deliveryMethod === 'delivery') {

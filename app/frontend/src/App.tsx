@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
+import RequireUserAuth from "@/components/RequireUserAuth";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 
@@ -81,7 +82,7 @@ function App() {
 
               {/* Masters — lazy */}
               <Route path="/masters" element={<MastersCatalog />} />
-              <Route path="/masters/request" element={<MasterRequestForm />} />
+              <Route path="/masters/request" element={<RequireUserAuth><MasterRequestForm /></RequireUserAuth>} />
               <Route path="/masters/become" element={<BecomeMasterForm />} />
               <Route path="/masters/:id" element={<MasterDetail />} />
 
@@ -89,9 +90,9 @@ function App() {
               <Route path="/news" element={<NewsList />} />
               <Route path="/news/:id" element={<NewsDetail />} />
               <Route path="/complaints" element={<ComplaintsList />} />
-              <Route path="/complaints/new" element={<NewComplaintForm />} />
+              <Route path="/complaints/new" element={<RequireUserAuth><NewComplaintForm /></RequireUserAuth>} />
               <Route path="/announcements" element={<AnnouncementsList />} />
-              <Route path="/announcements/new" element={<NewAnnouncementForm />} />
+              <Route path="/announcements/new" element={<RequireUserAuth><NewAnnouncementForm /></RequireUserAuth>} />
               <Route path="/announcements/:id" element={<AnnouncementDetail />} />
               <Route path="/real-estate" element={<RealEstateList />} />
               <Route path="/real-estate/new" element={<NewRealEstateForm />} />
@@ -125,8 +126,8 @@ function App() {
 
               {/* Friendly aliases */}
               <Route path="/ads" element={<Navigate to="/announcements" replace />} />
-              <Route path="/register" element={<Navigate to="/account" replace />} />
-              <Route path="/login" element={<Navigate to="/account" replace />} />
+              <Route path="/register" element={<AccountAuth />} />
+              <Route path="/login" element={<AccountAuth />} />
 
               {/* Block common attack paths — redirect to home */}
               <Route path="/dashboard" element={<Navigate to="/" replace />} />
