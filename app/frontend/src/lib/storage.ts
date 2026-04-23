@@ -270,7 +270,14 @@ async function fetchPublicDownloadUrl(
 async function fetchPublicUploadUrl(
   bucketName: string,
   objectKey: string
-): Promise<{ upload_url: string; expires_at: string }> {
+): Promise<{
+  upload_url: string;
+  expires_at: string;
+  object_key?: string;
+  thumbnail_object_key?: string;
+  image_url?: string;
+  thumbnail_url?: string;
+}> {
   const resp = await fetch('/api/v1/storage/public/upload-url', {
     method: 'POST',
     headers: {
@@ -301,7 +308,12 @@ async function fetchPublicUploadUrl(
 async function uploadToPresignedUrl(
   presignedUrl: string,
   file: File
-): Promise<void> {
+): Promise<{
+  image_url?: string;
+  thumbnail_url?: string;
+  object_key?: string;
+  thumbnail_object_key?: string;
+}> {
   const resp = await fetch(presignedUrl, {
     method: 'PUT',
     headers: {
@@ -312,6 +324,12 @@ async function uploadToPresignedUrl(
 
   if (!resp.ok) {
     throw new Error(`Upload to presigned URL failed: ${resp.status}`);
+  }
+
+  try {
+    return await resp.json();
+  } catch {
+    return {};
   }
 }
 
@@ -338,30 +356,53 @@ async function verifyFileAccessible(url: string): Promise<boolean> {
 export async function uploadFile(
   file: File,
   folder: string
-): Promise<{ objectKey: string; downloadUrl: string | null }> {
+): Promise<{
+  objectKey: string;
+  downloadUrl: string | null;
+  thumbnailObjectKey?: string;
+  thumbnailUrl?: string | null;
+}> {
   // Ensure bucket exists before uploading
   await ensureBucket();
 
   const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
   const timestamp = Date.now();
   const randomStr = Math.random().toString(36).substring(2, 8);
-  const objectKey = `${folder}/${timestamp}-${randomStr}.${ext}`;
+  const requestedObjectKey = `${folder}/${timestamp}-${randomStr}.${ext}`;
+  let objectKey = requestedObjectKey;
+  let thumbnailObjectKey = '';
+  let thumbnailUrl: string | null = null;
 
   let uploaded = false;
 
   // Strategy 1: Public endpoint (no auth — works on production for all users)
   try {
-    const { upload_url } = await withRetry(
-      () => fetchPublicUploadUrl(BUCKET_NAME, objectKey),
+    const uploadMeta = await withRetry(
+      () => fetchPublicUploadUrl(BUCKET_NAME, requestedObjectKey),
       3,
       2000
     );
-    extractStorageBase(upload_url);
-    await withRetry(
-      () => uploadToPresignedUrl(upload_url, file),
+    const uploadUrl = uploadMeta.upload_url;
+    objectKey = uploadMeta.object_key || objectKey;
+    thumbnailObjectKey = uploadMeta.thumbnail_object_key || '';
+    extractStorageBase(uploadUrl);
+    const uploadResult = await withRetry(
+      () => uploadToPresignedUrl(uploadUrl, file),
       2,
       1500
     );
+    if (uploadResult?.object_key) objectKey = uploadResult.object_key;
+    if (uploadResult?.thumbnail_object_key) thumbnailObjectKey = uploadResult.thumbnail_object_key;
+    if (uploadResult?.image_url) {
+      const url = uploadResult.image_url;
+      extractStorageBase(url);
+      setCachedUrl(objectKey, url);
+    }
+    if (uploadResult?.thumbnail_url) {
+      thumbnailUrl = uploadResult.thumbnail_url;
+      if (thumbnailObjectKey) setCachedUrl(thumbnailObjectKey, thumbnailUrl);
+      extractStorageBase(thumbnailUrl);
+    }
     uploaded = true;
     console.log('[uploadFile] Success via public endpoint:', objectKey);
   } catch (err) {
@@ -445,5 +486,5 @@ export async function uploadFile(
     setCachedUrl(objectKey, downloadUrl);
   }
 
-  return { objectKey, downloadUrl };
+  return { objectKey, downloadUrl, thumbnailObjectKey, thumbnailUrl };
 }

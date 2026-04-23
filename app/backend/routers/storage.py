@@ -16,6 +16,7 @@ from schemas.storage import (
     OSSBaseModel,
     RenameRequest,
     RenameResponse,
+    UploadImageResponse,
 )
 from services.storage import StorageService
 
@@ -239,7 +240,7 @@ async def public_upload_file(request: FileUpDownRequest):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{e}")
 
 
-@router.put("/upload-proxy/{token}")
+@router.put("/upload-proxy/{token}", response_model=UploadImageResponse)
 async def upload_via_proxy(token: str, request: Request):
     """Receive raw file bytes and upload to Cloudinary using a signed token."""
     body = await request.body()
@@ -249,8 +250,7 @@ async def upload_via_proxy(token: str, request: Request):
     content_type = request.headers.get("content-type", "application/octet-stream")
     try:
         service = StorageService()
-        await service.upload_via_token(token=token, file_bytes=body, content_type=content_type)
-        return {"success": True}
+        return await service.upload_via_token(token=token, file_bytes=body, content_type=content_type)
     except ValueError as e:
         logger.error(f"Invalid upload proxy token/body: {e}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

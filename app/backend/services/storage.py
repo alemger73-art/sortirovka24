@@ -1,18 +1,21 @@
 import base64
 import hashlib
 import hmac
+import io
 import json
 import logging
 import os
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Any, Dict, Optional, Tuple
 from urllib.parse import unquote, urlparse
+from uuid import uuid4
 
 import cloudinary
 import cloudinary.api
 import cloudinary.uploader
 import cloudinary.utils
+from PIL import Image, ImageOps
 from core.config import settings
 from schemas.storage import (
     BucketInfo,
@@ -31,6 +34,13 @@ from schemas.storage import (
 )
 
 logger = logging.getLogger(__name__)
+
+IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "heic", "heif"}
+VIDEO_EXTENSIONS = {"mp4", "webm", "mov", "avi", "mkv"}
+MAX_IMAGE_SIZE = 1200
+THUMBNAIL_SIZE = 300
+WEBP_QUALITY = 78
+WEBP_MAX_BYTES = 500 * 1024
 
 
 def _b64url_encode(raw: bytes) -> str:
@@ -113,6 +123,56 @@ def _split_public_id_and_format(object_key: str) -> tuple[str, Optional[str]]:
     return base, safe_ext
 
 
+def _extract_extension(object_key: str) -> str:
+    key = (object_key or "").strip().lower()
+    if "." not in key:
+        return ""
+    return key.rsplit(".", 1)[-1]
+
+
+def _extract_folder(object_key: str) -> str:
+    key = (object_key or "").strip().strip("/")
+    if not key or "/" not in key:
+        return "uploads"
+    folder = key.rsplit("/", 1)[0].strip("/")
+    return folder or "uploads"
+
+
+def _is_image_upload(object_key: str, content_type: Optional[str] = None) -> bool:
+    ext = _extract_extension(object_key)
+    if ext in IMAGE_EXTENSIONS:
+        return True
+    if content_type and content_type.lower().startswith("image/"):
+        return True
+    return False
+
+
+def _build_image_keys(source_object_key: str) -> Tuple[str, str]:
+    folder = _extract_folder(source_object_key)
+    image_id = str(uuid4())
+    image_key = f"{folder}/{image_id}.webp"
+    thumb_key = f"{folder}/thumbs/{image_id}.webp"
+    return image_key, thumb_key
+
+
+def _webp_from_image(img: Image.Image, max_side: int, quality: int) -> bytes:
+    converted = ImageOps.exif_transpose(img)
+    converted = converted.convert("RGB")
+    converted.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
+    out = io.BytesIO()
+    converted.save(out, format="WEBP", quality=quality, optimize=True, method=6)
+    return out.getvalue()
+
+
+def _optimize_image_pair(file_bytes: bytes) -> Tuple[bytes, bytes]:
+    with Image.open(io.BytesIO(file_bytes)) as img:
+        main_bytes = _webp_from_image(img, MAX_IMAGE_SIZE, WEBP_QUALITY)
+        if len(main_bytes) > WEBP_MAX_BYTES:
+            main_bytes = _webp_from_image(img, MAX_IMAGE_SIZE, 70)
+        thumb_bytes = _webp_from_image(img, THUMBNAIL_SIZE, 72)
+    return main_bytes, thumb_bytes
+
+
 def _resolve_cloudinary_config() -> tuple[str, str, str]:
     """Resolve Cloudinary config from settings + env aliases."""
     # Prefer standard single-variable config when present to avoid key/secret mismatch.
@@ -167,10 +227,19 @@ class StorageService:
         # Re-apply explicit config to ensure SDK uses normalized values.
         cloudinary.config(cloud_name=self.cloud_name, api_key=self.api_key, api_secret=self.api_secret, secure=True)
 
-    def _make_upload_token(self, bucket_name: str, object_key: str, expires_in_seconds: int = 15 * 60) -> str:
+    def _make_upload_token(
+        self,
+        bucket_name: str,
+        object_key: str,
+        expires_in_seconds: int = 15 * 60,
+        thumbnail_key: Optional[str] = None,
+        is_image: bool = False,
+    ) -> str:
         payload = {
             "bucket_name": bucket_name,
             "object_key": object_key,
+            "thumbnail_key": thumbnail_key or "",
+            "is_image": is_image,
             "exp": int(time.time()) + expires_in_seconds,
         }
         payload_json = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
@@ -270,10 +339,25 @@ class StorageService:
         return DeleteResponse(success=True)
 
     async def create_upload_url(self, request: FileUpDownRequest) -> FileUpDownResponse:
-        token = self._make_upload_token(request.bucket_name, request.object_key)
+        image_key = request.object_key
+        thumbnail_key = ""
+        is_image = _is_image_upload(request.object_key)
+        if is_image:
+            image_key, thumbnail_key = _build_image_keys(request.object_key)
+
+        token = self._make_upload_token(
+            request.bucket_name,
+            image_key,
+            thumbnail_key=thumbnail_key,
+            is_image=is_image,
+        )
         expires_at = (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()
         return FileUpDownResponse(
             upload_url=self._build_proxy_upload_url(token),
+            object_key=image_key,
+            thumbnail_object_key=thumbnail_key,
+            image_url=self._cloudinary_url(image_key),
+            thumbnail_url=self._cloudinary_url(thumbnail_key) if thumbnail_key else "",
             expires_at=expires_at,
         )
 
@@ -282,14 +366,20 @@ class StorageService:
         expires_at = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
         return FileUpDownResponse(download_url=url, expires_at=expires_at)
 
-    async def upload_via_token(self, token: str, file_bytes: bytes, content_type: Optional[str] = None) -> str:
-        payload = self._parse_upload_token(token)
-        object_key = payload["object_key"]
+    def _upload_cloudinary_bytes(
+        self,
+        object_key: str,
+        payload_bytes: bytes,
+        content_type: Optional[str] = None,
+        force_resource_type: Optional[str] = None,
+        force_format: Optional[str] = None,
+    ) -> str:
         public_id, fmt = _split_public_id_and_format(object_key)
         if not public_id:
             raise ValueError("Invalid object key for upload")
-        resource_type = "auto"
-        if content_type:
+
+        resource_type = force_resource_type or "auto"
+        if not force_resource_type and content_type:
             ct = content_type.lower()
             if ct.startswith("video/"):
                 resource_type = "video"
@@ -297,34 +387,63 @@ class StorageService:
                 resource_type = "image"
             else:
                 resource_type = "raw"
-        try:
-            result = cloudinary.uploader.upload(
-                file_bytes,
-                public_id=public_id,
-                format=fmt,
-                resource_type=resource_type,
-                overwrite=True,
-                invalidate=True,
-                unique_filename=False,
-            )
-        except Exception:
-            # Fallback sequence for uncommon mime/resource combinations
-            result = None
-            for fallback_type in ("auto", "image", "video", "raw"):
-                try:
-                    result = cloudinary.uploader.upload(
-                        file_bytes,
-                        public_id=public_id,
-                        format=fmt,
-                        resource_type=fallback_type,
-                        overwrite=True,
-                        invalidate=True,
-                        unique_filename=False,
-                    )
-                    if result:
-                        break
-                except Exception:
-                    continue
-            if not result:
-                raise
+
+        result = cloudinary.uploader.upload(
+            payload_bytes,
+            public_id=public_id,
+            format=force_format or fmt,
+            resource_type=resource_type,
+            overwrite=True,
+            invalidate=True,
+            unique_filename=False,
+        )
         return str(result.get("secure_url") or self._cloudinary_url(object_key))
+
+    async def upload_via_token(
+        self, token: str, file_bytes: bytes, content_type: Optional[str] = None
+    ) -> Dict[str, Any]:
+        payload = self._parse_upload_token(token)
+        object_key = payload["object_key"]
+        thumbnail_key = payload.get("thumbnail_key", "")
+        is_image = bool(payload.get("is_image"))
+
+        # Guard for older tokens that may miss flags.
+        if not is_image:
+            is_image = _is_image_upload(object_key, content_type)
+
+        if is_image:
+            optimized_bytes, thumb_bytes = _optimize_image_pair(file_bytes)
+            image_url = self._upload_cloudinary_bytes(
+                object_key=object_key,
+                payload_bytes=optimized_bytes,
+                content_type="image/webp",
+                force_resource_type="image",
+                force_format="webp",
+            )
+            if not thumbnail_key:
+                _, thumbnail_key = _build_image_keys(object_key)
+            thumbnail_url = self._upload_cloudinary_bytes(
+                object_key=thumbnail_key,
+                payload_bytes=thumb_bytes,
+                content_type="image/webp",
+                force_resource_type="image",
+                force_format="webp",
+            )
+            return {
+                "image_url": image_url,
+                "thumbnail_url": thumbnail_url,
+                "object_key": object_key,
+                "thumbnail_object_key": thumbnail_key,
+            }
+
+        image_url = self._upload_cloudinary_bytes(
+            object_key=object_key,
+            payload_bytes=file_bytes,
+            content_type=content_type,
+        )
+        return {
+            "image_url": image_url,
+            "thumbnail_url": "",
+            "object_key": object_key,
+            "thumbnail_object_key": "",
+        }

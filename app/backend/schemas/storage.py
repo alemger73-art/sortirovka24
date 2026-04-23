@@ -95,7 +95,18 @@ class FileUpDownResponse(BaseModel):
 
     upload_url: str = Field(default="", description="Presigned URL for uploading the file")
     download_url: str = Field(default="", description="Presigned URL for downloading the file")
+    object_key: str = Field(default="", description="Stored object key")
+    thumbnail_object_key: str = Field(default="", description="Stored thumbnail object key")
+    image_url: str = Field(default="", description="Optimized image URL")
+    thumbnail_url: str = Field(default="", description="Thumbnail image URL")
     expires_at: str = Field(..., description="Upload URL expiration time")
+
+
+class UploadImageResponse(BaseModel):
+    image_url: str = Field(default="", description="Optimized image URL")
+    thumbnail_url: str = Field(default="", description="Thumbnail image URL")
+    object_key: str = Field(default="", description="Stored object key")
+    thumbnail_object_key: str = Field(default="", description="Stored thumbnail object key")
 
 
 class RenameRequest(OSSBaseModel):
