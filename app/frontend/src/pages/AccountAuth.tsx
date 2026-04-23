@@ -1,40 +1,36 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { accountApi, setAccountToken } from "@/lib/accountApi";
+import { loginLocalUser, registerLocalUser } from "@/lib/localAuth";
 
 export default function AccountAuth() {
   const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(true);
+  const location = useLocation();
+  const [isLogin, setIsLogin] = useState(location.pathname !== "/register");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
-    identifier: "",
-    email: "",
+    name: "",
     phone: "",
     password: "",
-    full_name: "",
-    role: "user",
-    accepted_agreement: true,
-    accepted_privacy: true,
+    email: "",
   });
+  const title = useMemo(() => (isLogin ? "Вход" : "Регистрация"), [isLogin]);
 
   async function submit() {
     setLoading(true);
     setError("");
     try {
-      const res = isLogin
-        ? await accountApi.login({ identifier: form.identifier, password: form.password })
-        : await accountApi.register({
-            email: form.email || undefined,
-            phone: form.phone || undefined,
-            password: form.password,
-            full_name: form.full_name || undefined,
-            role: form.role,
-            accepted_agreement: form.accepted_agreement,
-            accepted_privacy: form.accepted_privacy,
-          });
-      setAccountToken(res.token);
+      if (isLogin) {
+        loginLocalUser(form.phone, form.password);
+      } else {
+        registerLocalUser({
+          name: form.name,
+          phone: form.phone,
+          password: form.password,
+          email: form.email || undefined,
+        });
+      }
       navigate("/cabinet");
     } catch (e: any) {
       setError(String(e?.message || e));
@@ -47,33 +43,17 @@ export default function AccountAuth() {
     <Layout>
       <div className="mx-auto max-w-md px-4 py-10">
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h1 className="text-2xl font-bold text-gray-900">{isLogin ? "Вход в аккаунт" : "Регистрация"}</h1>
-          <p className="mt-1 text-sm text-gray-500">SORTIROVKA 24 account system</p>
+          <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+          <p className="mt-1 text-sm text-gray-500">Вход по номеру телефона и паролю</p>
 
           <div className="mt-5 space-y-3">
-            {isLogin ? (
-              <input className="w-full rounded-xl border border-gray-200 px-3 py-2.5" placeholder="Email или телефон" value={form.identifier} onChange={e => setForm({ ...form, identifier: e.target.value })} />
-            ) : (
+            {!isLogin && (
               <>
-                <input className="w-full rounded-xl border border-gray-200 px-3 py-2.5" placeholder="Имя" value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} />
-                <input className="w-full rounded-xl border border-gray-200 px-3 py-2.5" placeholder="Email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-                <input className="w-full rounded-xl border border-gray-200 px-3 py-2.5" placeholder="Телефон" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
-                <select className="w-full rounded-xl border border-gray-200 px-3 py-2.5" value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}>
-                  <option value="user">user</option>
-                  <option value="master">master</option>
-                  <option value="driver">driver</option>
-                  <option value="partner">partner</option>
-                </select>
-                <label className="flex items-center gap-2 text-sm text-gray-600">
-                  <input type="checkbox" checked={form.accepted_agreement} onChange={e => setForm({ ...form, accepted_agreement: e.target.checked })} />
-                  Согласен с пользовательским соглашением
-                </label>
-                <label className="flex items-center gap-2 text-sm text-gray-600">
-                  <input type="checkbox" checked={form.accepted_privacy} onChange={e => setForm({ ...form, accepted_privacy: e.target.checked })} />
-                  Согласен с политикой конфиденциальности
-                </label>
+                <input className="w-full rounded-xl border border-gray-200 px-3 py-2.5" placeholder="Имя" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+                <input className="w-full rounded-xl border border-gray-200 px-3 py-2.5" placeholder="Email (необязательно)" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
               </>
             )}
+            <input className="w-full rounded-xl border border-gray-200 px-3 py-2.5" placeholder="Телефон" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
             <input type="password" className="w-full rounded-xl border border-gray-200 px-3 py-2.5" placeholder="Пароль" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
           </div>
 
@@ -87,8 +67,8 @@ export default function AccountAuth() {
             <button onClick={() => setIsLogin(v => !v)} className="text-blue-600 hover:text-blue-700">
               {isLogin ? "Нужен аккаунт? Регистрация" : "Уже есть аккаунт? Войти"}
             </button>
-            <Link to="/cabinet" className="text-gray-500 hover:text-gray-700">
-              Кабинет
+            <Link to="/" className="text-gray-500 hover:text-gray-700">
+              На главную
             </Link>
           </div>
         </div>
