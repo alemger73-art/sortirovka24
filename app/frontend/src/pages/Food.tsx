@@ -45,8 +45,8 @@ interface CartItem { item: FoodItem; quantity: number; selections: CartItemSelec
 function FoodBadge({ type }: { type: 'hit' | 'new' }) {
   const { t } = useLanguage();
   const config = {
-    hit: { icon: <Flame className="w-3 h-3" />, text: t('food.hit'), bg: 'bg-amber-500 text-[#0b0f14]' },
-    new: { icon: <Sparkles className="w-3 h-3" />, text: t('food.new'), bg: 'bg-emerald-500 text-white' },
+    hit: { icon: <Flame className="w-3 h-3" />, text: t('food.hit'), bg: 'bg-[#FF3B30] text-white' },
+    new: { icon: <Sparkles className="w-3 h-3" />, text: t('food.new'), bg: 'bg-[#111111] text-white' },
   };
   const c = config[type];
   return (
@@ -199,6 +199,21 @@ export default function Food() {
   const sortedFilteredItems = useMemo(() => {
     return [...filteredItems].sort((a, b) => Number(b.is_recommended) - Number(a.is_recommended));
   }, [filteredItems]);
+  const recommendedItems = useMemo(
+    () => poolItems.filter(i => i.is_recommended).slice(0, 6),
+    [poolItems]
+  );
+  const categoryPreviewMap = useMemo(() => {
+    const map: Record<string, FoodItem | null> = {};
+    for (const def of MENU_CATEGORY_DEFS) {
+      const match = poolItems.find(i => {
+        const blob = `${i.name} ${i.description || ''}`.toLowerCase();
+        return def.itemKeywords.some(k => blob.includes(k));
+      });
+      map[def.key] = match || null;
+    }
+    return map;
+  }, [poolItems]);
 
   function selectMenuCategoryTile(key: string | null) {
     setSearchQuery('');
@@ -602,19 +617,20 @@ export default function Food() {
   const modalTotalPrice = selectedItem ? selectedItem.price + calcSelectionsPrice(currentSelections) : 0;
   const modalValidation = selectedItem ? validateSelections(selectedItem.id, currentSelections) : { valid: true, errors: [] };
   const modalRecommendations = selectedItem ? getRecommendationsForItem(selectedItem) : [];
+  const modalTags = ['Много белка', 'Из печи'];
 
   /* ─── LOADING ─── */
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-[60vh] bg-[#0b0f14]">
+        <div className="flex items-center justify-center min-h-[60vh] bg-white">
           <div className="text-center">
             <div className="relative w-16 h-16 mx-auto mb-4">
-              <div className="absolute inset-0 border-4 border-white/10 rounded-full" />
-              <div className="absolute inset-0 border-4 border-transparent border-t-yellow-400 rounded-full animate-spin" />
-              <Utensils className="absolute inset-0 m-auto w-6 h-6 text-yellow-400/80" />
+              <div className="absolute inset-0 border-4 border-gray-100 rounded-full" />
+              <div className="absolute inset-0 border-4 border-transparent border-t-[#FF3B30] rounded-full animate-spin" />
+              <Utensils className="absolute inset-0 m-auto w-6 h-6 text-[#FF3B30]" />
             </div>
-            <p className="text-gray-400 font-medium">{t('common.loading')}</p>
+            <p className="text-[#777777] font-medium">{t('common.loading')}</p>
           </div>
         </div>
       </Layout>
@@ -623,37 +639,36 @@ export default function Food() {
 
   return (
     <Layout>
-      <div className="bg-[#0b0f14] min-h-screen text-gray-100">
+      <div className="bg-[#FFFFFF] min-h-screen text-[#111111]">
         {/* ═══ HERO BANNER ═══ */}
         <section className="relative overflow-hidden">
           <div className="absolute inset-0">
             <img src={settings.hero_banner_image || HERO_IMG} alt="" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/55 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0b0f14] via-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-black/35" />
           </div>
-          <div className="relative max-w-7xl mx-auto px-4 py-10 md:py-16 lg:py-20">
+          <div className="relative max-w-7xl mx-auto px-4 py-12 md:py-14">
             <div className="max-w-xl">
               <div className="flex items-center gap-2 mb-3">
-                <span className="bg-yellow-400 text-[#0b0f14] text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-yellow-400/20">
+                <span className="bg-[#FF3B30] text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
                   <Zap className="w-3 h-3" /> {t('food.delivery')}
                 </span>
-                <span className="bg-white/15 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full border border-white/10">
+                <span className="bg-white/25 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full border border-white/20">
                   30-60 мин
                 </span>
               </div>
-              <h1 className="text-3xl md:text-5xl font-extrabold text-white leading-tight">
-                {settings.hero_banner_title}
+              <h1 className="text-3xl md:text-4xl font-extrabold text-white leading-tight">
+                Любимые блюда со скидкой каждую среду
               </h1>
               <p className="text-white/80 text-base md:text-lg mt-3 leading-relaxed">
                 {settings.hero_banner_subtitle}
               </p>
-              <div className="flex flex-wrap gap-3 mt-6">
-                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full px-4 py-2.5 text-white text-sm border border-white/10">
-                  <Truck className="w-4 h-4 text-yellow-300" />
+              <div className="flex flex-wrap gap-2 mt-5">
+                <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md rounded-full px-4 py-2 text-white text-sm border border-white/25">
+                  <Truck className="w-4 h-4 text-white" />
                   <span>{t('food.delivery')} {t('common.from')} {formatPrice(deliveryZones.length > 0 ? deliveryZones[0].price : parseInt(settings.delivery_price) || 0)}</span>
                 </div>
-                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full px-4 py-2.5 text-white text-sm border border-white/10">
-                  <Store className="w-4 h-4 text-emerald-300" />
+                <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md rounded-full px-4 py-2 text-white text-sm border border-white/25">
+                  <Store className="w-4 h-4 text-white" />
                   <span>{t('food.pickup')} — {t('food.free')}</span>
                 </div>
               </div>
@@ -661,16 +676,16 @@ export default function Food() {
           </div>
         </section>
 
-        <div className="max-w-7xl mx-auto px-4 pt-5 pb-32 space-y-6">
+        <div className="max-w-7xl mx-auto px-4 pt-4 pb-32 space-y-5">
           {/* ═══ Доставка: дом / парк ═══ */}
-          <div className="rounded-2xl bg-[#121826] border border-white/5 p-1.5 shadow-lg shadow-black/40 flex gap-1">
+          <div className="rounded-2xl bg-[#F7F7F7] p-1.5 shadow-sm flex gap-1">
             <button
               type="button"
               onClick={() => { setDeliveryDestination('home'); }}
               className={`flex-1 min-h-[48px] rounded-xl text-sm font-bold transition-all active:scale-[0.98] ${
                 deliveryDestination === 'home'
-                  ? 'bg-yellow-400 text-[#0b0f14] shadow-md'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  ? 'bg-[#FF3B30] text-white shadow-sm'
+                  : 'text-[#777777] hover:text-[#111111] hover:bg-white'
               }`}
             >
               <span className="flex items-center justify-center gap-2">
@@ -683,8 +698,8 @@ export default function Food() {
               onClick={() => { setDeliveryDestination('park'); }}
               className={`flex-1 min-h-[48px] rounded-xl text-sm font-bold transition-all active:scale-[0.98] ${
                 deliveryDestination === 'park'
-                  ? 'bg-yellow-400 text-[#0b0f14] shadow-md'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  ? 'bg-[#FF3B30] text-white shadow-sm'
+                  : 'text-[#777777] hover:text-[#111111] hover:bg-white'
               }`}
             >
               <span className="flex items-center justify-center gap-2">
@@ -695,56 +710,64 @@ export default function Food() {
           </div>
 
           {deliveryDestination === 'park' && (
-            <div className="rounded-2xl bg-[#121826] border border-white/5 p-4 shadow-lg space-y-3">
-              <p className="text-sm text-gray-300 flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-yellow-400 shrink-0" />
-                {t('food.selectParkPoint')}
+            <div className="rounded-2xl bg-[#F7F7F7] p-4 shadow-sm space-y-3">
+              <p className="text-sm text-[#777777] flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-[#FF3B30] shrink-0" />
+                Выберите место в парке
               </p>
               <ParkMap
                 points={parkPoints}
                 selectedId={selectedParkPoint?.id ?? null}
                 onSelect={setSelectedParkPoint}
-                className="rounded-xl overflow-hidden border border-white/10 bg-[#0b0f14]"
+                className="rounded-xl overflow-hidden border border-gray-200 bg-white"
               />
               {selectedParkPoint ? (
-                <p className="text-xs text-yellow-400/90 font-semibold">
+                <p className="text-xs text-[#111111] font-semibold">
                   ✓ {selectedParkPoint.name}
                 </p>
               ) : (
-                <p className="text-xs text-gray-500">{t('food.selectParkPoint')}</p>
+                <p className="text-xs text-[#777777]">{t('food.selectParkPoint')}</p>
               )}
             </div>
           )}
 
           {/* ═══ КАТЕГОРИИ (сетка) ═══ */}
           <section>
-            <h2 className="text-lg font-bold text-white mb-3 tracking-tight">{t('food.categories')}</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <h2 className="text-xl font-bold text-[#111111] mb-3">{t('food.categories')}</h2>
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => selectMenuCategoryTile(null)}
-                className={`rounded-2xl p-4 text-left min-h-[100px] border transition-all duration-200 active:scale-[0.97] shadow-md ${
+                className={`rounded-2xl p-3 text-left aspect-square border transition-all duration-200 active:scale-[0.98] shadow-sm ${
                   isGridCategoryActive('all')
-                    ? 'bg-yellow-400/15 border-yellow-400/50 ring-1 ring-yellow-400/40'
-                    : 'bg-[#121826] border-white/5 hover:border-yellow-400/30 hover:shadow-lg hover:shadow-yellow-400/5'
+                    ? 'bg-white border-[#FF3B30]'
+                    : 'bg-white border-gray-100 hover:border-gray-200'
                 }`}
               >
-                <span className="text-3xl block mb-2">🍽</span>
-                <span className="text-sm font-bold text-white leading-tight">{t('common.all')}</span>
+                <div className="h-[78%] rounded-xl bg-[#F5F5F5] flex items-center justify-center text-4xl overflow-hidden">
+                  <img src={getFallbackImage(0)} alt={t('common.all')} className="w-full h-full object-cover" />
+                </div>
+                <span className="text-sm font-semibold text-[#111111] leading-tight mt-2 block">{t('common.all')}</span>
               </button>
               {MENU_CATEGORY_DEFS.map(def => (
                 <button
                   key={def.key}
                   type="button"
                   onClick={() => selectMenuCategoryTile(def.key)}
-                  className={`rounded-2xl p-4 text-left min-h-[100px] border transition-all duration-200 active:scale-[0.97] shadow-md ${
+                  className={`rounded-2xl p-3 text-left aspect-square border transition-all duration-200 active:scale-[0.98] shadow-sm ${
                     isGridCategoryActive(def.key)
-                      ? 'bg-yellow-400/15 border-yellow-400/50 ring-1 ring-yellow-400/40'
-                      : 'bg-[#121826] border-white/5 hover:border-yellow-400/30 hover:shadow-lg hover:shadow-yellow-400/5'
+                      ? 'bg-white border-[#FF3B30]'
+                      : 'bg-white border-gray-100 hover:border-gray-200'
                   }`}
                 >
-                  <span className="text-3xl block mb-2">{def.emoji}</span>
-                  <span className="text-sm font-bold text-white leading-tight">{t(def.i18nKey as any)}</span>
+                  <div className="h-[78%] rounded-xl bg-[#F5F5F5] flex items-center justify-center text-4xl overflow-hidden">
+                    {categoryPreviewMap[def.key] ? (
+                      <img src={getItemImage(categoryPreviewMap[def.key] as FoodItem)} alt={t(def.i18nKey as any)} className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{def.emoji}</span>
+                    )}
+                  </div>
+                  <span className="text-sm font-semibold text-[#111111] leading-tight mt-2 block">{t(def.i18nKey as any)}</span>
                 </button>
               ))}
             </div>
@@ -752,35 +775,80 @@ export default function Food() {
 
           {/* ═══ ПОИСК ═══ */}
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#777777]" />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder={t('food.searchPlaceholder')}
-              className="w-full min-h-[52px] pl-12 pr-11 py-3.5 bg-[#121826] rounded-2xl border border-white/10 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/35 focus:border-yellow-400/40 transition-shadow"
+              placeholder="Поиск по меню..."
+              className="w-full h-12 pl-12 pr-11 bg-[#F5F5F5] rounded-xl border border-transparent text-sm text-[#111111] placeholder:text-[#777777] focus:outline-none focus:ring-2 focus:ring-[#FF3B30]/20 focus:border-[#FF3B30]/20 transition-shadow"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/15 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-full flex items-center justify-center border border-gray-100 hover:bg-gray-50 transition-colors"
               >
-                <X className="w-4 h-4 text-gray-400" />
+                <X className="w-4 h-4 text-[#777777]" />
               </button>
             )}
           </div>
 
+          {showRecommendations && !searchQuery && recommendedItems.length > 0 && (
+            <section>
+              <h3 className="text-xl font-bold text-[#111111] mb-3">А это вы пробовали?</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {recommendedItems.map(item => {
+                  const qtyInCart = getItemQuantityInCart(item.id);
+                  return (
+                    <div key={`rec-${item.id}`} className="bg-[#F7F7F7] rounded-2xl p-3 shadow-sm border border-gray-100">
+                      <div className="flex gap-3">
+                        <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-white shrink-0">
+                          <img src={getItemImage(item)} alt={item.name} className="w-full h-full object-cover" />
+                          <span className="absolute top-1.5 left-1.5 bg-[#FF3B30] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                            {t('food.hit')}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-bold text-[#111111] line-clamp-1">{item.name}</h4>
+                          <p className="text-xs text-[#777777] line-clamp-1 mt-0.5">{item.description}</p>
+                          <div className="mt-2 flex items-center justify-between gap-2">
+                            <span className="text-sm font-extrabold text-[#111111]">{formatPrice(item.price)}</span>
+                            {qtyInCart > 0 ? (
+                              <div className="flex items-center gap-1">
+                                <button onClick={() => quickRemove(item.id)} className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center active:scale-95">
+                                  <Minus className="w-3 h-3 text-[#777777]" />
+                                </button>
+                                <span className="w-4 text-center text-xs font-bold">{qtyInCart}</span>
+                                <button onClick={() => quickAdd(item)} className="w-7 h-7 rounded-lg bg-[#FF3B30] text-white flex items-center justify-center active:scale-95">
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ) : (
+                              <button onClick={() => quickAdd(item)} className="w-7 h-7 rounded-lg bg-[#FF3B30] text-white flex items-center justify-center active:scale-95">
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
           {/* ═══ СПИСОК БЛЮД ═══ */}
           <section>
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-9 h-9 bg-yellow-400/15 rounded-xl flex items-center justify-center border border-yellow-400/20">
-                <Utensils className="w-4 h-4 text-yellow-400" />
+              <div className="w-9 h-9 bg-[#F5F5F5] rounded-xl flex items-center justify-center border border-gray-100">
+                <Utensils className="w-4 h-4 text-[#777777]" />
               </div>
-              <h2 className="text-lg font-bold text-white flex-1 leading-tight">
+              <h2 className="text-lg font-bold text-[#111111] flex-1 leading-tight">
                 {searchQuery ? `${t('common.search')}: «${searchQuery}»` : activeCategoryLabel}
               </h2>
-              <span className="text-xs text-gray-500 whitespace-nowrap">{sortedFilteredItems.length}</span>
+              <span className="text-xs text-[#777777] whitespace-nowrap">{sortedFilteredItems.length}</span>
             </div>
 
             {sortedFilteredItems.length > 0 ? (
@@ -792,11 +860,11 @@ export default function Food() {
                   return (
                     <div
                       key={item.id}
-                      className="bg-[#121826] rounded-2xl border border-white/5 overflow-hidden shadow-lg shadow-black/30 hover:border-yellow-400/25 hover:shadow-xl transition-all duration-200 group relative"
+                      className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 group relative"
                     >
                       <AddedFeedback show={addedItemId === item.id} />
                       <div
-                        className="aspect-[4/3] bg-[#0b0f14] relative overflow-hidden cursor-pointer"
+                        className="aspect-[4/3] bg-[#F5F5F5] relative overflow-hidden cursor-pointer"
                         onClick={() => openItemModal(item)}
                       >
                         <img src={getItemImage(item)} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -804,34 +872,34 @@ export default function Food() {
                           {badgeType && <FoodBadge type={badgeType} />}
                         </div>
                         {hasGroups && (
-                          <span className="absolute top-2 right-2 bg-black/55 backdrop-blur-sm text-yellow-200 text-[10px] font-bold px-2 py-0.5 rounded-full border border-white/10">
+                          <span className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm text-[#777777] text-[10px] font-bold px-2 py-0.5 rounded-full border border-gray-200">
                             + опции
                           </span>
                         )}
                       </div>
                       <div className="p-3.5 flex flex-col gap-3">
                         <h3
-                          className="font-bold text-white text-sm leading-snug line-clamp-2 cursor-pointer min-h-[2.5rem]"
+                          className="font-bold text-[#111111] text-sm leading-snug line-clamp-2 cursor-pointer min-h-[2.5rem]"
                           onClick={() => openItemModal(item)}
                         >
                           {localized(item, 'name') || item.name}
                         </h3>
                         <div className="flex flex-col gap-2 mt-auto">
-                          <span className="text-base font-extrabold text-yellow-400">{formatPrice(item.price)}</span>
+                          <span className="text-base font-extrabold text-[#111111]">{formatPrice(item.price)}</span>
                           {qtyInCart > 0 ? (
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
                                 onClick={() => quickRemove(item.id)}
-                                className="min-h-[44px] min-w-[44px] bg-white/10 hover:bg-white/15 rounded-xl flex items-center justify-center transition-all active:scale-95"
+                                className="min-h-[44px] min-w-[44px] bg-[#F5F5F5] hover:bg-[#ECECEC] rounded-xl flex items-center justify-center transition-all active:scale-95"
                               >
-                                <Minus className="w-4 h-4 text-gray-300" />
+                                <Minus className="w-4 h-4 text-[#777777]" />
                               </button>
-                              <span className="flex-1 text-center font-bold text-white">{qtyInCart}</span>
+                              <span className="flex-1 text-center font-bold text-[#111111]">{qtyInCart}</span>
                               <button
                                 type="button"
                                 onClick={() => quickAdd(item)}
-                                className="min-h-[44px] min-w-[44px] bg-yellow-400 hover:bg-yellow-300 text-[#0b0f14] rounded-xl flex items-center justify-center font-bold transition-all active:scale-95 shadow-md shadow-yellow-400/20"
+                                className="min-h-[44px] min-w-[44px] bg-[#FF3B30] hover:bg-[#E6352B] text-white rounded-xl flex items-center justify-center font-bold transition-all active:scale-95"
                               >
                                 <Plus className="w-5 h-5" />
                               </button>
@@ -840,7 +908,7 @@ export default function Food() {
                             <button
                               type="button"
                               onClick={() => quickAdd(item)}
-                              className="w-full min-h-[48px] rounded-xl bg-yellow-400 hover:bg-yellow-300 text-[#0b0f14] text-sm font-extrabold flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-yellow-400/15"
+                              className="w-full min-h-[48px] rounded-xl bg-[#FF3B30] hover:bg-[#E6352B] text-white text-sm font-extrabold flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                             >
                               <Plus className="w-5 h-5" />
                               {t('common.add')}
@@ -853,12 +921,12 @@ export default function Food() {
                 })}
               </div>
             ) : (
-              <div className="bg-[#121826] rounded-2xl border border-white/5 p-10 text-center">
-                <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Utensils className="w-8 h-8 text-gray-600" />
+              <div className="bg-[#F7F7F7] rounded-2xl border border-gray-100 p-10 text-center">
+                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                  <Utensils className="w-8 h-8 text-[#777777]" />
                 </div>
-                <p className="text-gray-300 font-medium">{t('food.noDishes')}</p>
-                <p className="text-gray-500 text-sm mt-2">{t('food.noDishesHint')}</p>
+                <p className="text-[#111111] font-medium">{t('food.noDishes')}</p>
+                <p className="text-[#777777] text-sm mt-2">{t('food.noDishesHint')}</p>
               </div>
             )}
           </section>
@@ -868,7 +936,7 @@ export default function Food() {
         {selectedItem && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setSelectedItem(null)}>
             <div
-              className="bg-white w-full sm:max-w-md sm:rounded-3xl rounded-t-3xl max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300"
+              className="bg-white w-full sm:max-w-md sm:rounded-3xl rounded-t-3xl max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom duration-300"
               onClick={e => e.stopPropagation()}
             >
               {/* Big image */}
@@ -885,8 +953,22 @@ export default function Food() {
 
               <div className="p-5">
                 <h3 className="text-2xl font-extrabold text-gray-900">{selectedItem.name}</h3>
-                <p className="text-sm text-gray-500 mt-2 leading-relaxed">{selectedItem.description}</p>
+                <p className="text-sm text-[#777777] mt-1">{selectedItem.weight || '400 г'}</p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {modalTags.map(tag => (
+                    <span key={tag} className="text-xs font-semibold bg-[#F5F5F5] text-[#777777] px-2.5 py-1 rounded-full">{tag}</span>
+                  ))}
+                </div>
+                <p className="text-sm text-gray-500 mt-3 leading-relaxed">{selectedItem.description}</p>
                 <p className="text-2xl font-extrabold text-gray-900 mt-3">{formatPrice(selectedItem.price)}</p>
+
+                <details className="mt-4 bg-[#F7F7F7] rounded-2xl p-3">
+                  <summary className="cursor-pointer text-sm font-bold text-[#111111]">Состав и КБЖУ</summary>
+                  <div className="mt-2 text-xs text-[#777777] space-y-1">
+                    <p>Состав: тесто, соус, сыр, фирменные ингредиенты.</p>
+                    <p>КБЖУ на 100 г: 220 ккал / Б 11 / Ж 8 / У 24</p>
+                  </div>
+                </details>
 
                 {/* Modifier Groups */}
                 {getGroupsForItem(selectedItem.id).map(group => {
@@ -924,29 +1006,29 @@ export default function Food() {
                                 if (group.type === 'radio') handleRadioSelect(group.id, opt.id);
                                 else handleCheckboxToggle(group.id, opt.id, group.max_select);
                               }}
-                              className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all duration-200 ${
+                              className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all duration-200 ${
                                 isSelected
-                                  ? 'border-orange-500 bg-orange-50'
-                                  : 'border-gray-100 hover:border-gray-200 bg-gray-50'
+                                  ? 'border-[#FF3B30] bg-red-50'
+                                  : 'border-gray-100 hover:border-gray-200 bg-[#F7F7F7]'
                               }`}
                             >
                               <div className="flex items-center gap-2.5">
                                 {group.type === 'radio' ? (
                                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                                    isSelected ? 'border-orange-500' : 'border-gray-300'
+                                    isSelected ? 'border-[#FF3B30]' : 'border-gray-300'
                                   }`}>
-                                    {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />}
+                                    {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-[#FF3B30]" />}
                                   </div>
                                 ) : (
                                   <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
-                                    isSelected ? 'border-orange-500 bg-orange-500' : 'border-gray-300'
+                                    isSelected ? 'border-[#FF3B30] bg-[#FF3B30]' : 'border-gray-300'
                                   }`}>
                                     {isSelected && <Check className="w-3 h-3 text-white" />}
                                   </div>
                                 )}
                                 <span className="font-medium text-sm text-gray-800">{opt.name}</span>
                               </div>
-                              <span className="text-sm font-bold text-orange-600">
+                              <span className="text-sm font-bold text-[#FF3B30]">
                                 {opt.price > 0 ? `+${formatPrice(opt.price)}` : 'бесплатно'}
                               </span>
                             </button>
@@ -971,7 +1053,7 @@ export default function Food() {
                 {showRecommendations && modalRecommendations.length > 0 && (
                   <div className="mt-6 pt-5 border-t border-gray-100">
                     <h4 className="font-bold text-gray-800 text-sm mb-3 flex items-center gap-2">
-                      <Star className="w-4 h-4 text-orange-400" /> Рекомендуем
+                      <Star className="w-4 h-4 text-[#FF3B30]" /> Рекомендуем
                     </h4>
                     <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
                       {modalRecommendations.map(recItem => (
@@ -984,20 +1066,22 @@ export default function Food() {
                             <img src={getItemImage(recItem)} alt={recItem.name} className="w-full h-full object-cover" />
                           </div>
                           <p className="text-xs font-semibold text-gray-800 line-clamp-1">{recItem.name}</p>
-                          <p className="text-xs font-bold text-orange-600">{formatPrice(recItem.price)}</p>
+                          <p className="text-xs font-bold text-[#FF3B30]">{formatPrice(recItem.price)}</p>
                         </button>
                       ))}
                     </div>
                   </div>
                 )}
 
-                <Button
-                  onClick={confirmAddWithSelections}
-                  disabled={!modalValidation.valid}
-                  className="w-full mt-5 bg-orange-500 hover:bg-orange-600 text-white h-13 text-base font-bold rounded-2xl shadow-lg shadow-orange-200/50 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {t('food.addToCart')} — {formatPrice(modalTotalPrice)}
-                </Button>
+                <div className="sticky bottom-0 bg-white pt-3 pb-1">
+                  <Button
+                    onClick={confirmAddWithSelections}
+                    disabled={!modalValidation.valid}
+                    className="w-full bg-[#FF3B30] hover:bg-[#E6352B] text-white h-14 text-base font-bold rounded-2xl active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {formatPrice(modalTotalPrice)}  + {t('food.addToCart')}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -1008,11 +1092,11 @@ export default function Food() {
           <div className="fixed bottom-5 left-4 right-4 z-40 max-w-lg mx-auto animate-in slide-in-from-bottom duration-300">
             <button
               onClick={() => setCartOpen(true)}
-              className="w-full bg-[#121826] hover:bg-[#161d2e] text-white rounded-2xl p-4 flex items-center justify-between shadow-2xl shadow-black/50 border border-white/10 transition-all active:scale-[0.98] group"
+              className="w-full bg-white hover:bg-[#fafafa] text-[#111111] rounded-2xl p-4 flex items-center justify-between shadow-lg border border-gray-100 transition-all active:scale-[0.98] group"
             >
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className="w-11 h-11 bg-yellow-400 rounded-xl flex items-center justify-center text-[#0b0f14]">
+                  <div className="w-11 h-11 bg-[#FF3B30] rounded-xl flex items-center justify-center text-white">
                     <ShoppingCart className="w-5 h-5" />
                   </div>
                   <span className="absolute -top-1.5 -right-1.5 min-w-[1.25rem] h-5 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
@@ -1020,13 +1104,13 @@ export default function Food() {
                   </span>
                 </div>
                 <div className="text-left">
-                  <span className="font-bold text-base block text-yellow-400">{formatPrice(cartTotal)}</span>
-                  <span className="text-white/50 text-xs">{cartCount} {cartCount === 1 ? 'товар' : cartCount < 5 ? 'товара' : 'товаров'}</span>
+                  <span className="font-bold text-base block text-[#111111]">{formatPrice(cartTotal)}</span>
+                  <span className="text-[#777777] text-xs">{cartCount} {cartCount === 1 ? 'товар' : cartCount < 5 ? 'товара' : 'товаров'}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 bg-yellow-400/15 rounded-xl px-4 py-2.5 group-hover:bg-yellow-400/25 transition-colors">
-                <span className="font-semibold text-sm text-yellow-300">{t('food.cart')}</span>
-                <ChevronRight className="w-4 h-4 text-yellow-300" />
+              <div className="flex items-center gap-2 bg-[#F7F7F7] rounded-xl px-4 py-2.5 group-hover:bg-[#F0F0F0] transition-colors">
+                <span className="font-semibold text-sm text-[#111111]">{t('food.cart')}</span>
+                <ChevronRight className="w-4 h-4 text-[#777777]" />
               </div>
             </button>
           </div>
@@ -1062,7 +1146,7 @@ export default function Food() {
                         <div className="flex-1 min-w-0">
                           <h4 className="font-bold text-gray-900 text-sm line-clamp-1">{ci.item.name}</h4>
                           {selNames.length > 0 && (
-                            <p className="text-[11px] text-orange-500 mt-0.5 line-clamp-1">
+                            <p className="text-[11px] text-[#FF3B30] mt-0.5 line-clamp-1">
                               + {selNames.join(', ')}
                             </p>
                           )}
@@ -1075,7 +1159,7 @@ export default function Food() {
                                 <Minus className="w-3 h-3 text-gray-600" />
                               </button>
                               <span className="w-5 text-center font-bold text-sm">{ci.quantity}</span>
-                              <button onClick={() => updateQuantity(idx, 1)} className="w-7 h-7 rounded-lg bg-orange-500 text-white flex items-center justify-center hover:bg-orange-600 transition-colors active:scale-90">
+                              <button onClick={() => updateQuantity(idx, 1)} className="w-7 h-7 rounded-lg bg-[#FF3B30] text-white flex items-center justify-center hover:bg-[#E6352B] transition-colors active:scale-90">
                                 <Plus className="w-3 h-3" />
                               </button>
                             </div>
@@ -1090,7 +1174,7 @@ export default function Food() {
                 {cartSuggestions.length > 0 && (
                   <div className="pt-2">
                     <h4 className="font-bold text-gray-700 text-sm mb-2.5 flex items-center gap-2 px-1">
-                      <Sparkles className="w-4 h-4 text-orange-400" /> Дополнить заказ
+                      <Sparkles className="w-4 h-4 text-[#FF3B30]" /> Вместе вкуснее
                     </h4>
                     <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide">
                       {cartSuggestions.map(item => (
@@ -1104,7 +1188,7 @@ export default function Food() {
                               <span className="text-xs font-bold text-gray-900">{formatPrice(item.price)}</span>
                               <button
                                 onClick={() => quickAdd(item)}
-                                className="w-6 h-6 bg-orange-500 text-white rounded-lg flex items-center justify-center active:scale-90 transition-transform"
+                                className="w-6 h-6 bg-[#FF3B30] text-white rounded-lg flex items-center justify-center active:scale-90 transition-transform"
                               >
                                 <Plus className="w-3 h-3" />
                               </button>
@@ -1129,7 +1213,7 @@ export default function Food() {
                 )}
                 <Button
                   onClick={() => { setCartOpen(false); setCheckoutOpen(true); }}
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-white h-13 text-base font-bold rounded-2xl shadow-lg shadow-orange-200/50 active:scale-[0.98] transition-all"
+                  className="w-full bg-[#FF3B30] hover:bg-[#E6352B] text-white h-13 text-base font-bold rounded-2xl active:scale-[0.98] transition-all"
                   disabled={cartTotal < minOrder}
                 >
                   {t('food.checkout')} — {formatPrice(cartTotal)}
@@ -1168,7 +1252,7 @@ export default function Food() {
                       {selectedParkPoint ? (
                         <><MapPin className="w-4 h-4 inline mr-1" />{selectedParkPoint.name}</>
                       ) : (
-                        <span className="text-amber-700">{t('food.selectParkPoint')}</span>
+                        <span className="text-[#FF3B30]">{t('food.selectParkPoint')}</span>
                       )}
                     </p>
                     <div>
@@ -1194,12 +1278,12 @@ export default function Food() {
                       onClick={() => setDeliveryMethod('delivery')}
                       className={`p-4 rounded-2xl border-2 text-center transition-all duration-200 ${
                         deliveryMethod === 'delivery'
-                          ? 'border-orange-500 bg-orange-50 shadow-sm'
+                          ? 'border-[#FF3B30] bg-red-50 shadow-sm'
                           : 'border-gray-100 hover:border-gray-200 bg-gray-50'
                       }`}
                     >
-                      <Truck className={`w-6 h-6 mx-auto mb-1.5 ${deliveryMethod === 'delivery' ? 'text-orange-500' : 'text-gray-400'}`} />
-                      <span className={`text-sm font-bold block ${deliveryMethod === 'delivery' ? 'text-orange-700' : 'text-gray-600'}`}>{t('food.delivery')}</span>
+                      <Truck className={`w-6 h-6 mx-auto mb-1.5 ${deliveryMethod === 'delivery' ? 'text-[#FF3B30]' : 'text-gray-400'}`} />
+                      <span className={`text-sm font-bold block ${deliveryMethod === 'delivery' ? 'text-[#FF3B30]' : 'text-gray-600'}`}>{t('food.delivery')}</span>
                       <span className="text-xs text-gray-400">
                         {deliveryZones.length > 0 ? `от ${formatPrice(Math.min(...deliveryZones.map(z => z.price)))}` : formatPrice(parseInt(settings.delivery_price) || 0)}
                       </span>
@@ -1208,12 +1292,12 @@ export default function Food() {
                       onClick={() => setDeliveryMethod('pickup')}
                       className={`p-4 rounded-2xl border-2 text-center transition-all duration-200 ${
                         deliveryMethod === 'pickup'
-                          ? 'border-orange-500 bg-orange-50 shadow-sm'
+                          ? 'border-[#FF3B30] bg-red-50 shadow-sm'
                           : 'border-gray-100 hover:border-gray-200 bg-gray-50'
                       }`}
                     >
-                      <Store className={`w-6 h-6 mx-auto mb-1.5 ${deliveryMethod === 'pickup' ? 'text-orange-500' : 'text-gray-400'}`} />
-                      <span className={`text-sm font-bold block ${deliveryMethod === 'pickup' ? 'text-orange-700' : 'text-gray-600'}`}>{t('food.pickup')}</span>
+                      <Store className={`w-6 h-6 mx-auto mb-1.5 ${deliveryMethod === 'pickup' ? 'text-[#FF3B30]' : 'text-gray-400'}`} />
+                      <span className={`text-sm font-bold block ${deliveryMethod === 'pickup' ? 'text-[#FF3B30]' : 'text-gray-600'}`}>{t('food.pickup')}</span>
                       <span className="text-xs text-gray-400">{t('food.free')}</span>
                     </button>
                   </div>
@@ -1223,7 +1307,7 @@ export default function Food() {
                 {deliveryMethod === 'delivery' && deliveryZones.length > 0 && (
                   <div className="bg-white rounded-2xl p-4 shadow-sm">
                     <label className="text-sm font-bold text-gray-800 mb-2.5 block flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-orange-500" /> Зона доставки
+                      <MapPin className="w-4 h-4 text-[#FF3B30]" /> Зона доставки
                     </label>
                     <div className="space-y-2">
                       {deliveryZones.map((zone, idx) => (
@@ -1232,21 +1316,21 @@ export default function Food() {
                           onClick={() => setSelectedZoneIndex(idx)}
                           className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all ${
                             selectedZoneIndex === idx
-                              ? 'border-orange-500 bg-orange-50'
+                              ? 'border-[#FF3B30] bg-red-50'
                               : 'border-gray-100 hover:border-gray-200 bg-gray-50'
                           }`}
                         >
                           <div className="flex items-center gap-2.5">
                             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                              selectedZoneIndex === idx ? 'border-orange-500' : 'border-gray-300'
+                              selectedZoneIndex === idx ? 'border-[#FF3B30]' : 'border-gray-300'
                             }`}>
-                              {selectedZoneIndex === idx && <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />}
+                              {selectedZoneIndex === idx && <div className="w-2.5 h-2.5 rounded-full bg-[#FF3B30]" />}
                             </div>
                             <div className="text-left">
                               <span className="text-sm font-semibold text-gray-800">{zone.name}</span>
                             </div>
                           </div>
-                          <span className="text-sm font-bold text-orange-600">+{formatPrice(zone.price)}</span>
+                          <span className="text-sm font-bold text-[#FF3B30]">+{formatPrice(zone.price)}</span>
                         </button>
                       ))}
                     </div>
@@ -1262,11 +1346,11 @@ export default function Food() {
                     <label className="text-xs font-semibold text-gray-500 mb-1 block">
                       {t('food.yourName')} {deliveryDestination === 'park' ? '' : '*'}
                     </label>
-                    <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Введите имя" className="rounded-xl h-11 border-gray-200 focus:border-orange-500" />
+                    <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Введите имя" className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]" />
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 mb-1 block">{t('food.phone')} *</label>
-                    <Input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="+7 (___) ___-__-__" className="rounded-xl h-11 border-gray-200 focus:border-orange-500" />
+                    <Input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="+7 (___) ___-__-__" className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]" />
                   </div>
 
                   {/* Split address fields */}
@@ -1274,16 +1358,16 @@ export default function Food() {
                     <>
                       <div>
                         <label className="text-xs font-semibold text-gray-500 mb-1 block">Улица *</label>
-                        <Input value={street} onChange={e => setStreet(e.target.value)} placeholder="Название улицы" className="rounded-xl h-11 border-gray-200 focus:border-orange-500" />
+                        <Input value={street} onChange={e => setStreet(e.target.value)} placeholder="Название улицы" className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]" />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="text-xs font-semibold text-gray-500 mb-1 block">Дом *</label>
-                          <Input value={house} onChange={e => setHouse(e.target.value)} placeholder="Номер дома" className="rounded-xl h-11 border-gray-200 focus:border-orange-500" />
+                          <Input value={house} onChange={e => setHouse(e.target.value)} placeholder="Номер дома" className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]" />
                         </div>
                         <div>
                           <label className="text-xs font-semibold text-gray-500 mb-1 block">Квартира</label>
-                          <Input value={apartment} onChange={e => setApartment(e.target.value)} placeholder="Необязательно" className="rounded-xl h-11 border-gray-200 focus:border-orange-500" />
+                          <Input value={apartment} onChange={e => setApartment(e.target.value)} placeholder="Необязательно" className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]" />
                         </div>
                       </div>
                       <label className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
@@ -1291,7 +1375,7 @@ export default function Food() {
                           type="checkbox"
                           checked={noDoorDelivery}
                           onChange={e => setNoDoorDelivery(e.target.checked)}
-                          className="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                          className="w-4 h-4 rounded border-gray-300 text-[#FF3B30] focus:ring-[#FF3B30]"
                         />
                         <div>
                           <span className="text-sm font-medium text-gray-700">До подъезда</span>
@@ -1303,7 +1387,7 @@ export default function Food() {
 
                   <div>
                     <label className="text-xs font-semibold text-gray-500 mb-1 block">{t('food.comment')}</label>
-                    <Textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Пожелания к заказу..." className="rounded-xl resize-none border-gray-200 focus:border-orange-500" rows={2} />
+                    <Textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Пожелания к заказу..." className="rounded-xl resize-none border-gray-200 focus:border-[#FF3B30]" rows={2} />
                   </div>
                 </div>
 
@@ -1319,7 +1403,7 @@ export default function Food() {
                           <div className="flex-1 min-w-0">
                             <span className="text-sm text-gray-700 font-medium">{ci.item.name} × {ci.quantity}</span>
                             {selNames.length > 0 && (
-                              <span className="text-[11px] text-orange-500 block">+ {selNames.join(', ')}</span>
+                              <span className="text-[11px] text-[#FF3B30] block">+ {selNames.join(', ')}</span>
                             )}
                           </div>
                           <span className="font-bold text-sm text-gray-900 whitespace-nowrap ml-3">{formatPrice((ci.item.price + modTotal) * ci.quantity)}</span>
@@ -1336,12 +1420,12 @@ export default function Food() {
                             <span className="text-[10px] text-gray-400">({deliveryZones[selectedZoneIndex].name})</span>
                           )}
                         </span>
-                        <span className="font-semibold text-orange-600">+{formatPrice(activeDeliveryPrice)}</span>
+                        <span className="font-semibold text-[#FF3B30]">+{formatPrice(activeDeliveryPrice)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-base pt-1">
                       <span className="font-extrabold text-gray-900">{t('food.total')}</span>
-                      <span className="font-extrabold text-orange-600">
+                      <span className="font-extrabold text-[#FF3B30]">
                         {formatPrice(
                           deliveryDestination === 'park'
                             ? cartTotal
