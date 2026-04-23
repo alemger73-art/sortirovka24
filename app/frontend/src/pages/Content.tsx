@@ -11,6 +11,7 @@ import MultiImageUpload, { StorageGallery } from '@/components/MultiImageUpload'
 import VideoUpload from '@/components/VideoUpload';
 import StorageVideo from '@/components/StorageVideo';
 import { pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 function normalizeYoutubeWatchUrl(value: string): string {
   const raw = (value || '').trim();
@@ -48,6 +49,7 @@ function buildYoutubeEmbedUrl(value: string): string | null {
 
 /* ============ NEWS LIST ============ */
 export function NewsList() {
+  const { t, localized } = useLanguage();
   const [news, setNews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState('');
@@ -67,29 +69,29 @@ export function NewsList() {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Новости Сортировки</h1>
-        <p className="text-gray-500 mb-6">Актуальные события и новости района</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{t('news.title')}</h1>
+        <p className="text-gray-500 mb-6">{t('newsPage.subtitle')}</p>
 
         <div className="flex flex-wrap gap-2 mb-6">
-          <button onClick={() => setCategory('')} className={`px-3 py-1.5 rounded-full text-sm font-medium ${!category ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Все</button>
+          <button onClick={() => setCategory('')} className={`px-3 py-1.5 rounded-full text-sm font-medium ${!category ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{t('common.all')}</button>
           {NEWS_CATEGORIES.map(c => (
             <button key={c} onClick={() => setCategory(c === category ? '' : c)} className={`px-3 py-1.5 rounded-full text-sm font-medium ${category === c ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{c}</button>
           ))}
         </div>
 
-        {loading ? <div className="text-center py-12 text-gray-400">Загрузка...</div> : (
+        {loading ? <div className="text-center py-12 text-gray-400">{t('common.loading')}</div> : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {news.map(item => (
               <Link key={item.id} to={`/news/${item.id}`} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all hover:-translate-y-0.5 group">
                 {item.image_url ? (
-                  <div className="h-48 overflow-hidden"><StorageImg objectKey={item.image_url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" /></div>
+                  <div className="h-48 overflow-hidden"><StorageImg objectKey={item.image_url} alt={localized(item, 'title')} className="w-full h-full object-cover group-hover:scale-105 transition-transform" /></div>
                 ) : (
                   <div className="h-48 bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center"><span className="text-5xl">📰</span></div>
                 )}
                 <div className="p-5">
                   <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{item.category}</span>
-                  <h3 className="font-semibold text-gray-900 mt-2 line-clamp-2">{item.title}</h3>
-                  <p className="text-sm text-gray-500 mt-2 line-clamp-2">{item.short_description}</p>
+                  <h3 className="font-semibold text-gray-900 mt-2 line-clamp-2">{localized(item, 'title')}</h3>
+                  <p className="text-sm text-gray-500 mt-2 line-clamp-2">{localized(item, 'short_description')}</p>
                   <p className="text-xs text-gray-400 mt-3">{formatDate(item.created_at)}</p>
                 </div>
               </Link>
@@ -103,6 +105,7 @@ export function NewsList() {
 
 /* ============ NEWS DETAIL ============ */
 export function NewsDetail() {
+  const { t, localized } = useLanguage();
   const { id } = useParams();
   const [item, setItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -118,24 +121,24 @@ export function NewsDetail() {
     })();
   }, [id]);
 
-  if (loading) return <Layout><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400">Загрузка...</div></Layout>;
-  if (!item) return <Layout><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400">Новость не найдена</div></Layout>;
+  if (loading) return <Layout><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400">{t('common.loading')}</div></Layout>;
+  if (!item) return <Layout><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400">{t('newsPage.notFound')}</div></Layout>;
 
   return (
     <Layout>
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <Link to="/news" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> Все новости</Link>
-        {item.image_url && <StorageImg objectKey={item.image_url} alt={item.title} className="w-full h-64 object-cover rounded-xl mb-6" />}
+        <Link to="/news" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> {t('news.all')}</Link>
+        {item.image_url && <StorageImg objectKey={item.image_url} alt={localized(item, 'title')} className="w-full h-64 object-cover rounded-xl mb-6" />}
         {item.gallery_images && (
           <div className="mb-6">
             <StorageGallery keys={item.gallery_images} />
           </div>
         )}
         <span className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">{item.category}</span>
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mt-3 mb-2">{item.title}</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mt-3 mb-2">{localized(item, 'title')}</h1>
         <p className="text-sm text-gray-400 mb-6">{formatDate(item.created_at)}</p>
         <div className="prose prose-gray max-w-none">
-          {(item.content || item.short_description || '').split('\n').map((p: string, i: number) => <p key={i} className="text-gray-700 leading-relaxed mb-4">{p}</p>)}
+          {(localized(item, 'content') || localized(item, 'short_description') || '').split('\n').map((p: string, i: number) => <p key={i} className="text-gray-700 leading-relaxed mb-4">{p}</p>)}
         </div>
         {item.youtube_url && (
           <div className="mt-6">
@@ -153,7 +156,7 @@ export function NewsDetail() {
               rel="noopener noreferrer"
               className="inline-flex mt-3 text-sm text-blue-600 hover:text-blue-700 underline underline-offset-2"
             >
-              Открыть видео на YouTube
+              {t('newsPage.openYoutube')}
             </a>
           </div>
         )}
@@ -164,6 +167,7 @@ export function NewsDetail() {
 
 /* ============ COMPLAINTS LIST ============ */
 export function ComplaintsList() {
+  const { t } = useLanguage();
   const [complaints, setComplaints] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -182,14 +186,14 @@ export function ComplaintsList() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Жалобы жителей</h1>
-            <p className="text-gray-500 mt-1">Проблемы района, о которых сообщают жители</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{t('complaints.title')}</h1>
+            <p className="text-gray-500 mt-1">{t('complaints.subtitle')}</p>
           </div>
           <Link to="/complaints/new" className="inline-flex items-center gap-2 bg-red-600 text-white font-medium px-4 py-2.5 rounded-lg hover:bg-red-700 text-sm">
-            <AlertTriangle className="w-4 h-4" /> Подать жалобу
+            <AlertTriangle className="w-4 h-4" /> {t('complaints.file')}
           </Link>
         </div>
-        {loading ? <div className="text-center py-12 text-gray-400">Загрузка...</div> : (
+        {loading ? <div className="text-center py-12 text-gray-400">{t('common.loading')}</div> : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {complaints.map(c => {
               const st = STATUS_LABELS[c.status] || STATUS_LABELS.new;

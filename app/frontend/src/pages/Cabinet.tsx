@@ -14,6 +14,7 @@ import {
   upsertCabinetItem,
 } from "@/lib/localAuth";
 import { Camera, Coins, Edit3, Save, Trash2, UserCircle2 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type TabId = "profile" | "bonuses" | "history" | "actions" | "settings";
 type ActionSection = "announcements" | "complaints" | "masterRequests";
@@ -30,14 +31,6 @@ function formatCabinetDate(value?: string) {
     minute: "2-digit",
   });
 }
-
-const tabs: { id: TabId; label: string }[] = [
-  { id: "profile", label: "Профиль" },
-  { id: "bonuses", label: "Бонусы" },
-  { id: "history", label: "История" },
-  { id: "actions", label: "Мои действия" },
-  { id: "settings", label: "Настройки" },
-];
 
 function DarkCard({ children }: { children: React.ReactNode }) {
   return (
@@ -58,6 +51,7 @@ function StatusBadge({ status }: { status?: string }) {
 }
 
 export default function Cabinet() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabId>("profile");
   const [user, setUser] = useState(getCurrentUser());
@@ -72,7 +66,17 @@ export default function Cabinet() {
     subtitle: "",
     status: "В процессе",
   });
+  const [historyQuery, setHistoryQuery] = useState("");
+  const [historyType, setHistoryType] = useState<"all" | "food" | "masters" | "announcements" | "complaints">("all");
+  const [deleteTarget, setDeleteTarget] = useState<{ section: ActionSection; id: string } | null>(null);
   const [error, setError] = useState("");
+  const tabs: { id: TabId; label: string }[] = [
+    { id: "profile", label: t('cabinet.tab.profile') },
+    { id: "bonuses", label: t('cabinet.tab.bonuses') },
+    { id: "history", label: t('cabinet.tab.history') },
+    { id: "actions", label: t('cabinet.tab.actions') },
+    { id: "settings", label: t('cabinet.tab.settings') },
+  ];
 
   useEffect(() => {
     const syncUser = () => setUser(getCurrentUser());
@@ -94,8 +98,8 @@ export default function Cabinet() {
     return (
       <Layout>
         <div className="mx-auto max-w-6xl px-4 py-10 text-slate-200">
-          <p>Вы не вошли в аккаунт.</p>
-          <Link to="/login" className="mt-3 inline-block text-yellow-300">Войти или зарегистрироваться</Link>
+          <p>{t('cabinet.notLoggedIn')}</p>
+          <Link to="/login" className="mt-3 inline-block text-yellow-300">{t('cabinet.loginOrRegister')}</Link>
         </div>
       </Layout>
     );
@@ -105,13 +109,25 @@ export default function Cabinet() {
 
   const historyItems = useMemo(() => {
     const sections = [
-      ...data.foodOrders.map((x) => ({ ...x, kind: "Заказ еды" })),
-      ...data.masterRequests.map((x) => ({ ...x, kind: "Заявка мастеру" })),
-      ...data.announcements.map((x) => ({ ...x, kind: "Объявление" })),
-      ...data.complaints.map((x) => ({ ...x, kind: "Жалоба" })),
+      ...data.foodOrders.map((x) => ({ ...x, kind: "Заказ еды", type: "food" as const })),
+      ...data.masterRequests.map((x) => ({ ...x, kind: "Заявка мастеру", type: "masters" as const })),
+      ...data.announcements.map((x) => ({ ...x, kind: "Объявление", type: "announcements" as const })),
+      ...data.complaints.map((x) => ({ ...x, kind: "Жалоба", type: "complaints" as const })),
     ];
-    return sections.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [data]);
+    const filtered = sections
+      .filter((x) => (historyType === "all" ? true : x.type === historyType))
+      .filter((x) => {
+        if (!historyQuery.trim()) return true;
+        const q = historyQuery.toLowerCase();
+        return (
+          x.kind.toLowerCase().includes(q) ||
+          x.title.toLowerCase().includes(q) ||
+          (x.subtitle || "").toLowerCase().includes(q) ||
+          (x.status || "").toLowerCase().includes(q)
+        );
+      });
+    return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [data, historyQuery, historyType]);
 
   const actionRows = {
     announcements: data.announcements || [],
@@ -171,7 +187,7 @@ export default function Cabinet() {
         <div className="mx-auto max-w-7xl">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-extrabold">Личный кабинет</h1>
+              <h1 className="text-3xl font-extrabold">{t('cabinet.personalTitle')}</h1>
               <p className="text-slate-300">{user.name} · {user.phone}</p>
             </div>
             <button
@@ -181,7 +197,7 @@ export default function Cabinet() {
                 navigate("/login");
               }}
             >
-              Выйти
+              {t('auth.logout')}
             </button>
           </div>
 
@@ -280,6 +296,25 @@ export default function Cabinet() {
               {activeTab === "history" && (
                 <DarkCard>
                   <h2 className="mb-4 text-xl font-bold">История</h2>
+                  <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-3">
+                    <input
+                      value={historyQuery}
+                      onChange={(e) => setHistoryQuery(e.target.value)}
+                      className="rounded-xl border border-[#2a3347] bg-[#0f172a] px-3 py-2 text-sm text-white md:col-span-2"
+                      placeholder="Поиск по истории..."
+                    />
+                    <select
+                      value={historyType}
+                      onChange={(e) => setHistoryType(e.target.value as any)}
+                      className="rounded-xl border border-[#2a3347] bg-[#0f172a] px-3 py-2 text-sm text-white"
+                    >
+                      <option value="all">Все типы</option>
+                      <option value="food">Заказы еды</option>
+                      <option value="masters">Заявки мастеру</option>
+                      <option value="announcements">Объявления</option>
+                      <option value="complaints">Жалобы</option>
+                    </select>
+                  </div>
                   <div className="space-y-2">
                     {historyItems.length === 0 ? (
                       <p className="text-sm text-slate-400">Пока нет действий.</p>
@@ -338,7 +373,7 @@ export default function Cabinet() {
                               <Edit3 className="h-3.5 w-3.5" /> Редактировать
                             </button>
                             <button
-                              onClick={() => deleteCabinetItem(user.id, actionForm.section, item.id)}
+                              onClick={() => setDeleteTarget({ section: actionForm.section, id: item.id })}
                               className="inline-flex items-center gap-1 rounded-lg border border-red-500/40 px-2 py-1 text-xs text-red-300 hover:bg-red-500/10"
                             >
                               <Trash2 className="h-3.5 w-3.5" /> Удалить
@@ -398,6 +433,31 @@ export default function Cabinet() {
           </div>
         </div>
       </div>
+      {deleteTarget && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-sm rounded-2xl border border-[#2a3347] bg-[#111827] p-5 text-white">
+            <h3 className="text-lg font-bold">Удалить запись?</h3>
+            <p className="mt-2 text-sm text-slate-300">Это действие нельзя отменить.</p>
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 rounded-xl border border-[#2a3347] px-3 py-2 text-sm hover:bg-[#1a2336]"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={() => {
+                  deleteCabinetItem(user.id, deleteTarget.section, deleteTarget.id);
+                  setDeleteTarget(null);
+                }}
+                className="flex-1 rounded-xl border border-red-500/40 px-3 py-2 text-sm text-red-300 hover:bg-red-500/10"
+              >
+                Удалить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

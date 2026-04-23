@@ -6,6 +6,7 @@ import { fetchWithCache } from '@/lib/cache';
 import { Star, Phone, MessageCircle, MapPin, CheckCircle, Clock, ChevronLeft, Search, Send, UserPlus, Shield, Zap, Award, Sparkles, Users, LayoutGrid, TrendingUp, AlertTriangle } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
 import { pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 /* ─── Category gradient map ─── */
 const CATEGORY_GRADIENTS: Record<string, string> = {
@@ -61,6 +62,7 @@ function StarRating({ rating, size = 'md' }: { rating: number; size?: 'sm' | 'md
 
 /* ============ MASTER CATALOG ============ */
 export function MastersCatalog() {
+  const { t } = useLanguage();
   const [searchParams] = useSearchParams();
   const [masters, setMasters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,18 +118,18 @@ export function MastersCatalog() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-xl rounded-full px-5 py-2 border border-white/15 mb-6 animate-fade-in">
             <Sparkles className="w-4 h-4 text-yellow-300" />
-            <span className="text-white/80 text-sm font-medium">Проверенные специалисты вашего района</span>
+            <span className="text-white/80 text-sm font-medium">{t('masters.heroBadge')}</span>
           </div>
 
           {/* Title */}
           <h1 className="text-4xl md:text-6xl font-black text-white mb-4 leading-[1.1] tracking-tight">
-            Нужен мастер?<br />
+            {t('masters.needMaster')}<br />
             <span className="bg-gradient-to-r from-yellow-300 via-amber-300 to-orange-300 bg-clip-text text-transparent">
-              Найдём за 2 минуты
+              {t('masters.findIn2min')}
             </span>
           </h1>
           <p className="text-lg md:text-xl text-white/50 mb-10 max-w-xl leading-relaxed">
-            Проверенные специалисты Сортировки рядом с вами — сантехники, электрики, ремонт и многое другое
+            {t('masters.heroSubtitle')}
           </p>
 
           {/* ── Two main CTA buttons ── */}
@@ -137,14 +139,14 @@ export function MastersCatalog() {
               className="group inline-flex items-center gap-3 bg-white text-indigo-700 font-extrabold px-8 py-4 rounded-2xl shadow-2xl shadow-black/20 hover:shadow-3xl hover:shadow-black/30 transition-all duration-300 hover:-translate-y-1 text-base"
             >
               <Search className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              Найти мастера
+              {t('quick.findMaster')}
             </button>
             <Link
               to="/masters/request"
               className="group inline-flex items-center gap-3 bg-gradient-to-r from-orange-500 to-red-500 text-white font-extrabold px-8 py-4 rounded-2xl shadow-2xl shadow-red-500/30 hover:shadow-3xl hover:shadow-red-500/40 transition-all duration-300 hover:-translate-y-1 text-base"
             >
               <AlertTriangle className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              Срочно вызвать
+              {t('masters.urgentCall')}
             </Link>
           </div>
 
@@ -154,7 +156,7 @@ export function MastersCatalog() {
               <Search className="w-6 h-6 text-indigo-400 ml-6 flex-shrink-0" />
               <input
                 type="text"
-                placeholder="Например: сантехник, электрик, ремонт"
+                placeholder={t('masters.searchPlaceholder')}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="flex-1 px-5 py-5 text-gray-800 dark:text-gray-200 placeholder:text-gray-400 bg-transparent outline-none text-base md:text-lg font-medium"
@@ -165,9 +167,9 @@ export function MastersCatalog() {
           {/* ── Stats cards ── */}
           <div className="grid grid-cols-3 gap-3 md:gap-4 mt-10 max-w-lg">
             {[
-              { icon: <Users className="w-5 h-5" />, num: `${masters.length || '...'}`, label: 'Мастеров', color: 'from-blue-400/20 to-blue-500/20 border-blue-400/20' },
-              { icon: <LayoutGrid className="w-5 h-5" />, num: '10+', label: 'Категорий', color: 'from-purple-400/20 to-purple-500/20 border-purple-400/20' },
-              { icon: <TrendingUp className="w-5 h-5" />, num: '4.8', label: 'Ср. рейтинг', color: 'from-amber-400/20 to-amber-500/20 border-amber-400/20' },
+              { icon: <Users className="w-5 h-5" />, num: `${masters.length || '...'}`, label: t('masters.stats.masters'), color: 'from-blue-400/20 to-blue-500/20 border-blue-400/20' },
+              { icon: <LayoutGrid className="w-5 h-5" />, num: '10+', label: t('masters.stats.categories'), color: 'from-purple-400/20 to-purple-500/20 border-purple-400/20' },
+              { icon: <TrendingUp className="w-5 h-5" />, num: '4.8', label: t('masters.stats.rating'), color: 'from-amber-400/20 to-amber-500/20 border-amber-400/20' },
             ].map(s => (
               <div key={s.label} className={`bg-gradient-to-br ${s.color} backdrop-blur-xl rounded-2xl p-4 border text-center`}>
                 <div className="flex justify-center mb-2 text-white/70">{s.icon}</div>
@@ -180,7 +182,7 @@ export function MastersCatalog() {
           {/* Secondary links */}
           <div className="flex flex-wrap gap-3 mt-8">
             <Link to="/masters/become" className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-xl text-white/80 font-semibold px-5 py-2.5 rounded-xl hover:bg-white/20 transition-all duration-300 border border-white/10 text-sm">
-              <UserPlus className="w-4 h-4" /> Стать мастером
+              <UserPlus className="w-4 h-4" /> {t('masters.becomeMaster')}
             </Link>
           </div>
         </div>
@@ -195,10 +197,10 @@ export function MastersCatalog() {
           {/* ── Categories — tile cards, 2-3 per row ── */}
           <section className="mb-12">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">Выберите категорию</h2>
+              <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">{t('masters.chooseCategory')}</h2>
               {selectedCategory && (
                 <button onClick={() => setSelectedCategory('')} className="text-sm text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
-                  Сбросить фильтр
+                  {t('masters.resetFilter')}
                 </button>
               )}
             </div>
@@ -213,7 +215,7 @@ export function MastersCatalog() {
                 }`}
               >
                 <span className={`text-3xl transition-transform duration-300 group-hover:scale-110 ${!selectedCategory ? 'drop-shadow-lg' : ''}`}>🔍</span>
-                <span className="text-sm font-bold">Все мастера</span>
+                <span className="text-sm font-bold">{t('masters.allMasters')}</span>
               </button>
 
               {MASTER_CATEGORIES.map(cat => {
@@ -245,15 +247,15 @@ export function MastersCatalog() {
             {loading ? (
               <div className="text-center py-24">
                 <div className="inline-block w-14 h-14 border-4 border-indigo-200 dark:border-indigo-800 border-t-indigo-600 dark:border-t-indigo-400 rounded-full animate-spin" />
-                <p className="text-gray-400 dark:text-gray-500 mt-5 text-sm font-medium">Загружаем мастеров...</p>
+                <p className="text-gray-400 dark:text-gray-500 mt-5 text-sm font-medium">{t('masters.loading')}</p>
               </div>
             ) : filtered.length === 0 ? (
               <div className="text-center py-24">
                 <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-5">
                   <Search className="w-10 h-10 text-gray-300 dark:text-gray-600" />
                 </div>
-                <h3 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2">Мастера не найдены</h3>
-                <p className="text-gray-400 dark:text-gray-500 text-sm">Попробуйте изменить фильтры или поисковый запрос</p>
+                <h3 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2">{t('masters.notFound')}</h3>
+                <p className="text-gray-400 dark:text-gray-500 text-sm">{t('masters.tryOtherFilters')}</p>
               </div>
             ) : (
               <>

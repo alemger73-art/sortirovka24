@@ -100,9 +100,13 @@ const translations: Translations = {
   /* ─── News ─── */
   'news.title': { ru: '📰 Новости Сортировки', kz: '📰 Сортировка жаңалықтары' },
   'news.all': { ru: 'Все новости', kz: 'Барлық жаңалықтар' },
+  'newsPage.subtitle': { ru: 'Актуальные события и новости района', kz: 'Ауданның өзекті оқиғалары мен жаңалықтары' },
+  'newsPage.notFound': { ru: 'Новость не найдена', kz: 'Жаңалық табылмады' },
+  'newsPage.openYoutube': { ru: 'Открыть видео на YouTube', kz: 'YouTube-та видеоны ашу' },
 
   /* ─── Complaints ─── */
   'complaints.title': { ru: 'Жалобы жителей', kz: 'Тұрғындар шағымдары' },
+  'complaints.subtitle': { ru: 'Проблемы района, о которых сообщают жители', kz: 'Тұрғындар хабарлайтын аудан мәселелері' },
   'complaints.all': { ru: 'Все жалобы', kz: 'Барлық шағымдар' },
   'complaints.file': { ru: 'Подать жалобу', kz: 'Шағым беру' },
   'complaints.noAddress': { ru: 'Адрес не указан', kz: 'Мекенжай көрсетілмеген' },
@@ -179,6 +183,34 @@ const translations: Translations = {
   /* ─── Jobs ─── */
   'jobs.title': { ru: 'Вакансии', kz: 'Бос орындар' },
   'jobs.all': { ru: 'Все', kz: 'Барлығы' },
+
+  /* ─── Masters ─── */
+  'masters.heroBadge': { ru: 'Проверенные специалисты вашего района', kz: 'Ауданыңыздың тексерілген мамандары' },
+  'masters.needMaster': { ru: 'Нужен мастер?', kz: 'Шебер керек пе?' },
+  'masters.findIn2min': { ru: 'Найдём за 2 минуты', kz: '2 минутта табамыз' },
+  'masters.heroSubtitle': { ru: 'Проверенные специалисты Сортировки рядом с вами — сантехники, электрики, ремонт и многое другое', kz: 'Сортировкадағы тексерілген мамандар сізге жақын — сантехниктер, электриктер, жөндеу және т.б.' },
+  'masters.urgentCall': { ru: 'Срочно вызвать', kz: 'Жедел шақыру' },
+  'masters.searchPlaceholder': { ru: 'Например: сантехник, электрик, ремонт', kz: 'Мысалы: сантехник, электрик, жөндеу' },
+  'masters.stats.masters': { ru: 'Мастеров', kz: 'Шебер' },
+  'masters.stats.categories': { ru: 'Категорий', kz: 'Санат' },
+  'masters.stats.rating': { ru: 'Ср. рейтинг', kz: 'Орташа рейтинг' },
+  'masters.becomeMaster': { ru: 'Стать мастером', kz: 'Шебер болу' },
+  'masters.chooseCategory': { ru: 'Выберите категорию', kz: 'Санатты таңдаңыз' },
+  'masters.resetFilter': { ru: 'Сбросить фильтр', kz: 'Сүзгіні тазалау' },
+  'masters.allMasters': { ru: 'Все мастера', kz: 'Барлық шеберлер' },
+  'masters.loading': { ru: 'Загружаем мастеров...', kz: 'Шеберлер жүктелуде...' },
+  'masters.notFound': { ru: 'Мастера не найдены', kz: 'Шеберлер табылмады' },
+  'masters.tryOtherFilters': { ru: 'Попробуйте изменить фильтры или поисковый запрос', kz: 'Сүзгілерді немесе іздеу сұрауын өзгертіп көріңіз' },
+
+  /* ─── Cabinet ─── */
+  'cabinet.personalTitle': { ru: 'Личный кабинет', kz: 'Жеке кабинет' },
+  'cabinet.notLoggedIn': { ru: 'Вы не вошли в аккаунт.', kz: 'Сіз аккаунтқа кірмедіңіз.' },
+  'cabinet.loginOrRegister': { ru: 'Войти или зарегистрироваться', kz: 'Кіру немесе тіркелу' },
+  'cabinet.tab.profile': { ru: 'Профиль', kz: 'Профиль' },
+  'cabinet.tab.bonuses': { ru: 'Бонусы', kz: 'Бонустар' },
+  'cabinet.tab.history': { ru: 'История', kz: 'Тарих' },
+  'cabinet.tab.actions': { ru: 'Мои действия', kz: 'Менің әрекеттерім' },
+  'cabinet.tab.settings': { ru: 'Настройки', kz: 'Баптаулар' },
 
   /* ─── Common ─── */
   'common.loading': { ru: 'Загружаем данные...', kz: 'Деректер жүктелуде...' },
