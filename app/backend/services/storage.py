@@ -24,15 +24,50 @@ from schemas.storage import (
 logger = logging.getLogger(__name__)
 
 
+def _resolve_oss_service_url() -> str:
+    """Resolve OSS service URL from supported env aliases."""
+    # Primary key
+    url = (getattr(settings, "oss_service_url", "") or "").strip()
+    # Backward-compatible aliases used in some deployments
+    if not url:
+        url = (getattr(settings, "oss_url", "") or "").strip()
+    if not url:
+        url = (getattr(settings, "object_storage_url", "") or "").strip()
+    if not url:
+        return ""
+
+    # Normalize missing scheme to avoid malformed URL errors in production envs
+    if "://" not in url:
+        url = f"https://{url}"
+
+    # Ensure stable urljoin behavior
+    return url.rstrip("/") + "/"
+
+
+def _resolve_oss_api_key() -> str:
+    """Resolve OSS API key from supported env aliases."""
+    key = (getattr(settings, "oss_api_key", "") or "").strip()
+    if not key:
+        key = (getattr(settings, "oss_key", "") or "").strip()
+    if not key:
+        key = (getattr(settings, "object_storage_api_key", "") or "").strip()
+    return key
+
+
 class StorageService:
     """Service for handling file upload and display with ObjectStorage service integration."""
 
     def __init__(self):
-        if not settings.oss_service_url or not settings.oss_api_key:
-            raise ValueError("OSS service not configured. Set OSS_SERVICE_URL and OSS_API_KEY.")
+        self.oss_service_url = _resolve_oss_service_url()
+        self.oss_api_key = _resolve_oss_api_key()
+        if not self.oss_service_url or not self.oss_api_key:
+            raise ValueError(
+                "OSS service not configured. Set OSS_SERVICE_URL and OSS_API_KEY "
+                "(aliases supported: OSS_URL/OBJECT_STORAGE_URL and OSS_KEY/OBJECT_STORAGE_API_KEY)."
+            )
 
         self.headers = {
-            "Authorization": f"Bearer {settings.oss_api_key}",
+            "Authorization": f"Bearer {self.oss_api_key}",
             "Content-Type": "application/json",
         }
 
@@ -189,7 +224,7 @@ class StorageService:
         payload: Optional[dict] = None,
     ) -> Union[dict, list]:
         """统一的 OSS 服务请求方法"""
-        url = urljoin(settings.oss_service_url, endpoint)
+        url = urljoin(self.oss_service_url, endpoint)
 
         try:
             async with httpx.AsyncClient(timeout=120.0) as client:
