@@ -3,9 +3,11 @@ import hashlib
 import hmac
 import json
 import logging
+import os
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from urllib.parse import urlparse
 
 import cloudinary
 import cloudinary.api
@@ -40,18 +42,68 @@ def _b64url_decode(text: str) -> bytes:
     return base64.urlsafe_b64decode(text + padding)
 
 
+def _parse_cloudinary_url(raw_url: str) -> tuple[str, str, str]:
+    """Parse CLOUDINARY_URL format: cloudinary://api_key:api_secret@cloud_name"""
+    try:
+        parsed = urlparse(raw_url.strip())
+        if parsed.scheme != "cloudinary":
+            return "", "", ""
+        cloud_name = (parsed.hostname or "").strip()
+        api_key = (parsed.username or "").strip()
+        api_secret = (parsed.password or "").strip()
+        return cloud_name, api_key, api_secret
+    except Exception:
+        return "", "", ""
+
+
+def _resolve_cloudinary_config() -> tuple[str, str, str]:
+    """Resolve Cloudinary config from settings + env aliases."""
+    cloud_name = (
+        os.getenv("CLOUDINARY_CLOUD_NAME")
+        or getattr(settings, "cloudinary_cloud_name", "")
+        or os.getenv("CLOUD_NAME")
+        or ""
+    ).strip()
+    api_key = (
+        os.getenv("CLOUDINARY_API_KEY")
+        or getattr(settings, "cloudinary_api_key", "")
+        or os.getenv("CLOUD_API_KEY")
+        or ""
+    ).strip()
+    api_secret = (
+        os.getenv("CLOUDINARY_API_SECRET")
+        or getattr(settings, "cloudinary_api_secret", "")
+        or os.getenv("CLOUD_API_SECRET")
+        or ""
+    ).strip()
+
+    # Support standard Cloudinary single-variable format as fallback.
+    if not (cloud_name and api_key and api_secret):
+        url_cloud, url_key, url_secret = _parse_cloudinary_url(os.getenv("CLOUDINARY_URL", ""))
+        cloud_name = cloud_name or url_cloud
+        api_key = api_key or url_key
+        api_secret = api_secret or url_secret
+
+    return cloud_name, api_key, api_secret
+
+
 class StorageService:
     """Storage service backed by Cloudinary."""
 
     def __init__(self):
-        self.cloud_name = (getattr(settings, "cloudinary_cloud_name", "") or "").strip()
-        self.api_key = (getattr(settings, "cloudinary_api_key", "") or "").strip()
-        self.api_secret = (getattr(settings, "cloudinary_api_secret", "") or "").strip()
+        self.cloud_name, self.api_key, self.api_secret = _resolve_cloudinary_config()
 
         if not self.cloud_name or not self.api_key or not self.api_secret:
+            logger.error(
+                "Cloudinary config missing: cloud_name=%s api_key=%s api_secret=%s",
+                bool(self.cloud_name),
+                bool(self.api_key),
+                bool(self.api_secret),
+            )
             raise ValueError(
                 "Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME, "
-                "CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET."
+                "CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET "
+                "(or CLOUDINARY_URL)."
             )
 
         cloudinary.config(
