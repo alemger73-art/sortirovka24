@@ -21,6 +21,8 @@ class Food_categoriesData(BaseModel):
     """Entity data schema (for create/update)"""
     name: str = None
     icon: str = None
+    slug: Optional[str] = None
+    image: Optional[str] = None
     sort_order: int = None
     is_active: bool = None
     created_at: str = None
@@ -30,6 +32,8 @@ class Food_categoriesUpdateData(BaseModel):
     """Update entity data (partial updates allowed)"""
     name: Optional[str] = None
     icon: Optional[str] = None
+    slug: Optional[str] = None
+    image: Optional[str] = None
     sort_order: Optional[int] = None
     is_active: Optional[bool] = None
     created_at: Optional[str] = None
@@ -40,6 +44,8 @@ class Food_categoriesResponse(BaseModel):
     id: int
     name: Optional[str] = None
     icon: Optional[str] = None
+    slug: Optional[str] = None
+    image: Optional[str] = None
     sort_order: Optional[int] = None
     is_active: Optional[bool] = None
     created_at: Optional[str] = None

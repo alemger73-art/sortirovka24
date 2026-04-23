@@ -7,6 +7,7 @@ class Food_orders(Base):
     __table_args__ = {"extend_existing": True}
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True, nullable=False)
+    user_id = Column(Integer, nullable=True)
     order_items = Column(String, nullable=True)
     total_amount = Column(Float, nullable=True)
     customer_name = Column(String, nullable=True)

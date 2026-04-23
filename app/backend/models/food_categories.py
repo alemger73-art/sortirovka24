@@ -9,6 +9,8 @@ class Food_categories(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True, nullable=False)
     name = Column(String, nullable=True)
     icon = Column(String, nullable=True)
+    slug = Column(String, nullable=True)
+    image = Column(String, nullable=True)
     sort_order = Column(Integer, nullable=True)
     is_active = Column(Boolean, nullable=True)
     created_at = Column(String, nullable=True)

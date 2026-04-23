@@ -10,8 +10,30 @@ import { toast } from 'sonner';
 import ImageUpload, { StorageImage } from '@/components/ImageUpload';
 
 /* ─── Types ─── */
-interface FoodCategory { id: number; name: string; icon: string; sort_order: number; is_active: boolean; }
-interface FoodItem { id: number; category_id: number; name: string; description: string; price: number; image_url: string; is_active: boolean; is_recommended: boolean; weight: string; sort_order: number; available_in_park: boolean; }
+interface FoodCategory {
+  id: number;
+  name: string;
+  icon: string;
+  sort_order: number;
+  is_active: boolean;
+  slug?: string;
+  image?: string;
+}
+interface FoodItem {
+  id: number;
+  category_id: number;
+  name: string;
+  description: string;
+  price: number;
+  image_url: string;
+  is_active: boolean;
+  is_recommended: boolean;
+  is_popular?: boolean;
+  is_combo?: boolean;
+  weight: string;
+  sort_order: number;
+  available_in_park: boolean;
+}
 interface ModifierGroup { id: number; name: string; type: string; is_required: boolean; min_select: number; max_select: number; sort_order: number; is_active: boolean; }
 interface ModifierOption { id: number; group_id: number; name: string; price: number; sort_order: number; is_active: boolean; }
 interface ItemModGroupLink { id: number; food_item_id: number; modifier_group_id: number; sort_order: number; }
@@ -50,8 +72,16 @@ export default function AdminFood() {
       const extract = (r: PromiseSettledResult<any>) =>
         r.status === 'fulfilled' ? (r.value?.data?.items || []) : [];
 
-      setCategories(extract(results[0]));
-      setItems(extract(results[1]));
+      const rawCats = extract(results[0]) as FoodCategory[];
+      const rawItems = extract(results[1]) as FoodItem[];
+      setCategories(rawCats);
+      setItems(
+        rawItems.map(it => ({
+          ...it,
+          is_popular: it.is_popular ?? it.is_recommended,
+          is_combo: it.is_combo ?? false,
+        }))
+      );
       setGroups(extract(results[2]));
       setOptions(extract(results[3]));
       setGroupLinks(extract(results[4]));
@@ -104,13 +134,31 @@ export default function AdminFood() {
       return;
     }
     try {
+      const popular = !!(editingItem.is_popular ?? editingItem.is_recommended);
+      const combo = !!(editingItem.is_combo);
       if (editingItem.id) {
-        const { id, ...updateData } = editingItem;
+        const { id, ...rest } = editingItem;
+        const updateData = {
+          ...rest,
+          is_popular: popular,
+          is_combo: combo,
+          is_recommended: popular,
+        };
         await withRetry(() => client.entities.food_items.update({ id: String(id), data: updateData }));
       } else {
-        await withRetry(() => client.entities.food_items.create({
-          data: { ...editingItem, is_active: editingItem.is_active !== false, is_recommended: editingItem.is_recommended || false, sort_order: editingItem.sort_order || items.length + 1, created_at: new Date().toISOString() }
-        }));
+        await withRetry(() =>
+          client.entities.food_items.create({
+            data: {
+              ...editingItem,
+              is_active: editingItem.is_active !== false,
+              is_popular: popular,
+              is_combo: combo,
+              is_recommended: popular,
+              sort_order: editingItem.sort_order || items.length + 1,
+              created_at: new Date().toISOString(),
+            },
+          })
+        );
       }
       toast.success('Блюдо сохранено');
       invalidateAllCaches();
@@ -282,17 +330,34 @@ export default function AdminFood() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-lg">Категории еды</h3>
-            <Button size="sm" onClick={() => setEditingCat({ name: '', icon: '🍽', sort_order: categories.length + 1 })} className="bg-orange-500 hover:bg-orange-600">
+            <Button
+              size="sm"
+              onClick={() =>
+                setEditingCat({ name: '', icon: '🍽', slug: '', image: '', sort_order: categories.length + 1 })
+              }
+              className="bg-orange-500 hover:bg-orange-600"
+            >
               <Plus className="w-4 h-4 mr-1" /> Добавить
             </Button>
           </div>
 
           {editingCat && (
             <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-3">
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Input placeholder="Иконка (emoji)" value={editingCat.icon || ''} onChange={e => setEditingCat({ ...editingCat, icon: e.target.value })} />
-                <Input placeholder="Название" value={editingCat.name || ''} onChange={e => setEditingCat({ ...editingCat, name: e.target.value })} className="col-span-2" />
+                <Input placeholder="Название" value={editingCat.name || ''} onChange={e => setEditingCat({ ...editingCat, name: e.target.value })} className="sm:col-span-2" />
               </div>
+              <Input
+                placeholder="Slug (URL, латиница)"
+                value={editingCat.slug || ''}
+                onChange={e => setEditingCat({ ...editingCat, slug: e.target.value })}
+              />
+              <ImageUpload
+                value={editingCat.image || ''}
+                onChange={key => setEditingCat({ ...editingCat, image: key })}
+                folder="food"
+                compact
+              />
               <Input type="number" placeholder="Порядок" value={editingCat.sort_order || ''} onChange={e => setEditingCat({ ...editingCat, sort_order: parseInt(e.target.value) || 0 })} className="w-32" />
               <div className="flex gap-2">
                 <Button size="sm" onClick={saveCat} className="bg-orange-500 hover:bg-orange-600"><Save className="w-4 h-4 mr-1" /> Сохранить</Button>
@@ -308,6 +373,7 @@ export default function AdminFood() {
                   <span className="text-2xl">{cat.icon}</span>
                   <div>
                     <span className="font-medium text-sm">{cat.name}</span>
+                    {cat.slug && <span className="text-xs text-gray-500 ml-2 font-mono">{cat.slug}</span>}
                     <span className="text-xs text-gray-400 ml-2">#{cat.sort_order}</span>
                   </div>
                 </div>
@@ -326,7 +392,23 @@ export default function AdminFood() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-lg">Блюда</h3>
-            <Button size="sm" onClick={() => setEditingItem({ name: '', price: 0, category_id: categories[0]?.id, description: '', weight: '', is_active: true, is_recommended: false })} className="bg-orange-500 hover:bg-orange-600">
+            <Button
+              size="sm"
+              onClick={() =>
+                setEditingItem({
+                  name: '',
+                  price: 0,
+                  category_id: categories[0]?.id,
+                  description: '',
+                  weight: '',
+                  is_active: true,
+                  is_recommended: false,
+                  is_popular: false,
+                  is_combo: false,
+                })
+              }
+              className="bg-orange-500 hover:bg-orange-600"
+            >
               <Plus className="w-4 h-4 mr-1" /> Добавить
             </Button>
           </div>
@@ -358,8 +440,26 @@ export default function AdminFood() {
               />
               <div className="flex gap-4 flex-wrap">
                 <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={editingItem.is_recommended || false} onChange={e => setEditingItem({ ...editingItem, is_recommended: e.target.checked })} />
-                  Рекомендуемое
+                  <input
+                    type="checkbox"
+                    checked={editingItem.is_popular ?? editingItem.is_recommended ?? false}
+                    onChange={e =>
+                      setEditingItem({
+                        ...editingItem,
+                        is_popular: e.target.checked,
+                        is_recommended: e.target.checked,
+                      })
+                    }
+                  />
+                  Популярное
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={editingItem.is_combo || false}
+                    onChange={e => setEditingItem({ ...editingItem, is_combo: e.target.checked })}
+                  />
+                  Комбо
                 </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={editingItem.is_active !== false} onChange={e => setEditingItem({ ...editingItem, is_active: e.target.checked })} />
@@ -394,7 +494,10 @@ export default function AdminFood() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-sm truncate">{item.name}</span>
-                        {item.is_recommended && <Badge className="bg-orange-100 text-orange-700 border-0 text-[10px]">Хит</Badge>}
+                        {(item.is_popular || item.is_recommended) && (
+                          <Badge className="bg-orange-100 text-orange-700 border-0 text-[10px]">Хит</Badge>
+                        )}
+                        {item.is_combo && <Badge className="bg-violet-100 text-violet-800 border-0 text-[10px]">Комбо</Badge>}
                         {(item as any).available_in_park && <Badge className="bg-green-100 text-green-700 border-0 text-[10px]">🌳 Парк</Badge>}
                         {linkedGroupCount > 0 && <Badge className="bg-purple-100 text-purple-700 border-0 text-[10px]">{linkedGroupCount} групп</Badge>}
                       </div>

@@ -19,6 +19,7 @@ router = APIRouter(prefix="/api/v1/entities/food_orders", tags=["food_orders"])
 # ---------- Pydantic Schemas ----------
 class Food_ordersData(BaseModel):
     """Entity data schema (for create/update)"""
+    user_id: Optional[int] = None
     order_items: str = None
     total_amount: float = None
     customer_name: str = None
@@ -32,6 +33,7 @@ class Food_ordersData(BaseModel):
 
 class Food_ordersUpdateData(BaseModel):
     """Update entity data (partial updates allowed)"""
+    user_id: Optional[int] = None
     order_items: Optional[str] = None
     total_amount: Optional[float] = None
     customer_name: Optional[str] = None
@@ -46,6 +48,7 @@ class Food_ordersUpdateData(BaseModel):
 class Food_ordersResponse(BaseModel):
     """Entity response schema"""
     id: int
+    user_id: Optional[int] = None
     order_items: Optional[str] = None
     total_amount: Optional[float] = None
     customer_name: Optional[str] = None

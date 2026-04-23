@@ -21,8 +21,8 @@ interface FoodOrder {
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; next?: string; nextLabel?: string }> = {
   new: { label: 'Новый', color: 'bg-yellow-100 text-yellow-800', next: 'in_progress', nextLabel: 'Взять в работу' },
-  in_progress: { label: 'Готовится', color: 'bg-blue-100 text-blue-800', next: 'done', nextLabel: 'Готов' },
-  done: { label: 'Выполнен', color: 'bg-green-100 text-green-800' },
+  in_progress: { label: 'Готовится', color: 'bg-blue-100 text-blue-800', next: 'done', nextLabel: 'Доставлен' },
+  done: { label: 'Доставлен', color: 'bg-green-100 text-green-800' },
   cancelled: { label: 'Отменён', color: 'bg-red-100 text-red-800' },
 };
 
@@ -99,7 +99,7 @@ export default function AdminFoodOrders() {
           { id: 'all', label: 'Все' },
           { id: 'new', label: 'Новые' },
           { id: 'in_progress', label: 'В работе' },
-          { id: 'done', label: 'Выполненные' },
+          { id: 'done', label: 'Доставленные' },
           { id: 'cancelled', label: 'Отменённые' },
         ].map(f => (
           <button

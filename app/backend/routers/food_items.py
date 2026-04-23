@@ -26,6 +26,9 @@ class Food_itemsData(BaseModel):
     image_url: str = None
     is_active: bool = None
     is_recommended: bool = None
+    is_popular: Optional[bool] = None
+    is_combo: Optional[bool] = None
+    available_in_park: Optional[bool] = None
     weight: str = None
     sort_order: int = None
     created_at: str = None
@@ -40,6 +43,9 @@ class Food_itemsUpdateData(BaseModel):
     image_url: Optional[str] = None
     is_active: Optional[bool] = None
     is_recommended: Optional[bool] = None
+    is_popular: Optional[bool] = None
+    is_combo: Optional[bool] = None
+    available_in_park: Optional[bool] = None
     weight: Optional[str] = None
     sort_order: Optional[int] = None
     created_at: Optional[str] = None
@@ -55,6 +61,9 @@ class Food_itemsResponse(BaseModel):
     image_url: Optional[str] = None
     is_active: Optional[bool] = None
     is_recommended: Optional[bool] = None
+    is_popular: Optional[bool] = None
+    is_combo: Optional[bool] = None
+    available_in_park: Optional[bool] = None
     weight: Optional[str] = None
     sort_order: Optional[int] = None
     created_at: Optional[str] = None

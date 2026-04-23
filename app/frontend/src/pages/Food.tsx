@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
+import { getCurrentUser, pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
 
 /* ─── CDN images ─── */
 const FALLBACK_FOOD_1 = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/2034a1d7-1c57-40c0-8145-23816557ba5c.png';
@@ -23,8 +23,31 @@ const FALLBACK_FOOD_2 = 'https://mgx-backend-cdn.metadl.com/generate/images/1029
 const FALLBACK_IMAGES = [FALLBACK_FOOD_1, FALLBACK_FOOD_2];
 
 /* ─── Types ─── */
-interface FoodCategory { id: number; name: string; icon: string; sort_order: number; is_active: boolean; }
-interface FoodItem { id: number; category_id: number; name: string; description: string; price: number; image_url: string; is_active: boolean; is_recommended: boolean; weight: string; sort_order: number; available_in_park?: boolean; }
+interface FoodCategory {
+  id: number;
+  name: string;
+  icon: string;
+  sort_order: number;
+  is_active: boolean;
+  slug?: string;
+  image?: string;
+}
+interface FoodItem {
+  id: number;
+  category_id: number;
+  name: string;
+  description: string;
+  price: number;
+  image_url: string;
+  is_active: boolean;
+  is_recommended: boolean;
+  weight: string;
+  sort_order: number;
+  available_in_park?: boolean;
+  is_popular?: boolean;
+  is_combo?: boolean;
+  category_slug?: string;
+}
 interface ModifierGroup { id: number; name: string; type: string; is_required: boolean; min_select: number; max_select: number; sort_order: number; is_active: boolean; }
 interface ModifierOption { id: number; group_id: number; name: string; price: number; sort_order: number; is_active: boolean; }
 interface ItemModGroupLink { id: number; food_item_id: number; modifier_group_id: number; sort_order: number; }
@@ -70,22 +93,28 @@ function itemMetaTags(item: FoodItem): string[] {
   return tags.slice(0, 2);
 }
 
-/** Сетка категорий (Glovo/Wolt): порядок как в ТЗ, сопоставление с API + fallback по ключевым словам */
-const MENU_CATEGORY_DEFS: {
-  key: string;
-  emoji: string;
-  i18nKey: string;
-  catHints: string[];
-  itemKeywords: string[];
-}[] = [
-  { key: 'pizza', emoji: '🍕', i18nKey: 'food.cat.pizza', catHints: ['пицц'], itemKeywords: ['пицц', 'пицца', 'pizza', 'маргарит', 'пепперон', 'кальцон'] },
-  { key: 'bbq', emoji: '🍢', i18nKey: 'food.cat.bbq', catHints: ['шашлык', 'мангал', 'гриль', 'кебаб'], itemKeywords: ['шашлык', 'мангал', 'гриль', 'кебаб', 'люля', 'каре'] },
-  { key: 'fastfood', emoji: '🍔', i18nKey: 'food.cat.fastfood', catHints: ['фаст', 'бургер', 'шаурма', 'хот-дог', 'хотдог', 'сэндвич'], itemKeywords: ['бургер', 'шаурма', 'хот-дог', 'хотдог', 'сэндвич', 'фри', 'наггет', 'твистер', 'бург'] },
-  { key: 'salads', emoji: '🥗', i18nKey: 'food.cat.salads', catHints: ['салат'], itemKeywords: ['салат', 'винегрет', 'цезарь', 'греческ'] },
-  { key: 'hot', emoji: '🍚', i18nKey: 'food.cat.hot', catHints: ['горяч', 'втор', 'основ', 'блюд'], itemKeywords: ['плов', 'борщ', 'суп', 'котлет', 'мясо', 'рыба', 'лапша', 'гуляш', 'рагу'] },
-  { key: 'drinks', emoji: '🥤', i18nKey: 'food.cat.drinks', catHints: ['напит', 'сок', 'лимонад', 'чай', 'кофе'], itemKeywords: ['сок', 'кола', 'лимонад', 'морс', 'чай', 'кофе', 'напит', 'вода', 'энерг', 'коктейл', 'смузи'] },
-  { key: 'bakery', emoji: '🥐', i18nKey: 'food.cat.bakery', catHints: ['выпечк', 'хлеб', 'булоч', 'пирог', 'самса'], itemKeywords: ['самса', 'беляш', 'пирог', 'булоч', 'хлеб', 'лепёш', 'лепеш', 'чебур', 'бауырсак'] },
-];
+function slugifyFoodCategory(text: string): string {
+  const s = (text || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\u0400-\u04FF\s-]+/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  return s || 'category';
+}
+
+function categorySlugOf(cat: FoodCategory): string {
+  const raw = (cat.slug || '').trim();
+  if (raw) return raw;
+  return slugifyFoodCategory(cat.name || `cat-${cat.id}`);
+}
+
+function itemCategorySlug(item: FoodItem, cats: FoodCategory[]): string {
+  if (item.category_slug) return item.category_slug;
+  const c = cats.find(x => x.id === item.category_id);
+  return c ? categorySlugOf(c) : '';
+}
 
 const PROMO_SLIDES = [
   { titleKey: 'food.promoSlide1Title' as const, linesKeys: ['food.promoLine1a', 'food.promoLine1b', 'food.promoLine1c'] as const },
@@ -124,14 +153,14 @@ export default function Food() {
     delivery_zones: '[]',
     show_recommendations: 'true',
   });
-  const [activeCategory, setActiveCategory] = useState<number | null>(null);
+  /** 'all' — весь каталог; иначе slug категории (как в /api/products?category=) */
+  const [selectedCategorySlug, setSelectedCategorySlug] = useState<string>('all');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(null);
   const [currentSelections, setCurrentSelections] = useState<CartItemSelection>({});
-  const [menuFilterKey, setMenuFilterKey] = useState<string | null>(null);
 
   // Checkout form - split address
   const [customerName, setCustomerName] = useState('');
@@ -156,29 +185,107 @@ export default function Food() {
     setLoading(true);
     const CACHE_TTL = 5 * 60 * 1000;
     const cq = (key: string, fn: () => Promise<any>) => fetchWithCache(`food_${key}`, () => withRetry(fn), CACHE_TTL);
+    const catalogHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'App-Host': typeof globalThis !== 'undefined' && (globalThis as any).window?.location?.origin
+        ? (globalThis as any).window.location.origin
+        : '',
+    };
     try {
+      let cats: FoodCategory[] | null = null;
+      let foodItems: FoodItem[] | null = null;
+      try {
+        const [cRes, pRes] = await Promise.all([
+          fetch('/api/categories', { headers: catalogHeaders }),
+          fetch('/api/products', { headers: catalogHeaders }),
+        ]);
+        if (cRes.ok && pRes.ok) {
+          const cj = await cRes.json();
+          const pj = await pRes.json();
+          const rawCats = Array.isArray(cj.categories) ? cj.categories : [];
+          const mappedCats: FoodCategory[] = rawCats.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            slug: c.slug,
+            image: c.image,
+            icon: (c.image && String(c.image).trim()) ? '' : '🍽',
+            sort_order: typeof c.order === 'number' ? c.order : 0,
+            is_active: true,
+          }));
+          const slugById: Record<number, string> = {};
+          for (const c of mappedCats) slugById[c.id] = categorySlugOf(c);
+          const rawProds = Array.isArray(pj.products) ? pj.products : [];
+          foodItems = rawProds.map((p: any) => ({
+            id: p.id,
+            category_id: p.category_id,
+            name: p.title,
+            description: p.description || '',
+            price: Number(p.price) || 0,
+            image_url: p.image || '',
+            is_active: true,
+            is_recommended: !!(p.is_popular),
+            is_popular: !!(p.is_popular),
+            is_combo: !!(p.is_combo),
+            weight: '',
+            sort_order: 0,
+            category_slug: (p.category_slug as string) || slugById[p.category_id] || '',
+          }));
+          cats = mappedCats;
+        }
+      } catch (e) {
+        console.warn('[Food] catalog API:', e);
+      }
+
       const results = await Promise.allSettled([
-        cq('categories', () => client.entities.food_categories.query({ sort: 'sort_order', limit: 50 })),
-        cq('items', () => client.entities.food_items.query({ sort: 'sort_order', limit: 200 })),
+        cats
+          ? Promise.resolve({ data: { items: [] as FoodCategory[] } })
+          : cq('categories', () => client.entities.food_categories.query({ sort: 'sort_order', limit: 50 })),
+        foodItems
+          ? Promise.resolve({ data: { items: [] as FoodItem[] } })
+          : cq('items', () => client.entities.food_items.query({ sort: 'sort_order', limit: 200 })),
         cq('mod_groups', () => client.entities.modifier_groups.query({ sort: 'sort_order', limit: 100 })),
         cq('mod_options', () => client.entities.modifier_options.query({ sort: 'sort_order', limit: 500 })),
         cq('item_groups', () => client.entities.item_modifier_groups.query({ limit: 500 })),
         cq('settings', () => client.entities.food_settings.query({ limit: 50 })),
       ]);
-      const extract = (r: PromiseSettledResult<any>) => r.status === 'fulfilled' ? (r.value?.data?.items || []) : [];
-      const cats = extract(results[0]).filter((c: FoodCategory) => c.is_active);
-      setCategories(cats);
-      setActiveCategory(null);
-      setMenuFilterKey(null);
-      setItems(extract(results[1]).filter((i: FoodItem) => i.is_active));
+      const extract = (r: PromiseSettledResult<any>) => (r.status === 'fulfilled' ? (r.value?.data?.items || []) : []);
+
+      if (cats && foodItems) {
+        setCategories(cats);
+        setItems(foodItems);
+      } else {
+        const ecats: FoodCategory[] = extract(results[0]).filter((c: FoodCategory) => c.is_active);
+        const eitems: FoodItem[] = extract(results[1]).filter((i: FoodItem) => i.is_active).map((i: FoodItem) => ({
+          ...i,
+          is_popular: i.is_popular ?? i.is_recommended,
+          is_combo: i.is_combo ?? false,
+        }));
+        const slugById: Record<number, string> = {};
+        for (const c of ecats) slugById[c.id] = categorySlugOf(c);
+        setCategories(ecats);
+        setItems(
+          eitems.map(it => ({
+            ...it,
+            category_slug: it.category_slug || slugById[it.category_id] || '',
+          }))
+        );
+      }
+      setSelectedCategorySlug('all');
+
       setModGroups(extract(results[2]).filter((g: ModifierGroup) => g.is_active));
       setModOptions(extract(results[3]).filter((o: ModifierOption) => o.is_active));
       setItemGroupLinks(extract(results[4]));
       const settingsArr = extract(results[5]);
       const s: Record<string, string> = {};
-      settingsArr.forEach((item: any) => { if (item.setting_key && item.setting_value) s[item.setting_key] = item.setting_value; });
+      settingsArr.forEach((item: any) => {
+        if (item.setting_key && item.setting_value) s[item.setting_key] = item.setting_value;
+      });
       setSettings(prev => ({ ...prev, ...s }));
-    } catch (e) { console.error('Error loading food data:', e); } finally { setLoading(false); }
+    } catch (e) {
+      console.error('Error loading food data:', e);
+    } finally {
+      setLoading(false);
+    }
   }
 
   // Parse delivery zones from settings
@@ -192,82 +299,37 @@ export default function Food() {
   const poolItems = items;
 
   const filteredItems = useMemo(() => {
-    let result = poolItems;
-    if (activeCategory !== null) {
-      result = result.filter(i => i.category_id === activeCategory);
-    } else if (menuFilterKey) {
-      const def = MENU_CATEGORY_DEFS.find(d => d.key === menuFilterKey);
-      if (def) {
-        result = result.filter(i => {
-          const blob = `${i.name} ${i.description || ''}`.toLowerCase();
-          return def.itemKeywords.some(k => blob.includes(k));
-        });
-      }
-    }
-    return result;
-  }, [poolItems, activeCategory, menuFilterKey]);
+    if (selectedCategorySlug === 'all') return poolItems;
+    return poolItems.filter(i => itemCategorySlug(i, categories) === selectedCategorySlug);
+  }, [poolItems, selectedCategorySlug, categories]);
 
   const sortedFilteredItems = useMemo(() => {
-    return [...filteredItems].sort((a, b) => Number(b.is_recommended) - Number(a.is_recommended));
+    return [...filteredItems].sort(
+      (a, b) =>
+        Number(b.is_popular || b.is_recommended) - Number(a.is_popular || a.is_recommended)
+    );
   }, [filteredItems]);
   const recommendedItems = useMemo(
-    () => poolItems.filter(i => i.is_recommended).slice(0, 6),
+    () => poolItems.filter(i => i.is_popular || i.is_recommended).slice(0, 6),
     [poolItems]
   );
-  const categoryPreviewMap = useMemo(() => {
-    const map: Record<string, FoodItem | null> = {};
-    for (const def of MENU_CATEGORY_DEFS) {
-      const match = poolItems.find(i => {
-        const blob = `${i.name} ${i.description || ''}`.toLowerCase();
-        return def.itemKeywords.some(k => blob.includes(k));
-      });
-      map[def.key] = match || null;
-    }
-    return map;
-  }, [poolItems]);
+  const comboItems = useMemo(() => poolItems.filter(i => i.is_combo), [poolItems]);
 
-  function selectMenuCategoryTile(key: string | null) {
-    if (key === null) {
-      setActiveCategory(null);
-      setMenuFilterKey(null);
-      return;
-    }
-    const def = MENU_CATEGORY_DEFS.find(d => d.key === key);
-    if (!def) return;
-    const catMatch = categories.find(c => {
-      const n = c.name.toLowerCase();
-      return def.catHints.some(h => n.includes(h));
-    });
-    if (catMatch) {
-      setActiveCategory(catMatch.id);
-      setMenuFilterKey(null);
-    } else {
-      setActiveCategory(null);
-      setMenuFilterKey(key);
-    }
-  }
+  const sortedNavCategories = useMemo(
+    () => [...categories].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
+    [categories]
+  );
 
   const activeCategoryLabel = useMemo(() => {
-    if (activeCategory !== null) {
-      const c = categories.find(x => x.id === activeCategory);
-      return (c && (localized(c, 'name') || c.name)) || t('food.allDishes');
-    }
-    if (menuFilterKey) {
-      const def = MENU_CATEGORY_DEFS.find(d => d.key === menuFilterKey);
-      return def ? t(def.i18nKey as any) : t('food.allDishes');
-    }
-    return t('food.allDishes');
-  }, [activeCategory, menuFilterKey, categories, localized, t]);
+    if (selectedCategorySlug === 'all') return t('food.allDishes');
+    const c = categories.find(x => categorySlugOf(x) === selectedCategorySlug);
+    return (c && (localized(c, 'name') || c.name)) || t('food.allDishes');
+  }, [selectedCategorySlug, categories, localized, t]);
 
   const showRecommendations = settings.show_recommendations !== 'false';
 
-  function isGridCategoryActive(key: string): boolean {
-    if (key === 'all') return activeCategory === null && menuFilterKey === null;
-    const def = MENU_CATEGORY_DEFS.find(d => d.key === key);
-    if (!def) return false;
-    if (menuFilterKey === key) return true;
-    const catMatch = categories.find(c => def.catHints.some(h => c.name.toLowerCase().includes(h)));
-    return catMatch ? activeCategory === catMatch.id : false;
+  function isGridCategoryActive(slug: string): boolean {
+    return selectedCategorySlug === slug;
   }
 
   // Get modifier groups for a food item
@@ -381,7 +443,7 @@ export default function Food() {
       .filter(s => s.items.length > 0);
   }, [categories, poolItems]);
 
-  const showGroupedMenu = activeCategory === null && menuFilterKey === null;
+  const showGroupedMenu = selectedCategorySlug === 'all';
 
   const cartBarLabel = useMemo(() => {
     const n = cartCount;
@@ -549,14 +611,24 @@ export default function Food() {
     });
     const total = checkoutGrandTotal;
     try {
-      await withRetry(() => client.entities.food_orders.create({
-        data: {
-          order_items: JSON.stringify(orderItems), total_amount: total,
-          customer_name: customerName, customer_phone: customerPhone,
-          delivery_address: fullAddress, comment, delivery_method: deliveryMethod,
-          status: 'new', created_at: new Date().toISOString()
-        }
-      }));
+      const u = getCurrentUser();
+      const uidNum = u?.id && /^\d+$/.test(u.id) ? parseInt(u.id, 10) : undefined;
+      await withRetry(() =>
+        client.entities.food_orders.create({
+          data: {
+            ...(uidNum != null ? { user_id: uidNum } : {}),
+            order_items: JSON.stringify(orderItems),
+            total_amount: total,
+            customer_name: customerName,
+            customer_phone: customerPhone,
+            delivery_address: fullAddress,
+            comment,
+            delivery_method: deliveryMethod,
+            status: 'new',
+            created_at: new Date().toISOString(),
+          },
+        })
+      );
       pushCabinetItem('foodOrders', {
         title: `Заказ на ${total.toLocaleString('ru-RU')} ₸`,
         subtitle: deliveryMethod === 'delivery' ? fullAddress : 'Самовывоз',
@@ -595,7 +667,7 @@ export default function Food() {
   }
 
   function getBadgeType(item: FoodItem): 'hit' | 'new' | null {
-    if (item.is_recommended) return 'hit';
+    if (item.is_popular || item.is_recommended) return 'hit';
     if ((item.sort_order ?? 99) <= 3) return 'new';
     return null;
   }
@@ -707,28 +779,35 @@ export default function Food() {
           <section>
             <h2 className="mb-3 text-lg font-extrabold tracking-tight">{t('food.categories')}</h2>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              {MENU_CATEGORY_DEFS.map(def => (
-                <button
-                  key={def.key}
-                  type="button"
-                  onClick={() => selectMenuCategoryTile(def.key)}
-                  className={`rounded-2xl border bg-white p-3 text-left shadow-sm transition-all active:scale-[0.98] ${
-                    isGridCategoryActive(def.key) ? 'border-[#FF3B30] ring-2 ring-[#FF3B30]/20' : 'border-gray-100 hover:border-gray-200'
-                  }`}
-                >
-                  <div className="mb-2 aspect-[4/3] overflow-hidden rounded-xl bg-[#F0F0F0]">
-                    {categoryPreviewMap[def.key] ? (
-                      <img src={getItemImage(categoryPreviewMap[def.key] as FoodItem)} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-3xl">{def.emoji}</div>
-                    )}
-                  </div>
-                  <span className="text-sm font-bold leading-tight">{t(def.i18nKey as any)}</span>
-                </button>
-              ))}
+              {sortedNavCategories.map(cat => {
+                const slug = categorySlugOf(cat);
+                const preview = poolItems.find(i => i.category_id === cat.id);
+                const catImg = (cat.image || '').trim() ? resolveImageSrc(cat.image!) : '';
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setSelectedCategorySlug(slug)}
+                    className={`rounded-2xl border bg-white p-3 text-left shadow-sm transition-all active:scale-[0.98] ${
+                      isGridCategoryActive(slug) ? 'border-[#FF3B30] ring-2 ring-[#FF3B30]/20' : 'border-gray-100 hover:border-gray-200'
+                    }`}
+                  >
+                    <div className="mb-2 aspect-[4/3] overflow-hidden rounded-xl bg-[#F0F0F0]">
+                      {catImg ? (
+                        <img src={catImg} alt="" className="h-full w-full object-cover" />
+                      ) : preview ? (
+                        <img src={getItemImage(preview)} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-3xl">{(cat.icon || '').trim() || '🍽'}</div>
+                      )}
+                    </div>
+                    <span className="text-sm font-bold leading-tight">{localized(cat, 'name') || cat.name}</span>
+                  </button>
+                );
+              })}
               <button
                 type="button"
-                onClick={() => selectMenuCategoryTile(null)}
+                onClick={() => setSelectedCategorySlug('all')}
                 className={`rounded-2xl border bg-white p-3 text-left shadow-sm transition-all active:scale-[0.98] ${
                   isGridCategoryActive('all') ? 'border-[#FF3B30] ring-2 ring-[#FF3B30]/20' : 'border-gray-100 hover:border-gray-200'
                 }`}
@@ -777,17 +856,49 @@ export default function Food() {
           {/* Комбо / выгодно */}
           <section className="rounded-3xl bg-gradient-to-br from-[#111111] via-[#1c1c1c] to-[#2a1f35] p-5 text-white shadow-lg ring-1 ring-black/5">
             <h2 className="mb-4 text-lg font-extrabold">{t('food.comboDeals')}</h2>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {[1, 2, 3].map(i => (
-                <div
-                  key={i}
-                  className="rounded-2xl border border-white/10 bg-white/10 px-4 py-4 backdrop-blur-sm"
-                >
-                  <p className="text-[15px] font-bold leading-snug">{t(`food.comboCard${i}` as 'food.comboCard1')}</p>
-                  <p className="mt-1.5 text-xs leading-relaxed text-white/70">{t(`food.comboCard${i}Sub` as 'food.comboCard1Sub')}</p>
-                </div>
-              ))}
-            </div>
+            {comboItems.length > 0 ? (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {comboItems.slice(0, 6).map(item => {
+                  const qtyInCart = getItemQuantityInCart(item.id);
+                  return (
+                    <div
+                      key={item.id}
+                      className="overflow-hidden rounded-2xl border border-white/10 bg-white/10 shadow-sm backdrop-blur-sm"
+                    >
+                      <button type="button" onClick={() => openItemModal(item)} className="relative block aspect-[5/3] w-full bg-black/20">
+                        <img src={getItemImage(item)} alt="" className="h-full w-full object-cover opacity-95" />
+                        {qtyInCart > 0 && <InCartOverlay qty={qtyInCart} />}
+                      </button>
+                      <div className="p-3">
+                        <p className="line-clamp-2 text-sm font-bold leading-snug">{localized(item, 'name') || item.name}</p>
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <span className="text-sm font-extrabold">{formatPrice(item.price)}</span>
+                          <button
+                            type="button"
+                            onClick={() => quickAdd(item)}
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FF3B30] text-white active:scale-95"
+                          >
+                            <Plus className="h-5 w-5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-3">
+                {[1, 2, 3].map(i => (
+                  <div
+                    key={i}
+                    className="rounded-2xl border border-white/10 bg-white/10 px-4 py-4 backdrop-blur-sm"
+                  >
+                    <p className="text-[15px] font-bold leading-snug">{t(`food.comboCard${i}` as 'food.comboCard1')}</p>
+                    <p className="mt-1.5 text-xs leading-relaxed text-white/70">{t(`food.comboCard${i}Sub` as 'food.comboCard1Sub')}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
 
           {/* Основное меню */}
