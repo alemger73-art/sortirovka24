@@ -284,8 +284,14 @@ class StorageService:
         if not public_id:
             raise ValueError("Invalid object key for upload")
         resource_type = "auto"
-        if content_type and content_type.startswith("video/"):
-            resource_type = "video"
+        if content_type:
+            ct = content_type.lower()
+            if ct.startswith("video/"):
+                resource_type = "video"
+            elif ct.startswith("image/"):
+                resource_type = "image"
+            else:
+                resource_type = "raw"
         try:
             result = cloudinary.uploader.upload(
                 file_bytes,
@@ -297,14 +303,23 @@ class StorageService:
                 unique_filename=False,
             )
         except Exception:
-            # Fallback for uncommon mime/resource combinations
-            result = cloudinary.uploader.upload(
-                file_bytes,
-                public_id=public_id,
-                format=fmt,
-                resource_type="auto",
-                overwrite=True,
-                invalidate=True,
-                unique_filename=False,
-            )
+            # Fallback sequence for uncommon mime/resource combinations
+            result = None
+            for fallback_type in ("auto", "image", "video", "raw"):
+                try:
+                    result = cloudinary.uploader.upload(
+                        file_bytes,
+                        public_id=public_id,
+                        format=fmt,
+                        resource_type=fallback_type,
+                        overwrite=True,
+                        invalidate=True,
+                        unique_filename=False,
+                    )
+                    if result:
+                        break
+                except Exception:
+                    continue
+            if not result:
+                raise
         return str(result.get("secure_url") or self._cloudinary_url(object_key))
