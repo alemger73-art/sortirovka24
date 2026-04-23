@@ -46,12 +46,31 @@ def _parse_cloudinary_url(raw_url: str) -> tuple[str, str, str]:
     """Parse CLOUDINARY_URL format: cloudinary://api_key:api_secret@cloud_name"""
     try:
         cleaned = (raw_url or "").strip()
-        parsed = urlparse(cleaned)
-        if parsed.scheme.lower() != "cloudinary":
+        if not cleaned.lower().startswith("cloudinary://"):
             return "", "", ""
-        cloud_name = (parsed.hostname or "").strip()
-        api_key = unquote((parsed.username or "").strip())
-        api_secret = unquote((parsed.password or "").strip())
+
+        # Manual parse is more robust for secrets with special characters.
+        # Format: cloudinary://<api_key>:<api_secret>@<cloud_name>
+        body = cleaned[len("cloudinary://") :]
+        at_pos = body.rfind("@")
+        if at_pos <= 0:
+            return "", "", ""
+
+        creds = body[:at_pos]
+        cloud_part = body[at_pos + 1 :]
+        cloud_name = cloud_part.split("/", 1)[0].strip()
+        if not cloud_name:
+            return "", "", ""
+
+        colon_pos = creds.find(":")
+        if colon_pos <= 0:
+            return "", "", ""
+
+        api_key = unquote(creds[:colon_pos].strip())
+        api_secret = unquote(creds[colon_pos + 1 :].strip())
+        if not api_key or not api_secret:
+            return "", "", ""
+
         return cloud_name, api_key, api_secret
     except Exception:
         return "", "", ""
