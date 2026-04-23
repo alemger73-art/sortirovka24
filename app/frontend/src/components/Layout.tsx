@@ -43,7 +43,7 @@ export default function Layout({ children, hideHeader = false }: { children: Rea
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-gray-950 flex flex-col transition-colors duration-300">
+    <div className="theme-transition min-h-screen bg-app flex flex-col">
       {/* Header */}
       {!hideHeader && (
         <Header />
@@ -62,7 +62,7 @@ export default function Layout({ children, hideHeader = false }: { children: Rea
       />
 
       {/* Footer */}
-      <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mt-12 transition-colors duration-300">
+      <footer className="theme-transition bg-app-footer border-t border-app mt-12">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
@@ -70,14 +70,14 @@ export default function Layout({ children, hideHeader = false }: { children: Rea
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold">С</span>
                 </div>
-                <span className="font-bold text-gray-900 dark:text-white">{t('footer.portalTitle')}</span>
+                <span className="font-bold text-app">{t('footer.portalTitle')}</span>
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-app-muted">
                 {t('footer.portalDescription')}
               </p>
             </div>
             <div>
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-3">{t('footer.sections')}</h4>
+              <h4 className="font-semibold text-app mb-3">{t('footer.sections')}</h4>
               <div className="grid grid-cols-2 gap-2">
                 {NAV_KEYS.map(item => (
                   <Link
@@ -85,7 +85,7 @@ export default function Layout({ children, hideHeader = false }: { children: Rea
                     to={item.path}
                     onMouseEnter={() => handlePrefetch(item.path)}
                     onFocus={() => handlePrefetch(item.path)}
-                    className="text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                    className="text-sm text-app-muted hover:text-blue-600"
                   >
                     {t(item.key)}
                   </Link>
@@ -93,8 +93,8 @@ export default function Layout({ children, hideHeader = false }: { children: Rea
               </div>
             </div>
             <div>
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-3">{t('footer.contacts')}</h4>
-              <div className="space-y-2 text-sm text-gray-500 dark:text-gray-400">
+              <h4 className="font-semibold text-app mb-3">{t('footer.contacts')}</h4>
+              <div className="space-y-2 text-sm text-app-muted">
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4" />
                   <span>+7 (7212) 00-00-00</span>
@@ -104,7 +104,7 @@ export default function Layout({ children, hideHeader = false }: { children: Rea
               </div>
             </div>
           </div>
-          <div className="border-t border-gray-100 dark:border-gray-800 mt-6 pt-6 text-center text-sm text-gray-400 dark:text-gray-500">
+          <div className="border-t border-app mt-6 pt-6 text-center text-sm text-app-muted">
             {t('footer.rights')}
           </div>
         </div>

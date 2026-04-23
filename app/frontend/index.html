@@ -19,6 +19,32 @@
     <meta property="og:title" content="%VITE_APP_TITLE%" />
     <meta property="og:description" content="%VITE_APP_DESCRIPTION%" />
     <meta property="og:type" content="website" />
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem('sortirovka-theme');
+          var currentUserId = localStorage.getItem('s24_current_user_id');
+          if (currentUserId) {
+            var usersRaw = localStorage.getItem('s24_users');
+            var users = usersRaw ? JSON.parse(usersRaw) : [];
+            if (Array.isArray(users)) {
+              var current = users.find(function (u) { return u && u.id === currentUserId; });
+              if (current && (current.themePreference === 'dark' || current.themePreference === 'light')) {
+                theme = current.themePreference;
+              }
+            }
+          }
+          if (theme !== 'dark' && theme !== 'light') {
+            theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.setAttribute('data-theme', theme);
+          if (theme === 'dark') document.documentElement.classList.add('dark');
+          else document.documentElement.classList.remove('dark');
+        } catch (e) {
+          // Ignore early theme bootstrap errors
+        }
+      })();
+    </script>
   </head>
 
   <body>

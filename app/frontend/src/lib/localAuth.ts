@@ -5,6 +5,7 @@ export interface LocalUser {
   password: string;
   email?: string;
   avatar?: string;
+  themePreference?: 'light' | 'dark';
 }
 
 export interface CabinetItem {
@@ -175,6 +176,23 @@ export function getCurrentUser(): LocalUser | null {
   const userId = localStorage.getItem(CURRENT_USER_KEY);
   if (!userId) return null;
   return readUsers().find((u) => u.id === userId) || null;
+}
+
+export function getCurrentUserTheme(): 'light' | 'dark' | null {
+  const user = getCurrentUser();
+  if (!user?.themePreference) return null;
+  return user.themePreference;
+}
+
+export function setCurrentUserTheme(theme: 'light' | 'dark') {
+  const user = getCurrentUser();
+  if (!user) return;
+  const users = readUsers();
+  const idx = users.findIndex((u) => u.id === user.id);
+  if (idx < 0) return;
+  users[idx] = { ...users[idx], themePreference: theme };
+  writeUsers(users);
+  emitAuthChanged();
 }
 
 export function updateCurrentUserProfile(input: {

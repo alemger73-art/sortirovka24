@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { getCurrentUserTheme, onAuthChanged, setCurrentUserTheme } from '@/lib/localAuth';
 
 type Theme = 'light' | 'dark';
 
@@ -15,6 +16,8 @@ const STORAGE_KEY = 'sortirovka-theme';
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     try {
+      const userTheme = getCurrentUserTheme();
+      if (userTheme === 'dark' || userTheme === 'light') return userTheme;
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored === 'dark' || stored === 'light') return stored;
       if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)')?.matches) return 'dark';
@@ -24,10 +27,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return 'light';
   });
 
-  // Apply theme class to <html>
+  // Apply theme class + attribute to <html>
   useEffect(() => {
     try {
       const root = document.documentElement;
+      root.setAttribute('data-theme', theme);
       if (theme === 'dark') {
         root.classList.add('dark');
       } else {
@@ -39,12 +43,26 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [theme]);
 
+  // Keep theme in sync with auth profile changes.
+  useEffect(() => {
+    return onAuthChanged(() => {
+      const userTheme = getCurrentUserTheme();
+      if (!userTheme) return;
+      setThemeState((prev) => (prev === userTheme ? prev : userTheme));
+    });
+  }, []);
+
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);
+    setCurrentUserTheme(newTheme);
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setThemeState(prev => (prev === 'light' ? 'dark' : 'light'));
+    setThemeState((prev) => {
+      const next = prev === 'light' ? 'dark' : 'light';
+      setCurrentUserTheme(next);
+      return next;
+    });
   }, []);
 
   return (

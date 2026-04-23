@@ -92,7 +92,7 @@ function AdminLogin({ onLogin }: { onLogin: (token: string) => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+    <div className="theme-transition min-h-screen bg-app flex items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="mx-auto w-14 h-14 bg-slate-800 rounded-xl flex items-center justify-center mb-3">

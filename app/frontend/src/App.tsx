@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import RequireUserAuth from "@/components/RequireUserAuth";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { getAccountToken } from "@/lib/accountApi";
 
 // Critical path — loaded eagerly (homepage)
 import Index from "./pages/Index";
@@ -70,6 +71,9 @@ function PageLoader() {
 }
 
 function App() {
+  const Protected = ({ children }: { children: JSX.Element }) =>
+    getAccountToken() ? children : <Navigate to="/account" replace />;
+
   return (
     <ThemeProvider>
       <LanguageProvider>
@@ -105,11 +109,11 @@ function App() {
               <Route path="/directory" element={<DirectoryPage />} />
               <Route path="/transport" element={<TransportPage />} />
               <Route path="/account" element={<AccountAuth />} />
-              <Route path="/cabinet" element={<Cabinet />} />
-              <Route path="/cabinet/master" element={<CabinetMaster />} />
-              <Route path="/cabinet/driver" element={<CabinetDriver />} />
-              <Route path="/cabinet/partner" element={<CabinetPartner />} />
-              <Route path="/cabinet/admin" element={<CabinetAdmin />} />
+              <Route path="/cabinet" element={<Protected><Cabinet /></Protected>} />
+              <Route path="/cabinet/master" element={<Protected><CabinetMaster /></Protected>} />
+              <Route path="/cabinet/driver" element={<Protected><CabinetDriver /></Protected>} />
+              <Route path="/cabinet/partner" element={<Protected><CabinetPartner /></Protected>} />
+              <Route path="/cabinet/admin" element={<Protected><CabinetAdmin /></Protected>} />
 
               {/* Other pages — lazy */}
               <Route path="/inspectors" element={<InspectorsPage />} />

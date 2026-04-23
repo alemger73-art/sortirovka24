@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, MapPin, Globe } from 'lucide-react';
+import { Menu, X, MapPin, Globe, Moon, Sun } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { prefetchPage, routeToPage } from '@/lib/prefetch';
 import { getCurrentUser, logoutLocalUser, onAuthChanged } from '@/lib/localAuth';
 
@@ -20,6 +21,7 @@ export default function Header() {
   const [user, setUser] = useState(getCurrentUser());
   const location = useLocation();
   const { lang, setLang, t } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
 
   const toggleLang = () => setLang(lang === 'ru' ? 'kz' : 'ru');
 
@@ -43,15 +45,15 @@ export default function Header() {
   );
 
   return (
-    <header className="relative z-50 border-b border-[#1A2233] bg-[#0B0F19] shadow-[0_4px_20px_rgba(0,0,0,0.25)]">
+    <header className="theme-transition relative z-50 border-b border-app bg-app-header shadow-[0_4px_20px_rgba(0,0,0,0.25)]">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-yellow-400/15">
             <MapPin className="h-5 w-5 text-yellow-300" />
           </div>
           <div className="leading-tight">
-            <p className="text-base font-bold text-white">{t('header.portalName')}</p>
-            <p className="text-xs text-white/60">{t('header.portalDesc')}</p>
+            <p className="text-base font-bold text-app">{t('header.portalName')}</p>
+            <p className="text-xs text-app-muted">{t('header.portalDesc')}</p>
           </div>
         </Link>
 
@@ -67,7 +69,7 @@ export default function Header() {
                 className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   active
                     ? 'text-yellow-300'
-                    : 'text-white hover:text-yellow-200'
+                    : 'text-app hover:text-yellow-200'
                 }`}
               >
                 {t(item.key)}
@@ -81,13 +83,13 @@ export default function Header() {
             <>
               <Link
                 to="/cabinet"
-                className="hidden rounded-lg bg-white px-3 py-2 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-100 sm:inline-flex"
+                className="hidden rounded-lg bg-app-card px-3 py-2 text-sm font-semibold text-app theme-transition hover:opacity-90 sm:inline-flex"
               >
                 {t('cabinet.title')}
               </Link>
               <button
                 onClick={logoutLocalUser}
-                className="hidden rounded-lg border border-[#2A3347] px-3 py-2 text-sm font-semibold text-white hover:bg-[#141B2A] sm:inline-flex"
+                className="hidden rounded-lg border border-app px-3 py-2 text-sm font-semibold text-app theme-transition hover:bg-app-surface sm:inline-flex"
               >
                 {t('auth.logout')}
               </button>
@@ -95,14 +97,22 @@ export default function Header() {
           ) : (
             <Link
               to="/login"
-              className="hidden rounded-lg bg-white px-3 py-2 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-100 sm:inline-flex"
+              className="hidden rounded-lg bg-app-card px-3 py-2 text-sm font-semibold text-app theme-transition hover:opacity-90 sm:inline-flex"
             >
               {t('auth.login')}
             </Link>
           )}
           <button
+            onClick={toggleTheme}
+            className="inline-flex items-center gap-1 rounded-lg border border-app px-2.5 py-2 text-sm font-semibold text-app theme-transition hover:bg-app-surface"
+            aria-label={theme === 'dark' ? t('theme.light') : t('theme.dark')}
+            title={theme === 'dark' ? t('theme.light') : t('theme.dark')}
+          >
+            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
+          <button
             onClick={toggleLang}
-            className="inline-flex items-center gap-1 rounded-lg border border-[#2A3347] px-2.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#141B2A]"
+            className="inline-flex items-center gap-1 rounded-lg border border-app px-2.5 py-2 text-sm font-semibold text-app theme-transition hover:bg-app-surface"
             aria-label={t('lang.switch')}
             title={lang === 'ru' ? t('lang.kz') : t('lang.ru')}
           >
@@ -111,7 +121,7 @@ export default function Header() {
           </button>
           <button
             onClick={() => setMobileOpen((v) => !v)}
-            className="rounded-lg p-2 text-white hover:bg-white/10 lg:hidden"
+            className="rounded-lg p-2 text-app theme-transition hover:bg-app-surface lg:hidden"
             aria-label={t('header.openMenu')}
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -120,7 +130,7 @@ export default function Header() {
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-[#1A2233] bg-[#0B0F19] px-4 py-3 lg:hidden">
+        <div className="theme-transition border-t border-app bg-app-header px-4 py-3 lg:hidden">
           <nav className="space-y-1">
             {NAV_ITEMS.map((item) => {
               const active = isActivePath(item.path);
@@ -134,7 +144,7 @@ export default function Header() {
                   className={`block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                     active
                       ? 'text-yellow-300'
-                      : 'text-white hover:text-yellow-200'
+                      : 'text-app hover:text-yellow-200'
                   }`}
                 >
                   {t(item.key)}
@@ -146,7 +156,7 @@ export default function Header() {
                 <Link
                   to="/cabinet"
                   onClick={() => setMobileOpen(false)}
-                  className="mt-2 block rounded-lg bg-white px-3 py-2.5 text-center text-sm font-semibold text-gray-900 hover:bg-gray-100"
+                  className="mt-2 block rounded-lg bg-app-card px-3 py-2.5 text-center text-sm font-semibold text-app theme-transition hover:opacity-90"
                 >
                   {t('cabinet.title')}
                 </Link>
@@ -155,7 +165,7 @@ export default function Header() {
                     logoutLocalUser();
                     setMobileOpen(false);
                   }}
-                  className="mt-2 w-full rounded-lg border border-[#2A3347] px-3 py-2.5 text-center text-sm font-semibold text-white hover:bg-[#141B2A]"
+                  className="mt-2 w-full rounded-lg border border-app px-3 py-2.5 text-center text-sm font-semibold text-app theme-transition hover:bg-app-surface"
                 >
                   {t('auth.logout')}
                 </button>
@@ -164,7 +174,7 @@ export default function Header() {
               <Link
                 to="/login"
                 onClick={() => setMobileOpen(false)}
-                className="mt-2 block rounded-lg bg-white px-3 py-2.5 text-center text-sm font-semibold text-gray-900 hover:bg-gray-100"
+                className="mt-2 block rounded-lg bg-app-card px-3 py-2.5 text-center text-sm font-semibold text-app theme-transition hover:opacity-90"
               >
                 {t('auth.login')}
               </Link>
