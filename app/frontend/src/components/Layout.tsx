@@ -68,6 +68,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </nav>
 
             <div className="flex items-center gap-1.5">
+              <Link
+                to="/account"
+                className="hidden sm:inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors min-h-[40px]"
+              >
+                Войти / Регистрация
+              </Link>
+              <Link
+                to="/cabinet"
+                className="hidden sm:inline-flex items-center rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors min-h-[40px]"
+              >
+                Кабинет
+              </Link>
               {/* Language switcher */}
               <button
                 onClick={toggleLang}
@@ -142,6 +154,20 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </button>
 
               {/* Admin panel link REMOVED from mobile menu */}
+              <Link
+                to="/account"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 min-h-[44px]"
+              >
+                Войти / Регистрация
+              </Link>
+              <Link
+                to="/cabinet"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 min-h-[44px]"
+              >
+                Кабинет
+              </Link>
             </nav>
           </div>
         )}
