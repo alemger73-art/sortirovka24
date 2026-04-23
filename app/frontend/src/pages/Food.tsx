@@ -8,8 +8,8 @@ import { resolveImageSrc } from '@/lib/storage';
 import {
   ShoppingCart, Plus, Minus, X, Utensils, Truck, Store,
   ChevronRight, Phone, MapPin, MessageSquare, Star, Clock,
-  ArrowLeft, Check, Flame, Sparkles, Zap, Search,
-  CircleDot, CheckSquare, AlertCircle, TreePine, Home,
+  ArrowLeft, Check, Search,
+  AlertCircle, TreePine, Home,
 } from 'lucide-react';
 import ParkMap from '@/components/ParkMap';
 import type { ParkPoint } from '@/components/ParkMap';
@@ -21,6 +21,8 @@ import { pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
 
 /* ─── CDN images ─── */
 const HERO_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/615378ae-f490-4345-9544-e4ae6d37b614.png';
+/** Локальный референс премиального hero (Tasko) — лежит в `public/` */
+const HERO_REF_LOCAL = '/food-hero-reference.png';
 const FALLBACK_FOOD_1 = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/2034a1d7-1c57-40c0-8145-23816557ba5c.png';
 const FALLBACK_FOOD_2 = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/e1e63b15-29d2-4b2e-b1b5-919722b3b1b9.png';
 const FALLBACK_IMAGES = [FALLBACK_FOOD_1, FALLBACK_FOOD_2];
@@ -41,18 +43,50 @@ interface Settings {
 interface CartItemSelection { [groupId: number]: number[]; }
 interface CartItem { item: FoodItem; quantity: number; selections: CartItemSelection; }
 
-/* ─── Badge component ─── */
+/* ─── Badge (как Tasko: «Хит» — красная таблетка, только текст) ─── */
 function FoodBadge({ type }: { type: 'hit' | 'new' }) {
   const { t } = useLanguage();
   const config = {
-    hit: { icon: <Flame className="w-3 h-3" />, text: t('food.hit'), bg: 'bg-[#FF3B30] text-white' },
-    new: { icon: <Sparkles className="w-3 h-3" />, text: t('food.new'), bg: 'bg-[#111111] text-white' },
+    hit: { text: t('food.hit'), className: 'bg-[#FF3B30] text-white' },
+    new: { text: t('food.new'), className: 'bg-[#111111] text-white' },
   };
   const c = config[type];
   return (
-    <span className={`${c.bg} text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-md`}>
-      {c.icon} {c.text}
+    <span className={`${c.className} text-[11px] font-bold px-2.5 py-1 rounded-full tracking-tight`}>
+      {c.text}
     </span>
+  );
+}
+
+function itemDisplayWeight(item: FoodItem): string {
+  const w = (item.weight || '').trim();
+  if (!w) return '200 г';
+  if (/\d/.test(w) && (w.includes('г') || w.includes('кг') || w.includes('ml'))) return w;
+  return `${w} г`;
+}
+
+/** Две «информативные» подписи как в Tasko (красные в строке мета) */
+function itemMetaTags(item: FoodItem): string[] {
+  const d = `${item.name} ${item.description || ''}`.toLowerCase();
+  const tags: string[] = [];
+  if (d.includes('белок') || d.includes('протеин') || d.includes('курин') || d.includes('индейк') || d.includes('рыб')) tags.push('Много белка');
+  if (d.includes('печ') || d.includes('духов') || d.includes('пицц') || d.includes('выпечк')) tags.push('Из печи');
+  if (tags.length === 0) tags.push('Много белка', 'Из печи');
+  return tags.slice(0, 2);
+}
+
+function ItemMetaLine({ item }: { item: FoodItem }) {
+  const tags = itemMetaTags(item);
+  return (
+    <p className="text-[11px] leading-snug mt-1">
+      <span className="text-[#777777]">{itemDisplayWeight(item)}</span>
+      {tags.map((tag, i) => (
+        <span key={tag}>
+          <span className="text-[#777777]"> • </span>
+          <span className="text-[#FF3B30] font-semibold">{tag}</span>
+        </span>
+      ))}
+    </p>
   );
 }
 
@@ -74,14 +108,14 @@ const MENU_CATEGORY_DEFS: {
   { key: 'sides', emoji: '🍟', i18nKey: 'food.cat.sides', catHints: ['гарнир'], itemKeywords: ['гарнир', 'картоф', 'рис', 'гречк', 'каша', 'фри'] },
 ];
 
-/* ─── Added-to-cart animation ─── */
-function AddedFeedback({ show }: { show: boolean }) {
-  if (!show) return null;
+/** Оверлей «N В корзине» как в референсе Tasko */
+function InCartOverlay({ qty, className = '' }: { qty: number; className?: string }) {
+  if (qty <= 0) return null;
   return (
-    <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] rounded-2xl flex items-center justify-center z-10 animate-in fade-in duration-200">
-      <div className="bg-white rounded-full w-14 h-14 flex items-center justify-center shadow-xl animate-in zoom-in duration-300">
-        <Check className="w-7 h-7 text-green-500" />
-      </div>
+    <div className={`absolute inset-0 bg-black/45 flex items-center justify-center z-10 ${className}`}>
+      <span className="text-white text-sm font-semibold tracking-tight">
+        {qty} В корзине
+      </span>
     </div>
   );
 }
@@ -111,7 +145,6 @@ export default function Food() {
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(null);
   const [currentSelections, setCurrentSelections] = useState<CartItemSelection>({});
-  const [addedItemId, setAddedItemId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [menuFilterKey, setMenuFilterKey] = useState<string | null>(null);
   const [deliveryDestination, setDeliveryDestination] = useState<'home' | 'park'>('home');
@@ -128,6 +161,7 @@ export default function Food() {
   const [noDoorDelivery, setNoDoorDelivery] = useState(false);
   const [comment, setComment] = useState('');
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
+  const [kbjuMode, setKbjuMode] = useState<'100' | 'portion'>('100');
 
   useEffect(() => { loadData(); }, []);
 
@@ -341,6 +375,9 @@ export default function Food() {
   }, 0), [cart, modOptions]);
 
   const cartCount = useMemo(() => cart.reduce((sum, ci) => sum + ci.quantity, 0), [cart]);
+  const SERVICE_FEE_RATE = 0.1;
+  const serviceFeeAmount = useMemo(() => Math.round(cartTotal * SERVICE_FEE_RATE), [cartTotal]);
+  const cartTotalWithService = cartTotal + serviceFeeAmount;
 
   // Delivery price calculation based on zones
   const calculatedDeliveryPrice = useMemo(() => {
@@ -360,6 +397,13 @@ export default function Food() {
     }
     return parseInt(settings.delivery_price) || 0;
   }, [deliveryMethod, deliveryZones, selectedZoneIndex, settings.delivery_price]);
+
+  /** Сумма к оплате: позиции + 10% сервис + доставка (если есть) */
+  const checkoutGrandTotal = useMemo(() => {
+    if (deliveryDestination === 'park') return cartTotalWithService;
+    if (deliveryMethod === 'delivery') return cartTotalWithService + activeDeliveryPrice;
+    return cartTotalWithService;
+  }, [deliveryDestination, deliveryMethod, cartTotalWithService, activeDeliveryPrice]);
 
   const minOrder = parseInt(settings.min_order_amount) || 0;
 
@@ -412,8 +456,6 @@ export default function Food() {
       if (existing) return prev.map(ci => ci === existing ? { ...ci, quantity: ci.quantity + 1 } : ci);
       return [...prev, { item, quantity: 1, selections }];
     });
-    setAddedItemId(item.id);
-    setTimeout(() => setAddedItemId(null), 800);
     toast.success(
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -474,6 +516,10 @@ export default function Food() {
     });
   }
 
+  function removeCartLine(index: number) {
+    setCart(prev => prev.filter((_, i) => i !== index));
+  }
+
   function handleRadioSelect(groupId: number, optionId: number) {
     setCurrentSelections(prev => ({ ...prev, [groupId]: [optionId] }));
   }
@@ -519,7 +565,7 @@ export default function Food() {
         const name = selNames.length ? `${ci.item.name} + ${selNames.join(', ')}` : ci.item.name;
         return { name, price: ci.item.price + modTotal, quantity: ci.quantity };
       });
-      const total = cartTotal;
+      const total = cartTotalWithService;
       try {
         await withRetry(() => client.entities.park_orders.create({
           data: {
@@ -563,7 +609,7 @@ export default function Food() {
       const modTotal = calcSelectionsPrice(ci.selections);
       return { name: ci.item.name, price: ci.item.price, quantity: ci.quantity, modifiers: selNames.map(n => ({ name: n, price: 0 })), modTotal };
     });
-    const total = deliveryMethod === 'delivery' ? cartTotal + activeDeliveryPrice : cartTotal;
+    const total = checkoutGrandTotal;
     try {
       await withRetry(() => client.entities.food_orders.create({
         data: {
@@ -592,6 +638,8 @@ export default function Food() {
         const modTotal = calcSelectionsPrice(ci.selections);
         msg += `• ${ci.item.name}${modStr} × ${ci.quantity} = ${(ci.item.price + modTotal) * ci.quantity} ₸\n`;
       });
+      msg += `\nТовары: ${cartTotal} ₸\nСервисный сбор (10%): ${serviceFeeAmount} ₸\n`;
+      if (deliveryMethod === 'delivery') msg += `Доставка: ${activeDeliveryPrice} ₸\n`;
       msg += `\n*Итого: ${total} ₸*`;
       window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msg)}`, '_blank');
       toast.success('Заказ оформлен! Откроется WhatsApp для подтверждения.');
@@ -617,7 +665,10 @@ export default function Food() {
   const modalTotalPrice = selectedItem ? selectedItem.price + calcSelectionsPrice(currentSelections) : 0;
   const modalValidation = selectedItem ? validateSelections(selectedItem.id, currentSelections) : { valid: true, errors: [] };
   const modalRecommendations = selectedItem ? getRecommendationsForItem(selectedItem) : [];
-  const modalTags = ['Много белка', 'Из печи'];
+  const selectedItemBadge = selectedItem ? getBadgeType(selectedItem) : null;
+  useEffect(() => {
+    if (selectedItem) setKbjuMode('100');
+  }, [selectedItem?.id]);
 
   /* ─── LOADING ─── */
   if (loading) {
@@ -637,46 +688,40 @@ export default function Food() {
     );
   }
 
+  const heroImageSrc = settings.hero_banner_image || HERO_REF_LOCAL || HERO_IMG;
+
   return (
     <Layout>
-      <div className="bg-[#FFFFFF] min-h-screen text-[#111111]">
-        {/* ═══ HERO BANNER ═══ */}
-        <section className="relative overflow-hidden">
+      <div className="min-h-screen text-[#111111] bg-[#F5F5F5]">
+        {/* ═══ HERO (как Tasko: тёмный блок + лёгкое «свечение» + карусель-точки) ═══ */}
+        <section className="relative mx-auto max-w-lg md:max-w-3xl lg:max-w-5xl overflow-hidden rounded-b-[20px] min-h-[200px] max-h-[240px] md:max-h-[220px]">
+          <div className="absolute inset-0 bg-[#0b0b0d]" />
+          <div className="pointer-events-none absolute -top-28 -left-20 h-56 w-56 rounded-full bg-[#6d28d9]/35 blur-3xl" />
+          <div className="pointer-events-none absolute -top-24 -right-16 h-52 w-52 rounded-full bg-[#2563eb]/30 blur-3xl" />
           <div className="absolute inset-0">
-            <img src={settings.hero_banner_image || HERO_IMG} alt="" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/35" />
+            <img src={heroImageSrc} alt="" className="h-full w-full object-cover opacity-95" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/35 to-black/55" />
           </div>
-          <div className="relative max-w-7xl mx-auto px-4 py-12 md:py-14">
-            <div className="max-w-xl">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="bg-[#FF3B30] text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                  <Zap className="w-3 h-3" /> {t('food.delivery')}
-                </span>
-                <span className="bg-white/25 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full border border-white/20">
-                  30-60 мин
-                </span>
-              </div>
-              <h1 className="text-3xl md:text-4xl font-extrabold text-white leading-tight">
-                Любимые блюда со скидкой каждую среду
-              </h1>
-              <p className="text-white/80 text-base md:text-lg mt-3 leading-relaxed">
-                {settings.hero_banner_subtitle}
-              </p>
-              <div className="flex flex-wrap gap-2 mt-5">
-                <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md rounded-full px-4 py-2 text-white text-sm border border-white/25">
-                  <Truck className="w-4 h-4 text-white" />
-                  <span>{t('food.delivery')} {t('common.from')} {formatPrice(deliveryZones.length > 0 ? deliveryZones[0].price : parseInt(settings.delivery_price) || 0)}</span>
-                </div>
-                <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md rounded-full px-4 py-2 text-white text-sm border border-white/25">
-                  <Store className="w-4 h-4 text-white" />
-                  <span>{t('food.pickup')} — {t('food.free')}</span>
-                </div>
-              </div>
+          <div className="relative z-10 flex min-h-[200px] max-h-[240px] md:max-h-[220px] flex-col justify-end px-4 pb-6 pt-10">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/70">SORTIROVKA 24</p>
+            <h1 className="mt-1 text-2xl font-bold leading-tight text-white md:text-[26px]">
+              {settings.hero_banner_title || 'Твои любимые блюда со скидкой каждую среду'}
+            </h1>
+            <p className="mt-2 max-w-md text-sm leading-relaxed text-white/85">
+              {settings.hero_banner_subtitle || 'Помогут быстро выбрать то, что хочется — как в лучших приложениях доставки'}
+            </p>
+            <div className="mt-4 flex justify-center gap-1.5">
+              {[0, 1, 2, 3, 4].map(i => (
+                <span
+                  key={i}
+                  className={`h-1.5 rounded-full transition-all ${i === 0 ? 'w-4 bg-white' : 'w-1.5 bg-white/35'}`}
+                />
+              ))}
             </div>
           </div>
         </section>
 
-        <div className="max-w-7xl mx-auto px-4 pt-4 pb-32 space-y-5">
+        <div className="mx-auto max-w-lg md:max-w-3xl lg:max-w-5xl px-4 pt-4 pb-32 space-y-5">
           {/* ═══ Доставка: дом / парк ═══ */}
           <div className="rounded-2xl bg-[#F7F7F7] p-1.5 shadow-sm flex gap-1">
             <button
@@ -796,40 +841,58 @@ export default function Food() {
 
           {showRecommendations && !searchQuery && recommendedItems.length > 0 && (
             <section>
-              <h3 className="text-xl font-bold text-[#111111] mb-3">А это вы пробовали?</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <h3 className="text-xl font-bold text-[#111111] mb-3 tracking-tight">А это вы пробовали?</h3>
+              <div className="grid grid-cols-2 gap-3">
                 {recommendedItems.map(item => {
                   const qtyInCart = getItemQuantityInCart(item.id);
+                  const lineTotal = item.price * Math.max(qtyInCart, 1);
                   return (
-                    <div key={`rec-${item.id}`} className="bg-[#F7F7F7] rounded-2xl p-3 shadow-sm border border-gray-100">
-                      <div className="flex gap-3">
-                        <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-white shrink-0">
-                          <img src={getItemImage(item)} alt={item.name} className="w-full h-full object-cover" />
-                          <span className="absolute top-1.5 left-1.5 bg-[#FF3B30] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                            {t('food.hit')}
-                          </span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-bold text-[#111111] line-clamp-1">{item.name}</h4>
-                          <p className="text-xs text-[#777777] line-clamp-1 mt-0.5">{item.description}</p>
-                          <div className="mt-2 flex items-center justify-between gap-2">
-                            <span className="text-sm font-extrabold text-[#111111]">{formatPrice(item.price)}</span>
-                            {qtyInCart > 0 ? (
-                              <div className="flex items-center gap-1">
-                                <button onClick={() => quickRemove(item.id)} className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center active:scale-95">
-                                  <Minus className="w-3 h-3 text-[#777777]" />
-                                </button>
-                                <span className="w-4 text-center text-xs font-bold">{qtyInCart}</span>
-                                <button onClick={() => quickAdd(item)} className="w-7 h-7 rounded-lg bg-[#FF3B30] text-white flex items-center justify-center active:scale-95">
-                                  <Plus className="w-3 h-3" />
-                                </button>
-                              </div>
-                            ) : (
-                              <button onClick={() => quickAdd(item)} className="w-7 h-7 rounded-lg bg-[#FF3B30] text-white flex items-center justify-center active:scale-95">
-                                <Plus className="w-3 h-3" />
+                    <div key={`rec-${item.id}`} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                      <div className="relative mx-2.5 mt-2.5 aspect-square overflow-hidden rounded-2xl bg-[#ECECEC]">
+                        <img src={getItemImage(item)} alt={item.name} className="h-full w-full object-cover" />
+                        <span className="absolute left-2 top-2">
+                          <FoodBadge type="hit" />
+                        </span>
+                        <InCartOverlay qty={qtyInCart} className="rounded-2xl" />
+                      </div>
+                      <div className="px-3 pt-2.5">
+                        <h4 className="line-clamp-2 text-sm font-bold leading-snug text-[#111111]">{item.name}</h4>
+                        <ItemMetaLine item={item} />
+                      </div>
+                      <div className="p-2.5 pt-1">
+                        <div className="flex h-11 items-center rounded-full bg-[#F5F5F5] px-1">
+                          {qtyInCart > 0 ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => quickRemove(item.id)}
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#777777] active:scale-95"
+                              >
+                                <Minus className="h-4 w-4" />
                               </button>
-                            )}
-                          </div>
+                              <span className="min-w-0 flex-1 text-center text-sm font-bold text-[#111111]">
+                                {formatPrice(lineTotal)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => quickAdd(item)}
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#111111] active:scale-95"
+                              >
+                                <Plus className="h-5 w-5" />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <span className="flex-1 pl-3 text-sm font-bold text-[#111111]">{formatPrice(item.price)}</span>
+                              <button
+                                type="button"
+                                onClick={() => quickAdd(item)}
+                                className="mr-0.5 flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#111111] shadow-sm active:scale-95"
+                              >
+                                <Plus className="h-5 w-5" />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -852,67 +915,76 @@ export default function Food() {
             </div>
 
             {sortedFilteredItems.length > 0 ? (
-              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                 {sortedFilteredItems.map(item => {
                   const hasGroups = itemHasGroups(item.id);
                   const qtyInCart = getItemQuantityInCart(item.id);
                   const badgeType = getBadgeType(item);
+                  const lineTotal = (item.price * Math.max(qtyInCart, 1));
                   return (
                     <div
                       key={item.id}
-                      className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 group relative"
+                      className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-shadow hover:shadow-md"
                     >
-                      <AddedFeedback show={addedItemId === item.id} />
                       <div
-                        className="aspect-[4/3] bg-[#F5F5F5] relative overflow-hidden cursor-pointer"
+                        className="relative mx-2.5 mt-2.5 aspect-square cursor-pointer overflow-hidden rounded-2xl bg-[#ECECEC]"
                         onClick={() => openItemModal(item)}
                       >
-                        <img src={getItemImage(item)} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                        <div className="absolute top-2 left-2 flex flex-wrap gap-1">
-                          {badgeType && <FoodBadge type={badgeType} />}
-                        </div>
+                        <img src={getItemImage(item)} alt={item.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+                        {badgeType && (
+                          <span className="absolute left-2 top-2">
+                            <FoodBadge type={badgeType} />
+                          </span>
+                        )}
                         {hasGroups && (
-                          <span className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm text-[#777777] text-[10px] font-bold px-2 py-0.5 rounded-full border border-gray-200">
+                          <span className="absolute right-2 top-2 rounded-full border border-gray-200 bg-white/95 px-2 py-0.5 text-[10px] font-bold text-[#777777]">
                             + опции
                           </span>
                         )}
+                        <InCartOverlay qty={qtyInCart} className="rounded-2xl" />
                       </div>
-                      <div className="p-3.5 flex flex-col gap-3">
+                      <div className="px-3 pt-2.5">
                         <h3
-                          className="font-bold text-[#111111] text-sm leading-snug line-clamp-2 cursor-pointer min-h-[2.5rem]"
+                          className="line-clamp-2 min-h-[2.5rem] cursor-pointer text-sm font-bold leading-snug text-[#111111]"
                           onClick={() => openItemModal(item)}
                         >
                           {localized(item, 'name') || item.name}
                         </h3>
-                        <div className="flex flex-col gap-2 mt-auto">
-                          <span className="text-base font-extrabold text-[#111111]">{formatPrice(item.price)}</span>
+                        <ItemMetaLine item={item} />
+                      </div>
+                      <div className="p-2.5 pt-1">
+                        <div className="flex h-11 items-center rounded-full bg-[#F5F5F5] px-1">
                           {qtyInCart > 0 ? (
-                            <div className="flex items-center gap-2">
+                            <>
                               <button
                                 type="button"
                                 onClick={() => quickRemove(item.id)}
-                                className="min-h-[44px] min-w-[44px] bg-[#F5F5F5] hover:bg-[#ECECEC] rounded-xl flex items-center justify-center transition-all active:scale-95"
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#777777] active:scale-95"
                               >
-                                <Minus className="w-4 h-4 text-[#777777]" />
+                                <Minus className="h-4 w-4" />
                               </button>
-                              <span className="flex-1 text-center font-bold text-[#111111]">{qtyInCart}</span>
+                              <span className="min-w-0 flex-1 text-center text-sm font-bold text-[#111111]">
+                                {formatPrice(lineTotal)}
+                              </span>
                               <button
                                 type="button"
                                 onClick={() => quickAdd(item)}
-                                className="min-h-[44px] min-w-[44px] bg-[#FF3B30] hover:bg-[#E6352B] text-white rounded-xl flex items-center justify-center font-bold transition-all active:scale-95"
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#111111] active:scale-95"
                               >
-                                <Plus className="w-5 h-5" />
+                                <Plus className="h-5 w-5" />
                               </button>
-                            </div>
+                            </>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={() => quickAdd(item)}
-                              className="w-full min-h-[48px] rounded-xl bg-[#FF3B30] hover:bg-[#E6352B] text-white text-sm font-extrabold flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-                            >
-                              <Plus className="w-5 h-5" />
-                              {t('common.add')}
-                            </button>
+                            <>
+                              <span className="flex-1 pl-3 text-sm font-bold text-[#111111]">{formatPrice(item.price)}</span>
+                              <button
+                                type="button"
+                                onClick={() => quickAdd(item)}
+                                className="mr-0.5 flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#111111] shadow-sm active:scale-95"
+                              >
+                                <Plus className="h-5 w-5" />
+                              </button>
+                            </>
                           )}
                         </div>
                       </div>
@@ -934,107 +1006,149 @@ export default function Food() {
 
         {/* ═══ PRODUCT POPUP MODAL ═══ */}
         {selectedItem && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setSelectedItem(null)}>
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 backdrop-blur-[2px] sm:items-center sm:p-4" onClick={() => setSelectedItem(null)}>
             <div
-              className="bg-white w-full sm:max-w-md sm:rounded-3xl rounded-t-3xl max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom duration-300"
+              className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-[22px] bg-[#FAFAFA] animate-in slide-in-from-bottom duration-300 sm:rounded-[22px]"
               onClick={e => e.stopPropagation()}
             >
-              {/* Big image */}
-              <div className="aspect-[4/3] bg-gray-100 relative overflow-hidden">
-                <img src={getItemImage(selectedItem)} alt={selectedItem.name} className="w-full h-full object-cover" />
-                <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/40 to-transparent" />
-                <button
-                  onClick={() => setSelectedItem(null)}
-                  className="absolute top-4 right-4 w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+              <div className="bg-white px-3 pb-1 pt-3 sm:rounded-t-[22px]">
+                <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-[#ECECEC]">
+                  <img src={getItemImage(selectedItem)} alt={selectedItem.name} className="h-full w-full object-cover" />
+                  {selectedItemBadge && (
+                    <span className="absolute left-3 top-3">
+                      <FoodBadge type={selectedItemBadge} />
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedItem(null)}
+                    className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-[#111111] shadow-sm ring-1 ring-black/5 transition hover:bg-white"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
 
-              <div className="p-5">
-                <h3 className="text-2xl font-extrabold text-gray-900">{selectedItem.name}</h3>
-                <p className="text-sm text-[#777777] mt-1">{selectedItem.weight || '400 г'}</p>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {modalTags.map(tag => (
-                    <span key={tag} className="text-xs font-semibold bg-[#F5F5F5] text-[#777777] px-2.5 py-1 rounded-full">{tag}</span>
-                  ))}
-                </div>
-                <p className="text-sm text-gray-500 mt-3 leading-relaxed">{selectedItem.description}</p>
-                <p className="text-2xl font-extrabold text-gray-900 mt-3">{formatPrice(selectedItem.price)}</p>
+              <div className="bg-white px-5 pb-6 pt-1">
+                <h3 className="text-[22px] font-extrabold leading-tight tracking-tight text-[#111111]">{selectedItem.name}</h3>
+                <ItemMetaLine item={selectedItem} />
+                <p className="mt-3 text-sm leading-relaxed text-[#777777]">{selectedItem.description}</p>
 
-                <details className="mt-4 bg-[#F7F7F7] rounded-2xl p-3">
-                  <summary className="cursor-pointer text-sm font-bold text-[#111111]">Состав и КБЖУ</summary>
-                  <div className="mt-2 text-xs text-[#777777] space-y-1">
-                    <p>Состав: тесто, соус, сыр, фирменные ингредиенты.</p>
-                    <p>КБЖУ на 100 г: 220 ккал / Б 11 / Ж 8 / У 24</p>
+                <details className="mt-5 rounded-2xl border border-gray-100 bg-[#FAFAFA] p-4" open>
+                  <summary className="cursor-pointer list-none text-base font-bold text-[#111111] [&::-webkit-details-marker]:hidden">
+                    <span className="flex items-center justify-between">
+                      Состав и КБЖУ
+                      <ChevronRight className="h-4 w-4 rotate-90 text-[#777777]" />
+                    </span>
+                  </summary>
+                  <p className="mt-3 text-xs leading-relaxed text-[#777777]">
+                    Куриное филе, шампиньоны, лук, томатный соус, моцарелла, итальянские травы — как в премиальной подаче Tasko.
+                  </p>
+                  <div className="mt-3 flex rounded-full bg-[#F0F0F0] p-1">
+                    <button
+                      type="button"
+                      onClick={() => setKbjuMode('100')}
+                      className={`flex-1 rounded-full py-2 text-xs font-bold transition ${kbjuMode === '100' ? 'bg-white text-[#111111] shadow-sm' : 'text-[#777777]'}`}
+                    >
+                      На 100 г
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setKbjuMode('portion')}
+                      className={`flex-1 rounded-full py-2 text-xs font-bold transition ${kbjuMode === 'portion' ? 'bg-white text-[#111111] shadow-sm' : 'text-[#777777]'}`}
+                    >
+                      На порцию
+                    </button>
+                  </div>
+                  <div className="mt-4 grid grid-cols-4 gap-2 text-center">
+                    {[
+                      { v: kbjuMode === '100' ? '480' : '1920', l: 'ккал' },
+                      { v: kbjuMode === '100' ? '25' : '100', l: 'белки' },
+                      { v: kbjuMode === '100' ? '30' : '120', l: 'жиры' },
+                      { v: kbjuMode === '100' ? '28' : '112', l: 'углеводы' },
+                    ].map(cell => (
+                      <div key={cell.l} className="rounded-xl bg-white py-2 ring-1 ring-gray-100">
+                        <div className="text-lg font-extrabold text-[#111111]">{cell.v}</div>
+                        <div className="text-[10px] font-medium uppercase tracking-wide text-[#777777]">{cell.l}</div>
+                      </div>
+                    ))}
                   </div>
                 </details>
 
-                {/* Modifier Groups */}
-                {getGroupsForItem(selectedItem.id).map(group => {
+                {/* Modifier Groups — радио как горизонтальные «чипы» (Tasko) */}
+                {getGroupsForItem(selectedItem.id).map((group, gIdx) => {
                   const groupOptions = getOptionsForGroup(group.id);
                   const selectedOpts = currentSelections[group.id] || [];
                   if (groupOptions.length === 0) return null;
 
                   return (
-                    <div key={group.id} className="mt-5">
-                      <div className="flex items-center gap-2 mb-2.5">
-                        {group.type === 'radio'
-                          ? <CircleDot className="w-4 h-4 text-blue-500" />
-                          : <CheckSquare className="w-4 h-4 text-purple-500" />
-                        }
-                        <h4 className="font-bold text-gray-800 text-sm">{group.name}</h4>
+                    <div key={group.id} className={gIdx === 0 ? 'mt-6 border-t border-gray-100 pt-5' : 'mt-6'}>
+                      <div className="mb-3 flex items-center gap-2">
+                        <h4 className="text-base font-bold text-[#111111]">{group.name}</h4>
                         {group.is_required && (
-                          <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">{t('food.required')}</span>
+                          <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-[#FF3B30]">{t('food.required')}</span>
                         )}
                       </div>
                       {group.type === 'checkbox' && (group.min_select > 0 || group.max_select < 10) && (
-                        <p className="text-[11px] text-gray-400 mb-2 -mt-1">
+                        <p className="mb-2 -mt-1 text-[11px] text-[#777777]">
                           {group.min_select > 0 && `Мин: ${group.min_select}`}
                           {group.min_select > 0 && group.max_select < 10 && ' • '}
                           {group.max_select < 10 && `Макс: ${group.max_select}`}
                           {' • '}Выбрано: {selectedOpts.length}
                         </p>
                       )}
-                      <div className="space-y-1.5">
-                        {groupOptions.map(opt => {
-                          const isSelected = selectedOpts.includes(opt.id);
-                          return (
-                            <button
-                              key={opt.id}
-                              onClick={() => {
-                                if (group.type === 'radio') handleRadioSelect(group.id, opt.id);
-                                else handleCheckboxToggle(group.id, opt.id, group.max_select);
-                              }}
-                              className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all duration-200 ${
-                                isSelected
-                                  ? 'border-[#FF3B30] bg-red-50'
-                                  : 'border-gray-100 hover:border-gray-200 bg-[#F7F7F7]'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2.5">
-                                {group.type === 'radio' ? (
-                                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                                    isSelected ? 'border-[#FF3B30]' : 'border-gray-300'
-                                  }`}>
-                                    {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-[#FF3B30]" />}
-                                  </div>
-                                ) : (
-                                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
-                                    isSelected ? 'border-[#FF3B30] bg-[#FF3B30]' : 'border-gray-300'
-                                  }`}>
-                                    {isSelected && <Check className="w-3 h-3 text-white" />}
-                                  </div>
+                      {group.type === 'radio' ? (
+                        <div className="-mx-1 flex gap-2 overflow-x-auto pb-1 scrollbar-hide px-1">
+                          {groupOptions.map(opt => {
+                            const isSelected = selectedOpts.includes(opt.id);
+                            return (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => handleRadioSelect(group.id, opt.id)}
+                                className={`shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold transition ${
+                                  isSelected
+                                    ? 'border-[#FF3B30] text-[#FF3B30] bg-red-50/60'
+                                    : 'border-gray-200 bg-white text-[#111111] hover:border-gray-300'
+                                }`}
+                              >
+                                <span>{opt.name}</span>
+                                {opt.price > 0 && (
+                                  <span className={`ml-1 text-xs font-bold ${isSelected ? 'text-[#FF3B30]' : 'text-[#777777]'}`}>
+                                    +{formatPrice(opt.price)}
+                                  </span>
                                 )}
-                                <span className="font-medium text-sm text-gray-800">{opt.name}</span>
-                              </div>
-                              <span className="text-sm font-bold text-[#FF3B30]">
-                                {opt.price > 0 ? `+${formatPrice(opt.price)}` : 'бесплатно'}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {groupOptions.map(opt => {
+                            const isSelected = selectedOpts.includes(opt.id);
+                            return (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => handleCheckboxToggle(group.id, opt.id, group.max_select)}
+                                className={`flex w-full items-center justify-between rounded-xl border p-3 transition ${
+                                  isSelected ? 'border-[#FF3B30] bg-red-50' : 'border-gray-100 bg-[#F7F7F7] hover:border-gray-200'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <div className={`flex h-5 w-5 items-center justify-center rounded-md border-2 transition ${isSelected ? 'border-[#FF3B30] bg-[#FF3B30]' : 'border-gray-300'}`}>
+                                    {isSelected && <Check className="h-3 w-3 text-white" />}
+                                  </div>
+                                  <span className="text-sm font-medium text-[#111111]">{opt.name}</span>
+                                </div>
+                                <span className="text-sm font-bold text-[#FF3B30]">
+                                  {opt.price > 0 ? `+${formatPrice(opt.price)}` : 'бесплатно'}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1104,8 +1218,8 @@ export default function Food() {
                   </span>
                 </div>
                 <div className="text-left">
-                  <span className="font-bold text-base block text-[#111111]">{formatPrice(cartTotal)}</span>
-                  <span className="text-[#777777] text-xs">{cartCount} {cartCount === 1 ? 'товар' : cartCount < 5 ? 'товара' : 'товаров'}</span>
+                  <span className="font-bold text-base block text-[#111111]">{formatPrice(cartTotalWithService)}</span>
+                  <span className="text-[#777777] text-[11px] leading-tight">{t('food.serviceFeeIncluded')}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2 bg-[#F7F7F7] rounded-xl px-4 py-2.5 group-hover:bg-[#F0F0F0] transition-colors">
@@ -1123,12 +1237,9 @@ export default function Food() {
               className="bg-[#f5f5f5] w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl max-h-[85vh] flex flex-col animate-in slide-in-from-bottom duration-300"
               onClick={e => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between p-5 bg-white rounded-t-3xl">
-                <div>
-                  <h2 className="text-xl font-extrabold text-gray-900">{t('food.cart')}</h2>
-                  <p className="text-xs text-gray-400 mt-0.5">{cartCount} {cartCount === 1 ? 'товар' : cartCount < 5 ? 'товара' : 'товаров'}</p>
-                </div>
-                <button onClick={() => setCartOpen(false)} className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
+              <div className="flex items-center justify-center relative p-5 bg-white rounded-t-3xl border-b border-gray-100">
+                <h2 className="text-lg font-extrabold text-[#111111]">{t('food.yourOrder')}</h2>
+                <button type="button" onClick={() => setCartOpen(false)} className="absolute right-5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[#F5F5F5] flex items-center justify-center hover:bg-gray-200 transition-colors text-[#111111]">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -1137,30 +1248,39 @@ export default function Food() {
                 {cart.map((ci, idx) => {
                   const modTotal = calcSelectionsPrice(ci.selections);
                   const selNames = getSelectionNames(ci.selections);
+                  const linePrice = (ci.item.price + modTotal) * ci.quantity;
                   return (
-                    <div key={idx} className="bg-white rounded-2xl p-3.5 shadow-sm">
-                      <div className="flex gap-3">
-                        <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
-                          <img src={getItemImage(ci.item)} alt={ci.item.name} className="w-full h-full object-cover" />
+                    <div key={idx} className="relative bg-white rounded-2xl p-4 ring-1 ring-gray-100/80">
+                      <button
+                        type="button"
+                        onClick={() => removeCartLine(idx)}
+                        className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full text-[#777777] hover:bg-[#F5F5F5] hover:text-[#111111] transition-colors"
+                        aria-label={t('common.close')}
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                      <div className="flex gap-3 pr-8">
+                        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full bg-[#F0F0F0] ring-1 ring-gray-100">
+                          <img src={getItemImage(ci.item)} alt={ci.item.name} className="h-full w-full object-cover" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-gray-900 text-sm line-clamp-1">{ci.item.name}</h4>
-                          {selNames.length > 0 && (
-                            <p className="text-[11px] text-[#FF3B30] mt-0.5 line-clamp-1">
-                              + {selNames.join(', ')}
-                            </p>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="text-sm font-bold leading-snug text-[#111111] line-clamp-2">{ci.item.name}</h4>
+                          <p className="mt-0.5 text-xs text-[#777777]">{itemDisplayWeight(ci.item)}</p>
+                          {ci.item.description && (
+                            <p className="mt-1 text-[11px] leading-snug text-[#777777] line-clamp-2">{ci.item.description}</p>
                           )}
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="text-sm font-extrabold text-gray-900">
-                              {formatPrice((ci.item.price + modTotal) * ci.quantity)}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <button onClick={() => updateQuantity(idx, -1)} className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors active:scale-90">
-                                <Minus className="w-3 h-3 text-gray-600" />
+                          {selNames.length > 0 && (
+                            <p className="mt-1 text-[11px] text-[#FF3B30] line-clamp-1">+ {selNames.join(', ')}</p>
+                          )}
+                          <div className="mt-3 flex items-center justify-between gap-2">
+                            <span className="text-sm font-extrabold text-[#111111]">{formatPrice(linePrice)}</span>
+                            <div className="flex h-9 items-center gap-0 rounded-full bg-[#F0F0F0] px-1 ring-1 ring-gray-100/80">
+                              <button type="button" onClick={() => updateQuantity(idx, -1)} className="flex h-7 w-7 items-center justify-center rounded-full text-[#111111] hover:bg-white/90 active:scale-95 transition">
+                                <Minus className="h-3.5 w-3.5" />
                               </button>
-                              <span className="w-5 text-center font-bold text-sm">{ci.quantity}</span>
-                              <button onClick={() => updateQuantity(idx, 1)} className="w-7 h-7 rounded-lg bg-[#FF3B30] text-white flex items-center justify-center hover:bg-[#E6352B] transition-colors active:scale-90">
-                                <Plus className="w-3 h-3" />
+                              <span className="min-w-[1.25rem] text-center text-sm font-bold tabular-nums">{ci.quantity}</span>
+                              <button type="button" onClick={() => updateQuantity(idx, 1)} className="flex h-7 w-7 items-center justify-center rounded-full bg-[#FF3B30] text-white hover:bg-[#E6352B] active:scale-95 transition">
+                                <Plus className="h-3.5 w-3.5" />
                               </button>
                             </div>
                           </div>
@@ -1170,27 +1290,30 @@ export default function Food() {
                   );
                 })}
 
-                {/* ═══ "Дополнить заказ" section ═══ */}
                 {cartSuggestions.length > 0 && (
-                  <div className="pt-2">
-                    <h4 className="font-bold text-gray-700 text-sm mb-2.5 flex items-center gap-2 px-1">
-                      <Sparkles className="w-4 h-4 text-[#FF3B30]" /> Вместе вкуснее
-                    </h4>
-                    <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide">
+                  <div className="pt-3">
+                    <h4 className="mb-3 px-0.5 text-base font-extrabold text-[#111111]">{t('food.togetherTastier')}</h4>
+                    <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
                       {cartSuggestions.map(item => (
-                        <div key={item.id} className="flex-shrink-0 w-[120px] bg-white rounded-xl shadow-sm overflow-hidden">
-                          <div className="aspect-square bg-gray-100 overflow-hidden">
-                            <img src={getItemImage(item)} alt={item.name} className="w-full h-full object-cover" />
+                        <div key={item.id} className="w-[132px] shrink-0 overflow-hidden rounded-2xl bg-white ring-1 ring-gray-100/80">
+                          <div className="aspect-square overflow-hidden bg-[#F0F0F0]">
+                            <img src={getItemImage(item)} alt={item.name} className="h-full w-full object-cover" />
                           </div>
-                          <div className="p-2">
-                            <p className="text-xs font-semibold text-gray-800 line-clamp-1">{item.name}</p>
-                            <div className="flex items-center justify-between mt-1.5">
-                              <span className="text-xs font-bold text-gray-900">{formatPrice(item.price)}</span>
+                          <div className="p-2.5">
+                            <p className="text-xs font-bold leading-tight text-[#111111] line-clamp-2">{item.name}</p>
+                            <p className="mt-1 text-[10px] font-semibold text-[#FF3B30] line-clamp-1">
+                              {itemMetaTags(item).slice(0, 2).map((tag, i) => (
+                                <span key={tag}>{i > 0 ? ' • ' : ''}{tag}</span>
+                              ))}
+                            </p>
+                            <div className="mt-2 flex items-center justify-between gap-1">
+                              <span className="text-xs font-extrabold text-[#111111]">{formatPrice(item.price)}</span>
                               <button
+                                type="button"
                                 onClick={() => quickAdd(item)}
-                                className="w-6 h-6 bg-[#FF3B30] text-white rounded-lg flex items-center justify-center active:scale-90 transition-transform"
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FF3B30] text-white shadow-sm active:scale-90 transition-transform"
                               >
-                                <Plus className="w-3 h-3" />
+                                <Plus className="h-3.5 w-3.5" />
                               </button>
                             </div>
                           </div>
@@ -1201,22 +1324,30 @@ export default function Food() {
                 )}
               </div>
 
-              <div className="p-5 bg-white rounded-b-3xl space-y-3">
+              <div className="space-y-3 rounded-b-3xl bg-white p-5 pt-4 ring-1 ring-gray-100/80">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">{t('food.total')}</span>
-                  <span className="font-bold text-gray-900">{formatPrice(cartTotal)}</span>
+                  <span className="text-[#777777]">{t('food.subtotal')}</span>
+                  <span className="font-semibold text-[#111111]">{formatPrice(cartTotal)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#777777]">{t('food.serviceFee')}</span>
+                  <span className="font-semibold text-[#111111]">{formatPrice(serviceFeeAmount)}</span>
+                </div>
+                <div className="flex justify-between border-t border-gray-100 pt-3 text-base font-extrabold text-[#111111]">
+                  <span>{t('food.total')}</span>
+                  <span>{formatPrice(cartTotalWithService)}</span>
                 </div>
                 {minOrder > 0 && cartTotal < minOrder && (
-                  <div className="bg-red-50 text-red-600 text-xs font-medium px-3 py-2 rounded-xl">
+                  <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-red-600">
                     {t('food.minOrder')}: {formatPrice(minOrder)}
                   </div>
                 )}
                 <Button
                   onClick={() => { setCartOpen(false); setCheckoutOpen(true); }}
-                  className="w-full bg-[#FF3B30] hover:bg-[#E6352B] text-white h-13 text-base font-bold rounded-2xl active:scale-[0.98] transition-all"
+                  className="h-14 w-full rounded-2xl bg-[#FF3B30] text-base font-bold text-white hover:bg-[#E6352B] active:scale-[0.98] transition-all"
                   disabled={cartTotal < minOrder}
                 >
-                  {t('food.checkout')} — {formatPrice(cartTotal)}
+                  {t('food.checkout')} — {formatPrice(cartTotalWithService)}
                 </Button>
               </div>
             </div>
@@ -1393,7 +1524,7 @@ export default function Food() {
 
                 {/* Order summary */}
                 <div className="bg-white rounded-2xl p-4 shadow-sm">
-                  <h4 className="font-bold text-gray-800 text-sm mb-3">Ваш заказ</h4>
+                  <h4 className="font-bold text-gray-800 text-sm mb-3">{t('food.yourOrder')}</h4>
                   <div className="space-y-2.5">
                     {cart.map((ci, idx) => {
                       const modTotal = calcSelectionsPrice(ci.selections);
@@ -1411,11 +1542,19 @@ export default function Food() {
                       );
                     })}
                   </div>
-                  <div className="border-t border-gray-100 pt-3 mt-3 space-y-1.5">
+                  <div className="border-t border-gray-100 pt-3 mt-3 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">{t('food.subtotal')}</span>
+                      <span className="font-semibold text-gray-900">{formatPrice(cartTotal)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">{t('food.serviceFee')}</span>
+                      <span className="font-semibold text-gray-900">{formatPrice(serviceFeeAmount)}</span>
+                    </div>
                     {deliveryDestination !== 'park' && deliveryMethod === 'delivery' && (
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-500 flex items-center gap-1.5">
-                          <Truck className="w-3.5 h-3.5" /> Доставка
+                          <Truck className="w-3.5 h-3.5" /> {t('food.delivery')}
                           {deliveryZones.length > 0 && deliveryZones[selectedZoneIndex] && (
                             <span className="text-[10px] text-gray-400">({deliveryZones[selectedZoneIndex].name})</span>
                           )}
@@ -1423,17 +1562,9 @@ export default function Food() {
                         <span className="font-semibold text-[#FF3B30]">+{formatPrice(activeDeliveryPrice)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between text-base pt-1">
+                    <div className="flex justify-between border-t border-gray-100 pt-2 text-base">
                       <span className="font-extrabold text-gray-900">{t('food.total')}</span>
-                      <span className="font-extrabold text-[#FF3B30]">
-                        {formatPrice(
-                          deliveryDestination === 'park'
-                            ? cartTotal
-                            : deliveryMethod === 'delivery'
-                              ? cartTotal + activeDeliveryPrice
-                              : cartTotal
-                        )}
-                      </span>
+                      <span className="font-extrabold text-[#FF3B30]">{formatPrice(checkoutGrandTotal)}</span>
                     </div>
                   </div>
                 </div>
