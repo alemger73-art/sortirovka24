@@ -10,7 +10,7 @@ Provides secure admin authentication with:
 
 import hashlib
 import logging
-import secrets
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -381,6 +381,49 @@ class ChangeCredentialsRequest(BaseModel):
 class ChangeCredentialsResponse(BaseModel):
     success: bool
     message: str = ""
+
+
+class CreateAdminResponse(BaseModel):
+    message: str
+
+
+@router.post("/create-admin", response_model=CreateAdminResponse)
+async def create_or_update_admin(
+    db: AsyncSession = Depends(get_db),
+):
+    """Create or update admin credentials from environment variables."""
+    admin_email = os.getenv("ADMIN_EMAIL", "").strip()
+    admin_password = os.getenv("ADMIN_PASSWORD", "")
+
+    if not admin_email or not admin_password:
+        raise HTTPException(
+            status_code=400,
+            detail="ADMIN_EMAIL and ADMIN_PASSWORD must be set",
+        )
+
+    result = await db.execute(
+        select(AdminCredentials).where(AdminCredentials.username == admin_email)
+    )
+    admin = result.scalar_one_or_none()
+
+    hashed_password = _hash_password(admin_password)
+    if not _verify_password(admin_password, hashed_password):
+        raise HTTPException(status_code=500, detail="Failed to hash admin password")
+
+    if admin:
+        admin.password_hash = hashed_password
+        admin.is_active = True
+    else:
+        admin = AdminCredentials(
+            username=admin_email,
+            password_hash=hashed_password,
+            is_active=True,
+        )
+        db.add(admin)
+
+    await db.commit()
+    logger.info("Admin user created or updated")
+    return CreateAdminResponse(message="admin created or updated")
 
 
 @router.post("/change-credentials", response_model=ChangeCredentialsResponse)
