@@ -4,13 +4,32 @@ export interface LocalUser {
   phone: string;
   password: string;
   email?: string;
+  avatar?: string;
+}
+
+export interface CabinetItem {
+  id: string;
+  title: string;
+  subtitle?: string;
+  status?: string;
+  createdAt: string;
+}
+
+export interface BonusEntry {
+  id: string;
+  title: string;
+  amount: number;
+  createdAt: string;
 }
 
 export interface CabinetData {
-  foodOrders: Array<{ title: string; subtitle?: string; createdAt: string }>;
-  announcements: Array<{ title: string; subtitle?: string; createdAt: string }>;
-  masterRequests: Array<{ title: string; subtitle?: string; createdAt: string }>;
-  complaints: Array<{ title: string; subtitle?: string; createdAt: string }>;
+  foodOrders: CabinetItem[];
+  announcements: CabinetItem[];
+  masterRequests: CabinetItem[];
+  complaints: CabinetItem[];
+  bonusBalance: number;
+  bonusHistory: BonusEntry[];
+  notificationsEnabled: boolean;
 }
 
 const USERS_KEY = 's24_users';
@@ -24,6 +43,16 @@ const emptyCabinet = (): CabinetData => ({
   announcements: [],
   masterRequests: [],
   complaints: [],
+  bonusBalance: 2450,
+  bonusHistory: [
+    {
+      id: `b_${Date.now()}`,
+      title: 'Бонус за регистрацию',
+      amount: 300,
+      createdAt: new Date().toISOString(),
+    },
+  ],
+  notificationsEnabled: true,
 });
 
 export function normalizePhone(phone: string): string {
@@ -148,18 +177,80 @@ export function getCurrentUser(): LocalUser | null {
   return readUsers().find((u) => u.id === userId) || null;
 }
 
+export function updateCurrentUserProfile(input: {
+  name: string;
+  phone: string;
+  email?: string;
+  avatar?: string;
+}) {
+  const user = getCurrentUser();
+  if (!user) throw new Error('Пользователь не найден');
+
+  const name = input.name.trim();
+  const phone = normalizePhone(input.phone);
+  const email = input.email?.trim() || '';
+
+  if (!name) throw new Error('Введите имя');
+  if (!isValidPhone(phone)) throw new Error('Введите корректный номер телефона');
+
+  const users = readUsers();
+  const hasPhoneConflict = users.some(
+    (u) => u.id !== user.id && normalizePhone(u.phone) === phone
+  );
+  if (hasPhoneConflict) throw new Error('Этот номер уже используется');
+
+  const idx = users.findIndex((u) => u.id === user.id);
+  if (idx < 0) throw new Error('Пользователь не найден');
+  users[idx] = {
+    ...users[idx],
+    name,
+    phone,
+    email: email || undefined,
+    avatar: input.avatar,
+  };
+  writeUsers(users);
+  emitAuthChanged();
+}
+
+export function changeCurrentUserPassword(currentPassword: string, newPassword: string) {
+  const user = getCurrentUser();
+  if (!user) throw new Error('Пользователь не найден');
+  if (user.password !== currentPassword) throw new Error('Текущий пароль неверный');
+  if (!newPassword || newPassword.trim().length < 4) {
+    throw new Error('Новый пароль должен быть не короче 4 символов');
+  }
+
+  const users = readUsers();
+  const idx = users.findIndex((u) => u.id === user.id);
+  if (idx < 0) throw new Error('Пользователь не найден');
+  users[idx] = { ...users[idx], password: newPassword.trim() };
+  writeUsers(users);
+}
+
 export function isLoggedIn(): boolean {
   return Boolean(getCurrentUser());
 }
 
 export function getCabinetData(userId: string): CabinetData {
   const map = readCabinetMap();
-  return map[userId] || emptyCabinet();
+  if (!map[userId]) return emptyCabinet();
+  return {
+    ...emptyCabinet(),
+    ...map[userId],
+  };
+}
+
+export function updateCabinetData(userId: string, patch: Partial<CabinetData>) {
+  const map = readCabinetMap();
+  const current = getCabinetData(userId);
+  map[userId] = { ...current, ...patch };
+  writeCabinetMap(map);
+  emitAuthChanged();
 }
 
 export function pushCabinetItem(
-  section: keyof CabinetData,
-  item: { title: string; subtitle?: string }
+  section: 'foodOrders' | 'announcements' | 'masterRequests' | 'complaints',
+  item: { title: string; subtitle?: string; status?: string }
 ) {
   const user = getCurrentUser();
   if (!user) return;
@@ -167,10 +258,40 @@ export function pushCabinetItem(
   const base = map[user.id] || emptyCabinet();
   const next = {
     ...base,
-    [section]: [{ ...item, createdAt: new Date().toISOString() }, ...(base[section] || [])].slice(0, 20),
+    [section]: [{ id: `i_${Date.now()}`, ...item, createdAt: new Date().toISOString() }, ...(base[section] || [])].slice(0, 20),
   };
   map[user.id] = next;
   writeCabinetMap(map);
+  emitAuthChanged();
+}
+
+export function upsertCabinetItem(
+  userId: string,
+  section: 'announcements' | 'masterRequests' | 'complaints',
+  item: CabinetItem
+) {
+  const data = getCabinetData(userId);
+  const list = data[section] || [];
+  const index = list.findIndex((x) => x.id === item.id);
+  const nextList =
+    index >= 0
+      ? list.map((x) => (x.id === item.id ? item : x))
+      : [{ ...item, createdAt: item.createdAt || new Date().toISOString() }, ...list];
+  updateCabinetData(userId, { [section]: nextList.slice(0, 20) });
+}
+
+export function deleteCabinetItem(
+  userId: string,
+  section: 'announcements' | 'masterRequests' | 'complaints',
+  id: string
+) {
+  const data = getCabinetData(userId);
+  const nextList = (data[section] || []).filter((x) => x.id !== id);
+  updateCabinetData(userId, { [section]: nextList });
+}
+
+export function setNotificationsEnabled(userId: string, enabled: boolean) {
+  updateCabinetData(userId, { notificationsEnabled: enabled });
 }
 
 export function openAuthPrompt(redirectTo = '/login') {

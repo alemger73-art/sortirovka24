@@ -216,6 +216,7 @@ export default function FoodPark() {
       pushCabinetItem('foodOrders', {
         title: `Парк-заказ на ${cartTotal.toLocaleString('ru-RU')} ₸`,
         subtitle: selectedPoint.name,
+        status: 'Новый',
       });
 
       const orderId = result?.data?.id;

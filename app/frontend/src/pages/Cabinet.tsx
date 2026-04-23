@@ -1,37 +1,101 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Layout from "@/components/Layout";
-import CabinetCard from "@/components/cabinet/CabinetCard";
 import { Link, useNavigate } from "react-router-dom";
-import { getCabinetData, getCurrentUser, logoutLocalUser, onAuthChanged } from "@/lib/localAuth";
+import {
+  CabinetItem,
+  changeCurrentUserPassword,
+  deleteCabinetItem,
+  getCabinetData,
+  getCurrentUser,
+  logoutLocalUser,
+  onAuthChanged,
+  setNotificationsEnabled,
+  updateCurrentUserProfile,
+  upsertCabinetItem,
+} from "@/lib/localAuth";
+import { Camera, Coins, Edit3, Save, Trash2, UserCircle2 } from "lucide-react";
 
-function RowList({ rows }: { rows: any[] }) {
-  if (!rows?.length) return <p className="text-sm text-gray-400">Пока пусто</p>;
+type TabId = "profile" | "bonuses" | "history" | "actions" | "settings";
+type ActionSection = "announcements" | "complaints" | "masterRequests";
+
+function formatCabinetDate(value?: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+const tabs: { id: TabId; label: string }[] = [
+  { id: "profile", label: "Профиль" },
+  { id: "bonuses", label: "Бонусы" },
+  { id: "history", label: "История" },
+  { id: "actions", label: "Мои действия" },
+  { id: "settings", label: "Настройки" },
+];
+
+function DarkCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="space-y-2">
-      {rows.slice(0, 5).map((r, i) => (
-        <div key={r.id || i} className="rounded-xl border border-gray-100 p-3 text-sm">
-          <p className="font-medium text-gray-900">{r.title || "-"}</p>
-          {r.subtitle ? <p className="text-gray-500">{r.subtitle}</p> : null}
-        </div>
-      ))}
+    <div className="rounded-2xl border border-[#1f2a3f] bg-[#111827] p-5 shadow-[0_10px_25px_rgba(0,0,0,0.25)]">
+      {children}
     </div>
   );
 }
 
+function StatusBadge({ status }: { status?: string }) {
+  const value = status || "В процессе";
+  const cls = value.includes("модерац")
+    ? "bg-amber-500/20 text-amber-300"
+    : value.includes("выполн") || value.includes("отправ")
+      ? "bg-emerald-500/20 text-emerald-300"
+      : "bg-blue-500/20 text-blue-300";
+  return <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${cls}`}>{value}</span>;
+}
+
 export default function Cabinet() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<TabId>("profile");
   const [user, setUser] = useState(getCurrentUser());
 
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({ name: "", phone: "", email: "", avatar: "" });
+  const [passwordForm, setPasswordForm] = useState({ current: "", next: "" });
+  const [actionForm, setActionForm] = useState({
+    section: "announcements" as ActionSection,
+    id: "",
+    title: "",
+    subtitle: "",
+    status: "В процессе",
+  });
+  const [error, setError] = useState("");
+
   useEffect(() => {
-    return onAuthChanged(() => setUser(getCurrentUser()));
+    const syncUser = () => setUser(getCurrentUser());
+    syncUser();
+    return onAuthChanged(syncUser);
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    setProfileForm({
+      name: user.name || "",
+      phone: user.phone || "",
+      email: user.email || "",
+      avatar: user.avatar || "",
+    });
+  }, [user]);
 
   if (!user) {
     return (
       <Layout>
-        <div className="mx-auto max-w-6xl px-4 py-10">
-          <p className="text-gray-700">Вы не вошли в аккаунт.</p>
-          <Link to="/login" className="mt-3 inline-block text-blue-600">Войти или зарегистрироваться</Link>
+        <div className="mx-auto max-w-6xl px-4 py-10 text-slate-200">
+          <p>Вы не вошли в аккаунт.</p>
+          <Link to="/login" className="mt-3 inline-block text-yellow-300">Войти или зарегистрироваться</Link>
         </div>
       </Layout>
     );
@@ -39,18 +103,79 @@ export default function Cabinet() {
 
   const data = getCabinetData(user.id);
 
+  const historyItems = useMemo(() => {
+    const sections = [
+      ...data.foodOrders.map((x) => ({ ...x, kind: "Заказ еды" })),
+      ...data.masterRequests.map((x) => ({ ...x, kind: "Заявка мастеру" })),
+      ...data.announcements.map((x) => ({ ...x, kind: "Объявление" })),
+      ...data.complaints.map((x) => ({ ...x, kind: "Жалоба" })),
+    ];
+    return sections.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [data]);
+
+  const actionRows = {
+    announcements: data.announcements || [],
+    complaints: data.complaints || [],
+    masterRequests: data.masterRequests || [],
+  };
+
+  const sectionLabel: Record<ActionSection, string> = {
+    announcements: "Объявления",
+    complaints: "Жалобы",
+    masterRequests: "Заявки мастерам",
+  };
+
+  const saveProfile = () => {
+    setError("");
+    try {
+      updateCurrentUserProfile(profileForm);
+      setEditingProfile(false);
+    } catch (e: any) {
+      setError(String(e?.message || e));
+    }
+  };
+
+  const onAvatarUpload = (file?: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setProfileForm((p) => ({ ...p, avatar: String(reader.result || "") }));
+    reader.readAsDataURL(file);
+  };
+
+  const savePassword = () => {
+    setError("");
+    try {
+      changeCurrentUserPassword(passwordForm.current, passwordForm.next);
+      setPasswordForm({ current: "", next: "" });
+    } catch (e: any) {
+      setError(String(e?.message || e));
+    }
+  };
+
+  const saveAction = () => {
+    if (!actionForm.title.trim()) return;
+    const id = actionForm.id || `i_${Date.now()}`;
+    upsertCabinetItem(user.id, actionForm.section, {
+      id,
+      title: actionForm.title.trim(),
+      subtitle: actionForm.subtitle.trim() || undefined,
+      status: actionForm.status,
+      createdAt: new Date().toISOString(),
+    });
+    setActionForm({ section: actionForm.section, id: "", title: "", subtitle: "", status: "В процессе" });
+  };
+
   return (
     <Layout>
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Личный кабинет</h1>
-            <p className="text-gray-500">{user.name}</p>
-            <p className="text-sm text-gray-500">{user.phone}</p>
-          </div>
-          <div className="flex items-center gap-2">
+      <div className="min-h-screen bg-[#0B0F19] px-4 py-8 text-white">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-3xl font-extrabold">Личный кабинет</h1>
+              <p className="text-slate-300">{user.name} · {user.phone}</p>
+            </div>
             <button
-              className="rounded-xl bg-gray-900 px-3 py-2 text-sm text-white hover:bg-gray-800"
+              className="rounded-xl border border-[#2a3347] bg-[#111827] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1a2336]"
               onClick={() => {
                 logoutLocalUser();
                 navigate("/login");
@@ -59,20 +184,218 @@ export default function Cabinet() {
               Выйти
             </button>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <CabinetCard title="Профиль" subtitle="Данные пользователя">
-            <div className="text-sm text-gray-600">
-              <p>Имя: {user.name}</p>
-              <p>Телефон: {user.phone}</p>
-              <p>Email: {user.email || "-"}</p>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[250px_minmax(0,1fr)]">
+            <DarkCard>
+              <div className="space-y-2">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
+                      activeTab === tab.id
+                        ? "bg-yellow-400 text-[#0B0F19]"
+                        : "bg-[#0f172a] text-slate-200 hover:bg-[#1a2336]"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </DarkCard>
+
+            <div className="space-y-4">
+              {error ? <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p> : null}
+
+              {activeTab === "profile" && (
+                <DarkCard>
+                  <div className="mb-4 flex items-center justify-between">
+                    <h2 className="text-xl font-bold">Мой профиль</h2>
+                    <button
+                      onClick={() => setEditingProfile((v) => !v)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-[#2a3347] px-3 py-2 text-sm hover:bg-[#1a2336]"
+                    >
+                      <Edit3 className="h-4 w-4" /> Редактировать профиль
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr]">
+                    <div className="rounded-xl border border-[#2a3347] bg-[#0f172a] p-4 text-center">
+                      {profileForm.avatar ? (
+                        <img src={profileForm.avatar} alt="avatar" className="mx-auto h-28 w-28 rounded-full object-cover" />
+                      ) : (
+                        <UserCircle2 className="mx-auto h-28 w-28 text-slate-400" />
+                      )}
+                      <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-yellow-400 px-3 py-2 text-sm font-semibold text-[#0B0F19]">
+                        <Camera className="h-4 w-4" /> Загрузить
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => onAvatarUpload(e.target.files?.[0])} />
+                      </label>
+                      {profileForm.avatar ? (
+                        <button
+                          onClick={() => setProfileForm((p) => ({ ...p, avatar: "" }))}
+                          className="mt-2 block w-full rounded-lg border border-[#2a3347] px-3 py-2 text-sm hover:bg-[#1a2336]"
+                        >
+                          Удалить фото
+                        </button>
+                      ) : null}
+                    </div>
+                    <div className="space-y-3">
+                      <input disabled={!editingProfile} value={profileForm.name} onChange={(e) => setProfileForm((p) => ({ ...p, name: e.target.value }))} className="w-full rounded-xl border border-[#2a3347] bg-[#0f172a] px-4 py-3 text-sm text-white disabled:opacity-80" placeholder="Имя" />
+                      <input disabled={!editingProfile} value={profileForm.phone} onChange={(e) => setProfileForm((p) => ({ ...p, phone: e.target.value }))} className="w-full rounded-xl border border-[#2a3347] bg-[#0f172a] px-4 py-3 text-sm text-white disabled:opacity-80" placeholder="Телефон" />
+                      <input disabled={!editingProfile} value={profileForm.email} onChange={(e) => setProfileForm((p) => ({ ...p, email: e.target.value }))} className="w-full rounded-xl border border-[#2a3347] bg-[#0f172a] px-4 py-3 text-sm text-white disabled:opacity-80" placeholder="Email" />
+                      {editingProfile ? (
+                        <button onClick={saveProfile} className="inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-[#0B0F19]">
+                          <Save className="h-4 w-4" /> Сохранить изменения
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                </DarkCard>
+              )}
+
+              {activeTab === "bonuses" && (
+                <DarkCard>
+                  <h2 className="mb-4 text-xl font-bold">Мои бонусы</h2>
+                  <div className="rounded-2xl border border-yellow-400/30 bg-gradient-to-r from-yellow-500/20 to-amber-400/10 p-5">
+                    <p className="text-sm text-yellow-100/80">Текущий баланс</p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <Coins className="h-7 w-7 text-yellow-300" />
+                      <p className="text-4xl font-black text-yellow-300">{data.bonusBalance.toLocaleString("ru-RU")}</p>
+                    </div>
+                    <p className="mt-1 text-sm text-yellow-100/70">Потратить можно на скидки в еде и приоритет размещения объявлений</p>
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    {data.bonusHistory.map((entry) => (
+                      <div key={entry.id} className="rounded-xl border border-[#2a3347] bg-[#0f172a] p-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm text-white">{entry.title}</p>
+                          <p className="font-semibold text-yellow-300">+{entry.amount}</p>
+                        </div>
+                        <p className="text-xs text-slate-400">{formatCabinetDate(entry.createdAt)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </DarkCard>
+              )}
+
+              {activeTab === "history" && (
+                <DarkCard>
+                  <h2 className="mb-4 text-xl font-bold">История</h2>
+                  <div className="space-y-2">
+                    {historyItems.length === 0 ? (
+                      <p className="text-sm text-slate-400">Пока нет действий.</p>
+                    ) : (
+                      historyItems.slice(0, 20).map((item) => (
+                        <div key={`${item.kind}-${item.id}`} className="rounded-xl border border-[#26324a] bg-[#0f172a] p-3">
+                          <div className="mb-1 flex items-center justify-between gap-2">
+                            <p className="text-sm font-semibold text-white">{item.kind}</p>
+                            <StatusBadge status={item.status} />
+                          </div>
+                          <p className="text-sm text-slate-200">{item.title}</p>
+                          {item.subtitle ? <p className="text-xs text-slate-400">{item.subtitle}</p> : null}
+                          <p className="mt-1 text-xs text-slate-500">{formatCabinetDate(item.createdAt)}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </DarkCard>
+              )}
+
+              {activeTab === "actions" && (
+                <DarkCard>
+                  <h2 className="mb-4 text-xl font-bold">Мои действия</h2>
+                  <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4">
+                    <select
+                      value={actionForm.section}
+                      onChange={(e) => setActionForm((p) => ({ ...p, section: e.target.value as ActionSection, id: "" }))}
+                      className="rounded-xl border border-[#2a3347] bg-[#0f172a] px-3 py-2 text-sm text-white"
+                    >
+                      <option value="announcements">Мои объявления</option>
+                      <option value="complaints">Мои жалобы</option>
+                      <option value="masterRequests">Мои заявки мастерам</option>
+                    </select>
+                    <input value={actionForm.title} onChange={(e) => setActionForm((p) => ({ ...p, title: e.target.value }))} className="rounded-xl border border-[#2a3347] bg-[#0f172a] px-3 py-2 text-sm text-white md:col-span-2" placeholder="Заголовок" />
+                    <button onClick={saveAction} className="rounded-xl bg-yellow-400 px-3 py-2 text-sm font-semibold text-[#0B0F19]">
+                      {actionForm.id ? "Сохранить" : "Создать новое"}
+                    </button>
+                  </div>
+                  <input value={actionForm.subtitle} onChange={(e) => setActionForm((p) => ({ ...p, subtitle: e.target.value }))} className="mb-3 w-full rounded-xl border border-[#2a3347] bg-[#0f172a] px-3 py-2 text-sm text-white" placeholder="Краткое описание" />
+                  <input value={actionForm.status} onChange={(e) => setActionForm((p) => ({ ...p, status: e.target.value }))} className="mb-4 w-full rounded-xl border border-[#2a3347] bg-[#0f172a] px-3 py-2 text-sm text-white" placeholder="Статус" />
+
+                  <div className="space-y-2">
+                    {(actionRows[actionForm.section] || []).map((item) => (
+                      <div key={item.id} className="rounded-xl border border-[#26324a] bg-[#0f172a] p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-white">{item.title}</p>
+                            <p className="text-xs text-slate-400">{item.subtitle}</p>
+                            <p className="text-xs text-slate-500">{formatCabinetDate(item.createdAt)}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setActionForm({ section: actionForm.section, id: item.id, title: item.title, subtitle: item.subtitle || "", status: item.status || "В процессе" })}
+                              className="inline-flex items-center gap-1 rounded-lg border border-[#2a3347] px-2 py-1 text-xs text-white hover:bg-[#1a2336]"
+                            >
+                              <Edit3 className="h-3.5 w-3.5" /> Редактировать
+                            </button>
+                            <button
+                              onClick={() => deleteCabinetItem(user.id, actionForm.section, item.id)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-red-500/40 px-2 py-1 text-xs text-red-300 hover:bg-red-500/10"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" /> Удалить
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {(actionRows[actionForm.section] || []).length === 0 ? <p className="text-sm text-slate-400">Нет записей в разделе «{sectionLabel[actionForm.section]}».</p> : null}
+                  </div>
+                </DarkCard>
+              )}
+
+              {activeTab === "settings" && (
+                <DarkCard>
+                  <h2 className="mb-4 text-xl font-bold">Настройки</h2>
+                  <div className="mb-5 rounded-xl border border-[#2a3347] bg-[#0f172a] p-4">
+                    <p className="mb-2 text-sm font-semibold text-white">Смена пароля</p>
+                    <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                      <input type="password" value={passwordForm.current} onChange={(e) => setPasswordForm((p) => ({ ...p, current: e.target.value }))} className="rounded-xl border border-[#2a3347] bg-[#0b1324] px-3 py-2 text-sm text-white" placeholder="Текущий пароль" />
+                      <input type="password" value={passwordForm.next} onChange={(e) => setPasswordForm((p) => ({ ...p, next: e.target.value }))} className="rounded-xl border border-[#2a3347] bg-[#0b1324] px-3 py-2 text-sm text-white" placeholder="Новый пароль" />
+                      <button onClick={savePassword} className="rounded-xl bg-yellow-400 px-3 py-2 text-sm font-semibold text-[#0B0F19]">Сменить пароль</button>
+                    </div>
+                  </div>
+
+                  <div className="mb-5 rounded-xl border border-[#2a3347] bg-[#0f172a] p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-white">Уведомления</p>
+                        <p className="text-xs text-slate-400">Включить/выключить уведомления кабинета</p>
+                      </div>
+                      <button
+                        onClick={() => setNotificationsEnabled(user.id, !data.notificationsEnabled)}
+                        className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${
+                          data.notificationsEnabled
+                            ? "bg-emerald-500/20 text-emerald-300"
+                            : "bg-slate-700 text-slate-200"
+                        }`}
+                      >
+                        {data.notificationsEnabled ? "Включены" : "Выключены"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      logoutLocalUser();
+                      navigate("/login");
+                    }}
+                    className="rounded-xl border border-red-500/40 px-4 py-2.5 text-sm font-semibold text-red-300 hover:bg-red-500/10"
+                  >
+                    Выйти из аккаунта
+                  </button>
+                </DarkCard>
+              )}
             </div>
-          </CabinetCard>
-          <CabinetCard title="Мои заказы (еда)"><RowList rows={data.foodOrders || []} /></CabinetCard>
-          <CabinetCard title="Мои объявления"><RowList rows={data.announcements || []} /></CabinetCard>
-          <CabinetCard title="Мои заявки (нужен мастер)"><RowList rows={data.masterRequests || []} /></CabinetCard>
-          <CabinetCard title="Мои жалобы"><RowList rows={data.complaints || []} /></CabinetCard>
+          </div>
         </div>
       </div>
     </Layout>

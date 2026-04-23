@@ -430,6 +430,7 @@ export default function Food() {
       pushCabinetItem('foodOrders', {
         title: `Заказ на ${total.toLocaleString('ru-RU')} ₸`,
         subtitle: deliveryMethod === 'delivery' ? fullAddress : 'Самовывоз',
+        status: 'Новый',
       });
       const whatsappNumber = settings.whatsapp_number.replace(/[^0-9]/g, '');
       let msg = `🍽 *Новый заказ*\n\n👤 ${customerName}\n📞 ${customerPhone}\n`;

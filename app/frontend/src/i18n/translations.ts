@@ -25,6 +25,13 @@ const translations: Translations = {
   /* ─── Header / Footer ─── */
   'header.portalName': { ru: 'SORTIROVKA 24', kz: 'SORTIROVKA 24' },
   'header.portalDesc': { ru: 'портал района', kz: 'аудан порталы' },
+  'header.openMenu': { ru: 'Открыть меню', kz: 'Мәзірді ашу' },
+  'lang.switch': { ru: 'Сменить язык', kz: 'Тілді ауыстыру' },
+  'lang.ru': { ru: 'Русский', kz: 'Орыс тілі' },
+  'lang.kz': { ru: 'Казахский', kz: 'Қазақ тілі' },
+  'auth.login': { ru: 'Войти', kz: 'Кіру' },
+  'auth.logout': { ru: 'Выйти', kz: 'Шығу' },
+  'cabinet.title': { ru: 'Кабинет', kz: 'Кабинет' },
   'footer.portalTitle': { ru: 'Портал Сортировки', kz: 'Сортировка порталы' },
   'footer.portalDescription': { ru: 'Полезный цифровой портал района Сортировка, Караганда. Мастера, новости, жалобы, объявления и многое другое.', kz: 'Сортировка ауданының пайдалы цифрлық порталы, Қарағанды. Шеберлер, жаңалықтар, шағымдар, хабарландырулар және тағы басқа.' },
   'footer.sections': { ru: 'Разделы', kz: 'Бөлімдер' },

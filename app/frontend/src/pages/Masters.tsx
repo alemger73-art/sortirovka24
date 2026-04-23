@@ -604,6 +604,7 @@ export function MasterRequestForm() {
       pushCabinetItem('masterRequests', {
         title: form.category,
         subtitle: form.problem_description.slice(0, 80),
+        status: 'Новая',
       });
       setSuccess(true);
       client.apiCall.invoke({

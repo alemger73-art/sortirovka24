@@ -263,6 +263,7 @@ export function NewComplaintForm() {
       pushCabinetItem('complaints', {
         title: form.category || 'Жалоба',
         subtitle: form.address || form.description.slice(0, 60),
+        status: 'Отправлена',
       });
       const photoCount = galleryKeys ? galleryKeys.split(',').filter((k: string) => k.trim()).length : 0;
       const totalPhotos = (photoKey ? 1 : 0) + photoCount;
@@ -471,6 +472,7 @@ export function NewAnnouncementForm() {
       pushCabinetItem('announcements', {
         title: form.title,
         subtitle: form.price || form.ann_type,
+        status: 'На модерации',
       });
       const photoCount = galleryKeys ? galleryKeys.split(',').filter((k: string) => k.trim()).length : 0;
       client.apiCall.invoke({
