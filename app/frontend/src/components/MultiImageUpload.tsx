@@ -53,7 +53,7 @@ export default function MultiImageUpload({
 
   // Parse value string into keys and resolve URLs
   useEffect(() => {
-    const keys = value ? value.split(',').filter(k => k.trim()) : [];
+    const keys = value ? value.split(',').map(k => k.trim()).filter(Boolean) : [];
     setImages(prev => {
       const prevKeys = prev.filter(i => !i.uploading).map(i => i.key);
       const uploadingItems = prev.filter(i => i.uploading);
@@ -484,7 +484,7 @@ export function StorageGallery({ keys, className = '' }: { keys?: string | null;
 
   const urls = useMemo(() => {
     if (!keys) return [];
-    const keyList = keys.split(',').filter(k => k.trim());
+    const keyList = keys.split(',').map(k => k.trim()).filter(Boolean);
     return keyList.map(key => ({
       key,
       url: isDirectUrl(key) ? key : resolveImageSrc(key),

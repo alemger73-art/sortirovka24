@@ -11,6 +11,40 @@ import MultiImageUpload, { StorageGallery } from '@/components/MultiImageUpload'
 import VideoUpload from '@/components/VideoUpload';
 import StorageVideo from '@/components/StorageVideo';
 
+function normalizeYoutubeWatchUrl(value: string): string {
+  const raw = (value || '').trim();
+  if (!raw) return '';
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return `https://${raw}`;
+}
+
+function buildYoutubeEmbedUrl(value: string): string | null {
+  const normalized = normalizeYoutubeWatchUrl(value);
+  if (!normalized) return null;
+  try {
+    const url = new URL(normalized);
+    const host = url.hostname.replace(/^www\./, '').toLowerCase();
+
+    if (host === 'youtube.com' || host === 'm.youtube.com') {
+      if (url.pathname.startsWith('/embed/')) return url.toString();
+      if (url.pathname.startsWith('/shorts/')) {
+        const id = url.pathname.split('/')[2];
+        return id ? `https://www.youtube.com/embed/${id}` : null;
+      }
+      const id = url.searchParams.get('v');
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+
+    if (host === 'youtu.be') {
+      const id = url.pathname.replace(/^\/+/, '').split('/')[0];
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 /* ============ NEWS LIST ============ */
 export function NewsList() {
   const [news, setNews] = useState<any[]>([]);
@@ -71,6 +105,8 @@ export function NewsDetail() {
   const { id } = useParams();
   const [item, setItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const youtubeWatchUrl = normalizeYoutubeWatchUrl(item?.youtube_url || '');
+  const youtubeEmbedUrl = buildYoutubeEmbedUrl(item?.youtube_url || '');
 
   useEffect(() => {
     (async () => {
@@ -102,7 +138,22 @@ export function NewsDetail() {
         </div>
         {item.youtube_url && (
           <div className="mt-6">
-            <iframe src={item.youtube_url.replace('watch?v=', 'embed/')} className="w-full h-64 md:h-96 rounded-xl" allowFullScreen />
+            {youtubeEmbedUrl ? (
+              <iframe
+                src={youtubeEmbedUrl}
+                className="w-full h-64 md:h-96 rounded-xl"
+                allowFullScreen
+                title="YouTube video"
+              />
+            ) : null}
+            <a
+              href={youtubeWatchUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex mt-3 text-sm text-blue-600 hover:text-blue-700 underline underline-offset-2"
+            >
+              Открыть видео на YouTube
+            </a>
           </div>
         )}
       </div>

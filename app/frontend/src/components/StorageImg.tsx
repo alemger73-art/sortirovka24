@@ -1,8 +1,8 @@
 /**
  * Optimized image component for public-facing pages.
  *
- * Uses resolveImageSrc() which synchronously constructs the permanent
- * public URL from the pre-initialized OSS base URL.
+ * Uses resolveImageSrc() for fast sync resolution and falls back to
+ * resolveImageUrl() when object keys need async backend resolution.
  *
  * Enhanced with:
  * - In-memory image cache integration (instant display for preloaded images)
@@ -13,7 +13,7 @@
  * - Retry mechanism on error (once, after a short delay)
  */
 import { useState, useCallback, useRef, useEffect, memo } from 'react';
-import { resolveImageSrc, isDirectUrl } from '@/lib/storage';
+import { resolveImageSrc, resolveImageUrl } from '@/lib/storage';
 import { isImageCached, markImageLoaded } from '@/lib/imageCache';
 import { ImageIcon, ImageOff } from 'lucide-react';
 
@@ -36,7 +36,9 @@ const StorageImg = memo(function StorageImg({
   showBrokenIndicator = false,
   priority = false,
 }: StorageImgProps) {
-  const src = resolveImageSrc(objectKey ?? null);
+  const syncSrc = resolveImageSrc(objectKey ?? null);
+  const [asyncSrc, setAsyncSrc] = useState<string | null>(null);
+  const src = syncSrc || asyncSrc;
   const alreadyCached = src ? isImageCached(src) : false;
 
   const [loaded, setLoaded] = useState(alreadyCached);
@@ -44,6 +46,30 @@ const StorageImg = memo(function StorageImg({
   const [retried, setRetried] = useState(false);
   const [inView, setInView] = useState(priority || alreadyCached);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let alive = true;
+    setAsyncSrc(null);
+    setError(false);
+    setLoaded(false);
+    setRetried(false);
+
+    if (!objectKey || syncSrc) return () => { alive = false; };
+
+    resolveImageUrl(objectKey)
+      .then((resolved) => {
+        if (!alive) return;
+        if (resolved) setAsyncSrc(resolved);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setError(true);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [objectKey, syncSrc]);
 
   // IntersectionObserver for lazy loading with 300px rootMargin
   useEffect(() => {
@@ -79,10 +105,18 @@ const StorageImg = memo(function StorageImg({
   }, [retried]);
 
   // No objectKey provided — show empty placeholder
-  if (!objectKey || !src) {
+  if (!objectKey) {
     return (
       <div className={`bg-gray-100 flex items-center justify-center ${fallbackClassName || className}`}>
         <ImageIcon className="h-6 w-6 text-gray-300" />
+      </div>
+    );
+  }
+
+  if (!src && !error) {
+    return (
+      <div className={`bg-gray-100 flex items-center justify-center ${fallbackClassName || className}`}>
+        <div className="h-6 w-6 rounded-full border-2 border-gray-300 border-t-gray-500 animate-spin" />
       </div>
     );
   }

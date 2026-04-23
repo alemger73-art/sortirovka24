@@ -201,9 +201,14 @@ class StorageService:
         public_id, fmt = _split_public_id_and_format(object_key)
         if not public_id:
             public_id = object_key
+        # Cloudinary delivery URLs must use concrete resource_type.
+        # "auto" can produce non-deliverable URL shapes for direct browser access.
+        resource_type = "image"
+        if fmt in {"mp4", "webm", "mov", "avi", "mkv"}:
+            resource_type = "video"
         url, _ = cloudinary.utils.cloudinary_url(
             public_id,
-            resource_type="auto",
+            resource_type=resource_type,
             type="upload",
             secure=True,
             format=fmt,

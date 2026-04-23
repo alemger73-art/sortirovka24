@@ -9,36 +9,65 @@ import { client, withRetry } from '@/lib/api';
 
 export const BUCKET_NAME = 'portal-images';
 
-// ─── OSS Base URL (permanent public access) ─────────────────────
-// Objects in public buckets can be accessed directly without presigned params.
-// We pre-initialize with the known OSS base URL so images resolve immediately
-// on page load without waiting for any API call. This is critical for the
-// external site where the backend may be cold on first visit.
-// The URL is also auto-discovered from presigned URLs as a self-healing mechanism.
-let _ossBaseUrl: string | null = 'https://a405a189a97f36b140db28b533475909.oss.atoms.dev';
+// ─── Cloudinary Image Base URL (auto-discovered) ─────────────────
+// For object keys we can construct permanent image URLs when the Cloudinary
+// cloud name is known from any returned download URL.
+let _cloudinaryImageBase: string | null = null;
 
-/** Extract and cache the OSS base URL from a presigned URL. */
-function extractOssBaseUrl(presignedUrl: string): string | null {
+function splitObjectKey(objectKey: string): { publicId: string; format: string | null } {
+  const key = (objectKey || '').trim().replace(/^\/+/, '');
+  if (!key) return { publicId: '', format: null };
+  const dot = key.lastIndexOf('.');
+  if (dot <= 0 || dot === key.length - 1) return { publicId: key, format: null };
+  const publicId = key.slice(0, dot);
+  const ext = key.slice(dot + 1).toLowerCase();
+  if (!/^[a-z0-9]{1,10}$/.test(ext)) return { publicId: key, format: null };
+  return { publicId, format: ext };
+}
+
+/** Extract and cache Cloudinary image delivery base from URL. */
+function extractCloudinaryBase(urlValue: string): string | null {
   try {
-    const url = new URL(presignedUrl);
-    // Pattern: https://{hash}.oss.atoms.dev/{objectKey}?X-Amz-...
-    if (url.hostname.endsWith('.oss.atoms.dev')) {
-      const base = `${url.protocol}//${url.hostname}`;
-      _ossBaseUrl = base;
-      return base;
+    const url = new URL(urlValue);
+    if (url.hostname !== 'res.cloudinary.com') return null;
+    const parts = url.pathname.split('/').filter(Boolean); // <cloud>/<resource>/upload/...
+    if (parts.length < 3) return null;
+    const cloudName = parts[0];
+    const resourceType = parts[1] || 'image';
+    if (parts[2] !== 'upload') return null;
+    if (!cloudName) return null;
+    // Prefer image base for news/announcements/gallery rendering.
+    const base = `${url.protocol}//${url.hostname}/${cloudName}/${resourceType}/upload`;
+    if (resourceType === 'image') {
+      _cloudinaryImageBase = base;
+    } else if (!_cloudinaryImageBase) {
+      // Fallback if first discovered URL is non-image.
+      _cloudinaryImageBase = `${url.protocol}//${url.hostname}/${cloudName}/image/upload`;
     }
+    if (_cloudinaryImageBase) {
+      return _cloudinaryImageBase;
+    }
+    return base;
   } catch {
-    // ignore
+    return null;
   }
+}
+
+/** Extract and cache Cloudinary base from any response URL. */
+function extractStorageBase(urlValue: string): string | null {
+  const cloudinary = extractCloudinaryBase(urlValue);
+  if (cloudinary) return cloudinary;
   return null;
 }
 
-/** Get the permanent public URL for an object key. Returns null if base URL unknown. */
+/** Get permanent public URL for object key if base known. */
 export function getPublicObjectUrl(objectKey: string): string | null {
-  if (!_ossBaseUrl) return null;
-  // Ensure no double slashes
-  const key = objectKey.startsWith('/') ? objectKey.slice(1) : objectKey;
-  return `${_ossBaseUrl}/${key}`;
+  if (!_cloudinaryImageBase) return null;
+  const { publicId, format } = splitObjectKey(objectKey);
+  if (!publicId) return null;
+  const encodedId = publicId.split('/').map(encodeURIComponent).join('/');
+  const suffix = format ? `.${format}` : '';
+  return `${_cloudinaryImageBase}/${encodedId}${suffix}`;
 }
 
 /** Check if a value looks like a storage object key (not a URL, contains folder/file pattern). */
@@ -49,8 +78,8 @@ export function isObjectKey(value: string): boolean {
 /**
  * Synchronously resolve an image source for use in <img src={}>.
  * - If the value is already a URL, returns it as-is.
- * - If it's an objectKey and we know the OSS base URL, constructs a permanent URL.
- * - Returns null if the value is empty or cannot be resolved.
+ * - If it's an objectKey and Cloudinary base is discovered, constructs a permanent URL.
+ * - Returns null if the value cannot be resolved yet.
  */
 export function resolveImageSrc(value: string | null | undefined): string | null {
   if (!value) return null;
@@ -63,20 +92,13 @@ let _bucketEnsured = false;
 let _bucketEnsurePromise: Promise<void> | null = null;
 
 /**
- * Ensure the storage bucket exists. Safe to call from any component —
- * runs at most once and caches the result globally.
- *
- * On production, the bucket is created by the backend on startup,
- * so we use a lightweight public endpoint probe instead of authenticated
- * SDK calls that would fail with 401 for unauthenticated users.
+ * Ensure the storage backend is reachable. Safe to call from any component.
  */
 export async function ensureBucket(): Promise<void> {
   if (_bucketEnsured) return;
   if (_bucketEnsurePromise) return _bucketEnsurePromise;
 
   _bucketEnsurePromise = (async () => {
-    // Strategy 1: Try a lightweight public download-url call to verify bucket exists.
-    // This doesn't require auth and works on production.
     try {
       const resp = await fetch('/api/v1/storage/public/download-url', {
         method: 'POST',
@@ -86,55 +108,30 @@ export async function ensureBucket(): Promise<void> {
         },
         body: JSON.stringify({
           bucket_name: BUCKET_NAME,
-          object_key: '_ping_test_nonexistent.txt',
+          object_key: '_ping_test_nonexistent.jpg',
         }),
       });
-      // Any response (even 400/404) means the backend is reachable
-      // and the bucket routing works. Only network errors are a concern.
-      if (resp.ok || resp.status === 400 || resp.status === 404 || resp.status === 500) {
-        // Try to extract OSS base URL from a successful response
-        if (resp.ok) {
-          try {
-            const data = await resp.json();
-            if (data?.download_url) {
-              extractOssBaseUrl(data.download_url);
-            }
-          } catch {
-            // ignore JSON parse errors
+      if (resp.ok) {
+        try {
+          const data = await resp.json();
+          if (data?.download_url) {
+            extractStorageBase(data.download_url);
           }
+        } catch {
+          // ignore parse errors
         }
-        _bucketEnsured = true;
-        return;
       }
+      // 4xx/5xx still proves backend route is reachable.
+      _bucketEnsured = true;
+      return;
     } catch {
-      // Network error — fall through to SDK method
+      // Network error — try SDK fallback.
     }
 
-    // Strategy 2: SDK authenticated method (works in App Viewer / admin)
     try {
       await client.storage.listObjects({ bucket_name: BUCKET_NAME });
       _bucketEnsured = true;
-    } catch (err) {
-      const msg = String(err).toLowerCase();
-      if (
-        msg.includes('not found') ||
-        msg.includes('not exist') ||
-        msg.includes('no such') ||
-        msg.includes('404')
-      ) {
-        try {
-          await client.storage.createBucket({
-            bucket_name: BUCKET_NAME,
-            visibility: 'public',
-          });
-          console.log('[Storage] Created bucket:', BUCKET_NAME);
-        } catch (createErr) {
-          console.warn('[Storage] Bucket create failed (likely already exists):', createErr);
-        }
-      } else {
-        console.warn('[Storage] Could not verify bucket, proceeding anyway:', msg);
-      }
-      // Always mark as ensured — don't block uploads
+    } catch {
       _bucketEnsured = true;
     }
   })();
@@ -177,15 +174,6 @@ export function isDirectUrl(value: string): boolean {
 
 /**
  * Resolve an object_key to a download URL for display.
- *
- * Strategy (in order):
- * 1. If it's already a direct URL (http/https), return as-is.
- * 2. If we know the OSS base URL, construct a permanent public URL directly
- *    (no API call needed — the bucket is public).
- * 3. Fall back to the presigned download endpoint (and extract the OSS base
- *    URL from the response for future use).
- *
- * Supports direct URLs (returns them as-is).
  */
 export async function resolveImageUrl(
   objectKey: string | undefined | null
@@ -197,14 +185,14 @@ export async function resolveImageUrl(
   const cached = getCachedUrl(objectKey);
   if (cached) return cached;
 
-  // Strategy 1: If we know the OSS base URL, construct permanent public URL directly
+  // Strategy 1: If Cloudinary base is known, construct direct URL
   const publicUrl = getPublicObjectUrl(objectKey);
   if (publicUrl) {
     setCachedUrl(objectKey, publicUrl);
     return publicUrl;
   }
 
-  // Strategy 2: Discover the OSS base URL via the presigned download endpoint
+  // Strategy 2: Use backend public endpoint and cache discovered base.
   try {
     const url = await withRetry(
       () => fetchPublicDownloadUrl(BUCKET_NAME, objectKey),
@@ -212,15 +200,13 @@ export async function resolveImageUrl(
       2000
     );
     if (url) {
-      // Extract and cache the OSS base URL for future permanent URL construction
-      extractOssBaseUrl(url);
-      // Use the permanent URL (without presigned params) instead of the expiring one
+      extractStorageBase(url);
       const permanentUrl = getPublicObjectUrl(objectKey) || url;
       setCachedUrl(objectKey, permanentUrl);
       return permanentUrl;
     }
-  } catch (err) {
-    console.warn('[resolveImageUrl] Public endpoint failed, trying SDK:', objectKey, err);
+  } catch {
+    // fall through
   }
 
   // Strategy 3: SDK authenticated endpoint (works in App Viewer / admin)
@@ -236,7 +222,7 @@ export async function resolveImageUrl(
     );
     const url = res.data?.download_url || null;
     if (url) {
-      extractOssBaseUrl(url);
+      extractStorageBase(url);
       const permanentUrl = getPublicObjectUrl(objectKey) || url;
       setCachedUrl(objectKey, permanentUrl);
       return permanentUrl;
@@ -370,8 +356,7 @@ export async function uploadFile(
       3,
       2000
     );
-    // Extract OSS base URL from the upload URL for permanent URL construction
-    extractOssBaseUrl(upload_url);
+    extractStorageBase(upload_url);
     await withRetry(
       () => uploadToPresignedUrl(upload_url, file),
       2,
@@ -410,7 +395,7 @@ export async function uploadFile(
         2000
       );
       if (presignedUrl) {
-        extractOssBaseUrl(presignedUrl);
+        extractStorageBase(presignedUrl);
         // Prefer permanent URL over presigned
         downloadUrl = getPublicObjectUrl(objectKey) || presignedUrl;
       }
@@ -428,7 +413,7 @@ export async function uploadFile(
         );
         const sdkUrl = res.data?.download_url || null;
         if (sdkUrl) {
-          extractOssBaseUrl(sdkUrl);
+          extractStorageBase(sdkUrl);
           downloadUrl = getPublicObjectUrl(objectKey) || sdkUrl;
         }
       } catch (err) {
