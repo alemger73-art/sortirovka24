@@ -398,11 +398,11 @@ export default function Index() {
 
   /* ─── Popular Categories config (5 items — no Стройматериалы, all with images) ─── */
   const popularCategories = [
-    { labelKey: 'categories.food', to: '/food', img: FOOD_IMG, emoji: '🍔' },
-    { labelKey: 'categories.masters', to: '/masters', img: MASTERS_IMG, emoji: '🛠' },
-    { labelKey: 'categories.realEstate', to: '/real-estate', img: REALESTATE_IMG, emoji: '🏠' },
-    { labelKey: 'categories.announcements', to: '/announcements', img: ANNOUNCEMENTS_IMG, emoji: '📢' },
-    { labelKey: 'categories.jobs', to: '/jobs', img: JOBS_IMG, emoji: '💼' },
+    { labelKey: 'categories.food', to: '/food', img: FOOD_IMG },
+    { labelKey: 'categories.masters', to: '/masters', img: MASTERS_IMG },
+    { labelKey: 'categories.realEstate', to: '/real-estate', img: REALESTATE_IMG },
+    { labelKey: 'categories.announcements', to: '/announcements', img: ANNOUNCEMENTS_IMG },
+    { labelKey: 'categories.jobs', to: '/jobs', img: JOBS_IMG },
   ];
 
   const scrollNews = (dir: 'left' | 'right') => {
@@ -433,7 +433,6 @@ export default function Index() {
                   <img src={cat.img} alt={t(cat.labelKey)} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                   <div className="relative z-10 p-4 w-full">
-                    <span className="text-2xl block mb-1">{cat.emoji}</span>
                     <h3 className="font-bold text-white text-sm md:text-base">{t(cat.labelKey)}</h3>
                   </div>
                 </Link>
