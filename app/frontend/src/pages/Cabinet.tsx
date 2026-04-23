@@ -8,7 +8,7 @@ type TabId = "profile" | "bonuses" | "orders" | "complaints" | "announcements" |
 
 function DarkCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="theme-transition rounded-2xl border border-app bg-app-card p-5 shadow-[0_10px_25px_rgba(0,0,0,0.25)]">
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-[0_10px_25px_rgba(0,0,0,0.12)] dark:border-[#1f2a3f] dark:bg-[#111827] dark:shadow-[0_10px_25px_rgba(0,0,0,0.25)]">
       {children}
     </div>
   );
@@ -81,19 +81,19 @@ export default function Cabinet() {
     announcements: cabinet?.announcements || [],
   }), [cabinet]);
 
-  if (loading) return <Layout><div className="mx-auto max-w-6xl px-4 py-10 text-app-muted">Загрузка кабинета...</div></Layout>;
+  if (loading) return <Layout><div className="mx-auto max-w-6xl px-4 py-10 text-gray-500 dark:text-slate-300">Загрузка кабинета...</div></Layout>;
 
   return (
     <Layout>
-      <div className="theme-transition min-h-screen bg-app px-4 py-8 text-app">
+      <div className="min-h-screen bg-gray-50 px-4 py-8 text-gray-900 dark:bg-[#0B0F19] dark:text-white">
         <div className="mx-auto max-w-7xl">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h1 className="text-3xl font-extrabold">Личный кабинет</h1>
-              <p className="text-app-muted">{cabinet?.profile?.name} · {cabinet?.profile?.phone}</p>
+              <p className="text-gray-500 dark:text-slate-300">{cabinet?.profile?.name} · {cabinet?.profile?.phone}</p>
             </div>
             <button
-              className="theme-transition rounded-xl border border-app bg-app-card px-4 py-2 text-sm font-semibold text-app hover:bg-app-surface"
+              className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-100 dark:border-[#2a3347] dark:bg-[#111827] dark:text-white dark:hover:bg-[#1a2336]"
               onClick={() => {
                 clearAccountToken();
                 navigate("/account");
@@ -113,7 +113,7 @@ export default function Cabinet() {
                     className={`w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
                       activeTab === tab.id
                         ? "bg-yellow-400 text-[#0B0F19]"
-                        : "bg-app-surface text-app hover:opacity-90"
+                        : "bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-[#0f172a] dark:text-slate-200 dark:hover:bg-[#1a2336]"
                     }`}
                   >
                     {tab.label}

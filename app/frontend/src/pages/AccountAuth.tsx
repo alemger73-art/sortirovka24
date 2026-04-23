@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 import Layout from "@/components/Layout";
 import { accountApi, setAccountToken } from "@/lib/accountApi";
 
@@ -26,6 +27,10 @@ export default function AccountAuth() {
   const [isLogin, setIsLogin] = useState(location.pathname !== "/register");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [smsCode, setSmsCode] = useState("");
+  const [smsRequested, setSmsRequested] = useState(false);
+  const [smsInfo, setSmsInfo] = useState("");
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -36,6 +41,22 @@ export default function AccountAuth() {
     privacy_accepted: false,
   });
   const title = useMemo(() => (isLogin ? "Вход" : "Регистрация"), [isLogin]);
+
+  async function requestSmsCode() {
+    setError("");
+    setSmsInfo("");
+    try {
+      if (!form.phone.trim()) throw new Error("Введите номер телефона");
+      const res = await accountApi.requestSmsCode({ phone: form.phone });
+      setSmsRequested(true);
+      setSmsInfo(`Код отправлен. Действителен ${Math.floor(res.ttl_seconds / 60)} мин.`);
+      if (res.debug_code) {
+        setSmsInfo(prev => `${prev} Тестовый код: ${res.debug_code}`);
+      }
+    } catch (e: any) {
+      setError(String(e?.message || e));
+    }
+  }
 
   async function submit() {
     setLoading(true);
@@ -48,7 +69,9 @@ export default function AccountAuth() {
         const res = await accountApi.login({ phone: form.phone, password: form.password });
         setAccountToken(res.token);
       } else {
-        const res = await accountApi.register({
+        if (!smsRequested) throw new Error("Сначала запросите SMS-код");
+        if (!smsCode.trim()) throw new Error("Введите SMS-код");
+        const res = await accountApi.confirmRegistration({
           name: form.name,
           phone: form.phone,
           password: form.password,
@@ -56,6 +79,7 @@ export default function AccountAuth() {
           language: form.language,
           agreement_accepted: form.agreement_accepted,
           privacy_accepted: form.privacy_accepted,
+          sms_code: smsCode.trim(),
         });
         setAccountToken(res.token);
       }
@@ -70,38 +94,71 @@ export default function AccountAuth() {
   return (
     <Layout>
       <div className="mx-auto max-w-md px-4 py-10">
-        <div className="theme-transition rounded-2xl border border-app bg-app-card p-6 shadow-sm">
-          <h1 className="text-2xl font-bold text-app">{title}</h1>
-          <p className="mt-1 text-sm text-app-muted">Вход по номеру телефона и паролю</p>
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Вход по номеру телефона и паролю</p>
 
           <div className="mt-5 space-y-3">
             {!isLogin && (
               <>
-                <input className="theme-transition w-full rounded-xl border border-app bg-app-input px-3 py-2.5 text-app" placeholder="Имя" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-                <input className="theme-transition w-full rounded-xl border border-app bg-app-input px-3 py-2.5 text-app" placeholder="Email (необязательно)" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-                <select className="theme-transition w-full rounded-xl border border-app bg-app-input px-3 py-2.5 text-app" value={form.language} onChange={e => setForm({ ...form, language: e.target.value })}>
+                <input className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-white" placeholder="Имя" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+                <input className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-white" placeholder="Email (необязательно)" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+                <select className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-white" value={form.language} onChange={e => setForm({ ...form, language: e.target.value })}>
                   <option value="ru">Русский</option>
                   <option value="kz">Қазақша</option>
                 </select>
-                <label className="flex items-center gap-2 text-sm text-app-muted">
+                <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                   <input type="checkbox" checked={form.agreement_accepted} onChange={e => setForm({ ...form, agreement_accepted: e.target.checked })} />
                   Принимаю пользовательское соглашение
                 </label>
-                <label className="flex items-center gap-2 text-sm text-app-muted">
+                <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                   <input type="checkbox" checked={form.privacy_accepted} onChange={e => setForm({ ...form, privacy_accepted: e.target.checked })} />
                   Принимаю политику конфиденциальности
                 </label>
+                <button
+                  type="button"
+                  onClick={requestSmsCode}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-medium text-gray-800 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-800"
+                >
+                  {smsRequested ? "Отправить код повторно" : "Отправить SMS-код"}
+                </button>
+                {smsRequested ? (
+                  <input
+                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+                    placeholder="Код из SMS"
+                    inputMode="numeric"
+                    value={smsCode}
+                    onChange={e => setSmsCode(e.target.value)}
+                  />
+                ) : null}
+                {smsInfo ? <p className="text-xs text-gray-500 dark:text-gray-400">{smsInfo}</p> : null}
               </>
             )}
             <input
-              className="theme-transition w-full rounded-xl border border-app bg-app-input px-3 py-2.5 text-app"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
               placeholder="+7 (700) 123-45-67"
               inputMode="tel"
               value={form.phone}
               onChange={e => setForm({ ...form, phone: formatPhoneInput(e.target.value) })}
             />
-            <input type="password" className="theme-transition w-full rounded-xl border border-app bg-app-input px-3 py-2.5 text-app" placeholder="Пароль" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
-            <p className="text-xs text-app-muted">Пароль: минимум 8 символов</p>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 pr-11 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+                placeholder="Пароль"
+                value={form.password}
+                onChange={e => setForm({ ...form, password: e.target.value })}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+                aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Пароль: минимум 8 символов</p>
           </div>
 
           {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
@@ -114,7 +171,7 @@ export default function AccountAuth() {
             <button onClick={() => setIsLogin(v => !v)} className="text-blue-600 hover:text-blue-700">
               {isLogin ? "Нужен аккаунт? Регистрация" : "Уже есть аккаунт? Войти"}
             </button>
-            <Link to="/" className="text-app-muted hover:text-app">
+            <Link to="/" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
               На главную
             </Link>
           </div>

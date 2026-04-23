@@ -32,6 +32,8 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const accountApi = {
+  requestSmsCode: (body: { phone: string }) => api<{ success: boolean; ttl_seconds: number; debug_code?: string }>("/api/v1/account/register/request-sms", { method: "POST", body: JSON.stringify(body) }),
+  confirmRegistration: (body: any) => api<{ token: string; user_id: string; role: AccountRole }>("/api/v1/account/register/confirm", { method: "POST", body: JSON.stringify(body) }),
   register: (body: any) => api<{ token: string; user_id: string; role: AccountRole }>("/api/v1/account/register", { method: "POST", body: JSON.stringify(body) }),
   login: (body: any) => api<{ token: string; user_id: string; role: AccountRole }>("/api/v1/account/login", { method: "POST", body: JSON.stringify(body) }),
   logout: () => api<{ success: boolean }>("/api/v1/account/logout", { method: "POST" }),

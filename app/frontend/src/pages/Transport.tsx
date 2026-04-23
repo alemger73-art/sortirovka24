@@ -188,10 +188,7 @@ function RouteCard({
         className="w-full text-left p-5 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
       >
         {/* Route number badge */}
-        <div
-          className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg"
-          style={{ backgroundColor: route.color || '#3B82F6' }}
-        >
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg bg-blue-500">
           <span className="text-white font-extrabold text-xl">{route.route_number}</span>
         </div>
 
@@ -287,10 +284,7 @@ function RouteCard({
             </h4>
             <div className="relative pl-6">
               {/* Vertical line */}
-              <div
-                className="absolute left-[11px] top-2 bottom-2 w-0.5"
-                style={{ backgroundColor: route.color || '#3B82F6' }}
-              />
+              <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-blue-500" />
               <div className="space-y-0">
                 {routeStops.map((stop, idx) => {
                   const isFirst = idx === 0;
@@ -298,13 +292,7 @@ function RouteCard({
                   return (
                     <div key={stop.id} className="relative flex items-center gap-3 py-2">
                       {/* Dot */}
-                      <div
-                        className="absolute -left-6 w-[22px] h-[22px] rounded-full border-[3px] flex items-center justify-center z-10"
-                        style={{
-                          borderColor: route.color || '#3B82F6',
-                          backgroundColor: isFirst || isLast ? (route.color || '#3B82F6') : '#fff',
-                        }}
-                      >
+                      <div className={`absolute -left-6 w-[22px] h-[22px] rounded-full border-[3px] border-blue-500 flex items-center justify-center z-10 ${isFirst || isLast ? 'bg-blue-500' : 'bg-white dark:bg-gray-900'}`}>
                         {(isFirst || isLast) && (
                           <span className="text-[8px] font-bold text-white">{isFirst ? 'A' : 'B'}</span>
                         )}

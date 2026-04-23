@@ -433,10 +433,7 @@ export default function InspectorsPage() {
                               : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700'
                           }`}
                         >
-                          <span
-                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: PRECINCT_COLORS[idx % PRECINCT_COLORS.length] }}
-                          />
+                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-blue-500" />
                           {ins.precinct_number ? `№${ins.precinct_number}` : ins.full_name.split(' ')[0]}
                         </button>
                       ))}

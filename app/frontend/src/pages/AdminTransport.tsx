@@ -354,10 +354,7 @@ export default function AdminTransport() {
           <div className="space-y-2">
             {routes.map(route => (
               <div key={route.id} className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4">
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: route.color || '#3B82F6' }}
-                >
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-blue-500">
                   <span className="text-white font-bold text-lg">{route.route_number}</span>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -449,7 +446,7 @@ export default function AdminTransport() {
             return (
               <div key={route.id} className="space-y-2">
                 <h4 className="font-semibold text-gray-700 flex items-center gap-2">
-                  <div className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: route.color }}>
+                  <div className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-bold bg-blue-500">
                     {route.route_number}
                   </div>
                   {route.route_name}
@@ -536,7 +533,7 @@ export default function AdminTransport() {
                     <p className="text-sm text-gray-900">{n.message}</p>
                     <div className="flex items-center gap-2 mt-1">
                       {route ? (
-                        <span className="text-xs px-2 py-0.5 rounded-full text-white font-medium" style={{ backgroundColor: route.color }}>
+                        <span className="text-xs px-2 py-0.5 rounded-full text-white font-medium bg-blue-500">
                           №{route.route_number}
                         </span>
                       ) : (

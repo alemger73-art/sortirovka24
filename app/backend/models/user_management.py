@@ -52,3 +52,16 @@ class Order(Base):
     amount = Column(Float, nullable=True)
     details = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PhoneVerification(Base):
+    __tablename__ = "phone_verifications"
+    __table_args__ = {"extend_existing": True}
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    phone = Column(String(32), index=True, nullable=False)
+    code_hash = Column(String(128), nullable=False)
+    is_verified = Column(Boolean, nullable=False, default=False)
+    attempts = Column(Integer, nullable=False, default=0)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

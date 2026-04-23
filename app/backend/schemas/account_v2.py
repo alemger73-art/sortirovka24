@@ -1,6 +1,6 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 RoleType = Literal["user", "master", "driver", "seller", "moderator", "admin", "superadmin"]
 
@@ -8,7 +8,7 @@ RoleType = Literal["user", "master", "driver", "seller", "moderator", "admin", "
 class RegisterV2Request(BaseModel):
     name: str = Field(min_length=2, max_length=255)
     phone: str = Field(min_length=5, max_length=32)
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     password: str = Field(min_length=8, max_length=128)
     avatar: Optional[str] = None
     language: Literal["ru", "kz"] = "ru"
@@ -42,7 +42,7 @@ class UserV2Response(BaseModel):
 
 class UserV2UpdateRequest(BaseModel):
     name: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     avatar: Optional[str] = None
     language: Optional[Literal["ru", "kz"]] = None
 
@@ -60,3 +60,17 @@ class DashboardStatsResponse(BaseModel):
     total_bonuses: float
     total_complaints: int
     total_orders: int
+
+
+class RequestSmsCodeRequest(BaseModel):
+    phone: str
+
+
+class RequestSmsCodeResponse(BaseModel):
+    success: bool
+    ttl_seconds: int
+    debug_code: Optional[str] = None
+
+
+class ConfirmRegistrationRequest(RegisterV2Request):
+    sms_code: str = Field(min_length=4, max_length=8)

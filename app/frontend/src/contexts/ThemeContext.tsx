@@ -27,16 +27,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return 'light';
   });
 
-  // Apply theme class + attribute to <html>
+  // Apply theme class to <html>
   useEffect(() => {
     try {
       const root = document.documentElement;
-      root.setAttribute('data-theme', theme);
-      if (theme === 'dark') {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
-      }
+      root.classList.remove('dark', 'light');
+      root.classList.add(theme);
       localStorage.setItem(STORAGE_KEY, theme);
     } catch {
       // Ignore DOM/localStorage errors

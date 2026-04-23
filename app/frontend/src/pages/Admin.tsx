@@ -92,7 +92,7 @@ function AdminLogin({ onLogin }: { onLogin: (token: string) => void }) {
   };
 
   return (
-    <div className="theme-transition min-h-screen bg-app flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F19] flex items-center justify-center p-4 transition-colors">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="mx-auto w-14 h-14 bg-slate-800 rounded-xl flex items-center justify-center mb-3">
@@ -340,7 +340,7 @@ export default function AdminPanel() {
 
         {/* Admin Footer */}
         <div className="bg-white border-t border-gray-100 py-3 text-center">
-          <p style={{ color: '#999', fontSize: '11px' }}>Системный портал · SORTIROVKA 24</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">Системный портал · SORTIROVKA 24</p>
         </div>
       </main>
     </div>
