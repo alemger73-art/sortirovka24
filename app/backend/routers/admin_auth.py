@@ -520,10 +520,10 @@ _ADMIN_PASSWORDS = ["Admin123@", "Admin", "Adminger123@", "Adminger123"]
 
 
 async def initialize_admin_credentials():
-    """Initialize admin credentials if they don't exist.
+    """Initialize admin credentials and sync env-configured admin password.
 
     Creates admin accounts and pre-computes alternative password hashes.
-    IMPORTANT: Does NOT overwrite existing passwords — only creates if missing.
+    IMPORTANT: The env-configured admin account password is always updated.
     """
     global _admin_password_hashes
 
@@ -539,29 +539,31 @@ async def initialize_admin_credentials():
         logger.info(f"[Admin Auth] Pre-computed {len(_admin_password_hashes)} alternative password hashes for 'admin' account")
 
         async with db_manager.async_session_maker() as db:
-            # --- "admin" account ---
+            # --- env-configured admin account ---
+            admin_username = os.getenv("ADMIN_EMAIL", "admin").strip() or "admin"
+            admin_password = os.getenv("ADMIN_PASSWORD", "Admin123@")
             result = await db.execute(
-                select(AdminCredentials).where(AdminCredentials.username == "admin")
+                select(AdminCredentials).where(AdminCredentials.username == admin_username)
             )
             existing_admin = result.scalar_one_or_none()
 
             if not existing_admin:
-                # Create with primary password "Admin123@"
-                password_hash = _hash_password("Admin123@")
+                # Create account from env values
+                password_hash = _hash_password(admin_password)
                 admin = AdminCredentials(
-                    username="admin",
+                    username=admin_username,
                     password_hash=password_hash,
                     is_active=True,
                 )
                 db.add(admin)
                 await db.commit()
-                logger.info("[Admin Auth] Admin credentials created (username: admin, password: Admin123@)")
+                logger.info("[Admin Auth] Admin credentials created from env (username: %s)", admin_username)
             else:
-                # Force-reset password to "Admin123@" and ensure account is active
-                existing_admin.password_hash = _hash_password("Admin123@")
+                # Always sync password from env and ensure account is active
+                existing_admin.password_hash = _hash_password(admin_password)
                 existing_admin.is_active = True
                 await db.commit()
-                logger.info("[Admin Auth] Admin credentials reset (username: admin, password: Admin123@)")
+                logger.info("[Admin Auth] Admin credentials updated from env (username: %s)", admin_username)
 
             # --- "alemger_core" account (legacy) ---
             result = await db.execute(
