@@ -13,7 +13,7 @@ import {
   updateCurrentUserProfile,
   upsertCabinetItem,
 } from "@/lib/localAuth";
-import { Camera, Coins, Edit3, Save, Trash2, UserCircle2 } from "lucide-react";
+import { Camera, CheckCircle2, Clock3, Coins, Edit3, Save, ShieldCheck, Trash2, UserCircle2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 type TabId = "profile" | "bonuses" | "history" | "actions" | "settings";
@@ -42,12 +42,21 @@ function DarkCard({ children }: { children: React.ReactNode }) {
 
 function StatusBadge({ status }: { status?: string }) {
   const value = status || "В процессе";
-  const cls = value.includes("модерац")
+  const low = value.toLowerCase();
+  const isModeration = low.includes("модерац");
+  const isDone = low.includes("выполн") || low.includes("отправ");
+  const cls = isModeration
     ? "bg-amber-500/20 text-amber-300"
-    : value.includes("выполн") || value.includes("отправ")
+    : isDone
       ? "bg-emerald-500/20 text-emerald-300"
       : "bg-blue-500/20 text-blue-300";
-  return <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${cls}`}>{value}</span>;
+  const Icon = isModeration ? ShieldCheck : isDone ? CheckCircle2 : Clock3;
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${cls}`}>
+      <Icon className="h-3.5 w-3.5" />
+      {value}
+    </span>
+  );
 }
 
 export default function Cabinet() {
@@ -68,6 +77,8 @@ export default function Cabinet() {
   });
   const [historyQuery, setHistoryQuery] = useState("");
   const [historyType, setHistoryType] = useState<"all" | "food" | "masters" | "announcements" | "complaints">("all");
+  const [historySort, setHistorySort] = useState<"new" | "old">("new");
+  const [historyPage, setHistoryPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<{ section: ActionSection; id: string } | null>(null);
   const [error, setError] = useState("");
   const tabs: { id: TabId; label: string }[] = [
@@ -126,8 +137,23 @@ export default function Cabinet() {
           (x.status || "").toLowerCase().includes(q)
         );
       });
-    return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [data, historyQuery, historyType]);
+    return filtered.sort((a, b) =>
+      historySort === "new"
+        ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  }, [data, historyQuery, historyType, historySort]);
+
+  const historyPageSize = 10;
+  const historyPageCount = Math.max(1, Math.ceil(historyItems.length / historyPageSize));
+  const historyVisible = historyItems.slice(
+    (historyPage - 1) * historyPageSize,
+    historyPage * historyPageSize
+  );
+
+  useEffect(() => {
+    setHistoryPage(1);
+  }, [historyQuery, historyType, historySort]);
 
   const actionRows = {
     announcements: data.announcements || [],
@@ -296,7 +322,7 @@ export default function Cabinet() {
               {activeTab === "history" && (
                 <DarkCard>
                   <h2 className="mb-4 text-xl font-bold">История</h2>
-                  <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-3">
+                  <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-4">
                     <input
                       value={historyQuery}
                       onChange={(e) => setHistoryQuery(e.target.value)}
@@ -314,12 +340,20 @@ export default function Cabinet() {
                       <option value="announcements">Объявления</option>
                       <option value="complaints">Жалобы</option>
                     </select>
+                    <select
+                      value={historySort}
+                      onChange={(e) => setHistorySort(e.target.value as "new" | "old")}
+                      className="rounded-xl border border-[#2a3347] bg-[#0f172a] px-3 py-2 text-sm text-white"
+                    >
+                      <option value="new">Сначала новые</option>
+                      <option value="old">Сначала старые</option>
+                    </select>
                   </div>
                   <div className="space-y-2">
                     {historyItems.length === 0 ? (
                       <p className="text-sm text-slate-400">Пока нет действий.</p>
                     ) : (
-                      historyItems.slice(0, 20).map((item) => (
+                      historyVisible.map((item) => (
                         <div key={`${item.kind}-${item.id}`} className="rounded-xl border border-[#26324a] bg-[#0f172a] p-3">
                           <div className="mb-1 flex items-center justify-between gap-2">
                             <p className="text-sm font-semibold text-white">{item.kind}</p>
@@ -332,6 +366,29 @@ export default function Cabinet() {
                       ))
                     )}
                   </div>
+                  {historyItems.length > historyPageSize && (
+                    <div className="mt-4 flex items-center justify-between">
+                      <p className="text-xs text-slate-400">
+                        Страница {historyPage} из {historyPageCount}
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                          disabled={historyPage <= 1}
+                          className="rounded-lg border border-[#2a3347] px-3 py-1.5 text-xs text-white disabled:opacity-40"
+                        >
+                          Назад
+                        </button>
+                        <button
+                          onClick={() => setHistoryPage((p) => Math.min(historyPageCount, p + 1))}
+                          disabled={historyPage >= historyPageCount}
+                          className="rounded-lg border border-[#2a3347] px-3 py-1.5 text-xs text-white disabled:opacity-40"
+                        >
+                          Вперёд
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </DarkCard>
               )}
 
