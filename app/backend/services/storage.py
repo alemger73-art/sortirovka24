@@ -77,6 +77,23 @@ def _env_ci(name: str) -> str:
     return ""
 
 
+def _split_public_id_and_format(object_key: str) -> tuple[str, Optional[str]]:
+    """
+    Cloudinary upload signatures are more stable when extension is passed as `format`
+    and `public_id` does not include it.
+    """
+    key = (object_key or "").strip().lstrip("/")
+    if not key:
+        return "", None
+    if "." not in key:
+        return key, None
+    base, ext = key.rsplit(".", 1)
+    safe_ext = ext.lower()
+    if not base or not safe_ext.isalnum() or len(safe_ext) > 10:
+        return key, None
+    return base, safe_ext
+
+
 def _resolve_cloudinary_config() -> tuple[str, str, str]:
     """Resolve Cloudinary config from settings + env aliases."""
     # Prefer standard single-variable config when present to avoid key/secret mismatch.
@@ -162,11 +179,15 @@ class StorageService:
         return f"/api/v1/storage/upload-proxy/{token}"
 
     def _cloudinary_url(self, object_key: str) -> str:
+        public_id, fmt = _split_public_id_and_format(object_key)
+        if not public_id:
+            public_id = object_key
         url, _ = cloudinary.utils.cloudinary_url(
-            object_key,
+            public_id,
             resource_type="auto",
             type="upload",
             secure=True,
+            format=fmt,
         )
         return url
 
@@ -240,13 +261,17 @@ class StorageService:
     async def upload_via_token(self, token: str, file_bytes: bytes, content_type: Optional[str] = None) -> str:
         payload = self._parse_upload_token(token)
         object_key = payload["object_key"]
+        public_id, fmt = _split_public_id_and_format(object_key)
+        if not public_id:
+            raise ValueError("Invalid object key for upload")
         resource_type = "auto"
         if content_type and content_type.startswith("video/"):
             resource_type = "video"
         try:
             result = cloudinary.uploader.upload(
                 file_bytes,
-                public_id=object_key,
+                public_id=public_id,
+                format=fmt,
                 resource_type=resource_type,
                 overwrite=True,
                 invalidate=True,
@@ -256,7 +281,8 @@ class StorageService:
             # Fallback for uncommon mime/resource combinations
             result = cloudinary.uploader.upload(
                 file_bytes,
-                public_id=object_key,
+                public_id=public_id,
+                format=fmt,
                 resource_type="auto",
                 overwrite=True,
                 invalidate=True,
