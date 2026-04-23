@@ -18,7 +18,7 @@ const NAV_KEYS = [
   { path: '/directory', key: 'nav.directory', icon: BookOpen },
 ];
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default function Layout({ children, hideHeader = false }: { children: React.ReactNode; hideHeader?: boolean }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
@@ -35,6 +35,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-gray-950 flex flex-col transition-colors duration-300">
       {/* Header */}
+      {!hideHeader && (
       <header className="bg-white dark:bg-gray-900 shadow-sm sticky top-0 z-50 border-b border-gray-100 dark:border-gray-800 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
@@ -172,6 +173,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
         )}
       </header>
+      )}
 
       {/* Main content */}
       <main className="flex-1">{children}</main>

@@ -15,6 +15,7 @@ import {
   Shield, Heart, Siren, Landmark
 } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
+import Hero from '@/components/landing/Hero';
 
 /* ─── CDN Images ─── */
 const HERO_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/ad8caa55-9593-448b-8f7a-39be84ed5053.png';
@@ -411,76 +412,8 @@ export default function Index() {
   };
 
   return (
-    <Layout>
-      {/* ═══════════════════════════════════════════
-          1. HERO BANNER
-      ═══════════════════════════════════════════ */}
-      <section className="relative min-h-[430px] md:min-h-[560px] overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
-        <div className="absolute inset-0">
-          <img src={HERO_IMG} alt="" className="w-full h-full object-cover" fetchPriority="high" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/72 via-black/68 to-black/74" />
-        </div>
-
-        <div className="relative z-10 max-w-6xl mx-auto px-4 md:px-6 pt-4 pb-10 md:pt-10 md:pb-16 flex flex-col min-h-[430px] md:min-h-[560px]">
-          {/* Top bar */}
-          <div className="flex items-center justify-end gap-3 mb-6">
-            <WeatherWidget />
-          </div>
-
-          {/* Hero text */}
-          <div className="mt-auto animate-in fade-in slide-in-from-bottom-2 duration-700 flex flex-col items-start pb-1 md:pb-3">
-            <h1 className="text-[44px] md:text-[68px] font-black tracking-[-0.02em] text-white mb-2 leading-[0.98] max-w-[700px] animate-in fade-in duration-700">
-              Сортировка — <br />
-              <span className="text-yellow-400">всё</span> для жизни рядом
-            </h1>
-            <p className="text-lg md:text-[32px] md:leading-[1.08] text-white/85 mb-5 max-w-[620px] font-medium">
-              Еда, услуги, объявления и помощь — в одном сервисе
-            </p>
-
-            {/* Main actions */}
-            <div className="flex flex-wrap items-center gap-3 w-full max-w-3xl">
-              <Link
-                to="/food"
-                className="inline-flex h-[56px] items-center justify-center rounded-2xl bg-yellow-400 px-8 text-base md:text-lg font-bold text-gray-900 shadow-xl transition-all duration-200 hover:scale-[1.03] hover:shadow-2xl hover:bg-yellow-300 min-w-[210px] md:min-w-[255px]"
-              >
-                Заказать еду
-              </Link>
-              <Link
-                to="/masters"
-                className="inline-flex h-[56px] items-center justify-center rounded-2xl border border-white/60 bg-black/35 px-8 text-base md:text-lg font-semibold text-white shadow-lg transition-all duration-200 hover:scale-[1.03] hover:bg-black/45 hover:shadow-2xl min-w-[210px] md:min-w-[255px]"
-              >
-                Найти услугу
-              </Link>
-            </div>
-
-            <div className="mt-5 w-full max-w-3xl rounded-2xl border border-white/10 bg-black/45 backdrop-blur-md px-4 md:px-6 py-3.5 md:py-4">
-              <div className="grid grid-cols-3 gap-2 md:gap-4">
-                <div className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-white/80" />
-                  <div>
-                    <p className="text-xl md:text-[30px] font-extrabold text-white leading-none">8+</p>
-                    <p className="text-[10px] md:text-xs text-white/70 leading-tight">мастеров</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Coffee className="h-5 w-5 text-white/80" />
-                  <div>
-                    <p className="text-xl md:text-[30px] font-extrabold text-white leading-none">6+</p>
-                    <p className="text-[10px] md:text-xs text-white/70 leading-tight">кафе и ресторанов</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-white/80" />
-                  <div>
-                    <p className="text-xl md:text-[30px] font-extrabold text-white leading-none">1000+</p>
-                    <p className="text-[10px] md:text-xs text-white/70 leading-tight">жителей района</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+    <Layout hideHeader>
+      <Hero />
 
       <div className="bg-[#f5f5f7] dark:bg-gray-950 transition-colors duration-300">
         <div className="max-w-6xl mx-auto px-4 py-10 space-y-12">
