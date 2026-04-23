@@ -35,6 +35,9 @@ LOGIN_WINDOW = timedelta(minutes=15)
 MAX_ATTEMPTS = 6
 SMS_CODE_TTL_MINUTES = 5
 MAX_SMS_VERIFY_ATTEMPTS = 5
+SMS_REQUEST_ATTEMPTS: dict[str, list[datetime]] = {}
+SMS_REQUEST_WINDOW = timedelta(minutes=10)
+MAX_SMS_REQUESTS_PER_WINDOW = 3
 
 
 def _hash_password(raw: str) -> str:
@@ -65,6 +68,25 @@ def _clean_attempts(phone: str) -> list[datetime]:
     attempts = [a for a in LOGIN_ATTEMPTS.get(phone, []) if now - a <= LOGIN_WINDOW]
     LOGIN_ATTEMPTS[phone] = attempts
     return attempts
+
+
+def _clean_sms_requests(key: str) -> list[datetime]:
+    now = datetime.now(timezone.utc)
+    attempts = [a for a in SMS_REQUEST_ATTEMPTS.get(key, []) if now - a <= SMS_REQUEST_WINDOW]
+    SMS_REQUEST_ATTEMPTS[key] = attempts
+    return attempts
+
+
+async def _cleanup_phone_verifications(db: AsyncSession, phone: str | None = None) -> None:
+    now = datetime.now(timezone.utc)
+    query = select(PhoneVerification).where(PhoneVerification.expires_at < now)
+    if phone:
+        query = query.where(PhoneVerification.phone == phone)
+    rows = (await db.execute(query)).scalars().all()
+    for row in rows:
+        await db.delete(row)
+    if rows:
+        await db.commit()
 
 
 def _to_user_response(user: User) -> UserV2Response:
@@ -126,6 +148,10 @@ async def _current_user(
     ).scalar_one_or_none()
     if not session:
         raise HTTPException(status_code=401, detail="Session is not active")
+    if session.expires_at and session.expires_at < datetime.now(timezone.utc):
+        session.is_active = False
+        await db.commit()
+        raise HTTPException(status_code=401, detail="Session expired")
     user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
@@ -137,11 +163,10 @@ def _assert_admin(user: User):
         raise HTTPException(status_code=403, detail="Admin access required")
 
 
-@router.post("/register", response_model=AuthV2Response)
-async def register(
+async def _create_user_and_login(
     request: RegisterV2Request,
     http_request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession,
 ):
     normalized_phone = _normalize_phone(request.phone)
     existing = (
@@ -177,14 +202,40 @@ async def register(
     return await login(LoginV2Request(phone=normalized_phone, password=request.password), http_request, db)
 
 
+@router.post("/register", response_model=AuthV2Response)
+async def register(
+    request: RegisterV2Request,
+    _http_request: Request,
+):
+    raise HTTPException(
+        status_code=400,
+        detail="SMS confirmation required. Use /api/v1/account/register/request-sms and /api/v1/account/register/confirm",
+    )
+
+
 @router.post("/register/request-sms", response_model=RequestSmsCodeResponse)
 async def register_request_sms(
     request: RequestSmsCodeRequest,
+    http_request: Request,
     db: AsyncSession = Depends(get_db),
 ):
     normalized_phone = _normalize_phone(request.phone)
     if not normalized_phone:
         raise HTTPException(status_code=400, detail="Invalid phone")
+    await _cleanup_phone_verifications(db, normalized_phone)
+
+    client_ip = http_request.client.host if http_request.client else "unknown"
+    phone_key = f"phone:{normalized_phone}"
+    ip_key = f"ip:{client_ip}"
+    phone_attempts = _clean_sms_requests(phone_key)
+    ip_attempts = _clean_sms_requests(ip_key)
+    if len(phone_attempts) >= MAX_SMS_REQUESTS_PER_WINDOW or len(ip_attempts) >= MAX_SMS_REQUESTS_PER_WINDOW:
+        raise HTTPException(status_code=429, detail="Too many SMS requests, try later")
+    now = datetime.now(timezone.utc)
+    phone_attempts.append(now)
+    ip_attempts.append(now)
+    SMS_REQUEST_ATTEMPTS[phone_key] = phone_attempts
+    SMS_REQUEST_ATTEMPTS[ip_key] = ip_attempts
 
     existing = (await db.execute(select(User).where(User.phone == normalized_phone))).scalar_one_or_none()
     if existing:
@@ -192,6 +243,16 @@ async def register_request_sms(
 
     code = f"{random.randint(1000, 9999)}"
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=SMS_CODE_TTL_MINUTES)
+    previous_rows = (
+        await db.execute(
+            select(PhoneVerification).where(
+                PhoneVerification.phone == normalized_phone,
+                PhoneVerification.is_verified == False,
+            )
+        )
+    ).scalars().all()
+    for row in previous_rows:
+        await db.delete(row)
     db.add(
         PhoneVerification(
             phone=normalized_phone,
@@ -218,6 +279,7 @@ async def register_confirm(
     normalized_phone = _normalize_phone(request.phone)
     if not normalized_phone:
         raise HTTPException(status_code=400, detail="Invalid phone")
+    await _cleanup_phone_verifications(db, normalized_phone)
 
     row = (
         await db.execute(
@@ -243,7 +305,7 @@ async def register_confirm(
 
     row.is_verified = True
     await db.commit()
-    return await register(
+    return await _create_user_and_login(
         RegisterV2Request(
             name=request.name,
             phone=normalized_phone,
@@ -305,6 +367,7 @@ async def login(
     )
     await db.commit()
     await _log_action(db, str(user.id), "login", "users", str(user.id))
+    LOGIN_ATTEMPTS[normalized_phone] = []
     return AuthV2Response(token=token, user_id=str(user.id), role=user.role)  # type: ignore[arg-type]
 
 

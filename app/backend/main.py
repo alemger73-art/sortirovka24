@@ -184,6 +184,17 @@ def include_routers_from_package(app: FastAPI, package_name: str = "routers") ->
 setup_logging()
 include_routers_from_package(app, "routers")
 
+# Fail fast: auth/account endpoints must be registered in production startup.
+required_paths = {
+    "/api/v1/account/register/request-sms",
+    "/api/v1/account/register/confirm",
+    "/api/v1/account/login",
+}
+registered_paths = {route.path for route in app.routes}
+missing_paths = sorted(required_paths - registered_paths)
+if missing_paths:
+    raise RuntimeError(f"Critical account routes are missing: {missing_paths}")
+
 
 # Add exception handler for all exceptions except HTTPException
 @app.exception_handler(Exception)

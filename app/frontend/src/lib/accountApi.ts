@@ -1,4 +1,6 @@
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+import { getAPIBaseURL } from "@/lib/config";
+
+const API_BASE = getAPIBaseURL().replace(/\/$/, "");
 
 export type AccountRole = "user" | "master" | "driver" | "partner" | "admin" | "superadmin";
 

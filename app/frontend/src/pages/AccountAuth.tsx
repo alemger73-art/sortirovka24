@@ -21,6 +21,23 @@ function formatPhoneInput(raw: string): string {
   return out;
 }
 
+function getCabinetRouteByRole(role?: string): string {
+  switch (role) {
+    case "admin":
+    case "superadmin":
+    case "moderator":
+      return "/cabinet/admin";
+    case "master":
+      return "/cabinet/master";
+    case "driver":
+      return "/cabinet/driver";
+    case "seller":
+      return "/cabinet/partner";
+    default:
+      return "/cabinet";
+  }
+}
+
 export default function AccountAuth() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -68,6 +85,7 @@ export default function AccountAuth() {
       if (isLogin) {
         const res = await accountApi.login({ phone: form.phone, password: form.password });
         setAccountToken(res.token);
+        navigate(getCabinetRouteByRole(res.role));
       } else {
         if (!smsRequested) throw new Error("Сначала запросите SMS-код");
         if (!smsCode.trim()) throw new Error("Введите SMS-код");
@@ -82,8 +100,8 @@ export default function AccountAuth() {
           sms_code: smsCode.trim(),
         });
         setAccountToken(res.token);
+        navigate(getCabinetRouteByRole(res.role));
       }
-      navigate("/cabinet");
     } catch (e: any) {
       setError(String(e?.message || e));
     } finally {
