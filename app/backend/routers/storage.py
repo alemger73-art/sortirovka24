@@ -1,7 +1,7 @@
 import logging
 
 from dependencies.auth import get_admin_user, get_current_user
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from schemas.auth import UserResponse
 from schemas.storage import (
     BucketListResponse,
@@ -236,4 +236,24 @@ async def public_upload_file(request: FileUpDownRequest):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to generate public upload URL: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{e}")
+
+
+@router.put("/upload-proxy/{token}")
+async def upload_via_proxy(token: str, request: Request):
+    """Receive raw file bytes and upload to Cloudinary using a signed token."""
+    body = await request.body()
+    if not body:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty upload body")
+
+    content_type = request.headers.get("content-type", "application/octet-stream")
+    try:
+        service = StorageService()
+        await service.upload_via_token(token=token, file_bytes=body, content_type=content_type)
+        return {"success": True}
+    except ValueError as e:
+        logger.error(f"Invalid upload proxy token/body: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed upload proxy to Cloudinary: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{e}")
