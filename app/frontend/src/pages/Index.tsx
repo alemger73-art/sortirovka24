@@ -7,11 +7,12 @@ import { fetchWithCache } from '@/lib/cache';
 import { prefetchFromIndex } from '@/lib/prefetch';
 import { preloadCriticalImages, preloadImagesOnIdle, extractImageUrls } from '@/lib/imageCache';
 import { resolveImageSrc } from '@/lib/storage';
+import { Button } from '@/components/ui/button';
 import {
   Wrench, AlertTriangle, Megaphone, ChevronRight, ChevronLeft,
   MapPin, Phone as PhoneIcon, Clock, Briefcase, Sun, Snowflake, Cloud, CloudRain,
   Home, ShoppingBag, Utensils, FileText, BookOpen,
-  Search, ArrowRight, Send, Building2, HardHat,
+  ArrowRight, Send, Building2, HardHat,
   Shield, Heart, Siren, Landmark
 } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
@@ -45,16 +46,10 @@ function getWeatherIconColor(weatherMain: string): string {
   return 'text-amber-300';
 }
 
-function getWeatherTip(weatherMain: string, temp: number): string {
-  const main = (weatherMain || '').toLowerCase();
-  if (main.includes('snow')) return 'Будьте осторожны на дороге';
-  if (main.includes('rain') || main.includes('drizzle') || main.includes('thunderstorm')) return 'Лучше взять зонт';
-  if (temp <= -10) return 'Одевайтесь теплее';
-  if (temp <= 0) return 'На улице прохладно';
-  if (temp >= 30) return 'Не забудьте воду';
-  if (temp >= 20) return 'Хорошая погода для прогулки';
-  if (temp >= 10) return 'На улице комфортно';
-  return 'Одевайтесь по погоде';
+function getWeatherTip(temp: number): string {
+  if (temp < 0) return 'Одевайтесь теплее';
+  if (temp <= 15) return 'Прохладно';
+  return 'Отличная погода';
 }
 
 /* ─── Weather widget ─── */
@@ -66,7 +61,7 @@ function WeatherWidget() {
     weather_main: string;
     city: string;
     success: boolean;
-  }>({ temp: null, description: '', weather_main: '', city: 'Караганда', success: false });
+  }>({ temp: null, description: '', weather_main: '', city: 'Сортировка', success: false });
   const [visible, setVisible] = useState(false);
 
   const fetchWeather = useCallback(async () => {
@@ -89,7 +84,7 @@ function WeatherWidget() {
           temp: data.temp,
           description: data.description || '',
           weather_main: data.weather_main || '',
-          city: data.city || 'Караганда',
+          city: 'Сортировка',
           success: true,
         });
         setVisible(true);
@@ -120,7 +115,7 @@ function WeatherWidget() {
           temp: data.temp,
           description: data.description || '',
           weather_main: data.weather_main || '',
-          city: data.city || 'Караганда',
+          city: 'Сортировка',
           success: true,
         });
         setVisible(true);
@@ -146,14 +141,14 @@ function WeatherWidget() {
         <Sun className="w-5 h-5 text-amber-300 animate-pulse" />
         <div>
           <p className="text-white/40 text-sm font-bold leading-none">—°C</p>
-          <p className="text-white/40 text-[10px] leading-tight">{t('hero.city')}</p>
+          <p className="text-white/40 text-[10px] leading-tight">Сортировка</p>
         </div>
       </div>
     );
   }
 
   const iconColor = getWeatherIconColor(weather.weather_main);
-  const tip = getWeatherTip(weather.weather_main, weather.temp);
+  const tip = getWeatherTip(weather.temp);
 
   return (
     <div
@@ -167,7 +162,6 @@ function WeatherWidget() {
       <div>
         <p className="text-white text-sm font-bold leading-none">
           {weather.temp > 0 ? '+' : ''}{weather.temp}°C
-          <span className="text-white/40 text-[10px] font-normal ml-1.5 capitalize">{weather.description}</span>
         </p>
         <p className="text-white/50 text-[10px] leading-tight mt-0.5">{tip}</p>
       </div>
@@ -431,55 +425,40 @@ export default function Index() {
         <div className="relative z-10 max-w-6xl mx-auto px-4 pt-6 pb-14 md:pt-14 md:pb-20 flex flex-col min-h-[400px] md:min-h-[480px]">
           {/* Top bar */}
           <div className="flex flex-wrap items-center gap-3 mb-6">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2.5 border border-white/20">
-              <p className="text-white/60 text-[10px]">{t('hero.todayIn')}</p>
-              <p className="text-white text-sm font-semibold">{new Date().toLocaleDateString(dateLocale, { day: 'numeric', month: 'long' })}</p>
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2.5 border border-white/20 animate-in fade-in duration-700">
+              <p className="text-white text-sm font-semibold">Портал района Сортировка</p>
             </div>
             <WeatherWidget />
           </div>
 
           {/* Hero text */}
-          <div className="mt-auto">
-            <h1 className="text-3xl md:text-5xl font-extrabold text-white mb-2 leading-tight">
-              {t('hero.title1')}<br />
-              <span className="bg-gradient-to-r from-amber-300 via-orange-300 to-red-300 bg-clip-text text-transparent">
-                {t('hero.title2')}
-              </span>
+          <div className="mt-auto animate-in fade-in slide-in-from-bottom-2 duration-700">
+            <h1 className="text-3xl md:text-5xl font-extrabold text-white mb-2 leading-tight max-w-4xl">
+              Всё для жизни в Сортировке — в одном месте
             </h1>
-            <p className="text-base md:text-lg text-white/70 mb-6 max-w-lg">
-              {t('hero.subtitle')}
+            <p className="text-base md:text-lg text-white/80 mb-6 max-w-2xl">
+              Еда, мастера, объявления, работа и жалобы — всё под рукой
             </p>
 
-            {/* Search bar */}
-            <div className="flex items-center bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl max-w-lg overflow-hidden mb-5">
-              <Search className="w-5 h-5 text-gray-400 ml-4 flex-shrink-0" />
-              <input
-                type="text"
-                placeholder={t('hero.searchPlaceholder')}
-                className="flex-1 px-3 py-3.5 text-gray-800 placeholder:text-gray-400 bg-transparent outline-none text-sm"
-              />
-              <Link to="/masters" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-3.5 transition-colors text-sm whitespace-nowrap min-h-[44px] flex items-center">
-                {t('hero.searchBtn')}
-              </Link>
+            {/* CTA Buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-w-5xl">
+              <Button asChild size="lg" className="h-14 rounded-2xl bg-white text-gray-900 hover:bg-gray-100 font-semibold shadow-xl">
+                <Link to="/transport">🚕 Вызвать такси</Link>
+              </Button>
+              <Button asChild size="lg" className="h-14 rounded-2xl bg-orange-500 text-white hover:bg-orange-600 font-semibold shadow-xl">
+                <Link to="/food">🍔 Заказать еду</Link>
+              </Button>
+              <Button asChild size="lg" className="h-14 rounded-2xl bg-blue-600 text-white hover:bg-blue-700 font-semibold shadow-xl">
+                <Link to="/masters">🛠 Найти мастера</Link>
+              </Button>
+              <Button asChild size="lg" className="h-14 rounded-2xl bg-amber-500 text-white hover:bg-amber-600 font-semibold shadow-xl">
+                <Link to="/announcements">📢 Подать объявление</Link>
+              </Button>
             </div>
 
-            {/* 2 CTA Buttons */}
-            <div className="flex flex-wrap gap-3">
-              <Link
-                to="/masters"
-                className="bg-white hover:bg-gray-100 text-gray-900 font-bold px-6 py-3 rounded-2xl text-sm transition-colors shadow-lg flex items-center gap-2 min-h-[44px]"
-              >
-                <Search className="w-4 h-4" />
-                {t('hero.findService')}
-              </Link>
-              <Link
-                to="/complaints/new"
-                className="bg-red-500/90 hover:bg-red-600 text-white font-bold px-6 py-3 rounded-2xl text-sm transition-colors shadow-lg flex items-center gap-2 min-h-[44px]"
-              >
-                <AlertTriangle className="w-4 h-4" />
-                {t('hero.fileComplaint')}
-              </Link>
-            </div>
+            <p className="text-white/75 text-sm md:text-base mt-5">
+              Уже используют: 8+ мастеров • 6+ кафе • жители района
+            </p>
 
             {/* Stats */}
             {heroStats.length > 0 && (
