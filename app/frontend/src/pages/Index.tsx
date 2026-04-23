@@ -12,7 +12,7 @@ import {
   Wrench, AlertTriangle, Megaphone, ChevronRight, ChevronLeft,
   MapPin, Phone as PhoneIcon, Clock, Briefcase, Sun, Snowflake, Cloud, CloudRain,
   Home, ShoppingBag, Utensils, FileText, BookOpen,
-  ArrowRight, Send, Building2, HardHat,
+  ArrowRight, Send, Building2, HardHat, Car,
   Shield, Heart, Siren, Landmark
 } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
@@ -419,7 +419,7 @@ export default function Index() {
       <section className="relative min-h-[400px] md:min-h-[480px] overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
         <div className="absolute inset-0">
           <img src={HERO_IMG} alt="" className="w-full h-full object-cover" fetchPriority="high" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/65 to-black/70" />
         </div>
 
         <div className="relative z-10 max-w-6xl mx-auto px-4 pt-6 pb-14 md:pt-14 md:pb-20 flex flex-col min-h-[400px] md:min-h-[480px]">
@@ -432,31 +432,59 @@ export default function Index() {
           </div>
 
           {/* Hero text */}
-          <div className="mt-auto animate-in fade-in slide-in-from-bottom-2 duration-700">
-            <h1 className="text-3xl md:text-5xl font-extrabold text-white mb-2 leading-tight max-w-4xl">
-              Всё для жизни в Сортировке — в одном месте
+          <div className="mt-auto animate-in fade-in slide-in-from-bottom-2 duration-700 text-center flex flex-col items-center">
+            <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white mb-3 leading-[1.05] max-w-4xl animate-in fade-in duration-700">
+              Сортировка — всё рядом
             </h1>
-            <p className="text-base md:text-lg text-white/80 mb-6 max-w-2xl">
+            <p className="text-base md:text-lg text-white/80 mb-7 max-w-2xl">
               Еда, мастера, объявления, работа и жалобы — всё под рукой
             </p>
 
-            {/* CTA Buttons */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-w-5xl">
-              <Button asChild size="lg" className="h-14 rounded-2xl bg-white text-gray-900 hover:bg-gray-100 font-semibold shadow-xl">
-                <Link to="/transport">🚕 Вызвать такси</Link>
-              </Button>
-              <Button asChild size="lg" className="h-14 rounded-2xl bg-orange-500 text-white hover:bg-orange-600 font-semibold shadow-xl">
-                <Link to="/food">🍔 Заказать еду</Link>
-              </Button>
-              <Button asChild size="lg" className="h-14 rounded-2xl bg-blue-600 text-white hover:bg-blue-700 font-semibold shadow-xl">
-                <Link to="/masters">🛠 Найти мастера</Link>
-              </Button>
-              <Button asChild size="lg" className="h-14 rounded-2xl bg-amber-500 text-white hover:bg-amber-600 font-semibold shadow-xl">
-                <Link to="/announcements">📢 Подать объявление</Link>
-              </Button>
+            {/* Service cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-4xl text-left">
+              <Link
+                to="/transport"
+                className="group rounded-2xl p-5 bg-white/90 backdrop-blur-md border border-white/40 shadow-lg hover:shadow-2xl hover:scale-[1.04] transition-all duration-200"
+              >
+                <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center mb-3">
+                  <Car className="w-5 h-5 text-orange-600" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">Такси</h3>
+                <p className="text-sm text-gray-600 mt-1">По району быстро</p>
+              </Link>
+              <Link
+                to="/food"
+                className="group rounded-2xl p-5 bg-white/90 backdrop-blur-md border border-white/40 shadow-lg hover:shadow-2xl hover:scale-[1.04] transition-all duration-200"
+              >
+                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center mb-3">
+                  <Utensils className="w-5 h-5 text-amber-600" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">Еда</h3>
+                <p className="text-sm text-gray-600 mt-1">Доставка рядом</p>
+              </Link>
+              <Link
+                to="/masters"
+                className="group rounded-2xl p-5 bg-white/90 backdrop-blur-md border border-white/40 shadow-lg hover:shadow-2xl hover:scale-[1.04] transition-all duration-200"
+              >
+                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center mb-3">
+                  <Wrench className="w-5 h-5 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">Мастера</h3>
+                <p className="text-sm text-gray-600 mt-1">Все услуги</p>
+              </Link>
+              <Link
+                to="/announcements"
+                className="group rounded-2xl p-5 bg-white/90 backdrop-blur-md border border-white/40 shadow-lg hover:shadow-2xl hover:scale-[1.04] transition-all duration-200"
+              >
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center mb-3">
+                  <Megaphone className="w-5 h-5 text-emerald-600" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">Объявления</h3>
+                <p className="text-sm text-gray-600 mt-1">Купить / продать</p>
+              </Link>
             </div>
 
-            <p className="text-white/75 text-sm md:text-base mt-5">
+            <p className="text-white/75 text-sm md:text-base mt-6">
               Уже используют: 8+ мастеров • 6+ кафе • жители района
             </p>
 
