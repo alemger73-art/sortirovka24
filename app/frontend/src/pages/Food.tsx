@@ -6,13 +6,11 @@ import { client, withRetry } from '@/lib/api';
 import { fetchWithCache } from '@/lib/cache';
 import { resolveImageSrc } from '@/lib/storage';
 import {
-  ShoppingCart, Plus, Minus, X, Utensils, Truck, Store,
-  ChevronRight, Phone, MapPin, MessageSquare, Star, Clock,
-  ArrowLeft, Check, Search,
-  AlertCircle, TreePine, Home,
+  Plus, Minus, X, Utensils, Truck, Store,
+  ChevronRight, MapPin, MessageSquare,
+  ArrowLeft, Check,
+  AlertCircle,
 } from 'lucide-react';
-import ParkMap from '@/components/ParkMap';
-import type { ParkPoint } from '@/components/ParkMap';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,9 +18,6 @@ import { toast } from 'sonner';
 import { pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
 
 /* ─── CDN images ─── */
-const HERO_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/615378ae-f490-4345-9544-e4ae6d37b614.png';
-/** Локальный референс премиального hero (Tasko) — лежит в `public/` */
-const HERO_REF_LOCAL = '/food-hero-reference.png';
 const FALLBACK_FOOD_1 = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/2034a1d7-1c57-40c0-8145-23816557ba5c.png';
 const FALLBACK_FOOD_2 = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/e1e63b15-29d2-4b2e-b1b5-919722b3b1b9.png';
 const FALLBACK_IMAGES = [FALLBACK_FOOD_1, FALLBACK_FOOD_2];
@@ -75,22 +70,7 @@ function itemMetaTags(item: FoodItem): string[] {
   return tags.slice(0, 2);
 }
 
-function ItemMetaLine({ item }: { item: FoodItem }) {
-  const tags = itemMetaTags(item);
-  return (
-    <p className="text-[11px] leading-snug mt-1">
-      <span className="text-[#777777]">{itemDisplayWeight(item)}</span>
-      {tags.map((tag, i) => (
-        <span key={tag}>
-          <span className="text-[#777777]"> • </span>
-          <span className="text-[#FF3B30] font-semibold">{tag}</span>
-        </span>
-      ))}
-    </p>
-  );
-}
-
-/** Сетка категорий: сопоставление с API и fallback по ключевым словам в названии блюда */
+/** Сетка категорий (Glovo/Wolt): порядок как в ТЗ, сопоставление с API + fallback по ключевым словам */
 const MENU_CATEGORY_DEFS: {
   key: string;
   emoji: string;
@@ -98,14 +78,19 @@ const MENU_CATEGORY_DEFS: {
   catHints: string[];
   itemKeywords: string[];
 }[] = [
-  { key: 'fastfood', emoji: '🍔', i18nKey: 'food.cat.fastfood', catHints: ['фаст', 'бургер', 'пицц', 'шаурма', 'хот-дог', 'хотдог', 'сэндвич'], itemKeywords: ['бургер', 'пицц', 'шаурма', 'хот-дог', 'хотдог', 'сэндвич', 'фри', 'наггет', 'твистер'] },
+  { key: 'pizza', emoji: '🍕', i18nKey: 'food.cat.pizza', catHints: ['пицц'], itemKeywords: ['пицц', 'пицца', 'pizza', 'маргарит', 'пепперон', 'кальцон'] },
   { key: 'bbq', emoji: '🍢', i18nKey: 'food.cat.bbq', catHints: ['шашлык', 'мангал', 'гриль', 'кебаб'], itemKeywords: ['шашлык', 'мангал', 'гриль', 'кебаб', 'люля', 'каре'] },
-  { key: 'drinks', emoji: '🥤', i18nKey: 'food.cat.drinks', catHints: ['напит', 'сок', 'лимонад', 'чай', 'кофе'], itemKeywords: ['сок', 'кола', 'лимонад', 'морс', 'чай', 'кофе', 'напит', 'вода', 'энерг'] },
-  { key: 'cocktails', emoji: '🍹', i18nKey: 'food.cat.cocktails', catHints: ['коктейл', 'бар', 'мохито', 'айс'], itemKeywords: ['коктейл', 'мохито', 'дайкири', 'смузи', 'бар'] },
-  { key: 'bakery', emoji: '🥟', i18nKey: 'food.cat.bakery', catHints: ['выпечк', 'хлеб', 'булоч', 'пирог', 'самса'], itemKeywords: ['самса', 'беляш', 'пирог', 'булоч', 'хлеб', 'лепёш', 'лепеш', 'чебур', 'бауырсак'] },
-  { key: 'hot', emoji: '🍚', i18nKey: 'food.cat.hot', catHints: ['горяч', 'втор', 'основ', 'блюд'], itemKeywords: ['плов', 'борщ', 'суп', 'котлет', 'мясо', 'рыба', 'лапша', 'гуляш', 'рагу'] },
+  { key: 'fastfood', emoji: '🍔', i18nKey: 'food.cat.fastfood', catHints: ['фаст', 'бургер', 'шаурма', 'хот-дог', 'хотдог', 'сэндвич'], itemKeywords: ['бургер', 'шаурма', 'хот-дог', 'хотдог', 'сэндвич', 'фри', 'наггет', 'твистер', 'бург'] },
   { key: 'salads', emoji: '🥗', i18nKey: 'food.cat.salads', catHints: ['салат'], itemKeywords: ['салат', 'винегрет', 'цезарь', 'греческ'] },
-  { key: 'sides', emoji: '🍟', i18nKey: 'food.cat.sides', catHints: ['гарнир'], itemKeywords: ['гарнир', 'картоф', 'рис', 'гречк', 'каша', 'фри'] },
+  { key: 'hot', emoji: '🍚', i18nKey: 'food.cat.hot', catHints: ['горяч', 'втор', 'основ', 'блюд'], itemKeywords: ['плов', 'борщ', 'суп', 'котлет', 'мясо', 'рыба', 'лапша', 'гуляш', 'рагу'] },
+  { key: 'drinks', emoji: '🥤', i18nKey: 'food.cat.drinks', catHints: ['напит', 'сок', 'лимонад', 'чай', 'кофе'], itemKeywords: ['сок', 'кола', 'лимонад', 'морс', 'чай', 'кофе', 'напит', 'вода', 'энерг', 'коктейл', 'смузи'] },
+  { key: 'bakery', emoji: '🥐', i18nKey: 'food.cat.bakery', catHints: ['выпечк', 'хлеб', 'булоч', 'пирог', 'самса'], itemKeywords: ['самса', 'беляш', 'пирог', 'булоч', 'хлеб', 'лепёш', 'лепеш', 'чебур', 'бауырсак'] },
+];
+
+const PROMO_SLIDES = [
+  { titleKey: 'food.promoSlide1Title' as const, linesKeys: ['food.promoLine1a', 'food.promoLine1b', 'food.promoLine1c'] as const },
+  { titleKey: 'food.promoSlide2Title' as const, linesKeys: ['food.promoLine2a', 'food.promoLine2b', 'food.promoLine2c'] as const },
+  { titleKey: 'food.promoSlide3Title' as const, linesKeys: ['food.promoLine3a', 'food.promoLine3b', 'food.promoLine3c'] as const },
 ];
 
 /** Оверлей «N В корзине» как в референсе Tasko */
@@ -123,6 +108,7 @@ function InCartOverlay({ qty, className = '' }: { qty: number; className?: strin
 export default function Food() {
   const navigate = useNavigate();
   const { t, localized, lang } = useLanguage();
+  const [promoSlide, setPromoSlide] = useState(0);
   const [categories, setCategories] = useState<FoodCategory[]>([]);
   const [items, setItems] = useState<FoodItem[]>([]);
   const [modGroups, setModGroups] = useState<ModifierGroup[]>([]);
@@ -145,12 +131,7 @@ export default function Food() {
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(null);
   const [currentSelections, setCurrentSelections] = useState<CartItemSelection>({});
-  const [searchQuery, setSearchQuery] = useState('');
   const [menuFilterKey, setMenuFilterKey] = useState<string | null>(null);
-  const [deliveryDestination, setDeliveryDestination] = useState<'home' | 'park'>('home');
-  const [parkPoints, setParkPoints] = useState<ParkPoint[]>([]);
-  const [selectedParkPoint, setSelectedParkPoint] = useState<ParkPoint | null>(null);
-  const [parkNote, setParkNote] = useState('');
 
   // Checkout form - split address
   const [customerName, setCustomerName] = useState('');
@@ -161,9 +142,15 @@ export default function Food() {
   const [noDoorDelivery, setNoDoorDelivery] = useState(false);
   const [comment, setComment] = useState('');
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
-  const [kbjuMode, setKbjuMode] = useState<'100' | 'portion'>('100');
 
   useEffect(() => { loadData(); }, []);
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setPromoSlide(s => (s + 1) % PROMO_SLIDES.length);
+    }, 6000);
+    return () => window.clearInterval(id);
+  }, []);
 
   async function loadData() {
     setLoading(true);
@@ -177,14 +164,12 @@ export default function Food() {
         cq('mod_options', () => client.entities.modifier_options.query({ sort: 'sort_order', limit: 500 })),
         cq('item_groups', () => client.entities.item_modifier_groups.query({ limit: 500 })),
         cq('settings', () => client.entities.food_settings.query({ limit: 50 })),
-        cq('park_points', () => client.entities.park_points.query({ sort: 'sort_order', limit: 50 })),
       ]);
       const extract = (r: PromiseSettledResult<any>) => r.status === 'fulfilled' ? (r.value?.data?.items || []) : [];
       const cats = extract(results[0]).filter((c: FoodCategory) => c.is_active);
       setCategories(cats);
       setActiveCategory(null);
       setMenuFilterKey(null);
-      setParkPoints(extract(results[6]).filter((p: ParkPoint) => p.is_active));
       setItems(extract(results[1]).filter((i: FoodItem) => i.is_active));
       setModGroups(extract(results[2]).filter((g: ModifierGroup) => g.is_active));
       setModOptions(extract(results[3]).filter((o: ModifierOption) => o.is_active));
@@ -204,11 +189,7 @@ export default function Food() {
     } catch { return []; }
   }, [settings.delivery_zones]);
 
-  const poolItems = useMemo(() => {
-    if (deliveryDestination !== 'park') return items;
-    const parkOnly = items.filter(i => i.available_in_park);
-    return parkOnly.length > 0 ? parkOnly : items;
-  }, [items, deliveryDestination]);
+  const poolItems = items;
 
   const filteredItems = useMemo(() => {
     let result = poolItems;
@@ -223,12 +204,8 @@ export default function Food() {
         });
       }
     }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(i => i.name.toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q));
-    }
     return result;
-  }, [poolItems, activeCategory, menuFilterKey, searchQuery]);
+  }, [poolItems, activeCategory, menuFilterKey]);
 
   const sortedFilteredItems = useMemo(() => {
     return [...filteredItems].sort((a, b) => Number(b.is_recommended) - Number(a.is_recommended));
@@ -250,7 +227,6 @@ export default function Food() {
   }, [poolItems]);
 
   function selectMenuCategoryTile(key: string | null) {
-    setSearchQuery('');
     if (key === null) {
       setActiveCategory(null);
       setMenuFilterKey(null);
@@ -379,16 +355,6 @@ export default function Food() {
   const serviceFeeAmount = useMemo(() => Math.round(cartTotal * SERVICE_FEE_RATE), [cartTotal]);
   const cartTotalWithService = cartTotal + serviceFeeAmount;
 
-  // Delivery price calculation based on zones
-  const calculatedDeliveryPrice = useMemo(() => {
-    if (deliveryMethod !== 'delivery') return 0;
-    if (deliveryZones.length > 0) {
-      // Default to first zone if no specific zone selected
-      return deliveryZones[0]?.price || parseInt(settings.delivery_price) || 0;
-    }
-    return parseInt(settings.delivery_price) || 0;
-  }, [deliveryMethod, deliveryZones, settings.delivery_price]);
-
   const [selectedZoneIndex, setSelectedZoneIndex] = useState(0);
   const activeDeliveryPrice = useMemo(() => {
     if (deliveryMethod !== 'delivery') return 0;
@@ -400,10 +366,34 @@ export default function Food() {
 
   /** Сумма к оплате: позиции + 10% сервис + доставка (если есть) */
   const checkoutGrandTotal = useMemo(() => {
-    if (deliveryDestination === 'park') return cartTotalWithService;
     if (deliveryMethod === 'delivery') return cartTotalWithService + activeDeliveryPrice;
     return cartTotalWithService;
-  }, [deliveryDestination, deliveryMethod, cartTotalWithService, activeDeliveryPrice]);
+  }, [deliveryMethod, cartTotalWithService, activeDeliveryPrice]);
+
+  /** Меню по категориям из API (когда фильтр «Всё меню») */
+  const menuSections = useMemo(() => {
+    const sortedCats = [...categories].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    return sortedCats
+      .map(cat => ({
+        cat,
+        items: poolItems.filter(i => i.category_id === cat.id),
+      }))
+      .filter(s => s.items.length > 0);
+  }, [categories, poolItems]);
+
+  const showGroupedMenu = activeCategory === null && menuFilterKey === null;
+
+  const cartBarLabel = useMemo(() => {
+    const n = cartCount;
+    if (lang === 'kz') {
+      return `${n} тауам`;
+    }
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return `${n} товар`;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${n} товара`;
+    return `${n} товаров`;
+  }, [cartCount, lang]);
 
   const minOrder = parseInt(settings.min_order_amount) || 0;
 
@@ -437,17 +427,6 @@ export default function Food() {
     scored.sort((a, b) => b.score - a.score);
     return scored.slice(0, 5).map(s => s.item);
   }, [cart, items, categories]);
-
-  // Get recommendations for product popup
-  const getRecommendationsForItem = useCallback((item: FoodItem): FoodItem[] => {
-    const candidates = items.filter(i =>
-      i.id !== item.id && i.is_active &&
-      (i.is_recommended || i.category_id === item.category_id)
-    );
-    // Shuffle and take 4
-    const shuffled = [...candidates].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 4);
-  }, [items]);
 
   function addToCart(item: FoodItem, selections: CartItemSelection = {}) {
     setCart(prev => {
@@ -556,47 +535,6 @@ export default function Food() {
     if (!customerPhone.trim()) { toast.error('Укажите телефон'); return; }
     if (cartTotal < minOrder) { toast.error(`${t('food.minOrder')}: ${minOrder} ₸`); return; }
 
-    if (deliveryDestination === 'park') {
-      if (!selectedParkPoint) { toast.error(t('food.selectParkPoint')); return; }
-      if (!parkNote.trim()) { toast.error(t('food.parkLandmarkRequired')); return; }
-      const orderItems = cart.map(ci => {
-        const selNames = getSelectionNames(ci.selections);
-        const modTotal = calcSelectionsPrice(ci.selections);
-        const name = selNames.length ? `${ci.item.name} + ${selNames.join(', ')}` : ci.item.name;
-        return { name, price: ci.item.price + modTotal, quantity: ci.quantity };
-      });
-      const total = cartTotalWithService;
-      try {
-        await withRetry(() => client.entities.park_orders.create({
-          data: {
-            order_items: JSON.stringify(orderItems),
-            total_amount: total,
-            customer_name: customerName.trim() || 'Клиент',
-            customer_phone: customerPhone.trim(),
-            park_point_id: selectedParkPoint.id,
-            park_point_name: selectedParkPoint.name,
-            park_lat: selectedParkPoint.lat,
-            park_lng: selectedParkPoint.lng,
-            park_note: parkNote.trim(),
-            user_geolocation: '{}',
-            status: 'new',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }
-        }));
-        pushCabinetItem('foodOrders', {
-          title: `${t('food.deliveryPark')} · ${total.toLocaleString('ru-RU')} ₸`,
-          subtitle: selectedParkPoint.name,
-          status: 'Новый',
-        });
-        toast.success('Заказ в парк оформлен!');
-        setCart([]); setCheckoutOpen(false); setCartOpen(false);
-        setCustomerName(''); setCustomerPhone(''); setStreet(''); setHouse(''); setApartment(''); setComment(''); setNoDoorDelivery(false);
-        setParkNote('');
-      } catch (e) { console.error('Error creating park order:', e); toast.error('Ошибка при оформлении заказа'); }
-      return;
-    }
-
     if (!customerName.trim()) { toast.error('Заполните имя'); return; }
     if (deliveryMethod === 'delivery' && (!street.trim() || !house.trim())) { toast.error('Укажите улицу и дом'); return; }
 
@@ -664,11 +602,54 @@ export default function Food() {
 
   const modalTotalPrice = selectedItem ? selectedItem.price + calcSelectionsPrice(currentSelections) : 0;
   const modalValidation = selectedItem ? validateSelections(selectedItem.id, currentSelections) : { valid: true, errors: [] };
-  const modalRecommendations = selectedItem ? getRecommendationsForItem(selectedItem) : [];
   const selectedItemBadge = selectedItem ? getBadgeType(selectedItem) : null;
-  useEffect(() => {
-    if (selectedItem) setKbjuMode('100');
-  }, [selectedItem?.id]);
+
+  const promoSlideData = PROMO_SLIDES[promoSlide];
+
+  function MenuDishRow({ item }: { item: FoodItem }) {
+    const hasGroups = itemHasGroups(item.id);
+    const qtyInCart = getItemQuantityInCart(item.id);
+    const desc = (localized(item, 'description') || item.description || '').replace(/\s+/g, ' ').trim();
+    return (
+      <div className="flex gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-gray-100/90 transition-transform active:scale-[0.99]">
+        <button type="button" className="min-w-0 flex-1 text-left" onClick={() => openItemModal(item)}>
+          <h3 className="line-clamp-2 text-[15px] font-bold leading-snug text-[#111111]">{localized(item, 'name') || item.name}</h3>
+          <p className="mt-1 line-clamp-1 text-xs text-[#777777]">{desc || '\u2014'}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="text-sm font-extrabold text-[#111111]">{formatPrice(item.price)}</span>
+            {hasGroups && (
+              <span className="rounded-full bg-[#F5F5F5] px-2 py-0.5 text-[10px] font-semibold text-[#777777]">{t('food.hasOptions')}</span>
+            )}
+          </div>
+        </button>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <button type="button" onClick={() => openItemModal(item)} className="h-20 w-20 overflow-hidden rounded-2xl bg-[#EFEFEF] ring-1 ring-gray-100">
+            <img src={getItemImage(item)} alt="" className="h-full w-full object-cover" />
+          </button>
+          {qtyInCart > 0 ? (
+            <div className="flex h-10 min-w-[108px] items-center justify-center rounded-full bg-[#F5F5F5] px-0.5 ring-1 ring-gray-200/60">
+              <button type="button" onClick={() => quickRemove(item.id)} className="flex h-8 w-8 items-center justify-center rounded-full text-[#111111] active:scale-90" aria-label="-">
+                <Minus className="h-4 w-4" />
+              </button>
+              <span className="min-w-[1.5rem] text-center text-sm font-bold tabular-nums">{qtyInCart}</span>
+              <button type="button" onClick={() => quickAdd(item)} className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FF3B30] text-white active:scale-90" aria-label="+">
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => quickAdd(item)}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FF3B30] text-white shadow-md shadow-[#FF3B30]/25 active:scale-95"
+              aria-label={t('food.addToCart')}
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   /* ─── LOADING ─── */
   if (loading) {
@@ -688,211 +669,102 @@ export default function Food() {
     );
   }
 
-  const heroImageSrc = settings.hero_banner_image || HERO_REF_LOCAL || HERO_IMG;
-
   return (
     <Layout>
-      <div className="min-h-screen text-[#111111] bg-[#F5F5F5]">
-        {/* ═══ HERO (как Tasko: тёмный блок + лёгкое «свечение» + карусель-точки) ═══ */}
-        <section className="relative mx-auto max-w-lg md:max-w-3xl lg:max-w-5xl overflow-hidden rounded-b-[20px] min-h-[200px] max-h-[240px] md:max-h-[220px]">
+      <div className="min-h-screen bg-[#F5F5F5] text-[#111111]">
+        {/* Баннер акций (слайдер) */}
+        <section className="relative mx-auto max-w-lg overflow-hidden rounded-b-3xl md:max-w-3xl lg:max-w-5xl">
           <div className="absolute inset-0 bg-[#0b0b0d]" />
-          <div className="pointer-events-none absolute -top-28 -left-20 h-56 w-56 rounded-full bg-[#6d28d9]/35 blur-3xl" />
-          <div className="pointer-events-none absolute -top-24 -right-16 h-52 w-52 rounded-full bg-[#2563eb]/30 blur-3xl" />
-          <div className="absolute inset-0">
-            <img src={heroImageSrc} alt="" className="h-full w-full object-cover opacity-95" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/35 to-black/55" />
-          </div>
-          <div className="relative z-10 flex min-h-[200px] max-h-[240px] md:max-h-[220px] flex-col justify-end px-4 pb-6 pt-10">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/70">SORTIROVKA 24</p>
-            <h1 className="mt-1 text-2xl font-bold leading-tight text-white md:text-[26px]">
-              {settings.hero_banner_title || 'Твои любимые блюда со скидкой каждую среду'}
-            </h1>
-            <p className="mt-2 max-w-md text-sm leading-relaxed text-white/85">
-              {settings.hero_banner_subtitle || 'Помогут быстро выбрать то, что хочется — как в лучших приложениях доставки'}
-            </p>
-            <div className="mt-4 flex justify-center gap-1.5">
-              {[0, 1, 2, 3, 4].map(i => (
-                <span
+          <div className="pointer-events-none absolute -left-24 -top-24 h-48 w-48 rounded-full bg-[#FF3B30]/25 blur-3xl" />
+          <div className="pointer-events-none absolute -right-20 top-0 h-44 w-44 rounded-full bg-violet-600/30 blur-3xl" />
+          <div className="relative z-10 min-h-[200px] px-5 py-8">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-white/60">Sortirovka 24</p>
+            <h1 className="mt-2 text-2xl font-extrabold leading-tight text-white md:text-[26px]">{t(promoSlideData.titleKey as 'food.promoSlide1Title')}</h1>
+            <ul className="mt-5 space-y-2.5">
+              {promoSlideData.linesKeys.map(key => (
+                <li key={key} className="flex items-center gap-3 text-[15px] font-medium text-white/95">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-[#FF3B30]" />
+                  {t(key as 'food.promoLine1a')}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-8 flex justify-center gap-2">
+              {PROMO_SLIDES.map((_, i) => (
+                <button
                   key={i}
-                  className={`h-1.5 rounded-full transition-all ${i === 0 ? 'w-4 bg-white' : 'w-1.5 bg-white/35'}`}
+                  type="button"
+                  aria-label={`Promo ${i + 1}`}
+                  onClick={() => setPromoSlide(i)}
+                  className={`h-2 rounded-full transition-all ${i === promoSlide ? 'w-8 bg-white' : 'w-2 bg-white/30 hover:bg-white/50'}`}
                 />
               ))}
             </div>
           </div>
         </section>
 
-        <div className="mx-auto max-w-lg md:max-w-3xl lg:max-w-5xl px-4 pt-4 pb-32 space-y-5">
-          {/* ═══ Доставка: дом / парк ═══ */}
-          <div className="rounded-2xl bg-[#F7F7F7] p-1.5 shadow-sm flex gap-1">
-            <button
-              type="button"
-              onClick={() => { setDeliveryDestination('home'); }}
-              className={`flex-1 min-h-[48px] rounded-xl text-sm font-bold transition-all active:scale-[0.98] ${
-                deliveryDestination === 'home'
-                  ? 'bg-[#FF3B30] text-white shadow-sm'
-                  : 'text-[#777777] hover:text-[#111111] hover:bg-white'
-              }`}
-            >
-              <span className="flex items-center justify-center gap-2">
-                <Home className="w-4 h-4 shrink-0" />
-                {t('food.deliveryHome')}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => { setDeliveryDestination('park'); }}
-              className={`flex-1 min-h-[48px] rounded-xl text-sm font-bold transition-all active:scale-[0.98] ${
-                deliveryDestination === 'park'
-                  ? 'bg-[#FF3B30] text-white shadow-sm'
-                  : 'text-[#777777] hover:text-[#111111] hover:bg-white'
-              }`}
-            >
-              <span className="flex items-center justify-center gap-2">
-                <TreePine className="w-4 h-4 shrink-0" />
-                {t('food.deliveryPark')}
-              </span>
-            </button>
-          </div>
-
-          {deliveryDestination === 'park' && (
-            <div className="rounded-2xl bg-[#F7F7F7] p-4 shadow-sm space-y-3">
-              <p className="text-sm text-[#777777] flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-[#FF3B30] shrink-0" />
-                Выберите место в парке
-              </p>
-              <ParkMap
-                points={parkPoints}
-                selectedId={selectedParkPoint?.id ?? null}
-                onSelect={setSelectedParkPoint}
-                className="rounded-xl overflow-hidden border border-gray-200 bg-white"
-              />
-              {selectedParkPoint ? (
-                <p className="text-xs text-[#111111] font-semibold">
-                  ✓ {selectedParkPoint.name}
-                </p>
-              ) : (
-                <p className="text-xs text-[#777777]">{t('food.selectParkPoint')}</p>
-              )}
-            </div>
-          )}
-
-          {/* ═══ КАТЕГОРИИ (сетка) ═══ */}
+        <div className="mx-auto max-w-lg space-y-8 px-4 pb-32 pt-6 md:max-w-3xl lg:max-w-5xl">
+          {/* Категории: сетка 2 / 4, без горизонтального скролла */}
           <section>
-            <h2 className="text-xl font-bold text-[#111111] mb-3">{t('food.categories')}</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => selectMenuCategoryTile(null)}
-                className={`rounded-2xl p-3 text-left aspect-square border transition-all duration-200 active:scale-[0.98] shadow-sm ${
-                  isGridCategoryActive('all')
-                    ? 'bg-white border-[#FF3B30]'
-                    : 'bg-white border-gray-100 hover:border-gray-200'
-                }`}
-              >
-                <div className="h-[78%] rounded-xl bg-[#F5F5F5] flex items-center justify-center text-4xl overflow-hidden">
-                  <img src={getFallbackImage(0)} alt={t('common.all')} className="w-full h-full object-cover" />
-                </div>
-                <span className="text-sm font-semibold text-[#111111] leading-tight mt-2 block">{t('common.all')}</span>
-              </button>
+            <h2 className="mb-3 text-lg font-extrabold tracking-tight">{t('food.categories')}</h2>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               {MENU_CATEGORY_DEFS.map(def => (
                 <button
                   key={def.key}
                   type="button"
                   onClick={() => selectMenuCategoryTile(def.key)}
-                  className={`rounded-2xl p-3 text-left aspect-square border transition-all duration-200 active:scale-[0.98] shadow-sm ${
-                    isGridCategoryActive(def.key)
-                      ? 'bg-white border-[#FF3B30]'
-                      : 'bg-white border-gray-100 hover:border-gray-200'
+                  className={`rounded-2xl border bg-white p-3 text-left shadow-sm transition-all active:scale-[0.98] ${
+                    isGridCategoryActive(def.key) ? 'border-[#FF3B30] ring-2 ring-[#FF3B30]/20' : 'border-gray-100 hover:border-gray-200'
                   }`}
                 >
-                  <div className="h-[78%] rounded-xl bg-[#F5F5F5] flex items-center justify-center text-4xl overflow-hidden">
+                  <div className="mb-2 aspect-[4/3] overflow-hidden rounded-xl bg-[#F0F0F0]">
                     {categoryPreviewMap[def.key] ? (
-                      <img src={getItemImage(categoryPreviewMap[def.key] as FoodItem)} alt={t(def.i18nKey as any)} className="w-full h-full object-cover" />
+                      <img src={getItemImage(categoryPreviewMap[def.key] as FoodItem)} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <span>{def.emoji}</span>
+                      <div className="flex h-full w-full items-center justify-center text-3xl">{def.emoji}</div>
                     )}
                   </div>
-                  <span className="text-sm font-semibold text-[#111111] leading-tight mt-2 block">{t(def.i18nKey as any)}</span>
+                  <span className="text-sm font-bold leading-tight">{t(def.i18nKey as any)}</span>
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => selectMenuCategoryTile(null)}
+                className={`rounded-2xl border bg-white p-3 text-left shadow-sm transition-all active:scale-[0.98] ${
+                  isGridCategoryActive('all') ? 'border-[#FF3B30] ring-2 ring-[#FF3B30]/20' : 'border-gray-100 hover:border-gray-200'
+                }`}
+              >
+                <div className="mb-2 aspect-[4/3] overflow-hidden rounded-xl bg-[#F0F0F0]">
+                  <img src={getFallbackImage(0)} alt="" className="h-full w-full object-cover opacity-90" />
+                </div>
+                <span className="text-sm font-bold leading-tight">{t('food.allMenu')}</span>
+              </button>
             </div>
           </section>
 
-          {/* ═══ ПОИСК ═══ */}
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#777777]" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Поиск по меню..."
-              className="w-full h-12 pl-12 pr-11 bg-[#F5F5F5] rounded-xl border border-transparent text-sm text-[#111111] placeholder:text-[#777777] focus:outline-none focus:ring-2 focus:ring-[#FF3B30]/20 focus:border-[#FF3B30]/20 transition-shadow"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-full flex items-center justify-center border border-gray-100 hover:bg-gray-50 transition-colors"
-              >
-                <X className="w-4 h-4 text-[#777777]" />
-              </button>
-            )}
-          </div>
-
-          {showRecommendations && !searchQuery && recommendedItems.length > 0 && (
+          {/* Популярное */}
+          {showRecommendations && recommendedItems.length > 0 && (
             <section>
-              <h3 className="text-xl font-bold text-[#111111] mb-3 tracking-tight">А это вы пробовали?</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {recommendedItems.map(item => {
+              <h2 className="mb-3 text-lg font-extrabold tracking-tight">{t('food.popularNow')}</h2>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {recommendedItems.slice(0, 6).map(item => {
                   const qtyInCart = getItemQuantityInCart(item.id);
-                  const lineTotal = item.price * Math.max(qtyInCart, 1);
                   return (
-                    <div key={`rec-${item.id}`} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                      <div className="relative mx-2.5 mt-2.5 aspect-square overflow-hidden rounded-2xl bg-[#ECECEC]">
-                        <img src={getItemImage(item)} alt={item.name} className="h-full w-full object-cover" />
-                        <span className="absolute left-2 top-2">
-                          <FoodBadge type="hit" />
-                        </span>
-                        <InCartOverlay qty={qtyInCart} className="rounded-2xl" />
-                      </div>
-                      <div className="px-3 pt-2.5">
-                        <h4 className="line-clamp-2 text-sm font-bold leading-snug text-[#111111]">{item.name}</h4>
-                        <ItemMetaLine item={item} />
-                      </div>
-                      <div className="p-2.5 pt-1">
-                        <div className="flex h-11 items-center rounded-full bg-[#F5F5F5] px-1">
-                          {qtyInCart > 0 ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => quickRemove(item.id)}
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#777777] active:scale-95"
-                              >
-                                <Minus className="h-4 w-4" />
-                              </button>
-                              <span className="min-w-0 flex-1 text-center text-sm font-bold text-[#111111]">
-                                {formatPrice(lineTotal)}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => quickAdd(item)}
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#111111] active:scale-95"
-                              >
-                                <Plus className="h-5 w-5" />
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <span className="flex-1 pl-3 text-sm font-bold text-[#111111]">{formatPrice(item.price)}</span>
-                              <button
-                                type="button"
-                                onClick={() => quickAdd(item)}
-                                className="mr-0.5 flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#111111] shadow-sm active:scale-95"
-                              >
-                                <Plus className="h-5 w-5" />
-                              </button>
-                            </>
-                          )}
+                    <div key={item.id} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                      <button type="button" onClick={() => openItemModal(item)} className="relative block aspect-square w-full bg-[#ECECEC]">
+                        <img src={getItemImage(item)} alt="" className="h-full w-full object-cover" />
+                        {qtyInCart > 0 && <InCartOverlay qty={qtyInCart} />}
+                      </button>
+                      <div className="p-3">
+                        <p className="line-clamp-2 text-sm font-bold leading-snug">{localized(item, 'name') || item.name}</p>
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <span className="text-sm font-extrabold">{formatPrice(item.price)}</span>
+                          <button
+                            type="button"
+                            onClick={() => quickAdd(item)}
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FF3B30] text-white active:scale-95"
+                          >
+                            <Plus className="h-5 w-5" />
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -902,103 +774,64 @@ export default function Food() {
             </section>
           )}
 
-          {/* ═══ СПИСОК БЛЮД ═══ */}
+          {/* Комбо / выгодно */}
+          <section className="rounded-3xl bg-gradient-to-br from-[#111111] via-[#1c1c1c] to-[#2a1f35] p-5 text-white shadow-lg ring-1 ring-black/5">
+            <h2 className="mb-4 text-lg font-extrabold">{t('food.comboDeals')}</h2>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[1, 2, 3].map(i => (
+                <div
+                  key={i}
+                  className="rounded-2xl border border-white/10 bg-white/10 px-4 py-4 backdrop-blur-sm"
+                >
+                  <p className="text-[15px] font-bold leading-snug">{t(`food.comboCard${i}` as 'food.comboCard1')}</p>
+                  <p className="mt-1.5 text-xs leading-relaxed text-white/70">{t(`food.comboCard${i}Sub` as 'food.comboCard1Sub')}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Основное меню */}
           <section>
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-9 h-9 bg-[#F5F5F5] rounded-xl flex items-center justify-center border border-gray-100">
-                <Utensils className="w-4 h-4 text-[#777777]" />
+            <div className="mb-4 flex items-center gap-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-gray-100">
+                <Utensils className="h-5 w-5 text-[#777777]" />
               </div>
-              <h2 className="text-lg font-bold text-[#111111] flex-1 leading-tight">
-                {searchQuery ? `${t('common.search')}: «${searchQuery}»` : activeCategoryLabel}
-              </h2>
-              <span className="text-xs text-[#777777] whitespace-nowrap">{sortedFilteredItems.length}</span>
+              <h2 className="flex-1 text-lg font-extrabold leading-tight">{t('food.mainMenu')}</h2>
             </div>
 
-            {sortedFilteredItems.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-                {sortedFilteredItems.map(item => {
-                  const hasGroups = itemHasGroups(item.id);
-                  const qtyInCart = getItemQuantityInCart(item.id);
-                  const badgeType = getBadgeType(item);
-                  const lineTotal = (item.price * Math.max(qtyInCart, 1));
-                  return (
-                    <div
-                      key={item.id}
-                      className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-shadow hover:shadow-md"
-                    >
-                      <div
-                        className="relative mx-2.5 mt-2.5 aspect-square cursor-pointer overflow-hidden rounded-2xl bg-[#ECECEC]"
-                        onClick={() => openItemModal(item)}
-                      >
-                        <img src={getItemImage(item)} alt={item.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
-                        {badgeType && (
-                          <span className="absolute left-2 top-2">
-                            <FoodBadge type={badgeType} />
-                          </span>
-                        )}
-                        {hasGroups && (
-                          <span className="absolute right-2 top-2 rounded-full border border-gray-200 bg-white/95 px-2 py-0.5 text-[10px] font-bold text-[#777777]">
-                            + опции
-                          </span>
-                        )}
-                        <InCartOverlay qty={qtyInCart} className="rounded-2xl" />
-                      </div>
-                      <div className="px-3 pt-2.5">
-                        <h3
-                          className="line-clamp-2 min-h-[2.5rem] cursor-pointer text-sm font-bold leading-snug text-[#111111]"
-                          onClick={() => openItemModal(item)}
-                        >
-                          {localized(item, 'name') || item.name}
-                        </h3>
-                        <ItemMetaLine item={item} />
-                      </div>
-                      <div className="p-2.5 pt-1">
-                        <div className="flex h-11 items-center rounded-full bg-[#F5F5F5] px-1">
-                          {qtyInCart > 0 ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => quickRemove(item.id)}
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#777777] active:scale-95"
-                              >
-                                <Minus className="h-4 w-4" />
-                              </button>
-                              <span className="min-w-0 flex-1 text-center text-sm font-bold text-[#111111]">
-                                {formatPrice(lineTotal)}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => quickAdd(item)}
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#111111] active:scale-95"
-                              >
-                                <Plus className="h-5 w-5" />
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <span className="flex-1 pl-3 text-sm font-bold text-[#111111]">{formatPrice(item.price)}</span>
-                              <button
-                                type="button"
-                                onClick={() => quickAdd(item)}
-                                className="mr-0.5 flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#111111] shadow-sm active:scale-95"
-                              >
-                                <Plus className="h-5 w-5" />
-                              </button>
-                            </>
-                          )}
-                        </div>
+            {showGroupedMenu ? (
+              menuSections.length > 0 ? (
+                <div className="space-y-8">
+                  {menuSections.map(({ cat, items: secItems }) => (
+                    <div key={cat.id}>
+                      <h3 className="mb-3 text-base font-extrabold text-[#111111]">{localized(cat, 'name') || cat.name}</h3>
+                      <div className="space-y-2.5">
+                        {secItems.map(item => (
+                          <MenuDishRow key={item.id} item={item} />
+                        ))}
                       </div>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-gray-100 bg-[#F7F7F7] p-10 text-center">
+                  <Utensils className="mx-auto mb-3 h-10 w-10 text-[#777777]" />
+                  <p className="font-medium text-[#111111]">{t('food.noDishes')}</p>
+                  <p className="mt-2 text-sm text-[#777777]">{t('food.noDishesHint')}</p>
+                </div>
+              )
+            ) : sortedFilteredItems.length > 0 ? (
+              <div className="space-y-2.5">
+                <p className="mb-2 text-sm font-semibold text-[#777777]">{activeCategoryLabel}</p>
+                {sortedFilteredItems.map(item => (
+                  <MenuDishRow key={item.id} item={item} />
+                ))}
               </div>
             ) : (
-              <div className="bg-[#F7F7F7] rounded-2xl border border-gray-100 p-10 text-center">
-                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 border border-gray-100">
-                  <Utensils className="w-8 h-8 text-[#777777]" />
-                </div>
-                <p className="text-[#111111] font-medium">{t('food.noDishes')}</p>
-                <p className="text-[#777777] text-sm mt-2">{t('food.noDishesHint')}</p>
+              <div className="rounded-2xl border border-gray-100 bg-[#F7F7F7] p-10 text-center">
+                <Utensils className="mx-auto mb-3 h-10 w-10 text-[#777777]" />
+                <p className="font-medium text-[#111111]">{t('food.noDishes')}</p>
+                <p className="mt-2 text-sm text-[#777777]">{t('food.noDishesHint')}</p>
               </div>
             )}
           </section>
@@ -1030,59 +863,16 @@ export default function Food() {
               </div>
 
               <div className="bg-white px-5 pb-6 pt-1">
-                <h3 className="text-[22px] font-extrabold leading-tight tracking-tight text-[#111111]">{selectedItem.name}</h3>
-                <ItemMetaLine item={selectedItem} />
-                <p className="mt-3 text-sm leading-relaxed text-[#777777]">{selectedItem.description}</p>
+                <h3 className="text-[22px] font-extrabold leading-tight tracking-tight text-[#111111]">{localized(selectedItem, 'name') || selectedItem.name}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-[#777777]">{localized(selectedItem, 'description') || selectedItem.description}</p>
 
-                <details className="mt-5 rounded-2xl border border-gray-100 bg-[#FAFAFA] p-4" open>
-                  <summary className="cursor-pointer list-none text-base font-bold text-[#111111] [&::-webkit-details-marker]:hidden">
-                    <span className="flex items-center justify-between">
-                      Состав и КБЖУ
-                      <ChevronRight className="h-4 w-4 rotate-90 text-[#777777]" />
-                    </span>
-                  </summary>
-                  <p className="mt-3 text-xs leading-relaxed text-[#777777]">
-                    Куриное филе, шампиньоны, лук, томатный соус, моцарелла, итальянские травы — как в премиальной подаче Tasko.
-                  </p>
-                  <div className="mt-3 flex rounded-full bg-[#F0F0F0] p-1">
-                    <button
-                      type="button"
-                      onClick={() => setKbjuMode('100')}
-                      className={`flex-1 rounded-full py-2 text-xs font-bold transition ${kbjuMode === '100' ? 'bg-white text-[#111111] shadow-sm' : 'text-[#777777]'}`}
-                    >
-                      На 100 г
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setKbjuMode('portion')}
-                      className={`flex-1 rounded-full py-2 text-xs font-bold transition ${kbjuMode === 'portion' ? 'bg-white text-[#111111] shadow-sm' : 'text-[#777777]'}`}
-                    >
-                      На порцию
-                    </button>
-                  </div>
-                  <div className="mt-4 grid grid-cols-4 gap-2 text-center">
-                    {[
-                      { v: kbjuMode === '100' ? '480' : '1920', l: 'ккал' },
-                      { v: kbjuMode === '100' ? '25' : '100', l: 'белки' },
-                      { v: kbjuMode === '100' ? '30' : '120', l: 'жиры' },
-                      { v: kbjuMode === '100' ? '28' : '112', l: 'углеводы' },
-                    ].map(cell => (
-                      <div key={cell.l} className="rounded-xl bg-white py-2 ring-1 ring-gray-100">
-                        <div className="text-lg font-extrabold text-[#111111]">{cell.v}</div>
-                        <div className="text-[10px] font-medium uppercase tracking-wide text-[#777777]">{cell.l}</div>
-                      </div>
-                    ))}
-                  </div>
-                </details>
-
-                {/* Modifier Groups — радио как горизонтальные «чипы» (Tasko) */}
                 {getGroupsForItem(selectedItem.id).map((group, gIdx) => {
                   const groupOptions = getOptionsForGroup(group.id);
                   const selectedOpts = currentSelections[group.id] || [];
                   if (groupOptions.length === 0) return null;
 
                   return (
-                    <div key={group.id} className={gIdx === 0 ? 'mt-6 border-t border-gray-100 pt-5' : 'mt-6'}>
+                    <div key={group.id} className={gIdx === 0 ? 'mt-6' : 'mt-6 border-t border-gray-100 pt-5'}>
                       <div className="mb-3 flex items-center gap-2">
                         <h4 className="text-base font-bold text-[#111111]">{group.name}</h4>
                         {group.is_required && (
@@ -1163,30 +953,6 @@ export default function Food() {
                   </div>
                 )}
 
-                {/* Recommendations in popup */}
-                {showRecommendations && modalRecommendations.length > 0 && (
-                  <div className="mt-6 pt-5 border-t border-gray-100">
-                    <h4 className="font-bold text-gray-800 text-sm mb-3 flex items-center gap-2">
-                      <Star className="w-4 h-4 text-[#FF3B30]" /> Рекомендуем
-                    </h4>
-                    <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
-                      {modalRecommendations.map(recItem => (
-                        <button
-                          key={recItem.id}
-                          onClick={() => { openItemModal(recItem); }}
-                          className="flex-shrink-0 w-[110px] text-left"
-                        >
-                          <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 mb-1.5">
-                            <img src={getItemImage(recItem)} alt={recItem.name} className="w-full h-full object-cover" />
-                          </div>
-                          <p className="text-xs font-semibold text-gray-800 line-clamp-1">{recItem.name}</p>
-                          <p className="text-xs font-bold text-[#FF3B30]">{formatPrice(recItem.price)}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 <div className="sticky bottom-0 bg-white pt-3 pb-1">
                   <Button
                     onClick={confirmAddWithSelections}
@@ -1203,29 +969,21 @@ export default function Food() {
 
         {/* ═══ FLOATING CART BUTTON ═══ */}
         {cartCount > 0 && !cartOpen && !checkoutOpen && !selectedItem && (
-          <div className="fixed bottom-5 left-4 right-4 z-40 max-w-lg mx-auto animate-in slide-in-from-bottom duration-300">
+          <div className="fixed bottom-5 left-4 right-4 z-40 mx-auto max-w-lg animate-in slide-in-from-bottom duration-300 md:max-w-3xl lg:max-w-5xl">
             <button
+              type="button"
               onClick={() => setCartOpen(true)}
-              className="w-full bg-white hover:bg-[#fafafa] text-[#111111] rounded-2xl p-4 flex items-center justify-between shadow-lg border border-gray-100 transition-all active:scale-[0.98] group"
+              className="group flex w-full items-center justify-between rounded-2xl border border-gray-100 bg-white p-4 shadow-lg transition-all hover:bg-[#fafafa] active:scale-[0.99]"
             >
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="w-11 h-11 bg-[#FF3B30] rounded-xl flex items-center justify-center text-white">
-                    <ShoppingCart className="w-5 h-5" />
-                  </div>
-                  <span className="absolute -top-1.5 -right-1.5 min-w-[1.25rem] h-5 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                </div>
-                <div className="text-left">
-                  <span className="font-bold text-base block text-[#111111]">{formatPrice(cartTotalWithService)}</span>
-                  <span className="text-[#777777] text-[11px] leading-tight">{t('food.serviceFeeIncluded')}</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 bg-[#F7F7F7] rounded-xl px-4 py-2.5 group-hover:bg-[#F0F0F0] transition-colors">
-                <span className="font-semibold text-sm text-[#111111]">{t('food.cart')}</span>
-                <ChevronRight className="w-4 h-4 text-[#777777]" />
-              </div>
+              <span className="text-[15px] font-bold text-[#111111]">
+                {cartBarLabel}
+                <span className="text-[#777777] font-semibold"> • </span>
+                {formatPrice(cartTotalWithService)}
+              </span>
+              <span className="flex items-center gap-1 rounded-xl bg-[#F7F7F7] px-3 py-2 text-sm font-semibold text-[#111111] group-hover:bg-[#F0F0F0]">
+                {t('food.cart')}
+                <ChevronRight className="h-4 w-4 text-[#777777]" />
+              </span>
             </button>
           </div>
         )}
@@ -1292,7 +1050,7 @@ export default function Food() {
 
                 {cartSuggestions.length > 0 && (
                   <div className="pt-3">
-                    <h4 className="mb-3 px-0.5 text-base font-extrabold text-[#111111]">{t('food.togetherTastier')}</h4>
+                    <h4 className="mb-3 px-0.5 text-base font-extrabold text-[#111111]">{t('food.addToOrder')}</h4>
                     <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
                       {cartSuggestions.map(item => (
                         <div key={item.id} className="w-[132px] shrink-0 overflow-hidden rounded-2xl bg-white ring-1 ring-gray-100/80">
@@ -1374,34 +1132,6 @@ export default function Food() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {deliveryDestination === 'park' && (
-                  <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100 space-y-2">
-                    <label className="text-sm font-bold text-emerald-900 flex items-center gap-2">
-                      <TreePine className="w-4 h-4" /> {t('food.deliveryPark')}
-                    </label>
-                    <p className="text-sm text-emerald-800">
-                      {selectedParkPoint ? (
-                        <><MapPin className="w-4 h-4 inline mr-1" />{selectedParkPoint.name}</>
-                      ) : (
-                        <span className="text-[#FF3B30]">{t('food.selectParkPoint')}</span>
-                      )}
-                    </p>
-                    <div>
-                      <label className="text-xs font-semibold text-emerald-800 mb-1 block">{t('food.parkLandmark')} *</label>
-                      <Textarea
-                        value={parkNote}
-                        onChange={e => setParkNote(e.target.value)}
-                        placeholder="Например: скамейка у фонтана, красная куртка…"
-                        className="rounded-xl resize-none border-emerald-200 focus:border-emerald-500 bg-white"
-                        rows={2}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {deliveryDestination !== 'park' && (
-                <>
-                {/* Delivery method */}
                 <div className="bg-white rounded-2xl p-4 shadow-sm">
                   <label className="text-sm font-bold text-gray-800 mb-3 block">Способ получения</label>
                   <div className="grid grid-cols-2 gap-3">
@@ -1467,15 +1197,13 @@ export default function Food() {
                     </div>
                   </div>
                 )}
-                </>
-                )}
 
                 {/* Contact info */}
                 <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
                   <label className="text-sm font-bold text-gray-800 block">Контактные данные</label>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 mb-1 block">
-                      {t('food.yourName')} {deliveryDestination === 'park' ? '' : '*'}
+                      {t('food.yourName')} *
                     </label>
                     <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Введите имя" className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]" />
                   </div>
@@ -1485,7 +1213,7 @@ export default function Food() {
                   </div>
 
                   {/* Split address fields */}
-                  {deliveryDestination !== 'park' && deliveryMethod === 'delivery' && (
+                  {deliveryMethod === 'delivery' && (
                     <>
                       <div>
                         <label className="text-xs font-semibold text-gray-500 mb-1 block">Улица *</label>
@@ -1551,7 +1279,7 @@ export default function Food() {
                       <span className="text-gray-500">{t('food.serviceFee')}</span>
                       <span className="font-semibold text-gray-900">{formatPrice(serviceFeeAmount)}</span>
                     </div>
-                    {deliveryDestination !== 'park' && deliveryMethod === 'delivery' && (
+                    {deliveryMethod === 'delivery' && (
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-500 flex items-center gap-1.5">
                           <Truck className="w-3.5 h-3.5" /> {t('food.delivery')}
@@ -1573,20 +1301,12 @@ export default function Food() {
               <div className="p-5 bg-white rounded-b-3xl">
                 <Button
                   onClick={submitOrder}
-                  className={`w-full h-14 text-base font-bold rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all ${
-                    deliveryDestination === 'park'
-                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200/40'
-                      : 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-200/50'
-                  }`}
+                  className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-green-600 text-base font-bold text-white shadow-lg shadow-green-200/50 transition-all hover:bg-green-700 active:scale-[0.98]"
                 >
-                  {deliveryDestination === 'park' ? <Phone className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
-                  {deliveryDestination === 'park' ? t('food.parkOrderSubmit') : <>{t('food.sendOrder')} {t('food.viaWhatsApp')}</>}
+                  <MessageSquare className="h-5 w-5" />
+                  {t('food.sendOrder')} {t('food.viaWhatsApp')}
                 </Button>
-                <p className="text-[11px] text-gray-400 text-center mt-2.5">
-                  {deliveryDestination === 'park'
-                    ? 'Заказ уйдёт в систему доставки в парк'
-                    : 'Заказ будет отправлен в WhatsApp для подтверждения'}
-                </p>
+                <p className="mt-2.5 text-center text-[11px] text-gray-400">{t('food.checkoutWhatsAppHint')}</p>
               </div>
             </div>
           </div>
