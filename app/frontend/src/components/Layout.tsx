@@ -1,9 +1,11 @@
-import { useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Home, Wrench, Newspaper, AlertTriangle, BookOpen, Megaphone, Briefcase, HelpCircle, Phone, Utensils, Bus } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { prefetchPage, routeToPage } from '@/lib/prefetch';
 import Header from '@/components/layout/Header';
+import { AUTH_PROMPT_EVENT } from '@/lib/localAuth';
+import AuthPromptModal from '@/components/ui/AuthPromptModal';
 
 const NAV_KEYS = [
   { path: '/', key: 'nav.home', icon: Home },
@@ -20,11 +22,24 @@ const NAV_KEYS = [
 
 export default function Layout({ children, hideHeader = false }: { children: React.ReactNode; hideHeader?: boolean }) {
   const { t } = useLanguage();
+  const navigate = useNavigate();
+  const [authPromptOpen, setAuthPromptOpen] = useState(false);
+  const [authRedirectTo, setAuthRedirectTo] = useState('/login');
 
   /** Prefetch page data on link hover/focus for instant transitions */
   const handlePrefetch = useCallback((path: string) => {
     const page = routeToPage(path);
     if (page) prefetchPage(page);
+  }, []);
+
+  useEffect(() => {
+    const onPrompt = (event: Event) => {
+      const detail = (event as CustomEvent<{ redirectTo?: string }>).detail;
+      setAuthRedirectTo(detail?.redirectTo || '/login');
+      setAuthPromptOpen(true);
+    };
+    window.addEventListener(AUTH_PROMPT_EVENT, onPrompt as EventListener);
+    return () => window.removeEventListener(AUTH_PROMPT_EVENT, onPrompt as EventListener);
   }, []);
 
   return (
@@ -36,6 +51,15 @@ export default function Layout({ children, hideHeader = false }: { children: Rea
 
       {/* Main content */}
       <main className="flex-1">{children}</main>
+
+      <AuthPromptModal
+        open={authPromptOpen}
+        onClose={() => setAuthPromptOpen(false)}
+        onAuth={() => {
+          setAuthPromptOpen(false);
+          navigate(authRedirectTo);
+        }}
+      />
 
       {/* Footer */}
       <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mt-12 transition-colors duration-300">

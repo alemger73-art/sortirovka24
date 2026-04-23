@@ -32,8 +32,18 @@ export default function Header() {
     return onAuthChanged(() => setUser(getCurrentUser()));
   }, []);
 
+  const isActivePath = useCallback(
+    (itemPath: string) => {
+      const current = location.pathname;
+      if (itemPath === '/') return current === '/';
+      if (itemPath === '/announcements' && current.startsWith('/ads')) return true;
+      return current === itemPath || current.startsWith(`${itemPath}/`);
+    },
+    [location.pathname]
+  );
+
   return (
-    <header className="relative z-50 border-b border-white/10 bg-slate-950/75 shadow-[0_4px_20px_rgba(0,0,0,0.25)] backdrop-blur-md">
+    <header className="relative z-50 border-b border-[#1A2233] bg-[#0B0F19] shadow-[0_4px_20px_rgba(0,0,0,0.25)]">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-yellow-400/15">
@@ -47,7 +57,7 @@ export default function Header() {
 
         <nav className="hidden items-center gap-1 lg:flex">
           {NAV_ITEMS.map((item) => {
-            const active = location.pathname === item.path;
+            const active = isActivePath(item.path);
             return (
               <Link
                 key={item.path}
@@ -56,8 +66,8 @@ export default function Header() {
                 onFocus={() => handlePrefetch(item.path)}
                 className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   active
-                    ? 'bg-white/15 text-white'
-                    : 'text-white/80 hover:bg-white/10 hover:text-white'
+                    ? 'text-yellow-300'
+                    : 'text-white hover:text-yellow-200'
                 }`}
               >
                 {item.label}
@@ -77,7 +87,7 @@ export default function Header() {
               </Link>
               <button
                 onClick={logoutLocalUser}
-                className="hidden rounded-lg border border-white/20 px-3 py-2 text-sm font-semibold text-white hover:bg-white/10 sm:inline-flex"
+                className="hidden rounded-lg border border-[#2A3347] px-3 py-2 text-sm font-semibold text-white hover:bg-[#141B2A] sm:inline-flex"
               >
                 Выйти
               </button>
@@ -92,7 +102,7 @@ export default function Header() {
           )}
           <button
             onClick={toggleLang}
-            className="inline-flex items-center gap-1 rounded-lg border border-white/20 px-2.5 py-2 text-sm font-semibold text-white/90 transition-colors hover:bg-white/10"
+            className="inline-flex items-center gap-1 rounded-lg border border-[#2A3347] px-2.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#141B2A]"
             aria-label="Сменить язык"
             title={lang === 'ru' ? 'Қазақша' : 'Русский'}
           >
@@ -110,10 +120,10 @@ export default function Header() {
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-white/10 bg-slate-950/90 px-4 py-3 lg:hidden">
+        <div className="border-t border-[#1A2233] bg-[#0B0F19] px-4 py-3 lg:hidden">
           <nav className="space-y-1">
             {NAV_ITEMS.map((item) => {
-              const active = location.pathname === item.path;
+              const active = isActivePath(item.path);
               return (
                 <Link
                   key={item.path}
@@ -123,8 +133,8 @@ export default function Header() {
                   onFocus={() => handlePrefetch(item.path)}
                   className={`block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                     active
-                      ? 'bg-white/15 text-white'
-                      : 'text-white/80 hover:bg-white/10 hover:text-white'
+                      ? 'text-yellow-300'
+                      : 'text-white hover:text-yellow-200'
                   }`}
                 >
                   {item.label}
@@ -145,7 +155,7 @@ export default function Header() {
                     logoutLocalUser();
                     setMobileOpen(false);
                   }}
-                  className="mt-2 w-full rounded-lg border border-white/20 px-3 py-2.5 text-center text-sm font-semibold text-white hover:bg-white/10"
+                  className="mt-2 w-full rounded-lg border border-[#2A3347] px-3 py-2.5 text-center text-sm font-semibold text-white hover:bg-[#141B2A]"
                 >
                   Выйти
                 </button>

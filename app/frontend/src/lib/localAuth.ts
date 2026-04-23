@@ -17,6 +17,7 @@ const USERS_KEY = 's24_users';
 const CURRENT_USER_KEY = 's24_current_user_id';
 const CABINET_KEY = 's24_cabinet_data';
 const AUTH_EVENT = 's24-auth-changed';
+export const AUTH_PROMPT_EVENT = 's24-auth-prompt';
 
 const emptyCabinet = (): CabinetData => ({
   foodOrders: [],
@@ -172,9 +173,16 @@ export function pushCabinetItem(
   writeCabinetMap(map);
 }
 
-export function requireAuthDialog(navigate: (path: string) => void): boolean {
+export function openAuthPrompt(redirectTo = '/login') {
+  window.dispatchEvent(
+    new CustomEvent(AUTH_PROMPT_EVENT, {
+      detail: { redirectTo },
+    })
+  );
+}
+
+export function requireAuthDialog(_navigate?: (path: string) => void): boolean {
   if (isLoggedIn()) return true;
-  const goToLogin = window.confirm('Войдите или зарегистрируйтесь, чтобы выполнить это действие.');
-  if (goToLogin) navigate('/login');
+  openAuthPrompt('/login');
   return false;
 }
