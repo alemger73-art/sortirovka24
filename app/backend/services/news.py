@@ -16,10 +16,22 @@ class NewsService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    @staticmethod
+    def _normalize_payload(data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Keep only model columns and drop None values to avoid constructor
+        errors when frontend/SDK sends optional or unknown fields.
+        """
+        if not data:
+            return {}
+        allowed = set(News.__table__.columns.keys())
+        return {k: v for k, v in data.items() if k in allowed and v is not None}
+
     async def create(self, data: Dict[str, Any]) -> Optional[News]:
         """Create a new news"""
         try:
-            obj = News(**data)
+            payload = self._normalize_payload(data)
+            obj = News(**payload)
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)
@@ -92,7 +104,8 @@ class NewsService:
             if not obj:
                 logger.warning(f"News {obj_id} not found for update")
                 return None
-            for key, value in update_data.items():
+            payload = self._normalize_payload(update_data)
+            for key, value in payload.items():
                 if hasattr(obj, key):
                     setattr(obj, key, value)
 
