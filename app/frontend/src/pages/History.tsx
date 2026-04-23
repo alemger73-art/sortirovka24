@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { withRetry, formatDate } from '@/lib/api';
 import { client } from '@/lib/api';
+import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -240,7 +241,8 @@ export default function HistoryPage() {
   }, [events]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <Layout>
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       {/* Header */}
       <div className="bg-gradient-to-r from-indigo-900 via-blue-900 to-indigo-800 text-white">
         <div className="max-w-5xl mx-auto px-4 py-8 md:py-12">
@@ -352,6 +354,7 @@ export default function HistoryPage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </Layout>
   );
 }

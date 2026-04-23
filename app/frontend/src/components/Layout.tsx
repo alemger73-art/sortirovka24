@@ -1,9 +1,9 @@
-import { useState, useCallback } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Home, Wrench, Newspaper, AlertTriangle, BookOpen, Megaphone, Briefcase, HelpCircle, Phone, Utensils, Sun, Moon, Globe, Bus } from 'lucide-react';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useCallback } from 'react';
+import { Link } from 'react-router-dom';
+import { Home, Wrench, Newspaper, AlertTriangle, BookOpen, Megaphone, Briefcase, HelpCircle, Phone, Utensils, Bus } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { prefetchPage, routeToPage } from '@/lib/prefetch';
+import Header from '@/components/layout/Header';
 
 const NAV_KEYS = [
   { path: '/', key: 'nav.home', icon: Home },
@@ -19,12 +19,7 @@ const NAV_KEYS = [
 ];
 
 export default function Layout({ children, hideHeader = false }: { children: React.ReactNode; hideHeader?: boolean }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const location = useLocation();
-  const { theme, toggleTheme } = useTheme();
-  const { lang, setLang, t } = useLanguage();
-
-  const toggleLang = () => setLang(lang === 'ru' ? 'kz' : 'ru');
+  const { t } = useLanguage();
 
   /** Prefetch page data on link hover/focus for instant transitions */
   const handlePrefetch = useCallback((path: string) => {
@@ -36,143 +31,7 @@ export default function Layout({ children, hideHeader = false }: { children: Rea
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-gray-950 flex flex-col transition-colors duration-300">
       {/* Header */}
       {!hideHeader && (
-      <header className="bg-white dark:bg-gray-900 shadow-sm sticky top-0 z-50 border-b border-gray-100 dark:border-gray-800 transition-colors duration-300">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-9 h-9 flex items-center justify-center rounded bg-black dark:bg-white">
-                <span className="text-white dark:text-black font-bold text-lg">С</span>
-              </div>
-              <div className="hidden sm:block">
-                <span className="text-[18px] font-bold text-gray-900 dark:text-white">{t('header.portalName')}</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400 block -mt-1">{t('header.portalDesc')}</span>
-              </div>
-            </Link>
-
-            {/* Desktop nav */}
-            <nav className="hidden lg:flex items-center gap-1">
-              {NAV_KEYS.map(item => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onMouseEnter={() => handlePrefetch(item.path)}
-                  onFocus={() => handlePrefetch(item.path)}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    location.pathname === item.path
-                      ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
-                  }`}
-                >
-                  {t(item.key)}
-                </Link>
-              ))}
-            </nav>
-
-            <div className="flex items-center gap-1.5">
-              <Link
-                to="/account"
-                className="hidden sm:inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors min-h-[40px]"
-              >
-                Войти / Регистрация
-              </Link>
-              <Link
-                to="/cabinet"
-                className="hidden sm:inline-flex items-center rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors min-h-[40px]"
-              >
-                Кабинет
-              </Link>
-              {/* Language switcher */}
-              <button
-                onClick={toggleLang}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 group"
-                aria-label="Сменить язык"
-                title={lang === 'ru' ? 'Қазақша' : 'Русский'}
-              >
-                <Globe className="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase tracking-wide">
-                  {lang === 'ru' ? 'KZ' : 'RU'}
-                </span>
-              </button>
-
-              {/* Theme toggle */}
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                aria-label={theme === 'dark' ? t('theme.light') : t('theme.dark')}
-                title={theme === 'dark' ? t('theme.light') : t('theme.dark')}
-              >
-                {theme === 'dark' ? (
-                  <Sun className="w-5 h-5 text-yellow-400" />
-                ) : (
-                  <Moon className="w-5 h-5 text-gray-600" />
-                )}
-              </button>
-
-              {/* Admin panel link REMOVED — admin is hidden and accessible only via direct URL */}
-
-              <button
-                onClick={() => setMobileOpen(!mobileOpen)}
-                className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                {mobileOpen ? <X className="w-6 h-6 text-gray-900 dark:text-white" /> : <Menu className="w-6 h-6 text-gray-900 dark:text-white" />}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile menu */}
-        {mobileOpen && (
-          <div className="lg:hidden bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 shadow-lg animate-in slide-in-from-top-2 duration-200">
-            <nav className="max-w-7xl mx-auto px-4 py-3 space-y-1">
-              {NAV_KEYS.map(item => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setMobileOpen(false)}
-                    onMouseEnter={() => handlePrefetch(item.path)}
-                    onFocus={() => handlePrefetch(item.path)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
-                      location.pathname === item.path
-                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    {t(item.key)}
-                  </Link>
-                );
-              })}
-
-              {/* Language toggle in mobile menu */}
-              <button
-                onClick={() => { toggleLang(); }}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 w-full min-h-[44px]"
-              >
-                <Globe className="w-5 h-5" />
-                {lang === 'ru' ? 'Қазақ тілі' : 'Русский язык'}
-              </button>
-
-              {/* Admin panel link REMOVED from mobile menu */}
-              <Link
-                to="/account"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 min-h-[44px]"
-              >
-                Войти / Регистрация
-              </Link>
-              <Link
-                to="/cabinet"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 min-h-[44px]"
-              >
-                Кабинет
-              </Link>
-            </nav>
-          </div>
-        )}
-      </header>
+        <Header />
       )}
 
       {/* Main content */}

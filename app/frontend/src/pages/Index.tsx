@@ -412,7 +412,7 @@ export default function Index() {
   };
 
   return (
-    <Layout hideHeader>
+    <Layout>
       <Hero />
 
       <div className="bg-[#f5f5f7] dark:bg-gray-950 transition-colors duration-300">

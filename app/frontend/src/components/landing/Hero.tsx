@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { Car, Utensils, Wrench, Users, Coffee, ShieldCheck } from "lucide-react";
-import Header from "@/components/landing/Header";
 
 const HERO_BG =
   "https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/ad8caa55-9593-448b-8f7a-39be84ed5053.png";
@@ -21,8 +20,6 @@ export default function Hero() {
       <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.75)_0%,rgba(0,0,0,0.45)_35%,rgba(0,0,0,0.05)_65%,rgba(0,0,0,0)_100%)]" />
 
       <div className="relative z-10">
-        <Header />
-
         <div className="mx-auto flex min-h-[450px] max-w-7xl items-end px-4 pb-8 pt-6 md:min-h-[560px] md:px-8 md:pb-14">
           <div className="max-w-3xl animate-in fade-in slide-in-from-bottom-4 duration-700">
             <h1 className="text-5xl font-black leading-[0.95] tracking-[-0.03em] text-white md:text-7xl">
