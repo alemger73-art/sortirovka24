@@ -123,8 +123,12 @@ function App() {
               {/* Legacy hidden URL — redirect to /admin */}
               <Route path="/system-portal-924" element={<Navigate to="/admin" replace />} />
 
+              {/* Friendly aliases */}
+              <Route path="/ads" element={<Navigate to="/announcements" replace />} />
+              <Route path="/register" element={<Navigate to="/account" replace />} />
+              <Route path="/login" element={<Navigate to="/account" replace />} />
+
               {/* Block common attack paths — redirect to home */}
-              <Route path="/login" element={<Navigate to="/" replace />} />
               <Route path="/dashboard" element={<Navigate to="/" replace />} />
               <Route path="/dashboard/*" element={<Navigate to="/" replace />} />
               <Route path="/panel" element={<Navigate to="/" replace />} />
