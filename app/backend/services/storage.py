@@ -56,30 +56,40 @@ def _parse_cloudinary_url(raw_url: str) -> tuple[str, str, str]:
         return "", "", ""
 
 
+def _clean_env_value(value: str) -> str:
+    v = (value or "").strip()
+    # Handle values pasted with quotes in deployment dashboards.
+    if len(v) >= 2 and ((v[0] == '"' and v[-1] == '"') or (v[0] == "'" and v[-1] == "'")):
+        v = v[1:-1].strip()
+    return v
+
+
+def _env_ci(name: str) -> str:
+    """Case-insensitive env lookup."""
+    direct = os.getenv(name)
+    if direct:
+        return _clean_env_value(direct)
+    lowered = name.lower()
+    for key, value in os.environ.items():
+        if key.lower() == lowered:
+            return _clean_env_value(value)
+    return ""
+
+
 def _resolve_cloudinary_config() -> tuple[str, str, str]:
     """Resolve Cloudinary config from settings + env aliases."""
-    cloud_name = (
-        os.getenv("CLOUDINARY_CLOUD_NAME")
-        or getattr(settings, "cloudinary_cloud_name", "")
-        or os.getenv("CLOUD_NAME")
-        or ""
-    ).strip()
-    api_key = (
-        os.getenv("CLOUDINARY_API_KEY")
-        or getattr(settings, "cloudinary_api_key", "")
-        or os.getenv("CLOUD_API_KEY")
-        or ""
-    ).strip()
-    api_secret = (
-        os.getenv("CLOUDINARY_API_SECRET")
-        or getattr(settings, "cloudinary_api_secret", "")
-        or os.getenv("CLOUD_API_SECRET")
-        or ""
-    ).strip()
+    cloud_name = _env_ci("CLOUDINARY_CLOUD_NAME") or _clean_env_value(getattr(settings, "cloudinary_cloud_name", "") or "")
+    api_key = _env_ci("CLOUDINARY_API_KEY") or _clean_env_value(getattr(settings, "cloudinary_api_key", "") or "")
+    api_secret = _env_ci("CLOUDINARY_API_SECRET") or _clean_env_value(getattr(settings, "cloudinary_api_secret", "") or "")
+
+    # Common aliases used in different deployment setups.
+    cloud_name = cloud_name or _env_ci("CLOUD_NAME") or _env_ci("VITE_CLOUDINARY_CLOUD_NAME")
+    api_key = api_key or _env_ci("CLOUD_API_KEY") or _env_ci("VITE_CLOUDINARY_API_KEY")
+    api_secret = api_secret or _env_ci("CLOUD_API_SECRET") or _env_ci("VITE_CLOUDINARY_API_SECRET")
 
     # Support standard Cloudinary single-variable format as fallback.
     if not (cloud_name and api_key and api_secret):
-        url_cloud, url_key, url_secret = _parse_cloudinary_url(os.getenv("CLOUDINARY_URL", ""))
+        url_cloud, url_key, url_secret = _parse_cloudinary_url(_env_ci("CLOUDINARY_URL"))
         cloud_name = cloud_name or url_cloud
         api_key = api_key or url_key
         api_secret = api_secret or url_secret
