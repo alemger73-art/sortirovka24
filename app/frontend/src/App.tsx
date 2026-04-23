@@ -39,6 +39,12 @@ const FoodPark = lazy(() => import("./pages/FoodPark"));
 const FoodCourier = lazy(() => import("./pages/FoodCourier"));
 const BusinessPage = lazy(() => import("./pages/Business"));
 const TransportPage = lazy(() => import("./pages/Transport"));
+const AccountAuth = lazy(() => import("./pages/AccountAuth"));
+const Cabinet = lazy(() => import("./pages/Cabinet"));
+const CabinetMaster = lazy(() => import("./pages/CabinetMaster"));
+const CabinetDriver = lazy(() => import("./pages/CabinetDriver"));
+const CabinetPartner = lazy(() => import("./pages/CabinetPartner"));
+const CabinetAdmin = lazy(() => import("./pages/CabinetAdmin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Minimal skeleton loading fallback
@@ -97,6 +103,12 @@ function App() {
               <Route path="/questions/:id" element={<QuestionDetail />} />
               <Route path="/directory" element={<DirectoryPage />} />
               <Route path="/transport" element={<TransportPage />} />
+              <Route path="/account" element={<AccountAuth />} />
+              <Route path="/cabinet" element={<Cabinet />} />
+              <Route path="/cabinet/master" element={<CabinetMaster />} />
+              <Route path="/cabinet/driver" element={<CabinetDriver />} />
+              <Route path="/cabinet/partner" element={<CabinetPartner />} />
+              <Route path="/cabinet/admin" element={<CabinetAdmin />} />
 
               {/* Other pages — lazy */}
               <Route path="/inspectors" element={<InspectorsPage />} />
