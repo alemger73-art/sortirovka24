@@ -1,7 +1,24 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { loginLocalUser, registerLocalUser } from "@/lib/localAuth";
+import { isValidPhone, loginLocalUser, registerLocalUser } from "@/lib/localAuth";
+
+function formatPhoneInput(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  const normalized = digits.startsWith("7") ? digits.slice(1) : digits.startsWith("8") ? digits.slice(1) : digits;
+  const d = normalized.slice(0, 10);
+  const p1 = d.slice(0, 3);
+  const p2 = d.slice(3, 6);
+  const p3 = d.slice(6, 8);
+  const p4 = d.slice(8, 10);
+  let out = "+7";
+  if (p1) out += ` (${p1}`;
+  if (p1.length === 3) out += ")";
+  if (p2) out += ` ${p2}`;
+  if (p3) out += `-${p3}`;
+  if (p4) out += `-${p4}`;
+  return out;
+}
 
 export default function AccountAuth() {
   const navigate = useNavigate();
@@ -21,6 +38,10 @@ export default function AccountAuth() {
     setLoading(true);
     setError("");
     try {
+      if (!form.phone.trim()) throw new Error("Введите номер телефона");
+      if (!isValidPhone(form.phone)) throw new Error("Введите полный номер телефона");
+      if (!form.password.trim()) throw new Error("Введите пароль");
+      if (form.password.trim().length < 4) throw new Error("Пароль должен быть не короче 4 символов");
       if (isLogin) {
         loginLocalUser(form.phone, form.password);
       } else {
@@ -53,8 +74,15 @@ export default function AccountAuth() {
                 <input className="w-full rounded-xl border border-gray-200 px-3 py-2.5" placeholder="Email (необязательно)" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
               </>
             )}
-            <input className="w-full rounded-xl border border-gray-200 px-3 py-2.5" placeholder="Телефон" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+            <input
+              className="w-full rounded-xl border border-gray-200 px-3 py-2.5"
+              placeholder="+7 (700) 123-45-67"
+              inputMode="tel"
+              value={form.phone}
+              onChange={e => setForm({ ...form, phone: formatPhoneInput(e.target.value) })}
+            />
             <input type="password" className="w-full rounded-xl border border-gray-200 px-3 py-2.5" placeholder="Пароль" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
+            <p className="text-xs text-gray-500">Пароль: минимум 4 символа</p>
           </div>
 
           {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}

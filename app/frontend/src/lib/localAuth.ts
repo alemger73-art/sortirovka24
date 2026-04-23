@@ -29,6 +29,13 @@ export function normalizePhone(phone: string): string {
   return (phone || '').replace(/[^\d+]/g, '').trim();
 }
 
+export function isValidPhone(phone: string): boolean {
+  const digits = (phone || '').replace(/\D/g, '');
+  if (digits.length === 11 && (digits.startsWith('7') || digits.startsWith('8'))) return true;
+  if (digits.length === 10) return true;
+  return false;
+}
+
 function readUsers(): LocalUser[] {
   try {
     const raw = localStorage.getItem(USERS_KEY);
@@ -84,6 +91,7 @@ export function registerLocalUser(input: {
 
   if (!name) throw new Error('Введите имя');
   if (!phone) throw new Error('Введите телефон');
+  if (!isValidPhone(phone)) throw new Error('Введите корректный номер телефона');
   if (!password || password.length < 4) throw new Error('Пароль должен быть не короче 4 символов');
 
   const users = readUsers();
@@ -113,6 +121,7 @@ export function registerLocalUser(input: {
 }
 
 export function loginLocalUser(phone: string, password: string): LocalUser {
+  if (!isValidPhone(phone)) throw new Error('Введите корректный номер телефона');
   const normalizedPhone = normalizePhone(phone);
   const users = readUsers();
   const user = users.find((u) => normalizePhone(u.phone) === normalizedPhone);
