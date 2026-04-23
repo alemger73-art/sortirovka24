@@ -78,6 +78,11 @@ def _env_ci(name: str) -> str:
 
 def _resolve_cloudinary_config() -> tuple[str, str, str]:
     """Resolve Cloudinary config from settings + env aliases."""
+    # Prefer standard single-variable config when present to avoid key/secret mismatch.
+    url_cloud, url_key, url_secret = _parse_cloudinary_url(_env_ci("CLOUDINARY_URL"))
+    if url_cloud and url_key and url_secret:
+        return url_cloud, url_key, url_secret
+
     cloud_name = _env_ci("CLOUDINARY_CLOUD_NAME") or _clean_env_value(getattr(settings, "cloudinary_cloud_name", "") or "")
     api_key = _env_ci("CLOUDINARY_API_KEY") or _clean_env_value(getattr(settings, "cloudinary_api_key", "") or "")
     api_secret = _env_ci("CLOUDINARY_API_SECRET") or _clean_env_value(getattr(settings, "cloudinary_api_secret", "") or "")
@@ -86,13 +91,6 @@ def _resolve_cloudinary_config() -> tuple[str, str, str]:
     cloud_name = cloud_name or _env_ci("CLOUD_NAME") or _env_ci("VITE_CLOUDINARY_CLOUD_NAME")
     api_key = api_key or _env_ci("CLOUD_API_KEY") or _env_ci("VITE_CLOUDINARY_API_KEY")
     api_secret = api_secret or _env_ci("CLOUD_API_SECRET") or _env_ci("VITE_CLOUDINARY_API_SECRET")
-
-    # Support standard Cloudinary single-variable format as fallback.
-    if not (cloud_name and api_key and api_secret):
-        url_cloud, url_key, url_secret = _parse_cloudinary_url(_env_ci("CLOUDINARY_URL"))
-        cloud_name = cloud_name or url_cloud
-        api_key = api_key or url_key
-        api_secret = api_secret or url_secret
 
     return cloud_name, api_key, api_secret
 
