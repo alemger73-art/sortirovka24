@@ -19,6 +19,7 @@ router = APIRouter(prefix="/api/v1/entities/food_items", tags=["food_items"])
 # ---------- Pydantic Schemas ----------
 class Food_itemsData(BaseModel):
     """Entity data schema (for create/update)"""
+    restaurant_id: Optional[int] = None
     category_id: int = None
     name: str = None
     description: str = None
@@ -29,6 +30,7 @@ class Food_itemsData(BaseModel):
     is_popular: Optional[bool] = None
     is_combo: Optional[bool] = None
     available_in_park: Optional[bool] = None
+    available: Optional[bool] = None
     weight: str = None
     sort_order: int = None
     created_at: str = None
@@ -36,6 +38,7 @@ class Food_itemsData(BaseModel):
 
 class Food_itemsUpdateData(BaseModel):
     """Update entity data (partial updates allowed)"""
+    restaurant_id: Optional[int] = None
     category_id: Optional[int] = None
     name: Optional[str] = None
     description: Optional[str] = None
@@ -46,6 +49,7 @@ class Food_itemsUpdateData(BaseModel):
     is_popular: Optional[bool] = None
     is_combo: Optional[bool] = None
     available_in_park: Optional[bool] = None
+    available: Optional[bool] = None
     weight: Optional[str] = None
     sort_order: Optional[int] = None
     created_at: Optional[str] = None
@@ -54,6 +58,7 @@ class Food_itemsUpdateData(BaseModel):
 class Food_itemsResponse(BaseModel):
     """Entity response schema"""
     id: int
+    restaurant_id: Optional[int] = None
     category_id: Optional[int] = None
     name: Optional[str] = None
     description: Optional[str] = None
@@ -64,6 +69,7 @@ class Food_itemsResponse(BaseModel):
     is_popular: Optional[bool] = None
     is_combo: Optional[bool] = None
     available_in_park: Optional[bool] = None
+    available: Optional[bool] = None
     weight: Optional[str] = None
     sort_order: Optional[int] = None
     created_at: Optional[str] = None

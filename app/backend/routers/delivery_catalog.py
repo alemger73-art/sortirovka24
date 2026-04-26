@@ -17,6 +17,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
 from models.food_categories import Food_categories
 from models.food_items import Food_items
+from models.food_restaurants import Food_restaurants
+from services.food_restaurants import Food_restaurantsService
 from services.food_categories import Food_categoriesService
 from services.food_items import Food_itemsService
 
@@ -49,9 +51,11 @@ def _category_image(cat: Food_categories) -> str:
 def _serialize_category(cat: Food_categories) -> Dict[str, Any]:
     return {
         "id": cat.id,
+        "restaurant_id": getattr(cat, "restaurant_id", None),
         "name": cat.name,
         "slug": _category_slug(cat),
         "image": _category_image(cat),
+        "category_type": getattr(cat, "category_type", None),
         "order": cat.sort_order or 0,
     }
 
@@ -64,6 +68,7 @@ def _serialize_product(p: Food_items, slug_by_cat_id: Dict[int, str]) -> Dict[st
     cid = p.category_id or 0
     return {
         "id": p.id,
+        "restaurant_id": getattr(p, "restaurant_id", None),
         "title": p.name,
         "description": p.description or "",
         "price": float(p.price or 0),
@@ -72,6 +77,7 @@ def _serialize_product(p: Food_items, slug_by_cat_id: Dict[int, str]) -> Dict[st
         "category_slug": slug_by_cat_id.get(cid, ""),
         "is_popular": is_pop,
         "is_combo": is_cmb,
+        "available": getattr(p, "available", None) is not False,
         "created_at": p.created_at,
     }
 
@@ -94,12 +100,41 @@ async def _load_items(db: AsyncSession, active_only: bool) -> List[Food_items]:
     return items
 
 
+async def _load_restaurants(db: AsyncSession, active_only: bool) -> List[Food_restaurants]:
+    svc = Food_restaurantsService(db)
+    res = await svc.get_list(skip=0, limit=500, query_dict=None, sort="sort_order")
+    items: List[Food_restaurants] = list(res["items"])
+    if active_only:
+        items = [r for r in items if r.is_active is not False]
+    return items
+
+
+def _serialize_restaurant(r: Food_restaurants) -> Dict[str, Any]:
+    return {
+        "id": r.id,
+        "name": r.name or "",
+        "photo": r.photo or "",
+        "description": r.description or "",
+        "whatsapp_phone": r.whatsapp_phone or "",
+        "working_hours": r.working_hours or "",
+        "min_order": float(r.min_order or 0),
+        "delivery_time": r.delivery_time or "",
+        "cuisine_type": r.cuisine_type or "",
+        "rating": float(r.rating or 4.5),
+    }
+
+
 # ─── GET (каталог) ─────────────────────────────────────────────
 
 
 @router.get("/categories", response_model=Dict[str, List[Dict[str, Any]]])
-async def api_list_categories(db: AsyncSession = Depends(get_db)):
+async def api_list_categories(
+    restaurant_id: Optional[int] = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
     cats = await _load_categories(db, active_only=True)
+    if restaurant_id:
+        cats = [c for c in cats if getattr(c, "restaurant_id", None) == restaurant_id]
     cats_sorted = sorted(cats, key=lambda c: (c.sort_order or 0, c.id or 0))
     return {"categories": [_serialize_category(c) for c in cats_sorted]}
 
@@ -107,6 +142,7 @@ async def api_list_categories(db: AsyncSession = Depends(get_db)):
 @router.get("/products", response_model=Dict[str, List[Dict[str, Any]]])
 async def api_list_products(
     category: Optional[str] = Query(None, description="slug категории или all"),
+    restaurant_id: Optional[int] = Query(None),
     limit: int = Query(500, ge=1, le=2000),
     db: AsyncSession = Depends(get_db),
 ):
@@ -116,6 +152,10 @@ async def api_list_products(
         slug_by_id[c.id] = _category_slug(c)
 
     items = await _load_items(db, active_only=True)
+    items = [i for i in items if getattr(i, "available", None) is not False]
+
+    if restaurant_id:
+        items = [i for i in items if getattr(i, "restaurant_id", None) == restaurant_id]
 
     if category and category != "all":
         cid = next((c.id for c in cats if _category_slug(c) == category), None)
@@ -126,6 +166,12 @@ async def api_list_products(
     items = items[:limit]
 
     return {"products": [_serialize_product(p, slug_by_id) for p in items]}
+
+
+@router.get("/restaurants", response_model=Dict[str, List[Dict[str, Any]]])
+async def api_list_restaurants(db: AsyncSession = Depends(get_db)):
+    restaurants = await _load_restaurants(db, active_only=True)
+    return {"restaurants": [_serialize_restaurant(r) for r in restaurants]}
 
 
 # ─── Pydantic: тело как в ТЗ (title / image) ───────────────────
