@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { client, withRetry } from '@/lib/api';
 import { invalidateAllCaches } from '@/lib/cache';
+import {
+  fetchFoodRestaurantsList,
+  createFoodRestaurant,
+  updateFoodRestaurant,
+  deleteFoodRestaurant,
+} from '@/lib/foodAdminApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,8 +30,8 @@ interface Restaurant {
   is_active: boolean;
   sort_order: number;
 }
-interface FoodCategory { id: number; restaurant_id: number; name: string; icon: string; sort_order: number; is_active: boolean; }
-interface FoodItem { id: number; restaurant_id: number; category_id: number; name: string; description: string; price: number; image_url: string; available: boolean; is_active: boolean; sort_order: number; }
+interface FoodCategory { id: number; restaurant_id?: number | null; name: string; icon: string; sort_order: number; is_active: boolean; }
+interface FoodItem { id: number; restaurant_id?: number | null; category_id: number; name: string; description: string; price: number; image_url: string; available: boolean; is_active: boolean; sort_order: number; }
 type Section = 'restaurants' | 'categories' | 'items';
 
 export default function AdminFood() {
@@ -46,23 +52,42 @@ export default function AdminFood() {
     setLoading(true);
     try {
       const results = await Promise.allSettled([
-        withRetry(() => client.entities.food_restaurants.query({ sort: 'sort_order', limit: 200 })),
-        withRetry(() => client.entities.food_categories.query({ sort: 'sort_order', limit: 100 })),
-        withRetry(() => client.entities.food_items.query({ sort: 'sort_order', limit: 200 })),
+        fetchFoodRestaurantsList(),
+        withRetry(() => client.entities.food_categories.query({ sort: 'sort_order', limit: 500 })),
+        withRetry(() => client.entities.food_items.query({ sort: 'sort_order', limit: 2000 })),
       ]);
-      const extract = (r: PromiseSettledResult<any>) =>
-        r.status === 'fulfilled' ? (r.value?.data?.items || []) : [];
+      const extract = (r: PromiseSettledResult<any>, idx: number) => {
+        if (r.status !== 'fulfilled') return [];
+        if (idx === 0) return (r.value || []) as Restaurant[];
+        return (r.value?.data?.items || []) as FoodCategory[] | FoodItem[];
+      };
 
-      const rs = extract(results[0]) as Restaurant[];
-      const cs = extract(results[1]) as FoodCategory[];
-      const ds = extract(results[2]) as FoodItem[];
+      const rs = extract(results[0], 0) as Restaurant[];
+      const cs = extract(results[1], 1) as FoodCategory[];
+      const ds = extract(results[2], 2) as FoodItem[];
+      const hasLegacy =
+        cs.some(c => c.restaurant_id == null || c.restaurant_id === undefined) ||
+        ds.some(d => d.restaurant_id == null || d.restaurant_id === undefined);
+
       setRestaurants(rs);
       setCategories(cs);
       setItems(ds);
-      if (!keepRestaurant || !selectedRestaurantId) setSelectedRestaurantId(rs[0]?.id || null);
 
-      const failedCount = results.filter(r => r.status === 'rejected').length;
-      if (failedCount > 0 && failedCount < results.length) toast.error('Часть данных не загрузилась');
+      setSelectedRestaurantId(prev => {
+        if (!keepRestaurant) {
+          if (prev != null && rs.some(r => r.id === prev)) return prev;
+          return rs[0]?.id ?? null;
+        }
+        if (prev != null && rs.some(r => r.id === prev)) return prev;
+        if (prev === null) {
+          if (!hasLegacy && rs.length > 0) return rs[0].id;
+          return null;
+        }
+        return rs[0]?.id ?? null;
+      });
+
+      const failedCount = results.filter((r, i) => i > 0 && r.status === 'rejected').length;
+      if (failedCount > 0) toast.error('Категории или блюда не загрузились — проверьте API');
     } catch (e) {
       console.error(e);
       toast.error('Ошибка загрузки');
@@ -72,11 +97,21 @@ export default function AdminFood() {
   }
 
   const filteredCategories = useMemo(
-    () => categories.filter(c => !selectedRestaurantId || c.restaurant_id === selectedRestaurantId),
+    () =>
+      categories.filter(c =>
+        selectedRestaurantId === null
+          ? c.restaurant_id == null || c.restaurant_id === undefined
+          : c.restaurant_id === selectedRestaurantId
+      ),
     [categories, selectedRestaurantId]
   );
   const filteredItems = useMemo(
-    () => items.filter(i => !selectedRestaurantId || i.restaurant_id === selectedRestaurantId),
+    () =>
+      items.filter(i =>
+        selectedRestaurantId === null
+          ? i.restaurant_id == null || i.restaurant_id === undefined
+          : i.restaurant_id === selectedRestaurantId
+      ),
     [items, selectedRestaurantId]
   );
 
@@ -91,9 +126,9 @@ export default function AdminFood() {
       };
       if (editingRestaurant.id) {
         const { id, ...data } = payload;
-        await withRetry(() => client.entities.food_restaurants.update({ id: String(id), data }));
+        await updateFoodRestaurant(id, { ...data });
       } else {
-        await withRetry(() => client.entities.food_restaurants.create({ data: { ...payload, created_at: new Date().toISOString() } }));
+        await createFoodRestaurant({ ...payload, created_at: new Date().toISOString() });
       }
       toast.success('Ресторан сохранен');
       setEditingRestaurant(null);
@@ -105,7 +140,7 @@ export default function AdminFood() {
   async function deleteRestaurant(id: number) {
     if (!confirm('Удалить ресторан?')) return;
     try {
-      await withRetry(() => client.entities.food_restaurants.delete({ id: String(id) }));
+      await deleteFoodRestaurant(id);
       toast.success('Удалено');
       invalidateAllCaches();
       loadAll(false);
@@ -113,14 +148,20 @@ export default function AdminFood() {
   }
 
   async function saveCat() {
-    if (!editingCat?.name || !editingCat.restaurant_id) return;
+    if (!editingCat?.name) return;
     try {
       if (editingCat.id) {
         const { id, ...updateData } = editingCat;
         await withRetry(() => client.entities.food_categories.update({ id: String(id), data: updateData }));
       } else {
         await withRetry(() => client.entities.food_categories.create({
-          data: { ...editingCat, is_active: true, sort_order: editingCat.sort_order || categories.length + 1, created_at: new Date().toISOString() }
+          data: {
+            ...editingCat,
+            restaurant_id: editingCat.restaurant_id ?? selectedRestaurantId ?? undefined,
+            is_active: true,
+            sort_order: editingCat.sort_order || categories.length + 1,
+            created_at: new Date().toISOString(),
+          }
         }));
       }
       toast.success('Категория сохранена');
@@ -142,7 +183,7 @@ export default function AdminFood() {
 
   // ─── Items CRUD ───
   async function saveItem() {
-    if (!editingItem?.name || !editingItem?.price || !editingItem?.category_id || !editingItem.restaurant_id) {
+    if (!editingItem?.name || !editingItem?.price || !editingItem?.category_id) {
       toast.error('Заполните название, цену и категорию');
       return;
     }
@@ -155,6 +196,7 @@ export default function AdminFood() {
           client.entities.food_items.create({
             data: {
               ...editingItem,
+              restaurant_id: editingItem.restaurant_id ?? selectedRestaurantId ?? undefined,
               is_active: editingItem.is_active !== false,
               available: editingItem.available !== false,
               sort_order: editingItem.sort_order || items.length + 1,
@@ -211,10 +253,14 @@ export default function AdminFood() {
           </button>
         ))}
         <select
-          value={selectedRestaurantId || ''}
-          onChange={(e) => setSelectedRestaurantId(Number(e.target.value))}
+          value={selectedRestaurantId === null ? '' : String(selectedRestaurantId)}
+          onChange={(e) => {
+            const v = e.target.value;
+            setSelectedRestaurantId(v === '' ? null : Number(v));
+          }}
           className="border rounded-lg px-3 py-2 text-sm bg-white"
         >
+          <option value="">Без ресторана (старое меню)</option>
           {restaurants.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
         </select>
       </div>
