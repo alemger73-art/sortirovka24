@@ -8,6 +8,9 @@ class Food_orders(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True, nullable=False)
     user_id = Column(Integer, nullable=True)
+    restaurant_id = Column(Integer, nullable=True)
+    restaurant_name = Column(String, nullable=True)
+    restaurant_phone = Column(String, nullable=True)
     order_items = Column(String, nullable=True)
     total_amount = Column(Float, nullable=True)
     customer_name = Column(String, nullable=True)
@@ -15,5 +18,7 @@ class Food_orders(Base):
     delivery_address = Column(String, nullable=True)
     comment = Column(String, nullable=True)
     delivery_method = Column(String, nullable=True)
+    payment_method = Column(String, nullable=True)
+    payment_status = Column(String, nullable=True)
     status = Column(String, nullable=True)
     created_at = Column(String, nullable=True)

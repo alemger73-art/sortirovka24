@@ -7,7 +7,9 @@ class Food_categories(Base):
     __table_args__ = {"extend_existing": True}
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True, nullable=False)
+    restaurant_id = Column(Integer, nullable=True)
     name = Column(String, nullable=True)
+    category_type = Column(String, nullable=True)
     icon = Column(String, nullable=True)
     slug = Column(String, nullable=True)
     image = Column(String, nullable=True)

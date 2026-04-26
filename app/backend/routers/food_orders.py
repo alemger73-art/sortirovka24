@@ -20,6 +20,9 @@ router = APIRouter(prefix="/api/v1/entities/food_orders", tags=["food_orders"])
 class Food_ordersData(BaseModel):
     """Entity data schema (for create/update)"""
     user_id: Optional[int] = None
+    restaurant_id: Optional[int] = None
+    restaurant_name: Optional[str] = None
+    restaurant_phone: Optional[str] = None
     order_items: str = None
     total_amount: float = None
     customer_name: str = None
@@ -27,6 +30,8 @@ class Food_ordersData(BaseModel):
     delivery_address: str = None
     comment: str = None
     delivery_method: str = None
+    payment_method: Optional[str] = None
+    payment_status: Optional[str] = None
     status: str = None
     created_at: str = None
 
@@ -34,6 +39,9 @@ class Food_ordersData(BaseModel):
 class Food_ordersUpdateData(BaseModel):
     """Update entity data (partial updates allowed)"""
     user_id: Optional[int] = None
+    restaurant_id: Optional[int] = None
+    restaurant_name: Optional[str] = None
+    restaurant_phone: Optional[str] = None
     order_items: Optional[str] = None
     total_amount: Optional[float] = None
     customer_name: Optional[str] = None
@@ -41,6 +49,8 @@ class Food_ordersUpdateData(BaseModel):
     delivery_address: Optional[str] = None
     comment: Optional[str] = None
     delivery_method: Optional[str] = None
+    payment_method: Optional[str] = None
+    payment_status: Optional[str] = None
     status: Optional[str] = None
     created_at: Optional[str] = None
 
@@ -49,6 +59,9 @@ class Food_ordersResponse(BaseModel):
     """Entity response schema"""
     id: int
     user_id: Optional[int] = None
+    restaurant_id: Optional[int] = None
+    restaurant_name: Optional[str] = None
+    restaurant_phone: Optional[str] = None
     order_items: Optional[str] = None
     total_amount: Optional[float] = None
     customer_name: Optional[str] = None
@@ -56,6 +69,8 @@ class Food_ordersResponse(BaseModel):
     delivery_address: Optional[str] = None
     comment: Optional[str] = None
     delivery_method: Optional[str] = None
+    payment_method: Optional[str] = None
+    payment_status: Optional[str] = None
     status: Optional[str] = None
     created_at: Optional[str] = None
 

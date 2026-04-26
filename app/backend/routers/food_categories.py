@@ -19,7 +19,9 @@ router = APIRouter(prefix="/api/v1/entities/food_categories", tags=["food_catego
 # ---------- Pydantic Schemas ----------
 class Food_categoriesData(BaseModel):
     """Entity data schema (for create/update)"""
+    restaurant_id: Optional[int] = None
     name: str = None
+    category_type: Optional[str] = None
     icon: str = None
     slug: Optional[str] = None
     image: Optional[str] = None
@@ -30,7 +32,9 @@ class Food_categoriesData(BaseModel):
 
 class Food_categoriesUpdateData(BaseModel):
     """Update entity data (partial updates allowed)"""
+    restaurant_id: Optional[int] = None
     name: Optional[str] = None
+    category_type: Optional[str] = None
     icon: Optional[str] = None
     slug: Optional[str] = None
     image: Optional[str] = None
@@ -42,7 +46,9 @@ class Food_categoriesUpdateData(BaseModel):
 class Food_categoriesResponse(BaseModel):
     """Entity response schema"""
     id: int
+    restaurant_id: Optional[int] = None
     name: Optional[str] = None
+    category_type: Optional[str] = None
     icon: Optional[str] = None
     slug: Optional[str] = None
     image: Optional[str] = None

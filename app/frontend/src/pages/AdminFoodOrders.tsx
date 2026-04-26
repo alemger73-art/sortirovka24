@@ -8,6 +8,9 @@ import { toast } from 'sonner';
 
 interface FoodOrder {
   id: number;
+  restaurant_id?: number;
+  restaurant_name?: string;
+  restaurant_phone?: string;
   order_items: string;
   total_amount: number;
   customer_name: string;
@@ -15,6 +18,8 @@ interface FoodOrder {
   delivery_address: string;
   comment: string;
   delivery_method: string;
+  payment_method?: string;
+  payment_status?: string;
   status: string;
   created_at: string;
 }
@@ -141,6 +146,7 @@ export default function AdminFoodOrders() {
                         </Badge>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                        {order.restaurant_name && <span className="font-semibold">{order.restaurant_name}</span>}
                         <span>{order.customer_name}</span>
                         <span className="font-semibold text-gray-700">{order.total_amount.toLocaleString()} ₸</span>
                         <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatDate(order.created_at)}</span>
@@ -162,6 +168,12 @@ export default function AdminFoodOrders() {
                         <div className="flex items-center gap-2 text-gray-600">
                           <MapPin className="w-4 h-4 text-gray-400" />
                           <span>{order.delivery_address}</span>
+                        </div>
+                      )}
+                      {order.payment_method && (
+                        <div className="text-gray-600">
+                          Оплата: <span className="font-semibold">{order.payment_method}</span>
+                          {order.payment_status ? ` (${order.payment_status})` : ''}
                         </div>
                       )}
                     </div>
