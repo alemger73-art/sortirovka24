@@ -80,10 +80,6 @@ def _verify_password(password: str, password_hash: str) -> bool:
         return False
 
 
-# Pre-computed bcrypt hashes for the "admin" account's allowed passwords.
-_admin_password_hashes: list[str] = []
-
-
 def _get_client_ip(request: Request) -> str:
     """Extract client IP from request headers."""
     forwarded = request.headers.get("x-forwarded-for")
@@ -253,12 +249,9 @@ async def admin_login(
             remaining_attempts=remaining,
         )
 
-    # Verify password — check DB hash first, then alternative hashes for "admin" account
+    # Verify password against the stored bcrypt hash only. No hardcoded
+    # fallback passwords — credentials live solely in the database.
     password_ok = _verify_password(payload.password, admin.password_hash)
-    if not password_ok and admin.username == "admin" and _admin_password_hashes:
-        password_ok = any(
-            _verify_password(payload.password, h) for h in _admin_password_hashes
-        )
     if not password_ok:
         remaining = await _record_failed_attempt(db, ip_address)
         await _log_attempt(db, payload.username, ip_address, user_agent, False, "wrong_password")
@@ -515,18 +508,29 @@ async def change_credentials(
 
 # ---------- Initialization ----------
 
-# The accepted passwords for the "admin" account
-_ADMIN_PASSWORDS = ["Admin123@", "Admin", "Adminger123@", "Adminger123"]
+# Default password used ONLY when creating the very first admin account and no
+# ADMIN_PASSWORD was configured. The operator is expected to change it.
+_DEFAULT_ADMIN_PASSWORD = "Admin123@"
+
+
+def _truthy(value: str) -> bool:
+    return value.strip().lower() in ("1", "true", "yes", "on")
 
 
 async def initialize_admin_credentials():
-    """Initialize admin credentials and sync env-configured admin password.
+    """Ensure a single admin account exists, driven entirely by env variables.
 
-    Creates admin accounts and pre-computes alternative password hashes.
-    IMPORTANT: The env-configured admin account password is always updated.
+    Behaviour:
+    - The admin login is ``ADMIN_USERNAME`` (or legacy ``ADMIN_EMAIL``), default "admin".
+    - If the account does not exist yet, it is created using ``ADMIN_PASSWORD``
+      (or a default password that MUST be changed if none is provided).
+    - An existing account's password is left untouched, so changes made through
+      the admin UI persist across restarts/redeploys. To force a reset, set
+      ``ADMIN_FORCE_RESET=true`` together with ``ADMIN_PASSWORD``.
+
+    No hardcoded fallback passwords or hidden accounts — credentials live only
+    in the database.
     """
-    global _admin_password_hashes
-
     try:
         await db_manager.ensure_initialized()
 
@@ -534,70 +538,42 @@ async def initialize_admin_credentials():
             logger.error("[Admin Auth] Database session maker unavailable. Skipping admin credential setup.")
             return
 
-        # Pre-compute bcrypt hashes for all accepted admin passwords
-        _admin_password_hashes = [_hash_password(p) for p in _ADMIN_PASSWORDS]
-        logger.info(f"[Admin Auth] Pre-computed {len(_admin_password_hashes)} alternative password hashes for 'admin' account")
+        admin_username = (
+            os.getenv("ADMIN_USERNAME", "").strip()
+            or os.getenv("ADMIN_EMAIL", "").strip()
+            or "admin"
+        )
+        admin_password = os.getenv("ADMIN_PASSWORD", "").strip()
+        force_reset = _truthy(os.getenv("ADMIN_FORCE_RESET", ""))
 
         async with db_manager.async_session_maker() as db:
-            # --- env-configured admin account ---
-            admin_username = os.getenv("ADMIN_EMAIL", "admin").strip() or "admin"
-            admin_password = os.getenv("ADMIN_PASSWORD", "Admin123@")
             result = await db.execute(
                 select(AdminCredentials).where(AdminCredentials.username == admin_username)
             )
             existing_admin = result.scalar_one_or_none()
 
-            if not existing_admin:
-                # Create account from env values
-                password_hash = _hash_password(admin_password)
-                admin = AdminCredentials(
+            if existing_admin is None:
+                password = admin_password or _DEFAULT_ADMIN_PASSWORD
+                db.add(AdminCredentials(
                     username=admin_username,
-                    password_hash=password_hash,
+                    password_hash=_hash_password(password),
                     is_active=True,
-                )
-                db.add(admin)
+                ))
                 await db.commit()
-                logger.info("[Admin Auth] Admin credentials created from env (username: %s)", admin_username)
+                if admin_password:
+                    logger.info("[Admin Auth] Admin account created (username: %s)", admin_username)
+                else:
+                    logger.warning(
+                        "[Admin Auth] Admin account '%s' created with the DEFAULT password. "
+                        "Set ADMIN_PASSWORD or change it in the panel immediately.",
+                        admin_username,
+                    )
             else:
-                # Always sync password from env and ensure account is active
-                existing_admin.password_hash = _hash_password(admin_password)
                 existing_admin.is_active = True
+                if admin_password and force_reset:
+                    existing_admin.password_hash = _hash_password(admin_password)
+                    logger.info("[Admin Auth] Admin password reset from env (username: %s)", admin_username)
                 await db.commit()
-                logger.info("[Admin Auth] Admin credentials updated from env (username: %s)", admin_username)
-
-            # --- "alemger_core" account (legacy) ---
-            result = await db.execute(
-                select(AdminCredentials).where(AdminCredentials.username == "alemger_core")
-            )
-            existing_legacy = result.scalar_one_or_none()
-
-            if not existing_legacy:
-                password_hash = _hash_password("AlemgerDarad123@")
-                legacy = AdminCredentials(
-                    username="alemger_core",
-                    password_hash=password_hash,
-                    is_active=True,
-                )
-                db.add(legacy)
-                await db.commit()
-                logger.info("[Admin Auth] Legacy admin credentials created (username: alemger_core)")
-
-            # --- "alemgersrt24" account (main admin) ---
-            result = await db.execute(
-                select(AdminCredentials).where(AdminCredentials.username == "alemgersrt24")
-            )
-            existing_main = result.scalar_one_or_none()
-
-            if not existing_main:
-                password_hash = _hash_password("AlemgerAdmin123@")
-                main_admin = AdminCredentials(
-                    username="alemgersrt24",
-                    password_hash=password_hash,
-                    is_active=True,
-                )
-                db.add(main_admin)
-                await db.commit()
-                logger.info("[Admin Auth] Main admin credentials created (username: alemgersrt24)")
 
     except Exception as e:
         logger.error(f"[Admin Auth] Failed to initialize admin credentials: {e}", exc_info=True)
