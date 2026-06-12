@@ -1,0 +1,29 @@
+# Keep the Docker build context small and reproducible.
+
+# Frontend (deployed separately on Vercel) — never needed for backend image
+app/frontend
+app/app
+
+# Node
+**/node_modules
+**/dist
+**/.vite
+
+# Python caches / local artifacts
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/*.db
+**/dev.db
+
+# Backend runtime/local-only files
+app/backend/logs
+app/backend/.jwt_secret
+app/backend/.env
+
+# Repo meta
+.git
+.idea
+.vscode
+uploads
+**/*.log

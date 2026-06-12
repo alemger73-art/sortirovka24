@@ -1,0 +1,12 @@
+# Build context = app/backend
+__pycache__
+**/__pycache__
+**/*.pyc
+.pytest_cache
+logs
+*.log
+*.db
+dev.db
+.jwt_secret
+.env
+alembic/versions/__pycache__
