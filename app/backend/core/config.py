@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
 
+    # Database
+    # Read from the DATABASE_URL environment variable. When empty, the app falls
+    # back to a local SQLite database (see core.database.init_db) so it can run
+    # out-of-the-box. Set a PostgreSQL URL for persistent production storage.
+    database_url: str = ""
+
     # AWS Lambda Configuration
     is_lambda: bool = False
     lambda_function_name: str = "fastapi-backend"

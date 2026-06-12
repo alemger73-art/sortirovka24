@@ -146,9 +146,21 @@ class DatabaseManager:
                 logger.info("Database already initialized")
                 return
 
-            if not settings.database_url:
-                logger.error("No database URL provided. DATABASE_URL environment variable must be set.")
-                raise ValueError("DATABASE_URL environment variable is required")
+            # Resolve the configured database URL; fall back to local SQLite so the
+            # app runs out-of-the-box when DATABASE_URL is not provided.
+            try:
+                configured_url = settings.database_url
+            except AttributeError:
+                configured_url = ""
+
+            if not configured_url:
+                configured_url = "sqlite+aiosqlite:///./app.db"
+                logger.warning(
+                    "DATABASE_URL is not set — falling back to local SQLite (%s). "
+                    "Data is NOT persistent across redeploys/restarts. "
+                    "Set DATABASE_URL to a PostgreSQL instance for production.",
+                    configured_url,
+                )
 
             max_retries = 5
             retry_delay = 3  # seconds
@@ -156,7 +168,7 @@ class DatabaseManager:
             for attempt in range(1, max_retries + 1):
                 try:
                     logger.info(f"Database init attempt {attempt}/{max_retries}...")
-                    raw_url = settings.database_url
+                    raw_url = configured_url
                     database_url = self._normalize_async_database_url(raw_url)
 
                     logger.info(f"Normalized database URL (masked): {make_url(database_url).render_as_string(hide_password=True)}")
