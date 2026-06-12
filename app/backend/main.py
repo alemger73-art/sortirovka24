@@ -6,11 +6,12 @@ import pkgutil
 import traceback
 from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
 
 from core.config import settings
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.routing import APIRouter
 
 # MODULE_IMPORTS_START
@@ -259,14 +260,41 @@ async def general_exception_handler(request: Request, exc: Exception):
         )
 
 
+# ─── Frontend (SPA) serving ──────────────────────────────────────────────
+# In production the built React app is copied next to the backend (frontend_dist)
+# and served from the SAME origin as the API. This matches the frontend's
+# config (relative /api/... calls) and means a single Railway URL serves the
+# whole site — no separate frontend host or CORS needed.
+FRONTEND_DIR = Path(__file__).resolve().parent / "frontend_dist"
+_FRONTEND_INDEX = FRONTEND_DIR / "index.html"
+_RESERVED_PREFIXES = ("api", "health", "docs", "redoc", "openapi.json")
+
+
 @app.get("/")
 def root():
+    if _FRONTEND_INDEX.is_file():
+        return FileResponse(_FRONTEND_INDEX)
     return {"message": "FastAPI Modular Template is running"}
 
 
 @app.get("/health")
 def health_check():
     return {"status": "healthy", "version": "2.1.0"}
+
+
+if FRONTEND_DIR.is_dir():
+    @app.get("/{full_path:path}")
+    def serve_spa(full_path: str):
+        """Serve static assets and fall back to index.html for client-side routes."""
+        # Never shadow the API, docs or health endpoints.
+        if full_path.split("/", 1)[0] in _RESERVED_PREFIXES:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        candidate = (FRONTEND_DIR / full_path).resolve()
+        # Guard against path traversal, then serve the real file if it exists.
+        if FRONTEND_DIR in candidate.parents and candidate.is_file():
+            return FileResponse(candidate)
+        # Unknown path → let the SPA router handle it.
+        return FileResponse(_FRONTEND_INDEX)
 
 
 def run_in_debug_mode(app: FastAPI):

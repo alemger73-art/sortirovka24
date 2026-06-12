@@ -1,7 +1,7 @@
 # Keep the Docker build context small and reproducible.
 
-# Frontend (deployed separately on Vercel) — never needed for backend image
-app/frontend
+# Frontend source IS needed: the backend image builds it and serves the SPA.
+# We still exclude its node_modules/dist below so the context stays small.
 app/app
 
 # Node
