@@ -3,7 +3,6 @@ import { Eye, EyeOff, Save, Loader2, CheckCircle2, AlertCircle, KeyRound, User }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { client } from '@/lib/api';
 
 const SESSION_KEY = '_sp924_token';
 
@@ -12,21 +11,28 @@ interface ChangeResult {
   message: string;
 }
 
+function getAdminToken(): string {
+  try {
+    return localStorage.getItem(SESSION_KEY) || localStorage.getItem('token') || '';
+  } catch {
+    return '';
+  }
+}
+
 async function callApi<T = any>(url: string, method: string = 'GET', data?: any, token?: string): Promise<T> {
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'App-Host': globalThis?.window?.location?.origin ?? '',
+  };
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  const res = await client.apiCall.invoke<T>({
-    url,
+  const res = await fetch((import.meta.env.VITE_API_BASE_URL || '') + url, {
     method,
-    ...(data ? { data } : {}),
     headers,
+    ...(data ? { body: JSON.stringify(data) } : {}),
   });
-  if (res && typeof res === 'object' && 'data' in res) {
-    return (res as any).data as T;
-  }
-  return res as T;
+  return (await res.json()) as T;
 }
 
 export default function AdminAccountSettings() {
@@ -71,7 +77,7 @@ export default function AdminAccountSettings() {
     setLoading(true);
 
     try {
-      const token = sessionStorage.getItem(SESSION_KEY) || '';
+      const token = getAdminToken();
       const res = await callApi<ChangeResult>('/api/v1/admin-auth/change-credentials', 'POST', {
         current_password: currentPassword,
         ...(newUsername.trim() ? { new_username: newUsername.trim() } : {}),

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from core.database import db_manager
-from sqlalchemy import Date, DateTime, MetaData, Table, func, select
+from sqlalchemy import Boolean, Date, DateTime, Integer, MetaData, Numeric, Table, func, select
 from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
 
 logger = logging.getLogger(__name__)
@@ -64,12 +64,46 @@ def _prepare_records(raw_data: Any, table: Table) -> list[dict[str, Any]]:
             if key not in column_map:
                 continue
             column = column_map[key]
-            typed_value = _coerce_temporal_value(value, column)
+            typed_value = _coerce_numeric_value(value, column)
+            typed_value = _coerce_temporal_value(typed_value, column)
             filtered[key] = _coerce_value(typed_value, column)
         if filtered:
             prepared.append(filtered)
 
     return prepared
+
+
+def _coerce_numeric_value(value: Any, column) -> Any:
+    """Normalize values destined for numeric/boolean columns.
+
+    Mock JSON sometimes uses empty strings ("") for unset numeric/boolean fields.
+    On SQLite (loose type affinity) those empty strings are stored verbatim and
+    later fail Pydantic response validation (e.g. Optional[int] rejects ""). Here
+    we coerce them to None and parse numeric strings so the data is consistent on
+    any database backend.
+    """
+    if not isinstance(value, str):
+        return value
+
+    if not isinstance(column.type, (Integer, Boolean, Numeric)):
+        return value
+
+    stripped = value.strip()
+    if stripped == "":
+        return None
+
+    if isinstance(column.type, Boolean):
+        lowered = stripped.lower()
+        if lowered in ("true", "1", "yes"):
+            return True
+        if lowered in ("false", "0", "no"):
+            return False
+        return None
+
+    try:
+        return int(stripped) if isinstance(column.type, Integer) else float(stripped)
+    except ValueError:
+        return None
 
 
 def _coerce_temporal_value(value: Any, column) -> Any:

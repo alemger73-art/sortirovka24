@@ -2,7 +2,9 @@ import base64
 import hashlib
 import logging
 import secrets
+import tempfile
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 import httpx
@@ -11,6 +13,50 @@ from jose import JWTError, jwt
 from jose.exceptions import ExpiredSignatureError, JWSSignatureError, JWTClaimsError
 
 logger = logging.getLogger(__name__)
+
+# Cache for the auto-generated fallback secret (avoids repeated disk reads).
+_fallback_secret_cache: str = ""
+
+
+def _get_or_create_fallback_secret() -> str:
+    """Return a stable JWT secret when none is configured via env vars.
+
+    Persists a randomly generated secret to disk so that admin auth works
+    out-of-the-box and issued tokens survive server restarts. This is a safety
+    net only — production deployments should set JWT_SECRET_KEY explicitly.
+    """
+    global _fallback_secret_cache
+    if _fallback_secret_cache:
+        return _fallback_secret_cache
+
+    candidates = [
+        Path(__file__).resolve().parent.parent / ".jwt_secret",
+        Path(tempfile.gettempdir()) / "sortirovka24_jwt_secret",
+    ]
+    for path in candidates:
+        try:
+            if path.exists():
+                value = path.read_text(encoding="utf-8").strip()
+                if value:
+                    _fallback_secret_cache = value
+                    logger.warning(
+                        "JWT secret loaded from %s. Set JWT_SECRET_KEY for production.", path
+                    )
+                    return value
+            value = secrets.token_urlsafe(64)
+            path.write_text(value, encoding="utf-8")
+            _fallback_secret_cache = value
+            logger.warning(
+                "Generated persistent JWT secret at %s. Set JWT_SECRET_KEY for production.", path
+            )
+            return value
+        except Exception:
+            continue
+
+    # Final fallback: in-memory secret (tokens won't survive a restart).
+    _fallback_secret_cache = secrets.token_urlsafe(64)
+    logger.warning("Using in-memory JWT secret. Set JWT_SECRET_KEY for production.")
+    return _fallback_secret_cache
 
 
 def _get_jwt_secret_key() -> str:
@@ -25,7 +71,9 @@ def _get_jwt_secret_key() -> str:
         logger.warning("Using SECRET_KEY as JWT secret fallback; prefer JWT_SECRET_KEY")
         return legacy_secret
 
-    return ""
+    # No secret configured — fall back to a persisted auto-generated secret so
+    # admin authentication never silently breaks.
+    return _get_or_create_fallback_secret()
 
 
 def _get_jwt_algorithm() -> str:
