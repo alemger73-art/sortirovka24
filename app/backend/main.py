@@ -39,27 +39,30 @@ def setup_logging():
     # Configure log format
     log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
-    # Configure the root logger
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format=log_format,
-        handlers=[
-            # File handler
-            logging.FileHandler(log_file, encoding="utf-8"),
-            # Console handler
-            logging.StreamHandler(),
-        ],
-    )
+    # Root log level: DEBUG only when explicitly enabled, otherwise INFO.
+    # A forced DEBUG level makes chatty libraries (aiosqlite/sqlalchemy) emit
+    # thousands of lines on startup, which trips the platform's log rate limit
+    # (Railway drops messages above 500 logs/sec) and slows the container down.
+    root_level = logging.DEBUG if settings.debug else logging.INFO
 
-    # Set log levels for specific modules
-    logging.getLogger("uvicorn").setLevel(logging.DEBUG)
-    logging.getLogger("fastapi").setLevel(logging.DEBUG)
+    handlers = [logging.StreamHandler()]
+    # Only write a file log locally; on managed platforms the filesystem is
+    # ephemeral and the file handler just adds overhead.
+    if not os.environ.get("PORT"):
+        handlers.insert(0, logging.FileHandler(log_file, encoding="utf-8"))
 
-    # Log configuration details
+    logging.basicConfig(level=root_level, format=log_format, handlers=handlers)
+
+    logging.getLogger("uvicorn").setLevel(logging.INFO)
+    logging.getLogger("fastapi").setLevel(logging.INFO)
+
+    # Silence very chatty third-party loggers regardless of root level.
+    for noisy in ("aiosqlite", "sqlalchemy.engine", "asyncio", "httpx", "httpcore"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+
     logger = logging.getLogger(__name__)
     logger.info("=== Logging system initialized ===")
-    logger.info(f"Log file: {log_file}")
-    logger.info("Log level: INFO")
+    logger.info(f"Log level: {logging.getLevelName(root_level)}")
     logger.info(f"Timestamp: {timestamp}")
 
 
