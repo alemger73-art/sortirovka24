@@ -19,7 +19,8 @@ class Health_checkService:
     async def create(self, data: Dict[str, Any]) -> Optional[Health_check]:
         """Create a new health_check"""
         try:
-            obj = Health_check(**data)
+            _allowed = set(Health_check.__table__.columns.keys())
+            obj = Health_check(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)

@@ -19,7 +19,8 @@ class BannersService:
     async def create(self, data: Dict[str, Any]) -> Optional[Banners]:
         """Create a new banners"""
         try:
-            obj = Banners(**data)
+            _allowed = set(Banners.__table__.columns.keys())
+            obj = Banners(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)

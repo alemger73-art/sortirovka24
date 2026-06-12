@@ -19,7 +19,8 @@ class Homepage_statsService:
     async def create(self, data: Dict[str, Any]) -> Optional[Homepage_stats]:
         """Create a new homepage_stats"""
         try:
-            obj = Homepage_stats(**data)
+            _allowed = set(Homepage_stats.__table__.columns.keys())
+            obj = Homepage_stats(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)

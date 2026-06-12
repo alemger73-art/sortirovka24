@@ -19,7 +19,8 @@ class InspectorsService:
     async def create(self, data: Dict[str, Any]) -> Optional[Inspectors]:
         """Create a new inspectors"""
         try:
-            obj = Inspectors(**data)
+            _allowed = set(Inspectors.__table__.columns.keys())
+            obj = Inspectors(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)

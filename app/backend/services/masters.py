@@ -19,7 +19,8 @@ class MastersService:
     async def create(self, data: Dict[str, Any]) -> Optional[Masters]:
         """Create a new masters"""
         try:
-            obj = Masters(**data)
+            _allowed = set(Masters.__table__.columns.keys())
+            obj = Masters(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)

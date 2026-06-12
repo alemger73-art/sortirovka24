@@ -19,7 +19,8 @@ class ComplaintsService:
     async def create(self, data: Dict[str, Any]) -> Optional[Complaints]:
         """Create a new complaints"""
         try:
-            obj = Complaints(**data)
+            _allowed = set(Complaints.__table__.columns.keys())
+            obj = Complaints(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)

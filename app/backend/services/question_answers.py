@@ -19,7 +19,8 @@ class Question_answersService:
     async def create(self, data: Dict[str, Any]) -> Optional[Question_answers]:
         """Create a new question_answers"""
         try:
-            obj = Question_answers(**data)
+            _allowed = set(Question_answers.__table__.columns.keys())
+            obj = Question_answers(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)

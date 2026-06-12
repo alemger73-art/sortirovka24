@@ -19,7 +19,8 @@ class JobsService:
     async def create(self, data: Dict[str, Any]) -> Optional[Jobs]:
         """Create a new jobs"""
         try:
-            obj = Jobs(**data)
+            _allowed = set(Jobs.__table__.columns.keys())
+            obj = Jobs(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)

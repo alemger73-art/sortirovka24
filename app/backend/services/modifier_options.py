@@ -19,7 +19,8 @@ class Modifier_optionsService:
     async def create(self, data: Dict[str, Any]) -> Optional[Modifier_options]:
         """Create a new modifier_options"""
         try:
-            obj = Modifier_options(**data)
+            _allowed = set(Modifier_options.__table__.columns.keys())
+            obj = Modifier_options(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)

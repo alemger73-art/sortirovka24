@@ -19,7 +19,8 @@ class Directory_entriesService:
     async def create(self, data: Dict[str, Any]) -> Optional[Directory_entries]:
         """Create a new directory_entries"""
         try:
-            obj = Directory_entries(**data)
+            _allowed = set(Directory_entries.__table__.columns.keys())
+            obj = Directory_entries(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)

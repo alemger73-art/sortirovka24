@@ -19,7 +19,8 @@ class Bus_stopsService:
     async def create(self, data: Dict[str, Any]) -> Optional[Bus_stops]:
         """Create a new bus_stops"""
         try:
-            obj = Bus_stops(**data)
+            _allowed = set(Bus_stops.__table__.columns.keys())
+            obj = Bus_stops(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)

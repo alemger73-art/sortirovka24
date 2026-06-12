@@ -19,7 +19,8 @@ class History_eventsService:
     async def create(self, data: Dict[str, Any]) -> Optional[History_events]:
         """Create a new history_events"""
         try:
-            obj = History_events(**data)
+            _allowed = set(History_events.__table__.columns.keys())
+            obj = History_events(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)

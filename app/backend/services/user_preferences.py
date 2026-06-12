@@ -21,7 +21,8 @@ class User_preferencesService:
         try:
             if user_id:
                 data['user_id'] = user_id
-            obj = User_preferences(**data)
+            _allowed = set(User_preferences.__table__.columns.keys())
+            obj = User_preferences(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)

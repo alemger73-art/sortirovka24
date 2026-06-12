@@ -19,7 +19,8 @@ class Frontpad_settingsService:
     async def create(self, data: Dict[str, Any]) -> Optional[Frontpad_settings]:
         """Create a new frontpad_settings"""
         try:
-            obj = Frontpad_settings(**data)
+            _allowed = set(Frontpad_settings.__table__.columns.keys())
+            obj = Frontpad_settings(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)

@@ -19,7 +19,8 @@ class CategoriesService:
     async def create(self, data: Dict[str, Any]) -> Optional[Categories]:
         """Create a new categories"""
         try:
-            obj = Categories(**data)
+            _allowed = set(Categories.__table__.columns.keys())
+            obj = Categories(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)

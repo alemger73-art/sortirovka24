@@ -19,7 +19,8 @@ class Become_master_requestsService:
     async def create(self, data: Dict[str, Any]) -> Optional[Become_master_requests]:
         """Create a new become_master_requests"""
         try:
-            obj = Become_master_requests(**data)
+            _allowed = set(Become_master_requests.__table__.columns.keys())
+            obj = Become_master_requests(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)

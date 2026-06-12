@@ -1,0 +1,45 @@
+# ---- Dependencies ----
+node_modules/
+.pnp/
+.pnp.js
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# ---- Build output ----
+app/frontend/dist/
+dist/
+build/
+*.tsbuildinfo
+
+# ---- Logs (runtime) ----
+app/backend/logs/*
+!app/backend/logs/.gitkeep
+*.log
+logs/
+
+# ---- Local SQLite / DB ----
+*.sqlite
+*.sqlite3
+*.db
+
+# ---- Env / secrets ----
+.env
+.env.*
+!.env.example
+
+# ---- Editor / OS ----
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# ---- Misc temp ----
+*.tmp
+.cache/

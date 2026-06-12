@@ -19,7 +19,8 @@ class Food_itemsService:
     async def create(self, data: Dict[str, Any]) -> Optional[Food_items]:
         """Create a new food_items"""
         try:
-            obj = Food_items(**data)
+            _allowed = set(Food_items.__table__.columns.keys())
+            obj = Food_items(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)

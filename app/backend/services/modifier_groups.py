@@ -19,7 +19,8 @@ class Modifier_groupsService:
     async def create(self, data: Dict[str, Any]) -> Optional[Modifier_groups]:
         """Create a new modifier_groups"""
         try:
-            obj = Modifier_groups(**data)
+            _allowed = set(Modifier_groups.__table__.columns.keys())
+            obj = Modifier_groups(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)
