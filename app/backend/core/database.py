@@ -183,6 +183,12 @@ class DatabaseManager:
                         engine_kwargs["pool_timeout"] = 30
                         logger.info("Using QueuePool with connection pooling")
 
+                    # Fail fast on unreachable/misconfigured PostgreSQL instead of
+                    # hanging for asyncpg's default ~60s per attempt (which can make
+                    # startup/health checks time out). Only applies to asyncpg.
+                    if "+asyncpg" in database_url:
+                        engine_kwargs["connect_args"] = {"timeout": 10}
+
                     # SSL is handled natively by asyncpg via ssl=require in the URL.
                     # asyncpg's native handling correctly enables SNI (Server Name Indication),
                     # which Neon serverless PostgreSQL requires for endpoint routing.

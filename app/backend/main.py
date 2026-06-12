@@ -1,3 +1,4 @@
+import asyncio
 import importlib
 import logging
 import os
@@ -62,10 +63,15 @@ def setup_logging():
     logger.info(f"Timestamp: {timestamp}")
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
+async def _run_startup_initialization():
+    """Initialize database, seed data and external services.
+
+    Runs as a background task so that a slow/unreachable database cannot block
+    the server from accepting requests (which would make platform health checks
+    time out). The app supports lazy DB initialization on first request, so the
+    API still works even if this finishes after the server starts serving.
+    """
     logger = logging.getLogger(__name__)
-    logger.info("=== Application startup initiated ===")
 
     # MODULE_STARTUP_START
     db_ready = False
@@ -100,9 +106,30 @@ async def lifespan(app: FastAPI):
         logger.warning("Skipping post-DB initialization steps (mock data, admin, buckets)")
     # MODULE_STARTUP_END
 
-    logger.info("=== Application startup completed ===")
+    logger.info("=== Background startup initialization completed ===")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger = logging.getLogger(__name__)
+    logger.info("=== Application startup initiated ===")
+
+    # Start heavy initialization in the background so the server begins serving
+    # immediately. This ensures health checks (e.g. on /health) succeed even when
+    # the database is doing a cold start, is slow, or is temporarily unreachable.
+    app.state._startup_task = asyncio.create_task(_run_startup_initialization())
+
+    logger.info("=== Application startup completed (initialization running in background) ===")
     yield
+
     # MODULE_SHUTDOWN_START
+    startup_task = getattr(app.state, "_startup_task", None)
+    if startup_task is not None and not startup_task.done():
+        startup_task.cancel()
+        try:
+            await startup_task
+        except (asyncio.CancelledError, Exception):
+            pass
     await close_database()
     # MODULE_SHUTDOWN_END
 
