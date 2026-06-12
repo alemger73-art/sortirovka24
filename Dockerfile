@@ -18,6 +18,5 @@ COPY app/backend/ ./
 
 EXPOSE 8000
 
-# Railway injects $PORT at runtime; default to 8000 locally.
-# --proxy-headers ensures the real client IP is used (admin login lockout, logs).
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips=*"]
+# start.sh binds to the platform-provided $PORT (Railway) and enables proxy headers.
+CMD ["sh", "start.sh"]
