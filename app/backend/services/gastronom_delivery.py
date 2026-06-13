@@ -167,9 +167,9 @@ def _geocode_query_variants(address: str) -> List[str]:
 
     if not has_street:
         street_match = re.match(
-            r"^(?:ул\.?\s*|улица\s*)?([\p{L}\s\-]+?)\s+(\d+[a-zA-Zа-яА-Я]?)(?:\s*,?\s*(?:кв\.?\s*|квартира\s*)?(\d+))?$",
+            r"^(?:ул\.?\s*|улица\s*)?([^\d,]+?)\s+(\d+[a-zA-Zа-яА-Я]?)(?:\s*,?\s*(?:кв\.?\s*|квартира\s*)?(\d+))?$",
             query,
-            re.UNICODE | re.IGNORECASE,
+            re.IGNORECASE,
         )
         if street_match:
             street_name = street_match.group(1).strip()
@@ -239,9 +239,9 @@ async def geocode_address(address: str, *, country_hint: str = "kz") -> Optional
 
             # Structured search: street + house in Almaty
             m = re.match(
-                r"^(?:ул\.?\s*|улица\s*)?([\p{L}\s\-]+?)\s+(\d+[a-zA-Zа-яА-Я]?)",
+                r"^(?:ул\.?\s*|улица\s*)?([^\d,]+?)\s+(\d+[a-zA-Zа-яА-Я]?)",
                 address.strip(),
-                re.UNICODE | re.IGNORECASE,
+                re.IGNORECASE,
             )
             if m:
                 street_name = m.group(1).strip()
