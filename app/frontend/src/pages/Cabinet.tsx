@@ -173,7 +173,7 @@ export default function Cabinet() {
                       <Coins className="h-7 w-7 text-yellow-300" />
                       <p className="text-4xl font-black text-yellow-300">{Number(cabinet?.profile?.bonus_balance || 0).toLocaleString("ru-RU")}</p>
                     </div>
-                    <p className="mt-1 text-sm text-yellow-100/70">Доступные начисления и история изменений</p>
+                    <p className="mt-1 text-sm text-yellow-100/70">+300 за регистрацию · +50 за заказ еды</p>
                   </div>
                   <div className="mt-4 space-y-2">
                     {rows.bonuses.length === 0 ? (

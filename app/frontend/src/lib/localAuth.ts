@@ -48,6 +48,14 @@ function emitAuthChanged() {
   window.dispatchEvent(new CustomEvent(AUTH_EVENT));
 }
 
+export function getAccountPrefill(): { name: string; phone: string } {
+  const user = getCurrentUser();
+  return {
+    name: user?.name?.trim() || "",
+    phone: user?.phone?.trim() || "",
+  };
+}
+
 export function onAuthChanged(listener: () => void): () => void {
   const handler = () => listener();
   window.addEventListener(AUTH_EVENT, handler);

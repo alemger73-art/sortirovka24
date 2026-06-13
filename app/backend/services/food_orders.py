@@ -5,6 +5,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.food_orders import Food_orders
+from services.bonus_rewards import link_food_order_to_user
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,17 @@ class Food_ordersService:
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)
+            try:
+                await link_food_order_to_user(
+                    self.db,
+                    customer_phone=obj.customer_phone,
+                    food_order_id=int(obj.id),
+                    total_amount=obj.total_amount,
+                    restaurant_name=obj.restaurant_name,
+                    status=obj.status,
+                )
+            except Exception as bonus_err:
+                logger.warning("[Bonus] Food order reward skipped: %s", bonus_err)
             logger.info(f"Created food_orders with id: {obj.id}")
             return obj
         except Exception as e:

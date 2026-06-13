@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { getCurrentUser, pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
+import { getAccountPrefill, getCurrentUser, pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
 
 /* ─── CDN images ─── */
 const FALLBACK_FOOD_1 = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/2034a1d7-1c57-40c0-8145-23816557ba5c.png';
@@ -173,6 +173,12 @@ export default function Food() {
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
 
   useEffect(() => { loadData(); }, []);
+
+  useEffect(() => {
+    const prefill = getAccountPrefill();
+    if (prefill.name) setCustomerName((v) => v || prefill.name);
+    if (prefill.phone) setCustomerPhone((v) => v || prefill.phone);
+  }, []);
 
   useEffect(() => {
     const id = window.setInterval(() => {

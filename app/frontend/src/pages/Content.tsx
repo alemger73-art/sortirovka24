@@ -10,7 +10,7 @@ import StorageImg from "@/components/StorageImg";
 import MultiImageUpload, { StorageGallery } from '@/components/MultiImageUpload';
 import VideoUpload from '@/components/VideoUpload';
 import StorageVideo from '@/components/StorageVideo';
-import { pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
+import { pushCabinetItem, requireAuthDialog, getAccountPrefill } from '@/lib/localAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 function normalizeYoutubeWatchUrl(value: string): string {
@@ -245,6 +245,17 @@ export function NewComplaintForm() {
   const [submitted, setSubmitted] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  useEffect(() => {
+    const prefill = getAccountPrefill();
+    if (prefill.name || prefill.phone) {
+      setForm((f) => ({
+        ...f,
+        author_name: f.author_name || prefill.name,
+        phone: f.phone || prefill.phone,
+      }));
+    }
+  }, []);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!requireAuthDialog(navigate)) return;
@@ -460,6 +471,17 @@ export function NewAnnouncementForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    const prefill = getAccountPrefill();
+    if (prefill.name || prefill.phone) {
+      setForm((f) => ({
+        ...f,
+        author_name: f.author_name || prefill.name,
+        phone: f.phone || prefill.phone,
+      }));
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

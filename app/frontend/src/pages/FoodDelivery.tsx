@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Layout from '@/components/Layout';
 import { client, withRetry } from '@/lib/api';
 import { resolveImageSrc } from '@/lib/storage';
+import { getAccountPrefill } from '@/lib/localAuth';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -136,6 +137,12 @@ export default function FoodDelivery() {
 
   useEffect(() => {
     void loadData();
+  }, []);
+
+  useEffect(() => {
+    const prefill = getAccountPrefill();
+    if (prefill.name) setName((v) => v || prefill.name);
+    if (prefill.phone) setPhone((v) => v || prefill.phone);
   }, []);
 
   async function loadData() {

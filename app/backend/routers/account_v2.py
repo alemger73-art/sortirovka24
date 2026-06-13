@@ -500,16 +500,24 @@ async def cabinet(
         {"id": o.id, "type": o.order_type, "status": o.status, "amount": o.amount, "details": o.details, "created_at": o.created_at.isoformat() if o.created_at else None}
         for o in order_rows
     ]
+    linked_food_ids = {
+        part
+        for o in order_rows
+        if o.order_type == "food" and o.details
+        for part in str(o.details).split("#")
+        if part.strip().isdigit()
+    }
     merged_orders.extend(
         {
             "id": f"food_{f.id}",
             "type": "food",
             "status": f.status,
             "amount": f.total_amount,
-            "details": f"{f.restaurant_name or 'Еда'} — {f.customer_name or ''}".strip(" —"),
+            "details": f"{f.restaurant_name or 'Еда'} — заказ #{f.id}",
             "created_at": f.created_at,
         }
         for f in food_rows[:100]
+        if str(f.id) not in linked_food_ids
     )
     merged_orders.sort(key=lambda item: str(item.get("created_at") or ""), reverse=True)
 
