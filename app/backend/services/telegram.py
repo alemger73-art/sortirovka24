@@ -342,3 +342,18 @@ async def notify_taxi_status_change(data: dict, status: str) -> bool:
         f"<b>Дата:</b> {_format_date()}"
     )
     return await send_telegram_message(text, category=CATEGORY_TAXI)
+
+
+async def notify_taxi_driver_application(data: dict) -> bool:
+    text = (
+        "👨‍✈️ <b>Новая заявка водителя — Такси Сортировка</b>\n\n"
+        f"<b>Имя:</b> {_escape_html(data.get('full_name', '—'))}\n"
+        f"<b>Телефон:</b> {_escape_html(data.get('phone', '—'))}\n"
+        f"<b>Авто:</b> {_escape_html(data.get('car_make', ''))} {_escape_html(data.get('car_model', ''))}\n"
+        f"<b>Номер:</b> {_escape_html(data.get('car_number', '—'))}\n"
+        f"<b>Цвет:</b> {_escape_html(data.get('car_color', '—'))}\n"
+        f"<b>Комментарий:</b> {_escape_html(data.get('comment', '—'))}\n"
+        f"<b>User ID:</b> {data.get('user_id', '—')}\n"
+        f"<b>Дата:</b> {_format_date()}"
+    )
+    return await send_telegram_message(text, category=CATEGORY_TAXI)

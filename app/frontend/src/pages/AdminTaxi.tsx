@@ -1,12 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { formatTenge, taxiApi, TAXI_STATUS_LABELS, type TaxiAdminStats, type TaxiRide } from '@/lib/taxiApi';
-import { getAccountToken } from '@/lib/accountApi';
-import { getAPIBaseURL } from '@/lib/config';
+import {
+  formatTenge,
+  taxiApi,
+  TAXI_STATUS_LABELS,
+  type DriverApplication,
+  type TaxiAdminStats,
+  type TaxiRide,
+} from '@/lib/taxiApi';
 import {
   Car,
   Check,
+  ClipboardList,
   Loader2,
   RefreshCw,
   Save,
@@ -16,32 +22,14 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_BASE = getAPIBaseURL().replace(/\/$/, '');
-
-async function adminApi<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = getAccountToken() || localStorage.getItem('token') || localStorage.getItem('_sp924_token') || '';
-  const resp = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init?.headers || {}),
-    },
-  });
-  if (!resp.ok) {
-    const txt = await resp.text().catch(() => '');
-    throw new Error(txt || `HTTP ${resp.status}`);
-  }
-  return resp.json();
-}
-
-type Tab = 'stats' | 'rides' | 'drivers' | 'settings';
+type Tab = 'stats' | 'rides' | 'applications' | 'drivers' | 'settings';
 
 export default function AdminTaxi() {
   const [tab, setTab] = useState<Tab>('stats');
   const [stats, setStats] = useState<TaxiAdminStats | null>(null);
   const [rides, setRides] = useState<TaxiRide[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
+  const [applications, setApplications] = useState<DriverApplication[]>([]);
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
@@ -50,15 +38,17 @@ export default function AdminTaxi() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [s, r, d, cfg] = await Promise.all([
-        adminApi<TaxiAdminStats>('/api/v1/taxi/admin/stats'),
-        adminApi<TaxiRide[]>(`/api/v1/taxi/admin/rides${rideFilter ? `?status=${rideFilter}` : ''}`),
-        adminApi<any[]>('/api/v1/taxi/admin/drivers'),
-        adminApi<Record<string, string>>('/api/v1/taxi/admin/settings'),
+      const [s, r, d, apps, cfg] = await Promise.all([
+        taxiApi.adminStats(),
+        taxiApi.adminRides(rideFilter || undefined),
+        taxiApi.adminDrivers(),
+        taxiApi.adminApplications('pending'),
+        taxiApi.adminSettings(),
       ]);
       setStats(s);
       setRides(r);
       setDrivers(d);
+      setApplications(apps);
       setSettings(cfg);
     } catch (e: any) {
       toast.error(String(e?.message || 'Ошибка загрузки'));
@@ -74,10 +64,7 @@ export default function AdminTaxi() {
   async function saveSettings() {
     setSavingSettings(true);
     try {
-      const updated = await adminApi<Record<string, string>>('/api/v1/taxi/admin/settings', {
-        method: 'PUT',
-        body: JSON.stringify({ settings }),
-      });
+      const updated = await taxiApi.adminUpdateSettings(settings);
       setSettings(updated);
       toast.success('Настройки сохранены');
     } catch (e: any) {
@@ -87,22 +74,30 @@ export default function AdminTaxi() {
     }
   }
 
-  async function verifyDriver(userId: string, verified: boolean) {
+  async function approveApp(userId: string) {
     try {
-      await adminApi(`/api/v1/taxi/admin/drivers/${userId}/verify`, {
-        method: 'PUT',
-        body: JSON.stringify({ verified }),
-      });
-      toast.success(verified ? 'Водитель верифицирован' : 'Верификация снята');
+      await taxiApi.adminApproveApplication(userId);
+      toast.success('Водитель одобрен — роль назначена автоматически');
       await load();
     } catch (e: any) {
       toast.error(String(e?.message || 'Ошибка'));
     }
   }
 
-  const tabs: { id: Tab; label: string; icon: typeof Car }[] = [
+  async function rejectApp(userId: string) {
+    try {
+      await taxiApi.adminRejectApplication(userId, 'Не прошёл проверку');
+      toast.success('Заявка отклонена');
+      await load();
+    } catch (e: any) {
+      toast.error(String(e?.message || 'Ошибка'));
+    }
+  }
+
+  const tabs: { id: Tab; label: string; icon: typeof Car; badge?: number }[] = [
     { id: 'stats', label: 'Статистика', icon: Car },
     { id: 'rides', label: 'Поездки', icon: RefreshCw },
+    { id: 'applications', label: 'Заявки', icon: ClipboardList, badge: stats?.pending_applications },
     { id: 'drivers', label: 'Водители', icon: Users },
     { id: 'settings', label: 'Тарифы', icon: Settings },
   ];
@@ -115,7 +110,7 @@ export default function AdminTaxi() {
             <Car className="h-5 w-5 text-yellow-500" />
             Такси Сортировка
           </h2>
-          <p className="text-sm text-gray-500">Управление районным сервисом такси</p>
+          <p className="text-sm text-gray-500">Управление районным сервисом · интеграция Sortirovka24</p>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
           <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
@@ -124,7 +119,7 @@ export default function AdminTaxi() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {tabs.map(({ id, label, icon: Icon }) => (
+        {tabs.map(({ id, label, icon: Icon, badge }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -134,6 +129,11 @@ export default function AdminTaxi() {
           >
             <Icon className="h-4 w-4" />
             {label}
+            {badge ? (
+              <span className="ml-1 rounded-full bg-red-500 text-white text-xs px-1.5 py-0.5 min-w-[1.25rem] text-center">
+                {badge}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>
@@ -145,20 +145,52 @@ export default function AdminTaxi() {
       ) : (
         <>
           {tab === 'stats' && stats && (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
                 { label: 'Всего поездок', value: stats.total_rides },
                 { label: 'Завершено', value: stats.completed_rides },
-                { label: 'Ожидают', value: stats.pending_rides },
-                { label: 'Активные', value: stats.active_rides },
+                { label: 'Ожидают водителя', value: stats.pending_rides },
+                { label: 'В пути сейчас', value: stats.active_rides },
                 { label: 'Оборот', value: formatTenge(stats.revenue) },
-                { label: 'Водителей online', value: stats.online_drivers },
+                { label: 'Online водителей', value: stats.online_drivers },
+                { label: 'Заявок водителей', value: stats.pending_applications ?? 0 },
               ].map(({ label, value }) => (
                 <div key={label} className="rounded-2xl bg-white border border-gray-100 p-4 shadow-sm">
                   <p className="text-xs text-gray-500">{label}</p>
                   <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
                 </div>
               ))}
+            </div>
+          )}
+
+          {tab === 'applications' && (
+            <div className="space-y-3">
+              {applications.length === 0 ? (
+                <p className="text-center py-10 text-gray-400 rounded-2xl bg-white border">Нет новых заявок</p>
+              ) : (
+                applications.map((app) => (
+                  <div key={app.user_id} className="rounded-2xl bg-white border border-yellow-200 p-5 shadow-sm">
+                    <div className="flex flex-wrap justify-between gap-3">
+                      <div>
+                        <p className="font-bold text-gray-900">{app.full_name || app.account_name}</p>
+                        <p className="text-sm text-gray-600">{app.phone || app.account_phone}</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {[app.car_make, app.car_model, app.car_color, app.car_number].filter(Boolean).join(' · ')}
+                        </p>
+                        {app.comment && <p className="text-xs text-gray-400 mt-2">{app.comment}</p>}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" className="bg-yellow-400 hover:bg-yellow-500 text-gray-900" onClick={() => approveApp(app.user_id)}>
+                          <Check className="h-3.5 w-3.5 mr-1" /> Одобрить
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => rejectApp(app.user_id)}>
+                          <X className="h-3.5 w-3.5 mr-1" /> Отклонить
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           )}
 
@@ -177,41 +209,37 @@ export default function AdminTaxi() {
                   </button>
                 ))}
               </div>
-              <div className="rounded-2xl bg-white border border-gray-100 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
-                      <tr>
-                        <th className="px-4 py-3 text-left">ID</th>
-                        <th className="px-4 py-3 text-left">Маршрут</th>
-                        <th className="px-4 py-3 text-left">Пассажир</th>
-                        <th className="px-4 py-3 text-left">Цена</th>
-                        <th className="px-4 py-3 text-left">Статус</th>
+              <div className="rounded-2xl bg-white border overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+                    <tr>
+                      <th className="px-4 py-3 text-left">ID</th>
+                      <th className="px-4 py-3 text-left">Маршрут</th>
+                      <th className="px-4 py-3 text-left">Телефон</th>
+                      <th className="px-4 py-3 text-left">Цена</th>
+                      <th className="px-4 py-3 text-left">Статус</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {rides.map((r) => (
+                      <tr key={r.id}>
+                        <td className="px-4 py-3 font-mono text-gray-500">#{r.id}</td>
+                        <td className="px-4 py-3 max-w-xs">
+                          <p className="truncate">{r.from_address}</p>
+                          <p className="truncate text-xs text-gray-400">→ {r.to_address}</p>
+                        </td>
+                        <td className="px-4 py-3">{r.passenger_phone || '—'}</td>
+                        <td className="px-4 py-3 font-semibold">{formatTenge(r.final_price ?? r.estimated_price)}</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${TAXI_STATUS_LABELS[r.status]?.color || ''}`}>
+                            {TAXI_STATUS_LABELS[r.status]?.label || r.status}
+                          </span>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {rides.map((r) => (
-                        <tr key={r.id} className="hover:bg-gray-50/50">
-                          <td className="px-4 py-3 font-mono text-gray-500">#{r.id}</td>
-                          <td className="px-4 py-3 max-w-xs">
-                            <p className="truncate text-gray-800">{r.from_address}</p>
-                            <p className="truncate text-gray-400 text-xs">→ {r.to_address}</p>
-                          </td>
-                          <td className="px-4 py-3 text-gray-600">{r.passenger_phone || '—'}</td>
-                          <td className="px-4 py-3 font-semibold">{formatTenge(r.final_price ?? r.estimated_price)}</td>
-                          <td className="px-4 py-3">
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${TAXI_STATUS_LABELS[r.status]?.color || 'bg-gray-100'}`}>
-                              {TAXI_STATUS_LABELS[r.status]?.label || r.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {rides.length === 0 && (
-                    <p className="text-center py-8 text-gray-400">Поездок нет</p>
-                  )}
-                </div>
+                    ))}
+                  </tbody>
+                </table>
+                {rides.length === 0 && <p className="text-center py-8 text-gray-400">Поездок нет</p>}
               </div>
             </div>
           )}
@@ -222,24 +250,27 @@ export default function AdminTaxi() {
                 <p className="text-center py-8 text-gray-400 rounded-2xl bg-white border">Водителей пока нет</p>
               ) : (
                 drivers.map((d) => (
-                  <div key={d.user_id} className="rounded-2xl bg-white border border-gray-100 p-4 flex flex-wrap items-center justify-between gap-3">
+                  <div key={d.user_id} className="rounded-2xl bg-white border p-4 flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="font-semibold text-gray-900">{d.name || 'Без имени'}</p>
+                      <p className="font-semibold">{d.name || 'Без имени'}</p>
                       <p className="text-sm text-gray-500">{d.phone} · {[d.car_make, d.car_model, d.car_number].filter(Boolean).join(' ')}</p>
-                      <div className="flex gap-2 mt-1 text-xs">
-                        <span className={d.is_online ? 'text-green-600' : 'text-gray-400'}>
-                          {d.is_online ? '🟢 Online' : '⚫ Offline'}
-                        </span>
-                        <span>{d.rides_count} поездок · ⭐ {d.rating?.toFixed(1)}</span>
-                      </div>
+                      <p className="text-xs mt-1">{d.is_online ? '🟢 Online' : '⚫ Offline'} · {d.rides_count} поездок · ⭐ {d.rating?.toFixed(1)}</p>
                     </div>
                     <Button
                       size="sm"
                       variant={d.is_verified ? 'outline' : 'default'}
-                      className={d.is_verified ? '' : 'bg-yellow-400 hover:bg-yellow-500 text-gray-900'}
-                      onClick={() => verifyDriver(d.user_id, !d.is_verified)}
+                      className={!d.is_verified ? 'bg-yellow-400 hover:bg-yellow-500 text-gray-900' : ''}
+                      onClick={async () => {
+                        try {
+                          await taxiApi.adminVerifyDriver(d.user_id, !d.is_verified);
+                          toast.success('Обновлено');
+                          load();
+                        } catch (e: any) {
+                          toast.error(String(e?.message));
+                        }
+                      }}
                     >
-                      {d.is_verified ? <><X className="h-3.5 w-3.5 mr-1" /> Снять</> : <><Check className="h-3.5 w-3.5 mr-1" /> Верифицировать</>}
+                      {d.is_verified ? 'Снять верификацию' : 'Верифицировать'}
                     </Button>
                   </div>
                 ))
@@ -248,33 +279,46 @@ export default function AdminTaxi() {
           )}
 
           {tab === 'settings' && (
-            <div className="rounded-2xl bg-white border border-gray-100 p-5 space-y-4 max-w-xl">
-              {[
-                { key: 'enabled', label: 'Сервис включён (true/false)' },
-                { key: 'base_fare', label: 'Базовый тариф (₸)' },
-                { key: 'per_km', label: 'За км (₸)' },
-                { key: 'min_fare', label: 'Минимум (₸)' },
-                { key: 'max_radius_km', label: 'Радиус зоны (км)' },
-                { key: 'service_area', label: 'Название зоны' },
-                { key: 'eta_minutes_per_km', label: 'Минут на км (ETA)' },
-              ].map(({ key, label }) => (
-                <div key={key}>
-                  <label className="text-xs text-gray-500 block mb-1">{label}</label>
-                  <Input
-                    value={settings[key] || ''}
-                    onChange={(e) => setSettings({ ...settings, [key]: e.target.value })}
-                    className="rounded-xl"
-                  />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="rounded-2xl bg-white border p-5 space-y-4">
+                <h3 className="font-bold text-gray-900">Тарифы</h3>
+                {[
+                  { key: 'base_fare', label: 'Посадка (₸)' },
+                  { key: 'per_km', label: 'За километр (₸)' },
+                  { key: 'min_fare', label: 'Минимальная поездка (₸)' },
+                  { key: 'eta_minutes_per_km', label: 'Минут на км (расчёт ETA)' },
+                ].map(({ key, label }) => (
+                  <div key={key}>
+                    <label className="text-xs text-gray-500 block mb-1">{label}</label>
+                    <Input value={settings[key] || ''} onChange={(e) => setSettings({ ...settings, [key]: e.target.value })} className="rounded-xl" />
+                  </div>
+                ))}
+              </div>
+              <div className="rounded-2xl bg-white border p-5 space-y-4">
+                <h3 className="font-bold text-gray-900">Зона и сервис</h3>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Название зоны</label>
+                  <Input value={settings.service_area || ''} onChange={(e) => setSettings({ ...settings, service_area: e.target.value })} className="rounded-xl" />
                 </div>
-              ))}
-              <Button
-                className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold rounded-xl"
-                disabled={savingSettings}
-                onClick={saveSettings}
-              >
-                {savingSettings ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                Сохранить тарифы
-              </Button>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Радиус обслуживания (км)</label>
+                  <Input value={settings.max_radius_km || ''} onChange={(e) => setSettings({ ...settings, max_radius_km: e.target.value })} className="rounded-xl" />
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
+                  <span className="text-sm font-medium">Сервис включён</span>
+                  <button
+                    type="button"
+                    onClick={() => setSettings({ ...settings, enabled: settings.enabled === 'true' ? 'false' : 'true' })}
+                    className={`relative h-7 w-12 rounded-full transition-colors ${settings.enabled !== 'false' ? 'bg-yellow-400' : 'bg-gray-300'}`}
+                  >
+                    <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${settings.enabled !== 'false' ? 'left-5' : 'left-0.5'}`} />
+                  </button>
+                </div>
+                <Button className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold rounded-xl" disabled={savingSettings} onClick={saveSettings}>
+                  {savingSettings ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                  Сохранить настройки
+                </Button>
+              </div>
             </div>
           )}
         </>

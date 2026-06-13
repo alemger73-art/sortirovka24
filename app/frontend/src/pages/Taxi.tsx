@@ -136,9 +136,20 @@ export default function Taxi() {
           navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 12000 })
         );
         loc = await taxiApi.geocode({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      } else if (gps) {
+        toast.error('GPS недоступен в этом браузере');
+        return null;
       } else {
         const addr = address ?? (kind === 'from' ? fromAddress : toAddress);
+        if (!addr.trim() || addr.trim().length < 3) {
+          toast.error('Введите адрес (минимум 3 символа)');
+          return null;
+        }
         loc = await taxiApi.geocode({ address: addr });
+      }
+      if (!loc?.lat || !loc?.lng) {
+        toast.error('Не удалось определить координаты адреса');
+        return null;
       }
       if (kind === 'from') {
         setFromCoords(loc);
@@ -150,7 +161,8 @@ export default function Taxi() {
       setQuote(null);
       return loc;
     } catch (e: any) {
-      toast.error(String(e?.message || 'Не удалось определить адрес'));
+      const msg = String(e?.message || 'Не удалось определить адрес');
+      toast.error(msg.includes('HTTP') ? 'Не удалось определить адрес. Попробуйте GPS или другой формат.' : msg);
       return null;
     } finally {
       setLoadingPoint(null);
@@ -415,7 +427,9 @@ export default function Taxi() {
           </div>
 
           <p className="text-center text-white/40 text-xs mt-6">
-            Автобусы района — <Link to="/transport" className="underline hover:text-yellow-400">расписание транспорта</Link>
+            Водителям — <Link to="/taxi/driver" className="underline hover:text-yellow-400">подключиться к сервису</Link>
+            {' · '}
+            Автобусы — <Link to="/transport" className="underline hover:text-yellow-400">расписание</Link>
           </p>
         </div>
       </div>

@@ -3,13 +3,27 @@ import { getAPIBaseURL } from '@/lib/config';
 
 const API_BASE = getAPIBaseURL().replace(/\/$/, '');
 
-async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = getAccountToken();
+/** Admin panel uses _sp924_token; passengers/drivers use account_token */
+export function getTaxiAdminToken(): string {
+  try {
+    return (
+      localStorage.getItem('_sp924_token') ||
+      localStorage.getItem('token') ||
+      getAccountToken() ||
+      ''
+    );
+  } catch {
+    return getAccountToken() || '';
+  }
+}
+
+async function api<T>(path: string, init?: RequestInit, token?: string): Promise<T> {
+  const authToken = token ?? getAccountToken();
   const resp = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       ...(init?.headers || {}),
     },
   });
@@ -28,6 +42,10 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const text = await resp.text();
   if (!text) return null as T;
   return JSON.parse(text) as T;
+}
+
+async function adminApi<T>(path: string, init?: RequestInit): Promise<T> {
+  return api<T>(path, init, getTaxiAdminToken());
 }
 
 export interface TaxiSettings {
@@ -125,6 +143,24 @@ export interface TaxiAdminStats {
   active_rides: number;
   revenue: number;
   online_drivers: number;
+  pending_applications?: number;
+}
+
+export interface DriverApplication {
+  user_id: string;
+  full_name?: string;
+  phone?: string;
+  car_make?: string;
+  car_model?: string;
+  car_number?: string;
+  car_color?: string;
+  comment?: string;
+  status: string;
+  admin_note?: string;
+  is_driver?: boolean;
+  account_name?: string;
+  account_phone?: string;
+  created_at?: string;
 }
 
 export const taxiApi = {
@@ -179,23 +215,50 @@ export const taxiApi = {
   updateRideStatus: (id: number, status: string) =>
     api<TaxiRide>(`/api/v1/taxi/driver/rides/${id}/status`, { method: 'POST', body: JSON.stringify({ status }) }),
 
-  adminSettings: () => api<Record<string, string>>('/api/v1/taxi/admin/settings'),
+  getDriverApplication: () => api<DriverApplication>('/api/v1/taxi/driver/application'),
+
+  submitDriverApplication: (body: {
+    full_name: string;
+    phone: string;
+    car_make: string;
+    car_model: string;
+    car_number: string;
+    car_color?: string;
+    comment?: string;
+  }) => api<DriverApplication>('/api/v1/taxi/driver/application', { method: 'POST', body: JSON.stringify(body) }),
+
+  adminSettings: () => adminApi<Record<string, string>>('/api/v1/taxi/admin/settings'),
 
   adminUpdateSettings: (settings: Record<string, string>) =>
-    api<Record<string, string>>('/api/v1/taxi/admin/settings', { method: 'PUT', body: JSON.stringify({ settings }) }),
+    adminApi<Record<string, string>>('/api/v1/taxi/admin/settings', { method: 'PUT', body: JSON.stringify({ settings }) }),
 
   adminRides: (status?: string) =>
-    api<TaxiRide[]>(`/api/v1/taxi/admin/rides${status ? `?status=${encodeURIComponent(status)}` : ''}`),
+    adminApi<TaxiRide[]>(`/api/v1/taxi/admin/rides${status ? `?status=${encodeURIComponent(status)}` : ''}`),
 
-  adminDrivers: () => api<any[]>('/api/v1/taxi/admin/drivers'),
+  adminDrivers: () => adminApi<any[]>('/api/v1/taxi/admin/drivers'),
+
+  adminApplications: (status = 'pending') =>
+    adminApi<DriverApplication[]>(`/api/v1/taxi/admin/applications?status=${encodeURIComponent(status)}`),
+
+  adminApproveApplication: (userId: string, admin_note?: string) =>
+    adminApi<{ success: boolean }>(`/api/v1/taxi/admin/applications/${userId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ admin_note: admin_note || '' }),
+    }),
+
+  adminRejectApplication: (userId: string, admin_note?: string) =>
+    adminApi<{ success: boolean }>(`/api/v1/taxi/admin/applications/${userId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ admin_note: admin_note || '' }),
+    }),
 
   adminVerifyDriver: (userId: string, verified: boolean) =>
-    api<{ success: boolean }>(`/api/v1/taxi/admin/drivers/${userId}/verify`, {
+    adminApi<{ success: boolean }>(`/api/v1/taxi/admin/drivers/${userId}/verify`, {
       method: 'PUT',
       body: JSON.stringify({ verified }),
     }),
 
-  adminStats: () => api<TaxiAdminStats>('/api/v1/taxi/admin/stats'),
+  adminStats: () => adminApi<TaxiAdminStats>('/api/v1/taxi/admin/stats'),
 };
 
 export const TAXI_STATUS_LABELS: Record<string, { label: string; color: string; emoji: string }> = {

@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from models.auth import User
-from models.taxi import TaxiDriverProfile, TaxiRide, TaxiSettings
+from models.taxi import TaxiDriverApplication, TaxiDriverProfile, TaxiRide, TaxiSettings
 from services.taxi_pricing import DEFAULT_SETTINGS, build_quote, settings_to_dict
 from sqlalchemy import desc, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -347,3 +347,134 @@ async def validate_quote_for_order(
     if abs(server_price - client_price) > 50:
         raise ValueError("Цена изменилась, пересчитайте маршрут")
     return quote
+
+
+def application_to_dict(app: TaxiDriverApplication, user: Optional[User] = None) -> Dict[str, Any]:
+    return {
+        "user_id": app.user_id,
+        "full_name": app.full_name,
+        "phone": app.phone,
+        "car_make": app.car_make,
+        "car_model": app.car_model,
+        "car_number": app.car_number,
+        "car_color": app.car_color,
+        "comment": app.comment,
+        "status": app.status,
+        "admin_note": app.admin_note,
+        "reviewed_at": app.reviewed_at,
+        "created_at": app.created_at.isoformat() if app.created_at else None,
+        "account_name": user.name if user else "",
+        "account_phone": user.phone if user else "",
+    }
+
+
+async def get_user_application(db: AsyncSession, user_id: str) -> Optional[TaxiDriverApplication]:
+    return (
+        await db.execute(select(TaxiDriverApplication).where(TaxiDriverApplication.user_id == user_id))
+    ).scalar_one_or_none()
+
+
+async def submit_driver_application(
+    db: AsyncSession,
+    user: User,
+    *,
+    full_name: str,
+    phone: str,
+    car_make: str,
+    car_model: str,
+    car_number: str,
+    car_color: str = "",
+    comment: str = "",
+) -> TaxiDriverApplication:
+    if user.role in {"driver", "admin", "superadmin"}:
+        raise ValueError("Вы уже зарегистрированы как водитель")
+
+    existing = await get_user_application(db, str(user.id))
+    if existing and existing.status == "pending":
+        raise ValueError("Заявка уже на рассмотрении")
+    if existing and existing.status == "approved":
+        raise ValueError("Заявка уже одобрена")
+
+    data = {
+        "full_name": full_name.strip(),
+        "phone": phone.strip(),
+        "car_make": car_make.strip(),
+        "car_model": car_model.strip(),
+        "car_number": car_number.strip(),
+        "car_color": car_color.strip(),
+        "comment": comment.strip() or None,
+        "status": "pending",
+        "admin_note": None,
+        "reviewed_at": None,
+    }
+    if existing:
+        for k, v in data.items():
+            setattr(existing, k, v)
+        app = existing
+    else:
+        app = TaxiDriverApplication(user_id=str(user.id), **data)
+        db.add(app)
+    await db.commit()
+    await db.refresh(app)
+    return app
+
+
+async def list_driver_applications(db: AsyncSession, status: Optional[str] = None) -> List[TaxiDriverApplication]:
+    q = select(TaxiDriverApplication).order_by(desc(TaxiDriverApplication.id))
+    if status:
+        q = q.where(TaxiDriverApplication.status == status)
+    return (await db.execute(q)).scalars().all()
+
+
+async def approve_driver_application(
+    db: AsyncSession,
+    user_id: str,
+    admin_note: str = "",
+) -> TaxiDriverProfile:
+    app = await get_user_application(db, user_id)
+    if not app:
+        raise ValueError("Заявка не найдена")
+    if app.status != "pending":
+        raise ValueError("Заявка уже обработана")
+
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if not user:
+        raise ValueError("Пользователь не найден")
+
+    user.role = "driver"
+    profile = (
+        await db.execute(select(TaxiDriverProfile).where(TaxiDriverProfile.user_id == user_id))
+    ).scalar_one_or_none()
+    if not profile:
+        profile = TaxiDriverProfile(user_id=user_id)
+        db.add(profile)
+
+    profile.is_verified = True
+    profile.is_online = False
+    profile.phone = app.phone or user.phone
+    profile.car_make = app.car_make
+    profile.car_model = app.car_model
+    profile.car_number = app.car_number
+    profile.car_color = app.car_color
+
+    app.status = "approved"
+    app.admin_note = admin_note.strip() or None
+    app.reviewed_at = _now_iso()
+
+    await db.commit()
+    await db.refresh(profile)
+    return profile
+
+
+async def reject_driver_application(db: AsyncSession, user_id: str, admin_note: str = "") -> TaxiDriverApplication:
+    app = await get_user_application(db, user_id)
+    if not app:
+        raise ValueError("Заявка не найдена")
+    if app.status != "pending":
+        raise ValueError("Заявка уже обработана")
+    app.status = "rejected"
+    app.admin_note = admin_note.strip() or None
+    app.reviewed_at = _now_iso()
+    await db.commit()
+    await db.refresh(app)
+    return app

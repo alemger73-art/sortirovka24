@@ -9,10 +9,17 @@ from core.database import get_db
 from fastapi import APIRouter, Depends, Header, HTTPException
 from models.auth import User
 from pydantic import BaseModel, Field
-from services.account_auth import assert_admin, assert_driver, get_account_user
+from services.taxi_auth import assert_driver_user, get_taxi_user, require_taxi_admin
 from services.taxi_pricing import build_quote, resolve_location
+from services.taxi_geo import geo_context_from_taxi_settings
 from services.taxi_service import (
     accept_ride,
+    approve_driver_application,
+    application_to_dict,
+    reject_driver_application,
+    submit_driver_application,
+    get_user_application,
+    list_driver_applications,
     advance_ride_status,
     cancel_ride,
     create_ride,
@@ -29,8 +36,8 @@ from services.taxi_service import (
     update_settings,
     validate_quote_for_order,
 )
-from services.telegram import notify_taxi_new_ride, notify_taxi_status_change
-from sqlalchemy import select, update
+from services.telegram import notify_taxi_new_ride, notify_taxi_status_change, notify_taxi_driver_application
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.taxi import TaxiDriverProfile
@@ -106,8 +113,28 @@ class AdminDriverVerifyRequest(BaseModel):
     verified: bool
 
 
-async def _resolve_point(point: LocationInput) -> Dict[str, Any]:
-    loc = await resolve_location(address=point.address, lat=point.lat, lng=point.lng)
+class DriverApplyRequest(BaseModel):
+    full_name: str
+    phone: str
+    car_make: str
+    car_model: str
+    car_number: str
+    car_color: Optional[str] = ""
+    comment: Optional[str] = ""
+
+
+class AdminApplicationActionRequest(BaseModel):
+    admin_note: Optional[str] = ""
+
+
+async def _resolve_point(point: LocationInput, settings: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    geo_ctx = geo_context_from_taxi_settings(settings) if settings else None
+    loc = await resolve_location(
+        address=point.address,
+        lat=point.lat,
+        lng=point.lng,
+        settings=geo_ctx,
+    )
     if loc.get("error"):
         raise HTTPException(status_code=400, detail=loc["error"])
     return loc
@@ -132,9 +159,9 @@ async def public_settings(db: AsyncSession = Depends(get_db)):
 
 @router.post("/quote")
 async def quote_ride(body: QuoteRequest, db: AsyncSession = Depends(get_db)):
-    from_loc = await _resolve_point(body.from_point)
-    to_loc = await _resolve_point(body.to_point)
     settings = await get_settings_dict(db)
+    from_loc = await _resolve_point(body.from_point, settings)
+    to_loc = await _resolve_point(body.to_point, settings)
     result = await build_quote(
         settings,
         from_loc["lat"],
@@ -148,8 +175,14 @@ async def quote_ride(body: QuoteRequest, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/geocode")
-async def geocode_point(body: LocationInput):
-    loc = await resolve_location(address=body.address, lat=body.lat, lng=body.lng)
+async def geocode_point(body: LocationInput, db: AsyncSession = Depends(get_db)):
+    settings = await get_settings_dict(db)
+    loc = await resolve_location(
+        address=body.address,
+        lat=body.lat,
+        lng=body.lng,
+        settings=geo_context_from_taxi_settings(settings),
+    )
     if loc.get("error"):
         raise HTTPException(status_code=400, detail=loc["error"])
     return loc
@@ -163,7 +196,7 @@ async def create_taxi_ride(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_account_user(db, authorization)
+    user = await get_taxi_user(db, authorization)
     if body.payment_method not in VALID_PAYMENT:
         raise HTTPException(status_code=400, detail="Недопустимый способ оплаты")
 
@@ -209,7 +242,7 @@ async def my_rides(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_account_user(db, authorization)
+    user = await get_taxi_user(db, authorization)
     rides = await list_user_rides(db, str(user.id))
     return [ride_to_dict(r) for r in rides]
 
@@ -219,7 +252,7 @@ async def my_active_ride(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_account_user(db, authorization)
+    user = await get_taxi_user(db, authorization)
     from services.taxi_service import ACTIVE_RIDE_STATUSES
     from models.taxi import TaxiRide
 
@@ -242,7 +275,7 @@ async def get_ride(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_account_user(db, authorization)
+    user = await get_taxi_user(db, authorization)
     ride = await get_ride_by_id(db, ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Поездка не найдена")
@@ -259,7 +292,7 @@ async def cancel_taxi_ride(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_account_user(db, authorization)
+    user = await get_taxi_user(db, authorization)
     ride = await get_ride_by_id(db, ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Поездка не найдена")
@@ -291,7 +324,7 @@ async def rate_taxi_ride(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_account_user(db, authorization)
+    user = await get_taxi_user(db, authorization)
     ride = await get_ride_by_id(db, ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Поездка не найдена")
@@ -309,8 +342,8 @@ async def driver_cabinet(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_account_user(db, authorization)
-    assert_driver(user)
+    user = await get_taxi_user(db, authorization)
+    assert_driver_user(user)
     profile = await get_or_create_driver_profile(db, user)
     pending = await list_pending_rides(db)
     history = await list_driver_rides(db, str(user.id))
@@ -345,8 +378,8 @@ async def set_driver_online(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_account_user(db, authorization)
-    assert_driver(user)
+    user = await get_taxi_user(db, authorization)
+    assert_driver_user(user)
     profile = await get_or_create_driver_profile(db, user)
     profile.is_online = body.online
     await db.commit()
@@ -359,8 +392,8 @@ async def update_driver_location(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_account_user(db, authorization)
-    assert_driver(user)
+    user = await get_taxi_user(db, authorization)
+    assert_driver_user(user)
     profile = await get_or_create_driver_profile(db, user)
     profile.current_lat = body.lat
     profile.current_lng = body.lng
@@ -374,8 +407,8 @@ async def update_driver_profile(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_account_user(db, authorization)
-    assert_driver(user)
+    user = await get_taxi_user(db, authorization)
+    assert_driver_user(user)
     profile = await get_or_create_driver_profile(db, user)
     if body.car_make is not None:
         profile.car_make = body.car_make.strip()
@@ -396,8 +429,8 @@ async def driver_available_rides(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_account_user(db, authorization)
-    assert_driver(user)
+    user = await get_taxi_user(db, authorization)
+    assert_driver_user(user)
     pending = await list_pending_rides(db)
     return [ride_to_dict(r) for r in pending]
 
@@ -408,8 +441,8 @@ async def driver_accept_ride(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_account_user(db, authorization)
-    assert_driver(user)
+    user = await get_taxi_user(db, authorization)
+    assert_driver_user(user)
     try:
         ride = await accept_ride(db, ride_id, user)
     except ValueError as e:
@@ -426,8 +459,8 @@ async def driver_update_status(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_account_user(db, authorization)
-    assert_driver(user)
+    user = await get_taxi_user(db, authorization)
+    assert_driver_user(user)
     ride = await get_ride_by_id(db, ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Поездка не найдена")
@@ -440,6 +473,49 @@ async def driver_update_status(
     return data
 
 
+# ─── Driver registration ───────────────────────────────────────────
+
+@router.get("/driver/application")
+async def driver_application_status(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await get_taxi_user(db, authorization)
+    app = await get_user_application(db, str(user.id))
+    if not app:
+        return {"status": "none", "is_driver": user.role == "driver"}
+    u = user
+    return {**application_to_dict(app, u), "is_driver": user.role == "driver"}
+
+
+@router.post("/driver/application")
+async def driver_submit_application(
+    body: DriverApplyRequest,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await get_taxi_user(db, authorization)
+    if not body.full_name.strip() or not body.car_number.strip():
+        raise HTTPException(status_code=400, detail="Заполните имя и госномер")
+    try:
+        app = await submit_driver_application(
+            db,
+            user,
+            full_name=body.full_name,
+            phone=body.phone or user.phone or "",
+            car_make=body.car_make,
+            car_model=body.car_model,
+            car_number=body.car_number,
+            car_color=body.car_color or "",
+            comment=body.comment or "",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    data = application_to_dict(app, user)
+    await notify_taxi_driver_application(data)
+    return data
+
+
 # ─── Admin ─────────────────────────────────────────────────────────
 
 @router.get("/admin/settings")
@@ -447,8 +523,7 @@ async def admin_get_settings(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_account_user(db, authorization)
-    assert_admin(user)
+    await require_taxi_admin(db, authorization)
     return await get_settings_dict(db)
 
 
@@ -458,8 +533,7 @@ async def admin_update_settings(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_account_user(db, authorization)
-    assert_admin(user)
+    await require_taxi_admin(db, authorization)
     return await update_settings(db, body.settings)
 
 
@@ -469,8 +543,7 @@ async def admin_list_rides(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_account_user(db, authorization)
-    assert_admin(user)
+    await require_taxi_admin(db, authorization)
     rides = await list_all_rides(db, status=status)
     return [ride_to_dict(r) for r in rides]
 
@@ -480,8 +553,7 @@ async def admin_list_drivers(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_account_user(db, authorization)
-    assert_admin(user)
+    await require_taxi_admin(db, authorization)
     profiles = (await db.execute(select(TaxiDriverProfile))).scalars().all()
     result: List[Dict[str, Any]] = []
     for p in profiles:
@@ -511,16 +583,64 @@ async def admin_verify_driver(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    admin = await get_account_user(db, authorization)
-    assert_admin(admin)
+    await require_taxi_admin(db, authorization)
     profile = (
         await db.execute(select(TaxiDriverProfile).where(TaxiDriverProfile.user_id == user_id))
     ).scalar_one_or_none()
     if not profile:
         raise HTTPException(status_code=404, detail="Профиль водителя не найден")
     profile.is_verified = body.verified
+    if body.verified:
+        user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+        if user:
+            user.role = "driver"
     await db.commit()
     return {"success": True, "verified": profile.is_verified}
+
+
+@router.get("/admin/applications")
+async def admin_list_applications(
+    status: Optional[str] = "pending",
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    await require_taxi_admin(db, authorization)
+    apps = await list_driver_applications(db, status=status or None)
+    result = []
+    for app in apps:
+        u = (await db.execute(select(User).where(User.id == app.user_id))).scalar_one_or_none()
+        result.append(application_to_dict(app, u))
+    return result
+
+
+@router.post("/admin/applications/{user_id}/approve")
+async def admin_approve_application(
+    user_id: str,
+    body: AdminApplicationActionRequest,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    await require_taxi_admin(db, authorization)
+    try:
+        await approve_driver_application(db, user_id, body.admin_note or "")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"success": True}
+
+
+@router.post("/admin/applications/{user_id}/reject")
+async def admin_reject_application(
+    user_id: str,
+    body: AdminApplicationActionRequest,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    await require_taxi_admin(db, authorization)
+    try:
+        await reject_driver_application(db, user_id, body.admin_note or "")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"success": True}
 
 
 @router.get("/admin/stats")
@@ -528,8 +648,7 @@ async def admin_taxi_stats(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_account_user(db, authorization)
-    assert_admin(user)
+    await require_taxi_admin(db, authorization)
     from models.taxi import TaxiRide
     from sqlalchemy import func
 
@@ -547,6 +666,10 @@ async def admin_taxi_stats(
             TaxiDriverProfile.is_online == True, TaxiDriverProfile.is_verified == True
         )
     )).scalar() or 0
+    from models.taxi import TaxiDriverApplication
+    pending_apps = (await db.execute(
+        select(func.count(TaxiDriverApplication.id)).where(TaxiDriverApplication.status == "pending")
+    )).scalar() or 0
 
     return {
         "total_rides": total,
@@ -555,4 +678,5 @@ async def admin_taxi_stats(
         "active_rides": active,
         "revenue": float(revenue),
         "online_drivers": online_drivers,
+        "pending_applications": int(pending_apps),
     }

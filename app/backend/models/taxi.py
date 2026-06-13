@@ -31,6 +31,23 @@ class TaxiDriverProfile(Base):
     phone = Column(String(32), nullable=True)
 
 
+class TaxiDriverApplication(BaseModel):
+    __tablename__ = "taxi_driver_applications"
+    __table_args__ = {"extend_existing": True}
+
+    user_id = Column(String(255), ForeignKey("users.id"), unique=True, index=True, nullable=False)
+    full_name = Column(String(255), nullable=True)
+    phone = Column(String(32), nullable=True)
+    car_make = Column(String(64), nullable=True)
+    car_model = Column(String(64), nullable=True)
+    car_number = Column(String(32), nullable=True)
+    car_color = Column(String(32), nullable=True)
+    comment = Column(Text, nullable=True)
+    status = Column(String(32), nullable=False, default="pending", index=True)  # pending/approved/rejected
+    admin_note = Column(Text, nullable=True)
+    reviewed_at = Column(String(64), nullable=True)
+
+
 class TaxiRide(BaseModel):
     __tablename__ = "taxi_rides"
     __table_args__ = {"extend_existing": True}
