@@ -61,7 +61,7 @@ export const accountApi = {
   adminSettings: () => api<any>("/api/v1/account/admin/settings"),
   // Compatibility aliases
   masterCabinet: () => api<any>("/api/v1/account/cabinet"),
-  driverCabinet: () => api<any>("/api/v1/account/cabinet"),
+  driverCabinet: () => api<any>("/api/v1/taxi/driver/cabinet"),
   partnerCabinet: () => api<any>("/api/v1/account/cabinet"),
   adminModeration: async () => ({
     ads: await api<any[]>("/api/v1/account/admin/announcements"),

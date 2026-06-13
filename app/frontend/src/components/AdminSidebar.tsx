@@ -5,7 +5,7 @@ import {
   ClipboardList, UserPlus, LogOut, Home as HomeIcon, Lock, Megaphone,
   Briefcase, FolderTree, Building2, Utensils, ShoppingBag, Settings,
   BadgeCheck, BarChart3, Clock, Plug, Bus, TreePine, MapPin,
-  ChevronDown, ChevronRight, X, Menu, Store, type LucideIcon,
+  ChevronDown, ChevronRight, X, Menu, Store, Car, type LucideIcon,
 } from 'lucide-react';
 
 /* ─── Types ─── */
@@ -66,7 +66,8 @@ const MENU_GROUPS: MenuGroup[] = [
     emoji: '🏘',
     items: [
       { id: 'inspectors', label: 'Участковые', icon: BadgeCheck },
-      { id: 'transport', label: 'Транспорт', icon: Bus },
+      { id: 'taxi', label: 'Такси', icon: Car },
+      { id: 'transport', label: 'Автобусы', icon: Bus },
     ],
   },
   {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Home, Wrench, Newspaper, AlertTriangle, BookOpen, Megaphone, Briefcase, HelpCircle, Phone, Utensils, Bus } from 'lucide-react';
+import { Home, Wrench, Newspaper, AlertTriangle, BookOpen, Megaphone, Briefcase, HelpCircle, Phone, Utensils, Bus, Car } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { prefetchPage, routeToPage } from '@/lib/prefetch';
 import Header from '@/components/layout/Header';
@@ -16,6 +16,7 @@ const NAV_KEYS = [
   { path: '/jobs', key: 'nav.jobs', icon: Briefcase },
   { path: '/questions', key: 'nav.questions', icon: HelpCircle },
   { path: '/food', key: 'nav.food', icon: Utensils },
+  { path: '/taxi', key: 'nav.taxi', icon: Car },
   { path: '/transport', key: 'nav.transport', icon: Bus },
   { path: '/directory', key: 'nav.directory', icon: BookOpen },
 ];

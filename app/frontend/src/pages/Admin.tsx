@@ -23,6 +23,7 @@ import AdminStats from './AdminStats';
 import AdminHistory from './AdminHistory';
 import AdminFrontpad from './AdminFrontpad';
 import AdminTransport from './AdminTransport';
+import AdminTaxi from './AdminTaxi';
 import AdminParkPoints from './AdminParkPoints';
 import AdminParkOrders from './AdminParkOrders';
 import AdminAccountSettings from './AdminAccountSettings';
@@ -297,6 +298,7 @@ export default function AdminPanel() {
       case 'park-points': return <AdminParkPoints />;
       case 'park-orders': return <AdminParkOrders />;
       case 'transport': return <AdminTransport />;
+      case 'taxi': return <AdminTaxi />;
       case 'pos-integration': return <AdminFrontpad />;
       case 'account-settings': return <AdminAccountSettings />;
       case 'partners-gastronom': return <AdminGastronom />;

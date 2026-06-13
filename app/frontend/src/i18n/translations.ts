@@ -18,6 +18,7 @@ const translations: Translations = {
   'nav.questions': { ru: 'Вопросы', kz: 'Сұрақтар' },
   'nav.food': { ru: 'Еда', kz: 'Тамақ' },
   'nav.transport': { ru: 'Транспорт', kz: 'Көлік' },
+  'nav.taxi': { ru: 'Такси', kz: 'Тaksi' },
   'nav.directory': { ru: 'Справочник', kz: 'Анықтамалық' },
   'nav.admin': { ru: 'Админ', kz: 'Админ' },
   'nav.adminPanel': { ru: 'Админ-панель', kz: 'Админ-панель' },

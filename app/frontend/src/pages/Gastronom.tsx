@@ -20,6 +20,7 @@ import {
 } from '@/lib/gastronomLoyalty';
 import DeliveryAddressPicker from '@/components/gastronom/DeliveryAddressPicker';
 import GastronomSideMenu from '@/components/gastronom/GastronomSideMenu';
+import GastronomPortalBar from '@/components/gastronom/GastronomPortalBar';
 import LoyaltyGiftBanner from '@/components/gastronom/LoyaltyGiftBanner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,7 +51,7 @@ function parseTab(raw: string | null): Tab {
 }
 
 const NAV_ITEMS: { id: Tab; icon: typeof Home; label: string }[] = [
-  { id: 'home', icon: Home, label: 'Главная' },
+  { id: 'home', icon: Home, label: 'Витрина' },
   { id: 'catalog', icon: LayoutGrid, label: 'Каталог' },
   { id: 'cart', icon: ShoppingCart, label: 'Корзина' },
   { id: 'favorites', icon: Heart, label: 'Избранное' },
@@ -798,6 +799,7 @@ export default function Gastronom() {
             : 'Оплатите курьеру при получении заказа.';
     return (
       <Layout hideHeader>
+        <GastronomPortalBar />
         <div className="min-h-screen bg-gray-50 px-4 py-8 md:py-12 pb-24 md:pb-8">
           <div className="max-w-lg mx-auto space-y-6">
             <div className="text-center">
@@ -874,6 +876,7 @@ export default function Gastronom() {
         <div className="max-w-7xl mx-auto relative">
         {/* Header */}
         <header className="sticky top-0 z-40 bg-white border-b border-gray-100 shadow-sm">
+          <GastronomPortalBar />
           {/* Mobile / tablet top bar */}
           <div className={`flex items-center justify-between ${PAGE_X} py-3 md:py-4 gap-4 lg:hidden`}>
             <button

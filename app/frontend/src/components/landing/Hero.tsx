@@ -34,7 +34,7 @@ export default function Hero() {
 
             <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Link
-                to="/transport"
+                to="/taxi"
                 className="group rounded-2xl bg-yellow-400 px-5 py-4 text-gray-900 shadow-xl transition-all duration-200 hover:scale-[1.03] hover:shadow-yellow-300/30 hover:shadow-2xl"
               >
                 <div className="flex items-center gap-2">

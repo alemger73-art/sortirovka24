@@ -3,8 +3,9 @@ import Layout from "@/components/Layout";
 import { Link, useNavigate } from "react-router-dom";
 import { Camera, Coins, Save, UserCircle2 } from "lucide-react";
 import { accountApi, clearAccountToken, getAccountToken } from "@/lib/accountApi";
+import { formatTenge, taxiApi, TAXI_STATUS_LABELS, type TaxiRide } from "@/lib/taxiApi";
 
-type TabId = "profile" | "bonuses" | "orders" | "complaints" | "announcements" | "settings";
+type TabId = "profile" | "bonuses" | "orders" | "taxi" | "complaints" | "announcements" | "settings";
 
 function DarkCard({ children }: { children: React.ReactNode }) {
   return (
@@ -21,10 +22,12 @@ export default function Cabinet() {
   const [cabinet, setCabinet] = useState<any>(null);
   const [profileForm, setProfileForm] = useState({ name: "", email: "", avatar: "", language: "ru" });
   const [error, setError] = useState("");
+  const [taxiRides, setTaxiRides] = useState<TaxiRide[]>([]);
   const tabs: { id: TabId; label: string }[] = [
     { id: "profile", label: "Профиль" },
     { id: "bonuses", label: "Бонусы" },
     { id: "orders", label: "История заказов" },
+    { id: "taxi", label: "Поездки такси" },
     { id: "complaints", label: "История жалоб" },
     { id: "announcements", label: "История объявлений" },
     { id: "settings", label: "Настройки" },
@@ -45,6 +48,7 @@ export default function Cabinet() {
           avatar: data?.profile?.avatar || "",
           language: data?.profile?.language || "ru",
         });
+        taxiApi.myRides().then(setTaxiRides).catch(() => {});
       } catch (e: any) {
         setError(String(e?.message || e));
       } finally {
@@ -204,6 +208,30 @@ export default function Cabinet() {
                       </div>
                     ))}
                     {(rows.orders || []).length === 0 ? <p className="text-sm text-slate-400">Пока нет заказов.</p> : null}
+                  </div>
+                </DarkCard>
+              )}
+
+              {activeTab === "taxi" && (
+                <DarkCard>
+                  <div className="mb-4 flex items-center justify-between">
+                    <h2 className="text-xl font-bold">Поездки такси</h2>
+                    <Link to="/taxi" className="text-sm font-semibold text-yellow-400 hover:text-yellow-300">Заказать →</Link>
+                  </div>
+                  <div className="space-y-2">
+                    {taxiRides.map((r) => (
+                      <Link key={r.id} to={`/taxi/ride/${r.id}`} className="block rounded-xl border border-[#26324a] bg-[#0f172a] p-3 hover:border-yellow-400/40 transition-colors">
+                        <div className="flex justify-between gap-2">
+                          <p className="text-sm font-semibold text-white truncate">{r.from_address}</p>
+                          <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${TAXI_STATUS_LABELS[r.status]?.color || "bg-gray-100"}`}>
+                            {TAXI_STATUS_LABELS[r.status]?.label || r.status}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 truncate">→ {r.to_address}</p>
+                        <p className="text-xs text-yellow-300 mt-1">{formatTenge(r.final_price ?? r.estimated_price)}</p>
+                      </Link>
+                    ))}
+                    {taxiRides.length === 0 ? <p className="text-sm text-slate-400">Пока нет поездок.</p> : null}
                   </div>
                 </DarkCard>
               )}

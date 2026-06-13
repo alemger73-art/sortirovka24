@@ -42,6 +42,8 @@ const FoodPark = lazy(() => import("./pages/FoodPark"));
 const FoodCourier = lazy(() => import("./pages/FoodCourier"));
 const BusinessPage = lazy(() => import("./pages/Business"));
 const TransportPage = lazy(() => import("./pages/Transport"));
+const TaxiPage = lazy(() => import("./pages/Taxi"));
+const TaxiRidePage = lazy(() => import("./pages/TaxiRide"));
 const AccountAuth = lazy(() => import("./pages/AccountAuth"));
 const LegalPage = lazy(() => import("./pages/LegalPage"));
 const Cabinet = lazy(() => import("./pages/Cabinet"));
@@ -109,6 +111,8 @@ function App() {
               <Route path="/questions/new" element={<NewQuestionForm />} />
               <Route path="/questions/:id" element={<QuestionDetail />} />
               <Route path="/directory" element={<DirectoryPage />} />
+              <Route path="/taxi" element={<TaxiPage />} />
+              <Route path="/taxi/ride/:id" element={<RequireUserAuth><TaxiRidePage /></RequireUserAuth>} />
               <Route path="/transport" element={<TransportPage />} />
               <Route path="/account" element={<AccountAuth />} />
               <Route path="/cabinet" element={<Protected><Cabinet /></Protected>} />

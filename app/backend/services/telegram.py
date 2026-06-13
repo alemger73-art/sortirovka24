@@ -15,6 +15,7 @@ Per-category overrides (optional):
   TELEGRAM_BOT_TOKEN_JOBS           / TELEGRAM_CHAT_ID_JOBS
   TELEGRAM_BOT_TOKEN_ANNOUNCEMENTS  / TELEGRAM_CHAT_ID_ANNOUNCEMENTS
   TELEGRAM_BOT_TOKEN_GASTRONOM      / TELEGRAM_CHAT_ID_GASTRONOM
+  TELEGRAM_BOT_TOKEN_TAXI           / TELEGRAM_CHAT_ID_TAXI
 
 If a per-category variable is not set, the default is used.
 """
@@ -37,6 +38,7 @@ CATEGORY_BECOME_MASTER = "BECOME_MASTER"
 CATEGORY_JOBS = "JOBS"
 CATEGORY_ANNOUNCEMENTS = "ANNOUNCEMENTS"
 CATEGORY_GASTRONOM = "GASTRONOM"
+CATEGORY_TAXI = "TAXI"
 
 
 def _get_config(category: Optional[str] = None) -> tuple[Optional[str], Optional[str]]:
@@ -61,7 +63,7 @@ def get_routing_info() -> dict:
     """Return current Telegram routing configuration for diagnostics."""
     categories = [
         CATEGORY_COMPLAINTS, CATEGORY_MASTERS, CATEGORY_BECOME_MASTER,
-        CATEGORY_JOBS, CATEGORY_ANNOUNCEMENTS, CATEGORY_GASTRONOM,
+        CATEGORY_JOBS, CATEGORY_ANNOUNCEMENTS, CATEGORY_GASTRONOM, CATEGORY_TAXI,
     ]
     result = {"default": _is_configured(None)}
     for cat in categories:
@@ -303,3 +305,40 @@ async def notify_new_job(data: dict) -> bool:
         "⏳ Ожидает одобрения в админ-панели"
     )
     return await send_telegram_message(text, category=CATEGORY_JOBS)
+
+
+TAXI_STATUS_LABELS = {
+    "accepted": "✅ Водитель принял заказ",
+    "driver_arrived": "📍 Водитель на месте",
+    "in_progress": "🚗 Поездка началась",
+    "completed": "🏁 Поездка завершена",
+    "cancelled": "❌ Поездка отменена",
+}
+
+
+async def notify_taxi_new_ride(data: dict) -> bool:
+    text = (
+        "🚕 <b>Новый заказ такси — Сортировка</b>\n\n"
+        f"<b>Откуда:</b> {_escape_html(data.get('from_address', '—'))}\n"
+        f"<b>Куда:</b> {_escape_html(data.get('to_address', '—'))}\n"
+        f"<b>Расстояние:</b> {data.get('distance_km', '—')} км\n"
+        f"<b>Цена:</b> {int(data.get('estimated_price') or 0)} ₸\n"
+        f"<b>Пассажир:</b> {_escape_html(data.get('passenger_name', '—'))}\n"
+        f"<b>Телефон:</b> {_escape_html(data.get('passenger_phone', '—'))}\n"
+        f"<b>Оплата:</b> {_escape_html(data.get('payment_method', 'cash'))}\n"
+        f"<b>ID:</b> #{data.get('id', '—')}\n"
+        f"<b>Дата:</b> {_format_date()}"
+    )
+    return await send_telegram_message(text, category=CATEGORY_TAXI)
+
+
+async def notify_taxi_status_change(data: dict, status: str) -> bool:
+    label = TAXI_STATUS_LABELS.get(status, status)
+    text = (
+        f"🚕 <b>Такси #{data.get('id', '—')}</b> — {label}\n\n"
+        f"<b>Откуда:</b> {_escape_html(data.get('from_address', '—'))}\n"
+        f"<b>Куда:</b> {_escape_html(data.get('to_address', '—'))}\n"
+        f"<b>Статус:</b> {status}\n"
+        f"<b>Дата:</b> {_format_date()}"
+    )
+    return await send_telegram_message(text, category=CATEGORY_TAXI)
