@@ -26,6 +26,19 @@ import {
 
 type Section = 'products' | 'categories' | 'orders' | 'settings';
 
+const ORDER_STATUS: Record<string, string> = {
+  new: 'Новый',
+  processing: 'В работе',
+  delivered: 'Доставлен',
+  cancelled: 'Отменён',
+};
+
+const PAYMENT_LABELS: Record<string, string> = {
+  cash: 'Наличные',
+  kaspi_qr: 'Kaspi QR',
+  halyk_qr: 'Halyk QR',
+};
+
 export default function AdminGastronom() {
   const [section, setSection] = useState<Section>('products');
   const [loading, setLoading] = useState(true);
@@ -315,8 +328,13 @@ export default function AdminGastronom() {
                     <p className="text-sm text-gray-600">{o.customer_name} · {o.customer_phone}</p>
                     <p className="text-xs text-gray-400">{o.customer_address}</p>
                   </div>
-                  <Badge variant={o.status === 'new' ? 'default' : 'secondary'}>{o.status || 'new'}</Badge>
+                  <Badge variant={o.status === 'new' ? 'default' : 'secondary'}>
+                    {ORDER_STATUS[o.status || 'new'] || o.status}
+                  </Badge>
                 </div>
+                <p className="text-xs text-gray-500">
+                  Оплата: {PAYMENT_LABELS[o.payment_method] || o.payment_method}
+                </p>
                 <div className="text-sm space-y-0.5">
                   {items.map((it, i) => (
                     <div key={i} className="flex justify-between text-gray-600">
@@ -328,13 +346,13 @@ export default function AdminGastronom() {
                 <div className="flex justify-between items-center pt-2 border-t">
                   <span className="font-bold text-emerald-700">{Math.round(o.total_amount).toLocaleString('ru-RU')} ₸</span>
                   <div className="flex gap-1">
-                    {['new', 'processing', 'delivered', 'cancelled'].map(s => (
+                    {(['new', 'processing', 'delivered', 'cancelled'] as const).map((s) => (
                       <button
                         key={s}
                         onClick={() => handleOrderStatus(o.id, s)}
                         className={`text-xs px-2 py-1 rounded ${o.status === s ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
                       >
-                        {s}
+                        {ORDER_STATUS[s]}
                       </button>
                     ))}
                   </div>

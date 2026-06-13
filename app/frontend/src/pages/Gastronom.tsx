@@ -37,6 +37,39 @@ function imgSrc(url: string) {
   return resolveImageSrc(url) || url;
 }
 
+const CART_KEY = 'gastronom_cart_qty';
+const FAV_KEY = 'gastronom_favorites';
+
+function loadCartQty(): Record<number, number> {
+  try {
+    const raw = localStorage.getItem(CART_KEY) ?? localStorage.getItem('gastronom_cart');
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      if (parsed[0]?.product) {
+        return Object.fromEntries(parsed.map((c: CartLine) => [c.product.id, c.qty]));
+      }
+      return Object.fromEntries(parsed.filter((x) => Array.isArray(x)).map(([id, qty]: [number, number]) => [id, qty]));
+    }
+    if (parsed && typeof parsed === 'object') return parsed as Record<number, number>;
+  } catch { /* ignore */ }
+  return {};
+}
+
+function loadFavorites(): number[] {
+  try {
+    const raw = localStorage.getItem(FAV_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function normalizePhone(phone: string): boolean {
+  const digits = phone.replace(/\D/g, '');
+  return digits.length >= 10;
+}
+
 function formatMoney(n: number) {
   return `${Math.round(n).toLocaleString('ru-RU')} ₸`;
 }
@@ -53,18 +86,14 @@ export default function Gastronom() {
     store_name: 'ГАСТРОНОМ',
     store_tagline: 'доставка продуктов питания',
   });
-  const [cart, setCart] = useState<CartLine[]>(() => {
-    try {
-      const saved = localStorage.getItem('gastronom_cart');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [cartQty, setCartQty] = useState<Record<number, number>>(loadCartQty);
+  const [favorites, setFavorites] = useState<number[]>(loadFavorites);
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [orderDone, setOrderDone] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [addressEditing, setAddressEditing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -96,8 +125,12 @@ export default function Gastronom() {
   }, [loadCatalog]);
 
   useEffect(() => {
-    localStorage.setItem('gastronom_cart', JSON.stringify(cart));
-  }, [cart]);
+    localStorage.setItem(CART_KEY, JSON.stringify(cartQty));
+  }, [cartQty]);
+
+  useEffect(() => {
+    localStorage.setItem(FAV_KEY, JSON.stringify(favorites));
+  }, [favorites]);
 
   useEffect(() => {
     const prefill = getAccountPrefill();
@@ -105,9 +138,24 @@ export default function Gastronom() {
     if (prefill.phone) setPhone((v) => v || prefill.phone);
   }, []);
 
+  const cart = useMemo(() => {
+    return Object.entries(cartQty)
+      .map(([id, qty]) => {
+        if (qty <= 0) return null;
+        const product = products.find((p) => p.id === Number(id));
+        return product ? { product, qty } : null;
+      })
+      .filter(Boolean) as CartLine[];
+  }, [cartQty, products]);
+
   const cartCount = useMemo(() => cart.reduce((a, c) => a + c.qty, 0), [cart]);
   const subtotal = useMemo(() => cart.reduce((a, c) => a + c.qty * c.product.price, 0), [cart]);
   const minOrder = Number(settings.min_order || 0);
+
+  const favoriteProducts = useMemo(
+    () => products.filter((p) => favorites.includes(p.id)),
+    [products, favorites]
+  );
 
   const popularProducts = useMemo(
     () => products.filter((p) => p.is_popular).slice(0, 8),
@@ -119,35 +167,49 @@ export default function Gastronom() {
     if (selectedCategory) list = list.filter((p) => p.category_id === selectedCategory);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      list = list.filter((p) => p.name.toLowerCase().includes(q));
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          (p.description || '').toLowerCase().includes(q)
+      );
     }
     return list;
   }, [products, selectedCategory, searchQuery]);
 
   function addProduct(product: GastronomProduct) {
-    setCart((prev) => {
-      const exists = prev.find((c) => c.product.id === product.id);
-      if (exists) {
-        return prev.map((c) =>
-          c.product.id === product.id ? { ...c, qty: c.qty + 1 } : c
-        );
-      }
-      return [...prev, { product, qty: 1 }];
-    });
+    setCartQty((prev) => ({
+      ...prev,
+      [product.id]: (prev[product.id] || 0) + 1,
+    }));
     toast.success(`${product.name} добавлен в корзину`);
   }
 
   function changeQty(productId: number, delta: number) {
-    setCart((prev) =>
-      prev
-        .map((c) => (c.product.id === productId ? { ...c, qty: c.qty + delta } : c))
-        .filter((c) => c.qty > 0)
+    setCartQty((prev) => {
+      const next = { ...prev, [productId]: (prev[productId] || 0) + delta };
+      if (next[productId] <= 0) delete next[productId];
+      return next;
+    });
+  }
+
+  function toggleFavorite(productId: number) {
+    setFavorites((prev) =>
+      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]
     );
+  }
+
+  function openSearch() {
+    setSearchOpen(true);
+    setActiveTab('catalog');
   }
 
   async function checkout() {
     if (!name.trim() || !phone.trim() || !address.trim()) {
       toast.error('Заполните имя, телефон и адрес');
+      return;
+    }
+    if (!normalizePhone(phone)) {
+      toast.error('Введите корректный номер телефона');
       return;
     }
     if (cart.length === 0) {
@@ -177,7 +239,7 @@ export default function Gastronom() {
         order_items: JSON.stringify(items),
         total_amount: subtotal,
       });
-      setCart([]);
+      setCartQty({});
       setCheckoutOpen(false);
       setOrderDone(true);
       toast.success('Заказ оформлен! Мы свяжемся с вами.');
@@ -189,11 +251,12 @@ export default function Gastronom() {
     }
   }
 
-  function ProductCard({ product, compact }: { product: GastronomProduct; compact?: boolean }) {
-    const inCart = cart.find((c) => c.product.id === product.id)?.qty ?? 0;
+  function ProductCard({ product }: { product: GastronomProduct }) {
+    const inCart = cartQty[product.id] ?? 0;
+    const isFav = favorites.includes(product.id);
     return (
-      <div className={`relative overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 ${compact ? '' : ''}`}>
-        <div className={`relative ${compact ? 'aspect-square' : 'aspect-[4/3]'} bg-gray-50`}>
+      <div className="relative overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100">
+        <div className="relative aspect-[4/3] bg-gray-50">
           {product.image_url ? (
             <img
               src={imgSrc(product.image_url)}
@@ -204,6 +267,14 @@ export default function Gastronom() {
           ) : (
             <div className="flex h-full items-center justify-center text-4xl">🛒</div>
           )}
+          <button
+            type="button"
+            onClick={() => toggleFavorite(product.id)}
+            className="absolute top-2 left-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow"
+            aria-label="Избранное"
+          >
+            <Heart className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+          </button>
           <button
             type="button"
             onClick={() => addProduct(product)}
@@ -254,9 +325,9 @@ export default function Gastronom() {
         {/* Header */}
         <header className="sticky top-0 z-40 bg-white border-b border-gray-100">
           <div className="flex items-center justify-between px-4 py-3">
-            <button type="button" className="p-2 -ml-2 text-gray-600" aria-label="Меню">
+            <Link to="/" className="p-2 -ml-2 text-gray-600" aria-label="На портал">
               <Menu className="h-5 w-5" />
-            </button>
+            </Link>
             <div className="text-center flex-1">
               <div className="flex items-center justify-center gap-1">
                 <Leaf className="h-4 w-4 text-emerald-600" />
@@ -269,7 +340,7 @@ export default function Gastronom() {
               </p>
             </div>
             <div className="flex items-center gap-1">
-              <button type="button" className="p-2 text-gray-600" aria-label="Поиск">
+              <button type="button" className="p-2 text-gray-600" aria-label="Поиск" onClick={openSearch}>
                 <Search className="h-5 w-5" />
               </button>
               <button
@@ -288,18 +359,45 @@ export default function Gastronom() {
             </div>
           </div>
 
-          {/* Address bar */}
-          <div className="flex items-center justify-between px-4 py-2 bg-gray-50 text-sm">
+          <button
+            type="button"
+            className="flex items-center justify-between w-full px-4 py-2 bg-gray-50 text-sm"
+            onClick={() => setAddressEditing((v) => !v)}
+          >
             <div className="flex items-center gap-1.5 text-gray-700 min-w-0">
               <MapPin className="h-4 w-4 text-emerald-600 shrink-0" />
-              <span className="truncate font-medium">{settings.default_address}</span>
+              <span className="truncate font-medium">{address || settings.default_address}</span>
               <ChevronDown className="h-3.5 w-3.5 text-gray-400 shrink-0" />
             </div>
             <div className="flex items-center gap-1 text-gray-500 shrink-0 ml-2">
               <Clock className="h-3.5 w-3.5" />
               <span className="text-xs">{settings.delivery_time}</span>
             </div>
-          </div>
+          </button>
+
+          {(searchOpen || searchQuery) && (
+            <div className="px-4 pb-3 bg-gray-50">
+              <Input
+                autoFocus={searchOpen}
+                placeholder="Поиск товаров..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="rounded-xl bg-white"
+              />
+            </div>
+          )}
+
+          {addressEditing && (
+            <div className="px-4 pb-3 bg-gray-50">
+              <Input
+                autoFocus
+                placeholder="Адрес доставки"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="rounded-xl bg-white"
+              />
+            </div>
+          )}
         </header>
 
         {loading ? (
@@ -307,6 +405,13 @@ export default function Gastronom() {
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-32 rounded-2xl bg-gray-100 animate-pulse" />
             ))}
+          </div>
+        ) : products.length === 0 ? (
+          <div className="text-center py-16 px-4">
+            <p className="text-gray-500 mb-4">Каталог пока пуст</p>
+            <Button onClick={() => void loadCatalog()} className="bg-emerald-600 hover:bg-emerald-700">
+              Обновить
+            </Button>
           </div>
         ) : (
           <>
@@ -395,7 +500,11 @@ export default function Gastronom() {
                     <p className="text-white/60 text-xs mb-1">21+</p>
                     <h3 className="text-white font-bold text-sm mb-1">Алкогольная продукция (21+)</h3>
                     <p className="text-white/70 text-xs mb-3">Широкий выбор напитков с доставкой на дом</p>
-                    <button type="button" className="px-4 py-1.5 rounded-full border border-white/40 text-white text-xs hover:bg-white/10">
+                    <button
+                      type="button"
+                      onClick={() => { setSelectedCategory(null); setActiveTab('catalog'); }}
+                      className="px-4 py-1.5 rounded-full border border-white/40 text-white text-xs hover:bg-white/10"
+                    >
                       Смотреть каталог
                     </button>
                   </div>
@@ -534,11 +643,20 @@ export default function Gastronom() {
               </div>
             )}
 
-            {/* Favorites placeholder */}
             {activeTab === 'favorites' && (
-              <div className="text-center py-16 px-4">
-                <Heart className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 text-sm">Избранное скоро появится</p>
+              <div className="px-4 py-4">
+                {favoriteProducts.length === 0 ? (
+                  <div className="text-center py-16">
+                    <Heart className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500 text-sm">Нажмите ♥ на товаре, чтобы добавить в избранное</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    {favoriteProducts.map((p) => (
+                      <ProductCard key={p.id} product={p} />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
