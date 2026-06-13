@@ -323,7 +323,7 @@ export default function AdminPanel() {
       />
 
       {/* Main Content */}
-      <main className="flex-1 md:ml-60 pb-4 md:pb-0">
+      <main className="flex-1 min-w-0 md:ml-60">
         {/* Mobile Header with Burger */}
         <MobileHeader
           activeTab={activeTab}
@@ -336,12 +336,12 @@ export default function AdminPanel() {
           <h1 className="text-xl font-bold text-gray-900">{getTabLabel(activeTab)}</h1>
         </div>
 
-        <div className="p-4 md:p-6">
+        <div className={`p-3 sm:p-4 md:p-6 ${activeTab === 'partners-gastronom' ? 'pb-24 md:pb-6' : ''}`}>
           {renderContent()}
         </div>
 
-        {/* Admin Footer */}
-        <div className="bg-white border-t border-gray-100 py-3 text-center">
+        {/* Admin Footer — desktop only */}
+        <div className="hidden md:block bg-white border-t border-gray-100 py-3 text-center">
           <p className="text-[11px] text-gray-500 dark:text-gray-400">Системный портал · SORTIROVKA 24</p>
         </div>
       </main>

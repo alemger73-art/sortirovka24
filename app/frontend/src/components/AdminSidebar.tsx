@@ -355,10 +355,10 @@ export function MobileDrawer({ isOpen, onClose, activeTab, onTabChange, onLogout
                         <button
                           key={item.id}
                           onClick={() => handleTabClick(item.id)}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all ${
+                          className={`w-full flex items-center gap-2.5 px-3 py-3 rounded-lg text-sm transition-all ${
                             isActive
                               ? 'bg-blue-50 text-blue-700 font-medium'
-                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 active:bg-gray-100'
                           }`}
                         >
                           <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
@@ -403,25 +403,27 @@ export function MobileHeader({ activeTab, onMenuOpen, onLogout }: MobileHeaderPr
   }
 
   return (
-    <div className="md:hidden sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-      <div className="flex items-center gap-3">
+    <div className="md:hidden sticky top-0 z-30 bg-white border-b border-gray-200 px-3 py-2.5 safe-area-pt flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2.5 min-w-0">
         <button
           onClick={onMenuOpen}
-          className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors active:scale-95"
+          aria-label="Открыть меню"
+          className="w-11 h-11 shrink-0 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors active:scale-95"
         >
           <Menu className="w-5 h-5 text-gray-700" />
         </button>
-        <div>
-          <span className="font-bold text-gray-900 text-sm">{currentLabel}</span>
+        <div className="min-w-0">
+          <span className="font-bold text-gray-900 text-sm truncate block">{currentLabel}</span>
         </div>
       </div>
-      <div className="flex items-center gap-1.5">
-        <Link to="/" className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
+      <div className="flex items-center gap-1.5 shrink-0">
+        <Link to="/" aria-label="На сайт" className="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
           <HomeIcon className="h-4 w-4 text-gray-600" />
         </Link>
         <button
           onClick={onLogout}
-          className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center hover:bg-red-100 transition-colors"
+          aria-label="Выйти"
+          className="w-11 h-11 rounded-xl bg-red-50 flex items-center justify-center hover:bg-red-100 transition-colors"
         >
           <LogOut className="h-4 w-4 text-red-500" />
         </button>

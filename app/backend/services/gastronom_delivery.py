@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import uuid
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -140,45 +141,133 @@ def resolve_delivery_quote(
     }
 
 
+def _geocode_query_variants(address: str) -> List[str]:
+    """Build search queries for local KZ addresses (Sortirovka / Almaty)."""
+    query = re.sub(r"\s+", " ", address.strip())
+    if len(query) < 3:
+        return []
+
+    seen: set[str] = set()
+    variants: List[str] = []
+
+    def add(q: str) -> None:
+        q = re.sub(r"\s+", " ", q.strip())
+        if len(q) >= 3 and q.lower() not in seen:
+            seen.add(q.lower())
+            variants.append(q)
+
+    add(query)
+    lower = query.lower()
+    has_city = "алмат" in lower or "almaty" in lower
+    has_street = bool(re.search(r"(ул\.?|улица|street|пр\.?|проспект|мкр\.?|микрорайон)", lower, re.I))
+
+    if not has_city:
+        add(f"{query}, Алматы, Казахстан")
+        add(f"{query}, Almaty, Kazakhstan")
+
+    if not has_street:
+        street_match = re.match(
+            r"^(?:ул\.?\s*|улица\s*)?([\p{L}\s\-]+?)\s+(\d+[a-zA-Zа-яА-Я]?)(?:\s*,?\s*(?:кв\.?\s*|квартира\s*)?(\d+))?$",
+            query,
+            re.UNICODE | re.IGNORECASE,
+        )
+        if street_match:
+            street_name = street_match.group(1).strip()
+            house = street_match.group(2)
+            apt = street_match.group(3) or ""
+            apt_part = f", квартира {apt}" if apt else ""
+            add(f"улица {street_name} {house}{apt_part}, Алматы, Казахстан")
+            add(f"{street_name} {house}, Almaty, Kazakhstan")
+
+    return variants
+
+
+async def _nominatim_search(
+    client: httpx.AsyncClient,
+    *,
+    params: Dict[str, Any],
+    headers: Dict[str, str],
+) -> Optional[Tuple[float, float]]:
+    resp = await client.get(
+        "https://nominatim.openstreetmap.org/search",
+        params=params,
+        headers=headers,
+    )
+    resp.raise_for_status()
+    results = resp.json()
+    if not results:
+        return None
+    lat = float(results[0]["lat"])
+    lng = float(results[0]["lon"])
+    return lat, lng
+
+
 async def geocode_address(address: str, *, country_hint: str = "kz") -> Optional[Tuple[float, float]]:
     """Geocode address via Nominatim (OpenStreetMap). Returns (lat, lng) or None."""
-    query = address.strip()
-    if len(query) < 3:
+    variants = _geocode_query_variants(address)
+    if not variants:
         return None
 
-    params = {
-        "q": query,
-        "format": "json",
-        "limit": 1,
-        "addressdetails": 0,
-    }
-    if country_hint:
-        params["countrycodes"] = country_hint
-
     headers = {
-        "User-Agent": "Sortirovka24-Gastronom/1.0 (delivery-zones)",
-        "Accept-Language": "ru",
+        "User-Agent": "Sortirovka24-Gastronom/1.0 (delivery-zones; contact@sortirovka24.kz)",
+        "Accept-Language": "ru,en",
     }
+    # Almaty area — bias search toward Sortirovka / city center
+    viewbox = "76.70,43.55,77.25,43.00"
 
     try:
-        async with httpx.AsyncClient(timeout=12.0) as client:
-            resp = await client.get(
-                "https://nominatim.openstreetmap.org/search",
-                params=params,
-                headers=headers,
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            for candidate in variants:
+                try:
+                    coords = await _nominatim_search(
+                        client,
+                        params={
+                            "q": candidate,
+                            "format": "json",
+                            "limit": 1,
+                            "addressdetails": 0,
+                            "countrycodes": country_hint,
+                            "viewbox": viewbox,
+                            "bounded": 0,
+                        },
+                        headers=headers,
+                    )
+                    if coords:
+                        return coords
+                except Exception as e:
+                    logger.debug("Nominatim query failed for %r: %s", candidate[:60], e)
+
+            # Structured search: street + house in Almaty
+            m = re.match(
+                r"^(?:ул\.?\s*|улица\s*)?([\p{L}\s\-]+?)\s+(\d+[a-zA-Zа-яА-Я]?)",
+                address.strip(),
+                re.UNICODE | re.IGNORECASE,
             )
-            resp.raise_for_status()
-            results = resp.json()
-            if not results:
-                # Retry with Almaty context for local addresses
-                if "алмат" not in query.lower() and "almaty" not in query.lower():
-                    return await geocode_address(f"{query}, Алматы, Казахстан", country_hint=country_hint)
-                return None
-            lat = float(results[0]["lat"])
-            lng = float(results[0]["lon"])
-            return lat, lng
+            if m:
+                street_name = m.group(1).strip()
+                house = m.group(2)
+                for city in ("Алматы", "Almaty"):
+                    try:
+                        coords = await _nominatim_search(
+                            client,
+                            params={
+                                "street": f"{street_name} {house}",
+                                "city": city,
+                                "country": "Kazakhstan",
+                                "format": "json",
+                                "limit": 1,
+                                "countrycodes": country_hint,
+                            },
+                            headers=headers,
+                        )
+                        if coords:
+                            return coords
+                    except Exception as e:
+                        logger.debug("Structured geocode failed: %s", e)
+
+            return None
     except Exception as e:
-        logger.warning("Geocoding failed for %r: %s", query[:80], e)
+        logger.warning("Geocoding failed for %r: %s", address[:80], e)
         return None
 
 
