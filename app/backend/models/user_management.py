@@ -61,6 +61,7 @@ class PhoneVerification(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     phone = Column(String(32), index=True, nullable=False)
     code_hash = Column(String(128), nullable=False)
+    pending_code = Column(String(8), nullable=True)
     is_verified = Column(Boolean, nullable=False, default=False)
     attempts = Column(Integer, nullable=False, default=0)
     expires_at = Column(DateTime(timezone=True), nullable=False)

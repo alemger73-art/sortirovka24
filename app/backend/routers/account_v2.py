@@ -1,15 +1,18 @@
 import bcrypt
 import json
 import hashlib
+import logging
 import os
 import random
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlencode
 from uuid import uuid4
 
-from core.auth import create_access_token, decode_access_token
+from core.auth import create_access_token, decode_access_token, generate_state
 from core.config import settings
 from core.database import get_db
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi.responses import RedirectResponse
 from models.announcements import Announcements
 from models.auth import User
 from models.complaints import Complaints
@@ -27,11 +30,20 @@ from schemas.account_v2 import (
     UserV2Response,
     UserV2UpdateRequest,
 )
+from services.auth import AuthService
+from services.google_oauth import (
+    GoogleOAuthError,
+    build_google_authorization_url,
+    exchange_google_code,
+    fetch_google_userinfo,
+    google_oauth_enabled,
+)
 from services.sms import SMSDeliveryError, send_verification_code, should_expose_code_on_screen
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/api/v1/account", tags=["account-v2"])
+logger = logging.getLogger(__name__)
 
 LOGIN_ATTEMPTS: dict[str, list[datetime]] = {}
 LOGIN_WINDOW = timedelta(minutes=15)
@@ -39,8 +51,8 @@ MAX_ATTEMPTS = 6
 SMS_CODE_TTL_MINUTES = 5
 MAX_SMS_VERIFY_ATTEMPTS = 5
 SMS_REQUEST_ATTEMPTS: dict[str, list[datetime]] = {}
-SMS_REQUEST_WINDOW = timedelta(minutes=10)
-MAX_SMS_REQUESTS_PER_WINDOW = 3
+SMS_REQUEST_WINDOW = timedelta(minutes=max(1, int(os.getenv("SMS_REQUEST_WINDOW_MINUTES", "15"))))
+MAX_SMS_REQUESTS_PER_WINDOW = max(1, int(os.getenv("SMS_MAX_REQUESTS_PER_WINDOW", "6")))
 SESSION_EXPIRY_DAYS = max(1, int(os.getenv("ACCOUNT_SESSION_DAYS", "30")))
 WELCOME_BONUS_POINTS = float(os.getenv("WELCOME_BONUS_POINTS", "300"))
 
@@ -101,6 +113,52 @@ def _clean_sms_requests(key: str) -> list[datetime]:
     return attempts
 
 
+def _sms_retry_minutes(*attempt_lists: list[datetime]) -> int:
+    now = datetime.now(timezone.utc)
+    oldest = None
+    for attempts in attempt_lists:
+        if attempts:
+            candidate = min(attempts)
+            oldest = candidate if oldest is None else min(oldest, candidate)
+    if oldest is None:
+        return int(SMS_REQUEST_WINDOW.total_seconds() // 60) or 1
+    remaining = SMS_REQUEST_WINDOW - (now - oldest)
+    return max(1, int(remaining.total_seconds() // 60) + (1 if remaining.total_seconds() % 60 else 0))
+
+
+async def _active_phone_verification(db: AsyncSession, phone: str) -> PhoneVerification | None:
+    now = datetime.now(timezone.utc)
+    return (
+        await db.execute(
+            select(PhoneVerification)
+            .where(
+                PhoneVerification.phone == phone,
+                PhoneVerification.is_verified == False,
+                PhoneVerification.expires_at > now,
+            )
+            .order_by(desc(PhoneVerification.created_at))
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+
+
+def _existing_code_response(row: PhoneVerification, *, resend: bool) -> RequestSmsCodeResponse:
+    now = datetime.now(timezone.utc)
+    ttl = max(1, int((row.expires_at - now).total_seconds()))
+    hint = (
+        "Код уже был отправлен. Введите его с экрана — новое SMS не отправлялось."
+        if resend
+        else "SMS проходит модерацию Mobizon. Пока SMS не пришло — введите код с экрана."
+    )
+    return RequestSmsCodeResponse(
+        success=True,
+        ttl_seconds=ttl,
+        debug_code=row.pending_code,
+        sms_pending_moderation=True,
+        on_screen_code_hint=hint,
+    )
+
+
 async def _cleanup_phone_verifications(db: AsyncSession, phone: str | None = None) -> None:
     now = datetime.now(timezone.utc)
     query = select(PhoneVerification).where(PhoneVerification.expires_at < now)
@@ -126,6 +184,118 @@ def _to_user_response(user: User) -> UserV2Response:
         bonus_balance=float(user.bonus_balance or 0),
         created_at=user.created_at.isoformat() if user.created_at else None,
     )
+
+
+def _public_origin(request: Request) -> str:
+    scheme = request.headers.get("x-forwarded-proto", "https")
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+    if not host:
+        return settings.backend_url.rstrip("/")
+    return f"{scheme}://{host}"
+
+
+def _google_callback_url(request: Request) -> str:
+    return f"{_public_origin(request)}/api/v1/account/google/callback"
+
+
+async def _issue_account_session(user: User, http_request: Request, db: AsyncSession) -> AuthV2Response:
+    if user.status == "blocked" or not user.is_active:
+        raise HTTPException(status_code=403, detail="User is blocked")
+
+    now = datetime.now(timezone.utc)
+    jti = str(uuid4())
+    session_minutes = _session_expiry_minutes()
+    token = create_access_token(
+        {
+            "sub": str(user.id),
+            "phone": user.phone or "",
+            "email": user.email or "",
+            "name": user.name or "",
+            "role": user.role or "user",
+            "jti": jti,
+        },
+        expires_minutes=session_minutes,
+    )
+    user.last_login = now
+    db.add(
+        UserSession(
+            user_id=str(user.id),
+            token_jti=jti,
+            is_active=True,
+            ip=http_request.client.host if http_request.client else None,
+            user_agent=http_request.headers.get("user-agent", "")[:250],
+            expires_at=now + timedelta(minutes=session_minutes),
+        )
+    )
+    await db.commit()
+    await _log_action(db, str(user.id), "login", "users", str(user.id))
+    return AuthV2Response(token=token, user_id=str(user.id), role=user.role)  # type: ignore[arg-type]
+
+
+async def _get_or_create_google_user(
+    db: AsyncSession,
+    *,
+    google_sub: str,
+    email: str | None,
+    name: str | None,
+    avatar: str | None,
+    language: str = "ru",
+) -> tuple[User, bool]:
+    user = (
+        await db.execute(select(User).where(User.google_sub == google_sub))
+    ).scalar_one_or_none()
+
+    if not user and email:
+        user = (
+            await db.execute(select(User).where(User.email == email))
+        ).scalar_one_or_none()
+        if user:
+            user.google_sub = google_sub
+
+    created = False
+    if not user:
+        created = True
+        user = User(
+            id=str(uuid4()),
+            google_sub=google_sub,
+            email=email,
+            name=(name or email.split("@", 1)[0] if email else "Пользователь").strip(),
+            avatar_url=avatar,
+            password_hash=None,
+            phone=None,
+            language=language if language in {"ru", "kz"} else "ru",
+            agreement_accepted=True,
+            privacy_accepted=True,
+            role="user",
+            status="active",
+            is_active=True,
+            bonus_balance=WELCOME_BONUS_POINTS,
+            last_login=datetime.now(timezone.utc),
+        )
+        db.add(user)
+        await db.flush()
+        if WELCOME_BONUS_POINTS > 0:
+            db.add(
+                Bonus(
+                    user_id=str(user.id),
+                    points=WELCOME_BONUS_POINTS,
+                    reason="Бонус за регистрацию через Google",
+                )
+            )
+    else:
+        if email and not user.email:
+            user.email = email
+        if name and (not user.name or user.name == "Пользователь"):
+            user.name = name
+        if avatar and not user.avatar_url:
+            user.avatar_url = avatar
+        user.last_login = datetime.now(timezone.utc)
+
+    await db.commit()
+    await db.refresh(user)
+    if created:
+        await _log_action(db, str(user.id), "register_google", "users", str(user.id))
+    return user, created
 
 
 async def _log_action(
@@ -257,13 +427,24 @@ async def register_request_sms(
         raise HTTPException(status_code=400, detail="Invalid phone")
     await _cleanup_phone_verifications(db, normalized_phone)
 
+    active_row = await _active_phone_verification(db, normalized_phone)
+    if active_row and active_row.pending_code:
+        return _existing_code_response(active_row, resend=True)
+
     client_ip = http_request.client.host if http_request.client else "unknown"
     phone_key = f"phone:{normalized_phone}"
     ip_key = f"ip:{client_ip}"
     phone_attempts = _clean_sms_requests(phone_key)
     ip_attempts = _clean_sms_requests(ip_key)
     if len(phone_attempts) >= MAX_SMS_REQUESTS_PER_WINDOW or len(ip_attempts) >= MAX_SMS_REQUESTS_PER_WINDOW:
-        raise HTTPException(status_code=429, detail="Too many SMS requests, try later")
+        wait_minutes = _sms_retry_minutes(phone_attempts, ip_attempts)
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                f"Слишком много запросов SMS. Подождите около {wait_minutes} мин. "
+                "и нажмите «Получить SMS-код» снова — код появится на экране."
+            ),
+        )
     now = datetime.now(timezone.utc)
     phone_attempts.append(now)
     ip_attempts.append(now)
@@ -290,6 +471,7 @@ async def register_request_sms(
         PhoneVerification(
             phone=normalized_phone,
             code_hash=_hash_sms_code(normalized_phone, code),
+            pending_code=code,
             is_verified=False,
             attempts=0,
             expires_at=expires_at,
@@ -315,12 +497,14 @@ async def register_request_sms(
             "Пока SMS не пришло — введите код ниже с экрана."
         )
     elif expose_code:
-        on_screen_hint = "Тестовый режим: используйте код с экрана."
+        on_screen_hint = "Код для регистрации — введите его с экрана."
+
+    stored_code = code if expose_code else None
 
     return RequestSmsCodeResponse(
         success=True,
         ttl_seconds=SMS_CODE_TTL_MINUTES * 60,
-        debug_code=code if expose_code else None,
+        debug_code=stored_code,
         sms_pending_moderation=delivery.pending_moderation,
         on_screen_code_hint=on_screen_hint,
     )
@@ -352,7 +536,7 @@ async def register_confirm(
     if row.expires_at < now:
         raise HTTPException(status_code=400, detail="SMS code expired")
     if row.attempts >= MAX_SMS_VERIFY_ATTEMPTS:
-        raise HTTPException(status_code=429, detail="Too many SMS verification attempts")
+        raise HTTPException(status_code=429, detail="Слишком много попыток ввода кода. Запросите новый SMS-код.")
 
     row.attempts += 1
     if row.code_hash != _hash_sms_code(normalized_phone, request.sms_code.strip()):
@@ -398,35 +582,89 @@ async def login(
     if user.status == "blocked" or not user.is_active:
         raise HTTPException(status_code=403, detail="User is blocked")
 
-    now = datetime.now(timezone.utc)
-    jti = str(uuid4())
-    session_minutes = _session_expiry_minutes()
-    token = create_access_token(
-        {
-            "sub": str(user.id),
-            "phone": user.phone or "",
-            "email": user.email or "",
-            "name": user.name or "",
-            "role": user.role or "user",
-            "jti": jti,
-        },
-        expires_minutes=session_minutes,
-    )
-    user.last_login = now
-    db.add(
-        UserSession(
-            user_id=str(user.id),
-            token_jti=jti,
-            is_active=True,
-            ip=http_request.client.host if http_request.client else None,
-            user_agent=http_request.headers.get("user-agent", "")[:250],
-            expires_at=now + timedelta(minutes=session_minutes),
-        )
-    )
-    await db.commit()
-    await _log_action(db, str(user.id), "login", "users", str(user.id))
     LOGIN_ATTEMPTS[normalized_phone] = []
-    return AuthV2Response(token=token, user_id=str(user.id), role=user.role)  # type: ignore[arg-type]
+    return await _issue_account_session(user, http_request, db)
+
+
+@router.get("/google/status")
+async def google_status():
+    return {"enabled": google_oauth_enabled()}
+
+
+@router.get("/google/start")
+async def google_start(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    language: str = "ru",
+):
+    if not google_oauth_enabled():
+        raise HTTPException(status_code=503, detail="Google вход не настроен на сервере")
+
+    state = generate_state()
+    auth_service = AuthService(db)
+    await auth_service.store_oidc_state(state, "google_account", language if language in {"ru", "kz"} else "ru")
+
+    redirect_uri = _google_callback_url(request)
+    auth_url = build_google_authorization_url(state=state, redirect_uri=redirect_uri)
+    return RedirectResponse(url=auth_url, status_code=status.HTTP_302_FOUND)
+
+
+@router.get("/google/callback")
+async def google_callback(
+    request: Request,
+    code: str | None = None,
+    state: str | None = None,
+    error: str | None = None,
+    db: AsyncSession = Depends(get_db),
+):
+    origin = _public_origin(request)
+
+    def redirect_error(message: str) -> RedirectResponse:
+        query = urlencode({"error": message})
+        return RedirectResponse(url=f"{origin}/login/google/callback?{query}", status_code=status.HTTP_302_FOUND)
+
+    if error:
+        return redirect_error(f"Google: {error}")
+    if not code or not state:
+        return redirect_error("Не получен код авторизации Google")
+
+    auth_service = AuthService(db)
+    temp = await auth_service.get_and_delete_oidc_state(state)
+    if not temp or temp.get("nonce") != "google_account":
+        return redirect_error("Сессия Google устарела. Попробуйте снова.")
+
+    language = str(temp.get("code_verifier") or "ru")
+
+    try:
+        redirect_uri = _google_callback_url(request)
+        tokens = await exchange_google_code(code=code, redirect_uri=redirect_uri)
+        profile = await fetch_google_userinfo(tokens["access_token"])
+        user, _created = await _get_or_create_google_user(
+            db,
+            google_sub=str(profile["sub"]),
+            email=profile.get("email"),
+            name=profile.get("name"),
+            avatar=profile.get("picture"),
+            language=language,
+        )
+        session = await _issue_account_session(user, request, db)
+    except GoogleOAuthError as exc:
+        logger.warning("[google_callback] %s", exc)
+        return redirect_error(str(exc))
+    except HTTPException as exc:
+        return redirect_error(str(exc.detail))
+    except Exception as exc:
+        logger.exception("[google_callback] unexpected error: %s", exc)
+        return redirect_error("Не удалось войти через Google")
+
+    fragment = urlencode(
+        {
+            "token": session.token,
+            "user_id": session.user_id,
+            "role": session.role,
+        }
+    )
+    return RedirectResponse(url=f"{origin}/login/google/callback#{fragment}", status_code=status.HTTP_302_FOUND)
 
 
 @router.post("/logout")

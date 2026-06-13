@@ -3,6 +3,11 @@
 @tailwind utilities;
 
 @layer base {
+  html.native-app,
+  html.native-app body {
+    overscroll-behavior: none;
+  }
+
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;

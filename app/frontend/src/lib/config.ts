@@ -4,20 +4,26 @@
 // so an empty base URL (relative paths like /api/v1/...) works correctly.
 // In dev mode Vite's proxy forwards /api → http://localhost:8000.
 //
-// VITE_API_BASE_URL is baked at build time. If it contains an unresolved
-// placeholder ($$…$$) or is missing, we fall back to "" (same-origin).
+// Capacitor native builds use .env.mobile with an absolute VITE_API_BASE_URL.
+
+import { Capacitor } from '@capacitor/core';
+
+const DEFAULT_NATIVE_API = 'https://sortirovka24-production-8788.up.railway.app';
 
 function resolveBaseURL(): string {
   const envUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
 
-  // If the env var is set and doesn't contain unresolved placeholders, use it
+  if (Capacitor.isNativePlatform()) {
+    const nativeBase = envUrl && !envUrl.includes('$$') && envUrl !== 'undefined'
+      ? envUrl
+      : DEFAULT_NATIVE_API;
+    return nativeBase.replace(/\/+$/, '');
+  }
+
   if (envUrl && !envUrl.includes('$$') && envUrl !== 'undefined') {
-    // Strip trailing slash for consistency
     return envUrl.replace(/\/+$/, '');
   }
 
-  // In production: same-origin (empty string) — /api/... goes to the same domain
-  // In dev: Vite proxy handles /api → localhost:8000
   return '';
 }
 

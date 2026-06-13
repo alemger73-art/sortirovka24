@@ -6,6 +6,7 @@ import { prefetchPage, routeToPage } from '@/lib/prefetch';
 import Header from '@/components/layout/Header';
 import { AUTH_PROMPT_EVENT } from '@/lib/localAuth';
 import AuthPromptModal from '@/components/ui/AuthPromptModal';
+import InstallAppBanner from '@/components/InstallAppBanner';
 
 const NAV_KEYS = [
   { path: '/', key: 'nav.home', icon: Home },
@@ -63,7 +64,7 @@ export default function Layout({ children, hideHeader = false }: { children: Rea
       />
 
       {/* Footer */}
-      <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mt-12 transition-colors duration-300">
+      <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mt-12 transition-colors duration-300 pb-[env(safe-area-inset-bottom)]">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
@@ -110,6 +111,8 @@ export default function Layout({ children, hideHeader = false }: { children: Rea
           </div>
         </div>
       </footer>
+
+      <InstallAppBanner />
     </div>
   );
 }

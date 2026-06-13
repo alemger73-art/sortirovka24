@@ -2,6 +2,15 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { warmupBackend } from './lib/api';
+import { initNativeShell } from './lib/native';
+
+if (import.meta.env.PROD) {
+  import('virtual:pwa-register').then(({ registerSW }) => {
+    registerSW({ immediate: true });
+  }).catch(() => {
+    // PWA optional — ignore in dev / if plugin unavailable
+  });
+}
 
 // ─── Intercept SDK's postMessage error reporting ─────────────────
 // The @metagptx/web-sdk sends `mgx-appview-error` postMessages to
@@ -172,5 +181,7 @@ window.addEventListener('unhandledrejection', (event) => {
 // ─── Render App ──────────────────────────────────────────────────
 const rootElement = document.getElementById('root');
 if (rootElement) {
-  createRoot(rootElement).render(<App />);
+  initNativeShell().finally(() => {
+    createRoot(rootElement).render(<App />);
+  });
 }

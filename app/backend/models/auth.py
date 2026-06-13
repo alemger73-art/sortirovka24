@@ -8,6 +8,7 @@ class User(Base):
 
     id = Column(String(255), primary_key=True, index=True)  # Use platform sub as primary key
     email = Column(String(255), nullable=True, index=True)
+    google_sub = Column(String(255), nullable=True, unique=True, index=True)
     phone = Column(String(32), nullable=True, unique=True, index=True)
     password_hash = Column(String(255), nullable=True)
     name = Column(String(255), nullable=True)

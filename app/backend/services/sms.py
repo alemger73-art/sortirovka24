@@ -70,6 +70,9 @@ async def send_verification_code(phone: str, code: str) -> SMSDeliveryResult:
 def should_expose_code_on_screen(result: SMSDeliveryResult) -> bool:
     if _debug_mode() or _expose_code_enabled():
         return True
+    # Mobizon often charges balance while SMS is still in moderation.
+    if _provider() == "mobizon":
+        return True
     return result.pending_moderation
 
 

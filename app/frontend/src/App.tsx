@@ -46,6 +46,7 @@ const TaxiPage = lazy(() => import("./pages/Taxi"));
 const TaxiRidePage = lazy(() => import("./pages/TaxiRide"));
 const TaxiDriverHub = lazy(() => import("./pages/TaxiDriverHub"));
 const AccountAuth = lazy(() => import("./pages/AccountAuth"));
+const GoogleAccountCallback = lazy(() => import("./pages/GoogleAccountCallback"));
 const LegalPage = lazy(() => import("./pages/LegalPage"));
 const Cabinet = lazy(() => import("./pages/Cabinet"));
 const CabinetMaster = lazy(() => import("./pages/CabinetMaster"));
@@ -141,6 +142,7 @@ function App() {
               <Route path="/ads" element={<Navigate to="/announcements" replace />} />
               <Route path="/register" element={<AccountAuth />} />
               <Route path="/login" element={<AccountAuth />} />
+              <Route path="/login/google/callback" element={<GoogleAccountCallback />} />
               <Route path="/legal/:doc" element={<LegalPage />} />
 
               {/* Block common attack paths — redirect to home */}

@@ -48,7 +48,7 @@ export default function Header() {
   );
 
   return (
-    <header className="relative z-50 border-b border-gray-200 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] transition-colors dark:border-[#1A2233] dark:bg-[#0B0F19] dark:shadow-[0_4px_20px_rgba(0,0,0,0.25)]">
+    <header className="relative z-50 border-b border-gray-200 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] transition-colors dark:border-[#1A2233] dark:bg-[#0B0F19] dark:shadow-[0_4px_20px_rgba(0,0,0,0.25)] pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-yellow-400/15">
