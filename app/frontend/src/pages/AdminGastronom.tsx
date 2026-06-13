@@ -5,10 +5,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ImageUpload from '@/components/ImageUpload';
-import { Plus, Pencil, Trash2, Save, X, Package, FolderTree, ShoppingBag, Settings, RefreshCw, Map } from 'lucide-react';
+import { Plus, Pencil, Trash2, Save, X, Package, FolderTree, ShoppingBag, Settings, RefreshCw, Map, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 import { resolveImageSrc } from '@/lib/storage';
 import DeliveryZoneEditor from '@/components/gastronom/DeliveryZoneEditor';
+import LoyaltyGiftsEditor from '@/components/gastronom/LoyaltyGiftsEditor';
 import {
   parseDeliveryZones,
   serializeDeliveryZones,
@@ -31,8 +32,14 @@ import {
   type GastronomOrder,
   type GastronomSettings,
 } from '@/lib/gastronomApi';
+import {
+  isLoyaltyEnabled,
+  parseLoyaltyGifts,
+  serializeLoyaltyGifts,
+  type LoyaltyGift,
+} from '@/lib/gastronomLoyalty';
 
-type Section = 'products' | 'categories' | 'orders' | 'delivery' | 'settings';
+type Section = 'products' | 'categories' | 'orders' | 'delivery' | 'gifts' | 'settings';
 
 const ORDER_STATUS: Record<string, string> = {
   new: 'Новый',
@@ -82,6 +89,8 @@ export default function AdminGastronom() {
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
   const [storeLat, setStoreLat] = useState(DEFAULT_STORE[0]);
   const [storeLng, setStoreLng] = useState(DEFAULT_STORE[1]);
+  const [loyaltyGifts, setLoyaltyGifts] = useState<LoyaltyGift[]>([]);
+  const [loyaltyEnabled, setLoyaltyEnabled] = useState(true);
 
   async function loadAll(fullScreenLoader = false) {
     if (fullScreenLoader) setLoading(true);
@@ -99,6 +108,8 @@ export default function AdminGastronom() {
       setDeliveryZones(parseDeliveryZones(sets.delivery_zones));
       setStoreLat(Number(sets.store_lat) || DEFAULT_STORE[0]);
       setStoreLng(Number(sets.store_lng) || DEFAULT_STORE[1]);
+      setLoyaltyGifts(parseLoyaltyGifts(sets.loyalty_gifts));
+      setLoyaltyEnabled(isLoyaltyEnabled(sets));
     } catch (e) {
       console.error(e);
       toast.error('Ошибка загрузки данных ГАСТРОНОМ');
@@ -245,6 +256,28 @@ export default function AdminGastronom() {
     }
   }
 
+  async function handleSaveLoyaltyGifts() {
+    const invalid = loyaltyGifts.find((g) => !g.title.trim() || g.min_amount <= 0);
+    if (invalid) {
+      toast.error('У каждого подарка должны быть сумма и название');
+      return;
+    }
+    try {
+      const payload = {
+        ...settings,
+        loyalty_enabled: loyaltyEnabled ? '1' : '0',
+        loyalty_gifts: serializeLoyaltyGifts(loyaltyGifts),
+      } as Record<string, string>;
+      const saved = await saveGastronomSettings(payload);
+      setSettings(saved);
+      setLoyaltyGifts(parseLoyaltyGifts(saved.loyalty_gifts));
+      setLoyaltyEnabled(isLoyaltyEnabled(saved));
+      toast.success('Подарки сохранены');
+    } catch {
+      toast.error('Ошибка сохранения подарков');
+    }
+  }
+
   async function handleOrderStatus(orderId: number, status: string) {
     try {
       await updateGastronomOrderStatus(orderId, status);
@@ -260,6 +293,7 @@ export default function AdminGastronom() {
     { id: 'categories', label: 'Категории', icon: FolderTree },
     { id: 'orders', label: 'Заказы', icon: ShoppingBag },
     { id: 'delivery', label: 'Зоны доставки', icon: Map },
+    { id: 'gifts', label: 'Подарки', icon: Gift },
     { id: 'settings', label: 'Настройки', icon: Settings },
   ];
 
@@ -415,8 +449,10 @@ export default function AdminGastronom() {
 
           {filteredOrders.length === 0 && <p className="text-gray-400 text-sm">Заказов пока нет</p>}
           {filteredOrders.map(o => {
-            let items: { name: string; qty: number; sum: number }[] = [];
+            let items: { name: string; qty: number; sum: number; is_gift?: boolean }[] = [];
             try { items = JSON.parse(o.order_items || '[]'); } catch { /* ignore */ }
+            const giftItems = items.filter((it) => it.is_gift);
+            const productItems = items.filter((it) => !it.is_gift);
             return (
               <div key={o.id} className="bg-white border rounded-xl p-3 sm:p-4 space-y-2">
                 <div className="flex justify-between items-start gap-2">
@@ -441,10 +477,16 @@ export default function AdminGastronom() {
                   </p>
                 )}
                 <div className="text-sm space-y-0.5">
-                  {items.map((it, i) => (
+                  {productItems.map((it, i) => (
                     <div key={i} className="flex justify-between gap-2 text-gray-600">
                       <span className="min-w-0 truncate">{it.name} ×{it.qty}</span>
                       <span className="shrink-0">{it.sum} ₸</span>
+                    </div>
+                  ))}
+                  {giftItems.map((it, i) => (
+                    <div key={`gift-${i}`} className="flex justify-between gap-2 text-amber-700 bg-amber-50 rounded-lg px-2 py-1">
+                      <span className="min-w-0 truncate font-medium">{it.name}</span>
+                      <span className="shrink-0 text-xs">бесплатно</span>
                     </div>
                   ))}
                 </div>
@@ -512,6 +554,25 @@ export default function AdminGastronom() {
         </div>
       )}
 
+      {section === 'gifts' && (
+        <div className="space-y-4 pb-20 sm:pb-0">
+          <LoyaltyGiftsEditor
+            gifts={loyaltyGifts}
+            onChange={setLoyaltyGifts}
+            enabled={loyaltyEnabled}
+            onEnabledChange={setLoyaltyEnabled}
+          />
+          <div className="sm:hidden fixed bottom-[4.5rem] left-0 right-0 z-10 px-3 safe-area-pb">
+            <Button type="button" onClick={() => void handleSaveLoyaltyGifts()} className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 shadow-lg">
+              <Save className="h-4 w-4 mr-2" /> Сохранить подарки
+            </Button>
+          </div>
+          <Button type="button" onClick={() => void handleSaveLoyaltyGifts()} className="hidden sm:inline-flex bg-emerald-600 hover:bg-emerald-700 h-11">
+            <Save className="h-4 w-4 mr-2" /> Сохранить подарки
+          </Button>
+        </div>
+      )}
+
       {/* Settings */}
       {section === 'settings' && (
         <div className="bg-white border rounded-xl p-3 sm:p-4 space-y-4 max-w-lg">
@@ -569,9 +630,13 @@ export default function AdminGastronom() {
 
       {/* Mobile bottom navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-200 safe-area-pb shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-        <div className="grid grid-cols-5">
+        <div className="grid grid-cols-6">
           {tabs.map(({ id, label, icon: Icon }) => {
-            const shortLabel = id === 'delivery' ? 'Зоны' : label;
+            const shortLabel =
+              id === 'delivery' ? 'Зоны'
+              : id === 'gifts' ? 'Подарки'
+              : id === 'categories' ? 'Кат.'
+              : label;
             const isActive = section === id;
             return (
               <button

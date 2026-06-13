@@ -215,7 +215,10 @@ async def notify_gastronom_order(data: dict) -> bool:
         sum_val = item.get("sum", qty * price)
         weight = item.get("weight", "")
         weight_part = f" ({weight})" if weight else ""
-        lines.append(f"{idx}. {_escape_html(name)}{weight_part} ×{qty} = {sum_val} ₸")
+        if item.get("is_gift"):
+            lines.append(f"🎁 {_escape_html(name)}{weight_part}")
+        else:
+            lines.append(f"{idx}. {_escape_html(name)}{weight_part} ×{qty} = {sum_val} ₸")
 
     items_text = "\n".join(lines) if lines else "—"
     payment_map = {"cash": "Наличные", "kaspi_qr": "Kaspi QR", "halyk_qr": "Halyk QR", "card": "Картой"}
@@ -224,6 +227,11 @@ async def notify_gastronom_order(data: dict) -> bool:
     comment_line = ""
     if data.get("comment"):
         comment_line = f"\n<b>Комментарий:</b> {_escape_html(data.get('comment'))}"
+
+    gift_line = ""
+    gift = data.get("loyalty_gift")
+    if isinstance(gift, dict) and gift.get("title"):
+        gift_line = f"\n<b>🎁 Подарок:</b> {_escape_html(gift.get('title'))} (от {int(gift.get('min_amount', 0))} ₸)"
 
     delivery_fee = data.get("delivery_fee") or 0
     delivery_line = ""
@@ -244,6 +252,7 @@ async def notify_gastronom_order(data: dict) -> bool:
         f"<b>Товары:</b>\n{items_text}"
         f"{delivery_line}\n\n"
         f"<b>Итого:</b> {data.get('total_amount', 0)} ₸"
+        f"{gift_line}"
         f"{comment_line}\n"
         f"<b>Дата:</b> {_format_date()}"
     )

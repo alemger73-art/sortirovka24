@@ -15,6 +15,7 @@ from services.gastronom_delivery import (
     DEFAULT_STORE_LAT,
     DEFAULT_STORE_LNG,
 )
+from services.gastronom_loyalty import default_loyalty_gifts_json
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,8 @@ DEFAULT_SETTINGS = {
     "store_city": "Караганда",
     "delivery_area": "Сортировка, Караганда",
     "delivery_zones": default_zones_json(),
+    "loyalty_enabled": "1",
+    "loyalty_gifts": default_loyalty_gifts_json(),
     "outside_zone_message": "Доставка по этому адресу недоступна. Выберите адрес в зоне доставки или позвоните в магазин.",
     "hero_title": "ДОСТАВКА ПРОДУКТОВ ПИТАНИЯ ПО СОРТИРОВКЕ",
     "store_name": "ГАСТРОНОМ",
@@ -199,3 +202,17 @@ async def ensure_gastronom_location_settings(db: AsyncSession) -> bool:
         await set_svc.upsert_many(patch)
         return True
     return False
+
+
+async def ensure_gastronom_loyalty_settings(db: AsyncSession) -> bool:
+    """Add default loyalty gifts when missing (existing catalogs)."""
+    set_svc = Gastronom_settingsService(db)
+    settings = await set_svc.get_all_as_dict()
+    if settings.get("loyalty_gifts"):
+        return False
+    await set_svc.upsert_many({
+        "loyalty_enabled": settings.get("loyalty_enabled") or "1",
+        "loyalty_gifts": default_loyalty_gifts_json(),
+    })
+    logger.info("Added default loyalty gifts to ГАСТРОНОМ settings")
+    return True

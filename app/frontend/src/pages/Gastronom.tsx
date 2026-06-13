@@ -13,8 +13,14 @@ import {
   type GastronomSettings,
 } from '@/lib/gastronomApi';
 import { parseDeliveryZones, type DeliveryQuote } from '@/lib/gastronomDelivery';
+import {
+  isLoyaltyEnabled,
+  parseLoyaltyGifts,
+  resolveLoyaltyGift,
+} from '@/lib/gastronomLoyalty';
 import DeliveryAddressPicker from '@/components/gastronom/DeliveryAddressPicker';
 import GastronomSideMenu from '@/components/gastronom/GastronomSideMenu';
+import LoyaltyGiftBanner from '@/components/gastronom/LoyaltyGiftBanner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -71,6 +77,7 @@ interface ConfirmedOrder {
   payment: string;
   total: number;
   storeName: string;
+  giftTitle?: string;
 }
 
 function imgSrc(url: string) {
@@ -170,6 +177,17 @@ export default function Gastronom() {
       p.delete('product');
       p.delete('menu');
     }, replace);
+  }, [patchSearch]);
+
+  /** One atomic URL update from the side drawer (avoids race with closeMenu). */
+  const selectTabFromMenu = useCallback((tab: Tab) => {
+    patchSearch((p) => {
+      if (tab === 'home') p.delete('tab');
+      else p.set('tab', tab);
+      p.delete('checkout');
+      p.delete('product');
+      p.delete('menu');
+    }, true);
   }, [patchSearch]);
 
   const openMenu = useCallback(() => {
@@ -330,6 +348,14 @@ export default function Gastronom() {
   }, [hasDeliveryZones, deliveryQuote, settings.delivery_fee]);
   const orderTotal = useMemo(() => subtotal + deliveryFee, [subtotal, deliveryFee]);
   const minOrder = Number(settings.min_order || 0);
+  const loyaltyGifts = useMemo(
+    () => (isLoyaltyEnabled(settings) ? parseLoyaltyGifts(settings.loyalty_gifts) : []),
+    [settings.loyalty_gifts, settings.loyalty_enabled]
+  );
+  const loyaltyGift = useMemo(
+    () => resolveLoyaltyGift(subtotal, loyaltyGifts),
+    [subtotal, loyaltyGifts]
+  );
   const effectiveAddress = useMemo(
     () => address.trim() || settings.default_address?.trim() || '',
     [address, settings.default_address]
@@ -621,6 +647,7 @@ export default function Gastronom() {
         payment: PAYMENT_LABELS[payment],
         total: orderTotal,
         storeName: settings.store_name || 'ГАСТРОНОМ',
+        giftTitle: loyaltyGift?.title,
       });
       toast.success('Заказ оформлен! Мы свяжемся с вами.');
     } catch (e) {
@@ -792,6 +819,11 @@ export default function Gastronom() {
                   {confirmedOrder.address}
                 </p>
                 <p>Оплата: {confirmedOrder.payment}</p>
+                {confirmedOrder.giftTitle && (
+                  <p className="text-amber-800 bg-amber-50 rounded-xl px-3 py-2 mt-2">
+                    🎁 Подарок к заказу: <span className="font-semibold">{confirmedOrder.giftTitle}</span>
+                  </p>
+                )}
                 <p className="text-xl font-bold text-emerald-700">{formatMoney(confirmedOrder.total)}</p>
               </div>
             </div>
@@ -834,7 +866,7 @@ export default function Gastronom() {
           badge: id === 'cart' ? cartCount : undefined,
         }))}
         activeId={activeTab}
-        onSelect={(id) => setActiveTab(id as Tab)}
+        onSelect={(id) => selectTabFromMenu(id as Tab)}
         storeName={settings.store_name}
         storePhone={settings.store_phone}
       />
@@ -1355,6 +1387,9 @@ export default function Gastronom() {
                       </div>
                     ))}
                     </div>
+                    {loyaltyGifts.length > 0 && (
+                      <LoyaltyGiftBanner subtotal={subtotal} gifts={loyaltyGifts} />
+                    )}
                     </div>
                     <div ref={checkoutSectionRef} className="mt-4 lg:mt-0 lg:sticky lg:top-36 relative z-10 bg-white rounded-2xl border border-gray-100 p-4 md:p-6 shadow-sm space-y-3">
                       {deliveryReady && hasDeliveryZones && (
@@ -1378,6 +1413,12 @@ export default function Gastronom() {
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-500">Доставка</span>
                           <span>{formatMoney(deliveryFee)}</span>
+                        </div>
+                      )}
+                      {loyaltyGift && (
+                        <div className="flex justify-between text-sm text-amber-800 bg-amber-50 rounded-lg px-2 py-1.5">
+                          <span>🎁 Подарок</span>
+                          <span className="font-medium truncate ml-2">{loyaltyGift.title}</span>
                         </div>
                       )}
                       <div className="flex justify-between text-sm md:text-base pt-2 border-t">

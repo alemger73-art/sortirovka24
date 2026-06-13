@@ -32,19 +32,21 @@ export default function GastronomSideMenu({
   return (
     <>
       <div
-        className={`fixed inset-0 z-50 bg-black/50 backdrop-blur-sm transition-opacity ${
+        className={`fixed inset-0 z-[55] bg-black/50 backdrop-blur-sm transition-opacity ${
           open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
         aria-hidden={!open}
       />
       <div
-        className={`fixed top-0 left-0 bottom-0 w-[min(20rem,85vw)] bg-white z-50 shadow-2xl transition-transform duration-300 ease-out flex flex-col ${
-          open ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed top-0 left-0 bottom-0 w-[min(20rem,85vw)] bg-white z-[60] shadow-2xl transition-transform duration-300 ease-out flex flex-col ${
+          open ? 'translate-x-0 pointer-events-auto' : '-translate-x-full pointer-events-none'
         }`}
         role="dialog"
         aria-modal="true"
         aria-label="Меню магазина"
+        aria-hidden={!open}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
           <div>
@@ -66,8 +68,8 @@ export default function GastronomSideMenu({
             <button
               key={id}
               type="button"
-              onClick={() => { onSelect(id); onClose(); }}
-              className={`w-full flex items-center gap-3 px-5 py-3.5 text-left text-sm transition-colors ${
+              onClick={() => onSelect(id)}
+              className={`w-full flex items-center gap-3 px-5 py-3.5 text-left text-sm transition-colors touch-manipulation ${
                 activeId === id
                   ? 'bg-emerald-50 text-emerald-700 font-semibold'
                   : 'text-gray-700 hover:bg-gray-50'

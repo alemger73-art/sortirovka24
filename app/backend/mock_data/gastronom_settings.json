@@ -9,6 +9,7 @@
   { "key": "delivery_city", "value": "Караганда" },
   { "key": "store_city", "value": "Караганда" },
   { "key": "delivery_area", "value": "Сортировка, Караганда" },
+  { "key": "loyalty_enabled", "value": "1" },
   { "key": "outside_zone_message", "value": "Доставка по этому адресу недоступна." },
   { "key": "hero_title", "value": "ДОСТАВКА ПРОДУКТОВ ПИТАНИЯ ПО СОРТИРОВКЕ" },
   { "key": "store_name", "value": "ГАСТРОНОМ" },

@@ -14,7 +14,13 @@ from core.database import get_db
 from services.gastronom_categories import Gastronom_categoriesService
 from services.gastronom_orders import Gastronom_ordersService
 from services.gastronom_products import Gastronom_productsService
-from services.gastronom_seed import ensure_alcohol_category, ensure_gastronom_location_settings, seed_gastronom_if_empty
+from services.gastronom_seed import (
+    ensure_alcohol_category,
+    ensure_gastronom_location_settings,
+    ensure_gastronom_loyalty_settings,
+    ensure_gastronom_loyalty_settings,
+    seed_gastronom_if_empty,
+)
 from services.gastronom_settings import Gastronom_settingsService
 from services.gastronom_delivery import (
     geocode_address,
@@ -22,6 +28,11 @@ from services.gastronom_delivery import (
     validate_order_delivery,
     reverse_geocode,
     enrich_quote_with_location,
+)
+from services.gastronom_loyalty import (
+    gift_comment_line,
+    gift_order_line,
+    resolve_loyalty_gift,
 )
 from services.telegram import notify_gastronom_order, notify_gastronom_status_change
 
@@ -141,6 +152,8 @@ def _validate_order_payload(
     for raw in raw_items:
         if not isinstance(raw, dict):
             raise HTTPException(status_code=400, detail="Некорректный товар в заказе")
+        if raw.get("is_gift"):
+            continue
         prod_id = raw.get("id")
         qty = raw.get("qty")
         if prod_id is None or not isinstance(qty, (int, float)) or qty <= 0:
@@ -182,6 +195,7 @@ async def get_catalog(db: AsyncSession = Depends(get_db)):
     await seed_gastronom_if_empty(db)
     await ensure_alcohol_category(db)
     await ensure_gastronom_location_settings(db)
+    await ensure_gastronom_loyalty_settings(db)
 
     cat_svc = Gastronom_categoriesService(db)
     prod_svc = Gastronom_productsService(db)
@@ -204,6 +218,7 @@ async def get_catalog(db: AsyncSession = Depends(get_db)):
 @router.post("/delivery-quote")
 async def delivery_quote(data: DeliveryQuoteRequest, db: AsyncSession = Depends(get_db)):
     await ensure_gastronom_location_settings(db)
+    await ensure_gastronom_loyalty_settings(db)
     set_svc = Gastronom_settingsService(db)
     settings = await set_svc.get_all_as_dict()
 
@@ -352,10 +367,18 @@ async def create_order(data: OrderData, db: AsyncSession = Depends(get_db)):
         data, products_by_id, min_order, delivery_fee
     )
 
+    subtotal = round(expected_total - delivery_fee, 2)
+    loyalty_gift = resolve_loyalty_gift(subtotal, settings)
+    if loyalty_gift:
+        validated_items.append(gift_order_line(loyalty_gift))
+
     user_comment = (data.comment or "").strip()
     delivery_note = f"Зона доставки: {zone_name} ({int(delivery_fee)} ₸)" if zone_name else ""
-    if delivery_note:
-        full_comment = f"{delivery_note}\n{user_comment}".strip() if user_comment else delivery_note
+    gift_note = gift_comment_line(loyalty_gift) if loyalty_gift else ""
+    notes = [n for n in (delivery_note, gift_note) if n]
+    prefix = "\n".join(notes)
+    if prefix:
+        full_comment = f"{prefix}\n{user_comment}".strip() if user_comment else prefix
     else:
         full_comment = user_comment
 
@@ -386,6 +409,7 @@ async def create_order(data: OrderData, db: AsyncSession = Depends(get_db)):
         "items": validated_items,
         "delivery_fee": delivery_fee,
         "delivery_zone": zone_name,
+        "loyalty_gift": loyalty_gift,
     })
 
     return _serialize(obj)
