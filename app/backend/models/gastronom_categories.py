@@ -11,4 +11,5 @@ class Gastronom_categories(Base):
     image_url = Column(String, nullable=True)
     sort_order = Column(Integer, nullable=True)
     is_active = Column(Boolean, nullable=True, default=True)
+    is_alcohol = Column(Boolean, nullable=True, default=False)
     created_at = Column(String, nullable=True)

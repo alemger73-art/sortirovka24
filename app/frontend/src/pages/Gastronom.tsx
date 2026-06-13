@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { resolveImageSrc } from '@/lib/storage';
@@ -39,6 +39,15 @@ function imgSrc(url: string) {
 
 const CART_KEY = 'gastronom_cart_qty';
 const FAV_KEY = 'gastronom_favorites';
+const AGE_KEY = 'gastronom_age_21';
+
+function isAgeConfirmed(): boolean {
+  try {
+    return localStorage.getItem(AGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 
 function loadCartQty(): Record<number, number> {
   try {
@@ -101,6 +110,27 @@ export default function Gastronom() {
   const [comment, setComment] = useState('');
   const [payment, setPayment] = useState<'cash' | 'kaspi_qr' | 'halyk_qr'>('cash');
   const [submitting, setSubmitting] = useState(false);
+  const [ageGateOpen, setAgeGateOpen] = useState(false);
+  const [ageConfirmed, setAgeConfirmed] = useState(isAgeConfirmed);
+  const pendingAgeAction = useRef<(() => void) | null>(null);
+
+  const alcoholCategoryIds = useMemo(
+    () => new Set(categories.filter((c) => c.is_alcohol).map((c) => c.id)),
+    [categories]
+  );
+
+  const alcoholCategory = useMemo(
+    () => categories.find((c) => c.is_alcohol) ?? null,
+    [categories]
+  );
+
+  const isProductAlcohol = useCallback(
+    (product: GastronomProduct) => alcoholCategoryIds.has(product.category_id),
+    [alcoholCategoryIds]
+  );
+
+  const heroImage = settings.hero_image_url || HERO_IMG;
+  const alcoholBannerImage = settings.alcohol_banner_image || ALCOHOL_IMG;
 
   const loadCatalog = useCallback(async () => {
     setLoading(true);
@@ -152,14 +182,22 @@ export default function Gastronom() {
   const subtotal = useMemo(() => cart.reduce((a, c) => a + c.qty * c.product.price, 0), [cart]);
   const minOrder = Number(settings.min_order || 0);
 
+  const hasAlcoholInCart = useMemo(
+    () => cart.some((c) => isProductAlcohol(c.product)),
+    [cart, isProductAlcohol]
+  );
+
   const favoriteProducts = useMemo(
     () => products.filter((p) => favorites.includes(p.id)),
     [products, favorites]
   );
 
   const popularProducts = useMemo(
-    () => products.filter((p) => p.is_popular).slice(0, 8),
-    [products]
+    () =>
+      products
+        .filter((p) => p.is_popular && (!isProductAlcohol(p) || ageConfirmed))
+        .slice(0, 8),
+    [products, isProductAlcohol, ageConfirmed]
   );
 
   const filteredProducts = useMemo(() => {
@@ -176,12 +214,65 @@ export default function Gastronom() {
     return list;
   }, [products, selectedCategory, searchQuery]);
 
+  function requireAge(then: () => void) {
+    if (ageConfirmed) {
+      then();
+      return;
+    }
+    pendingAgeAction.current = then;
+    setAgeGateOpen(true);
+  }
+
+  function confirmAge() {
+    localStorage.setItem(AGE_KEY, '1');
+    setAgeConfirmed(true);
+    setAgeGateOpen(false);
+    pendingAgeAction.current?.();
+    pendingAgeAction.current = null;
+  }
+
+  function rejectAge() {
+    setAgeGateOpen(false);
+    pendingAgeAction.current = null;
+    toast.error('Раздел доступен только для лиц старше 21 года');
+  }
+
+  function selectCategory(catId: number | null, isAlcohol = false) {
+    const apply = () => {
+      setSelectedCategory(catId);
+      setActiveTab('catalog');
+    };
+    if (isAlcohol) requireAge(apply);
+    else apply();
+  }
+
+  function openCheckout() {
+    if (hasAlcoholInCart && !ageConfirmed) {
+      requireAge(() => setCheckoutOpen(true));
+      return;
+    }
+    setCheckoutOpen(true);
+  }
+
+  function openAlcoholCatalog() {
+    if (alcoholCategory) {
+      selectCategory(alcoholCategory.id, true);
+    } else {
+      setActiveTab('catalog');
+      toast.info('Алкогольная категория скоро появится');
+    }
+  }
+
   function addProduct(product: GastronomProduct) {
-    setCartQty((prev) => ({
-      ...prev,
-      [product.id]: (prev[product.id] || 0) + 1,
-    }));
-    toast.success(`${product.name} добавлен в корзину`);
+    const putInCart = () => {
+      setCartQty((prev) => ({
+        ...prev,
+        [product.id]: (prev[product.id] || 0) + 1,
+      }));
+      toast.success(`${product.name} добавлен в корзину`);
+    };
+    if (isProductAlcohol(product)) requireAge(putInCart);
+    else putInCart();
   }
 
   function changeQty(productId: number, delta: number) {
@@ -203,23 +294,7 @@ export default function Gastronom() {
     setActiveTab('catalog');
   }
 
-  async function checkout() {
-    if (!name.trim() || !phone.trim() || !address.trim()) {
-      toast.error('Заполните имя, телефон и адрес');
-      return;
-    }
-    if (!normalizePhone(phone)) {
-      toast.error('Введите корректный номер телефона');
-      return;
-    }
-    if (cart.length === 0) {
-      toast.error('Корзина пуста');
-      return;
-    }
-    if (subtotal < minOrder) {
-      toast.error(`Минимальный заказ ${formatMoney(minOrder)}`);
-      return;
-    }
+  async function submitOrder() {
     setSubmitting(true);
     const items = cart.map((c) => ({
       id: c.product.id,
@@ -251,12 +326,42 @@ export default function Gastronom() {
     }
   }
 
+  async function checkout() {
+    if (!name.trim() || !phone.trim() || !address.trim()) {
+      toast.error('Заполните имя, телефон и адрес');
+      return;
+    }
+    if (!normalizePhone(phone)) {
+      toast.error('Введите корректный номер телефона');
+      return;
+    }
+    if (cart.length === 0) {
+      toast.error('Корзина пуста');
+      return;
+    }
+    if (subtotal < minOrder) {
+      toast.error(`Минимальный заказ ${formatMoney(minOrder)}`);
+      return;
+    }
+    if (hasAlcoholInCart && !ageConfirmed) {
+      requireAge(() => void submitOrder());
+      return;
+    }
+    await submitOrder();
+  }
+
   function ProductCard({ product }: { product: GastronomProduct }) {
     const inCart = cartQty[product.id] ?? 0;
     const isFav = favorites.includes(product.id);
+    const alcohol = isProductAlcohol(product);
     return (
       <div className="relative overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100">
         <div className="relative aspect-[4/3] bg-gray-50">
+          {alcohol && (
+            <span className="absolute top-2 left-12 z-10 rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+              21+
+            </span>
+          )}
           {product.image_url ? (
             <img
               src={imgSrc(product.image_url)}
@@ -329,13 +434,21 @@ export default function Gastronom() {
               <Menu className="h-5 w-5" />
             </Link>
             <div className="text-center flex-1">
-              <div className="flex items-center justify-center gap-1">
-                <Leaf className="h-4 w-4 text-emerald-600" />
-                <h1 className="text-lg font-serif font-bold text-emerald-700 tracking-wide">
-                  {settings.store_name || 'ГАСТРОНОМ'}
-                </h1>
-              </div>
-              <p className="text-[10px] text-gray-400 uppercase tracking-widest">
+              {settings.logo_url ? (
+                <img
+                  src={imgSrc(settings.logo_url)}
+                  alt={settings.store_name || 'ГАСТРОНОМ'}
+                  className="h-10 mx-auto object-contain"
+                />
+              ) : (
+                <div className="flex items-center justify-center gap-1">
+                  <Leaf className="h-4 w-4 text-emerald-600" />
+                  <h1 className="text-lg font-serif font-bold text-emerald-700 tracking-wide">
+                    {settings.store_name || 'ГАСТРОНОМ'}
+                  </h1>
+                </div>
+              )}
+              <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-0.5">
                 {settings.store_tagline || 'доставка продуктов питания'}
               </p>
             </div>
@@ -420,7 +533,7 @@ export default function Gastronom() {
               <div className="space-y-5 pb-4">
                 {/* Hero banner */}
                 <div className="mx-4 mt-4 relative overflow-hidden rounded-2xl">
-                  <img src={HERO_IMG} alt="" className="w-full h-48 object-cover" />
+                  <img src={imgSrc(heroImage)} alt="" className="w-full h-48 object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                   <div className="absolute inset-0 p-5 flex flex-col justify-end">
                     <span className="absolute top-3 right-3 bg-white/20 backdrop-blur text-white text-xs px-2 py-0.5 rounded-full">
@@ -458,7 +571,7 @@ export default function Gastronom() {
                       <button
                         key={cat.id}
                         type="button"
-                        onClick={() => { setSelectedCategory(cat.id); setActiveTab('catalog'); }}
+                        onClick={() => selectCategory(cat.id, !!cat.is_alcohol)}
                         className="flex flex-col items-center shrink-0 w-20"
                       >
                         <div className="w-16 h-16 rounded-2xl overflow-hidden bg-gray-100 mb-1.5 ring-2 ring-transparent hover:ring-emerald-200 transition-all">
@@ -468,7 +581,10 @@ export default function Gastronom() {
                             <div className="w-full h-full flex items-center justify-center text-2xl">🥗</div>
                           )}
                         </div>
-                        <span className="text-[10px] text-gray-600 text-center leading-tight line-clamp-2">{cat.name}</span>
+                        <span className="text-[10px] text-gray-600 text-center leading-tight line-clamp-2">
+                          {cat.name}
+                          {cat.is_alcohol && <span className="text-amber-600"> 21+</span>}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -495,14 +611,14 @@ export default function Gastronom() {
 
                 {/* Alcohol banner */}
                 <div className="mx-4 relative overflow-hidden rounded-2xl bg-emerald-900">
-                  <img src={ALCOHOL_IMG} alt="" className="absolute right-0 top-0 h-full w-1/2 object-cover opacity-60" />
+                  <img src={imgSrc(alcoholBannerImage)} alt="" className="absolute right-0 top-0 h-full w-1/2 object-cover opacity-60" />
                   <div className="relative p-5 max-w-[60%]">
                     <p className="text-white/60 text-xs mb-1">21+</p>
                     <h3 className="text-white font-bold text-sm mb-1">Алкогольная продукция (21+)</h3>
                     <p className="text-white/70 text-xs mb-3">Широкий выбор напитков с доставкой на дом</p>
                     <button
                       type="button"
-                      onClick={() => { setSelectedCategory(null); setActiveTab('catalog'); }}
+                      onClick={openAlcoholCatalog}
                       className="px-4 py-1.5 rounded-full border border-white/40 text-white text-xs hover:bg-white/10"
                     >
                       Смотреть каталог
@@ -550,12 +666,12 @@ export default function Gastronom() {
                     <button
                       key={cat.id}
                       type="button"
-                      onClick={() => setSelectedCategory(cat.id)}
+                      onClick={() => selectCategory(cat.id, !!cat.is_alcohol)}
                       className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                         selectedCategory === cat.id ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600'
                       }`}
                     >
-                      {cat.name}
+                      {cat.name}{cat.is_alcohol ? ' 21+' : ''}
                     </button>
                   ))}
                 </div>
@@ -633,7 +749,7 @@ export default function Gastronom() {
                       <Button
                         className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 rounded-xl text-base"
                         disabled={subtotal < minOrder}
-                        onClick={() => setCheckoutOpen(true)}
+                        onClick={openCheckout}
                       >
                         Оформить заказ
                       </Button>
@@ -740,12 +856,38 @@ export default function Gastronom() {
                     <span className="text-emerald-700">{formatMoney(subtotal)}</span>
                   </div>
                 </div>
+                {hasAlcoholInCart && (
+                  <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
+                    В заказе есть алкоголь (21+). При получении потребуется документ.
+                  </p>
+                )}
                 <Button
                   className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 rounded-xl"
                   onClick={checkout}
                   disabled={submitting}
                 >
                   {submitting ? 'Отправка...' : 'Подтвердить заказ'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Age gate 21+ */}
+        {ageGateOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl text-center">
+              <p className="text-3xl font-bold text-emerald-700 mb-2">21+</p>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">Подтвердите возраст</h2>
+              <p className="text-sm text-gray-500 mb-6">
+                Раздел алкогольной продукции доступен только лицам старше 21 года.
+              </p>
+              <div className="flex flex-col gap-2">
+                <Button className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={confirmAge}>
+                  Мне есть 21 год
+                </Button>
+                <Button variant="outline" className="w-full" onClick={rejectAge}>
+                  Мне нет 21 года
                 </Button>
               </div>
             </div>

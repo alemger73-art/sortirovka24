@@ -14,7 +14,7 @@ from core.database import get_db
 from services.gastronom_categories import Gastronom_categoriesService
 from services.gastronom_orders import Gastronom_ordersService
 from services.gastronom_products import Gastronom_productsService
-from services.gastronom_seed import seed_gastronom_if_empty
+from services.gastronom_seed import ensure_alcohol_category, seed_gastronom_if_empty
 from services.gastronom_settings import Gastronom_settingsService
 from services.telegram import notify_gastronom_order
 
@@ -41,6 +41,7 @@ class CategoryData(BaseModel):
     image_url: Optional[str] = ""
     sort_order: Optional[int] = 0
     is_active: Optional[bool] = True
+    is_alcohol: Optional[bool] = False
 
 
 class CategoryUpdate(BaseModel):
@@ -48,6 +49,7 @@ class CategoryUpdate(BaseModel):
     image_url: Optional[str] = None
     sort_order: Optional[int] = None
     is_active: Optional[bool] = None
+    is_alcohol: Optional[bool] = None
 
 
 class ProductData(BaseModel):
@@ -97,6 +99,7 @@ def _serialize(obj) -> Dict[str, Any]:
 @router.get("/catalog")
 async def get_catalog(db: AsyncSession = Depends(get_db)):
     await seed_gastronom_if_empty(db)
+    await ensure_alcohol_category(db)
 
     cat_svc = Gastronom_categoriesService(db)
     prod_svc = Gastronom_productsService(db)

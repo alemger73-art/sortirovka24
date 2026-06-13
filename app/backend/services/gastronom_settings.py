@@ -15,6 +15,9 @@ DEFAULT_SETTINGS = {
     "hero_title": "ДОСТАВКА ПРОДУКТОВ ПИТАНИЯ ПО СОРТИРОВКЕ",
     "store_name": "ГАСТРОНОМ",
     "store_tagline": "доставка продуктов питания",
+    "logo_url": "",
+    "hero_image_url": "",
+    "alcohol_banner_image": "",
 }
 
 

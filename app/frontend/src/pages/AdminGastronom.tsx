@@ -84,6 +84,7 @@ export default function AdminGastronom() {
         ...editingCat,
         name: editingCat.name.trim(),
         is_active: editingCat.is_active !== false,
+        is_alcohol: !!editingCat.is_alcohol,
         sort_order: Number(editingCat.sort_order || categories.length + 1),
       } as GastronomCategory & { name: string });
       toast.success('Категория сохранена');
@@ -288,6 +289,10 @@ export default function AdminGastronom() {
             <div className="bg-white border rounded-xl p-4 space-y-3">
               <Input placeholder="Название категории" value={editingCat.name || ''} onChange={(e) => setEditingCat(c => ({ ...c, name: e.target.value }))} />
               <Input type="number" placeholder="Порядок" value={editingCat.sort_order ?? ''} onChange={(e) => setEditingCat(c => ({ ...c, sort_order: Number(e.target.value) }))} />
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={!!editingCat.is_alcohol} onChange={(e) => setEditingCat(c => ({ ...c, is_alcohol: e.target.checked }))} />
+                Алкогольная категория (21+)
+              </label>
               <ImageUpload value={editingCat.image_url || ''} onChange={(url) => setEditingCat(c => ({ ...c, image_url: url }))} />
               <div className="flex gap-2">
                 <Button onClick={handleSaveCategory} className="bg-emerald-600 hover:bg-emerald-700"><Save className="h-4 w-4 mr-1" /> Сохранить</Button>
@@ -303,7 +308,7 @@ export default function AdminGastronom() {
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-sm">{c.name}</p>
-                  <p className="text-xs text-gray-400">#{c.sort_order}</p>
+                  <p className="text-xs text-gray-400">#{c.sort_order}{c.is_alcohol ? ' · 21+' : ''}</p>
                 </div>
                 <Button size="sm" variant="outline" onClick={() => setEditingCat(c)}><Pencil className="h-3.5 w-3.5" /></Button>
                 <Button size="sm" variant="outline" className="text-red-600" onClick={() => handleDeleteCategory(c.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
@@ -367,6 +372,27 @@ export default function AdminGastronom() {
       {/* Settings */}
       {section === 'settings' && (
         <div className="bg-white border rounded-xl p-4 space-y-4 max-w-lg">
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Логотип магазина</label>
+            <ImageUpload
+              value={settings.logo_url || ''}
+              onChange={(url) => setSettings(s => ({ ...s, logo_url: url }))}
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Фото главного баннера</label>
+            <ImageUpload
+              value={settings.hero_image_url || ''}
+              onChange={(url) => setSettings(s => ({ ...s, hero_image_url: url }))}
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Фото баннера алкоголя (21+)</label>
+            <ImageUpload
+              value={settings.alcohol_banner_image || ''}
+              onChange={(url) => setSettings(s => ({ ...s, alcohol_banner_image: url }))}
+            />
+          </div>
           {[
             ['store_name', 'Название магазина'],
             ['store_tagline', 'Подзаголовок'],

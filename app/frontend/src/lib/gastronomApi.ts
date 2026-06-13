@@ -35,6 +35,7 @@ export interface GastronomCategory {
   image_url: string;
   sort_order: number;
   is_active: boolean;
+  is_alcohol?: boolean;
 }
 
 export interface GastronomProduct {
@@ -57,7 +58,10 @@ export interface GastronomSettings {
   hero_title: string;
   store_name: string;
   store_tagline: string;
-  [key: string]: string;
+  logo_url?: string;
+  hero_image_url?: string;
+  alcohol_banner_image?: string;
+  [key: string]: string | undefined;
 }
 
 export interface GastronomOrder {

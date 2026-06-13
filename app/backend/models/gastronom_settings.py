@@ -1,5 +1,5 @@
 from core.database import Base
-from sqlalchemy import Column, String
+from sqlalchemy import Column, Integer, String
 
 
 class Gastronom_settings(Base):
