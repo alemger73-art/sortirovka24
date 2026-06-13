@@ -541,6 +541,8 @@ export default function AdminGastronom() {
             ['store_tagline', 'Подзаголовок'],
             ['hero_title', 'Заголовок баннера'],
             ['default_address', 'Адрес по умолчанию'],
+            ['delivery_city', 'Город доставки (для поиска адреса)'],
+            ['delivery_area', 'Район доставки (для подсказок клиенту)'],
             ['delivery_time', 'Время доставки'],
             ['min_order', 'Минимальный заказ (₸)'],
             ['delivery_fee', 'Стоимость доставки (₸, если зоны не настроены)'],

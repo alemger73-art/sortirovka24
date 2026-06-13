@@ -23,7 +23,7 @@ export interface DeliveryQuote {
   location_warning?: string;
 }
 
-export const DEFAULT_STORE: [number, number] = [43.2250, 76.9120];
+export const DEFAULT_STORE: [number, number] = [49.9774, 73.2137];
 
 export const ZONE_COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 

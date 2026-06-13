@@ -13,9 +13,14 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-# Sortirovka / Almaty area (Жекибаева)
-DEFAULT_STORE_LAT = 43.2250
-DEFAULT_STORE_LNG = 76.9120
+# Sortirovka, Karaganda (ул. Жекибаева 129)
+DEFAULT_STORE_LAT = 49.9774
+DEFAULT_STORE_LNG = 73.2137
+# Legacy seed values — auto-migrated on catalog load
+LEGACY_ALMATY_STORE_LAT = 43.2250
+LEGACY_ALMATY_STORE_LNG = 76.9120
+DEFAULT_DELIVERY_CITY = "Караганда"
+DEFAULT_SERVICE_AREA = "Сортировка, Караганда"
 
 ZONE_COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6"]
 
@@ -79,7 +84,40 @@ def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
 
 
 def get_delivery_city(settings: Dict[str, str]) -> str:
-    return (settings.get("delivery_city") or settings.get("store_city") or "Алматы").strip()
+    return (
+        settings.get("delivery_city")
+        or settings.get("store_city")
+        or DEFAULT_DELIVERY_CITY
+    ).strip()
+
+
+def get_service_area_label(settings: Dict[str, str]) -> str:
+    return (settings.get("delivery_area") or DEFAULT_SERVICE_AREA).strip()
+
+
+def _normalize_city_token(name: str) -> str:
+    n = name.lower()
+    if "алмат" in n or "almaty" in n:
+        return "almaty"
+    if "караган" in n or "qarag" in n or "qarağ" in n:
+        return "karaganda"
+    if "сортир" in n or "surypt" in n or "сұрып" in n:
+        return "sortirovka"
+    return n.strip()
+
+
+def cities_compatible(detected: str, store_city: str) -> bool:
+    if not detected or not store_city:
+        return True
+    d = _normalize_city_token(detected)
+    s = _normalize_city_token(store_city)
+    if d == s:
+        return True
+    if s == "karaganda" and d in ("karaganda", "sortirovka"):
+        return True
+    if d == "sortirovka" and s == "karaganda":
+        return True
+    return s in d or d in s
 
 
 def enrich_quote_with_location(
@@ -99,21 +137,25 @@ def enrich_quote_with_location(
         quote["detected_city"] = detected_city
 
     store_city = get_delivery_city(settings)
+    service_area = get_service_area_label(settings)
     # Delivery zones are local — warn if point is far from the store
     if dist > 25:
         city_part = f" ({detected_city})" if detected_city else ""
         quote["location_warning"] = (
             f"Точка на карте в {dist:.0f} км от магазина{city_part}. "
-            f"Доставка работает в районе {store_city}. "
+            f"Доставка работает в районе {service_area}. "
             + ("Если GPS ошибся — введите адрес вручную." if via_gps else "Проверьте адрес.")
         )
-    elif via_gps and detected_city and detected_city.lower() not in store_city.lower():
-        # Different city name but still close (edge case)
-        if store_city.lower() not in detected_city.lower():
-            quote["location_warning"] = (
-                f"GPS определил город: {detected_city}. "
-                f"Магазин доставляет в {store_city}. Если это не так — введите адрес вручную."
-            )
+        quote["available"] = False
+        quote["message"] = quote.get("message") or (
+            f"Этот адрес далеко от зоны доставки ({service_area}). "
+            "Укажите адрес в Сортировке или нажмите «Найти на карте»."
+        )
+    elif via_gps and detected_city and not cities_compatible(detected_city, store_city):
+        quote["location_warning"] = (
+            f"GPS определил: {detected_city}. "
+            f"Магазин доставляет в {service_area}. Если это не так — введите адрес вручную."
+        )
     return quote
 
 
@@ -223,7 +265,7 @@ def _parse_street_house(query: str) -> Optional[Tuple[str, str, str]]:
     return m.group(1).strip(), m.group(2), m.group(3) or ""
 
 
-def _geocode_query_variants(address: str, delivery_city: str = "Алматы") -> List[str]:
+def _geocode_query_variants(address: str, delivery_city: str = DEFAULT_DELIVERY_CITY) -> List[str]:
     """Build search queries for local KZ addresses near the store."""
     query = _normalize_address_input(address)
     if len(query) < 3:
@@ -240,12 +282,21 @@ def _geocode_query_variants(address: str, delivery_city: str = "Алматы") -
 
     add(query)
     lower = query.lower()
-    has_city = "алмат" in lower or "almaty" in lower or delivery_city.lower() in lower
+    has_city = (
+        "алмат" in lower
+        or "almaty" in lower
+        or "караган" in lower
+        or "karaganda" in lower
+        or delivery_city.lower() in lower
+    )
     has_street = bool(re.search(STREET_TYPE_RE, lower, re.I))
 
     if not has_city:
         add(f"{query}, {delivery_city}, Казахстан")
-        if delivery_city.lower() != "almaty":
+        if "караган" in delivery_city.lower():
+            add(f"{query}, Сортировка, {delivery_city}, Казахстан")
+            add(f"{query}, мкр. Сортировка, {delivery_city}, Казахстан")
+        elif "алмат" in delivery_city.lower():
             add(f"{query}, Almaty, Kazakhstan")
 
     parsed = _parse_street_house(query)
@@ -326,13 +377,20 @@ async def geocode_address(
                 except Exception as e:
                     logger.debug("Nominatim query failed for %r: %s", candidate[:60], e)
 
-            # Structured search: street + house in Almaty
+            # Structured search: street + house in delivery city
             parsed = _parse_street_house(_normalize_address_input(address))
             if parsed:
                 street_name, house, _apt = parsed
                 prefix = _street_prefix_from_query(address)
                 street_line = f"{prefix} {street_name} {house}" if prefix != "улица" else f"{street_name} {house}"
-                for city in (delivery_city, "Almaty" if delivery_city != "Almaty" else "Алматы"):
+                city_variants = [delivery_city]
+                if "караган" in delivery_city.lower():
+                    city_variants.append("Karaganda")
+                elif delivery_city.lower() not in ("almaty", "алматы"):
+                    city_variants.append(delivery_city)
+                else:
+                    city_variants.extend(["Almaty", "Алматы"])
+                for city in city_variants:
                     try:
                         coords = await _nominatim_search(
                             client,
@@ -412,7 +470,7 @@ async def reverse_geocode(lat: float, lng: float) -> Tuple[Optional[str], str]:
 
 
 def default_zones_json() -> str:
-    """Starter template for Sortirovka / Almaty area."""
+    """Starter template for Sortirovka / Karaganda area."""
     lat, lng = DEFAULT_STORE_LAT, DEFAULT_STORE_LNG
     d = 0.012
     zones = [

@@ -14,7 +14,7 @@ from core.database import get_db
 from services.gastronom_categories import Gastronom_categoriesService
 from services.gastronom_orders import Gastronom_ordersService
 from services.gastronom_products import Gastronom_productsService
-from services.gastronom_seed import ensure_alcohol_category, seed_gastronom_if_empty
+from services.gastronom_seed import ensure_alcohol_category, ensure_gastronom_location_settings, seed_gastronom_if_empty
 from services.gastronom_settings import Gastronom_settingsService
 from services.gastronom_delivery import (
     geocode_address,
@@ -181,6 +181,7 @@ def _serialize(obj) -> Dict[str, Any]:
 async def get_catalog(db: AsyncSession = Depends(get_db)):
     await seed_gastronom_if_empty(db)
     await ensure_alcohol_category(db)
+    await ensure_gastronom_location_settings(db)
 
     cat_svc = Gastronom_categoriesService(db)
     prod_svc = Gastronom_productsService(db)
@@ -202,6 +203,7 @@ async def get_catalog(db: AsyncSession = Depends(get_db)):
 
 @router.post("/delivery-quote")
 async def delivery_quote(data: DeliveryQuoteRequest, db: AsyncSession = Depends(get_db)):
+    await ensure_gastronom_location_settings(db)
     set_svc = Gastronom_settingsService(db)
     settings = await set_svc.get_all_as_dict()
 

@@ -8,7 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from services.gastronom_categories import Gastronom_categoriesService
 from services.gastronom_products import Gastronom_productsService
 from services.gastronom_settings import Gastronom_settingsService
-from services.gastronom_delivery import default_zones_json
+from services.gastronom_delivery import (
+    default_zones_json,
+    LEGACY_ALMATY_STORE_LAT,
+    LEGACY_ALMATY_STORE_LNG,
+    DEFAULT_STORE_LAT,
+    DEFAULT_STORE_LNG,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,13 +45,16 @@ DEFAULT_ALCOHOL_PRODUCTS = [
 ]
 
 DEFAULT_SETTINGS = {
-    "default_address": "Жекибаева 129",
+    "default_address": "ул. Жекибаева 129",
     "delivery_time": "Доставка 30-60 мин",
     "min_order": "2000",
     "delivery_fee": "0",
     "store_phone": "",
-    "store_lat": "43.2250",
-    "store_lng": "76.9120",
+    "store_lat": str(DEFAULT_STORE_LAT),
+    "store_lng": str(DEFAULT_STORE_LNG),
+    "delivery_city": "Караганда",
+    "store_city": "Караганда",
+    "delivery_area": "Сортировка, Караганда",
     "delivery_zones": default_zones_json(),
     "outside_zone_message": "Доставка по этому адресу недоступна. Выберите адрес в зоне доставки или позвоните в магазин.",
     "hero_title": "ДОСТАВКА ПРОДУКТОВ ПИТАНИЯ ПО СОРТИРОВКЕ",
@@ -143,3 +152,50 @@ async def seed_gastronom_if_empty(db: AsyncSession) -> bool:
 
     logger.info("ГАСТРОНОМ default catalog seeded")
     return True
+
+
+def _is_legacy_almaty_coords(lat: float, lng: float) -> bool:
+    return (
+        abs(lat - LEGACY_ALMATY_STORE_LAT) < 0.01
+        and abs(lng - LEGACY_ALMATY_STORE_LNG) < 0.01
+    )
+
+
+async def ensure_gastronom_location_settings(db: AsyncSession) -> bool:
+    """
+    Fix store coordinates left from early templates (Almaty instead of Sortirovka/Karaganda).
+    Returns True if settings were updated.
+    """
+    set_svc = Gastronom_settingsService(db)
+    settings = await set_svc.get_all_as_dict()
+    try:
+        lat = float(settings.get("store_lat") or 0)
+        lng = float(settings.get("store_lng") or 0)
+    except ValueError:
+        lat, lng = 0.0, 0.0
+
+    legacy = _is_legacy_almaty_coords(lat, lng)
+    missing_city = not (settings.get("delivery_city") or settings.get("store_city"))
+
+    if not legacy and not missing_city:
+        return False
+
+    patch: dict[str, str] = {}
+    if legacy:
+        patch.update({
+            "store_lat": str(DEFAULT_STORE_LAT),
+            "store_lng": str(DEFAULT_STORE_LNG),
+            "delivery_zones": default_zones_json(),
+        })
+        logger.info("Migrated ГАСТРОНОМ store location from legacy Almaty coords to Sortirovka/Karaganda")
+    if missing_city or legacy:
+        patch.update({
+            "delivery_city": "Караганда",
+            "store_city": "Караганда",
+            "delivery_area": "Сортировка, Караганда",
+        })
+
+    if patch:
+        await set_svc.upsert_many(patch)
+        return True
+    return False

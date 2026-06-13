@@ -139,7 +139,7 @@ export default function Gastronom() {
   const [categories, setCategories] = useState<GastronomCategory[]>([]);
   const [products, setProducts] = useState<GastronomProduct[]>([]);
   const [settings, setSettings] = useState<GastronomSettings>({
-    default_address: 'Жекибаева 129',
+    default_address: 'ул. Жекибаева 129',
     delivery_time: 'Доставка 30-60 мин',
     min_order: '2000',
     hero_title: 'ДОСТАВКА ПРОДУКТОВ ПИТАНИЯ ПО СОРТИРОВКЕ',
@@ -334,7 +334,13 @@ export default function Gastronom() {
     () => address.trim() || settings.default_address?.trim() || '',
     [address, settings.default_address]
   );
-  const deliveryReady = !hasDeliveryZones || (deliveryQuote?.available === true && !deliveryQuoteLoading);
+  const deliveryReady =
+    !hasDeliveryZones
+    || (
+      deliveryQuote?.available === true
+      && !deliveryQuote?.location_warning
+      && !deliveryQuoteLoading
+    );
 
   useEffect(() => {
     if (deliveryReady && !prevDeliveryReady.current && hasDeliveryZones) {
