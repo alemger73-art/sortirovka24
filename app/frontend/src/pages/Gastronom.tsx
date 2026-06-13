@@ -22,6 +22,7 @@ import DeliveryAddressPicker from '@/components/gastronom/DeliveryAddressPicker'
 import GastronomSideMenu from '@/components/gastronom/GastronomSideMenu';
 import GastronomPortalBar from '@/components/gastronom/GastronomPortalBar';
 import LoyaltyGiftBanner from '@/components/gastronom/LoyaltyGiftBanner';
+import CatalogCategoryStrip from '@/components/gastronom/CatalogCategoryStrip';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -1146,30 +1147,39 @@ export default function Gastronom() {
                 </div>
                 </div>
 
-                {/* Categories */}
+                {/* Categories — home showcase */}
                 <div className={PAGE_X}>
-                  <h2 className="hidden md:block font-bold text-gray-900 mb-4 text-lg">Категории</h2>
-                  <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide md:grid md:grid-cols-4 lg:grid-cols-6 md:overflow-visible md:gap-4">
+                  <div className="flex items-end justify-between gap-2 mb-3 md:mb-4">
+                    <h2 className="font-bold text-gray-900 text-base md:text-lg">Категории</h2>
+                    <span className="md:hidden text-[11px] font-medium text-emerald-700">Листайте →</span>
+                  </div>
+                  <div className="relative md:static">
+                    <div
+                      className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-gray-50 to-transparent md:hidden"
+                      aria-hidden
+                    />
+                    <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-4 lg:grid-cols-6 md:overflow-visible md:gap-4 md:pb-0">
                     {visibleCategories.map((cat) => (
                       <button
                         key={cat.id}
                         type="button"
                         onClick={() => selectCategory(cat.id, !!cat.is_alcohol)}
-                        className="flex flex-col items-center shrink-0 w-20 md:w-auto group"
+                        className="flex flex-col items-center shrink-0 w-[4.75rem] md:w-auto snap-start group touch-manipulation"
                       >
-                        <div className="w-16 h-16 md:w-full md:aspect-square md:max-h-28 rounded-2xl overflow-hidden bg-gray-100 mb-1.5 ring-2 ring-transparent group-hover:ring-emerald-200 transition-all">
+                        <div className="w-[4.25rem] h-[4.25rem] md:w-full md:aspect-square md:max-h-28 rounded-2xl overflow-hidden bg-white mb-1.5 ring-2 ring-emerald-100 shadow-sm group-hover:ring-emerald-300 group-active:scale-95 transition-all">
                           {cat.image_url ? (
                             <img src={imgSrc(cat.image_url)} alt={cat.name} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-2xl">🥗</div>
                           )}
                         </div>
-                        <span className="text-[10px] md:text-sm text-gray-600 text-center leading-tight line-clamp-2 px-1">
+                        <span className="text-[11px] md:text-sm text-gray-700 font-medium text-center leading-tight line-clamp-2 px-0.5">
                           {cat.name}
                           {cat.is_alcohol && <span className="text-amber-600"> 21+</span>}
                         </span>
                       </button>
                     ))}
+                    </div>
                   </div>
                 </div>
 
@@ -1263,31 +1273,14 @@ export default function Gastronom() {
                       placeholder="Поиск товаров..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="rounded-xl md:hidden"
+                      className="rounded-xl lg:hidden"
                     />
-                    <div className="flex gap-2 overflow-x-auto pb-1 lg:hidden md:flex-wrap md:overflow-visible">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedCategory(null)}
-                        className={`shrink-0 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors ${
-                          !selectedCategory ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                      >
-                        Все
-                      </button>
-                      {visibleCategories.map((cat) => (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => selectCategory(cat.id, !!cat.is_alcohol)}
-                          className={`shrink-0 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors ${
-                            selectedCategory === cat.id ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                        >
-                          {cat.name}{cat.is_alcohol ? ' 21+' : ''}
-                        </button>
-                      ))}
-                    </div>
+                    <CatalogCategoryStrip
+                      categories={visibleCategories}
+                      selectedId={selectedCategory}
+                      onSelectAll={() => setSelectedCategory(null)}
+                      onSelectCategory={(id, isAlcohol) => selectCategory(id, isAlcohol)}
+                    />
                     <div className={PRODUCT_GRID}>
                       {filteredProducts.map((p) => (
                         <ProductCard key={p.id} product={p} />
