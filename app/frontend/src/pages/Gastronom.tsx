@@ -32,6 +32,20 @@ interface CartLine {
 
 type Tab = 'home' | 'catalog' | 'cart' | 'favorites' | 'profile';
 
+const NAV_ITEMS: { id: Tab; icon: typeof Home; label: string }[] = [
+  { id: 'home', icon: Home, label: 'Главная' },
+  { id: 'catalog', icon: LayoutGrid, label: 'Каталог' },
+  { id: 'cart', icon: ShoppingCart, label: 'Корзина' },
+  { id: 'favorites', icon: Heart, label: 'Избранное' },
+  { id: 'profile', icon: User, label: 'Профиль' },
+];
+
+const PRODUCT_GRID =
+  'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5';
+const PAGE_X = 'px-4 sm:px-6 lg:px-8 xl:px-10';
+const CATALOG_SIDEBAR =
+  'hidden lg:block lg:sticky lg:top-36 lg:self-start space-y-1 rounded-2xl border border-gray-100 bg-white p-3 shadow-sm';
+
 function imgSrc(url: string) {
   if (!url) return '';
   return resolveImageSrc(url) || url;
@@ -393,20 +407,56 @@ export default function Gastronom() {
             </span>
           )}
         </div>
-        <div className="p-3">
-          <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2">{product.name}</h3>
-          {product.weight && <p className="text-xs text-gray-400 mt-0.5">{product.weight}</p>}
-          <p className="mt-1.5 font-bold text-emerald-700">{formatMoney(product.price)}</p>
+        <div className="p-3 md:p-4">
+          <h3 className="font-semibold text-gray-900 text-sm md:text-base leading-tight line-clamp-2">{product.name}</h3>
+          {product.weight && <p className="text-xs md:text-sm text-gray-400 mt-0.5">{product.weight}</p>}
+          <p className="mt-1.5 font-bold text-emerald-700 text-sm md:text-base">{formatMoney(product.price)}</p>
         </div>
       </div>
+    );
+  }
+
+  function renderNavButton(tab: Tab, Icon: typeof Home, label: string, compact = false) {
+    const isActive = activeTab === tab;
+    return (
+      <button
+        key={tab}
+        type="button"
+        onClick={() => setActiveTab(tab)}
+        className={
+          compact
+            ? `flex-1 flex flex-col items-center py-2.5 gap-0.5 relative transition-colors ${
+                isActive ? 'text-emerald-600' : 'text-gray-400'
+              }`
+            : `flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                isActive
+                  ? 'bg-emerald-50 text-emerald-700'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`
+        }
+      >
+        <Icon className={compact ? 'h-5 w-5' : 'h-4 w-4'} />
+        {tab === 'cart' && cartCount > 0 && (
+          <span
+            className={
+              compact
+                ? 'absolute top-1.5 right-[calc(50%-14px)] flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-[9px] font-bold text-white'
+                : 'ml-0.5 flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white'
+            }
+          >
+            {cartCount}
+          </span>
+        )}
+        <span className={compact ? 'text-[10px] font-medium' : ''}>{label}</span>
+      </button>
     );
   }
 
   if (orderDone) {
     return (
       <Layout hideHeader>
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 pb-24">
-          <div className="max-w-sm w-full bg-white rounded-3xl p-8 shadow-lg text-center">
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 pb-24 md:pb-8">
+          <div className="max-w-md w-full bg-white rounded-3xl p-8 md:p-10 shadow-lg text-center">
             <CheckCircle2 className="h-16 w-16 text-emerald-500 mx-auto mb-4" />
             <h1 className="text-xl font-bold text-gray-900 mb-2">Заказ принят!</h1>
             <p className="text-gray-500 text-sm mb-6">
@@ -426,39 +476,63 @@ export default function Gastronom() {
 
   return (
     <Layout hideHeader>
-      <div className="min-h-screen bg-white pb-20 max-w-lg mx-auto relative">
+      <div className="min-h-screen bg-gray-50 pb-20 md:pb-8">
+        <div className="max-w-7xl mx-auto relative">
         {/* Header */}
-        <header className="sticky top-0 z-40 bg-white border-b border-gray-100">
-          <div className="flex items-center justify-between px-4 py-3">
-            <Link to="/" className="p-2 -ml-2 text-gray-600" aria-label="На портал">
-              <Menu className="h-5 w-5" />
+        <header className="sticky top-0 z-40 bg-white border-b border-gray-100 shadow-sm">
+          {/* Mobile / tablet top bar */}
+          <div className={`flex items-center justify-between ${PAGE_X} py-3 md:py-4 gap-4 lg:hidden`}>
+            <Link
+              to="/"
+              className="p-2 -ml-2 text-gray-600 hover:text-emerald-600 transition-colors shrink-0"
+              aria-label="На портал"
+            >
+              <Menu className="h-5 w-5 md:h-6 md:w-6" />
             </Link>
-            <div className="text-center flex-1">
+            <div className="text-center flex-1 min-w-0">
               {settings.logo_url ? (
                 <img
                   src={imgSrc(settings.logo_url)}
                   alt={settings.store_name || 'ГАСТРОНОМ'}
-                  className="h-10 mx-auto object-contain"
+                  className="h-10 md:h-12 mx-auto object-contain"
                 />
               ) : (
-                <div className="flex items-center justify-center gap-1">
-                  <Leaf className="h-4 w-4 text-emerald-600" />
-                  <h1 className="text-lg font-serif font-bold text-emerald-700 tracking-wide">
+                <div className="flex items-center justify-center gap-1.5">
+                  <Leaf className="h-4 w-4 md:h-5 md:w-5 text-emerald-600" />
+                  <h1 className="text-lg md:text-2xl font-serif font-bold text-emerald-700 tracking-wide">
                     {settings.store_name || 'ГАСТРОНОМ'}
                   </h1>
                 </div>
               )}
-              <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-0.5">
+              <p className="text-[10px] md:text-xs text-gray-400 uppercase tracking-widest mt-0.5 md:mt-1">
                 {settings.store_tagline || 'доставка продуктов питания'}
               </p>
             </div>
-            <div className="flex items-center gap-1">
-              <button type="button" className="p-2 text-gray-600" aria-label="Поиск" onClick={openSearch}>
+            <div className="flex items-center gap-1 md:gap-2 shrink-0">
+              <button
+                type="button"
+                className="p-2 text-gray-600 hover:text-emerald-600 md:hidden"
+                aria-label="Поиск"
+                onClick={openSearch}
+              >
                 <Search className="h-5 w-5" />
               </button>
               <button
                 type="button"
-                className="relative p-2 text-gray-600"
+                className="relative hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors"
+                onClick={() => setActiveTab('cart')}
+              >
+                <ShoppingCart className="h-4 w-4" />
+                Корзина
+                {cartCount > 0 && (
+                  <span className="flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-white text-emerald-700 text-xs font-bold">
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                className="relative p-2 text-gray-600 md:hidden"
                 onClick={() => setActiveTab('cart')}
                 aria-label="Корзина"
               >
@@ -472,9 +546,84 @@ export default function Gastronom() {
             </div>
           </div>
 
+          {/* Desktop top bar: logo + search + nav + cart in one row */}
+          <div className={`hidden lg:flex items-center gap-6 ${PAGE_X} py-4`}>
+            <Link
+              to="/"
+              className="p-2 -ml-2 text-gray-600 hover:text-emerald-600 transition-colors shrink-0"
+              aria-label="На портал"
+            >
+              <Menu className="h-6 w-6" />
+            </Link>
+            <div className="shrink-0">
+              {settings.logo_url ? (
+                <img
+                  src={imgSrc(settings.logo_url)}
+                  alt={settings.store_name || 'ГАСТРОНОМ'}
+                  className="h-12 xl:h-14 object-contain"
+                />
+              ) : (
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <Leaf className="h-5 w-5 text-emerald-600" />
+                    <h1 className="text-2xl xl:text-3xl font-serif font-bold text-emerald-700 tracking-wide">
+                      {settings.store_name || 'ГАСТРОНОМ'}
+                    </h1>
+                  </div>
+                  <p className="text-xs text-gray-400 uppercase tracking-widest mt-0.5">
+                    {settings.store_tagline || 'доставка продуктов питания'}
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="flex-1 max-w-md xl:max-w-lg">
+              <Input
+                placeholder="Поиск товаров..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (e.target.value && activeTab === 'home') setActiveTab('catalog');
+                }}
+                className="rounded-xl"
+              />
+            </div>
+            <nav className="flex items-center gap-1 shrink-0">
+              {NAV_ITEMS.map(({ id, icon, label }) => renderNavButton(id, icon, label))}
+            </nav>
+            <button
+              type="button"
+              className="relative flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors shrink-0"
+              onClick={() => setActiveTab('cart')}
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Корзина
+              {cartCount > 0 && (
+                <span className="flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-white text-emerald-700 text-xs font-bold">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Tablet: search + nav below logo row */}
+          <div className={`hidden md:block lg:hidden ${PAGE_X} pb-3 space-y-3`}>
+            <Input
+              placeholder="Поиск товаров..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                if (e.target.value && activeTab === 'home') setActiveTab('catalog');
+              }}
+              className="rounded-xl max-w-xl"
+            />
+            <nav className="flex items-center gap-1 overflow-x-auto">
+              {NAV_ITEMS.map(({ id, icon, label }) => renderNavButton(id, icon, label))}
+            </nav>
+          </div>
+
           <button
             type="button"
-            className="flex items-center justify-between w-full px-4 py-2 bg-gray-50 text-sm"
+            className={`flex items-center justify-between w-full ${PAGE_X} py-2 md:py-3 bg-gray-50 text-sm md:text-base border-t border-gray-100`}
             onClick={() => setAddressEditing((v) => !v)}
           >
             <div className="flex items-center gap-1.5 text-gray-700 min-w-0">
@@ -489,7 +638,7 @@ export default function Gastronom() {
           </button>
 
           {(searchOpen || searchQuery) && (
-            <div className="px-4 pb-3 bg-gray-50">
+            <div className={`md:hidden ${PAGE_X} pb-3 bg-gray-50`}>
               <Input
                 autoFocus={searchOpen}
                 placeholder="Поиск товаров..."
@@ -501,7 +650,7 @@ export default function Gastronom() {
           )}
 
           {addressEditing && (
-            <div className="px-4 pb-3 bg-gray-50">
+            <div className={`${PAGE_X} pb-3 bg-gray-50`}>
               <Input
                 autoFocus
                 placeholder="Адрес доставки"
@@ -514,13 +663,15 @@ export default function Gastronom() {
         </header>
 
         {loading ? (
-          <div className="p-4 space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 rounded-2xl bg-gray-100 animate-pulse" />
-            ))}
+          <div className={`${PAGE_X} py-4 md:py-6 space-y-4`}>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-40 md:h-48 rounded-2xl bg-gray-100 animate-pulse" />
+              ))}
+            </div>
           </div>
         ) : products.length === 0 ? (
-          <div className="text-center py-16 px-4">
+          <div className="text-center py-16 md:py-24 px-4">
             <p className="text-gray-500 mb-4">Каталог пока пуст</p>
             <Button onClick={() => void loadCatalog()} className="bg-emerald-600 hover:bg-emerald-700">
               Обновить
@@ -530,58 +681,61 @@ export default function Gastronom() {
           <>
             {/* HOME tab */}
             {activeTab === 'home' && (
-              <div className="space-y-5 pb-4">
+              <div className="space-y-5 md:space-y-8 pb-4 md:pb-8">
                 {/* Hero banner */}
-                <div className="mx-4 mt-4 relative overflow-hidden rounded-2xl">
-                  <img src={imgSrc(heroImage)} alt="" className="w-full h-48 object-cover" />
+                <div className={`${PAGE_X} mt-4 md:mt-6`}>
+                <div className="relative overflow-hidden rounded-2xl md:rounded-3xl">
+                  <img src={imgSrc(heroImage)} alt="" className="w-full h-48 sm:h-56 md:h-64 lg:h-80 object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                  <div className="absolute inset-0 p-5 flex flex-col justify-end">
-                    <span className="absolute top-3 right-3 bg-white/20 backdrop-blur text-white text-xs px-2 py-0.5 rounded-full">
+                  <div className="absolute inset-0 p-5 md:p-8 lg:p-10 flex flex-col justify-end max-w-3xl">
+                    <span className="absolute top-3 right-3 md:top-5 md:right-5 bg-white/20 backdrop-blur text-white text-xs md:text-sm px-2 py-0.5 rounded-full">
                       21+
                     </span>
-                    <h2 className="text-white font-bold text-lg leading-tight mb-3">
+                    <h2 className="text-white font-bold text-lg md:text-2xl lg:text-3xl leading-tight mb-3 md:mb-4">
                       {settings.hero_title}
                     </h2>
-                    <div className="flex gap-3 mb-3">
+                    <div className="flex gap-4 md:gap-8 mb-4 md:mb-6">
                       {[
                         { icon: Leaf, label: 'Свежие продукты' },
                         { icon: Zap, label: 'Быстрая доставка' },
                         { icon: ShieldCheck, label: 'Гарантия качества' },
                       ].map(({ icon: Icon, label }) => (
-                        <div key={label} className="flex flex-col items-center gap-0.5">
-                          <Icon className="h-4 w-4 text-emerald-300" />
-                          <span className="text-[9px] text-white/80 text-center leading-tight">{label}</span>
+                        <div key={label} className="flex flex-col items-center md:items-start gap-1">
+                          <Icon className="h-4 w-4 md:h-5 md:w-5 text-emerald-300" />
+                          <span className="text-[9px] md:text-sm text-white/80 text-center md:text-left leading-tight">{label}</span>
                         </div>
                       ))}
                     </div>
                     <button
                       type="button"
                       onClick={() => setActiveTab('catalog')}
-                      className="w-full py-2.5 rounded-full bg-emerald-500 text-white font-semibold text-sm hover:bg-emerald-600 transition-colors"
+                      className="w-full md:w-auto md:px-10 py-2.5 md:py-3 rounded-full bg-emerald-500 text-white font-semibold text-sm md:text-base hover:bg-emerald-600 transition-colors"
                     >
                       Сделать заказ
                     </button>
                   </div>
                 </div>
+                </div>
 
-                {/* Categories scroll */}
-                <div>
-                  <div className="flex gap-3 overflow-x-auto px-4 pb-1 scrollbar-hide">
+                {/* Categories */}
+                <div className={PAGE_X}>
+                  <h2 className="hidden md:block font-bold text-gray-900 mb-4 text-lg">Категории</h2>
+                  <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide md:grid md:grid-cols-4 lg:grid-cols-6 md:overflow-visible md:gap-4">
                     {categories.map((cat) => (
                       <button
                         key={cat.id}
                         type="button"
                         onClick={() => selectCategory(cat.id, !!cat.is_alcohol)}
-                        className="flex flex-col items-center shrink-0 w-20"
+                        className="flex flex-col items-center shrink-0 w-20 md:w-auto group"
                       >
-                        <div className="w-16 h-16 rounded-2xl overflow-hidden bg-gray-100 mb-1.5 ring-2 ring-transparent hover:ring-emerald-200 transition-all">
+                        <div className="w-16 h-16 md:w-full md:aspect-square md:max-h-28 rounded-2xl overflow-hidden bg-gray-100 mb-1.5 ring-2 ring-transparent group-hover:ring-emerald-200 transition-all">
                           {cat.image_url ? (
                             <img src={imgSrc(cat.image_url)} alt={cat.name} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-2xl">🥗</div>
                           )}
                         </div>
-                        <span className="text-[10px] text-gray-600 text-center leading-tight line-clamp-2">
+                        <span className="text-[10px] md:text-sm text-gray-600 text-center leading-tight line-clamp-2 px-1">
                           {cat.name}
                           {cat.is_alcohol && <span className="text-amber-600"> 21+</span>}
                         </span>
@@ -591,18 +745,18 @@ export default function Gastronom() {
                 </div>
 
                 {/* Popular products */}
-                <div className="px-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h2 className="font-bold text-gray-900">Популярные товары</h2>
+                <div className={PAGE_X}>
+                  <div className="flex items-center justify-between mb-3 md:mb-5">
+                    <h2 className="font-bold text-gray-900 text-base md:text-xl">Популярные товары</h2>
                     <button
                       type="button"
                       onClick={() => setActiveTab('catalog')}
-                      className="text-emerald-600 text-sm font-medium flex items-center gap-0.5"
+                      className="text-emerald-600 text-sm md:text-base font-medium flex items-center gap-0.5 hover:underline"
                     >
                       Смотреть все →
                     </button>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className={PRODUCT_GRID}>
                     {(popularProducts.length > 0 ? popularProducts : products.slice(0, 4)).map((p) => (
                       <ProductCard key={p.id} product={p} />
                     ))}
@@ -610,33 +764,35 @@ export default function Gastronom() {
                 </div>
 
                 {/* Alcohol banner */}
-                <div className="mx-4 relative overflow-hidden rounded-2xl bg-emerald-900">
-                  <img src={imgSrc(alcoholBannerImage)} alt="" className="absolute right-0 top-0 h-full w-1/2 object-cover opacity-60" />
-                  <div className="relative p-5 max-w-[60%]">
-                    <p className="text-white/60 text-xs mb-1">21+</p>
-                    <h3 className="text-white font-bold text-sm mb-1">Алкогольная продукция (21+)</h3>
-                    <p className="text-white/70 text-xs mb-3">Широкий выбор напитков с доставкой на дом</p>
+                <div className={`${PAGE_X}`}>
+                <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-emerald-900 min-h-[140px] md:min-h-[180px]">
+                  <img src={imgSrc(alcoholBannerImage)} alt="" className="absolute right-0 top-0 h-full w-1/2 md:w-2/5 object-cover opacity-60" />
+                  <div className="relative p-5 md:p-8 max-w-full md:max-w-[55%]">
+                    <p className="text-white/60 text-xs md:text-sm mb-1">21+</p>
+                    <h3 className="text-white font-bold text-sm md:text-xl mb-1">Алкогольная продукция (21+)</h3>
+                    <p className="text-white/70 text-xs md:text-base mb-3 md:mb-5">Широкий выбор напитков с доставкой на дом</p>
                     <button
                       type="button"
                       onClick={openAlcoholCatalog}
-                      className="px-4 py-1.5 rounded-full border border-white/40 text-white text-xs hover:bg-white/10"
+                      className="px-4 md:px-6 py-1.5 md:py-2.5 rounded-full border border-white/40 text-white text-xs md:text-sm hover:bg-white/10 transition-colors"
                     >
                       Смотреть каталог
                     </button>
                   </div>
                 </div>
+                </div>
 
                 {/* Features */}
-                <div className="mx-4 grid grid-cols-3 gap-2 py-3 border-t border-gray-100">
+                <div className={`${PAGE_X} grid grid-cols-3 md:grid-cols-3 gap-2 md:gap-8 py-3 md:py-6 border-t border-gray-100`}>
                   {[
                     { icon: Truck, title: 'Быстрая доставка', desc: 'от 30 минут' },
                     { icon: ShieldCheck, title: 'Гарантия качества', desc: 'только свежие продукты' },
                     { icon: CreditCard, title: 'Удобная оплата', desc: 'онлайн и при получении' },
                   ].map(({ icon: Icon, title, desc }) => (
-                    <div key={title} className="text-center px-1">
-                      <Icon className="h-5 w-5 text-emerald-600 mx-auto mb-1" />
-                      <p className="text-[10px] font-semibold text-gray-800 leading-tight">{title}</p>
-                      <p className="text-[9px] text-gray-400 leading-tight mt-0.5">{desc}</p>
+                    <div key={title} className="text-center px-1 md:px-4 md:bg-white md:rounded-2xl md:py-5 md:shadow-sm">
+                      <Icon className="h-5 w-5 md:h-7 md:w-7 text-emerald-600 mx-auto mb-1 md:mb-2" />
+                      <p className="text-[10px] md:text-base font-semibold text-gray-800 leading-tight">{title}</p>
+                      <p className="text-[9px] md:text-sm text-gray-400 leading-tight mt-0.5">{desc}</p>
                     </div>
                   ))}
                 </div>
@@ -645,52 +801,83 @@ export default function Gastronom() {
 
             {/* CATALOG tab */}
             {activeTab === 'catalog' && (
-              <div className="px-4 py-4 space-y-4">
-                <Input
-                  placeholder="Поиск товаров..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="rounded-xl"
-                />
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCategory(null)}
-                    className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                      !selectedCategory ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600'
-                    }`}
-                  >
-                    Все
-                  </button>
-                  {categories.map((cat) => (
+              <div className={`${PAGE_X} py-4 md:py-6`}>
+                <h2 className="hidden md:block font-bold text-gray-900 text-xl lg:text-2xl mb-4 md:mb-6">Каталог</h2>
+                <div className="lg:grid lg:grid-cols-[minmax(200px,240px)_1fr] lg:gap-8 lg:items-start">
+                  <aside className={CATALOG_SIDEBAR}>
+                    <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Категории</p>
                     <button
-                      key={cat.id}
                       type="button"
-                      onClick={() => selectCategory(cat.id, !!cat.is_alcohol)}
-                      className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                        selectedCategory === cat.id ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600'
+                      onClick={() => setSelectedCategory(null)}
+                      className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                        !selectedCategory ? 'bg-emerald-600 text-white' : 'text-gray-600 hover:bg-gray-50'
                       }`}
                     >
-                      {cat.name}{cat.is_alcohol ? ' 21+' : ''}
+                      Все товары
                     </button>
-                  ))}
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => selectCategory(cat.id, !!cat.is_alcohol)}
+                        className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                          selectedCategory === cat.id ? 'bg-emerald-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        {cat.name}{cat.is_alcohol ? ' 21+' : ''}
+                      </button>
+                    ))}
+                  </aside>
+
+                  <div className="space-y-4 md:space-y-6 min-w-0">
+                    <Input
+                      placeholder="Поиск товаров..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="rounded-xl md:hidden"
+                    />
+                    <div className="flex gap-2 overflow-x-auto pb-1 lg:hidden md:flex-wrap md:overflow-visible">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCategory(null)}
+                        className={`shrink-0 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors ${
+                          !selectedCategory ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        Все
+                      </button>
+                      {categories.map((cat) => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => selectCategory(cat.id, !!cat.is_alcohol)}
+                          className={`shrink-0 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors ${
+                            selectedCategory === cat.id ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          {cat.name}{cat.is_alcohol ? ' 21+' : ''}
+                        </button>
+                      ))}
+                    </div>
+                    <div className={PRODUCT_GRID}>
+                      {filteredProducts.map((p) => (
+                        <ProductCard key={p.id} product={p} />
+                      ))}
+                    </div>
+                    {filteredProducts.length === 0 && (
+                      <p className="text-center text-gray-400 py-8">Товары не найдены</p>
+                    )}
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {filteredProducts.map((p) => (
-                    <ProductCard key={p.id} product={p} />
-                  ))}
-                </div>
-                {filteredProducts.length === 0 && (
-                  <p className="text-center text-gray-400 py-8">Товары не найдены</p>
-                )}
               </div>
             )}
 
             {/* CART tab */}
             {activeTab === 'cart' && (
-              <div className="px-4 py-4">
+              <div className={`${PAGE_X} py-4 md:py-6`}>
+                <h2 className="hidden md:block font-bold text-gray-900 text-xl lg:text-2xl mb-4 md:mb-6">Корзина</h2>
                 {cart.length === 0 ? (
-                  <div className="text-center py-16">
+                  <div className="text-center py-16 md:py-24">
                     <ShoppingCart className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                     <p className="text-gray-500">Корзина пуста</p>
                     <Button
@@ -701,53 +888,56 @@ export default function Gastronom() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="lg:grid lg:grid-cols-3 lg:gap-8 lg:items-start">
+                    <div className="lg:col-span-2 space-y-3 md:space-y-4">
                     {cart.map(({ product, qty }) => (
-                      <div key={product.id} className="flex gap-3 bg-gray-50 rounded-2xl p-3">
-                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-white shrink-0">
+                      <div key={product.id} className="flex gap-3 md:gap-4 bg-white md:bg-gray-50 rounded-2xl p-3 md:p-4 shadow-sm md:shadow-none border border-gray-100 md:border-0">
+                        <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden bg-white shrink-0">
                           {product.image_url && (
                             <img src={imgSrc(product.image_url)} alt="" className="w-full h-full object-cover" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm text-gray-900 truncate">{product.name}</p>
-                          {product.weight && <p className="text-xs text-gray-400">{product.weight}</p>}
-                          <p className="font-bold text-emerald-700 mt-0.5">{formatMoney(product.price)}</p>
+                          <p className="font-semibold text-sm md:text-base text-gray-900 truncate">{product.name}</p>
+                          {product.weight && <p className="text-xs md:text-sm text-gray-400">{product.weight}</p>}
+                          <p className="font-bold text-emerald-700 mt-0.5 md:text-lg">{formatMoney(product.price)}</p>
                         </div>
                         <div className="flex flex-col items-end justify-between">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 md:gap-3">
                             <button
                               type="button"
                               onClick={() => changeQty(product.id, -1)}
-                              className="h-7 w-7 rounded-full bg-white border flex items-center justify-center"
+                              className="h-7 w-7 md:h-9 md:w-9 rounded-full bg-white border flex items-center justify-center hover:bg-gray-50"
                             >
-                              <Minus className="h-3.5 w-3.5" />
+                              <Minus className="h-3.5 w-3.5 md:h-4 md:w-4" />
                             </button>
-                            <span className="text-sm font-semibold w-4 text-center">{qty}</span>
+                            <span className="text-sm md:text-base font-semibold w-4 text-center">{qty}</span>
                             <button
                               type="button"
                               onClick={() => changeQty(product.id, 1)}
-                              className="h-7 w-7 rounded-full bg-emerald-600 text-white flex items-center justify-center"
+                              className="h-7 w-7 md:h-9 md:w-9 rounded-full bg-emerald-600 text-white flex items-center justify-center hover:bg-emerald-700"
                             >
-                              <Plus className="h-3.5 w-3.5" />
+                              <Plus className="h-3.5 w-3.5 md:h-4 md:w-4" />
                             </button>
                           </div>
-                          <p className="text-sm font-bold">{formatMoney(qty * product.price)}</p>
+                          <p className="text-sm md:text-base font-bold">{formatMoney(qty * product.price)}</p>
                         </div>
                       </div>
                     ))}
-                    <div className="border-t pt-4 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Итого</span>
-                        <span className="font-bold text-lg">{formatMoney(subtotal)}</span>
+                    </div>
+                    <div className="mt-4 lg:mt-0 lg:sticky lg:top-36 bg-white rounded-2xl border border-gray-100 p-4 md:p-6 shadow-sm space-y-4">
+                      <h3 className="font-bold text-gray-900 text-lg hidden lg:block">Итого</h3>
+                      <div className="flex justify-between text-sm md:text-base">
+                        <span className="text-gray-500">Сумма заказа</span>
+                        <span className="font-bold text-xl md:text-2xl text-emerald-700">{formatMoney(subtotal)}</span>
                       </div>
                       {minOrder > 0 && subtotal < minOrder && (
-                        <p className="text-xs text-amber-600">
+                        <p className="text-xs md:text-sm text-amber-600">
                           Минимальный заказ: {formatMoney(minOrder)}
                         </p>
                       )}
                       <Button
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 rounded-xl text-base"
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 md:h-14 rounded-xl text-base md:text-lg"
                         disabled={subtotal < minOrder}
                         onClick={openCheckout}
                       >
@@ -760,14 +950,15 @@ export default function Gastronom() {
             )}
 
             {activeTab === 'favorites' && (
-              <div className="px-4 py-4">
+              <div className={`${PAGE_X} py-4 md:py-6`}>
+                <h2 className="hidden md:block font-bold text-gray-900 text-xl lg:text-2xl mb-4 md:mb-6">Избранное</h2>
                 {favoriteProducts.length === 0 ? (
-                  <div className="text-center py-16">
+                  <div className="text-center py-16 md:py-24">
                     <Heart className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                     <p className="text-gray-500 text-sm">Нажмите ♥ на товаре, чтобы добавить в избранное</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className={PRODUCT_GRID}>
                     {favoriteProducts.map((p) => (
                       <ProductCard key={p.id} product={p} />
                     ))}
@@ -778,16 +969,19 @@ export default function Gastronom() {
 
             {/* Profile */}
             {activeTab === 'profile' && (
-              <div className="text-center py-16 px-4 space-y-4">
-                <User className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 text-sm">Войдите в аккаунт портала</p>
+              <div className={`${PAGE_X} py-8 md:py-12`}>
+                <div className="max-w-md mx-auto bg-white rounded-3xl border border-gray-100 shadow-sm p-8 md:p-10 text-center space-y-4">
+                <User className="h-12 w-12 md:h-14 md:w-14 text-gray-300 mx-auto mb-3" />
+                <h2 className="font-bold text-gray-900 text-lg md:text-xl">Профиль</h2>
+                <p className="text-gray-500 text-sm md:text-base">Войдите в аккаунт портала</p>
                 <Link to="/account">
-                  <Button variant="outline" className="rounded-xl">Войти</Button>
+                  <Button variant="outline" className="rounded-xl w-full md:w-auto md:px-8">Войти</Button>
                 </Link>
                 <div>
                   <Link to="/" className="text-sm text-emerald-600 hover:underline">
                     ← На главную Сортировка24
                   </Link>
+                </div>
                 </div>
               </div>
             )}
@@ -796,15 +990,17 @@ export default function Gastronom() {
 
         {/* Checkout modal */}
         {checkoutOpen && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50">
-            <div className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between p-4 border-b">
-                <h2 className="font-bold text-lg">Оформление заказа</h2>
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
+            <div className="bg-white w-full sm:max-w-lg md:max-w-xl lg:max-w-2xl rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-4 md:p-6 border-b">
+                <h2 className="font-bold text-lg md:text-xl">Оформление заказа</h2>
                 <button type="button" onClick={() => setCheckoutOpen(false)}>
                   <X className="h-5 w-5 text-gray-400" />
                 </button>
               </div>
-              <div className="p-4 space-y-4">
+              <div className="p-4 md:p-6 space-y-4">
+                <div className="md:grid md:grid-cols-2 md:gap-6 md:space-y-0">
+                <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Имя</label>
                   <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ваше имя" />
@@ -843,8 +1039,10 @@ export default function Gastronom() {
                       </button>
                     ))}
                   </div>
+                  </div>
                 </div>
-                <div className="bg-gray-50 rounded-xl p-3 text-sm space-y-1">
+                <div className="space-y-4 md:flex md:flex-col md:justify-between">
+                <div className="bg-gray-50 rounded-xl p-3 md:p-4 text-sm space-y-1">
                   {cart.map(({ product, qty }) => (
                     <div key={product.id} className="flex justify-between">
                       <span className="text-gray-600 truncate mr-2">{product.name} ×{qty}</span>
@@ -861,8 +1059,10 @@ export default function Gastronom() {
                     В заказе есть алкоголь (21+). При получении потребуется документ.
                   </p>
                 )}
+                </div>
+                </div>
                 <Button
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 rounded-xl"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 md:h-14 rounded-xl"
                   onClick={checkout}
                   disabled={submitting}
                 >
@@ -894,35 +1094,13 @@ export default function Gastronom() {
           </div>
         )}
 
-        {/* Bottom nav */}
-        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 max-w-lg mx-auto">
-          <div className="flex">
-            {([
-              ['home', Home, 'Главная'],
-              ['catalog', LayoutGrid, 'Каталог'],
-              ['cart', ShoppingCart, 'Корзина'],
-              ['favorites', Heart, 'Избранное'],
-              ['profile', User, 'Профиль'],
-            ] as const).map(([tab, Icon, label]) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveTab(tab)}
-                className={`flex-1 flex flex-col items-center py-2.5 gap-0.5 relative transition-colors ${
-                  activeTab === tab ? 'text-emerald-600' : 'text-gray-400'
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-                {tab === 'cart' && cartCount > 0 && (
-                  <span className="absolute top-1.5 right-[calc(50%-14px)] flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-[9px] font-bold text-white">
-                    {cartCount}
-                  </span>
-                )}
-                <span className="text-[10px] font-medium">{label}</span>
-              </button>
-            ))}
+        {/* Mobile bottom nav */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 safe-area-pb">
+          <div className="flex max-w-7xl mx-auto">
+            {NAV_ITEMS.map(({ id, icon, label }) => renderNavButton(id, icon, label, true))}
           </div>
         </nav>
+        </div>
       </div>
     </Layout>
   );
