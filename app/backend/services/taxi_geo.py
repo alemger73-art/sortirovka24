@@ -24,6 +24,25 @@ USER_AGENT = "Sortirovka24-Taxi/1.0 (local taxi; contact@sortirovka24.kz)"
 
 STREET_TYPE_RE = r"(?:ул\.?|улица|пер\.?|переулок|пр\.?|проспект|мкр\.?|микрорайон|бул\.?|бульвар|street)"
 
+FUZZY_STREETS: Dict[str, Tuple[str, str]] = {
+    "уранов": ("переулок", "Урановый"),
+    "уранова": ("переулок", "Урановый"),
+    "uranov": ("переулок", "Uranovy"),
+    "жекибаев": ("улица", "Жекибаева"),
+    "жекибаева": ("улица", "Жекибаева"),
+    "сортировк": ("микрорайон", "Сортировка"),
+    "бухар": ("улица", "Бухар-Жырау"),
+    "бостан": ("улица", "Бостан"),
+}
+
+POPULAR_PLACES: List[Dict[str, str]] = [
+    {"label": "пер. Урановый 10", "query": "переулок Урановый 10, Караганда"},
+    {"label": "ул. Жекибаева 129", "query": "улица Жекибаева 129, Караганда"},
+    {"label": "мкр. Сортировка", "query": "микрорайон Сортировка, Караганда"},
+    {"label": "Ж/Д вокзал Караганды", "query": "Karaganda railway station"},
+    {"label": "Центр Караганды", "query": "проспект Бухар-Жырау, Караганда"},
+]
+
 
 def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     r = 6371.0
@@ -83,6 +102,38 @@ def _parse_street_house(query: str) -> Optional[Tuple[str, str, str]]:
     return m.group(1).strip(), m.group(2), m.group(3) or ""
 
 
+def _fuzzy_street_match(street_raw: str) -> Optional[Tuple[str, str]]:
+    """Match partial street name like «уранова» → (переулок, Урановый)."""
+    s = street_raw.lower().strip()
+    for key, (prefix, canonical) in FUZZY_STREETS.items():
+        if key in s or s in key or s.startswith(key[:4]):
+            return prefix, canonical
+    return None
+
+
+def _expand_fuzzy_variants(query: str, city: str = DEFAULT_CITY) -> List[str]:
+    """Build full-address variants from partial input like «уранова 10»."""
+    normalized = _normalize_address_input(query)
+    parsed = _parse_street_house(normalized)
+    extras: List[str] = []
+    if parsed:
+        street_raw, house, apt = parsed
+        fuzzy = _fuzzy_street_match(street_raw)
+        if fuzzy:
+            prefix, canonical = fuzzy
+            apt_part = f", квартира {apt}" if apt else ""
+            extras.append(f"{prefix} {canonical} {house}{apt_part}, {city}, Казахстан")
+            extras.append(f"пер. {canonical} {house}, {city}, Казахстан")
+            extras.append(f"переулок {canonical} {house}, Karaganda, Kazakhstan")
+    lower = normalized.lower()
+    for place in POPULAR_PLACES:
+        if any(tok in lower for tok in place["label"].lower().split() if len(tok) > 3):
+            extras.append(place["query"])
+        if lower in place["label"].lower() or place["label"].lower() in lower:
+            extras.append(place["query"])
+    return extras
+
+
 def _geocode_query_variants(address: str, city: str = DEFAULT_CITY) -> List[str]:
     query = _normalize_address_input(address)
     if len(query) < 3:
@@ -98,6 +149,8 @@ def _geocode_query_variants(address: str, city: str = DEFAULT_CITY) -> List[str]
             variants.append(q)
 
     add(query)
+    for extra in _expand_fuzzy_variants(query, city):
+        add(extra)
     lower = query.lower()
     has_city = (
         "караган" in lower
@@ -117,6 +170,11 @@ def _geocode_query_variants(address: str, city: str = DEFAULT_CITY) -> List[str]
         street_name, house, apt = parsed
         apt_part = f", квартира {apt}" if apt else ""
         prefix = _street_prefix_from_query(query)
+        fuzzy = _fuzzy_street_match(street_name)
+        if fuzzy:
+            fp, canonical = fuzzy
+            add(f"{fp} {canonical} {house}{apt_part}, {city}, Казахстан")
+            add(f"пер. {canonical} {house}, {city}, Казахстан")
         add(f"{prefix} {street_name} {house}{apt_part}, {city}, Казахстан")
         add(f"{street_name} {house}, {city}, Kazakhstan")
         if prefix == "переулок":
@@ -125,6 +183,33 @@ def _geocode_query_variants(address: str, city: str = DEFAULT_CITY) -> List[str]
         add(f"улица {query}, {city}, Казахстан")
 
     return variants
+
+
+async def _nominatim_search_results(
+    client: httpx.AsyncClient,
+    *,
+    params: Dict[str, Any],
+    headers: Dict[str, str],
+    limit: int = 5,
+) -> List[Dict[str, Any]]:
+    params = {**params, "limit": limit, "format": "json", "addressdetails": 1}
+    resp = await client.get(NOMINATIM_SEARCH, params=params, headers=headers)
+    resp.raise_for_status()
+    results = resp.json()
+    if not isinstance(results, list):
+        return []
+    out: List[Dict[str, Any]] = []
+    for r in results:
+        try:
+            out.append({
+                "address": r.get("display_name") or "",
+                "lat": float(r["lat"]),
+                "lng": float(r["lon"]),
+                "importance": float(r.get("importance") or 0),
+            })
+        except (KeyError, TypeError, ValueError):
+            continue
+    return out
 
 
 async def _nominatim_search(
@@ -183,8 +268,13 @@ async def geocode_address(
             parsed = _parse_street_house(_normalize_address_input(address))
             if parsed:
                 street_name, house, _apt = parsed
-                prefix = _street_prefix_from_query(address)
-                street_line = f"{prefix} {street_name} {house}" if prefix != "улица" else f"{street_name} {house}"
+                fuzzy = _fuzzy_street_match(street_name)
+                if fuzzy:
+                    fp, canonical = fuzzy
+                    street_line = f"{fp} {canonical} {house}"
+                else:
+                    prefix = _street_prefix_from_query(address)
+                    street_line = f"{prefix} {street_name} {house}" if prefix != "улица" else f"{street_name} {house}"
                 for city_name in (city, "Karaganda", "Караганда"):
                     try:
                         coords = await _nominatim_search(
@@ -270,3 +360,119 @@ def geo_context_from_taxi_settings(settings: Dict[str, str]) -> Dict[str, str]:
         "center_lat": settings.get("center_lat") or str(DEFAULT_CENTER_LAT),
         "center_lng": settings.get("center_lng") or str(DEFAULT_CENTER_LNG),
     }
+
+
+def _local_fuzzy_labels(query: str, city: str = DEFAULT_CITY) -> List[Dict[str, str]]:
+    """Human-readable labels for partial input like «уранова 10»."""
+    parsed = _parse_street_house(_normalize_address_input(query))
+    if not parsed:
+        return []
+    street_raw, house, _apt = parsed
+    fuzzy = _fuzzy_street_match(street_raw)
+    if not fuzzy:
+        return []
+    prefix, canonical = fuzzy
+    short = {"переулок": "пер.", "улица": "ул.", "микрорайон": "мкр.", "проспект": "пр."}.get(prefix, prefix)
+    label = f"{short} {canonical} {house}".strip()
+    return [{"label": label, "query": f"{prefix} {canonical} {house}, {city}, Казахстан"}]
+
+
+async def suggest_addresses(
+    query: str,
+    *,
+    settings: Optional[Dict[str, str]] = None,
+    limit: int = 6,
+) -> List[Dict[str, Any]]:
+    """Address autocomplete — local fuzzy + Nominatim."""
+    q = _normalize_address_input(query)
+    if len(q) < 2:
+        return []
+
+    city = _city_from_context(settings)
+    center_lat, center_lng = _center_coords(settings)
+    d = 0.25
+    viewbox = f"{center_lng - d},{center_lat + d},{center_lng + d},{center_lat - d}"
+    headers = {"User-Agent": USER_AGENT, "Accept-Language": "ru,en"}
+
+    seen: set[str] = set()
+    suggestions: List[Dict[str, Any]] = []
+
+    def push(item: Dict[str, Any], *, local: bool = False) -> None:
+        key = f"{round(item['lat'], 4)}:{round(item['lng'], 4)}"
+        addr_key = (item.get("address") or "").lower()[:80]
+        dedupe = key + addr_key
+        if dedupe in seen:
+            return
+        seen.add(dedupe)
+        item["local"] = local
+        suggestions.append(item)
+
+    # Local fuzzy labels first (e.g. «уранова 10» → «пер. Урановый 10»)
+    text_candidates: List[str] = []
+    fuzzy_labels = _local_fuzzy_labels(q, city)
+    for fl in fuzzy_labels:
+        text_candidates.append(fl["query"])
+
+    lower_q = q.lower()
+    for place in POPULAR_PLACES:
+        if any(part in lower_q for part in place["label"].lower().split() if len(part) > 2):
+            text_candidates.append(place["query"])
+    for v in _expand_fuzzy_variants(q, city):
+        text_candidates.append(v)
+    for v in _geocode_query_variants(q, city)[:8]:
+        text_candidates.append(v)
+
+    try:
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            for candidate in text_candidates[:10]:
+                if len(suggestions) >= limit:
+                    break
+                try:
+                    rows = await _nominatim_search_results(
+                        client,
+                        params={
+                            "q": candidate,
+                            "countrycodes": "kz",
+                            "viewbox": viewbox,
+                            "bounded": 0,
+                        },
+                        headers=headers,
+                        limit=2,
+                    )
+                    for row in rows:
+                        display = row["address"]
+                        for fl in fuzzy_labels:
+                            if fl["query"] == candidate or candidate.startswith(fl["query"].split(",")[0]):
+                                display = fl["label"]
+                                break
+                        push({
+                            "address": display,
+                            "full_address": row["address"],
+                            "lat": row["lat"],
+                            "lng": row["lng"],
+                        }, local=candidate in text_candidates[:3])
+                        if len(suggestions) >= limit:
+                            break
+                except Exception as e:
+                    logger.debug("Suggest failed for %r: %s", candidate[:50], e)
+
+            if len(suggestions) < limit:
+                rows = await _nominatim_search_results(
+                    client,
+                    params={"q": f"{q}, {city}, Kazakhstan", "countrycodes": "kz", "viewbox": viewbox, "bounded": 0},
+                    headers=headers,
+                    limit=limit,
+                )
+                for row in rows:
+                    push({
+                        "address": row["address"].split(",")[0] + (f", {row['address'].split(',')[1]}" if "," in row["address"] else ""),
+                        "full_address": row["address"],
+                        "lat": row["lat"],
+                        "lng": row["lng"],
+                    })
+                    if len(suggestions) >= limit:
+                        break
+    except Exception as e:
+        logger.warning("Address suggest failed: %s", e)
+
+    return suggestions[:limit]

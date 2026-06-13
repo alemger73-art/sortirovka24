@@ -66,6 +66,14 @@ export interface TaxiLocation {
   detected_city?: string;
 }
 
+export interface TaxiAddressSuggestion {
+  address: string;
+  full_address?: string;
+  lat: number;
+  lng: number;
+  local?: boolean;
+}
+
 export interface TaxiQuote {
   available: boolean;
   message?: string;
@@ -171,6 +179,12 @@ export const taxiApi = {
 
   geocode: (body: { address?: string; lat?: number; lng?: number }) =>
     api<TaxiLocation>('/api/v1/taxi/geocode', { method: 'POST', body: JSON.stringify(body) }),
+
+  suggest: (query: string, limit = 6) =>
+    api<{ suggestions: TaxiAddressSuggestion[] }>('/api/v1/taxi/suggest', {
+      method: 'POST',
+      body: JSON.stringify({ query, limit }),
+    }),
 
   createRide: (body: {
     from_address: string;

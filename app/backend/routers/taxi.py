@@ -11,7 +11,7 @@ from models.auth import User
 from pydantic import BaseModel, Field
 from services.taxi_auth import assert_driver_user, get_taxi_user, require_taxi_admin
 from services.taxi_pricing import build_quote, resolve_location
-from services.taxi_geo import geo_context_from_taxi_settings
+from services.taxi_geo import geo_context_from_taxi_settings, suggest_addresses
 from services.taxi_service import (
     accept_ride,
     approve_driver_application,
@@ -53,6 +53,11 @@ class LocationInput(BaseModel):
     address: Optional[str] = None
     lat: Optional[float] = None
     lng: Optional[float] = None
+
+
+class SuggestRequest(BaseModel):
+    query: str = Field(..., min_length=2, max_length=200)
+    limit: int = Field(default=6, ge=1, le=10)
 
 
 class QuoteRequest(BaseModel):
@@ -186,6 +191,17 @@ async def geocode_point(body: LocationInput, db: AsyncSession = Depends(get_db))
     if loc.get("error"):
         raise HTTPException(status_code=400, detail=loc["error"])
     return loc
+
+
+@router.post("/suggest")
+async def suggest_address(body: SuggestRequest, db: AsyncSession = Depends(get_db)):
+    settings = await get_settings_dict(db)
+    items = await suggest_addresses(
+        body.query.strip(),
+        settings=geo_context_from_taxi_settings(settings),
+        limit=body.limit,
+    )
+    return {"suggestions": items}
 
 
 # ─── Passenger ─────────────────────────────────────────────────────
