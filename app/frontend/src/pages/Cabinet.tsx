@@ -176,6 +176,9 @@ export default function Cabinet() {
                     <p className="mt-1 text-sm text-yellow-100/70">Доступные начисления и история изменений</p>
                   </div>
                   <div className="mt-4 space-y-2">
+                    {rows.bonuses.length === 0 ? (
+                      <p className="text-sm text-slate-400">Пока нет начислений. Бонусы появятся после регистрации и заказов.</p>
+                    ) : null}
                     {rows.bonuses.map((entry: any) => (
                       <div key={entry.id} className="rounded-xl border border-[#2a3347] bg-[#0f172a] p-3">
                         <div className="flex items-center justify-between">

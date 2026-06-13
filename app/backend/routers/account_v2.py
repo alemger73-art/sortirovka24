@@ -1,6 +1,7 @@
 import bcrypt
 import json
 import hashlib
+import os
 import random
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
@@ -12,6 +13,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from models.announcements import Announcements
 from models.auth import User
 from models.complaints import Complaints
+from models.food_orders import Food_orders
 from models.user_management import Bonus, Order, PhoneVerification, UserAction, UserSession
 from schemas.account_v2 import (
     AdminUserUpdateRequest,
@@ -25,6 +27,7 @@ from schemas.account_v2 import (
     UserV2Response,
     UserV2UpdateRequest,
 )
+from services.sms import SMSDeliveryError, send_verification_code
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -38,6 +41,8 @@ MAX_SMS_VERIFY_ATTEMPTS = 5
 SMS_REQUEST_ATTEMPTS: dict[str, list[datetime]] = {}
 SMS_REQUEST_WINDOW = timedelta(minutes=10)
 MAX_SMS_REQUESTS_PER_WINDOW = 3
+SESSION_EXPIRY_DAYS = max(1, int(os.getenv("ACCOUNT_SESSION_DAYS", "30")))
+WELCOME_BONUS_POINTS = float(os.getenv("WELCOME_BONUS_POINTS", "300"))
 
 
 def _hash_password(raw: str) -> str:
@@ -57,6 +62,25 @@ def _normalize_phone(phone: str) -> str:
     if not digits.startswith("7"):
         digits = "7" + digits
     return f"+{digits}"
+
+
+def _phone_digits(phone: str | None) -> str:
+    digits = "".join(ch for ch in (phone or "") if ch.isdigit())
+    if len(digits) == 11 and digits.startswith("8"):
+        digits = "7" + digits[1:]
+    if len(digits) == 10:
+        digits = "7" + digits
+    return digits
+
+
+def _matches_user_phone(candidate: str | None, user_phone: str | None) -> bool:
+    left = _phone_digits(candidate)
+    right = _phone_digits(user_phone)
+    return bool(left and right and left == right)
+
+
+def _session_expiry_minutes() -> int:
+    return SESSION_EXPIRY_DAYS * 24 * 60
 
 
 def _hash_sms_code(phone: str, code: str) -> str:
@@ -192,10 +216,19 @@ async def _create_user_and_login(
         role="user",
         status="active",
         is_active=True,
-        bonus_balance=0,
+        bonus_balance=WELCOME_BONUS_POINTS,
         last_login=datetime.now(timezone.utc),
     )
     db.add(user)
+    await db.flush()
+    if WELCOME_BONUS_POINTS > 0:
+        db.add(
+            Bonus(
+                user_id=str(user.id),
+                points=WELCOME_BONUS_POINTS,
+                reason="Бонус за регистрацию",
+            )
+        )
     await db.commit()
     await db.refresh(user)
     await _log_action(db, str(user.id), "register", "users", str(user.id))
@@ -265,7 +298,15 @@ async def register_request_sms(
     await db.commit()
     await _log_action(db, None, "sms_verification_requested", "phone_verifications", normalized_phone)
 
-    # TODO: integrate real SMS provider here. For now, code can be shown in debug.
+    try:
+        await send_verification_code(normalized_phone, code)
+    except SMSDeliveryError as exc:
+        logger_msg = str(exc)
+        raise HTTPException(
+            status_code=502,
+            detail=f"Не удалось отправить SMS. {logger_msg}",
+        ) from exc
+
     debug_code = code if bool(getattr(settings, "debug", False)) else None
     return RequestSmsCodeResponse(success=True, ttl_seconds=SMS_CODE_TTL_MINUTES * 60, debug_code=debug_code)
 
@@ -344,6 +385,7 @@ async def login(
 
     now = datetime.now(timezone.utc)
     jti = str(uuid4())
+    session_minutes = _session_expiry_minutes()
     token = create_access_token(
         {
             "sub": str(user.id),
@@ -352,7 +394,8 @@ async def login(
             "name": user.name or "",
             "role": user.role or "user",
             "jti": jti,
-        }
+        },
+        expires_minutes=session_minutes,
     )
     user.last_login = now
     db.add(
@@ -362,7 +405,7 @@ async def login(
             is_active=True,
             ip=http_request.client.host if http_request.client else None,
             user_agent=http_request.headers.get("user-agent", "")[:250],
-            expires_at=now + timedelta(minutes=60),
+            expires_at=now + timedelta(minutes=session_minutes),
         )
     )
     await db.commit()
@@ -440,18 +483,42 @@ async def cabinet(
     order_rows = (
         await db.execute(select(Order).where(Order.user_id == str(user.id)).order_by(desc(Order.id)).limit(100))
     ).scalars().all()
+    food_rows = (
+        await db.execute(select(Food_orders).order_by(desc(Food_orders.id)).limit(500))
+    ).scalars().all()
+    food_rows = [f for f in food_rows if _matches_user_phone(f.customer_phone, user.phone)]
     complaint_rows = (
-        await db.execute(select(Complaints).where(Complaints.phone == (user.phone or "")).order_by(desc(Complaints.id)).limit(100))
+        await db.execute(select(Complaints).order_by(desc(Complaints.id)).limit(500))
     ).scalars().all()
+    complaint_rows = [c for c in complaint_rows if _matches_user_phone(c.phone, user.phone)]
     announcement_rows = (
-        await db.execute(select(Announcements).where(Announcements.phone == (user.phone or "")).order_by(desc(Announcements.id)).limit(100))
+        await db.execute(select(Announcements).order_by(desc(Announcements.id)).limit(500))
     ).scalars().all()
+    announcement_rows = [a for a in announcement_rows if _matches_user_phone(a.phone, user.phone)]
+
+    merged_orders = [
+        {"id": o.id, "type": o.order_type, "status": o.status, "amount": o.amount, "details": o.details, "created_at": o.created_at.isoformat() if o.created_at else None}
+        for o in order_rows
+    ]
+    merged_orders.extend(
+        {
+            "id": f"food_{f.id}",
+            "type": "food",
+            "status": f.status,
+            "amount": f.total_amount,
+            "details": f"{f.restaurant_name or 'Еда'} — {f.customer_name or ''}".strip(" —"),
+            "created_at": f.created_at,
+        }
+        for f in food_rows[:100]
+    )
+    merged_orders.sort(key=lambda item: str(item.get("created_at") or ""), reverse=True)
+
     return {
         "profile": _to_user_response(user),
         "bonuses": [{"id": b.id, "points": b.points, "reason": b.reason, "created_at": b.created_at.isoformat() if b.created_at else None} for b in bonus_rows],
-        "orders": [{"id": o.id, "type": o.order_type, "status": o.status, "amount": o.amount, "details": o.details} for o in order_rows],
-        "complaints": [{"id": c.id, "category": c.category, "status": c.status, "description": c.description} for c in complaint_rows],
-        "announcements": [{"id": a.id, "title": a.title, "status": a.status, "price": a.price} for a in announcement_rows],
+        "orders": merged_orders[:100],
+        "complaints": [{"id": c.id, "category": c.category, "status": c.status, "description": c.description} for c in complaint_rows[:100]],
+        "announcements": [{"id": a.id, "title": a.title, "status": a.status, "price": a.price} for a in announcement_rows[:100]],
         "settings": {"language": user.language, "agreement_accepted": bool(user.agreement_accepted), "privacy_accepted": bool(user.privacy_accepted)},
     }
 
@@ -622,4 +689,4 @@ async def admin_settings(
 ):
     admin = await _current_user(db, authorization)
     _assert_admin(admin)
-    return {"roles": ["user", "master", "driver", "seller", "moderator", "admin", "superadmin"], "session_window_minutes": 60, "login_rate_limit_window_minutes": int(LOGIN_WINDOW.total_seconds() // 60), "max_login_attempts": MAX_ATTEMPTS}
+    return {"roles": ["user", "master", "driver", "seller", "moderator", "admin", "superadmin"], "session_window_minutes": _session_expiry_minutes(), "login_rate_limit_window_minutes": int(LOGIN_WINDOW.total_seconds() // 60), "max_login_attempts": MAX_ATTEMPTS, "welcome_bonus_points": WELCOME_BONUS_POINTS}

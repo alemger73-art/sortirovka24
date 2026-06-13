@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import Layout from "@/components/Layout";
 import { accountApi, setAccountToken } from "@/lib/accountApi";
+import { cacheAccountProfile } from "@/lib/localAuth";
 
 function formatPhoneInput(raw: string): string {
   const digits = raw.replace(/\D/g, "");
@@ -66,7 +67,7 @@ export default function AccountAuth() {
       if (!form.phone.trim()) throw new Error("Введите номер телефона");
       const res = await accountApi.requestSmsCode({ phone: form.phone });
       setSmsRequested(true);
-      setSmsInfo(`Код отправлен. Действителен ${Math.floor(res.ttl_seconds / 60)} мин.`);
+      setSmsInfo(`Код отправлен на ${form.phone}. Действителен ${Math.floor(res.ttl_seconds / 60)} мин. Первые SMS могут идти 1–10 мин (модерация Mobizon).`);
       if (res.debug_code) {
         setSmsInfo(prev => `${prev} Тестовый код: ${res.debug_code}`);
       }
@@ -85,6 +86,8 @@ export default function AccountAuth() {
       if (isLogin) {
         const res = await accountApi.login({ phone: form.phone, password: form.password });
         setAccountToken(res.token);
+        const me = await accountApi.me();
+        cacheAccountProfile({ id: me.id, name: me.name, phone: me.phone, email: me.email, avatar: me.avatar });
         navigate(getCabinetRouteByRole(res.role));
       } else {
         if (!smsRequested) throw new Error("Сначала запросите SMS-код");
@@ -100,6 +103,8 @@ export default function AccountAuth() {
           sms_code: smsCode.trim(),
         });
         setAccountToken(res.token);
+        const me = await accountApi.me();
+        cacheAccountProfile({ id: me.id, name: me.name, phone: me.phone, email: me.email, avatar: me.avatar });
         navigate(getCabinetRouteByRole(res.role));
       }
     } catch (e: any) {

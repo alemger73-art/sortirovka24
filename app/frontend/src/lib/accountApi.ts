@@ -28,7 +28,15 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!resp.ok) {
     const txt = await resp.text().catch(() => "");
-    throw new Error(txt || `HTTP ${resp.status}`);
+    let message = txt || `HTTP ${resp.status}`;
+    try {
+      const parsed = JSON.parse(txt);
+      if (typeof parsed.detail === "string") message = parsed.detail;
+      else if (Array.isArray(parsed.detail)) message = parsed.detail.map((d: any) => d.msg || d).join(", ");
+    } catch {
+      // keep raw text
+    }
+    throw new Error(message);
   }
   return (await resp.json()) as T;
 }

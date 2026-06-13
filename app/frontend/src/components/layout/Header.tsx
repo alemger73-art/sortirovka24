@@ -4,7 +4,7 @@ import { Menu, X, MapPin, Globe, Moon, Sun } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { prefetchPage, routeToPage } from '@/lib/prefetch';
-import { getCurrentUser, logoutLocalUser, onAuthChanged } from '@/lib/localAuth';
+import { getCurrentUser, logoutLocalUser, onAuthChanged, refreshAccountProfile } from '@/lib/localAuth';
 
 const NAV_ITEMS = [
   { path: '/', key: 'nav.home' },
@@ -31,7 +31,10 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    return onAuthChanged(() => setUser(getCurrentUser()));
+    refreshAccountProfile().then((user) => setUser(user));
+    return onAuthChanged(() => {
+      setUser(getCurrentUser());
+    });
   }, []);
 
   const isActivePath = useCallback(
