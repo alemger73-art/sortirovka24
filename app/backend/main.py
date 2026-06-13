@@ -147,18 +147,39 @@ app = FastAPI(
 
 
 # MODULE_MIDDLEWARE_START
-app.add_middleware(
-    CORSMiddleware,
-    allow_origin_regex=r".*",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-)
+# CORS: the SPA is served from the same origin as the API, so cross-origin
+# requests are not normally needed. We still allow localhost (dev) and the
+# Railway domain, and any extra origins listed in CORS_ALLOWED_ORIGINS
+# (comma-separated) — e.g. a custom domain.
+_cors_env = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
+if _cors_env:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[o.strip() for o in _cors_env.split(",") if o.strip()],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$|^https://([a-z0-9-]+\.)*up\.railway\.app$",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
 
 # SDK compatibility: unwrap { "data": { ... } } envelope from @metagptx/web-sdk
 from middleware.sdk_compat import SDKCompatMiddleware
 app.add_middleware(SDKCompatMiddleware)
+
+# Protect admin-managed entity writes (edit/delete) from unauthenticated access.
+# Public submission forms (announcements, complaints, orders, …) stay open.
+# Disable instantly via ENTITY_WRITE_PROTECTION=off if ever needed.
+from middleware.entity_guard import EntityWriteGuardMiddleware
+app.add_middleware(EntityWriteGuardMiddleware)
 # MODULE_MIDDLEWARE_END
 
 

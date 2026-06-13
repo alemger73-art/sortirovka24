@@ -1,18 +1,49 @@
 import { createClient } from '@metagptx/web-sdk';
 import { invalidateAllCaches } from './cache';
 
-const _rawClient = createClient();
+/**
+ * The SDK reads the auth token from localStorage('token') ONCE, when
+ * `createClient()` runs, and bakes `Authorization: Bearer <token>` into the
+ * underlying axios instance. That means a client created at page load (before
+ * the admin logs in) would never send the token, so admin writes would be
+ * unauthenticated. To keep the token always current — across login, session
+ * refresh and logout — we lazily recreate the client whenever the stored token
+ * changes.
+ */
+function readToken(): string | null {
+  try {
+    return globalThis?.localStorage?.getItem('token') ?? null;
+  } catch {
+    return null;
+  }
+}
+
+let _activeToken = readToken();
+let _activeClient = createClient();
+
+function getActiveClient(): ReturnType<typeof createClient> {
+  const current = readToken();
+  if (current !== _activeToken) {
+    _activeToken = current;
+    _activeClient = createClient();
+  }
+  return _activeClient;
+}
 
 /**
  * Proxy the SDK client to auto-invalidate caches after any mutation.
  * When any entity's create/update/delete method succeeds, all localStorage
  * caches are cleared so public pages always show fresh data.
+ *
+ * The proxy resolves the underlying client dynamically on every access so the
+ * latest auth token is always used.
  */
-function createCacheInvalidatingProxy(rawClient: ReturnType<typeof createClient>) {
+function createCacheInvalidatingProxy(getClient: () => ReturnType<typeof createClient>) {
   const MUTATION_METHODS = new Set(['create', 'update', 'delete']);
 
-  return new Proxy(rawClient, {
-    get(target, prop, receiver) {
+  return new Proxy({} as ReturnType<typeof createClient>, {
+    get(_dummy, prop, receiver) {
+      const target = getClient();
       const value = Reflect.get(target, prop, receiver);
 
       if (prop === 'entities' && value && typeof value === 'object') {
@@ -45,7 +76,7 @@ function createCacheInvalidatingProxy(rawClient: ReturnType<typeof createClient>
   });
 }
 
-export const client = createCacheInvalidatingProxy(_rawClient);
+export const client = createCacheInvalidatingProxy(getActiveClient);
 
 // ─── Simple delay helper ─────────────────────────────────────────
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
