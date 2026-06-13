@@ -18,6 +18,9 @@ export interface DeliveryQuote {
   message?: string;
   geocoded_address?: string;
   display_address?: string;
+  detected_city?: string;
+  distance_km?: number;
+  location_warning?: string;
 }
 
 export const DEFAULT_STORE: [number, number] = [43.2250, 76.9120];

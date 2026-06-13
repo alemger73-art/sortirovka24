@@ -37,6 +37,10 @@ interface Props {
   onFindByAddress: () => void;
   onFindByGps: () => void;
   onSelectExample?: (example: string) => void;
+  /** When true, show compact summary after address confirmed */
+  collapsed?: boolean;
+  onEdit?: () => void;
+  onContinueCheckout?: () => void;
   /** compact = one line in header; full = cart / checkout block */
   variant?: 'full' | 'compact';
 }
@@ -51,11 +55,15 @@ export default function DeliveryAddressPicker({
   onFindByAddress,
   onFindByGps,
   onSelectExample,
+  collapsed = false,
+  onEdit,
+  onContinueCheckout,
   variant = 'full',
 }: Props) {
   const trimmed = address.trim();
-  const confirmed = deliveryQuote?.available === true;
-  const failed = !loading && (error || (deliveryQuote && !deliveryQuote.available));
+  const hasLocationWarning = !!deliveryQuote?.location_warning;
+  const confirmed = deliveryQuote?.available === true && !hasLocationWarning;
+  const failed = !loading && (error || hasLocationWarning || (deliveryQuote && !deliveryQuote.available));
 
   if (!hasDeliveryZones) {
     if (variant === 'compact') return null;
@@ -107,15 +115,54 @@ export default function DeliveryAddressPicker({
     );
   }
 
+  if (collapsed && confirmed && deliveryQuote) {
+    return (
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4 space-y-3 shadow-sm">
+        <div className="flex items-start gap-3">
+          <span className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-sm font-bold">1</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-emerald-900 flex items-center gap-1.5">
+              <CheckCircle2 className="h-4 w-4" /> Адрес подтверждён
+            </p>
+            <p className="text-sm text-gray-800 mt-0.5 break-words">
+              {deliveryQuote.display_address || trimmed}
+            </p>
+            <p className="text-xs text-emerald-700 mt-1">
+              {deliveryQuote.zone_name} · доставка {formatMoney(deliveryQuote.delivery_fee)}
+            </p>
+          </div>
+          {onEdit && (
+            <button type="button" onClick={onEdit} className="text-xs text-emerald-700 font-medium underline shrink-0 py-1">
+              Изменить
+            </button>
+          )}
+        </div>
+        {onContinueCheckout && (
+          <Button
+            type="button"
+            onClick={onContinueCheckout}
+            className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-base font-semibold"
+          >
+            Шаг 2: Оформить заказ →
+          </Button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-4 space-y-4 shadow-sm">
       <div>
+        <div className="flex items-center gap-2 mb-2">
+          <span className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shrink-0">1</span>
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Шаг 1 из 2</span>
+        </div>
         <p className="font-bold text-gray-900 flex items-center gap-2">
           <MapPin className="h-5 w-5 text-emerald-600" />
           Куда доставить?
         </p>
         <p className="text-xs text-gray-500 mt-1">
-          Сначала проверим адрес на карте — так сразу покажем стоимость доставки
+          Проверьте адрес — затем перейдите к оформлению заказа
         </p>
       </div>
 
@@ -145,6 +192,10 @@ export default function DeliveryAddressPicker({
           </span>
         </div>
       </div>
+      <p className="text-[11px] text-gray-400 leading-relaxed">
+        GPS на компьютере часто показывает не ваш город (например, Алматы вместо Караганды).
+        Надёжнее — с телефона или введите адрес вручную.
+      </p>
 
       {/* Шаг 2: ввод */}
       <div className="space-y-2">
@@ -156,7 +207,7 @@ export default function DeliveryAddressPicker({
           onKeyDown={(e) => e.key === 'Enter' && trimmed.length >= 5 && onFindByAddress()}
         />
         <p className="text-[11px] text-gray-400">
-          Формат: улица или переулок, номер дома. Можно без «Алматы» — добавим сами.
+          Формат: улица или переулок, номер дома
         </p>
         <div className="flex flex-wrap gap-1.5">
           {ADDRESS_EXAMPLES.map((ex) => (
@@ -205,8 +256,8 @@ export default function DeliveryAddressPicker({
         <div className="space-y-3">
           <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 flex gap-3">
             <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-emerald-900">Адрес найден — доставим!</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-emerald-900">Шаг 1 готов — доставим сюда!</p>
               {deliveryQuote.display_address && (
                 <p className="text-xs text-emerald-800/90 mt-0.5 break-words">{deliveryQuote.display_address}</p>
               )}
@@ -215,33 +266,60 @@ export default function DeliveryAddressPicker({
               </p>
             </div>
           </div>
-          {deliveryQuote.lat && deliveryQuote.lng && (
-            <MiniMap lat={deliveryQuote.lat} lng={deliveryQuote.lng} />
+          {onContinueCheckout && (
+            <Button
+              type="button"
+              onClick={onContinueCheckout}
+              className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-base font-semibold shadow-md"
+            >
+              Шаг 2: Оформить заказ →
+            </Button>
           )}
+          <details className="text-xs text-gray-500">
+            <summary className="cursor-pointer py-1">Показать на карте</summary>
+            {deliveryQuote.lat && deliveryQuote.lng && (
+              <div className="mt-2">
+                <MiniMap lat={deliveryQuote.lat} lng={deliveryQuote.lng} />
+              </div>
+            )}
+          </details>
         </div>
       )}
 
       {!loading && failed && (
-        <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 space-y-2">
+        <div className={`rounded-xl px-4 py-3 space-y-2 ${hasLocationWarning ? 'bg-amber-50 border border-amber-300' : 'bg-red-50 border border-red-200'}`}>
           <div className="flex gap-3">
-            <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+            <AlertCircle className={`h-5 w-5 shrink-0 mt-0.5 ${hasLocationWarning ? 'text-amber-600' : 'text-red-500'}`} />
             <div>
-              <p className="text-sm font-semibold text-red-900">Не нашли адрес</p>
-              <p className="text-xs text-red-700 mt-1">
-                {error || deliveryQuote?.message || 'Попробуйте GPS или уточните адрес'}
+              <p className={`text-sm font-semibold ${hasLocationWarning ? 'text-amber-900' : 'text-red-900'}`}>
+                {hasLocationWarning ? 'GPS показал другое место' : 'Адрес не подходит для доставки'}
               </p>
+              <p className={`text-xs mt-1 ${hasLocationWarning ? 'text-amber-800' : 'text-red-700'}`}>
+                {deliveryQuote?.location_warning || error || deliveryQuote?.message || 'Попробуйте GPS или уточните адрес'}
+              </p>
+              {deliveryQuote?.display_address && hasLocationWarning && (
+                <p className="text-xs text-amber-700 mt-1 break-words">
+                  Определено как: {deliveryQuote.display_address}
+                  {deliveryQuote.distance_km != null && ` · ${deliveryQuote.distance_km} км от магазина`}
+                </p>
+              )}
             </div>
           </div>
-          <ul className="text-[11px] text-red-700/90 list-disc pl-5 space-y-0.5">
-            <li>Нажмите «Я здесь сейчас» — это быстрее всего</li>
-            <li>Или напишите короче: <strong>пер. Урановый 10</strong></li>
-          </ul>
+          {hasLocationWarning && deliveryQuote?.lat && deliveryQuote?.lng && (
+            <MiniMap lat={deliveryQuote.lat} lng={deliveryQuote.lng} />
+          )}
+          {!hasLocationWarning && (
+            <ul className="text-[11px] text-red-700/90 list-disc pl-5 space-y-0.5">
+              <li>Магазин доставляет только в своей зоне на карте</li>
+              <li>Или напишите адрес в зоне доставки вручную</li>
+            </ul>
+          )}
           <div className="flex gap-2 pt-1">
             <Button type="button" size="sm" variant="outline" onClick={onFindByGps} className="h-9">
               <Navigation className="h-3.5 w-3.5 mr-1" /> GPS
             </Button>
             <Button type="button" size="sm" onClick={onFindByAddress} disabled={trimmed.length < 5} className="h-9 bg-emerald-600 hover:bg-emerald-700">
-              Повторить
+              {hasLocationWarning ? 'Ввести адрес' : 'Повторить'}
             </Button>
           </div>
         </div>

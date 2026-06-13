@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
 import uuid
 from typing import Any, Dict, List, Optional, Tuple
@@ -65,6 +66,55 @@ def get_store_coords(settings: Dict[str, str]) -> Tuple[float, float]:
     if lat == 0 and lng == 0:
         return DEFAULT_STORE_LAT, DEFAULT_STORE_LNG
     return lat, lng
+
+
+def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    """Distance between two points on Earth in kilometers."""
+    r = 6371.0
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    d_lat = math.radians(lat2 - lat1)
+    d_lng = math.radians(lng2 - lng1)
+    a = math.sin(d_lat / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(d_lng / 2) ** 2
+    return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def get_delivery_city(settings: Dict[str, str]) -> str:
+    return (settings.get("delivery_city") or settings.get("store_city") or "Алматы").strip()
+
+
+def enrich_quote_with_location(
+    quote: Dict[str, Any],
+    settings: Dict[str, str],
+    lat: float,
+    lng: float,
+    *,
+    detected_city: str = "",
+    via_gps: bool = False,
+) -> Dict[str, Any]:
+    """Add distance and warnings when coordinates look wrong for this store."""
+    store_lat, store_lng = get_store_coords(settings)
+    dist = haversine_km(lat, lng, store_lat, store_lng)
+    quote["distance_km"] = round(dist, 1)
+    if detected_city:
+        quote["detected_city"] = detected_city
+
+    store_city = get_delivery_city(settings)
+    # Delivery zones are local — warn if point is far from the store
+    if dist > 25:
+        city_part = f" ({detected_city})" if detected_city else ""
+        quote["location_warning"] = (
+            f"Точка на карте в {dist:.0f} км от магазина{city_part}. "
+            f"Доставка работает в районе {store_city}. "
+            + ("Если GPS ошибся — введите адрес вручную." if via_gps else "Проверьте адрес.")
+        )
+    elif via_gps and detected_city and detected_city.lower() not in store_city.lower():
+        # Different city name but still close (edge case)
+        if store_city.lower() not in detected_city.lower():
+            quote["location_warning"] = (
+                f"GPS определил город: {detected_city}. "
+                f"Магазин доставляет в {store_city}. Если это не так — введите адрес вручную."
+            )
+    return quote
 
 
 def point_in_polygon(lat: float, lng: float, polygon: List[List[float]]) -> bool:
@@ -173,8 +223,8 @@ def _parse_street_house(query: str) -> Optional[Tuple[str, str, str]]:
     return m.group(1).strip(), m.group(2), m.group(3) or ""
 
 
-def _geocode_query_variants(address: str) -> List[str]:
-    """Build search queries for local KZ addresses (Sortirovka / Almaty)."""
+def _geocode_query_variants(address: str, delivery_city: str = "Алматы") -> List[str]:
+    """Build search queries for local KZ addresses near the store."""
     query = _normalize_address_input(address)
     if len(query) < 3:
         return []
@@ -190,24 +240,25 @@ def _geocode_query_variants(address: str) -> List[str]:
 
     add(query)
     lower = query.lower()
-    has_city = "алмат" in lower or "almaty" in lower
+    has_city = "алмат" in lower or "almaty" in lower or delivery_city.lower() in lower
     has_street = bool(re.search(STREET_TYPE_RE, lower, re.I))
 
     if not has_city:
-        add(f"{query}, Алматы, Казахстан")
-        add(f"{query}, Almaty, Kazakhstan")
+        add(f"{query}, {delivery_city}, Казахстан")
+        if delivery_city.lower() != "almaty":
+            add(f"{query}, Almaty, Kazakhstan")
 
     parsed = _parse_street_house(query)
     if parsed:
         street_name, house, apt = parsed
         apt_part = f", квартира {apt}" if apt else ""
         prefix = _street_prefix_from_query(query)
-        add(f"{prefix} {street_name} {house}{apt_part}, Алматы, Казахстан")
-        add(f"{street_name} {house}, Almaty, Kazakhstan")
+        add(f"{prefix} {street_name} {house}{apt_part}, {delivery_city}, Казахстан")
+        add(f"{street_name} {house}, {delivery_city}, Kazakhstan")
         if prefix == "переулок":
-            add(f"lane {street_name} {house}, Almaty, Kazakhstan")
+            add(f"lane {street_name} {house}, {delivery_city}, Kazakhstan")
     elif not has_street and len(query) >= 5:
-        add(f"улица {query}, Алматы, Казахстан")
+        add(f"улица {query}, {delivery_city}, Казахстан")
 
     return variants
 
@@ -232,9 +283,16 @@ async def _nominatim_search(
     return lat, lng
 
 
-async def geocode_address(address: str, *, country_hint: str = "kz") -> Optional[Tuple[float, float]]:
+async def geocode_address(
+    address: str,
+    *,
+    country_hint: str = "kz",
+    settings: Optional[Dict[str, str]] = None,
+) -> Optional[Tuple[float, float]]:
     """Geocode address via Nominatim (OpenStreetMap). Returns (lat, lng) or None."""
-    variants = _geocode_query_variants(address)
+    settings = settings or {}
+    delivery_city = get_delivery_city(settings)
+    variants = _geocode_query_variants(address, delivery_city)
     if not variants:
         return None
 
@@ -242,8 +300,9 @@ async def geocode_address(address: str, *, country_hint: str = "kz") -> Optional
         "User-Agent": "Sortirovka24-Gastronom/1.0 (delivery-zones; contact@sortirovka24.kz)",
         "Accept-Language": "ru,en",
     }
-    # Almaty area — bias search toward Sortirovka / city center
-    viewbox = "76.70,43.55,77.25,43.00"
+    store_lat, store_lng = get_store_coords(settings)
+    d = 0.25
+    viewbox = f"{store_lng - d},{store_lat + d},{store_lng + d},{store_lat - d}"
 
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
@@ -273,7 +332,7 @@ async def geocode_address(address: str, *, country_hint: str = "kz") -> Optional
                 street_name, house, _apt = parsed
                 prefix = _street_prefix_from_query(address)
                 street_line = f"{prefix} {street_name} {house}" if prefix != "улица" else f"{street_name} {house}"
-                for city in ("Алматы", "Almaty"):
+                for city in (delivery_city, "Almaty" if delivery_city != "Almaty" else "Алматы"):
                     try:
                         coords = await _nominatim_search(
                             client,
@@ -298,8 +357,8 @@ async def geocode_address(address: str, *, country_hint: str = "kz") -> Optional
         return None
 
 
-async def reverse_geocode(lat: float, lng: float) -> Optional[str]:
-    """Human-readable address from coordinates."""
+async def reverse_geocode(lat: float, lng: float) -> Tuple[Optional[str], str]:
+    """Human-readable address from coordinates. Returns (label, city)."""
     headers = {
         "User-Agent": "Sortirovka24-Gastronom/1.0 (delivery-zones; contact@sortirovka24.kz)",
         "Accept-Language": "ru,en",
@@ -320,19 +379,36 @@ async def reverse_geocode(lat: float, lng: float) -> Optional[str]:
             resp.raise_for_status()
             data = resp.json()
             if not data:
-                return None
+                return None, ""
             addr = data.get("address") or {}
-            parts = [
-                addr.get("road") or addr.get("pedestrian") or addr.get("footway"),
-                addr.get("house_number"),
-            ]
-            short = " ".join(p for p in parts if p)
-            if short:
-                return f"{short}, Алматы"
-            return data.get("display_name")
+            city = (
+                addr.get("city")
+                or addr.get("town")
+                or addr.get("village")
+                or addr.get("hamlet")
+                or addr.get("municipality")
+                or addr.get("county")
+                or ""
+            )
+            road = (
+                addr.get("road")
+                or addr.get("pedestrian")
+                or addr.get("footway")
+                or addr.get("residential")
+                or addr.get("neighbourhood")
+                or ""
+            )
+            house = addr.get("house_number") or ""
+            line = " ".join(p for p in (road, house) if p)
+            if line and city:
+                return f"{line}, {city}", str(city)
+            if line:
+                return line, str(city)
+            display = data.get("display_name") or ""
+            return (display or None), str(city)
     except Exception as e:
         logger.debug("Reverse geocode failed: %s", e)
-        return None
+        return None, ""
 
 
 def default_zones_json() -> str:

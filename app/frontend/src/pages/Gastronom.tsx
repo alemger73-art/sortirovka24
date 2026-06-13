@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { resolveImageSrc } from '@/lib/storage';
 import { getAccountPrefill } from '@/lib/localAuth';
@@ -14,6 +14,7 @@ import {
 } from '@/lib/gastronomApi';
 import { parseDeliveryZones, type DeliveryQuote } from '@/lib/gastronomDelivery';
 import DeliveryAddressPicker from '@/components/gastronom/DeliveryAddressPicker';
+import GastronomSideMenu from '@/components/gastronom/GastronomSideMenu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -35,6 +36,12 @@ interface CartLine {
 }
 
 type Tab = 'home' | 'catalog' | 'cart' | 'favorites' | 'profile';
+
+const TAB_IDS: Tab[] = ['home', 'catalog', 'cart', 'favorites', 'profile'];
+
+function parseTab(raw: string | null): Tab {
+  return TAB_IDS.includes(raw as Tab) ? (raw as Tab) : 'home';
+}
 
 const NAV_ITEMS: { id: Tab; icon: typeof Home; label: string }[] = [
   { id: 'home', icon: Home, label: 'Главная' },
@@ -127,6 +134,7 @@ function formatMoney(n: number) {
 }
 
 export default function Gastronom() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<GastronomCategory[]>([]);
   const [products, setProducts] = useState<GastronomProduct[]>([]);
@@ -140,11 +148,59 @@ export default function Gastronom() {
   });
   const [cartQty, setCartQty] = useState<Record<number, number>>(loadCartQty);
   const [favorites, setFavorites] = useState<number[]>(loadFavorites);
-  const [activeTab, setActiveTab] = useState<Tab>('home');
+
+  const activeTab = parseTab(searchParams.get('tab'));
+  const checkoutOpen = searchParams.get('checkout') === '1';
+  const menuOpen = searchParams.get('menu') === '1';
+  const productIdFromUrl = Number(searchParams.get('product') || 0);
+
+  const patchSearch = useCallback((patch: (p: URLSearchParams) => void, replace = false) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      patch(next);
+      return next;
+    }, { replace });
+  }, [setSearchParams]);
+
+  const setActiveTab = useCallback((tab: Tab, replace = false) => {
+    patchSearch((p) => {
+      if (tab === 'home') p.delete('tab');
+      else p.set('tab', tab);
+      p.delete('checkout');
+      p.delete('product');
+      p.delete('menu');
+    }, replace);
+  }, [patchSearch]);
+
+  const openMenu = useCallback(() => {
+    patchSearch((p) => p.set('menu', '1'), false);
+  }, [patchSearch]);
+
+  const closeMenu = useCallback(() => {
+    patchSearch((p) => p.delete('menu'), true);
+  }, [patchSearch]);
+
+  const openProduct = useCallback((product: GastronomProduct) => {
+    patchSearch((p) => {
+      p.set('product', String(product.id));
+      p.delete('menu');
+    }, false);
+  }, [patchSearch]);
+
+  const closeProduct = useCallback(() => {
+    patchSearch((p) => p.delete('product'), true);
+  }, [patchSearch]);
+
+  const openCheckoutModal = useCallback(() => {
+    patchSearch((p) => p.set('checkout', '1'), false);
+  }, [patchSearch]);
+
+  const closeCheckoutModal = useCallback(() => {
+    patchSearch((p) => p.delete('checkout'), true);
+  }, [patchSearch]);
+
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [confirmedOrder, setConfirmedOrder] = useState<ConfirmedOrder | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<GastronomProduct | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [addressEditing, setAddressEditing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -161,6 +217,10 @@ export default function Gastronom() {
   const [deliveryQuoteLoading, setDeliveryQuoteLoading] = useState(false);
   const [deliveryQuoteError, setDeliveryQuoteError] = useState<string | null>(null);
   const quoteRequestId = useRef(0);
+  const addressPickerRef = useRef<HTMLDivElement>(null);
+  const checkoutSectionRef = useRef<HTMLDivElement>(null);
+  const prevDeliveryReady = useRef(false);
+  const [addressFormCollapsed, setAddressFormCollapsed] = useState(false);
 
   const alcoholCategoryIds = useMemo(
     () => new Set(categories.filter((c) => c.is_alcohol).map((c) => c.id)),
@@ -179,6 +239,11 @@ export default function Gastronom() {
 
   const heroImage = settings.hero_image_url || HERO_IMG;
   const alcoholBannerImage = settings.alcohol_banner_image || ALCOHOL_IMG;
+
+  const selectedProduct = useMemo(
+    () => (productIdFromUrl ? products.find((p) => p.id === productIdFromUrl) ?? null : null),
+    [productIdFromUrl, products]
+  );
 
   const applyCatalog = useCallback((data: {
     categories: GastronomCategory[];
@@ -271,6 +336,35 @@ export default function Gastronom() {
   );
   const deliveryReady = !hasDeliveryZones || (deliveryQuote?.available === true && !deliveryQuoteLoading);
 
+  useEffect(() => {
+    if (deliveryReady && !prevDeliveryReady.current && hasDeliveryZones) {
+      setAddressFormCollapsed(true);
+      toast.success('Адрес подтверждён! Нажмите «Оформить заказ»', { duration: 4000 });
+    }
+    if (!deliveryReady) {
+      setAddressFormCollapsed(false);
+    }
+    prevDeliveryReady.current = deliveryReady;
+  }, [deliveryReady, hasDeliveryZones]);
+
+  const focusAddressPicker = useCallback(() => {
+    setAddressFormCollapsed(false);
+    setActiveTab('cart');
+    setAddressEditing(true);
+    const saved = address.trim() || settings.default_address?.trim() || '';
+    if (!address.trim() && saved) {
+      setAddress(saved);
+    }
+    window.setTimeout(() => {
+      addressPickerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const input = addressPickerRef.current?.querySelector('input');
+      if (input instanceof HTMLInputElement) {
+        input.focus({ preventScroll: true });
+        input.select();
+      }
+    }, 150);
+  }, [address, settings.default_address]);
+
   const runDeliveryQuote = useCallback(async (
     body: { address?: string; lat?: number; lng?: number },
     options?: { notify?: boolean; fillAddress?: boolean },
@@ -285,7 +379,10 @@ export default function Gastronom() {
       if (options?.fillAddress && quote.display_address) {
         setAddress(quote.display_address);
       }
-      if (!quote.available) {
+      if (quote.location_warning) {
+        setDeliveryQuoteError(quote.location_warning);
+        if (options?.notify) toast.warning(quote.location_warning);
+      } else if (!quote.available) {
         const msg = quote.message || 'Доставка по этому адресу недоступна';
         setDeliveryQuoteError(msg);
         if (options?.notify) toast.error(msg);
@@ -415,15 +512,28 @@ export default function Gastronom() {
         return;
       }
       toast.info('Сначала проверьте адрес — нажмите «Найти на карте» или GPS');
-      setAddressEditing(true);
-      setActiveTab('cart');
+      focusAddressPicker();
       return;
     }
     if (hasAlcoholInCart && !ageConfirmed) {
-      requireAge(() => setCheckoutOpen(true));
+      requireAge(() => openCheckoutModal());
       return;
     }
-    setCheckoutOpen(true);
+    openCheckoutModal();
+  }
+
+  function proceedToCheckout() {
+    if (hasDeliveryZones && !deliveryReady) {
+      focusAddressPicker();
+      toast.info('Сначала проверьте адрес на карте');
+      return;
+    }
+    if (subtotal < minOrder) {
+      toast.error(`Минимальный заказ ${formatMoney(minOrder)}`);
+      return;
+    }
+    setAddressFormCollapsed(true);
+    openCheckout();
   }
 
   function openAlcoholCatalog() {
@@ -496,7 +606,7 @@ export default function Gastronom() {
         delivery_fee: deliveryFee,
       });
       setCartQty({});
-      setCheckoutOpen(false);
+      closeCheckoutModal();
       setConfirmedOrder({
         id: created.id,
         name: name.trim(),
@@ -555,7 +665,7 @@ export default function Gastronom() {
       <div className="relative overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100">
         <button
           type="button"
-          onClick={() => setSelectedProduct(product)}
+          onClick={() => openProduct(product)}
           className="relative aspect-[4/3] bg-gray-50 w-full block text-left"
         >
           {alcohol && (
@@ -596,7 +706,7 @@ export default function Gastronom() {
         </button>
         <button
           type="button"
-          onClick={() => setSelectedProduct(product)}
+          onClick={() => openProduct(product)}
           className="p-3 md:p-4 w-full text-left"
         >
           <h3 className="font-semibold text-gray-900 text-sm md:text-base leading-tight line-clamp-2">{product.name}</h3>
@@ -644,9 +754,15 @@ export default function Gastronom() {
   }
 
   if (confirmedOrder) {
-    const qrText = `GASTRONOM:${confirmedOrder.id};TOTAL:${confirmedOrder.total};PHONE:${confirmedOrder.phone}`;
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrText)}`;
     const storePhone = settings.store_phone?.replace(/\D/g, '');
+    const paymentHint =
+      confirmedOrder.payment === 'Наличные'
+        ? 'Оплатите курьеру наличными при получении заказа.'
+        : confirmedOrder.payment === 'Kaspi QR'
+          ? 'Курьер привезёт QR для оплаты в приложении Kaspi. Сканируйте его в Kaspi, когда получите заказ.'
+          : confirmedOrder.payment === 'Halyk QR'
+            ? 'Курьер привезёт QR для оплаты в приложении Halyk. Сканируйте его в Halyk, когда получите заказ.'
+            : 'Оплатите курьеру при получении заказа.';
     return (
       <Layout hideHeader>
         <div className="min-h-screen bg-gray-50 px-4 py-8 md:py-12 pb-24 md:pb-8">
@@ -656,7 +772,7 @@ export default function Gastronom() {
               <h1 className="text-2xl font-bold text-gray-900 mb-1">Заказ принят!</h1>
               <p className="text-emerald-700 font-semibold text-lg">№ {confirmedOrder.id}</p>
               <p className="text-gray-500 text-sm mt-2">
-                Магазин получил заявку. При оплате по QR покажите код курьеру.
+                Мы свяжемся с вами для подтверждения. Сохраните номер заказа.
               </p>
             </div>
 
@@ -674,13 +790,10 @@ export default function Gastronom() {
               </div>
             </div>
 
-            {confirmedOrder.payment !== 'Наличные' && (
-              <div className="bg-white rounded-3xl border border-gray-100 p-6 text-center shadow-sm">
-                <p className="text-sm font-semibold text-gray-800">{confirmedOrder.payment}</p>
-                <img src={qrUrl} alt="QR для оплаты" className="mx-auto mt-4 h-52 w-52 rounded-2xl ring-1 ring-gray-100" />
-                <p className="mt-3 text-xs text-gray-500">Сохраните или покажите этот QR</p>
-              </div>
-            )}
+            <div className="bg-emerald-50 rounded-3xl border border-emerald-100 p-5 md:p-6 shadow-sm">
+              <p className="text-sm font-semibold text-emerald-900 mb-1">Как оплатить</p>
+              <p className="text-sm text-emerald-800 leading-relaxed">{paymentHint}</p>
+            </div>
 
             {storePhone && storePhone.length >= 10 && (
               <a
@@ -705,19 +818,34 @@ export default function Gastronom() {
 
   return (
     <Layout hideHeader>
+      <GastronomSideMenu
+        open={menuOpen}
+        onClose={closeMenu}
+        items={NAV_ITEMS.map(({ id, icon, label }) => ({
+          id,
+          label,
+          icon,
+          badge: id === 'cart' ? cartCount : undefined,
+        }))}
+        activeId={activeTab}
+        onSelect={(id) => setActiveTab(id as Tab)}
+        storeName={settings.store_name}
+        storePhone={settings.store_phone}
+      />
       <div className="min-h-screen bg-gray-50 pb-20 md:pb-8">
         <div className="max-w-7xl mx-auto relative">
         {/* Header */}
         <header className="sticky top-0 z-40 bg-white border-b border-gray-100 shadow-sm">
           {/* Mobile / tablet top bar */}
           <div className={`flex items-center justify-between ${PAGE_X} py-3 md:py-4 gap-4 lg:hidden`}>
-            <Link
-              to="/"
+            <button
+              type="button"
               className="p-2 -ml-2 text-gray-600 hover:text-emerald-600 transition-colors shrink-0"
-              aria-label="На портал"
+              aria-label="Меню"
+              onClick={openMenu}
             >
               <Menu className="h-5 w-5 md:h-6 md:w-6" />
-            </Link>
+            </button>
             <div className="text-center flex-1 min-w-0">
               {settings.logo_url ? (
                 <img
@@ -777,13 +905,14 @@ export default function Gastronom() {
 
           {/* Desktop top bar: logo + search + nav + cart in one row */}
           <div className={`hidden lg:flex items-center gap-6 ${PAGE_X} py-4`}>
-            <Link
-              to="/"
+            <button
+              type="button"
               className="p-2 -ml-2 text-gray-600 hover:text-emerald-600 transition-colors shrink-0"
-              aria-label="На портал"
+              aria-label="Меню"
+              onClick={openMenu}
             >
               <Menu className="h-6 w-6" />
-            </Link>
+            </button>
             <div className="shrink-0">
               {settings.logo_url ? (
                 <img
@@ -854,6 +983,10 @@ export default function Gastronom() {
             type="button"
             className={`flex items-center justify-between w-full ${PAGE_X} py-2 md:py-3 bg-gray-50 text-sm md:text-base border-t border-gray-100`}
             onClick={() => {
+              if (activeTab === 'cart') {
+                focusAddressPicker();
+                return;
+              }
               setAddressEditing((v) => {
                 if (!v && !address.trim() && effectiveAddress) {
                   setAddress(effectiveAddress);
@@ -1129,8 +1262,27 @@ export default function Gastronom() {
 
             {/* CART tab */}
             {activeTab === 'cart' && (
-              <div className={`${PAGE_X} py-4 md:py-6`}>
+              <div className={`${PAGE_X} py-4 md:py-6 ${cart.length > 0 ? 'pb-36 md:pb-6' : ''}`}>
                 <h2 className="hidden md:block font-bold text-gray-900 text-xl lg:text-2xl mb-4 md:mb-6">Корзина</h2>
+                {cart.length > 0 && hasDeliveryZones && (
+                  <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-white border border-gray-100 shadow-sm">
+                    <div className={`flex items-center gap-2 flex-1 ${deliveryReady ? 'opacity-70' : ''}`}>
+                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                        deliveryReady ? 'bg-emerald-600 text-white' : 'bg-emerald-600 text-white ring-2 ring-emerald-300'
+                      }`}>
+                        {deliveryReady ? '✓' : '1'}
+                      </span>
+                      <span className="text-sm font-medium text-gray-900">Адрес</span>
+                    </div>
+                    <span className="text-gray-300 text-lg">→</span>
+                    <div className={`flex items-center gap-2 flex-1 ${!deliveryReady ? 'opacity-40' : ''}`}>
+                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                        deliveryReady ? 'bg-emerald-600 text-white ring-2 ring-emerald-300' : 'bg-gray-200 text-gray-600'
+                      }`}>2</span>
+                      <span className="text-sm font-medium text-gray-900">Оформление</span>
+                    </div>
+                  </div>
+                )}
                 {cart.length === 0 ? (
                   <div className="text-center py-16 md:py-24">
                     <ShoppingCart className="h-12 w-12 text-gray-300 mx-auto mb-3" />
@@ -1145,9 +1297,10 @@ export default function Gastronom() {
                 ) : (
                   <div className="lg:grid lg:grid-cols-3 lg:gap-8 lg:items-start">
                     <div className="lg:col-span-2 space-y-4">
+                    <div ref={addressPickerRef} id="gastronom-delivery-address" className="scroll-mt-28">
                     <DeliveryAddressPicker
                       address={address}
-                      onAddressChange={setAddress}
+                      onAddressChange={(v) => { setAddress(v); if (addressFormCollapsed) setAddressFormCollapsed(false); }}
                       hasDeliveryZones={hasDeliveryZones}
                       deliveryQuote={deliveryQuote}
                       loading={deliveryQuoteLoading}
@@ -1155,7 +1308,11 @@ export default function Gastronom() {
                       onFindByAddress={() => findByAddress()}
                       onFindByGps={requestGeolocation}
                       onSelectExample={(ex) => findByAddress(ex)}
+                      collapsed={addressFormCollapsed && deliveryReady}
+                      onEdit={focusAddressPicker}
+                      onContinueCheckout={proceedToCheckout}
                     />
+                    </div>
                     <div className="space-y-3 md:space-y-4">
                     {cart.map(({ product, qty }) => (
                       <div key={product.id} className="flex gap-3 md:gap-4 bg-white md:bg-gray-50 rounded-2xl p-3 md:p-4 shadow-sm md:shadow-none border border-gray-100 md:border-0">
@@ -1193,7 +1350,13 @@ export default function Gastronom() {
                     ))}
                     </div>
                     </div>
-                    <div className="mt-4 lg:mt-0 lg:sticky lg:top-36 bg-white rounded-2xl border border-gray-100 p-4 md:p-6 shadow-sm space-y-3">
+                    <div ref={checkoutSectionRef} className="mt-4 lg:mt-0 lg:sticky lg:top-36 relative z-10 bg-white rounded-2xl border border-gray-100 p-4 md:p-6 shadow-sm space-y-3">
+                      {deliveryReady && hasDeliveryZones && (
+                        <div className="flex items-center gap-2 pb-2 border-b border-gray-100 md:hidden">
+                          <span className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">2</span>
+                          <span className="text-sm font-semibold text-gray-900">Оформление заказа</span>
+                        </div>
+                      )}
                       <h3 className="font-bold text-gray-900 text-lg hidden lg:block">Итого</h3>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-500">Товары</span>
@@ -1216,9 +1379,38 @@ export default function Gastronom() {
                         <span className="font-bold text-xl md:text-2xl text-emerald-700">{formatMoney(orderTotal)}</span>
                       </div>
                       {hasDeliveryZones && !deliveryReady && (
-                        <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
-                          Проверьте адрес выше — без этого заказ не оформить
-                        </p>
+                        <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-3 space-y-2.5 text-sm text-amber-900">
+                          <p className="text-xs leading-relaxed">
+                            {deliveryQuoteError
+                              || deliveryQuote?.message
+                              || 'Укажите адрес и нажмите «Найти на карте»'}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={focusAddressPicker}
+                              className="text-xs font-semibold px-3 py-2.5 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 active:scale-[0.98] transition-transform cursor-pointer min-h-[40px]"
+                            >
+                              Изменить адрес
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => findByAddress()}
+                              disabled={deliveryQuoteLoading}
+                              className="text-xs font-semibold px-3 py-2.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] transition-transform cursor-pointer min-h-[40px] disabled:opacity-50"
+                            >
+                              Повторить
+                            </button>
+                            <button
+                              type="button"
+                              onClick={requestGeolocation}
+                              disabled={deliveryQuoteLoading}
+                              className="text-xs font-semibold px-3 py-2.5 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 active:scale-[0.98] transition-transform cursor-pointer min-h-[40px] inline-flex items-center gap-1 disabled:opacity-50"
+                            >
+                              GPS
+                            </button>
+                          </div>
+                        </div>
                       )}
                       {minOrder > 0 && subtotal < minOrder && (
                         <p className="text-xs md:text-sm text-amber-600">
@@ -1227,21 +1419,27 @@ export default function Gastronom() {
                       )}
                       <Button
                         className={`w-full h-12 md:h-14 rounded-xl text-base md:text-lg ${
-                          hasDeliveryZones && !deliveryReady && subtotal >= minOrder
-                            ? 'bg-emerald-400 hover:bg-emerald-500'
-                            : 'bg-emerald-600 hover:bg-emerald-700'
+                          deliveryReady || !hasDeliveryZones
+                            ? 'bg-emerald-600 hover:bg-emerald-700 shadow-md'
+                            : 'bg-emerald-400 hover:bg-emerald-500'
                         }`}
                         disabled={subtotal < minOrder}
-                        onClick={openCheckout}
+                        onClick={() => {
+                          if (hasDeliveryZones && !deliveryReady) {
+                            focusAddressPicker();
+                            return;
+                          }
+                          proceedToCheckout();
+                        }}
                       >
                         {deliveryQuoteLoading ? (
                           <span className="flex items-center gap-2">
                             <Loader2 className="h-4 w-4 animate-spin" /> Проверяем адрес...
                           </span>
                         ) : hasDeliveryZones && !deliveryReady ? (
-                          'Проверить адрес'
+                          'Шаг 1: Проверить адрес'
                         ) : (
-                          'Оформить заказ'
+                          'Шаг 2: Оформить заказ →'
                         )}
                       </Button>
                     </div>
@@ -1301,7 +1499,7 @@ export default function Gastronom() {
                 )}
                 <button
                   type="button"
-                  onClick={() => setSelectedProduct(null)}
+                  onClick={() => closeProduct()}
                   className="absolute top-3 right-3 h-9 w-9 rounded-full bg-white/90 flex items-center justify-center shadow"
                 >
                   <X className="h-5 w-5 text-gray-500" />
@@ -1341,7 +1539,7 @@ export default function Gastronom() {
                   ) : (
                     <Button
                       className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-12 rounded-xl"
-                      onClick={() => { addProduct(selectedProduct); setSelectedProduct(null); }}
+                      onClick={() => { addProduct(selectedProduct); closeProduct(); }}
                     >
                       Добавить в корзину
                     </Button>
@@ -1365,7 +1563,7 @@ export default function Gastronom() {
             <div className="bg-white w-full sm:max-w-lg md:max-w-xl lg:max-w-2xl rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between p-4 md:p-6 border-b">
                 <h2 className="font-bold text-lg md:text-xl">Оформление заказа</h2>
-                <button type="button" onClick={() => setCheckoutOpen(false)}>
+                <button type="button" onClick={closeCheckoutModal}>
                   <X className="h-5 w-5 text-gray-400" />
                 </button>
               </div>
@@ -1399,8 +1597,11 @@ export default function Gastronom() {
                       )}
                       <button
                         type="button"
-                        onClick={() => { setCheckoutOpen(false); setActiveTab('cart'); }}
-                        className="text-xs text-emerald-600 font-medium underline"
+                        onClick={() => {
+                          closeCheckoutModal();
+                          focusAddressPicker();
+                        }}
+                        className="text-xs text-emerald-600 font-medium underline py-1 cursor-pointer"
                       >
                         Изменить адрес
                       </button>
@@ -1492,6 +1693,44 @@ export default function Gastronom() {
                   Мне нет 21 года
                 </Button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile cart checkout bar — always visible on cart tab */}
+        {activeTab === 'cart' && cart.length > 0 && !checkoutOpen && (
+          <div className="md:hidden fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] left-0 right-0 z-30 px-4 py-2.5 bg-white/95 backdrop-blur border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+            <div className="flex items-center gap-3 max-w-lg mx-auto">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] text-gray-500 uppercase tracking-wide">
+                  {deliveryReady || !hasDeliveryZones ? 'Шаг 2' : 'Шаг 1'}
+                </p>
+                <p className="font-bold text-emerald-700 text-lg leading-tight">{formatMoney(orderTotal)}</p>
+              </div>
+              <Button
+                type="button"
+                className={`h-12 px-5 rounded-xl font-semibold shrink-0 ${
+                  deliveryReady || !hasDeliveryZones
+                    ? 'bg-emerald-600 hover:bg-emerald-700'
+                    : 'bg-amber-500 hover:bg-amber-600'
+                }`}
+                disabled={subtotal < minOrder || deliveryQuoteLoading}
+                onClick={() => {
+                  if (hasDeliveryZones && !deliveryReady) {
+                    focusAddressPicker();
+                    return;
+                  }
+                  proceedToCheckout();
+                }}
+              >
+                {deliveryQuoteLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : hasDeliveryZones && !deliveryReady ? (
+                  'Проверить адрес'
+                ) : (
+                  'Оформить →'
+                )}
+              </Button>
             </div>
           </div>
         )}

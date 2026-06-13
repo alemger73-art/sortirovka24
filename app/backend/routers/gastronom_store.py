@@ -16,7 +16,13 @@ from services.gastronom_orders import Gastronom_ordersService
 from services.gastronom_products import Gastronom_productsService
 from services.gastronom_seed import ensure_alcohol_category, seed_gastronom_if_empty
 from services.gastronom_settings import Gastronom_settingsService
-from services.gastronom_delivery import geocode_address, resolve_delivery_quote, validate_order_delivery, reverse_geocode
+from services.gastronom_delivery import (
+    geocode_address,
+    resolve_delivery_quote,
+    validate_order_delivery,
+    reverse_geocode,
+    enrich_quote_with_location,
+)
 from services.telegram import notify_gastronom_order, notify_gastronom_status_change
 
 logger = logging.getLogger(__name__)
@@ -201,14 +207,16 @@ async def delivery_quote(data: DeliveryQuoteRequest, db: AsyncSession = Depends(
 
     lat, lng = data.lat, data.lng
     if lat is not None and lng is not None:
-        quote = resolve_delivery_quote(settings, float(lat), float(lng))
-        display = await reverse_geocode(float(lat), float(lng))
+        lat_f, lng_f = float(lat), float(lng)
+        quote = resolve_delivery_quote(settings, lat_f, lng_f)
+        display, city = await reverse_geocode(lat_f, lng_f)
         if display:
             quote["display_address"] = display
+        enrich_quote_with_location(quote, settings, lat_f, lng_f, detected_city=city, via_gps=True)
         return quote
 
     if data.address and data.address.strip():
-        coords = await geocode_address(data.address.strip())
+        coords = await geocode_address(data.address.strip(), settings=settings)
         if not coords:
             raise HTTPException(
                 status_code=404,
@@ -217,8 +225,9 @@ async def delivery_quote(data: DeliveryQuoteRequest, db: AsyncSession = Depends(
         lat, lng = coords
         quote = resolve_delivery_quote(settings, lat, lng)
         quote["geocoded_address"] = data.address.strip()
-        display = await reverse_geocode(lat, lng)
+        display, city = await reverse_geocode(lat, lng)
         quote["display_address"] = display or data.address.strip()
+        enrich_quote_with_location(quote, settings, lat, lng, detected_city=city, via_gps=False)
         return quote
 
     raise HTTPException(status_code=400, detail="Укажите адрес или координаты")
