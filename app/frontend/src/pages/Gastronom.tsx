@@ -13,13 +13,14 @@ import {
   type GastronomSettings,
 } from '@/lib/gastronomApi';
 import { parseDeliveryZones, type DeliveryQuote } from '@/lib/gastronomDelivery';
+import DeliveryAddressPicker from '@/components/gastronom/DeliveryAddressPicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Menu, Search, ShoppingCart, MapPin, Clock, ChevronDown, Plus, Minus, X,
   Home, LayoutGrid, Heart, User, Truck, ShieldCheck, CreditCard, CheckCircle2,
-  Leaf, Zap, Navigation, Loader2,
+  Leaf, Zap, Loader2, AlertCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -270,7 +271,10 @@ export default function Gastronom() {
   );
   const deliveryReady = !hasDeliveryZones || (deliveryQuote?.available === true && !deliveryQuoteLoading);
 
-  const runDeliveryQuote = useCallback(async (body: { address?: string; lat?: number; lng?: number }) => {
+  const runDeliveryQuote = useCallback(async (
+    body: { address?: string; lat?: number; lng?: number },
+    options?: { notify?: boolean; fillAddress?: boolean },
+  ) => {
     const reqId = ++quoteRequestId.current;
     setDeliveryQuoteLoading(true);
     setDeliveryQuoteError(null);
@@ -278,47 +282,35 @@ export default function Gastronom() {
       const quote = await fetchDeliveryQuote(body);
       if (reqId !== quoteRequestId.current) return;
       setDeliveryQuote(quote);
+      if (options?.fillAddress && quote.display_address) {
+        setAddress(quote.display_address);
+      }
       if (!quote.available) {
         const msg = quote.message || 'Доставка по этому адресу недоступна';
         setDeliveryQuoteError(msg);
-        toast.error(msg);
+        if (options?.notify) toast.error(msg);
       }
     } catch (e) {
       if (reqId !== quoteRequestId.current) return;
       setDeliveryQuote(null);
       const msg = e instanceof Error ? e.message : 'Не удалось рассчитать доставку';
       setDeliveryQuoteError(msg);
-      toast.error(msg);
+      if (options?.notify) toast.error(msg);
     } finally {
       if (reqId === quoteRequestId.current) setDeliveryQuoteLoading(false);
     }
   }, []);
 
-  const retryDeliveryQuote = useCallback(() => {
-    if (effectiveAddress.length >= 5) {
-      void runDeliveryQuote({ address: effectiveAddress });
+  const findByAddress = useCallback((addr?: string) => {
+    const target = (addr ?? effectiveAddress).trim();
+    if (target.length < 5) {
+      toast.info('Введите улицу и номер дома, например: пер. Урановый 10');
+      setAddressEditing(true);
       return;
     }
-    setAddressEditing(true);
-    toast.info('Введите адрес: улица, дом, квартира');
+    if (addr) setAddress(addr);
+    void runDeliveryQuote({ address: target }, { notify: true });
   }, [effectiveAddress, runDeliveryQuote]);
-
-  useEffect(() => {
-    if (!hasDeliveryZones) {
-      setDeliveryQuote(null);
-      setDeliveryQuoteError(null);
-      return;
-    }
-    if (effectiveAddress.length < 5) {
-      setDeliveryQuote(null);
-      setDeliveryQuoteError(null);
-      return;
-    }
-    const timer = setTimeout(() => {
-      void runDeliveryQuote({ address: effectiveAddress });
-    }, 700);
-    return () => clearTimeout(timer);
-  }, [effectiveAddress, hasDeliveryZones, runDeliveryQuote]);
 
   function requestGeolocation() {
     if (!navigator.geolocation) {
@@ -328,12 +320,14 @@ export default function Gastronom() {
     setDeliveryQuoteLoading(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        void runDeliveryQuote({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        toast.success('Местоположение определено');
+        void runDeliveryQuote(
+          { lat: pos.coords.latitude, lng: pos.coords.longitude },
+          { notify: true, fillAddress: true },
+        );
       },
       () => {
         setDeliveryQuoteLoading(false);
-        toast.error('Не удалось получить геолокацию. Введите адрес вручную.');
+        toast.error('Не удалось получить GPS. Разрешите доступ к геолокации или введите адрес вручную.');
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
     );
@@ -417,15 +411,12 @@ export default function Gastronom() {
   function openCheckout() {
     if (hasDeliveryZones && !deliveryReady) {
       if (deliveryQuoteLoading) {
-        toast.info('Подождите, рассчитываем доставку...');
+        toast.info('Подождите, проверяем адрес на карте...');
         return;
       }
-      if (deliveryQuoteError || !deliveryQuote?.available) {
-        toast.error(deliveryQuoteError || 'Укажите адрес в зоне доставки');
-      } else {
-        toast.error('Сначала укажите адрес и дождитесь расчёта доставки');
-      }
+      toast.info('Сначала проверьте адрес — нажмите «Найти на карте» или GPS');
       setAddressEditing(true);
+      setActiveTab('cart');
       return;
     }
     if (hasAlcoholInCart && !ageConfirmed) {
@@ -872,8 +863,21 @@ export default function Gastronom() {
             }}
           >
             <div className="flex items-center gap-1.5 text-gray-700 min-w-0">
-              <MapPin className="h-4 w-4 text-emerald-600 shrink-0" />
-              <span className="truncate font-medium">{effectiveAddress || 'Укажите адрес'}</span>
+              {hasDeliveryZones && (
+                deliveryReady ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                ) : deliveryQuoteLoading ? (
+                  <Loader2 className="h-4 w-4 text-gray-400 animate-spin shrink-0" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                )
+              )}
+              {!hasDeliveryZones && <MapPin className="h-4 w-4 text-emerald-600 shrink-0" />}
+              <span className="truncate font-medium">
+                {deliveryReady && deliveryQuote?.zone_name
+                  ? `${effectiveAddress || 'Адрес'} · ${deliveryQuote.zone_name}`
+                  : effectiveAddress || (hasDeliveryZones ? 'Укажите адрес доставки' : 'Укажите адрес')}
+              </span>
               <ChevronDown className="h-3.5 w-3.5 text-gray-400 shrink-0" />
             </div>
             <div className="flex items-center gap-1 text-gray-500 shrink-0 ml-2">
@@ -896,58 +900,21 @@ export default function Gastronom() {
 
           {addressEditing && (
             <div className={`${PAGE_X} pb-3 bg-gray-50 space-y-2`}>
-              <div className="flex gap-2">
-                <Input
-                  autoFocus
-                  placeholder="Улица, дом, квартира"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className="rounded-xl bg-white flex-1"
-                />
-                <button
-                  type="button"
-                  onClick={requestGeolocation}
-                  className="shrink-0 flex items-center gap-1.5 px-3 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700"
-                  title="Определить по GPS"
-                >
-                  {deliveryQuoteLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Navigation className="h-4 w-4" />}
-                  <span className="hidden sm:inline">GPS</span>
-                </button>
-              </div>
-              {hasDeliveryZones && (
-                <div className="text-xs rounded-lg px-3 py-2 bg-white border border-gray-100">
-                  {deliveryQuoteLoading && (
-                    <span className="text-gray-500 flex items-center gap-1.5">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Рассчитываем доставку...
-                    </span>
-                  )}
-                  {!deliveryQuoteLoading && deliveryQuote?.available && (
-                    <span className="text-emerald-700 font-medium">
-                      {deliveryQuote.zone_name}: доставка {formatMoney(deliveryQuote.delivery_fee)}
-                    </span>
-                  )}
-                  {!deliveryQuoteLoading && deliveryQuote && !deliveryQuote.available && (
-                    <span className="text-red-600">{deliveryQuote.message || 'Доставка недоступна'}</span>
-                  )}
-                  {!deliveryQuoteLoading && deliveryQuoteError && !deliveryQuote && (
-                    <span className="text-red-600">{deliveryQuoteError}</span>
-                  )}
-                  {!deliveryQuoteLoading && !deliveryQuote && !deliveryQuoteError && effectiveAddress.length >= 5 && (
-                    <span className="text-gray-400">Проверяем адрес...</span>
-                  )}
-                  {!deliveryQuoteLoading && !deliveryQuote && effectiveAddress.length < 5 && (
-                    <span className="text-gray-400">Введите полный адрес для расчёта</span>
-                  )}
-                  {(deliveryQuoteError || (deliveryQuote && !deliveryQuote.available)) && (
-                    <button
-                      type="button"
-                      onClick={retryDeliveryQuote}
-                      className="mt-2 text-emerald-600 font-medium underline"
-                    >
-                      Повторить расчёт
-                    </button>
-                  )}
-                </div>
+              <DeliveryAddressPicker
+                variant="compact"
+                address={address}
+                onAddressChange={setAddress}
+                hasDeliveryZones={hasDeliveryZones}
+                deliveryQuote={deliveryQuote}
+                loading={deliveryQuoteLoading}
+                error={deliveryQuoteError}
+                onFindByAddress={() => findByAddress()}
+                onFindByGps={requestGeolocation}
+              />
+              {hasDeliveryZones && deliveryReady && deliveryQuote?.zone_name && (
+                <p className="text-xs text-emerald-700 font-medium px-1">
+                  ✓ {deliveryQuote.zone_name} · доставка {formatMoney(deliveryQuote.delivery_fee)}
+                </p>
               )}
             </div>
           )}
@@ -1177,7 +1144,19 @@ export default function Gastronom() {
                   </div>
                 ) : (
                   <div className="lg:grid lg:grid-cols-3 lg:gap-8 lg:items-start">
-                    <div className="lg:col-span-2 space-y-3 md:space-y-4">
+                    <div className="lg:col-span-2 space-y-4">
+                    <DeliveryAddressPicker
+                      address={address}
+                      onAddressChange={setAddress}
+                      hasDeliveryZones={hasDeliveryZones}
+                      deliveryQuote={deliveryQuote}
+                      loading={deliveryQuoteLoading}
+                      error={deliveryQuoteError}
+                      onFindByAddress={() => findByAddress()}
+                      onFindByGps={requestGeolocation}
+                      onSelectExample={(ex) => findByAddress(ex)}
+                    />
+                    <div className="space-y-3 md:space-y-4">
                     {cart.map(({ product, qty }) => (
                       <div key={product.id} className="flex gap-3 md:gap-4 bg-white md:bg-gray-50 rounded-2xl p-3 md:p-4 shadow-sm md:shadow-none border border-gray-100 md:border-0">
                         <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden bg-white shrink-0">
@@ -1213,6 +1192,7 @@ export default function Gastronom() {
                       </div>
                     ))}
                     </div>
+                    </div>
                     <div className="mt-4 lg:mt-0 lg:sticky lg:top-36 bg-white rounded-2xl border border-gray-100 p-4 md:p-6 shadow-sm space-y-3">
                       <h3 className="font-bold text-gray-900 text-lg hidden lg:block">Итого</h3>
                       <div className="flex justify-between text-sm">
@@ -1235,60 +1215,10 @@ export default function Gastronom() {
                         <span className="text-gray-700 font-medium">К оплате</span>
                         <span className="font-bold text-xl md:text-2xl text-emerald-700">{formatMoney(orderTotal)}</span>
                       </div>
-                      {hasDeliveryZones && (
-                        <div className={`rounded-xl px-3 py-2.5 text-sm ${
-                          deliveryQuoteLoading
-                            ? 'bg-gray-50 text-gray-600'
-                            : deliveryReady
-                              ? 'bg-emerald-50 text-emerald-800'
-                              : 'bg-amber-50 text-amber-900'
-                        }`}>
-                          {deliveryQuoteLoading && (
-                            <span className="flex items-center gap-2">
-                              <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-                              Рассчитываем доставку для «{effectiveAddress}»...
-                            </span>
-                          )}
-                          {!deliveryQuoteLoading && deliveryReady && deliveryQuote?.zone_name && (
-                            <span>
-                              Доставка · {deliveryQuote.zone_name}: {formatMoney(deliveryQuote.delivery_fee)}
-                            </span>
-                          )}
-                          {!deliveryQuoteLoading && !deliveryReady && (
-                            <div className="space-y-2">
-                              <p>
-                                {deliveryQuoteError
-                                  || deliveryQuote?.message
-                                  || (effectiveAddress.length < 5
-                                    ? 'Укажите адрес доставки вверху страницы'
-                                    : 'Не удалось рассчитать доставку — проверьте адрес')}
-                              </p>
-                              <div className="flex flex-wrap gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setAddressEditing(true)}
-                                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white border border-amber-200"
-                                >
-                                  Изменить адрес
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={retryDeliveryQuote}
-                                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-600 text-white"
-                                >
-                                  Повторить
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={requestGeolocation}
-                                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white border border-amber-200 inline-flex items-center gap-1"
-                                >
-                                  <Navigation className="h-3.5 w-3.5" /> GPS
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                      {hasDeliveryZones && !deliveryReady && (
+                        <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
+                          Проверьте адрес выше — без этого заказ не оформить
+                        </p>
                       )}
                       {minOrder > 0 && subtotal < minOrder && (
                         <p className="text-xs md:text-sm text-amber-600">
@@ -1306,8 +1236,10 @@ export default function Gastronom() {
                       >
                         {deliveryQuoteLoading ? (
                           <span className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin" /> Расчёт доставки...
+                            <Loader2 className="h-4 w-4 animate-spin" /> Проверяем адрес...
                           </span>
+                        ) : hasDeliveryZones && !deliveryReady ? (
+                          'Проверить адрес'
                         ) : (
                           'Оформить заказ'
                         )}
@@ -1450,7 +1382,32 @@ export default function Gastronom() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Адрес доставки</label>
-                  <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Улица, дом, квартира" />
+                  {hasDeliveryZones ? (
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 space-y-2">
+                      {deliveryReady && deliveryQuote?.available ? (
+                        <>
+                          <p className="text-sm font-medium text-gray-900">{effectiveAddress}</p>
+                          <p className="text-xs text-emerald-700 flex items-center gap-1">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            {deliveryQuote.zone_name} · доставка {formatMoney(deliveryQuote.delivery_fee)}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-sm text-amber-800">
+                          Адрес не проверен. Закройте окно и нажмите «Найти на карте» в корзине.
+                        </p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => { setCheckoutOpen(false); setActiveTab('cart'); }}
+                        className="text-xs text-emerald-600 font-medium underline"
+                      >
+                        Изменить адрес
+                      </button>
+                    </div>
+                  ) : (
+                    <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Улица, дом, квартира" />
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Комментарий</label>
@@ -1509,7 +1466,7 @@ export default function Gastronom() {
                 <Button
                   className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 md:h-14 rounded-xl"
                   onClick={checkout}
-                  disabled={submitting}
+                  disabled={submitting || (hasDeliveryZones && !deliveryReady)}
                 >
                   {submitting ? 'Отправка...' : 'Подтвердить заказ'}
                 </Button>

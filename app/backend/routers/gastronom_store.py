@@ -16,7 +16,7 @@ from services.gastronom_orders import Gastronom_ordersService
 from services.gastronom_products import Gastronom_productsService
 from services.gastronom_seed import ensure_alcohol_category, seed_gastronom_if_empty
 from services.gastronom_settings import Gastronom_settingsService
-from services.gastronom_delivery import geocode_address, resolve_delivery_quote, validate_order_delivery
+from services.gastronom_delivery import geocode_address, resolve_delivery_quote, validate_order_delivery, reverse_geocode
 from services.telegram import notify_gastronom_order, notify_gastronom_status_change
 
 logger = logging.getLogger(__name__)
@@ -202,15 +202,23 @@ async def delivery_quote(data: DeliveryQuoteRequest, db: AsyncSession = Depends(
     lat, lng = data.lat, data.lng
     if lat is not None and lng is not None:
         quote = resolve_delivery_quote(settings, float(lat), float(lng))
+        display = await reverse_geocode(float(lat), float(lng))
+        if display:
+            quote["display_address"] = display
         return quote
 
     if data.address and data.address.strip():
         coords = await geocode_address(data.address.strip())
         if not coords:
-            raise HTTPException(status_code=404, detail="Не удалось определить адрес на карте. Уточните адрес или используйте геолокацию.")
+            raise HTTPException(
+                status_code=404,
+                detail="Не нашли этот адрес. Попробуйте GPS или напишите короче: «пер. Урановый 10»",
+            )
         lat, lng = coords
         quote = resolve_delivery_quote(settings, lat, lng)
         quote["geocoded_address"] = data.address.strip()
+        display = await reverse_geocode(lat, lng)
+        quote["display_address"] = display or data.address.strip()
         return quote
 
     raise HTTPException(status_code=400, detail="Укажите адрес или координаты")

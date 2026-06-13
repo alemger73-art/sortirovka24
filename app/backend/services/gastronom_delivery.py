@@ -141,9 +141,41 @@ def resolve_delivery_quote(
     }
 
 
+STREET_TYPE_RE = r"(?:ул\.?|улица|пер\.?|переулок|пр\.?|проспект|мкр\.?|микрорайон|бул\.?|бульвар|street)"
+
+
+def _normalize_address_input(address: str) -> str:
+    q = re.sub(r"\s+", " ", address.strip())
+    q = re.sub(r"\s+дом\s+", " ", q, flags=re.I)
+    return q
+
+
+def _street_prefix_from_query(query: str) -> str:
+    lower = query.lower()
+    if re.search(r"пер\.?|переулок", lower):
+        return "переулок"
+    if re.search(r"пр\.?|проспект", lower):
+        return "проспект"
+    if re.search(r"мкр\.?|микрорайон", lower):
+        return "микрорайон"
+    return "улица"
+
+
+def _parse_street_house(query: str) -> Optional[Tuple[str, str, str]]:
+    """Return (street_name, house, apt_or_empty) from free-form address."""
+    m = re.match(
+        rf"^(?:(?:{STREET_TYPE_RE})\s*)?([^\d,]+?)\s*(?:дом\s*)?(\d+[a-zA-Zа-яА-Я]?)(?:\s*,?\s*(?:кв\.?\s*|квартира\s*)?(\d+))?$",
+        query,
+        re.IGNORECASE,
+    )
+    if not m:
+        return None
+    return m.group(1).strip(), m.group(2), m.group(3) or ""
+
+
 def _geocode_query_variants(address: str) -> List[str]:
     """Build search queries for local KZ addresses (Sortirovka / Almaty)."""
-    query = re.sub(r"\s+", " ", address.strip())
+    query = _normalize_address_input(address)
     if len(query) < 3:
         return []
 
@@ -159,25 +191,23 @@ def _geocode_query_variants(address: str) -> List[str]:
     add(query)
     lower = query.lower()
     has_city = "алмат" in lower or "almaty" in lower
-    has_street = bool(re.search(r"(ул\.?|улица|street|пр\.?|проспект|мкр\.?|микрорайон)", lower, re.I))
+    has_street = bool(re.search(STREET_TYPE_RE, lower, re.I))
 
     if not has_city:
         add(f"{query}, Алматы, Казахстан")
         add(f"{query}, Almaty, Kazakhstan")
 
-    if not has_street:
-        street_match = re.match(
-            r"^(?:ул\.?\s*|улица\s*)?([^\d,]+?)\s+(\d+[a-zA-Zа-яА-Я]?)(?:\s*,?\s*(?:кв\.?\s*|квартира\s*)?(\d+))?$",
-            query,
-            re.IGNORECASE,
-        )
-        if street_match:
-            street_name = street_match.group(1).strip()
-            house = street_match.group(2)
-            apt = street_match.group(3) or ""
-            apt_part = f", квартира {apt}" if apt else ""
-            add(f"улица {street_name} {house}{apt_part}, Алматы, Казахстан")
-            add(f"{street_name} {house}, Almaty, Kazakhstan")
+    parsed = _parse_street_house(query)
+    if parsed:
+        street_name, house, apt = parsed
+        apt_part = f", квартира {apt}" if apt else ""
+        prefix = _street_prefix_from_query(query)
+        add(f"{prefix} {street_name} {house}{apt_part}, Алматы, Казахстан")
+        add(f"{street_name} {house}, Almaty, Kazakhstan")
+        if prefix == "переулок":
+            add(f"lane {street_name} {house}, Almaty, Kazakhstan")
+    elif not has_street and len(query) >= 5:
+        add(f"улица {query}, Алматы, Казахстан")
 
     return variants
 
@@ -238,20 +268,17 @@ async def geocode_address(address: str, *, country_hint: str = "kz") -> Optional
                     logger.debug("Nominatim query failed for %r: %s", candidate[:60], e)
 
             # Structured search: street + house in Almaty
-            m = re.match(
-                r"^(?:ул\.?\s*|улица\s*)?([^\d,]+?)\s+(\d+[a-zA-Zа-яА-Я]?)",
-                address.strip(),
-                re.IGNORECASE,
-            )
-            if m:
-                street_name = m.group(1).strip()
-                house = m.group(2)
+            parsed = _parse_street_house(_normalize_address_input(address))
+            if parsed:
+                street_name, house, _apt = parsed
+                prefix = _street_prefix_from_query(address)
+                street_line = f"{prefix} {street_name} {house}" if prefix != "улица" else f"{street_name} {house}"
                 for city in ("Алматы", "Almaty"):
                     try:
                         coords = await _nominatim_search(
                             client,
                             params={
-                                "street": f"{street_name} {house}",
+                                "street": street_line,
                                 "city": city,
                                 "country": "Kazakhstan",
                                 "format": "json",
@@ -268,6 +295,43 @@ async def geocode_address(address: str, *, country_hint: str = "kz") -> Optional
             return None
     except Exception as e:
         logger.warning("Geocoding failed for %r: %s", address[:80], e)
+        return None
+
+
+async def reverse_geocode(lat: float, lng: float) -> Optional[str]:
+    """Human-readable address from coordinates."""
+    headers = {
+        "User-Agent": "Sortirovka24-Gastronom/1.0 (delivery-zones; contact@sortirovka24.kz)",
+        "Accept-Language": "ru,en",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                "https://nominatim.openstreetmap.org/reverse",
+                params={
+                    "lat": lat,
+                    "lon": lng,
+                    "format": "json",
+                    "zoom": 18,
+                    "addressdetails": 1,
+                },
+                headers=headers,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            if not data:
+                return None
+            addr = data.get("address") or {}
+            parts = [
+                addr.get("road") or addr.get("pedestrian") or addr.get("footway"),
+                addr.get("house_number"),
+            ]
+            short = " ".join(p for p in parts if p)
+            if short:
+                return f"{short}, Алматы"
+            return data.get("display_name")
+    except Exception as e:
+        logger.debug("Reverse geocode failed: %s", e)
         return None
 
 

@@ -17,6 +17,7 @@ export interface DeliveryQuote {
   used_zones?: boolean;
   message?: string;
   geocoded_address?: string;
+  display_address?: string;
 }
 
 export const DEFAULT_STORE: [number, number] = [43.2250, 76.9120];
