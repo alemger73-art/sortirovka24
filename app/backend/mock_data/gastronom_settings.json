@@ -2,6 +2,8 @@
   { "key": "default_address", "value": "Жекибаева 129" },
   { "key": "delivery_time", "value": "Доставка 30-60 мин" },
   { "key": "min_order", "value": "2000" },
+  { "key": "delivery_fee", "value": "0" },
+  { "key": "store_phone", "value": "" },
   { "key": "hero_title", "value": "ДОСТАВКА ПРОДУКТОВ ПИТАНИЯ ПО СОРТИРОВКЕ" },
   { "key": "store_name", "value": "ГАСТРОНОМ" },
   { "key": "store_tagline", "value": "доставка продуктов питания" }

@@ -5,6 +5,7 @@ import { resolveImageSrc } from '@/lib/storage';
 import { getAccountPrefill } from '@/lib/localAuth';
 import {
   fetchGastronomCatalog,
+  getCachedGastronomCatalog,
   createGastronomOrder,
   type GastronomCategory,
   type GastronomProduct,
@@ -45,6 +46,22 @@ const PRODUCT_GRID =
 const PAGE_X = 'px-4 sm:px-6 lg:px-8 xl:px-10';
 const CATALOG_SIDEBAR =
   'hidden lg:block lg:sticky lg:top-36 lg:self-start space-y-1 rounded-2xl border border-gray-100 bg-white p-3 shadow-sm';
+
+const PAYMENT_LABELS: Record<'cash' | 'kaspi_qr' | 'halyk_qr', string> = {
+  cash: 'Наличные',
+  kaspi_qr: 'Kaspi QR',
+  halyk_qr: 'Halyk QR',
+};
+
+interface ConfirmedOrder {
+  id: number;
+  name: string;
+  phone: string;
+  address: string;
+  payment: string;
+  total: number;
+  storeName: string;
+}
 
 function imgSrc(url: string) {
   if (!url) return '';
@@ -114,7 +131,8 @@ export default function Gastronom() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [orderDone, setOrderDone] = useState(false);
+  const [confirmedOrder, setConfirmedOrder] = useState<ConfirmedOrder | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<GastronomProduct | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [addressEditing, setAddressEditing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -146,23 +164,37 @@ export default function Gastronom() {
   const heroImage = settings.hero_image_url || HERO_IMG;
   const alcoholBannerImage = settings.alcohol_banner_image || ALCOHOL_IMG;
 
+  const applyCatalog = useCallback((data: {
+    categories: GastronomCategory[];
+    products: GastronomProduct[];
+    settings: GastronomSettings;
+  }) => {
+    setCategories(data.categories || []);
+    setProducts(data.products || []);
+    setSettings((prev) => ({ ...prev, ...(data.settings || {}) }));
+    if (data.settings?.default_address) {
+      setAddress((a) => a || data.settings.default_address);
+    }
+  }, []);
+
   const loadCatalog = useCallback(async () => {
-    setLoading(true);
+    const cached = getCachedGastronomCatalog();
+    if (cached) {
+      applyCatalog(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     try {
-      const data = await fetchGastronomCatalog();
-      setCategories(data.categories || []);
-      setProducts(data.products || []);
-      setSettings((prev) => ({ ...prev, ...(data.settings || {}) }));
-      if (data.settings?.default_address) {
-        setAddress((a) => a || data.settings.default_address);
-      }
+      const data = await fetchGastronomCatalog(!!cached);
+      applyCatalog(data);
     } catch (e) {
       console.error(e);
-      toast.error('Не удалось загрузить каталог');
+      if (!cached) toast.error('Не удалось загрузить каталог');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [applyCatalog]);
 
   useEffect(() => {
     void loadCatalog();
@@ -194,7 +226,14 @@ export default function Gastronom() {
 
   const cartCount = useMemo(() => cart.reduce((a, c) => a + c.qty, 0), [cart]);
   const subtotal = useMemo(() => cart.reduce((a, c) => a + c.qty * c.product.price, 0), [cart]);
+  const deliveryFee = useMemo(() => Number(settings.delivery_fee || 0), [settings.delivery_fee]);
+  const orderTotal = useMemo(() => subtotal + deliveryFee, [subtotal, deliveryFee]);
   const minOrder = Number(settings.min_order || 0);
+
+  const visibleCategories = useMemo(
+    () => categories.filter((c) => !c.is_alcohol || ageConfirmed),
+    [categories, ageConfirmed]
+  );
 
   const hasAlcoholInCart = useMemo(
     () => cart.some((c) => isProductAlcohol(c.product)),
@@ -202,8 +241,11 @@ export default function Gastronom() {
   );
 
   const favoriteProducts = useMemo(
-    () => products.filter((p) => favorites.includes(p.id)),
-    [products, favorites]
+    () =>
+      products.filter(
+        (p) => favorites.includes(p.id) && (!isProductAlcohol(p) || ageConfirmed)
+      ),
+    [products, favorites, isProductAlcohol, ageConfirmed]
   );
 
   const popularProducts = useMemo(
@@ -216,6 +258,9 @@ export default function Gastronom() {
 
   const filteredProducts = useMemo(() => {
     let list = products;
+    if (!ageConfirmed) {
+      list = list.filter((p) => !isProductAlcohol(p));
+    }
     if (selectedCategory) list = list.filter((p) => p.category_id === selectedCategory);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -226,7 +271,7 @@ export default function Gastronom() {
       );
     }
     return list;
-  }, [products, selectedCategory, searchQuery]);
+  }, [products, selectedCategory, searchQuery, ageConfirmed, isProductAlcohol]);
 
   function requireAge(then: () => void) {
     if (ageConfirmed) {
@@ -298,9 +343,14 @@ export default function Gastronom() {
   }
 
   function toggleFavorite(productId: number) {
-    setFavorites((prev) =>
-      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]
-    );
+    const product = products.find((p) => p.id === productId);
+    const apply = () => {
+      setFavorites((prev) =>
+        prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]
+      );
+    };
+    if (product && isProductAlcohol(product)) requireAge(apply);
+    else apply();
   }
 
   function openSearch() {
@@ -319,22 +369,30 @@ export default function Gastronom() {
       sum: c.qty * c.product.price,
     }));
     try {
-      await createGastronomOrder({
+      const created = await createGastronomOrder({
         customer_name: name.trim(),
         customer_phone: phone.trim(),
         customer_address: address.trim(),
         payment_method: payment,
         comment: comment.trim(),
         order_items: JSON.stringify(items),
-        total_amount: subtotal,
+        total_amount: orderTotal,
       });
       setCartQty({});
       setCheckoutOpen(false);
-      setOrderDone(true);
+      setConfirmedOrder({
+        id: created.id,
+        name: name.trim(),
+        phone: phone.trim(),
+        address: address.trim(),
+        payment: PAYMENT_LABELS[payment],
+        total: orderTotal,
+        storeName: settings.store_name || 'ГАСТРОНОМ',
+      });
       toast.success('Заказ оформлен! Мы свяжемся с вами.');
     } catch (e) {
       console.error(e);
-      toast.error('Не удалось оформить заказ');
+      toast.error(e instanceof Error ? e.message : 'Не удалось оформить заказ');
     } finally {
       setSubmitting(false);
     }
@@ -370,7 +428,11 @@ export default function Gastronom() {
     const alcohol = isProductAlcohol(product);
     return (
       <div className="relative overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100">
-        <div className="relative aspect-[4/3] bg-gray-50">
+        <button
+          type="button"
+          onClick={() => setSelectedProduct(product)}
+          className="relative aspect-[4/3] bg-gray-50 w-full block text-left"
+        >
           {alcohol && (
             <span className="absolute top-2 left-12 z-10 rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
               21+
@@ -388,7 +450,7 @@ export default function Gastronom() {
           )}
           <button
             type="button"
-            onClick={() => toggleFavorite(product.id)}
+            onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
             className="absolute top-2 left-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow"
             aria-label="Избранное"
           >
@@ -396,7 +458,7 @@ export default function Gastronom() {
           </button>
           <button
             type="button"
-            onClick={() => addProduct(product)}
+            onClick={(e) => { e.stopPropagation(); addProduct(product); }}
             className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg hover:bg-emerald-700 active:scale-95 transition-all"
           >
             <Plus className="h-5 w-5" />
@@ -406,12 +468,16 @@ export default function Gastronom() {
               {inCart}
             </span>
           )}
-        </div>
-        <div className="p-3 md:p-4">
+        </button>
+        <button
+          type="button"
+          onClick={() => setSelectedProduct(product)}
+          className="p-3 md:p-4 w-full text-left"
+        >
           <h3 className="font-semibold text-gray-900 text-sm md:text-base leading-tight line-clamp-2">{product.name}</h3>
           {product.weight && <p className="text-xs md:text-sm text-gray-400 mt-0.5">{product.weight}</p>}
           <p className="mt-1.5 font-bold text-emerald-700 text-sm md:text-base">{formatMoney(product.price)}</p>
-        </div>
+        </button>
       </div>
     );
   }
@@ -452,19 +518,57 @@ export default function Gastronom() {
     );
   }
 
-  if (orderDone) {
+  if (confirmedOrder) {
+    const qrText = `GASTRONOM:${confirmedOrder.id};TOTAL:${confirmedOrder.total};PHONE:${confirmedOrder.phone}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrText)}`;
+    const storePhone = settings.store_phone?.replace(/\D/g, '');
     return (
       <Layout hideHeader>
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 pb-24 md:pb-8">
-          <div className="max-w-md w-full bg-white rounded-3xl p-8 md:p-10 shadow-lg text-center">
-            <CheckCircle2 className="h-16 w-16 text-emerald-500 mx-auto mb-4" />
-            <h1 className="text-xl font-bold text-gray-900 mb-2">Заказ принят!</h1>
-            <p className="text-gray-500 text-sm mb-6">
-              Спасибо за заказ в ГАСТРОНОМ. Мы уже получили его и скоро свяжемся с вами.
-            </p>
+        <div className="min-h-screen bg-gray-50 px-4 py-8 md:py-12 pb-24 md:pb-8">
+          <div className="max-w-lg mx-auto space-y-6">
+            <div className="text-center">
+              <CheckCircle2 className="h-16 w-16 text-emerald-500 mx-auto mb-4" />
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">Заказ принят!</h1>
+              <p className="text-emerald-700 font-semibold text-lg">№ {confirmedOrder.id}</p>
+              <p className="text-gray-500 text-sm mt-2">
+                Магазин получил заявку. При оплате по QR покажите код курьеру.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-3xl border border-gray-100 p-5 md:p-6 shadow-sm space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Магазин</p>
+              <p className="text-lg font-bold text-gray-900">{confirmedOrder.storeName}</p>
+              <div className="border-t border-gray-100 pt-3 space-y-2 text-sm">
+                <p><span className="font-medium">{confirmedOrder.name}</span> · {confirmedOrder.phone}</p>
+                <p className="flex items-start gap-2 text-gray-600">
+                  <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
+                  {confirmedOrder.address}
+                </p>
+                <p>Оплата: {confirmedOrder.payment}</p>
+                <p className="text-xl font-bold text-emerald-700">{formatMoney(confirmedOrder.total)}</p>
+              </div>
+            </div>
+
+            {confirmedOrder.payment !== 'Наличные' && (
+              <div className="bg-white rounded-3xl border border-gray-100 p-6 text-center shadow-sm">
+                <p className="text-sm font-semibold text-gray-800">{confirmedOrder.payment}</p>
+                <img src={qrUrl} alt="QR для оплаты" className="mx-auto mt-4 h-52 w-52 rounded-2xl ring-1 ring-gray-100" />
+                <p className="mt-3 text-xs text-gray-500">Сохраните или покажите этот QR</p>
+              </div>
+            )}
+
+            {storePhone && storePhone.length >= 10 && (
+              <a
+                href={`tel:+${storePhone}`}
+                className="block text-center text-sm text-emerald-600 hover:underline"
+              >
+                Позвонить в магазин: {settings.store_phone}
+              </a>
+            )}
+
             <Button
-              className="w-full bg-emerald-600 hover:bg-emerald-700"
-              onClick={() => { setOrderDone(false); setActiveTab('home'); }}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 rounded-xl"
+              onClick={() => { setConfirmedOrder(null); setActiveTab('home'); }}
             >
               Вернуться на главную
             </Button>
@@ -688,9 +792,6 @@ export default function Gastronom() {
                   <img src={imgSrc(heroImage)} alt="" className="w-full h-48 sm:h-56 md:h-64 lg:h-80 object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                   <div className="absolute inset-0 p-5 md:p-8 lg:p-10 flex flex-col justify-end max-w-3xl">
-                    <span className="absolute top-3 right-3 md:top-5 md:right-5 bg-white/20 backdrop-blur text-white text-xs md:text-sm px-2 py-0.5 rounded-full">
-                      21+
-                    </span>
                     <h2 className="text-white font-bold text-lg md:text-2xl lg:text-3xl leading-tight mb-3 md:mb-4">
                       {settings.hero_title}
                     </h2>
@@ -721,7 +822,7 @@ export default function Gastronom() {
                 <div className={PAGE_X}>
                   <h2 className="hidden md:block font-bold text-gray-900 mb-4 text-lg">Категории</h2>
                   <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide md:grid md:grid-cols-4 lg:grid-cols-6 md:overflow-visible md:gap-4">
-                    {categories.map((cat) => (
+                    {visibleCategories.map((cat) => (
                       <button
                         key={cat.id}
                         type="button"
@@ -815,7 +916,7 @@ export default function Gastronom() {
                     >
                       Все товары
                     </button>
-                    {categories.map((cat) => (
+                    {visibleCategories.map((cat) => (
                       <button
                         key={cat.id}
                         type="button"
@@ -846,7 +947,7 @@ export default function Gastronom() {
                       >
                         Все
                       </button>
-                      {categories.map((cat) => (
+                      {visibleCategories.map((cat) => (
                         <button
                           key={cat.id}
                           type="button"
@@ -925,11 +1026,21 @@ export default function Gastronom() {
                       </div>
                     ))}
                     </div>
-                    <div className="mt-4 lg:mt-0 lg:sticky lg:top-36 bg-white rounded-2xl border border-gray-100 p-4 md:p-6 shadow-sm space-y-4">
+                    <div className="mt-4 lg:mt-0 lg:sticky lg:top-36 bg-white rounded-2xl border border-gray-100 p-4 md:p-6 shadow-sm space-y-3">
                       <h3 className="font-bold text-gray-900 text-lg hidden lg:block">Итого</h3>
-                      <div className="flex justify-between text-sm md:text-base">
-                        <span className="text-gray-500">Сумма заказа</span>
-                        <span className="font-bold text-xl md:text-2xl text-emerald-700">{formatMoney(subtotal)}</span>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Товары</span>
+                        <span>{formatMoney(subtotal)}</span>
+                      </div>
+                      {deliveryFee > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Доставка</span>
+                          <span>{formatMoney(deliveryFee)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-sm md:text-base pt-2 border-t">
+                        <span className="text-gray-700 font-medium">К оплате</span>
+                        <span className="font-bold text-xl md:text-2xl text-emerald-700">{formatMoney(orderTotal)}</span>
                       </div>
                       {minOrder > 0 && subtotal < minOrder && (
                         <p className="text-xs md:text-sm text-amber-600">
@@ -986,6 +1097,76 @@ export default function Gastronom() {
               </div>
             )}
           </>
+        )}
+
+        {/* Product detail modal */}
+        {selectedProduct && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
+            <div className="bg-white w-full sm:max-w-lg md:max-w-xl rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto">
+              <div className="relative aspect-[4/3] bg-gray-50">
+                {selectedProduct.image_url ? (
+                  <img src={imgSrc(selectedProduct.image_url)} alt={selectedProduct.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-6xl">🛒</div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedProduct(null)}
+                  className="absolute top-3 right-3 h-9 w-9 rounded-full bg-white/90 flex items-center justify-center shadow"
+                >
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+                {isProductAlcohol(selectedProduct) && (
+                  <span className="absolute top-3 left-3 rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold text-white">21+</span>
+                )}
+              </div>
+              <div className="p-5 md:p-6 space-y-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">{selectedProduct.name}</h2>
+                  {selectedProduct.weight && <p className="text-sm text-gray-400 mt-1">{selectedProduct.weight}</p>}
+                  <p className="text-2xl font-bold text-emerald-700 mt-2">{formatMoney(selectedProduct.price)}</p>
+                </div>
+                {selectedProduct.description && (
+                  <p className="text-sm text-gray-600 leading-relaxed">{selectedProduct.description}</p>
+                )}
+                <div className="flex items-center gap-3">
+                  {(cartQty[selectedProduct.id] ?? 0) > 0 ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => changeQty(selectedProduct.id, -1)}
+                        className="h-10 w-10 rounded-full border flex items-center justify-center"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <span className="font-semibold text-lg w-6 text-center">{cartQty[selectedProduct.id]}</span>
+                      <button
+                        type="button"
+                        onClick={() => changeQty(selectedProduct.id, 1)}
+                        className="h-10 w-10 rounded-full bg-emerald-600 text-white flex items-center justify-center"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </>
+                  ) : (
+                    <Button
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-12 rounded-xl"
+                      onClick={() => { addProduct(selectedProduct); setSelectedProduct(null); }}
+                    >
+                      Добавить в корзину
+                    </Button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => toggleFavorite(selectedProduct.id)}
+                    className="h-12 w-12 rounded-xl border flex items-center justify-center shrink-0"
+                  >
+                    <Heart className={`h-5 w-5 ${favorites.includes(selectedProduct.id) ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Checkout modal */}
@@ -1049,9 +1230,15 @@ export default function Gastronom() {
                       <span className="font-medium shrink-0">{formatMoney(qty * product.price)}</span>
                     </div>
                   ))}
+                  {deliveryFee > 0 && (
+                    <div className="flex justify-between text-gray-500">
+                      <span>Доставка</span>
+                      <span>{formatMoney(deliveryFee)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between font-bold pt-2 border-t">
                     <span>Итого</span>
-                    <span className="text-emerald-700">{formatMoney(subtotal)}</span>
+                    <span className="text-emerald-700">{formatMoney(orderTotal)}</span>
                   </div>
                 </div>
                 {hasAlcoholInCart && (

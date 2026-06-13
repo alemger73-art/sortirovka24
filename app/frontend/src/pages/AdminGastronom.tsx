@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import ImageUpload from '@/components/ImageUpload';
-import { Plus, Pencil, Trash2, Save, X, Package, FolderTree, ShoppingBag, Settings } from 'lucide-react';
+import { Plus, Pencil, Trash2, Save, X, Package, FolderTree, ShoppingBag, Settings, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { resolveImageSrc } from '@/lib/storage';
 import {
@@ -33,6 +33,23 @@ const ORDER_STATUS: Record<string, string> = {
   cancelled: 'Отменён',
 };
 
+const ORDER_FILTERS = [
+  { id: 'all', label: 'Все' },
+  { id: 'new', label: 'Новые' },
+  { id: 'processing', label: 'В работе' },
+  { id: 'delivered', label: 'Доставлены' },
+  { id: 'cancelled', label: 'Отменены' },
+] as const;
+
+function formatOrderDate(raw: string) {
+  if (!raw) return '—';
+  try {
+    return new Date(raw).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return raw;
+  }
+}
+
 const PAYMENT_LABELS: Record<string, string> = {
   cash: 'Наличные',
   kaspi_qr: 'Kaspi QR',
@@ -48,6 +65,7 @@ export default function AdminGastronom() {
   const [settings, setSettings] = useState<GastronomSettings>({} as GastronomSettings);
   const [editingCat, setEditingCat] = useState<Partial<GastronomCategory> | null>(null);
   const [editingProduct, setEditingProduct] = useState<Partial<GastronomProduct> | null>(null);
+  const [orderFilter, setOrderFilter] = useState<string>('all');
 
   useEffect(() => { void loadAll(); }, []);
 
@@ -77,6 +95,13 @@ export default function AdminGastronom() {
     [products]
   );
 
+  const filteredOrders = useMemo(
+    () => (orderFilter === 'all' ? orders : orders.filter((o) => o.status === orderFilter)),
+    [orders, orderFilter]
+  );
+
+  const newOrdersCount = useMemo(() => orders.filter((o) => o.status === 'new').length, [orders]);
+
   async function handleSaveCategory() {
     if (!editingCat?.name?.trim()) return toast.error('Введите название категории');
     try {
@@ -101,8 +126,8 @@ export default function AdminGastronom() {
       await deleteGastronomCategory(id);
       toast.success('Удалено');
       await loadAll();
-    } catch {
-      toast.error('Ошибка удаления');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Ошибка удаления');
     }
   }
 
@@ -262,6 +287,7 @@ export default function AdminGastronom() {
                 <div className="aspect-video bg-gray-50 relative">
                   {p.image_url && <img src={resolveImageSrc(p.image_url) || p.image_url} alt="" className="w-full h-full object-cover" />}
                   {p.is_popular && <Badge className="absolute top-2 left-2 bg-amber-500">Популярный</Badge>}
+                  {p.is_active === false && <Badge className="absolute top-2 right-2 bg-gray-500">Скрыт</Badge>}
                 </div>
                 <div className="p-3">
                   <p className="font-semibold text-sm">{p.name}</p>
@@ -293,6 +319,10 @@ export default function AdminGastronom() {
                 <input type="checkbox" checked={!!editingCat.is_alcohol} onChange={(e) => setEditingCat(c => ({ ...c, is_alcohol: e.target.checked }))} />
                 Алкогольная категория (21+)
               </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={editingCat.is_active !== false} onChange={(e) => setEditingCat(c => ({ ...c, is_active: e.target.checked }))} />
+                Активна (видна в каталоге)
+              </label>
               <ImageUpload value={editingCat.image_url || ''} onChange={(url) => setEditingCat(c => ({ ...c, image_url: url }))} />
               <div className="flex gap-2">
                 <Button onClick={handleSaveCategory} className="bg-emerald-600 hover:bg-emerald-700"><Save className="h-4 w-4 mr-1" /> Сохранить</Button>
@@ -308,7 +338,9 @@ export default function AdminGastronom() {
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-sm">{c.name}</p>
-                  <p className="text-xs text-gray-400">#{c.sort_order}{c.is_alcohol ? ' · 21+' : ''}</p>
+                  <p className="text-xs text-gray-400">
+                    #{c.sort_order}{c.is_alcohol ? ' · 21+' : ''}{c.is_active === false ? ' · скрыта' : ''}
+                  </p>
                 </div>
                 <Button size="sm" variant="outline" onClick={() => setEditingCat(c)}><Pencil className="h-3.5 w-3.5" /></Button>
                 <Button size="sm" variant="outline" className="text-red-600" onClick={() => handleDeleteCategory(c.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
@@ -320,9 +352,33 @@ export default function AdminGastronom() {
 
       {/* Orders */}
       {section === 'orders' && (
-        <div className="space-y-3">
-          {orders.length === 0 && <p className="text-gray-400 text-sm">Заказов пока нет</p>}
-          {orders.map(o => {
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex gap-2 flex-wrap">
+              {ORDER_FILTERS.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setOrderFilter(f.id)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    orderFilter === f.id ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {f.label}
+                  {f.id === 'new' && newOrdersCount > 0 && (
+                    <span className="ml-1.5 inline-flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-white/20 text-xs">
+                      {newOrdersCount}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+            <Button size="sm" variant="outline" onClick={() => void loadAll()}>
+              <RefreshCw className="h-4 w-4 mr-1" /> Обновить
+            </Button>
+          </div>
+
+          {filteredOrders.length === 0 && <p className="text-gray-400 text-sm">Заказов пока нет</p>}
+          {filteredOrders.map(o => {
             let items: { name: string; qty: number; sum: number }[] = [];
             try { items = JSON.parse(o.order_items || '[]'); } catch { /* ignore */ }
             return (
@@ -340,6 +396,11 @@ export default function AdminGastronom() {
                 <p className="text-xs text-gray-500">
                   Оплата: {PAYMENT_LABELS[o.payment_method] || o.payment_method}
                 </p>
+                {o.comment && (
+                  <p className="text-xs text-gray-600 bg-gray-50 rounded-lg px-3 py-2">
+                    <span className="font-medium">Комментарий:</span> {o.comment}
+                  </p>
+                )}
                 <div className="text-sm space-y-0.5">
                   {items.map((it, i) => (
                     <div key={i} className="flex justify-between text-gray-600">
@@ -362,7 +423,7 @@ export default function AdminGastronom() {
                     ))}
                   </div>
                 </div>
-                <p className="text-xs text-gray-400">{o.created_at}</p>
+                <p className="text-xs text-gray-400">{formatOrderDate(o.created_at)}</p>
               </div>
             );
           })}
@@ -400,6 +461,8 @@ export default function AdminGastronom() {
             ['default_address', 'Адрес по умолчанию'],
             ['delivery_time', 'Время доставки'],
             ['min_order', 'Минимальный заказ (₸)'],
+            ['delivery_fee', 'Стоимость доставки (₸, 0 = бесплатно)'],
+            ['store_phone', 'Телефон магазина'],
           ].map(([key, label]) => (
             <div key={key}>
               <label className="text-sm font-medium text-gray-700 mb-1 block">{label}</label>

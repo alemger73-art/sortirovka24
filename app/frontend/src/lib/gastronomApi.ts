@@ -1,3 +1,8 @@
+import { appCache } from './cache';
+
+const CATALOG_CACHE_KEY = 'gastronom_catalog';
+const CATALOG_TTL = 5 * 60 * 1000;
+
 const apiBase = () =>
   (import.meta as ImportMeta & { env: { VITE_API_BASE_URL?: string } }).env.VITE_API_BASE_URL || '';
 
@@ -23,8 +28,15 @@ function headers(admin = false): HeadersInit {
 async function request<T>(path: string, options: RequestInit = {}, admin = false): Promise<T> {
   const res = await fetch(`${apiBase()}${path}`, { ...options, headers: { ...headers(admin), ...options.headers } });
   if (!res.ok) {
-    const err = await res.text().catch(() => '');
-    throw new Error(err || `Request failed: ${res.status}`);
+    let message = `Request failed: ${res.status}`;
+    try {
+      const body = await res.json();
+      if (body?.detail) message = typeof body.detail === 'string' ? body.detail : message;
+    } catch {
+      const err = await res.text().catch(() => '');
+      if (err) message = err;
+    }
+    throw new Error(message);
   }
   return res.json();
 }
@@ -55,6 +67,8 @@ export interface GastronomSettings {
   default_address: string;
   delivery_time: string;
   min_order: string;
+  delivery_fee?: string;
+  store_phone?: string;
   hero_title: string;
   store_name: string;
   store_tagline: string;
@@ -77,12 +91,27 @@ export interface GastronomOrder {
   created_at: string;
 }
 
-export async function fetchGastronomCatalog(): Promise<{
+export type GastronomCatalog = {
   categories: GastronomCategory[];
   products: GastronomProduct[];
   settings: GastronomSettings;
-}> {
-  return request('/api/v1/gastronom/catalog');
+};
+
+export function getCachedGastronomCatalog(): GastronomCatalog | null {
+  if (appCache.isFresh(CATALOG_CACHE_KEY)) {
+    return appCache.get<GastronomCatalog>(CATALOG_CACHE_KEY);
+  }
+  return null;
+}
+
+export async function fetchGastronomCatalog(force = false): Promise<GastronomCatalog> {
+  if (!force && appCache.isFresh(CATALOG_CACHE_KEY)) {
+    const cached = appCache.get<GastronomCatalog>(CATALOG_CACHE_KEY);
+    if (cached) return cached;
+  }
+  const data = await request<GastronomCatalog>('/api/v1/gastronom/catalog');
+  appCache.set(CATALOG_CACHE_KEY, data, CATALOG_TTL);
+  return data;
 }
 
 export async function createGastronomOrder(data: {

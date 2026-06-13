@@ -41,6 +41,8 @@ DEFAULT_SETTINGS = {
     "default_address": "Жекибаева 129",
     "delivery_time": "Доставка 30-60 мин",
     "min_order": "2000",
+    "delivery_fee": "0",
+    "store_phone": "",
     "hero_title": "ДОСТАВКА ПРОДУКТОВ ПИТАНИЯ ПО СОРТИРОВКЕ",
     "store_name": "ГАСТРОНОМ",
     "store_tagline": "доставка продуктов питания",

@@ -16,11 +16,18 @@ from services.gastronom_orders import Gastronom_ordersService
 from services.gastronom_products import Gastronom_productsService
 from services.gastronom_seed import ensure_alcohol_category, seed_gastronom_if_empty
 from services.gastronom_settings import Gastronom_settingsService
-from services.telegram import notify_gastronom_order
+from services.telegram import notify_gastronom_order, notify_gastronom_status_change
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/gastronom", tags=["gastronom"])
+
+VALID_PAYMENT_METHODS = {"cash", "kaspi_qr", "halyk_qr"}
+VALID_ORDER_STATUSES = {"new", "processing", "delivered", "cancelled"}
+
+
+def _normalize_phone_digits(phone: str) -> str:
+    return "".join(c for c in phone if c.isdigit())
 
 
 def _require_admin(request: Request) -> None:
@@ -90,6 +97,63 @@ class SettingsUpdate(BaseModel):
     settings: Dict[str, str]
 
 
+def _validate_order_payload(
+    data: "OrderData",
+    products_by_id: Dict[int, Any],
+    min_order: float,
+    delivery_fee: float,
+) -> tuple[list, float]:
+    if not data.customer_name.strip():
+        raise HTTPException(status_code=400, detail="Укажите имя")
+    if not data.customer_address.strip():
+        raise HTTPException(status_code=400, detail="Укажите адрес доставки")
+    if len(_normalize_phone_digits(data.customer_phone)) < 10:
+        raise HTTPException(status_code=400, detail="Некорректный номер телефона")
+    if data.payment_method not in VALID_PAYMENT_METHODS:
+        raise HTTPException(status_code=400, detail="Недопустимый способ оплаты")
+
+    try:
+        raw_items = json.loads(data.order_items) if data.order_items else []
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Некорректный состав заказа")
+    if not isinstance(raw_items, list) or len(raw_items) == 0:
+        raise HTTPException(status_code=400, detail="Корзина пуста")
+
+    validated_items: list = []
+    subtotal = 0.0
+    for raw in raw_items:
+        if not isinstance(raw, dict):
+            raise HTTPException(status_code=400, detail="Некорректный товар в заказе")
+        prod_id = raw.get("id")
+        qty = raw.get("qty")
+        if prod_id is None or not isinstance(qty, (int, float)) or qty <= 0:
+            raise HTTPException(status_code=400, detail="Некорректное количество товара")
+        product = products_by_id.get(int(prod_id))
+        if not product or product.is_active is False:
+            raise HTTPException(status_code=400, detail=f"Товар #{prod_id} недоступен")
+        price = float(product.price)
+        line_sum = round(price * int(qty), 2)
+        subtotal += line_sum
+        validated_items.append({
+            "id": product.id,
+            "name": product.name,
+            "weight": product.weight or "",
+            "qty": int(qty),
+            "price": price,
+            "sum": line_sum,
+        })
+
+    subtotal = round(subtotal, 2)
+    if min_order > 0 and subtotal < min_order:
+        raise HTTPException(status_code=400, detail=f"Минимальный заказ {int(min_order)} ₸")
+
+    expected_total = round(subtotal + delivery_fee, 2)
+    if abs(expected_total - round(float(data.total_amount), 2)) > 0.01:
+        raise HTTPException(status_code=400, detail="Сумма заказа не совпадает с каталогом")
+
+    return validated_items, expected_total
+
+
 def _serialize(obj) -> Dict[str, Any]:
     return {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
 
@@ -150,6 +214,13 @@ async def update_category(cat_id: int, data: CategoryUpdate, request: Request, d
 @router.delete("/categories/{cat_id}")
 async def delete_category(cat_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     _require_admin(request)
+    prod_svc = Gastronom_productsService(db)
+    linked = await prod_svc.get_list(limit=1, query_dict={"category_id": cat_id})
+    if linked["total"] and linked["total"] > 0:
+        raise HTTPException(
+            status_code=409,
+            detail="Нельзя удалить категорию с товарами. Сначала удалите или перенесите товары.",
+        )
     svc = Gastronom_categoriesService(db)
     if not await svc.delete(cat_id):
         raise HTTPException(status_code=404, detail="Category not found")
@@ -205,9 +276,28 @@ async def list_orders(request: Request, db: AsyncSession = Depends(get_db)):
 
 @router.post("/orders", status_code=201)
 async def create_order(data: OrderData, db: AsyncSession = Depends(get_db)):
+    prod_svc = Gastronom_productsService(db)
+    set_svc = Gastronom_settingsService(db)
+    settings = await set_svc.get_all_as_dict()
+    min_order = float(settings.get("min_order") or 0)
+    delivery_fee = float(settings.get("delivery_fee") or 0)
+
+    all_products = await prod_svc.get_list(limit=500)
+    products_by_id = {p.id: p for p in all_products["items"]}
+
+    validated_items, expected_total = _validate_order_payload(
+        data, products_by_id, min_order, delivery_fee
+    )
+
     svc = Gastronom_ordersService(db)
     payload = {
-        **data.model_dump(),
+        "customer_name": data.customer_name.strip(),
+        "customer_phone": data.customer_phone.strip(),
+        "customer_address": data.customer_address.strip(),
+        "payment_method": data.payment_method,
+        "comment": (data.comment or "").strip(),
+        "order_items": json.dumps(validated_items, ensure_ascii=False),
+        "total_amount": expected_total,
         "status": "new",
         "created_at": datetime.now().isoformat(),
     }
@@ -215,20 +305,16 @@ async def create_order(data: OrderData, db: AsyncSession = Depends(get_db)):
     if not obj:
         raise HTTPException(status_code=400, detail="Failed to create order")
 
-    try:
-        items = json.loads(data.order_items) if data.order_items else []
-    except json.JSONDecodeError:
-        items = []
-
     await notify_gastronom_order({
         "order_id": obj.id,
-        "customer_name": data.customer_name,
-        "customer_phone": data.customer_phone,
-        "customer_address": data.customer_address,
-        "payment_method": data.payment_method,
-        "comment": data.comment or "",
-        "total_amount": data.total_amount,
-        "items": items,
+        "customer_name": payload["customer_name"],
+        "customer_phone": payload["customer_phone"],
+        "customer_address": payload["customer_address"],
+        "payment_method": payload["payment_method"],
+        "comment": payload["comment"],
+        "total_amount": expected_total,
+        "items": validated_items,
+        "delivery_fee": delivery_fee,
     })
 
     return _serialize(obj)
@@ -237,10 +323,25 @@ async def create_order(data: OrderData, db: AsyncSession = Depends(get_db)):
 @router.put("/orders/{order_id}/status")
 async def update_order_status(order_id: int, status: str, request: Request, db: AsyncSession = Depends(get_db)):
     _require_admin(request)
+    if status not in VALID_ORDER_STATUSES:
+        raise HTTPException(status_code=400, detail="Недопустимый статус заказа")
     svc = Gastronom_ordersService(db)
+    existing = await svc.get_by_id(order_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Order not found")
+    old_status = existing.status
     obj = await svc.update(order_id, {"status": status})
     if not obj:
         raise HTTPException(status_code=404, detail="Order not found")
+    if old_status != status:
+        await notify_gastronom_status_change({
+            "order_id": obj.id,
+            "customer_name": obj.customer_name,
+            "customer_phone": obj.customer_phone,
+            "old_status": old_status,
+            "new_status": status,
+            "total_amount": obj.total_amount,
+        })
     return _serialize(obj)
 
 
