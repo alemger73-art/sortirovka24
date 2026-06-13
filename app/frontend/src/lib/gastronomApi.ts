@@ -1,4 +1,5 @@
 import { appCache } from './cache';
+import type { DeliveryQuote } from './gastronomDelivery';
 
 const CATALOG_CACHE_KEY = 'gastronom_catalog';
 const CATALOG_TTL = 5 * 60 * 1000;
@@ -69,6 +70,10 @@ export interface GastronomSettings {
   min_order: string;
   delivery_fee?: string;
   store_phone?: string;
+  store_lat?: string;
+  store_lng?: string;
+  delivery_zones?: string;
+  outside_zone_message?: string;
   hero_title: string;
   store_name: string;
   store_tagline: string;
@@ -114,6 +119,14 @@ export async function fetchGastronomCatalog(force = false): Promise<GastronomCat
   return data;
 }
 
+export async function fetchDeliveryQuote(body: {
+  address?: string;
+  lat?: number;
+  lng?: number;
+}): Promise<DeliveryQuote> {
+  return request('/api/v1/gastronom/delivery-quote', { method: 'POST', body: JSON.stringify(body) });
+}
+
 export async function createGastronomOrder(data: {
   customer_name: string;
   customer_phone: string;
@@ -122,6 +135,10 @@ export async function createGastronomOrder(data: {
   comment?: string;
   order_items: string;
   total_amount: number;
+  delivery_lat?: number;
+  delivery_lng?: number;
+  delivery_zone_id?: string | null;
+  delivery_fee?: number;
 }): Promise<GastronomOrder> {
   return request('/api/v1/gastronom/orders', { method: 'POST', body: JSON.stringify(data) });
 }

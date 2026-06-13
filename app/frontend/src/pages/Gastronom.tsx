@@ -6,18 +6,20 @@ import { getAccountPrefill } from '@/lib/localAuth';
 import {
   fetchGastronomCatalog,
   getCachedGastronomCatalog,
+  fetchDeliveryQuote,
   createGastronomOrder,
   type GastronomCategory,
   type GastronomProduct,
   type GastronomSettings,
 } from '@/lib/gastronomApi';
+import { parseDeliveryZones, type DeliveryQuote } from '@/lib/gastronomDelivery';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Menu, Search, ShoppingCart, MapPin, Clock, ChevronDown, Plus, Minus, X,
   Home, LayoutGrid, Heart, User, Truck, ShieldCheck, CreditCard, CheckCircle2,
-  Leaf, Zap,
+  Leaf, Zap, Navigation, Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -145,6 +147,9 @@ export default function Gastronom() {
   const [ageGateOpen, setAgeGateOpen] = useState(false);
   const [ageConfirmed, setAgeConfirmed] = useState(isAgeConfirmed);
   const pendingAgeAction = useRef<(() => void) | null>(null);
+  const [deliveryQuote, setDeliveryQuote] = useState<DeliveryQuote | null>(null);
+  const [deliveryQuoteLoading, setDeliveryQuoteLoading] = useState(false);
+  const quoteRequestId = useRef(0);
 
   const alcoholCategoryIds = useMemo(
     () => new Set(categories.filter((c) => c.is_alcohol).map((c) => c.id)),
@@ -226,9 +231,73 @@ export default function Gastronom() {
 
   const cartCount = useMemo(() => cart.reduce((a, c) => a + c.qty, 0), [cart]);
   const subtotal = useMemo(() => cart.reduce((a, c) => a + c.qty * c.product.price, 0), [cart]);
-  const deliveryFee = useMemo(() => Number(settings.delivery_fee || 0), [settings.delivery_fee]);
+  const hasDeliveryZones = useMemo(
+    () => parseDeliveryZones(settings.delivery_zones).length > 0,
+    [settings.delivery_zones]
+  );
+  const deliveryFee = useMemo(() => {
+    if (hasDeliveryZones) {
+      return deliveryQuote?.available ? deliveryQuote.delivery_fee : 0;
+    }
+    return Number(settings.delivery_fee || 0);
+  }, [hasDeliveryZones, deliveryQuote, settings.delivery_fee]);
   const orderTotal = useMemo(() => subtotal + deliveryFee, [subtotal, deliveryFee]);
   const minOrder = Number(settings.min_order || 0);
+  const deliveryReady = !hasDeliveryZones || (deliveryQuote?.available && !deliveryQuoteLoading);
+
+  const runDeliveryQuote = useCallback(async (body: { address?: string; lat?: number; lng?: number }) => {
+    const reqId = ++quoteRequestId.current;
+    setDeliveryQuoteLoading(true);
+    try {
+      const quote = await fetchDeliveryQuote(body);
+      if (reqId !== quoteRequestId.current) return;
+      setDeliveryQuote(quote);
+      if (!quote.available) {
+        toast.error(quote.message || 'Доставка по этому адресу недоступна');
+      }
+    } catch (e) {
+      if (reqId !== quoteRequestId.current) return;
+      setDeliveryQuote(null);
+      toast.error(e instanceof Error ? e.message : 'Не удалось рассчитать доставку');
+    } finally {
+      if (reqId === quoteRequestId.current) setDeliveryQuoteLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasDeliveryZones) {
+      setDeliveryQuote(null);
+      return;
+    }
+    const trimmed = address.trim();
+    if (trimmed.length < 5) {
+      setDeliveryQuote(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      void runDeliveryQuote({ address: trimmed.includes('Алмат') ? trimmed : `${trimmed}, Алматы, Казахстан` });
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [address, hasDeliveryZones, runDeliveryQuote]);
+
+  function requestGeolocation() {
+    if (!navigator.geolocation) {
+      toast.error('Геолокация не поддерживается браузером');
+      return;
+    }
+    setDeliveryQuoteLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        void runDeliveryQuote({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        toast.success('Местоположение определено');
+      },
+      () => {
+        setDeliveryQuoteLoading(false);
+        toast.error('Не удалось получить геолокацию. Введите адрес вручную.');
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+    );
+  }
 
   const visibleCategories = useMemo(
     () => categories.filter((c) => !c.is_alcohol || ageConfirmed),
@@ -306,6 +375,11 @@ export default function Gastronom() {
   }
 
   function openCheckout() {
+    if (hasDeliveryZones && !deliveryReady) {
+      toast.error('Сначала укажите адрес и дождитесь расчёта доставки');
+      setAddressEditing(true);
+      return;
+    }
     if (hasAlcoholInCart && !ageConfirmed) {
       requireAge(() => setCheckoutOpen(true));
       return;
@@ -377,6 +451,10 @@ export default function Gastronom() {
         comment: comment.trim(),
         order_items: JSON.stringify(items),
         total_amount: orderTotal,
+        delivery_lat: deliveryQuote?.lat,
+        delivery_lng: deliveryQuote?.lng,
+        delivery_zone_id: deliveryQuote?.zone_id,
+        delivery_fee: deliveryFee,
       });
       setCartQty({});
       setCheckoutOpen(false);
@@ -413,6 +491,14 @@ export default function Gastronom() {
     }
     if (subtotal < minOrder) {
       toast.error(`Минимальный заказ ${formatMoney(minOrder)}`);
+      return;
+    }
+    if (hasDeliveryZones && !deliveryQuote?.available) {
+      toast.error('Укажите адрес в зоне доставки или используйте геолокацию');
+      return;
+    }
+    if (hasDeliveryZones && deliveryQuoteLoading) {
+      toast.error('Подождите, рассчитываем доставку...');
       return;
     }
     if (hasAlcoholInCart && !ageConfirmed) {
@@ -754,14 +840,45 @@ export default function Gastronom() {
           )}
 
           {addressEditing && (
-            <div className={`${PAGE_X} pb-3 bg-gray-50`}>
-              <Input
-                autoFocus
-                placeholder="Адрес доставки"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="rounded-xl bg-white"
-              />
+            <div className={`${PAGE_X} pb-3 bg-gray-50 space-y-2`}>
+              <div className="flex gap-2">
+                <Input
+                  autoFocus
+                  placeholder="Улица, дом, квартира"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className="rounded-xl bg-white flex-1"
+                />
+                <button
+                  type="button"
+                  onClick={requestGeolocation}
+                  className="shrink-0 flex items-center gap-1.5 px-3 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700"
+                  title="Определить по GPS"
+                >
+                  {deliveryQuoteLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Navigation className="h-4 w-4" />}
+                  <span className="hidden sm:inline">GPS</span>
+                </button>
+              </div>
+              {hasDeliveryZones && (
+                <div className="text-xs rounded-lg px-3 py-2 bg-white border border-gray-100">
+                  {deliveryQuoteLoading && (
+                    <span className="text-gray-500 flex items-center gap-1.5">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Рассчитываем доставку...
+                    </span>
+                  )}
+                  {!deliveryQuoteLoading && deliveryQuote?.available && (
+                    <span className="text-emerald-700 font-medium">
+                      {deliveryQuote.zone_name}: доставка {formatMoney(deliveryQuote.delivery_fee)}
+                    </span>
+                  )}
+                  {!deliveryQuoteLoading && deliveryQuote && !deliveryQuote.available && (
+                    <span className="text-red-600">{deliveryQuote.message || 'Доставка недоступна'}</span>
+                  )}
+                  {!deliveryQuoteLoading && !deliveryQuote && address.trim().length >= 5 && (
+                    <span className="text-gray-400">Введите полный адрес для расчёта</span>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </header>
@@ -1032,7 +1149,13 @@ export default function Gastronom() {
                         <span className="text-gray-500">Товары</span>
                         <span>{formatMoney(subtotal)}</span>
                       </div>
-                      {deliveryFee > 0 && (
+                      {deliveryFee > 0 && deliveryQuote?.zone_name && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Доставка · {deliveryQuote.zone_name}</span>
+                          <span>{formatMoney(deliveryFee)}</span>
+                        </div>
+                      )}
+                      {deliveryFee > 0 && !deliveryQuote?.zone_name && (
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-500">Доставка</span>
                           <span>{formatMoney(deliveryFee)}</span>
@@ -1049,7 +1172,7 @@ export default function Gastronom() {
                       )}
                       <Button
                         className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 md:h-14 rounded-xl text-base md:text-lg"
-                        disabled={subtotal < minOrder}
+                        disabled={subtotal < minOrder || (hasDeliveryZones && !deliveryReady)}
                         onClick={openCheckout}
                       >
                         Оформить заказ

@@ -4,6 +4,9 @@
   { "key": "min_order", "value": "2000" },
   { "key": "delivery_fee", "value": "0" },
   { "key": "store_phone", "value": "" },
+  { "key": "store_lat", "value": "43.2250" },
+  { "key": "store_lng", "value": "76.9120" },
+  { "key": "outside_zone_message", "value": "Доставка по этому адресу недоступна." },
   { "key": "hero_title", "value": "ДОСТАВКА ПРОДУКТОВ ПИТАНИЯ ПО СОРТИРОВКЕ" },
   { "key": "store_name", "value": "ГАСТРОНОМ" },
   { "key": "store_tagline", "value": "доставка продуктов питания" }

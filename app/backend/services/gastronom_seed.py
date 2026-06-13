@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from services.gastronom_categories import Gastronom_categoriesService
 from services.gastronom_products import Gastronom_productsService
 from services.gastronom_settings import Gastronom_settingsService
+from services.gastronom_delivery import default_zones_json
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,10 @@ DEFAULT_SETTINGS = {
     "min_order": "2000",
     "delivery_fee": "0",
     "store_phone": "",
+    "store_lat": "43.2250",
+    "store_lng": "76.9120",
+    "delivery_zones": default_zones_json(),
+    "outside_zone_message": "Доставка по этому адресу недоступна. Выберите адрес в зоне доставки или позвоните в магазин.",
     "hero_title": "ДОСТАВКА ПРОДУКТОВ ПИТАНИЯ ПО СОРТИРОВКЕ",
     "store_name": "ГАСТРОНОМ",
     "store_tagline": "доставка продуктов питания",

@@ -3,10 +3,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ImageUpload from '@/components/ImageUpload';
-import { Plus, Pencil, Trash2, Save, X, Package, FolderTree, ShoppingBag, Settings, RefreshCw } from 'lucide-react';
+import { Plus, Pencil, Trash2, Save, X, Package, FolderTree, ShoppingBag, Settings, RefreshCw, Map } from 'lucide-react';
 import { toast } from 'sonner';
 import { resolveImageSrc } from '@/lib/storage';
+import DeliveryZoneEditor from '@/components/gastronom/DeliveryZoneEditor';
+import {
+  parseDeliveryZones,
+  serializeDeliveryZones,
+  type DeliveryZone,
+  DEFAULT_STORE,
+} from '@/lib/gastronomDelivery';
 import {
   fetchGastronomCategories,
   fetchGastronomProducts,
@@ -24,7 +32,7 @@ import {
   type GastronomSettings,
 } from '@/lib/gastronomApi';
 
-type Section = 'products' | 'categories' | 'orders' | 'settings';
+type Section = 'products' | 'categories' | 'orders' | 'delivery' | 'settings';
 
 const ORDER_STATUS: Record<string, string> = {
   new: 'Новый',
@@ -65,12 +73,15 @@ export default function AdminGastronom() {
   const [settings, setSettings] = useState<GastronomSettings>({} as GastronomSettings);
   const [editingCat, setEditingCat] = useState<Partial<GastronomCategory> | null>(null);
   const [editingProduct, setEditingProduct] = useState<Partial<GastronomProduct> | null>(null);
+  const [productDialogOpen, setProductDialogOpen] = useState(false);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [orderFilter, setOrderFilter] = useState<string>('all');
+  const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
+  const [storeLat, setStoreLat] = useState(DEFAULT_STORE[0]);
+  const [storeLng, setStoreLng] = useState(DEFAULT_STORE[1]);
 
-  useEffect(() => { void loadAll(); }, []);
-
-  async function loadAll() {
-    setLoading(true);
+  async function loadAll(fullScreenLoader = false) {
+    if (fullScreenLoader) setLoading(true);
     try {
       const [cats, prods, ords, sets] = await Promise.all([
         fetchGastronomCategories(),
@@ -82,13 +93,48 @@ export default function AdminGastronom() {
       setProducts(prods);
       setOrders(ords);
       setSettings(sets);
+      setDeliveryZones(parseDeliveryZones(sets.delivery_zones));
+      setStoreLat(Number(sets.store_lat) || DEFAULT_STORE[0]);
+      setStoreLng(Number(sets.store_lng) || DEFAULT_STORE[1]);
     } catch (e) {
       console.error(e);
       toast.error('Ошибка загрузки данных ГАСТРОНОМ');
     } finally {
-      setLoading(false);
+      if (fullScreenLoader) setLoading(false);
     }
   }
+
+  function openCreateProduct() {
+    setEditingProduct({ is_active: true, is_popular: false, sort_order: products.length + 1 });
+    setProductDialogOpen(true);
+  }
+
+  function openEditProduct(product: GastronomProduct) {
+    setEditingProduct({ ...product });
+    setProductDialogOpen(true);
+  }
+
+  function closeProductDialog() {
+    setProductDialogOpen(false);
+    setEditingProduct(null);
+  }
+
+  function openCreateCategory() {
+    setEditingCat({ is_active: true, sort_order: categories.length + 1 });
+    setCategoryDialogOpen(true);
+  }
+
+  function openEditCategory(category: GastronomCategory) {
+    setEditingCat({ ...category });
+    setCategoryDialogOpen(true);
+  }
+
+  function closeCategoryDialog() {
+    setCategoryDialogOpen(false);
+    setEditingCat(null);
+  }
+
+  useEffect(() => { void loadAll(true); }, []);
 
   const sortedProducts = useMemo(
     () => [...products].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
@@ -113,7 +159,7 @@ export default function AdminGastronom() {
         sort_order: Number(editingCat.sort_order || categories.length + 1),
       } as GastronomCategory & { name: string });
       toast.success('Категория сохранена');
-      setEditingCat(null);
+      closeCategoryDialog();
       await loadAll();
     } catch {
       toast.error('Ошибка сохранения');
@@ -146,7 +192,7 @@ export default function AdminGastronom() {
         sort_order: Number(editingProduct.sort_order || products.length + 1),
       } as GastronomProduct & { name: string; price: number });
       toast.success('Товар сохранён');
-      setEditingProduct(null);
+      closeProductDialog();
       await loadAll();
     } catch {
       toast.error('Ошибка сохранения');
@@ -166,11 +212,33 @@ export default function AdminGastronom() {
 
   async function handleSaveSettings() {
     try {
-      const saved = await saveGastronomSettings(settings as Record<string, string>);
+      const payload = {
+        ...settings,
+        store_lat: String(storeLat),
+        store_lng: String(storeLng),
+        delivery_zones: serializeDeliveryZones(deliveryZones),
+      } as Record<string, string>;
+      const saved = await saveGastronomSettings(payload);
       setSettings(saved);
       toast.success('Настройки сохранены');
     } catch {
       toast.error('Ошибка сохранения настроек');
+    }
+  }
+
+  async function handleSaveDeliveryZones() {
+    try {
+      const payload = {
+        ...settings,
+        store_lat: String(storeLat),
+        store_lng: String(storeLng),
+        delivery_zones: serializeDeliveryZones(deliveryZones),
+      } as Record<string, string>;
+      const saved = await saveGastronomSettings(payload);
+      setSettings(saved);
+      toast.success('Зоны доставки сохранены');
+    } catch {
+      toast.error('Ошибка сохранения зон');
     }
   }
 
@@ -188,6 +256,7 @@ export default function AdminGastronom() {
     { id: 'products', label: 'Товары', icon: Package },
     { id: 'categories', label: 'Категории', icon: FolderTree },
     { id: 'orders', label: 'Заказы', icon: ShoppingBag },
+    { id: 'delivery', label: 'Зоны доставки', icon: Map },
     { id: 'settings', label: 'Настройки', icon: Settings },
   ];
 
@@ -196,6 +265,7 @@ export default function AdminGastronom() {
   }
 
   return (
+    <>
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -232,54 +302,10 @@ export default function AdminGastronom() {
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <p className="text-sm text-gray-500">{products.length} товаров</p>
-            <Button size="sm" onClick={() => setEditingProduct({ is_active: true, is_popular: false, sort_order: products.length + 1 })}>
+            <Button type="button" size="sm" onClick={openCreateProduct}>
               <Plus className="h-4 w-4 mr-1" /> Добавить товар
             </Button>
           </div>
-
-          {editingProduct && (
-            <div className="bg-white border rounded-xl p-4 space-y-3 shadow-sm">
-              <div className="flex justify-between items-center">
-                <h3 className="font-semibold">{editingProduct.id ? 'Редактировать товар' : 'Новый товар'}</h3>
-                <button onClick={() => setEditingProduct(null)}><X className="h-4 w-4 text-gray-400" /></button>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-3">
-                <Input placeholder="Название" value={editingProduct.name || ''} onChange={(e) => setEditingProduct(p => ({ ...p, name: e.target.value }))} />
-                <Input type="number" placeholder="Цена (₸)" value={editingProduct.price ?? ''} onChange={(e) => setEditingProduct(p => ({ ...p, price: Number(e.target.value) }))} />
-                <Input placeholder="Вес/объём (1 кг, 1 л...)" value={editingProduct.weight || ''} onChange={(e) => setEditingProduct(p => ({ ...p, weight: e.target.value }))} />
-                <select
-                  className="border rounded-md px-3 py-2 text-sm"
-                  value={editingProduct.category_id ?? ''}
-                  onChange={(e) => setEditingProduct(p => ({ ...p, category_id: Number(e.target.value) }))}
-                >
-                  <option value="">Категория</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-                <Input type="number" placeholder="Порядок сортировки" value={editingProduct.sort_order ?? ''} onChange={(e) => setEditingProduct(p => ({ ...p, sort_order: Number(e.target.value) }))} />
-                <div className="flex gap-4 items-center">
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={!!editingProduct.is_popular} onChange={(e) => setEditingProduct(p => ({ ...p, is_popular: e.target.checked }))} />
-                    Популярный
-                  </label>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={editingProduct.is_active !== false} onChange={(e) => setEditingProduct(p => ({ ...p, is_active: e.target.checked }))} />
-                    Активен
-                  </label>
-                </div>
-              </div>
-              <Textarea placeholder="Описание" value={editingProduct.description || ''} onChange={(e) => setEditingProduct(p => ({ ...p, description: e.target.value }))} rows={2} />
-              <div>
-                <p className="text-sm font-medium mb-1">Фото товара</p>
-                <ImageUpload
-                  value={editingProduct.image_url || ''}
-                  onChange={(url) => setEditingProduct(p => ({ ...p, image_url: url }))}
-                />
-              </div>
-              <Button onClick={handleSaveProduct} className="bg-emerald-600 hover:bg-emerald-700">
-                <Save className="h-4 w-4 mr-1" /> Сохранить
-              </Button>
-            </div>
-          )}
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {sortedProducts.map(p => (
@@ -293,8 +319,12 @@ export default function AdminGastronom() {
                   <p className="font-semibold text-sm">{p.name}</p>
                   <p className="text-xs text-gray-400">{p.weight} · {Math.round(p.price).toLocaleString('ru-RU')} ₸</p>
                   <div className="flex gap-1 mt-2">
-                    <Button size="sm" variant="outline" onClick={() => setEditingProduct(p)}><Pencil className="h-3.5 w-3.5" /></Button>
-                    <Button size="sm" variant="outline" className="text-red-600" onClick={() => handleDeleteProduct(p.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    <Button type="button" size="sm" variant="outline" onClick={() => openEditProduct(p)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" className="text-red-600" onClick={() => handleDeleteProduct(p.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -307,29 +337,10 @@ export default function AdminGastronom() {
       {section === 'categories' && (
         <div className="space-y-4">
           <div className="flex justify-end">
-            <Button size="sm" onClick={() => setEditingCat({ is_active: true, sort_order: categories.length + 1 })}>
+            <Button type="button" size="sm" onClick={openCreateCategory}>
               <Plus className="h-4 w-4 mr-1" /> Добавить категорию
             </Button>
           </div>
-          {editingCat && (
-            <div className="bg-white border rounded-xl p-4 space-y-3">
-              <Input placeholder="Название категории" value={editingCat.name || ''} onChange={(e) => setEditingCat(c => ({ ...c, name: e.target.value }))} />
-              <Input type="number" placeholder="Порядок" value={editingCat.sort_order ?? ''} onChange={(e) => setEditingCat(c => ({ ...c, sort_order: Number(e.target.value) }))} />
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={!!editingCat.is_alcohol} onChange={(e) => setEditingCat(c => ({ ...c, is_alcohol: e.target.checked }))} />
-                Алкогольная категория (21+)
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={editingCat.is_active !== false} onChange={(e) => setEditingCat(c => ({ ...c, is_active: e.target.checked }))} />
-                Активна (видна в каталоге)
-              </label>
-              <ImageUpload value={editingCat.image_url || ''} onChange={(url) => setEditingCat(c => ({ ...c, image_url: url }))} />
-              <div className="flex gap-2">
-                <Button onClick={handleSaveCategory} className="bg-emerald-600 hover:bg-emerald-700"><Save className="h-4 w-4 mr-1" /> Сохранить</Button>
-                <Button variant="outline" onClick={() => setEditingCat(null)}>Отмена</Button>
-              </div>
-            </div>
-          )}
           <div className="space-y-2">
             {categories.map(c => (
               <div key={c.id} className="flex items-center gap-3 bg-white border rounded-xl p-3">
@@ -342,8 +353,12 @@ export default function AdminGastronom() {
                     #{c.sort_order}{c.is_alcohol ? ' · 21+' : ''}{c.is_active === false ? ' · скрыта' : ''}
                   </p>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => setEditingCat(c)}><Pencil className="h-3.5 w-3.5" /></Button>
-                <Button size="sm" variant="outline" className="text-red-600" onClick={() => handleDeleteCategory(c.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => openEditCategory(c)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+                <Button type="button" size="sm" variant="outline" className="text-red-600" onClick={() => handleDeleteCategory(c.id)}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
               </div>
             ))}
           </div>
@@ -430,6 +445,39 @@ export default function AdminGastronom() {
         </div>
       )}
 
+      {section === 'delivery' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h3 className="font-bold text-gray-900">Зоны доставки на карте</h3>
+              <p className="text-sm text-gray-500">Нарисуйте полигоны — цена доставки определится автоматически по адресу клиента</p>
+            </div>
+            <Button type="button" onClick={() => void handleSaveDeliveryZones()} className="bg-emerald-600 hover:bg-emerald-700">
+              <Save className="h-4 w-4 mr-1" /> Сохранить зоны
+            </Button>
+          </div>
+          <DeliveryZoneEditor
+            zones={deliveryZones}
+            storeLat={storeLat}
+            storeLng={storeLng}
+            onZonesChange={setDeliveryZones}
+            onStoreChange={(lat, lng) => { setStoreLat(lat); setStoreLng(lng); }}
+          />
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Сообщение вне зоны доставки</label>
+            <Textarea
+              value={settings.outside_zone_message || ''}
+              onChange={(e) => setSettings((s) => ({ ...s, outside_zone_message: e.target.value }))}
+              rows={2}
+              placeholder="Доставка по этому адресу недоступна..."
+            />
+          </div>
+          <p className="text-xs text-gray-400">
+            Если зоны не настроены, используется фиксированная стоимость из вкладки «Настройки» (delivery_fee).
+          </p>
+        </div>
+      )}
+
       {/* Settings */}
       {section === 'settings' && (
         <div className="bg-white border rounded-xl p-4 space-y-4 max-w-lg">
@@ -461,7 +509,7 @@ export default function AdminGastronom() {
             ['default_address', 'Адрес по умолчанию'],
             ['delivery_time', 'Время доставки'],
             ['min_order', 'Минимальный заказ (₸)'],
-            ['delivery_fee', 'Стоимость доставки (₸, 0 = бесплатно)'],
+            ['delivery_fee', 'Стоимость доставки (₸, если зоны не настроены)'],
             ['store_phone', 'Телефон магазина'],
           ].map(([key, label]) => (
             <div key={key}>
@@ -482,5 +530,97 @@ export default function AdminGastronom() {
         </div>
       )}
     </div>
+
+      <Dialog
+        open={productDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) closeProductDialog();
+          else setProductDialogOpen(true);
+        }}
+      >
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingProduct?.id ? 'Редактировать товар' : 'Новый товар'}</DialogTitle>
+          </DialogHeader>
+          {editingProduct && (
+            <div className="space-y-3">
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Input placeholder="Название" value={editingProduct.name || ''} onChange={(e) => setEditingProduct(p => p ? ({ ...p, name: e.target.value }) : p)} />
+                <Input type="number" placeholder="Цена (₸)" value={editingProduct.price ?? ''} onChange={(e) => setEditingProduct(p => p ? ({ ...p, price: Number(e.target.value) }) : p)} />
+                <Input placeholder="Вес/объём (1 кг, 1 л...)" value={editingProduct.weight || ''} onChange={(e) => setEditingProduct(p => p ? ({ ...p, weight: e.target.value }) : p)} />
+                <select
+                  className="border rounded-md px-3 py-2 text-sm"
+                  value={editingProduct.category_id ?? ''}
+                  onChange={(e) => setEditingProduct(p => p ? ({ ...p, category_id: Number(e.target.value) }) : p)}
+                >
+                  <option value="">Категория</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <Input type="number" placeholder="Порядок сортировки" value={editingProduct.sort_order ?? ''} onChange={(e) => setEditingProduct(p => p ? ({ ...p, sort_order: Number(e.target.value) }) : p)} />
+                <div className="flex gap-4 items-center">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={!!editingProduct.is_popular} onChange={(e) => setEditingProduct(p => p ? ({ ...p, is_popular: e.target.checked }) : p)} />
+                    Популярный
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={editingProduct.is_active !== false} onChange={(e) => setEditingProduct(p => p ? ({ ...p, is_active: e.target.checked }) : p)} />
+                    Активен
+                  </label>
+                </div>
+              </div>
+              <Textarea placeholder="Описание" value={editingProduct.description || ''} onChange={(e) => setEditingProduct(p => p ? ({ ...p, description: e.target.value }) : p)} rows={3} />
+              <div>
+                <p className="text-sm font-medium mb-1">Фото товара</p>
+                <ImageUpload
+                  value={editingProduct.image_url || ''}
+                  onChange={(url) => setEditingProduct(p => p ? ({ ...p, image_url: url }) : p)}
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button type="button" onClick={() => void handleSaveProduct()} className="bg-emerald-600 hover:bg-emerald-700">
+                  <Save className="h-4 w-4 mr-1" /> Сохранить
+                </Button>
+                <Button type="button" variant="outline" onClick={closeProductDialog}>Отмена</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={categoryDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) closeCategoryDialog();
+          else setCategoryDialogOpen(true);
+        }}
+      >
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingCat?.id ? 'Редактировать категорию' : 'Новая категория'}</DialogTitle>
+          </DialogHeader>
+          {editingCat && (
+            <div className="space-y-3">
+              <Input placeholder="Название категории" value={editingCat.name || ''} onChange={(e) => setEditingCat(c => c ? ({ ...c, name: e.target.value }) : c)} />
+              <Input type="number" placeholder="Порядок" value={editingCat.sort_order ?? ''} onChange={(e) => setEditingCat(c => c ? ({ ...c, sort_order: Number(e.target.value) }) : c)} />
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={!!editingCat.is_alcohol} onChange={(e) => setEditingCat(c => c ? ({ ...c, is_alcohol: e.target.checked }) : c)} />
+                Алкогольная категория (21+)
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={editingCat.is_active !== false} onChange={(e) => setEditingCat(c => c ? ({ ...c, is_active: e.target.checked }) : c)} />
+                Активна (видна в каталоге)
+              </label>
+              <ImageUpload value={editingCat.image_url || ''} onChange={(url) => setEditingCat(c => c ? ({ ...c, image_url: url }) : c)} />
+              <div className="flex gap-2 pt-2">
+                <Button type="button" onClick={() => void handleSaveCategory()} className="bg-emerald-600 hover:bg-emerald-700">
+                  <Save className="h-4 w-4 mr-1" /> Сохранить
+                </Button>
+                <Button type="button" variant="outline" onClick={closeCategoryDialog}>Отмена</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

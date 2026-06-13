@@ -229,7 +229,8 @@ async def notify_gastronom_order(data: dict) -> bool:
     delivery_line = ""
     try:
         if float(delivery_fee) > 0:
-            delivery_line = f"\n<b>Доставка:</b> {delivery_fee} ₸"
+            zone_part = f" ({_escape_html(data.get('delivery_zone'))})" if data.get("delivery_zone") else ""
+            delivery_line = f"\n<b>Доставка:</b> {delivery_fee} ₸{zone_part}"
     except (TypeError, ValueError):
         pass
 

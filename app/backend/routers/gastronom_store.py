@@ -16,6 +16,7 @@ from services.gastronom_orders import Gastronom_ordersService
 from services.gastronom_products import Gastronom_productsService
 from services.gastronom_seed import ensure_alcohol_category, seed_gastronom_if_empty
 from services.gastronom_settings import Gastronom_settingsService
+from services.gastronom_delivery import geocode_address, resolve_delivery_quote, validate_order_delivery
 from services.telegram import notify_gastronom_order, notify_gastronom_status_change
 
 logger = logging.getLogger(__name__)
@@ -91,6 +92,16 @@ class OrderData(BaseModel):
     comment: Optional[str] = ""
     order_items: str
     total_amount: float
+    delivery_lat: Optional[float] = None
+    delivery_lng: Optional[float] = None
+    delivery_zone_id: Optional[str] = None
+    delivery_fee: Optional[float] = None
+
+
+class DeliveryQuoteRequest(BaseModel):
+    address: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
 
 
 class SettingsUpdate(BaseModel):
@@ -181,6 +192,28 @@ async def get_catalog(db: AsyncSession = Depends(get_db)):
         "products": [_serialize(p) for p in active_products],
         "settings": settings,
     }
+
+
+@router.post("/delivery-quote")
+async def delivery_quote(data: DeliveryQuoteRequest, db: AsyncSession = Depends(get_db)):
+    set_svc = Gastronom_settingsService(db)
+    settings = await set_svc.get_all_as_dict()
+
+    lat, lng = data.lat, data.lng
+    if lat is not None and lng is not None:
+        quote = resolve_delivery_quote(settings, float(lat), float(lng))
+        return quote
+
+    if data.address and data.address.strip():
+        coords = await geocode_address(data.address.strip())
+        if not coords:
+            raise HTTPException(status_code=404, detail="Не удалось определить адрес на карте. Уточните адрес или используйте геолокацию.")
+        lat, lng = coords
+        quote = resolve_delivery_quote(settings, lat, lng)
+        quote["geocoded_address"] = data.address.strip()
+        return quote
+
+    raise HTTPException(status_code=400, detail="Укажите адрес или координаты")
 
 
 # ─── Categories CRUD ───────────────────────────────────────────────
@@ -280,7 +313,18 @@ async def create_order(data: OrderData, db: AsyncSession = Depends(get_db)):
     set_svc = Gastronom_settingsService(db)
     settings = await set_svc.get_all_as_dict()
     min_order = float(settings.get("min_order") or 0)
-    delivery_fee = float(settings.get("delivery_fee") or 0)
+
+    try:
+        client_delivery_fee = float(data.delivery_fee if data.delivery_fee is not None else settings.get("delivery_fee") or 0)
+        delivery_fee, zone_name, zone_id = validate_order_delivery(
+            settings,
+            data.delivery_lat,
+            data.delivery_lng,
+            data.delivery_zone_id,
+            client_delivery_fee,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     all_products = await prod_svc.get_list(limit=500)
     products_by_id = {p.id: p for p in all_products["items"]}
@@ -289,13 +333,20 @@ async def create_order(data: OrderData, db: AsyncSession = Depends(get_db)):
         data, products_by_id, min_order, delivery_fee
     )
 
+    user_comment = (data.comment or "").strip()
+    delivery_note = f"Зона доставки: {zone_name} ({int(delivery_fee)} ₸)" if zone_name else ""
+    if delivery_note:
+        full_comment = f"{delivery_note}\n{user_comment}".strip() if user_comment else delivery_note
+    else:
+        full_comment = user_comment
+
     svc = Gastronom_ordersService(db)
     payload = {
         "customer_name": data.customer_name.strip(),
         "customer_phone": data.customer_phone.strip(),
         "customer_address": data.customer_address.strip(),
         "payment_method": data.payment_method,
-        "comment": (data.comment or "").strip(),
+        "comment": full_comment,
         "order_items": json.dumps(validated_items, ensure_ascii=False),
         "total_amount": expected_total,
         "status": "new",
@@ -315,6 +366,7 @@ async def create_order(data: OrderData, db: AsyncSession = Depends(get_db)):
         "total_amount": expected_total,
         "items": validated_items,
         "delivery_fee": delivery_fee,
+        "delivery_zone": zone_name,
     })
 
     return _serialize(obj)
