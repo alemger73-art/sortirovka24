@@ -70,6 +70,8 @@ class RequestSmsCodeResponse(BaseModel):
     success: bool
     ttl_seconds: int
     debug_code: Optional[str] = None
+    sms_pending_moderation: bool = False
+    on_screen_code_hint: Optional[str] = None
 
 
 class ConfirmRegistrationRequest(RegisterV2Request):

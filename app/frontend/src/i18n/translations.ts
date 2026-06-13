@@ -72,6 +72,7 @@ const translations: Translations = {
   /* ─── Quick Actions ─── */
   'quick.title': { ru: 'Быстрые действия', kz: 'Жылдам әрекеттер' },
   'quick.orderFood': { ru: 'Заказать еду', kz: 'Тамақ тапсырыс беру' },
+  'quick.gastronom': { ru: 'Гастроном', kz: 'Гастроном' },
   'quick.findMaster': { ru: 'Найти мастера', kz: 'Шебер табу' },
   'quick.fileComplaint': { ru: 'Подать жалобу', kz: 'Шағым беру' },
   'quick.postAd': { ru: 'Разместить объявление', kz: 'Хабарландыру орналастыру' },
@@ -115,6 +116,7 @@ const translations: Translations = {
   'sections.title': { ru: 'Все разделы', kz: 'Барлық бөлімдер' },
   'categories.title': { ru: 'Популярные категории', kz: 'Танымал санаттар' },
   'categories.food': { ru: 'Еда', kz: 'Тамақ' },
+  'categories.gastronom': { ru: 'Гастроном', kz: 'Гастроном' },
   'categories.masters': { ru: 'Мастера', kz: 'Шеберлер' },
   'categories.realEstate': { ru: 'Недвижимость', kz: 'Жылжымайтын мүлік' },
   'categories.announcements': { ru: 'Объявления', kz: 'Хабарландырулар' },

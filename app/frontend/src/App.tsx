@@ -36,6 +36,7 @@ const InspectorsPage = lazy(() => import("./pages/Inspectors"));
 const HistoryPage = lazy(() => import("./pages/History"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const AdminPanel = lazy(() => import("./pages/Admin"));
+const Gastronom = lazy(() => import("./pages/Gastronom"));
 const Food = lazy(() => import("./pages/FoodDelivery"));
 const FoodPark = lazy(() => import("./pages/FoodPark"));
 const FoodCourier = lazy(() => import("./pages/FoodCourier"));
@@ -120,6 +121,7 @@ function App() {
               <Route path="/inspectors" element={<InspectorsPage />} />
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/food" element={<Food />} />
+              <Route path="/gastronom" element={<Gastronom />} />
               <Route path="/food/park" element={<FoodPark />} />
               <Route path="/food/courier" element={<FoodCourier />} />
               <Route path="/business" element={<BusinessPage />} />

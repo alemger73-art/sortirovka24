@@ -15,6 +15,11 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.routing import APIRouter
 
 # MODULE_IMPORTS_START
+import models
+
+for _, _module_name, _ in pkgutil.iter_modules(models.__path__):
+    importlib.import_module(f"models.{_module_name}")
+
 from services.database import initialize_database, close_database
 from services.mock_data import initialize_mock_data
 from services.auth import initialize_admin_user

@@ -12,7 +12,7 @@ import {
   MapPin, Phone as PhoneIcon, Clock, Briefcase, Sun, Snowflake, Cloud, CloudRain,
   Home, ShoppingBag, Utensils, FileText, BookOpen,
   ArrowRight, Send, Building2, HardHat, Users, Coffee,
-  Shield, Heart, Siren, Landmark
+  Shield, Heart, Siren, Landmark, Store
 } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
 import Hero from '@/components/landing/Hero';
@@ -24,6 +24,7 @@ const MASTERS_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/
 const REALESTATE_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/d9cdc63f-9e09-4de5-b2eb-1c2ef0cb55ad.png';
 const ANNOUNCEMENTS_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/802ce8b1-e55e-42b0-8b26-3ec0b903e7e7.png';
 const JOBS_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-31/8bf31dae-761d-4fac-b012-f7172de4c9c1.png';
+const GASTRONOM_IMG = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&h=800&fit=crop';
 const BUSINESS_BANNER_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-31/5007abb2-2c10-46e9-9721-c83a5b9a7265.png';
 
 /* ─── Types ─── */
@@ -387,6 +388,7 @@ export default function Index() {
 
   /* ─── Quick Actions config (7 items) ─── */
   const quickActions = [
+    { icon: Store, labelKey: 'quick.gastronom', to: '/gastronom', color: 'bg-emerald-600', lightBg: 'bg-emerald-50 dark:bg-emerald-900/20' },
     { icon: Utensils, labelKey: 'quick.orderFood', to: '/food', color: 'bg-orange-500', lightBg: 'bg-orange-50 dark:bg-orange-900/20' },
     { icon: Wrench, labelKey: 'quick.findMaster', to: '/masters', color: 'bg-blue-500', lightBg: 'bg-blue-50 dark:bg-blue-900/20' },
     { icon: Shield, labelKey: 'quick.findInspector', to: '/inspectors', color: 'bg-indigo-500', lightBg: 'bg-indigo-50 dark:bg-indigo-900/20' },
@@ -398,6 +400,7 @@ export default function Index() {
 
   /* ─── Popular Categories config (5 items — no Стройматериалы, all with images) ─── */
   const popularCategories = [
+    { labelKey: 'categories.gastronom', to: '/gastronom', img: GASTRONOM_IMG },
     { labelKey: 'categories.food', to: '/food', img: FOOD_IMG },
     { labelKey: 'categories.masters', to: '/masters', img: MASTERS_IMG },
     { labelKey: 'categories.realEstate', to: '/real-estate', img: REALESTATE_IMG },

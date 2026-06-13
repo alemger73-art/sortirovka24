@@ -27,7 +27,7 @@ from schemas.account_v2 import (
     UserV2Response,
     UserV2UpdateRequest,
 )
-from services.sms import SMSDeliveryError, send_verification_code
+from services.sms import SMSDeliveryError, send_verification_code, should_expose_code_on_screen
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -299,7 +299,7 @@ async def register_request_sms(
     await _log_action(db, None, "sms_verification_requested", "phone_verifications", normalized_phone)
 
     try:
-        await send_verification_code(normalized_phone, code)
+        delivery = await send_verification_code(normalized_phone, code)
     except SMSDeliveryError as exc:
         logger_msg = str(exc)
         raise HTTPException(
@@ -307,8 +307,23 @@ async def register_request_sms(
             detail=f"Не удалось отправить SMS. {logger_msg}",
         ) from exc
 
-    debug_code = code if bool(getattr(settings, "debug", False)) else None
-    return RequestSmsCodeResponse(success=True, ttl_seconds=SMS_CODE_TTL_MINUTES * 60, debug_code=debug_code)
+    expose_code = should_expose_code_on_screen(delivery)
+    on_screen_hint = None
+    if delivery.pending_moderation:
+        on_screen_hint = (
+            "SMS проходит модерацию Mobizon (обычно 1–15 минут). "
+            "Пока SMS не пришло — введите код ниже с экрана."
+        )
+    elif expose_code:
+        on_screen_hint = "Тестовый режим: используйте код с экрана."
+
+    return RequestSmsCodeResponse(
+        success=True,
+        ttl_seconds=SMS_CODE_TTL_MINUTES * 60,
+        debug_code=code if expose_code else None,
+        sms_pending_moderation=delivery.pending_moderation,
+        on_screen_code_hint=on_screen_hint,
+    )
 
 
 @router.post("/register/confirm", response_model=AuthV2Response)

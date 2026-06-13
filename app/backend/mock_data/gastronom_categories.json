@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Овощи и фрукты",
+    "image_url": "https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=400&h=400&fit=crop",
+    "sort_order": 1,
+    "is_active": true,
+    "created_at": "2026-06-13T00:00:00"
+  },
+  {
+    "name": "Мясо и птица",
+    "image_url": "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=400&h=400&fit=crop",
+    "sort_order": 2,
+    "is_active": true,
+    "created_at": "2026-06-13T00:00:00"
+  },
+  {
+    "name": "Рыба и морепродукты",
+    "image_url": "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=400&h=400&fit=crop",
+    "sort_order": 3,
+    "is_active": true,
+    "created_at": "2026-06-13T00:00:00"
+  },
+  {
+    "name": "Молочные продукты",
+    "image_url": "https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=400&h=400&fit=crop",
+    "sort_order": 4,
+    "is_active": true,
+    "created_at": "2026-06-13T00:00:00"
+  },
+  {
+    "name": "Хлеб и выпечка",
+    "image_url": "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&h=400&fit=crop",
+    "sort_order": 5,
+    "is_active": true,
+    "created_at": "2026-06-13T00:00:00"
+  }
+]

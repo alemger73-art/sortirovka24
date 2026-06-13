@@ -85,6 +85,7 @@ export default function AccountAuth() {
   const [smsCode, setSmsCode] = useState("");
   const [password2, setPassword2] = useState("");
   const [smsInfo, setSmsInfo] = useState("");
+  const [onScreenCode, setOnScreenCode] = useState("");
   const [regStep, setRegStep] = useState<RegStep>(1);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
@@ -104,6 +105,7 @@ export default function AccountAuth() {
     setSmsCode("");
     setPassword2("");
     setSmsInfo("");
+    setOnScreenCode("");
     setTermsAccepted(false);
     setPrivacyAccepted(false);
     setForm((f) => ({ ...f, password: "" }));
@@ -124,11 +126,22 @@ export default function AccountAuth() {
       if (!agreementsOk) throw new Error("Примите пользовательское соглашение и политику конфиденциальности");
       const res = await accountApi.requestSmsCode({ phone: form.phone });
       setRegStep(2);
-      setSmsInfo(
-        `Код отправлен на ${form.phone}. Действителен ${Math.floor(res.ttl_seconds / 60)} мин. Первые SMS могут идти 1–10 мин (модерация Mobizon).`,
-      );
+      if (res.on_screen_code_hint) {
+        setSmsInfo(res.on_screen_code_hint);
+      } else {
+        setSmsInfo(
+          `Код отправлен на ${form.phone}. Действителен ${Math.floor(res.ttl_seconds / 60)} мин.`,
+        );
+      }
       if (res.debug_code) {
-        setSmsInfo((prev) => `${prev} Тестовый код: ${res.debug_code}`);
+        setOnScreenCode(res.debug_code);
+        if (!res.sms_pending_moderation) {
+          setSmsInfo((prev) => `${prev} Код: ${res.debug_code}`);
+        }
+      } else if (res.sms_pending_moderation) {
+        setSmsInfo(
+          "SMS проходит модерацию Mobizon (1–15 мин). Если код не появился на экране — подождите и запросите код повторно.",
+        );
       }
     } catch (e: any) {
       setError(String(e?.message || e));
@@ -330,6 +343,19 @@ export default function AccountAuth() {
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   Код отправлен на <strong>{form.phone}</strong>
                 </p>
+                {onScreenCode ? (
+                  <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4 text-center dark:border-amber-700 dark:bg-amber-950/40">
+                    <p className="text-sm font-medium text-amber-900 dark:text-amber-100">Код для регистрации</p>
+                    <p className="mt-2 text-3xl font-black tracking-[0.3em] text-amber-700 dark:text-amber-300">{onScreenCode}</p>
+                    <button
+                      type="button"
+                      onClick={() => setSmsCode(onScreenCode)}
+                      className="mt-3 text-sm font-semibold text-blue-600 hover:underline"
+                    >
+                      Подставить код в поле
+                    </button>
+                  </div>
+                ) : null}
                 <input
                   className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-center text-lg tracking-widest text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
                   placeholder="• • • •"

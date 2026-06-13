@@ -86,6 +86,10 @@ async function prefetchOne(
 
 const CACHE_5M = 5 * 60 * 1000;
 
+function prefetchGastronom(): void {
+  prefetchOne('gastronom_catalog', () => fetch((import.meta.env.VITE_API_BASE_URL || '') + '/api/v1/gastronom/catalog').then(r => r.json()), CACHE_5M, false);
+}
+
 function prefetchFood(): void {
   prefetchOne('food_categories', () => withRetry(() =>
     client.entities.food_categories.query({ sort: 'sort_order', limit: 50 })
@@ -159,6 +163,7 @@ export function prefetchFromIndex(): void {
   ]);
 
   onIdle(() => {
+    prefetchGastronom();
     prefetchFood();
     prefetchMasters();
     prefetchAnnouncements();
@@ -187,6 +192,7 @@ export function prefetchPage(page: string): void {
   if (!shouldPrefetch()) return;
 
   const map: Record<string, () => void> = {
+    gastronom: prefetchGastronom,
     food: prefetchFood,
     masters: prefetchMasters,
     announcements: prefetchAnnouncements,
