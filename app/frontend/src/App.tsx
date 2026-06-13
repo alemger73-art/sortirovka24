@@ -42,6 +42,7 @@ const FoodCourier = lazy(() => import("./pages/FoodCourier"));
 const BusinessPage = lazy(() => import("./pages/Business"));
 const TransportPage = lazy(() => import("./pages/Transport"));
 const AccountAuth = lazy(() => import("./pages/AccountAuth"));
+const LegalPage = lazy(() => import("./pages/LegalPage"));
 const Cabinet = lazy(() => import("./pages/Cabinet"));
 const CabinetMaster = lazy(() => import("./pages/CabinetMaster"));
 const CabinetDriver = lazy(() => import("./pages/CabinetDriver"));
@@ -132,6 +133,7 @@ function App() {
               <Route path="/ads" element={<Navigate to="/announcements" replace />} />
               <Route path="/register" element={<AccountAuth />} />
               <Route path="/login" element={<AccountAuth />} />
+              <Route path="/legal/:doc" element={<LegalPage />} />
 
               {/* Block common attack paths — redirect to home */}
               <Route path="/dashboard" element={<Navigate to="/" replace />} />
