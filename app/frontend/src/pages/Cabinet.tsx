@@ -3,6 +3,8 @@ import Layout from "@/components/Layout";
 import { Link, useNavigate } from "react-router-dom";
 import { Camera, Coins, Save, UserCircle2 } from "lucide-react";
 import { accountApi, clearAccountToken, getAccountToken } from "@/lib/accountApi";
+import { cacheAccountProfile } from "@/lib/localAuth";
+import { uploadFile } from "@/lib/storage";
 import { formatTenge, taxiApi, TAXI_STATUS_LABELS, type TaxiRide } from "@/lib/taxiApi";
 import { useTaxiEnabled } from "@/hooks/useTaxiEnabled";
 import TaxiUnavailable from "@/components/taxi/TaxiUnavailable";
@@ -25,6 +27,11 @@ export default function Cabinet() {
   const [cabinet, setCabinet] = useState<any>(null);
   const [profileForm, setProfileForm] = useState({ name: "", email: "", avatar: "", language: "ru" });
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ current: "", next: "", confirm: "" });
+  const [changingPassword, setChangingPassword] = useState(false);
   const [taxiRides, setTaxiRides] = useState<TaxiRide[]>([]);
   const tabs: { id: TabId; label: string }[] = useMemo(() => {
     const base: { id: TabId; label: string }[] = [
@@ -66,25 +73,99 @@ export default function Cabinet() {
     })();
   }, []);
   const saveProfile = async () => {
+    setSavingProfile(true);
+    setError("");
+    setSuccess("");
     try {
-      await accountApi.updateMe({
-        name: profileForm.name,
-        email: profileForm.email || undefined,
-        avatar: profileForm.avatar || undefined,
+      const updated = await accountApi.updateMe({
+        name: profileForm.name.trim(),
+        email: profileForm.email.trim() || undefined,
+        avatar: profileForm.avatar,
         language: profileForm.language,
+      });
+      cacheAccountProfile({
+        id: updated.id,
+        name: updated.name,
+        phone: updated.phone,
+        email: updated.email,
+        avatar: updated.avatar,
       });
       const refreshed = await accountApi.cabinet();
       setCabinet(refreshed);
+      setProfileForm({
+        name: refreshed?.profile?.name || "",
+        email: refreshed?.profile?.email || "",
+        avatar: refreshed?.profile?.avatar || "",
+        language: refreshed?.profile?.language || "ru",
+      });
+      setSuccess("Профиль сохранён");
     } catch (e: any) {
       setError(String(e?.message || e));
+    } finally {
+      setSavingProfile(false);
     }
   };
 
-  const onAvatarUpload = (file?: File) => {
+  const onAvatarUpload = async (file?: File) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setProfileForm((p) => ({ ...p, avatar: String(reader.result || "") }));
-    reader.readAsDataURL(file);
+    if (!file.type.startsWith("image/")) {
+      setError("Выберите изображение (JPG, PNG, WebP)");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Максимальный размер файла — 5 МБ");
+      return;
+    }
+    setAvatarUploading(true);
+    setError("");
+    setSuccess("");
+    try {
+      const result = await uploadFile(file, "avatars");
+      const url = result.downloadUrl || result.thumbnailUrl;
+      if (!url) throw new Error("Не удалось получить ссылку на загруженное фото");
+      const nextForm = { ...profileForm, avatar: url };
+      setProfileForm(nextForm);
+      const updated = await accountApi.updateMe({
+        name: nextForm.name.trim(),
+        email: nextForm.email.trim() || undefined,
+        avatar: url,
+        language: nextForm.language,
+      });
+      cacheAccountProfile({
+        id: updated.id,
+        name: updated.name,
+        phone: updated.phone,
+        email: updated.email,
+        avatar: updated.avatar,
+      });
+      const refreshed = await accountApi.cabinet();
+      setCabinet(refreshed);
+      setSuccess("Фото профиля сохранено");
+    } catch (e: any) {
+      setError(String(e?.message || e));
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  const changePassword = async () => {
+    setChangingPassword(true);
+    setError("");
+    setSuccess("");
+    try {
+      if (passwordForm.next.length < 8) throw new Error("Новый пароль должен быть не короче 8 символов");
+      if (passwordForm.next !== passwordForm.confirm) throw new Error("Пароли не совпадают");
+      await accountApi.changePassword({
+        current_password: passwordForm.current,
+        new_password: passwordForm.next,
+      });
+      setPasswordForm({ current: "", next: "", confirm: "" });
+      setSuccess("Пароль успешно изменён");
+    } catch (e: any) {
+      setError(String(e?.message || e));
+    } finally {
+      setChangingPassword(false);
+    }
   };
 
   const rows = useMemo(() => ({
@@ -137,6 +218,7 @@ export default function Cabinet() {
 
             <div className="space-y-4">
               {error ? <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p> : null}
+              {success ? <p className="rounded-xl border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm text-green-300">{success}</p> : null}
 
               {activeTab === "profile" && (
                 <DarkCard>
@@ -149,12 +231,29 @@ export default function Cabinet() {
                         <UserCircle2 className="mx-auto h-28 w-28 text-slate-400" />
                       )}
                       <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-yellow-400 px-3 py-2 text-sm font-semibold text-[#0B0F19]">
-                        <Camera className="h-4 w-4" /> Загрузить
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => onAvatarUpload(e.target.files?.[0])} />
+                        <Camera className="h-4 w-4" /> {avatarUploading ? "Загрузка..." : "Загрузить"}
+                        <input type="file" accept="image/*" className="hidden" disabled={avatarUploading} onChange={(e) => onAvatarUpload(e.target.files?.[0])} />
                       </label>
                       {profileForm.avatar ? (
                         <button
-                          onClick={() => setProfileForm((p) => ({ ...p, avatar: "" }))}
+                          onClick={async () => {
+                            setError("");
+                            setSuccess("");
+                            try {
+                              const updated = await accountApi.updateMe({ avatar: "" });
+                              setProfileForm((p) => ({ ...p, avatar: "" }));
+                              cacheAccountProfile({
+                                id: updated.id,
+                                name: updated.name,
+                                phone: updated.phone,
+                                email: updated.email,
+                                avatar: updated.avatar,
+                              });
+                              setSuccess("Фото удалено");
+                            } catch (e: any) {
+                              setError(String(e?.message || e));
+                            }
+                          }}
                           className="mt-2 block w-full rounded-lg border border-[#2a3347] px-3 py-2 text-sm hover:bg-[#1a2336]"
                         >
                           Удалить фото
@@ -169,8 +268,8 @@ export default function Cabinet() {
                         <option value="ru">Русский</option>
                         <option value="kz">Қазақша</option>
                       </select>
-                      <button onClick={saveProfile} className="inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-[#0B0F19]">
-                        <Save className="h-4 w-4" /> Сохранить изменения
+                      <button onClick={saveProfile} disabled={savingProfile || avatarUploading} className="inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-[#0B0F19] disabled:opacity-60">
+                        <Save className="h-4 w-4" /> {savingProfile ? "Сохранение..." : "Сохранить изменения"}
                       </button>
                     </div>
                   </div>
@@ -286,7 +385,41 @@ export default function Cabinet() {
               {activeTab === "settings" && (
                 <DarkCard>
                   <h2 className="mb-4 text-xl font-bold">Настройки</h2>
-                  <p className="mb-5 text-sm text-slate-300">Язык интерфейса, согласия и безопасность аккаунта управляются через профиль и серверные политики.</p>
+                  <div className="mb-6 space-y-3 rounded-xl border border-[#2a3347] bg-[#0f172a] p-4">
+                    <h3 className="text-sm font-semibold text-white">Смена пароля</h3>
+                    <input
+                      type="password"
+                      value={passwordForm.current}
+                      onChange={(e) => setPasswordForm((p) => ({ ...p, current: e.target.value }))}
+                      className="w-full rounded-xl border border-[#2a3347] bg-[#111827] px-4 py-3 text-sm text-white"
+                      placeholder="Текущий пароль"
+                      autoComplete="current-password"
+                    />
+                    <input
+                      type="password"
+                      value={passwordForm.next}
+                      onChange={(e) => setPasswordForm((p) => ({ ...p, next: e.target.value }))}
+                      className="w-full rounded-xl border border-[#2a3347] bg-[#111827] px-4 py-3 text-sm text-white"
+                      placeholder="Новый пароль (мин. 8 символов)"
+                      autoComplete="new-password"
+                    />
+                    <input
+                      type="password"
+                      value={passwordForm.confirm}
+                      onChange={(e) => setPasswordForm((p) => ({ ...p, confirm: e.target.value }))}
+                      className="w-full rounded-xl border border-[#2a3347] bg-[#111827] px-4 py-3 text-sm text-white"
+                      placeholder="Повторите новый пароль"
+                      autoComplete="new-password"
+                    />
+                    <button
+                      onClick={changePassword}
+                      disabled={changingPassword}
+                      className="rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-[#0B0F19] disabled:opacity-60"
+                    >
+                      {changingPassword ? "Сохранение..." : "Изменить пароль"}
+                    </button>
+                  </div>
+                  <p className="mb-5 text-sm text-slate-300">Язык интерфейса настраивается во вкладке «Профиль».</p>
                   <button
                     onClick={() => {
                       clearAccountToken();

@@ -390,8 +390,8 @@ export default function Index() {
 
   /* ─── Quick Actions config (7 items) ─── */
   const quickActions = [
-    { icon: Store, labelKey: 'quick.gastronom', to: '/gastronom', color: 'bg-emerald-600', lightBg: 'bg-emerald-50 dark:bg-emerald-900/20' },
     { icon: Utensils, labelKey: 'quick.orderFood', to: '/food', color: 'bg-orange-500', lightBg: 'bg-orange-50 dark:bg-orange-900/20' },
+    { icon: Store, labelKey: 'quick.gastronom', to: '/gastronom', color: 'bg-emerald-600', lightBg: 'bg-emerald-50 dark:bg-emerald-900/20' },
     { icon: Wrench, labelKey: 'quick.findMaster', to: '/masters', color: 'bg-blue-500', lightBg: 'bg-blue-50 dark:bg-blue-900/20' },
     { icon: Shield, labelKey: 'quick.findInspector', to: '/inspectors', color: 'bg-indigo-500', lightBg: 'bg-indigo-50 dark:bg-indigo-900/20' },
     { icon: AlertTriangle, labelKey: 'quick.fileComplaint', to: '/complaints/new', color: 'bg-red-500', lightBg: 'bg-red-50 dark:bg-red-900/20' },
@@ -402,8 +402,8 @@ export default function Index() {
 
   /* ─── Popular Categories config (5 items — no Стройматериалы, all with images) ─── */
   const popularCategories = [
-    { labelKey: 'categories.gastronom', to: '/gastronom', img: GASTRONOM_IMG },
     { labelKey: 'categories.food', to: '/food', img: FOOD_IMG },
+    { labelKey: 'categories.gastronom', to: '/gastronom', img: GASTRONOM_IMG },
     { labelKey: 'categories.masters', to: '/masters', img: MASTERS_IMG },
     { labelKey: 'categories.realEstate', to: '/real-estate', img: REALESTATE_IMG },
     { labelKey: 'categories.announcements', to: '/announcements', img: ANNOUNCEMENTS_IMG },

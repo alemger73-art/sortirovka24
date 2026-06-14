@@ -77,6 +77,12 @@ function StepIndicator({ step }: { step: RegStep }) {
 export default function AccountAuth() {
   const navigate = useNavigate();
   const location = useLocation();
+  const redirectTo = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const target = params.get("redirect");
+    if (target && target.startsWith("/") && !target.startsWith("//")) return target;
+    return null;
+  }, [location.search]);
   const [isLogin, setIsLogin] = useState(location.pathname !== "/register");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -187,7 +193,7 @@ export default function AccountAuth() {
       setAccountToken(res.token);
       const me = await accountApi.me();
       cacheAccountProfile({ id: me.id, name: me.name, phone: me.phone, email: me.email, avatar: me.avatar });
-      navigate(getCabinetRouteByRole(res.role));
+      navigate(redirectTo || getCabinetRouteByRole(res.role));
     } catch (e: any) {
       setError(String(e?.message || e));
     } finally {
@@ -213,7 +219,7 @@ export default function AccountAuth() {
       setAccountToken(res.token);
       const me = await accountApi.me();
       cacheAccountProfile({ id: me.id, name: me.name, phone: me.phone, email: me.email, avatar: me.avatar });
-      navigate(getCabinetRouteByRole(res.role));
+      navigate(redirectTo || getCabinetRouteByRole(res.role));
     } catch (e: any) {
       setError(String(e?.message || e));
     } finally {

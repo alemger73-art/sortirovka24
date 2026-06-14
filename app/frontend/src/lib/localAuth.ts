@@ -212,8 +212,11 @@ export function updateCurrentUserProfile(_input: {
   throw new Error('Обновите профиль в личном кабинете');
 }
 
-export function changeCurrentUserPassword(_currentPassword: string, _newPassword: string) {
-  throw new Error('Смена пароля будет доступна в настройках кабинета');
+export function changeCurrentUserPassword(currentPassword: string, newPassword: string) {
+  return accountApi.changePassword({
+    current_password: currentPassword,
+    new_password: newPassword,
+  });
 }
 
 export function getCabinetData(_userId: string): CabinetData {

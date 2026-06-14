@@ -1,5 +1,5 @@
 from models.base import Base
-from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text
 from sqlalchemy.sql import func
 
 
@@ -12,7 +12,7 @@ class User(Base):
     phone = Column(String(32), nullable=True, unique=True, index=True)
     password_hash = Column(String(255), nullable=True)
     name = Column(String(255), nullable=True)
-    avatar_url = Column(String(1024), nullable=True)
+    avatar_url = Column(Text, nullable=True)
     language = Column(String(8), nullable=False, default="ru")
     role = Column(String(50), default="user", nullable=False)  # user/master/driver/seller/moderator/admin/superadmin
     status = Column(String(32), default="active", nullable=False)  # active/blocked/deleted

@@ -52,6 +52,9 @@ export const accountApi = {
   logout: () => api<{ success: boolean }>("/api/v1/account/logout", { method: "POST" }),
   me: () => api<any>("/api/v1/account/me"),
   updateMe: (body: any) => api<any>("/api/v1/account/me", { method: "PUT", body: JSON.stringify(body) }),
+  changePassword: (body: { current_password: string; new_password: string }) =>
+    api<{ success: boolean }>("/api/v1/account/me/change-password", { method: "POST", body: JSON.stringify(body) }),
+  avatarUploadUrl: () => api<{ upload_url: string; image_url?: string }>("/api/v1/account/me/avatar-upload-url", { method: "POST" }),
   cabinet: () => api<any>("/api/v1/account/cabinet"),
   adminDashboard: () => api<any>("/api/v1/account/admin/dashboard"),
   adminUsers: () => api<any[]>("/api/v1/account/admin/users"),

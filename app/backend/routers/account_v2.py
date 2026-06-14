@@ -21,6 +21,7 @@ from models.user_management import Bonus, Order, PhoneVerification, UserAction, 
 from schemas.account_v2 import (
     AdminUserUpdateRequest,
     AuthV2Response,
+    ChangePasswordV2Request,
     ConfirmRegistrationRequest,
     DashboardStatsResponse,
     LoginV2Request,
@@ -30,6 +31,8 @@ from schemas.account_v2 import (
     UserV2Response,
     UserV2UpdateRequest,
 )
+from schemas.storage import FileUpDownRequest, FileUpDownResponse
+from services.account_profile import AvatarValidationError, normalize_avatar_url
 from services.auth import AuthService
 from services.google_oauth import (
     GoogleOAuthError,
@@ -39,6 +42,7 @@ from services.google_oauth import (
     google_oauth_enabled,
 )
 from services.sms import SMSDeliveryError, send_verification_code, should_expose_code_on_screen
+from services.storage import StorageService
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -298,6 +302,17 @@ async def _get_or_create_google_user(
     return user, created
 
 
+def _apply_avatar_update(user: User, avatar: str | None) -> None:
+    normalized = normalize_avatar_url(avatar)
+    if normalized is None:
+        return
+    user.avatar_url = normalized or None
+
+
+def _avatar_http_error(exc: AvatarValidationError) -> HTTPException:
+    return HTTPException(status_code=400, detail=str(exc))
+
+
 async def _log_action(
     db: AsyncSession,
     user_id: str | None,
@@ -379,7 +394,7 @@ async def _create_user_and_login(
         phone=normalized_phone,
         email=request.email,
         password_hash=_hash_password(request.password),
-        avatar_url=request.avatar,
+        avatar_url=None,
         language=request.language,
         agreement_accepted=request.agreement_accepted,
         privacy_accepted=request.privacy_accepted,
@@ -391,6 +406,10 @@ async def _create_user_and_login(
     )
     db.add(user)
     await db.flush()
+    try:
+        _apply_avatar_update(user, request.avatar)
+    except AvatarValidationError as exc:
+        raise _avatar_http_error(exc) from exc
     if WELCOME_BONUS_POINTS > 0:
         db.add(
             Bonus(
@@ -714,14 +733,53 @@ async def update_me(
     if request.name is not None:
         user.name = request.name.strip()
     if request.email is not None:
-        user.email = request.email
+        user.email = request.email.strip() or None
     if request.avatar is not None:
-        user.avatar_url = request.avatar
+        try:
+            _apply_avatar_update(user, request.avatar)
+        except AvatarValidationError as exc:
+            raise _avatar_http_error(exc) from exc
     if request.language is not None:
         user.language = request.language
     await db.commit()
+    await db.refresh(user)
     await _log_action(db, str(user.id), "profile_update", "users", str(user.id))
     return _to_user_response(user)
+
+
+@router.post("/me/change-password")
+async def change_password(
+    request: ChangePasswordV2Request,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    if not user.password_hash:
+        raise HTTPException(
+            status_code=400,
+            detail="Для аккаунта Google пароль не задан. Войдите через Google.",
+        )
+    if not _verify_password(request.current_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Неверный текущий пароль")
+    if request.current_password == request.new_password:
+        raise HTTPException(status_code=400, detail="Новый пароль должен отличаться от текущего")
+    user.password_hash = _hash_password(request.new_password)
+    await db.commit()
+    await _log_action(db, str(user.id), "password_change", "users", str(user.id))
+    return {"success": True}
+
+
+@router.post("/me/avatar-upload-url", response_model=FileUpDownResponse)
+async def create_avatar_upload_url(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    object_key = f"avatars/{user.id}-{uuid4()}.jpg"
+    service = StorageService()
+    return await service.create_upload_url(
+        request=FileUpDownRequest(bucket_name="portal-images", object_key=object_key)
+    )
 
 
 @router.get("/cabinet")

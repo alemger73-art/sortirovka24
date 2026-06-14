@@ -47,6 +47,11 @@ class UserV2UpdateRequest(BaseModel):
     language: Optional[Literal["ru", "kz"]] = None
 
 
+class ChangePasswordV2Request(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class AdminUserUpdateRequest(BaseModel):
     role: Optional[RoleType] = None
     status: Optional[Literal["active", "blocked", "deleted"]] = None
