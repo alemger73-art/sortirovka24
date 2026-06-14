@@ -7,6 +7,7 @@ import {
   updateFoodRestaurant,
   deleteFoodRestaurant,
 } from '@/lib/foodAdminApi';
+import { findDamAlemRestaurantId, isDamAlemName } from '@/lib/damAlem';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,8 +35,13 @@ interface FoodCategory { id: number; restaurant_id?: number | null; name: string
 interface FoodItem { id: number; restaurant_id?: number | null; category_id: number; name: string; description: string; price: number; image_url: string; available: boolean; is_active: boolean; sort_order: number; }
 type Section = 'restaurants' | 'categories' | 'items';
 
-export default function AdminFood() {
-  const [section, setSection] = useState<Section>('items');
+interface AdminFoodProps {
+  damAlemMode?: boolean;
+  initialSection?: Section;
+}
+
+export default function AdminFood({ damAlemMode = false, initialSection }: AdminFoodProps) {
+  const [section, setSection] = useState<Section>(initialSection || (damAlemMode ? 'items' : 'items'));
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [categories, setCategories] = useState<FoodCategory[]>([]);
   const [items, setItems] = useState<FoodItem[]>([]);
@@ -47,6 +53,10 @@ export default function AdminFood() {
   const [editingItem, setEditingItem] = useState<Partial<FoodItem> | null>(null);
 
   useEffect(() => { loadAll(); }, []);
+
+  useEffect(() => {
+    if (initialSection) setSection(initialSection);
+  }, [initialSection]);
 
   async function loadAll(keepRestaurant = true) {
     setLoading(true);
@@ -73,17 +83,23 @@ export default function AdminFood() {
       setCategories(cs);
       setItems(ds);
 
+      const damAlemId = findDamAlemRestaurantId(rs);
+
       setSelectedRestaurantId(prev => {
+        if (damAlemMode) {
+          if (damAlemId != null) return damAlemId;
+          return prev;
+        }
         if (!keepRestaurant) {
           if (prev != null && rs.some(r => r.id === prev)) return prev;
           return rs[0]?.id ?? null;
         }
         if (prev != null && rs.some(r => r.id === prev)) return prev;
         if (prev === null) {
-          if (!hasLegacy && rs.length > 0) return rs[0].id;
+          if (!hasLegacy && rs.length > 0) return damAlemId ?? rs[0].id;
           return null;
         }
-        return rs[0]?.id ?? null;
+        return damAlemId ?? rs[0]?.id ?? null;
       });
 
       const failedCount = results.filter((r, i) => i > 0 && r.status === 'rejected').length;
@@ -238,7 +254,7 @@ export default function AdminFood() {
       {/* Sub-tabs */}
       <div className="flex gap-2 flex-wrap items-center">
         {([
-          { id: 'restaurants' as Section, label: 'Рестораны' },
+          ...(!damAlemMode ? [{ id: 'restaurants' as Section, label: 'Рестораны' }] : []),
           { id: 'categories' as Section, label: 'Категории меню' },
           { id: 'items' as Section, label: 'Блюда' },
         ]).map(t => (
@@ -252,6 +268,7 @@ export default function AdminFood() {
             {t.label}
           </button>
         ))}
+        {!damAlemMode && (
         <select
           value={selectedRestaurantId === null ? '' : String(selectedRestaurantId)}
           onChange={(e) => {
@@ -263,6 +280,12 @@ export default function AdminFood() {
           <option value="">Без ресторана (старое меню)</option>
           {restaurants.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
         </select>
+        )}
+        {damAlemMode && (
+          <span className="rounded-full bg-orange-100 px-3 py-1.5 text-xs font-semibold text-orange-800">
+            {restaurants.find(r => isDamAlemName(r.name))?.name || 'DAM ALEM'}
+          </span>
+        )}
       </div>
 
       {section === 'restaurants' && (

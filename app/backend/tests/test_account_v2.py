@@ -158,31 +158,18 @@ async def test_change_password(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_set_password_for_google_like_account(client: AsyncClient):
+async def test_set_password_rejects_when_password_exists(client: AsyncClient):
     token, _password = await _register_test_user(client)
     headers = {"Authorization": f"Bearer {token}"}
 
-    await client.post(
+    dup = await client.post(
         "/api/v1/account/me/set-password",
         headers=headers,
-        json={"new_password": "GoogleUser99!"},
+        json={"new_password": "AnotherPass99!"},
     )
-    # First call may fail if user already has password from registration
+    assert dup.status_code == 400
     me = await client.get("/api/v1/account/me", headers=headers)
-    if me.json().get("has_password"):
-        dup = await client.post(
-            "/api/v1/account/me/set-password",
-            headers=headers,
-            json={"new_password": "AnotherPass99!"},
-        )
-        assert dup.status_code == 400
-    else:
-        ok = await client.post(
-            "/api/v1/account/me/set-password",
-            headers=headers,
-            json={"new_password": "GoogleUser99!"},
-        )
-        assert ok.status_code == 200
+    assert me.json().get("has_password") is True
 
 
 @pytest.mark.asyncio

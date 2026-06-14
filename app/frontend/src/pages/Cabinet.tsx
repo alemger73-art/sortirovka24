@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import Layout from "@/components/Layout";
 import { Link, useNavigate } from "react-router-dom";
 import { Camera, Coins, Save, UserCircle2 } from "lucide-react";
-import { accountApi, clearAccountToken, getAccountToken } from "@/lib/accountApi";
-import { cacheAccountProfile } from "@/lib/localAuth";
+import { accountApi, getAccountToken } from "@/lib/accountApi";
+import { cacheAccountProfile, logoutLocalUser } from "@/lib/localAuth";
 import { uploadFile } from "@/lib/storage";
 import { formatTenge, taxiApi, TAXI_STATUS_LABELS, type TaxiRide } from "@/lib/taxiApi";
 import { useTaxiEnabled } from "@/hooks/useTaxiEnabled";
@@ -204,7 +204,7 @@ export default function Cabinet() {
             <button
               className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-100 dark:border-[#2a3347] dark:bg-[#111827] dark:text-white dark:hover:bg-[#1a2336]"
               onClick={() => {
-                clearAccountToken();
+                logoutLocalUser();
                 navigate("/account");
               }}
             >
@@ -439,7 +439,7 @@ export default function Cabinet() {
                   <p className="mb-5 text-sm text-slate-300">{t("cabinet.langHint")}</p>
                   <button
                     onClick={() => {
-                      clearAccountToken();
+                      logoutLocalUser();
                       navigate("/account");
                     }}
                     className="rounded-xl border border-red-500/40 px-4 py-2.5 text-sm font-semibold text-red-300 hover:bg-red-500/10"

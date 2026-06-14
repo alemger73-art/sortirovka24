@@ -70,6 +70,10 @@ Test-Endpoint "Delivery write blocked" "/api/categories" @("401","403","422") "P
 Test-Endpoint "Create-admin blocked" "/api/v1/admin-auth/create-admin" @("404","401","403","400") "POST"
 $loginBody = (@{ phone = "+77000000000"; password = "wrong-password-xyz" } | ConvertTo-Json -Compress)
 Test-Endpoint "Bad login" "/api/v1/account/login" @("401","429") "POST" $loginBody
+Test-Endpoint "Cabinet (no token)" "/api/v1/account/cabinet" @("401") 
+Test-Endpoint "Master cabinet (no token)" "/api/v1/account/master/cabinet" @("401")
+Test-Endpoint "Partner cabinet (no token)" "/api/v1/account/partner/cabinet" @("401")
+Test-Endpoint "SMS empty phone" "/api/v1/account/register/request-sms" @("400","422") "POST" '{"phone":""}'
 
 Write-Host "`n=== Result: $passed passed, $failed failed ===" -ForegroundColor Cyan
 if ($failed -gt 0) { exit 1 }

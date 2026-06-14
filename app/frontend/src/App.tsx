@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
+import RequireCabinetRole from "@/components/RequireCabinetRole";
 import RequireUserAuth from "@/components/RequireUserAuth";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
@@ -121,10 +122,10 @@ function App() {
               <Route path="/transport" element={<TransportPage />} />
               <Route path="/account" element={<AccountAuth />} />
               <Route path="/cabinet" element={<Protected><Cabinet /></Protected>} />
-              <Route path="/cabinet/master" element={<Protected><CabinetMaster /></Protected>} />
-              <Route path="/cabinet/driver" element={<Protected><CabinetDriver /></Protected>} />
-              <Route path="/cabinet/partner" element={<Protected><CabinetPartner /></Protected>} />
-              <Route path="/cabinet/admin" element={<Protected><CabinetAdmin /></Protected>} />
+              <Route path="/cabinet/master" element={<Protected><RequireCabinetRole allowedRoles={["master"]}><CabinetMaster /></RequireCabinetRole></Protected>} />
+              <Route path="/cabinet/driver" element={<Protected><RequireCabinetRole allowedRoles={["driver"]}><CabinetDriver /></RequireCabinetRole></Protected>} />
+              <Route path="/cabinet/partner" element={<Protected><RequireCabinetRole allowedRoles={["seller"]}><CabinetPartner /></RequireCabinetRole></Protected>} />
+              <Route path="/cabinet/admin" element={<Protected><RequireCabinetRole allowedRoles={["admin", "superadmin", "moderator"]}><CabinetAdmin /></RequireCabinetRole></Protected>} />
 
               {/* Other pages — lazy */}
               <Route path="/inspectors" element={<InspectorsPage />} />

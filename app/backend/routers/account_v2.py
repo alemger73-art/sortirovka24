@@ -901,7 +901,7 @@ async def master_cabinet(
     if listing and listing.category:
         requests = [r for r in requests if (r.category or "").strip().lower() == (listing.category or "").strip().lower()]
     else:
-        requests = [r for r in requests if _matches_user_phone(r.phone, user.phone)]
+        requests = []
     gallery = (listing.gallery_images or "").split(",") if listing and listing.gallery_images else []
     gallery = [g.strip() for g in gallery if g.strip()]
     return {

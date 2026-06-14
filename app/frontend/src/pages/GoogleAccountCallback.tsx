@@ -31,6 +31,11 @@ export default function GoogleAccountCallback() {
     async function finish() {
       const params = new URLSearchParams(window.location.search);
       const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const redirectParam = params.get("redirect");
+      const redirectTo =
+        redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//")
+          ? redirectParam
+          : null;
       const error = params.get("error");
       if (error) {
         setMessage(error);
@@ -55,7 +60,7 @@ export default function GoogleAccountCallback() {
           email: me.email,
           avatar: me.avatar,
         });
-        navigate(getCabinetRouteByRole(role), { replace: true });
+        navigate(redirectTo || getCabinetRouteByRole(role), { replace: true });
       } catch (e: any) {
         if (cancelled) return;
         setMessage(String(e?.message || "Ошибка входа через Google"));

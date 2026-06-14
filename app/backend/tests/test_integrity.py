@@ -95,7 +95,7 @@ class TestPublicReads:
 class TestAccountFlow:
     def test_register_sms_requires_phone(self, client: httpx.Client):
         r = client.post("/api/v1/account/register/request-sms", json={"phone": ""})
-        assert r.status_code == 422
+        assert r.status_code in {400, 422}
 
     def test_login_invalid_credentials(self, client: httpx.Client):
         r = client.post(

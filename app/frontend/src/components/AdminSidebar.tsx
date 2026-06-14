@@ -50,12 +50,10 @@ const MENU_GROUPS: MenuGroup[] = [
   },
   {
     id: 'food',
-    label: 'Еда и доставка',
+    label: 'Еда',
     emoji: '🍕',
     items: [
-      { id: 'food', label: 'Еда (меню)', icon: Utensils },
-      { id: 'food-orders', label: 'Заказы еды', icon: ShoppingBag },
-      { id: 'food-settings', label: 'Настройки еды', icon: Settings },
+      { id: 'dam-alem', label: 'DAM ALEM', icon: Utensils },
       { id: 'park-points', label: 'Точки парка', icon: MapPin },
       { id: 'park-orders', label: 'Заказы в парк', icon: TreePine },
     ],
