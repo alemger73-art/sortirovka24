@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { client, withRetry, warmupBackend, resetWarmup, STATUS_LABELS, timeAgo, formatDate } from '@/lib/api';
@@ -68,17 +69,13 @@ function WeatherWidget() {
 
   const fetchWeather = useCallback(async () => {
     try {
-      // Wait for backend warmup before attempting weather fetch
-      // This prevents DNS/balancer resolve errors during cold starts
-      await warmupBackend();
-
       const res = await withRetry(
         () => client.apiCall.invoke<any>({
           url: '/api/v1/weather',
           method: 'GET',
         }),
-        4, // more retries since weather depends on backend being warm
-        3000
+        2,
+        800
       );
       const data = (res && typeof res === 'object' && 'data' in res) ? (res as any).data : res;
       if (data && data.success && data.temp !== null) {
@@ -260,7 +257,7 @@ export default function Index() {
     // Fire-and-forget warmup — does NOT block data loading
     warmupBackend();
 
-    const CACHE_TTL = 60 * 1000;
+    const CACHE_TTL = Capacitor.isNativePlatform() ? 5 * 60 * 1000 : 60 * 1000;
 
     const cachedQuery = (key: string, queryFn: () => Promise<any>) =>
       fetchWithCache(`index_${key}`, () => withRetry(queryFn), CACHE_TTL);
@@ -292,7 +289,11 @@ export default function Index() {
       setJobs(extract(results[2]));
       setBanners(extract(results[3]));
 
-      // Stats logic
+      // Show main content before optional hero stats (3 extra API calls).
+      setLoading(false);
+      if (isManualRetry) setRetrying(false);
+
+      // Stats logic (non-blocking)
       const statsItems = extract(results[4]);
       const statsRow = statsItems.length > 0 ? statsItems[0] : null;
       const isAuto = statsRow ? (statsRow.is_auto === true || statsRow.is_auto === 'true') : true;

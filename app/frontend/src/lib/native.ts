@@ -5,7 +5,7 @@ export function isNativeApp(): boolean {
 }
 
 async function hideSplashWithFallback(SplashScreen: { hide: () => Promise<void> }) {
-  const timeout = new Promise<void>((resolve) => setTimeout(resolve, 2500));
+  const timeout = new Promise<void>((resolve) => setTimeout(resolve, 600));
   try {
     await Promise.race([SplashScreen.hide(), timeout]);
   } catch {

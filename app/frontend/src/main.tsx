@@ -1,4 +1,5 @@
 import { createRoot } from 'react-dom/client';
+import { Capacitor } from '@capacitor/core';
 import App from './App.tsx';
 import './index.css';
 import { warmupBackend } from './lib/api';
@@ -93,10 +94,10 @@ if (import.meta.env.PROD) {
   }
 })();
 
-// ─── Warm up backend (DNS + Lambda cold start) ──────────────────
-// Fire-and-forget: primes DNS cache and wakes Lambda container
-// so data fetches on the homepage succeed on first try.
-warmupBackend();
+// Warm up backend on web only — native uses stale-cache-first for speed.
+if (!Capacitor.isNativePlatform()) {
+  warmupBackend();
+}
 
 // ─── Global error handlers ───────────────────────────────────────
 // The @metagptx/web-sdk has a built-in error overlay ("Something is wrong")

@@ -49,5 +49,9 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Геолокация нужна для определения адреса доставки и такси</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Геолокация нужна для определения адреса доставки</string>
 </dict>
 </plist>

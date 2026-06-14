@@ -1653,7 +1653,15 @@ export default function Food() {
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 mb-1 block">{t('food.phone')} *</label>
-                    <Input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="+7 (___) ___-__-__" className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]" />
+                    <Input
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      value={customerPhone}
+                      onChange={e => setCustomerPhone(e.target.value)}
+                      placeholder="+7 (___) ___-__-__"
+                      className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]"
+                    />
                   </div>
 
                   {/* Split address fields */}

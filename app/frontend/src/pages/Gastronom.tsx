@@ -13,6 +13,7 @@ import {
   type GastronomSettings,
 } from '@/lib/gastronomApi';
 import { parseDeliveryZones, type DeliveryQuote } from '@/lib/gastronomDelivery';
+import { GeolocationError, requestCurrentPosition } from '@/lib/geolocation';
 import {
   isLoyaltyEnabled,
   parseLoyaltyGifts,
@@ -443,25 +444,28 @@ export default function Gastronom() {
     void runDeliveryQuote({ address: target }, { notify: true });
   }, [effectiveAddress, runDeliveryQuote]);
 
-  function requestGeolocation() {
-    if (!navigator.geolocation) {
-      toast.error('Геолокация не поддерживается браузером');
-      return;
-    }
+  async function requestGeolocation() {
     setDeliveryQuoteLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        void runDeliveryQuote(
-          { lat: pos.coords.latitude, lng: pos.coords.longitude },
-          { notify: true, fillAddress: true },
-        );
-      },
-      () => {
-        setDeliveryQuoteLoading(false);
-        toast.error('Не удалось получить GPS. Разрешите доступ к геолокации или введите адрес вручную.');
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
-    );
+    try {
+      const coords = await requestCurrentPosition();
+      await runDeliveryQuote(
+        { lat: coords.lat, lng: coords.lng },
+        { notify: true, fillAddress: true },
+      );
+    } catch (err) {
+      setDeliveryQuoteLoading(false);
+      if (err instanceof GeolocationError) {
+        if (err.code === 'denied') {
+          toast.error('Разрешите доступ к геолокации в настройках телефона');
+        } else if (err.code === 'unsupported') {
+          toast.error('Геолокация не поддерживается на этом устройстве');
+        } else {
+          toast.error('Не удалось получить GPS. Введите адрес вручную.');
+        }
+        return;
+      }
+      toast.error('Не удалось получить GPS. Введите адрес вручную.');
+    }
   }
 
   const visibleCategories = useMemo(
@@ -1619,7 +1623,14 @@ export default function Gastronom() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Телефон</label>
-                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+7 ..." />
+                  <Input
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+7 (___) ___-__-__"
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Адрес доставки</label>

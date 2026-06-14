@@ -1,12 +1,10 @@
 /**
  * Lightweight localStorage cache with TTL support.
- * Used for caching API responses (categories, menu items, etc.)
- *
- * Enhanced with stale-data fallback for resilience against
- * transient backend errors (DNS resolution, Lambda cold starts, etc.)
  */
 
-const DEFAULT_TTL = 2 * 60 * 1000; // 2 minutes (reduced from 10 for faster data freshness)
+import { Capacitor } from '@capacitor/core';
+
+const DEFAULT_TTL = 2 * 60 * 1000; // 2 minutes
 const STALE_TTL = 60 * 60 * 1000; // 1 hour — max age for stale fallback (reduced from 24h)
 
 interface CacheEntry<T> {
@@ -136,7 +134,18 @@ export async function fetchWithCache<T>(
   fetcher: () => Promise<T>,
   ttl: number = DEFAULT_TTL
 ): Promise<T> {
-  // 1. Always try network first
+  // Native app: show cached data instantly, refresh in background.
+  if (Capacitor.isNativePlatform()) {
+    const cached = appCache.get<T>(key) ?? appCache.getStale<T>(key);
+    if (cached) {
+      fetcher()
+        .then((data) => appCache.set(key, data, ttl))
+        .catch(() => undefined);
+      return cached;
+    }
+  }
+
+  // Web: network first
   try {
     const data = await fetcher();
     appCache.set(key, data, ttl);

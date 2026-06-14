@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
+import { GeolocationError, requestCurrentPosition } from '@/lib/geolocation';
 import { client, withRetry } from '@/lib/api';
 import { resolveImageSrc } from '@/lib/storage';
 import {
@@ -142,40 +143,34 @@ export default function FoodPark() {
     return resolved || getFallbackImage(item.id);
   }
 
-  /* ─── Geolocation (optional helper) ─── */
-  function requestGeolocation() {
-    if (!navigator.geolocation) {
-      setGeoStatus('unavailable');
-      toast.error('Геолокация не поддерживается вашим браузером');
-      return;
-    }
+  async function requestGeolocation() {
     setGeoStatus('loading');
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setUserLocation(loc);
-        setGeoStatus('granted');
+    try {
+      const coords = await requestCurrentPosition();
+      const loc = { lat: coords.lat, lng: coords.lng };
+      setUserLocation(loc);
+      setGeoStatus('granted');
 
-        // Find nearest point and suggest it
-        if (parkPoints.length > 0) {
-          let nearest = parkPoints[0];
-          let minDist = Infinity;
-          for (const p of parkPoints) {
-            const d = Math.sqrt((p.lat - loc.lat) ** 2 + (p.lng - loc.lng) ** 2);
-            if (d < minDist) { minDist = d; nearest = p; }
-          }
-          setSelectedPoint(nearest);
-          toast.success(`📍 Ближайшая точка: ${nearest.name}`);
-        } else {
-          toast.success('📍 Местоположение определено!');
+      if (parkPoints.length > 0) {
+        let nearest = parkPoints[0];
+        let minDist = Infinity;
+        for (const p of parkPoints) {
+          const d = Math.sqrt((p.lat - loc.lat) ** 2 + (p.lng - loc.lng) ** 2);
+          if (d < minDist) { minDist = d; nearest = p; }
         }
-      },
-      () => {
-        setGeoStatus('denied');
+        setSelectedPoint(nearest);
+        toast.success(`📍 Ближайшая точка: ${nearest.name}`);
+      } else {
+        toast.success('📍 Местоположение определено!');
+      }
+    } catch (err) {
+      setGeoStatus('denied');
+      if (err instanceof GeolocationError && err.code === 'denied') {
+        toast.error('Разрешите доступ к геолокации в настройках телефона');
+      } else {
         toast.info('Выберите точку доставки на карте парка');
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
-    );
+      }
+    }
   }
 
   function selectPoint(point: ParkPoint) {

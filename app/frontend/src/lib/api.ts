@@ -1,4 +1,6 @@
 import { createClient } from '@metagptx/web-sdk';
+import { Capacitor } from '@capacitor/core';
+import { getAPIBaseURL } from './config';
 import { invalidateAllCaches } from './cache';
 
 /**
@@ -94,12 +96,19 @@ export function warmupBackend(): Promise<void> {
   if (_warmupDone) return Promise.resolve();
   if (_warmupPromise) return _warmupPromise;
 
+  const isNative = Capacitor.isNativePlatform();
+  const maxAttempts = isNative ? 2 : 8;
+  const apiBase = getAPIBaseURL().replace(/\/+$/, '');
+  const warmupUrl = apiBase
+    ? `${apiBase}/api/v1/health`
+    : '/api/v1/health';
+
   _warmupPromise = (async () => {
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < maxAttempts; i++) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
-        const resp = await fetch('/api/v1/entities/banners?limit=1', {
+        const timeoutId = setTimeout(() => controller.abort(), isNative ? 8000 : 15000);
+        const resp = await fetch(warmupUrl, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -113,17 +122,15 @@ export function warmupBackend(): Promise<void> {
           console.log(`[API] Backend warm (attempt ${i + 1})`);
           return;
         }
-        // If we get a non-ok response (e.g., 500 with DNS error), keep retrying
         const text = await resp.text().catch(() => '');
         if (text.includes('dns') || text.includes('balancer') || text.includes('timeout')) {
           console.warn(`[API] Warmup attempt ${i + 1}: DNS/balancer not ready, retrying...`);
         }
       } catch {
-        // Expected during cold start — DNS/balancer resolve errors
+        // Expected during cold start
       }
-      if (i < 7) await sleep(2000 + i * 1500);
+      if (i < maxAttempts - 1) await sleep(isNative ? 600 : 2000 + i * 1500);
     }
-    // Warmup failed — that's OK, normal requests will still work with their own retries
     console.warn('[API] Warmup exhausted retries — proceeding normally');
   })();
 
@@ -198,8 +205,8 @@ export function isTransientError(err: unknown): boolean {
 
 export async function withRetry<T>(
   fn: () => Promise<T>,
-  maxRetries = 4,
-  baseDelayMs = 1500
+  maxRetries = Capacitor.isNativePlatform() ? 2 : 4,
+  baseDelayMs = Capacitor.isNativePlatform() ? 600 : 1500
 ): Promise<T> {
   let lastError: unknown;
 

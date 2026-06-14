@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 
 import { Input } from '@/components/ui/input';
 
-import { getAccountToken } from '@/lib/accountApi';
+import { GeolocationError, requestCurrentPosition } from '@/lib/geolocation';
 
 import {
 
@@ -117,61 +117,31 @@ export default function Taxi() {
 
 
   const resolveGps = useCallback(async (kind: PointKind) => {
-
-    if (!navigator.geolocation) {
-
-      toast.error('GPS недоступен в этом браузере');
-
-      return;
-
-    }
-
     setLoadingPoint(kind);
-
     try {
-
-      const pos = await new Promise<GeolocationPosition>((res, rej) =>
-
-        navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 12000 })
-
-      );
-
-      const loc = await taxiApi.geocode({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-
+      const coords = await requestCurrentPosition({ timeout: 12000 });
+      const loc = await taxiApi.geocode({ lat: coords.lat, lng: coords.lng });
       if (!loc?.lat || !loc?.lng) {
-
         toast.error('Не удалось определить координаты');
-
         return;
-
       }
-
       if (kind === 'from') {
-
         setFromCoords(loc);
-
         setFromAddress(loc.address);
-
       } else {
-
         setToCoords(loc);
-
         setToAddress(loc.address);
-
       }
-
       setQuote(null);
-
-    } catch {
-
-      toast.error('Не удалось определить адрес по GPS');
-
+    } catch (err) {
+      if (err instanceof GeolocationError && err.code === 'denied') {
+        toast.error('Разрешите доступ к геолокации в настройках телефона');
+      } else {
+        toast.error('Не удалось определить адрес по GPS');
+      }
     } finally {
-
       setLoadingPoint(null);
-
     }
-
   }, []);
 
 
