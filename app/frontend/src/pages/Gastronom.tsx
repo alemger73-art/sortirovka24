@@ -13,7 +13,7 @@ import {
   type GastronomSettings,
 } from '@/lib/gastronomApi';
 import { parseDeliveryZones, type DeliveryQuote } from '@/lib/gastronomDelivery';
-import { GeolocationError, requestCurrentPosition } from '@/lib/geolocation';
+import { GeolocationError, ensureLocationPermission, requestCurrentPosition } from '@/lib/geolocation';
 import {
   isLoyaltyEnabled,
   parseLoyaltyGifts,
@@ -241,6 +241,7 @@ export default function Gastronom() {
   const addressPickerRef = useRef<HTMLDivElement>(null);
   const checkoutSectionRef = useRef<HTMLDivElement>(null);
   const prevDeliveryReady = useRef(false);
+  const geoPromptStarted = useRef(false);
   const [addressFormCollapsed, setAddressFormCollapsed] = useState(false);
 
   const alcoholCategoryIds = useMemo(
@@ -444,7 +445,7 @@ export default function Gastronom() {
     void runDeliveryQuote({ address: target }, { notify: true });
   }, [effectiveAddress, runDeliveryQuote]);
 
-  async function requestGeolocation() {
+  const requestGeolocation = useCallback(async () => {
     setDeliveryQuoteLoading(true);
     try {
       const coords = await requestCurrentPosition();
@@ -466,7 +467,24 @@ export default function Gastronom() {
       }
       toast.error('Не удалось получить GPS. Введите адрес вручную.');
     }
-  }
+  }, [runDeliveryQuote]);
+
+  // Ask for location permission as soon as the store opens (system dialog).
+  useEffect(() => {
+    if (geoPromptStarted.current) return;
+    geoPromptStarted.current = true;
+
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        const status = await ensureLocationPermission();
+        if (status === 'granted') {
+          await requestGeolocation();
+        }
+      })();
+    }, 500);
+
+    return () => window.clearTimeout(timer);
+  }, [requestGeolocation]);
 
   const visibleCategories = useMemo(
     () => categories.filter((c) => !c.is_alcohol || ageConfirmed),

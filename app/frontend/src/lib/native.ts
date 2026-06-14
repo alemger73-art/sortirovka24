@@ -13,8 +13,26 @@ async function hideSplashWithFallback(SplashScreen: { hide: () => Promise<void> 
   }
 }
 
+async function clearLegacyWebCaches(): Promise<void> {
+  try {
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    }
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+    }
+  } catch {
+    // non-critical — stale SW cleanup is best-effort
+  }
+}
+
 export async function initNativeShell(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
+
+  // Old PWA service workers can serve broken JS after APK updates.
+  void clearLegacyWebCaches();
 
   try {
     const [{ StatusBar, Style }, { SplashScreen }, { App }] = await Promise.all([

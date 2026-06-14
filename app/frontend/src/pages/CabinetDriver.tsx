@@ -24,6 +24,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ensureLocationPermission, requestCurrentPosition } from '@/lib/geolocation';
 
 export default function CabinetDriver() {
   const [data, setData] = useState<DriverCabinet | null>(null);
@@ -65,17 +66,37 @@ export default function CabinetDriver() {
   }, [data?.profile.online, load]);
 
   useEffect(() => {
-    if (!data?.profile.online || !navigator.geolocation) return;
-    const tick = () => {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => taxiApi.updateLocation(pos.coords.latitude, pos.coords.longitude).catch(() => {}),
-        () => {},
-        { enableHighAccuracy: true, maximumAge: 30000 }
-      );
+    if (!data?.profile.online) return;
+
+    let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | undefined;
+
+    const tick = async () => {
+      try {
+        const coords = await requestCurrentPosition({
+          enableHighAccuracy: true,
+          maximumAge: 30000,
+          timeout: 12000,
+        });
+        if (!cancelled) {
+          await taxiApi.updateLocation(coords.lat, coords.lng).catch(() => {});
+        }
+      } catch {
+        // GPS optional while on line — errors are silent
+      }
     };
-    tick();
-    const interval = setInterval(tick, 30000);
-    return () => clearInterval(interval);
+
+    void (async () => {
+      await ensureLocationPermission();
+      if (cancelled) return;
+      await tick();
+      interval = setInterval(() => void tick(), 30000);
+    })();
+
+    return () => {
+      cancelled = true;
+      if (interval) clearInterval(interval);
+    };
   }, [data?.profile.online]);
 
   async function toggleOnline() {

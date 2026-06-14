@@ -18,6 +18,8 @@ export default defineConfig(({ mode }) => ({
     react(),
     atoms(),
     VitePWA({
+      disable: mode === 'mobile',
+      injectRegister: mode === 'mobile' ? null : 'auto',
       registerType: 'autoUpdate',
       includeAssets: ['icon-192.png', 'icon-512.png', 'favicon.svg'],
       manifest: false,

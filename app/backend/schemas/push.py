@@ -13,3 +13,19 @@ class PushUnregisterRequest(BaseModel):
 class PushRegisterResponse(BaseModel):
     success: bool
     registered: bool
+
+
+class PushBroadcastRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=120)
+    body: str = Field(..., min_length=1, max_length=500)
+    path: str | None = Field(None, max_length=256, pattern=r"^/.*")
+    user_id: str | None = Field(None, max_length=255)
+    platform: str | None = Field(None, pattern="^(android|ios)$")
+
+
+class PushBroadcastResponse(BaseModel):
+    success: bool
+    sent: int
+    failed: int
+    total: int
+    skipped: bool = False

@@ -5,14 +5,7 @@ import './index.css';
 import { warmupBackend } from './lib/api';
 import { initNativeShell } from './lib/native';
 
-if (import.meta.env.PROD) {
-  import('virtual:pwa-register').then(({ registerSW }) => {
-    registerSW({ immediate: true });
-  }).catch(() => {
-    // PWA optional — ignore in dev / if plugin unavailable
-  });
-}
-
+// PWA registration is handled by vite-plugin-pwa (web builds only; disabled in --mode mobile).
 // ─── Intercept SDK's postMessage error reporting ─────────────────
 // The @metagptx/web-sdk sends `mgx-appview-error` postMessages to
 // window.top for ANY HTTP response with status >= 400 (except 401).

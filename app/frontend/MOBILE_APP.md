@@ -22,19 +22,17 @@ npm run build:android
 
 ## Автообновление (без переустановки APK)
 
-По умолчанию включён **режим live URL**: приложение открывает сайт с Railway, а не зашитую копию в APK.
+По умолчанию приложение использует **встроенную сборку** (bundled) — работает без интернета при открытии.
 
-```
-Вы меняете код → деплой на Railway → пользователь закрывает и снова открывает приложение → всё обновлено
-```
-
-Настройка в `.env.mobile`:
+Для автообновления UI без переустановки APK включите **режим live URL** в `.env.mobile`:
 
 ```env
 CAPACITOR_SERVER_URL=https://sortirovka24-production-8788.up.railway.app
 ```
 
 **Один раз** пересоберите APK с этой настройкой (`BUILD-ANDROID.bat`). Дальше для обычных правок UI/API достаточно деплоя на Railway.
+
+> ⚠️ Live URL требует интернет при каждом запуске. Для стабильности рекомендуется bundled-режим (строка `CAPACITOR_SERVER_URL` закомментирована).
 
 | Тип изменения | Нужен новый APK? |
 |---------------|------------------|
@@ -154,10 +152,16 @@ Build → Build Bundle(s) / APK(s) → Build APK(s)
 
 **Release APK / AAB** (для Google Play):
 
-1. **Build → Generate Signed Bundle / APK**  
-2. Создайте keystore (сохраните пароль и файл `.jks` — без него нельзя обновлять приложение!)  
-3. Выберите **Android App Bundle (.aab)** для Google Play или **APK** для прямой раздачи  
-4. Соберите **release**
+```powershell
+cd app\frontend
+# 1. Скопируйте android/keystore.properties.example → android/keystore.properties
+# 2. Создайте keystore (см. комментарии в example-файле)
+npm run build:android:release
+```
+
+Артефакты: `releases/Sortirovka24-release.aab` и `Sortirovka24-release.apk`
+
+Или через Android Studio: **Build → Generate Signed Bundle / APK**
 
 ---
 
@@ -224,14 +228,28 @@ npm run cap:sync
 FCM_SERVER_KEY=AAAA...ваш_ключ...
 ```
 
-4. Перезапустите бэкенд — таблица `push_devices` создастся автоматически при старте.
+4. Перезапустите бэкенд. Таблица `push_devices` создаётся через Alembic-миграцию или при первом старте.
+
+5. В `.env.mobile` включите `VITE_ENABLE_NATIVE_PUSH=true` и пересоберите APK.
 
 ### 5.5 Проверка push
 
 1. Установите приложение на телефон  
 2. Разрешите уведомления при первом запуске  
 3. Токен сохранится через `POST /api/v1/push/register`  
-4. Тестовая отправка через Firebase Console → **Messaging** → **Send test message** → вставьте FCM-токен из БД `push_devices`
+4. **Автоматически:** push уходит при публикации новости (`published=true`)  
+5. **Вручную (админ):** `POST /api/v1/push/broadcast` с JWT админки:
+
+```json
+{
+  "title": "Sortirovka24",
+  "body": "Тестовое уведомление",
+  "path": "/"
+}
+```
+
+6. Проверка конфигурации: `GET /api/v1/push/status` → `{ "enabled": true }`  
+7. Тест через Firebase Console → **Messaging** → **Send test message** → FCM-токен из `push_devices`
 
 Формат данных для перехода в приложении при нажатии на push:
 

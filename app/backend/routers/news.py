@@ -3,12 +3,13 @@ import logging
 from typing import List, Optional
 
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
 from services.news import NewsService
+from services.push_broadcast import notify_published_news
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -194,6 +195,7 @@ async def get_news(
 @router.post("", response_model=NewsResponse, status_code=201)
 async def create_news(
     data: NewsData,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new news"""
@@ -206,6 +208,8 @@ async def create_news(
             raise HTTPException(status_code=400, detail="Failed to create news")
         
         logger.info(f"News created successfully with id: {result.id}")
+        if getattr(result, "published", False):
+            background_tasks.add_task(notify_published_news, result.id, result.title or "")
         return result
     except ValueError as e:
         logger.error(f"Validation error creating news: {str(e)}")
@@ -271,6 +275,7 @@ async def update_newss_batch(
 async def update_news(
     id: int,
     data: NewsUpdateData,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
     """Update an existing news"""
@@ -286,6 +291,8 @@ async def update_news(
             raise HTTPException(status_code=404, detail="News not found")
         
         logger.info(f"News {id} updated successfully")
+        if update_dict.get("published") is True:
+            background_tasks.add_task(notify_published_news, result.id, result.title or "")
         return result
     except HTTPException:
         raise

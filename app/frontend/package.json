@@ -7,6 +7,7 @@
     "build": "vite build",
     "build:mobile": "vite build --mode mobile",
     "build:android": "powershell -ExecutionPolicy Bypass -File scripts/build-android.ps1",
+    "build:android:release": "powershell -ExecutionPolicy Bypass -File scripts/build-android-release.ps1",
     "lint": "eslint --quiet ./src",
     "preview": "vite preview",
     "postinstall": "echo 'Dependencies installed successfully'",

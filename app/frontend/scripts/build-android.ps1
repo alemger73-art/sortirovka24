@@ -1,5 +1,10 @@
 # Sortirovka24 - fully automated Android APK build
 # Run: powershell -ExecutionPolicy Bypass -File scripts/build-android.ps1
+#      powershell -ExecutionPolicy Bypass -File scripts/build-android.ps1 -SkipGradle
+
+param(
+    [switch]$SkipGradle
+)
 
 $ErrorActionPreference = "Stop"
 $FrontendRoot = Split-Path $PSScriptRoot -Parent
@@ -81,6 +86,11 @@ if ($LASTEXITCODE -ne 0) { throw "npm run build:mobile failed with exit $LASTEXI
 npx cap sync android 2>&1 | ForEach-Object { Write-Host $_ }
 if ($LASTEXITCODE -ne 0) { throw "cap sync failed with exit $LASTEXITCODE" }
 $ErrorActionPreference = $prevEAP
+
+if ($SkipGradle) {
+    Write-Host "SkipGradle: web bundle synced, Gradle step skipped."
+    exit 0
+}
 
 Set-Location $AndroidRoot
 Write-Host "[5/5] Gradle assembleDebug (first run may take 10+ minutes)..."
