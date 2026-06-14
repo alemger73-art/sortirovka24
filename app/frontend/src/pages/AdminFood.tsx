@@ -31,16 +31,42 @@ interface Restaurant {
   is_active: boolean;
   sort_order: number;
 }
-interface FoodCategory { id: number; restaurant_id?: number | null; name: string; icon: string; sort_order: number; is_active: boolean; }
-interface FoodItem { id: number; restaurant_id?: number | null; category_id: number; name: string; description: string; price: number; image_url: string; available: boolean; is_active: boolean; sort_order: number; }
+interface FoodCategory {
+  id: number;
+  restaurant_id?: number | null;
+  name: string;
+  icon: string;
+  slug?: string;
+  image?: string;
+  category_type?: string;
+  sort_order: number;
+  is_active: boolean;
+}
+interface FoodItem {
+  id: number;
+  restaurant_id?: number | null;
+  category_id: number;
+  name: string;
+  description: string;
+  price: number;
+  image_url: string;
+  available: boolean;
+  is_active: boolean;
+  is_popular?: boolean;
+  is_combo?: boolean;
+  is_recommended?: boolean;
+  weight?: string;
+  sort_order: number;
+}
 type Section = 'restaurants' | 'categories' | 'items';
 
 interface AdminFoodProps {
   damAlemMode?: boolean;
   initialSection?: Section;
+  hideSubTabs?: boolean;
 }
 
-export default function AdminFood({ damAlemMode = false, initialSection }: AdminFoodProps) {
+export default function AdminFood({ damAlemMode = false, initialSection, hideSubTabs = false }: AdminFoodProps) {
   const [section, setSection] = useState<Section>(initialSection || (damAlemMode ? 'items' : 'items'));
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [categories, setCategories] = useState<FoodCategory[]>([]);
@@ -51,6 +77,7 @@ export default function AdminFood({ damAlemMode = false, initialSection }: Admin
   const [editingRestaurant, setEditingRestaurant] = useState<Partial<Restaurant> | null>(null);
   const [editingCat, setEditingCat] = useState<Partial<FoodCategory> | null>(null);
   const [editingItem, setEditingItem] = useState<Partial<FoodItem> | null>(null);
+  const [itemSearch, setItemSearch] = useState('');
 
   useEffect(() => { loadAll(); }, []);
 
@@ -121,15 +148,18 @@ export default function AdminFood({ damAlemMode = false, initialSection }: Admin
       ),
     [categories, selectedRestaurantId]
   );
-  const filteredItems = useMemo(
-    () =>
-      items.filter(i =>
-        selectedRestaurantId === null
-          ? i.restaurant_id == null || i.restaurant_id === undefined
-          : i.restaurant_id === selectedRestaurantId
-      ),
-    [items, selectedRestaurantId]
-  );
+  const filteredItems = useMemo(() => {
+    const byRestaurant = items.filter(i =>
+      selectedRestaurantId === null
+        ? i.restaurant_id == null || i.restaurant_id === undefined
+        : i.restaurant_id === selectedRestaurantId
+    );
+    const q = itemSearch.trim().toLowerCase();
+    if (!q) return byRestaurant;
+    return byRestaurant.filter(i =>
+      i.name.toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q)
+    );
+  }, [items, selectedRestaurantId, itemSearch]);
 
   async function saveRestaurant() {
     if (!editingRestaurant?.name) return toast.error('Введите название ресторана');
@@ -252,7 +282,7 @@ export default function AdminFood({ damAlemMode = false, initialSection }: Admin
   return (
     <div className="space-y-6">
       {/* Sub-tabs */}
-      <div className="flex gap-2 flex-wrap items-center">
+      {!hideSubTabs && <div className="flex gap-2 flex-wrap items-center">
         {([
           ...(!damAlemMode ? [{ id: 'restaurants' as Section, label: 'Рестораны' }] : []),
           { id: 'categories' as Section, label: 'Категории меню' },
@@ -286,7 +316,7 @@ export default function AdminFood({ damAlemMode = false, initialSection }: Admin
             {restaurants.find(r => isDamAlemName(r.name))?.name || 'DAM ALEM'}
           </span>
         )}
-      </div>
+      </div>}
 
       {section === 'restaurants' && (
         <div className="space-y-4">
@@ -354,10 +384,26 @@ export default function AdminFood({ damAlemMode = false, initialSection }: Admin
             <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Input placeholder="Иконка (emoji)" value={editingCat.icon || ''} onChange={e => setEditingCat({ ...editingCat, icon: e.target.value })} />
-                <Input placeholder="Название" value={editingCat.name || ''} onChange={e => setEditingCat({ ...editingCat, name: e.target.value })} className="sm:col-span-2" />
+                <Input placeholder="Название *" value={editingCat.name || ''} onChange={e => setEditingCat({ ...editingCat, name: e.target.value })} className="sm:col-span-2" />
               </div>
-              <Input placeholder="Restaurant ID" value={editingCat.restaurant_id || selectedRestaurantId || ''} onChange={e => setEditingCat({ ...editingCat, restaurant_id: Number(e.target.value) })} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Input placeholder="Slug (url)" value={editingCat.slug || ''} onChange={e => setEditingCat({ ...editingCat, slug: e.target.value })} />
+                <Input placeholder="Тип (menu, combo…)" value={editingCat.category_type || ''} onChange={e => setEditingCat({ ...editingCat, category_type: e.target.value })} />
+              </div>
+              {!damAlemMode && (
+                <Input placeholder="Restaurant ID" value={editingCat.restaurant_id || selectedRestaurantId || ''} onChange={e => setEditingCat({ ...editingCat, restaurant_id: Number(e.target.value) })} />
+              )}
+              <ImageUpload
+                value={editingCat.image || ''}
+                onChange={key => setEditingCat({ ...editingCat, image: key })}
+                folder="food"
+                compact
+              />
               <Input type="number" placeholder="Порядок" value={editingCat.sort_order || ''} onChange={e => setEditingCat({ ...editingCat, sort_order: parseInt(e.target.value) || 0 })} className="w-32" />
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={editingCat.is_active !== false} onChange={e => setEditingCat({ ...editingCat, is_active: e.target.checked })} />
+                Активная категория
+              </label>
               <div className="flex gap-2">
                 <Button size="sm" onClick={saveCat} className="bg-orange-500 hover:bg-orange-600"><Save className="w-4 h-4 mr-1" /> Сохранить</Button>
                 <Button size="sm" variant="outline" onClick={() => setEditingCat(null)}><X className="w-4 h-4 mr-1" /> Отмена</Button>
@@ -367,12 +413,17 @@ export default function AdminFood({ damAlemMode = false, initialSection }: Admin
 
           <div className="space-y-2">
             {filteredCategories.map(cat => (
-              <div key={cat.id} className="bg-white rounded-xl border p-3 flex items-center justify-between">
+              <div key={cat.id} className={`bg-white rounded-xl border p-3 flex items-center justify-between ${cat.is_active === false ? 'opacity-50' : ''}`}>
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{cat.icon}</span>
+                  {cat.image ? (
+                    <StorageImage objectKey={cat.image} alt={cat.name} className="w-10 h-10 rounded-lg object-cover" />
+                  ) : (
+                    <span className="text-2xl">{cat.icon}</span>
+                  )}
                   <div>
                     <span className="font-medium text-sm">{cat.name}</span>
-                    <span className="text-xs text-gray-500 ml-2">restaurant #{cat.restaurant_id}</span>
+                    {cat.slug && <span className="text-xs text-gray-400 ml-2">/{cat.slug}</span>}
+                    {!damAlemMode && <span className="text-xs text-gray-500 ml-2">restaurant #{cat.restaurant_id}</span>}
                     <span className="text-xs text-gray-400 ml-2">#{cat.sort_order}</span>
                   </div>
                 </div>
@@ -388,44 +439,55 @@ export default function AdminFood({ damAlemMode = false, initialSection }: Admin
 
       {section === 'items' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h3 className="font-bold text-lg">Блюда</h3>
-            <Button
-              size="sm"
-              onClick={() =>
-                setEditingItem({
-                  name: '',
-                  price: 0,
-                  category_id: categories[0]?.id,
-                  restaurant_id: selectedRestaurantId || restaurants[0]?.id,
-                  description: '',
-                  available: true,
-                  is_active: true,
-                })
-              }
-              className="bg-orange-500 hover:bg-orange-600"
-            >
-              <Plus className="w-4 h-4 mr-1" /> Добавить
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                placeholder="Поиск..."
+                value={itemSearch}
+                onChange={e => setItemSearch(e.target.value)}
+                className="h-9 w-40"
+              />
+              <Button
+                size="sm"
+                onClick={() =>
+                  setEditingItem({
+                    name: '',
+                    price: 0,
+                    category_id: filteredCategories[0]?.id,
+                    restaurant_id: selectedRestaurantId || restaurants[0]?.id,
+                    description: '',
+                    available: true,
+                    is_active: true,
+                  })
+                }
+                className="bg-orange-500 hover:bg-orange-600"
+              >
+                <Plus className="w-4 h-4 mr-1" /> Добавить
+              </Button>
+            </div>
           </div>
 
           {editingItem && (
             <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input placeholder="Название *" value={editingItem.name || ''} onChange={e => setEditingItem({ ...editingItem, name: e.target.value })} />
-                <Input type="number" placeholder="Restaurant ID *" value={editingItem.restaurant_id || selectedRestaurantId || ''} onChange={e => setEditingItem({ ...editingItem, restaurant_id: Number(e.target.value) })} />
+                {!damAlemMode && (
+                  <Input type="number" placeholder="Restaurant ID *" value={editingItem.restaurant_id || selectedRestaurantId || ''} onChange={e => setEditingItem({ ...editingItem, restaurant_id: Number(e.target.value) })} />
+                )}
                 <select
                   value={editingItem.category_id || ''}
                   onChange={e => setEditingItem({ ...editingItem, category_id: parseInt(e.target.value) })}
-                  className="border rounded-lg px-3 py-2 text-sm"
+                  className="border rounded-lg px-3 py-2 text-sm sm:col-span-2"
                 >
                   <option value="">Категория *</option>
                   {filteredCategories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
                 </select>
               </div>
               <Textarea placeholder="Описание" value={editingItem.description || ''} onChange={e => setEditingItem({ ...editingItem, description: e.target.value })} rows={2} />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <Input type="number" placeholder="Цена *" value={editingItem.price || ''} onChange={e => setEditingItem({ ...editingItem, price: parseInt(e.target.value) || 0 })} />
+                <Input placeholder="Вес (350 г)" value={editingItem.weight || ''} onChange={e => setEditingItem({ ...editingItem, weight: e.target.value })} />
                 <Input type="number" placeholder="Порядок" value={editingItem.sort_order || ''} onChange={e => setEditingItem({ ...editingItem, sort_order: parseInt(e.target.value) || 0 })} />
               </div>
               <ImageUpload
@@ -442,6 +504,18 @@ export default function AdminFood({ damAlemMode = false, initialSection }: Admin
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={editingItem.available !== false} onChange={e => setEditingItem({ ...editingItem, available: e.target.checked })} />
                   Доступно
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={!!editingItem.is_popular} onChange={e => setEditingItem({ ...editingItem, is_popular: e.target.checked })} />
+                  Популярное
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={!!editingItem.is_combo} onChange={e => setEditingItem({ ...editingItem, is_combo: e.target.checked })} />
+                  Комбо
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={!!editingItem.is_recommended} onChange={e => setEditingItem({ ...editingItem, is_recommended: e.target.checked })} />
+                  Рекомендуем
                 </label>
               </div>
               <div className="flex gap-2">
@@ -467,10 +541,14 @@ export default function AdminFood({ damAlemMode = false, initialSection }: Admin
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-sm truncate">{item.name}</span>
+                        {item.is_popular && <Badge className="bg-orange-100 text-orange-700 border-0 text-[10px]">Хит</Badge>}
+                        {item.is_combo && <Badge className="bg-purple-100 text-purple-700 border-0 text-[10px]">Комбо</Badge>}
+                        {item.is_recommended && <Badge className="bg-blue-100 text-blue-700 border-0 text-[10px]">★</Badge>}
                         {item.available !== false ? <Badge className="bg-green-100 text-green-700 border-0 text-[10px]">Доступно</Badge> : <Badge className="bg-gray-100 text-gray-700 border-0 text-[10px]">Недоступно</Badge>}
                       </div>
                       <div className="flex items-center gap-2 text-xs text-gray-400">
                         <span>{cat?.name}</span>
+                        {item.weight && <><span>•</span><span>{item.weight}</span></>}
                         <span>•</span>
                         <span className="font-semibold text-gray-700">{item.price} ₸</span>
                       </div>

@@ -3,8 +3,10 @@ import { client, withRetry } from '@/lib/api';
 import { invalidateAllCaches } from '@/lib/cache';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Save, Phone, Image, DollarSign, Truck, Plus, Trash2, MapPin, ToggleLeft, ToggleRight, Sparkles } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Save, Phone, Image, DollarSign, Truck, Plus, Trash2, MapPin, ToggleLeft, ToggleRight, Sparkles, Megaphone } from 'lucide-react';
 import { toast } from 'sonner';
+import ImageUpload from '@/components/ImageUpload';
 
 interface SettingRow {
   id: number;
@@ -19,13 +21,21 @@ interface DeliveryZone {
   price: number;
 }
 
+export interface PromoSlide {
+  title: string;
+  lines: string[];
+}
+
+interface AdminFoodSettingsProps {
+  damAlemMode?: boolean;
+}
+
 const SETTING_FIELDS = [
-  { key: 'whatsapp_number', label: 'Номер WhatsApp', icon: Phone, placeholder: '+77001234567', description: 'Номер для получения заказов в WhatsApp' },
-  { key: 'hero_banner_title', label: 'Заголовок баннера', icon: Image, placeholder: 'DAM ALEM', description: 'Бренд на странице доставки' },
-  { key: 'hero_banner_subtitle', label: 'Подзаголовок баннера', icon: Image, placeholder: 'Доставка еды №1 в Сортировке', description: 'Слоган под брендом' },
-  { key: 'hero_banner_image', label: 'URL изображения баннера', icon: Image, placeholder: 'https://...', description: 'Фоновое изображение (необязательно)' },
-  { key: 'min_order_amount', label: 'Минимальная сумма заказа (₸)', icon: DollarSign, placeholder: '2000', description: 'Минимальная сумма для оформления заказа' },
-  { key: 'delivery_price', label: 'Базовая стоимость доставки (₸)', icon: Truck, placeholder: '500', description: 'Используется если зоны доставки не настроены' },
+  { key: 'whatsapp_number', label: 'Номер WhatsApp', icon: Phone, placeholder: '+77001234567', description: 'Номер для получения заказов в WhatsApp', type: 'text' as const },
+  { key: 'hero_banner_title', label: 'Заголовок баннера', icon: Image, placeholder: 'DAM ALEM', description: 'Бренд на странице доставки', type: 'text' as const },
+  { key: 'hero_banner_subtitle', label: 'Подзаголовок баннера', icon: Image, placeholder: 'Доставка еды №1 в Сортировке', description: 'Слоган под брендом', type: 'text' as const },
+  { key: 'min_order_amount', label: 'Минимальная сумма заказа (₸)', icon: DollarSign, placeholder: '2000', description: 'Минимальная сумма для оформления заказа', type: 'text' as const },
+  { key: 'delivery_price', label: 'Базовая стоимость доставки (₸)', icon: Truck, placeholder: '500', description: 'Используется если зоны доставки не настроены', type: 'text' as const },
 ];
 
 const DEFAULT_ZONES: DeliveryZone[] = [
@@ -34,7 +44,7 @@ const DEFAULT_ZONES: DeliveryZone[] = [
   { name: 'Зона 3 (дальняя)', radius_km: 5, price: 600 },
 ];
 
-export default function AdminFoodSettings() {
+export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSettingsProps) {
   const [settingsRows, setSettingsRows] = useState<SettingRow[]>([]);
   const [values, setValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -43,6 +53,8 @@ export default function AdminFoodSettings() {
   // Delivery zones
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [showRecommendations, setShowRecommendations] = useState(true);
+  const [promoSlides, setPromoSlides] = useState<PromoSlide[]>([]);
+  const [heroImage, setHeroImage] = useState('');
 
   useEffect(() => { loadSettings(); }, []);
 
@@ -66,6 +78,15 @@ export default function AdminFoodSettings() {
 
       // Parse show_recommendations
       setShowRecommendations(vals.show_recommendations !== 'false');
+
+      setHeroImage(vals.hero_banner_image || '');
+
+      try {
+        const parsedPromo = JSON.parse(vals.promo_slides || '[]');
+        setPromoSlides(Array.isArray(parsedPromo) && parsedPromo.length > 0 ? parsedPromo : []);
+      } catch {
+        setPromoSlides([]);
+      }
     } catch (e) {
       console.error(e);
       toast.error('Ошибка загрузки настроек');
@@ -80,11 +101,13 @@ export default function AdminFoodSettings() {
       // Merge zones and recommendations into values
       const allValues = {
         ...values,
+        hero_banner_image: heroImage,
         delivery_zones: JSON.stringify(zones),
         show_recommendations: showRecommendations ? 'true' : 'false',
+        promo_slides: JSON.stringify(promoSlides),
       };
 
-      const allKeys = [...SETTING_FIELDS.map(f => f.key), 'delivery_zones', 'show_recommendations'];
+      const allKeys = [...SETTING_FIELDS.map(f => f.key), 'hero_banner_image', 'delivery_zones', 'show_recommendations', 'promo_slides'];
 
       for (const key of allKeys) {
         const existing = settingsRows.find(r => r.setting_key === key);
@@ -130,6 +153,26 @@ export default function AdminFoodSettings() {
     setZones(DEFAULT_ZONES);
   }
 
+  function loadDefaultPromoSlides() {
+    setPromoSlides([
+      { title: 'Бесплатная доставка', lines: ['При заказе от 5000 ₸', 'По всей Сортировке', 'Каждый день'] },
+      { title: 'Комбо-обед', lines: ['Суп + второе + напиток', 'Всего от 1990 ₸', 'Выгодно!'] },
+      { title: 'Новинки меню', lines: ['Попробуйте первыми', 'Свежие блюда', 'Каждую неделю'] },
+    ]);
+  }
+
+  function addPromoSlide() {
+    setPromoSlides(prev => [...prev, { title: '', lines: ['', ''] }]);
+  }
+
+  function updatePromoSlide(index: number, field: 'title' | 'lines', value: string | string[]) {
+    setPromoSlides(prev => prev.map((s, i) => i === index ? { ...s, [field]: value } : s));
+  }
+
+  function removePromoSlide(index: number) {
+    setPromoSlides(prev => prev.filter((_, i) => i !== index));
+  }
+
   if (loading) {
     return <div className="text-center py-8"><div className="inline-block w-8 h-8 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin" /></div>;
   }
@@ -137,10 +180,20 @@ export default function AdminFoodSettings() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="font-bold text-lg">Настройки доставки еды</h3>
+        <h3 className="font-bold text-lg">{damAlemMode ? 'Настройки DAM ALEM' : 'Настройки доставки еды'}</h3>
         <Button onClick={saveSettings} disabled={saving} className="bg-orange-500 hover:bg-orange-600">
           <Save className="w-4 h-4 mr-1" /> {saving ? 'Сохранение...' : 'Сохранить'}
         </Button>
+      </div>
+
+      {/* Hero image */}
+      <div className="rounded-xl border bg-white p-4">
+        <div className="mb-1.5 flex items-center gap-2">
+          <Image className="h-4 w-4 text-orange-500" />
+          <label className="text-sm font-medium text-gray-800">Фоновое изображение баннера</label>
+        </div>
+        <p className="mb-2 text-xs text-gray-400">Картинка в шапке страницы /food</p>
+        <ImageUpload value={heroImage} onChange={setHeroImage} folder="food" />
       </div>
 
       {/* Basic settings */}
@@ -241,6 +294,68 @@ export default function AdminFoodSettings() {
         )}
       </div>
 
+      {/* Promo carousel slides */}
+      <div className="rounded-xl border bg-white p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Megaphone className="h-4 w-4 text-orange-500" />
+            <label className="text-sm font-medium text-gray-800">Промо-слайды в шапке</label>
+          </div>
+          <div className="flex gap-2">
+            {promoSlides.length === 0 && (
+              <Button size="sm" variant="outline" onClick={loadDefaultPromoSlides} className="text-xs h-8">
+                Шаблон
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={addPromoSlide} className="text-xs h-8">
+              <Plus className="mr-1 h-3 w-3" /> Слайд
+            </Button>
+          </div>
+        </div>
+        <p className="mb-3 text-xs text-gray-400">Карусель акций в hero-блоке на /food</p>
+        {promoSlides.length === 0 ? (
+          <p className="text-center py-4 text-sm text-gray-400">Слайды не настроены — используются переводы по умолчанию</p>
+        ) : (
+          <div className="space-y-3">
+            {promoSlides.map((slide, idx) => (
+              <div key={idx} className="rounded-lg bg-gray-50 p-3 space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Заголовок слайда"
+                    value={slide.title}
+                    onChange={e => updatePromoSlide(idx, 'title', e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button size="sm" variant="ghost" className="text-red-500" onClick={() => removePromoSlide(idx)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                {slide.lines.map((line, lineIdx) => (
+                  <Input
+                    key={lineIdx}
+                    placeholder={`Строка ${lineIdx + 1}`}
+                    value={line}
+                    onChange={e => {
+                      const newLines = [...slide.lines];
+                      newLines[lineIdx] = e.target.value;
+                      updatePromoSlide(idx, 'lines', newLines);
+                    }}
+                  />
+                ))}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-xs"
+                  onClick={() => updatePromoSlide(idx, 'lines', [...slide.lines, ''])}
+                >
+                  + строка
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* ═══ RECOMMENDATIONS TOGGLE ═══ */}
       <div className="bg-white rounded-xl border p-4">
         <div className="flex items-center justify-between">
@@ -269,9 +384,10 @@ export default function AdminFoodSettings() {
         <div className="mt-6">
           <h4 className="font-semibold text-sm text-gray-600 mb-2">Предпросмотр баннера</h4>
           <div className="relative bg-gradient-to-br from-orange-500 via-red-500 to-pink-600 text-white rounded-2xl overflow-hidden p-6">
-            {values.hero_banner_image && (
+            {heroImage && (
               <div className="absolute inset-0 opacity-30">
-                <img src={values.hero_banner_image} alt="" className="w-full h-full object-cover" />
+                {/* preview uses uploaded key via inline style fallback */}
+                <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: heroImage.startsWith('http') ? `url(${heroImage})` : undefined }} />
               </div>
             )}
             <div className="relative">

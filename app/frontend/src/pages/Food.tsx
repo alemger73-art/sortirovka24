@@ -58,7 +58,7 @@ interface DeliveryZone { name: string; radius_km: number; price: number; }
 interface Settings {
   whatsapp_number: string; hero_banner_title: string; hero_banner_subtitle: string;
   hero_banner_image: string; min_order_amount: string; delivery_price: string;
-  delivery_zones: string; show_recommendations: string;
+  delivery_zones: string; show_recommendations: string; promo_slides?: string;
 }
 
 interface CartItemSelection { [groupId: number]: number[]; }
@@ -709,14 +709,26 @@ export default function Food() {
   const modalValidation = selectedItem ? validateSelections(selectedItem.id, currentSelections) : { valid: true, errors: [] };
   const selectedItemBadge = selectedItem ? getBadgeType(selectedItem) : null;
 
-  const promoSlides = useMemo(
-    () =>
-      PROMO_SLIDES.map(sl => ({
-        title: t(sl.titleKey as 'food.promoSlide1Title'),
-        lines: sl.linesKeys.map(k => t(k as 'food.promoLine1a')),
-      })),
-    [t]
-  );
+  const promoSlides = useMemo(() => {
+    try {
+      const raw = settings.promo_slides;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((s: { title?: string; lines?: string[] }) => ({
+            title: s.title || '',
+            lines: Array.isArray(s.lines) ? s.lines.filter(Boolean) : [],
+          }));
+        }
+      }
+    } catch {
+      /* fallback to translations */
+    }
+    return PROMO_SLIDES.map(sl => ({
+      title: t(sl.titleKey as 'food.promoSlide1Title'),
+      lines: sl.linesKeys.map(k => t(k as 'food.promoLine1a')),
+    }));
+  }, [settings.promo_slides, t]);
 
   const deliveryFromPrice = useMemo(() => {
     if (deliveryZones.length > 0) return Math.min(...deliveryZones.map(z => z.price));
