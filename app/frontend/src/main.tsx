@@ -175,7 +175,14 @@ window.addEventListener('unhandledrejection', (event) => {
 // ─── Render App ──────────────────────────────────────────────────
 const rootElement = document.getElementById('root');
 if (rootElement) {
-  createRoot(rootElement).render(<App />);
-  // Native shell must not block first paint (splash / push can hang or crash without Firebase).
-  initNativeShell();
+  try {
+    createRoot(rootElement).render(<App />);
+    initNativeShell();
+  } catch (err) {
+    console.error('[boot] render failed:', err);
+    rootElement.innerHTML =
+      '<div style="padding:24px;font-family:sans-serif;text-align:center">' +
+      '<h2 style="color:#2563EB">Sortirovka24</h2>' +
+      '<p>Не удалось запустить приложение. Удалите и установите APK заново.</p></div>';
+  }
 }

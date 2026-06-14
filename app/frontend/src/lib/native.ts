@@ -61,11 +61,6 @@ export async function initNativeShell(): Promise<void> {
         document.documentElement.classList.add('app-background');
       }
     });
-
-    // Push requires google-services.json — init in background, never block startup.
-    import('@/lib/pushNotifications')
-      .then(({ initPushNotifications }) => initPushNotifications())
-      .catch(() => undefined);
   } catch (error) {
     console.warn('[native] Capacitor plugins unavailable:', error);
   }
