@@ -1,6 +1,6 @@
-# Sortirovka24 — интеграционный тест API (PowerShell)
-# Запуск: .\scripts\integrity_test.ps1
-# Или: .\scripts\integrity_test.ps1 -BaseUrl "http://127.0.0.1:8000"
+# Sortirovka24 API integrity test (PowerShell)
+# Usage: .\scripts\integrity_test.ps1
+# Or:    .\scripts\integrity_test.ps1 -BaseUrl "http://127.0.0.1:8000"
 
 param(
     [string]$BaseUrl = "https://sortirovka24-production-8788.up.railway.app"
@@ -36,16 +36,16 @@ function Test-Endpoint {
         if ($_.Exception.Response) {
             $code = [string]$_.Exception.Response.StatusCode.value__
         } else {
-            Write-Host "[FAIL] $Name — нет ответа ($uri)" -ForegroundColor Red
+            Write-Host "[FAIL] $Name - no response ($uri)" -ForegroundColor Red
             $script:failed++
             return
         }
     }
     if ($ExpectStatus -contains $code) {
-        Write-Host "[ OK ] $Name — HTTP $code" -ForegroundColor Green
+        Write-Host "[ OK ] $Name - HTTP $code" -ForegroundColor Green
         $script:passed++
     } else {
-        Write-Host "[FAIL] $Name — HTTP $code (ожидалось: $($ExpectStatus -join '/'))" -ForegroundColor Red
+        Write-Host "[FAIL] $Name - HTTP $code (expected: $($ExpectStatus -join '/'))" -ForegroundColor Red
         $script:failed++
     }
 }
@@ -63,9 +63,13 @@ Test-Endpoint "Taxi settings" "/api/v1/taxi/settings" @("200")
 Test-Endpoint "Account me (no token)" "/api/v1/account/me" @("401")
 Test-Endpoint "Entity delete blocked" "/api/v1/entities/news/999999" @("401","403","404","422") "DELETE"
 Test-Endpoint "Debug tables blocked" "/api/v1/debug/tables" @("404","401","403")
-Test-Endpoint "Delivery write blocked" "/api/categories" @("401","403","422") "POST" '{"name":"test"}'
+Test-Endpoint "History events list" "/api/v1/entities/history_events?limit=5" @("200")
+Test-Endpoint "Support settings" "/api/v1/support/settings" @("200","404")
+$deliveryBody = (@{ name = "integrity-test" } | ConvertTo-Json -Compress)
+Test-Endpoint "Delivery write blocked" "/api/categories" @("401","403","422") "POST" $deliveryBody
 Test-Endpoint "Create-admin blocked" "/api/v1/admin-auth/create-admin" @("404","401","403","400") "POST"
-Test-Endpoint "Bad login" "/api/v1/account/login" @("401","429") "POST" '{"phone":"+77000000000","password":"wrong"}'
+$loginBody = (@{ phone = "+77000000000"; password = "wrong-password-xyz" } | ConvertTo-Json -Compress)
+Test-Endpoint "Bad login" "/api/v1/account/login" @("401","429") "POST" $loginBody
 
 Write-Host "`n=== Result: $passed passed, $failed failed ===" -ForegroundColor Cyan
 if ($failed -gt 0) { exit 1 }

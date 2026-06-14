@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
-import { DEFAULT_SUPPORT_SETTINGS, supportApi, type SupportSettings } from '@/lib/supportApi';
+import {
+  DEFAULT_SUPPORT_SETTINGS,
+  getSupportSettingsCache,
+  setSupportSettingsCache,
+  supportApi,
+  type SupportSettings,
+} from '@/lib/supportApi';
 
-let cached: { data: SupportSettings; at: number } | null = null;
 const TTL_MS = 5 * 60 * 1000;
 
-export function invalidateSupportSettingsCache() {
-  cached = null;
-}
+export { invalidateSupportSettingsCache } from '@/lib/supportApi';
 
 export function useSupportSettings() {
+  const cached = getSupportSettingsCache();
   const [settings, setSettings] = useState<SupportSettings>(cached?.data ?? DEFAULT_SUPPORT_SETTINGS);
   const [loading, setLoading] = useState(!cached);
 
@@ -16,15 +20,16 @@ export function useSupportSettings() {
     let cancelled = false;
 
     async function load() {
-      if (cached && Date.now() - cached.at < TTL_MS) {
-        setSettings(cached.data);
+      const hit = getSupportSettingsCache();
+      if (hit && Date.now() - hit.at < TTL_MS) {
+        setSettings(hit.data);
         setLoading(false);
         return;
       }
       try {
         const data = await supportApi.settings();
         if (cancelled) return;
-        cached = { data, at: Date.now() };
+        setSupportSettingsCache(data);
         setSettings(data);
       } catch {
         if (!cancelled) setSettings(DEFAULT_SUPPORT_SETTINGS);

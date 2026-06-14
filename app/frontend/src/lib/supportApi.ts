@@ -27,6 +27,21 @@ export const DEFAULT_SUPPORT_SETTINGS: SupportSettings = {
   contact_email: SUPPORT_REQUISITES.contactEmail,
 };
 
+type SettingsCache = { data: SupportSettings; at: number } | null;
+let settingsCache: SettingsCache = null;
+
+export function getSupportSettingsCache(): SettingsCache {
+  return settingsCache;
+}
+
+export function setSupportSettingsCache(data: SupportSettings): void {
+  settingsCache = { data, at: Date.now() };
+}
+
+export function invalidateSupportSettingsCache(): void {
+  settingsCache = null;
+}
+
 function getAdminToken(): string {
   try {
     return localStorage.getItem('_sp924_token') || localStorage.getItem('token') || '';
