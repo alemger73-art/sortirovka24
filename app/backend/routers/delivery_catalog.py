@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.admin_guard import require_panel_admin
 from core.database import get_db
 from models.food_categories import Food_categories
 from models.food_items import Food_items
@@ -219,7 +220,11 @@ class ApiProductUpdate(BaseModel):
 
 
 @router.post("/categories", response_model=Dict[str, Any], status_code=201)
-async def api_create_category(body: ApiCategoryCreate, db: AsyncSession = Depends(get_db)):
+async def api_create_category(
+    body: ApiCategoryCreate,
+    db: AsyncSession = Depends(get_db),
+    _admin: dict = Depends(require_panel_admin),
+):
     svc = Food_categoriesService(db)
     slug = (body.slug or "").strip() or slugify(body.name)
     data = {
@@ -238,7 +243,12 @@ async def api_create_category(body: ApiCategoryCreate, db: AsyncSession = Depend
 
 
 @router.put("/categories/{category_id}", response_model=Dict[str, Any])
-async def api_update_category(category_id: int, body: ApiCategoryUpdate, db: AsyncSession = Depends(get_db)):
+async def api_update_category(
+    category_id: int,
+    body: ApiCategoryUpdate,
+    db: AsyncSession = Depends(get_db),
+    _admin: dict = Depends(require_panel_admin),
+):
     svc = Food_categoriesService(db)
     existing = await svc.get_by_id(category_id)
     if not existing:
@@ -263,7 +273,11 @@ async def api_update_category(category_id: int, body: ApiCategoryUpdate, db: Asy
 
 
 @router.delete("/categories/{category_id}", status_code=204)
-async def api_delete_category(category_id: int, db: AsyncSession = Depends(get_db)):
+async def api_delete_category(
+    category_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: dict = Depends(require_panel_admin),
+):
     cnt = await db.execute(
         select(func.count(Food_items.id)).where(Food_items.category_id == category_id)
     )
@@ -277,7 +291,11 @@ async def api_delete_category(category_id: int, db: AsyncSession = Depends(get_d
 
 
 @router.post("/products", response_model=Dict[str, Any], status_code=201)
-async def api_create_product(body: ApiProductCreate, db: AsyncSession = Depends(get_db)):
+async def api_create_product(
+    body: ApiProductCreate,
+    db: AsyncSession = Depends(get_db),
+    _admin: dict = Depends(require_panel_admin),
+):
     cat_svc = Food_categoriesService(db)
     if not await cat_svc.get_by_id(body.category_id):
         raise HTTPException(status_code=400, detail="Invalid category_id")
@@ -305,7 +323,12 @@ async def api_create_product(body: ApiProductCreate, db: AsyncSession = Depends(
 
 
 @router.put("/products/{product_id}", response_model=Dict[str, Any])
-async def api_update_product(product_id: int, body: ApiProductUpdate, db: AsyncSession = Depends(get_db)):
+async def api_update_product(
+    product_id: int,
+    body: ApiProductUpdate,
+    db: AsyncSession = Depends(get_db),
+    _admin: dict = Depends(require_panel_admin),
+):
     svc = Food_itemsService(db)
     existing = await svc.get_by_id(product_id)
     if not existing:
@@ -340,7 +363,11 @@ async def api_update_product(product_id: int, body: ApiProductUpdate, db: AsyncS
 
 
 @router.delete("/products/{product_id}", status_code=204)
-async def api_delete_product(product_id: int, db: AsyncSession = Depends(get_db)):
+async def api_delete_product(
+    product_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: dict = Depends(require_panel_admin),
+):
     svc = Food_itemsService(db)
     ok = await svc.delete(product_id)
     if not ok:

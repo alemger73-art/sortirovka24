@@ -54,9 +54,11 @@ def _require_admin(request: Request) -> None:
         raise HTTPException(status_code=401, detail="Admin authentication required")
     token = auth[7:].strip()
     try:
-        decode_access_token(token)
+        payload = decode_access_token(token)
     except AccessTokenError as e:
-        raise HTTPException(status_code=401, detail=str(e))
+        raise HTTPException(status_code=401, detail=str(e)) from e
+    if payload.get("role") != "admin" or not payload.get("username"):
+        raise HTTPException(status_code=403, detail="Admin access required")
 
 
 # ─── Schemas ───────────────────────────────────────────────────────

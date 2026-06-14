@@ -1,11 +1,20 @@
-from fastapi import APIRouter
+import os
+
+from fastapi import APIRouter, HTTPException
 from core.database import db_manager
 from sqlalchemy import text
 
 router = APIRouter(prefix="/api/v1/debug", tags=["debug"])
 
+
+def _debug_allowed() -> bool:
+    return os.getenv("ENVIRONMENT", "production").strip().lower() == "dev"
+
+
 @router.get("/schema/{table_name}")
 async def get_table_schema(table_name: str):
+    if not _debug_allowed():
+        raise HTTPException(status_code=404, detail="Not found")
     await db_manager.ensure_initialized()
     async with db_manager.engine.connect() as conn:
         result = await conn.execute(
@@ -17,6 +26,8 @@ async def get_table_schema(table_name: str):
 
 @router.get("/tables")
 async def list_tables():
+    if not _debug_allowed():
+        raise HTTPException(status_code=404, detail="Not found")
     await db_manager.ensure_initialized()
     async with db_manager.engine.connect() as conn:
         result = await conn.execute(

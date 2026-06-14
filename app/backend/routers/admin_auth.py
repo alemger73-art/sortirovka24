@@ -382,9 +382,15 @@ class CreateAdminResponse(BaseModel):
 
 @router.post("/create-admin", response_model=CreateAdminResponse)
 async def create_or_update_admin(
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
     """Create or update admin credentials from environment variables."""
+    env = os.getenv("ENVIRONMENT", "production").strip().lower()
+    setup_secret = os.getenv("ADMIN_SETUP_SECRET", "").strip()
+    header_secret = request.headers.get("x-admin-setup-secret", "").strip()
+    if env != "dev" and (not setup_secret or header_secret != setup_secret):
+        raise HTTPException(status_code=404, detail="Not found")
     admin_email = os.getenv("ADMIN_EMAIL", "").strip()
     admin_password = os.getenv("ADMIN_PASSWORD", "")
 
