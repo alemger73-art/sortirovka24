@@ -181,7 +181,7 @@ window.addEventListener('unhandledrejection', (event) => {
 // ─── Render App ──────────────────────────────────────────────────
 const rootElement = document.getElementById('root');
 if (rootElement) {
-  initNativeShell().finally(() => {
-    createRoot(rootElement).render(<App />);
-  });
+  createRoot(rootElement).render(<App />);
+  // Native shell must not block first paint (splash / push can hang or crash without Firebase).
+  initNativeShell();
 }

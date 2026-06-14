@@ -27,7 +27,6 @@ const mobileEnv = loadMobileEnv();
 const liveServerUrl = (
   process.env.CAPACITOR_SERVER_URL ||
   mobileEnv.CAPACITOR_SERVER_URL ||
-  mobileEnv.VITE_API_BASE_URL ||
   ''
 ).replace(/\/+$/, '');
 
@@ -40,6 +39,10 @@ const config: CapacitorConfig = {
         url: liveServerUrl,
         androidScheme: 'https',
         cleartext: false,
+        allowNavigation: [
+          'sortirovka24-production-8788.up.railway.app',
+          '*.up.railway.app',
+        ],
       }
     : {
         androidScheme: 'https',

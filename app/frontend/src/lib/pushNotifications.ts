@@ -22,6 +22,11 @@ async function registerToken(token: string) {
 export async function initPushNotifications(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
 
+  // Without Firebase (google-services.json), PushNotifications.register() crashes Android natively.
+  if (import.meta.env.VITE_ENABLE_NATIVE_PUSH !== 'true') {
+    return;
+  }
+
   try {
     const { PushNotifications } = await import('@capacitor/push-notifications');
 
