@@ -18,6 +18,7 @@ from services.modifier_options import Modifier_optionsService
 logger = logging.getLogger(__name__)
 
 DEFAULT_SERVICE_FEE_RATE = 0.10
+VALID_PAYMENT_METHODS = frozenset({"cash", "kaspi_qr", "halyk_qr"})
 
 
 def _normalize_phone(phone: str) -> str:
@@ -263,7 +264,14 @@ async def validate_food_order(
         )
         raise HTTPException(status_code=400, detail="Сумма заказа не совпадает с каталогом")
 
+    payment_method = (data.get("payment_method") or "cash").strip()
+    if payment_method not in VALID_PAYMENT_METHODS:
+        raise HTTPException(status_code=400, detail="Некорректный способ оплаты")
+
     sanitized = dict(data)
+    sanitized["payment_method"] = payment_method
+    if not sanitized.get("payment_status"):
+        sanitized["payment_status"] = "pending" if payment_method == "cash" else "awaiting_qr_payment"
     sanitized["order_items"] = json.dumps(validated_items, ensure_ascii=False)
     sanitized["total_amount"] = expected_total
     return sanitized, validated_items, expected_total

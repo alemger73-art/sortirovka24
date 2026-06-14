@@ -183,4 +183,9 @@ export function invalidateEntityCache(entity: string): void {
  */
 export function invalidateAllCaches(): void {
   appCache.clear();
+  try {
+    localStorage.setItem('food_menu_version', String(Date.now()));
+  } catch {
+    /* ignore */
+  }
 }

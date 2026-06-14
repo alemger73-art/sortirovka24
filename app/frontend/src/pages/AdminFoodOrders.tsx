@@ -1,9 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { client, withRetry } from '@/lib/api';
 import { invalidateAllCaches } from '@/lib/cache';
+import { fetchFoodRestaurantsList } from '@/lib/foodAdminApi';
+import { findDamAlemRestaurantId } from '@/lib/damAlem';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Phone, MapPin, Truck, Store, ChevronDown, ChevronUp, MessageSquare, RefreshCw } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import {
+  Clock, Phone, MapPin, Truck, Store, ChevronDown, ChevronUp,
+  MessageSquare, RefreshCw, Search, TrendingUp,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 interface FoodOrder {
@@ -31,34 +37,60 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; next?: strin
   cancelled: { label: 'Отменён', color: 'bg-red-100 text-red-800' },
 };
 
-export default function AdminFoodOrders() {
+const PAYMENT_LABELS: Record<string, string> = {
+  cash: 'Наличные',
+  kaspi_qr: 'Kaspi QR',
+  halyk_qr: 'Halyk QR',
+};
+
+interface AdminFoodOrdersProps {
+  damAlemMode?: boolean;
+}
+
+export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrdersProps) {
   const [orders, setOrders] = useState<FoodOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [filter, setFilter] = useState<string>('all');
+  const [search, setSearch] = useState('');
+  const [damAlemRestaurantId, setDamAlemRestaurantId] = useState<number | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(true);
 
-  useEffect(() => { loadOrders(); }, []);
+  useEffect(() => {
+    if (!damAlemMode) return;
+    fetchFoodRestaurantsList().then(rows => {
+      setDamAlemRestaurantId(findDamAlemRestaurantId(rows));
+    }).catch(() => {});
+  }, [damAlemMode]);
 
-  async function loadOrders() {
-    setLoading(true);
+  const loadOrders = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
-      const res = await withRetry(() => client.entities.food_orders.query({ sort: '-created_at', limit: 100 }));
+      const res = await withRetry(() => client.entities.food_orders.query({ sort: '-created_at', limit: 200 }));
       setOrders(res?.data?.items || []);
     } catch (e) {
       console.error(e);
-      toast.error('Ошибка загрузки заказов');
+      if (!silent) toast.error('Ошибка загрузки заказов');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => { loadOrders(); }, [loadOrders]);
+
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const id = window.setInterval(() => loadOrders(true), 30000);
+    return () => window.clearInterval(id);
+  }, [autoRefresh, loadOrders]);
 
   async function updateStatus(orderId: number, newStatus: string) {
     try {
       await withRetry(() => client.entities.food_orders.update({ id: String(orderId), data: { status: newStatus } }));
       toast.success('Статус обновлён');
       invalidateAllCaches();
-      loadOrders();
-    } catch (e) {
+      loadOrders(true);
+    } catch {
       toast.error('Ошибка обновления');
     }
   }
@@ -73,32 +105,103 @@ export default function AdminFoodOrders() {
 
   function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleString('ru-RU', {
-      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
     });
   }
 
-  const filteredOrders = filter === 'all' ? orders : orders.filter(o => o.status === filter);
-  const newCount = orders.filter(o => o.status === 'new').length;
-  const inProgressCount = orders.filter(o => o.status === 'in_progress').length;
+  function isToday(dateStr: string) {
+    const d = new Date(dateStr);
+    const now = new Date();
+    return d.getDate() === now.getDate()
+      && d.getMonth() === now.getMonth()
+      && d.getFullYear() === now.getFullYear();
+  }
+
+  const scopedOrders = useMemo(() => {
+    if (!damAlemMode || damAlemRestaurantId == null) return orders;
+    return orders.filter(o =>
+      o.restaurant_id === damAlemRestaurantId
+      || (o.restaurant_name || '').toLowerCase().includes('dam alem')
+      || (o.restaurant_name || '').toLowerCase().includes('dam alem'.replace(' ', ''))
+    );
+  }, [orders, damAlemMode, damAlemRestaurantId]);
+
+  const filteredOrders = useMemo(() => {
+    let list = filter === 'all' ? scopedOrders : scopedOrders.filter(o => o.status === filter);
+    const q = search.trim().toLowerCase();
+    if (q) {
+      list = list.filter(o =>
+        String(o.id).includes(q)
+        || (o.customer_name || '').toLowerCase().includes(q)
+        || (o.customer_phone || '').replace(/\D/g, '').includes(q.replace(/\D/g, ''))
+        || (o.delivery_address || '').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [scopedOrders, filter, search]);
+
+  const newCount = scopedOrders.filter(o => o.status === 'new').length;
+  const inProgressCount = scopedOrders.filter(o => o.status === 'in_progress').length;
+  const todayOrders = scopedOrders.filter(o => isToday(o.created_at));
+  const todayRevenue = todayOrders.reduce((s, o) => s + (o.total_amount || 0), 0);
 
   if (loading) {
-    return <div className="text-center py-8"><div className="inline-block w-8 h-8 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin" /></div>;
+    return (
+      <div className="text-center py-8">
+        <div className="inline-block w-8 h-8 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin" />
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h3 className="font-bold text-lg">Заказы еды</h3>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <h3 className="font-bold text-lg">{damAlemMode ? 'Заказы DAM ALEM' : 'Заказы еды'}</h3>
           {newCount > 0 && <Badge className="bg-yellow-100 text-yellow-800 border-0">{newCount} новых</Badge>}
           {inProgressCount > 0 && <Badge className="bg-blue-100 text-blue-800 border-0">{inProgressCount} в работе</Badge>}
         </div>
-        <Button size="sm" variant="outline" onClick={loadOrders}>
-          <RefreshCw className="w-4 h-4 mr-1" /> Обновить
-        </Button>
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={autoRefresh}
+              onChange={e => setAutoRefresh(e.target.checked)}
+              className="rounded"
+            />
+            Авто 30с
+          </label>
+          <Button size="sm" variant="outline" onClick={() => loadOrders()}>
+            <RefreshCw className="w-4 h-4 mr-1" /> Обновить
+          </Button>
+        </div>
       </div>
 
-      {/* Filters */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border bg-white p-3">
+          <p className="text-xs text-gray-500">Сегодня заказов</p>
+          <p className="text-xl font-bold">{todayOrders.length}</p>
+        </div>
+        <div className="rounded-xl border bg-white p-3">
+          <p className="text-xs text-gray-500 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Выручка сегодня</p>
+          <p className="text-xl font-bold text-orange-600">{todayRevenue.toLocaleString('ru-RU')} ₸</p>
+        </div>
+        <div className="rounded-xl border bg-white p-3 col-span-2 sm:col-span-1">
+          <p className="text-xs text-gray-500">Всего в списке</p>
+          <p className="text-xl font-bold">{scopedOrders.length}</p>
+        </div>
+      </div>
+
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Поиск: №, имя, телефон, адрес…"
+          className="pl-9 h-10 rounded-xl"
+        />
+      </div>
+
       <div className="flex gap-2 flex-wrap">
         {[
           { id: 'all', label: 'Все' },
@@ -129,6 +232,7 @@ export default function AdminFoodOrders() {
             const st = STATUS_CONFIG[order.status] || STATUS_CONFIG.new;
             const isExpanded = expandedId === order.id;
             const orderItems = parseItems(order.order_items);
+            const payLabel = PAYMENT_LABELS[order.payment_method || ''] || order.payment_method;
 
             return (
               <div key={order.id} className="bg-white rounded-xl border overflow-hidden">
@@ -144,8 +248,11 @@ export default function AdminFoodOrders() {
                         <Badge className="bg-gray-100 text-gray-600 border-0 text-[10px]">
                           {order.delivery_method === 'delivery' ? '🚗 Доставка' : '🏪 Самовывоз'}
                         </Badge>
+                        {payLabel && (
+                          <Badge className="bg-emerald-50 text-emerald-700 border-0 text-[10px]">{payLabel}</Badge>
+                        )}
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                      <div className="flex items-center gap-3 text-xs text-gray-500 mt-1 flex-wrap">
                         {order.restaurant_name && <span className="font-semibold">{order.restaurant_name}</span>}
                         <span>{order.customer_name}</span>
                         <span className="font-semibold text-gray-700">{order.total_amount.toLocaleString()} ₸</span>
@@ -158,7 +265,6 @@ export default function AdminFoodOrders() {
 
                 {isExpanded && (
                   <div className="px-4 pb-4 border-t border-gray-100 pt-3 space-y-3">
-                    {/* Contact info */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                       <div className="flex items-center gap-2 text-gray-600">
                         <Phone className="w-4 h-4 text-gray-400" />
@@ -172,7 +278,7 @@ export default function AdminFoodOrders() {
                       )}
                       {order.payment_method && (
                         <div className="text-gray-600">
-                          Оплата: <span className="font-semibold">{order.payment_method}</span>
+                          Оплата: <span className="font-semibold">{payLabel}</span>
                           {order.payment_status ? ` (${order.payment_status})` : ''}
                         </div>
                       )}
@@ -185,7 +291,6 @@ export default function AdminFoodOrders() {
                       </div>
                     )}
 
-                    {/* Order items */}
                     <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
                       {orderItems.map((oi: any, idx: number) => (
                         <div key={idx} className="flex justify-between text-sm">
@@ -200,13 +305,8 @@ export default function AdminFoodOrders() {
                           </span>
                         </div>
                       ))}
-                      <div className="border-t border-gray-200 pt-1.5 mt-1.5 flex justify-between font-bold text-sm">
-                        <span>Итого</span>
-                        <span>{order.total_amount.toLocaleString()} ₸</span>
-                      </div>
                     </div>
 
-                    {/* Actions */}
                     <div className="flex gap-2 flex-wrap">
                       {st.next && (
                         <Button size="sm" onClick={() => updateStatus(order.id, st.next!)} className="bg-orange-500 hover:bg-orange-600">
@@ -214,18 +314,15 @@ export default function AdminFoodOrders() {
                         </Button>
                       )}
                       {order.status !== 'cancelled' && order.status !== 'done' && (
-                        <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => updateStatus(order.id, 'cancelled')}>
+                        <Button size="sm" variant="outline" onClick={() => updateStatus(order.id, 'cancelled')} className="text-red-600 border-red-200">
                           Отменить
                         </Button>
                       )}
-                      <a
-                        href={`https://wa.me/${order.customer_phone.replace(/[^0-9]/g, '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5" /> WhatsApp
-                      </a>
+                      {order.restaurant_phone && (
+                        <a href={`tel:${order.restaurant_phone}`} className="inline-flex items-center gap-1 text-sm text-blue-600 px-3 py-1.5">
+                          <Phone className="w-3.5 h-3.5" /> Позвонить
+                        </a>
+                      )}
                     </div>
                   </div>
                 )}

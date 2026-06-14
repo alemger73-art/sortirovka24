@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Layout from "@/components/Layout";
 import { Link, useNavigate } from "react-router-dom";
-import { Camera, Coins, Save, UserCircle2 } from "lucide-react";
+import { Camera, Coins, Save, UserCircle2, UtensilsCrossed, Truck, Store } from "lucide-react";
 import { accountApi, getAccountToken } from "@/lib/accountApi";
 import { cacheAccountProfile, logoutLocalUser } from "@/lib/localAuth";
 import { uploadFile } from "@/lib/storage";
@@ -11,6 +11,33 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import TaxiUnavailable from "@/components/taxi/TaxiUnavailable";
 
 type TabId = "profile" | "bonuses" | "orders" | "taxi" | "complaints" | "announcements" | "settings";
+
+const FOOD_STATUS: Record<string, { label: string; color: string }> = {
+  new: { label: "Новый", color: "bg-yellow-500/20 text-yellow-200" },
+  in_progress: { label: "Готовится", color: "bg-blue-500/20 text-blue-200" },
+  done: { label: "Доставлен", color: "bg-green-500/20 text-green-200" },
+  cancelled: { label: "Отменён", color: "bg-red-500/20 text-red-200" },
+};
+
+const PAYMENT_LABELS: Record<string, string> = {
+  cash: "Наличные",
+  kaspi_qr: "Kaspi QR",
+  halyk_qr: "Halyk QR",
+};
+
+function formatOrderDate(raw?: string | null) {
+  if (!raw) return "";
+  try {
+    return new Date(raw).toLocaleString("ru-RU", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return String(raw);
+  }
+}
 
 function DarkCard({ children }: { children: React.ReactNode }) {
   return (
@@ -323,13 +350,47 @@ export default function Cabinet() {
                 <DarkCard>
                   <h2 className="mb-4 text-xl font-bold">История заказов</h2>
                   <div className="space-y-2">
-                    {(rows.orders || []).map((o: any) => (
-                      <div key={o.id} className="rounded-xl border border-[#26324a] bg-[#0f172a] p-3">
-                        <p className="text-sm font-semibold text-white">{o.type || "order"}</p>
-                        <p className="text-xs text-slate-400">{o.details || ""}</p>
-                        <p className="text-xs text-yellow-300">{o.amount || 0} KZT</p>
-                      </div>
-                    ))}
+                    {(rows.orders || []).map((o: any) => {
+                      const isFood = o.type === "food";
+                      const st = isFood ? FOOD_STATUS[o.status] || FOOD_STATUS.new : null;
+                      const payLabel = PAYMENT_LABELS[o.payment_method] || o.payment_method;
+                      return (
+                        <div key={o.id} className="rounded-xl border border-[#26324a] bg-[#0f172a] p-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              {isFood ? (
+                                <UtensilsCrossed className="h-4 w-4 shrink-0 text-orange-400" />
+                              ) : null}
+                              <p className="text-sm font-semibold text-white truncate">
+                                {isFood
+                                  ? (o.restaurant_name || "DAM ALEM") + (o.order_number ? ` · №${o.order_number}` : "")
+                                  : (o.type || "order")}
+                              </p>
+                            </div>
+                            {st ? (
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 font-medium ${st.color}`}>
+                                {st.label}
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="text-xs text-slate-400 mt-1">{o.details || ""}</p>
+                          {isFood && (
+                            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-400">
+                              {o.delivery_method === "delivery" ? (
+                                <span className="inline-flex items-center gap-1"><Truck className="h-3 w-3" /> Доставка</span>
+                              ) : o.delivery_method === "pickup" ? (
+                                <span className="inline-flex items-center gap-1"><Store className="h-3 w-3" /> Самовывоз</span>
+                              ) : null}
+                              {payLabel ? <span>· {payLabel}</span> : null}
+                              {o.created_at ? <span>· {formatOrderDate(o.created_at)}</span> : null}
+                            </div>
+                          )}
+                          <p className="text-sm font-bold text-yellow-300 mt-2">
+                            {Number(o.amount || 0).toLocaleString("ru-RU")} ₸
+                          </p>
+                        </div>
+                      );
+                    })}
                     {(rows.orders || []).length === 0 ? <p className="text-sm text-slate-400">Пока нет заказов.</p> : null}
                   </div>
                 </DarkCard>

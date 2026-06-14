@@ -301,19 +301,48 @@ async def notify_food_order(data: dict) -> bool:
     if data.get("comment"):
         comment_line = f"\n<b>Комментарий:</b> {_escape_html(data.get('comment'))}"
 
+    payment_map = {"cash": "Наличные", "kaspi_qr": "Kaspi QR", "halyk_qr": "Halyk QR"}
+    payment_label = payment_map.get(data.get("payment_method", ""), data.get("payment_method") or "—")
+    payment_line = f"\n<b>Оплата:</b> {_escape_html(payment_label)}"
+
     text = (
         f"🍽 <b>Новый заказ — {restaurant}</b>\n\n"
         f"<b>№ заказа:</b> {data.get('order_id', '—')}\n"
         f"<b>Клиент:</b> {_escape_html(data.get('customer_name', '—'))}\n"
         f"<b>Телефон:</b> {_escape_html(data.get('customer_phone', '—'))}\n"
         f"<b>Способ:</b> {method_label}"
-        f"{address_line}\n\n"
+        f"{address_line}"
+        f"{payment_line}\n\n"
         f"<b>Заказ:</b>\n{items_text}\n\n"
         f"<b>Итого:</b> {data.get('total_amount', 0)} ₸"
         f"{comment_line}\n"
         f"<b>Дата:</b> {_format_date()}"
     )
     # FOOD category uses TELEGRAM_BOT_TOKEN_FOOD / TELEGRAM_CHAT_ID_FOOD or defaults
+    return await send_telegram_message(text, category=CATEGORY_FOOD)
+
+
+async def notify_food_order_status(data: dict) -> bool:
+    """Notify Telegram when a food order status changes."""
+    status_map = {
+        "new": "Новый",
+        "in_progress": "Готовится",
+        "done": "Доставлен",
+        "cancelled": "Отменён",
+    }
+    old_label = status_map.get(data.get("old_status", ""), data.get("old_status", "—"))
+    new_label = status_map.get(data.get("new_status", ""), data.get("new_status", "—"))
+    restaurant = _escape_html(data.get("restaurant_name") or "DAM ALEM")
+    text = (
+        f"📦 <b>Статус заказа — {restaurant}</b>\n\n"
+        f"<b>№:</b> {data.get('order_id', '—')}\n"
+        f"<b>Клиент:</b> {_escape_html(data.get('customer_name', '—'))}\n"
+        f"<b>Телефон:</b> {_escape_html(data.get('customer_phone', '—'))}\n"
+        f"<b>Было:</b> {_escape_html(old_label)}\n"
+        f"<b>Стало:</b> {_escape_html(new_label)}\n"
+        f"<b>Сумма:</b> {data.get('total_amount', 0)} ₸\n"
+        f"<b>Дата:</b> {_format_date()}"
+    )
     return await send_telegram_message(text, category=CATEGORY_FOOD)
 
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { client, withRetry } from '@/lib/api';
@@ -8,8 +8,8 @@ import { resolveImageSrc } from '@/lib/storage';
 import {
   Plus, Minus, X, Utensils, Truck, Store,
   ChevronRight, MapPin, MessageSquare,
-  ArrowLeft, Check,
-  AlertCircle, Search,
+  ArrowLeft, Check, CheckCircle2,
+  AlertCircle, Search, Smartphone, Banknote,
 } from 'lucide-react';
 import DamAlemHero from '@/components/damalem/DamAlemHero';
 import DamAlemPromoBanners, { type FoodBanner } from '@/components/damalem/DamAlemPromoBanners';
@@ -21,6 +21,12 @@ import { toast } from 'sonner';
 import { getAccountPrefill, getCurrentUser, pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
 import { fetchFoodRestaurantsList } from '@/lib/foodAdminApi';
 import { findDamAlemRestaurantId } from '@/lib/damAlem';
+import {
+  saveFoodCart,
+  loadFoodCart,
+  clearFoodCartStorage,
+  FOOD_MENU_VERSION_KEY,
+} from '@/lib/foodCartStorage';
 
 /* ─── CDN images ─── */
 const FALLBACK_FOOD_1 = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/2034a1d7-1c57-40c0-8145-23816557ba5c.png';
@@ -71,11 +77,29 @@ interface BrandProfile {
   id: number;
   name: string;
   photo?: string;
+  description?: string;
   rating?: number;
   delivery_time?: string;
   min_order?: number;
   whatsapp_phone?: string;
 }
+
+interface OrderSuccessInfo {
+  id: number;
+  total: number;
+  paymentLabel: string;
+  paymentMethod: 'cash' | 'kaspi_qr' | 'halyk_qr';
+  name: string;
+  phone: string;
+  address: string;
+  deliveryMethod: 'delivery' | 'pickup';
+}
+
+const PAYMENT_LABELS: Record<'cash' | 'kaspi_qr' | 'halyk_qr', string> = {
+  cash: 'Наличные',
+  kaspi_qr: 'Kaspi QR',
+  halyk_qr: 'Halyk QR',
+};
 
 interface CartItemSelection { [groupId: number]: number[]; }
 interface CartItem { item: FoodItem; quantity: number; selections: CartItemSelection; }
@@ -179,6 +203,8 @@ export default function Food() {
   /** 'all' — весь каталог; иначе slug категории (как в /api/products?category=) */
   const [selectedCategorySlug, setSelectedCategorySlug] = useState<string>('all');
   const menuSectionRef = useRef<HTMLElement>(null);
+  const cartHydratedRef = useRef(false);
+  const menuVersionRef = useRef<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -197,8 +223,65 @@ export default function Food() {
   const [noDoorDelivery, setNoDoorDelivery] = useState(false);
   const [comment, setComment] = useState('');
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
+  const [payment, setPayment] = useState<'cash' | 'kaspi_qr' | 'halyk_qr'>('cash');
+  const [orderSuccess, setOrderSuccess] = useState<OrderSuccessInfo | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => { loadData(); }, []);
+
+  useEffect(() => {
+    try {
+      menuVersionRef.current = localStorage.getItem(FOOD_MENU_VERSION_KEY);
+    } catch {
+      /* ignore */
+    }
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === FOOD_MENU_VERSION_KEY) loadData();
+    };
+    const onFocus = () => {
+      try {
+        const v = localStorage.getItem(FOOD_MENU_VERSION_KEY);
+        if (v && v !== menuVersionRef.current) {
+          menuVersionRef.current = v;
+          loadData();
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!cartHydratedRef.current || items.length === 0) return;
+    saveFoodCart(cart);
+  }, [cart, items.length]);
+
+  useEffect(() => {
+    if (items.length === 0) return;
+    if (!cartHydratedRef.current) {
+      const restored = loadFoodCart(items);
+      if (restored.length > 0) setCart(restored);
+      cartHydratedRef.current = true;
+      return;
+    }
+    setCart(prev => {
+      const byId = new Map(items.map(i => [i.id, i]));
+      const next = prev
+        .map(ci => {
+          const fresh = byId.get(ci.item.id);
+          if (!fresh || fresh.is_active === false || fresh.available === false) return null;
+          return { ...ci, item: fresh };
+        })
+        .filter(Boolean) as CartItem[];
+      return next.length === prev.length ? prev : next;
+    });
+  }, [items]);
 
   useEffect(() => {
     const prefill = getAccountPrefill();
@@ -616,7 +699,13 @@ export default function Food() {
 
   function quickRemove(itemId: number) {
     setCart(prev => {
-      const idx = prev.findIndex(ci => ci.item.id === itemId);
+      let idx = -1;
+      for (let i = prev.length - 1; i >= 0; i--) {
+        if (prev[i].item.id === itemId) {
+          idx = i;
+          break;
+        }
+      }
       if (idx === -1) return prev;
       const updated = [...prev];
       if (updated[idx].quantity > 1) {
@@ -674,6 +763,7 @@ export default function Food() {
 
   async function submitOrder() {
     if (!requireAuthDialog(navigate)) return;
+    if (submitting) return;
     if (!customerPhone.trim()) { toast.error('Укажите телефон'); return; }
     if (cartTotal < minOrder) { toast.error(`${t('food.minOrder')}: ${minOrder} ₸`); return; }
 
@@ -703,10 +793,12 @@ export default function Food() {
       };
     });
     const total = checkoutGrandTotal;
+    const paymentLabel = PAYMENT_LABELS[payment];
+    setSubmitting(true);
     try {
       const u = getCurrentUser();
       const uidNum = u?.id && /^\d+$/.test(u.id) ? parseInt(u.id, 10) : undefined;
-      await withRetry(() =>
+      const created = await withRetry(() =>
         client.entities.food_orders.create({
           data: {
             ...(uidNum != null ? { user_id: uidNum } : {}),
@@ -725,38 +817,60 @@ export default function Food() {
             delivery_address: fullAddress,
             comment,
             delivery_method: deliveryMethod,
+            payment_method: payment,
+            payment_status: payment === 'cash' ? 'pending' : 'awaiting_qr_payment',
             status: 'new',
             created_at: new Date().toISOString(),
           },
         })
       );
+      const orderId = Number(created?.data?.id ?? created?.id ?? 0);
       pushCabinetItem('foodOrders', {
-        title: `Заказ на ${total.toLocaleString('ru-RU')} ₸`,
+        title: `Заказ #${orderId || '—'} · ${total.toLocaleString('ru-RU')} ₸`,
         subtitle: deliveryMethod === 'delivery' ? fullAddress : 'Самовывоз',
         status: 'Новый',
       });
-      const whatsappNumber = settings.whatsapp_number.replace(/[^0-9]/g, '');
-      let msg = `🍽 *DAM ALEM — новый заказ*\n\n👤 ${customerName}\n📞 ${customerPhone}\n`;
-      if (deliveryMethod === 'delivery') {
-        msg += `📍 ${fullAddress}\n🚗 Доставка: ${activeDeliveryPrice} ₸\n`;
-        if (noDoorDelivery) msg += `📦 До подъезда\n`;
-      } else { msg += `🏪 Самовывоз\n`; }
-      if (comment) msg += `💬 ${comment}\n`;
-      msg += `\n*Заказ:*\n`;
-      cart.forEach(ci => {
-        const selNames = getSelectionNames(ci.selections);
-        const modStr = selNames.length > 0 ? ` + ${selNames.join(', ')}` : '';
-        const modTotal = calcSelectionsPrice(ci.selections);
-        msg += `• ${ci.item.name}${modStr} × ${ci.quantity} = ${(ci.item.price + modTotal) * ci.quantity} ₸\n`;
+      clearFoodCartStorage();
+      setCart([]);
+      setCheckoutOpen(false);
+      setCartOpen(false);
+      setOrderSuccess({
+        id: orderId,
+        total,
+        paymentLabel,
+        paymentMethod: payment,
+        name: customerName,
+        phone: customerPhone,
+        address: deliveryMethod === 'delivery' ? fullAddress : 'Самовывоз',
+        deliveryMethod,
       });
-      msg += `\nТовары: ${cartTotal} ₸\nСервисный сбор (${Math.round(serviceFeeRate * 100)}%): ${serviceFeeAmount} ₸\n`;
-      if (deliveryMethod === 'delivery') msg += `Доставка: ${activeDeliveryPrice} ₸\n`;
-      msg += `\n*Итого: ${total} ₸*`;
-      window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msg)}`, '_blank');
-      toast.success('Заказ оформлен! Откроется WhatsApp для подтверждения.');
-      setCart([]); setCheckoutOpen(false); setCartOpen(false);
-      setCustomerName(''); setCustomerPhone(''); setStreet(''); setHouse(''); setApartment(''); setComment(''); setNoDoorDelivery(false);
-    } catch (e) { console.error('Error creating order:', e); toast.error('Ошибка при оформлении заказа'); }
+      setCustomerName('');
+      setCustomerPhone('');
+      setStreet('');
+      setHouse('');
+      setApartment('');
+      setComment('');
+      setNoDoorDelivery(false);
+      setPayment('cash');
+    } catch (e) {
+      console.error('Error creating order:', e);
+      toast.error('Ошибка при оформлении заказа');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function openWhatsAppForOrder(info: OrderSuccessInfo) {
+    const whatsappNumber = settings.whatsapp_number.replace(/[^0-9]/g, '');
+    let msg = `🍽 *DAM ALEM — заказ #${info.id || '—'}*\n\n👤 ${info.name}\n📞 ${info.phone}\n`;
+    if (info.deliveryMethod === 'delivery') {
+      msg += `📍 ${info.address}\n`;
+    } else {
+      msg += `🏪 Самовывоз\n`;
+    }
+    msg += `💳 Оплата: ${info.paymentLabel}\n`;
+    msg += `\n*Итого: ${info.total.toLocaleString('ru-RU')} ₸*`;
+    window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msg)}`, '_blank');
   }
 
   function formatPrice(price: number) { return price.toLocaleString('ru-RU') + ' ₸'; }
@@ -894,9 +1008,78 @@ export default function Food() {
     );
   }
 
+  const brandDescription = (brandProfile?.description || settings.hero_banner_subtitle || '').trim();
+
   return (
     <Layout>
       <div className="min-h-screen bg-[#F5F5F5] text-[#111111]">
+        {orderSuccess && (
+          <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center">
+            <div className="w-full max-w-lg animate-in slide-in-from-bottom rounded-t-3xl bg-white p-6 sm:rounded-3xl">
+              <div className="flex flex-col items-center text-center">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-600 text-white shadow-lg">
+                  <CheckCircle2 className="h-8 w-8" />
+                </div>
+                <h2 className="text-2xl font-extrabold text-gray-900">Заказ принят!</h2>
+                {orderSuccess.id > 0 && (
+                  <p className="mt-1 text-sm font-semibold text-[#FF3B30]">№ {orderSuccess.id}</p>
+                )}
+                <p className="mt-2 max-w-sm text-sm text-gray-500">
+                  Мы уже получили заявку. Статус можно отслеживать в личном кабинете.
+                </p>
+              </div>
+              <div className="mt-5 space-y-2 rounded-2xl bg-gray-50 p-4 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Сумма</span>
+                  <span className="font-bold">{formatPrice(orderSuccess.total)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Оплата</span>
+                  <span className="font-semibold">{orderSuccess.paymentLabel}</span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-500 shrink-0">Адрес</span>
+                  <span className="text-right font-medium">{orderSuccess.address}</span>
+                </div>
+              </div>
+              {orderSuccess.paymentMethod !== 'cash' && (
+                <div className="mt-4 rounded-2xl border border-gray-100 p-4 text-center">
+                  <p className="text-sm font-semibold text-gray-800">{orderSuccess.paymentLabel}</p>
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`DAMALEM:${orderSuccess.id};TOTAL:${orderSuccess.total};PAY:${orderSuccess.paymentMethod}`)}`}
+                    alt="QR оплаты"
+                    className="mx-auto mt-3 h-48 w-48 rounded-xl ring-1 ring-gray-100"
+                  />
+                  <p className="mt-2 text-xs text-gray-400">Покажите QR при получении заказа</p>
+                </div>
+              )}
+              <div className="mt-5 space-y-2">
+                <Link
+                  to="/cabinet"
+                  className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#FF3B30] text-sm font-bold text-white"
+                  onClick={() => setOrderSuccess(null)}
+                >
+                  Мои заказы
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => openWhatsAppForOrder(orderSuccess)}
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-green-200 bg-green-50 text-sm font-semibold text-green-700"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Написать в WhatsApp
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrderSuccess(null)}
+                  className="h-10 w-full text-sm font-medium text-gray-500"
+                >
+                  Продолжить покупки
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <DamAlemHero
           title={settings.hero_banner_title || brandProfile?.name || t('food.heroTitle')}
           subtitle={settings.hero_banner_subtitle || t('food.heroSubtitle')}
@@ -924,6 +1107,12 @@ export default function Food() {
               className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-11 pr-4 text-sm font-medium shadow-sm outline-none ring-0 transition placeholder:text-[#AAAAAA] focus:border-[#FF3B30]/40 focus:ring-2 focus:ring-[#FF3B30]/15"
             />
           </div>
+
+          {brandDescription && (
+            <p className="rounded-2xl border border-gray-100 bg-white px-4 py-3 text-sm leading-relaxed text-[#555555] shadow-sm">
+              {brandDescription}
+            </p>
+          )}
 
           <DamAlemPromoBanners banners={foodBanners} />
 
@@ -1505,6 +1694,33 @@ export default function Food() {
                   </div>
                 </div>
 
+                <div className="bg-white rounded-2xl p-4 shadow-sm">
+                  <label className="text-sm font-bold text-gray-800 mb-3 block">Способ оплаты</label>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    {(
+                      [
+                        { id: 'cash' as const, label: 'Наличные', Icon: Banknote },
+                        { id: 'kaspi_qr' as const, label: 'Kaspi QR', Icon: Smartphone },
+                        { id: 'halyk_qr' as const, label: 'Halyk QR', Icon: Smartphone },
+                      ] as const
+                    ).map(({ id, label, Icon }) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setPayment(id)}
+                        className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition ${
+                          payment === id
+                            ? 'border-[#FF3B30] bg-red-50 text-[#FF3B30]'
+                            : 'border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4 shrink-0 opacity-80" />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Order summary */}
                 <div className="bg-white rounded-2xl p-4 shadow-sm">
                   <h4 className="font-bold text-gray-800 text-sm mb-3">{t('food.yourOrder')}</h4>
@@ -1556,12 +1772,14 @@ export default function Food() {
               <div className="p-5 bg-white rounded-b-3xl">
                 <Button
                   onClick={submitOrder}
-                  className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-green-600 text-base font-bold text-white shadow-lg shadow-green-200/50 transition-all hover:bg-green-700 active:scale-[0.98]"
+                  disabled={submitting || cartTotal < minOrder}
+                  className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#FF3B30] text-base font-bold text-white shadow-lg shadow-[#FF3B30]/20 transition-all hover:bg-[#E6352B] active:scale-[0.98] disabled:opacity-60"
                 >
-                  <MessageSquare className="h-5 w-5" />
-                  {t('food.sendOrder')} {t('food.viaWhatsApp')}
+                  {submitting ? 'Отправляем…' : `Оформить заказ — ${formatPrice(checkoutGrandTotal)}`}
                 </Button>
-                <p className="mt-2.5 text-center text-[11px] text-gray-400">{t('food.checkoutWhatsAppHint')}</p>
+                <p className="mt-2.5 text-center text-[11px] text-gray-400">
+                  Заказ сохранится в системе. WhatsApp — по желанию после оформления.
+                </p>
               </div>
             </div>
           </div>

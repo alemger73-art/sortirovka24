@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.food_orders import Food_orders
 from services.bonus_rewards import link_food_order_to_user
-from services.telegram import notify_food_order
+from services.telegram import notify_food_order, notify_food_order_status
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +45,7 @@ class Food_ordersService:
                     "customer_phone": obj.customer_phone,
                     "delivery_address": obj.delivery_address,
                     "delivery_method": obj.delivery_method,
+                    "payment_method": obj.payment_method,
                     "order_items": obj.order_items,
                     "total_amount": obj.total_amount,
                     "comment": obj.comment,
@@ -120,12 +121,26 @@ class Food_ordersService:
             if not obj:
                 logger.warning(f"Food_orders {obj_id} not found for update")
                 return None
+            old_status = obj.status
             for key, value in update_data.items():
                 if hasattr(obj, key):
                     setattr(obj, key, value)
 
             await self.db.commit()
             await self.db.refresh(obj)
+            if "status" in update_data and update_data["status"] != old_status:
+                try:
+                    await notify_food_order_status({
+                        "order_id": obj.id,
+                        "restaurant_name": obj.restaurant_name,
+                        "customer_name": obj.customer_name,
+                        "customer_phone": obj.customer_phone,
+                        "total_amount": obj.total_amount,
+                        "old_status": old_status,
+                        "new_status": obj.status,
+                    })
+                except Exception as tg_err:
+                    logger.warning("[Telegram] Food status notification skipped: %s", tg_err)
             logger.info(f"Updated food_orders {obj_id}")
             return obj
         except Exception as e:

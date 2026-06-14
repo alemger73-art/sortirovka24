@@ -860,7 +860,11 @@ async def cabinet(
             "type": "food",
             "status": f.status,
             "amount": f.total_amount,
-            "details": f"{f.restaurant_name or 'Еда'} — заказ #{f.id}",
+            "details": f"{f.restaurant_name or 'DAM ALEM'} — заказ #{f.id}",
+            "restaurant_name": f.restaurant_name,
+            "delivery_method": f.delivery_method,
+            "payment_method": f.payment_method,
+            "order_number": f.id,
             "created_at": f.created_at,
         }
         for f in food_rows[:100]

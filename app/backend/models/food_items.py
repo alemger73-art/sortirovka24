@@ -21,4 +21,6 @@ class Food_items(Base):
     available = Column(Boolean, nullable=True)
     weight = Column(String, nullable=True)
     sort_order = Column(Integer, nullable=True)
+    frontpad_id = Column(String, nullable=True)
+    photo_locked = Column(Boolean, nullable=True)
     created_at = Column(String, nullable=True)
