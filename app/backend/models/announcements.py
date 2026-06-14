@@ -7,6 +7,7 @@ class Announcements(Base):
     __table_args__ = {"extend_existing": True}
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True, nullable=False)
+    user_id = Column(String(255), nullable=True, index=True)
     ann_type = Column(String, nullable=True)
     title = Column(String, nullable=True)
     description = Column(String, nullable=True)

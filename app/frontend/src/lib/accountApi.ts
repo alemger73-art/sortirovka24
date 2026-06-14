@@ -54,8 +54,14 @@ export const accountApi = {
   updateMe: (body: any) => api<any>("/api/v1/account/me", { method: "PUT", body: JSON.stringify(body) }),
   changePassword: (body: { current_password: string; new_password: string }) =>
     api<{ success: boolean }>("/api/v1/account/me/change-password", { method: "POST", body: JSON.stringify(body) }),
+  setPassword: (body: { new_password: string }) =>
+    api<{ success: boolean }>("/api/v1/account/me/set-password", { method: "POST", body: JSON.stringify(body) }),
   avatarUploadUrl: () => api<{ upload_url: string; image_url?: string }>("/api/v1/account/me/avatar-upload-url", { method: "POST" }),
   cabinet: () => api<any>("/api/v1/account/cabinet"),
+  masterCabinet: () => api<any>("/api/v1/account/master/cabinet"),
+  updateMasterProfile: (body: Record<string, unknown>) =>
+    api<{ success: boolean }>("/api/v1/account/master/profile", { method: "PUT", body: JSON.stringify(body) }),
+  partnerCabinet: () => api<any>("/api/v1/account/partner/cabinet"),
   adminDashboard: () => api<any>("/api/v1/account/admin/dashboard"),
   adminUsers: () => api<any[]>("/api/v1/account/admin/users"),
   adminRegistrations: () => api<any[]>("/api/v1/account/admin/registrations"),
@@ -66,9 +72,7 @@ export const accountApi = {
   adminLogs: () => api<any[]>("/api/v1/account/admin/logs"),
   adminSettings: () => api<any>("/api/v1/account/admin/settings"),
   // Compatibility aliases
-  masterCabinet: () => api<any>("/api/v1/account/cabinet"),
   driverCabinet: () => api<any>("/api/v1/taxi/driver/cabinet"),
-  partnerCabinet: () => api<any>("/api/v1/account/cabinet"),
   adminModeration: async () => ({
     ads: await api<any[]>("/api/v1/account/admin/announcements"),
     complaints: await api<any[]>("/api/v1/account/admin/complaints"),

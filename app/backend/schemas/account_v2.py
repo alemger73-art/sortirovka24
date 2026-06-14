@@ -37,6 +37,7 @@ class UserV2Response(BaseModel):
     avatar: Optional[str] = None
     language: str
     bonus_balance: float
+    has_password: bool = False
     created_at: Optional[str] = None
 
 
@@ -50,6 +51,19 @@ class UserV2UpdateRequest(BaseModel):
 class ChangePasswordV2Request(BaseModel):
     current_password: str = Field(min_length=1, max_length=128)
     new_password: str = Field(min_length=8, max_length=128)
+
+
+class SetPasswordV2Request(BaseModel):
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class MasterProfileUpdateRequest(BaseModel):
+    description: Optional[str] = None
+    photo_url: Optional[str] = None
+    gallery_images: Optional[str] = None
+    whatsapp: Optional[str] = None
+    telegram: Optional[str] = None
+    services: Optional[str] = None
 
 
 class AdminUserUpdateRequest(BaseModel):

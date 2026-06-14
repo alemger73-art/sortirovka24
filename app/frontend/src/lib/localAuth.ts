@@ -219,6 +219,10 @@ export function changeCurrentUserPassword(currentPassword: string, newPassword: 
   });
 }
 
+export function setCurrentUserPassword(newPassword: string) {
+  return accountApi.setPassword({ new_password: newPassword });
+}
+
 export function getCabinetData(_userId: string): CabinetData {
   return {
     foodOrders: [],

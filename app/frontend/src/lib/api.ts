@@ -12,7 +12,9 @@ import { invalidateAllCaches } from './cache';
  */
 function readToken(): string | null {
   try {
-    return globalThis?.localStorage?.getItem('token') ?? null;
+    const storage = globalThis?.localStorage;
+    if (!storage) return null;
+    return storage.getItem('account_token') || storage.getItem('token') || null;
   } catch {
     return null;
   }

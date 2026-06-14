@@ -3,11 +3,12 @@ import logging
 from typing import List, Optional
 
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
+from services.account_session import resolve_account_user
 from services.complaints import ComplaintsService
 
 # Set up logging
@@ -29,6 +30,7 @@ class ComplaintsData(BaseModel):
     phone: str = None
     status: str = None
     created_at: str = None
+    user_id: str = None
 
 
 class ComplaintsUpdateData(BaseModel):
@@ -58,6 +60,7 @@ class ComplaintsResponse(BaseModel):
     phone: Optional[str] = None
     status: Optional[str] = None
     created_at: Optional[str] = None
+    user_id: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -194,6 +197,7 @@ async def get_complaints(
 @router.post("", response_model=ComplaintsResponse, status_code=201)
 async def create_complaints(
     data: ComplaintsData,
+    authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new complaints"""
@@ -201,7 +205,15 @@ async def create_complaints(
     
     service = ComplaintsService(db)
     try:
-        result = await service.create(data.model_dump())
+        payload = data.model_dump()
+        account_user = await resolve_account_user(db, authorization)
+        if account_user:
+            payload["user_id"] = str(account_user.id)
+            if not payload.get("phone"):
+                payload["phone"] = account_user.phone
+            if not payload.get("author_name"):
+                payload["author_name"] = account_user.name
+        result = await service.create(payload)
         if not result:
             raise HTTPException(status_code=400, detail="Failed to create complaints")
         

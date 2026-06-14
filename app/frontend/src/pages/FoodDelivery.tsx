@@ -100,12 +100,24 @@ function matchesRestaurant(activeRestaurantId: number, rowRestaurantId: number |
   return rowRestaurantId === activeRestaurantId;
 }
 
+function isDamAlemRestaurant(r: Pick<Restaurant, 'name'>): boolean {
+  return /dam\s*alem|дам\s*алем/i.test(r.name || '');
+}
+
+function pinDamAlemFirst(list: Restaurant[]): Restaurant[] {
+  return [...list].sort((a, b) => {
+    const da = isDamAlemRestaurant(a) ? 0 : 1;
+    const db = isDamAlemRestaurant(b) ? 0 : 1;
+    return da - db;
+  });
+}
+
 function legacyPlaceholderRestaurant(): Restaurant {
   return {
     id: LEGACY_RESTAURANT_ID,
-    name: 'Доставка еды',
+    name: 'DAM ALEM',
     photo: '',
-    description: 'Меню портала',
+    description: 'Доставка еды №1 в Сортировке',
     whatsapp_phone: '',
     working_hours: '',
     min_order: 0,
@@ -205,7 +217,10 @@ export default function FoodDelivery() {
     [restaurants]
   );
   const visibleRestaurants = useMemo(
-    () => (activeCuisine === 'all' ? restaurants : restaurants.filter(r => r.cuisine_type === activeCuisine)),
+    () =>
+      pinDamAlemFirst(
+        activeCuisine === 'all' ? restaurants : restaurants.filter(r => r.cuisine_type === activeCuisine)
+      ),
     [restaurants, activeCuisine]
   );
 
@@ -430,10 +445,10 @@ export default function FoodDelivery() {
                   Доставка
                 </p>
                 <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-                  Рестораны рядом
+                  DAM ALEM и рестораны
                 </h1>
                 <p className="mt-2 max-w-md text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                  Выберите заведение — меню и оформление как в привычных сервисах доставки.
+                  DAM ALEM — доставка №1 в Сортировке. Также доступны партнёрские заведения.
                 </p>
               </header>
 
@@ -473,9 +488,16 @@ export default function FoodDelivery() {
                           className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
-                        <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-slate-900 shadow-sm backdrop-blur-sm dark:bg-gray-900/90 dark:text-white">
-                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                          {(r.rating || 4.5).toFixed(1)}
+                        <div className="absolute right-3 top-3 flex flex-col items-end gap-1.5">
+                          {isDamAlemRestaurant(r) && (
+                            <span className="rounded-full bg-[#FF3B30] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                              ТОП
+                            </span>
+                          )}
+                          <div className="flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-slate-900 shadow-sm backdrop-blur-sm dark:bg-gray-900/90 dark:text-white">
+                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                            {(r.rating || 4.5).toFixed(1)}
+                          </div>
                         </div>
                         <div className="absolute bottom-3 left-3 right-3">
                           <h2 className="text-lg font-bold leading-tight text-white drop-shadow-md md:text-xl">

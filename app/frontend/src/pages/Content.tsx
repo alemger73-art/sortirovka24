@@ -10,7 +10,7 @@ import StorageImg from "@/components/StorageImg";
 import MultiImageUpload, { StorageGallery } from '@/components/MultiImageUpload';
 import VideoUpload from '@/components/VideoUpload';
 import StorageVideo from '@/components/StorageVideo';
-import { pushCabinetItem, requireAuthDialog, getAccountPrefill } from '@/lib/localAuth';
+import { pushCabinetItem, requireAuthDialog, getAccountPrefill, getCurrentUser } from '@/lib/localAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 function normalizeYoutubeWatchUrl(value: string): string {
@@ -264,9 +264,11 @@ export function NewComplaintForm() {
     setSubmitting(true);
     setSubmitted(true);
     try {
+      const accountUser = getCurrentUser();
       await withRetry(() => client.entities.complaints.create({
         data: {
           ...form,
+          user_id: accountUser?.id,
           status: 'new',
           photo_url: photoKey,
           gallery_images: galleryKeys,
@@ -491,8 +493,9 @@ export function NewAnnouncementForm() {
     setSubmitting(true);
     setSubmitted(true);
     try {
+      const accountUser = getCurrentUser();
       await withRetry(() => client.entities.announcements.create({
-        data: { ...form, active: true, status: 'pending', gallery_images: galleryKeys, created_at: new Date().toISOString() },
+        data: { ...form, user_id: accountUser?.id, active: true, status: 'pending', gallery_images: galleryKeys, created_at: new Date().toISOString() },
       }));
       setSuccess(true);
       pushCabinetItem('announcements', {

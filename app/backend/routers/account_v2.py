@@ -15,8 +15,14 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from models.announcements import Announcements
 from models.auth import User
+from models.become_master_requests import Become_master_requests
 from models.complaints import Complaints
 from models.food_orders import Food_orders
+from models.food_restaurants import Food_restaurants
+from models.gastronom_orders import Gastronom_orders
+from models.gastronom_products import Gastronom_products
+from models.master_requests import Master_requests
+from models.masters import Masters
 from models.user_management import Bonus, Order, PhoneVerification, UserAction, UserSession
 from schemas.account_v2 import (
     AdminUserUpdateRequest,
@@ -25,14 +31,17 @@ from schemas.account_v2 import (
     ConfirmRegistrationRequest,
     DashboardStatsResponse,
     LoginV2Request,
+    MasterProfileUpdateRequest,
     RequestSmsCodeRequest,
     RequestSmsCodeResponse,
     RegisterV2Request,
+    SetPasswordV2Request,
     UserV2Response,
     UserV2UpdateRequest,
 )
 from schemas.storage import FileUpDownRequest, FileUpDownResponse
 from services.account_profile import AvatarValidationError, normalize_avatar_url
+from services.account_session import resolve_account_user
 from services.auth import AuthService
 from services.google_oauth import (
     GoogleOAuthError,
@@ -93,6 +102,17 @@ def _matches_user_phone(candidate: str | None, user_phone: str | None) -> bool:
     left = _phone_digits(candidate)
     right = _phone_digits(user_phone)
     return bool(left and right and left == right)
+
+
+def _owns_user_content(user: User, record_user_id: str | None, record_phone: str | None) -> bool:
+    if record_user_id and str(record_user_id) == str(user.id):
+        return True
+    return _matches_user_phone(record_phone, user.phone)
+
+
+def _assert_role(user: User, allowed: set[str]):
+    if user.role not in allowed:
+        raise HTTPException(status_code=403, detail="Insufficient permissions for this cabinet")
 
 
 def _session_expiry_minutes() -> int:
@@ -186,6 +206,7 @@ def _to_user_response(user: User) -> UserV2Response:
         avatar=user.avatar_url,
         language=user.language or "ru",
         bonus_balance=float(user.bonus_balance or 0),
+        has_password=bool(user.password_hash),
         created_at=user.created_at.isoformat() if user.created_at else None,
     )
 
@@ -757,7 +778,7 @@ async def change_password(
     if not user.password_hash:
         raise HTTPException(
             status_code=400,
-            detail="Для аккаунта Google пароль не задан. Войдите через Google.",
+            detail="Пароль не задан. Используйте «Установить пароль» в настройках.",
         )
     if not _verify_password(request.current_password, user.password_hash):
         raise HTTPException(status_code=400, detail="Неверный текущий пароль")
@@ -766,6 +787,21 @@ async def change_password(
     user.password_hash = _hash_password(request.new_password)
     await db.commit()
     await _log_action(db, str(user.id), "password_change", "users", str(user.id))
+    return {"success": True}
+
+
+@router.post("/me/set-password")
+async def set_password(
+    request: SetPasswordV2Request,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    if user.password_hash:
+        raise HTTPException(status_code=400, detail="Пароль уже задан. Используйте смену пароля.")
+    user.password_hash = _hash_password(request.new_password)
+    await db.commit()
+    await _log_action(db, str(user.id), "password_set", "users", str(user.id))
     return {"success": True}
 
 
@@ -801,11 +837,11 @@ async def cabinet(
     complaint_rows = (
         await db.execute(select(Complaints).order_by(desc(Complaints.id)).limit(500))
     ).scalars().all()
-    complaint_rows = [c for c in complaint_rows if _matches_user_phone(c.phone, user.phone)]
+    complaint_rows = [c for c in complaint_rows if _owns_user_content(user, c.user_id, c.phone)]
     announcement_rows = (
         await db.execute(select(Announcements).order_by(desc(Announcements.id)).limit(500))
     ).scalars().all()
-    announcement_rows = [a for a in announcement_rows if _matches_user_phone(a.phone, user.phone)]
+    announcement_rows = [a for a in announcement_rows if _owns_user_content(user, a.user_id, a.phone)]
 
     merged_orders = [
         {"id": o.id, "type": o.order_type, "status": o.status, "amount": o.amount, "details": o.details, "created_at": o.created_at.isoformat() if o.created_at else None}
@@ -839,6 +875,155 @@ async def cabinet(
         "complaints": [{"id": c.id, "category": c.category, "status": c.status, "description": c.description} for c in complaint_rows[:100]],
         "announcements": [{"id": a.id, "title": a.title, "status": a.status, "price": a.price} for a in announcement_rows[:100]],
         "settings": {"language": user.language, "agreement_accepted": bool(user.agreement_accepted), "privacy_accepted": bool(user.privacy_accepted)},
+    }
+
+
+@router.get("/master/cabinet")
+async def master_cabinet(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    _assert_role(user, {"master", "admin", "superadmin", "moderator"})
+    masters = (await db.execute(select(Masters).order_by(desc(Masters.id)).limit(200))).scalars().all()
+    listing = next((m for m in masters if _matches_user_phone(m.phone, user.phone)), None)
+    become = (
+        await db.execute(
+            select(Become_master_requests)
+            .order_by(desc(Become_master_requests.id))
+            .limit(50)
+        )
+    ).scalars().all()
+    become_rows = [b for b in become if _matches_user_phone(b.phone, user.phone)]
+    requests = (
+        await db.execute(select(Master_requests).order_by(desc(Master_requests.id)).limit(200))
+    ).scalars().all()
+    if listing and listing.category:
+        requests = [r for r in requests if (r.category or "").strip().lower() == (listing.category or "").strip().lower()]
+    else:
+        requests = [r for r in requests if _matches_user_phone(r.phone, user.phone)]
+    gallery = (listing.gallery_images or "").split(",") if listing and listing.gallery_images else []
+    gallery = [g.strip() for g in gallery if g.strip()]
+    return {
+        "profile": {
+            "bio": listing.description if listing else "",
+            "service_categories": [listing.category] if listing and listing.category else [],
+            "work_photos": gallery,
+            "avg_rating": float(listing.rating or 0) if listing else 0,
+            "reviews_count": int(listing.reviews_count or 0) if listing else 0,
+            "verified": bool(listing.verified) if listing else False,
+            "listing_id": listing.id if listing else None,
+        },
+        "become_master_requests": [
+            {"id": b.id, "category": b.category, "status": b.status, "created_at": b.created_at}
+            for b in become_rows[:20]
+        ],
+        "requests": [
+            {
+                "id": r.id,
+                "title": r.category or "Заявка",
+                "status": r.status,
+                "client_name": r.client_name,
+                "address": r.address,
+                "created_at": r.created_at,
+            }
+            for r in requests[:50]
+        ],
+        "stats": {
+            "requests_total": len(requests),
+            "reviews_total": int(listing.reviews_count or 0) if listing else 0,
+            "avg_rating": float(listing.rating or 0) if listing else 0,
+        },
+    }
+
+
+@router.put("/master/profile")
+async def update_master_profile(
+    request: MasterProfileUpdateRequest,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    _assert_role(user, {"master", "admin", "superadmin", "moderator"})
+    masters = (await db.execute(select(Masters).order_by(desc(Masters.id)).limit(200))).scalars().all()
+    listing = next((m for m in masters if _matches_user_phone(m.phone, user.phone)), None)
+    if not listing:
+        raise HTTPException(status_code=404, detail="Карточка мастера не найдена. Обратитесь к администратору.")
+    if request.description is not None:
+        listing.description = request.description.strip()
+    if request.photo_url is not None:
+        listing.photo_url = request.photo_url.strip() or None
+    if request.gallery_images is not None:
+        listing.gallery_images = request.gallery_images.strip() or None
+    if request.whatsapp is not None:
+        listing.whatsapp = request.whatsapp.strip() or None
+    if request.telegram is not None:
+        listing.telegram = request.telegram.strip() or None
+    if request.services is not None:
+        listing.services = request.services.strip() or None
+    await db.commit()
+    await _log_action(db, str(user.id), "master_profile_update", "masters", str(listing.id))
+    return {"success": True, "listing_id": listing.id}
+
+
+@router.get("/partner/cabinet")
+async def partner_cabinet(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    _assert_role(user, {"seller", "admin", "superadmin", "moderator"})
+    restaurants = (await db.execute(select(Food_restaurants).order_by(desc(Food_restaurants.id)).limit(100))).scalars().all()
+    shops = [r for r in restaurants if _matches_user_phone(r.whatsapp_phone, user.phone)]
+    food_orders = (await db.execute(select(Food_orders).order_by(desc(Food_orders.id)).limit(500))).scalars().all()
+    shop_ids = {r.id for r in shops}
+    partner_orders = [
+        o
+        for o in food_orders
+        if (o.restaurant_id in shop_ids)
+        or _matches_user_phone(o.restaurant_phone, user.phone)
+    ]
+    gastronom_products = (
+        await db.execute(select(Gastronom_products).where(Gastronom_products.is_active == True).limit(500))
+    ).scalars().all()
+    gastronom_orders = (
+        await db.execute(select(Gastronom_orders).order_by(desc(Gastronom_orders.id)).limit(500))
+    ).scalars().all()
+    primary = shops[0] if shops else None
+    revenue = sum(float(o.total_amount or 0) for o in partner_orders)
+    return {
+        "shop_profile": {
+            "shop_name": primary.name if primary else user.name,
+            "shop_description": primary.description if primary else "",
+            "logo_url": primary.photo if primary else user.avatar_url,
+            "banners": [primary.photo] if primary and primary.photo else [],
+            "phone": user.phone,
+        },
+        "products": [
+            {"id": p.id, "title": p.name, "price": p.price, "active": bool(p.is_active)}
+            for p in gastronom_products[:100]
+        ],
+        "orders": [
+            {
+                "id": o.id,
+                "status": o.status,
+                "total": o.total_amount,
+                "customer_name": o.customer_name,
+                "created_at": o.created_at,
+            }
+            for o in partner_orders[:100]
+        ],
+        "gastronom_orders": [
+            {"id": o.id, "status": o.status, "total": o.total_amount, "created_at": o.created_at}
+            for o in gastronom_orders[:50]
+        ],
+        "analytics": {
+            "products_total": len(gastronom_products),
+            "orders_total": len(partner_orders),
+            "gastronom_orders_total": len(gastronom_orders),
+            "revenue": revenue,
+            "restaurants_total": len(shops),
+        },
     }
 
 

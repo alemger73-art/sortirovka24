@@ -110,6 +110,19 @@ async def _load_restaurants(db: AsyncSession, active_only: bool) -> List[Food_re
     return items
 
 
+def _is_dam_alem_restaurant(r: Food_restaurants) -> bool:
+    name = (r.name or "").lower()
+    return "dam alem" in name or "дам алем" in name or "damalem" in name.replace(" ", "")
+
+
+def _restaurant_sort_key(r: Food_restaurants) -> tuple:
+    return (
+        0 if _is_dam_alem_restaurant(r) else 1,
+        r.sort_order if r.sort_order is not None else 999,
+        -(r.id or 0),
+    )
+
+
 def _serialize_restaurant(r: Food_restaurants) -> Dict[str, Any]:
     return {
         "id": r.id,
@@ -172,6 +185,7 @@ async def api_list_products(
 @router.get("/restaurants", response_model=Dict[str, List[Dict[str, Any]]])
 async def api_list_restaurants(db: AsyncSession = Depends(get_db)):
     restaurants = await _load_restaurants(db, active_only=True)
+    restaurants = sorted(restaurants, key=_restaurant_sort_key)
     return {"restaurants": [_serialize_restaurant(r) for r in restaurants]}
 
 

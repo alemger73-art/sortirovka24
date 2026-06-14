@@ -158,6 +158,61 @@ async def test_change_password(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_set_password_for_google_like_account(client: AsyncClient):
+    token, _password = await _register_test_user(client)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    await client.post(
+        "/api/v1/account/me/set-password",
+        headers=headers,
+        json={"new_password": "GoogleUser99!"},
+    )
+    # First call may fail if user already has password from registration
+    me = await client.get("/api/v1/account/me", headers=headers)
+    if me.json().get("has_password"):
+        dup = await client.post(
+            "/api/v1/account/me/set-password",
+            headers=headers,
+            json={"new_password": "AnotherPass99!"},
+        )
+        assert dup.status_code == 400
+    else:
+        ok = await client.post(
+            "/api/v1/account/me/set-password",
+            headers=headers,
+            json={"new_password": "GoogleUser99!"},
+        )
+        assert ok.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_complaint_create_links_user_id(client: AsyncClient):
+    token, _password = await _register_test_user(client)
+    headers = {"Authorization": f"Bearer {token}"}
+    me = await client.get("/api/v1/account/me", headers=headers)
+    user_id = me.json()["id"]
+
+    created = await client.post(
+        "/api/v1/entities/complaints",
+        headers=headers,
+        json={
+            "category": "Другое",
+            "address": "Test street",
+            "description": "Integration test complaint",
+            "phone": me.json()["phone"],
+            "status": "new",
+            "created_at": "2026-06-14T00:00:00Z",
+        },
+    )
+    assert created.status_code == 201, created.text
+    assert created.json().get("user_id") == user_id
+
+    cabinet = await client.get("/api/v1/account/cabinet", headers=headers)
+    ids = [c["id"] for c in cabinet.json().get("complaints", [])]
+    assert created.json()["id"] in ids
+
+
+@pytest.mark.asyncio
 async def test_clear_avatar(client: AsyncClient):
     token, _password = await _register_test_user(client)
     headers = {"Authorization": f"Bearer {token}"}

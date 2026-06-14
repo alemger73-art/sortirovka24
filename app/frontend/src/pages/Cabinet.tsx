@@ -7,6 +7,7 @@ import { cacheAccountProfile } from "@/lib/localAuth";
 import { uploadFile } from "@/lib/storage";
 import { formatTenge, taxiApi, TAXI_STATUS_LABELS, type TaxiRide } from "@/lib/taxiApi";
 import { useTaxiEnabled } from "@/hooks/useTaxiEnabled";
+import { useLanguage } from "@/contexts/LanguageContext";
 import TaxiUnavailable from "@/components/taxi/TaxiUnavailable";
 
 type TabId = "profile" | "bonuses" | "orders" | "taxi" | "complaints" | "announcements" | "settings";
@@ -21,6 +22,7 @@ function DarkCard({ children }: { children: React.ReactNode }) {
 
 export default function Cabinet() {
   const navigate = useNavigate();
+  const { t, setLang } = useLanguage();
   const taxiEnabled = useTaxiEnabled();
   const [activeTab, setActiveTab] = useState<TabId>("profile");
   const [loading, setLoading] = useState(true);
@@ -32,22 +34,23 @@ export default function Cabinet() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ current: "", next: "", confirm: "" });
   const [changingPassword, setChangingPassword] = useState(false);
+  const [hasPassword, setHasPassword] = useState(true);
   const [taxiRides, setTaxiRides] = useState<TaxiRide[]>([]);
   const tabs: { id: TabId; label: string }[] = useMemo(() => {
     const base: { id: TabId; label: string }[] = [
-      { id: "profile", label: "Профиль" },
-      { id: "bonuses", label: "Бонусы" },
-      { id: "orders", label: "История заказов" },
-      { id: "taxi", label: "Поездки такси" },
-      { id: "complaints", label: "История жалоб" },
-      { id: "announcements", label: "История объявлений" },
-      { id: "settings", label: "Настройки" },
+      { id: "profile", label: t("cabinet.tab.profile") },
+      { id: "bonuses", label: t("cabinet.tab.bonuses") },
+      { id: "orders", label: t("cabinet.tab.orders") },
+      { id: "taxi", label: t("cabinet.tab.taxi") },
+      { id: "complaints", label: t("cabinet.tab.complaints") },
+      { id: "announcements", label: t("cabinet.tab.announcements") },
+      { id: "settings", label: t("cabinet.tab.settings") },
     ];
     if (taxiEnabled === false && taxiRides.length === 0) {
       return base.filter((t) => t.id !== "taxi");
     }
     return base;
-  }, [taxiEnabled, taxiRides.length]);
+  }, [taxiEnabled, taxiRides.length, t]);
 
   useEffect(() => {
     (async () => {
@@ -58,12 +61,15 @@ export default function Cabinet() {
       try {
         const data = await accountApi.cabinet();
         setCabinet(data);
+        setHasPassword(data?.profile?.has_password !== false);
+        const lang = data?.profile?.language === "kz" ? "kz" : "ru";
         setProfileForm({
           name: data?.profile?.name || "",
           email: data?.profile?.email || "",
           avatar: data?.profile?.avatar || "",
-          language: data?.profile?.language || "ru",
+          language: lang,
         });
+        if (lang === "kz" || lang === "ru") setLang(lang);
         taxiApi.myRides().then(setTaxiRides).catch(() => {});
       } catch (e: any) {
         setError(String(e?.message || e));
@@ -92,13 +98,16 @@ export default function Cabinet() {
       });
       const refreshed = await accountApi.cabinet();
       setCabinet(refreshed);
+      if (profileForm.language === "kz" || profileForm.language === "ru") {
+        setLang(profileForm.language);
+      }
       setProfileForm({
         name: refreshed?.profile?.name || "",
         email: refreshed?.profile?.email || "",
         avatar: refreshed?.profile?.avatar || "",
         language: refreshed?.profile?.language || "ru",
       });
-      setSuccess("Профиль сохранён");
+      setSuccess(t("cabinet.profileSaved"));
     } catch (e: any) {
       setError(String(e?.message || e));
     } finally {
@@ -140,7 +149,7 @@ export default function Cabinet() {
       });
       const refreshed = await accountApi.cabinet();
       setCabinet(refreshed);
-      setSuccess("Фото профиля сохранено");
+      setSuccess(t("cabinet.avatarSaved"));
     } catch (e: any) {
       setError(String(e?.message || e));
     } finally {
@@ -155,12 +164,18 @@ export default function Cabinet() {
     try {
       if (passwordForm.next.length < 8) throw new Error("Новый пароль должен быть не короче 8 символов");
       if (passwordForm.next !== passwordForm.confirm) throw new Error("Пароли не совпадают");
-      await accountApi.changePassword({
-        current_password: passwordForm.current,
-        new_password: passwordForm.next,
-      });
+      if (hasPassword) {
+        await accountApi.changePassword({
+          current_password: passwordForm.current,
+          new_password: passwordForm.next,
+        });
+        setSuccess(t("cabinet.passwordChanged"));
+      } else {
+        await accountApi.setPassword({ new_password: passwordForm.next });
+        setHasPassword(true);
+        setSuccess(t("cabinet.passwordSet"));
+      }
       setPasswordForm({ current: "", next: "", confirm: "" });
-      setSuccess("Пароль успешно изменён");
     } catch (e: any) {
       setError(String(e?.message || e));
     } finally {
@@ -175,7 +190,7 @@ export default function Cabinet() {
     announcements: cabinet?.announcements || [],
   }), [cabinet]);
 
-  if (loading) return <Layout><div className="mx-auto max-w-6xl px-4 py-10 text-gray-500 dark:text-slate-300">Загрузка кабинета...</div></Layout>;
+  if (loading) return <Layout><div className="mx-auto max-w-6xl px-4 py-10 text-gray-500 dark:text-slate-300">{t("cabinet.loading")}</div></Layout>;
 
   return (
     <Layout>
@@ -183,7 +198,7 @@ export default function Cabinet() {
         <div className="mx-auto max-w-7xl">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-extrabold">Личный кабинет</h1>
+              <h1 className="text-3xl font-extrabold">{t("cabinet.personalTitle")}</h1>
               <p className="text-gray-500 dark:text-slate-300">{cabinet?.profile?.name} · {cabinet?.profile?.phone}</p>
             </div>
             <button
@@ -193,7 +208,7 @@ export default function Cabinet() {
                 navigate("/account");
               }}
             >
-              Выход
+              {t("cabinet.logout")}
             </button>
           </div>
 
@@ -249,7 +264,7 @@ export default function Cabinet() {
                                 email: updated.email,
                                 avatar: updated.avatar,
                               });
-                              setSuccess("Фото удалено");
+                              setSuccess(t("cabinet.avatarRemoved"));
                             } catch (e: any) {
                               setError(String(e?.message || e));
                             }
@@ -384,17 +399,19 @@ export default function Cabinet() {
 
               {activeTab === "settings" && (
                 <DarkCard>
-                  <h2 className="mb-4 text-xl font-bold">Настройки</h2>
+                  <h2 className="mb-4 text-xl font-bold">{t("cabinet.tab.settings")}</h2>
                   <div className="mb-6 space-y-3 rounded-xl border border-[#2a3347] bg-[#0f172a] p-4">
-                    <h3 className="text-sm font-semibold text-white">Смена пароля</h3>
-                    <input
-                      type="password"
-                      value={passwordForm.current}
-                      onChange={(e) => setPasswordForm((p) => ({ ...p, current: e.target.value }))}
-                      className="w-full rounded-xl border border-[#2a3347] bg-[#111827] px-4 py-3 text-sm text-white"
-                      placeholder="Текущий пароль"
-                      autoComplete="current-password"
-                    />
+                    <h3 className="text-sm font-semibold text-white">{hasPassword ? t("cabinet.changePassword") : t("cabinet.setPassword")}</h3>
+                    {hasPassword ? (
+                      <input
+                        type="password"
+                        value={passwordForm.current}
+                        onChange={(e) => setPasswordForm((p) => ({ ...p, current: e.target.value }))}
+                        className="w-full rounded-xl border border-[#2a3347] bg-[#111827] px-4 py-3 text-sm text-white"
+                        placeholder="Текущий пароль"
+                        autoComplete="current-password"
+                      />
+                    ) : null}
                     <input
                       type="password"
                       value={passwordForm.next}
@@ -416,10 +433,10 @@ export default function Cabinet() {
                       disabled={changingPassword}
                       className="rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-[#0B0F19] disabled:opacity-60"
                     >
-                      {changingPassword ? "Сохранение..." : "Изменить пароль"}
+                      {changingPassword ? t("cabinet.saving") : hasPassword ? t("cabinet.changePassword") : t("cabinet.setPassword")}
                     </button>
                   </div>
-                  <p className="mb-5 text-sm text-slate-300">Язык интерфейса настраивается во вкладке «Профиль».</p>
+                  <p className="mb-5 text-sm text-slate-300">{t("cabinet.langHint")}</p>
                   <button
                     onClick={() => {
                       clearAccountToken();

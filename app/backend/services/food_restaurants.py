@@ -59,6 +59,14 @@ class Food_restaurantsService:
 
         result = await self.db.execute(query.offset(skip).limit(limit))
         items = result.scalars().all()
+        items = sorted(
+            items,
+            key=lambda r: (
+                0 if "dam alem" in (r.name or "").lower() or "дам алем" in (r.name or "").lower() else 1,
+                r.sort_order if r.sort_order is not None else 999,
+                -(r.id or 0),
+            ),
+        )
         return {"items": items, "total": total, "skip": skip, "limit": limit}
 
     async def update(self, obj_id: int, update_data: Dict[str, Any]) -> Optional[Food_restaurants]:

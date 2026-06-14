@@ -1,22 +1,22 @@
 [
     {
         "setting_key": "whatsapp_number",
-        "setting_value": "+77001234567",
+        "setting_value": "+77470304096",
         "is_active": true
     },
     {
         "setting_key": "hero_banner_title",
-        "setting_value": "Вкусная еда с доставкой",
+        "setting_value": "DAM ALEM",
         "is_active": true
     },
     {
         "setting_key": "hero_banner_subtitle",
-        "setting_value": "Свежие блюда домашней кухни прямо к вашей двери",
+        "setting_value": "Доставка еды №1 в Сортировке",
         "is_active": true
     },
     {
         "setting_key": "hero_banner_image",
-        "setting_value": "",
+        "setting_value": "https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-15/fe194ca1-0095-44bf-a906-e50cb844ad56.png",
         "is_active": true
     },
     {
@@ -27,6 +27,16 @@
     {
         "setting_key": "delivery_price",
         "setting_value": "500",
+        "is_active": true
+    },
+    {
+        "setting_key": "delivery_zones",
+        "setting_value": "[{\"name\":\"Сортировка (центр)\",\"radius_km\":2,\"price\":500},{\"name\":\"Сортировка (окраина)\",\"radius_km\":4,\"price\":800},{\"name\":\"Пригород\",\"radius_km\":7,\"price\":1200}]",
+        "is_active": true
+    },
+    {
+        "setting_key": "show_recommendations",
+        "setting_value": "true",
         "is_active": true
     }
 ]

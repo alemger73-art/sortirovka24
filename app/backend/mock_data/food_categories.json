@@ -1,5 +1,6 @@
 [
     {
+        "restaurant_id": 1,
         "name": "🔥 Горячие блюда",
         "icon": "🔥",
         "sort_order": 1,
@@ -7,6 +8,7 @@
         "created_at": "2026-03-19 10:00:00"
     },
     {
+        "restaurant_id": 1,
         "name": "🥟 Выпечка",
         "icon": "🥟",
         "sort_order": 2,
@@ -14,6 +16,7 @@
         "created_at": "2026-03-19 10:00:00"
     },
     {
+        "restaurant_id": 1,
         "name": "🥗 Салаты",
         "icon": "🥗",
         "sort_order": 3,
@@ -21,6 +24,7 @@
         "created_at": "2026-03-19 10:00:00"
     },
     {
+        "restaurant_id": 1,
         "name": "🍟 Гарниры",
         "icon": "🍟",
         "sort_order": 4,
@@ -28,6 +32,7 @@
         "created_at": "2026-03-19 10:00:00"
     },
     {
+        "restaurant_id": 1,
         "name": "🥤 Напитки",
         "icon": "🥤",
         "sort_order": 5,
@@ -35,6 +40,7 @@
         "created_at": "2026-03-19 10:00:00"
     },
     {
+        "restaurant_id": 1,
         "name": "❄️ Полуфабрикаты",
         "icon": "❄️",
         "sort_order": 6,

@@ -144,9 +144,9 @@ export default function Food() {
   const [modOptions, setModOptions] = useState<ModifierOption[]>([]);
   const [itemGroupLinks, setItemGroupLinks] = useState<ItemModGroupLink[]>([]);
   const [settings, setSettings] = useState<Settings>({
-    whatsapp_number: '+77001234567',
-    hero_banner_title: 'Вкусная еда с доставкой',
-    hero_banner_subtitle: 'Свежие блюда домашней кухни',
+    whatsapp_number: '+77470304096',
+    hero_banner_title: 'DAM ALEM',
+    hero_banner_subtitle: 'Доставка еды №1 в Сортировке',
     hero_banner_image: '',
     min_order_amount: '2000',
     delivery_price: '500',
@@ -641,7 +641,7 @@ export default function Food() {
         status: 'Новый',
       });
       const whatsappNumber = settings.whatsapp_number.replace(/[^0-9]/g, '');
-      let msg = `🍽 *Новый заказ*\n\n👤 ${customerName}\n📞 ${customerPhone}\n`;
+      let msg = `🍽 *DAM ALEM — новый заказ*\n\n👤 ${customerName}\n📞 ${customerPhone}\n`;
       if (deliveryMethod === 'delivery') {
         msg += `📍 ${fullAddress}\n🚗 Доставка: ${activeDeliveryPrice} ₸\n`;
         if (noDoorDelivery) msg += `📦 До подъезда\n`;
@@ -756,8 +756,12 @@ export default function Food() {
           <div className="pointer-events-none absolute -left-24 -top-24 h-48 w-48 rounded-full bg-[#FF3B30]/25 blur-3xl" />
           <div className="pointer-events-none absolute -right-20 top-0 h-44 w-44 rounded-full bg-violet-600/30 blur-3xl" />
           <div className="relative z-10 min-h-[200px] px-5 py-8">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-white/60">Sortirovka 24</p>
-            <h1 className="mt-2 text-2xl font-extrabold leading-tight text-white md:text-[26px]">{t(promoSlideData.titleKey as 'food.promoSlide1Title')}</h1>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-white/60">
+              {settings.hero_banner_title || t('food.heroTitle')}
+            </p>
+            <h1 className="mt-2 text-2xl font-extrabold leading-tight text-white md:text-[26px]">
+              {settings.hero_banner_subtitle || t(promoSlideData.titleKey as 'food.promoSlide1Title')}
+            </h1>
             <ul className="mt-5 space-y-2.5">
               {promoSlideData.linesKeys.map(key => (
                 <li key={key} className="flex items-center gap-3 text-[15px] font-medium text-white/95">
