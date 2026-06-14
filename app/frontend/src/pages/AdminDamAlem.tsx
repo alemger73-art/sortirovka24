@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Utensils, ShoppingBag, Settings, Image, ExternalLink, ChefHat,
@@ -25,6 +25,10 @@ const TABS: { id: Section; label: string; icon: typeof Utensils }[] = [
 
 export default function AdminDamAlem({ initialSection = 'menu' }: AdminDamAlemProps) {
   const [section, setSection] = useState<Section>(initialSection);
+
+  useEffect(() => {
+    setSection(initialSection);
+  }, [initialSection]);
 
   return (
     <div className="space-y-6">

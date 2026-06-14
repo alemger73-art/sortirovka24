@@ -365,10 +365,6 @@ export default function Food() {
 
   const showRecommendations = settings.show_recommendations !== 'false';
 
-  function isGridCategoryActive(slug: string): boolean {
-    return selectedCategorySlug === slug;
-  }
-
   // Get modifier groups for a food item
   const getGroupsForItem = useCallback((itemId: number): ModifierGroup[] => {
     const groupIds = itemGroupLinks
@@ -737,7 +733,6 @@ export default function Food() {
     [sortedNavCategories, localized]
   );
 
-  const promoSlideData = PROMO_SLIDES[promoSlide];
 
   function MenuDishRow({ item }: { item: FoodItem }) {
     const hasGroups = itemHasGroups(item.id);

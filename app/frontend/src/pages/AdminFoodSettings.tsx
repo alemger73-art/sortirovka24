@@ -21,8 +21,8 @@ interface DeliveryZone {
 
 const SETTING_FIELDS = [
   { key: 'whatsapp_number', label: 'Номер WhatsApp', icon: Phone, placeholder: '+77001234567', description: 'Номер для получения заказов в WhatsApp' },
-  { key: 'hero_banner_title', label: 'Заголовок баннера', icon: Image, placeholder: 'Вкусная еда с доставкой', description: 'Основной заголовок на странице еды' },
-  { key: 'hero_banner_subtitle', label: 'Подзаголовок баннера', icon: Image, placeholder: 'Свежие блюда домашней кухни', description: 'Текст под заголовком' },
+  { key: 'hero_banner_title', label: 'Заголовок баннера', icon: Image, placeholder: 'DAM ALEM', description: 'Бренд на странице доставки' },
+  { key: 'hero_banner_subtitle', label: 'Подзаголовок баннера', icon: Image, placeholder: 'Доставка еды №1 в Сортировке', description: 'Слоган под брендом' },
   { key: 'hero_banner_image', label: 'URL изображения баннера', icon: Image, placeholder: 'https://...', description: 'Фоновое изображение (необязательно)' },
   { key: 'min_order_amount', label: 'Минимальная сумма заказа (₸)', icon: DollarSign, placeholder: '2000', description: 'Минимальная сумма для оформления заказа' },
   { key: 'delivery_price', label: 'Базовая стоимость доставки (₸)', icon: Truck, placeholder: '500', description: 'Используется если зоны доставки не настроены' },
