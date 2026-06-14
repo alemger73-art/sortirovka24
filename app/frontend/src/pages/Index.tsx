@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
 import Hero from '@/components/landing/Hero';
+import { useSupportSettings } from '@/hooks/useSupportSettings';
 
 /* ─── CDN Images ─── */
 const HERO_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/ad8caa55-9593-448b-8f7a-39be84ed5053.png';
@@ -214,6 +215,7 @@ function SectionHeader({ title, accentColor = 'from-blue-500 to-indigo-600', lin
 
 export default function Index() {
   const { t, lang } = useLanguage();
+  const { promoEnabled: supportPromoEnabled } = useSupportSettings();
   const [news, setNews] = useState<any[]>([]);
   const [complaints, setComplaints] = useState<any[]>([]);
   const [jobs, setJobs] = useState<any[]>([]);
@@ -532,6 +534,19 @@ export default function Index() {
               )}
 
               {/* Static navigation banners (always shown) */}
+              <Link to="/directory" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end">
+                <div className="absolute inset-0 bg-gradient-to-br from-teal-600 via-emerald-700 to-green-800" />
+                <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+                <div className="absolute top-4 right-4 w-20 h-20 bg-white/5 rounded-full flex items-center justify-center">
+                  <BookOpen className="w-10 h-10 text-white/20" />
+                </div>
+                <div className="relative z-10 p-5">
+                  <span className="text-xs font-bold text-teal-200 bg-teal-500/30 backdrop-blur-sm px-3 py-1 rounded-full">📖 {t('banner.directoryTag')}</span>
+                  <h3 className="text-lg font-extrabold text-white mt-2">{t('banner.openDirectory')}</h3>
+                  <p className="text-white/70 text-sm mt-1">{t('banner.openDirectoryDesc')}</p>
+                </div>
+              </Link>
+
               <Link to="/inspectors" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-700 via-indigo-800 to-blue-900" />
                 <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
@@ -681,7 +696,40 @@ export default function Index() {
           )}
 
           {/* ═══════════════════════════════════════════
-              8. ИСТОРИЯ СОРТИРОВКИ
+              8. ПОДДЕРЖКА ПРОЕКТА (ненавязчивый блок)
+          ═══════════════════════════════════════════ */}
+          {supportPromoEnabled && (
+          <section>
+            <Link
+              to="/support"
+              className="group relative overflow-hidden rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 block border border-rose-100 dark:border-rose-900/40"
+            >
+              <div className="bg-gradient-to-r from-rose-50 via-white to-blue-50 dark:from-rose-950/30 dark:via-gray-900 dark:to-blue-950/30 p-5 md:p-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center flex-shrink-0">
+                      <Heart className="w-5 h-5 text-rose-500" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/40 px-2.5 py-0.5 rounded-full">
+                        {t('footer.aboutProject')}
+                      </span>
+                      <h3 className="text-base md:text-lg font-bold text-gray-900 dark:text-white mt-2">{t('support.bannerTitle')}</h3>
+                      <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{t('support.bannerDesc')}</p>
+                    </div>
+                  </div>
+                  <span className="hidden sm:flex items-center gap-1 text-sm font-semibold text-rose-600 dark:text-rose-400 flex-shrink-0 group-hover:gap-2 transition-all">
+                    {t('support.bannerLink')}
+                    <ChevronRight className="w-4 h-4" />
+                  </span>
+                </div>
+              </div>
+            </Link>
+          </section>
+          )}
+
+          {/* ═══════════════════════════════════════════
+              9. ИСТОРИЯ СОРТИРОВКИ
           ═══════════════════════════════════════════ */}
           <section>
             <Link

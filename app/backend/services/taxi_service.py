@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from models.auth import User
 from models.taxi import TaxiDriverApplication, TaxiDriverProfile, TaxiRide, TaxiSettings
-from services.taxi_pricing import DEFAULT_SETTINGS, build_quote, settings_to_dict
+from services.taxi_pricing import DEFAULT_SETTINGS, build_quote, is_taxi_enabled, settings_to_dict
 from sqlalchemy import desc, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -47,6 +47,14 @@ async def get_settings_dict(db: AsyncSession) -> Dict[str, str]:
     await ensure_taxi_settings(db)
     rows = (await db.execute(select(TaxiSettings))).scalars().all()
     return settings_to_dict(rows)
+
+
+async def ensure_taxi_service_enabled(db: AsyncSession) -> Dict[str, str]:
+    """Raise ValueError when taxi is turned off in admin settings."""
+    settings = await get_settings_dict(db)
+    if not is_taxi_enabled(settings):
+        raise ValueError("Сервис такси временно недоступен")
+    return settings
 
 
 async def update_settings(db: AsyncSession, updates: Dict[str, str]) -> Dict[str, str]:

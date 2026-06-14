@@ -309,6 +309,48 @@ export const DIRECTORY_CATEGORIES = [
   'Экстренные службы', 'Коммунальные службы', 'Образование', 'Здоровье'
 ];
 
+export const DIRECTORY_CATEGORY_ICONS: Record<string, string> = {
+  'Экстренные службы': '🚨',
+  'Коммунальные службы': '🔧',
+  'Образование': '🏫',
+  'Здоровье': '🏥',
+};
+
+export const DIRECTORY_CATEGORY_KEYS: Record<string, string> = {
+  'Экстренные службы': 'directory.cat.emergency',
+  'Коммунальные службы': 'directory.cat.utilities',
+  'Образование': 'directory.cat.education',
+  'Здоровье': 'directory.cat.health',
+};
+
+export function getDirectoryCategoryLabel(category: string, t: (key: string) => string): string {
+  const key = DIRECTORY_CATEGORY_KEYS[category];
+  return key ? t(key) : category;
+}
+
+export function sortDirectoryEntries<T extends { category?: string; sort_order?: number | null; entry_name?: string }>(items: T[]): T[] {
+  const catIndex = (c: string) => {
+    const i = DIRECTORY_CATEGORIES.indexOf(c);
+    return i === -1 ? 999 : i;
+  };
+  return [...items].sort((a, b) => {
+    const ca = catIndex(a.category || '');
+    const cb = catIndex(b.category || '');
+    if (ca !== cb) return ca - cb;
+    const sa = a.sort_order ?? 9999;
+    const sb = b.sort_order ?? 9999;
+    if (sa !== sb) return sa - sb;
+    return (a.entry_name || '').localeCompare(b.entry_name || '', 'ru');
+  });
+}
+
+export const EMERGENCY_NUMBERS = [
+  { number: '112', labelKey: 'emergency.112' },
+  { number: '102', labelKey: 'emergency.102' },
+  { number: '103', labelKey: 'emergency.103' },
+  { number: '104', labelKey: 'emergency.104' },
+] as const;
+
 export const CATEGORY_ICONS: Record<string, string> = {
   'Сантехник': '🔧', 'Электрик': '⚡', 'Сварщик': '🔥', 'Мебельщик': '🪑',
   'Ремонт техники': '🔌', 'Грузчики': '📦', 'Ремонт квартир': '🏠',

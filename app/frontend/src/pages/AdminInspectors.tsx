@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Loader2, Phone, MapPin, Hash, Map as MapIcon, Star, Clock, Building2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Phone, MapPin, Hash, Map as MapIcon, Star, Clock, Building2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import ImageUpload from '@/components/ImageUpload';
 import { MapContainer, TileLayer, Marker, Polygon, useMapEvents } from 'react-leaflet';
@@ -43,6 +43,50 @@ interface Inspector {
 }
 
 const DEFAULT_CENTER: [number, number] = [51.1605, 71.4704];
+
+function StreetsTagInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [input, setInput] = useState('');
+  const tags = value.split(',').map(s => s.trim()).filter(Boolean);
+
+  function addTag(raw: string) {
+    const tag = raw.trim();
+    if (!tag) return;
+    const exists = tags.some(t => t.toLowerCase() === tag.toLowerCase());
+    if (exists) return;
+    onChange([...tags, tag].join(', '));
+    setInput('');
+  }
+
+  function removeTag(idx: number) {
+    onChange(tags.filter((_, i) => i !== idx).join(', '));
+  }
+
+  return (
+    <div className="mt-1 space-y-2">
+      <div className="flex flex-wrap gap-1.5 min-h-[32px]">
+        {tags.map((tag, i) => (
+          <span key={i} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-100">
+            {tag}
+            <button type="button" onClick={() => removeTag(i)} className="hover:text-red-500"><X className="w-3 h-3" /></button>
+          </span>
+        ))}
+      </div>
+      <Input
+        value={input}
+        onChange={e => setInput(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addTag(input);
+          }
+        }}
+        onBlur={() => addTag(input)}
+        placeholder="Введите улицу и нажмите Enter"
+      />
+      <p className="text-xs text-gray-400">Добавляйте улицы по одной. Можно вставить список через запятую в поле выше.</p>
+    </div>
+  );
+}
 
 function ClickableMap({ onSetCenter, onAddBoundaryPoint }: {
   onSetCenter: (lat: number, lng: number) => void;
@@ -233,13 +277,19 @@ export default function AdminInspectors() {
 
   const leadershipItems = items.filter(i => i.is_leadership);
   const regularItems = items.filter(i => !i.is_leadership);
+  const missingMapCount = regularItems.filter(i => !i.lat || !i.lng).length;
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">{items.length} участковых ({leadershipItems.length} руководство)</p>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <p className="text-sm text-gray-500">{items.length} участковых ({leadershipItems.length} руководство)</p>
+          {missingMapCount > 0 && (
+            <p className="text-xs text-amber-600 mt-0.5">{missingMapCount} без координат на карте</p>
+          )}
+        </div>
         <Button onClick={openCreate} size="sm" className="bg-blue-600 hover:bg-blue-700">
           <Plus className="h-4 w-4 mr-1" /> Добавить
         </Button>
@@ -314,12 +364,10 @@ export default function AdminInspectors() {
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Список улиц * <span className="text-gray-400 font-normal">(через запятую)</span></label>
-                <Textarea
+                <label className="text-sm font-medium text-gray-700">Список улиц *</label>
+                <StreetsTagInput
                   value={editItem.streets || ''}
-                  onChange={e => setEditItem({ ...editItem, streets: e.target.value })}
-                  rows={3}
-                  placeholder="ул. Абая, ул. Ленина, ул. Мира 1-50, пер. Школьный"
+                  onChange={streets => setEditItem({ ...editItem, streets })}
                 />
               </div>
               <div>

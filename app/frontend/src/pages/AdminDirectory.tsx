@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { client, withRetry, DIRECTORY_CATEGORIES, formatDate } from '@/lib/api';
+import { useState, useEffect, useMemo } from 'react';
+import { client, withRetry, DIRECTORY_CATEGORIES, sortDirectoryEntries } from '@/lib/api';
 import { invalidateAllCaches } from '@/lib/cache';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,14 @@ interface DirectoryEntry {
   address?: string;
   phone: string;
   description?: string;
+  sort_order?: number | null;
   created_at?: string;
+}
+
+function nextSortOrder(items: DirectoryEntry[], category: string): number {
+  const inCat = items.filter(i => i.category === category);
+  const max = inCat.reduce((m, i) => Math.max(m, i.sort_order ?? 0), 0);
+  return max + 1;
 }
 
 export default function AdminDirectory() {
@@ -27,20 +34,47 @@ export default function AdminDirectory() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Partial<DirectoryEntry> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [filterCategory, setFilterCategory] = useState('');
 
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const res = await withRetry(() => client.entities.directory_entries.query({ sort: '-created_at', limit: 200 }));
-      setItems(res.data?.items || []);
+      const query: Record<string, string> = {};
+      if (filterCategory) query.category = filterCategory;
+      const res = await withRetry(() => client.entities.directory_entries.query({
+        query: filterCategory ? query : undefined,
+        sort: 'sort_order',
+        limit: 200,
+      }));
+      setItems(sortDirectoryEntries(res.data?.items || []));
     } catch { toast.error('Ошибка загрузки'); }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchItems(); }, []);
+  useEffect(() => { fetchItems(); }, [filterCategory]);
+
+  const grouped = useMemo(() => {
+    const acc: Record<string, DirectoryEntry[]> = {};
+    for (const item of items) {
+      const cat = item.category || 'Без категории';
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(item);
+    }
+    return DIRECTORY_CATEGORIES
+      .filter(cat => acc[cat]?.length)
+      .map(cat => [cat, acc[cat]] as [string, DirectoryEntry[]]);
+  }, [items]);
 
   const openCreate = () => {
-    setEditItem({ entry_name: '', category: DIRECTORY_CATEGORIES[0], address: '', phone: '', description: '' });
+    const category = filterCategory || DIRECTORY_CATEGORIES[0];
+    setEditItem({
+      entry_name: '',
+      category,
+      address: '',
+      phone: '',
+      description: '',
+      sort_order: nextSortOrder(items, category),
+    });
     setDialogOpen(true);
   };
 
@@ -62,15 +96,18 @@ export default function AdminDirectory() {
         address: editItem.address || '',
         phone: editItem.phone,
         description: editItem.description || '',
+        sort_order: editItem.sort_order ?? nextSortOrder(items, editItem.category),
       };
       if (editItem.id) {
         await withRetry(() => client.entities.directory_entries.update({ id: String(editItem.id), data }));
         toast.success('Запись обновлена');
       } else {
-        await withRetry(() => client.entities.directory_entries.create({ data: { ...data, created_at: new Date().toISOString().replace('T', ' ').slice(0, 19) } }));
+        await withRetry(() => client.entities.directory_entries.create({
+          data: { ...data, created_at: new Date().toISOString().replace('T', ' ').slice(0, 19) },
+        }));
         toast.success('Запись создана');
-        invalidateAllCaches();
       }
+      invalidateAllCaches();
       setDialogOpen(false);
       fetchItems();
     } catch { toast.error('Ошибка сохранения'); }
@@ -91,42 +128,61 @@ export default function AdminDirectory() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="text-sm text-gray-500">{items.length} записей</p>
-        <Button onClick={openCreate} size="sm" className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-1" /> Добавить
-        </Button>
+        <div className="flex items-center gap-2">
+          <Select value={filterCategory || 'all'} onValueChange={v => setFilterCategory(v === 'all' ? '' : v)}>
+            <SelectTrigger className="w-[200px] h-9 text-sm">
+              <SelectValue placeholder="Все категории" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Все категории</SelectItem>
+              {DIRECTORY_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button onClick={openCreate} size="sm" className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="h-4 w-4 mr-1" /> Добавить
+          </Button>
+        </div>
       </div>
 
-      <div className="space-y-2">
-        {items.map(item => (
-          <Card key={item.id}>
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge variant="outline" className="text-xs">{item.category}</Badge>
+      {grouped.length === 0 ? (
+        <p className="text-center text-gray-400 py-8">Нет записей</p>
+      ) : (
+        grouped.map(([cat, catItems]) => (
+          <div key={cat} className="space-y-2">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">{cat}</p>
+            {catItems.map(item => (
+              <Card key={item.id}>
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <Badge variant="outline" className="text-xs">#{item.sort_order ?? '—'}</Badge>
+                        <Badge variant="secondary" className="text-xs">{item.category}</Badge>
+                      </div>
+                      <p className="font-medium text-sm text-gray-900">{item.entry_name}</p>
+                      {item.description && <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{item.description}</p>}
+                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
+                        <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{item.phone}</span>
+                        {item.address && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{item.address}</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(item)}>
+                        <Pencil className="h-4 w-4 text-blue-600" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleDelete(item.id)}>
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
                   </div>
-                  <p className="font-medium text-sm text-gray-900">{item.entry_name}</p>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
-                    <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{item.phone}</span>
-                    {item.address && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{item.address}</span>}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(item)}>
-                    <Pencil className="h-4 w-4 text-blue-600" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleDelete(item.id)}>
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        {items.length === 0 && <p className="text-center text-gray-400 py-8">Нет записей</p>}
-      </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ))
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -139,14 +195,33 @@ export default function AdminDirectory() {
                 <label className="text-sm font-medium text-gray-700">Название *</label>
                 <Input value={editItem.entry_name || ''} onChange={e => setEditItem({ ...editItem, entry_name: e.target.value })} placeholder="Название организации" />
               </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Категория *</label>
-                <Select value={editItem.category || ''} onValueChange={v => setEditItem({ ...editItem, category: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {DIRECTORY_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Категория *</label>
+                  <Select
+                    value={editItem.category || ''}
+                    onValueChange={v => setEditItem({
+                      ...editItem,
+                      category: v,
+                      sort_order: editItem.id ? editItem.sort_order : nextSortOrder(items, v),
+                    })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {DIRECTORY_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Порядок</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={editItem.sort_order ?? ''}
+                    onChange={e => setEditItem({ ...editItem, sort_order: e.target.value ? parseInt(e.target.value) : 0 })}
+                    placeholder="1"
+                  />
+                </div>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Адрес</label>
@@ -154,7 +229,7 @@ export default function AdminDirectory() {
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Телефон *</label>
-                <Input value={editItem.phone || ''} onChange={e => setEditItem({ ...editItem, phone: e.target.value })} placeholder="+7..." />
+                <Input value={editItem.phone || ''} onChange={e => setEditItem({ ...editItem, phone: e.target.value })} placeholder="+7... или 102" />
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Описание</label>

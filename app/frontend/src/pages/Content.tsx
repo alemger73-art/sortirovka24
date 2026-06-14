@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
-import { client, withRetry, COMPLAINT_CATEGORIES, NEWS_CATEGORIES, ANN_TYPES, REAL_ESTATE_TYPES, JOB_CATEGORIES, STATUS_LABELS, DIRECTORY_CATEGORIES, timeAgo, formatDate } from '@/lib/api';
+import { client, withRetry, COMPLAINT_CATEGORIES, NEWS_CATEGORIES, ANN_TYPES, REAL_ESTATE_TYPES, JOB_CATEGORIES, STATUS_LABELS, timeAgo, formatDate } from '@/lib/api';
 import { fetchWithCache } from '@/lib/cache';
-import { ChevronLeft, MapPin, Phone, MessageCircle, Clock, CheckCircle, AlertTriangle, Star, Briefcase, HelpCircle, Send, BookOpen, Megaphone, Shield, Loader2, Plus, Home, BadgeCheck } from 'lucide-react';
+import { ChevronLeft, MapPin, Phone, MessageCircle, Clock, CheckCircle, AlertTriangle, Star, Briefcase, HelpCircle, Send, BookOpen, Megaphone, Shield, Loader2, Plus, Home } from 'lucide-react';
 import { toast } from 'sonner';
 import ImageUpload, { StorageImage } from "@/components/ImageUpload";
 import StorageImg from "@/components/StorageImg";
@@ -1865,85 +1865,6 @@ export function NewRealEstateForm() {
             ) : 'Разместить объявление'}
           </button>
         </form>
-      </div>
-    </Layout>
-  );
-}
-
-/* ============ DIRECTORY ============ */
-export function DirectoryPage() {
-  const [entries, setEntries] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [category, setCategory] = useState('');
-
-  useEffect(() => { loadData(); }, [category]);
-
-  async function loadData() {
-    setLoading(true);
-    try {
-      const query: any = {};
-      if (category) query.category = category;
-      const res = await fetchWithCache(`directory_entries_${category || 'all'}`, () => withRetry(() => client.entities.directory_entries.query({ query, sort: 'category', limit: 50 })), 10 * 60 * 1000);
-      setEntries(res.data?.items || []);
-    } catch (e) { console.error(e); } finally { setLoading(false); }
-  }
-
-  const grouped = entries.reduce((acc: Record<string, any[]>, e) => {
-    if (!acc[e.category]) acc[e.category] = [];
-    acc[e.category].push(e);
-    return acc;
-  }, {});
-
-  return (
-    <Layout>
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Полезный справочник</h1>
-        <p className="text-gray-500 mb-6">Важные телефоны и организации района</p>
-
-        <div className="flex flex-wrap gap-2 mb-6">
-          <button onClick={() => setCategory('')} className={`px-3 py-1.5 rounded-full text-sm font-medium ${!category ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Все</button>
-          {DIRECTORY_CATEGORIES.map(c => (
-            <button key={c} onClick={() => setCategory(c === category ? '' : c)} className={`px-3 py-1.5 rounded-full text-sm font-medium ${category === c ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{c}</button>
-          ))}
-        </div>
-
-        {/* Inspector quick link */}
-        <Link to="/inspectors" className="block bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-5 mb-8 hover:shadow-lg transition-all hover:-translate-y-0.5 group">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-white/15 backdrop-blur rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-white/25 transition-colors">
-              <BadgeCheck className="w-7 h-7 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-white font-bold text-lg">Участковые инспекторы</h3>
-              <p className="text-white/60 text-sm">Найдите участкового по вашей улице</p>
-            </div>
-            <ChevronLeft className="w-5 h-5 text-white/40 rotate-180 group-hover:translate-x-1 transition-transform" />
-          </div>
-        </Link>
-
-        {loading ? <div className="text-center py-12 text-gray-400">Загрузка...</div> : (
-          <div className="space-y-8">
-            {Object.entries(grouped).map(([cat, items]) => (
-              <div key={cat}>
-                <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-green-600" /> {cat}
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {items.map((d: any) => (
-                    <div key={d.id} className="bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition-all">
-                      <h3 className="font-semibold text-gray-900">{d.entry_name}</h3>
-                      <p className="text-sm text-gray-500 mt-1">{d.description}</p>
-                      {d.address && <div className="flex items-center gap-1 mt-2 text-xs text-gray-400"><MapPin className="w-3.5 h-3.5" /> {d.address}</div>}
-                      <a href={`tel:${d.phone}`} className="inline-flex items-center gap-1 mt-2 text-blue-600 font-bold hover:text-blue-700">
-                        <Phone className="w-4 h-4" /> {d.phone}
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </Layout>
   );

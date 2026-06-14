@@ -82,6 +82,13 @@ class TestPublicReads:
         r = client.get("/api/v1/taxi/settings")
         assert r.status_code == 200
 
+    def test_support_settings(self, client: httpx.Client):
+        r = client.get("/api/v1/support/settings")
+        assert r.status_code == 200
+        data = r.json()
+        assert "recipient" in data
+        assert "promo_enabled" in data
+
 
 class TestAccountFlow:
     def test_register_sms_requires_phone(self, client: httpx.Client):

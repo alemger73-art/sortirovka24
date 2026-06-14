@@ -36,7 +36,7 @@ from services.taxi_geo import (
 
 DEFAULT_SETTINGS: Dict[str, str] = {
 
-    "enabled": "true",
+    "enabled": "false",
 
     "base_fare": "500",
 
@@ -87,6 +87,10 @@ def settings_to_dict(rows: List[Any]) -> Dict[str, str]:
             result[row.key] = str(row.value)
 
     return result
+
+
+def is_taxi_enabled(settings: Dict[str, str]) -> bool:
+    return (settings.get("enabled") or "false").strip().lower() in ("true", "1", "yes")
 
 
 
@@ -310,7 +314,7 @@ async def build_quote(
 
 ) -> Dict[str, Any]:
 
-    if settings.get("enabled", "true").lower() not in ("true", "1", "yes"):
+    if not is_taxi_enabled(settings):
 
         return {"available": False, "message": "Сервис такси временно недоступен"}
 

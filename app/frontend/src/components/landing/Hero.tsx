@@ -1,10 +1,14 @@
 import { Link } from "react-router-dom";
 import { Car, Utensils, Wrench, Users, Coffee, ShieldCheck } from "lucide-react";
+import { useTaxiEnabled } from "@/hooks/useTaxiEnabled";
 
 const HERO_BG =
   "https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/ad8caa55-9593-448b-8f7a-39be84ed5053.png";
 
 export default function Hero() {
+  const taxiEnabled = useTaxiEnabled();
+  const showTaxi = taxiEnabled === true;
+
   return (
     <section className="relative min-h-[520px] overflow-hidden md:min-h-[640px]">
       <img
@@ -32,17 +36,19 @@ export default function Hero() {
               в одном сервисе
             </p>
 
-            <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <Link
-                to="/taxi"
-                className="group rounded-2xl bg-yellow-400 px-5 py-4 text-gray-900 shadow-xl transition-all duration-200 hover:scale-[1.03] hover:shadow-yellow-300/30 hover:shadow-2xl"
-              >
-                <div className="flex items-center gap-2">
-                  <Car className="h-5 w-5" />
-                  <p className="text-base font-bold">Такси</p>
-                </div>
-                <p className="mt-1 text-sm font-medium text-gray-800">Быстро по району</p>
-              </Link>
+            <div className={`mt-7 grid grid-cols-1 gap-3 ${showTaxi ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+              {showTaxi && (
+                <Link
+                  to="/taxi"
+                  className="group rounded-2xl bg-yellow-400 px-5 py-4 text-gray-900 shadow-xl transition-all duration-200 hover:scale-[1.03] hover:shadow-yellow-300/30 hover:shadow-2xl"
+                >
+                  <div className="flex items-center gap-2">
+                    <Car className="h-5 w-5" />
+                    <p className="text-base font-bold">Такси</p>
+                  </div>
+                  <p className="mt-1 text-sm font-medium text-gray-800">Быстро по району</p>
+                </Link>
+              )}
               <Link
                 to="/food"
                 className="group rounded-2xl border border-white/45 bg-black/35 px-5 py-4 text-white shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-[1.03] hover:shadow-white/15 hover:shadow-2xl"

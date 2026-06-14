@@ -8,6 +8,8 @@ import TaxiMap from '@/components/taxi/TaxiMap';
 
 import TaxiAddressInput from '@/components/taxi/TaxiAddressInput';
 
+import TaxiUnavailable from '@/components/taxi/TaxiUnavailable';
+
 import { Button } from '@/components/ui/button';
 
 import { Input } from '@/components/ui/input';
@@ -330,7 +332,23 @@ export default function Taxi() {
 
 
 
-  const disabled = settings && !settings.enabled;
+  if (settings && !settings.enabled) {
+
+    return (
+
+      <Layout>
+
+        <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800 py-8">
+
+          <TaxiUnavailable />
+
+        </div>
+
+      </Layout>
+
+    );
+
+  }
 
 
 
@@ -381,20 +399,6 @@ export default function Taxi() {
 
 
         <div className="mx-auto max-w-3xl px-4 pb-16 md:px-8 -mt-2">
-
-          {disabled && (
-
-            <div className="mb-4 flex items-center gap-2 rounded-2xl bg-red-500/20 border border-red-400/30 px-4 py-3 text-red-200 text-sm">
-
-              <AlertCircle className="h-4 w-4 shrink-0" />
-
-              Сервис временно недоступен
-
-            </div>
-
-          )}
-
-
 
           <div className="rounded-3xl bg-white shadow-2xl shadow-black/30 overflow-hidden">
 
@@ -514,8 +518,6 @@ export default function Taxi() {
 
                       className="w-full h-13 rounded-xl bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold text-base shadow-lg shadow-yellow-400/30"
 
-                      disabled={disabled}
-
                       onClick={() => {
 
                         if (!getAccountToken()) {
@@ -612,7 +614,7 @@ export default function Taxi() {
 
                         className="w-full h-13 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-bold"
 
-                        disabled={ordering || disabled}
+                        disabled={ordering}
 
                         onClick={handleOrder}
 

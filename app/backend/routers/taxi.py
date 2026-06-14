@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from models.auth import User
 from pydantic import BaseModel, Field
 from services.taxi_auth import assert_driver_user, get_taxi_user, require_taxi_admin
-from services.taxi_pricing import build_quote, resolve_location
+from services.taxi_pricing import build_quote, is_taxi_enabled, resolve_location
 from services.taxi_geo import geo_context_from_taxi_settings, suggest_addresses
 from services.taxi_service import (
     accept_ride,
@@ -27,6 +27,7 @@ from services.taxi_service import (
     get_ride_by_id,
     get_ride_with_driver,
     get_settings_dict,
+    ensure_taxi_service_enabled,
     list_all_rides,
     list_driver_rides,
     list_pending_rides,
@@ -151,7 +152,7 @@ async def _resolve_point(point: LocationInput, settings: Optional[Dict[str, str]
 async def public_settings(db: AsyncSession = Depends(get_db)):
     settings = await get_settings_dict(db)
     return {
-        "enabled": settings.get("enabled", "true").lower() in ("true", "1", "yes"),
+        "enabled": is_taxi_enabled(settings),
         "service_area": settings.get("service_area"),
         "base_fare": float(settings.get("base_fare", 500)),
         "per_km": float(settings.get("per_km", 150)),
@@ -164,7 +165,10 @@ async def public_settings(db: AsyncSession = Depends(get_db)):
 
 @router.post("/quote")
 async def quote_ride(body: QuoteRequest, db: AsyncSession = Depends(get_db)):
-    settings = await get_settings_dict(db)
+    try:
+        settings = await ensure_taxi_service_enabled(db)
+    except ValueError as e:
+        raise HTTPException(status_code=503, detail=str(e))
     from_loc = await _resolve_point(body.from_point, settings)
     to_loc = await _resolve_point(body.to_point, settings)
     result = await build_quote(
@@ -181,7 +185,10 @@ async def quote_ride(body: QuoteRequest, db: AsyncSession = Depends(get_db)):
 
 @router.post("/geocode")
 async def geocode_point(body: LocationInput, db: AsyncSession = Depends(get_db)):
-    settings = await get_settings_dict(db)
+    try:
+        settings = await ensure_taxi_service_enabled(db)
+    except ValueError as e:
+        raise HTTPException(status_code=503, detail=str(e))
     loc = await resolve_location(
         address=body.address,
         lat=body.lat,
@@ -195,7 +202,10 @@ async def geocode_point(body: LocationInput, db: AsyncSession = Depends(get_db))
 
 @router.post("/suggest")
 async def suggest_address(body: SuggestRequest, db: AsyncSession = Depends(get_db)):
-    settings = await get_settings_dict(db)
+    try:
+        settings = await ensure_taxi_service_enabled(db)
+    except ValueError as e:
+        raise HTTPException(status_code=503, detail=str(e))
     items = await suggest_addresses(
         body.query.strip(),
         settings=geo_context_from_taxi_settings(settings),
@@ -215,6 +225,11 @@ async def create_taxi_ride(
     user = await get_taxi_user(db, authorization)
     if body.payment_method not in VALID_PAYMENT:
         raise HTTPException(status_code=400, detail="Недопустимый способ оплаты")
+
+    try:
+        await ensure_taxi_service_enabled(db)
+    except ValueError as e:
+        raise HTTPException(status_code=503, detail=str(e))
 
     try:
         await validate_quote_for_order(
@@ -396,6 +411,11 @@ async def set_driver_online(
 ):
     user = await get_taxi_user(db, authorization)
     assert_driver_user(user)
+    if body.online:
+        try:
+            await ensure_taxi_service_enabled(db)
+        except ValueError as e:
+            raise HTTPException(status_code=503, detail=str(e))
     profile = await get_or_create_driver_profile(db, user)
     profile.is_online = body.online
     await db.commit()
@@ -460,6 +480,10 @@ async def driver_accept_ride(
     user = await get_taxi_user(db, authorization)
     assert_driver_user(user)
     try:
+        await ensure_taxi_service_enabled(db)
+    except ValueError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    try:
         ride = await accept_ride(db, ride_id, user)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -513,6 +537,10 @@ async def driver_submit_application(
     user = await get_taxi_user(db, authorization)
     if not body.full_name.strip() or not body.car_number.strip():
         raise HTTPException(status_code=400, detail="Заполните имя и госномер")
+    try:
+        await ensure_taxi_service_enabled(db)
+    except ValueError as e:
+        raise HTTPException(status_code=503, detail=str(e))
     try:
         app = await submit_driver_application(
             db,

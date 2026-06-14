@@ -139,6 +139,12 @@ function prefetchInspectors(): void {
   ), CACHE_5M);
 }
 
+function prefetchDirectory(): void {
+  prefetchOne('directory_entries_v2', () => withRetry(() =>
+    client.entities.directory_entries.query({ sort: 'sort_order', limit: 200 })
+  ), CACHE_5M);
+}
+
 function prefetchRealEstate(): void {
   prefetchOne('real_estate_list', () => withRetry(() =>
     client.entities.real_estate.query({ sort: '-created_at', limit: 100 })
@@ -180,6 +186,7 @@ export function prefetchFromIndex(): void {
   setTimeout(() => {
     onIdle(() => {
       prefetchInspectors();
+      prefetchDirectory();
       prefetchRealEstate();
     });
   }, 6000);
@@ -203,7 +210,7 @@ export function prefetchPage(page: string): void {
     'real-estate': prefetchRealEstate,
     transport: prefetchTransport,
     questions: () => {},
-    directory: () => {},
+    directory: prefetchDirectory,
   };
 
   const fn = map[page];

@@ -28,6 +28,7 @@ import AdminParkPoints from './AdminParkPoints';
 import AdminParkOrders from './AdminParkOrders';
 import AdminAccountSettings from './AdminAccountSettings';
 import AdminGastronom from './AdminGastronom';
+import AdminSupport from './AdminSupport';
 
 // JWT token key in localStorage (persists across tabs and browser restarts)
 const SESSION_KEY = '_sp924_token';
@@ -302,6 +303,7 @@ export default function AdminPanel() {
       case 'pos-integration': return <AdminFrontpad />;
       case 'account-settings': return <AdminAccountSettings />;
       case 'partners-gastronom': return <AdminGastronom />;
+      case 'support': return <AdminSupport />;
       default: return <AdminCategories />;
     }
   };

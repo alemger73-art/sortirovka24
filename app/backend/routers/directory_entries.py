@@ -24,6 +24,7 @@ class Directory_entriesData(BaseModel):
     address: str = None
     phone: str = None
     description: str = None
+    sort_order: int = None
     created_at: str = None
 
 
@@ -34,6 +35,7 @@ class Directory_entriesUpdateData(BaseModel):
     address: Optional[str] = None
     phone: Optional[str] = None
     description: Optional[str] = None
+    sort_order: Optional[int] = None
     created_at: Optional[str] = None
 
 
@@ -45,6 +47,7 @@ class Directory_entriesResponse(BaseModel):
     address: Optional[str] = None
     phone: Optional[str] = None
     description: Optional[str] = None
+    sort_order: Optional[int] = None
     created_at: Optional[str] = None
 
     class Config:

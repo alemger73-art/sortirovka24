@@ -5,11 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getAccountToken } from '@/lib/accountApi';
 import { taxiApi, type DriverApplication } from '@/lib/taxiApi';
+import { useTaxiEnabled } from '@/hooks/useTaxiEnabled';
+import TaxiUnavailable from '@/components/taxi/TaxiUnavailable';
 import { Car, CheckCircle2, Clock, Loader2, LogIn, Shield, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function TaxiDriverHub() {
   const navigate = useNavigate();
+  const taxiEnabled = useTaxiEnabled();
   const [loading, setLoading] = useState(true);
   const [application, setApplication] = useState<DriverApplication | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -73,6 +76,16 @@ export default function TaxiDriverHub() {
   }
 
   const isDriver = application?.is_driver || application?.status === 'approved';
+
+  if (taxiEnabled === false && !isDriver) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gray-900 py-8">
+          <TaxiUnavailable />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

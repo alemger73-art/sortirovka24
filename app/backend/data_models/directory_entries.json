@@ -26,6 +26,10 @@
             "type": "string",
             "description": "Description"
         },
+        "sort_order": {
+            "type": "integer",
+            "description": "Sort order within category"
+        },
         "created_at": {
             "type": "string",
             "description": "Creation timestamp"

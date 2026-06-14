@@ -30,7 +30,7 @@ const NewJobForm = lazy(() => import("./pages/Content").then(m => ({ default: m.
 const QuestionsList = lazy(() => import("./pages/Content").then(m => ({ default: m.QuestionsList })));
 const QuestionDetail = lazy(() => import("./pages/Content").then(m => ({ default: m.QuestionDetail })));
 const NewQuestionForm = lazy(() => import("./pages/Content").then(m => ({ default: m.NewQuestionForm })));
-const DirectoryPage = lazy(() => import("./pages/Content").then(m => ({ default: m.DirectoryPage })));
+const DirectoryPage = lazy(() => import("./pages/Directory"));
 
 const InspectorsPage = lazy(() => import("./pages/Inspectors"));
 const HistoryPage = lazy(() => import("./pages/History"));
@@ -41,6 +41,7 @@ const Food = lazy(() => import("./pages/FoodDelivery"));
 const FoodPark = lazy(() => import("./pages/FoodPark"));
 const FoodCourier = lazy(() => import("./pages/FoodCourier"));
 const BusinessPage = lazy(() => import("./pages/Business"));
+const SupportPage = lazy(() => import("./pages/Support"));
 const TransportPage = lazy(() => import("./pages/Transport"));
 const TaxiPage = lazy(() => import("./pages/Taxi"));
 const TaxiRidePage = lazy(() => import("./pages/TaxiRide"));
@@ -132,6 +133,7 @@ function App() {
               <Route path="/food/park" element={<FoodPark />} />
               <Route path="/food/courier" element={<FoodCourier />} />
               <Route path="/business" element={<BusinessPage />} />
+              <Route path="/support" element={<SupportPage />} />
 
               {/* Admin panel — accessible via /admin */}
               <Route path="/admin" element={<AdminPanel />} />

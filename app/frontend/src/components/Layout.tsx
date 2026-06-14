@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Home, Wrench, Newspaper, AlertTriangle, BookOpen, Megaphone, Briefcase, HelpCircle, Phone, Utensils, Bus, Car } from 'lucide-react';
+import { Home, Wrench, Newspaper, AlertTriangle, BookOpen, Megaphone, Briefcase, HelpCircle, Phone, Utensils, Bus, Car, Heart } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { prefetchPage, routeToPage } from '@/lib/prefetch';
 import Header from '@/components/layout/Header';
 import { AUTH_PROMPT_EVENT } from '@/lib/localAuth';
 import AuthPromptModal from '@/components/ui/AuthPromptModal';
+import { useTaxiEnabled } from '@/hooks/useTaxiEnabled';
+
 import InstallAppBanner from '@/components/InstallAppBanner';
+import { useSupportSettings } from '@/hooks/useSupportSettings';
 
 const NAV_KEYS = [
   { path: '/', key: 'nav.home', icon: Home },
@@ -25,8 +28,12 @@ const NAV_KEYS = [
 export default function Layout({ children, hideHeader = false }: { children: React.ReactNode; hideHeader?: boolean }) {
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const taxiEnabled = useTaxiEnabled();
+  const { promoEnabled: supportPromoEnabled } = useSupportSettings();
   const [authPromptOpen, setAuthPromptOpen] = useState(false);
   const [authRedirectTo, setAuthRedirectTo] = useState('/login');
+
+  const navItems = NAV_KEYS.filter((item) => item.path !== '/taxi' || taxiEnabled !== false);
 
   /** Prefetch page data on link hover/focus for instant transitions */
   const handlePrefetch = useCallback((path: string) => {
@@ -77,11 +84,20 @@ export default function Layout({ children, hideHeader = false }: { children: Rea
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {t('footer.portalDescription')}
               </p>
+              <Link
+                to="/support"
+                onMouseEnter={() => handlePrefetch('/support')}
+                onFocus={() => handlePrefetch('/support')}
+                className="inline-flex items-center gap-1.5 mt-3 text-sm text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 transition-colors"
+              >
+                <Heart className="w-3.5 h-3.5" />
+                {supportPromoEnabled ? t('footer.support') : t('footer.aboutProject')}
+              </Link>
             </div>
             <div>
               <h4 className="font-semibold text-gray-900 dark:text-white mb-3">{t('footer.sections')}</h4>
               <div className="grid grid-cols-2 gap-2">
-                {NAV_KEYS.map(item => (
+                {navItems.map(item => (
                   <Link
                     key={item.path}
                     to={item.path}

@@ -12,4 +12,5 @@ class Directory_entries(Base):
     address = Column(String, nullable=True)
     phone = Column(String, nullable=True)
     description = Column(String, nullable=True)
+    sort_order = Column(Integer, nullable=True)
     created_at = Column(String, nullable=True)

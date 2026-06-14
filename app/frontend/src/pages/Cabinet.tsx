@@ -4,6 +4,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { Camera, Coins, Save, UserCircle2 } from "lucide-react";
 import { accountApi, clearAccountToken, getAccountToken } from "@/lib/accountApi";
 import { formatTenge, taxiApi, TAXI_STATUS_LABELS, type TaxiRide } from "@/lib/taxiApi";
+import { useTaxiEnabled } from "@/hooks/useTaxiEnabled";
+import TaxiUnavailable from "@/components/taxi/TaxiUnavailable";
 
 type TabId = "profile" | "bonuses" | "orders" | "taxi" | "complaints" | "announcements" | "settings";
 
@@ -17,21 +19,28 @@ function DarkCard({ children }: { children: React.ReactNode }) {
 
 export default function Cabinet() {
   const navigate = useNavigate();
+  const taxiEnabled = useTaxiEnabled();
   const [activeTab, setActiveTab] = useState<TabId>("profile");
   const [loading, setLoading] = useState(true);
   const [cabinet, setCabinet] = useState<any>(null);
   const [profileForm, setProfileForm] = useState({ name: "", email: "", avatar: "", language: "ru" });
   const [error, setError] = useState("");
   const [taxiRides, setTaxiRides] = useState<TaxiRide[]>([]);
-  const tabs: { id: TabId; label: string }[] = [
-    { id: "profile", label: "Профиль" },
-    { id: "bonuses", label: "Бонусы" },
-    { id: "orders", label: "История заказов" },
-    { id: "taxi", label: "Поездки такси" },
-    { id: "complaints", label: "История жалоб" },
-    { id: "announcements", label: "История объявлений" },
-    { id: "settings", label: "Настройки" },
-  ];
+  const tabs: { id: TabId; label: string }[] = useMemo(() => {
+    const base: { id: TabId; label: string }[] = [
+      { id: "profile", label: "Профиль" },
+      { id: "bonuses", label: "Бонусы" },
+      { id: "orders", label: "История заказов" },
+      { id: "taxi", label: "Поездки такси" },
+      { id: "complaints", label: "История жалоб" },
+      { id: "announcements", label: "История объявлений" },
+      { id: "settings", label: "Настройки" },
+    ];
+    if (taxiEnabled === false && taxiRides.length === 0) {
+      return base.filter((t) => t.id !== "taxi");
+    }
+    return base;
+  }, [taxiEnabled, taxiRides.length]);
 
   useEffect(() => {
     (async () => {
@@ -216,8 +225,13 @@ export default function Cabinet() {
                 <DarkCard>
                   <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-xl font-bold">Поездки такси</h2>
-                    <Link to="/taxi" className="text-sm font-semibold text-yellow-400 hover:text-yellow-300">Заказать →</Link>
+                    {taxiEnabled !== false ? (
+                      <Link to="/taxi" className="text-sm font-semibold text-yellow-400 hover:text-yellow-300">Заказать →</Link>
+                    ) : null}
                   </div>
+                  {taxiEnabled === false && taxiRides.length === 0 ? (
+                    <TaxiUnavailable compact />
+                  ) : (
                   <div className="space-y-2">
                     {taxiRides.map((r) => (
                       <Link key={r.id} to={`/taxi/ride/${r.id}`} className="block rounded-xl border border-[#26324a] bg-[#0f172a] p-3 hover:border-yellow-400/40 transition-colors">
@@ -233,6 +247,7 @@ export default function Cabinet() {
                     ))}
                     {taxiRides.length === 0 ? <p className="text-sm text-slate-400">Пока нет поездок.</p> : null}
                   </div>
+                  )}
                 </DarkCard>
               )}
 

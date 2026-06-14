@@ -9,6 +9,7 @@ import {
   type TaxiAdminStats,
   type TaxiRide,
 } from '@/lib/taxiApi';
+import { invalidateTaxiEnabledCache } from '@/hooks/useTaxiEnabled';
 import {
   Car,
   Check,
@@ -66,6 +67,7 @@ export default function AdminTaxi() {
     try {
       const updated = await taxiApi.adminUpdateSettings(settings);
       setSettings(updated);
+      invalidateTaxiEnabledCache();
       toast.success('Настройки сохранены');
     } catch (e: any) {
       toast.error(String(e?.message || 'Ошибка'));
@@ -73,6 +75,22 @@ export default function AdminTaxi() {
       setSavingSettings(false);
     }
   }
+
+  async function toggleServiceEnabled() {
+    const next = settings.enabled === 'true' ? 'false' : 'true';
+    setSettings({ ...settings, enabled: next });
+    try {
+      const updated = await taxiApi.adminUpdateSettings({ enabled: next });
+      setSettings(updated);
+      invalidateTaxiEnabledCache();
+      toast.success(next === 'true' ? 'Такси включено — видно на сайте' : 'Такси отключено — скрыто с сайта');
+    } catch (e: any) {
+      toast.error(String(e?.message || 'Ошибка'));
+      await load();
+    }
+  }
+
+  const serviceOn = settings.enabled === 'true';
 
   async function approveApp(userId: string) {
     try {
@@ -116,6 +134,28 @@ export default function AdminTaxi() {
           <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
           Обновить
         </Button>
+      </div>
+
+      <div className={`rounded-2xl border px-4 py-4 flex flex-wrap items-center justify-between gap-3 ${serviceOn ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+        <div>
+          <p className={`font-bold ${serviceOn ? 'text-green-900' : 'text-amber-900'}`}>
+            {serviceOn ? 'Сервис включён' : 'Сервис отключён'}
+          </p>
+          <p className={`text-sm mt-0.5 ${serviceOn ? 'text-green-700' : 'text-amber-800'}`}>
+            {serviceOn
+              ? 'Пользователи видят такси на главной, в меню и могут заказывать поездки.'
+              : 'Такси скрыто с сайта. Заказы, заявки водителей и расчёт маршрута недоступны.'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={toggleServiceEnabled}
+          disabled={loading || !Object.keys(settings).length}
+          className={`relative h-8 w-14 shrink-0 rounded-full transition-colors ${serviceOn ? 'bg-green-500' : 'bg-gray-300'}`}
+          title={serviceOn ? 'Отключить такси' : 'Включить такси'}
+        >
+          <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-transform ${serviceOn ? 'left-7' : 'left-1'}`} />
+        </button>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -305,13 +345,16 @@ export default function AdminTaxi() {
                   <Input value={settings.max_radius_km || ''} onChange={(e) => setSettings({ ...settings, max_radius_km: e.target.value })} className="rounded-xl" />
                 </div>
                 <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
-                  <span className="text-sm font-medium">Сервис включён</span>
+                  <div>
+                    <span className="text-sm font-medium block">Сервис включён</span>
+                    <span className="text-xs text-gray-500">Сохраняется сразу при переключении</span>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => setSettings({ ...settings, enabled: settings.enabled === 'true' ? 'false' : 'true' })}
-                    className={`relative h-7 w-12 rounded-full transition-colors ${settings.enabled !== 'false' ? 'bg-yellow-400' : 'bg-gray-300'}`}
+                    onClick={toggleServiceEnabled}
+                    className={`relative h-7 w-12 rounded-full transition-colors ${serviceOn ? 'bg-yellow-400' : 'bg-gray-300'}`}
                   >
-                    <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${settings.enabled !== 'false' ? 'left-5' : 'left-0.5'}`} />
+                    <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${serviceOn ? 'left-5' : 'left-0.5'}`} />
                   </button>
                 </div>
                 <Button className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold rounded-xl" disabled={savingSettings} onClick={saveSettings}>
