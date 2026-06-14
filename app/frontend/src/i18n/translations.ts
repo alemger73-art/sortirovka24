@@ -97,6 +97,14 @@ const translations: Translations = {
   'hero.masters': { ru: 'Мастеров', kz: 'Шебер' },
   'hero.announcements': { ru: 'Объявлений', kz: 'Хабарландыру' },
   'hero.cafes': { ru: 'Кафе', kz: 'Кафе' },
+  'hero.food': { ru: 'Еда', kz: 'Тамақ' },
+  'hero.foodDesc': { ru: 'Из кафе и ресторанов', kz: 'Кафе мен мейрамханалардан' },
+  'hero.gastronom': { ru: 'Гастроном', kz: 'Гастроном' },
+  'hero.gastronomDesc': { ru: 'Доставка продуктов по Сортировке', kz: 'Сортировка бойынша өнімдер жеткізу' },
+  'hero.mastersBtn': { ru: 'Найти мастера', kz: 'Шебер табу' },
+  'hero.mastersDesc': { ru: 'Все услуги', kz: 'Барлық қызметтер' },
+  'hero.taxi': { ru: 'Такси', kz: 'Такси' },
+  'hero.taxiDesc': { ru: 'Быстро по району', kz: 'Аудан бойынша жылдам' },
 
   /* ─── Services ─── */
   'services.title': { ru: 'Сервисы', kz: 'Сервистер' },
