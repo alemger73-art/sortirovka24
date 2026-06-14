@@ -74,12 +74,21 @@ if (-not (Test-Path ".env.mobile")) {
 }
 
 Write-Host "[4/5] Building web bundle..."
-npm run build:mobile 2>&1 | Write-Host
-npx cap sync android 2>&1 | Write-Host
+$prevEAP = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+npm run build:mobile 2>&1 | ForEach-Object { Write-Host $_ }
+if ($LASTEXITCODE -ne 0) { throw "npm run build:mobile failed with exit $LASTEXITCODE" }
+npx cap sync android 2>&1 | ForEach-Object { Write-Host $_ }
+if ($LASTEXITCODE -ne 0) { throw "cap sync failed with exit $LASTEXITCODE" }
+$ErrorActionPreference = $prevEAP
 
 Set-Location $AndroidRoot
 Write-Host "[5/5] Gradle assembleDebug (first run may take 10+ minutes)..."
-& .\gradlew.bat assembleDebug --no-daemon 2>&1 | Write-Host
+$ErrorActionPreference = "Continue"
+& .\gradlew.bat assembleDebug --no-daemon 2>&1 | ForEach-Object { Write-Host $_ }
+$gradleExit = $LASTEXITCODE
+$ErrorActionPreference = "Stop"
+if ($gradleExit -ne 0) { throw "Gradle failed with exit $gradleExit" }
 
 $apkSource = Join-Path $AndroidRoot "app\build\outputs\apk\debug\app-debug.apk"
 if (-not (Test-Path $apkSource)) {

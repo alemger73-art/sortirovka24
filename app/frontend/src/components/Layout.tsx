@@ -10,6 +10,7 @@ import { useTaxiEnabled } from '@/hooks/useTaxiEnabled';
 
 import InstallAppBanner from '@/components/InstallAppBanner';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import OfflineBanner from '@/components/OfflineBanner';
 import { useSupportSettings } from '@/hooks/useSupportSettings';
 import { shouldShowBottomNav } from '@/lib/appShell';
 
@@ -65,6 +66,7 @@ export default function Layout({
 
   return (
     <div className={`min-h-screen bg-[#F8FAFC] dark:bg-gray-950 flex flex-col transition-colors duration-300 ${showBottomNav ? 'has-bottom-nav' : ''}`}>
+      <OfflineBanner />
       {/* Header */}
       {!hideHeader && (
         <Header />
