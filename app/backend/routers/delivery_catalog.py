@@ -30,16 +30,20 @@ router = APIRouter(prefix="/api", tags=["delivery_catalog"])
 
 def slugify(text: str) -> str:
     s = (text or "").strip().lower()
-    s = re.sub(r"[^\w\s-]", "", s, flags=re.ASCII)
+    # Keep Cyrillic letters (U+0400–U+04FF) for Kazakh/Russian category names
+    s = re.sub(r"[^\w\s\u0400-\u04FF-]", "", s, flags=re.UNICODE)
     s = re.sub(r"[-\s]+", "-", s).strip("-")
     return s or "category"
 
 
 def _category_slug(cat: Food_categories) -> str:
     raw = (getattr(cat, "slug", None) or "").strip()
-    if raw:
+    if raw and raw != "category":
         return raw
-    return slugify(cat.name or f"cat-{cat.id}")
+    from_name = slugify(cat.name or "")
+    if from_name and from_name != "category":
+        return from_name
+    return f"cat-{cat.id}"
 
 
 def _category_image(cat: Food_categories) -> str:
@@ -79,6 +83,8 @@ def _serialize_product(p: Food_items, slug_by_cat_id: Dict[int, str]) -> Dict[st
         "is_popular": is_pop,
         "is_combo": is_cmb,
         "available": getattr(p, "available", None) is not False,
+        "weight": getattr(p, "weight", None) or "",
+        "sort_order": p.sort_order or 0,
         "created_at": p.created_at,
     }
 

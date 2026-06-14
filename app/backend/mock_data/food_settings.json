@@ -38,5 +38,10 @@
         "setting_key": "show_recommendations",
         "setting_value": "true",
         "is_active": true
+    },
+    {
+        "setting_key": "service_fee_rate",
+        "setting_value": "10",
+        "is_active": true
     }
 ]

@@ -36,6 +36,7 @@ const SETTING_FIELDS = [
   { key: 'hero_banner_subtitle', label: 'Подзаголовок баннера', icon: Image, placeholder: 'Доставка еды №1 в Сортировке', description: 'Слоган под брендом', type: 'text' as const },
   { key: 'min_order_amount', label: 'Минимальная сумма заказа (₸)', icon: DollarSign, placeholder: '2000', description: 'Минимальная сумма для оформления заказа', type: 'text' as const },
   { key: 'delivery_price', label: 'Базовая стоимость доставки (₸)', icon: Truck, placeholder: '500', description: 'Используется если зоны доставки не настроены', type: 'text' as const },
+  { key: 'service_fee_rate', label: 'Сервисный сбор (%)', icon: DollarSign, placeholder: '10', description: 'Процент от суммы заказа (например 10 = 10%)', type: 'text' as const },
 ];
 
 const DEFAULT_ZONES: DeliveryZone[] = [

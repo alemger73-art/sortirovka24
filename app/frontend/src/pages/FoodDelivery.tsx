@@ -272,8 +272,10 @@ export default function FoodDelivery() {
       return toast.error(`Минимальный заказ ${activeRestaurant.min_order} ₸`);
     const paymentLabel = payment === 'cash' ? 'Наличные' : payment === 'kaspi_qr' ? 'Kaspi QR' : 'Halyk QR';
     const items = cart.map(c => ({
+      id: c.dish.id,
       name: c.dish.name,
       qty: c.qty,
+      quantity: c.qty,
       price: c.dish.price,
       sum: c.qty * c.dish.price,
     }));

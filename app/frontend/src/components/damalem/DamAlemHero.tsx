@@ -1,5 +1,6 @@
 import { Clock, Star, Truck, Utensils } from 'lucide-react';
 import { DAM_ALEM_BRAND, DAM_ALEM_HERO_FALLBACK } from '@/lib/damAlem';
+import { resolveImageSrc } from '@/lib/storage';
 
 interface PromoSlide {
   title: string;
@@ -10,6 +11,9 @@ interface DamAlemHeroProps {
   title: string;
   subtitle: string;
   heroImage?: string;
+  brandPhoto?: string;
+  rating?: number;
+  deliveryTime?: string;
   minOrder: number;
   deliveryFrom: number;
   promoSlide: number;
@@ -22,6 +26,9 @@ export default function DamAlemHero({
   title,
   subtitle,
   heroImage,
+  brandPhoto,
+  rating = 4.9,
+  deliveryTime = '35–45 мин',
   minOrder,
   deliveryFrom,
   promoSlide,
@@ -29,7 +36,11 @@ export default function DamAlemHero({
   onPromoSlideChange,
   formatPrice,
 }: DamAlemHeroProps) {
-  const bg = (heroImage || '').trim() || DAM_ALEM_HERO_FALLBACK;
+  const bg =
+    resolveImageSrc(heroImage || '') ||
+    resolveImageSrc(brandPhoto || '') ||
+    (heroImage || '').trim() ||
+    DAM_ALEM_HERO_FALLBACK;
   const slide = promoSlides[promoSlide] ?? promoSlides[0];
 
   return (
@@ -49,7 +60,7 @@ export default function DamAlemHero({
           </div>
           <div className="flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-[#111111] shadow-sm">
             <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-            4.9
+            {rating.toFixed(1)}
           </div>
         </div>
 
@@ -60,11 +71,11 @@ export default function DamAlemHero({
         <div className="mt-4 flex flex-wrap gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm">
             <Clock className="h-3.5 w-3.5 opacity-90" />
-            40–60 мин
+            {deliveryTime}
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm">
             <Truck className="h-3.5 w-3.5 opacity-90" />
-            от {formatPrice(deliveryFrom)}
+            {formatPrice(deliveryFrom)}
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm">
             Мин. {formatPrice(minOrder)}
@@ -72,27 +83,28 @@ export default function DamAlemHero({
         </div>
 
         {slide && (
-          <div className="mt-6 rounded-2xl border border-white/15 bg-black/35 p-4 backdrop-blur-md">
+          <div className="mt-6 overflow-hidden rounded-2xl border border-white/15 bg-black/35 p-4 backdrop-blur-md">
             <p className="text-sm font-bold text-white">{slide.title}</p>
-            <ul className="mt-3 space-y-2">
-              {slide.lines.map(line => (
-                <li key={line} className="flex items-center gap-2.5 text-sm text-white/90">
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#FF3B30]" />
+            <ul className="mt-2 space-y-0.5">
+              {slide.lines.map((line, i) => (
+                <li key={i} className="text-xs text-white/75">
                   {line}
                 </li>
               ))}
             </ul>
-            <div className="mt-4 flex gap-2">
-              {promoSlides.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  aria-label={`Акция ${i + 1}`}
-                  onClick={() => onPromoSlideChange(i)}
-                  className={`h-2 rounded-full transition-all ${i === promoSlide ? 'w-7 bg-white' : 'w-2 bg-white/35 hover:bg-white/55'}`}
-                />
-              ))}
-            </div>
+            {promoSlides.length > 1 && (
+              <div className="mt-3 flex gap-1.5">
+                {promoSlides.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    aria-label={`Слайд ${i + 1}`}
+                    onClick={() => onPromoSlideChange(i)}
+                    className={`h-2 rounded-full transition-all ${i === promoSlide ? 'w-7 bg-white' : 'w-2 bg-white/35 hover:bg-white/55'}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

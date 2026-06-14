@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.food_orders import Food_orders
 from services.bonus_rewards import link_food_order_to_user
+from services.telegram import notify_food_order
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,20 @@ class Food_ordersService:
                 )
             except Exception as bonus_err:
                 logger.warning("[Bonus] Food order reward skipped: %s", bonus_err)
+            try:
+                await notify_food_order({
+                    "order_id": obj.id,
+                    "restaurant_name": obj.restaurant_name,
+                    "customer_name": obj.customer_name,
+                    "customer_phone": obj.customer_phone,
+                    "delivery_address": obj.delivery_address,
+                    "delivery_method": obj.delivery_method,
+                    "order_items": obj.order_items,
+                    "total_amount": obj.total_amount,
+                    "comment": obj.comment,
+                })
+            except Exception as tg_err:
+                logger.warning("[Telegram] Food order notification skipped: %s", tg_err)
             logger.info(f"Created food_orders with id: {obj.id}")
             return obj
         except Exception as e:

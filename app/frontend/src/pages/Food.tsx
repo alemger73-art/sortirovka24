@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -19,6 +19,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { getAccountPrefill, getCurrentUser, pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
+import { fetchFoodRestaurantsList } from '@/lib/foodAdminApi';
+import { findDamAlemRestaurantId } from '@/lib/damAlem';
 
 /* ─── CDN images ─── */
 const FALLBACK_FOOD_1 = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/2034a1d7-1c57-40c0-8145-23816557ba5c.png';
@@ -34,6 +36,7 @@ interface FoodCategory {
   is_active: boolean;
   slug?: string;
   image?: string;
+  restaurant_id?: number | null;
 }
 interface FoodItem {
   id: number;
@@ -50,6 +53,8 @@ interface FoodItem {
   is_popular?: boolean;
   is_combo?: boolean;
   category_slug?: string;
+  restaurant_id?: number | null;
+  available?: boolean;
 }
 interface ModifierGroup { id: number; name: string; type: string; is_required: boolean; min_select: number; max_select: number; sort_order: number; is_active: boolean; }
 interface ModifierOption { id: number; group_id: number; name: string; price: number; sort_order: number; is_active: boolean; }
@@ -59,6 +64,17 @@ interface Settings {
   whatsapp_number: string; hero_banner_title: string; hero_banner_subtitle: string;
   hero_banner_image: string; min_order_amount: string; delivery_price: string;
   delivery_zones: string; show_recommendations: string; promo_slides?: string;
+  service_fee_rate?: string;
+}
+
+interface BrandProfile {
+  id: number;
+  name: string;
+  photo?: string;
+  rating?: number;
+  delivery_time?: string;
+  min_order?: number;
+  whatsapp_phone?: string;
 }
 
 interface CartItemSelection { [groupId: number]: number[]; }
@@ -109,8 +125,10 @@ function slugifyFoodCategory(text: string): string {
 
 function categorySlugOf(cat: FoodCategory): string {
   const raw = (cat.slug || '').trim();
-  if (raw) return raw;
-  return slugifyFoodCategory(cat.name || `cat-${cat.id}`);
+  if (raw && raw !== 'category') return raw;
+  const fromName = slugifyFoodCategory(cat.name || '');
+  if (fromName && fromName !== 'category') return fromName;
+  return `cat-${cat.id}`;
 }
 
 function itemCategorySlug(item: FoodItem, cats: FoodCategory[]): string {
@@ -160,10 +178,13 @@ export default function Food() {
   });
   /** 'all' — весь каталог; иначе slug категории (как в /api/products?category=) */
   const [selectedCategorySlug, setSelectedCategorySlug] = useState<string>('all');
+  const menuSectionRef = useRef<HTMLElement>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [brandProfile, setBrandProfile] = useState<BrandProfile | null>(null);
+  const [damAlemRestaurantId, setDamAlemRestaurantId] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(null);
   const [currentSelections, setCurrentSelections] = useState<CartItemSelection>({});
 
@@ -185,13 +206,6 @@ export default function Food() {
     if (prefill.phone) setCustomerPhone((v) => v || prefill.phone);
   }, []);
 
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setPromoSlide(s => (s + 1) % PROMO_SLIDES.length);
-    }, 6000);
-    return () => window.clearInterval(id);
-  }, []);
-
   async function loadData() {
     setLoading(true);
     const CACHE_TTL = 5 * 60 * 1000;
@@ -203,44 +217,56 @@ export default function Food() {
         : '',
     };
     try {
+      const restaurants = await fetchFoodRestaurantsList();
+      const rid = findDamAlemRestaurantId(restaurants);
+      setDamAlemRestaurantId(rid);
+      const brand = rid != null ? restaurants.find(r => r.id === rid) : restaurants[0];
+      if (brand) setBrandProfile(brand);
+
+      const restaurantQs = rid != null ? `?restaurant_id=${rid}` : '';
       let cats: FoodCategory[] | null = null;
       let foodItems: FoodItem[] | null = null;
       try {
         const [cRes, pRes] = await Promise.all([
-          fetch('/api/categories', { headers: catalogHeaders }),
-          fetch('/api/products', { headers: catalogHeaders }),
+          fetch(`/api/categories${restaurantQs}`, { headers: catalogHeaders }),
+          fetch(`/api/products${restaurantQs}`, { headers: catalogHeaders }),
         ]);
         if (cRes.ok && pRes.ok) {
           const cj = await cRes.json();
           const pj = await pRes.json();
           const rawCats = Array.isArray(cj.categories) ? cj.categories : [];
-          const mappedCats: FoodCategory[] = rawCats.map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            slug: c.slug,
-            image: c.image,
-            icon: (c.image && String(c.image).trim()) ? '' : '🍽',
-            sort_order: typeof c.order === 'number' ? c.order : 0,
-            is_active: true,
-          }));
+          const mappedCats: FoodCategory[] = rawCats.map((c: any) => {
+            const base: FoodCategory = {
+              id: c.id,
+              name: c.name,
+              slug: c.slug,
+              image: c.image,
+              icon: (c.image && String(c.image).trim()) ? '' : '🍽',
+              sort_order: typeof c.order === 'number' ? c.order : 0,
+              is_active: true,
+            };
+            return { ...base, slug: categorySlugOf(base) };
+          });
           const slugById: Record<number, string> = {};
           for (const c of mappedCats) slugById[c.id] = categorySlugOf(c);
           const rawProds = Array.isArray(pj.products) ? pj.products : [];
-          foodItems = rawProds.map((p: any) => ({
-            id: p.id,
-            category_id: p.category_id,
-            name: p.title,
-            description: p.description || '',
-            price: Number(p.price) || 0,
-            image_url: p.image || '',
-            is_active: true,
-            is_recommended: !!(p.is_popular),
-            is_popular: !!(p.is_popular),
-            is_combo: !!(p.is_combo),
-            weight: '',
-            sort_order: 0,
-            category_slug: (p.category_slug as string) || slugById[p.category_id] || '',
-          }));
+          foodItems = rawProds
+            .filter((p: any) => p.available !== false)
+            .map((p: any) => ({
+              id: p.id,
+              category_id: p.category_id,
+              name: p.title,
+              description: p.description || '',
+              price: Number(p.price) || 0,
+              image_url: p.image || '',
+              is_active: true,
+              is_recommended: !!(p.is_popular),
+              is_popular: !!(p.is_popular),
+              is_combo: !!(p.is_combo),
+              weight: p.weight || '',
+              sort_order: typeof p.sort_order === 'number' ? p.sort_order : 0,
+              category_slug: slugById[p.category_id] || (p.category_slug as string) || '',
+            }));
           cats = mappedCats;
         }
       } catch (e) {
@@ -250,10 +276,10 @@ export default function Food() {
       const results = await Promise.allSettled([
         cats
           ? Promise.resolve({ data: { items: [] as FoodCategory[] } })
-          : cq('categories', () => client.entities.food_categories.query({ sort: 'sort_order', limit: 50 })),
+          : cq('categories', () => client.entities.food_categories.query({ sort: 'sort_order', limit: 200 })),
         foodItems
           ? Promise.resolve({ data: { items: [] as FoodItem[] } })
-          : cq('items', () => client.entities.food_items.query({ sort: 'sort_order', limit: 200 })),
+          : cq('items', () => client.entities.food_items.query({ sort: 'sort_order', limit: 500 })),
         cq('mod_groups', () => client.entities.modifier_groups.query({ sort: 'sort_order', limit: 100 })),
         cq('mod_options', () => client.entities.modifier_options.query({ sort: 'sort_order', limit: 500 })),
         cq('item_groups', () => client.entities.item_modifier_groups.query({ limit: 500 })),
@@ -262,16 +288,21 @@ export default function Food() {
       ]);
       const extract = (r: PromiseSettledResult<any>) => (r.status === 'fulfilled' ? (r.value?.data?.items || []) : []);
 
+      const filterByRestaurant = <T extends { restaurant_id?: number | null }>(rows: T[]) =>
+        rid != null ? rows.filter(r => r.restaurant_id == null || r.restaurant_id === rid) : rows;
+
       if (cats && foodItems) {
         setCategories(cats);
         setItems(foodItems);
       } else {
-        const ecats: FoodCategory[] = extract(results[0]).filter((c: FoodCategory) => c.is_active);
-        const eitems: FoodItem[] = extract(results[1]).filter((i: FoodItem) => i.is_active).map((i: FoodItem) => ({
-          ...i,
-          is_popular: i.is_popular ?? i.is_recommended,
-          is_combo: i.is_combo ?? false,
-        }));
+        const ecats: FoodCategory[] = filterByRestaurant(extract(results[0])).filter((c: FoodCategory) => c.is_active !== false);
+        const eitems: FoodItem[] = filterByRestaurant(extract(results[1]))
+          .filter((i: FoodItem) => i.is_active !== false && (i as FoodItem & { available?: boolean }).available !== false)
+          .map((i: FoodItem) => ({
+            ...i,
+            is_popular: i.is_popular ?? i.is_recommended,
+            is_combo: i.is_combo ?? false,
+          }));
         const slugById: Record<number, string> = {};
         for (const c of ecats) slugById[c.id] = categorySlugOf(c);
         setCategories(ecats);
@@ -284,22 +315,29 @@ export default function Food() {
       }
       setSelectedCategorySlug('all');
 
-      setModGroups(extract(results[2]).filter((g: ModifierGroup) => g.is_active));
+      setModGroups(
+        extract(results[2])
+          .filter((g: ModifierGroup) => g.is_active)
+          .map((g: ModifierGroup) => ({
+            ...g,
+            type: g.type === 'single' ? 'radio' : (g.type === 'multiple' || g.type === 'quantity') ? 'checkbox' : g.type,
+          }))
+      );
       setModOptions(extract(results[3]).filter((o: ModifierOption) => o.is_active));
       setItemGroupLinks(extract(results[4]));
       const settingsArr = extract(results[5]);
       const s: Record<string, string> = {};
       settingsArr.forEach((item: any) => {
-        if (item.setting_key && item.setting_value) s[item.setting_key] = item.setting_value;
+        if (item.setting_key != null) s[item.setting_key] = item.setting_value ?? '';
       });
       setSettings(prev => ({ ...prev, ...s }));
 
       const bannerRows = extract(results[6]);
       const damBanners = bannerRows
         .filter((b: any) => {
-          const url = String(b.button_url || '').toLowerCase();
+          const url = String(b.button_url || b.link_url || '').toLowerCase();
           const title = String(b.title || '').toLowerCase();
-          return url.includes('/food') || title.includes('dam alem') || title.includes('доставка еды');
+          return b.banner_type === 'food_delivery' || url.includes('/food') || title.includes('dam alem') || title.includes('доставка еды');
         })
         .map((b: any) => ({
           id: b.id,
@@ -446,8 +484,14 @@ export default function Food() {
   }, 0), [cart, modOptions]);
 
   const cartCount = useMemo(() => cart.reduce((sum, ci) => sum + ci.quantity, 0), [cart]);
-  const SERVICE_FEE_RATE = 0.1;
-  const serviceFeeAmount = useMemo(() => Math.round(cartTotal * SERVICE_FEE_RATE), [cartTotal]);
+  const serviceFeeRate = useMemo(() => {
+    const raw = settings.service_fee_rate;
+    if (raw == null || raw === '') return 0.1;
+    const v = parseFloat(raw);
+    if (Number.isNaN(v)) return 0.1;
+    return v > 1 ? v / 100 : v;
+  }, [settings.service_fee_rate]);
+  const serviceFeeAmount = useMemo(() => Math.round(cartTotal * serviceFeeRate), [cartTotal, serviceFeeRate]);
   const cartTotalWithService = cartTotal + serviceFeeAmount;
 
   const [selectedZoneIndex, setSelectedZoneIndex] = useState(0);
@@ -490,7 +534,10 @@ export default function Food() {
     return `${n} товаров`;
   }, [cartCount, lang]);
 
-  const minOrder = parseInt(settings.min_order_amount) || 0;
+  const minOrder = useMemo(() => {
+    if (brandProfile?.min_order && brandProfile.min_order > 0) return brandProfile.min_order;
+    return parseInt(settings.min_order_amount) || 0;
+  }, [brandProfile, settings.min_order_amount]);
 
   function getItemQuantityInCart(itemId: number) {
     return cart.filter(ci => ci.item.id === itemId).reduce((s, ci) => s + ci.quantity, 0);
@@ -638,9 +685,22 @@ export default function Food() {
       : '';
 
     const orderItems = cart.map(ci => {
-      const selNames = getSelectionNames(ci.selections);
+      const mods: { name: string; price: number; option_id: number }[] = [];
+      for (const gid of Object.keys(ci.selections)) {
+        for (const optId of ci.selections[Number(gid)] || []) {
+          const opt = modOptions.find(o => o.id === optId);
+          if (opt) mods.push({ name: opt.name, price: opt.price || 0, option_id: opt.id });
+        }
+      }
       const modTotal = calcSelectionsPrice(ci.selections);
-      return { name: ci.item.name, price: ci.item.price, quantity: ci.quantity, modifiers: selNames.map(n => ({ name: n, price: 0 })), modTotal };
+      return {
+        id: ci.item.id,
+        name: ci.item.name,
+        price: ci.item.price,
+        quantity: ci.quantity,
+        modifiers: mods,
+        modTotal,
+      };
     });
     const total = checkoutGrandTotal;
     try {
@@ -650,8 +710,16 @@ export default function Food() {
         client.entities.food_orders.create({
           data: {
             ...(uidNum != null ? { user_id: uidNum } : {}),
+            restaurant_id: damAlemRestaurantId ?? 1,
+            restaurant_name: settings.hero_banner_title || brandProfile?.name || 'DAM ALEM',
+            restaurant_phone: settings.whatsapp_number || brandProfile?.whatsapp_phone || '',
             order_items: JSON.stringify(orderItems),
             total_amount: total,
+            delivery_fee: deliveryMethod === 'delivery' ? activeDeliveryPrice : 0,
+            service_fee: serviceFeeAmount,
+            delivery_zone: deliveryMethod === 'delivery' && deliveryZones[selectedZoneIndex]
+              ? deliveryZones[selectedZoneIndex].name
+              : '',
             customer_name: customerName,
             customer_phone: customerPhone,
             delivery_address: fullAddress,
@@ -681,7 +749,7 @@ export default function Food() {
         const modTotal = calcSelectionsPrice(ci.selections);
         msg += `• ${ci.item.name}${modStr} × ${ci.quantity} = ${(ci.item.price + modTotal) * ci.quantity} ₸\n`;
       });
-      msg += `\nТовары: ${cartTotal} ₸\nСервисный сбор (10%): ${serviceFeeAmount} ₸\n`;
+      msg += `\nТовары: ${cartTotal} ₸\nСервисный сбор (${Math.round(serviceFeeRate * 100)}%): ${serviceFeeAmount} ₸\n`;
       if (deliveryMethod === 'delivery') msg += `Доставка: ${activeDeliveryPrice} ₸\n`;
       msg += `\n*Итого: ${total} ₸*`;
       window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -730,6 +798,14 @@ export default function Food() {
     }));
   }, [settings.promo_slides, t]);
 
+  useEffect(() => {
+    const len = promoSlides.length || 1;
+    const id = window.setInterval(() => {
+      setPromoSlide(s => (s + 1) % len);
+    }, 6000);
+    return () => window.clearInterval(id);
+  }, [promoSlides.length]);
+
   const deliveryFromPrice = useMemo(() => {
     if (deliveryZones.length > 0) return Math.min(...deliveryZones.map(z => z.price));
     return parseInt(settings.delivery_price) || 0;
@@ -738,12 +814,21 @@ export default function Food() {
   const categoryNavItems = useMemo(
     () =>
       sortedNavCategories.map(cat => ({
+        id: cat.id,
         slug: categorySlugOf(cat),
         label: localized(cat, 'name') || cat.name,
         icon: cat.icon,
       })),
     [sortedNavCategories, localized]
   );
+
+  const handleCategorySelect = useCallback((slug: string) => {
+    setSelectedCategorySlug(slug);
+    if (searchQuery.trim()) setSearchQuery('');
+    requestAnimationFrame(() => {
+      menuSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [searchQuery]);
 
 
   function MenuDishRow({ item }: { item: FoodItem }) {
@@ -813,9 +898,12 @@ export default function Food() {
     <Layout>
       <div className="min-h-screen bg-[#F5F5F5] text-[#111111]">
         <DamAlemHero
-          title={settings.hero_banner_title || t('food.heroTitle')}
+          title={settings.hero_banner_title || brandProfile?.name || t('food.heroTitle')}
           subtitle={settings.hero_banner_subtitle || t('food.heroSubtitle')}
           heroImage={settings.hero_banner_image}
+          brandPhoto={brandProfile?.photo}
+          rating={brandProfile?.rating ?? 4.9}
+          deliveryTime={brandProfile?.delivery_time || '35–45 мин'}
           minOrder={minOrder}
           deliveryFrom={deliveryFromPrice}
           promoSlide={promoSlide}
@@ -842,7 +930,7 @@ export default function Food() {
           <DamAlemCategoryNav
             items={categoryNavItems}
             activeSlug={selectedCategorySlug}
-            onSelect={setSelectedCategorySlug}
+            onSelect={handleCategorySelect}
             allLabel={t('food.allMenu')}
           />
 
@@ -859,7 +947,7 @@ export default function Food() {
                     <button
                       key={cat.id}
                       type="button"
-                      onClick={() => setSelectedCategorySlug(slug)}
+                      onClick={() => handleCategorySelect(slug)}
                       className="group overflow-hidden rounded-2xl border border-gray-100 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]"
                     >
                       <div className="aspect-[4/3] overflow-hidden bg-[#F0F0F0]">
@@ -920,11 +1008,10 @@ export default function Food() {
             </section>
           )}
 
-          {/* Комбо */}
-          {!searchQuery.trim() && (
+          {/* Комбо — только если есть блюда с меткой «Комбо» */}
+          {!searchQuery.trim() && comboItems.length > 0 && (
           <section className="rounded-3xl bg-gradient-to-br from-[#111111] via-[#1c1c1c] to-[#3d1f14] p-5 text-white shadow-lg">
             <h2 className="mb-4 text-lg font-extrabold">{t('food.comboDeals')}</h2>
-            {comboItems.length > 0 ? (
               <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 scrollbar-hide">
                 {comboItems.slice(0, 6).map(item => {
                   const qtyInCart = getItemQuantityInCart(item.id);
@@ -947,27 +1034,21 @@ export default function Food() {
                   );
                 })}
               </div>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-3">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-4 backdrop-blur-sm">
-                    <p className="text-[15px] font-bold leading-snug">{t(`food.comboCard${i}` as 'food.comboCard1')}</p>
-                    <p className="mt-1.5 text-xs leading-relaxed text-white/70">{t(`food.comboCard${i}Sub` as 'food.comboCard1Sub')}</p>
-                  </div>
-                ))}
-              </div>
-            )}
           </section>
           )}
 
           {/* Меню */}
-          <section>
+          <section ref={menuSectionRef} id="food-menu" className="scroll-mt-16">
             <div className="mb-4 flex items-center gap-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-gray-100">
                 <Utensils className="h-5 w-5 text-[#777777]" />
               </div>
               <h2 className="flex-1 text-lg font-extrabold leading-tight">
-                {searchQuery.trim() ? `Найдено: ${sortedFilteredItems.length}` : t('food.mainMenu')}
+                {searchQuery.trim()
+                  ? `Найдено: ${sortedFilteredItems.length}`
+                  : selectedCategorySlug !== 'all'
+                    ? activeCategoryLabel
+                    : t('food.mainMenu')}
               </h2>
             </div>
 
@@ -1222,7 +1303,7 @@ export default function Food() {
                   );
                 })}
 
-                {cartSuggestions.length > 0 && (
+                {showRecommendations && cartSuggestions.length > 0 && (
                   <div className="pt-3">
                     <h4 className="mb-3 px-0.5 text-base font-extrabold text-[#111111]">{t('food.addToOrder')}</h4>
                     <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">

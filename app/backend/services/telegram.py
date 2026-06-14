@@ -38,6 +38,7 @@ CATEGORY_BECOME_MASTER = "BECOME_MASTER"
 CATEGORY_JOBS = "JOBS"
 CATEGORY_ANNOUNCEMENTS = "ANNOUNCEMENTS"
 CATEGORY_GASTRONOM = "GASTRONOM"
+CATEGORY_FOOD = "FOOD"
 CATEGORY_TAXI = "TAXI"
 
 
@@ -63,7 +64,7 @@ def get_routing_info() -> dict:
     """Return current Telegram routing configuration for diagnostics."""
     categories = [
         CATEGORY_COMPLAINTS, CATEGORY_MASTERS, CATEGORY_BECOME_MASTER,
-        CATEGORY_JOBS, CATEGORY_ANNOUNCEMENTS, CATEGORY_GASTRONOM, CATEGORY_TAXI,
+        CATEGORY_JOBS, CATEGORY_ANNOUNCEMENTS, CATEGORY_GASTRONOM, CATEGORY_FOOD, CATEGORY_TAXI,
     ]
     result = {"default": _is_configured(None)}
     for cat in categories:
@@ -259,6 +260,61 @@ async def notify_gastronom_order(data: dict) -> bool:
         f"<b>Дата:</b> {_format_date()}"
     )
     return await send_telegram_message(text, category=CATEGORY_GASTRONOM)
+
+
+async def notify_food_order(data: dict) -> bool:
+    """Notify Telegram about a new DAM ALEM / food delivery order."""
+    import json
+
+    lines: list[str] = []
+    raw_items = data.get("order_items")
+    try:
+        items = json.loads(raw_items) if isinstance(raw_items, str) else (raw_items or [])
+    except (json.JSONDecodeError, TypeError):
+        items = []
+
+    if isinstance(items, list):
+        for idx, item in enumerate(items, 1):
+            if not isinstance(item, dict):
+                continue
+            name = _escape_html(str(item.get("name", "—")))
+            qty = int(item.get("quantity") or 1)
+            price = float(item.get("price") or 0)
+            mod_total = float(item.get("modTotal") or 0)
+            mods = item.get("modifiers") or []
+            mod_names = ", ".join(
+                _escape_html(m.get("name", "")) for m in mods if isinstance(m, dict) and m.get("name")
+            )
+            mod_part = f" + {mod_names}" if mod_names else ""
+            line_sum = (price + mod_total) * qty
+            lines.append(f"{idx}. {name}{mod_part} ×{qty} = {line_sum:.0f} ₸")
+
+    items_text = "\n".join(lines) if lines else "—"
+    restaurant = _escape_html(data.get("restaurant_name") or "DAM ALEM")
+    delivery_method = data.get("delivery_method") or "delivery"
+    method_label = "🚗 Доставка" if delivery_method == "delivery" else "🏪 Самовывоз"
+
+    address = data.get("delivery_address") or ""
+    address_line = f"\n<b>Адрес:</b> {_escape_html(address)}" if address else ""
+
+    comment_line = ""
+    if data.get("comment"):
+        comment_line = f"\n<b>Комментарий:</b> {_escape_html(data.get('comment'))}"
+
+    text = (
+        f"🍽 <b>Новый заказ — {restaurant}</b>\n\n"
+        f"<b>№ заказа:</b> {data.get('order_id', '—')}\n"
+        f"<b>Клиент:</b> {_escape_html(data.get('customer_name', '—'))}\n"
+        f"<b>Телефон:</b> {_escape_html(data.get('customer_phone', '—'))}\n"
+        f"<b>Способ:</b> {method_label}"
+        f"{address_line}\n\n"
+        f"<b>Заказ:</b>\n{items_text}\n\n"
+        f"<b>Итого:</b> {data.get('total_amount', 0)} ₸"
+        f"{comment_line}\n"
+        f"<b>Дата:</b> {_format_date()}"
+    )
+    # FOOD category uses TELEGRAM_BOT_TOKEN_FOOD / TELEGRAM_CHAT_ID_FOOD or defaults
+    return await send_telegram_message(text, category=CATEGORY_FOOD)
 
 
 async def notify_gastronom_status_change(data: dict) -> bool:

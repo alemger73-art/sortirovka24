@@ -196,7 +196,7 @@ export default function AdminFoodOrders() {
                             )}
                           </div>
                           <span className="font-medium text-gray-700">
-                            {((oi.price + (oi.modifiers?.reduce((s: number, m: any) => s + m.price, 0) || 0)) * oi.quantity).toLocaleString()} ₸
+                            {(oi.sum ?? ((oi.price + (oi.modTotal ?? oi.mod_total ?? (oi.modifiers?.reduce((s: number, m: any) => s + (m.price || 0), 0) || 0))) * (oi.quantity ?? oi.qty ?? 1))).toLocaleString()} ₸
                           </span>
                         </div>
                       ))}

@@ -60,6 +60,45 @@ pnpm run build      # результат в app/frontend/dist/
 (по умолчанию — SQLite). Cloudinary/Telegram/Stripe/OpenAI — опционально, для
 соответствующих функций (загрузка фото, уведомления, оплата, AI).
 
+## Мобильное приложение (Android / iOS)
+
+**Подробная пошаговая инструкция:** [MOBILE_APP.md](app/frontend/MOBILE_APP.md)
+
+Кратко:
+
+### PWA (установка из браузера)
+
+После `pnpm run build` сайт можно добавить на главный экран — сработает баннер
+«Установить Sortirovka24» или пункт меню браузера.
+
+### Сборка APK / IPA
+
+**Требования:** Node.js, pnpm, Android Studio (для Android) или Xcode на macOS (для iOS).
+
+```bash
+cd app/frontend
+pnpm install
+
+# настройка API для нативной сборки (абсолютный URL бэкенда)
+copy .env.mobile.example .env.mobile   # Windows
+# cp .env.mobile.example .env.mobile   # macOS/Linux
+
+# собрать web-бандл и синхронизировать с нативными проектами
+pnpm run cap:sync
+
+# открыть Android Studio / Xcode
+pnpm run cap:android    # Windows / macOS / Linux
+pnpm run cap:ios        # только macOS
+```
+
+Скрипты:
+- `pnpm run build:mobile` — production-сборка с `.env.mobile`
+- `pnpm run cap:sync` — build + `cap sync`
+- `pnpm run cap:android` / `cap:ios` — sync + открытие IDE
+
+Нативные проекты: `app/frontend/android/`, `app/frontend/ios/`.
+ID приложения: `kz.sortirovka24.app`.
+
 ## Деплой
 
 - **Бэкенд:** Railway (`app/frontend/vercel.json` проксирует `/api/*` на Railway) либо

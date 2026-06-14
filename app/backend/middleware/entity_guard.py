@@ -51,6 +51,11 @@ PUBLIC_CREATE_ENTITIES = {
     "park_orders",
 }
 
+# Entity list reads that expose PII or admin-only data.
+ADMIN_READ_ENTITIES = {
+    "food_orders",
+}
+
 # Entities whose UPDATE (PUT/PATCH) is performed by a public client, e.g. a
 # courier updating the status of an order from the courier screen.
 PUBLIC_UPDATE_ENTITIES = {
@@ -90,6 +95,25 @@ class EntityWriteGuardMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         method = request.method.upper()
         path = request.url.path
+
+        if path.startswith(_ENTITIES_PREFIX) and _protection_enabled():
+            entity = _entity_name(path)
+
+            # Block public reads of sensitive entities (e.g. food order PII).
+            if method in ("GET", "HEAD") and entity in ADMIN_READ_ENTITIES and not _is_admin(request):
+                logger.warning("[EntityGuard] Blocked unauthenticated read %s %s", method, path)
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Требуется авторизация администратора."},
+                )
+
+            # Batch mutations are admin-only (no public batch order spam).
+            if method == "POST" and path.rstrip("/").endswith("/batch") and not _is_admin(request):
+                logger.warning("[EntityGuard] Blocked unauthenticated batch %s", path)
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Требуется авторизация администратора."},
+                )
 
         if (
             method in _MUTATING_METHODS

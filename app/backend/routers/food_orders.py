@@ -3,17 +3,34 @@ import logging
 from typing import List, Optional
 
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
 from services.food_orders import Food_ordersService
+from services.food_order_validation import validate_food_order
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/entities/food_orders", tags=["food_orders"])
+
+# Simple in-memory rate limit for public order creation (per IP).
+_ORDER_RATE: dict[str, list[float]] = {}
+_ORDER_RATE_WINDOW = 3600.0
+_ORDER_RATE_MAX = 15
+
+
+def _check_order_rate_limit(request: Request) -> None:
+    import time
+    ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    hits = [t for t in _ORDER_RATE.get(ip, []) if now - t < _ORDER_RATE_WINDOW]
+    if len(hits) >= _ORDER_RATE_MAX:
+        raise HTTPException(status_code=429, detail="Слишком много заказов. Попробуйте позже.")
+    hits.append(now)
+    _ORDER_RATE[ip] = hits
 
 
 # ---------- Pydantic Schemas ----------
@@ -34,6 +51,10 @@ class Food_ordersData(BaseModel):
     payment_status: Optional[str] = None
     status: str = None
     created_at: str = None
+    # Validation hints (not persisted; stripped before DB insert)
+    delivery_fee: Optional[float] = None
+    service_fee: Optional[float] = None
+    delivery_zone: Optional[str] = None
 
 
 class Food_ordersUpdateData(BaseModel):
@@ -209,14 +230,35 @@ async def get_food_orders(
 @router.post("", response_model=Food_ordersResponse, status_code=201)
 async def create_food_orders(
     data: Food_ordersData,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new food_orders"""
     logger.debug(f"Creating new food_orders with data: {data}")
-    
+    _check_order_rate_limit(request)
+
+    payload = data.model_dump()
+    delivery_fee = payload.pop("delivery_fee", None)
+    service_fee = payload.pop("service_fee", None)
+    zone_name = payload.pop("delivery_zone", None)
+
+    try:
+        payload, _, _ = await validate_food_order(
+            db,
+            payload,
+            delivery_fee_hint=delivery_fee,
+            service_fee_hint=service_fee,
+            zone_name=zone_name,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Food order validation error: %s", e, exc_info=True)
+        raise HTTPException(status_code=400, detail="Ошибка проверки заказа")
+
     service = Food_ordersService(db)
     try:
-        result = await service.create(data.model_dump())
+        result = await service.create(payload)
         if not result:
             raise HTTPException(status_code=400, detail="Failed to create food_orders")
         

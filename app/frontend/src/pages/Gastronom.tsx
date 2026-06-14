@@ -799,7 +799,7 @@ export default function Gastronom() {
             ? 'Курьер привезёт QR для оплаты в приложении Halyk. Сканируйте его в Halyk, когда получите заказ.'
             : 'Оплатите курьеру при получении заказа.';
     return (
-      <Layout hideHeader>
+      <Layout hideHeader hideBottomNav>
         <GastronomPortalBar />
         <div className="min-h-screen bg-gray-50 px-4 py-8 md:py-12 pb-24 md:pb-8">
           <div className="max-w-lg mx-auto space-y-6">
@@ -858,7 +858,7 @@ export default function Gastronom() {
   }
 
   return (
-    <Layout hideHeader>
+    <Layout hideHeader hideBottomNav>
       <GastronomSideMenu
         open={menuOpen}
         onClose={closeMenu}

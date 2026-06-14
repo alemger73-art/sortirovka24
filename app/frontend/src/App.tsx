@@ -32,6 +32,7 @@ const QuestionsList = lazy(() => import("./pages/Content").then(m => ({ default:
 const QuestionDetail = lazy(() => import("./pages/Content").then(m => ({ default: m.QuestionDetail })));
 const NewQuestionForm = lazy(() => import("./pages/Content").then(m => ({ default: m.NewQuestionForm })));
 const DirectoryPage = lazy(() => import("./pages/Directory"));
+const MorePage = lazy(() => import("./pages/More"));
 
 const InspectorsPage = lazy(() => import("./pages/Inspectors"));
 const HistoryPage = lazy(() => import("./pages/History"));
@@ -116,6 +117,7 @@ function App() {
               <Route path="/questions/new" element={<NewQuestionForm />} />
               <Route path="/questions/:id" element={<QuestionDetail />} />
               <Route path="/directory" element={<DirectoryPage />} />
+              <Route path="/more" element={<MorePage />} />
               <Route path="/taxi" element={<TaxiPage />} />
               <Route path="/taxi/driver" element={<TaxiDriverHub />} />
               <Route path="/taxi/ride/:id" element={<RequireUserAuth><TaxiRidePage /></RequireUserAuth>} />

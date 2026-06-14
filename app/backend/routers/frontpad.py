@@ -56,6 +56,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
+from core.admin_guard import require_panel_admin
 from services.frontpad_settings import Frontpad_settingsService
 from services.frontpad_sync_log import Frontpad_sync_logService
 from services.food_items import Food_itemsService
@@ -65,7 +66,11 @@ from services.food_item_modifiers import Food_item_modifiersService
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/frontpad", tags=["frontpad"])
+router = APIRouter(
+    prefix="/api/v1/frontpad",
+    tags=["frontpad"],
+    dependencies=[Depends(require_panel_admin)],
+)
 
 # FrontPad API base URL - method goes in query string
 FRONTPAD_API_BASE = "https://app.frontpad.ru/api/index.php"

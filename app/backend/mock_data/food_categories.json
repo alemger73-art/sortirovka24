@@ -2,6 +2,7 @@
     {
         "restaurant_id": 1,
         "name": "🔥 Горячие блюда",
+        "slug": "goryachie-blyuda",
         "icon": "🔥",
         "sort_order": 1,
         "is_active": true,
@@ -10,6 +11,7 @@
     {
         "restaurant_id": 1,
         "name": "🥟 Выпечка",
+        "slug": "vypechka",
         "icon": "🥟",
         "sort_order": 2,
         "is_active": true,
@@ -18,6 +20,7 @@
     {
         "restaurant_id": 1,
         "name": "🥗 Салаты",
+        "slug": "salaty",
         "icon": "🥗",
         "sort_order": 3,
         "is_active": true,
@@ -26,6 +29,7 @@
     {
         "restaurant_id": 1,
         "name": "🍟 Гарниры",
+        "slug": "garniry",
         "icon": "🍟",
         "sort_order": 4,
         "is_active": true,
@@ -34,6 +38,7 @@
     {
         "restaurant_id": 1,
         "name": "🥤 Напитки",
+        "slug": "napitki",
         "icon": "🥤",
         "sort_order": 5,
         "is_active": true,
@@ -41,8 +46,9 @@
     },
     {
         "restaurant_id": 1,
-        "name": "❄️ Полуфабрикаты",
-        "icon": "❄️",
+        "name": "🍕 Пицца",
+        "slug": "pitstsa",
+        "icon": "🍕",
         "sort_order": 6,
         "is_active": true,
         "created_at": "2026-03-19 10:00:00"

@@ -6,6 +6,17 @@
   html.native-app,
   html.native-app body {
     overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .has-bottom-nav main {
+    padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  @media (min-width: 768px) {
+    .has-bottom-nav main {
+      padding-bottom: 0;
+    }
   }
 
   :root {

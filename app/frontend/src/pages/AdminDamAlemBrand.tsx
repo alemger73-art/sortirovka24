@@ -121,7 +121,7 @@ export default function AdminDamAlemBrand() {
         <div>
           <h3 className="text-lg font-bold text-gray-900">Профиль заведения</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Фото, описание, рейтинг и контакты — отображаются на странице /food
+            Фото, рейтинг и ETA — на странице /food. WhatsApp и мин. заказ для заказов — в вкладке «Настройки».
           </p>
         </div>
         <Button onClick={save} disabled={saving} className="bg-[#FF3B30] hover:bg-[#e8352b]">
