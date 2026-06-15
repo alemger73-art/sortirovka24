@@ -13,9 +13,18 @@
     padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
   }
 
+  /* Floating action bars (cart, checkout) above mobile bottom tab bar */
+  .fab-above-bottom-nav {
+    bottom: calc(3.75rem + 0.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
   @media (min-width: 768px) {
     .has-bottom-nav main {
       padding-bottom: 0;
+    }
+
+    .fab-above-bottom-nav {
+      bottom: 1.25rem;
     }
   }
 

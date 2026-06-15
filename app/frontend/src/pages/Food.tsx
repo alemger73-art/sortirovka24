@@ -9,7 +9,7 @@ import {
   Plus, Minus, X, Utensils, Truck, Store,
   ChevronRight, MapPin, MessageSquare,
   ArrowLeft, Check, CheckCircle2,
-  AlertCircle, Search, Smartphone, Banknote,
+  AlertCircle, Search, Smartphone, Banknote, ShoppingCart,
 } from 'lucide-react';
 import DamAlemHero from '@/components/damalem/DamAlemHero';
 import DamAlemPromoBanners, { type FoodBanner } from '@/components/damalem/DamAlemPromoBanners';
@@ -1094,19 +1094,40 @@ export default function Food() {
           promoSlides={promoSlides}
           onPromoSlideChange={setPromoSlide}
           formatPrice={formatPrice}
+          cartCount={cartCount}
+          onOpenCart={() => setCartOpen(true)}
         />
 
         <div className="mx-auto max-w-lg space-y-6 px-4 pb-32 pt-5 md:max-w-3xl lg:max-w-5xl">
-          {/* Поиск */}
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#999999]" />
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder={t('food.searchPlaceholder')}
-              className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-11 pr-4 text-sm font-medium shadow-sm outline-none ring-0 transition placeholder:text-[#AAAAAA] focus:border-[#FF3B30]/40 focus:ring-2 focus:ring-[#FF3B30]/15"
-            />
+          {/* Поиск + корзина */}
+          <div className="flex items-center gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#999999]" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder={t('food.searchPlaceholder')}
+                className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-11 pr-4 text-sm font-medium shadow-sm outline-none ring-0 transition placeholder:text-[#AAAAAA] focus:border-[#FF3B30]/40 focus:ring-2 focus:ring-[#FF3B30]/15"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => cartCount > 0 ? setCartOpen(true) : toast.info('Добавьте блюда в корзину')}
+              className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border shadow-sm transition active:scale-95 ${
+                cartCount > 0
+                  ? 'border-[#FF3B30]/30 bg-[#FF3B30] text-white'
+                  : 'border-gray-200 bg-white text-gray-400'
+              }`}
+              aria-label={t('food.cart')}
+            >
+              <ShoppingCart className="h-5 w-5" />
+              {cartCount > 0 ? (
+                <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-[#FF3B30] ring-2 ring-[#FF3B30]">
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              ) : null}
+            </button>
           </div>
 
           {brandDescription && (
@@ -1414,7 +1435,7 @@ export default function Food() {
 
         {/* ═══ FLOATING CART BUTTON ═══ */}
         {cartCount > 0 && !cartOpen && !checkoutOpen && !selectedItem && (
-          <div className="fixed bottom-5 left-4 right-4 z-40 mx-auto max-w-lg animate-in slide-in-from-bottom duration-300 md:max-w-3xl lg:max-w-5xl">
+          <div className="fab-above-bottom-nav fixed left-4 right-4 z-[55] mx-auto max-w-lg animate-in slide-in-from-bottom duration-300 md:max-w-3xl lg:max-w-5xl">
             <button
               type="button"
               onClick={() => setCartOpen(true)}

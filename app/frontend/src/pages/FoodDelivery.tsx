@@ -676,7 +676,7 @@ export default function FoodDelivery() {
         </div>
 
         {cartCount > 0 && !cartOpen && (
-          <div className="fixed bottom-5 left-4 right-4 z-40 mx-auto max-w-lg animate-in slide-in-from-bottom-4 duration-300 md:max-w-xl">
+          <div className="fab-above-bottom-nav fixed left-4 right-4 z-[55] mx-auto max-w-lg animate-in slide-in-from-bottom-4 duration-300 md:max-w-xl">
             <button
               type="button"
               onClick={() => setCartOpen(true)}

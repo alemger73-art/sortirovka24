@@ -1,4 +1,4 @@
-import { Clock, Star, Truck, Utensils } from 'lucide-react';
+import { Clock, ShoppingCart, Star, Truck, Utensils } from 'lucide-react';
 import { DAM_ALEM_BRAND, DAM_ALEM_HERO_FALLBACK } from '@/lib/damAlem';
 import { resolveImageSrc } from '@/lib/storage';
 
@@ -20,6 +20,8 @@ interface DamAlemHeroProps {
   promoSlides: PromoSlide[];
   onPromoSlideChange: (index: number) => void;
   formatPrice: (n: number) => string;
+  cartCount?: number;
+  onOpenCart?: () => void;
 }
 
 export default function DamAlemHero({
@@ -35,6 +37,8 @@ export default function DamAlemHero({
   promoSlides,
   onPromoSlideChange,
   formatPrice,
+  cartCount = 0,
+  onOpenCart,
 }: DamAlemHeroProps) {
   const bg =
     resolveImageSrc(heroImage || '') ||
@@ -58,9 +62,24 @@ export default function DamAlemHero({
             </span>
             <span className="text-xs font-bold uppercase tracking-widest text-white">{title || DAM_ALEM_BRAND}</span>
           </div>
-          <div className="flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-[#111111] shadow-sm">
-            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-            {rating.toFixed(1)}
+          <div className="flex items-center gap-2">
+            {cartCount > 0 && onOpenCart ? (
+              <button
+                type="button"
+                onClick={onOpenCart}
+                className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-[#111111] shadow-sm backdrop-blur-sm"
+                aria-label={`Корзина: ${cartCount}`}
+              >
+                <ShoppingCart className="h-5 w-5" />
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#FF3B30] px-1 text-[10px] font-bold text-white">
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              </button>
+            ) : null}
+            <div className="flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-[#111111] shadow-sm">
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+              {rating.toFixed(1)}
+            </div>
           </div>
         </div>
 
