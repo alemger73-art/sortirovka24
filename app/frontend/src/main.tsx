@@ -87,10 +87,8 @@ import { initNativeShell } from './lib/native';
   }
 })();
 
-// Warm up backend on web only — native uses stale-cache-first for speed.
-if (!Capacitor.isNativePlatform()) {
-  warmupBackend();
-}
+// Warm up backend (web: longer retries; native: quick ping to Railway).
+warmupBackend();
 
 // ─── Global error handlers ───────────────────────────────────────
 // The @metagptx/web-sdk has a built-in error overlay ("Something is wrong")

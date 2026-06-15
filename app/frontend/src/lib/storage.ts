@@ -6,6 +6,7 @@
  * MultiImageUpload, and VideoUpload components.
  */
 import { client, withRetry } from '@/lib/api';
+import { apiUrl } from '@/lib/config';
 
 export const BUCKET_NAME = 'portal-images';
 
@@ -100,7 +101,7 @@ export async function ensureBucket(): Promise<void> {
 
   _bucketEnsurePromise = (async () => {
     try {
-      const resp = await fetch('/api/v1/storage/public/download-url', {
+      const resp = await fetch(apiUrl('/api/v1/storage/public/download-url'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -242,7 +243,7 @@ async function fetchPublicDownloadUrl(
   bucketName: string,
   objectKey: string
 ): Promise<string | null> {
-  const resp = await fetch('/api/v1/storage/public/download-url', {
+  const resp = await fetch(apiUrl('/api/v1/storage/public/download-url'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -278,7 +279,7 @@ async function fetchPublicUploadUrl(
   image_url?: string;
   thumbnail_url?: string;
 }> {
-  const resp = await fetch('/api/v1/storage/public/upload-url', {
+  const resp = await fetch(apiUrl('/api/v1/storage/public/upload-url'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

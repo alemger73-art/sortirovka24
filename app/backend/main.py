@@ -20,7 +20,7 @@ import models
 for _, _module_name, _ in pkgutil.iter_modules(models.__path__):
     importlib.import_module(f"models.{_module_name}")
 
-from services.database import initialize_database, close_database
+from services.database import initialize_database, close_database, check_database_health
 from services.mock_data import initialize_mock_data
 from services.auth import initialize_admin_user
 from routers.admin_auth import initialize_admin_credentials
@@ -304,8 +304,13 @@ def root():
 
 
 @app.get("/health")
-def health_check():
-    return {"status": "healthy", "version": "2.1.0"}
+async def health_check():
+    db_ok = await check_database_health()
+    return {
+        "status": "healthy" if db_ok else "degraded",
+        "version": "2.1.0",
+        "database": "ok" if db_ok else "unavailable",
+    }
 
 
 if FRONTEND_DIR.is_dir():

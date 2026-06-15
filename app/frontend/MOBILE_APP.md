@@ -52,7 +52,8 @@ CAPACITOR_SERVER_URL=https://sortirovka24-production-8788.up.railway.app
 | **Нижняя навигация** | 5 вкладок: Главная · DAM ALEM · Объявления · Мастера · Ещё |
 | **Экран «Ещё»** | Транспорт, справочник, такси, новости, кабинет и др. |
 | **PWA** | Установка из браузера на главный экран |
-| **Push API** | Бэкенд `/api/v1/push/register` + FCM |
+| **Push API** | Бэкенд готов; в APK push **отключён** (нет Firebase) — см. шаг 5 |
+| **API / картинки** | Все запросы идут на Railway через `VITE_API_BASE_URL`; загрузка фото — `storage.ts` + Cloudinary |
 
 ---
 
@@ -317,7 +318,8 @@ versionName "1.1.0"
 | Белый экран в приложении | Проверьте `VITE_API_BASE_URL` в `.env.mobile`, пересоберите `npm run build:mobile` |
 | API не отвечает | URL должен быть `https://...` без слэша в конце; бэкенд должен быть доступен из интернета |
 | Gradle sync failed | Android Studio → File → Invalidate Caches; проверьте JDK 17 |
-| Push не приходят | Есть ли `google-services.json`? Задан ли `FCM_SERVER_KEY` на бэкенде? Разрешены ли уведомления в настройках телефона? |
+| Картинки не грузятся / загрузка фото не работает | Проверьте `VITE_API_BASE_URL` и `CLOUDINARY_*` на Railway; полностью переустановите APK |
+| Push не приходят | В текущем APK push отключён (краш без Firebase). Нужны `google-services.json`, `@capacitor/push-notifications`, `FCM_SERVER_KEY` |
 | `pnpm` не найден | Используйте `npm` — скрипты одинаковые |
 
 ---

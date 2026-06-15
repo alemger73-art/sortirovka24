@@ -20,6 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { getAccountPrefill, getCurrentUser, pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
 import { fetchFoodRestaurantsList } from '@/lib/foodAdminApi';
+import { apiUrl } from '@/lib/config';
 import { findDamAlemRestaurantId } from '@/lib/damAlem';
 import {
   saveFoodCart,
@@ -311,8 +312,8 @@ export default function Food() {
       let foodItems: FoodItem[] | null = null;
       try {
         const [cRes, pRes] = await Promise.all([
-          fetch(`/api/categories${restaurantQs}`, { headers: catalogHeaders }),
-          fetch(`/api/products${restaurantQs}`, { headers: catalogHeaders }),
+          fetch(apiUrl(`/api/categories${restaurantQs}`), { headers: catalogHeaders }),
+          fetch(apiUrl(`/api/products${restaurantQs}`), { headers: catalogHeaders }),
         ]);
         if (cRes.ok && pRes.ok) {
           const cj = await cRes.json();
