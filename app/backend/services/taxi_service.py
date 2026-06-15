@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 from models.auth import User
 from models.taxi import TaxiDriverApplication, TaxiDriverProfile, TaxiRide, TaxiSettings
 from services.taxi_pricing import DEFAULT_SETTINGS, build_quote, is_taxi_enabled, settings_to_dict
+from services.taxi_tracking import build_ride_tracking
 from sqlalchemy import desc, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -69,7 +70,29 @@ async def update_settings(db: AsyncSession, updates: Dict[str, str]) -> Dict[str
     return await get_settings_dict(db)
 
 
-def ride_to_dict(ride: TaxiRide, driver: Optional[TaxiDriverProfile] = None, driver_user: Optional[User] = None) -> Dict[str, Any]:
+def _driver_avatar_url(driver_user: Optional[User], profile: Optional[TaxiDriverProfile]) -> Optional[str]:
+    if profile and profile.photo_url:
+        return profile.photo_url
+    if driver_user and getattr(driver_user, "avatar_url", None):
+        return driver_user.avatar_url
+    return None
+
+
+def _sync_documents_status(profile: TaxiDriverProfile) -> None:
+    if profile.documents_status == "verified":
+        return
+    has_all = bool(profile.photo_url and profile.license_photo_url and profile.tech_passport_photo_url)
+    if has_all and profile.documents_status in ("none", "rejected"):
+        profile.documents_status = "submitted"
+
+
+def ride_to_dict(
+    ride: TaxiRide,
+    driver: Optional[TaxiDriverProfile] = None,
+    driver_user: Optional[User] = None,
+    *,
+    tracking: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     result: Dict[str, Any] = {
         "id": ride.id,
         "user_id": ride.user_id,
@@ -108,7 +131,11 @@ def ride_to_dict(ride: TaxiRide, driver: Optional[TaxiDriverProfile] = None, dri
             "car_number": driver.car_number,
             "car_color": driver.car_color,
             "rating": driver.rating,
+            "rides_count": driver.rides_count,
+            "photo_url": _driver_avatar_url(driver_user, driver),
         }
+    if tracking is not None:
+        result["tracking"] = tracking
     return result
 
 
@@ -195,7 +222,11 @@ async def get_ride_with_driver(db: AsyncSession, ride_id: int) -> Dict[str, Any]
             await db.execute(select(TaxiDriverProfile).where(TaxiDriverProfile.user_id == ride.driver_id))
         ).scalar_one_or_none()
         driver_user = (await db.execute(select(User).where(User.id == ride.driver_id))).scalar_one_or_none()
-    return ride_to_dict(ride, driver_profile, driver_user)
+
+    settings = await get_settings_dict(db)
+    minutes_per_km = float(settings.get("eta_minutes_per_km") or 3)
+    tracking = build_ride_tracking(ride, driver_profile, minutes_per_km=minutes_per_km)
+    return ride_to_dict(ride, driver_profile, driver_user, tracking=tracking)
 
 
 async def accept_ride(db: AsyncSession, ride_id: int, driver_user: User) -> TaxiRide:
@@ -367,6 +398,9 @@ def application_to_dict(app: TaxiDriverApplication, user: Optional[User] = None)
         "car_number": app.car_number,
         "car_color": app.car_color,
         "comment": app.comment,
+        "photo_url": app.photo_url,
+        "license_photo_url": app.license_photo_url,
+        "tech_passport_photo_url": app.tech_passport_photo_url,
         "status": app.status,
         "admin_note": app.admin_note,
         "reviewed_at": app.reviewed_at,
@@ -393,6 +427,9 @@ async def submit_driver_application(
     car_number: str,
     car_color: str = "",
     comment: str = "",
+    photo_url: str = "",
+    license_photo_url: str = "",
+    tech_passport_photo_url: str = "",
 ) -> TaxiDriverApplication:
     if user.role in {"driver", "admin", "superadmin"}:
         raise ValueError("Вы уже зарегистрированы как водитель")
@@ -411,6 +448,9 @@ async def submit_driver_application(
         "car_number": car_number.strip(),
         "car_color": car_color.strip(),
         "comment": comment.strip() or None,
+        "photo_url": photo_url.strip() or None,
+        "license_photo_url": license_photo_url.strip() or None,
+        "tech_passport_photo_url": tech_passport_photo_url.strip() or None,
         "status": "pending",
         "admin_note": None,
         "reviewed_at": None,
@@ -425,6 +465,63 @@ async def submit_driver_application(
     await db.commit()
     await db.refresh(app)
     return app
+
+
+def driver_profile_dict(profile: TaxiDriverProfile, user: Optional[User] = None) -> Dict[str, Any]:
+    return {
+        "online": profile.is_online,
+        "verified": profile.is_verified,
+        "car_make": profile.car_make,
+        "car_model": profile.car_model,
+        "car_number": profile.car_number,
+        "car_color": profile.car_color,
+        "phone": profile.phone or (user.phone if user else None),
+        "rating": profile.rating,
+        "rides_count": profile.rides_count,
+        "current_lat": profile.current_lat,
+        "current_lng": profile.current_lng,
+        "photo_url": _driver_avatar_url(user, profile),
+        "license_photo_url": profile.license_photo_url,
+        "tech_passport_photo_url": profile.tech_passport_photo_url,
+        "documents_status": profile.documents_status or "none",
+        "documents_note": profile.documents_note,
+    }
+
+
+async def update_driver_profile_fields(
+    db: AsyncSession,
+    profile: TaxiDriverProfile,
+    user: User,
+    *,
+    car_make: Optional[str] = None,
+    car_model: Optional[str] = None,
+    car_number: Optional[str] = None,
+    car_color: Optional[str] = None,
+    phone: Optional[str] = None,
+    photo_url: Optional[str] = None,
+    license_photo_url: Optional[str] = None,
+    tech_passport_photo_url: Optional[str] = None,
+) -> TaxiDriverProfile:
+    if car_make is not None:
+        profile.car_make = car_make.strip()
+    if car_model is not None:
+        profile.car_model = car_model.strip()
+    if car_number is not None:
+        profile.car_number = car_number.strip()
+    if car_color is not None:
+        profile.car_color = car_color.strip()
+    if phone is not None:
+        profile.phone = phone.strip()
+    if photo_url is not None:
+        profile.photo_url = photo_url.strip() or None
+    if license_photo_url is not None:
+        profile.license_photo_url = license_photo_url.strip() or None
+    if tech_passport_photo_url is not None:
+        profile.tech_passport_photo_url = tech_passport_photo_url.strip() or None
+    _sync_documents_status(profile)
+    await db.commit()
+    await db.refresh(profile)
+    return profile
 
 
 async def list_driver_applications(db: AsyncSession, status: Optional[str] = None) -> List[TaxiDriverApplication]:
@@ -464,6 +561,13 @@ async def approve_driver_application(
     profile.car_model = app.car_model
     profile.car_number = app.car_number
     profile.car_color = app.car_color
+    profile.photo_url = app.photo_url or profile.photo_url
+    profile.license_photo_url = app.license_photo_url or profile.license_photo_url
+    profile.tech_passport_photo_url = app.tech_passport_photo_url or profile.tech_passport_photo_url
+    if profile.photo_url and profile.license_photo_url and profile.tech_passport_photo_url:
+        profile.documents_status = "verified"
+    elif profile.documents_status == "none":
+        profile.documents_status = "submitted"
 
     app.status = "approved"
     app.admin_note = admin_note.strip() or None

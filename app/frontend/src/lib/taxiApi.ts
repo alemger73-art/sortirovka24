@@ -105,6 +105,16 @@ export interface TaxiDriverInfo {
   car_number?: string;
   car_color?: string;
   rating?: number;
+  rides_count?: number;
+  photo_url?: string;
+}
+
+export interface TaxiRideTracking {
+  driver_lat?: number | null;
+  driver_lng?: number | null;
+  eta_minutes?: number | null;
+  eta_label?: string | null;
+  phase?: string;
 }
 
 export interface TaxiRide {
@@ -128,7 +138,9 @@ export interface TaxiRide {
   cancel_reason?: string | null;
   cancelled_by?: string | null;
   driver?: TaxiDriverInfo;
+  tracking?: TaxiRideTracking;
   rating?: number | null;
+  rating_comment?: string | null;
   created_at?: string;
 }
 
@@ -145,6 +157,11 @@ export interface DriverCabinet {
     rides_count?: number;
     current_lat?: number;
     current_lng?: number;
+    photo_url?: string;
+    license_photo_url?: string;
+    tech_passport_photo_url?: string;
+    documents_status?: string;
+    documents_note?: string;
   };
   available_orders: TaxiRide[];
   active_ride: TaxiRide | null;
@@ -171,6 +188,9 @@ export interface DriverApplication {
   car_number?: string;
   car_color?: string;
   comment?: string;
+  photo_url?: string;
+  license_photo_url?: string;
+  tech_passport_photo_url?: string;
   status: string;
   admin_note?: string;
   is_driver?: boolean;
@@ -229,8 +249,16 @@ export const taxiApi = {
   updateLocation: (lat: number, lng: number) =>
     api<{ success: boolean }>('/api/v1/taxi/driver/location', { method: 'PUT', body: JSON.stringify({ lat, lng }) }),
 
-  updateDriverProfile: (body: { car_make?: string; car_model?: string; car_number?: string; car_color?: string; phone?: string }) =>
-    api<{ success: boolean }>('/api/v1/taxi/driver/profile', { method: 'PUT', body: JSON.stringify(body) }),
+  updateDriverProfile: (body: {
+    car_make?: string;
+    car_model?: string;
+    car_number?: string;
+    car_color?: string;
+    phone?: string;
+    photo_url?: string;
+    license_photo_url?: string;
+    tech_passport_photo_url?: string;
+  }) => api<{ success: boolean }>('/api/v1/taxi/driver/profile', { method: 'PUT', body: JSON.stringify(body) }),
 
   acceptRide: (id: number) => api<TaxiRide>(`/api/v1/taxi/driver/rides/${id}/accept`, { method: 'POST' }),
 
@@ -247,6 +275,9 @@ export const taxiApi = {
     car_number: string;
     car_color?: string;
     comment?: string;
+    photo_url?: string;
+    license_photo_url?: string;
+    tech_passport_photo_url?: string;
   }) => api<DriverApplication>('/api/v1/taxi/driver/application', { method: 'POST', body: JSON.stringify(body) }),
 
   adminSettings: () => adminApi<Record<string, string>>('/api/v1/taxi/admin/settings'),

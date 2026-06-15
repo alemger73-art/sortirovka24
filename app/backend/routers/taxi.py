@@ -36,6 +36,8 @@ from services.taxi_service import (
     ride_to_dict,
     update_settings,
     validate_quote_for_order,
+    driver_profile_dict,
+    update_driver_profile_fields,
 )
 from services.telegram import notify_taxi_new_ride, notify_taxi_status_change, notify_taxi_driver_application
 from sqlalchemy import select
@@ -109,6 +111,9 @@ class DriverProfileUpdate(BaseModel):
     car_number: Optional[str] = None
     car_color: Optional[str] = None
     phone: Optional[str] = None
+    photo_url: Optional[str] = None
+    license_photo_url: Optional[str] = None
+    tech_passport_photo_url: Optional[str] = None
 
 
 class SettingsUpdateRequest(BaseModel):
@@ -127,6 +132,9 @@ class DriverApplyRequest(BaseModel):
     car_number: str
     car_color: Optional[str] = ""
     comment: Optional[str] = ""
+    photo_url: Optional[str] = ""
+    license_photo_url: Optional[str] = ""
+    tech_passport_photo_url: Optional[str] = ""
 
 
 class AdminApplicationActionRequest(BaseModel):
@@ -363,7 +371,7 @@ async def rate_taxi_ride(
         ride = await rate_ride(db, ride, str(user.id), body.rating, body.comment or "")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    return ride_to_dict(ride)
+    return await get_ride_with_driver(db, ride.id)
 
 
 # ─── Driver ────────────────────────────────────────────────────────
@@ -383,19 +391,7 @@ async def driver_cabinet(
     earnings = sum(float(r.final_price or r.estimated_price or 0) for r in completed)
 
     return {
-        "profile": {
-            "online": profile.is_online,
-            "verified": profile.is_verified,
-            "car_make": profile.car_make,
-            "car_model": profile.car_model,
-            "car_number": profile.car_number,
-            "car_color": profile.car_color,
-            "phone": profile.phone or user.phone,
-            "rating": profile.rating,
-            "rides_count": profile.rides_count,
-            "current_lat": profile.current_lat,
-            "current_lng": profile.current_lng,
-        },
+        "profile": driver_profile_dict(profile, user),
         "available_orders": [ride_to_dict(r) for r in pending],
         "active_ride": ride_to_dict(active[0]) if active else None,
         "order_history": [ride_to_dict(r) for r in history[:30]],
@@ -446,18 +442,20 @@ async def update_driver_profile(
     user = await get_taxi_user(db, authorization)
     assert_driver_user(user)
     profile = await get_or_create_driver_profile(db, user)
-    if body.car_make is not None:
-        profile.car_make = body.car_make.strip()
-    if body.car_model is not None:
-        profile.car_model = body.car_model.strip()
-    if body.car_number is not None:
-        profile.car_number = body.car_number.strip()
-    if body.car_color is not None:
-        profile.car_color = body.car_color.strip()
-    if body.phone is not None:
-        profile.phone = body.phone.strip()
-    await db.commit()
-    return {"success": True}
+    profile = await update_driver_profile_fields(
+        db,
+        profile,
+        user,
+        car_make=body.car_make,
+        car_model=body.car_model,
+        car_number=body.car_number,
+        car_color=body.car_color,
+        phone=body.phone,
+        photo_url=body.photo_url,
+        license_photo_url=body.license_photo_url,
+        tech_passport_photo_url=body.tech_passport_photo_url,
+    )
+    return {"success": True, "profile": driver_profile_dict(profile, user)}
 
 
 @router.get("/driver/available")
@@ -552,6 +550,9 @@ async def driver_submit_application(
             car_number=body.car_number,
             car_color=body.car_color or "",
             comment=body.comment or "",
+            photo_url=body.photo_url or "",
+            license_photo_url=body.license_photo_url or "",
+            tech_passport_photo_url=body.tech_passport_photo_url or "",
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -616,6 +617,11 @@ async def admin_list_drivers(
             "rating": p.rating,
             "rides_count": p.rides_count,
             "balance": p.balance,
+            "photo_url": p.photo_url,
+            "license_photo_url": p.license_photo_url,
+            "tech_passport_photo_url": p.tech_passport_photo_url,
+            "documents_status": p.documents_status,
+            "documents_note": p.documents_note,
         })
     return result
 
@@ -638,6 +644,10 @@ async def admin_verify_driver(
         user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
         if user:
             user.role = "driver"
+        profile.documents_status = "verified"
+        profile.documents_note = None
+    else:
+        profile.documents_status = "rejected"
     await db.commit()
     return {"success": True, "verified": profile.is_verified}
 

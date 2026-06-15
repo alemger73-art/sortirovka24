@@ -25,7 +25,8 @@ import {
   Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { ensureLocationPermission, requestCurrentPosition } from '@/lib/geolocation';
+import DriverDocUpload from '@/components/taxi/DriverDocUpload';
+import StorageImg from '@/components/StorageImg';
 
 export default function CabinetDriver() {
   const [data, setData] = useState<DriverCabinet | null>(null);
@@ -39,6 +40,9 @@ export default function CabinetDriver() {
   const [carNumber, setCarNumber] = useState('');
   const [carColor, setCarColor] = useState('');
   const [phone, setPhone] = useState('');
+  const [photoUrl, setPhotoUrl] = useState('');
+  const [licenseUrl, setLicenseUrl] = useState('');
+  const [techPassportUrl, setTechPassportUrl] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -49,6 +53,9 @@ export default function CabinetDriver() {
       setCarNumber(cab.profile.car_number || '');
       setCarColor(cab.profile.car_color || '');
       setPhone(cab.profile.phone || '');
+      setPhotoUrl(cab.profile.photo_url || '');
+      setLicenseUrl(cab.profile.license_photo_url || '');
+      setTechPassportUrl(cab.profile.tech_passport_photo_url || '');
     } catch (e: any) {
       toast.error(String(e?.message || 'Ошибка загрузки кабинета'));
     } finally {
@@ -91,14 +98,14 @@ export default function CabinetDriver() {
       await ensureLocationPermission();
       if (cancelled) return;
       await tick();
-      interval = setInterval(() => void tick(), 30000);
+      interval = setInterval(() => void tick(), data?.active_ride ? 12000 : 30000);
     })();
 
     return () => {
       cancelled = true;
       if (interval) clearInterval(interval);
     };
-  }, [data?.profile.online]);
+  }, [data?.profile.online, data?.active_ride]);
 
   async function toggleOnline() {
     if (!data) return;
@@ -152,6 +159,9 @@ export default function CabinetDriver() {
         car_number: carNumber,
         car_color: carColor,
         phone,
+        photo_url: photoUrl,
+        license_photo_url: licenseUrl,
+        tech_passport_photo_url: techPassportUrl,
       });
       toast.success('Профиль сохранён');
       await load();
@@ -190,8 +200,12 @@ export default function CabinetDriver() {
         <div className="bg-gray-900 px-4 py-6 md:px-8">
           <div className="mx-auto max-w-4xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-2xl bg-yellow-400 flex items-center justify-center">
-                <Car className="h-6 w-6 text-gray-900" />
+              <div className="h-12 w-12 rounded-2xl bg-yellow-400 overflow-hidden flex items-center justify-center shrink-0">
+                {profile.photo_url ? (
+                  <StorageImg src={profile.photo_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <Car className="h-6 w-6 text-gray-900" />
+                )}
               </div>
               <div>
                 <h1 className="text-xl font-bold text-white">Кабинет водителя</h1>
@@ -231,8 +245,14 @@ export default function CabinetDriver() {
 
         <div className="mx-auto max-w-4xl px-4 py-6 md:px-8 space-y-6">
           {!profile.verified && (
-            <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 text-amber-900 text-sm">
-              ⏳ Профиль ожидает верификации администратором. После проверки вы сможете выйти на линию.
+            <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 text-amber-900 text-sm space-y-1">
+              {profile.documents_status === 'submitted' ? (
+                <p>📋 Документы на проверке. После одобрения администратором вы сможете выйти на линию.</p>
+              ) : profile.documents_status === 'rejected' ? (
+                <p>❌ Верификация отклонена. {profile.documents_note || 'Загрузите документы заново.'}</p>
+              ) : (
+                <p>⏳ Загрузите фото, права и техпаспорт — затем дождитесь проверки администратором.</p>
+              )}
             </div>
           )}
 
@@ -323,6 +343,24 @@ export default function CabinetDriver() {
               )}
             </div>
           )}
+
+          <div className="rounded-2xl bg-white border border-gray-100 p-5 space-y-4">
+            <h2 className="font-bold text-gray-900">Документы и верификация</h2>
+            <DriverDocUpload
+              photoUrl={photoUrl}
+              licenseUrl={licenseUrl}
+              techPassportUrl={techPassportUrl}
+              onChange={(field, value) => {
+                if (field === 'photo_url') setPhotoUrl(value);
+                if (field === 'license_photo_url') setLicenseUrl(value);
+                if (field === 'tech_passport_photo_url') setTechPassportUrl(value);
+              }}
+            />
+            <Button variant="outline" className="rounded-xl w-full" disabled={savingProfile} onClick={saveProfile}>
+              {savingProfile ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+              Сохранить документы
+            </Button>
+          </div>
 
           <div className="rounded-2xl bg-white border border-gray-100 p-5 space-y-4">
             <h2 className="font-bold text-gray-900">Автомобиль</h2>

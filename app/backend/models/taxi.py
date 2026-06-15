@@ -29,6 +29,11 @@ class TaxiDriverProfile(Base):
     current_lat = Column(Float, nullable=True)
     current_lng = Column(Float, nullable=True)
     phone = Column(String(32), nullable=True)
+    photo_url = Column(String(512), nullable=True)
+    license_photo_url = Column(String(512), nullable=True)
+    tech_passport_photo_url = Column(String(512), nullable=True)
+    documents_status = Column(String(32), nullable=False, default="none")  # none/submitted/verified/rejected
+    documents_note = Column(Text, nullable=True)
 
 
 class TaxiDriverApplication(BaseModel):
@@ -43,6 +48,9 @@ class TaxiDriverApplication(BaseModel):
     car_number = Column(String(32), nullable=True)
     car_color = Column(String(32), nullable=True)
     comment = Column(Text, nullable=True)
+    photo_url = Column(String(512), nullable=True)
+    license_photo_url = Column(String(512), nullable=True)
+    tech_passport_photo_url = Column(String(512), nullable=True)
     status = Column(String(32), nullable=False, default="pending", index=True)  # pending/approved/rejected
     admin_note = Column(Text, nullable=True)
     reviewed_at = Column(String(64), nullable=True)

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { getAccountToken } from '@/lib/accountApi';
 import { taxiApi, type DriverApplication } from '@/lib/taxiApi';
 import { useTaxiEnabled } from '@/hooks/useTaxiEnabled';
+import DriverDocUpload from '@/components/taxi/DriverDocUpload';
 import TaxiUnavailable from '@/components/taxi/TaxiUnavailable';
 import { Car, CheckCircle2, Clock, Loader2, LogIn, Shield, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
@@ -24,6 +25,9 @@ export default function TaxiDriverHub() {
     car_number: '',
     car_color: '',
     comment: '',
+    photo_url: '',
+    license_photo_url: '',
+    tech_passport_photo_url: '',
   });
 
   useEffect(() => {
@@ -44,6 +48,9 @@ export default function TaxiDriverHub() {
             car_number: app.car_number || '',
             car_color: app.car_color || '',
             comment: app.comment || '',
+            photo_url: app.photo_url || '',
+            license_photo_url: app.license_photo_url || '',
+            tech_passport_photo_url: app.tech_passport_photo_url || '',
           });
         }
       } catch {
@@ -61,6 +68,10 @@ export default function TaxiDriverHub() {
     }
     if (!form.full_name.trim() || !form.car_number.trim()) {
       toast.error('Заполните имя и госномер');
+      return;
+    }
+    if (!form.photo_url || !form.license_photo_url || !form.tech_passport_photo_url) {
+      toast.error('Загрузите фото, права и техпаспорт');
       return;
     }
     setSubmitting(true);
@@ -167,6 +178,15 @@ export default function TaxiDriverHub() {
                     <Input placeholder="Цвет" value={form.car_color} onChange={(e) => setForm({ ...form, car_color: e.target.value })} className="rounded-xl h-11" />
                   </div>
                   <Input placeholder="Комментарий (необязательно)" value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} className="rounded-xl h-11" />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800 mb-2">Документы для верификации</p>
+                    <DriverDocUpload
+                      photoUrl={form.photo_url}
+                      licenseUrl={form.license_photo_url}
+                      techPassportUrl={form.tech_passport_photo_url}
+                      onChange={(field, value) => setForm({ ...form, [field]: value })}
+                    />
+                  </div>
                   <Button className="w-full h-12 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-bold" disabled={submitting} onClick={submit}>
                     {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                     Отправить заявку
