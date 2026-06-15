@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Layout from "@/components/Layout";
 import { Link, useNavigate } from "react-router-dom";
-import { Camera, Coins, Save, UserCircle2, UtensilsCrossed, Truck, Store, Wrench } from "lucide-react";
+import { Camera, Coins, Save, UserCircle2, UtensilsCrossed, Truck, Store, Wrench, Car } from "lucide-react";
 import { accountApi, getAccountToken } from "@/lib/accountApi";
 import { cacheAccountProfile, getCurrentUser, logoutLocalUser } from "@/lib/localAuth";
 import { humanizeApiError } from "@/lib/apiErrors";
@@ -291,6 +291,14 @@ export default function Cabinet() {
                   className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
                 >
                   <Wrench className="h-4 w-4" /> {t("cabinet.masterTitle")} →
+                </Link>
+              )}
+              {cabinet?.profile?.role === "driver" && (
+                <Link
+                  to="/cabinet/driver"
+                  className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-yellow-600 hover:text-yellow-700 dark:text-yellow-400"
+                >
+                  <Car className="h-4 w-4" /> Кабинет водителя — заказы →
                 </Link>
               )}
             </div>
