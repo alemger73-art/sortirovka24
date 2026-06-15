@@ -134,14 +134,19 @@ export async function fetchWithCache<T>(
   fetcher: () => Promise<T>,
   ttl: number = DEFAULT_TTL
 ): Promise<T> {
-  // Native app: show cached data instantly, refresh in background.
+  // Native: network first so fresh data loads; use cache only as fallback.
   if (Capacitor.isNativePlatform()) {
-    const cached = appCache.get<T>(key) ?? appCache.getStale<T>(key);
-    if (cached) {
-      fetcher()
-        .then((data) => appCache.set(key, data, ttl))
-        .catch(() => undefined);
-      return cached;
+    try {
+      const data = await fetcher();
+      appCache.set(key, data, ttl);
+      return data;
+    } catch (err) {
+      const cached = appCache.get<T>(key) ?? appCache.getStale<T>(key);
+      if (cached) {
+        console.warn(`[Cache] Native fallback for "${key}" after network error`);
+        return cached;
+      }
+      throw err;
     }
   }
 

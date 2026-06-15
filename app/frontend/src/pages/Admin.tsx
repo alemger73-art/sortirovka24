@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { client, withRetry } from '@/lib/api';
+import { apiUrl } from '@/lib/config';
 import { DesktopSidebar, MobileDrawer, MobileHeader, getTabLabel } from '@/components/AdminSidebar';
 import AdminNews from './AdminNews';
 import AdminComplaints from './AdminComplaints';
@@ -59,7 +60,7 @@ function AdminLogin({ onLogin }: { onLogin: (token: string) => void }) {
     setError('');
 
     try {
-      const resp = await fetch((import.meta.env.VITE_API_BASE_URL || '') + '/api/v1/admin-auth/login', {
+      const resp = await fetch(apiUrl('/api/v1/admin-auth/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -199,7 +200,7 @@ export default function AdminPanel() {
     }
 
     try {
-      const resp = await fetch((import.meta.env.VITE_API_BASE_URL || '') + '/api/v1/admin-auth/verify-session', {
+      const resp = await fetch(apiUrl('/api/v1/admin-auth/verify-session'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -238,7 +239,7 @@ export default function AdminPanel() {
 
   const handleLogout = async () => {
     try {
-      await fetch((import.meta.env.VITE_API_BASE_URL || '') + '/api/v1/admin-auth/logout', {
+      await fetch(apiUrl('/api/v1/admin-auth/logout'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

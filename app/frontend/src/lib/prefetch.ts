@@ -7,6 +7,7 @@
 
 import { appCache } from './cache';
 import { client, withRetry } from './api';
+import { apiUrl } from './config';
 import { resolveImageSrc } from './storage';
 import {
   extractImageUrls,
@@ -87,7 +88,7 @@ async function prefetchOne(
 const CACHE_5M = 5 * 60 * 1000;
 
 function prefetchGastronom(): void {
-  prefetchOne('gastronom_catalog', () => fetch((import.meta.env.VITE_API_BASE_URL || '') + '/api/v1/gastronom/catalog').then(r => r.json()), CACHE_5M, false);
+  prefetchOne('gastronom_catalog', () => fetch(apiUrl('/api/v1/gastronom/catalog')).then(r => r.json()), CACHE_5M, false);
 }
 
 function prefetchFood(): void {

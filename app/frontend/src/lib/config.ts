@@ -33,6 +33,13 @@ export function getAPIBaseURL(): string {
   return _baseURL;
 }
 
+/** Absolute API path — works on web (relative) and native (Railway). */
+export function apiUrl(path: string): string {
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  const base = _baseURL.replace(/\/+$/, '');
+  return base ? `${base}${normalized}` : normalized;
+}
+
 // Kept for backward compatibility
 export function getConfig() {
   return { API_BASE_URL: _baseURL };

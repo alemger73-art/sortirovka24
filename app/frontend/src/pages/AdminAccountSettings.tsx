@@ -3,6 +3,7 @@ import { Eye, EyeOff, Save, Loader2, CheckCircle2, AlertCircle, KeyRound, User }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { apiUrl } from '@/lib/config';
 
 const SESSION_KEY = '_sp924_token';
 
@@ -27,7 +28,7 @@ async function callApi<T = any>(url: string, method: string = 'GET', data?: any,
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  const res = await fetch((import.meta.env.VITE_API_BASE_URL || '') + url, {
+  const res = await fetch(apiUrl(url), {
     method,
     headers,
     ...(data ? { body: JSON.stringify(data) } : {}),

@@ -22,14 +22,20 @@ function readToken(): string | null {
   }
 }
 
+/** SDK defaults to baseURL "/" — breaks Capacitor (requests hit https://localhost). */
+function createSdkClient(): ReturnType<typeof createClient> {
+  const base = getAPIBaseURL();
+  return createClient(base ? { baseURL: base } : {});
+}
+
 let _activeToken = readToken();
-let _activeClient = createClient();
+let _activeClient = createSdkClient();
 
 function getActiveClient(): ReturnType<typeof createClient> {
   const current = readToken();
   if (current !== _activeToken) {
     _activeToken = current;
-    _activeClient = createClient();
+    _activeClient = createSdkClient();
   }
   return _activeClient;
 }
@@ -100,8 +106,8 @@ export function warmupBackend(): Promise<void> {
   const maxAttempts = isNative ? 2 : 8;
   const apiBase = getAPIBaseURL().replace(/\/+$/, '');
   const warmupUrl = apiBase
-    ? `${apiBase}/api/v1/health`
-    : '/api/v1/health';
+    ? `${apiBase}/health`
+    : '/health';
 
   _warmupPromise = (async () => {
     for (let i = 0; i < maxAttempts; i++) {

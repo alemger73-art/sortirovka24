@@ -1,11 +1,11 @@
 import { appCache } from './cache';
+import { getAPIBaseURL } from './config';
 import type { DeliveryQuote } from './gastronomDelivery';
 
 const CATALOG_CACHE_KEY = 'gastronom_catalog';
 const CATALOG_TTL = 5 * 60 * 1000;
 
-const apiBase = () =>
-  (import.meta as ImportMeta & { env: { VITE_API_BASE_URL?: string } }).env.VITE_API_BASE_URL || '';
+const apiBase = () => getAPIBaseURL();
 
 function headers(admin = false): HeadersInit {
   const h: Record<string, string> = {

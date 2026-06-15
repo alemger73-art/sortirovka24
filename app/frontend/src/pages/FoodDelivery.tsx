@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Layout from '@/components/Layout';
 import { client, withRetry } from '@/lib/api';
+import { getAPIBaseURL } from '@/lib/config';
 import { resolveImageSrc } from '@/lib/storage';
 import { getAccountPrefill } from '@/lib/localAuth';
 import { cn } from '@/lib/utils';
@@ -69,7 +70,7 @@ interface CartLine {
 }
 
 function apiBase(): string {
-  return (import.meta as ImportMeta & { env: { VITE_API_BASE_URL?: string } }).env.VITE_API_BASE_URL || '';
+  return getAPIBaseURL();
 }
 
 function catalogHeaders(): HeadersInit {

@@ -1,6 +1,8 @@
 /** Direct HTTP helpers for food entities when @metagptx/web-sdk has no generated client (e.g. food_restaurants). */
 
-const apiBase = () => (import.meta as ImportMeta & { env: { VITE_API_BASE_URL?: string } }).env.VITE_API_BASE_URL || '';
+import { getAPIBaseURL } from './config';
+
+const apiBase = () => getAPIBaseURL();
 
 function adminHeaders(): HeadersInit {
   const h: Record<string, string> = {
