@@ -17,9 +17,11 @@ type Review = {
 export default function MasterReviews({
   masterId,
   onRatingChange,
+  embedded = false,
 }: {
   masterId: number;
   onRatingChange?: (avg: number, total: number) => void;
+  embedded?: boolean;
 }) {
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -91,7 +93,7 @@ export default function MasterReviews({
   };
 
   return (
-    <div className="mt-10 pt-8 border-t border-gray-100 dark:border-gray-800">
+    <div className={embedded ? '' : 'mt-10 pt-8 border-t border-gray-100 dark:border-gray-800'}>
       <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
         <h3 className="font-extrabold text-gray-900 dark:text-white text-lg">
           {t("masters.reviewsTitle")} {total > 0 && <span className="text-gray-400 font-medium text-base">({total})</span>}
