@@ -9,13 +9,15 @@ import {
   resolveImageSrc,
   uploadFile,
   isDirectUrl,
+  MAX_IMAGE_UPLOAD_BYTES,
+  formatMaxImageSizeMb,
 } from '@/lib/storage';
 
 // Re-export for backward compatibility
 export { resolveImageUrl } from '@/lib/storage';
 
 const MAX_IMAGES = 10;
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE = MAX_IMAGE_UPLOAD_BYTES;
 
 interface MultiImageUploadProps {
   value?: string;
@@ -107,7 +109,7 @@ export default function MultiImageUpload({
         return false;
       }
       if (file.size > MAX_FILE_SIZE) {
-        toast.error(`${file.name}: превышает 5 МБ`);
+        toast.error(`${file.name}: превышает ${formatMaxImageSizeMb()} МБ`);
         return false;
       }
       return true;
@@ -413,7 +415,7 @@ export default function MultiImageUpload({
               </span>
               {!isDragOver && (
                 <span className="text-xs text-gray-400 mt-0.5 block">
-                  или <span className="text-blue-500 underline underline-offset-2">выберите файлы</span> · до {maxImages} фото, JPG/PNG/WebP до 5 МБ
+                  или <span className="text-blue-500 underline underline-offset-2">выберите файлы</span> · до {maxImages} фото, JPG/PNG/WebP до {formatMaxImageSizeMb()} МБ
                 </span>
               )}
             </div>

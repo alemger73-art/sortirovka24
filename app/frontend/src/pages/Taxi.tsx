@@ -15,6 +15,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 import { GeolocationError, requestCurrentPosition } from '@/lib/geolocation';
+import { getAccountToken } from '@/lib/accountApi';
+import { getAccountPrefill } from '@/lib/localAuth';
 
 import {
 
@@ -99,19 +101,38 @@ export default function Taxi() {
   const [comment, setComment] = useState('');
 
   const [showCheckout, setShowCheckout] = useState(false);
-
-
+  const [settingsLoading, setSettingsLoading] = useState(true);
 
   useEffect(() => {
-
-    taxiApi.settings().then(setSettings).catch(() => {});
+    let cancelled = false;
+    taxiApi
+      .settings()
+      .then((s) => {
+        if (!cancelled) setSettings(s);
+      })
+      .catch(() => {
+        if (!cancelled) setSettings(null);
+      })
+      .finally(() => {
+        if (!cancelled) setSettingsLoading(false);
+      });
 
     if (getAccountToken()) {
-
-      taxiApi.getActiveRide().then((r) => r && setActiveRide(r)).catch(() => {});
-
+      taxiApi
+        .getActiveRide()
+        .then((r) => {
+          if (!cancelled && r) setActiveRide(r);
+        })
+        .catch(() => {});
     }
 
+    const prefill = getAccountPrefill();
+    if (prefill.name) setPassengerName((v) => v || prefill.name);
+    if (prefill.phone) setPassengerPhone((v) => v || prefill.phone);
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
 
@@ -261,6 +282,17 @@ export default function Taxi() {
   }
 
 
+
+  if (settingsLoading && !settings && !activeRide) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800 flex flex-col items-center justify-center gap-3 text-white/70">
+          <Loader2 className="h-8 w-8 animate-spin text-yellow-400" />
+          <p className="text-sm">Загрузка такси…</p>
+        </div>
+      </Layout>
+    );
+  }
 
   if (activeRide) {
 

@@ -40,6 +40,14 @@ export function apiUrl(path: string): string {
   return base ? `${base}${normalized}` : normalized;
 }
 
+/** Turn backend-relative service URLs into absolute (required for Capacitor uploads). */
+export function resolveServiceUrl(urlOrPath: string): string {
+  const s = (urlOrPath || '').trim();
+  if (!s) return s;
+  if (s.startsWith('http://') || s.startsWith('https://')) return s;
+  return apiUrl(s.startsWith('/') ? s : `/${s}`);
+}
+
 // Kept for backward compatibility
 export function getConfig() {
   return { API_BASE_URL: _baseURL };

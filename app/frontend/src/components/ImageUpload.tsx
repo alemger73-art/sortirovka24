@@ -11,6 +11,8 @@ import {
   getCachedUrl,
   setCachedUrl,
   clearCachedUrl,
+  MAX_IMAGE_UPLOAD_BYTES,
+  formatMaxImageSizeMb,
 } from '@/lib/storage';
 
 // Re-export for backward compatibility
@@ -82,8 +84,8 @@ export default function ImageUpload({ value, onChange, folder = 'general', class
       toast.error('Выберите изображение (JPG, PNG, WebP)');
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Максимальный размер файла — 5 МБ');
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+      toast.error(`Максимальный размер файла — ${formatMaxImageSizeMb()} МБ`);
       return;
     }
 

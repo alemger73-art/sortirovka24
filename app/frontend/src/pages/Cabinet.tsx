@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Camera, Coins, Save, UserCircle2, UtensilsCrossed, Truck, Store } from "lucide-react";
 import { accountApi, getAccountToken } from "@/lib/accountApi";
 import { cacheAccountProfile, logoutLocalUser } from "@/lib/localAuth";
-import { uploadFile } from "@/lib/storage";
+import { uploadAvatar, assertImageFileSize } from "@/lib/storage";
 import { formatTenge, taxiApi, TAXI_STATUS_LABELS, type TaxiRide } from "@/lib/taxiApi";
 import { useTaxiEnabled } from "@/hooks/useTaxiEnabled";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -148,15 +148,17 @@ export default function Cabinet() {
       setError("Выберите изображение (JPG, PNG, WebP)");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Максимальный размер файла — 5 МБ");
+    try {
+      assertImageFileSize(file);
+    } catch (e: any) {
+      setError(String(e?.message || e));
       return;
     }
     setAvatarUploading(true);
     setError("");
     setSuccess("");
     try {
-      const result = await uploadFile(file, "avatars");
+      const result = await uploadAvatar(file);
       const url = result.downloadUrl || result.thumbnailUrl;
       if (!url) throw new Error("Не удалось получить ссылку на загруженное фото");
       const nextForm = { ...profileForm, avatar: url };

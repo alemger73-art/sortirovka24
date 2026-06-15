@@ -1,6 +1,8 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useCallback, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
+import AppWelcomeSplash from "@/components/AppWelcomeSplash";
 import RequireCabinetRole from "@/components/RequireCabinetRole";
 import RequireUserAuth from "@/components/RequireUserAuth";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -81,12 +83,21 @@ function PageLoader() {
 }
 
 function App() {
+  const [showWelcome, setShowWelcome] = useState(
+    () => Capacitor.isNativePlatform() && !sessionStorage.getItem('s24_welcome_done')
+  );
+  const dismissWelcome = useCallback(() => {
+    sessionStorage.setItem('s24_welcome_done', '1');
+    setShowWelcome(false);
+  }, []);
+
   const Protected = ({ children }: { children: JSX.Element }) =>
     getAccountToken() ? children : <Navigate to="/account" replace />;
 
   return (
     <ThemeProvider>
       <LanguageProvider>
+        {showWelcome && <AppWelcomeSplash onHidden={dismissWelcome} />}
         <BrowserRouter>
           <Toaster position="top-center" richColors />
           <Suspense fallback={<PageLoader />}>

@@ -56,7 +56,14 @@ export const accountApi = {
     api<{ success: boolean }>("/api/v1/account/me/change-password", { method: "POST", body: JSON.stringify(body) }),
   setPassword: (body: { new_password: string }) =>
     api<{ success: boolean }>("/api/v1/account/me/set-password", { method: "POST", body: JSON.stringify(body) }),
-  avatarUploadUrl: () => api<{ upload_url: string; image_url?: string }>("/api/v1/account/me/avatar-upload-url", { method: "POST" }),
+  avatarUploadUrl: () =>
+    api<{
+      upload_url: string;
+      image_url?: string;
+      thumbnail_url?: string;
+      object_key?: string;
+      thumbnail_object_key?: string;
+    }>('/api/v1/account/me/avatar-upload-url', { method: 'POST' }),
   cabinet: () => api<any>("/api/v1/account/cabinet"),
   masterCabinet: () => api<any>("/api/v1/account/master/cabinet"),
   updateMasterProfile: (body: Record<string, unknown>) =>

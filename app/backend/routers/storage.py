@@ -198,6 +198,7 @@ ALLOWED_UPLOAD_EXTENSIONS = {
 
 # Max object key length for public uploads
 MAX_PUBLIC_OBJECT_KEY_LENGTH = 256
+MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
 
 
 @router.post("/public/upload-url", response_model=FileUpDownResponse)
@@ -246,6 +247,11 @@ async def upload_via_proxy(token: str, request: Request):
     body = await request.body()
     if not body:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty upload body")
+    if len(body) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="File too large (max 20 MB)",
+        )
 
     content_type = request.headers.get("content-type", "application/octet-stream")
     try:

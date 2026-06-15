@@ -171,6 +171,10 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 // ─── Render App ──────────────────────────────────────────────────
+if (!Capacitor.isNativePlatform()) {
+  document.getElementById('boot-splash')?.remove();
+}
+
 const rootElement = document.getElementById('root');
 if (rootElement) {
   try {

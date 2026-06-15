@@ -6,9 +6,23 @@
  * MultiImageUpload, and VideoUpload components.
  */
 import { client, withRetry } from '@/lib/api';
-import { apiUrl } from '@/lib/config';
+import { apiUrl, resolveServiceUrl } from '@/lib/config';
+import { accountApi } from '@/lib/accountApi';
 
 export const BUCKET_NAME = 'portal-images';
+
+/** Max image upload size for profile, announcements, complaints, etc. */
+export const MAX_IMAGE_UPLOAD_BYTES = 20 * 1024 * 1024;
+
+export function formatMaxImageSizeMb(bytes = MAX_IMAGE_UPLOAD_BYTES): number {
+  return Math.round(bytes / 1024 / 1024);
+}
+
+export function assertImageFileSize(file: File, maxBytes = MAX_IMAGE_UPLOAD_BYTES): void {
+  if (file.size > maxBytes) {
+    throw new Error(`Максимальный размер файла — ${formatMaxImageSizeMb(maxBytes)} МБ`);
+  }
+}
 
 // ─── Cloudinary Image Base URL (auto-discovered) ─────────────────
 // For object keys we can construct permanent image URLs when the Cloudinary
@@ -300,7 +314,10 @@ async function fetchPublicUploadUrl(
   if (!data?.upload_url) {
     throw new Error('No upload_url in response');
   }
-  return data;
+  return {
+    ...data,
+    upload_url: resolveServiceUrl(data.upload_url),
+  };
 }
 
 /**
@@ -315,7 +332,7 @@ async function uploadToPresignedUrl(
   object_key?: string;
   thumbnail_object_key?: string;
 }> {
-  const resp = await fetch(presignedUrl, {
+  const resp = await fetch(resolveServiceUrl(presignedUrl), {
     method: 'PUT',
     headers: {
       'Content-Type': file.type || 'application/octet-stream',
@@ -410,8 +427,15 @@ export async function uploadFile(
     console.warn('[uploadFile] Public upload failed, trying SDK fallback:', err);
   }
 
-  // Strategy 2: SDK authenticated method (fallback for App Viewer / admin)
+  // Strategy 2: SDK authenticated method (fallback when public route fails)
   if (!uploaded) {
+    const hasToken = Boolean(
+      (typeof globalThis !== 'undefined' && globalThis?.localStorage?.getItem('account_token')) ||
+      (typeof globalThis !== 'undefined' && globalThis?.localStorage?.getItem('token'))
+    );
+    if (!hasToken) {
+      throw new Error('Не удалось загрузить файл. Проверьте интернет и попробуйте снова.');
+    }
     await withRetry(
       () =>
         client.storage.upload({
@@ -488,4 +512,38 @@ export async function uploadFile(
   }
 
   return { objectKey, downloadUrl, thumbnailObjectKey, thumbnailUrl };
+}
+
+/** Upload profile avatar via authenticated endpoint (works in web + Capacitor). */
+export async function uploadAvatar(file: File): Promise<{
+  downloadUrl: string;
+  thumbnailUrl: string | null;
+}> {
+  assertImageFileSize(file);
+  await ensureBucket();
+
+  const meta = await accountApi.avatarUploadUrl();
+  const uploadResult = await withRetry(
+    () => uploadToPresignedUrl(meta.upload_url, file),
+    3,
+    2000
+  );
+
+  const downloadUrl =
+    uploadResult.image_url ||
+    meta.image_url ||
+    (meta.object_key ? getPublicObjectUrl(meta.object_key) : null);
+
+  if (!downloadUrl) {
+    throw new Error('Не удалось получить ссылку на загруженное фото');
+  }
+
+  extractStorageBase(downloadUrl);
+  const thumb =
+    uploadResult.thumbnail_url ||
+    meta.thumbnail_url ||
+    null;
+  if (thumb) extractStorageBase(thumb);
+
+  return { downloadUrl, thumbnailUrl: thumb };
 }

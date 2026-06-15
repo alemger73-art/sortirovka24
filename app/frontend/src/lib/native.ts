@@ -4,12 +4,14 @@ export function isNativeApp(): boolean {
   return Capacitor.isNativePlatform();
 }
 
-async function hideSplashWithFallback(SplashScreen: { hide: () => Promise<void> }) {
-  const timeout = new Promise<void>((resolve) => setTimeout(resolve, 600));
+/** Hide the native Capacitor splash once the in-app welcome is ready. */
+export async function hideNativeSplash(): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
   try {
-    await Promise.race([SplashScreen.hide(), timeout]);
+    const { SplashScreen } = await import('@capacitor/splash-screen');
+    await Promise.race([SplashScreen.hide(), new Promise<void>((r) => setTimeout(r, 400))]);
   } catch {
-    // ignore — splash auto-hides via config
+    // ignore
   }
 }
 
@@ -35,16 +37,14 @@ export async function initNativeShell(): Promise<void> {
   void clearLegacyWebCaches();
 
   try {
-    const [{ StatusBar, Style }, { SplashScreen }, { App }] = await Promise.all([
+    const [{ StatusBar, Style }, { App }] = await Promise.all([
       import('@capacitor/status-bar'),
-      import('@capacitor/splash-screen'),
       import('@capacitor/app'),
     ]);
 
     document.documentElement.classList.add('native-app');
 
     await StatusBar.setStyle({ style: Style.Dark }).catch(() => undefined);
-    await hideSplashWithFallback(SplashScreen);
 
     App.addListener('backButton', ({ canGoBack }) => {
       if (canGoBack) {
