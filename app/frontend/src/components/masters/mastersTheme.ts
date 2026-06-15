@@ -9,6 +9,7 @@ export const CATEGORY_GRADIENTS: Record<string, string> = {
   'Грузчики': 'from-cyan-400 to-sky-600',
   'Ремонт квартир': 'from-rose-400 to-pink-600',
   'Окна и двери': 'from-teal-400 to-emerald-600',
+  'Кровельщик': 'from-red-500 to-orange-700',
   'Натяжные потолки': 'from-indigo-400 to-blue-600',
   'Разнорабочие': 'from-slate-400 to-gray-600',
 };
@@ -22,6 +23,7 @@ export const CATEGORY_BG: Record<string, string> = {
   'Грузчики': 'bg-cyan-50 dark:bg-cyan-950/40',
   'Ремонт квартир': 'bg-rose-50 dark:bg-rose-950/40',
   'Окна и двери': 'bg-teal-50 dark:bg-teal-950/40',
+  'Кровельщик': 'bg-red-50 dark:bg-red-950/40',
   'Натяжные потолки': 'bg-indigo-50 dark:bg-indigo-950/40',
   'Разнорабочие': 'bg-slate-50 dark:bg-slate-950/40',
 };

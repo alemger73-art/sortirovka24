@@ -5,7 +5,7 @@ import {
   ClipboardList, UserPlus, LogOut, Home as HomeIcon, Lock, Megaphone,
   Briefcase, FolderTree, Building2, Utensils, ShoppingBag, Settings,
   BadgeCheck, BarChart3, Clock, Plug, Bus, TreePine, MapPin,
-  ChevronDown, ChevronRight, X, Menu, Store, Car, Heart, type LucideIcon,
+  ChevronDown, ChevronRight, X, Menu, Store, Car, Heart, HardHat, type LucideIcon,
 } from 'lucide-react';
 
 /* ─── Types ─── */
@@ -74,6 +74,7 @@ const MENU_GROUPS: MenuGroup[] = [
     emoji: '🤝',
     items: [
       { id: 'partners-gastronom', label: 'Гастроном', icon: Store },
+      { id: 'partners-prorab', label: 'PRORAB', icon: HardHat },
     ],
   },
   {

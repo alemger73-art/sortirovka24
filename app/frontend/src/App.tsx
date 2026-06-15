@@ -44,6 +44,7 @@ const HistoryPage = lazy(() => import("./pages/History"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const AdminPanel = lazy(() => import("./pages/Admin"));
 const Gastronom = lazy(() => import("./pages/Gastronom"));
+const Prorab = lazy(() => import("./pages/Prorab"));
 const Food = lazy(() => import("./pages/Food"));
 const FoodRestaurants = lazy(() => import("./pages/FoodDelivery"));
 const FoodPark = lazy(() => import("./pages/FoodPark"));
@@ -176,6 +177,7 @@ function App() {
               <Route path="/food" element={<Food />} />
               <Route path="/food/restaurants" element={<FoodRestaurants />} />
               <Route path="/gastronom" element={<Gastronom />} />
+              <Route path="/prorab" element={<Prorab />} />
               <Route path="/food/park" element={<FoodPark />} />
               <Route path="/food/courier" element={<FoodCourier />} />
               <Route path="/business" element={<BusinessPage />} />

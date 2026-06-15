@@ -1,5 +1,18 @@
 [
     {
+        "id": 46,
+        "name": "Кровельщик",
+        "slug": "krovelshchik",
+        "cat_type": "services",
+        "icon": "🏗️",
+        "description": "Кровельные работы: монтаж, ремонт, утепление",
+        "parent_id": 1,
+        "sort_order": 9,
+        "show_on_main": false,
+        "is_active": true,
+        "created_at": "2026-06-15 00:00:00"
+    },
+    {
         "id": 45,
         "name": "Стройматериалы",
         "slug": "stroymaterialy",

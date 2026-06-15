@@ -15,6 +15,7 @@ Per-category overrides (optional):
   TELEGRAM_BOT_TOKEN_JOBS           / TELEGRAM_CHAT_ID_JOBS
   TELEGRAM_BOT_TOKEN_ANNOUNCEMENTS  / TELEGRAM_CHAT_ID_ANNOUNCEMENTS
   TELEGRAM_BOT_TOKEN_GASTRONOM      / TELEGRAM_CHAT_ID_GASTRONOM
+  TELEGRAM_BOT_TOKEN_PRORAB         / TELEGRAM_CHAT_ID_PRORAB
   TELEGRAM_BOT_TOKEN_TAXI           / TELEGRAM_CHAT_ID_TAXI
 
 If a per-category variable is not set, the default is used.
@@ -38,6 +39,7 @@ CATEGORY_BECOME_MASTER = "BECOME_MASTER"
 CATEGORY_JOBS = "JOBS"
 CATEGORY_ANNOUNCEMENTS = "ANNOUNCEMENTS"
 CATEGORY_GASTRONOM = "GASTRONOM"
+CATEGORY_PRORAB = "PRORAB"
 CATEGORY_FOOD = "FOOD"
 CATEGORY_TAXI = "TAXI"
 
@@ -64,7 +66,7 @@ def get_routing_info() -> dict:
     """Return current Telegram routing configuration for diagnostics."""
     categories = [
         CATEGORY_COMPLAINTS, CATEGORY_MASTERS, CATEGORY_BECOME_MASTER,
-        CATEGORY_JOBS, CATEGORY_ANNOUNCEMENTS, CATEGORY_GASTRONOM, CATEGORY_FOOD, CATEGORY_TAXI,
+        CATEGORY_JOBS, CATEGORY_ANNOUNCEMENTS, CATEGORY_GASTRONOM, CATEGORY_PRORAB, CATEGORY_FOOD, CATEGORY_TAXI,
     ]
     result = {"default": _is_configured(None)}
     for cat in categories:
@@ -380,6 +382,90 @@ async def notify_gastronom_status_change(data: dict) -> bool:
         f"<b>Дата:</b> {_format_date()}"
     )
     return await send_telegram_message(text, category=CATEGORY_GASTRONOM)
+
+
+async def notify_prorab_order(data: dict) -> bool:
+    """Send notification about a new PRORAB construction materials order."""
+    items = data.get("items") or []
+    if isinstance(items, str):
+        try:
+            import json
+            items = json.loads(items)
+        except Exception:
+            items = []
+
+    lines = []
+    for idx, item in enumerate(items, 1):
+        name = item.get("name", "—")
+        qty = item.get("qty", 1)
+        price = item.get("price", 0)
+        sum_val = item.get("sum", qty * price)
+        weight = item.get("weight", "")
+        weight_part = f" ({weight})" if weight else ""
+        lines.append(f"{idx}. {_escape_html(name)}{weight_part} ×{qty} = {sum_val} ₸")
+
+    items_text = "\n".join(lines) if lines else "—"
+    payment_map = {"cash": "Наличные", "kaspi_qr": "Kaspi QR", "halyk_qr": "Halyk QR", "card": "Картой"}
+    payment_label = payment_map.get(data.get("payment_method", ""), data.get("payment_method", "—"))
+
+    comment_line = ""
+    if data.get("comment"):
+        comment_line = f"\n<b>Комментарий:</b> {_escape_html(data.get('comment'))}"
+
+    delivery_fee = data.get("delivery_fee") or 0
+    delivery_line = ""
+    if data.get("free_delivery_applied"):
+        delivery_line = "\n<b>Доставка:</b> бесплатно (от 50 000 ₸)"
+    else:
+        try:
+            if float(delivery_fee) > 0:
+                zone_part = f" ({_escape_html(data.get('delivery_zone'))})" if data.get("delivery_zone") else ""
+                delivery_line = f"\n<b>Доставка:</b> {delivery_fee} ₸{zone_part}"
+        except (TypeError, ValueError):
+            pass
+
+    subtotal = data.get("subtotal")
+    subtotal_line = f"\n<b>Товары:</b> {subtotal} ₸" if subtotal is not None else ""
+
+    text = (
+        "🏗 <b>Новый заказ PRORAB — стройматериалы</b>\n\n"
+        f"<b>№ заказа:</b> {data.get('order_id', '—')}\n"
+        f"<b>Клиент:</b> {_escape_html(data.get('customer_name', '—'))}\n"
+        f"<b>Телефон:</b> {_escape_html(data.get('customer_phone', '—'))}\n"
+        f"<b>Адрес:</b> {_escape_html(data.get('customer_address', '—'))}\n"
+        f"<b>Оплата:</b> {_escape_html(payment_label)}\n\n"
+        f"<b>Состав заказа:</b>\n{items_text}"
+        f"{subtotal_line}"
+        f"{delivery_line}\n\n"
+        f"<b>Итого:</b> {data.get('total_amount', 0)} ₸"
+        f"{comment_line}\n\n"
+        "📞 <b>Перезвоните клиенту для уточнения деталей</b>\n"
+        f"<b>Дата:</b> {_format_date()}"
+    )
+    return await send_telegram_message(text, category=CATEGORY_PRORAB)
+
+
+async def notify_prorab_status_change(data: dict) -> bool:
+    """Notify Telegram when a PRORAB order status changes."""
+    status_map = {
+        "new": "Новый",
+        "processing": "В работе",
+        "delivered": "Доставлен",
+        "cancelled": "Отменён",
+    }
+    old_label = status_map.get(data.get("old_status", ""), data.get("old_status", "—"))
+    new_label = status_map.get(data.get("new_status", ""), data.get("new_status", "—"))
+    text = (
+        "🏗 <b>Изменение статуса заказа PRORAB</b>\n\n"
+        f"<b>№ заказа:</b> {data.get('order_id', '—')}\n"
+        f"<b>Клиент:</b> {_escape_html(data.get('customer_name', '—'))}\n"
+        f"<b>Телефон:</b> {_escape_html(data.get('customer_phone', '—'))}\n"
+        f"<b>Было:</b> {_escape_html(old_label)}\n"
+        f"<b>Стало:</b> {_escape_html(new_label)}\n"
+        f"<b>Сумма:</b> {data.get('total_amount', 0)} ₸\n"
+        f"<b>Дата:</b> {_format_date()}"
+    )
+    return await send_telegram_message(text, category=CATEGORY_PRORAB)
 
 
 async def notify_new_job(data: dict) -> bool:

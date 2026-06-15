@@ -27,6 +27,7 @@ import AdminParkPoints from './AdminParkPoints';
 import AdminParkOrders from './AdminParkOrders';
 import AdminAccountSettings from './AdminAccountSettings';
 import AdminGastronom from './AdminGastronom';
+import AdminProrab from './AdminProrab';
 import AdminSupport from './AdminSupport';
 
 // JWT token key in localStorage (persists across tabs and browser restarts)
@@ -303,6 +304,7 @@ export default function AdminPanel() {
       case 'pos-integration': return <AdminFrontpad />;
       case 'account-settings': return <AdminAccountSettings />;
       case 'partners-gastronom': return <AdminGastronom />;
+      case 'partners-prorab': return <AdminProrab />;
       case 'support': return <AdminSupport />;
       default: return <AdminCategories />;
     }
@@ -340,7 +342,7 @@ export default function AdminPanel() {
           <h1 className="text-xl font-bold text-gray-900">{getTabLabel(activeTab)}</h1>
         </div>
 
-        <div className={`p-3 sm:p-4 md:p-6 ${activeTab === 'partners-gastronom' ? 'pb-24 md:pb-6' : ''}`}>
+        <div className={`p-3 sm:p-4 md:p-6 ${activeTab === 'partners-gastronom' || activeTab === 'partners-prorab' ? 'pb-24 md:pb-6' : ''}`}>
           {renderContent()}
         </div>
 

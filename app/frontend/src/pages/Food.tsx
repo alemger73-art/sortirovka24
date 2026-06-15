@@ -1305,7 +1305,7 @@ export default function Food() {
 
         {/* ═══ PRODUCT POPUP MODAL ═══ */}
         {selectedItem && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 backdrop-blur-[2px] sm:items-center sm:p-4" onClick={() => setSelectedItem(null)}>
+          <div className="food-sheet-overlay fixed inset-0 flex items-end justify-center bg-black/45 backdrop-blur-[2px] sm:items-center sm:p-4" onClick={() => setSelectedItem(null)}>
             <div
               className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-[22px] bg-[#FAFAFA] animate-in slide-in-from-bottom duration-300 sm:rounded-[22px]"
               onClick={e => e.stopPropagation()}
@@ -1456,9 +1456,9 @@ export default function Food() {
 
         {/* ═══ CART DRAWER ═══ */}
         {cartOpen && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center" onClick={() => setCartOpen(false)}>
+          <div className="food-sheet-overlay fixed inset-0 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onClick={() => setCartOpen(false)}>
             <div
-              className="bg-[#f5f5f5] w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl max-h-[85vh] flex flex-col animate-in slide-in-from-bottom duration-300"
+              className="food-sheet-panel w-full animate-in rounded-t-3xl bg-[#f5f5f5] slide-in-from-bottom duration-300 sm:max-h-[90vh] sm:max-w-lg sm:rounded-3xl"
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-center relative p-5 bg-white rounded-t-3xl border-b border-gray-100">
@@ -1548,7 +1548,7 @@ export default function Food() {
                 )}
               </div>
 
-              <div className="space-y-3 rounded-b-3xl bg-white p-5 pt-4 ring-1 ring-gray-100/80">
+              <div className="food-sheet-footer space-y-3 rounded-b-3xl bg-white p-5 pt-4 ring-1 ring-gray-100/80">
                 <div className="flex justify-between text-sm">
                   <span className="text-[#777777]">{t('food.subtotal')}</span>
                   <span className="font-semibold text-[#111111]">{formatPrice(cartTotal)}</span>
@@ -1580,9 +1580,9 @@ export default function Food() {
 
         {/* ═══ CHECKOUT MODAL ═══ */}
         {checkoutOpen && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center" onClick={() => setCheckoutOpen(false)}>
+          <div className="food-sheet-overlay fixed inset-0 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onClick={() => setCheckoutOpen(false)}>
             <div
-              className="bg-[#f5f5f5] w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl max-h-[90vh] flex flex-col animate-in slide-in-from-bottom duration-300"
+              className="food-sheet-panel w-full animate-in rounded-t-3xl bg-[#f5f5f5] slide-in-from-bottom duration-300 sm:max-h-[90vh] sm:max-w-lg sm:rounded-3xl"
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between p-5 bg-white rounded-t-3xl">
@@ -1799,7 +1799,7 @@ export default function Food() {
                 </div>
               </div>
 
-              <div className="p-5 bg-white rounded-b-3xl">
+              <div className="food-sheet-footer rounded-b-3xl bg-white p-5">
                 <Button
                   onClick={submitOrder}
                   disabled={submitting || cartTotal < minOrder}
