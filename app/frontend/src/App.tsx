@@ -1,13 +1,16 @@
-import { lazy, Suspense, useCallback, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Capacitor } from "@capacitor/core";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import AppWelcomeSplash from "@/components/AppWelcomeSplash";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import AuthGateLoader from "@/components/AuthGateLoader";
 import RequireCabinetRole from "@/components/RequireCabinetRole";
 import RequireUserAuth from "@/components/RequireUserAuth";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { getAccountToken } from "@/lib/accountApi";
+import { refreshAccountProfile } from "@/lib/localAuth";
 
 // Critical path — loaded eagerly (homepage)
 import Index from "./pages/Index";
@@ -63,6 +66,17 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Minimal skeleton loading fallback
 function PageLoader() {
+  const native = Capacitor.isNativePlatform();
+  if (native) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#0B0F19] to-[#111827] flex flex-col items-center justify-center gap-3">
+        <img src="/icon-192.png" alt="" width={56} height={56} className="rounded-xl opacity-90" />
+        <div className="h-1 w-24 overflow-hidden rounded-full bg-white/10">
+          <div className="h-full w-1/3 animate-pulse rounded-full bg-yellow-400" />
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
       <div className="h-16 bg-white shadow-sm" />
@@ -82,6 +96,18 @@ function PageLoader() {
   );
 }
 
+function Protected({ children }: { children: JSX.Element }) {
+  const navigate = useNavigate();
+  const authed = Boolean(getAccountToken());
+
+  useEffect(() => {
+    if (!authed) navigate("/account", { replace: true });
+  }, [authed, navigate]);
+
+  if (!authed) return <AuthGateLoader />;
+  return children;
+}
+
 function App() {
   const [showWelcome, setShowWelcome] = useState(
     () => Capacitor.isNativePlatform() && !sessionStorage.getItem('s24_welcome_done')
@@ -91,8 +117,10 @@ function App() {
     setShowWelcome(false);
   }, []);
 
-  const Protected = ({ children }: { children: JSX.Element }) =>
-    getAccountToken() ? children : <Navigate to="/account" replace />;
+  useEffect(() => {
+    if (!getAccountToken()) return;
+    void refreshAccountProfile();
+  }, []);
 
   return (
     <ThemeProvider>
@@ -100,6 +128,7 @@ function App() {
         {showWelcome && <AppWelcomeSplash onHidden={dismissWelcome} />}
         <BrowserRouter>
           <Toaster position="top-center" richColors />
+          <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
             <Routes>
               {/* Home — eagerly loaded for instant FCP */}
@@ -175,6 +204,7 @@ function App() {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
+          </ErrorBoundary>
         </BrowserRouter>
       </LanguageProvider>
     </ThemeProvider>

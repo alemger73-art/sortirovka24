@@ -1,6 +1,8 @@
 import { getAPIBaseURL } from "@/lib/config";
 
-const API_BASE = getAPIBaseURL().replace(/\/$/, "");
+function apiBase(): string {
+  return getAPIBaseURL().replace(/\/$/, "");
+}
 
 export type AccountRole = "user" | "master" | "driver" | "partner" | "admin" | "superadmin";
 
@@ -18,7 +20,7 @@ export function clearAccountToken() {
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getAccountToken();
-  const resp = await fetch(`${API_BASE}${path}`, {
+  const resp = await fetch(`${apiBase()}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
@@ -44,7 +46,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 export const accountApi = {
   googleStatus: () => api<{ enabled: boolean }>("/api/v1/account/google/status"),
   googleStartUrl: (language: string = "ru") =>
-    `${API_BASE}/api/v1/account/google/start?language=${encodeURIComponent(language)}`,
+    `${apiBase()}/api/v1/account/google/start?language=${encodeURIComponent(language)}`,
   requestSmsCode: (body: { phone: string }) => api<{ success: boolean; ttl_seconds: number; debug_code?: string; sms_pending_moderation?: boolean; on_screen_code_hint?: string }>("/api/v1/account/register/request-sms", { method: "POST", body: JSON.stringify(body) }),
   confirmRegistration: (body: any) => api<{ token: string; user_id: string; role: AccountRole }>("/api/v1/account/register/confirm", { method: "POST", body: JSON.stringify(body) }),
   register: (body: any) => api<{ token: string; user_id: string; role: AccountRole }>("/api/v1/account/register", { method: "POST", body: JSON.stringify(body) }),

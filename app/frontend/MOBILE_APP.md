@@ -7,6 +7,8 @@
 
 ## Быстрая сборка APK (один клик)
 
+> Полный чеклист деплоя и env-переменных: [`PRODUCTION_CHECKLIST.md`](../../PRODUCTION_CHECKLIST.md) в корне репозитория.
+
 **APK уже можно собрать автоматически** — скрипт сам скачает Android SDK, соберёт web и упакует APK:
 
 ```powershell

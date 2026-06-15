@@ -103,11 +103,21 @@ export async function refreshAccountProfile(): Promise<LocalUser | null> {
       avatar: me.avatar,
     });
     return getCurrentUser();
-  } catch {
-    clearAccountToken();
-    localStorage.removeItem(PROFILE_KEY);
-    emitAuthChanged();
-    return null;
+  } catch (e: unknown) {
+    const msg = String((e as Error)?.message || e).toLowerCase();
+    const authFailed =
+      msg.includes('http 401') ||
+      msg.includes('unauthorized') ||
+      msg.includes('invalid token') ||
+      msg.includes('не авторизован');
+    if (authFailed) {
+      clearAccountToken();
+      localStorage.removeItem(PROFILE_KEY);
+      emitAuthChanged();
+      return null;
+    }
+    // Network / server errors — keep cached profile, do not log out
+    return getCurrentUser();
   }
 }
 

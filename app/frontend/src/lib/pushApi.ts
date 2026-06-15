@@ -1,11 +1,13 @@
 import { getAPIBaseURL } from '@/lib/config';
 import { getAccountToken } from '@/lib/accountApi';
 
-const API_BASE = getAPIBaseURL().replace(/\/$/, '');
+function apiBase(): string {
+  return getAPIBaseURL().replace(/\/$/, '');
+}
 
 async function pushApi<T>(path: string, body: unknown): Promise<T> {
   const token = getAccountToken();
-  const resp = await fetch(`${API_BASE}${path}`, {
+  const resp = await fetch(`${apiBase()}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -1,7 +1,9 @@
 import { getAccountToken } from '@/lib/accountApi';
 import { getAPIBaseURL } from '@/lib/config';
 
-const API_BASE = getAPIBaseURL().replace(/\/$/, '');
+function apiBase(): string {
+  return getAPIBaseURL().replace(/\/$/, '');
+}
 
 /** Admin panel uses _sp924_token; passengers/drivers use account_token */
 export function getTaxiAdminToken(): string {
@@ -19,7 +21,7 @@ export function getTaxiAdminToken(): string {
 
 async function api<T>(path: string, init?: RequestInit, token?: string): Promise<T> {
   const authToken = token ?? getAccountToken();
-  const resp = await fetch(`${API_BASE}${path}`, {
+  const resp = await fetch(`${apiBase()}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',

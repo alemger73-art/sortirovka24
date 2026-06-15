@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import RouteErrorFallback from '@/components/RouteErrorFallback';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -11,9 +12,8 @@ interface ErrorBoundaryState {
 }
 
 /**
- * React Error Boundary — catches runtime errors in the component tree.
- * Instead of showing a blocking error page, it logs the error and
- * attempts to recover by resetting state after a brief delay.
+ * Catches runtime errors in lazy-loaded routes and shows a recoverable screen
+ * instead of a blank white page (common on mobile when a chunk throws).
  */
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
@@ -31,17 +31,24 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       stack: error.stack?.split('\n').slice(0, 5).join('\n'),
       componentStack: errorInfo.componentStack?.split('\n').slice(0, 5).join('\n'),
     });
-    // Auto-recover after a short delay
-    setTimeout(() => {
-      this.setState({ hasError: false, error: null });
-    }, 100);
   }
 
+  private handleRetry = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
   render() {
-    // Always render children — auto-recovery handles transient errors
-    // Only show fallback if explicitly provided and error persists
-    if (this.state.hasError && this.props.fallback) {
-      return this.props.fallback;
+    if (this.state.hasError) {
+      if (this.props.fallback) return this.props.fallback;
+      return (
+        <RouteErrorFallback
+          error={this.state.error}
+          onRetry={() => {
+            this.handleRetry();
+            window.location.reload();
+          }}
+        />
+      );
     }
     return this.props.children;
   }

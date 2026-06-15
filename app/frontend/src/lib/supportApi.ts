@@ -1,7 +1,9 @@
 import { getAPIBaseURL } from '@/lib/config';
 import { SUPPORT_REQUISITES } from '@/config/support';
 
-const API_BASE = getAPIBaseURL().replace(/\/$/, '');
+function apiBase(): string {
+  return getAPIBaseURL().replace(/\/$/, '');
+}
 
 export interface SupportSettings {
   promo_enabled: boolean;
@@ -51,7 +53,7 @@ function getAdminToken(): string {
 }
 
 async function request<T>(path: string, init?: RequestInit, token?: string): Promise<T> {
-  const resp = await fetch(`${API_BASE}${path}`, {
+  const resp = await fetch(`${apiBase()}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
