@@ -7,10 +7,12 @@ $AndroidRoot = Join-Path $FrontendRoot "android"
 $KeystoreProps = Join-Path $AndroidRoot "keystore.properties"
 
 if (-not (Test-Path $KeystoreProps)) {
-    Write-Host "ERROR: keystore.properties not found."
-    Write-Host "  1. Copy android/keystore.properties.example -> android/keystore.properties"
-    Write-Host "  2. Create a release keystore (see comments in the example file)"
-    exit 1
+    Write-Host "Keystore not found - running setup-play-keystore.ps1 ..."
+    & (Join-Path $PSScriptRoot "setup-play-keystore.ps1")
+    if (-not (Test-Path $KeystoreProps)) {
+        Write-Host "ERROR: keystore.properties still missing after setup."
+        exit 1
+    }
 }
 
 Write-Host "=== Sortirovka24 Android RELEASE build ==="

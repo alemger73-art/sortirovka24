@@ -3,7 +3,8 @@ apply plugin: 'com.android.application'
 def keystorePropertiesFile = rootProject.file('keystore.properties')
 def keystoreProperties = new Properties()
 if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    def raw = keystorePropertiesFile.getText('UTF-8').replace('\uFEFF', '')
+    keystoreProperties.load(new ByteArrayInputStream(raw.getBytes('UTF-8')))
 }
 
 android {
@@ -13,8 +14,8 @@ android {
         applicationId "kz.sortirovka24.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 15
-        versionName "1.0.15"
+        versionCode 16
+        versionName "1.0.16"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -27,7 +28,8 @@ android {
             if (keystorePropertiesFile.exists()) {
                 keyAlias keystoreProperties['keyAlias']
                 keyPassword keystoreProperties['keyPassword']
-                storeFile file(keystoreProperties['storeFile'])
+                def storePath = keystoreProperties['storeFile'] ?: 'sortirovka24-release.jks'
+                storeFile file(storePath.startsWith('/') || storePath.contains(':') ? storePath : "${rootProject.projectDir}/${storePath}")
                 storePassword keystoreProperties['storePassword']
             }
         }

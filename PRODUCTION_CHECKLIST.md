@@ -30,9 +30,13 @@ curl https://sortirovka24-production-8788.up.railway.app/health
 
 ## Google Play (релиз)
 
-1. Создать keystore → `android/keystore.properties` (см. `keystore.properties.example`)
-2. `powershell -File scripts/build-android-release.ps1`
+Полная инструкция: `app/frontend/play-store/PLAY_STORE.md`
+
+1. Keystore: `powershell -File app/frontend/scripts/setup-play-keystore.ps1`
+2. AAB: `cd app/frontend && npm run build:android:release`
 3. Загрузить `releases/Sortirovka24-release.aab` в Play Console
+4. Privacy URL: `https://sortirovka24-production-8788.up.railway.app/privacy.html` (после деплоя)
+5. Пароли подписи: `android/PLAY_SIGNING_SECRET.txt` (сохранить вне git!)
 
 ## Push-уведомления (когда понадобятся)
 
