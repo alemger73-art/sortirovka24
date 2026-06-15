@@ -104,6 +104,25 @@ def _matches_user_phone(candidate: str | None, user_phone: str | None) -> bool:
     return bool(left and right and left == right)
 
 
+async def _find_master_listing(db: AsyncSession, user: User) -> Masters | None:
+    masters = (await db.execute(select(Masters).order_by(desc(Masters.id)).limit(500))).scalars().all()
+    return next(
+        (
+            m
+            for m in masters
+            if _matches_user_phone(m.phone, user.phone) or _matches_user_phone(m.whatsapp, user.phone)
+        ),
+        None,
+    )
+
+
+async def _find_user_by_phone(db: AsyncSession, phone: str | None) -> User | None:
+    if not phone:
+        return None
+    users = (await db.execute(select(User).limit(1000))).scalars().all()
+    return next((u for u in users if _matches_user_phone(u.phone, phone)), None)
+
+
 def _owns_user_content(user: User, record_user_id: str | None, record_phone: str | None) -> bool:
     if record_user_id and str(record_user_id) == str(user.id):
         return True
@@ -889,8 +908,7 @@ async def master_cabinet(
 ):
     user = await _current_user(db, authorization)
     _assert_role(user, {"master", "admin", "superadmin", "moderator"})
-    masters = (await db.execute(select(Masters).order_by(desc(Masters.id)).limit(200))).scalars().all()
-    listing = next((m for m in masters if _matches_user_phone(m.phone, user.phone)), None)
+    listing = await _find_master_listing(db, user)
     become = (
         await db.execute(
             select(Become_master_requests)
@@ -910,12 +928,19 @@ async def master_cabinet(
     gallery = [g.strip() for g in gallery if g.strip()]
     return {
         "profile": {
+            "name": listing.name if listing else "",
             "bio": listing.description if listing else "",
             "service_categories": [listing.category] if listing and listing.category else [],
+            "services": listing.services if listing else "",
             "work_photos": gallery,
+            "photo_url": listing.photo_url if listing else "",
+            "gallery_images": listing.gallery_images if listing else "",
+            "whatsapp": listing.whatsapp if listing else "",
+            "telegram": listing.telegram if listing else "",
             "avg_rating": float(listing.rating or 0) if listing else 0,
             "reviews_count": int(listing.reviews_count or 0) if listing else 0,
             "verified": bool(listing.verified) if listing else False,
+            "available_today": bool(listing.available_today) if listing else False,
             "listing_id": listing.id if listing else None,
         },
         "become_master_requests": [
@@ -929,6 +954,8 @@ async def master_cabinet(
                 "status": r.status,
                 "client_name": r.client_name,
                 "address": r.address,
+                "phone": r.phone,
+                "problem_description": r.problem_description,
                 "created_at": r.created_at,
             }
             for r in requests[:50]
@@ -949,8 +976,7 @@ async def update_master_profile(
 ):
     user = await _current_user(db, authorization)
     _assert_role(user, {"master", "admin", "superadmin", "moderator"})
-    masters = (await db.execute(select(Masters).order_by(desc(Masters.id)).limit(200))).scalars().all()
-    listing = next((m for m in masters if _matches_user_phone(m.phone, user.phone)), None)
+    listing = await _find_master_listing(db, user)
     if not listing:
         raise HTTPException(status_code=404, detail="Карточка мастера не найдена. Обратитесь к администратору.")
     if request.description is not None:
@@ -968,6 +994,73 @@ async def update_master_profile(
     await db.commit()
     await _log_action(db, str(user.id), "master_profile_update", "masters", str(listing.id))
     return {"success": True, "listing_id": listing.id}
+
+
+@router.post("/admin/masters/approve-become-request/{request_id}")
+async def approve_become_master_request(
+    request_id: int,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Approve become-master application: create catalog entry and assign master role."""
+    admin = await _current_user(db, authorization)
+    _assert_admin(admin)
+    req = (
+        await db.execute(select(Become_master_requests).where(Become_master_requests.id == request_id))
+    ).scalar_one_or_none()
+    if not req:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+    if req.status == "approved":
+        raise HTTPException(status_code=400, detail="Заявка уже одобрена")
+
+    existing_masters = (await db.execute(select(Masters).limit(500))).scalars().all()
+    listing = next((m for m in existing_masters if _matches_user_phone(m.phone, req.phone)), None)
+    if not listing:
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        listing = Masters(
+            name=req.name or "",
+            category=req.category or "",
+            phone=req.phone or "",
+            whatsapp=getattr(req, "whatsapp", None) or req.phone or "",
+            telegram="",
+            district=getattr(req, "district", None) or "Сортировка",
+            description=req.description or "",
+            rating=5.0,
+            reviews_count=0,
+            photo_url=getattr(req, "photo_url", None) or "",
+            gallery_images=getattr(req, "gallery_images", None) or "",
+            verified=True,
+            available_today=True,
+            services=req.category or "",
+            experience_years=1,
+            created_at=now,
+        )
+        db.add(listing)
+
+    req.status = "approved"
+
+    if listing and getattr(req, "photo_url", None):
+        listing.photo_url = req.photo_url
+    if listing and getattr(req, "gallery_images", None):
+        listing.gallery_images = req.gallery_images
+    if listing and req.description and not listing.description:
+        listing.description = req.description
+
+    matched_user = await _find_user_by_phone(db, req.phone)
+    if matched_user and matched_user.role == "user":
+        matched_user.role = "master"
+
+    await db.commit()
+    await db.refresh(listing)
+    await _log_action(
+        db,
+        str(admin.id),
+        "approve_become_master",
+        "become_master_requests",
+        str(req.id),
+        {"master_id": listing.id, "user_id": str(matched_user.id) if matched_user else None},
+    )
+    return {"success": True, "master_id": listing.id, "role_assigned": bool(matched_user)}
 
 
 @router.get("/partner/cabinet")

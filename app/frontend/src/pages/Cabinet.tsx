@@ -3,7 +3,8 @@ import Layout from "@/components/Layout";
 import { Link, useNavigate } from "react-router-dom";
 import { Camera, Coins, Save, UserCircle2, UtensilsCrossed, Truck, Store } from "lucide-react";
 import { accountApi, getAccountToken } from "@/lib/accountApi";
-import { cacheAccountProfile, logoutLocalUser } from "@/lib/localAuth";
+import { cacheAccountProfile, getCurrentUser, logoutLocalUser } from "@/lib/localAuth";
+import { humanizeApiError } from "@/lib/apiErrors";
 import { uploadAvatar, assertImageFileSize } from "@/lib/storage";
 import { formatTenge, taxiApi, TAXI_STATUS_LABELS, type TaxiRide } from "@/lib/taxiApi";
 import { useTaxiEnabled } from "@/hooks/useTaxiEnabled";
@@ -41,11 +42,19 @@ function formatOrderDate(raw?: string | null) {
 
 function DarkCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-[0_10px_25px_rgba(0,0,0,0.12)] dark:border-[#1f2a3f] dark:bg-[#111827] dark:shadow-[0_10px_25px_rgba(0,0,0,0.25)]">
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-[#1f2a3f] dark:bg-[#111827] dark:shadow-[0_10px_25px_rgba(0,0,0,0.25)]">
       {children}
     </div>
   );
 }
+
+const inputClass =
+  "w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 dark:border-[#2a3347] dark:bg-[#0f172a] dark:text-white dark:placeholder:text-slate-500";
+
+const listCardClass =
+  "rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-[#26324a] dark:bg-[#0f172a]";
+
+const sectionTitleClass = "text-xl font-bold text-gray-900 dark:text-white";
 
 export default function Cabinet() {
   const navigate = useNavigate();
@@ -98,8 +107,33 @@ export default function Cabinet() {
         });
         if (lang === "kz" || lang === "ru") setLang(lang);
         taxiApi.myRides().then(setTaxiRides).catch(() => {});
-      } catch (e: any) {
-        setError(String(e?.message || e));
+      } catch (e: unknown) {
+        const cached = getCurrentUser();
+        if (cached) {
+          setCabinet({
+            profile: {
+              name: cached.name,
+              phone: cached.phone,
+              email: cached.email,
+              avatar: cached.avatar,
+              has_password: true,
+              bonus_balance: 0,
+            },
+            bonuses: [],
+            orders: [],
+            complaints: [],
+            announcements: [],
+          });
+          setProfileForm({
+            name: cached.name || "",
+            email: cached.email || "",
+            avatar: cached.avatar || "",
+            language: "ru",
+          });
+          setError("Нет связи с сервером. Показаны сохранённые данные профиля.");
+        } else {
+          setError(humanizeApiError(e));
+        }
       } finally {
         setLoading(false);
       }
@@ -110,10 +144,12 @@ export default function Cabinet() {
     setError("");
     setSuccess("");
     try {
+      const avatarForSave =
+        profileForm.avatar?.startsWith("blob:") ? undefined : profileForm.avatar?.trim() || undefined;
       const updated = await accountApi.updateMe({
         name: profileForm.name.trim(),
         email: profileForm.email.trim() || undefined,
-        avatar: profileForm.avatar,
+        avatar: avatarForSave,
         language: profileForm.language,
       });
       cacheAccountProfile({
@@ -135,8 +171,8 @@ export default function Cabinet() {
         language: refreshed?.profile?.language || "ru",
       });
       setSuccess(t("cabinet.profileSaved"));
-    } catch (e: any) {
-      setError(String(e?.message || e));
+    } catch (e: unknown) {
+      setError(humanizeApiError(e));
     } finally {
       setSavingProfile(false);
     }
@@ -150,25 +186,29 @@ export default function Cabinet() {
     }
     try {
       assertImageFileSize(file);
-    } catch (e: any) {
-      setError(String(e?.message || e));
+    } catch (e: unknown) {
+      setError(humanizeApiError(e));
       return;
     }
     setAvatarUploading(true);
     setError("");
     setSuccess("");
+    const previewUrl = URL.createObjectURL(file);
+    setProfileForm((p) => ({ ...p, avatar: previewUrl }));
     try {
       const result = await uploadAvatar(file);
-      const url = result.downloadUrl || result.thumbnailUrl;
+      const url = result.thumbnailUrl || result.downloadUrl;
       if (!url) throw new Error("Не удалось получить ссылку на загруженное фото");
-      const nextForm = { ...profileForm, avatar: url };
-      setProfileForm(nextForm);
       const updated = await accountApi.updateMe({
-        name: nextForm.name.trim(),
-        email: nextForm.email.trim() || undefined,
+        name: profileForm.name.trim(),
+        email: profileForm.email.trim() || undefined,
         avatar: url,
-        language: nextForm.language,
+        language: profileForm.language,
       });
+      setProfileForm((p) => ({
+        ...p,
+        avatar: updated.avatar || url,
+      }));
       cacheAccountProfile({
         id: updated.id,
         name: updated.name,
@@ -176,12 +216,20 @@ export default function Cabinet() {
         email: updated.email,
         avatar: updated.avatar,
       });
-      const refreshed = await accountApi.cabinet();
-      setCabinet(refreshed);
+      setCabinet((prev: any) =>
+        prev
+          ? { ...prev, profile: { ...prev.profile, avatar: updated.avatar || url } }
+          : prev
+      );
       setSuccess(t("cabinet.avatarSaved"));
-    } catch (e: any) {
-      setError(String(e?.message || e));
+    } catch (e: unknown) {
+      setProfileForm((p) => ({
+        ...p,
+        avatar: cabinet?.profile?.avatar || "",
+      }));
+      setError(humanizeApiError(e));
     } finally {
+      URL.revokeObjectURL(previewUrl);
       setAvatarUploading(false);
     }
   };
@@ -205,8 +253,8 @@ export default function Cabinet() {
         setSuccess(t("cabinet.passwordSet"));
       }
       setPasswordForm({ current: "", next: "", confirm: "" });
-    } catch (e: any) {
-      setError(String(e?.message || e));
+    } catch (e: unknown) {
+      setError(humanizeApiError(e));
     } finally {
       setChangingPassword(false);
     }
@@ -247,7 +295,11 @@ export default function Cabinet() {
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => {
+                      setError("");
+                      setSuccess("");
+                      setActiveTab(tab.id);
+                    }}
                     className={`w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
                       activeTab === tab.id
                         ? "bg-yellow-400 text-[#0B0F19]"
@@ -261,18 +313,18 @@ export default function Cabinet() {
             </DarkCard>
 
             <div className="space-y-4">
-              {error ? <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p> : null}
-              {success ? <p className="rounded-xl border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm text-green-300">{success}</p> : null}
+              {error ? <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">{error}</p> : null}
+              {success ? <p className="rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300">{success}</p> : null}
 
               {activeTab === "profile" && (
                 <DarkCard>
-                  <div className="mb-4 flex items-center justify-between"><h2 className="text-xl font-bold">Профиль</h2></div>
+                  <div className="mb-4 flex items-center justify-between"><h2 className={sectionTitleClass}>Профиль</h2></div>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr]">
-                    <div className="rounded-xl border border-[#2a3347] bg-[#0f172a] p-4 text-center">
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center dark:border-[#2a3347] dark:bg-[#0f172a]">
                       {profileForm.avatar ? (
-                        <img src={profileForm.avatar} alt="avatar" className="mx-auto h-28 w-28 rounded-full object-cover" />
+                        <img src={profileForm.avatar} alt="avatar" className="mx-auto h-28 w-28 rounded-full object-cover ring-2 ring-yellow-400/50" />
                       ) : (
-                        <UserCircle2 className="mx-auto h-28 w-28 text-slate-400" />
+                        <UserCircle2 className="mx-auto h-28 w-28 text-gray-400 dark:text-slate-400" />
                       )}
                       <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-yellow-400 px-3 py-2 text-sm font-semibold text-[#0B0F19]">
                         <Camera className="h-4 w-4" /> {avatarUploading ? "Загрузка..." : "Загрузить"}
@@ -294,21 +346,21 @@ export default function Cabinet() {
                                 avatar: updated.avatar,
                               });
                               setSuccess(t("cabinet.avatarRemoved"));
-                            } catch (e: any) {
-                              setError(String(e?.message || e));
+                            } catch (e: unknown) {
+                              setError(humanizeApiError(e));
                             }
                           }}
-                          className="mt-2 block w-full rounded-lg border border-[#2a3347] px-3 py-2 text-sm hover:bg-[#1a2336]"
+                          className="mt-2 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-[#2a3347] dark:text-slate-200 dark:hover:bg-[#1a2336]"
                         >
                           Удалить фото
                         </button>
                       ) : null}
                     </div>
                     <div className="space-y-3">
-                      <input value={profileForm.name} onChange={(e) => setProfileForm((p) => ({ ...p, name: e.target.value }))} className="w-full rounded-xl border border-[#2a3347] bg-[#0f172a] px-4 py-3 text-sm text-white" placeholder="Имя" />
-                      <input disabled value={cabinet?.profile?.phone || ""} className="w-full rounded-xl border border-[#2a3347] bg-[#0f172a] px-4 py-3 text-sm text-white opacity-80" placeholder="Телефон" />
-                      <input value={profileForm.email} onChange={(e) => setProfileForm((p) => ({ ...p, email: e.target.value }))} className="w-full rounded-xl border border-[#2a3347] bg-[#0f172a] px-4 py-3 text-sm text-white" placeholder="Email" />
-                      <select value={profileForm.language} onChange={e => setProfileForm(p => ({ ...p, language: e.target.value }))} className="w-full rounded-xl border border-[#2a3347] bg-[#0f172a] px-4 py-3 text-sm text-white">
+                      <input value={profileForm.name} onChange={(e) => setProfileForm((p) => ({ ...p, name: e.target.value }))} className={inputClass} placeholder="Имя" />
+                      <input disabled value={cabinet?.profile?.phone || ""} className={`${inputClass} opacity-80`} placeholder="Телефон" />
+                      <input value={profileForm.email} onChange={(e) => setProfileForm((p) => ({ ...p, email: e.target.value }))} className={inputClass} placeholder="Email" />
+                      <select value={profileForm.language} onChange={e => setProfileForm(p => ({ ...p, language: e.target.value }))} className={inputClass}>
                         <option value="ru">Русский</option>
                         <option value="kz">Қазақша</option>
                       </select>
@@ -336,12 +388,12 @@ export default function Cabinet() {
                       <p className="text-sm text-slate-400">Пока нет начислений. Бонусы появятся после регистрации и заказов.</p>
                     ) : null}
                     {rows.bonuses.map((entry: any) => (
-                      <div key={entry.id} className="rounded-xl border border-[#2a3347] bg-[#0f172a] p-3">
+                      <div key={entry.id} className={listCardClass}>
                         <div className="flex items-center justify-between">
-                          <p className="text-sm text-white">{entry.reason || "Начисление"}</p>
-                          <p className="font-semibold text-yellow-300">{entry.points > 0 ? "+" : ""}{entry.points}</p>
+                          <p className="text-sm text-gray-900 dark:text-white">{entry.reason || "Начисление"}</p>
+                          <p className="font-semibold text-amber-600 dark:text-yellow-300">{entry.points > 0 ? "+" : ""}{entry.points}</p>
                         </div>
-                        <p className="text-xs text-slate-400">{entry.created_at || ""}</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400">{entry.created_at || ""}</p>
                       </div>
                     ))}
                   </div>
@@ -357,13 +409,13 @@ export default function Cabinet() {
                       const st = isFood ? FOOD_STATUS[o.status] || FOOD_STATUS.new : null;
                       const payLabel = PAYMENT_LABELS[o.payment_method] || o.payment_method;
                       return (
-                        <div key={o.id} className="rounded-xl border border-[#26324a] bg-[#0f172a] p-3">
+                        <div key={o.id} className={listCardClass}>
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2 min-w-0">
                               {isFood ? (
-                                <UtensilsCrossed className="h-4 w-4 shrink-0 text-orange-400" />
+                                <UtensilsCrossed className="h-4 w-4 shrink-0 text-orange-500 dark:text-orange-400" />
                               ) : null}
-                              <p className="text-sm font-semibold text-white truncate">
+                              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                                 {isFood
                                   ? (o.restaurant_name || "DAM ALEM") + (o.order_number ? ` · №${o.order_number}` : "")
                                   : (o.type || "order")}
@@ -375,9 +427,9 @@ export default function Cabinet() {
                               </span>
                             ) : null}
                           </div>
-                          <p className="text-xs text-slate-400 mt-1">{o.details || ""}</p>
+                          <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">{o.details || ""}</p>
                           {isFood && (
-                            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-400">
+                            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-gray-500 dark:text-slate-400">
                               {o.delivery_method === "delivery" ? (
                                 <span className="inline-flex items-center gap-1"><Truck className="h-3 w-3" /> Доставка</span>
                               ) : o.delivery_method === "pickup" ? (
@@ -387,7 +439,7 @@ export default function Cabinet() {
                               {o.created_at ? <span>· {formatOrderDate(o.created_at)}</span> : null}
                             </div>
                           )}
-                          <p className="text-sm font-bold text-yellow-300 mt-2">
+                          <p className="text-sm font-bold text-amber-600 dark:text-yellow-300 mt-2">
                             {Number(o.amount || 0).toLocaleString("ru-RU")} ₸
                           </p>
                         </div>
@@ -411,15 +463,15 @@ export default function Cabinet() {
                   ) : (
                   <div className="space-y-2">
                     {taxiRides.map((r) => (
-                      <Link key={r.id} to={`/taxi/ride/${r.id}`} className="block rounded-xl border border-[#26324a] bg-[#0f172a] p-3 hover:border-yellow-400/40 transition-colors">
+                      <Link key={r.id} to={`/taxi/ride/${r.id}`} className={`block ${listCardClass} hover:border-yellow-400/40 transition-colors`}>
                         <div className="flex justify-between gap-2">
-                          <p className="text-sm font-semibold text-white truncate">{r.from_address}</p>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{r.from_address}</p>
                           <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${TAXI_STATUS_LABELS[r.status]?.color || "bg-gray-100"}`}>
                             {TAXI_STATUS_LABELS[r.status]?.label || r.status}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-400 truncate">→ {r.to_address}</p>
-                        <p className="text-xs text-yellow-300 mt-1">{formatTenge(r.final_price ?? r.estimated_price)}</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400 truncate">→ {r.to_address}</p>
+                        <p className="text-xs text-amber-600 dark:text-yellow-300 mt-1">{formatTenge(r.final_price ?? r.estimated_price)}</p>
                       </Link>
                     ))}
                     {taxiRides.length === 0 ? <p className="text-sm text-slate-400">Пока нет поездок.</p> : null}
@@ -433,10 +485,10 @@ export default function Cabinet() {
                   <h2 className="mb-4 text-xl font-bold">История жалоб</h2>
                   <div className="space-y-2">
                     {(rows.complaints || []).map((c: any) => (
-                      <div key={c.id} className="rounded-xl border border-[#26324a] bg-[#0f172a] p-3">
-                        <p className="font-semibold text-white">{c.category || "Жалоба"}</p>
-                        <p className="text-xs text-slate-400">{c.description || ""}</p>
-                        <p className="text-xs text-slate-500">Статус: {c.status || "-"}</p>
+                      <div key={c.id} className={listCardClass}>
+                        <p className="font-semibold text-gray-900 dark:text-white">{c.category || "Жалоба"}</p>
+                        <p className="text-xs text-gray-600 dark:text-slate-400">{c.description || ""}</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-500">Статус: {c.status || "-"}</p>
                       </div>
                     ))}
                     {(rows.complaints || []).length === 0 ? <p className="text-sm text-slate-400">Пока нет жалоб.</p> : null}
@@ -449,10 +501,10 @@ export default function Cabinet() {
                   <h2 className="mb-4 text-xl font-bold">История объявлений</h2>
                   <div className="space-y-2">
                     {(rows.announcements || []).map((a: any) => (
-                      <div key={a.id} className="rounded-xl border border-[#26324a] bg-[#0f172a] p-3">
-                        <p className="font-semibold text-white">{a.title || "Объявление"}</p>
-                        <p className="text-xs text-slate-500">Статус: {a.status || "-"}</p>
-                        <p className="text-xs text-yellow-300">{a.price || ""}</p>
+                      <div key={a.id} className={listCardClass}>
+                        <p className="font-semibold text-gray-900 dark:text-white">{a.title || "Объявление"}</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-500">Статус: {a.status || "-"}</p>
+                        <p className="text-xs text-amber-600 dark:text-yellow-300">{a.price || ""}</p>
                       </div>
                     ))}
                     {(rows.announcements || []).length === 0 ? <p className="text-sm text-slate-400">Пока нет объявлений.</p> : null}
@@ -462,15 +514,15 @@ export default function Cabinet() {
 
               {activeTab === "settings" && (
                 <DarkCard>
-                  <h2 className="mb-4 text-xl font-bold">{t("cabinet.tab.settings")}</h2>
-                  <div className="mb-6 space-y-3 rounded-xl border border-[#2a3347] bg-[#0f172a] p-4">
-                    <h3 className="text-sm font-semibold text-white">{hasPassword ? t("cabinet.changePassword") : t("cabinet.setPassword")}</h3>
+                  <h2 className={`mb-4 ${sectionTitleClass}`}>{t("cabinet.tab.settings")}</h2>
+                  <div className="mb-6 space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-[#2a3347] dark:bg-[#0f172a]">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{hasPassword ? t("cabinet.changePassword") : t("cabinet.setPassword")}</h3>
                     {hasPassword ? (
                       <input
                         type="password"
                         value={passwordForm.current}
                         onChange={(e) => setPasswordForm((p) => ({ ...p, current: e.target.value }))}
-                        className="w-full rounded-xl border border-[#2a3347] bg-[#111827] px-4 py-3 text-sm text-white"
+                        className={inputClass}
                         placeholder="Текущий пароль"
                         autoComplete="current-password"
                       />
@@ -479,7 +531,7 @@ export default function Cabinet() {
                       type="password"
                       value={passwordForm.next}
                       onChange={(e) => setPasswordForm((p) => ({ ...p, next: e.target.value }))}
-                      className="w-full rounded-xl border border-[#2a3347] bg-[#111827] px-4 py-3 text-sm text-white"
+                      className={inputClass}
                       placeholder="Новый пароль (мин. 8 символов)"
                       autoComplete="new-password"
                     />
@@ -487,7 +539,7 @@ export default function Cabinet() {
                       type="password"
                       value={passwordForm.confirm}
                       onChange={(e) => setPasswordForm((p) => ({ ...p, confirm: e.target.value }))}
-                      className="w-full rounded-xl border border-[#2a3347] bg-[#111827] px-4 py-3 text-sm text-white"
+                      className={inputClass}
                       placeholder="Повторите новый пароль"
                       autoComplete="new-password"
                     />
@@ -499,13 +551,13 @@ export default function Cabinet() {
                       {changingPassword ? t("cabinet.saving") : hasPassword ? t("cabinet.changePassword") : t("cabinet.setPassword")}
                     </button>
                   </div>
-                  <p className="mb-5 text-sm text-slate-300">{t("cabinet.langHint")}</p>
+                  <p className="mb-5 text-sm text-gray-600 dark:text-slate-300">{t("cabinet.langHint")}</p>
                   <button
                     onClick={() => {
                       logoutLocalUser();
                       navigate("/account");
                     }}
-                    className="rounded-xl border border-red-500/40 px-4 py-2.5 text-sm font-semibold text-red-300 hover:bg-red-500/10"
+                    className="rounded-xl border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 dark:border-red-500/40 dark:text-red-300 dark:hover:bg-red-500/10"
                   >
                     Выйти из аккаунта
                   </button>

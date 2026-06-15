@@ -3,6 +3,7 @@
  * Legacy local-only registration was removed; all flows go through /account.
  */
 import { accountApi, clearAccountToken, getAccountToken } from './accountApi';
+import { persistAccountProfileJson } from './sessionStore';
 
 export interface LocalUser {
   id: string;
@@ -73,17 +74,17 @@ export function cacheAccountProfile(profile: {
   email?: string;
   avatar?: string;
 }) {
-  localStorage.setItem(
-    PROFILE_KEY,
-    JSON.stringify({
-      id: profile.id,
-      name: profile.name,
-      phone: profile.phone,
-      password: '',
-      email: profile.email,
-      avatar: profile.avatar,
-    }),
-  );
+  const payload = {
+    id: profile.id,
+    name: profile.name,
+    phone: profile.phone,
+    password: '',
+    email: profile.email,
+    avatar: profile.avatar,
+  };
+  const json = JSON.stringify(payload);
+  localStorage.setItem(PROFILE_KEY, json);
+  persistAccountProfileJson(json);
   emitAuthChanged();
 }
 

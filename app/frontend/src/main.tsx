@@ -4,6 +4,7 @@ import App from './App.tsx';
 import './index.css';
 import { warmupBackend } from './lib/api';
 import { initNativeShell } from './lib/native';
+import { restoreAccountSession } from './lib/sessionStore';
 
 // PWA registration is handled by vite-plugin-pwa (web builds only; disabled in --mode mobile).
 // ─── Intercept SDK's postMessage error reporting ─────────────────
@@ -171,20 +172,26 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 // ─── Render App ──────────────────────────────────────────────────
-if (!Capacitor.isNativePlatform()) {
-  document.getElementById('boot-splash')?.remove();
-}
+async function bootApp() {
+  await restoreAccountSession();
 
-const rootElement = document.getElementById('root');
-if (rootElement) {
-  try {
-    createRoot(rootElement).render(<App />);
-    initNativeShell();
-  } catch (err) {
-    console.error('[boot] render failed:', err);
-    rootElement.innerHTML =
-      '<div style="padding:24px;font-family:sans-serif;text-align:center">' +
-      '<h2 style="color:#2563EB">Sortirovka24</h2>' +
-      '<p>Не удалось запустить приложение. Удалите и установите APK заново.</p></div>';
+  if (!Capacitor.isNativePlatform()) {
+    document.getElementById('boot-splash')?.remove();
+  }
+
+  const rootElement = document.getElementById('root');
+  if (rootElement) {
+    try {
+      createRoot(rootElement).render(<App />);
+      initNativeShell();
+    } catch (err) {
+      console.error('[boot] render failed:', err);
+      rootElement.innerHTML =
+        '<div style="padding:24px;font-family:sans-serif;text-align:center">' +
+        '<h2 style="color:#2563EB">Sortirovka24</h2>' +
+        '<p>Не удалось запустить приложение. Удалите и установите APK заново.</p></div>';
+    }
   }
 }
+
+void bootApp();

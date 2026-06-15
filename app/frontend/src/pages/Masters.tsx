@@ -1,77 +1,67 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
-import { client, withRetry, MASTER_CATEGORIES, CATEGORY_ICONS, timeAgo } from '@/lib/api';
+import MasterCard from '@/components/masters/MasterCard';
+import HowItWorks from '@/components/masters/HowItWorks';
+import StarRating from '@/components/masters/StarRating';
+import { CATEGORY_GRADIENTS, CATEGORY_BG, categoryGradient, categoryIcon, sortMasters, matchesMasterSearch } from '@/components/masters/mastersTheme';
+import { client, withRetry, MASTER_CATEGORIES, CATEGORY_ICONS } from '@/lib/api';
 import { fetchWithCache } from '@/lib/cache';
-import { Star, Phone, MessageCircle, MapPin, CheckCircle, Clock, ChevronLeft, Search, Send, UserPlus, Shield, Zap, Award, Sparkles, Users, LayoutGrid, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Phone, MessageCircle, MapPin, CheckCircle, Clock, ChevronLeft, Search, Send, UserPlus, Shield, Zap, Award, Sparkles, Users, LayoutGrid, TrendingUp, AlertTriangle, ArrowRight } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
+import { StorageGallery } from '@/components/MultiImageUpload';
 import { pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 
-/* ─── Category gradient map ─── */
-const CATEGORY_GRADIENTS: Record<string, string> = {
-  'Сантехник': 'from-sky-400 to-blue-600',
-  'Электрик': 'from-amber-400 to-orange-600',
-  'Сварщик': 'from-orange-400 to-red-600',
-  'Мебельщик': 'from-emerald-400 to-green-600',
-  'Ремонт техники': 'from-violet-400 to-purple-600',
-  'Грузчики': 'from-cyan-400 to-sky-600',
-  'Ремонт квартир': 'from-rose-400 to-pink-600',
-  'Окна и двери': 'from-teal-400 to-emerald-600',
-  'Натяжные потолки': 'from-indigo-400 to-blue-600',
-  'Разнорабочие': 'from-slate-400 to-gray-600',
-};
+export { default as BecomeMasterForm } from '@/components/masters/BecomeMasterWizard';
 
-const CATEGORY_BG: Record<string, string> = {
-  'Сантехник': 'bg-sky-50 dark:bg-sky-950/40',
-  'Электрик': 'bg-amber-50 dark:bg-amber-950/40',
-  'Сварщик': 'bg-orange-50 dark:bg-orange-950/40',
-  'Мебельщик': 'bg-emerald-50 dark:bg-emerald-950/40',
-  'Ремонт техники': 'bg-violet-50 dark:bg-violet-950/40',
-  'Грузчики': 'bg-cyan-50 dark:bg-cyan-950/40',
-  'Ремонт квартир': 'bg-rose-50 dark:bg-rose-950/40',
-  'Окна и двери': 'bg-teal-50 dark:bg-teal-950/40',
-  'Натяжные потолки': 'bg-indigo-50 dark:bg-indigo-950/40',
-  'Разнорабочие': 'bg-slate-50 dark:bg-slate-950/40',
-};
-
-/* ─── Star rating ─── */
-function StarRating({ rating, size = 'md' }: { rating: number; size?: 'sm' | 'md' }) {
-  const stars = [];
-  const full = Math.floor(rating);
-  const hasHalf = rating - full >= 0.3;
-  const cls = size === 'sm' ? 'w-3.5 h-3.5' : 'w-5 h-5';
-  for (let i = 0; i < 5; i++) {
-    if (i < full) {
-      stars.push(<Star key={i} className={`${cls} text-amber-400 fill-amber-400`} />);
-    } else if (i === full && hasHalf) {
-      stars.push(
-        <div key={i} className="relative">
-          <Star className={`${cls} text-gray-200 dark:text-gray-700`} />
-          <div className="absolute inset-0 overflow-hidden w-1/2">
-            <Star className={`${cls} text-amber-400 fill-amber-400`} />
-          </div>
-        </div>
-      );
-    } else {
-      stars.push(<Star key={i} className={`${cls} text-gray-200 dark:text-gray-700`} />);
-    }
-  }
-  return <div className="flex items-center gap-0.5">{stars}</div>;
+function telegramUrl(handle: string) {
+  const clean = handle.replace(/^@/, '').trim();
+  return clean ? `https://t.me/${clean}` : '';
 }
-
 /* ============ MASTER CATALOG ============ */
 export function MastersCatalog() {
   const { t } = useLanguage();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [masters, setMasters] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [avgRating, setAvgRating] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+
+  const setCategory = useCallback((cat: string) => {
+    setSelectedCategory(cat);
+    const next = new URLSearchParams(searchParams);
+    if (cat) next.set('category', cat);
+    else next.delete('category');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     loadMasters();
   }, [selectedCategory]);
+
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  async function loadStats() {
+    try {
+      const res = await fetchWithCache('masters_stats_all', () =>
+        withRetry(() => client.entities.masters.query({ sort: '-rating', limit: 200 })),
+        5 * 60 * 1000,
+      );
+      const items = res.data?.items || [];
+      setTotalCount(res.data?.total ?? items.length);
+      if (items.length > 0) {
+        const sum = items.reduce((acc: number, m: any) => acc + (Number(m.rating) || 0), 0);
+        setAvgRating(Math.round((sum / items.length) * 10) / 10);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
 
   async function loadMasters() {
     setLoading(true);
@@ -80,9 +70,9 @@ export function MastersCatalog() {
       const res = await fetchWithCache(cacheKey, () => {
         const query: any = {};
         if (selectedCategory) query.category = selectedCategory;
-        return withRetry(() => client.entities.masters.query({ query, sort: '-rating', limit: 50 }));
+        return withRetry(() => client.entities.masters.query({ query, sort: '-rating', limit: 200 }));
       }, 5 * 60 * 1000);
-      setMasters(res.data?.items || []);
+      setMasters(sortMasters(res.data?.items || []));
     } catch (e) {
       console.error(e);
     } finally {
@@ -90,13 +80,17 @@ export function MastersCatalog() {
     }
   }
 
-  const filtered = masters.filter(m =>
-    !searchQuery || m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.services?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filtered = useMemo(
+    () => masters.filter(m => matchesMasterSearch(m, searchQuery)),
+    [masters, searchQuery],
   );
 
   const scrollToMasters = () => {
     document.getElementById('masters-grid')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') scrollToMasters();
   };
 
   return (
@@ -158,7 +152,14 @@ export function MastersCatalog() {
                 type="text"
                 placeholder={t('masters.searchPlaceholder')}
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={e => {
+                  setSearchQuery(e.target.value);
+                  const next = new URLSearchParams(searchParams);
+                  if (e.target.value) next.set('q', e.target.value);
+                  else next.delete('q');
+                  setSearchParams(next, { replace: true });
+                }}
+                onKeyDown={handleSearchKeyDown}
                 className="flex-1 px-5 py-5 text-gray-800 dark:text-gray-200 placeholder:text-gray-400 bg-transparent outline-none text-base md:text-lg font-medium"
               />
             </div>
@@ -167,9 +168,9 @@ export function MastersCatalog() {
           {/* ── Stats cards ── */}
           <div className="grid grid-cols-3 gap-3 md:gap-4 mt-10 max-w-lg">
             {[
-              { icon: <Users className="w-5 h-5" />, num: `${masters.length || '...'}`, label: t('masters.stats.masters'), color: 'from-blue-400/20 to-blue-500/20 border-blue-400/20' },
-              { icon: <LayoutGrid className="w-5 h-5" />, num: '10+', label: t('masters.stats.categories'), color: 'from-purple-400/20 to-purple-500/20 border-purple-400/20' },
-              { icon: <TrendingUp className="w-5 h-5" />, num: '4.8', label: t('masters.stats.rating'), color: 'from-amber-400/20 to-amber-500/20 border-amber-400/20' },
+              { icon: <Users className="w-5 h-5" />, num: totalCount ? `${totalCount}` : `${masters.length || '...'}`, label: t('masters.stats.masters'), color: 'from-blue-400/20 to-blue-500/20 border-blue-400/20' },
+              { icon: <LayoutGrid className="w-5 h-5" />, num: `${MASTER_CATEGORIES.length}`, label: t('masters.stats.categories'), color: 'from-purple-400/20 to-purple-500/20 border-purple-400/20' },
+              { icon: <TrendingUp className="w-5 h-5" />, num: avgRating?.toFixed(1) || '—', label: t('masters.stats.rating'), color: 'from-amber-400/20 to-amber-500/20 border-amber-400/20' },
             ].map(s => (
               <div key={s.label} className={`bg-gradient-to-br ${s.color} backdrop-blur-xl rounded-2xl p-4 border text-center`}>
                 <div className="flex justify-center mb-2 text-white/70">{s.icon}</div>
@@ -194,12 +195,14 @@ export function MastersCatalog() {
       <div className="bg-gray-50 dark:bg-gray-950 transition-colors duration-300 min-h-screen">
         <div className="max-w-6xl mx-auto px-4 py-10">
 
+          <HowItWorks />
+
           {/* ── Categories — tile cards, 2-3 per row ── */}
           <section className="mb-12">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">{t('masters.chooseCategory')}</h2>
               {selectedCategory && (
-                <button onClick={() => setSelectedCategory('')} className="text-sm text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
+                <button onClick={() => setCategory('')} className="text-sm text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
                   {t('masters.resetFilter')}
                 </button>
               )}
@@ -207,7 +210,7 @@ export function MastersCatalog() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {/* "All" tile */}
               <button
-                onClick={() => setSelectedCategory('')}
+                onClick={() => setCategory('')}
                 className={`group relative flex flex-col items-center gap-3 p-5 rounded-3xl transition-all duration-300 active:scale-[0.97] ${
                   !selectedCategory
                     ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-xl shadow-indigo-200 dark:shadow-indigo-900/40 scale-[1.02]'
@@ -225,7 +228,7 @@ export function MastersCatalog() {
                 return (
                   <button
                     key={cat}
-                    onClick={() => setSelectedCategory(cat === selectedCategory ? '' : cat)}
+                    onClick={() => setCategory(cat === selectedCategory ? '' : cat)}
                     className={`group relative flex flex-col items-center gap-3 p-5 rounded-3xl transition-all duration-300 active:scale-[0.97] ${
                       isActive
                         ? `bg-gradient-to-br ${gradient} text-white shadow-xl scale-[1.02]`
@@ -250,153 +253,70 @@ export function MastersCatalog() {
                 <p className="text-gray-400 dark:text-gray-500 mt-5 text-sm font-medium">{t('masters.loading')}</p>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="text-center py-24">
+              <div className="text-center py-16 px-4">
                 <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-5">
                   <Search className="w-10 h-10 text-gray-300 dark:text-gray-600" />
                 </div>
                 <h3 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2">{t('masters.notFound')}</h3>
-                <p className="text-gray-400 dark:text-gray-500 text-sm">{t('masters.tryOtherFilters')}</p>
+                <p className="text-gray-400 dark:text-gray-500 text-sm mb-8 max-w-md mx-auto">{t('masters.tryOtherFilters')}</p>
+                <div className="flex flex-wrap gap-3 justify-center">
+                  <Link to="/masters/request" className="inline-flex items-center gap-2 bg-indigo-600 text-white font-bold px-6 py-3 rounded-2xl hover:bg-indigo-700 transition-colors">
+                    {t('masters.emptyCtaRequest')}
+                  </Link>
+                  <Link to="/masters/become" className="inline-flex items-center gap-2 bg-white dark:bg-gray-900 text-indigo-600 font-bold px-6 py-3 rounded-2xl border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors">
+                    <UserPlus className="w-4 h-4" /> {t('masters.becomeMaster')}
+                  </Link>
+                </div>
               </div>
             ) : (
               <>
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
                   <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">
-                    {selectedCategory || 'Все мастера'}
+                    {selectedCategory || t('masters.allMasters')}
                     <span className="ml-2 text-base font-medium text-gray-400">({filtered.length})</span>
                   </h2>
+                  {(selectedCategory || searchQuery) && (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCategory && (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-3 py-1.5 rounded-full">
+                          {CATEGORY_ICONS[selectedCategory]} {selectedCategory}
+                        </span>
+                      )}
+                      {searchQuery && (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-full">
+                          «{searchQuery}»
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {filtered.map(master => {
-                    const gradient = CATEGORY_GRADIENTS[master.category] || 'from-blue-500 to-indigo-500';
-                    return (
-                      <div
-                        key={master.id}
-                        className="group bg-white dark:bg-gray-900 rounded-3xl shadow-md hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 border border-gray-100/80 dark:border-gray-800 overflow-hidden"
-                      >
-                        {/* Gradient accent bar */}
-                        <div className={`h-1.5 bg-gradient-to-r ${gradient}`} />
-
-                        <div className="p-6">
-                          {/* Top row: avatar + info */}
-                          <div className="flex items-start gap-5">
-                            {/* Large avatar */}
-                            <div className="relative flex-shrink-0">
-                              <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center overflow-hidden shadow-lg ring-2 ring-gray-100 dark:ring-gray-800 group-hover:ring-indigo-200 dark:group-hover:ring-indigo-800 transition-all duration-300">
-                                {master.photo_url ? (
-                                  <StorageImg objectKey={master.photo_url} alt={master.name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <span className="text-4xl">{CATEGORY_ICONS[master.category] || '🔧'}</span>
-                                )}
-                              </div>
-                              {/* Online dot */}
-                              {master.available_today && (
-                                <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-green-500 rounded-full border-[3px] border-white dark:border-gray-900 flex items-center justify-center shadow-sm">
-                                  <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse" />
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Info */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-extrabold text-gray-900 dark:text-white text-xl truncate">{master.name}</h3>
-                                {master.verified && (
-                                  <div className="flex-shrink-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-sm" title="Проверен">
-                                    <CheckCircle className="w-4 h-4 text-white" />
-                                  </div>
-                                )}
-                              </div>
-                              <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mb-2">{master.category}</p>
-
-                              {/* Star rating — prominent */}
-                              <div className="flex items-center gap-2.5">
-                                <StarRating rating={Number(master.rating) || 0} size="sm" />
-                                <span className="text-base font-black text-gray-900 dark:text-white">{master.rating}</span>
-                                <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">({master.reviews_count})</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Badges row */}
-                          <div className="flex flex-wrap gap-2 mt-4">
-                            {Number(master.rating) >= 4.5 && (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 dark:text-amber-300 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/30 px-3 py-1.5 rounded-full shadow-sm">
-                                <Award className="w-3 h-3" /> Топ мастер
-                              </span>
-                            )}
-                            {master.verified && (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 dark:text-blue-300 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 px-3 py-1.5 rounded-full shadow-sm">
-                                <Shield className="w-3 h-3" /> Проверен
-                              </span>
-                            )}
-                            {master.district && (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/30 dark:to-green-900/30 px-3 py-1.5 rounded-full shadow-sm">
-                                <MapPin className="w-3 h-3" /> Рядом
-                              </span>
-                            )}
-                            {master.available_today && (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-green-700 dark:text-green-300 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 px-3 py-1.5 rounded-full shadow-sm">
-                                <Zap className="w-3 h-3" /> Свободен
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Description */}
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-4 line-clamp-2 leading-relaxed">{master.description}</p>
-
-                          {/* Meta */}
-                          <div className="flex items-center gap-5 mt-3 text-xs text-gray-400 dark:text-gray-500 font-medium">
-                            {master.experience_years && (
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5" /> Стаж {master.experience_years} лет
-                              </span>
-                            )}
-                            {master.district && (
-                              <span className="flex items-center gap-1">
-                                <MapPin className="w-3.5 h-3.5" /> {master.district}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* ── Action buttons — large, colorful ── */}
-                          <div className="flex items-center gap-2.5 mt-6 pt-5 border-t border-gray-100 dark:border-gray-800">
-                            <Link
-                              to={`/masters/${master.id}`}
-                              className="flex-1 text-center text-sm font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 px-4 py-3 rounded-2xl transition-all duration-300 hover:shadow-md"
-                            >
-                              Подробнее
-                            </Link>
-                            {master.whatsapp && (
-                              <a
-                                href={`https://wa.me/${master.whatsapp.replace(/\D/g, '')}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={e => e.stopPropagation()}
-                                className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold px-5 py-3 rounded-2xl transition-all duration-300 hover:scale-[1.03] shadow-md hover:shadow-lg text-sm"
-                                title="Написать"
-                              >
-                                <MessageCircle className="w-4 h-4" /> Написать
-                              </a>
-                            )}
-                            {master.phone && (
-                              <a
-                                href={`tel:${master.phone}`}
-                                onClick={e => e.stopPropagation()}
-                                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-3 rounded-2xl transition-all duration-300 hover:scale-[1.03] shadow-md hover:shadow-lg text-sm"
-                                title="Позвонить"
-                              >
-                                <Phone className="w-4 h-4" /> Звонок
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                  {filtered.map(master => (
+                    <MasterCard key={master.id} master={master} />
+                  ))}
                 </div>
               </>
             )}
+          </section>
+
+          {/* Become master CTA */}
+          <section className="mt-16 mb-6">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-800 p-8 md:p-10 text-white shadow-2xl">
+              <div className="absolute -top-20 -right-20 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                <div className="max-w-lg">
+                  <h2 className="text-2xl md:text-3xl font-black mb-2">{t('masters.becomeCtaTitle')}</h2>
+                  <p className="text-white/75 text-base leading-relaxed">{t('masters.becomeCtaDesc')}</p>
+                </div>
+                <Link
+                  to="/masters/become"
+                  className="inline-flex items-center justify-center gap-2 bg-white text-indigo-700 font-extrabold px-8 py-4 rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-0.5 transition-all flex-shrink-0"
+                >
+                  {t('masters.becomeMaster')} <ArrowRight className="w-5 h-5" />
+                </Link>
+              </div>
+            </div>
           </section>
         </div>
       </div>
@@ -407,6 +327,7 @@ export function MastersCatalog() {
 /* ============ MASTER DETAIL ============ */
 export function MasterDetail() {
   const { id } = useParams();
+  const { t } = useLanguage();
   const [master, setMaster] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -429,7 +350,7 @@ export function MasterDetail() {
     <Layout>
       <div className="max-w-3xl mx-auto px-4 py-24 text-center">
         <div className="inline-block w-12 h-12 border-4 border-indigo-200 dark:border-indigo-800 border-t-indigo-600 dark:border-t-indigo-400 rounded-full animate-spin" />
-        <p className="text-gray-400 dark:text-gray-500 mt-5 text-sm font-medium">Загрузка...</p>
+        <p className="text-gray-400 dark:text-gray-500 mt-5 text-sm font-medium">{t('masters.loadingDetail')}</p>
       </div>
     </Layout>
   );
@@ -440,78 +361,65 @@ export function MasterDetail() {
         <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-5">
           <Search className="w-8 h-8 text-gray-300 dark:text-gray-600" />
         </div>
-        <h2 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2">Мастер не найден</h2>
-        <Link to="/masters" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-semibold text-sm">← Назад к каталогу</Link>
+        <h2 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2">{t('masters.notFoundMaster')}</h2>
+        <Link to="/masters" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-semibold text-sm">← {t('masters.backToCatalog')}</Link>
       </div>
     </Layout>
   );
 
-  const gradient = CATEGORY_GRADIENTS[master.category] || 'from-blue-500 to-indigo-600';
+  const gradient = categoryGradient(master.category);
 
   return (
     <Layout>
-      {/* Gradient header */}
-      <div className={`bg-gradient-to-br ${gradient} relative overflow-hidden`}>
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-20 -right-20 w-60 h-60 bg-white/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-white/5 rounded-full blur-2xl" />
-          <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
-        </div>
-        <div className="relative z-10 max-w-3xl mx-auto px-4 pt-8 pb-28">
-          <Link to="/masters" className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white mb-6 transition-colors font-medium">
-            <ChevronLeft className="w-4 h-4" /> Назад к каталогу
+      {/* Cover header */}
+      <div className={`relative h-52 md:h-64 overflow-hidden bg-gradient-to-br ${gradient}`}>
+        {master.photo_url && (
+          <StorageImg objectKey={master.photo_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        )}
+        {!master.photo_url && (
+          <div className="absolute inset-0 flex items-center justify-center opacity-30">
+            <span className="text-8xl">{categoryIcon(master.category)}</span>
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/20" />
+        <div className="relative z-10 max-w-3xl mx-auto px-4 h-full flex flex-col justify-between py-6">
+          <Link to="/masters" className="inline-flex items-center gap-1.5 text-sm text-white/80 hover:text-white font-medium w-fit">
+            <ChevronLeft className="w-4 h-4" /> {t('masters.backToCatalog')}
           </Link>
+          <div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-3xl md:text-4xl font-black text-white drop-shadow-lg">{master.name}</h1>
+              {master.verified && <CheckCircle className="w-7 h-7 text-blue-300 drop-shadow" />}
+              {master.available_today && (
+                <span className="inline-flex items-center gap-1.5 bg-green-500/90 text-white text-xs font-bold px-3 py-1 rounded-full">
+                  <span className="w-2 h-2 bg-white rounded-full animate-pulse" /> {t('masters.availableToday')}
+                </span>
+              )}
+            </div>
+            <p className="text-white/90 font-semibold text-lg mt-1">{master.category}</p>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 -mt-20 pb-12 relative z-20">
+      <div className="max-w-3xl mx-auto px-4 -mt-8 pb-12 relative z-20">
         <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
           <div className="p-6 md:p-10">
-            {/* Avatar + Info */}
-            <div className="flex flex-col sm:flex-row items-start gap-6">
-              <div className="relative flex-shrink-0">
-                <div className="w-32 h-32 rounded-3xl bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center overflow-hidden shadow-xl ring-4 ring-white dark:ring-gray-900">
-                  {master.photo_url ? (
-                    <StorageImg objectKey={master.photo_url} alt={master.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-6xl">{CATEGORY_ICONS[master.category] || '🔧'}</span>
-                  )}
-                </div>
-                {master.available_today && (
-                  <div className="absolute -bottom-1.5 -right-1.5 w-9 h-9 bg-green-500 rounded-full border-4 border-white dark:border-gray-900 flex items-center justify-center shadow-md">
-                    <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
-                  </div>
-                )}
+            {/* Rating + badges */}
+            <div className="mb-8">
+              <div className="flex items-center gap-3 mb-4">
+                <StarRating rating={Number(master.rating) || 0} />
+                <span className="text-2xl font-black text-gray-900 dark:text-white">{master.rating}</span>
+                <span className="text-sm text-gray-400 dark:text-gray-500 font-medium">({master.reviews_count} {t('masters.reviews')})</span>
               </div>
-
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-1">
-                  <h1 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white">{master.name}</h1>
-                  {master.verified && (
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-md" title="Проверен">
-                      <CheckCircle className="w-5 h-5 text-white" />
-                    </div>
-                  )}
-                </div>
-                <p className="text-indigo-600 dark:text-indigo-400 font-bold text-lg mb-3">{master.category}</p>
-
-                {/* Rating */}
-                <div className="flex items-center gap-3 mb-5">
-                  <StarRating rating={Number(master.rating) || 0} />
-                  <span className="text-2xl font-black text-gray-900 dark:text-white">{master.rating}</span>
-                  <span className="text-sm text-gray-400 dark:text-gray-500 font-medium">({master.reviews_count} отзывов)</span>
-                </div>
-
-                {/* Badges */}
-                <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2">
                   {Number(master.rating) >= 4.5 && (
                     <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-300 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/30 px-4 py-2 rounded-full shadow-sm">
-                      <Award className="w-4 h-4" /> Топ мастер
+                      <Award className="w-4 h-4" /> {t('masters.topMaster')}
                     </span>
                   )}
                   {master.verified && (
                     <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-300 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 px-4 py-2 rounded-full shadow-sm">
-                      <Shield className="w-4 h-4" /> Проверен
+                      <Shield className="w-4 h-4" /> {t('masters.verified')}
                     </span>
                   )}
                   {master.district && (
@@ -521,27 +429,26 @@ export function MasterDetail() {
                   )}
                   {master.experience_years && (
                     <span className="inline-flex items-center gap-1.5 text-xs font-bold text-purple-700 dark:text-purple-300 bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/30 dark:to-violet-900/30 px-4 py-2 rounded-full shadow-sm">
-                      <Clock className="w-4 h-4" /> Стаж: {master.experience_years} лет
+                      <Clock className="w-4 h-4" /> {t('masters.experience').replace('{years}', String(master.experience_years))}
                     </span>
                   )}
                   {master.available_today && (
                     <span className="inline-flex items-center gap-1.5 text-xs font-bold text-green-700 dark:text-green-300 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 px-4 py-2 rounded-full shadow-sm">
-                      <Zap className="w-4 h-4" /> Свободен сегодня
+                      <Zap className="w-4 h-4" /> {t('masters.availableToday')}
                     </span>
                   )}
-                </div>
               </div>
             </div>
 
             {/* Details */}
             <div className="mt-10 space-y-8">
               <div>
-                <h3 className="font-extrabold text-gray-900 dark:text-white text-lg mb-3">О мастере</h3>
+                <h3 className="font-extrabold text-gray-900 dark:text-white text-lg mb-3">{t('masters.aboutMaster')}</h3>
                 <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-base">{master.description}</p>
               </div>
               {master.services && (
                 <div>
-                  <h3 className="font-extrabold text-gray-900 dark:text-white text-lg mb-3">Услуги</h3>
+                  <h3 className="font-extrabold text-gray-900 dark:text-white text-lg mb-3">{t('masters.services')}</h3>
                   <div className="flex flex-wrap gap-2">
                     {master.services.split(',').map((s: string, i: number) => (
                       <span key={i} className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2.5 rounded-2xl text-sm font-semibold">
@@ -549,6 +456,12 @@ export function MasterDetail() {
                       </span>
                     ))}
                   </div>
+                </div>
+              )}
+              {master.gallery_images && (
+                <div>
+                  <h3 className="font-extrabold text-gray-900 dark:text-white text-lg mb-3">{t('masters.gallery')}</h3>
+                  <StorageGallery keys={master.gallery_images} className="grid grid-cols-2 sm:grid-cols-3 gap-3" />
                 </div>
               )}
             </div>
@@ -560,7 +473,7 @@ export function MasterDetail() {
                   href={`tel:${master.phone}`}
                   className="flex-1 inline-flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-8 py-4 rounded-2xl transition-all duration-300 hover:shadow-xl hover:shadow-blue-200 dark:hover:shadow-blue-900/30 hover:-translate-y-0.5 text-base"
                 >
-                  <Phone className="w-5 h-5" /> Позвонить
+                  <Phone className="w-5 h-5" /> {t('masters.call')}
                 </a>
               )}
               {master.whatsapp && (
@@ -570,14 +483,24 @@ export function MasterDetail() {
                   rel="noopener noreferrer"
                   className="flex-1 inline-flex items-center justify-center gap-3 bg-green-500 hover:bg-green-600 text-white font-extrabold px-8 py-4 rounded-2xl transition-all duration-300 hover:shadow-xl hover:shadow-green-200 dark:hover:shadow-green-900/30 hover:-translate-y-0.5 text-base"
                 >
-                  <MessageCircle className="w-5 h-5" /> Написать в WhatsApp
+                  <MessageCircle className="w-5 h-5" /> {t('masters.writeWhatsapp')}
+                </a>
+              )}
+              {master.telegram && telegramUrl(master.telegram) && (
+                <a
+                  href={telegramUrl(master.telegram)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 inline-flex items-center justify-center gap-3 bg-sky-500 hover:bg-sky-600 text-white font-extrabold px-8 py-4 rounded-2xl transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 text-base"
+                >
+                  <Send className="w-5 h-5" /> {t('masters.writeTelegram')}
                 </a>
               )}
               <Link
-                to="/masters/request"
+                to={`/masters/request?category=${encodeURIComponent(master.category || '')}`}
                 className="flex-1 inline-flex items-center justify-center gap-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-extrabold px-8 py-4 rounded-2xl transition-all duration-300 hover:-translate-y-0.5 text-base"
               >
-                <Send className="w-5 h-5" /> Оставить заявку
+                <Send className="w-5 h-5" /> {t('masters.leaveRequest')}
               </Link>
             </div>
           </div>
@@ -590,7 +513,15 @@ export function MasterDetail() {
 /* ============ MASTER REQUEST FORM ============ */
 export function MasterRequestForm() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ category: '', problem_description: '', address: '', phone: '', client_name: '' });
+  const { t } = useLanguage();
+  const [searchParams] = useSearchParams();
+  const [form, setForm] = useState({
+    category: searchParams.get('category') || '',
+    problem_description: '',
+    address: '',
+    phone: '',
+    client_name: '',
+  });
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -635,8 +566,8 @@ export function MasterRequestForm() {
           <div className="w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-100 dark:shadow-green-900/20">
             <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400" />
           </div>
-          <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-3">Заявка отправлена!</h2>
-          <p className="text-gray-500 dark:text-gray-400 mb-8 text-base">Мастера увидят вашу заявку и свяжутся с вами.</p>
+          <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-3">{t('masters.requestSuccess')}</h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-8 text-base">{t('masters.requestSuccessDesc')}</p>
           <Link to="/" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-bold text-base">На главную</Link>
         </div>
       </Layout>
@@ -652,8 +583,8 @@ export function MasterRequestForm() {
           <Link to="/masters" className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white mb-6 transition-colors font-medium">
             <ChevronLeft className="w-4 h-4" /> Назад
           </Link>
-          <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-2">Оставить заявку</h1>
-          <p className="text-gray-500 dark:text-gray-400 mb-8 text-base">Опишите проблему, и мастера свяжутся с вами</p>
+          <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-2">{t('masters.requestTitle')}</h1>
+          <p className="text-gray-500 dark:text-gray-400 mb-8 text-base">{t('masters.requestSubtitle')}</p>
 
           <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800 p-6 md:p-8 space-y-5">
             <div>
@@ -678,106 +609,6 @@ export function MasterRequestForm() {
             <div>
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Телефон *</label>
               <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className={inputClass} placeholder="+7 (700) 123-45-67" required />
-            </div>
-            <button type="submit" disabled={submitting} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold py-4 rounded-2xl transition-all duration-300 disabled:opacity-50 shadow-lg shadow-indigo-200 dark:shadow-indigo-900/30 hover:shadow-xl hover:-translate-y-0.5 text-base">
-              {submitting ? 'Отправка...' : 'Отправить заявку'}
-            </button>
-          </form>
-        </div>
-      </div>
-    </Layout>
-  );
-}
-
-/* ============ BECOME MASTER FORM ============ */
-export function BecomeMasterForm() {
-  const [form, setForm] = useState({ name: '', category: '', phone: '', whatsapp: '', district: 'Сортировка', description: '' });
-  const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.name || !form.category || !form.phone) return;
-    setSubmitting(true);
-    try {
-      await withRetry(() => client.entities.become_master_requests.create({
-        data: { ...form, status: 'pending', created_at: new Date().toISOString() }
-      }));
-      setSuccess(true);
-      client.apiCall.invoke({
-        url: '/api/v1/telegram/notify/become-master',
-        method: 'POST',
-        data: {
-          name: form.name,
-          category: form.category,
-          phone: form.phone,
-          whatsapp: form.whatsapp,
-          district: form.district,
-          description: form.description,
-        },
-      }).catch((err: unknown) => console.warn('Telegram notification skipped:', err));
-    } catch (e) {
-      console.error(e);
-      alert('Ошибка при отправке заявки');
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  if (success) {
-    return (
-      <Layout>
-        <div className="max-w-lg mx-auto px-4 py-24 text-center">
-          <div className="w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-100 dark:shadow-green-900/20">
-            <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400" />
-          </div>
-          <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-3">Заявка отправлена!</h2>
-          <p className="text-gray-500 dark:text-gray-400 mb-8 text-base">Мы рассмотрим вашу заявку и добавим вас в каталог мастеров.</p>
-          <Link to="/" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-bold text-base">На главную</Link>
-        </div>
-      </Layout>
-    );
-  }
-
-  const inputClass = "w-full px-5 py-4 border border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-base transition-all duration-200";
-
-  return (
-    <Layout>
-      <div className="bg-gray-50 dark:bg-gray-950 min-h-screen transition-colors duration-300">
-        <div className="max-w-lg mx-auto px-4 py-10">
-          <Link to="/masters" className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white mb-6 transition-colors font-medium">
-            <ChevronLeft className="w-4 h-4" /> Назад
-          </Link>
-          <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-2">Стать мастером</h1>
-          <p className="text-gray-500 dark:text-gray-400 mb-8 text-base">Заполните форму, и мы добавим вас в каталог</p>
-
-          <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800 p-6 md:p-8 space-y-5">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Ваше имя *</label>
-              <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={inputClass} required />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Категория *</label>
-              <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className={inputClass} required>
-                <option value="">Выберите категорию</option>
-                {MASTER_CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_ICONS[c]} {c}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Телефон *</label>
-              <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className={inputClass} required />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">WhatsApp</label>
-              <input type="tel" value={form.whatsapp} onChange={e => setForm({ ...form, whatsapp: e.target.value })} className={inputClass} />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Район работы</label>
-              <input type="text" value={form.district} onChange={e => setForm({ ...form, district: e.target.value })} className={inputClass} />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">О себе и услугах</label>
-              <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={4} className={`${inputClass} resize-none`} placeholder="Расскажите о своём опыте и услугах..." />
             </div>
             <button type="submit" disabled={submitting} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold py-4 rounded-2xl transition-all duration-300 disabled:opacity-50 shadow-lg shadow-indigo-200 dark:shadow-indigo-900/30 hover:shadow-xl hover:-translate-y-0.5 text-base">
               {submitting ? 'Отправка...' : 'Отправить заявку'}

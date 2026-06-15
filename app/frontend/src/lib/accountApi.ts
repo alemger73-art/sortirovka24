@@ -1,4 +1,10 @@
 import { getAPIBaseURL } from "@/lib/config";
+import { humanizeApiError } from "@/lib/apiErrors";
+import {
+  clearPersistedAccountToken,
+  persistAccountToken,
+  readAccountToken,
+} from "@/lib/sessionStore";
 
 function apiBase(): string {
   return getAPIBaseURL().replace(/\/$/, "");
@@ -7,27 +13,32 @@ function apiBase(): string {
 export type AccountRole = "user" | "master" | "driver" | "partner" | "admin" | "superadmin";
 
 export function getAccountToken(): string {
-  return localStorage.getItem("account_token") || "";
+  return readAccountToken();
 }
 
 export function setAccountToken(token: string) {
-  localStorage.setItem("account_token", token);
+  persistAccountToken(token);
 }
 
 export function clearAccountToken() {
-  localStorage.removeItem("account_token");
+  clearPersistedAccountToken();
 }
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getAccountToken();
-  const resp = await fetch(`${apiBase()}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init?.headers || {}),
-    },
-  });
+  let resp: Response;
+  try {
+    resp = await fetch(`${apiBase()}${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(init?.headers || {}),
+      },
+    });
+  } catch (err) {
+    throw new Error(humanizeApiError(err));
+  }
   if (!resp.ok) {
     const txt = await resp.text().catch(() => "");
     let message = txt || `HTTP ${resp.status}`;
@@ -70,6 +81,11 @@ export const accountApi = {
   masterCabinet: () => api<any>("/api/v1/account/master/cabinet"),
   updateMasterProfile: (body: Record<string, unknown>) =>
     api<{ success: boolean }>("/api/v1/account/master/profile", { method: "PUT", body: JSON.stringify(body) }),
+  approveBecomeMasterRequest: (requestId: number) =>
+    api<{ success: boolean; master_id: number; role_assigned: boolean }>(
+      `/api/v1/account/admin/masters/approve-become-request/${requestId}`,
+      { method: "POST" },
+    ),
   partnerCabinet: () => api<any>("/api/v1/account/partner/cabinet"),
   adminDashboard: () => api<any>("/api/v1/account/admin/dashboard"),
   adminUsers: () => api<any[]>("/api/v1/account/admin/users"),

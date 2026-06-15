@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { client, withRetry, MASTER_CATEGORIES, formatDate } from '@/lib/api';
 import { invalidateAllCaches } from '@/lib/cache';
+import { accountApi } from '@/lib/accountApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Pencil, Trash2, Eye, Loader2, Phone, MapPin, Check, X, UserPlus, Star, Send, Images } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, Loader2, Phone, MapPin, X, UserPlus, Star, Send, Images } from 'lucide-react';
 import { toast } from 'sonner';
 import ImageUpload, { StorageImage } from '@/components/ImageUpload';
 import MultiImageUpload, { StorageGallery } from '@/components/MultiImageUpload';
@@ -21,7 +22,8 @@ interface MasterRequest {
 
 interface BecomeMasterReq {
   id: number; name: string; category: string; phone: string; whatsapp?: string;
-  district?: string; description?: string; status: string; created_at?: string;
+  district?: string; description?: string; photo_url?: string; gallery_images?: string;
+  status: string; created_at?: string;
 }
 
 interface Master {
@@ -48,6 +50,16 @@ function MasterRequestsSection() {
   };
 
   useEffect(() => { fetchItems(); }, []);
+
+  const updateStatus = async (id: number, status: string) => {
+    try {
+      await withRetry(() => client.entities.master_requests.update({ id: String(id), data: { status } }));
+      toast.success('Статус обновлён');
+      invalidateAllCaches();
+      fetchItems();
+      if (viewItem?.id === id) setViewItem({ ...viewItem!, status });
+    } catch { toast.error('Ошибка'); }
+  };
 
   const STATUS_MAP: Record<string, { label: string; color: string }> = {
     new: { label: 'Новая', color: 'bg-yellow-100 text-yellow-800' },
@@ -103,6 +115,23 @@ function MasterRequestsSection() {
               <p><strong>Телефон:</strong> {viewItem.phone}</p>
               <p><strong>Статус:</strong> {(STATUS_MAP[viewItem.status] || STATUS_MAP.new).label}</p>
               <p><strong>Дата:</strong> {viewItem.created_at ? formatDate(viewItem.created_at) : '—'}</p>
+              {viewItem.status === 'new' && (
+                <div className="flex gap-2 pt-3">
+                  <Button onClick={() => updateStatus(viewItem.id, 'in_progress')} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
+                    В работу
+                  </Button>
+                  <Button onClick={() => updateStatus(viewItem.id, 'done')} className="flex-1 bg-green-600 hover:bg-green-700 text-white">
+                    Выполнено
+                  </Button>
+                </div>
+              )}
+              {viewItem.status === 'in_progress' && (
+                <div className="pt-3">
+                  <Button onClick={() => updateStatus(viewItem.id, 'done')} className="w-full bg-green-600 hover:bg-green-700 text-white">
+                    Отметить выполненным
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
@@ -142,28 +171,12 @@ function BecomeMasterSection() {
   const approveAndCreateMaster = async (item: BecomeMasterReq) => {
     setProcessing(true);
     try {
-      await withRetry(() => client.entities.become_master_requests.update({ id: String(item.id), data: { status: 'approved' } }));
-      await withRetry(() => client.entities.masters.create({
-        data: {
-          name: item.name,
-          category: item.category,
-          phone: item.phone,
-          whatsapp: item.whatsapp || '',
-          telegram: '',
-          district: item.district || '',
-          description: item.description || '',
-          rating: 5,
-          reviews_count: 0,
-          photo_url: '',
-          gallery_images: '',
-          verified: true,
-          available_today: true,
-          services: item.category,
-          experience_years: 1,
-          created_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
-        }
-      }));
-      toast.success('Мастер одобрен и добавлен в каталог!');
+      const result = await accountApi.approveBecomeMasterRequest(item.id);
+      toast.success(
+        result.role_assigned
+          ? 'Мастер добавлен в каталог и роль назначена!'
+          : 'Мастер добавлен в каталог. Пользователь ещё не зарегистрирован — роль будет назначена при регистрации с этим телефоном.',
+      );
       invalidateAllCaches();
       fetchItems();
       setViewItem(null);
@@ -196,20 +209,21 @@ function BecomeMasterSection() {
                     </div>
                     <p className="font-medium text-sm text-gray-900">{item.name}</p>
                     <p className="text-xs text-gray-500 flex items-center gap-1"><Phone className="h-3 w-3" />{item.phone}</p>
+                    {item.photo_url && (
+                      <p className="text-xs text-purple-600 mt-0.5">📷 Фото загружено</p>
+                    )}
+                    {item.gallery_images && (
+                      <p className="text-xs text-purple-600">🖼 {item.gallery_images.split(',').filter(Boolean).length} фото работ</p>
+                    )}
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setViewItem(item)}>
                       <Eye className="h-4 w-4 text-gray-500" />
                     </Button>
                     {item.status === 'pending' && (
-                      <>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => updateStatus(item.id, 'approved')}>
-                          <Check className="h-4 w-4 text-green-600" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => updateStatus(item.id, 'rejected')}>
-                          <X className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => updateStatus(item.id, 'rejected')}>
+                        <X className="h-4 w-4 text-red-500" />
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -232,6 +246,18 @@ function BecomeMasterSection() {
                 {viewItem.whatsapp && <p><strong>WhatsApp:</strong> {viewItem.whatsapp}</p>}
                 {viewItem.district && <p><strong>Район:</strong> {viewItem.district}</p>}
                 {viewItem.description && <p><strong>О себе:</strong> {viewItem.description}</p>}
+                {viewItem.photo_url && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Фото профиля:</p>
+                    <StorageImage objectKey={viewItem.photo_url} alt={viewItem.name} className="w-24 h-24 rounded-2xl object-cover" />
+                  </div>
+                )}
+                {viewItem.gallery_images && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Примеры работ:</p>
+                    <StorageGallery keys={viewItem.gallery_images} />
+                  </div>
+                )}
                 <p><strong>Статус:</strong> {(STATUS_MAP[viewItem.status] || STATUS_MAP.pending).label}</p>
               </div>
               {viewItem.status === 'pending' && (

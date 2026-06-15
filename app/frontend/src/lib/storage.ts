@@ -520,18 +520,19 @@ export async function uploadAvatar(file: File): Promise<{
   thumbnailUrl: string | null;
 }> {
   assertImageFileSize(file);
-  await ensureBucket();
 
   const meta = await accountApi.avatarUploadUrl();
   const uploadResult = await withRetry(
     () => uploadToPresignedUrl(meta.upload_url, file),
-    3,
-    2000
+    2,
+    800
   );
 
   const downloadUrl =
     uploadResult.image_url ||
+    uploadResult.thumbnail_url ||
     meta.image_url ||
+    meta.thumbnail_url ||
     (meta.object_key ? getPublicObjectUrl(meta.object_key) : null);
 
   if (!downloadUrl) {

@@ -102,7 +102,7 @@ function prefetchFood(): void {
 
 function prefetchMasters(): void {
   prefetchOne('masters_list_all', () => withRetry(() =>
-    client.entities.masters.query({ sort: '-rating', limit: 50 })
+    client.entities.masters.query({ sort: '-rating', limit: 200 })
   ), CACHE_5M);
 }
 

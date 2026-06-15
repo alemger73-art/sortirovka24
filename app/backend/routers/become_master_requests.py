@@ -22,6 +22,10 @@ class Become_master_requestsData(BaseModel):
     name: str = None
     category: str = None
     phone: str = None
+    whatsapp: str = None
+    district: str = None
+    photo_url: str = None
+    gallery_images: str = None
     description: str = None
     status: str = None
     created_at: str = None
@@ -32,6 +36,10 @@ class Become_master_requestsUpdateData(BaseModel):
     name: Optional[str] = None
     category: Optional[str] = None
     phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    district: Optional[str] = None
+    photo_url: Optional[str] = None
+    gallery_images: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
     created_at: Optional[str] = None
@@ -43,6 +51,10 @@ class Become_master_requestsResponse(BaseModel):
     name: Optional[str] = None
     category: Optional[str] = None
     phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    district: Optional[str] = None
+    photo_url: Optional[str] = None
+    gallery_images: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
     created_at: Optional[str] = None

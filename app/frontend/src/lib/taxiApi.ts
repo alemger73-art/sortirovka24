@@ -1,5 +1,6 @@
 import { getAccountToken } from '@/lib/accountApi';
 import { getAPIBaseURL } from '@/lib/config';
+import { humanizeApiError } from '@/lib/apiErrors';
 
 function apiBase(): string {
   return getAPIBaseURL().replace(/\/$/, '');
@@ -21,14 +22,19 @@ export function getTaxiAdminToken(): string {
 
 async function api<T>(path: string, init?: RequestInit, token?: string): Promise<T> {
   const authToken = token ?? getAccountToken();
-  const resp = await fetch(`${apiBase()}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-      ...(init?.headers || {}),
-    },
-  });
+  let resp: Response;
+  try {
+    resp = await fetch(`${apiBase()}${path}`, {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        ...(init?.headers || {}),
+      },
+    });
+  } catch (err) {
+    throw new Error(humanizeApiError(err));
+  }
   if (!resp.ok) {
     const txt = await resp.text().catch(() => '');
     let message = txt || `HTTP ${resp.status}`;

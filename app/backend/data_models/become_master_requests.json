@@ -18,6 +18,22 @@
             "type": "string",
             "description": "Phone"
         },
+        "whatsapp": {
+            "type": "string",
+            "description": "WhatsApp"
+        },
+        "district": {
+            "type": "string",
+            "description": "District"
+        },
+        "photo_url": {
+            "type": "string",
+            "description": "Profile photo"
+        },
+        "gallery_images": {
+            "type": "string",
+            "description": "Work gallery (comma-separated keys)"
+        },
         "description": {
             "type": "string",
             "description": "Description"
