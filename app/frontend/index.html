@@ -56,6 +56,13 @@
     </div>
     <div id="root"></div>
     <script>
+      // Failsafe: never leave the static splash on screen if JS bundle hangs.
+      setTimeout(function () {
+        var splash = document.getElementById('boot-splash');
+        if (splash) splash.remove();
+      }, 12000);
+    </script>
+    <script>
       // Early error suppression + overlay removal.
       // The @metagptx/web-sdk injects an error overlay with id="custom-vite-error-overlay"
       // whenever an unhandled error/rejection occurs. We use multiple strategies:

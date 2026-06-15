@@ -1,4 +1,4 @@
-/** Durable auth storage — localStorage + Capacitor Preferences on Android. */
+/** Durable auth storage — localStorage at boot; Capacitor Preferences after bridge is ready. */
 
 import { Capacitor } from '@capacitor/core';
 
@@ -7,9 +7,12 @@ const TOKEN_BACKUP = 's24_account_token_v1';
 export const PROFILE_STORAGE_KEY = 'account_user_profile';
 const PROFILE_BACKUP = 's24_account_profile_v1';
 
+const NATIVE_IO_TIMEOUT_MS = 2500;
+
 type PreferencesApi = typeof import('@capacitor/preferences').Preferences;
 
 let preferencesPromise: Promise<PreferencesApi | null> | null = null;
+let nativeSyncStarted = false;
 
 function getPreferences(): Promise<PreferencesApi | null> {
   if (!Capacitor.isNativePlatform()) return Promise.resolve(null);
@@ -19,6 +22,13 @@ function getPreferences(): Promise<PreferencesApi | null> {
       .catch(() => null);
   }
   return preferencesPromise;
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([
+    promise,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
 }
 
 function writeLocalToken(token: string): void {
@@ -93,37 +103,57 @@ export function clearPersistedAccountToken(): void {
   });
 }
 
-/** Call once at app boot before React renders. */
-export async function restoreAccountSession(): Promise<void> {
-  if (Capacitor.isNativePlatform()) {
-    const prefs = await getPreferences();
-    if (prefs) {
-      try {
-        const { value: token } = await prefs.get({ key: TOKEN_KEY });
-        if (token) {
-          writeLocalToken(token);
-        } else {
-          const lsToken =
-            localStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_BACKUP) || '';
-          if (lsToken) await prefs.set({ key: TOKEN_KEY, value: lsToken });
-        }
-
-        const { value: profile } = await prefs.get({ key: PROFILE_STORAGE_KEY });
-        if (profile) {
-          localStorage.setItem(PROFILE_STORAGE_KEY, profile);
-          localStorage.setItem(PROFILE_BACKUP, profile);
-        } else {
-          const lsProfile = localStorage.getItem(PROFILE_STORAGE_KEY);
-          if (lsProfile) await prefs.set({ key: PROFILE_STORAGE_KEY, value: lsProfile });
-        }
-      } catch {
-        readAccountToken();
-        restoreProfileFromBackup();
-      }
-      return;
-    }
-  }
-
+/** Sync only — never blocks on native bridge. Call before React render. */
+export function restoreAccountSession(): void {
   readAccountToken();
   restoreProfileFromBackup();
+}
+
+/** Merge token/profile from native Preferences once Capacitor bridge is ready. */
+export async function hydrateSessionFromNative(): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
+
+  const prefs = await getPreferences();
+  if (!prefs) return;
+
+  try {
+    const tokenResult = await withTimeout(prefs.get({ key: TOKEN_KEY }), NATIVE_IO_TIMEOUT_MS);
+    const token = tokenResult?.value;
+    if (token) {
+      writeLocalToken(token);
+    } else {
+      const lsToken =
+        localStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_BACKUP) || '';
+      if (lsToken) {
+        void withTimeout(prefs.set({ key: TOKEN_KEY, value: lsToken }), NATIVE_IO_TIMEOUT_MS);
+      }
+    }
+
+    const profileResult = await withTimeout(
+      prefs.get({ key: PROFILE_STORAGE_KEY }),
+      NATIVE_IO_TIMEOUT_MS,
+    );
+    const profile = profileResult?.value;
+    if (profile) {
+      localStorage.setItem(PROFILE_STORAGE_KEY, profile);
+      localStorage.setItem(PROFILE_BACKUP, profile);
+    } else {
+      const lsProfile = localStorage.getItem(PROFILE_STORAGE_KEY);
+      if (lsProfile) {
+        void withTimeout(
+          prefs.set({ key: PROFILE_STORAGE_KEY, value: lsProfile }),
+          NATIVE_IO_TIMEOUT_MS,
+        );
+      }
+    }
+  } catch {
+    /* keep localStorage session */
+  }
+}
+
+/** Call once after first paint — do not await at boot. */
+export function scheduleNativeSessionHydration(): void {
+  if (!Capacitor.isNativePlatform() || nativeSyncStarted) return;
+  nativeSyncStarted = true;
+  void hydrateSessionFromNative();
 }

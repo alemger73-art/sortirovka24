@@ -1,10 +1,9 @@
 import { createRoot } from 'react-dom/client';
-import { Capacitor } from '@capacitor/core';
 import App from './App.tsx';
 import './index.css';
 import { warmupBackend } from './lib/api';
 import { initNativeShell } from './lib/native';
-import { restoreAccountSession } from './lib/sessionStore';
+import { restoreAccountSession, scheduleNativeSessionHydration } from './lib/sessionStore';
 
 // PWA registration is handled by vite-plugin-pwa (web builds only; disabled in --mode mobile).
 // ─── Intercept SDK's postMessage error reporting ─────────────────
@@ -171,21 +170,24 @@ window.addEventListener('unhandledrejection', (event) => {
   console.error('[Unhandled rejection - suppressed overlay]', reason);
 });
 
-// ─── Render App ──────────────────────────────────────────────────
-async function bootApp() {
-  await restoreAccountSession();
+function removeBootSplash(): void {
+  document.getElementById('boot-splash')?.remove();
+}
 
-  if (!Capacitor.isNativePlatform()) {
-    document.getElementById('boot-splash')?.remove();
-  }
+// ─── Render App ──────────────────────────────────────────────────
+function bootApp() {
+  restoreAccountSession();
 
   const rootElement = document.getElementById('root');
   if (rootElement) {
     try {
       createRoot(rootElement).render(<App />);
+      removeBootSplash();
       initNativeShell();
+      scheduleNativeSessionHydration();
     } catch (err) {
       console.error('[boot] render failed:', err);
+      removeBootSplash();
       rootElement.innerHTML =
         '<div style="padding:24px;font-family:sans-serif;text-align:center">' +
         '<h2 style="color:#2563EB">Sortirovka24</h2>' +
@@ -194,4 +196,4 @@ async function bootApp() {
   }
 }
 
-void bootApp();
+bootApp();

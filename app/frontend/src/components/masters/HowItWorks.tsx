@@ -1,36 +1,50 @@
-import { Search, Phone, CheckCircle2 } from 'lucide-react';
+import { useState } from 'react';
+import { Search, Phone, CheckCircle2, ChevronDown, HelpCircle } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function HowItWorks() {
   const { t } = useLanguage();
+  const [open, setOpen] = useState(false);
+
   const steps = [
-    { icon: Search, titleKey: 'masters.step1Title', descKey: 'masters.step1Desc', color: 'from-indigo-500 to-purple-600' },
-    { icon: Phone, titleKey: 'masters.step2Title', descKey: 'masters.step2Desc', color: 'from-blue-500 to-cyan-600' },
-    { icon: CheckCircle2, titleKey: 'masters.step3Title', descKey: 'masters.step3Desc', color: 'from-emerald-500 to-green-600' },
+    { icon: Search, titleKey: 'masters.step1Title', descKey: 'masters.step1Desc' },
+    { icon: Phone, titleKey: 'masters.step2Title', descKey: 'masters.step2Desc' },
+    { icon: CheckCircle2, titleKey: 'masters.step3Title', descKey: 'masters.step3Desc' },
   ];
 
   return (
-    <section className="mb-12">
-      <h2 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2">{t('masters.howItWorks')}</h2>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{t('masters.howItWorksDesc')}</p>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {steps.map((step, i) => (
-          <div
-            key={step.titleKey}
-            className="relative overflow-hidden rounded-3xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-6 shadow-sm hover:shadow-lg transition-shadow"
-          >
-            <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${step.color} opacity-10 rounded-bl-[4rem]`} />
-            <div className="flex items-center gap-3 mb-4">
-              <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center text-white shadow-lg`}>
-                <step.icon className="w-5 h-5" />
+    <section className="mb-8">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-3 rounded-xl border border-indigo-100 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/20 px-4 py-3 text-left hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
+      >
+        <span className="flex items-center gap-2 text-sm font-semibold text-indigo-800 dark:text-indigo-200">
+          <HelpCircle className="w-4 h-4 flex-shrink-0" />
+          {t('masters.howItWorks')}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-indigo-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {steps.map((step, i) => (
+            <div
+              key={step.titleKey}
+              className="rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs font-bold">
+                  {i + 1}
+                </span>
+                <step.icon className="w-4 h-4 text-indigo-500" />
               </div>
-              <span className="text-2xl font-black text-gray-200 dark:text-gray-700">{i + 1}</span>
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1">{t(step.titleKey)}</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{t(step.descKey)}</p>
             </div>
-            <h3 className="font-bold text-gray-900 dark:text-white mb-1">{t(step.titleKey)}</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{t(step.descKey)}</p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

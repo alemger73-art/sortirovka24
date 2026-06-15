@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { hideNativeSplash } from '@/lib/native';
 
-const MIN_VISIBLE_MS = 1700;
-const FADE_OUT_MS = 500;
+const MIN_VISIBLE_MS = 1200;
+const FADE_OUT_MS = 450;
+const MAX_VISIBLE_MS = 4500;
 
 type Props = {
   onHidden: () => void;
@@ -19,18 +20,27 @@ export default function AppWelcomeSplash({ onHidden }: Props) {
     let fadeTimer: ReturnType<typeof setTimeout>;
     let doneTimer: ReturnType<typeof setTimeout>;
 
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      setExiting(true);
+      doneTimer = setTimeout(onHidden, FADE_OUT_MS);
+    };
+
     const scheduleExit = () => {
       const wait = Math.max(0, MIN_VISIBLE_MS - (performance.now() - started));
-      fadeTimer = setTimeout(() => {
-        setExiting(true);
-        doneTimer = setTimeout(onHidden, FADE_OUT_MS);
-      }, wait);
+      fadeTimer = setTimeout(finish, wait);
     };
 
     scheduleExit();
+
+    const forceExit = setTimeout(finish, MAX_VISIBLE_MS);
+
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(doneTimer);
+      clearTimeout(forceExit);
     };
   }, [onHidden]);
 

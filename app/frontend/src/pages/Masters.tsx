@@ -129,203 +129,145 @@ export function MastersCatalog() {
 
   return (
     <Layout>
-      {/* ═══════════════════════════════════════════════════
-          HERO — Deep gradient, mobile-app feel
-      ═══════════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-700 via-indigo-800 to-purple-900 dark:from-slate-900 dark:via-indigo-950 dark:to-purple-950">
-        {/* Decorative orbs */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[120px]" />
-          <div className="absolute -bottom-40 -left-40 w-[400px] h-[400px] bg-blue-400/15 rounded-full blur-[100px]" />
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[300px] h-[300px] bg-indigo-300/10 rounded-full blur-[80px]" />
-          {/* Subtle dot grid */}
-          <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
-        </div>
+      {/* Compact header */}
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+        <div className="max-w-5xl mx-auto px-4 py-6 md:py-8">
+          <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">
+            {t('masters.heroBadge')}
+          </p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-1">
+            {t('masters.needMaster')} <span className="text-indigo-600 dark:text-indigo-400">{t('masters.findIn2min')}</span>
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xl mb-5">{t('masters.heroSubtitle')}</p>
 
-        <div className="relative z-10 max-w-6xl mx-auto px-4 pt-14 pb-16 md:pt-20 md:pb-24">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-xl rounded-full px-5 py-2 border border-white/15 mb-6 animate-fade-in">
-            <Sparkles className="w-4 h-4 text-yellow-300" />
-            <span className="text-white/80 text-sm font-medium">{t('masters.heroBadge')}</span>
+          {/* Search */}
+          <div className="relative max-w-xl mb-4">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder={t('masters.searchPlaceholder')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400"
+            />
           </div>
 
-          {/* Title */}
-          <h1 className="text-4xl md:text-6xl font-black text-white mb-4 leading-[1.1] tracking-tight">
-            {t('masters.needMaster')}<br />
-            <span className="bg-gradient-to-r from-yellow-300 via-amber-300 to-orange-300 bg-clip-text text-transparent">
-              {t('masters.findIn2min')}
-            </span>
-          </h1>
-          <p className="text-lg md:text-xl text-white/50 mb-10 max-w-xl leading-relaxed">
-            {t('masters.heroSubtitle')}
-          </p>
-
-          {/* ── Two main CTA buttons ── */}
-          <div className="flex flex-wrap gap-4 mb-10">
+          {/* Quick actions */}
+          <div className="flex flex-wrap gap-2 mb-4">
             <button
+              type="button"
               onClick={scrollToMasters}
-              className="group inline-flex items-center gap-3 bg-white text-indigo-700 font-extrabold px-8 py-4 rounded-2xl shadow-2xl shadow-black/20 hover:shadow-3xl hover:shadow-black/30 transition-all duration-300 hover:-translate-y-1 text-base"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 px-3 py-2 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
             >
-              <Search className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              {t('quick.findMaster')}
+              <Search className="w-3.5 h-3.5" /> {t('quick.findMaster')}
             </button>
             <Link
               to="/masters/request"
-              className="group inline-flex items-center gap-3 bg-gradient-to-r from-orange-500 to-red-500 text-white font-extrabold px-8 py-4 rounded-2xl shadow-2xl shadow-red-500/30 hover:shadow-3xl hover:shadow-red-500/40 transition-all duration-300 hover:-translate-y-1 text-base"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900 px-3 py-2 rounded-lg hover:bg-orange-100 transition-colors"
             >
-              <AlertTriangle className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              {t('masters.urgentCall')}
+              <AlertTriangle className="w-3.5 h-3.5" /> {t('masters.urgentCall')}
+            </Link>
+            <Link
+              to="/masters/become"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              <UserPlus className="w-3.5 h-3.5" /> {t('masters.becomeMaster')}
             </Link>
           </div>
 
-          {/* ── Search bar — large, prominent ── */}
-          <div className="max-w-2xl">
-            <div className="flex items-center bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/15 overflow-hidden ring-1 ring-white/20">
-              <Search className="w-6 h-6 text-indigo-400 ml-6 flex-shrink-0" />
-              <input
-                type="text"
-                placeholder={t('masters.searchPlaceholder')}
-                value={searchQuery}
-                onChange={e => {
-                  setSearchQuery(e.target.value);
-                  const next = new URLSearchParams(searchParams);
-                  if (e.target.value) next.set('q', e.target.value);
-                  else next.delete('q');
-                  setSearchParams(next, { replace: true });
-                }}
-                onKeyDown={handleSearchKeyDown}
-                className="flex-1 px-5 py-5 text-gray-800 dark:text-gray-200 placeholder:text-gray-400 bg-transparent outline-none text-base md:text-lg font-medium"
-              />
-            </div>
-          </div>
-
-          {/* ── Stats cards ── */}
-          <div className="grid grid-cols-3 gap-3 md:gap-4 mt-10 max-w-lg">
-            {[
-              { icon: <Users className="w-5 h-5" />, num: totalCount ? `${totalCount}` : `${masters.length || '...'}`, label: t('masters.stats.masters'), color: 'from-blue-400/20 to-blue-500/20 border-blue-400/20' },
-              { icon: <LayoutGrid className="w-5 h-5" />, num: `${MASTER_CATEGORIES.length}`, label: t('masters.stats.categories'), color: 'from-purple-400/20 to-purple-500/20 border-purple-400/20' },
-              { icon: <TrendingUp className="w-5 h-5" />, num: avgRating?.toFixed(1) || '—', label: t('masters.stats.rating'), color: 'from-amber-400/20 to-amber-500/20 border-amber-400/20' },
-            ].map(s => (
-              <div key={s.label} className={`bg-gradient-to-br ${s.color} backdrop-blur-xl rounded-2xl p-4 border text-center`}>
-                <div className="flex justify-center mb-2 text-white/70">{s.icon}</div>
-                <p className="text-2xl md:text-3xl font-black text-white">{s.num}</p>
-                <p className="text-white/40 text-xs mt-0.5 font-medium">{s.label}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Secondary links */}
-          <div className="flex flex-wrap gap-3 mt-8">
-            <Link to="/masters/become" className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-xl text-white/80 font-semibold px-5 py-2.5 rounded-xl hover:bg-white/20 transition-all duration-300 border border-white/10 text-sm">
-              <UserPlus className="w-4 h-4" /> {t('masters.becomeMaster')}
-            </Link>
+          {/* Stats inline */}
+          <div className="flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400">
+            <span><strong className="text-gray-900 dark:text-white">{totalCount || masters.length || '—'}</strong> {t('masters.stats.masters')}</span>
+            <span><strong className="text-gray-900 dark:text-white">{MASTER_CATEGORIES.length}</strong> {t('masters.stats.categories')}</span>
+            {avgRating != null && (
+              <span><strong className="text-gray-900 dark:text-white">{avgRating}</strong> {t('masters.stats.rating')}</span>
+            )}
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* ═══════════════════════════════════════════════════
-          MAIN CONTENT
-      ═══════════════════════════════════════════════════ */}
-      <div className="bg-gray-50 dark:bg-gray-950 transition-colors duration-300 min-h-screen">
-        <div className="max-w-6xl mx-auto px-4 py-10">
+      <div className="bg-gray-50 dark:bg-gray-950 min-h-screen">
+        <div className="max-w-5xl mx-auto px-4 py-6">
+          {/* Tip */}
+          <div className="mb-6 rounded-xl border border-amber-200/80 dark:border-amber-900/40 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-3">
+            <p className="text-sm font-semibold text-amber-900 dark:text-amber-200 mb-0.5">{t('masters.tipTitle')}</p>
+            <p className="text-xs text-amber-800/80 dark:text-amber-300/80 leading-relaxed">{t('masters.tipText')}</p>
+          </div>
 
           <HowItWorks />
 
-          {/* ── Categories — tile cards, 2-3 per row ── */}
-          <section className="mb-12">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">{t('masters.chooseCategory')}</h2>
+          {/* Categories — horizontal chips */}
+          <section className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white">{t('masters.chooseCategory')}</h2>
               {selectedCategory && (
-                <button onClick={() => setCategory('')} className="text-sm text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
+                <button type="button" onClick={() => setCategory('')} className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
                   {t('masters.resetFilter')}
                 </button>
               )}
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {/* "All" tile */}
+            <p className="text-xs text-gray-400 mb-3">{t('masters.categoriesHint')}</p>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin -mx-1 px-1">
               <button
+                type="button"
                 onClick={() => setCategory('')}
-                className={`group relative flex flex-col items-center gap-3 p-5 rounded-3xl transition-all duration-300 active:scale-[0.97] ${
+                className={`flex-shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-full border transition-colors ${
                   !selectedCategory
-                    ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-xl shadow-indigo-200 dark:shadow-indigo-900/40 scale-[1.02]'
-                    : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 shadow-md hover:shadow-xl hover:-translate-y-1 border border-gray-100 dark:border-gray-800'
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-indigo-300'
                 }`}
               >
-                <span className={`text-3xl transition-transform duration-300 group-hover:scale-110 ${!selectedCategory ? 'drop-shadow-lg' : ''}`}>🔍</span>
-                <span className="text-sm font-bold">{t('masters.allMasters')}</span>
+                🔍 {t('masters.allMasters')}
               </button>
-
-              {MASTER_CATEGORIES.map(cat => {
-                const isActive = selectedCategory === cat;
-                const gradient = CATEGORY_GRADIENTS[cat] || 'from-gray-400 to-slate-600';
-                const bg = CATEGORY_BG[cat] || 'bg-gray-50 dark:bg-gray-900';
-                return (
-                  <button
-                    key={cat}
-                    onClick={() => setCategory(cat === selectedCategory ? '' : cat)}
-                    className={`group relative flex flex-col items-center gap-3 p-5 rounded-3xl transition-all duration-300 active:scale-[0.97] ${
-                      isActive
-                        ? `bg-gradient-to-br ${gradient} text-white shadow-xl scale-[1.02]`
-                        : `${bg} text-gray-700 dark:text-gray-300 shadow-md hover:shadow-xl hover:-translate-y-1 border border-gray-100 dark:border-gray-800`
-                    }`}
-                  >
-                    <span className={`text-3xl transition-transform duration-300 group-hover:scale-110 ${isActive ? 'drop-shadow-lg' : ''}`}>
-                      {CATEGORY_ICONS[cat]}
-                    </span>
-                    <span className="text-sm font-bold leading-tight text-center">{cat}</span>
-                  </button>
-                );
-              })}
+              {MASTER_CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setCategory(cat === selectedCategory ? '' : cat)}
+                  className={`flex-shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-full border transition-colors ${
+                    selectedCategory === cat
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-indigo-300'
+                  }`}
+                >
+                  <span>{CATEGORY_ICONS[cat]}</span> {cat}
+                </button>
+              ))}
             </div>
           </section>
 
-          {/* ── Masters grid ── */}
+          {/* Masters list */}
           <section id="masters-grid">
             {loading ? (
-              <div className="text-center py-24">
-                <div className="inline-block w-14 h-14 border-4 border-indigo-200 dark:border-indigo-800 border-t-indigo-600 dark:border-t-indigo-400 rounded-full animate-spin" />
-                <p className="text-gray-400 dark:text-gray-500 mt-5 text-sm font-medium">{t('masters.loading')}</p>
+              <div className="text-center py-16">
+                <div className="inline-block w-10 h-10 border-3 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                <p className="text-gray-400 mt-4 text-sm">{t('masters.loading')}</p>
               </div>
             ) : displayMasters.length === 0 ? (
-              <div className="text-center py-16 px-4">
-                <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-5">
-                  <Search className="w-10 h-10 text-gray-300 dark:text-gray-600" />
-                </div>
-                <h3 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2">{t('masters.notFound')}</h3>
-                <p className="text-gray-400 dark:text-gray-500 text-sm mb-8 max-w-md mx-auto">{t('masters.tryOtherFilters')}</p>
-                <div className="flex flex-wrap gap-3 justify-center">
-                  <Link to="/masters/request" className="inline-flex items-center gap-2 bg-indigo-600 text-white font-bold px-6 py-3 rounded-2xl hover:bg-indigo-700 transition-colors">
+              <div className="text-center py-12 px-4 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
+                <Search className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">{t('masters.notFound')}</h3>
+                <p className="text-xs text-gray-500 mb-6 max-w-sm mx-auto">{t('masters.tryOtherFilters')}</p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  <Link to="/masters/request" className="text-xs font-bold bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">
                     {t('masters.emptyCtaRequest')}
                   </Link>
-                  <Link to="/masters/become" className="inline-flex items-center gap-2 bg-white dark:bg-gray-900 text-indigo-600 font-bold px-6 py-3 rounded-2xl border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors">
-                    <UserPlus className="w-4 h-4" /> {t('masters.becomeMaster')}
+                  <Link to="/masters/become" className="text-xs font-bold text-indigo-600 border border-indigo-200 px-4 py-2 rounded-lg hover:bg-indigo-50">
+                    {t('masters.becomeMaster')}
                   </Link>
                 </div>
               </div>
             ) : (
               <>
-                <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-                  <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-sm font-bold text-gray-900 dark:text-white">
                     {selectedCategory || t('masters.allMasters')}
-                    <span className="ml-2 text-base font-medium text-gray-400">({listTotal})</span>
+                    <span className="ml-1.5 font-normal text-gray-400">({listTotal})</span>
                   </h2>
-                  {(selectedCategory || searchQuery) && (
-                    <div className="flex flex-wrap gap-2">
-                      {selectedCategory && (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-3 py-1.5 rounded-full">
-                          {CATEGORY_ICONS[selectedCategory]} {selectedCategory}
-                        </span>
-                      )}
-                      {searchQuery && (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-full">
-                          «{searchQuery}»
-                        </span>
-                      )}
-                    </div>
-                  )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {displayMasters.map(master => (
                     <MasterCard key={master.id} master={master} />
                   ))}

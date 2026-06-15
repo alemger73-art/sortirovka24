@@ -115,6 +115,7 @@ function App() {
   const dismissWelcome = useCallback(() => {
     sessionStorage.setItem('s24_welcome_done', '1');
     setShowWelcome(false);
+    document.getElementById('boot-splash')?.remove();
   }, []);
 
   useEffect(() => {
