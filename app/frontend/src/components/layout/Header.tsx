@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, MapPin, Globe, Moon, Sun } from 'lucide-react';
+import { Menu, X, Globe, Moon, Sun } from 'lucide-react';
+import AppLogo from '@/components/AppLogo';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { prefetchPage, routeToPage } from '@/lib/prefetch';
@@ -50,14 +51,8 @@ export default function Header() {
   return (
     <header className="relative z-50 border-b border-gray-200 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] transition-colors dark:border-[#1A2233] dark:bg-[#0B0F19] dark:shadow-[0_4px_20px_rgba(0,0,0,0.25)] pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-        <Link to="/" className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-yellow-400/15">
-            <MapPin className="h-5 w-5 text-yellow-300" />
-          </div>
-          <div className="leading-tight">
-            <p className="text-base font-bold text-gray-900 dark:text-white">{t('header.portalName')}</p>
-            <p className="text-xs text-gray-500 dark:text-white/60">{t('header.portalDesc')}</p>
-          </div>
+        <Link to="/" className="flex items-center">
+          <AppLogo size="sm" showText />
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex">
