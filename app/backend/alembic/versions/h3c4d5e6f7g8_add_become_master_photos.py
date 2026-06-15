@@ -18,10 +18,20 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column("become_master_requests", sa.Column("photo_url", sa.String(), nullable=True))
-    op.add_column("become_master_requests", sa.Column("gallery_images", sa.String(), nullable=True))
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    cols = {c["name"] for c in inspector.get_columns("become_master_requests")}
+    if "photo_url" not in cols:
+        op.add_column("become_master_requests", sa.Column("photo_url", sa.String(), nullable=True))
+    if "gallery_images" not in cols:
+        op.add_column("become_master_requests", sa.Column("gallery_images", sa.String(), nullable=True))
 
 
 def downgrade() -> None:
-    op.drop_column("become_master_requests", "gallery_images")
-    op.drop_column("become_master_requests", "photo_url")
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    cols = {c["name"] for c in inspector.get_columns("become_master_requests")}
+    if "gallery_images" in cols:
+        op.drop_column("become_master_requests", "gallery_images")
+    if "photo_url" in cols:
+        op.drop_column("become_master_requests", "photo_url")

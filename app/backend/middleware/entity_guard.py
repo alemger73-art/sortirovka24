@@ -54,6 +54,8 @@ PUBLIC_CREATE_ENTITIES = {
 # Entity list reads that expose PII or admin-only data.
 ADMIN_READ_ENTITIES = {
     "food_orders",
+    "master_requests",
+    "become_master_requests",
 }
 
 # Entities whose UPDATE (PUT/PATCH) is performed by a public client, e.g. a

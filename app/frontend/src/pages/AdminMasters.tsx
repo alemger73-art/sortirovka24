@@ -17,7 +17,7 @@ import MultiImageUpload, { StorageGallery } from '@/components/MultiImageUpload'
 
 interface MasterRequest {
   id: number; category: string; problem_description: string; address: string;
-  phone: string; client_name?: string; status: string; created_at?: string;
+  phone: string; client_name?: string; master_id?: number; status: string; created_at?: string;
 }
 
 interface BecomeMasterReq {
@@ -39,6 +39,7 @@ function MasterRequestsSection() {
   const [items, setItems] = useState<MasterRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewItem, setViewItem] = useState<MasterRequest | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const fetchItems = async () => {
     setLoading(true);
@@ -69,11 +70,20 @@ function MasterRequestsSection() {
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
 
+  const filtered = statusFilter === 'all' ? items : items.filter(i => i.status === statusFilter);
+
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-500">{items.length} заявок на мастера</p>
+      <div className="flex flex-wrap items-center gap-2">
+        {['all', 'new', 'in_progress', 'done'].map((s) => (
+          <Button key={s} size="sm" variant={statusFilter === s ? 'default' : 'outline'} onClick={() => setStatusFilter(s)}>
+            {s === 'all' ? 'Все' : (STATUS_MAP[s]?.label || s)} ({s === 'all' ? items.length : items.filter(i => i.status === s).length})
+          </Button>
+        ))}
+      </div>
+      <p className="text-sm text-gray-500">{filtered.length} заявок на мастера</p>
       <div className="space-y-2">
-        {items.map(item => {
+        {filtered.map(item => {
           const st = STATUS_MAP[item.status] || STATUS_MAP.new;
           return (
             <Card key={item.id}>
@@ -83,6 +93,9 @@ function MasterRequestsSection() {
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <Badge variant="outline" className="text-xs">{item.category}</Badge>
                       <Badge className={`text-xs ${st.color}`}>{st.label}</Badge>
+                      {item.master_id ? (
+                        <Badge className="text-xs bg-purple-100 text-purple-800">Мастер #{item.master_id}</Badge>
+                      ) : null}
                     </div>
                     <p className="text-sm text-gray-900 line-clamp-2">{item.problem_description}</p>
                     <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
@@ -100,7 +113,7 @@ function MasterRequestsSection() {
             </Card>
           );
         })}
-        {items.length === 0 && <p className="text-center text-gray-400 py-8">Нет заявок</p>}
+        {filtered.length === 0 && <p className="text-center text-gray-400 py-8">Нет заявок</p>}
       </div>
 
       <Dialog open={!!viewItem} onOpenChange={() => setViewItem(null)}>
@@ -109,6 +122,7 @@ function MasterRequestsSection() {
           {viewItem && (
             <div className="space-y-2 text-sm">
               <p><strong>Категория:</strong> {viewItem.category}</p>
+              {viewItem.master_id ? <p><strong>Мастер:</strong> #{viewItem.master_id}</p> : null}
               <p><strong>Описание:</strong> {viewItem.problem_description}</p>
               <p><strong>Адрес:</strong> {viewItem.address}</p>
               <p><strong>Клиент:</strong> {viewItem.client_name || '—'}</p>
@@ -221,7 +235,9 @@ function BecomeMasterSection() {
                       <Eye className="h-4 w-4 text-gray-500" />
                     </Button>
                     {item.status === 'pending' && (
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => updateStatus(item.id, 'rejected')}>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => {
+                        if (confirm('Отклонить заявку?')) updateStatus(item.id, 'rejected');
+                      }}>
                         <X className="h-4 w-4 text-red-500" />
                       </Button>
                     )}
@@ -320,7 +336,7 @@ function MastersCatalogSection() {
     }
     setSaving(true);
     try {
-      const data = {
+      const data: Record<string, unknown> = {
         name: editItem.name,
         category: editItem.category,
         phone: editItem.phone,
@@ -328,8 +344,6 @@ function MastersCatalogSection() {
         telegram: editItem.telegram || '',
         district: editItem.district || '',
         description: editItem.description || '',
-        rating: editItem.rating ?? 5,
-        reviews_count: editItem.reviews_count ?? 0,
         photo_url: editItem.photo_url || '',
         gallery_images: editItem.gallery_images || '',
         verified: editItem.verified ?? false,
@@ -340,8 +354,9 @@ function MastersCatalogSection() {
       if (editItem.id) {
         await withRetry(() => client.entities.masters.update({ id: String(editItem.id), data }));
         toast.success('Мастер обновлён');
+        invalidateAllCaches();
       } else {
-        await withRetry(() => client.entities.masters.create({ data: { ...data, created_at: new Date().toISOString().replace('T', ' ').slice(0, 19) } }));
+        await withRetry(() => client.entities.masters.create({ data: { ...data, rating: 5, reviews_count: 0, created_at: new Date().toISOString().replace('T', ' ').slice(0, 19) } }));
         toast.success('Мастер создан');
         invalidateAllCaches();
       }
@@ -530,17 +545,17 @@ function MastersCatalogSection() {
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Рейтинг</label>
-                  <Input type="number" min={1} max={5} step={0.1} value={editItem.rating ?? 5} onChange={e => setEditItem({ ...editItem, rating: parseFloat(e.target.value) || 5 })} />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Отзывы</label>
-                  <Input type="number" min={0} value={editItem.reviews_count ?? 0} onChange={e => setEditItem({ ...editItem, reviews_count: parseInt(e.target.value) || 0 })} />
+                  <label className="text-sm font-medium text-gray-700">Рейтинг (из отзывов)</label>
+                  <div className="flex items-center gap-2 mt-1 px-3 py-2 rounded-md bg-gray-50 border text-sm">
+                    <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                    {Number(editItem.rating ?? 0).toFixed(1)} · {editItem.reviews_count ?? 0} отз.
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">Опыт (лет)</label>
                   <Input type="number" min={0} value={editItem.experience_years ?? 1} onChange={e => setEditItem({ ...editItem, experience_years: parseInt(e.target.value) || 0 })} />
                 </div>
+                <div />
               </div>
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">

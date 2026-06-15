@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import ImageUpload from '@/components/ImageUpload';
 import MultiImageUpload from '@/components/MultiImageUpload';
 import { client, withRetry, MASTER_CATEGORIES, CATEGORY_ICONS } from '@/lib/api';
+import { getAccountPrefill } from '@/lib/localAuth';
 import { ChevronLeft, CheckCircle, User, FileText, Camera, ChevronRight, Sparkles } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -17,7 +18,7 @@ export default function BecomeMasterWizard() {
     category: '',
     phone: '',
     whatsapp: '',
-    district: 'Сортировка',
+    district: '',
     description: '',
     photo_url: '',
     gallery_images: '',
@@ -25,6 +26,17 @@ export default function BecomeMasterWizard() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const prefill = getAccountPrefill();
+    setForm((f) => ({
+      ...f,
+      name: f.name || prefill.name,
+      phone: f.phone || prefill.phone,
+      whatsapp: f.whatsapp || prefill.phone,
+      district: f.district || t('masters.defaultDistrict'),
+    }));
+  }, [t]);
 
   const inputClass =
     'w-full px-5 py-4 border border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-base transition-all duration-200';
@@ -51,16 +63,9 @@ export default function BecomeMasterWizard() {
         }),
       );
       setSuccess(true);
-      client.apiCall
-        .invoke({
-          url: '/api/v1/telegram/notify/become-master',
-          method: 'POST',
-          data: { ...form, whatsapp: form.whatsapp || form.phone },
-        })
-        .catch((err: unknown) => console.warn('Telegram notification skipped:', err));
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      setError(t('masters.becomeError'));
+      setError(String(e?.message || t('masters.becomeError')));
     } finally {
       setSubmitting(false);
     }

@@ -122,13 +122,17 @@ def _format_date(dt: Optional[datetime] = None) -> str:
 # ─── Notification formatters ───────────────────────────────────────
 
 async def notify_new_master_request(data: dict) -> bool:
+    master_line = ""
+    if data.get("master_id"):
+        master_line = f"\n<b>Мастер:</b> {_escape_html(data.get('master_name') or '—')} (#{data.get('master_id')})"
     text = (
         "🔧 <b>Новая заявка на услугу</b>\n\n"
         f"<b>Категория:</b> {_escape_html(data.get('category', '—'))}\n"
         f"<b>Описание:</b> {_escape_html(data.get('problem_description', '—'))}\n"
         f"<b>Адрес:</b> {_escape_html(data.get('address', '—'))}\n"
         f"<b>Телефон:</b> {_escape_html(data.get('phone', '—'))}\n"
-        f"<b>Имя:</b> {_escape_html(data.get('client_name', '—'))}\n"
+        f"<b>Имя:</b> {_escape_html(data.get('client_name', '—'))}"
+        f"{master_line}\n"
         f"<b>Дата:</b> {_format_date()}"
     )
     return await send_telegram_message(text, category=CATEGORY_MASTERS)
@@ -160,6 +164,14 @@ async def notify_new_complaint(data: dict) -> bool:
 
 
 async def notify_new_become_master(data: dict) -> bool:
+    photo_url = data.get("photo_url") or ""
+    gallery = data.get("gallery_images") or ""
+    gallery_count = len([k for k in str(gallery).split(",") if k.strip()])
+    media_line = ""
+    if photo_url:
+        media_line += "\n<b>Фото профиля:</b> загружено"
+    if gallery_count:
+        media_line += f"\n<b>Примеры работ:</b> {gallery_count} фото"
     text = (
         "👤 <b>Новая заявка мастера</b>\n\n"
         f"<b>Имя:</b> {_escape_html(data.get('name', '—'))}\n"
@@ -168,6 +180,7 @@ async def notify_new_become_master(data: dict) -> bool:
         f"<b>WhatsApp:</b> {_escape_html(data.get('whatsapp', '—'))}\n"
         f"<b>Район:</b> {_escape_html(data.get('district', '—'))}\n"
         f"<b>Описание:</b> {_escape_html(data.get('description', '—'))}"
+        f"{media_line}"
     )
     return await send_telegram_message(text, category=CATEGORY_BECOME_MASTER)
 

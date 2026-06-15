@@ -1,7 +1,7 @@
 import logging
 from typing import Optional, Dict, Any, List
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.masters import Masters
@@ -54,6 +54,18 @@ class MastersService:
             count_query = select(func.count(Masters.id))
             
             if query_dict:
+                search_q = query_dict.pop("q", None) or query_dict.pop("_q", None)
+                if search_q and str(search_q).strip():
+                    pattern = f"%{str(search_q).strip().lower()}%"
+                    search_filter = or_(
+                        func.lower(Masters.name).like(pattern),
+                        func.lower(Masters.description).like(pattern),
+                        func.lower(Masters.services).like(pattern),
+                        func.lower(Masters.category).like(pattern),
+                        func.lower(Masters.district).like(pattern),
+                    )
+                    query = query.where(search_filter)
+                    count_query = count_query.where(search_filter)
                 for field, value in query_dict.items():
                     if hasattr(Masters, field):
                         query = query.where(getattr(Masters, field) == value)
@@ -93,6 +105,8 @@ class MastersService:
             if not obj:
                 logger.warning(f"Masters {obj_id} not found for update")
                 return None
+            # Rating/reviews_count are computed from master_reviews — do not overwrite via entity update.
+            update_data = {k: v for k, v in update_data.items() if k not in ("rating", "reviews_count")}
             for key, value in update_data.items():
                 if hasattr(obj, key):
                     setattr(obj, key, value)

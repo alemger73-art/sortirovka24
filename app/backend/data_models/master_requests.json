@@ -26,6 +26,10 @@
             "type": "string",
             "description": "Client name"
         },
+        "master_id": {
+            "type": "integer",
+            "description": "Target master listing id (optional)"
+        },
         "status": {
             "type": "string",
             "description": "Status"

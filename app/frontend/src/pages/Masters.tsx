@@ -1,19 +1,23 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import MasterCard from '@/components/masters/MasterCard';
 import HowItWorks from '@/components/masters/HowItWorks';
 import StarRating from '@/components/masters/StarRating';
-import { CATEGORY_GRADIENTS, CATEGORY_BG, categoryGradient, categoryIcon, sortMasters, matchesMasterSearch } from '@/components/masters/mastersTheme';
+import MasterReviews from '@/components/masters/MasterReviews';
+import { CATEGORY_GRADIENTS, CATEGORY_BG, categoryGradient, categoryIcon, sortMasters } from '@/components/masters/mastersTheme';
 import { client, withRetry, MASTER_CATEGORIES, CATEGORY_ICONS } from '@/lib/api';
 import { fetchWithCache } from '@/lib/cache';
 import { Phone, MessageCircle, MapPin, CheckCircle, Clock, ChevronLeft, Search, Send, UserPlus, Shield, Zap, Award, Sparkles, Users, LayoutGrid, TrendingUp, AlertTriangle, ArrowRight } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
 import { StorageGallery } from '@/components/MultiImageUpload';
-import { pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
+import { requireAuthDialog, getAccountPrefill } from '@/lib/localAuth';
+import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export { default as BecomeMasterForm } from '@/components/masters/BecomeMasterWizard';
+
+const PAGE_SIZE = 24;
 
 function telegramUrl(handle: string) {
   const clean = handle.replace(/^@/, '').trim();
@@ -25,10 +29,13 @@ export function MastersCatalog() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [masters, setMasters] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [listTotal, setListTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [avgRating, setAvgRating] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [debouncedQ, setDebouncedQ] = useState(searchParams.get('q') || '');
 
   const setCategory = useCallback((cat: string) => {
     setSelectedCategory(cat);
@@ -39,8 +46,27 @@ export function MastersCatalog() {
   }, [searchParams, setSearchParams]);
 
   useEffect(() => {
-    loadMasters();
-  }, [selectedCategory]);
+    const cat = searchParams.get('category') || '';
+    if (cat !== selectedCategory) setSelectedCategory(cat);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQ(searchQuery.trim()), 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const current = searchParams.get('q') || '';
+    if (debouncedQ === current) return;
+    const next = new URLSearchParams(searchParams);
+    if (debouncedQ) next.set('q', debouncedQ);
+    else next.delete('q');
+    setSearchParams(next, { replace: true });
+  }, [debouncedQ]);
+
+  useEffect(() => {
+    loadMasters(false);
+  }, [selectedCategory, debouncedQ]);
 
   useEffect(() => {
     loadStats();
@@ -63,27 +89,35 @@ export function MastersCatalog() {
     }
   }
 
-  async function loadMasters() {
-    setLoading(true);
-    const cacheKey = `masters_list_${selectedCategory || 'all'}`;
+  async function loadMasters(append = false) {
+    if (!append) setLoading(true);
+    else setLoadingMore(true);
+    const skip = append ? masters.length : 0;
+    const cacheKey = `masters_list_${selectedCategory || 'all'}_${debouncedQ || ''}_${skip}`;
     try {
       const res = await fetchWithCache(cacheKey, () => {
-        const query: any = {};
+        const query: Record<string, string> = {};
         if (selectedCategory) query.category = selectedCategory;
-        return withRetry(() => client.entities.masters.query({ query, sort: '-rating', limit: 200 }));
-      }, 5 * 60 * 1000);
-      setMasters(sortMasters(res.data?.items || []));
+        if (debouncedQ) query.q = debouncedQ;
+        return withRetry(() => client.entities.masters.query({ query, sort: '-rating', skip, limit: PAGE_SIZE }));
+      }, append ? 0 : 5 * 60 * 1000);
+      const items = sortMasters(res.data?.items || []);
+      setListTotal(res.data?.total ?? items.length);
+      setMasters((prev) => (append ? sortMasters([...prev, ...items]) : items));
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }
 
-  const filtered = useMemo(
-    () => masters.filter(m => matchesMasterSearch(m, searchQuery)),
-    [masters, searchQuery],
-  );
+  async function loadMore() {
+    if (loadingMore || masters.length >= listTotal) return;
+    await loadMasters(true);
+  }
+
+  const displayMasters = masters;
 
   const scrollToMasters = () => {
     document.getElementById('masters-grid')?.scrollIntoView({ behavior: 'smooth' });
@@ -252,7 +286,7 @@ export function MastersCatalog() {
                 <div className="inline-block w-14 h-14 border-4 border-indigo-200 dark:border-indigo-800 border-t-indigo-600 dark:border-t-indigo-400 rounded-full animate-spin" />
                 <p className="text-gray-400 dark:text-gray-500 mt-5 text-sm font-medium">{t('masters.loading')}</p>
               </div>
-            ) : filtered.length === 0 ? (
+            ) : displayMasters.length === 0 ? (
               <div className="text-center py-16 px-4">
                 <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-5">
                   <Search className="w-10 h-10 text-gray-300 dark:text-gray-600" />
@@ -273,7 +307,7 @@ export function MastersCatalog() {
                 <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
                   <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">
                     {selectedCategory || t('masters.allMasters')}
-                    <span className="ml-2 text-base font-medium text-gray-400">({filtered.length})</span>
+                    <span className="ml-2 text-base font-medium text-gray-400">({listTotal})</span>
                   </h2>
                   {(selectedCategory || searchQuery) && (
                     <div className="flex flex-wrap gap-2">
@@ -292,10 +326,22 @@ export function MastersCatalog() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                  {filtered.map(master => (
+                  {displayMasters.map(master => (
                     <MasterCard key={master.id} master={master} />
                   ))}
                 </div>
+                {masters.length < listTotal && (
+                  <div className="mt-8 text-center">
+                    <button
+                      type="button"
+                      onClick={loadMore}
+                      disabled={loadingMore}
+                      className="inline-flex items-center justify-center bg-white dark:bg-gray-900 text-indigo-600 font-bold px-8 py-3 rounded-2xl border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 disabled:opacity-60 transition-colors"
+                    >
+                      {loadingMore ? t('masters.loading') : t('masters.loadMore')}
+                    </button>
+                  </div>
+                )}
               </>
             )}
           </section>
@@ -497,12 +543,19 @@ export function MasterDetail() {
                 </a>
               )}
               <Link
-                to={`/masters/request?category=${encodeURIComponent(master.category || '')}`}
+                to={`/masters/request?category=${encodeURIComponent(master.category || '')}&master_id=${master.id}&master_name=${encodeURIComponent(master.name || '')}`}
                 className="flex-1 inline-flex items-center justify-center gap-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-extrabold px-8 py-4 rounded-2xl transition-all duration-300 hover:-translate-y-0.5 text-base"
               >
                 <Send className="w-5 h-5" /> {t('masters.leaveRequest')}
               </Link>
             </div>
+
+            <MasterReviews
+              masterId={Number(master.id)}
+              onRatingChange={(avg, total) => {
+                setMaster((m: any) => (m ? { ...m, rating: avg, reviews_count: total } : m));
+              }}
+            />
           </div>
         </div>
       </div>
@@ -515,15 +568,29 @@ export function MasterRequestForm() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [searchParams] = useSearchParams();
+  const masterIdParam = searchParams.get('master_id');
+  const masterNameParam = searchParams.get('master_name');
   const [form, setForm] = useState({
     category: searchParams.get('category') || '',
     problem_description: '',
     address: '',
     phone: '',
     client_name: '',
+    master_id: masterIdParam ? Number(masterIdParam) : undefined as number | undefined,
   });
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    const prefill = getAccountPrefill();
+    if (prefill.name || prefill.phone) {
+      setForm((f) => ({
+        ...f,
+        client_name: f.client_name || prefill.name,
+        phone: f.phone || prefill.phone,
+      }));
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -532,28 +599,17 @@ export function MasterRequestForm() {
     setSubmitting(true);
     try {
       await withRetry(() => client.entities.master_requests.create({
-        data: { ...form, status: 'new', created_at: new Date().toISOString() }
-      }));
-      pushCabinetItem('masterRequests', {
-        title: form.category,
-        subtitle: form.problem_description.slice(0, 80),
-        status: 'Новая',
-      });
-      setSuccess(true);
-      client.apiCall.invoke({
-        url: '/api/v1/telegram/notify/master-request',
-        method: 'POST',
         data: {
-          category: form.category,
-          problem_description: form.problem_description,
-          address: form.address,
-          phone: form.phone,
-          client_name: form.client_name,
-        },
-      }).catch((err: unknown) => console.warn('Telegram notification skipped:', err));
-    } catch (e) {
+          ...form,
+          master_id: form.master_id || undefined,
+          status: 'new',
+          created_at: new Date().toISOString(),
+        }
+      }));
+      setSuccess(true);
+    } catch (e: any) {
       console.error(e);
-      alert('Ошибка при отправке заявки');
+      toast.error(e?.message || t('masters.requestError'));
     } finally {
       setSubmitting(false);
     }
@@ -568,7 +624,14 @@ export function MasterRequestForm() {
           </div>
           <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-3">{t('masters.requestSuccess')}</h2>
           <p className="text-gray-500 dark:text-gray-400 mb-8 text-base">{t('masters.requestSuccessDesc')}</p>
-          <Link to="/" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-bold text-base">На главную</Link>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link to="/cabinet" className="inline-flex items-center justify-center bg-indigo-600 text-white font-bold px-6 py-3 rounded-2xl hover:bg-indigo-700">
+              {t('masters.goToCabinet')}
+            </Link>
+            <Link to="/" className="inline-flex items-center justify-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-bold text-base px-6 py-3">
+              {t('masters.backHome')}
+            </Link>
+          </div>
         </div>
       </Layout>
     );
@@ -581,37 +644,43 @@ export function MasterRequestForm() {
       <div className="bg-gray-50 dark:bg-gray-950 min-h-screen transition-colors duration-300">
         <div className="max-w-lg mx-auto px-4 py-10">
           <Link to="/masters" className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white mb-6 transition-colors font-medium">
-            <ChevronLeft className="w-4 h-4" /> Назад
+            <ChevronLeft className="w-4 h-4" /> {t('masters.back')}
           </Link>
           <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-2">{t('masters.requestTitle')}</h1>
-          <p className="text-gray-500 dark:text-gray-400 mb-8 text-base">{t('masters.requestSubtitle')}</p>
+          <p className="text-gray-500 dark:text-gray-400 mb-2 text-base">{t('masters.requestSubtitle')}</p>
+          {masterNameParam && (
+            <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mb-8">
+              {t('masters.requestForMaster')}: {masterNameParam}
+            </p>
+          )}
+          {!masterNameParam && <div className="mb-8" />}
 
           <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800 p-6 md:p-8 space-y-5">
             <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Категория *</label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{t('masters.fieldCategory')} *</label>
               <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className={inputClass} required>
-                <option value="">Выберите категорию</option>
+                <option value="">{t('masters.selectCategory')}</option>
                 {MASTER_CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_ICONS[c]} {c}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Описание проблемы *</label>
-              <textarea value={form.problem_description} onChange={e => setForm({ ...form, problem_description: e.target.value })} rows={4} className={`${inputClass} resize-none`} placeholder="Опишите что нужно сделать..." required />
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{t('masters.fieldProblem')} *</label>
+              <textarea value={form.problem_description} onChange={e => setForm({ ...form, problem_description: e.target.value })} rows={4} className={`${inputClass} resize-none`} placeholder={t('masters.problemPlaceholder')} required />
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Адрес</label>
-              <input type="text" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className={inputClass} placeholder="ул. Железнодорожная 15, кв. 8" />
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{t('masters.fieldAddress')}</label>
+              <input type="text" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className={inputClass} placeholder={t('masters.addressPlaceholder')} />
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Ваше имя</label>
-              <input type="text" value={form.client_name} onChange={e => setForm({ ...form, client_name: e.target.value })} className={inputClass} placeholder="Ваше имя" />
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{t('masters.fieldName')}</label>
+              <input type="text" value={form.client_name} onChange={e => setForm({ ...form, client_name: e.target.value })} className={inputClass} placeholder={t('masters.fieldName')} />
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Телефон *</label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{t('masters.fieldPhone')} *</label>
               <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className={inputClass} placeholder="+7 (700) 123-45-67" required />
             </div>
             <button type="submit" disabled={submitting} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold py-4 rounded-2xl transition-all duration-300 disabled:opacity-50 shadow-lg shadow-indigo-200 dark:shadow-indigo-900/30 hover:shadow-xl hover:-translate-y-0.5 text-base">
-              {submitting ? 'Отправка...' : 'Отправить заявку'}
+              {submitting ? t('masters.submitting') : t('masters.submitApplication')}
             </button>
           </form>
         </div>

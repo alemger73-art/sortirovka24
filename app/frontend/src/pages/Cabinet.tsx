@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Layout from "@/components/Layout";
 import { Link, useNavigate } from "react-router-dom";
-import { Camera, Coins, Save, UserCircle2, UtensilsCrossed, Truck, Store } from "lucide-react";
+import { Camera, Coins, Save, UserCircle2, UtensilsCrossed, Truck, Store, Wrench } from "lucide-react";
 import { accountApi, getAccountToken } from "@/lib/accountApi";
 import { cacheAccountProfile, getCurrentUser, logoutLocalUser } from "@/lib/localAuth";
 import { humanizeApiError } from "@/lib/apiErrors";
@@ -11,7 +11,13 @@ import { useTaxiEnabled } from "@/hooks/useTaxiEnabled";
 import { useLanguage } from "@/contexts/LanguageContext";
 import TaxiUnavailable from "@/components/taxi/TaxiUnavailable";
 
-type TabId = "profile" | "bonuses" | "orders" | "taxi" | "complaints" | "announcements" | "settings";
+type TabId = "profile" | "bonuses" | "orders" | "masterRequests" | "taxi" | "complaints" | "announcements" | "settings";
+
+const MASTER_REQUEST_STATUS: Record<string, { labelKey: string; color: string }> = {
+  new: { labelKey: "cabinet.master.statusNew", color: "bg-yellow-500/20 text-yellow-200" },
+  in_progress: { labelKey: "cabinet.master.statusInProgress", color: "bg-blue-500/20 text-blue-200" },
+  done: { labelKey: "cabinet.master.statusDone", color: "bg-green-500/20 text-green-200" },
+};
 
 const FOOD_STATUS: Record<string, { label: string; color: string }> = {
   new: { label: "Новый", color: "bg-yellow-500/20 text-yellow-200" },
@@ -77,6 +83,7 @@ export default function Cabinet() {
       { id: "profile", label: t("cabinet.tab.profile") },
       { id: "bonuses", label: t("cabinet.tab.bonuses") },
       { id: "orders", label: t("cabinet.tab.orders") },
+      { id: "masterRequests", label: t("cabinet.tab.masterRequests") },
       { id: "taxi", label: t("cabinet.tab.taxi") },
       { id: "complaints", label: t("cabinet.tab.complaints") },
       { id: "announcements", label: t("cabinet.tab.announcements") },
@@ -263,6 +270,7 @@ export default function Cabinet() {
   const rows = useMemo(() => ({
     bonuses: cabinet?.bonuses || [],
     orders: cabinet?.orders || [],
+    master_requests: cabinet?.master_requests || [],
     complaints: cabinet?.complaints || [],
     announcements: cabinet?.announcements || [],
   }), [cabinet]);
@@ -277,6 +285,14 @@ export default function Cabinet() {
             <div>
               <h1 className="text-3xl font-extrabold">{t("cabinet.personalTitle")}</h1>
               <p className="text-gray-500 dark:text-slate-300">{cabinet?.profile?.name} · {cabinet?.profile?.phone}</p>
+              {(cabinet?.profile?.role === "master" || cabinet?.profile?.role === "admin" || cabinet?.profile?.role === "superadmin") && (
+                <Link
+                  to="/cabinet/master"
+                  className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
+                >
+                  <Wrench className="h-4 w-4" /> {t("cabinet.masterTitle")} →
+                </Link>
+              )}
             </div>
             <button
               className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-100 dark:border-[#2a3347] dark:bg-[#111827] dark:text-white dark:hover:bg-[#1a2336]"
@@ -447,6 +463,41 @@ export default function Cabinet() {
                     })}
                     {(rows.orders || []).length === 0 ? <p className="text-sm text-slate-400">Пока нет заказов.</p> : null}
                   </div>
+                </DarkCard>
+              )}
+
+              {activeTab === "masterRequests" && (
+                <DarkCard>
+                  <h2 className={`mb-4 ${sectionTitleClass}`}>{t("cabinet.tab.masterRequests")}</h2>
+                  <div className="space-y-2">
+                    {(rows.master_requests || []).map((r: any) => {
+                      const st = MASTER_REQUEST_STATUS[r.status] || MASTER_REQUEST_STATUS.new;
+                      return (
+                        <div key={r.id} className={listCardClass}>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Wrench className="h-4 w-4 shrink-0 text-indigo-500 dark:text-indigo-400" />
+                              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{r.category || t("cabinet.master.requests")}</p>
+                            </div>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 font-medium ${st.color}`}>
+                              {t(st.labelKey)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 line-clamp-2">{r.problem_description}</p>
+                          {r.master_id ? (
+                            <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">{t("cabinet.master.personalRequest")} #{r.master_id}</p>
+                          ) : null}
+                          {r.created_at ? <p className="text-xs text-gray-400 mt-1">{formatOrderDate(r.created_at)}</p> : null}
+                        </div>
+                      );
+                    })}
+                    {(rows.master_requests || []).length === 0 ? (
+                      <p className="text-sm text-slate-400">{t("cabinet.masterRequestsEmpty")}</p>
+                    ) : null}
+                  </div>
+                  <Link to="/masters/request" className="mt-4 inline-flex text-sm font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">
+                    {t("masters.emptyCtaRequest")} →
+                  </Link>
                 </DarkCard>
               )}
 

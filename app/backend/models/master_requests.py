@@ -12,5 +12,6 @@ class Master_requests(Base):
     address = Column(String, nullable=True)
     phone = Column(String, nullable=True)
     client_name = Column(String, nullable=True)
+    master_id = Column(Integer, nullable=True)
     status = Column(String, nullable=True)
     created_at = Column(String, nullable=True)

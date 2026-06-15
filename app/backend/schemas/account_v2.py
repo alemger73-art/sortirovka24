@@ -64,6 +64,16 @@ class MasterProfileUpdateRequest(BaseModel):
     whatsapp: Optional[str] = None
     telegram: Optional[str] = None
     services: Optional[str] = None
+    available_today: Optional[bool] = None
+
+
+class MasterReviewCreateRequest(BaseModel):
+    rating: int = Field(ge=1, le=5)
+    comment: Optional[str] = Field(default=None, max_length=2000)
+
+
+class MasterRequestStatusUpdate(BaseModel):
+    status: Literal["in_progress", "done"]
 
 
 class AdminUserUpdateRequest(BaseModel):

@@ -5,7 +5,7 @@ Telegram integration API routes with category-based routing.
 import logging
 from typing import Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 from services.telegram import (
@@ -18,6 +18,7 @@ from services.telegram import (
     _is_configured,
     get_routing_info,
 )
+from utils.rate_limit import check_ip_rate_limit
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,8 @@ class MasterRequestNotify(BaseModel):
     address: Optional[str] = ""
     phone: str
     client_name: Optional[str] = ""
+    master_id: Optional[int] = None
+    master_name: Optional[str] = ""
 
 
 class ComplaintNotify(BaseModel):
@@ -98,7 +101,8 @@ async def telegram_status():
 
 
 @router.post("/notify/master-request", response_model=NotifyResponse)
-async def notify_master_request(data: MasterRequestNotify):
+async def notify_master_request(data: MasterRequestNotify, request: Request):
+    check_ip_rate_limit(request, key_prefix="telegram_master_request", max_hits=10)
     try:
         success = await notify_new_master_request(data.model_dump())
         return NotifyResponse(
@@ -124,7 +128,8 @@ async def notify_complaint(data: ComplaintNotify):
 
 
 @router.post("/notify/become-master", response_model=NotifyResponse)
-async def notify_become_master(data: BecomeMasterNotify):
+async def notify_become_master(data: BecomeMasterNotify, request: Request):
+    check_ip_rate_limit(request, key_prefix="telegram_become_master", max_hits=5)
     try:
         success = await notify_new_become_master(data.model_dump())
         return NotifyResponse(

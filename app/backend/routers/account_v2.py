@@ -11,7 +11,7 @@ from uuid import uuid4
 from core.auth import create_access_token, decode_access_token, generate_state
 from core.config import settings
 from core.database import get_db
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse
 from models.announcements import Announcements
 from models.auth import User
@@ -21,6 +21,7 @@ from models.food_orders import Food_orders
 from models.food_restaurants import Food_restaurants
 from models.gastronom_orders import Gastronom_orders
 from models.gastronom_products import Gastronom_products
+from models.master_reviews import Master_reviews
 from models.master_requests import Master_requests
 from models.masters import Masters
 from models.user_management import Bonus, Order, PhoneVerification, UserAction, UserSession
@@ -32,6 +33,8 @@ from schemas.account_v2 import (
     DashboardStatsResponse,
     LoginV2Request,
     MasterProfileUpdateRequest,
+    MasterRequestStatusUpdate,
+    MasterReviewCreateRequest,
     RequestSmsCodeRequest,
     RequestSmsCodeResponse,
     RegisterV2Request,
@@ -78,26 +81,7 @@ def _verify_password(raw: str, password_hash: str) -> bool:
     return bcrypt.checkpw(raw.encode("utf-8"), (password_hash or "").encode("utf-8"))
 
 
-def _normalize_phone(phone: str) -> str:
-    digits = "".join(ch for ch in (phone or "") if ch.isdigit())
-    if not digits:
-        return ""
-    if digits.startswith("8"):
-        digits = "7" + digits[1:]
-    if not digits.startswith("7"):
-        digits = "7" + digits
-    return f"+{digits}"
-
-
-def _phone_digits(phone: str | None) -> str:
-    digits = "".join(ch for ch in (phone or "") if ch.isdigit())
-    if len(digits) == 11 and digits.startswith("8"):
-        digits = "7" + digits[1:]
-    if len(digits) == 10:
-        digits = "7" + digits
-    return digits
-
-
+from utils.phone import normalize_phone as _normalize_phone, phone_digits as _phone_digits
 def _matches_user_phone(candidate: str | None, user_phone: str | None) -> bool:
     left = _phone_digits(candidate)
     right = _phone_digits(user_phone)
@@ -121,6 +105,66 @@ async def _find_user_by_phone(db: AsyncSession, phone: str | None) -> User | Non
         return None
     users = (await db.execute(select(User).limit(1000))).scalars().all()
     return next((u for u in users if _matches_user_phone(u.phone, phone)), None)
+
+
+def _is_legacy_admin_jwt(token: str) -> bool:
+    try:
+        payload = decode_access_token(token)
+        return payload.get("role") == "admin" and bool(payload.get("username"))
+    except Exception:
+        return False
+
+
+async def _assert_panel_admin(
+    authorization: str | None,
+    db: AsyncSession,
+) -> tuple[str, User | None]:
+    """Accept legacy /admin JWT or account users with moderator+ role."""
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Missing bearer token")
+    token = authorization.split(" ", 1)[1].strip()
+    if _is_legacy_admin_jwt(token):
+        payload = decode_access_token(token)
+        username = str(payload.get("username") or "admin")
+        return f"legacy_admin:{username}", None
+    user = await _current_user(db, authorization)
+    _assert_admin(user)
+    return str(user.id), user
+
+
+async def _maybe_promote_master_role(db: AsyncSession, user: User) -> bool:
+    """Promote user -> master if approved application or catalog listing exists."""
+    if user.role not in {"user"}:
+        return False
+    listing = await _find_master_listing(db, user)
+    if listing:
+        user.role = "master"
+        await db.commit()
+        await db.refresh(user)
+        return True
+    become_rows = (
+        await db.execute(
+            select(Become_master_requests)
+            .where(Become_master_requests.status == "approved")
+            .order_by(desc(Become_master_requests.id))
+            .limit(200)
+        )
+    ).scalars().all()
+    if any(_matches_user_phone(b.phone, user.phone) for b in become_rows):
+        user.role = "master"
+        await db.commit()
+        await db.refresh(user)
+        return True
+    return False
+
+
+def _request_visible_to_master(request: Master_requests, listing: Masters) -> bool:
+    mid = getattr(request, "master_id", None)
+    if mid and int(mid) == int(listing.id):
+        return True
+    if mid:
+        return False
+    return (request.category or "").strip().lower() == (listing.category or "").strip().lower()
 
 
 def _owns_user_content(user: User, record_user_id: str | None, record_phone: str | None) -> bool:
@@ -245,6 +289,8 @@ def _google_callback_url(request: Request) -> str:
 async def _issue_account_session(user: User, http_request: Request, db: AsyncSession) -> AuthV2Response:
     if user.status == "blocked" or not user.is_active:
         raise HTTPException(status_code=403, detail="User is blocked")
+
+    await _maybe_promote_master_role(db, user)
 
     now = datetime.now(timezone.utc)
     jti = str(uuid4())
@@ -460,6 +506,7 @@ async def _create_user_and_login(
         )
     await db.commit()
     await db.refresh(user)
+    await _maybe_promote_master_role(db, user)
     await _log_action(db, str(user.id), "register", "users", str(user.id))
     return await login(LoginV2Request(phone=normalized_phone, password=request.password), http_request, db)
 
@@ -760,6 +807,7 @@ async def me(
     db: AsyncSession = Depends(get_db),
 ):
     user = await _current_user(db, authorization)
+    await _maybe_promote_master_role(db, user)
     return _to_user_response(user)
 
 
@@ -843,6 +891,7 @@ async def cabinet(
     db: AsyncSession = Depends(get_db),
 ):
     user = await _current_user(db, authorization)
+    await _maybe_promote_master_role(db, user)
     bonus_rows = (
         await db.execute(select(Bonus).where(Bonus.user_id == str(user.id)).order_by(desc(Bonus.id)).limit(100))
     ).scalars().all()
@@ -861,6 +910,10 @@ async def cabinet(
         await db.execute(select(Announcements).order_by(desc(Announcements.id)).limit(500))
     ).scalars().all()
     announcement_rows = [a for a in announcement_rows if _owns_user_content(user, a.user_id, a.phone)]
+    master_request_rows = (
+        await db.execute(select(Master_requests).order_by(desc(Master_requests.id)).limit(500))
+    ).scalars().all()
+    master_request_rows = [r for r in master_request_rows if _matches_user_phone(r.phone, user.phone)]
 
     merged_orders = [
         {"id": o.id, "type": o.order_type, "status": o.status, "amount": o.amount, "details": o.details, "created_at": o.created_at.isoformat() if o.created_at else None}
@@ -897,6 +950,17 @@ async def cabinet(
         "orders": merged_orders[:100],
         "complaints": [{"id": c.id, "category": c.category, "status": c.status, "description": c.description} for c in complaint_rows[:100]],
         "announcements": [{"id": a.id, "title": a.title, "status": a.status, "price": a.price} for a in announcement_rows[:100]],
+        "master_requests": [
+            {
+                "id": r.id,
+                "category": r.category,
+                "status": r.status,
+                "problem_description": r.problem_description,
+                "master_id": getattr(r, "master_id", None),
+                "created_at": r.created_at,
+            }
+            for r in master_request_rows[:50]
+        ],
         "settings": {"language": user.language, "agreement_accepted": bool(user.agreement_accepted), "privacy_accepted": bool(user.privacy_accepted)},
     }
 
@@ -907,6 +971,7 @@ async def master_cabinet(
     db: AsyncSession = Depends(get_db),
 ):
     user = await _current_user(db, authorization)
+    await _maybe_promote_master_role(db, user)
     _assert_role(user, {"master", "admin", "superadmin", "moderator"})
     listing = await _find_master_listing(db, user)
     become = (
@@ -920,8 +985,8 @@ async def master_cabinet(
     requests = (
         await db.execute(select(Master_requests).order_by(desc(Master_requests.id)).limit(200))
     ).scalars().all()
-    if listing and listing.category:
-        requests = [r for r in requests if (r.category or "").strip().lower() == (listing.category or "").strip().lower()]
+    if listing:
+        requests = [r for r in requests if _request_visible_to_master(r, listing)]
     else:
         requests = []
     gallery = (listing.gallery_images or "").split(",") if listing and listing.gallery_images else []
@@ -956,6 +1021,7 @@ async def master_cabinet(
                 "address": r.address,
                 "phone": r.phone,
                 "problem_description": r.problem_description,
+                "master_id": getattr(r, "master_id", None),
                 "created_at": r.created_at,
             }
             for r in requests[:50]
@@ -991,9 +1057,170 @@ async def update_master_profile(
         listing.telegram = request.telegram.strip() or None
     if request.services is not None:
         listing.services = request.services.strip() or None
+    if request.available_today is not None:
+        listing.available_today = request.available_today
     await db.commit()
     await _log_action(db, str(user.id), "master_profile_update", "masters", str(listing.id))
     return {"success": True, "listing_id": listing.id}
+
+
+async def _recalc_master_rating(db: AsyncSession, master_id: int) -> None:
+    listing = (await db.execute(select(Masters).where(Masters.id == master_id))).scalar_one_or_none()
+    if not listing:
+        return
+    rows = (
+        await db.execute(select(Master_reviews).where(Master_reviews.master_id == master_id))
+    ).scalars().all()
+    if not rows:
+        listing.rating = float(listing.rating or 0)
+        listing.reviews_count = 0
+    else:
+        listing.rating = round(sum(int(r.rating or 0) for r in rows) / len(rows), 1)
+        listing.reviews_count = len(rows)
+    await db.commit()
+
+
+@router.get("/masters/{master_id}/reviews")
+async def list_master_reviews(
+    master_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+):
+    listing = (await db.execute(select(Masters).where(Masters.id == master_id))).scalar_one_or_none()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Мастер не найден")
+    rows = (
+        await db.execute(
+            select(Master_reviews)
+            .where(Master_reviews.master_id == master_id)
+            .order_by(desc(Master_reviews.id))
+            .offset(skip)
+            .limit(limit)
+        )
+    ).scalars().all()
+    total = (
+        await db.execute(
+            select(func.count()).select_from(Master_reviews).where(Master_reviews.master_id == master_id)
+        )
+    ).scalar() or 0
+    return {
+        "items": [
+            {
+                "id": r.id,
+                "rating": r.rating,
+                "comment": r.comment,
+                "reviewer_name": r.reviewer_name,
+                "created_at": r.created_at,
+            }
+            for r in rows
+        ],
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+        "avg_rating": float(listing.rating or 0),
+    }
+
+
+@router.post("/masters/{master_id}/reviews", status_code=201)
+async def create_master_review(
+    master_id: int,
+    body: MasterReviewCreateRequest,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    listing = (await db.execute(select(Masters).where(Masters.id == master_id))).scalar_one_or_none()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Мастер не найден")
+    master_listing = await _find_master_listing(db, user)
+    if master_listing and int(master_listing.id) == int(master_id):
+        raise HTTPException(status_code=400, detail="Нельзя оставить отзыв самому себе")
+    existing = (
+        await db.execute(
+            select(Master_reviews).where(
+                Master_reviews.master_id == master_id,
+                Master_reviews.reviewer_user_id == str(user.id),
+            )
+        )
+    ).scalar_one_or_none()
+    if existing:
+        raise HTTPException(status_code=400, detail="Вы уже оставляли отзыв этому мастеру")
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    review = Master_reviews(
+        master_id=master_id,
+        reviewer_user_id=str(user.id),
+        reviewer_name=user.name or "Клиент",
+        rating=body.rating,
+        comment=(body.comment or "").strip() or None,
+        created_at=now,
+    )
+    db.add(review)
+    await db.flush()
+    review_id = review.id
+    await db.commit()
+    await _recalc_master_rating(db, master_id)
+    await _log_action(db, str(user.id), "master_review_create", "master_reviews", str(master_id))
+    return {"success": True, "id": review_id}
+
+
+@router.get("/masters/{master_id}/reviews/mine")
+async def my_master_review(
+    master_id: int,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    row = (
+        await db.execute(
+            select(Master_reviews).where(
+                Master_reviews.master_id == master_id,
+                Master_reviews.reviewer_user_id == str(user.id),
+            )
+        )
+    ).scalar_one_or_none()
+    if not row:
+        return {"reviewed": False}
+    return {
+        "reviewed": True,
+        "review": {
+            "id": row.id,
+            "rating": row.rating,
+            "comment": row.comment,
+            "created_at": row.created_at,
+        },
+    }
+
+
+@router.put("/master/requests/{request_id}/status")
+async def update_master_request_status(
+    request_id: int,
+    body: MasterRequestStatusUpdate,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    _assert_role(user, {"master", "admin", "superadmin", "moderator"})
+    listing = await _find_master_listing(db, user)
+    if not listing and user.role == "master":
+        raise HTTPException(status_code=404, detail="Карточка мастера не найдена")
+    req = (
+        await db.execute(select(Master_requests).where(Master_requests.id == request_id))
+    ).scalar_one_or_none()
+    if not req:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+    if user.role == "master":
+        if not listing or not _request_visible_to_master(req, listing):
+            raise HTTPException(status_code=403, detail="Заявка недоступна")
+    allowed = {"new": {"in_progress"}, "in_progress": {"done"}}
+    current = (req.status or "new").strip().lower()
+    target = body.status.strip().lower()
+    if target not in allowed.get(current, set()):
+        raise HTTPException(status_code=400, detail=f"Нельзя перевести из «{current}» в «{target}»")
+    req.status = target
+    await db.commit()
+    await _log_action(db, str(user.id), "master_request_status", "master_requests", str(request_id))
+    return {"success": True, "status": req.status}
 
 
 @router.post("/admin/masters/approve-become-request/{request_id}")
@@ -1003,8 +1230,7 @@ async def approve_become_master_request(
     db: AsyncSession = Depends(get_db),
 ):
     """Approve become-master application: create catalog entry and assign master role."""
-    admin = await _current_user(db, authorization)
-    _assert_admin(admin)
+    admin_actor, admin_user = await _assert_panel_admin(authorization, db)
     req = (
         await db.execute(select(Become_master_requests).where(Become_master_requests.id == request_id))
     ).scalar_one_or_none()
@@ -1013,15 +1239,16 @@ async def approve_become_master_request(
     if req.status == "approved":
         raise HTTPException(status_code=400, detail="Заявка уже одобрена")
 
+    normalized_phone = _normalize_phone(req.phone or "")
     existing_masters = (await db.execute(select(Masters).limit(500))).scalars().all()
     listing = next((m for m in existing_masters if _matches_user_phone(m.phone, req.phone)), None)
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     if not listing:
-        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
         listing = Masters(
             name=req.name or "",
             category=req.category or "",
-            phone=req.phone or "",
-            whatsapp=getattr(req, "whatsapp", None) or req.phone or "",
+            phone=normalized_phone or req.phone or "",
+            whatsapp=getattr(req, "whatsapp", None) or normalized_phone or req.phone or "",
             telegram="",
             district=getattr(req, "district", None) or "Сортировка",
             description=req.description or "",
@@ -1031,36 +1258,47 @@ async def approve_become_master_request(
             gallery_images=getattr(req, "gallery_images", None) or "",
             verified=True,
             available_today=True,
-            services=req.category or "",
+            services=req.description or req.category or "",
             experience_years=1,
             created_at=now,
         )
         db.add(listing)
+    else:
+        listing.name = req.name or listing.name
+        listing.category = req.category or listing.category
+        listing.phone = normalized_phone or listing.phone
+        listing.whatsapp = getattr(req, "whatsapp", None) or listing.whatsapp or listing.phone
+        listing.district = getattr(req, "district", None) or listing.district
+        listing.description = req.description or listing.description
+        if getattr(req, "photo_url", None):
+            listing.photo_url = req.photo_url
+        if getattr(req, "gallery_images", None):
+            listing.gallery_images = req.gallery_images
+        if req.description:
+            listing.services = req.description
 
     req.status = "approved"
 
-    if listing and getattr(req, "photo_url", None):
-        listing.photo_url = req.photo_url
-    if listing and getattr(req, "gallery_images", None):
-        listing.gallery_images = req.gallery_images
-    if listing and req.description and not listing.description:
-        listing.description = req.description
-
     matched_user = await _find_user_by_phone(db, req.phone)
-    if matched_user and matched_user.role == "user":
-        matched_user.role = "master"
+    role_assigned = False
+    if matched_user:
+        if matched_user.role == "user":
+            matched_user.role = "master"
+            role_assigned = True
+        elif matched_user.role == "master":
+            role_assigned = True
 
     await db.commit()
     await db.refresh(listing)
     await _log_action(
         db,
-        str(admin.id),
+        admin_actor,
         "approve_become_master",
         "become_master_requests",
         str(req.id),
-        {"master_id": listing.id, "user_id": str(matched_user.id) if matched_user else None},
+        {"master_id": listing.id, "user_id": str(matched_user.id) if matched_user else None, "role_assigned": role_assigned},
     )
-    return {"success": True, "master_id": listing.id, "role_assigned": bool(matched_user)}
+    return {"success": True, "master_id": listing.id, "role_assigned": role_assigned}
 
 
 @router.get("/partner/cabinet")

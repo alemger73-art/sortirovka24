@@ -3,12 +3,17 @@ import logging
 from typing import List, Optional
 
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
+from models.become_master_requests import Become_master_requests
 from services.become_master_requests import Become_master_requestsService
+from services.telegram import notify_new_become_master
+from utils.phone import normalize_phone, matches_phone
+from utils.rate_limit import check_ip_rate_limit
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -194,16 +199,36 @@ async def get_become_master_requests(
 @router.post("", response_model=Become_master_requestsResponse, status_code=201)
 async def create_become_master_requests(
     data: Become_master_requestsData,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new become_master_requests"""
+    check_ip_rate_limit(request, key_prefix="become_master_requests", max_hits=5)
     logger.debug(f"Creating new become_master_requests with data: {data}")
+
+    payload = data.model_dump()
+    if payload.get("phone"):
+        payload["phone"] = normalize_phone(payload["phone"]) or payload["phone"]
+    if payload.get("whatsapp"):
+        payload["whatsapp"] = normalize_phone(payload["whatsapp"]) or payload["whatsapp"]
+    pending_rows = (
+        await db.execute(
+            select(Become_master_requests).where(Become_master_requests.status == "pending").limit(300)
+        )
+    ).scalars().all()
+    if payload.get("phone") and any(matches_phone(r.phone, payload["phone"]) for r in pending_rows):
+        raise HTTPException(status_code=400, detail="У вас уже есть заявка на рассмотрении. Дождитесь ответа администратора.")
     
     service = Become_master_requestsService(db)
     try:
-        result = await service.create(data.model_dump())
+        result = await service.create(payload)
         if not result:
             raise HTTPException(status_code=400, detail="Failed to create become_master_requests")
+        
+        try:
+            await notify_new_become_master(payload)
+        except Exception as notify_err:
+            logger.warning(f"Telegram notify skipped: {notify_err}")
         
         logger.info(f"Become_master_requests created successfully with id: {result.id}")
         return result

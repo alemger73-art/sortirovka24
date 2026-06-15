@@ -24,15 +24,27 @@ export function clearAccountToken() {
   clearPersistedAccountToken();
 }
 
+function readAdminToken(): string {
+  try {
+    return localStorage.getItem("token") || localStorage.getItem("_sp924_token") || "";
+  } catch {
+    return "";
+  }
+}
+
+function authHeaders(): Record<string, string> {
+  const token = getAccountToken() || readAdminToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = getAccountToken();
   let resp: Response;
   try {
     resp = await fetch(`${apiBase()}${path}`, {
       ...init,
       headers: {
         "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...authHeaders(),
         ...(init?.headers || {}),
       },
     });
@@ -81,6 +93,24 @@ export const accountApi = {
   masterCabinet: () => api<any>("/api/v1/account/master/cabinet"),
   updateMasterProfile: (body: Record<string, unknown>) =>
     api<{ success: boolean }>("/api/v1/account/master/profile", { method: "PUT", body: JSON.stringify(body) }),
+  getMasterReviews: (masterId: number, skip = 0, limit = 20) =>
+    api<{ items: any[]; total: number; avg_rating: number; skip: number; limit: number }>(
+      `/api/v1/account/masters/${masterId}/reviews?skip=${skip}&limit=${limit}`,
+    ),
+  getMyMasterReview: (masterId: number) =>
+    api<{ reviewed: boolean; review?: { id: number; rating: number; comment?: string; created_at?: string } }>(
+      `/api/v1/account/masters/${masterId}/reviews/mine`,
+    ),
+  createMasterReview: (masterId: number, body: { rating: number; comment?: string }) =>
+    api<{ success: boolean; id: number }>(`/api/v1/account/masters/${masterId}/reviews`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  updateMasterRequestStatus: (requestId: number, status: "in_progress" | "done") =>
+    api<{ success: boolean; status: string }>(`/api/v1/account/master/requests/${requestId}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status }),
+    }),
   approveBecomeMasterRequest: (requestId: number) =>
     api<{ success: boolean; master_id: number; role_assigned: boolean }>(
       `/api/v1/account/admin/masters/approve-become-request/${requestId}`,

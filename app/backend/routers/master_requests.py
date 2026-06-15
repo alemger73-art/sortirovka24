@@ -3,12 +3,17 @@ import logging
 from typing import List, Optional
 
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
+from models.masters import Masters
 from services.master_requests import Master_requestsService
+from services.telegram import notify_new_master_request
+from utils.phone import normalize_phone, matches_phone
+from utils.rate_limit import check_ip_rate_limit
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -24,6 +29,7 @@ class Master_requestsData(BaseModel):
     address: str = None
     phone: str = None
     client_name: str = None
+    master_id: int = None
     status: str = None
     created_at: str = None
 
@@ -35,6 +41,7 @@ class Master_requestsUpdateData(BaseModel):
     address: Optional[str] = None
     phone: Optional[str] = None
     client_name: Optional[str] = None
+    master_id: Optional[int] = None
     status: Optional[str] = None
     created_at: Optional[str] = None
 
@@ -47,6 +54,7 @@ class Master_requestsResponse(BaseModel):
     address: Optional[str] = None
     phone: Optional[str] = None
     client_name: Optional[str] = None
+    master_id: Optional[int] = None
     status: Optional[str] = None
     created_at: Optional[str] = None
 
@@ -185,16 +193,46 @@ async def get_master_requests(
 @router.post("", response_model=Master_requestsResponse, status_code=201)
 async def create_master_requests(
     data: Master_requestsData,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new master_requests"""
+    check_ip_rate_limit(request, key_prefix="master_requests", max_hits=10)
     logger.debug(f"Creating new master_requests with data: {data}")
+
+    payload = data.model_dump()
+    if payload.get("phone"):
+        payload["phone"] = normalize_phone(payload["phone"]) or payload["phone"]
+    master_id = payload.get("master_id")
+    master_name = ""
+    if master_id:
+        listing = (
+            await db.execute(select(Masters).where(Masters.id == int(master_id)))
+        ).scalar_one_or_none()
+        if not listing:
+            raise HTTPException(status_code=400, detail="Мастер не найден")
+        master_name = listing.name or ""
+        if payload.get("category") and listing.category and payload["category"] != listing.category:
+            payload["category"] = listing.category
     
     service = Master_requestsService(db)
     try:
-        result = await service.create(data.model_dump())
+        result = await service.create(payload)
         if not result:
             raise HTTPException(status_code=400, detail="Failed to create master_requests")
+        
+        try:
+            await notify_new_master_request({
+                "category": payload.get("category"),
+                "problem_description": payload.get("problem_description"),
+                "address": payload.get("address"),
+                "phone": payload.get("phone"),
+                "client_name": payload.get("client_name"),
+                "master_id": master_id,
+                "master_name": master_name,
+            })
+        except Exception as notify_err:
+            logger.warning(f"Telegram notify skipped: {notify_err}")
         
         logger.info(f"Master_requests created successfully with id: {result.id}")
         return result
