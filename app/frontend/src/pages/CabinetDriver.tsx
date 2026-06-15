@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -194,9 +195,13 @@ export default function CabinetDriver() {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-white">Кабинет водителя</h1>
-                <p className="text-white/50 text-sm flex items-center gap-2">
-                  <Star className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
-                  {profile.rating?.toFixed(1)} · {profile.rides_count} поездок
+                <p className="text-white/50 text-sm">
+                  <Link to="/cabinet" className="hover:text-white/80 underline underline-offset-2">Личный кабинет</Link>
+                  {' · '}
+                  <span className="inline-flex items-center gap-1">
+                    <Star className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
+                    {profile.rating?.toFixed(1)} · {profile.rides_count} поездок
+                  </span>
                 </p>
               </div>
             </div>

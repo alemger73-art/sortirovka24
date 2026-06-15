@@ -13,7 +13,7 @@ function getCabinetRouteByRole(role?: string): string {
     case "master":
       return "/cabinet/master";
     case "driver":
-      return "/cabinet/driver";
+      return "/cabinet";
     case "seller":
       return "/cabinet/partner";
     default:

@@ -301,6 +301,14 @@ export default function Cabinet() {
                   <Car className="h-4 w-4" /> Кабинет водителя — заказы →
                 </Link>
               )}
+              {cabinet?.profile?.role === "user" && (
+                <Link
+                  to="/taxi/driver"
+                  className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-yellow-600 hover:text-yellow-700 dark:text-yellow-400"
+                >
+                  <Car className="h-4 w-4" /> Стать водителем →
+                </Link>
+              )}
             </div>
             <button
               className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-100 dark:border-[#2a3347] dark:bg-[#111827] dark:text-white dark:hover:bg-[#1a2336]"
