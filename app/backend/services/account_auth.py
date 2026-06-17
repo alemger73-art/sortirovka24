@@ -8,6 +8,7 @@ from models.auth import User
 from models.user_management import UserSession
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from utils.timeutils import as_aware_utc
 
 
 async def get_account_user(db: AsyncSession, authorization: str | None) -> User:
@@ -31,7 +32,8 @@ async def get_account_user(db: AsyncSession, authorization: str | None) -> User:
     ).scalar_one_or_none()
     if not session:
         raise HTTPException(status_code=401, detail="Session is not active")
-    if session.expires_at and session.expires_at < datetime.now(timezone.utc):
+    session_expiry = as_aware_utc(session.expires_at)
+    if session_expiry and session_expiry < datetime.now(timezone.utc):
         session.is_active = False
         await db.commit()
         raise HTTPException(status_code=401, detail="Session expired")

@@ -55,7 +55,7 @@ from services.google_oauth import (
 )
 from services.sms import SMSDeliveryError, send_verification_code, should_expose_code_on_screen
 from services.storage import StorageService
-from sqlalchemy import and_, desc, func, select
+from sqlalchemy import and_, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/api/v1/account", tags=["account-v2"])
@@ -82,6 +82,7 @@ def _verify_password(raw: str, password_hash: str) -> bool:
 
 
 from utils.phone import normalize_phone as _normalize_phone, phone_digits as _phone_digits
+from utils.timeutils import as_aware_utc as _as_aware_utc
 def _matches_user_phone(candidate: str | None, user_phone: str | None) -> bool:
     left = _phone_digits(candidate)
     right = _phone_digits(user_phone)
@@ -443,7 +444,8 @@ async def _current_user(
     ).scalar_one_or_none()
     if not session:
         raise HTTPException(status_code=401, detail="Session is not active")
-    if session.expires_at and session.expires_at < datetime.now(timezone.utc):
+    session_expiry = _as_aware_utc(session.expires_at)
+    if session_expiry and session_expiry < datetime.now(timezone.utc):
         session.is_active = False
         await db.commit()
         raise HTTPException(status_code=401, detail="Session expired")
@@ -464,11 +466,15 @@ async def _create_user_and_login(
     db: AsyncSession,
 ):
     normalized_phone = _normalize_phone(request.phone)
+    # Only match on email when one was actually supplied — otherwise
+    # `User.email == None` becomes `email IS NULL` and matches every existing
+    # email-less account, wrongly rejecting all registrations after the first.
+    dedupe_conditions = [User.phone == normalized_phone]
+    if request.email:
+        dedupe_conditions.append(User.email == request.email)
     existing = (
-        await db.execute(
-            select(User).where((User.phone == normalized_phone) | (User.email == request.email))
-        )
-    ).scalar_one_or_none()
+        await db.execute(select(User).where(or_(*dedupe_conditions)).limit(1))
+    ).scalars().first()
     if existing:
         raise HTTPException(status_code=400, detail="User with phone/email already exists")
     if not request.agreement_accepted or not request.privacy_accepted:
@@ -639,7 +645,7 @@ async def register_confirm(
         raise HTTPException(status_code=400, detail="SMS verification is required")
 
     now = datetime.now(timezone.utc)
-    if row.expires_at < now:
+    if _as_aware_utc(row.expires_at) < now:
         raise HTTPException(status_code=400, detail="SMS code expired")
     if row.attempts >= MAX_SMS_VERIFY_ATTEMPTS:
         raise HTTPException(status_code=429, detail="Слишком много попыток ввода кода. Запросите новый SMS-код.")
