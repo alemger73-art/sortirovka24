@@ -29,3 +29,11 @@ class PushBroadcastResponse(BaseModel):
     failed: int
     total: int
     skipped: bool = False
+
+
+class PushStatsResponse(BaseModel):
+    enabled: bool
+    total_devices: int
+    active_devices: int
+    android_active: int
+    ios_active: int

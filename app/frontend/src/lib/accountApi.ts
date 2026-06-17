@@ -10,7 +10,7 @@ function apiBase(): string {
   return getAPIBaseURL().replace(/\/$/, "");
 }
 
-export type AccountRole = "user" | "master" | "driver" | "partner" | "admin" | "superadmin";
+export type AccountRole = "user" | "master" | "driver" | "seller" | "moderator" | "admin" | "superadmin";
 
 export function getAccountToken(): string {
   return readAccountToken();

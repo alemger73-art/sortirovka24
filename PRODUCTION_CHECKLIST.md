@@ -38,12 +38,13 @@ curl https://sortirovka24-production-8788.up.railway.app/health
 4. Privacy URL: `https://sortirovka24-production-8788.up.railway.app/privacy.html` (после деплоя)
 5. Пароли подписи: `android/PLAY_SIGNING_SECRET.txt` (сохранить вне git!)
 
-## Push-уведомления (когда понадобятся)
+## Push-уведомления
 
 1. Firebase → `google-services.json` в `android/app/`
-2. Вернуть `@capacitor/push-notifications` в проект
-3. `FCM_SERVER_KEY` на Railway
-4. `VITE_ENABLE_NATIVE_PUSH=true` в `.env.mobile` → пересборка APK
+2. Railway → `FCM_SERVER_KEY`
+3. `.env.mobile` → `VITE_ENABLE_NATIVE_PUSH=true` → пересборка APK
+4. Админка → **Система → Push-уведомления** — ручная рассылка и статистика
+5. Авто-push при публикации новости (`published=true`)
 
 ## Типичные проблемы
 

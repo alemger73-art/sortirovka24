@@ -14,12 +14,13 @@ from schemas.push import (
     PushBroadcastResponse,
     PushRegisterRequest,
     PushRegisterResponse,
+    PushStatsResponse,
     PushUnregisterRequest,
 )
 from services.account_session import resolve_account_user
 from services.push_broadcast import broadcast_push
 from services.push_notifications import push_enabled
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/api/v1/push", tags=["push"])
@@ -117,3 +118,48 @@ async def broadcast_push_notification(
 async def push_status():
     """Check whether FCM is configured on the server."""
     return {"enabled": push_enabled()}
+
+
+@router.get("/stats", response_model=PushStatsResponse)
+async def push_stats(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin-only: device counts for push dashboard."""
+    require_panel_admin(request)
+
+    total = int(
+        await db.scalar(select(func.count()).select_from(PushDevice)) or 0
+    )
+    active = int(
+        await db.scalar(
+            select(func.count())
+            .select_from(PushDevice)
+            .where(PushDevice.is_active.is_(True))
+        )
+        or 0
+    )
+    android_active = int(
+        await db.scalar(
+            select(func.count())
+            .select_from(PushDevice)
+            .where(PushDevice.is_active.is_(True), PushDevice.platform == "android")
+        )
+        or 0
+    )
+    ios_active = int(
+        await db.scalar(
+            select(func.count())
+            .select_from(PushDevice)
+            .where(PushDevice.is_active.is_(True), PushDevice.platform == "ios")
+        )
+        or 0
+    )
+
+    return PushStatsResponse(
+        enabled=push_enabled(),
+        total_devices=total,
+        active_devices=active,
+        android_active=android_active,
+        ios_active=ios_active,
+    )

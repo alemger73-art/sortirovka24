@@ -5,25 +5,79 @@ function apiBase(): string {
   return getAPIBaseURL().replace(/\/$/, '');
 }
 
-async function pushApi<T>(path: string, body: unknown): Promise<T> {
-  const token = getAccountToken();
+function getAdminToken(): string {
+  try {
+    return localStorage.getItem('_sp924_token') || localStorage.getItem('token') || '';
+  } catch {
+    return '';
+  }
+}
+
+async function pushApi<T>(
+  path: string,
+  init?: RequestInit,
+  token?: string | null,
+): Promise<T> {
+  const auth = token === undefined ? getAccountToken() : token;
   const resp = await fetch(`${apiBase()}${path}`, {
-    method: 'POST',
+    ...init,
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(auth ? { Authorization: `Bearer ${auth}` } : {}),
+      ...(init?.headers || {}),
     },
-    body: JSON.stringify(body),
+    body: init?.body,
+    method: init?.method ?? (init?.body ? 'POST' : 'GET'),
   });
   if (!resp.ok) {
-    throw new Error(`Push API ${resp.status}`);
+    const txt = await resp.text().catch(() => '');
+    throw new Error(txt || `Push API ${resp.status}`);
   }
   return resp.json() as Promise<T>;
 }
 
+export interface PushStats {
+  enabled: boolean;
+  total_devices: number;
+  active_devices: number;
+  android_active: number;
+  ios_active: number;
+}
+
+export interface PushBroadcastResult {
+  success: boolean;
+  sent: number;
+  failed: number;
+  total: number;
+  skipped?: boolean;
+}
+
 export const pushApiClient = {
+  status: () => pushApi<{ enabled: boolean }>('/api/v1/push/status'),
+
   register: (token: string, platform: 'android' | 'ios') =>
-    pushApi<{ success: boolean }>('/api/v1/push/register', { token, platform }),
+    pushApi<{ success: boolean }>('/api/v1/push/register', {
+      method: 'POST',
+      body: JSON.stringify({ token, platform }),
+    }),
+
   unregister: (token: string) =>
-    pushApi<{ success: boolean }>('/api/v1/push/unregister', { token }),
+    pushApi<{ success: boolean }>('/api/v1/push/unregister', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    }),
+
+  adminStats: () =>
+    pushApi<PushStats>('/api/v1/push/stats', undefined, getAdminToken()),
+
+  adminBroadcast: (payload: {
+    title: string;
+    body: string;
+    path?: string;
+    platform?: 'android' | 'ios';
+  }) =>
+    pushApi<PushBroadcastResult>('/api/v1/push/broadcast', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, getAdminToken()),
 };

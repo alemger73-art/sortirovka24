@@ -29,6 +29,7 @@ import AdminAccountSettings from './AdminAccountSettings';
 import AdminGastronom from './AdminGastronom';
 import AdminProrab from './AdminProrab';
 import AdminSupport from './AdminSupport';
+import AdminPush from './AdminPush';
 
 // JWT token key in localStorage (persists across tabs and browser restarts)
 const SESSION_KEY = '_sp924_token';
@@ -306,6 +307,7 @@ export default function AdminPanel() {
       case 'partners-gastronom': return <AdminGastronom />;
       case 'partners-prorab': return <AdminProrab />;
       case 'support': return <AdminSupport />;
+      case 'push': return <AdminPush />;
       default: return <AdminCategories />;
     }
   };

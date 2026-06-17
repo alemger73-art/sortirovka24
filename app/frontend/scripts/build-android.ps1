@@ -107,12 +107,23 @@ if (-not (Test-Path $apkSource)) {
 
 New-Item -ItemType Directory -Force -Path $ReleasesDir | Out-Null
 $timestamp = Get-Date -Format "yyyyMMdd-HHmm"
+$versionName = "unknown"
+$gradleFile = Join-Path $AndroidRoot "app\build.gradle"
+if (Test-Path $gradleFile) {
+    $gradleContent = Get-Content $gradleFile -Raw
+    if ($gradleContent -match 'versionName\s+"([^"]+)"') {
+        $versionName = $Matches[1]
+    }
+}
 $apkDest = Join-Path $ReleasesDir "Sortirovka24-$timestamp-debug.apk"
+$apkVersioned = Join-Path $ReleasesDir "Sortirovka24-v$versionName-debug.apk"
 Copy-Item $apkSource $apkDest -Force
+Copy-Item $apkSource $apkVersioned -Force
 $latest = Join-Path $ReleasesDir "Sortirovka24-latest-debug.apk"
 Copy-Item $apkSource $latest -Force
 
 Write-Host ""
-Write-Host "SUCCESS - APK ready:"
-Write-Host "  $apkDest"
+Write-Host "SUCCESS - APK ready (live URL mode if CAPACITOR_SERVER_URL is set in .env.mobile):"
+Write-Host "  $apkVersioned"
 Write-Host "  $latest"
+Write-Host "  $apkDest"

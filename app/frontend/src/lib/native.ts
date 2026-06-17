@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { initPushNotifications } from '@/lib/pushNotifications';
 
 export function isNativeApp(): boolean {
   return Capacitor.isNativePlatform();
@@ -61,6 +62,8 @@ export async function initNativeShell(): Promise<void> {
         document.documentElement.classList.add('app-background');
       }
     });
+
+    void initPushNotifications();
   } catch (error) {
     console.warn('[native] Capacitor plugins unavailable:', error);
   }

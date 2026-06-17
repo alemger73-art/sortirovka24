@@ -5,7 +5,7 @@ import {
   ClipboardList, UserPlus, LogOut, Home as HomeIcon, Lock, Megaphone,
   Briefcase, FolderTree, Building2, Utensils, ShoppingBag, Settings,
   BadgeCheck, BarChart3, Clock, Plug, Bus, TreePine, MapPin,
-  ChevronDown, ChevronRight, X, Menu, Store, Car, Heart, HardHat, type LucideIcon,
+  ChevronDown, ChevronRight, X, Menu, Store, Car, Heart, HardHat, Bell, type LucideIcon,
 } from 'lucide-react';
 
 /* ─── Types ─── */
@@ -86,6 +86,7 @@ const MENU_GROUPS: MenuGroup[] = [
       { id: 'categories', label: 'Категории', icon: FolderTree },
       { id: 'history', label: 'История', icon: Clock },
       { id: 'support', label: 'Поддержка проекта', icon: Heart },
+      { id: 'push', label: 'Push-уведомления', icon: Bell },
       { id: 'pos-integration', label: 'POS Интеграция', icon: Plug },
       { id: 'account-settings', label: 'Настройки аккаунта', icon: Lock },
     ],
