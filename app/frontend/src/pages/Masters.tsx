@@ -8,7 +8,7 @@ import MasterReviews from '@/components/masters/MasterReviews';
 import { categoryGradient, categoryIcon, sortMasters } from '@/components/masters/mastersTheme';
 import { client, withRetry, MASTER_CATEGORIES, CATEGORY_ICONS } from '@/lib/api';
 import { fetchWithCache } from '@/lib/cache';
-import { Phone, MessageCircle, MapPin, Clock, ChevronLeft, Search, Send, UserPlus, Shield, Zap, Award, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Phone, MessageCircle, MapPin, Clock, ChevronLeft, Search, Send, UserPlus, Shield, Zap, Award, AlertTriangle, ArrowRight, CheckCircle } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
 import { StorageGallery } from '@/components/MultiImageUpload';
 import { requireAuthDialog, getAccountPrefill } from '@/lib/localAuth';

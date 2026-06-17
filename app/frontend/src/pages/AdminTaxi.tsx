@@ -220,12 +220,13 @@ export default function AdminTaxi() {
                           {[app.car_make, app.car_model, app.car_color, app.car_number].filter(Boolean).join(' · ')}
                         </p>
                         {app.comment && <p className="text-xs text-gray-400 mt-2">{app.comment}</p>}
-                        {(app.photo_url || app.license_photo_url || app.tech_passport_photo_url) && (
+                        {(app.photo_url || app.license_photo_url || app.tech_passport_photo_url || app.car_photo_url) && (
                           <div className="flex flex-wrap gap-2 mt-3">
                             {[
                               { label: 'Фото', url: app.photo_url },
                               { label: 'Права', url: app.license_photo_url },
                               { label: 'Техпаспорт', url: app.tech_passport_photo_url },
+                              { label: 'Авто', url: app.car_photo_url },
                             ].filter((d) => d.url).map((d) => (
                               <a
                                 key={d.label}
@@ -240,13 +241,18 @@ export default function AdminTaxi() {
                           </div>
                         )}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2 items-end">
+                        <p className="text-xs text-gray-400 max-w-[200px] text-right">
+                          Одобрение ≠ допуск на линию. После одобрения верифицируйте в разделе «Водители».
+                        </p>
+                        <div className="flex gap-2">
                         <Button size="sm" className="bg-yellow-400 hover:bg-yellow-500 text-gray-900" onClick={() => approveApp(app.user_id)}>
-                          <Check className="h-3.5 w-3.5 mr-1" /> Одобрить
+                          <Check className="h-3.5 w-3.5 mr-1" /> Принять заявку
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => rejectApp(app.user_id)}>
                           <X className="h-3.5 w-3.5 mr-1" /> Отклонить
                         </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -315,7 +321,10 @@ export default function AdminTaxi() {
                     <div>
                       <p className="font-semibold">{d.name || 'Без имени'}</p>
                       <p className="text-sm text-gray-500">{d.phone} · {[d.car_make, d.car_model, d.car_number].filter(Boolean).join(' ')}</p>
-                      <p className="text-xs mt-1">{d.is_online ? '🟢 Online' : '⚫ Offline'} · {d.rides_count} поездок · ⭐ {d.rating?.toFixed(1)} · {d.documents_status || '—'}</p>
+                      <p className="text-xs mt-1">
+                        {d.is_online ? '🟢 Online' : '⚫ Offline'} · {d.rides_count} поездок · ⭐ {d.rating?.toFixed(1)} ·{' '}
+                        {d.is_verified ? '✅ верифицирован' : `📋 ${d.documents_status || 'ожидает'}`}
+                      </p>
                     </div>
                     <Button
                       size="sm"
@@ -331,7 +340,7 @@ export default function AdminTaxi() {
                         }
                       }}
                     >
-                      {d.is_verified ? 'Снять верификацию' : 'Верифицировать'}
+                      {d.is_verified ? 'Снять верификацию' : 'Верифицировать (допуск на линию)'}
                     </Button>
                   </div>
                 ))

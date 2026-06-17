@@ -28,6 +28,7 @@ export default function TaxiDriverHub() {
     photo_url: '',
     license_photo_url: '',
     tech_passport_photo_url: '',
+    car_photo_url: '',
   });
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export default function TaxiDriverHub() {
             photo_url: app.photo_url || '',
             license_photo_url: app.license_photo_url || '',
             tech_passport_photo_url: app.tech_passport_photo_url || '',
+            car_photo_url: app.car_photo_url || '',
           });
         }
       } catch {
@@ -70,8 +72,8 @@ export default function TaxiDriverHub() {
       toast.error('Заполните имя и госномер');
       return;
     }
-    if (!form.photo_url || !form.license_photo_url || !form.tech_passport_photo_url) {
-      toast.error('Загрузите фото, права и техпаспорт');
+    if (!form.photo_url || !form.license_photo_url || !form.tech_passport_photo_url || !form.car_photo_url) {
+      toast.error('Загрузите все документы: фото, права, техпаспорт и фото автомобиля');
       return;
     }
     setSubmitting(true);
@@ -143,7 +145,7 @@ export default function TaxiDriverHub() {
             <div className="rounded-3xl bg-white p-8 text-center shadow-xl">
               <Clock className="h-12 w-12 text-amber-500 mx-auto mb-4" />
               <h2 className="text-xl font-bold text-gray-900">Заявка на рассмотрении</h2>
-              <p className="text-gray-500 mt-2">Администратор проверит данные и откроет доступ к кабинету водителя</p>
+              <p className="text-gray-500 mt-2">Администратор проверит документы. После модерации откроется кабинет водителя</p>
               <p className="text-sm text-gray-400 mt-4">{form.car_make} {form.car_model} · {form.car_number}</p>
             </div>
           ) : application?.status === 'rejected' ? (
@@ -184,6 +186,7 @@ export default function TaxiDriverHub() {
                       photoUrl={form.photo_url}
                       licenseUrl={form.license_photo_url}
                       techPassportUrl={form.tech_passport_photo_url}
+                      carPhotoUrl={form.car_photo_url}
                       onChange={(field, value) => setForm({ ...form, [field]: value })}
                     />
                   </div>

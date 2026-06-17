@@ -32,6 +32,7 @@ class TaxiDriverProfile(Base):
     photo_url = Column(String(512), nullable=True)
     license_photo_url = Column(String(512), nullable=True)
     tech_passport_photo_url = Column(String(512), nullable=True)
+    car_photo_url = Column(String(512), nullable=True)
     documents_status = Column(String(32), nullable=False, default="none")  # none/submitted/verified/rejected
     documents_note = Column(Text, nullable=True)
 
@@ -51,6 +52,7 @@ class TaxiDriverApplication(BaseModel):
     photo_url = Column(String(512), nullable=True)
     license_photo_url = Column(String(512), nullable=True)
     tech_passport_photo_url = Column(String(512), nullable=True)
+    car_photo_url = Column(String(512), nullable=True)
     status = Column(String(32), nullable=False, default="pending", index=True)  # pending/approved/rejected
     admin_note = Column(Text, nullable=True)
     reviewed_at = Column(String(64), nullable=True)

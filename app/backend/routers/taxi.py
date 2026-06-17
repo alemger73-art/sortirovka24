@@ -114,6 +114,7 @@ class DriverProfileUpdate(BaseModel):
     photo_url: Optional[str] = None
     license_photo_url: Optional[str] = None
     tech_passport_photo_url: Optional[str] = None
+    car_photo_url: Optional[str] = None
 
 
 class SettingsUpdateRequest(BaseModel):
@@ -135,6 +136,7 @@ class DriverApplyRequest(BaseModel):
     photo_url: Optional[str] = ""
     license_photo_url: Optional[str] = ""
     tech_passport_photo_url: Optional[str] = ""
+    car_photo_url: Optional[str] = ""
 
 
 class AdminApplicationActionRequest(BaseModel):
@@ -220,6 +222,42 @@ async def suggest_address(body: SuggestRequest, db: AsyncSession = Depends(get_d
         limit=body.limit,
     )
     return {"suggestions": items}
+
+
+@router.get("/route")
+async def get_road_route(
+    from_lat: float,
+    from_lng: float,
+    to_lat: float,
+    to_lng: float,
+):
+    """Road geometry via OSRM (for map display)."""
+    import httpx
+
+    url = (
+        f"https://router.project-osrm.org/route/v1/driving/"
+        f"{from_lng},{from_lat};{to_lng},{to_lat}?overview=full&geometries=geojson"
+    )
+    try:
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+            data = resp.json()
+        route = (data.get("routes") or [None])[0]
+        if not route:
+            raise HTTPException(status_code=404, detail="Маршрут не найден")
+        coords = route.get("geometry", {}).get("coordinates") or []
+        points = [{"lat": c[1], "lng": c[0]} for c in coords]
+        return {
+            "points": points,
+            "distance_km": round((route.get("distance") or 0) / 1000, 2),
+            "duration_min": max(1, int(round((route.get("duration") or 0) / 60))),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning("OSRM route failed: %s", e)
+        raise HTTPException(status_code=502, detail="Не удалось построить маршрут")
 
 
 # ─── Passenger ─────────────────────────────────────────────────────
@@ -413,6 +451,12 @@ async def set_driver_online(
         except ValueError as e:
             raise HTTPException(status_code=503, detail=str(e))
     profile = await get_or_create_driver_profile(db, user)
+    if body.online:
+        if not profile.is_verified or profile.documents_status != "verified":
+            raise HTTPException(
+                status_code=403,
+                detail="Сначала пройдите модерацию документов. Ожидайте проверки администратором.",
+            )
     profile.is_online = body.online
     await db.commit()
     return {"online": profile.is_online}
@@ -454,6 +498,7 @@ async def update_driver_profile(
         photo_url=body.photo_url,
         license_photo_url=body.license_photo_url,
         tech_passport_photo_url=body.tech_passport_photo_url,
+        car_photo_url=body.car_photo_url,
     )
     return {"success": True, "profile": driver_profile_dict(profile, user)}
 
@@ -553,6 +598,7 @@ async def driver_submit_application(
             photo_url=body.photo_url or "",
             license_photo_url=body.license_photo_url or "",
             tech_passport_photo_url=body.tech_passport_photo_url or "",
+            car_photo_url=body.car_photo_url or "",
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -620,6 +666,7 @@ async def admin_list_drivers(
             "photo_url": p.photo_url,
             "license_photo_url": p.license_photo_url,
             "tech_passport_photo_url": p.tech_passport_photo_url,
+            "car_photo_url": p.car_photo_url,
             "documents_status": p.documents_status,
             "documents_note": p.documents_note,
         })
@@ -639,14 +686,24 @@ async def admin_verify_driver(
     ).scalar_one_or_none()
     if not profile:
         raise HTTPException(status_code=404, detail="Профиль водителя не найден")
-    profile.is_verified = body.verified
     if body.verified:
+        from services.taxi_service import _driver_docs_complete
+        if not _driver_docs_complete(
+            photo_url=profile.photo_url,
+            license_photo_url=profile.license_photo_url,
+            tech_passport_photo_url=profile.tech_passport_photo_url,
+            car_photo_url=profile.car_photo_url,
+        ):
+            raise HTTPException(status_code=400, detail="Не все документы загружены")
+        profile.is_verified = True
         user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
         if user:
             user.role = "driver"
         profile.documents_status = "verified"
         profile.documents_note = None
     else:
+        profile.is_verified = False
+        profile.is_online = False
         profile.documents_status = "rejected"
     await db.commit()
     return {"success": True, "verified": profile.is_verified}

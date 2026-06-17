@@ -36,5 +36,5 @@ COPY --from=frontend /app/frontend/dist ./frontend_dist
 
 EXPOSE 8000
 
-# start.sh binds to the platform-provided $PORT (Railway) and enables proxy headers.
-CMD ["sh", "start.sh"]
+# Binds to $PORT (Railway). Avoid start.sh — CRLF on Windows breaks `sh start.sh`.
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips=*"]

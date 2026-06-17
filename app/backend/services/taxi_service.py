@@ -78,11 +78,30 @@ def _driver_avatar_url(driver_user: Optional[User], profile: Optional[TaxiDriver
     return None
 
 
+def _driver_docs_complete(
+    *,
+    photo_url: Optional[str],
+    license_photo_url: Optional[str],
+    tech_passport_photo_url: Optional[str],
+    car_photo_url: Optional[str],
+) -> bool:
+    return bool(
+        (photo_url or "").strip()
+        and (license_photo_url or "").strip()
+        and (tech_passport_photo_url or "").strip()
+        and (car_photo_url or "").strip()
+    )
+
+
 def _sync_documents_status(profile: TaxiDriverProfile) -> None:
     if profile.documents_status == "verified":
         return
-    has_all = bool(profile.photo_url and profile.license_photo_url and profile.tech_passport_photo_url)
-    if has_all and profile.documents_status in ("none", "rejected"):
+    if _driver_docs_complete(
+        photo_url=profile.photo_url,
+        license_photo_url=profile.license_photo_url,
+        tech_passport_photo_url=profile.tech_passport_photo_url,
+        car_photo_url=profile.car_photo_url,
+    ) and profile.documents_status in ("none", "rejected"):
         profile.documents_status = "submitted"
 
 
@@ -149,7 +168,7 @@ async def get_or_create_driver_profile(db: AsyncSession, user: User) -> TaxiDriv
         user_id=str(user.id),
         phone=user.phone,
         is_online=False,
-        is_verified=user.role in {"admin", "superadmin"},
+        is_verified=False,
     )
     db.add(profile)
     await db.commit()
@@ -231,8 +250,9 @@ async def get_ride_with_driver(db: AsyncSession, ride_id: int) -> Dict[str, Any]
 
 async def accept_ride(db: AsyncSession, ride_id: int, driver_user: User) -> TaxiRide:
     profile = await get_or_create_driver_profile(db, driver_user)
-    if not profile.is_verified and driver_user.role not in {"admin", "superadmin"}:
-        raise ValueError("Профиль водителя не верифицирован")
+    if not profile.is_verified or profile.documents_status != "verified":
+        if driver_user.role not in {"admin", "superadmin"}:
+            raise ValueError("Пройдите модерацию документов перед приёмом заказов")
     if not profile.is_online:
         raise ValueError("Включите статус «На линии»")
 
@@ -401,6 +421,7 @@ def application_to_dict(app: TaxiDriverApplication, user: Optional[User] = None)
         "photo_url": app.photo_url,
         "license_photo_url": app.license_photo_url,
         "tech_passport_photo_url": app.tech_passport_photo_url,
+        "car_photo_url": app.car_photo_url,
         "status": app.status,
         "admin_note": app.admin_note,
         "reviewed_at": app.reviewed_at,
@@ -430,9 +451,18 @@ async def submit_driver_application(
     photo_url: str = "",
     license_photo_url: str = "",
     tech_passport_photo_url: str = "",
+    car_photo_url: str = "",
 ) -> TaxiDriverApplication:
     if user.role in {"driver", "admin", "superadmin"}:
         raise ValueError("Вы уже зарегистрированы как водитель")
+
+    if not _driver_docs_complete(
+        photo_url=photo_url,
+        license_photo_url=license_photo_url,
+        tech_passport_photo_url=tech_passport_photo_url,
+        car_photo_url=car_photo_url,
+    ):
+        raise ValueError("Загрузите фото, права, техпаспорт и фото автомобиля")
 
     existing = await get_user_application(db, str(user.id))
     if existing and existing.status == "pending":
@@ -451,6 +481,7 @@ async def submit_driver_application(
         "photo_url": photo_url.strip() or None,
         "license_photo_url": license_photo_url.strip() or None,
         "tech_passport_photo_url": tech_passport_photo_url.strip() or None,
+        "car_photo_url": car_photo_url.strip() or None,
         "status": "pending",
         "admin_note": None,
         "reviewed_at": None,
@@ -483,6 +514,7 @@ def driver_profile_dict(profile: TaxiDriverProfile, user: Optional[User] = None)
         "photo_url": _driver_avatar_url(user, profile),
         "license_photo_url": profile.license_photo_url,
         "tech_passport_photo_url": profile.tech_passport_photo_url,
+        "car_photo_url": profile.car_photo_url,
         "documents_status": profile.documents_status or "none",
         "documents_note": profile.documents_note,
     }
@@ -501,6 +533,7 @@ async def update_driver_profile_fields(
     photo_url: Optional[str] = None,
     license_photo_url: Optional[str] = None,
     tech_passport_photo_url: Optional[str] = None,
+    car_photo_url: Optional[str] = None,
 ) -> TaxiDriverProfile:
     if car_make is not None:
         profile.car_make = car_make.strip()
@@ -518,6 +551,8 @@ async def update_driver_profile_fields(
         profile.license_photo_url = license_photo_url.strip() or None
     if tech_passport_photo_url is not None:
         profile.tech_passport_photo_url = tech_passport_photo_url.strip() or None
+    if car_photo_url is not None:
+        profile.car_photo_url = car_photo_url.strip() or None
     _sync_documents_status(profile)
     await db.commit()
     await db.refresh(profile)
@@ -542,6 +577,14 @@ async def approve_driver_application(
     if app.status != "pending":
         raise ValueError("Заявка уже обработана")
 
+    if not _driver_docs_complete(
+        photo_url=app.photo_url,
+        license_photo_url=app.license_photo_url,
+        tech_passport_photo_url=app.tech_passport_photo_url,
+        car_photo_url=app.car_photo_url,
+    ):
+        raise ValueError("В заявке не хватает документов (фото, права, техпаспорт, фото авто)")
+
     user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
     if not user:
         raise ValueError("Пользователь не найден")
@@ -554,7 +597,7 @@ async def approve_driver_application(
         profile = TaxiDriverProfile(user_id=user_id)
         db.add(profile)
 
-    profile.is_verified = True
+    profile.is_verified = False
     profile.is_online = False
     profile.phone = app.phone or user.phone
     profile.car_make = app.car_make
@@ -564,10 +607,9 @@ async def approve_driver_application(
     profile.photo_url = app.photo_url or profile.photo_url
     profile.license_photo_url = app.license_photo_url or profile.license_photo_url
     profile.tech_passport_photo_url = app.tech_passport_photo_url or profile.tech_passport_photo_url
-    if profile.photo_url and profile.license_photo_url and profile.tech_passport_photo_url:
-        profile.documents_status = "verified"
-    elif profile.documents_status == "none":
-        profile.documents_status = "submitted"
+    profile.car_photo_url = app.car_photo_url or profile.car_photo_url
+    profile.documents_status = "submitted"
+    profile.documents_note = None
 
     app.status = "approved"
     app.admin_note = admin_note.strip() or None

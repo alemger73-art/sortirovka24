@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import Layout from '@/components/Layout';
 
-import TaxiMap from '@/components/taxi/TaxiMap';
+import TaxiLiveMap from '@/components/taxi/TaxiLiveMap';
 
 import TaxiAddressInput from '@/components/taxi/TaxiAddressInput';
 
@@ -404,18 +404,12 @@ export default function Taxi() {
 
           <div className="rounded-3xl bg-white shadow-2xl shadow-black/30 overflow-hidden">
 
-            <TaxiMap
-
+            <TaxiLiveMap
               from={fromCoords ? { lat: fromCoords.lat, lng: fromCoords.lng } : null}
-
               to={toCoords ? { lat: toCoords.lat, lng: toCoords.lng } : null}
-
               centerLat={settings?.center_lat}
-
               centerLng={settings?.center_lng}
-
               height="220px"
-
             />
 
 

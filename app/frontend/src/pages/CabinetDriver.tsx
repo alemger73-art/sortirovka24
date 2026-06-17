@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,8 @@ import {
   type DriverCabinet,
   type TaxiRide,
 } from '@/lib/taxiApi';
+import { ensureLocationPermission, requestCurrentPosition } from '@/lib/geolocation';
+import { playTaxiNewOrderSound, unlockTaxiSound } from '@/lib/taxiDriverSound';
 import {
   Car,
   Check,
@@ -43,6 +45,11 @@ export default function CabinetDriver() {
   const [photoUrl, setPhotoUrl] = useState('');
   const [licenseUrl, setLicenseUrl] = useState('');
   const [techPassportUrl, setTechPassportUrl] = useState('');
+  const [carPhotoUrl, setCarPhotoUrl] = useState('');
+  const knownOrderIds = useRef<Set<number>>(new Set());
+  const ordersInitialized = useRef(false);
+
+  const canWork = Boolean(data?.profile.verified && data?.profile.documents_status === 'verified');
 
   const load = useCallback(async () => {
     try {
@@ -56,6 +63,7 @@ export default function CabinetDriver() {
       setPhotoUrl(cab.profile.photo_url || '');
       setLicenseUrl(cab.profile.license_photo_url || '');
       setTechPassportUrl(cab.profile.tech_passport_photo_url || '');
+      setCarPhotoUrl(cab.profile.car_photo_url || '');
     } catch (e: any) {
       toast.error(String(e?.message || 'Ошибка загрузки кабинета'));
     } finally {
@@ -68,10 +76,38 @@ export default function CabinetDriver() {
   }, [load]);
 
   useEffect(() => {
-    if (!data?.profile.online) return;
-    const interval = setInterval(load, 12000);
+    if (!data?.profile.online) {
+      knownOrderIds.current = new Set();
+      ordersInitialized.current = false;
+      return;
+    }
+    const interval = setInterval(load, 5000);
     return () => clearInterval(interval);
   }, [data?.profile.online, load]);
+
+  useEffect(() => {
+    if (!data?.profile.online || data.active_ride) return;
+    const ids = new Set(data.available_orders.map((o) => o.id));
+    if (!ordersInitialized.current) {
+      knownOrderIds.current = ids;
+      ordersInitialized.current = true;
+      return;
+    }
+    let hasNew = false;
+    for (const id of ids) {
+      if (!knownOrderIds.current.has(id)) hasNew = true;
+    }
+    if (hasNew) {
+      playTaxiNewOrderSound();
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        const latest = data.available_orders[0];
+        new Notification('Новый заказ', {
+          body: latest ? `${latest.from_address} → ${latest.to_address}` : 'Появился новый заказ',
+        });
+      }
+    }
+    knownOrderIds.current = ids;
+  }, [data?.available_orders, data?.profile.online, data?.active_ride]);
 
   useEffect(() => {
     if (!data?.profile.online) return;
@@ -112,6 +148,12 @@ export default function CabinetDriver() {
     setTogglingOnline(true);
     try {
       const next = !data.profile.online;
+      if (next) {
+        await unlockTaxiSound();
+        if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+          void Notification.requestPermission();
+        }
+      }
       await taxiApi.setOnline(next);
       toast.success(next ? 'Вы на линии' : 'Вы offline');
       await load();
@@ -162,6 +204,7 @@ export default function CabinetDriver() {
         photo_url: photoUrl,
         license_photo_url: licenseUrl,
         tech_passport_photo_url: techPassportUrl,
+        car_photo_url: carPhotoUrl,
       });
       toast.success('Профиль сохранён');
       await load();
@@ -225,7 +268,7 @@ export default function CabinetDriver() {
               </button>
               <Button
                 onClick={toggleOnline}
-                disabled={togglingOnline || !profile.verified}
+                disabled={togglingOnline || !canWork}
                 className={`h-12 px-6 rounded-xl font-bold ${
                   profile.online
                     ? 'bg-green-500 hover:bg-green-600 text-white'
@@ -244,14 +287,14 @@ export default function CabinetDriver() {
         </div>
 
         <div className="mx-auto max-w-4xl px-4 py-6 md:px-8 space-y-6">
-          {!profile.verified && (
+          {!canWork && (
             <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 text-amber-900 text-sm space-y-1">
               {profile.documents_status === 'submitted' ? (
-                <p>📋 Документы на проверке. После одобрения администратором вы сможете выйти на линию.</p>
+                <p>📋 Документы на модерации. После проверки администратором вы сможете выйти на линию.</p>
               ) : profile.documents_status === 'rejected' ? (
-                <p>❌ Верификация отклонена. {profile.documents_note || 'Загрузите документы заново.'}</p>
+                <p>❌ Модерация отклонена. {profile.documents_note || 'Загрузите все документы заново.'}</p>
               ) : (
-                <p>⏳ Загрузите фото, права и техпаспорт — затем дождитесь проверки администратором.</p>
+                <p>⏳ Загрузите фото, права, техпаспорт и фото автомобиля — затем дождитесь модерации.</p>
               )}
             </div>
           )}
@@ -350,10 +393,12 @@ export default function CabinetDriver() {
               photoUrl={photoUrl}
               licenseUrl={licenseUrl}
               techPassportUrl={techPassportUrl}
+              carPhotoUrl={carPhotoUrl}
               onChange={(field, value) => {
                 if (field === 'photo_url') setPhotoUrl(value);
                 if (field === 'license_photo_url') setLicenseUrl(value);
                 if (field === 'tech_passport_photo_url') setTechPassportUrl(value);
+                if (field === 'car_photo_url') setCarPhotoUrl(value);
               }}
             />
             <Button variant="outline" className="rounded-xl w-full" disabled={savingProfile} onClick={saveProfile}>

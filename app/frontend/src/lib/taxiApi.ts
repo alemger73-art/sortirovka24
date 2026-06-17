@@ -160,6 +160,7 @@ export interface DriverCabinet {
     photo_url?: string;
     license_photo_url?: string;
     tech_passport_photo_url?: string;
+    car_photo_url?: string;
     documents_status?: string;
     documents_note?: string;
   };
@@ -191,6 +192,7 @@ export interface DriverApplication {
   photo_url?: string;
   license_photo_url?: string;
   tech_passport_photo_url?: string;
+  car_photo_url?: string;
   status: string;
   admin_note?: string;
   is_driver?: boolean;
@@ -258,6 +260,7 @@ export const taxiApi = {
     photo_url?: string;
     license_photo_url?: string;
     tech_passport_photo_url?: string;
+    car_photo_url?: string;
   }) => api<{ success: boolean }>('/api/v1/taxi/driver/profile', { method: 'PUT', body: JSON.stringify(body) }),
 
   acceptRide: (id: number) => api<TaxiRide>(`/api/v1/taxi/driver/rides/${id}/accept`, { method: 'POST' }),
@@ -278,6 +281,7 @@ export const taxiApi = {
     photo_url?: string;
     license_photo_url?: string;
     tech_passport_photo_url?: string;
+    car_photo_url?: string;
   }) => api<DriverApplication>('/api/v1/taxi/driver/application', { method: 'POST', body: JSON.stringify(body) }),
 
   adminSettings: () => adminApi<Record<string, string>>('/api/v1/taxi/admin/settings'),

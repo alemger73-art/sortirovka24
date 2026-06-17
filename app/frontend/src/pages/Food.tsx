@@ -379,8 +379,8 @@ export default function Food() {
         setCategories(cats);
         setItems(foodItems);
       } else {
-        const ecats: FoodCategory[] = filterByRestaurant(extract(results[0])).filter((c: FoodCategory) => c.is_active !== false);
-        const eitems: FoodItem[] = filterByRestaurant(extract(results[1]))
+        const ecats: FoodCategory[] = filterByRestaurant(extract(results[0]) as FoodCategory[]).filter((c: FoodCategory) => c.is_active !== false);
+        const eitems: FoodItem[] = filterByRestaurant(extract(results[1]) as FoodItem[])
           .filter((i: FoodItem) => i.is_active !== false && (i as FoodItem & { available?: boolean }).available !== false)
           .map((i: FoodItem) => ({
             ...i,
@@ -825,7 +825,8 @@ export default function Food() {
           },
         })
       );
-      const orderId = Number(created?.data?.id ?? created?.id ?? 0);
+      const createdAny = created as { data?: { id?: number }; id?: number } | undefined;
+      const orderId = Number(createdAny?.data?.id ?? createdAny?.id ?? 0);
       pushCabinetItem('foodOrders', {
         title: `Заказ #${orderId || '—'} · ${total.toLocaleString('ru-RU')} ₸`,
         subtitle: deliveryMethod === 'delivery' ? fullAddress : 'Самовывоз',

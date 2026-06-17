@@ -159,7 +159,7 @@ function extractErrorMessage(err: unknown): string {
   if (typeof err === 'string') return err.toLowerCase();
   if (err instanceof Error) {
     const base = err.message.toLowerCase();
-    const anyErr = err as Record<string, unknown>;
+    const anyErr = err as unknown as Record<string, unknown>;
     if (anyErr.response && typeof anyErr.response === 'object') {
       const resp = anyErr.response as Record<string, unknown>;
       if (resp.data && typeof resp.data === 'object') {

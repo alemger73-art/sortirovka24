@@ -1,15 +1,8 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-
-const defaultIcon = L.icon({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
+import { fetchRoadRoute } from '@/lib/taxiRoute';
 
 const fromIcon = L.divIcon({
   className: '',
@@ -42,7 +35,7 @@ function FitBounds({ points }: { points: [number, number][] }) {
       map.setView(points[0], 15);
       return;
     }
-    map.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 16 });
+    map.fitBounds(L.latLngBounds(points), { padding: [44, 44], maxZoom: 16 });
   }, [map, points]);
   return null;
 }
@@ -66,6 +59,34 @@ export default function TaxiLiveMap({
   centerLat = 49.9774,
   centerLng = 73.2137,
 }: Props) {
+  const [routeLine, setRouteLine] = useState<[number, number][]>([]);
+
+  const routeFrom = useMemo(() => {
+    if (driver) {
+      const target = trackTarget === 'dropoff' && to ? to : from;
+      return driver && target ? { from: driver, to: target } : null;
+    }
+    if (from && to) return { from, to };
+    return null;
+  }, [from, to, driver, trackTarget]);
+
+  useEffect(() => {
+    if (!routeFrom) {
+      setRouteLine([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const result = await fetchRoadRoute(routeFrom.from, routeFrom.to);
+      if (!cancelled) {
+        setRouteLine(result?.points ?? []);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [routeFrom?.from.lat, routeFrom?.from.lng, routeFrom?.to.lat, routeFrom?.to.lng]);
+
   const points = useMemo(() => {
     const list: [number, number][] = [];
     if (from) list.push([from.lat, from.lng]);
@@ -75,14 +96,15 @@ export default function TaxiLiveMap({
   }, [from, to, driver]);
 
   const center: [number, number] = points[0] || [centerLat, centerLng];
-  const line = useMemo(() => {
-    const target = trackTarget === 'dropoff' && to ? to : from;
-    if (driver && target) {
-      return [[driver.lat, driver.lng], [target.lat, target.lng]] as [number, number][];
-    }
-    if (from && to) return [[from.lat, from.lng], [to.lat, to.lng]] as [number, number][];
-    return [] as [number, number][];
-  }, [from, to, driver, trackTarget]);
+
+  const fallbackLine = useMemo(() => {
+    if (routeLine.length >= 2) return routeLine;
+    if (!routeFrom) return [] as [number, number][];
+    return [
+      [routeFrom.from.lat, routeFrom.from.lng],
+      [routeFrom.to.lat, routeFrom.to.lng],
+    ] as [number, number][];
+  }, [routeLine, routeFrom]);
 
   return (
     <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-inner z-0" style={{ height }}>
@@ -91,7 +113,7 @@ export default function TaxiLiveMap({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <FitBounds points={points} />
+        <FitBounds points={routeLine.length >= 2 ? routeLine : points} />
         {from && (
           <Marker position={[from.lat, from.lng]} icon={fromIcon}>
             <Popup>Откуда</Popup>
@@ -107,8 +129,17 @@ export default function TaxiLiveMap({
             <Popup>Водитель</Popup>
           </Marker>
         )}
-        {line.length >= 2 && (
-          <Polyline positions={line} pathOptions={{ color: '#facc15', weight: 4, opacity: 0.85, dashArray: driver ? '8 8' : undefined }} />
+        {fallbackLine.length >= 2 && (
+          <Polyline
+            positions={fallbackLine}
+            pathOptions={{
+              color: '#facc15',
+              weight: 5,
+              opacity: 0.9,
+              lineJoin: 'round',
+              lineCap: 'round',
+            }}
+          />
         )}
       </MapContainer>
     </div>

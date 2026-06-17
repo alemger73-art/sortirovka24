@@ -19,6 +19,8 @@ import { ImageIcon, ImageOff } from 'lucide-react';
 
 interface StorageImgProps {
   objectKey?: string | null;
+  /** Direct image URL. When provided it takes precedence over objectKey resolution. */
+  src?: string | null;
   alt?: string;
   className?: string;
   fallbackClassName?: string;
@@ -30,13 +32,14 @@ interface StorageImgProps {
 
 const StorageImg = memo(function StorageImg({
   objectKey,
+  src: directSrc,
   alt = '',
   className = '',
   fallbackClassName,
   showBrokenIndicator = false,
   priority = false,
 }: StorageImgProps) {
-  const syncSrc = resolveImageSrc(objectKey ?? null);
+  const syncSrc = directSrc || resolveImageSrc(objectKey ?? null);
   const [asyncSrc, setAsyncSrc] = useState<string | null>(null);
   const src = syncSrc || asyncSrc;
   const alreadyCached = src ? isImageCached(src) : false;
@@ -104,8 +107,8 @@ const StorageImg = memo(function StorageImg({
     setError(true);
   }, [retried]);
 
-  // No objectKey provided — show empty placeholder
-  if (!objectKey) {
+  // No image source provided — show empty placeholder
+  if (!objectKey && !directSrc) {
     return (
       <div className={`bg-gray-100 flex items-center justify-center ${fallbackClassName || className}`}>
         <ImageIcon className="h-6 w-6 text-gray-300" />

@@ -241,13 +241,27 @@ def include_routers_from_package(app: FastAPI, package_name: str = "routers") ->
 setup_logging()
 include_routers_from_package(app, "routers")
 
+def _collect_route_paths(routes, prefix: str = "") -> set[str]:
+    paths: set[str] = set()
+    for route in routes:
+        path = getattr(route, "path", None)
+        if path:
+            full = (prefix + path).replace("//", "/")
+            paths.add(full)
+        nested = getattr(route, "routes", None)
+        if nested:
+            child_prefix = prefix + (path or "")
+            paths.update(_collect_route_paths(nested, child_prefix))
+    return paths
+
+
 # Fail fast: auth/account endpoints must be registered in production startup.
 required_paths = {
     "/api/v1/account/register/request-sms",
     "/api/v1/account/register/confirm",
     "/api/v1/account/login",
 }
-registered_paths = {route.path for route in app.routes}
+registered_paths = set(app.openapi().get("paths", {}).keys()) or _collect_route_paths(app.routes)
 missing_paths = sorted(required_paths - registered_paths)
 if missing_paths:
     raise RuntimeError(f"Critical account routes are missing: {missing_paths}")

@@ -30,7 +30,8 @@ aiosqlite>=0.20.0
 greenlet
 
 # auth module dependencies
-python-jose[cryptography]>=3.3.0
+# >=3.4.0 fixes CVE-2024-33663 (algorithm confusion) and CVE-2024-33664 (JWT bomb)
+python-jose[cryptography]>=3.4.0
 
 # aihub module dependencies
 openai==2.16.0
