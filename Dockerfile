@@ -36,5 +36,5 @@ COPY --from=frontend /app/frontend/dist ./frontend_dist
 
 EXPOSE 8000
 
-# Binds to $PORT (Railway). Avoid start.sh — CRLF on Windows breaks `sh start.sh`.
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips=*"]
+# Run DB migrations, then start the API (same as app/backend/start.sh).
+CMD ["sh", "-c", "alembic upgrade head || echo 'WARNING: alembic upgrade failed'; uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips=*"]

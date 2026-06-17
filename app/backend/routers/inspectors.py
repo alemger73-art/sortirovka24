@@ -190,6 +190,25 @@ async def query_inspectorss_all(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
+@router.post("/admin/reload-from-file")
+async def admin_reload_inspectors_from_file(
+    _admin: dict = Depends(require_panel_admin),
+):
+    """Delete all inspectors and reload from mock_data/inspectors.json (admin only)."""
+    try:
+        count = await reload_inspectors_from_mock_file()
+        return {
+            "success": True,
+            "count": count,
+            "message": f"Загружено {count} участковых из файла",
+        }
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.error("Failed to reload inspectors from file: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Ошибка перезагрузки: {exc}") from exc
+
+
 @router.get("/{id}", response_model=InspectorsResponse)
 async def get_inspectors(
     id: int,
@@ -367,22 +386,3 @@ async def delete_inspectors(
     except Exception as e:
         logger.error(f"Error deleting inspectors {id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-
-
-@router.post("/admin/reload-from-file")
-async def admin_reload_inspectors_from_file(
-    _admin: dict = Depends(require_panel_admin),
-):
-    """Delete all inspectors and reload from mock_data/inspectors.json (admin only)."""
-    try:
-        count = await reload_inspectors_from_mock_file()
-        return {
-            "success": True,
-            "count": count,
-            "message": f"Загружено {count} участковых из файла",
-        }
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except Exception as exc:
-        logger.error("Failed to reload inspectors from file: %s", exc, exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Ошибка перезагрузки: {exc}") from exc

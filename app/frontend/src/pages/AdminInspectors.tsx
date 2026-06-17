@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { client, withRetry } from '@/lib/api';
 import { invalidateAllCaches } from '@/lib/cache';
-import { getAPIBaseURL } from '@/lib/config';
+import { apiUrl } from '@/lib/config';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -219,8 +219,8 @@ export default function AdminInspectors() {
   };
 
   const handleSave = async () => {
-    if (!editItem?.full_name || !editItem?.phone || !editItem?.streets) {
-      toast.error('Заполните обязательные поля: ФИО, Телефон, Улицы');
+    if (!editItem?.full_name || !editItem?.streets) {
+      toast.error('Заполните обязательные поля: ФИО, Улицы');
       return;
     }
     setSaving(true);
@@ -233,7 +233,7 @@ export default function AdminInspectors() {
         district: editItem.district || '',
         address: editItem.address || '',
         schedule: editItem.schedule || '',
-        phone: editItem.phone,
+        phone: editItem.phone || '',
         whatsapp: editItem.whatsapp || '',
         streets: editItem.streets,
         description: editItem.description || '',
@@ -271,31 +271,36 @@ export default function AdminInspectors() {
 
   const handleReloadFromFile = async () => {
     if (!confirm(
-      'Перезагрузить всех участковых из файла mock_data/inspectors.json?\n\n' +
-      'Текущие записи в базе будут удалены и заменены данными из файла.'
+      'Перезагрузить всех участковых из файла?\n\n' +
+      'Текущие записи в базе будут удалены и заменены актуальным списком сотрудников (13 человек).'
     )) return;
 
     setReloading(true);
     try {
       const token = localStorage.getItem('_sp924_token') || localStorage.getItem('token') || '';
-      const base = getAPIBaseURL().replace(/\/+$/, '');
-      const resp = await fetch(`${base}/api/v1/entities/inspectors/admin/reload-from-file`, {
+      const resp = await fetch(apiUrl('/api/v1/entities/inspectors/admin/reload-from-file'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
+      const bodyText = await resp.text();
       if (!resp.ok) {
-        const detail = await resp.text().catch(() => '');
+        let detail = bodyText;
+        try {
+          const parsed = JSON.parse(bodyText) as { detail?: string };
+          detail = parsed.detail || bodyText;
+        } catch { /* keep raw */ }
         throw new Error(detail || `HTTP ${resp.status}`);
       }
-      const data = await resp.json() as { message?: string; count?: number };
+      const data = JSON.parse(bodyText) as { message?: string; count?: number };
       invalidateAllCaches();
       toast.success(data.message || `Загружено ${data.count ?? 0} участковых`);
       fetchItems();
-    } catch {
-      toast.error('Ошибка перезагрузки из файла');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Ошибка перезагрузки из файла';
+      toast.error(message.length > 120 ? 'Ошибка перезагрузки из файла' : message);
     } finally {
       setReloading(false);
     }

@@ -127,7 +127,7 @@ export default function InspectorsPage() {
     setLoading(true);
     try {
       const res = await fetchWithCache(
-        'inspectors_list',
+        'inspectors_list_v2',
         () => withRetry(() => client.entities.inspectors.query({ sort: 'precinct_number', limit: 100 })),
         2 * 60 * 1000
       );

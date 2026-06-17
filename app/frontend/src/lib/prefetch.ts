@@ -135,7 +135,7 @@ function prefetchJobs(): void {
 }
 
 function prefetchInspectors(): void {
-  prefetchOne('inspectors_list', () => withRetry(() =>
+  prefetchOne('inspectors_list_v2', () => withRetry(() =>
     client.entities.inspectors.query({ sort: 'precinct_number', limit: 100 })
   ), CACHE_5M);
 }
