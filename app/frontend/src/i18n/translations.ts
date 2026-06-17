@@ -29,6 +29,7 @@ const translations: Translations = {
   'more.sectionCommunity': { ru: 'Сообщество', kz: 'Қауымдастық' },
   'more.sectionAbout': { ru: 'О проекте', kz: 'Жоба туралы' },
   'more.gastronom': { ru: 'Гастроном', kz: 'Гастроном' },
+  'more.pharmacy': { ru: 'Аптека', kz: 'Дәріхана' },
   'more.foodRestaurants': { ru: 'Рестораны', kz: 'Мейрамханалар' },
   'more.inspectors': { ru: 'Инспекторы', kz: 'Инспекторлар' },
   'more.realEstate': { ru: 'Недвижимость', kz: 'Жылжымайтын мүлік' },
@@ -194,7 +195,9 @@ const translations: Translations = {
   'categories.construction': { ru: 'Стройматериалы', kz: 'Құрылыс материалдары' },
   'categories.prorab': { ru: 'PRORAB', kz: 'PRORAB' },
   'categories.prorabDesc': { ru: 'Доставка стройматериалов по Сортировке', kz: 'Сортировка бойынша құрылыс материалдары жеткізу' },
+  'categories.pharmacy': { ru: 'Аптека', kz: 'Дәріхана' },
   'quick.prorab': { ru: 'PRORAB', kz: 'PRORAB' },
+  'quick.pharmacy': { ru: 'Аптека', kz: 'Дәріхана' },
 
   /* ─── Hero CTA ─── */
   'hero.findService': { ru: 'Найти услугу', kz: 'Қызмет табу' },
@@ -470,6 +473,7 @@ const translations: Translations = {
   'common.copy': { ru: 'Скопировать', kz: 'Көшіру' },
   'common.copied': { ru: 'Скопировано', kz: 'Көшірілді' },
   'common.call': { ru: 'Позвонить', kz: 'Қоңырау шалу' },
+  'common.noPhone': { ru: 'Телефон не указан', kz: 'Телефон көрсетілмеген' },
   'common.showAll': { ru: 'Показать все', kz: 'Барлығын көрсету' },
   'common.noResults': { ru: 'Ничего не найдено', kz: 'Ештеңе табылмады' },
 

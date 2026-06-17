@@ -35,6 +35,7 @@ export default function CabinetDriver() {
   const [loading, setLoading] = useState(true);
   const [togglingOnline, setTogglingOnline] = useState(false);
   const [acceptingId, setAcceptingId] = useState<number | null>(null);
+  const [decliningId, setDecliningId] = useState<number | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [carMake, setCarMake] = useState('');
@@ -87,7 +88,9 @@ export default function CabinetDriver() {
 
   useEffect(() => {
     if (!data?.profile.online || data.active_ride) return;
-    const ids = new Set(data.available_orders.map((o) => o.id));
+    const currentId = data.offered_order?.id ?? data.available_orders[0]?.id;
+    if (!currentId) return;
+    const ids = new Set([currentId, ...data.available_orders.map((o) => o.id)]);
     if (!ordersInitialized.current) {
       knownOrderIds.current = ids;
       ordersInitialized.current = true;
@@ -100,14 +103,14 @@ export default function CabinetDriver() {
     if (hasNew) {
       playTaxiNewOrderSound();
       if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-        const latest = data.available_orders[0];
+        const latest = data.offered_order ?? data.available_orders[0];
         new Notification('Новый заказ', {
           body: latest ? `${latest.from_address} → ${latest.to_address}` : 'Появился новый заказ',
         });
       }
     }
     knownOrderIds.current = ids;
-  }, [data?.available_orders, data?.profile.online, data?.active_ride]);
+  }, [data?.available_orders, data?.offered_order, data?.profile.online, data?.active_ride]);
 
   useEffect(() => {
     if (!data?.profile.online) return;
@@ -134,14 +137,14 @@ export default function CabinetDriver() {
       await ensureLocationPermission();
       if (cancelled) return;
       await tick();
-      interval = setInterval(() => void tick(), data?.active_ride ? 12000 : 30000);
+      interval = setInterval(() => void tick(), data?.active_ride || data?.offered_order ? 10000 : 20000);
     })();
 
     return () => {
       cancelled = true;
       if (interval) clearInterval(interval);
     };
-  }, [data?.profile.online, data?.active_ride]);
+  }, [data?.profile.online, data?.active_ride, data?.offered_order]);
 
   async function toggleOnline() {
     if (!data) return;
@@ -161,6 +164,19 @@ export default function CabinetDriver() {
       toast.error(String(e?.message || 'Ошибка'));
     } finally {
       setTogglingOnline(false);
+    }
+  }
+
+  async function declineOrder(ride: TaxiRide) {
+    setDecliningId(ride.id);
+    try {
+      await taxiApi.declineRide(ride.id);
+      toast.success('Заказ пропущен');
+      await load();
+    } catch (e: any) {
+      toast.error(String(e?.message || 'Ошибка'));
+    } finally {
+      setDecliningId(null);
     }
   }
 
@@ -235,7 +251,8 @@ export default function CabinetDriver() {
     );
   }
 
-  const { profile, available_orders, active_ride, order_history, earnings } = data;
+  const { profile, offered_order, available_orders, active_ride, order_history, earnings } = data;
+  const pendingCount = (offered_order ? 1 : 0) + available_orders.length;
 
   return (
     <Layout>
@@ -303,7 +320,7 @@ export default function CabinetDriver() {
             {[
               { label: 'Заработок', value: formatTenge(earnings), icon: Wallet },
               { label: 'На линии', value: profile.online ? 'Да' : 'Нет', icon: Power },
-              { label: 'Заказов', value: String(available_orders.length), icon: MapPin },
+              { label: 'Заказов', value: String(pendingCount), icon: MapPin },
               { label: 'Рейтинг', value: profile.rating?.toFixed(1) || '5.0', icon: Star },
             ].map(({ label, value, icon: Icon }) => (
               <div key={label} className="rounded-2xl bg-white border border-gray-100 p-4 shadow-sm">
@@ -347,11 +364,42 @@ export default function CabinetDriver() {
             </div>
           )}
 
+          {!active_ride && profile.online && offered_order && (
+            <div className="rounded-2xl bg-gradient-to-br from-yellow-300 to-amber-400 border-2 border-yellow-500 p-5 space-y-4 shadow-lg animate-pulse">
+              <div className="flex items-center justify-between">
+                <h2 className="font-black text-gray-900 text-lg">🚕 Новый заказ для вас!</h2>
+                <span className="text-sm font-bold bg-gray-900 text-yellow-400 px-3 py-1 rounded-full">
+                  {offered_order.offer_seconds_left ?? 15} сек
+                </span>
+              </div>
+              <p className="text-sm font-medium text-gray-900">{offered_order.from_address}</p>
+              <p className="text-sm text-gray-800">→ {offered_order.to_address}</p>
+              <p className="text-2xl font-black text-gray-900">{formatTenge(offered_order.estimated_price)}</p>
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1 h-12 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-bold"
+                  disabled={acceptingId === offered_order.id}
+                  onClick={() => acceptOrder(offered_order)}
+                >
+                  {acceptingId === offered_order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Принять'}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-12 px-5 rounded-xl border-gray-900 text-gray-900 font-bold bg-white/80"
+                  disabled={decliningId === offered_order.id}
+                  onClick={() => declineOrder(offered_order)}
+                >
+                  {decliningId === offered_order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Пропустить'}
+                </Button>
+              </div>
+            </div>
+          )}
+
           {!active_ride && profile.online && (
             <div className="space-y-3">
               <h2 className="font-bold text-gray-900 flex items-center gap-2">
                 <Navigation className="h-4 w-4 text-yellow-500" />
-                Доступные заказы ({available_orders.length})
+                Другие заказы ({available_orders.length})
               </h2>
               {available_orders.length === 0 ? (
                 <div className="rounded-2xl bg-white border border-gray-100 p-8 text-center text-gray-500">

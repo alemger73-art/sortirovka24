@@ -355,6 +355,7 @@ export default function AdminTaxi() {
                 {[
                   { key: 'base_fare', label: 'Посадка (₸)' },
                   { key: 'per_km', label: 'За километр (₸)' },
+                  { key: 'per_minute', label: 'За минуту в пути (₸)' },
                   { key: 'min_fare', label: 'Минимальная поездка (₸)' },
                   { key: 'eta_minutes_per_km', label: 'Минут на км (расчёт ETA)' },
                 ].map(({ key, label }) => (

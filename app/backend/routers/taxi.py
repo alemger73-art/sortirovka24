@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from core.database import get_db
@@ -189,6 +190,7 @@ async def quote_ride(body: QuoteRequest, db: AsyncSession = Depends(get_db)):
         to_loc["lng"],
         from_address=from_loc.get("address") or "",
         to_address=to_loc.get("address") or "",
+        db=db,
     )
     return result
 
@@ -232,32 +234,16 @@ async def get_road_route(
     to_lng: float,
 ):
     """Road geometry via OSRM (for map display)."""
-    import httpx
+    from services.taxi_routing import fetch_osrm_route
 
-    url = (
-        f"https://router.project-osrm.org/route/v1/driving/"
-        f"{from_lng},{from_lat};{to_lng},{to_lat}?overview=full&geometries=geojson"
-    )
-    try:
-        async with httpx.AsyncClient(timeout=12.0) as client:
-            resp = await client.get(url)
-            resp.raise_for_status()
-            data = resp.json()
-        route = (data.get("routes") or [None])[0]
-        if not route:
-            raise HTTPException(status_code=404, detail="Маршрут не найден")
-        coords = route.get("geometry", {}).get("coordinates") or []
-        points = [{"lat": c[1], "lng": c[0]} for c in coords]
-        return {
-            "points": points,
-            "distance_km": round((route.get("distance") or 0) / 1000, 2),
-            "duration_min": max(1, int(round((route.get("duration") or 0) / 60))),
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.warning("OSRM route failed: %s", e)
+    route = await fetch_osrm_route(from_lat, from_lng, to_lat, to_lng)
+    if not route:
         raise HTTPException(status_code=502, detail="Не удалось построить маршрут")
+    return {
+        "points": route["points"],
+        "distance_km": route["distance_km"],
+        "duration_min": route["duration_min"],
+    }
 
 
 # ─── Passenger ─────────────────────────────────────────────────────
@@ -278,7 +264,7 @@ async def create_taxi_ride(
         raise HTTPException(status_code=503, detail=str(e))
 
     try:
-        await validate_quote_for_order(
+        quote = await validate_quote_for_order(
             db,
             body.from_lat,
             body.from_lng,
@@ -305,9 +291,15 @@ async def create_taxi_ride(
             comment=body.comment or "",
             estimated_price=body.estimated_price,
             distance_km=body.distance_km,
+            duration_minutes=float(quote.get("duration_minutes") or 0),
+            surge_multiplier=float(quote.get("surge_multiplier") or 1.0),
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+    from services.taxi_dispatch import offer_ride_to_next_driver
+    await offer_ride_to_next_driver(db, ride)
+    await db.refresh(ride)
 
     data = ride_to_dict(ride)
     await notify_taxi_new_ride(data)
@@ -422,7 +414,9 @@ async def driver_cabinet(
     user = await get_taxi_user(db, authorization)
     assert_driver_user(user)
     profile = await get_or_create_driver_profile(db, user)
-    pending = await list_pending_rides(db)
+    from services.taxi_dispatch import driver_cabinet_orders
+
+    offered, broadcast = await driver_cabinet_orders(db, str(user.id))
     history = await list_driver_rides(db, str(user.id))
     active = [r for r in history if r.status in ("accepted", "driver_arrived", "in_progress")]
     completed = [r for r in history if r.status == "completed"]
@@ -430,7 +424,8 @@ async def driver_cabinet(
 
     return {
         "profile": driver_profile_dict(profile, user),
-        "available_orders": [ride_to_dict(r) for r in pending],
+        "offered_order": offered,
+        "available_orders": broadcast,
         "active_ride": ride_to_dict(active[0]) if active else None,
         "order_history": [ride_to_dict(r) for r in history[:30]],
         "earnings": earnings,
@@ -473,7 +468,26 @@ async def update_driver_location(
     profile = await get_or_create_driver_profile(db, user)
     profile.current_lat = body.lat
     profile.current_lng = body.lng
+    profile.location_updated_at = datetime.now(timezone.utc).isoformat()
     await db.commit()
+
+    from models.taxi import TaxiRide
+    from services.taxi_dispatch import check_geofence_arrival
+
+    active = (
+        await db.execute(
+            select(TaxiRide).where(
+                TaxiRide.driver_id == str(user.id),
+                TaxiRide.status == "accepted",
+            )
+        )
+    ).scalar_one_or_none()
+    if active:
+        settings = await get_settings_dict(db)
+        updated = await check_geofence_arrival(db, profile, active, settings)
+        if updated:
+            data = await get_ride_with_driver(db, updated.id)
+            await notify_taxi_status_change(data, "driver_arrived")
     return {"success": True}
 
 
@@ -510,8 +524,28 @@ async def driver_available_rides(
 ):
     user = await get_taxi_user(db, authorization)
     assert_driver_user(user)
-    pending = await list_pending_rides(db)
-    return [ride_to_dict(r) for r in pending]
+    from services.taxi_dispatch import driver_cabinet_orders
+    _, broadcast = await driver_cabinet_orders(db, str(user.id))
+    return broadcast
+
+
+@router.post("/driver/rides/{ride_id}/decline")
+async def driver_decline_ride(
+    ride_id: int,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await get_taxi_user(db, authorization)
+    assert_driver_user(user)
+    ride = await get_ride_by_id(db, ride_id)
+    if not ride:
+        raise HTTPException(status_code=404, detail="Поездка не найдена")
+    from services.taxi_dispatch import decline_offer
+    try:
+        await decline_offer(db, ride, user)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"success": True}
 
 
 @router.post("/driver/rides/{ride_id}/accept")

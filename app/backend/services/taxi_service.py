@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 from models.auth import User
 from models.taxi import TaxiDriverApplication, TaxiDriverProfile, TaxiRide, TaxiSettings
 from services.taxi_pricing import DEFAULT_SETTINGS, build_quote, is_taxi_enabled, settings_to_dict
-from services.taxi_tracking import build_ride_tracking
+from services.taxi_tracking import build_ride_tracking_async
 from sqlalchemy import desc, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -125,9 +125,13 @@ def ride_to_dict(
         "to_lat": ride.to_lat,
         "to_lng": ride.to_lng,
         "distance_km": ride.distance_km,
+        "duration_minutes": ride.duration_minutes,
+        "surge_multiplier": ride.surge_multiplier,
         "estimated_price": ride.estimated_price,
         "final_price": ride.final_price,
         "status": ride.status,
+        "offered_driver_id": ride.offered_driver_id,
+        "offer_expires_at": ride.offer_expires_at,
         "payment_method": ride.payment_method,
         "comment": ride.comment,
         "cancel_reason": ride.cancel_reason,
@@ -192,6 +196,8 @@ async def create_ride(
     comment: str = "",
     estimated_price: float,
     distance_km: float,
+    duration_minutes: float = 0,
+    surge_multiplier: float = 1.0,
 ) -> TaxiRide:
     active = (
         await db.execute(
@@ -215,6 +221,8 @@ async def create_ride(
         to_lat=to_lat,
         to_lng=to_lng,
         distance_km=distance_km,
+        duration_minutes=duration_minutes,
+        surge_multiplier=surge_multiplier,
         estimated_price=estimated_price,
         payment_method=payment_method,
         comment=comment.strip() or None,
@@ -244,7 +252,7 @@ async def get_ride_with_driver(db: AsyncSession, ride_id: int) -> Dict[str, Any]
 
     settings = await get_settings_dict(db)
     minutes_per_km = float(settings.get("eta_minutes_per_km") or 3)
-    tracking = build_ride_tracking(ride, driver_profile, minutes_per_km=minutes_per_km)
+    tracking = await build_ride_tracking_async(ride, driver_profile, minutes_per_km=minutes_per_km)
     return ride_to_dict(ride, driver_profile, driver_user, tracking=tracking)
 
 
@@ -267,10 +275,25 @@ async def accept_ride(db: AsyncSession, ride_id: int, driver_user: User) -> Taxi
     if active_driver_ride:
         raise ValueError("У вас уже есть активная поездка")
 
+    ride = await get_ride_by_id(db, ride_id)
+    if not ride or ride.status != "pending":
+        raise ValueError("Заказ уже принят другим водителем или недоступен")
+
+    from services.taxi_dispatch import offer_is_active
+
+    if offer_is_active(ride) and ride.offered_driver_id != str(driver_user.id):
+        raise ValueError("Заказ предложен другому водителю")
+
     result = await db.execute(
         update(TaxiRide)
         .where(TaxiRide.id == ride_id, TaxiRide.status == "pending", TaxiRide.driver_id.is_(None))
-        .values(driver_id=str(driver_user.id), status="accepted", accepted_at=_now_iso())
+        .values(
+            driver_id=str(driver_user.id),
+            status="accepted",
+            accepted_at=_now_iso(),
+            offered_driver_id=None,
+            offer_expires_at=None,
+        )
     )
     if result.rowcount == 0:
         raise ValueError("Заказ уже принят другим водителем или недоступен")
@@ -398,7 +421,7 @@ async def validate_quote_for_order(
 ) -> Dict[str, Any]:
     settings = await get_settings_dict(db)
     quote = await build_quote(
-        settings, from_lat, from_lng, to_lat, to_lng,
+        settings, from_lat, from_lng, to_lat, to_lng, db=db,
     )
     if not quote.get("available"):
         raise ValueError(quote.get("message") or "Маршрут недоступен")

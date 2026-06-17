@@ -28,6 +28,7 @@ class TaxiDriverProfile(Base):
     balance = Column(Float, nullable=False, default=0)
     current_lat = Column(Float, nullable=True)
     current_lng = Column(Float, nullable=True)
+    location_updated_at = Column(String(64), nullable=True)
     phone = Column(String(32), nullable=True)
     photo_url = Column(String(512), nullable=True)
     license_photo_url = Column(String(512), nullable=True)
@@ -76,10 +77,16 @@ class TaxiRide(BaseModel):
     to_lng = Column(Float, nullable=True)
 
     distance_km = Column(Float, nullable=True)
+    duration_minutes = Column(Float, nullable=True)
+    surge_multiplier = Column(Float, nullable=False, default=1.0)
     estimated_price = Column(Float, nullable=False, default=0)
     final_price = Column(Float, nullable=True)
 
     status = Column(String(32), nullable=False, default="pending", index=True)
+    offered_driver_id = Column(String(255), nullable=True, index=True)
+    offer_expires_at = Column(String(64), nullable=True)
+    dispatch_round = Column(Integer, nullable=False, default=0)
+    dispatch_excluded = Column(Text, nullable=True)
     payment_method = Column(String(32), nullable=False, default="cash")
     comment = Column(Text, nullable=True)
 

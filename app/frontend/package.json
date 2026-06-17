@@ -10,6 +10,7 @@
     "build:android:release": "powershell -ExecutionPolicy Bypass -File scripts/build-android-release.ps1",
     "setup:play-keystore": "powershell -ExecutionPolicy Bypass -File scripts/setup-play-keystore.ps1",
     "lint": "eslint --quiet ./src",
+    "test:e2e": "playwright test",
     "preview": "vite preview",
     "postinstall": "echo 'Dependencies installed successfully'",
     "cap:sync": "npm run build:mobile && npx cap sync",

@@ -23,11 +23,13 @@ import AdminHistory from './AdminHistory';
 import AdminFrontpad from './AdminFrontpad';
 import AdminTransport from './AdminTransport';
 import AdminTaxi from './AdminTaxi';
+import AdminLogistics from './AdminLogistics';
 import AdminParkPoints from './AdminParkPoints';
 import AdminParkOrders from './AdminParkOrders';
 import AdminAccountSettings from './AdminAccountSettings';
 import AdminGastronom from './AdminGastronom';
 import AdminProrab from './AdminProrab';
+import AdminPharmacy from './AdminPharmacy';
 import AdminSupport from './AdminSupport';
 import AdminPush from './AdminPush';
 
@@ -302,10 +304,12 @@ export default function AdminPanel() {
       case 'park-orders': return <AdminParkOrders />;
       case 'transport': return <AdminTransport />;
       case 'taxi': return <AdminTaxi />;
+      case 'logistics': return <AdminLogistics />;
       case 'pos-integration': return <AdminFrontpad />;
       case 'account-settings': return <AdminAccountSettings />;
       case 'partners-gastronom': return <AdminGastronom />;
       case 'partners-prorab': return <AdminProrab />;
+      case 'partners-pharmacy': return <AdminPharmacy />;
       case 'support': return <AdminSupport />;
       case 'push': return <AdminPush />;
       default: return <AdminCategories />;
@@ -344,7 +348,7 @@ export default function AdminPanel() {
           <h1 className="text-xl font-bold text-gray-900">{getTabLabel(activeTab)}</h1>
         </div>
 
-        <div className={`p-3 sm:p-4 md:p-6 ${activeTab === 'partners-gastronom' || activeTab === 'partners-prorab' ? 'pb-24 md:pb-6' : ''}`}>
+        <div className={`p-3 sm:p-4 md:p-6 ${activeTab === 'partners-gastronom' || activeTab === 'partners-prorab' || activeTab === 'partners-pharmacy' ? 'pb-24 md:pb-6' : ''}`}>
           {renderContent()}
         </div>
 

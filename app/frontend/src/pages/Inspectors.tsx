@@ -31,7 +31,7 @@ interface Inspector {
   district?: string;
   address?: string;
   schedule?: string;
-  phone: string;
+  phone?: string;
   whatsapp?: string;
   streets: string;
   description?: string;
@@ -393,14 +393,25 @@ export default function InspectorsPage() {
           <div className="flex items-center gap-3 max-w-3xl mx-auto">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{selectedInspector.full_name}</p>
-              <p className="text-xs text-gray-500">{selectedInspector.phone}</p>
+              <p className="text-xs text-gray-500">{selectedInspector.phone || t('common.noPhone')}</p>
             </div>
-            <a
-              href={`tel:${selectedInspector.phone}`}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-3 rounded-xl text-sm shadow-lg"
-            >
-              <Phone className="w-4 h-4" /> {t('common.call')}
-            </a>
+            {selectedInspector.phone ? (
+              <a
+                href={`tel:${selectedInspector.phone}`}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-3 rounded-xl text-sm shadow-lg"
+              >
+                <Phone className="w-4 h-4" /> {t('common.call')}
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="flex items-center gap-2 bg-gray-200 dark:bg-gray-800 text-gray-500 font-bold px-5 py-3 rounded-xl text-sm cursor-not-allowed"
+                title={t('common.noPhone')}
+              >
+                <Phone className="w-4 h-4" /> {t('common.call')}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -453,9 +464,15 @@ function LeadershipChip({ inspector: ins, t }: { inspector: Inspector; t: (k: st
           <p className="text-[10px] text-amber-600 font-medium uppercase">{ins.position || t('inspectors.leadership')}</p>
         </div>
       </div>
-      <a href={`tel:${ins.phone}`} className="flex items-center justify-center gap-2 w-full bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold py-2 rounded-xl">
-        <Phone className="w-3.5 h-3.5" /> {ins.phone}
-      </a>
+      {ins.phone ? (
+        <a href={`tel:${ins.phone}`} className="flex items-center justify-center gap-2 w-full bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold py-2 rounded-xl">
+          <Phone className="w-3.5 h-3.5" /> {ins.phone}
+        </a>
+      ) : (
+        <div className="w-full bg-gray-100 dark:bg-gray-800 text-gray-500 text-sm font-bold py-2 rounded-xl text-center">
+          {t('common.noPhone')}
+        </div>
+      )}
     </div>
   );
 }
@@ -534,15 +551,26 @@ function FeaturedInspector({
         )}
 
         <div className="flex gap-2">
-          <a href={`tel:${ins.phone}`} className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl text-base shadow-lg shadow-blue-600/25 transition-all active:scale-[0.98]">
-            <Phone className="w-5 h-5" /> {ins.phone}
-          </a>
+          {ins.phone ? (
+            <a href={`tel:${ins.phone}`} className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl text-base shadow-lg shadow-blue-600/25 transition-all active:scale-[0.98]">
+              <Phone className="w-5 h-5" /> {ins.phone}
+            </a>
+          ) : (
+            <button type="button" disabled className="flex-1 flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-800 text-gray-500 font-bold py-4 rounded-2xl text-base cursor-not-allowed">
+              <Phone className="w-5 h-5" /> {t('common.noPhone')}
+            </button>
+          )}
           {ins.whatsapp && (
             <a href={`https://wa.me/${ins.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold px-4 py-4 rounded-2xl">
               <MessageCircle className="w-5 h-5" />
             </a>
           )}
-          <button onClick={() => copyPhone(ins.phone, t)} className="w-14 flex items-center justify-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 rounded-2xl text-gray-600">
+          <button
+            onClick={() => ins.phone && copyPhone(ins.phone, t)}
+            disabled={!ins.phone}
+            className={`w-14 flex items-center justify-center rounded-2xl ${ins.phone ? 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 text-gray-600' : 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed'}`}
+            title={ins.phone ? t('common.copy') : t('common.noPhone')}
+          >
             <Copy className="w-5 h-5" />
           </button>
         </div>
@@ -844,13 +872,23 @@ function InspectorCard({
               <span className="text-xs text-gray-400 truncate">{streetsList.slice(0, 2).join(', ')}</span>
             </div>
           </div>
-          <a
-            href={`tel:${ins.phone}`}
-            onClick={e => e.stopPropagation()}
-            className="flex-shrink-0 w-11 h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-md"
-          >
-            <Phone className="w-4 h-4" />
-          </a>
+          {ins.phone ? (
+            <a
+              href={`tel:${ins.phone}`}
+              onClick={e => e.stopPropagation()}
+              className="flex-shrink-0 w-11 h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-md"
+              title={t('common.call')}
+            >
+              <Phone className="w-4 h-4" />
+            </a>
+          ) : (
+            <div
+              className="flex-shrink-0 w-11 h-11 rounded-xl bg-gray-200 dark:bg-gray-800 text-gray-400 flex items-center justify-center"
+              title={t('common.noPhone')}
+            >
+              <Phone className="w-4 h-4" />
+            </div>
+          )}
         </div>
       </div>
     );
@@ -891,15 +929,26 @@ function InspectorCard({
         )}
 
         <div className="flex gap-2">
-          <a href={`tel:${ins.phone}`} className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-3 rounded-xl text-sm">
-            <Phone className="w-4 h-4" /> {t('common.call')}
-          </a>
+          {ins.phone ? (
+            <a href={`tel:${ins.phone}`} className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-3 rounded-xl text-sm">
+              <Phone className="w-4 h-4" /> {t('common.call')}
+            </a>
+          ) : (
+            <button type="button" disabled className="flex-1 flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-800 text-gray-500 font-bold py-3 rounded-xl text-sm cursor-not-allowed">
+              <Phone className="w-4 h-4" /> {t('common.noPhone')}
+            </button>
+          )}
           {ins.whatsapp && (
             <a href={`https://wa.me/${ins.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="px-4 flex items-center justify-center bg-green-500 text-white rounded-xl">
               <MessageCircle className="w-4 h-4" />
             </a>
           )}
-          <button onClick={() => copyPhone(ins.phone, t)} className="w-12 flex items-center justify-center bg-gray-100 rounded-xl">
+          <button
+            onClick={() => ins.phone && copyPhone(ins.phone, t)}
+            disabled={!ins.phone}
+            className={`w-12 flex items-center justify-center rounded-xl ${ins.phone ? 'bg-gray-100' : 'bg-gray-200 dark:bg-gray-800 cursor-not-allowed'}`}
+            title={ins.phone ? t('common.copy') : t('common.noPhone')}
+          >
             <Copy className="w-4 h-4 text-gray-600" />
           </button>
         </div>

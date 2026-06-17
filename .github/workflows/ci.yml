@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend tests (pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run pytest
+        run: pytest -v
+
+  frontend:
+    name: Frontend lint, typecheck, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: app/frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm exec tsc -p tsconfig.app.json --noEmit
+      - run: pnpm build
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: app/frontend/pnpm-lock.yaml
+
+      - name: Install backend deps
+        working-directory: app/backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Start backend (DEBUG, SMS code exposed)
+        working-directory: app/backend
+        env:
+          DEBUG: "1"
+          ENVIRONMENT: dev
+          SMS_EXPOSE_CODE: "1"
+          DATABASE_URL: ""
+        run: |
+          nohup python -m uvicorn main:app --host 127.0.0.1 --port 8000 > backend.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:8000/health && break
+            sleep 1
+          done
+
+      - name: Install frontend deps
+        working-directory: app/frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chrome (matches the `chrome` channel used by config)
+        working-directory: app/frontend
+        run: pnpm exec playwright install --with-deps chrome
+
+      - name: Run E2E
+        working-directory: app/frontend
+        # Backend is already running, so Playwright reuses it (reuseExistingServer).
+        run: pnpm exec playwright test

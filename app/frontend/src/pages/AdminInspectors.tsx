@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { client, withRetry } from '@/lib/api';
 import { invalidateAllCaches } from '@/lib/cache';
+import { getAPIBaseURL } from '@/lib/config';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Loader2, Phone, MapPin, Hash, Map as MapIcon, Star, Clock, Building2, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Phone, MapPin, Hash, Map as MapIcon, Star, Clock, Building2, X, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import ImageUpload from '@/components/ImageUpload';
 import { MapContainer, TileLayer, Marker, Polygon, useMapEvents } from 'react-leaflet';
@@ -178,6 +179,7 @@ export default function AdminInspectors() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Partial<Inspector> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [reloading, setReloading] = useState(false);
   const [showMapEditor, setShowMapEditor] = useState(false);
   const [boundaryPoints, setBoundaryPoints] = useState<[number, number][]>([]);
 
@@ -267,6 +269,38 @@ export default function AdminInspectors() {
     } catch { toast.error('Ошибка удаления'); }
   };
 
+  const handleReloadFromFile = async () => {
+    if (!confirm(
+      'Перезагрузить всех участковых из файла mock_data/inspectors.json?\n\n' +
+      'Текущие записи в базе будут удалены и заменены данными из файла.'
+    )) return;
+
+    setReloading(true);
+    try {
+      const token = localStorage.getItem('_sp924_token') || localStorage.getItem('token') || '';
+      const base = getAPIBaseURL().replace(/\/+$/, '');
+      const resp = await fetch(`${base}/api/v1/entities/inspectors/admin/reload-from-file`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!resp.ok) {
+        const detail = await resp.text().catch(() => '');
+        throw new Error(detail || `HTTP ${resp.status}`);
+      }
+      const data = await resp.json() as { message?: string; count?: number };
+      invalidateAllCaches();
+      toast.success(data.message || `Загружено ${data.count ?? 0} участковых`);
+      fetchItems();
+    } catch {
+      toast.error('Ошибка перезагрузки из файла');
+    } finally {
+      setReloading(false);
+    }
+  };
+
   const handleSetCenter = useCallback((lat: number, lng: number) => {
     setEditItem(prev => prev ? { ...prev, lat, lng } : prev);
   }, []);
@@ -290,9 +324,21 @@ export default function AdminInspectors() {
             <p className="text-xs text-amber-600 mt-0.5">{missingMapCount} без координат на карте</p>
           )}
         </div>
-        <Button onClick={openCreate} size="sm" className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-1" /> Добавить
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleReloadFromFile}
+            size="sm"
+            variant="outline"
+            disabled={reloading}
+            className="border-amber-200 text-amber-700 hover:bg-amber-50"
+          >
+            {reloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-1" />}
+            Из файла
+          </Button>
+          <Button onClick={openCreate} size="sm" className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="h-4 w-4 mr-1" /> Добавить
+          </Button>
+        </div>
       </div>
 
       {leadershipItems.length > 0 && (

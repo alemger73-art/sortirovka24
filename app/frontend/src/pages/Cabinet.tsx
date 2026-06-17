@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Layout from "@/components/Layout";
 import { Link, useNavigate } from "react-router-dom";
-import { Camera, Coins, Save, UserCircle2, UtensilsCrossed, Truck, Store, Wrench, Car } from "lucide-react";
+import { Camera, Coins, Save, UserCircle2, UtensilsCrossed, Truck, Store, Wrench, Car, Bike } from "lucide-react";
 import { accountApi, getAccountToken } from "@/lib/accountApi";
 import { cacheAccountProfile, getCurrentUser, logoutLocalUser } from "@/lib/localAuth";
 import { humanizeApiError } from "@/lib/apiErrors";
@@ -301,6 +301,12 @@ export default function Cabinet() {
                   <Car className="h-4 w-4" /> Кабинет водителя — заказы →
                 </Link>
               )}
+              <Link
+                to="/cabinet/courier"
+                className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-orange-600 hover:text-orange-700 dark:text-orange-400"
+              >
+                <Bike className="h-4 w-4" /> Кабинет курьера →
+              </Link>
               {cabinet?.profile?.role === "user" && (
                 <Link
                   to="/taxi/driver"

@@ -45,6 +45,7 @@ const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const AdminPanel = lazy(() => import("./pages/Admin"));
 const Gastronom = lazy(() => import("./pages/Gastronom"));
 const Prorab = lazy(() => import("./pages/Prorab"));
+const Pharmacy = lazy(() => import("./pages/Pharmacy"));
 const Food = lazy(() => import("./pages/Food"));
 const FoodRestaurants = lazy(() => import("./pages/FoodDelivery"));
 const FoodPark = lazy(() => import("./pages/FoodPark"));
@@ -61,6 +62,8 @@ const LegalPage = lazy(() => import("./pages/LegalPage"));
 const Cabinet = lazy(() => import("./pages/Cabinet"));
 const CabinetMaster = lazy(() => import("./pages/CabinetMaster"));
 const CabinetDriver = lazy(() => import("./pages/CabinetDriver"));
+const CabinetCourier = lazy(() => import("./pages/CabinetCourier"));
+const DeliveryTrack = lazy(() => import("./pages/DeliveryTrack"));
 const CabinetPartner = lazy(() => import("./pages/CabinetPartner"));
 const CabinetAdmin = lazy(() => import("./pages/CabinetAdmin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -168,6 +171,8 @@ function App() {
               <Route path="/cabinet" element={<Protected><Cabinet /></Protected>} />
               <Route path="/cabinet/master" element={<Protected><RequireCabinetRole allowedRoles={["master"]}><CabinetMaster /></RequireCabinetRole></Protected>} />
               <Route path="/cabinet/driver" element={<Protected><RequireCabinetRole allowedRoles={["driver"]}><CabinetDriver /></RequireCabinetRole></Protected>} />
+              <Route path="/cabinet/courier" element={<Protected><CabinetCourier /></Protected>} />
+              <Route path="/delivery/food/:orderId" element={<DeliveryTrack />} />
               <Route path="/cabinet/partner" element={<Protected><RequireCabinetRole allowedRoles={["seller"]}><CabinetPartner /></RequireCabinetRole></Protected>} />
               <Route path="/cabinet/admin" element={<Protected><RequireCabinetRole allowedRoles={["admin", "superadmin", "moderator"]}><CabinetAdmin /></RequireCabinetRole></Protected>} />
 
@@ -178,6 +183,8 @@ function App() {
               <Route path="/food/restaurants" element={<FoodRestaurants />} />
               <Route path="/gastronom" element={<Gastronom />} />
               <Route path="/prorab" element={<Prorab />} />
+              <Route path="/apteka" element={<Pharmacy />} />
+              <Route path="/pharmacy" element={<Navigate to="/apteka" replace />} />
               <Route path="/food/park" element={<FoodPark />} />
               <Route path="/food/courier" element={<FoodCourier />} />
               <Route path="/business" element={<BusinessPage />} />

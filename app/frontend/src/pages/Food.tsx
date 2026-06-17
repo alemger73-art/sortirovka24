@@ -1056,6 +1056,15 @@ export default function Food() {
                 </div>
               )}
               <div className="mt-5 space-y-2">
+                {orderSuccess.deliveryMethod === 'delivery' && orderSuccess.id > 0 && (
+                  <Link
+                    to={`/delivery/food/${orderSuccess.id}`}
+                    className="flex h-12 w-full items-center justify-center rounded-2xl bg-orange-600 text-sm font-bold text-white"
+                    onClick={() => setOrderSuccess(null)}
+                  >
+                    Отследить доставку
+                  </Link>
+                )}
                 <Link
                   to="/cabinet"
                   className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#FF3B30] text-sm font-bold text-white"

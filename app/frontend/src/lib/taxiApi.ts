@@ -82,6 +82,18 @@ export interface TaxiAddressSuggestion {
   local?: boolean;
 }
 
+export interface TaxiPriceBreakdown {
+  base_fare: number;
+  distance_km: number;
+  distance_part: number;
+  duration_min: number;
+  time_part: number;
+  subtotal: number;
+  surge_multiplier: number;
+  surge_part: number;
+  total: number;
+}
+
 export interface TaxiQuote {
   available: boolean;
   message?: string;
@@ -92,8 +104,12 @@ export interface TaxiQuote {
   to_lat?: number;
   to_lng?: number;
   distance_km?: number;
+  duration_minutes?: number;
   price?: number;
   eta_minutes?: number;
+  surge_multiplier?: number;
+  price_breakdown?: TaxiPriceBreakdown;
+  route_type?: string;
   currency?: string;
 }
 
@@ -130,9 +146,14 @@ export interface TaxiRide {
   to_lat?: number;
   to_lng?: number;
   distance_km?: number;
+  duration_minutes?: number;
+  surge_multiplier?: number;
   estimated_price: number;
   final_price?: number | null;
   status: string;
+  offered_driver_id?: string | null;
+  offer_expires_at?: string | null;
+  offer_seconds_left?: number;
   payment_method: string;
   comment?: string | null;
   cancel_reason?: string | null;
@@ -164,6 +185,7 @@ export interface DriverCabinet {
     documents_status?: string;
     documents_note?: string;
   };
+  offered_order: TaxiRide | null;
   available_orders: TaxiRide[];
   active_ride: TaxiRide | null;
   order_history: TaxiRide[];
@@ -264,6 +286,9 @@ export const taxiApi = {
   }) => api<{ success: boolean }>('/api/v1/taxi/driver/profile', { method: 'PUT', body: JSON.stringify(body) }),
 
   acceptRide: (id: number) => api<TaxiRide>(`/api/v1/taxi/driver/rides/${id}/accept`, { method: 'POST' }),
+
+  declineRide: (id: number) =>
+    api<{ success: boolean }>(`/api/v1/taxi/driver/rides/${id}/decline`, { method: 'POST' }),
 
   updateRideStatus: (id: number, status: string) =>
     api<TaxiRide>(`/api/v1/taxi/driver/rides/${id}/status`, { method: 'POST', body: JSON.stringify({ status }) }),

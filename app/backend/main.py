@@ -118,6 +118,27 @@ async def _run_startup_initialization():
     logger.info("=== Background startup initialization completed ===")
 
 
+async def _run_dispatch_loop() -> None:
+    """Taxi + logistics dispatch maintenance."""
+    logger = logging.getLogger(__name__)
+    from core.database import db_manager
+    from services.logistics_dispatch import run_logistics_maintenance
+    from services.taxi_dispatch import run_dispatch_maintenance
+
+    await asyncio.sleep(8)
+    while True:
+        try:
+            if db_manager.async_session_maker:
+                async with db_manager.async_session_maker() as session:
+                    await run_dispatch_maintenance(session)
+                    await run_logistics_maintenance(session)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.warning("Dispatch loop error: %s", exc)
+        await asyncio.sleep(5)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger = logging.getLogger(__name__)
@@ -127,11 +148,19 @@ async def lifespan(app: FastAPI):
     # immediately. This ensures health checks (e.g. on /health) succeed even when
     # the database is doing a cold start, is slow, or is temporarily unreachable.
     app.state._startup_task = asyncio.create_task(_run_startup_initialization())
+    app.state._taxi_dispatch_task = asyncio.create_task(_run_dispatch_loop())
 
     logger.info("=== Application startup completed (initialization running in background) ===")
     yield
 
     # MODULE_SHUTDOWN_START
+    dispatch_task = getattr(app.state, "_taxi_dispatch_task", None)
+    if dispatch_task is not None and not dispatch_task.done():
+        dispatch_task.cancel()
+        try:
+            await dispatch_task
+        except (asyncio.CancelledError, Exception):
+            pass
     startup_task = getattr(app.state, "_startup_task", None)
     if startup_task is not None and not startup_task.done():
         startup_task.cancel()

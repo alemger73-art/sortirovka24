@@ -32,6 +32,8 @@ from services.taxi_geo import (
 
 )
 
+from services.taxi_routing import fetch_osrm_route
+
 
 
 DEFAULT_SETTINGS: Dict[str, str] = {
@@ -53,6 +55,20 @@ DEFAULT_SETTINGS: Dict[str, str] = {
     "service_area": DEFAULT_SERVICE_AREA,
 
     "eta_minutes_per_km": "3",
+
+    "per_minute": "25",
+
+    "offer_timeout_sec": "15",
+
+    "pending_timeout_min": "7",
+
+    "max_dispatch_rounds": "5",
+
+    "gps_max_age_sec": "120",
+
+    "geofence_arrival_m": "80",
+
+    "surge_max": "1.5",
 
     "service_polygon": "[]",
 
@@ -196,17 +212,49 @@ def _in_service_area(lat: float, lng: float, settings: Dict[str, str]) -> Tuple[
 
 
 
-def calculate_fare(distance_km: float, settings: Dict[str, str]) -> float:
-
+def calculate_fare(
+    distance_km: float,
+    settings: Dict[str, str],
+    *,
+    duration_min: float = 0,
+    surge: float = 1.0,
+) -> float:
     base = _parse_float(settings.get("base_fare"), 500)
-
     per_km = _parse_float(settings.get("per_km"), 150)
-
+    per_min = _parse_float(settings.get("per_minute"), 25)
     min_fare = _parse_float(settings.get("min_fare"), 800)
+    surge = max(1.0, min(_parse_float(surge, 1.0), _parse_float(settings.get("surge_max"), 1.5)))
 
-    raw = base + distance_km * per_km
-
+    raw = (base + distance_km * per_km + duration_min * per_min) * surge
     return max(min_fare, round(raw / 50) * 50)
+
+
+def build_price_breakdown(
+    distance_km: float,
+    settings: Dict[str, str],
+    *,
+    duration_min: float = 0,
+    surge: float = 1.0,
+) -> Dict[str, Any]:
+    base = _parse_float(settings.get("base_fare"), 500)
+    per_km = _parse_float(settings.get("per_km"), 150)
+    per_min = _parse_float(settings.get("per_minute"), 25)
+    surge = max(1.0, min(_parse_float(surge, 1.0), _parse_float(settings.get("surge_max"), 1.5)))
+    distance_part = round(distance_km * per_km)
+    time_part = round(duration_min * per_min)
+    subtotal = base + distance_part + time_part
+    total = calculate_fare(distance_km, settings, duration_min=duration_min, surge=surge)
+    return {
+        "base_fare": int(base),
+        "distance_km": round(distance_km, 2),
+        "distance_part": distance_part,
+        "duration_min": int(round(duration_min)),
+        "time_part": time_part,
+        "subtotal": int(subtotal),
+        "surge_multiplier": surge,
+        "surge_part": int(max(0, total - max(_parse_float(settings.get("min_fare"), 800), round(subtotal / 50) * 50))) if surge > 1 else 0,
+        "total": int(total),
+    }
 
 
 
@@ -216,7 +264,38 @@ def estimate_eta_minutes(distance_km: float, settings: Dict[str, str]) -> int:
 
     per_km = _parse_float(settings.get("eta_minutes_per_km"), 3)
 
-    return max(3, int(math.ceil(distance_km * per_km)))
+    return max(2, int(math.ceil(distance_km * per_km)))
+
+
+async def compute_surge_multiplier(db, settings: Dict[str, str]) -> float:
+    """Lightweight surge from pending orders vs online drivers."""
+    from models.taxi import TaxiDriverProfile, TaxiRide
+    from sqlalchemy import func, select
+
+    try:
+        online = (
+            await db.execute(
+                select(func.count()).select_from(TaxiDriverProfile).where(
+                    TaxiDriverProfile.is_online.is_(True),
+                    TaxiDriverProfile.is_verified.is_(True),
+                    TaxiDriverProfile.documents_status == "verified",
+                )
+            )
+        ).scalar() or 0
+        pending = (
+            await db.execute(
+                select(func.count()).select_from(TaxiRide).where(TaxiRide.status == "pending")
+            )
+        ).scalar() or 0
+    except Exception:
+        return 1.0
+
+    surge = 1.0
+    if online > 0 and pending > online:
+        surge = 1.0 + 0.1 * min(5, pending - online)
+    elif online == 0 and pending > 0:
+        surge = 1.2
+    return min(surge, _parse_float(settings.get("surge_max"), 1.5))
 
 
 
@@ -312,6 +391,8 @@ async def build_quote(
 
     to_address: str = "",
 
+    db=None,
+
 ) -> Dict[str, Any]:
 
     if not is_taxi_enabled(settings):
@@ -330,7 +411,17 @@ async def build_quote(
 
 
 
-    distance_km = haversine_km(from_lat, from_lng, to_lat, to_lng)
+    route = await fetch_osrm_route(from_lat, from_lng, to_lat, to_lng)
+    if route:
+        distance_km = float(route["distance_km"])
+        duration_min = float(route["duration_min"])
+        eta = max(2, int(duration_min))
+        route_type = "road"
+    else:
+        distance_km = haversine_km(from_lat, from_lng, to_lat, to_lng)
+        duration_min = float(estimate_eta_minutes(distance_km, settings))
+        eta = int(duration_min)
+        route_type = "estimate"
 
     if distance_km < 0.1:
 
@@ -338,9 +429,12 @@ async def build_quote(
 
 
 
-    price = calculate_fare(distance_km, settings)
+    surge = 1.0
+    if db is not None:
+        surge = await compute_surge_multiplier(db, settings)
 
-    eta = estimate_eta_minutes(distance_km, settings)
+    price = calculate_fare(distance_km, settings, duration_min=duration_min, surge=surge)
+    breakdown = build_price_breakdown(distance_km, settings, duration_min=duration_min, surge=surge)
 
 
 
@@ -362,9 +456,17 @@ async def build_quote(
 
         "distance_km": round(distance_km, 2),
 
+        "duration_minutes": round(duration_min, 1),
+
         "price": price,
 
         "eta_minutes": eta,
+
+        "surge_multiplier": surge,
+
+        "price_breakdown": breakdown,
+
+        "route_type": route_type,
 
         "currency": "KZT",
 

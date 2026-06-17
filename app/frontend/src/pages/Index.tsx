@@ -13,7 +13,7 @@ import {
   MapPin, Phone as PhoneIcon, Clock, Briefcase, Sun, Snowflake, Cloud, CloudRain,
   Home, ShoppingBag, Utensils, FileText, BookOpen,
   ArrowRight, Send, Building2, HardHat, Users, Coffee,
-  Shield, Heart, Siren, Landmark, Store
+  Shield, Heart, Siren, Landmark, Store, Cross
 } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
 import Hero from '@/components/landing/Hero';
@@ -28,6 +28,7 @@ const ANNOUNCEMENTS_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/10
 const JOBS_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-31/8bf31dae-761d-4fac-b012-f7172de4c9c1.png';
 const GASTRONOM_IMG = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&h=800&fit=crop';
 const PRORAB_IMG = 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&h=800&fit=crop';
+const PHARMACY_IMG = 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=600&h=800&fit=crop';
 const BUSINESS_BANNER_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-31/5007abb2-2c10-46e9-9721-c83a5b9a7265.png';
 
 /* ─── Types ─── */
@@ -395,6 +396,7 @@ export default function Index() {
     { icon: Utensils, labelKey: 'quick.orderFood', to: '/food', color: 'bg-orange-500', lightBg: 'bg-orange-50 dark:bg-orange-900/20' },
     { icon: Store, labelKey: 'quick.gastronom', to: '/gastronom', color: 'bg-emerald-600', lightBg: 'bg-emerald-50 dark:bg-emerald-900/20' },
     { icon: HardHat, labelKey: 'quick.prorab', to: '/prorab', color: 'bg-amber-600', lightBg: 'bg-amber-50 dark:bg-amber-900/20' },
+    { icon: Cross, labelKey: 'quick.pharmacy', to: '/apteka', color: 'bg-teal-600', lightBg: 'bg-teal-50 dark:bg-teal-900/20' },
     { icon: Wrench, labelKey: 'quick.findMaster', to: '/masters', color: 'bg-blue-500', lightBg: 'bg-blue-50 dark:bg-blue-900/20' },
     { icon: Shield, labelKey: 'quick.findInspector', to: '/inspectors', color: 'bg-indigo-500', lightBg: 'bg-indigo-50 dark:bg-indigo-900/20' },
     { icon: AlertTriangle, labelKey: 'quick.fileComplaint', to: '/complaints/new', color: 'bg-red-500', lightBg: 'bg-red-50 dark:bg-red-900/20' },
@@ -408,6 +410,7 @@ export default function Index() {
     { labelKey: 'categories.food', to: '/food', img: FOOD_IMG },
     { labelKey: 'categories.gastronom', to: '/gastronom', img: GASTRONOM_IMG },
     { labelKey: 'categories.construction', to: '/prorab', img: PRORAB_IMG },
+    { labelKey: 'categories.pharmacy', to: '/apteka', img: PHARMACY_IMG },
     { labelKey: 'categories.masters', to: '/masters', img: MASTERS_IMG },
     { labelKey: 'categories.realEstate', to: '/real-estate', img: REALESTATE_IMG },
     { labelKey: 'categories.announcements', to: '/announcements', img: ANNOUNCEMENTS_IMG },

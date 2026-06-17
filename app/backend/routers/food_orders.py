@@ -261,7 +261,15 @@ async def create_food_orders(
         result = await service.create(payload)
         if not result:
             raise HTTPException(status_code=400, detail="Failed to create food_orders")
-        
+
+        try:
+            from services.logistics_service import create_task_from_food_order
+
+            fee = float(delivery_fee or payload.get("delivery_fee") or 0)
+            await create_task_from_food_order(db, result, delivery_fee=fee)
+        except Exception as exc:
+            logger.warning("Logistics task creation failed for food order %s: %s", result.id, exc)
+
         logger.info(f"Food_orders created successfully with id: {result.id}")
         return result
     except ValueError as e:

@@ -506,7 +506,26 @@ export default function Taxi() {
 
                     <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> ~{quote.eta_minutes} мин</span>
 
+                    {quote.route_type === 'road' && <span className="text-green-700 text-xs">по дорогам</span>}
+
                   </div>
+
+                  {(quote.surge_multiplier ?? 1) > 1 && (
+                    <p className="text-sm text-amber-800 font-medium">
+                      Повышенный спрос ×{quote.surge_multiplier?.toFixed(1)}
+                    </p>
+                  )}
+
+                  {quote.price_breakdown && (
+                    <div className="text-xs text-gray-600 space-y-1 pt-1 border-t border-yellow-200/80">
+                      <div className="flex justify-between"><span>Подача</span><span>{formatTenge(quote.price_breakdown.base_fare)}</span></div>
+                      <div className="flex justify-between"><span>Километраж ({quote.price_breakdown.distance_km} км)</span><span>{formatTenge(quote.price_breakdown.distance_part)}</span></div>
+                      <div className="flex justify-between"><span>Время ({quote.price_breakdown.duration_min} мин)</span><span>{formatTenge(quote.price_breakdown.time_part)}</span></div>
+                      {(quote.price_breakdown.surge_part ?? 0) > 0 && (
+                        <div className="flex justify-between text-amber-800"><span>Спрос</span><span>+{formatTenge(quote.price_breakdown.surge_part)}</span></div>
+                      )}
+                    </div>
+                  )}
 
                   {!showCheckout ? (
 
