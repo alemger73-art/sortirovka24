@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import {
   ensureBucket,
   resolveImageUrl,
+  resolveImageSrc,
   uploadFile,
   isDirectUrl,
   getCachedUrl,
@@ -521,6 +522,15 @@ export function StorageImage({ objectKey, alt = '', className = '' }: { objectKe
     // Direct URL — no resolution needed
     if (isDirectUrl(key)) {
       setUrl(key);
+      setLoading(false);
+      setError(false);
+      return;
+    }
+
+    // Fast path: Cloudinary base already known
+    const syncResolved = resolveImageSrc(key);
+    if (syncResolved) {
+      setUrl(syncResolved);
       setLoading(false);
       setError(false);
       return;

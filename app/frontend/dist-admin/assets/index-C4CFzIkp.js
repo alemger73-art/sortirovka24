@@ -1,1 +1,0 @@
-import{r as a}from"./admin-BG17X7n3.js";var r,t,D,e;(t=r||(r={})).Dark="DARK",t.Light="LIGHT",t.Default="DEFAULT",(e=D||(D={})).None="NONE",e.Slide="SLIDE",e.Fade="FADE";const o=D,i=r,s=a("StatusBar");export{D as Animation,s as StatusBar,o as StatusBarAnimation,i as StatusBarStyle,r as Style};

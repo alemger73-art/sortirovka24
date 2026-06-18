@@ -33,3 +33,32 @@ export async function fetchFoodDeliveryQuote(body: {
   }
   return res.json();
 }
+
+export async function validateFoodPromo(body: {
+  code: string;
+  cart_subtotal?: number;
+}): Promise<{
+  valid: boolean;
+  code: string;
+  type: string;
+  label: string;
+  discount: number;
+  free_delivery: boolean;
+}> {
+  const res = await fetch(`${apiBase()}/api/v1/food/validate-promo`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    let message = `Request failed: ${res.status}`;
+    try {
+      const parsed = await res.json();
+      if (typeof parsed.detail === 'string') message = parsed.detail;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(message);
+  }
+  return res.json();
+}

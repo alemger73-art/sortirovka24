@@ -100,3 +100,78 @@ async def delivery_quote(data: DeliveryQuoteRequest, db: AsyncSession = Depends(
         return finalize(quote)
 
     raise HTTPException(status_code=400, detail="Укажите адрес или координаты")
+
+
+def _parse_promo_codes(raw: str) -> list[dict]:
+    import json
+
+    try:
+        data = json.loads(raw or "[]")
+        return data if isinstance(data, list) else []
+    except (TypeError, ValueError):
+        return []
+
+
+class PromoValidateRequest(BaseModel):
+    code: str
+    cart_subtotal: Optional[float] = None
+
+
+@router.post("/validate-promo")
+async def validate_promo(data: PromoValidateRequest, db: AsyncSession = Depends(get_db)):
+    code = (data.code or "").strip().upper()
+    if not code:
+        raise HTTPException(status_code=400, detail="Введите промокод")
+    subtotal = float(data.cart_subtotal or 0)
+    svc = Food_settingsService(db)
+    settings = await svc.get_all_as_dict()
+    promos = _parse_promo_codes(settings.get("promo_codes") or "[]")
+    matched = None
+    for p in promos:
+        if not p or not isinstance(p, dict):
+            continue
+        if str(p.get("code", "")).strip().upper() != code:
+            continue
+        if p.get("active") is False or str(p.get("active", "")).lower() in ("0", "false"):
+            continue
+        matched = p
+        break
+    if not matched:
+        raise HTTPException(status_code=404, detail="Промокод не найден или недействителен")
+    min_order = float(matched.get("min_order") or 0)
+    if min_order > 0 and subtotal < min_order:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Промокод действует от {int(min_order):,} ₸".replace(",", " "),
+        )
+    ptype = str(matched.get("type") or "percent")
+    value = float(matched.get("value") or 0)
+    discount = 0.0
+    free_delivery = False
+    pct = 0.0
+    if ptype == "free_delivery":
+        free_delivery = True
+    elif ptype == "fixed":
+        discount = min(subtotal, value)
+    else:
+        pct = max(0.0, min(100.0, value))
+        discount = round(subtotal * (pct / 100.0))
+
+    label = str(matched.get("label") or "").strip()
+    if not label:
+        if free_delivery:
+            label = "Бесплатная доставка"
+        elif ptype == "fixed":
+            label = f"−{int(value):,} ₸".replace(",", " ")
+        else:
+            label = f"−{int(pct)}%"
+
+    return {
+        "valid": True,
+        "code": code,
+        "type": ptype,
+        "value": value,
+        "label": label,
+        "discount": discount,
+        "free_delivery": free_delivery,
+    }

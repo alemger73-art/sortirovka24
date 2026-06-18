@@ -9,7 +9,7 @@ import {
   Plus, Minus, X, Utensils, Truck, Store,
   ChevronRight, MapPin, MessageSquare,
   ArrowLeft, Check, CheckCircle2,
-  AlertCircle, Search, Smartphone, Banknote, ShoppingCart,
+  AlertCircle, Search, Smartphone, Banknote, ShoppingCart, Heart, Clock,
 } from 'lucide-react';
 import DamAlemHero from '@/components/damalem/DamAlemHero';
 import DamAlemPromoBanners, { type FoodBanner } from '@/components/damalem/DamAlemPromoBanners';
@@ -30,18 +30,22 @@ import {
   FOOD_MENU_VERSION_KEY,
 } from '@/lib/foodCartStorage';
 import { parseDeliveryZones, type DeliveryZone } from '@/lib/gastronomDelivery';
-import { fetchFoodDeliveryQuote, type FoodDeliveryQuote } from '@/lib/foodDeliveryApi';
+import { fetchFoodDeliveryQuote, validateFoodPromo, type FoodDeliveryQuote } from '@/lib/foodDeliveryApi';
 import {
   isLoyaltyEnabled,
   parseLoyaltyGifts,
   resolveLoyaltyGift,
+  nextLoyaltyGift,
 } from '@/lib/gastronomLoyalty';
 import { GeolocationError, requestCurrentPosition } from '@/lib/geolocation';
+import { isKitchenOpen } from '@/lib/foodWorkingHours';
+import { loadFavoriteIds, saveFavoriteIds, toggleFavoriteId } from '@/lib/foodFavorites';
 import DeliveryAddressPicker from '@/components/gastronom/DeliveryAddressPicker';
 import SavedAddressBar from '@/components/SavedAddressBar';
 import { type SavedAddress } from '@/lib/accountApi';
 import LoyaltyGiftBanner from '@/components/gastronom/LoyaltyGiftBanner';
-import FreeDeliveryProgress from '@/components/damalem/FreeDeliveryProgress';
+import OrderGoalsProgress from '@/components/damalem/OrderGoalsProgress';
+import DeliveryZonesPreview from '@/components/damalem/DeliveryZonesPreview';
 
 /* ─── CDN images ─── */
 const FALLBACK_FOOD_1 = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/2034a1d7-1c57-40c0-8145-23816557ba5c.png';
@@ -87,7 +91,11 @@ interface Settings {
   service_fee_rate?: string; free_delivery_from?: string; default_address?: string;
   loyalty_enabled?: string; loyalty_gifts?: string;
   delivery_city?: string; delivery_area?: string;
+  delivery_time?: string; working_hours?: string; promo_codes?: string;
+  store_lat?: string; store_lng?: string;
 }
+
+const REPEAT_ORDER_KEY = 'damalem_repeat_order';
 
 interface BrandProfile {
   id: number;
@@ -249,6 +257,10 @@ export default function Food() {
   const [addressFormCollapsed, setAddressFormCollapsed] = useState(false);
   const quoteRequestId = useRef(0);
   const addressPickerRef = useRef<HTMLDivElement>(null);
+  const [favoriteIds, setFavoriteIds] = useState<number[]>(() => loadFavoriteIds());
+  const [promoInput, setPromoInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<{ code: string; discount: number; free_delivery: boolean; label: string } | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
 
   useEffect(() => { loadData(); }, []);
 
@@ -611,6 +623,18 @@ export default function Food() {
     () => resolveLoyaltyGift(cartTotal, loyaltyGifts),
     [cartTotal, loyaltyGifts],
   );
+  const nextGift = useMemo(
+    () => nextLoyaltyGift(cartTotal, loyaltyGifts),
+    [cartTotal, loyaltyGifts],
+  );
+
+  const kitchenStatus = useMemo(() => isKitchenOpen(settings), [settings]);
+  const deliveryTimeLabel = settings.delivery_time || brandProfile?.delivery_time || '35–45 мин';
+  const storeLatNum = parseFloat(settings.store_lat || '') || undefined;
+  const storeLngNum = parseFloat(settings.store_lng || '') || undefined;
+
+  const promoDiscountAmount = appliedPromo?.discount ?? 0;
+  const promoFreeDelivery = appliedPromo?.free_delivery ?? false;
 
   const effectiveAddress = useMemo(
     () => deliveryAddress.trim() || settings.default_address?.trim() || '',
@@ -719,13 +743,13 @@ export default function Food() {
 
   const activeDeliveryPrice = useMemo(() => {
     if (deliveryMethod !== 'delivery') return 0;
+    if (promoFreeDelivery || cartTotal >= freeDeliveryFrom) return 0;
     if (hasDeliveryZones) {
       if (!deliveryQuote?.available) return 0;
       return Number(deliveryQuote.delivery_fee ?? 0);
     }
-    if (cartTotal >= freeDeliveryFrom) return 0;
     return parseInt(settings.delivery_price) || 0;
-  }, [deliveryMethod, hasDeliveryZones, deliveryQuote, cartTotal, freeDeliveryFrom, settings.delivery_price]);
+  }, [deliveryMethod, promoFreeDelivery, cartTotal, freeDeliveryFrom, hasDeliveryZones, deliveryQuote, settings.delivery_price]);
 
   const deliveryReady =
     !hasDeliveryZones
@@ -735,11 +759,13 @@ export default function Food() {
       && !deliveryQuoteLoading
     );
 
-  /** Сумма к оплате: позиции + 10% сервис + доставка (если есть) */
+  /** Сумма к оплате: позиции + сервис + доставка − промокод */
   const checkoutGrandTotal = useMemo(() => {
-    if (deliveryMethod === 'delivery') return cartTotalWithService + activeDeliveryPrice;
-    return cartTotalWithService;
-  }, [deliveryMethod, cartTotalWithService, activeDeliveryPrice]);
+    const base = deliveryMethod === 'delivery'
+      ? cartTotalWithService + activeDeliveryPrice
+      : cartTotalWithService;
+    return Math.max(0, base - promoDiscountAmount);
+  }, [deliveryMethod, cartTotalWithService, activeDeliveryPrice, promoDiscountAmount]);
 
   /** Меню по категориям из API (когда фильтр «Всё меню») */
   const menuSections = useMemo(() => {
@@ -913,6 +939,10 @@ export default function Food() {
   async function submitOrder() {
     if (!requireAuthDialog(navigate)) return;
     if (submitting) return;
+    if (!kitchenStatus.open) {
+      toast.error(kitchenStatus.message || 'Кухня сейчас закрыта');
+      return;
+    }
     if (!customerPhone.trim()) { toast.error('Укажите телефон'); return; }
     if (cartTotal < minOrder) { toast.error(`${t('food.minOrder')}: ${minOrder} ₸`); return; }
 
@@ -936,7 +966,8 @@ export default function Food() {
       : '';
 
     const giftNote = loyaltyGift ? `\n🎁 Подарок: ${loyaltyGift.title}` : '';
-    const orderComment = (comment.trim() + giftNote).trim();
+    const promoNote = appliedPromo ? `\n🏷 Промокод ${appliedPromo.code}: ${appliedPromo.label}` : '';
+    const orderComment = (comment.trim() + giftNote + promoNote).trim();
 
     const orderItems = cart.map(ci => {
       const mods: { name: string; price: number; option_id: number }[] = [];
@@ -1099,6 +1130,71 @@ export default function Food() {
     [mapDeliveryZones],
   );
 
+  const favoriteItems = useMemo(
+    () => poolItems.filter(i => favoriteIds.includes(i.id)),
+    [poolItems, favoriteIds],
+  );
+
+  function toggleFavorite(itemId: number) {
+    const next = toggleFavoriteId(itemId);
+    setFavoriteIds(next);
+    saveFavoriteIds(next);
+  }
+
+  async function applyPromoCode() {
+    const code = promoInput.trim();
+    if (!code) return;
+    setPromoLoading(true);
+    try {
+      const result = await validateFoodPromo({ code, cart_subtotal: cartTotal });
+      setAppliedPromo({
+        code: result.code,
+        discount: result.discount,
+        free_delivery: result.free_delivery,
+        label: result.label,
+      });
+      toast.success(`Промокод ${result.code} применён`);
+    } catch (e) {
+      setAppliedPromo(null);
+      toast.error(e instanceof Error ? e.message : 'Промокод недействителен');
+    } finally {
+      setPromoLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (items.length === 0) return;
+    try {
+      const raw = sessionStorage.getItem(REPEAT_ORDER_KEY);
+      if (!raw) return;
+      sessionStorage.removeItem(REPEAT_ORDER_KEY);
+      const payload = JSON.parse(raw) as {
+        order_items?: string;
+        delivery_address?: string;
+        delivery_method?: string;
+      };
+      const parsed = payload.order_items ? JSON.parse(payload.order_items) : [];
+      if (!Array.isArray(parsed) || parsed.length === 0) return;
+      const byId = new Map(items.map(i => [i.id, i]));
+      const lines: CartItem[] = [];
+      for (const row of parsed) {
+        const id = Number(row.id);
+        const qty = Math.max(1, Number(row.quantity) || 1);
+        const fresh = byId.get(id);
+        if (!fresh) continue;
+        lines.push({ item: fresh, quantity: qty, selections: {} });
+      }
+      if (lines.length > 0) {
+        setCart(lines);
+        toast.success('Заказ добавлен в корзину — можно оформить снова');
+      }
+      if (payload.delivery_address) setDeliveryAddress(payload.delivery_address);
+      if (payload.delivery_method === 'pickup') setDeliveryMethod('pickup');
+    } catch {
+      /* ignore */
+    }
+  }, [items]);
+
   const categoryNavItems = useMemo(
     () =>
       sortedNavCategories.map(cat => ({
@@ -1136,9 +1232,19 @@ export default function Food() {
           </div>
         </button>
         <div className="flex shrink-0 flex-col items-end gap-2">
-          <button type="button" onClick={() => openItemModal(item)} className="h-20 w-20 overflow-hidden rounded-2xl bg-[#EFEFEF] ring-1 ring-gray-100">
-            <img src={getItemImage(item)} alt="" className="h-full w-full object-cover" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-50 ring-1 ring-gray-100"
+              aria-label="Избранное"
+            >
+              <Heart className={`h-4 w-4 ${favoriteIds.includes(item.id) ? 'fill-[#FF3B30] text-[#FF3B30]' : 'text-gray-400'}`} />
+            </button>
+            <button type="button" onClick={() => openItemModal(item)} className="h-20 w-20 overflow-hidden rounded-2xl bg-[#EFEFEF] ring-1 ring-gray-100">
+              <img src={getItemImage(item)} alt="" className="h-full w-full object-cover" />
+            </button>
+          </div>
           {qtyInCart > 0 ? (
             <div className="flex h-10 min-w-[108px] items-center justify-center rounded-full bg-[#F5F5F5] px-0.5 ring-1 ring-gray-200/60">
               <button type="button" onClick={() => quickRemove(item.id)} className="flex h-8 w-8 items-center justify-center rounded-full text-[#111111] active:scale-90" aria-label="-">
@@ -1283,7 +1389,7 @@ export default function Food() {
           heroImage={settings.hero_banner_image}
           brandPhoto={brandProfile?.photo}
           rating={brandProfile?.rating ?? 4.9}
-          deliveryTime={brandProfile?.delivery_time || '35–45 мин'}
+          deliveryTime={deliveryTimeLabel}
           minOrder={minOrder}
           deliveryFrom={deliveryFromPrice}
           promoSlide={promoSlide}
@@ -1326,6 +1432,43 @@ export default function Food() {
             </button>
           </div>
 
+          {!kitchenStatus.open && (
+            <div className="rounded-2xl border border-gray-800 bg-gray-900 px-4 py-3 text-white shadow-sm">
+              <p className="text-sm font-bold">Кухня закрыта</p>
+              <p className="mt-1 text-xs text-gray-300">{kitchenStatus.message}</p>
+            </div>
+          )}
+
+          {hasDeliveryZones && (
+            <div className="rounded-2xl border border-orange-100 bg-white p-4 shadow-sm space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-bold text-[#111111] flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-orange-600" />
+                  Куда доставить?
+                </p>
+                <span className="text-xs text-gray-500 flex items-center gap-1 shrink-0">
+                  <Clock className="h-3.5 w-3.5" />
+                  {deliveryTimeLabel}
+                </span>
+              </div>
+              <SavedAddressBar currentAddress={deliveryAddress} onSelect={applySavedAddress} accent="orange" />
+              <DeliveryAddressPicker
+                variant="compact"
+                accent="orange"
+                address={deliveryAddress}
+                onAddressChange={setDeliveryAddress}
+                hasDeliveryZones={hasDeliveryZones}
+                deliveryQuote={deliveryQuote}
+                loading={deliveryQuoteLoading}
+                error={deliveryQuoteError}
+                onFindByAddress={() => findByAddress()}
+                onFindByGps={requestGeolocation}
+                onSelectExample={(ex) => findByAddress(ex)}
+                onEdit={focusAddressPicker}
+              />
+            </div>
+          )}
+
           {brandDescription && (
             <p className="rounded-2xl border border-gray-100 bg-white px-4 py-3 text-sm leading-relaxed text-[#555555] shadow-sm">
               {brandDescription}
@@ -1338,6 +1481,37 @@ export default function Food() {
             freeDeliveryFrom={freeDeliveryFrom}
             formatPrice={formatPrice}
           />
+
+          <DeliveryZonesPreview
+            zones={mapDeliveryZones}
+            storeLat={storeLatNum}
+            storeLng={storeLngNum}
+            formatPrice={formatPrice}
+          />
+
+          {favoriteItems.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-lg font-extrabold tracking-tight flex items-center gap-2">
+                <Heart className="h-5 w-5 text-[#FF3B30] fill-[#FF3B30]" />
+                Ваши любимые
+              </h2>
+              <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
+                {favoriteItems.map(item => (
+                  <div key={item.id} className="w-[140px] shrink-0 overflow-hidden rounded-2xl bg-white ring-1 ring-gray-100/80">
+                    <button type="button" onClick={() => openItemModal(item)} className="block w-full text-left">
+                      <div className="aspect-square overflow-hidden bg-[#F0F0F0]">
+                        <img src={getItemImage(item)} alt="" className="h-full w-full object-cover" />
+                      </div>
+                      <div className="p-2.5">
+                        <p className="text-xs font-bold line-clamp-2">{item.name}</p>
+                        <p className="mt-1 text-xs font-extrabold">{formatPrice(item.price)}</p>
+                      </div>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           <DamAlemPromoBanners banners={foodBanners} />
 
@@ -1752,9 +1926,13 @@ export default function Food() {
               </div>
 
               <div className="food-sheet-footer space-y-3 rounded-b-3xl bg-white p-5 pt-4 ring-1 ring-gray-100/80">
-                {freeDeliveryFrom > 0 && (
-                  <FreeDeliveryProgress subtotal={cartTotal} freeFrom={freeDeliveryFrom} compact />
-                )}
+                <OrderGoalsProgress
+                  subtotal={cartTotal}
+                  minOrder={minOrder}
+                  freeDeliveryFrom={freeDeliveryFrom}
+                  nextGift={nextGift}
+                  compact
+                />
                 {loyaltyGifts.length > 0 && (
                   <LoyaltyGiftBanner subtotal={cartTotal} gifts={loyaltyGifts} />
                 )}
@@ -1843,8 +2021,13 @@ export default function Food() {
                   </div>
                 </div>
 
-                {deliveryMethod === 'delivery' && freeDeliveryFrom > 0 && (
-                  <FreeDeliveryProgress subtotal={cartTotal} freeFrom={freeDeliveryFrom} />
+                {deliveryMethod === 'delivery' && (freeDeliveryFrom > 0 || minOrder > 0 || nextGift) && (
+                  <OrderGoalsProgress
+                    subtotal={cartTotal}
+                    minOrder={minOrder}
+                    freeDeliveryFrom={freeDeliveryFrom}
+                    nextGift={nextGift}
+                  />
                 )}
 
                 {deliveryMethod === 'delivery' && hasDeliveryZones && (
@@ -1856,6 +2039,7 @@ export default function Food() {
                     />
                     <div ref={addressPickerRef} className="scroll-mt-24">
                       <DeliveryAddressPicker
+                        accent="orange"
                         address={deliveryAddress}
                         onAddressChange={(v) => {
                           setDeliveryAddress(v);
@@ -1954,6 +2138,41 @@ export default function Food() {
                   <LoyaltyGiftBanner subtotal={cartTotal} gifts={loyaltyGifts} />
                 )}
 
+                <div className="bg-white rounded-2xl p-4 shadow-sm space-y-2">
+                  <label className="text-sm font-bold text-gray-800 block">Промокод</label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={promoInput}
+                      onChange={e => setPromoInput(e.target.value.toUpperCase())}
+                      placeholder="Введите код"
+                      className="rounded-xl h-11 uppercase font-mono"
+                      disabled={!!appliedPromo}
+                    />
+                    {appliedPromo ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-11 shrink-0"
+                        onClick={() => { setAppliedPromo(null); setPromoInput(''); }}
+                      >
+                        Сбросить
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        className="h-11 shrink-0 bg-orange-600 hover:bg-orange-700"
+                        disabled={promoLoading || !promoInput.trim()}
+                        onClick={() => void applyPromoCode()}
+                      >
+                        {promoLoading ? '…' : 'Применить'}
+                      </Button>
+                    )}
+                  </div>
+                  {appliedPromo && (
+                    <p className="text-xs text-emerald-700 font-medium">✓ {appliedPromo.label}</p>
+                  )}
+                </div>
+
                 <div className="bg-white rounded-2xl p-4 shadow-sm">
                   <label className="text-sm font-bold text-gray-800 mb-3 block">Способ оплаты</label>
                   <p className="text-xs text-gray-500 mb-3 leading-relaxed">{t('food.guide.paymentNote')}</p>
@@ -2024,6 +2243,12 @@ export default function Food() {
                         </span>
                       </div>
                     )}
+                    {appliedPromo && promoDiscountAmount > 0 && (
+                      <div className="flex justify-between text-sm text-emerald-700">
+                        <span>Промокод {appliedPromo.code}</span>
+                        <span className="font-semibold">−{formatPrice(promoDiscountAmount)}</span>
+                      </div>
+                    )}
                     {loyaltyGift && (
                       <div className="flex justify-between text-sm text-emerald-700">
                         <span>🎁 Подарок</span>
@@ -2043,6 +2268,7 @@ export default function Food() {
                   onClick={submitOrder}
                   disabled={
                     submitting
+                    || !kitchenStatus.open
                     || cartTotal < minOrder
                     || (deliveryMethod === 'delivery' && hasDeliveryZones && !deliveryReady)
                   }

@@ -121,7 +121,7 @@ export default function AdminNews() {
 
       <div className="space-y-2">
         {items.map(item => (
-          <Card key={item.id} className="overflow-hidden">
+          <Card key={item.id} className="overflow-hidden bg-white">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 flex-1 min-w-0">

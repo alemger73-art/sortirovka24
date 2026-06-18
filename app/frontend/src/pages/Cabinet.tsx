@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Layout from "@/components/Layout";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Camera, Coins, Save, UserCircle2, UtensilsCrossed, Truck, Store, Wrench, Car, Bike, MapPin, Plus, Trash2, Star, Pencil, X, Loader2, CheckCircle2, AlertCircle, Search } from "lucide-react";
+import { Camera, Coins, Save, UserCircle2, UtensilsCrossed, Truck, Store, Wrench, Car, Bike, MapPin, Plus, Trash2, Star, Pencil, X, Loader2, CheckCircle2, AlertCircle, Search, RotateCcw } from "lucide-react";
+import FoodOrderStatusBar from "@/components/damalem/FoodOrderStatusBar";
 import { accountApi, getAccountToken, type SavedAddress } from "@/lib/accountApi";
 import { cacheAccountProfile, getCurrentUser, logoutLocalUser } from "@/lib/localAuth";
 import { humanizeApiError } from "@/lib/apiErrors";
@@ -32,6 +33,25 @@ const PAYMENT_LABELS: Record<string, string> = {
   kaspi_qr: "payment.kaspiQr",
   halyk_qr: "payment.halykQr",
 };
+
+const REPEAT_ORDER_KEY = "damalem_repeat_order";
+
+function repeatFoodOrder(o: {
+  order_items?: string;
+  delivery_address?: string;
+  delivery_method?: string;
+}, navigate: ReturnType<typeof useNavigate>) {
+  try {
+    sessionStorage.setItem(REPEAT_ORDER_KEY, JSON.stringify({
+      order_items: o.order_items,
+      delivery_address: o.delivery_address,
+      delivery_method: o.delivery_method,
+    }));
+    navigate("/food");
+  } catch {
+    /* ignore */
+  }
+}
 
 const STORE_ORDER_LABELS: Record<string, string> = {
   gastronom: "store.gastronom",
@@ -837,6 +857,30 @@ export default function Cabinet() {
                               {o.created_at ? <span>· {formatOrderDate(o.created_at)}</span> : null}
                             </div>
                           )}
+                          {isFood && o.status !== "cancelled" && o.status !== "done" && (
+                            <FoodOrderStatusBar status={o.status || "new"} />
+                          )}
+                          {isFood && o.order_number ? (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {o.delivery_method === "delivery" && !["done", "cancelled", "delivered"].includes(String(o.status)) && (
+                                <Link
+                                  to={`/delivery/food/${o.order_number}`}
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-orange-600/90 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-orange-600"
+                                >
+                                  <MapPin className="h-3 w-3" /> Отследить
+                                </Link>
+                              )}
+                              {o.order_items ? (
+                                <button
+                                  type="button"
+                                  onClick={() => repeatFoodOrder(o, navigate)}
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-orange-500/40 bg-orange-500/10 px-3 py-1.5 text-[11px] font-semibold text-orange-300 hover:bg-orange-500/20"
+                                >
+                                  <RotateCcw className="h-3 w-3" /> Заказать снова
+                                </button>
+                              ) : null}
+                            </div>
+                          ) : null}
                           <p className="text-sm font-bold text-amber-600 dark:text-yellow-300 mt-2">
                             {Number(o.amount || 0).toLocaleString("ru-RU")} ₸
                           </p>

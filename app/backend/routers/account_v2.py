@@ -1163,6 +1163,9 @@ async def cabinet(
             "delivery_method": f.delivery_method,
             "payment_method": f.payment_method,
             "order_number": f.id,
+            "food_order_id": f.id,
+            "order_items": f.order_items,
+            "delivery_address": f.delivery_address,
             "created_at": f.created_at,
         }
         for f in food_rows[:100]
