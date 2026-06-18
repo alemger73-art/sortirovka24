@@ -275,6 +275,8 @@ class StorageService:
         resource_type = "image"
         if fmt in {"mp4", "webm", "mov", "avi", "mkv"}:
             resource_type = "video"
+        elif fmt in {"pdf", "doc", "docx", "xls", "xlsx", "zip", "txt"}:
+            resource_type = "raw"
         url, _ = cloudinary.utils.cloudinary_url(
             public_id,
             resource_type=resource_type,

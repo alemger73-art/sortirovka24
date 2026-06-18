@@ -7,7 +7,7 @@ import {
   type CourierApplication,
   type LogisticsTask,
 } from '@/lib/logisticsApi';
-import StorageImg from '@/components/StorageImg';
+import DocFilePreview from '@/components/DocFilePreview';
 import { Check, ClipboardList, Loader2, RefreshCw, Users, X } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -148,19 +148,19 @@ export default function AdminLogistics() {
                 {app.photo_url && (
                   <div>
                     <p className="text-xs text-gray-400 mb-1">Фото</p>
-                    <StorageImg src={app.photo_url} alt="" className="h-24 w-full object-cover rounded-lg" />
+                    <DocFilePreview value={app.photo_url} alt="Фото" className="h-24 w-full object-cover rounded-lg" />
                   </div>
                 )}
                 {app.id_photo_url && (
                   <div>
                     <p className="text-xs text-gray-400 mb-1">Удостоверение</p>
-                    <StorageImg src={app.id_photo_url} alt="" className="h-24 w-full object-cover rounded-lg" />
+                    <DocFilePreview value={app.id_photo_url} alt="Удостоверение" className="h-24 w-full object-cover rounded-lg" />
                   </div>
                 )}
                 {app.vehicle_photo_url && (
                   <div>
                     <p className="text-xs text-gray-400 mb-1">Транспорт</p>
-                    <StorageImg src={app.vehicle_photo_url} alt="" className="h-24 w-full object-cover rounded-lg" />
+                    <DocFilePreview value={app.vehicle_photo_url} alt="Транспорт" className="h-24 w-full object-cover rounded-lg" />
                   </div>
                 )}
               </div>

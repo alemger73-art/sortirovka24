@@ -39,7 +39,11 @@ const StorageImg = memo(function StorageImg({
   showBrokenIndicator = false,
   priority = false,
 }: StorageImgProps) {
-  const syncSrc = directSrc || resolveImageSrc(objectKey ?? null);
+  // Both `src` and `objectKey` may contain either a direct URL or a storage
+  // object key. Resolve them uniformly so an object key passed via `src`
+  // (common in admin/cabinet code) still renders instead of breaking.
+  const rawValue = directSrc ?? objectKey ?? null;
+  const syncSrc = resolveImageSrc(rawValue);
   const [asyncSrc, setAsyncSrc] = useState<string | null>(null);
   const src = syncSrc || asyncSrc;
   const alreadyCached = src ? isImageCached(src) : false;
@@ -57,9 +61,9 @@ const StorageImg = memo(function StorageImg({
     setLoaded(false);
     setRetried(false);
 
-    if (!objectKey || syncSrc) return () => { alive = false; };
+    if (!rawValue || syncSrc) return () => { alive = false; };
 
-    resolveImageUrl(objectKey)
+    resolveImageUrl(rawValue)
       .then((resolved) => {
         if (!alive) return;
         if (resolved) setAsyncSrc(resolved);
@@ -72,7 +76,7 @@ const StorageImg = memo(function StorageImg({
     return () => {
       alive = false;
     };
-  }, [objectKey, syncSrc]);
+  }, [rawValue, syncSrc]);
 
   // IntersectionObserver for lazy loading with 300px rootMargin
   useEffect(() => {

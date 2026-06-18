@@ -111,6 +111,11 @@ export const accountApi = {
     }>('/api/v1/account/me/avatar-upload-url', { method: 'POST' }),
   cabinet: () => api<any>("/api/v1/account/cabinet"),
   listAddresses: () => api<SavedAddress[]>("/api/v1/account/me/addresses"),
+  geocodeAddress: (address: string) =>
+    api<{ found: boolean; lat?: number | null; lng?: number | null; display_address?: string | null; detected_city?: string | null }>(
+      "/api/v1/account/me/addresses/geocode",
+      { method: "POST", body: JSON.stringify({ address }) },
+    ),
   createAddress: (body: SavedAddressInput) =>
     api<SavedAddress>("/api/v1/account/me/addresses", { method: "POST", body: JSON.stringify(body) }),
   updateAddress: (id: number, body: SavedAddressInput) =>

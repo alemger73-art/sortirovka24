@@ -3,6 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { resolveImageSrc } from '@/lib/storage';
 import { getAccountPrefill } from '@/lib/localAuth';
+import { type SavedAddress } from '@/lib/accountApi';
+import SavedAddressBar from '@/components/SavedAddressBar';
 import StoreProfileTab from '@/components/StoreProfileTab';
 import {
   fetchPharmacyCatalog,
@@ -456,6 +458,17 @@ export default function Pharmacy() {
       }
       toast.error('Не удалось получить GPS. Введите адрес вручную.');
     }
+  }, [runDeliveryQuote]);
+
+  const applySavedAddress = useCallback((saved: SavedAddress, opts?: { auto?: boolean }) => {
+    setAddress(saved.address);
+    setAddressFormCollapsed(false);
+    void runDeliveryQuote(
+      saved.lat != null && saved.lng != null
+        ? { address: saved.address, lat: saved.lat, lng: saved.lng }
+        : { address: saved.address },
+      { notify: !opts?.auto },
+    );
   }, [runDeliveryQuote]);
 
   useEffect(() => {
@@ -1363,6 +1376,7 @@ export default function Pharmacy() {
                 ) : (
                   <div className="lg:grid lg:grid-cols-3 lg:gap-8 lg:items-start">
                     <div className="lg:col-span-2 space-y-4">
+                    <SavedAddressBar currentAddress={address} onSelect={applySavedAddress} accent="teal" />
                     <div ref={addressPickerRef} id="pharmacy-delivery-address" className="scroll-mt-28">
                     <PharmacyDeliveryAddressPicker
                       address={address}

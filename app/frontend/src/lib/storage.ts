@@ -187,6 +187,13 @@ export function isDirectUrl(value: string): boolean {
   return value.startsWith('http://') || value.startsWith('https://');
 }
 
+/** Check if a stored value (object key or URL) points to a PDF document. */
+export function isPdf(value: string | null | undefined): boolean {
+  if (!value) return false;
+  const path = value.split('?')[0].split('#')[0].toLowerCase();
+  return path.endsWith('.pdf');
+}
+
 /**
  * Resolve an object_key to a download URL for display.
  */
@@ -390,6 +397,10 @@ export async function uploadFile(
   let objectKey = requestedObjectKey;
   let thumbnailObjectKey = '';
   let thumbnailUrl: string | null = null;
+  // The exact canonical URL returned by the storage backend after upload.
+  // This is authoritative for both images and non-image files (e.g. PDFs),
+  // where a reconstructed image-delivery URL would be incorrect.
+  let uploadedSecureUrl: string | null = null;
 
   let uploaded = false;
 
@@ -413,6 +424,7 @@ export async function uploadFile(
     if (uploadResult?.thumbnail_object_key) thumbnailObjectKey = uploadResult.thumbnail_object_key;
     if (uploadResult?.image_url) {
       const url = uploadResult.image_url;
+      uploadedSecureUrl = url;
       extractStorageBase(url);
       setCachedUrl(objectKey, url);
     }
@@ -449,8 +461,9 @@ export async function uploadFile(
     console.log('[uploadFile] Success via SDK fallback:', objectKey);
   }
 
-  // Construct permanent public URL (preferred — never expires)
-  let downloadUrl: string | null = getPublicObjectUrl(objectKey);
+  // Prefer the canonical URL returned by the backend (correct for both images
+  // and raw files like PDFs). Fall back to a reconstructed image-delivery URL.
+  let downloadUrl: string | null = uploadedSecureUrl || getPublicObjectUrl(objectKey);
 
   // If we don't have the OSS base URL yet, discover it via download endpoint
   if (!downloadUrl) {

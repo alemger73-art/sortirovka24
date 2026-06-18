@@ -15,6 +15,8 @@ import {
 import { parseDeliveryZones, type DeliveryQuote } from '@/lib/gastronomDelivery';
 import { GeolocationError, requestCurrentPosition } from '@/lib/geolocation';
 import DeliveryAddressPicker from '@/components/gastronom/DeliveryAddressPicker';
+import SavedAddressBar from '@/components/SavedAddressBar';
+import { type SavedAddress } from '@/lib/accountApi';
 import CatalogCategoryStrip from '@/components/gastronom/CatalogCategoryStrip';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -273,6 +275,16 @@ export default function Prorab() {
     }
   }, [runDeliveryQuote]);
 
+  const applySavedAddress = useCallback((saved: SavedAddress, opts?: { auto?: boolean }) => {
+    setAddress(saved.address);
+    void runDeliveryQuote(
+      saved.lat != null && saved.lng != null
+        ? { address: saved.address, lat: saved.lat, lng: saved.lng }
+        : { address: saved.address },
+      { notify: !opts?.auto },
+    );
+  }, [runDeliveryQuote]);
+
   useEffect(() => {
     if (deliveryQuote?.lat && deliveryQuote?.lng && subtotal > 0) {
       void runDeliveryQuote({ lat: deliveryQuote.lat, lng: deliveryQuote.lng });
@@ -437,6 +449,7 @@ export default function Prorab() {
                 <button type="button" onClick={() => setCheckoutOpen(false)}><X className="h-5 w-5" /></button>
               </div>
               <div className="p-4 space-y-4">
+                <SavedAddressBar currentAddress={address} onSelect={applySavedAddress} accent="amber" />
                 <DeliveryAddressPicker
                   address={address}
                   onAddressChange={setAddress}

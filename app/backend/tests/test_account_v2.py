@@ -209,22 +209,30 @@ async def test_delivery_addresses_crud(client: AsyncClient):
     assert empty.status_code == 200, empty.text
     assert empty.json() == []
 
-    # First created address becomes default automatically
+    # First created address becomes default automatically.
+    # Coordinates are passed explicitly to skip the network geocoding step.
     created = await client.post(
         "/api/v1/account/me/addresses",
         headers=headers,
-        json={"label": "Дом", "address": "ул. Жекибаева 129", "comment": "подъезд 2"},
+        json={
+            "label": "Дом",
+            "address": "ул. Жекибаева 129",
+            "comment": "подъезд 2",
+            "lat": 49.9774,
+            "lng": 73.2137,
+        },
     )
     assert created.status_code == 201, created.text
     first = created.json()
     assert first["is_default"] is True
     assert first["label"] == "Дом"
+    assert first["lat"] == 49.9774 and first["lng"] == 73.2137
 
     # Second address, explicitly default -> first one loses default
     created2 = await client.post(
         "/api/v1/account/me/addresses",
         headers=headers,
-        json={"label": "Работа", "address": "пер. Урановый 10", "is_default": True},
+        json={"label": "Работа", "address": "пер. Урановый 10", "is_default": True, "lat": 49.98, "lng": 73.21},
     )
     assert created2.status_code == 201, created2.text
     second = created2.json()
@@ -239,7 +247,7 @@ async def test_delivery_addresses_crud(client: AsyncClient):
     updated = await client.put(
         f"/api/v1/account/me/addresses/{first['id']}",
         headers=headers,
-        json={"address": "ул. Жекибаева 130", "is_default": True},
+        json={"address": "ул. Жекибаева 130", "is_default": True, "lat": 49.9775, "lng": 73.2138},
     )
     assert updated.status_code == 200, updated.text
     assert updated.json()["address"] == "ул. Жекибаева 130"

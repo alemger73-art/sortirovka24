@@ -194,6 +194,7 @@ async def public_download_file(request: FileUpDownRequest):
 ALLOWED_UPLOAD_EXTENSIONS = {
     "jpg", "jpeg", "png", "gif", "webp", "bmp", "svg",
     "mp4", "webm", "mov", "avi",
+    "pdf",
 }
 
 # Max object key length for public uploads

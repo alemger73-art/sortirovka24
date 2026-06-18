@@ -1,14 +1,21 @@
 import { useRef, useState } from 'react';
 import { Camera, Car, CheckCircle2, FileText, Loader2, Upload } from 'lucide-react';
-import { uploadFile, resolveImageSrc } from '@/lib/storage';
-import StorageImg from '@/components/StorageImg';
+import { toast } from 'sonner';
+import {
+  uploadFile,
+  MAX_IMAGE_UPLOAD_BYTES,
+  formatMaxImageSizeMb,
+} from '@/lib/storage';
+import DocFilePreview from '@/components/DocFilePreview';
 
 type DocKind = 'photo' | 'license' | 'tech_passport' | 'car';
 
+const ACCEPT = 'image/*,application/pdf';
+
 const LABELS: Record<DocKind, { title: string; hint: string; icon: typeof Camera }> = {
   photo: { title: 'Ваше фото', hint: 'Лицо хорошо видно', icon: Camera },
-  license: { title: 'Водительские права', hint: 'Обе стороны или разворот', icon: FileText },
-  tech_passport: { title: 'Техпаспорт авто', hint: 'СТС / техпаспорт', icon: FileText },
+  license: { title: 'Водительские права', hint: 'Фото или PDF, обе стороны', icon: FileText },
+  tech_passport: { title: 'Техпаспорт авто', hint: 'СТС / техпаспорт, фото или PDF', icon: FileText },
   car: { title: 'Фото автомобиля', hint: 'Машина с номером', icon: Car },
 };
 
@@ -62,10 +69,21 @@ export default function DriverDocUpload({
   };
 
   async function handleFile(kind: DocKind, file: File) {
+    const isPdfFile = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!file.type.startsWith('image/') && !isPdfFile) {
+      toast.error('Загрузите изображение или PDF-файл');
+      return;
+    }
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+      toast.error(`Максимальный размер файла — ${formatMaxImageSizeMb()} МБ`);
+      return;
+    }
     setUploading(kind);
     try {
-      const { objectKey } = await uploadFile(file, 'taxi-documents');
-      onChange(fieldMap[kind], objectKey);
+      const { objectKey, downloadUrl } = await uploadFile(file, 'taxi-documents');
+      onChange(fieldMap[kind], downloadUrl || objectKey);
+    } catch {
+      toast.error('Не удалось загрузить файл. Попробуйте ещё раз.');
     } finally {
       setUploading(null);
     }
@@ -76,7 +94,6 @@ export default function DriverDocUpload({
       {(Object.keys(LABELS) as DocKind[]).map((kind) => {
         const { title, hint, icon: Icon } = LABELS[kind];
         const val = values[kind];
-        const src = val ? resolveImageSrc(val) : '';
         return (
           <div key={kind} className="rounded-2xl border border-gray-200 bg-gray-50 p-3 space-y-2">
             <div className="flex items-center gap-2 text-sm font-semibold text-gray-800">
@@ -85,8 +102,8 @@ export default function DriverDocUpload({
             </div>
             <p className="text-xs text-gray-500">{hint}</p>
             <div className="relative aspect-[4/3] rounded-xl bg-white border border-dashed border-gray-300 overflow-hidden flex items-center justify-center">
-              {src ? (
-                <StorageImg src={val!} alt={title} className="h-full w-full object-cover" />
+              {val ? (
+                <DocFilePreview value={val} alt={title} className="h-full w-full object-cover" />
               ) : (
                 <Upload className="h-8 w-8 text-gray-300" />
               )}
@@ -97,11 +114,12 @@ export default function DriverDocUpload({
                 <input
                   ref={refs[kind]}
                   type="file"
-                  accept="image/*"
+                  accept={ACCEPT}
                   className="hidden"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (f) void handleFile(kind, f);
+                    e.target.value = '';
                   }}
                 />
                 <button

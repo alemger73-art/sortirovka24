@@ -1,13 +1,20 @@
 import { useRef, useState } from 'react';
 import { Bike, Camera, Car, CheckCircle2, FileText, Footprints, Loader2, Upload } from 'lucide-react';
-import { uploadFile, resolveImageSrc } from '@/lib/storage';
-import StorageImg from '@/components/StorageImg';
+import { toast } from 'sonner';
+import {
+  uploadFile,
+  MAX_IMAGE_UPLOAD_BYTES,
+  formatMaxImageSizeMb,
+} from '@/lib/storage';
+import DocFilePreview from '@/components/DocFilePreview';
 
 type DocKind = 'photo' | 'id' | 'vehicle';
 
+const ACCEPT = 'image/*,application/pdf';
+
 const LABELS: Record<DocKind, { title: string; hint: string; icon: typeof Camera }> = {
   photo: { title: 'Ваше фото', hint: 'Лицо хорошо видно', icon: Camera },
-  id: { title: 'Удостоверение личности', hint: 'Лицевая сторона УД / паспорт', icon: FileText },
+  id: { title: 'Удостоверение личности', hint: 'Фото или PDF, лицевая сторона УД / паспорт', icon: FileText },
   vehicle: { title: 'Фото транспорта', hint: 'Велосипед или авто с номером', icon: Bike },
 };
 
@@ -55,10 +62,21 @@ export default function CourierDocUpload({
   const kinds: DocKind[] = vehicleType === 'foot' ? ['photo', 'id'] : ['photo', 'id', 'vehicle'];
 
   async function handleFile(kind: DocKind, file: File) {
+    const isPdfFile = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!file.type.startsWith('image/') && !isPdfFile) {
+      toast.error('Загрузите изображение или PDF-файл');
+      return;
+    }
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+      toast.error(`Максимальный размер файла — ${formatMaxImageSizeMb()} МБ`);
+      return;
+    }
     setUploading(kind);
     try {
-      const { objectKey } = await uploadFile(file, 'courier-documents');
-      onChange(fieldMap[kind], objectKey);
+      const { objectKey, downloadUrl } = await uploadFile(file, 'courier-documents');
+      onChange(fieldMap[kind], downloadUrl || objectKey);
+    } catch {
+      toast.error('Не удалось загрузить файл. Попробуйте ещё раз.');
     } finally {
       setUploading(null);
     }
@@ -69,7 +87,6 @@ export default function CourierDocUpload({
       {kinds.map((kind) => {
         const { title, hint, icon: Icon } = LABELS[kind];
         const val = values[kind];
-        const src = val ? resolveImageSrc(val) : '';
         const VehicleIcon = vehicleType === 'car' ? Car : vehicleType === 'foot' ? Footprints : Bike;
         const DisplayIcon = kind === 'vehicle' ? VehicleIcon : Icon;
         return (
@@ -80,8 +97,8 @@ export default function CourierDocUpload({
             </div>
             <p className="text-xs text-gray-500">{hint}</p>
             <div className="relative aspect-[4/3] rounded-xl bg-white border border-dashed border-gray-300 overflow-hidden flex items-center justify-center">
-              {src ? (
-                <StorageImg src={val!} alt={title} className="h-full w-full object-cover" />
+              {val ? (
+                <DocFilePreview value={val} alt={title} className="h-full w-full object-cover" />
               ) : (
                 <Upload className="h-8 w-8 text-gray-300" />
               )}
@@ -92,11 +109,12 @@ export default function CourierDocUpload({
                 <input
                   ref={refs[kind]}
                   type="file"
-                  accept="image/*"
+                  accept={ACCEPT}
                   className="hidden"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (f) void handleFile(kind, f);
+                    e.target.value = '';
                   }}
                 />
                 <button

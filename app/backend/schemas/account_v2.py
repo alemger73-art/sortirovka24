@@ -134,3 +134,15 @@ class AddressResponse(BaseModel):
     lng: Optional[float] = None
     is_default: bool = False
     created_at: Optional[str] = None
+
+
+class AddressGeocodeRequest(BaseModel):
+    address: str = Field(min_length=3, max_length=500)
+
+
+class AddressGeocodeResponse(BaseModel):
+    found: bool
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    display_address: Optional[str] = None
+    detected_city: Optional[str] = None

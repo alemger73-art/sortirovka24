@@ -3,7 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { resolveImageSrc } from '@/lib/storage';
 import { getAccountPrefill } from '@/lib/localAuth';
-import { accountApi, getAccountToken, type SavedAddress } from '@/lib/accountApi';
+import { type SavedAddress } from '@/lib/accountApi';
+import SavedAddressBar from '@/components/SavedAddressBar';
 import StoreProfileTab from '@/components/StoreProfileTab';
 import {
   fetchGastronomCatalog,
@@ -245,8 +246,6 @@ export default function Gastronom() {
   const prevDeliveryReady = useRef(false);
   const geoPromptStarted = useRef(false);
   const [addressFormCollapsed, setAddressFormCollapsed] = useState(false);
-  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
-  const savedAddressApplied = useRef(false);
 
   const alcoholCategoryIds = useMemo(
     () => new Set(categories.filter((c) => c.is_alcohol).map((c) => c.id)),
@@ -332,39 +331,16 @@ export default function Gastronom() {
     if (prefill.phone) setPhone((v) => v || prefill.phone);
   }, []);
 
-  useEffect(() => {
-    if (!getAccountToken()) return;
-    let active = true;
-    accountApi
-      .listAddresses()
-      .then((list) => {
-        if (!active) return;
-        setSavedAddresses(list);
-        if (!savedAddressApplied.current) {
-          savedAddressApplied.current = true;
-          const preferred = list.find((a) => a.is_default) || list[0];
-          if (preferred) {
-            setAddress((current) => current.trim() || preferred.address);
-          }
-        }
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const applySavedAddress = useCallback((saved: SavedAddress) => {
+  const applySavedAddress = useCallback((saved: SavedAddress, opts?: { auto?: boolean }) => {
     setAddress(saved.address);
     setAddressFormCollapsed(false);
     void runDeliveryQuote(
       saved.lat != null && saved.lng != null
         ? { address: saved.address, lat: saved.lat, lng: saved.lng }
         : { address: saved.address },
-      { notify: true },
+      { notify: !opts?.auto },
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [runDeliveryQuote]);
 
   const cart = useMemo(() => {
     return Object.entries(cartQty)
@@ -1391,48 +1367,7 @@ export default function Gastronom() {
                 ) : (
                   <div className="lg:grid lg:grid-cols-3 lg:gap-8 lg:items-start">
                     <div className="lg:col-span-2 space-y-4">
-                    {savedAddresses.length > 0 && (
-                      <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-                        <p className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-emerald-600" />
-                          Мои адреса
-                        </p>
-                        <p className="text-xs text-gray-500 mt-0.5">Выберите, куда доставить</p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {savedAddresses.map((sa) => {
-                            const active = address.trim() === sa.address.trim();
-                            return (
-                              <button
-                                key={sa.id}
-                                type="button"
-                                onClick={() => applySavedAddress(sa)}
-                                className={`max-w-full rounded-xl border px-3 py-2 text-left text-sm transition-colors ${
-                                  active
-                                    ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
-                                    : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-emerald-300 hover:bg-emerald-50/50'
-                                }`}
-                              >
-                                <span className="flex items-center gap-1.5">
-                                  {sa.label ? <span className="font-semibold">{sa.label}</span> : null}
-                                  {sa.is_default ? (
-                                    <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
-                                      по умолчанию
-                                    </span>
-                                  ) : null}
-                                </span>
-                                <span className="block truncate text-xs text-gray-500">{sa.address}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <Link
-                          to="/cabinet?tab=addresses"
-                          className="mt-3 inline-block text-xs font-semibold text-emerald-700 hover:text-emerald-800"
-                        >
-                          Управлять адресами →
-                        </Link>
-                      </div>
-                    )}
+                    <SavedAddressBar currentAddress={address} onSelect={applySavedAddress} accent="emerald" />
                     <div ref={addressPickerRef} id="gastronom-delivery-address" className="scroll-mt-28">
                     <DeliveryAddressPicker
                       address={address}

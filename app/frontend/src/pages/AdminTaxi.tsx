@@ -11,7 +11,8 @@ import {
 } from '@/lib/taxiApi';
 import { invalidateTaxiEnabledCache } from '@/hooks/useTaxiEnabled';
 import StorageImg from '@/components/StorageImg';
-import { resolveImageSrc } from '@/lib/storage';
+import DocFilePreview from '@/components/DocFilePreview';
+import { resolveImageSrc, isPdf } from '@/lib/storage';
 import {
   Car,
   Check,
@@ -228,15 +229,24 @@ export default function AdminTaxi() {
                               { label: 'Техпаспорт', url: app.tech_passport_photo_url },
                               { label: 'Авто', url: app.car_photo_url },
                             ].filter((d) => d.url).map((d) => (
-                              <a
-                                key={d.label}
-                                href={resolveImageSrc(d.url!)}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="block w-20 h-16 rounded-lg overflow-hidden border border-gray-200"
-                              >
-                                <StorageImg src={d.url!} alt={d.label} className="w-full h-full object-cover" />
-                              </a>
+                              isPdf(d.url) ? (
+                                <div
+                                  key={d.label}
+                                  className="block w-20 h-16 rounded-lg overflow-hidden border border-gray-200"
+                                >
+                                  <DocFilePreview value={d.url!} alt={d.label} className="w-full h-full" />
+                                </div>
+                              ) : (
+                                <a
+                                  key={d.label}
+                                  href={resolveImageSrc(d.url!) || undefined}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="block w-20 h-16 rounded-lg overflow-hidden border border-gray-200"
+                                >
+                                  <StorageImg objectKey={d.url!} alt={d.label} className="w-full h-full object-cover" />
+                                </a>
+                              )
                             ))}
                           </div>
                         )}

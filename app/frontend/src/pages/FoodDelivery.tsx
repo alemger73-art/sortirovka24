@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import Layout from '@/components/Layout';
+import SavedAddressBar from '@/components/SavedAddressBar';
 import { client, withRetry } from '@/lib/api';
 import { getAPIBaseURL } from '@/lib/config';
 import { resolveImageSrc } from '@/lib/storage';
@@ -778,6 +779,11 @@ export default function FoodDelivery() {
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
                     className="h-12 rounded-xl border-stone-200 bg-white dark:border-gray-700 dark:bg-gray-900"
+                  />
+                  <SavedAddressBar
+                    currentAddress={address}
+                    onSelect={(s) => setAddress(s.address)}
+                    accent="orange"
                   />
                   <div className="relative">
                     <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />

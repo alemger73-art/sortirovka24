@@ -31,6 +31,8 @@ from models.user_addresses import UserAddress
 from models.user_management import Bonus, Order, PhoneVerification, UserAction, UserSession
 from schemas.account_v2 import (
     AddressCreateRequest,
+    AddressGeocodeRequest,
+    AddressGeocodeResponse,
     AddressResponse,
     AddressUpdateRequest,
     AdminUserUpdateRequest,
@@ -51,6 +53,7 @@ from schemas.account_v2 import (
 )
 from schemas.storage import FileUpDownRequest, FileUpDownResponse
 from services.account_profile import AvatarValidationError, normalize_avatar_url
+from services.gastronom_delivery import geocode_address, reverse_geocode
 from services.account_session import resolve_account_user
 from services.auth import AuthService
 from services.google_oauth import (
@@ -938,6 +941,28 @@ async def _unset_default_addresses(db: AsyncSession, user_id: str, keep_id: int 
         row.is_default = False
 
 
+@router.post("/me/addresses/geocode", response_model=AddressGeocodeResponse)
+async def geocode_user_address(
+    request: AddressGeocodeRequest,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Resolve a free-form address to map coordinates so saved addresses are 'working'."""
+    await _current_user(db, authorization)
+    coords = await geocode_address(request.address.strip())
+    if not coords:
+        return AddressGeocodeResponse(found=False)
+    lat, lng = coords
+    display, city = await reverse_geocode(lat, lng)
+    return AddressGeocodeResponse(
+        found=True,
+        lat=lat,
+        lng=lng,
+        display_address=display or request.address.strip(),
+        detected_city=city or None,
+    )
+
+
 @router.get("/me/addresses", response_model=list[AddressResponse])
 async def list_addresses(
     authorization: str | None = Header(default=None, alias="Authorization"),
@@ -965,13 +990,19 @@ async def create_address(
     make_default = request.is_default or len(existing) == 0
     if make_default:
         await _unset_default_addresses(db, str(user.id))
+    lat, lng = request.lat, request.lng
+    # Auto-resolve coordinates so the saved address is usable on the map.
+    if lat is None or lng is None:
+        coords = await geocode_address(request.address.strip())
+        if coords:
+            lat, lng = coords
     row = UserAddress(
         user_id=str(user.id),
         label=(request.label or "").strip() or None,
         address=request.address.strip(),
         comment=(request.comment or "").strip() or None,
-        lat=request.lat,
-        lng=request.lng,
+        lat=lat,
+        lng=lng,
         is_default=make_default,
     )
     db.add(row)
@@ -998,6 +1029,7 @@ async def update_address(
     ).scalar_one_or_none()
     if not row:
         raise HTTPException(status_code=404, detail="Адрес не найден")
+    address_changed = request.address is not None and request.address.strip() != (row.address or "")
     if request.label is not None:
         row.label = request.label.strip() or None
     if request.address is not None:
@@ -1008,6 +1040,11 @@ async def update_address(
         row.lat = request.lat
     if request.lng is not None:
         row.lng = request.lng
+    # Re-resolve coordinates when the address text changed but no coords were sent.
+    if address_changed and request.lat is None and request.lng is None:
+        coords = await geocode_address(row.address)
+        row.lat = coords[0] if coords else None
+        row.lng = coords[1] if coords else None
     if request.is_default is not None:
         if request.is_default:
             await _unset_default_addresses(db, str(user.id), keep_id=row.id)

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Layout from "@/components/Layout";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Camera, Coins, Save, UserCircle2, UtensilsCrossed, Truck, Store, Wrench, Car, Bike, MapPin, Plus, Trash2, Star, Pencil, X } from "lucide-react";
+import { Camera, Coins, Save, UserCircle2, UtensilsCrossed, Truck, Store, Wrench, Car, Bike, MapPin, Plus, Trash2, Star, Pencil, X, Loader2, CheckCircle2, AlertCircle, Search } from "lucide-react";
 import { accountApi, getAccountToken, type SavedAddress } from "@/lib/accountApi";
 import { cacheAccountProfile, getCurrentUser, logoutLocalUser } from "@/lib/localAuth";
 import { humanizeApiError } from "@/lib/apiErrors";
@@ -103,8 +103,19 @@ export default function Cabinet() {
   const [taxiRides, setTaxiRides] = useState<TaxiRide[]>([]);
   const [courierAccess, setCourierAccess] = useState<CourierAccess | null>(null);
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
-  const [addressForm, setAddressForm] = useState<{ id: number | null; label: string; address: string; comment: string; is_default: boolean } | null>(null);
+  const [addressForm, setAddressForm] = useState<{
+    id: number | null;
+    label: string;
+    address: string;
+    comment: string;
+    is_default: boolean;
+    lat: number | null;
+    lng: number | null;
+    display: string;
+  } | null>(null);
   const [savingAddress, setSavingAddress] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const [geoError, setGeoError] = useState("");
   const tabs: { id: TabId; label: string }[] = useMemo(() => {
     const base: { id: TabId; label: string }[] = [
       { id: "profile", label: t("cabinet.tab.profile") },
@@ -309,19 +320,49 @@ export default function Cabinet() {
   const startAddAddress = () => {
     setError("");
     setSuccess("");
-    setAddressForm({ id: null, label: "", address: "", comment: "", is_default: addresses.length === 0 });
+    setGeoError("");
+    setAddressForm({ id: null, label: "", address: "", comment: "", is_default: addresses.length === 0, lat: null, lng: null, display: "" });
   };
 
   const startEditAddress = (a: SavedAddress) => {
     setError("");
     setSuccess("");
+    setGeoError("");
     setAddressForm({
       id: a.id,
       label: a.label || "",
       address: a.address || "",
       comment: a.comment || "",
       is_default: a.is_default,
+      lat: a.lat ?? null,
+      lng: a.lng ?? null,
+      display: a.lat != null && a.lng != null ? a.address || "" : "",
     });
+  };
+
+  const geocodeAddressForm = async () => {
+    if (!addressForm) return;
+    if (addressForm.address.trim().length < 3) {
+      setGeoError(t("cabinet.addresses.addressRequired"));
+      return;
+    }
+    setGeocoding(true);
+    setGeoError("");
+    try {
+      const res = await accountApi.geocodeAddress(addressForm.address.trim());
+      if (!res.found || res.lat == null || res.lng == null) {
+        setAddressForm((p) => (p ? { ...p, lat: null, lng: null, display: "" } : p));
+        setGeoError(t("cabinet.addresses.geoNotFound"));
+        return;
+      }
+      setAddressForm((p) =>
+        p ? { ...p, lat: res.lat ?? null, lng: res.lng ?? null, display: res.display_address || p.address } : p
+      );
+    } catch (e: unknown) {
+      setGeoError(humanizeApiError(e));
+    } finally {
+      setGeocoding(false);
+    }
   };
 
   const saveAddress = async () => {
@@ -339,6 +380,8 @@ export default function Cabinet() {
         address: addressForm.address.trim(),
         comment: addressForm.comment.trim(),
         is_default: addressForm.is_default,
+        lat: addressForm.lat,
+        lng: addressForm.lng,
       };
       if (addressForm.id == null) {
         await accountApi.createAddress(payload);
@@ -568,12 +611,59 @@ export default function Cabinet() {
                         className={inputClass}
                         placeholder={t("cabinet.addresses.labelField")}
                       />
-                      <input
-                        value={addressForm.address}
-                        onChange={(e) => setAddressForm((p) => (p ? { ...p, address: e.target.value } : p))}
-                        className={inputClass}
-                        placeholder={t("cabinet.addresses.addressField")}
-                      />
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <input
+                            value={addressForm.address}
+                            onChange={(e) =>
+                              setAddressForm((p) => (p ? { ...p, address: e.target.value, lat: null, lng: null, display: "" } : p))
+                            }
+                            className={`${inputClass} flex-1`}
+                            placeholder={t("cabinet.addresses.addressField")}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                void geocodeAddressForm();
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={geocodeAddressForm}
+                            disabled={geocoding || addressForm.address.trim().length < 3}
+                            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                          >
+                            {geocoding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                            {t("cabinet.addresses.checkOnMap")}
+                          </button>
+                        </div>
+                        {geoError ? (
+                          <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                            <span>{geoError}</span>
+                          </div>
+                        ) : null}
+                        {addressForm.lat != null && addressForm.lng != null ? (
+                          <div className="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+                            <p className="flex items-center gap-1.5 text-xs font-semibold text-emerald-800">
+                              <CheckCircle2 className="h-4 w-4" /> {t("cabinet.addresses.geoFound")}
+                            </p>
+                            {addressForm.display ? (
+                              <p className="text-xs text-emerald-700 break-words">{addressForm.display}</p>
+                            ) : null}
+                            <iframe
+                              title="Карта адреса"
+                              src={`https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(
+                                `${addressForm.lng - 0.008},${addressForm.lat - 0.008},${addressForm.lng + 0.008},${addressForm.lat + 0.008}`
+                              )}&layer=mapnik&marker=${addressForm.lat}%2C${addressForm.lng}`}
+                              className="h-36 w-full rounded-lg border border-emerald-200"
+                              loading="lazy"
+                            />
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-500 dark:text-slate-400">{t("cabinet.addresses.checkHint")}</p>
+                        )}
+                      </div>
                       <textarea
                         value={addressForm.comment}
                         onChange={(e) => setAddressForm((p) => (p ? { ...p, comment: e.target.value } : p))}
