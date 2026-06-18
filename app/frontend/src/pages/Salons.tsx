@@ -206,9 +206,9 @@ export function SalonsCatalog() {
           limit: PAGE_SIZE,
         }));
       }, append ? 0 : 5 * 60 * 1000);
-      const items = sortSalons(res.data?.items || []);
+      const items = sortSalons<Salon>((res.data?.items as Salon[]) || []);
       setListTotal(res.data?.total ?? items.length);
-      setSalons(prev => (append ? sortSalons([...prev, ...items]) : items));
+      setSalons(prev => (append ? sortSalons<Salon>([...prev, ...items]) : items));
     } catch (e) {
       console.error(e);
     } finally {

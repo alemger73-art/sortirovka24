@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>en</string>
+	<string>ru</string>
 	<key>CFBundleDisplayName</key>
-        <string>Sortirovka24</string>
+	<string>Sortirovka24</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -45,13 +45,19 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-	</array>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Геолокация нужна для определения адреса доставки и такси</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Геолокация нужна для определения адреса доставки</string>
+	<string>Геолокация используется для определения вашего адреса при оформлении доставки и для заказа такси.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Доступ к камере нужен, чтобы сфотографировать товар, объявление или документ прямо в приложении.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Доступ к галерее нужен, чтобы прикрепить фото к объявлению, профилю, заказу или обращению в поддержку.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Разрешение нужно, чтобы сохранять изображения из приложения в вашу галерею.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Доступ к микрофону нужен для записи видео при добавлении видеоматериалов.</string>
 </dict>
 </plist>

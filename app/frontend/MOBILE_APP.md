@@ -282,10 +282,22 @@ FCM_SERVER_KEY=AAAA...ваш_ключ...
 
 ### App Store (Apple)
 
-1. Apple Developer Program — https://developer.apple.com ($99/год)  
-2. App Store Connect → **New App**  
-3. Archive из Xcode → Upload  
-4. Заполните метаданные, скриншоты, возрастной рейтинг  
+> 📘 Полная пошаговая инструкция: [`app-store/APP_STORE.md`](app-store/APP_STORE.md).
+> Иконки, splash, privacy-строки, версии и CI-сборка уже подготовлены.
+
+**Без своего Mac:** запустите GitHub Actions workflow
+**iOS Release (App Store / TestFlight)** (`.github/workflows/ios-release.yml`) —
+облачный macOS-раннер соберёт подписанный IPA и загрузит его в TestFlight.
+Нужны 4 секрета (App Store Connect API key) — см. `app-store/APP_STORE.md`.
+
+**На Mac:** `cd app/frontend && APPLE_TEAM_ID=XXXX npm run build:ios`
+(или `npm run cap:ios` → Xcode → Product → Archive).
+
+Кратко:
+1. Apple Developer Program — https://developer.apple.com ($99/год)
+2. App Store Connect → **New App** (Bundle ID `kz.sortirovka24.app`)
+3. Сборка через CI или Mac → билд в TestFlight
+4. Заполните карточку (`app-store/LISTING_RU.md`), App Privacy (`app-store/APP_PRIVACY.md`), скриншоты (`app-store/SCREENSHOTS.md`)
 5. Отправьте на Review
 
 ---

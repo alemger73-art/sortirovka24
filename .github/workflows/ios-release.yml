@@ -1,0 +1,137 @@
+name: iOS Release (App Store / TestFlight)
+
+# Builds a signed IPA on a cloud macOS runner and uploads it to TestFlight.
+# Lets you ship to the App Store WITHOUT owning a Mac.
+#
+# Required GitHub repository secrets (Settings → Secrets and variables → Actions):
+#   APP_STORE_CONNECT_KEY_ID      — Key ID of the App Store Connect API key
+#   APP_STORE_CONNECT_ISSUER_ID   — Issuer ID (App Store Connect → Users and Access → Integrations → App Store Connect API)
+#   APP_STORE_CONNECT_API_KEY     — Full contents of the AuthKey_XXXX.p8 file (paste as-is, multi-line)
+#   APPLE_TEAM_ID                 — 10-character Apple Developer Team ID
+# Optional:
+#   IOS_API_BASE_URL              — backend URL (defaults to the Railway production URL)
+#
+# Signing uses Xcode "automatic" cloud signing via the API key, so there is no
+# need to export/import .p12 certificates or provisioning profiles by hand.
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: 'Build number (CFBundleVersion). Leave empty to use the run number.'
+        required: false
+        default: ''
+
+concurrency:
+  group: ios-release
+  cancel-in-progress: false
+
+jobs:
+  testflight:
+    name: Build & upload to TestFlight
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: app/frontend
+    env:
+      API_BASE_URL: ${{ secrets.IOS_API_BASE_URL || 'https://sortirovka24-production-8788.up.railway.app' }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select latest Xcode
+        run: sudo xcode-select -switch /Applications/Xcode.app
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: app/frontend/package-lock.json
+
+      - name: Install dependencies & build web (bundled mode)
+        run: |
+          npm ci
+          # App Store build = BUNDLED web assets (works without network on review),
+          # API calls still go to the production backend.
+          printf 'VITE_API_BASE_URL=%s\n' "$API_BASE_URL" > .env.mobile
+          npm run build:mobile
+          npx cap sync ios
+
+      - name: Install CocoaPods
+        run: |
+          cd ios/App
+          pod install
+
+      - name: Write App Store Connect API key
+        env:
+          API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+        run: |
+          mkdir -p ~/private_keys ~/.appstoreconnect/private_keys
+          echo "$API_KEY" > ~/private_keys/AuthKey_${KEY_ID}.p8
+          cp ~/private_keys/AuthKey_${KEY_ID}.p8 ~/.appstoreconnect/private_keys/
+
+      - name: Resolve build number
+        id: bn
+        run: |
+          if [ -n "${{ github.event.inputs.build_number }}" ]; then
+            echo "value=${{ github.event.inputs.build_number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Archive (automatic cloud signing)
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          cd ios/App
+          xcodebuild -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -destination 'generic/platform=iOS' \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_${KEY_ID}.p8 \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID" \
+            CURRENT_PROJECT_VERSION=${{ steps.bn.outputs.value }} \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            clean archive
+
+      - name: Export IPA
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          cd ios/App
+          # Inject the team ID into ExportOptions at build time.
+          /usr/libexec/PlistBuddy -c "Set :teamID $APPLE_TEAM_ID" ExportOptions.plist || \
+            /usr/libexec/PlistBuddy -c "Add :teamID string $APPLE_TEAM_ID" ExportOptions.plist
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_${KEY_ID}.p8 \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID"
+
+      - name: Upload to TestFlight
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          IPA=$(ls "$RUNNER_TEMP"/export/*.ipa | head -n1)
+          echo "Uploading $IPA"
+          xcrun altool --upload-app -f "$IPA" -t ios \
+            --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"
+
+      - name: Upload IPA artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sortirovka24-ios-ipa
+          path: ${{ runner.temp }}/export/*.ipa
+          retention-days: 30
+          if-no-files-found: ignore

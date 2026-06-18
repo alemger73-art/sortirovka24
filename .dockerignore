@@ -8,6 +8,7 @@ app/app
 **/node_modules
 **/dist
 **/.vite
+**/*.tsbuildinfo
 
 # Python caches / local artifacts
 **/__pycache__

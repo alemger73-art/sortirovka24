@@ -5,6 +5,7 @@
 **/node_modules
 **/dist
 **/.vite
+**/*.tsbuildinfo
 app/backend/frontend_dist
 
 # Mobile builds (not used by the web image; .aab/.apk are often locked by the IDE)
