@@ -46,6 +46,11 @@ import { type SavedAddress } from '@/lib/accountApi';
 import LoyaltyGiftBanner from '@/components/gastronom/LoyaltyGiftBanner';
 import OrderGoalsProgress from '@/components/damalem/OrderGoalsProgress';
 import DeliveryZonesPreview from '@/components/damalem/DeliveryZonesPreview';
+import DamAlemProductCard from '@/components/damalem/DamAlemProductCard';
+import DamAlemFloatingCart from '@/components/damalem/DamAlemFloatingCart';
+import DamAlemTrustBar from '@/components/damalem/DamAlemTrustBar';
+import DamAlemPageSkeleton from '@/components/damalem/DamAlemPageSkeleton';
+import '@/styles/damAlem.css';
 
 /* ─── CDN images ─── */
 const FALLBACK_FOOD_1 = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/2034a1d7-1c57-40c0-8145-23816557ba5c.png';
@@ -1270,54 +1275,23 @@ export default function Food() {
     const hasGroups = itemHasGroups(item.id);
     const qtyInCart = getItemQuantityInCart(item.id);
     const desc = (localized(item, 'description') || item.description || '').replace(/\s+/g, ' ').trim();
+    const w = itemDisplayWeight(item);
     return (
-      <div className="flex gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-gray-100/90 transition-transform active:scale-[0.99]">
-        <button type="button" className="min-w-0 flex-1 text-left" onClick={() => openItemModal(item)}>
-          <h3 className="line-clamp-2 text-[15px] font-bold leading-snug text-[#111111]">{localized(item, 'name') || item.name}</h3>
-          <p className="mt-1 line-clamp-1 text-xs text-[#777777]">{desc || '\u2014'}</p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="text-sm font-extrabold text-[#111111]">{formatPrice(item.price)}</span>
-            {hasGroups && (
-              <span className="rounded-full bg-[#F5F5F5] px-2 py-0.5 text-[10px] font-semibold text-[#777777]">{t('food.hasOptions')}</span>
-            )}
-          </div>
-        </button>
-        <div className="flex shrink-0 flex-col items-end gap-2">
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-50 ring-1 ring-gray-100"
-              aria-label="Избранное"
-            >
-              <Heart className={`h-4 w-4 ${favoriteIds.includes(item.id) ? 'fill-[#FF3B30] text-[#FF3B30]' : 'text-gray-400'}`} />
-            </button>
-            <button type="button" onClick={() => openItemModal(item)} className="h-20 w-20 overflow-hidden rounded-2xl bg-[#EFEFEF] ring-1 ring-gray-100">
-              <img src={getItemImage(item)} alt="" className="h-full w-full object-cover" />
-            </button>
-          </div>
-          {qtyInCart > 0 ? (
-            <div className="flex h-10 min-w-[108px] items-center justify-center rounded-full bg-[#F5F5F5] px-0.5 ring-1 ring-gray-200/60">
-              <button type="button" onClick={() => quickRemove(item.id)} className="flex h-8 w-8 items-center justify-center rounded-full text-[#111111] active:scale-90" aria-label="-">
-                <Minus className="h-4 w-4" />
-              </button>
-              <span className="min-w-[1.5rem] text-center text-sm font-bold tabular-nums">{qtyInCart}</span>
-              <button type="button" onClick={() => quickAdd(item)} className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FF3B30] text-white active:scale-90" aria-label="+">
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => quickAdd(item)}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FF3B30] text-white shadow-md shadow-[#FF3B30]/25 active:scale-95"
-              aria-label={t('food.addToCart')}
-            >
-              <Plus className="h-5 w-5" />
-            </button>
-          )}
-        </div>
-      </div>
+      <DamAlemProductCard
+        name={localized(item, 'name') || item.name}
+        description={desc || undefined}
+        priceLabel={formatPrice(item.price)}
+        imageUrl={getItemImage(item)}
+        qtyInCart={qtyInCart}
+        hasOptions={hasGroups}
+        optionsLabel={t('food.hasOptions')}
+        isFavorite={favoriteIds.includes(item.id)}
+        weight={w !== '200 г' ? w : undefined}
+        onOpen={() => openItemModal(item)}
+        onAdd={() => quickAdd(item)}
+        onRemove={() => quickRemove(item.id)}
+        onToggleFavorite={() => toggleFavorite(item.id)}
+      />
     );
   }
 
@@ -1325,16 +1299,7 @@ export default function Food() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-[60vh] bg-white">
-          <div className="text-center">
-            <div className="relative w-16 h-16 mx-auto mb-4">
-              <div className="absolute inset-0 border-4 border-gray-100 rounded-full" />
-              <div className="absolute inset-0 border-4 border-transparent border-t-[#FF3B30] rounded-full animate-spin" />
-              <Utensils className="absolute inset-0 m-auto w-6 h-6 text-[#FF3B30]" />
-            </div>
-            <p className="text-[#777777] font-medium">{t('common.loading')}</p>
-          </div>
-        </div>
+        <DamAlemPageSkeleton />
       </Layout>
     );
   }
@@ -1351,15 +1316,15 @@ export default function Food() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-[#F5F5F5] text-[#111111]">
+      <div className="dam-page min-h-screen">
         {orderSuccess && (
-          <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center">
-            <div className="w-full max-w-lg animate-in slide-in-from-bottom rounded-t-3xl bg-white p-6 sm:rounded-3xl">
+          <div className="dam-sheet-overlay sm:items-center" onClick={() => setOrderSuccess(null)}>
+            <div className="dam-success-modal" onClick={e => e.stopPropagation()}>
               <div className="flex flex-col items-center text-center">
-                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-600 text-white shadow-lg">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/30">
                   <CheckCircle2 className="h-8 w-8" />
                 </div>
-                <h2 className="text-2xl font-extrabold text-gray-900">Заказ принят!</h2>
+                <h2 className="dam-section-title text-zinc-900">Заказ принят!</h2>
                 {orderSuccess.id > 0 && (
                   <p className="mt-1 text-sm font-semibold text-[#FF3B30]">№ {orderSuccess.id}</p>
                 )}
@@ -1367,7 +1332,7 @@ export default function Food() {
                   Мы уже получили заявку. Статус можно отслеживать в личном кабинете.
                 </p>
               </div>
-              <div className="mt-5 space-y-2 rounded-2xl bg-gray-50 p-4 text-sm">
+              <div className="mt-5 space-y-2 dam-card p-4 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Сумма</span>
                   <span className="font-bold">{formatPrice(orderSuccess.total)}</span>
@@ -1410,7 +1375,7 @@ export default function Food() {
                 )}
                 <Link
                   to="/cabinet"
-                  className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#FF3B30] text-sm font-bold text-white"
+                  className="dam-btn-primary text-sm"
                   onClick={() => setOrderSuccess(null)}
                 >
                   Мои заказы
@@ -1451,56 +1416,60 @@ export default function Food() {
           onOpenCart={() => setCartOpen(true)}
         />
 
-        <div className="mx-auto max-w-lg space-y-6 px-4 pb-32 pt-5 md:max-w-3xl lg:max-w-5xl">
-          {/* Поиск + корзина */}
-          <div className="flex items-center gap-2">
-            <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#999999]" />
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder={t('food.searchPlaceholder')}
-                className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-11 pr-4 text-sm font-medium shadow-sm outline-none ring-0 transition placeholder:text-[#AAAAAA] focus:border-[#FF3B30]/40 focus:ring-2 focus:ring-[#FF3B30]/15"
-              />
+        <div className="mx-auto max-w-lg space-y-5 px-4 pb-32 pt-4 md:max-w-3xl lg:max-w-5xl">
+          <DamAlemTrustBar
+            deliveryTime={deliveryTimeLabel}
+            minOrderLabel={`от ${formatPrice(minOrder)}`}
+            freeDeliveryLabel={freeDeliveryFrom > 0 ? `бесплатно от ${formatPrice(freeDeliveryFrom)}` : undefined}
+            kitchenOpen={kitchenStatus.open}
+            kitchenMessage={kitchenStatus.message}
+          />
+
+          <div className="dam-sticky-nav space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder={t('food.searchPlaceholder')}
+                  className="dam-search"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => cartCount > 0 ? setCartOpen(true) : toast.info('Добавьте блюда в корзину')}
+                className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition active:scale-95 ${
+                  cartCount > 0
+                    ? 'bg-[#FF3B30] text-white shadow-lg shadow-[#FF3B30]/30'
+                    : 'dam-card text-zinc-400'
+                }`}
+                aria-label={t('food.cart')}
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {cartCount > 0 ? (
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-[#FF3B30] ring-2 ring-[#FF3B30]">
+                    {cartCount > 99 ? '99+' : cartCount}
+                  </span>
+                ) : null}
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => cartCount > 0 ? setCartOpen(true) : toast.info('Добавьте блюда в корзину')}
-              className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border shadow-sm transition active:scale-95 ${
-                cartCount > 0
-                  ? 'border-[#FF3B30]/30 bg-[#FF3B30] text-white'
-                  : 'border-gray-200 bg-white text-gray-400'
-              }`}
-              aria-label={t('food.cart')}
-            >
-              <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 ? (
-                <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-[#FF3B30] ring-2 ring-[#FF3B30]">
-                  {cartCount > 99 ? '99+' : cartCount}
-                </span>
-              ) : null}
-            </button>
+            <DamAlemCategoryNav
+              items={categoryNavItems}
+              activeSlug={selectedCategorySlug}
+              onSelect={handleCategorySelect}
+              allLabel={t('food.allMenu')}
+            />
           </div>
 
-          {!kitchenStatus.open && (
-            <div className="rounded-2xl border border-gray-800 bg-gray-900 px-4 py-3 text-white shadow-sm">
-              <p className="text-sm font-bold">Кухня закрыта</p>
-              <p className="mt-1 text-xs text-gray-300">{kitchenStatus.message}</p>
-            </div>
-          )}
-
           {deliveryMethod !== 'pickup' && (
-            <div className="rounded-2xl border border-orange-100 bg-white p-4 shadow-sm space-y-3">
+            <div className="dam-card p-4 space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-bold text-[#111111] flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-orange-600" />
+                <p className="text-sm font-bold flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-[#FF3B30]" />
                   Куда доставить?
                 </p>
-                <span className="text-xs text-gray-500 flex items-center gap-1 shrink-0">
-                  <Clock className="h-3.5 w-3.5" />
-                  {deliveryTimeLabel}
-                </span>
               </div>
               <SavedAddressBar currentAddress={deliveryAddress} onSelect={applySavedAddress} accent="orange" />
               <DeliveryAddressPicker
@@ -1521,42 +1490,33 @@ export default function Food() {
             </div>
           )}
 
-          {brandDescription && (
-            <p className="rounded-2xl border border-gray-100 bg-white px-4 py-3 text-sm leading-relaxed text-[#555555] shadow-sm">
-              {brandDescription}
-            </p>
+          {cartTotal > 0 && (freeDeliveryFrom > 0 || minOrder > 0 || nextGift) && (
+            <OrderGoalsProgress
+              subtotal={cartTotal}
+              minOrder={minOrder}
+              freeDeliveryFrom={freeDeliveryFrom}
+              nextGift={nextGift}
+            />
           )}
 
-          <DamAlemOrderGuide
-            deliveryZones={guideZones}
-            minOrder={minOrder}
-            freeDeliveryFrom={freeDeliveryFrom}
-            formatPrice={formatPrice}
-          />
-
-          <DeliveryZonesPreview
-            zones={mapDeliveryZones}
-            storeLat={storeLatNum}
-            storeLng={storeLngNum}
-            formatPrice={formatPrice}
-          />
+          <DamAlemPromoBanners banners={foodBanners} />
 
           {favoriteItems.length > 0 && (
             <section>
-              <h2 className="mb-3 text-lg font-extrabold tracking-tight flex items-center gap-2">
+              <h2 className="dam-section-title mb-3 flex items-center gap-2">
                 <Heart className="h-5 w-5 text-[#FF3B30] fill-[#FF3B30]" />
                 Ваши любимые
               </h2>
               <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
                 {favoriteItems.map(item => (
-                  <div key={item.id} className="w-[140px] shrink-0 overflow-hidden rounded-2xl bg-white ring-1 ring-gray-100/80">
+                  <div key={item.id} className="w-[148px] shrink-0 overflow-hidden rounded-2xl dam-card">
                     <button type="button" onClick={() => openItemModal(item)} className="block w-full text-left">
                       <div className="aspect-square overflow-hidden bg-[#F0F0F0]">
                         <img src={getItemImage(item)} alt="" className="h-full w-full object-cover" />
                       </div>
                       <div className="p-2.5">
                         <p className="text-xs font-bold line-clamp-2">{item.name}</p>
-                        <p className="mt-1 text-xs font-extrabold">{formatPrice(item.price)}</p>
+                        <p className="mt-1 text-sm font-extrabold">{formatPrice(item.price)}</p>
                       </div>
                     </button>
                   </div>
@@ -1565,19 +1525,34 @@ export default function Food() {
             </section>
           )}
 
-          <DamAlemPromoBanners banners={foodBanners} />
-
-          <DamAlemCategoryNav
-            items={categoryNavItems}
-            activeSlug={selectedCategorySlug}
-            onSelect={handleCategorySelect}
-            allLabel={t('food.allMenu')}
-          />
+          <details className="dam-card group">
+            <summary className="cursor-pointer list-none p-4 text-sm font-bold text-zinc-700 marker:content-none flex items-center justify-between">
+              Условия доставки и зоны
+              <ChevronRight className="h-4 w-4 text-zinc-400 transition group-open:rotate-90" />
+            </summary>
+            <div className="space-y-4 border-t border-zinc-100 px-4 pb-4 pt-2">
+              {brandDescription ? (
+                <p className="text-sm leading-relaxed text-zinc-600">{brandDescription}</p>
+              ) : null}
+              <DamAlemOrderGuide
+                deliveryZones={guideZones}
+                minOrder={minOrder}
+                freeDeliveryFrom={freeDeliveryFrom}
+                formatPrice={formatPrice}
+              />
+              <DeliveryZonesPreview
+                zones={mapDeliveryZones}
+                storeLat={storeLatNum}
+                storeLng={storeLngNum}
+                formatPrice={formatPrice}
+              />
+            </div>
+          </details>
 
           {/* Категории — быстрый выбор с фото */}
           {selectedCategorySlug === 'all' && !searchQuery.trim() && (
             <section>
-              <h2 className="mb-3 text-lg font-extrabold tracking-tight">{t('food.categories')}</h2>
+              <h2 className="dam-section-title mb-3">{t('food.categories')}</h2>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
                 {sortedNavCategories.map(cat => {
                   const slug = categorySlugOf(cat);
@@ -1588,7 +1563,7 @@ export default function Food() {
                       key={cat.id}
                       type="button"
                       onClick={() => handleCategorySelect(slug)}
-                      className="group overflow-hidden rounded-2xl border border-gray-100 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]"
+                      className="dam-card dam-category-tile group"
                     >
                       <div className="aspect-[4/3] overflow-hidden bg-[#F0F0F0]">
                         {catImg ? (
@@ -1612,13 +1587,13 @@ export default function Food() {
           {/* Популярное — горизонтальная лента */}
           {showRecommendations && recommendedItems.length > 0 && !searchQuery.trim() && (
             <section>
-              <h2 className="mb-3 text-lg font-extrabold tracking-tight">{t('food.popularNow')}</h2>
+              <h2 className="dam-section-title mb-3">{t('food.popularNow')}</h2>
               <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 scrollbar-hide">
                 {recommendedItems.slice(0, 8).map(item => {
                   const qtyInCart = getItemQuantityInCart(item.id);
                   const badge = getBadgeType(item);
                   return (
-                    <div key={item.id} className="w-[160px] shrink-0 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm sm:w-[172px]">
+                    <div key={item.id} className="w-[160px] shrink-0 overflow-hidden dam-card sm:w-[172px]">
                       <button type="button" onClick={() => openItemModal(item)} className="relative block aspect-square w-full bg-[#ECECEC]">
                         <img src={getItemImage(item)} alt="" className="h-full w-full object-cover" />
                         {badge && (
@@ -1678,18 +1653,18 @@ export default function Food() {
           )}
 
           {/* Меню */}
-          <section ref={menuSectionRef} id="food-menu" className="scroll-mt-16">
-            <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-gray-100">
-                <Utensils className="h-5 w-5 text-[#777777]" />
-              </div>
-              <h2 className="flex-1 text-lg font-extrabold leading-tight">
+          <section ref={menuSectionRef} id="food-menu" className="scroll-mt-24">
+            <div className="mb-4">
+              <h2 className="dam-section-title">
                 {searchQuery.trim()
                   ? `Найдено: ${sortedFilteredItems.length}`
                   : selectedCategorySlug !== 'all'
                     ? activeCategoryLabel
                     : t('food.mainMenu')}
               </h2>
+              {!searchQuery.trim() && selectedCategorySlug === 'all' && (
+                <p className="mt-1 text-sm text-zinc-500">Свежее из кухни DAM ALEM · доставка по Сортировке</p>
+              )}
             </div>
 
             {showGroupedMenu && !searchQuery.trim() ? (
@@ -1734,9 +1709,9 @@ export default function Food() {
 
         {/* ═══ PRODUCT POPUP MODAL ═══ */}
         {selectedItem && (
-          <div className="food-sheet-overlay fixed inset-0 flex items-end justify-center bg-black/45 backdrop-blur-[2px] sm:items-center sm:p-4" onClick={() => setSelectedItem(null)}>
+          <div className="dam-sheet-overlay sm:p-4" onClick={() => setSelectedItem(null)}>
             <div
-              className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-[22px] bg-[#FAFAFA] animate-in slide-in-from-bottom duration-300 sm:rounded-[22px]"
+              className="dam-sheet-panel max-w-md !h-auto !max-h-[92vh] overflow-y-auto bg-[#FAFAFA]"
               onClick={e => e.stopPropagation()}
             >
               <div className="bg-white px-3 pb-1 pt-3 sm:rounded-t-[22px]">
@@ -1864,46 +1839,32 @@ export default function Food() {
 
         {/* ═══ FLOATING CART BUTTON ═══ */}
         {cartCount > 0 && !cartOpen && !checkoutOpen && !selectedItem && (
-          <div className="fab-above-bottom-nav fixed left-4 right-4 z-[55] mx-auto max-w-lg animate-in slide-in-from-bottom duration-300 md:max-w-3xl lg:max-w-5xl">
-            <button
-              type="button"
-              onClick={() => setCartOpen(true)}
-              className="group flex w-full items-center justify-between rounded-2xl border border-gray-100 bg-white p-4 shadow-lg transition-all hover:bg-[#fafafa] active:scale-[0.99]"
-            >
-              <span className="text-[15px] font-bold text-[#111111]">
-                {cartBarLabel}
-                <span className="text-[#777777] font-semibold"> • </span>
-                {formatPrice(cartTotalWithService)}
-              </span>
-              <span className="flex items-center gap-1 rounded-xl bg-[#F7F7F7] px-3 py-2 text-sm font-semibold text-[#111111] group-hover:bg-[#F0F0F0]">
-                {t('food.cart')}
-                <ChevronRight className="h-4 w-4 text-[#777777]" />
-              </span>
-            </button>
-          </div>
+          <DamAlemFloatingCart
+            itemLabel={cartBarLabel}
+            totalLabel={formatPrice(cartTotalWithService)}
+            cartLabel={t('food.cart')}
+            onOpen={() => setCartOpen(true)}
+          />
         )}
 
         {/* ═══ CART DRAWER ═══ */}
         {cartOpen && (
-          <div className="food-sheet-overlay fixed inset-0 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onClick={() => setCartOpen(false)}>
-            <div
-              className="food-sheet-panel w-full animate-in rounded-t-3xl bg-[#f5f5f5] slide-in-from-bottom duration-300 sm:max-h-[90vh] sm:max-w-lg sm:rounded-3xl"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-center relative p-5 bg-white rounded-t-3xl border-b border-gray-100">
-                <h2 className="text-lg font-extrabold text-[#111111]">{t('food.yourOrder')}</h2>
-                <button type="button" onClick={() => setCartOpen(false)} className="absolute right-5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[#F5F5F5] flex items-center justify-center hover:bg-gray-200 transition-colors text-[#111111]">
+          <div className="dam-sheet-overlay" onClick={() => setCartOpen(false)}>
+            <div className="dam-sheet-panel" onClick={e => e.stopPropagation()}>
+              <div className="dam-sheet-header">
+                <h2>{t('food.yourOrder')}</h2>
+                <button type="button" onClick={() => setCartOpen(false)} className="absolute right-5 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              <div className="dam-sheet-body space-y-3">
                 {cart.map((ci, idx) => {
                   const modTotal = calcSelectionsPrice(ci.selections);
                   const selNames = getSelectionNames(ci.selections);
                   const linePrice = (ci.item.price + modTotal) * ci.quantity;
                   return (
-                    <div key={idx} className="relative bg-white rounded-2xl p-4 ring-1 ring-gray-100/80">
+                    <div key={idx} className="relative dam-card p-4">
                       <button
                         type="button"
                         onClick={() => removeCartLine(idx)}
@@ -1977,7 +1938,7 @@ export default function Food() {
                 )}
               </div>
 
-              <div className="food-sheet-footer space-y-3 rounded-b-3xl bg-white p-5 pt-4 ring-1 ring-gray-100/80">
+              <div className="dam-sheet-footer space-y-3">
                 <OrderGoalsProgress
                   subtotal={cartTotal}
                   minOrder={minOrder}
@@ -2005,13 +1966,14 @@ export default function Food() {
                     {t('food.minOrder')}: {formatPrice(minOrder)}
                   </div>
                 )}
-                <Button
+                <button
+                  type="button"
                   onClick={openCheckout}
-                  className="h-14 w-full rounded-2xl bg-[#FF3B30] text-base font-bold text-white hover:bg-[#E6352B] active:scale-[0.98] transition-all"
+                  className="dam-btn-primary"
                   disabled={cartTotal < minOrder}
                 >
                   {t('food.checkout')} — {formatPrice(cartTotalWithService)}
-                </Button>
+                </button>
               </div>
             </div>
           </div>
@@ -2019,25 +1981,22 @@ export default function Food() {
 
         {/* ═══ CHECKOUT MODAL ═══ */}
         {checkoutOpen && (
-          <div className="food-sheet-overlay fixed inset-0 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onClick={() => setCheckoutOpen(false)}>
-            <div
-              className="food-sheet-panel w-full animate-in rounded-t-3xl bg-[#f5f5f5] slide-in-from-bottom duration-300 sm:max-h-[90vh] sm:max-w-lg sm:rounded-3xl"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between p-5 bg-white rounded-t-3xl">
+          <div className="dam-sheet-overlay" onClick={() => setCheckoutOpen(false)}>
+            <div className="dam-sheet-panel" onClick={e => e.stopPropagation()}>
+              <div className="dam-sheet-header !justify-between !px-4">
                 <div className="flex items-center gap-3">
-                  <button onClick={() => { setCheckoutOpen(false); setCartOpen(true); }} className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
+                  <button onClick={() => { setCheckoutOpen(false); setCartOpen(true); }} className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 hover:bg-zinc-200 transition-colors">
                     <ArrowLeft className="w-4 h-4" />
                   </button>
-                  <h2 className="text-xl font-extrabold text-gray-900">{t('food.checkout')}</h2>
+                  <h2>{t('food.checkout')}</h2>
                 </div>
-                <button onClick={() => setCheckoutOpen(false)} className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
+                <button onClick={() => setCheckoutOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 hover:bg-zinc-200 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                <div className="bg-white rounded-2xl p-4 shadow-sm">
+              <div className="dam-sheet-body space-y-4">
+                <div className="dam-card p-4 space-y-3">
                   <label className="text-sm font-bold text-gray-800 mb-3 block">Способ получения</label>
                   <div className="grid grid-cols-2 gap-3">
                     <button
@@ -2339,17 +2298,15 @@ export default function Food() {
                 </div>
               </div>
 
-              <div className="food-sheet-footer rounded-b-3xl bg-white p-5">
-                <Button
+              <div className="dam-sheet-footer">
+                <button
+                  type="button"
                   onClick={submitOrder}
-                  disabled={
-                    submitting
-                    || !!checkoutBlockReason
-                  }
-                  className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#FF3B30] text-base font-bold text-white shadow-lg shadow-[#FF3B30]/20 transition-all hover:bg-[#E6352B] active:scale-[0.98] disabled:opacity-60"
+                  disabled={submitting || !!checkoutBlockReason}
+                  className="dam-btn-primary flex items-center justify-center gap-2"
                 >
                   {submitting ? 'Отправляем…' : `Оформить заказ — ${formatPrice(checkoutGrandTotal)}`}
-                </Button>
+                </button>
                 {checkoutBlockReason && !submitting && (
                   <p className="mt-2 text-center text-xs text-amber-700 font-medium">{checkoutBlockReason}</p>
                 )}

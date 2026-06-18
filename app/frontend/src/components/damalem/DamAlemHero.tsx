@@ -1,4 +1,4 @@
-import { Clock, ShoppingCart, Star, Truck, Utensils } from 'lucide-react';
+import { Clock, ShoppingBag, Star, Truck } from 'lucide-react';
 import { DAM_ALEM_BRAND, DAM_ALEM_HERO_FALLBACK } from '@/lib/damAlem';
 import { resolveImageSrc } from '@/lib/storage';
 
@@ -48,84 +48,77 @@ export default function DamAlemHero({
   const slide = promoSlides[promoSlide] ?? promoSlides[0];
 
   return (
-    <section className="relative mx-auto max-w-lg overflow-hidden rounded-b-[28px] shadow-xl md:max-w-3xl lg:max-w-5xl">
-      <img src={bg} alt="" className="absolute inset-0 h-full w-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/25" />
-      <div className="pointer-events-none absolute -left-20 -top-20 h-56 w-56 rounded-full bg-[#FF3B30]/30 blur-3xl" />
-      <div className="pointer-events-none absolute -right-16 top-8 h-48 w-48 rounded-full bg-amber-500/20 blur-3xl" />
+    <section className="relative mx-auto max-w-lg overflow-hidden md:max-w-3xl lg:max-w-5xl">
+      <div className="relative aspect-[16/10] min-h-[220px] max-h-[320px] sm:aspect-[21/9]">
+        <img src={bg} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="dam-hero-gradient absolute inset-0" />
+        <div className="pointer-events-none absolute -left-24 top-0 h-64 w-64 rounded-full bg-[#FF3B30]/25 blur-3xl" />
 
-      <div className="relative z-10 px-5 pb-8 pt-6 md:px-8 md:pb-10 md:pt-8">
-        <div className="flex items-start justify-between gap-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 backdrop-blur-md">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#FF3B30] text-white shadow-lg shadow-[#FF3B30]/40">
-              <Utensils className="h-3.5 w-3.5" />
-            </span>
-            <span className="text-xs font-bold uppercase tracking-widest text-white">{title || DAM_ALEM_BRAND}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {cartCount > 0 && onOpenCart ? (
-              <button
-                type="button"
-                onClick={onOpenCart}
-                className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-[#111111] shadow-sm backdrop-blur-sm"
-                aria-label={`Корзина: ${cartCount}`}
-              >
-                <ShoppingCart className="h-5 w-5" />
-                <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#FF3B30] px-1 text-[10px] font-bold text-white">
-                  {cartCount > 99 ? '99+' : cartCount}
-                </span>
-              </button>
-            ) : null}
-            <div className="flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-[#111111] shadow-sm">
-              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-              {rating.toFixed(1)}
+        <div className="relative z-10 flex h-full flex-col justify-end p-5 md:p-8">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur-md">
+                {title || DAM_ALEM_BRAND}
+              </div>
+              <h1 className="max-w-md text-2xl font-black leading-[1.08] tracking-tight text-white sm:text-3xl md:text-4xl">
+                {subtitle || 'Горячая еда с доставкой'}
+              </h1>
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-2">
+              <div className="flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-bold text-zinc-900 shadow-lg">
+                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                {rating.toFixed(1)}
+              </div>
+              {cartCount > 0 && onOpenCart ? (
+                <button
+                  type="button"
+                  onClick={onOpenCart}
+                  className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-zinc-900 shadow-lg active:scale-95 transition"
+                  aria-label={`Корзина: ${cartCount}`}
+                >
+                  <ShoppingBag className="h-5 w-5" />
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#FF3B30] px-1 text-[10px] font-bold text-white">
+                    {cartCount > 99 ? '99+' : cartCount}
+                  </span>
+                </button>
+              ) : null}
             </div>
           </div>
-        </div>
 
-        <h1 className="mt-5 max-w-xl text-[28px] font-black leading-[1.05] tracking-tight text-white md:text-4xl">
-          {subtitle || 'Доставка еды №1 в Сортировке'}
-        </h1>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm">
-            <Clock className="h-3.5 w-3.5 opacity-90" />
-            {deliveryTime}
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm">
-            <Truck className="h-3.5 w-3.5 opacity-90" />
-            {formatPrice(deliveryFrom)}
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm">
-            Мин. {formatPrice(minOrder)}
-          </span>
-        </div>
-
-        {slide && (
-          <div className="mt-6 overflow-hidden rounded-2xl border border-white/15 bg-black/35 p-4 backdrop-blur-md">
-            <p className="text-sm font-bold text-white">{slide.title}</p>
-            <ul className="mt-2 space-y-0.5">
-              {slide.lines.map((line, i) => (
-                <li key={i} className="text-xs text-white/75">
-                  {line}
-                </li>
-              ))}
-            </ul>
-            {promoSlides.length > 1 && (
-              <div className="mt-3 flex gap-1.5">
-                {promoSlides.map((_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    aria-label={`Слайд ${i + 1}`}
-                    onClick={() => onPromoSlideChange(i)}
-                    className={`h-2 rounded-full transition-all ${i === promoSlide ? 'w-7 bg-white' : 'w-2 bg-white/35 hover:bg-white/55'}`}
-                  />
-                ))}
-              </div>
-            )}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-xl bg-black/30 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm">
+              <Clock className="h-3.5 w-3.5" />
+              {deliveryTime}
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-xl bg-black/30 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm">
+              <Truck className="h-3.5 w-3.5" />
+              от {formatPrice(deliveryFrom)}
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-xl bg-black/30 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm">
+              мин. {formatPrice(minOrder)}
+            </span>
           </div>
-        )}
+
+          {slide && promoSlides.length > 0 && (
+            <div className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-3.5 backdrop-blur-md">
+              <p className="text-sm font-bold text-white">{slide.title}</p>
+              {slide.lines[0] ? <p className="mt-1 text-xs text-white/70 line-clamp-2">{slide.lines[0]}</p> : null}
+              {promoSlides.length > 1 && (
+                <div className="mt-2.5 flex gap-1">
+                  {promoSlides.map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      aria-label={`Слайд ${i + 1}`}
+                      onClick={() => onPromoSlideChange(i)}
+                      className={`h-1.5 rounded-full transition-all ${i === promoSlide ? 'w-6 bg-white' : 'w-1.5 bg-white/40'}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );
