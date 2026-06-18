@@ -21,4 +21,5 @@ class Food_orders(Base):
     payment_method = Column(String, nullable=True)
     payment_status = Column(String, nullable=True)
     status = Column(String, nullable=True)
+    frontpad_order_number = Column(String, nullable=True)
     created_at = Column(String, nullable=True)

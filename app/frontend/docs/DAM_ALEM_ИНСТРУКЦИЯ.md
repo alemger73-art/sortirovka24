@@ -68,7 +68,10 @@
 
 ### FrontPad (касса)
 
-Ссылка внизу раздела DAM ALEM → **FrontPad**. Синхронизация меню с кассой (нужна настройка API).
+Ссылка внизу раздела DAM ALEM → **FrontPad**. Подробнее: `app/backend/docs/RAILWAY_FRONTPAD.md`.
+
+- Синхронизация меню с кассой (нужен API в FrontPad)
+- Заказы с сайта автоматически уходят в FrontPad (если `FRONTPAD_AUTO_PUSH_ORDERS=true`)
 
 ---
 

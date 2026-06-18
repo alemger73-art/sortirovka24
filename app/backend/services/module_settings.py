@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+from core.database import get_db
+from fastapi import Depends, HTTPException, Request
 from models.module_settings import ModuleSettings
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -140,8 +142,6 @@ def require_module(key: str):
     the API, not just hidden in the UI. Authenticated panel admins are allowed
     through so they can still manage a switched-off module's content.
     """
-    from core.database import get_db  # local import to avoid circulars
-    from fastapi import Depends, HTTPException, Request
 
     async def _guard(request: Request, db: AsyncSession = Depends(get_db)) -> None:
         if await is_module_enabled(db, key):

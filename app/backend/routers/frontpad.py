@@ -47,6 +47,7 @@ FrontPad API docs:
 
 import json
 import logging
+import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -179,25 +180,34 @@ async def _set_setting(service: Frontpad_settingsService, key: str, value: str) 
 
 async def _get_menu_secret(service: Frontpad_settingsService) -> str:
     """Get the secret key for menu retrieval.
-    
-    Priority: menu_secret > api_key (legacy fallback)
+
+    Priority: DB menu_secret > env FRONTPAD_MENU_SECRET > DB api_key (legacy)
     """
     menu_secret = await _get_setting(service, "menu_secret")
     if menu_secret:
         return menu_secret
-    # Fallback to legacy api_key
+    env_secret = (os.getenv("FRONTPAD_MENU_SECRET") or os.getenv("FRONTPAD_SECRET") or "").strip()
+    if env_secret:
+        return env_secret
     return await _get_setting(service, "api_key")
 
 
 async def _get_order_secret(service: Frontpad_settingsService) -> str:
     """Get the secret key for order creation.
-    
-    Priority: order_secret > api_key (legacy fallback)
+
+    Priority: DB order_secret > env FRONTPAD_ORDER_SECRET > DB api_key (legacy)
     """
     order_secret = await _get_setting(service, "order_secret")
     if order_secret:
         return order_secret
-    # Fallback to legacy api_key
+    env_secret = (
+        os.getenv("FRONTPAD_ORDER_SECRET")
+        or os.getenv("FRONTPAD_MENU_SECRET")
+        or os.getenv("FRONTPAD_SECRET")
+        or ""
+    ).strip()
+    if env_secret:
+        return env_secret
     return await _get_setting(service, "api_key")
 
 
