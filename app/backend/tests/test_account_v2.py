@@ -200,6 +200,67 @@ async def test_complaint_create_links_user_id(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_delivery_addresses_crud(client: AsyncClient):
+    token, _password = await _register_test_user(client)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Empty list initially
+    empty = await client.get("/api/v1/account/me/addresses", headers=headers)
+    assert empty.status_code == 200, empty.text
+    assert empty.json() == []
+
+    # First created address becomes default automatically
+    created = await client.post(
+        "/api/v1/account/me/addresses",
+        headers=headers,
+        json={"label": "Дом", "address": "ул. Жекибаева 129", "comment": "подъезд 2"},
+    )
+    assert created.status_code == 201, created.text
+    first = created.json()
+    assert first["is_default"] is True
+    assert first["label"] == "Дом"
+
+    # Second address, explicitly default -> first one loses default
+    created2 = await client.post(
+        "/api/v1/account/me/addresses",
+        headers=headers,
+        json={"label": "Работа", "address": "пер. Урановый 10", "is_default": True},
+    )
+    assert created2.status_code == 201, created2.text
+    second = created2.json()
+    assert second["is_default"] is True
+
+    listing = (await client.get("/api/v1/account/me/addresses", headers=headers)).json()
+    defaults = [a for a in listing if a["is_default"]]
+    assert len(defaults) == 1
+    assert defaults[0]["id"] == second["id"]
+
+    # Update + set default back to the first
+    updated = await client.put(
+        f"/api/v1/account/me/addresses/{first['id']}",
+        headers=headers,
+        json={"address": "ул. Жекибаева 130", "is_default": True},
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["address"] == "ул. Жекибаева 130"
+    assert updated.json()["is_default"] is True
+
+    # Address appears in cabinet payload
+    cabinet = await client.get("/api/v1/account/cabinet", headers=headers)
+    assert cabinet.status_code == 200
+    addr_ids = [a["id"] for a in cabinet.json().get("addresses", [])]
+    assert first["id"] in addr_ids and second["id"] in addr_ids
+
+    # Delete the default -> remaining one is promoted
+    deleted = await client.delete(f"/api/v1/account/me/addresses/{first['id']}", headers=headers)
+    assert deleted.status_code == 200, deleted.text
+    after = (await client.get("/api/v1/account/me/addresses", headers=headers)).json()
+    assert len(after) == 1
+    assert after[0]["id"] == second["id"]
+    assert after[0]["is_default"] is True
+
+
+@pytest.mark.asyncio
 async def test_clear_avatar(client: AsyncClient):
     token, _password = await _register_test_user(client)
     headers = {"Authorization": f"Bearer {token}"}

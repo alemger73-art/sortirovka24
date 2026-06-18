@@ -105,3 +105,32 @@ class RequestSmsCodeResponse(BaseModel):
 
 class ConfirmRegistrationRequest(RegisterV2Request):
     sms_code: str = Field(min_length=4, max_length=8)
+
+
+class AddressCreateRequest(BaseModel):
+    label: Optional[str] = Field(default=None, max_length=120)
+    address: str = Field(min_length=3, max_length=500)
+    comment: Optional[str] = Field(default=None, max_length=1000)
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    is_default: bool = False
+
+
+class AddressUpdateRequest(BaseModel):
+    label: Optional[str] = Field(default=None, max_length=120)
+    address: Optional[str] = Field(default=None, min_length=3, max_length=500)
+    comment: Optional[str] = Field(default=None, max_length=1000)
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    is_default: Optional[bool] = None
+
+
+class AddressResponse(BaseModel):
+    id: int
+    label: Optional[str] = None
+    address: str
+    comment: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    is_default: bool = False
+    created_at: Optional[str] = None

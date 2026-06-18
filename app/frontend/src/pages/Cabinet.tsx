@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Layout from "@/components/Layout";
-import { Link, useNavigate } from "react-router-dom";
-import { Camera, Coins, Save, UserCircle2, UtensilsCrossed, Truck, Store, Wrench, Car, Bike } from "lucide-react";
-import { accountApi, getAccountToken } from "@/lib/accountApi";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Camera, Coins, Save, UserCircle2, UtensilsCrossed, Truck, Store, Wrench, Car, Bike, MapPin, Plus, Trash2, Star, Pencil, X } from "lucide-react";
+import { accountApi, getAccountToken, type SavedAddress } from "@/lib/accountApi";
 import { cacheAccountProfile, getCurrentUser, logoutLocalUser } from "@/lib/localAuth";
 import { humanizeApiError } from "@/lib/apiErrors";
 import { uploadAvatar, assertImageFileSize } from "@/lib/storage";
@@ -12,7 +12,7 @@ import { useTaxiEnabled } from "@/hooks/useTaxiEnabled";
 import { useLanguage } from "@/contexts/LanguageContext";
 import TaxiUnavailable from "@/components/taxi/TaxiUnavailable";
 
-type TabId = "profile" | "bonuses" | "orders" | "masterRequests" | "taxi" | "complaints" | "announcements" | "settings";
+type TabId = "profile" | "addresses" | "bonuses" | "orders" | "masterRequests" | "taxi" | "complaints" | "announcements" | "settings";
 
 const MASTER_REQUEST_STATUS: Record<string, { labelKey: string; color: string }> = {
   new: { labelKey: "cabinet.master.statusNew", color: "bg-yellow-500/20 text-yellow-200" },
@@ -20,34 +20,34 @@ const MASTER_REQUEST_STATUS: Record<string, { labelKey: string; color: string }>
   done: { labelKey: "cabinet.master.statusDone", color: "bg-green-500/20 text-green-200" },
 };
 
-const FOOD_STATUS: Record<string, { label: string; color: string }> = {
-  new: { label: "Новый", color: "bg-yellow-500/20 text-yellow-200" },
-  in_progress: { label: "Готовится", color: "bg-blue-500/20 text-blue-200" },
-  done: { label: "Доставлен", color: "bg-green-500/20 text-green-200" },
-  cancelled: { label: "Отменён", color: "bg-red-500/20 text-red-200" },
+const FOOD_STATUS: Record<string, { key: string; color: string }> = {
+  new: { key: "cabinet.orderStatus.new", color: "bg-yellow-500/20 text-yellow-200" },
+  in_progress: { key: "cabinet.orderStatus.cooking", color: "bg-blue-500/20 text-blue-200" },
+  done: { key: "cabinet.orderStatus.delivered", color: "bg-green-500/20 text-green-200" },
+  cancelled: { key: "cabinet.orderStatus.cancelled", color: "bg-red-500/20 text-red-200" },
 };
 
 const PAYMENT_LABELS: Record<string, string> = {
-  cash: "Наличные",
-  kaspi_qr: "Kaspi QR",
-  halyk_qr: "Halyk QR",
+  cash: "payment.cash",
+  kaspi_qr: "payment.kaspiQr",
+  halyk_qr: "payment.halykQr",
 };
 
 const STORE_ORDER_LABELS: Record<string, string> = {
-  gastronom: "Гастроном",
-  pharmacy: "Аптека",
-  prorab: "Прораб",
-  park: "Фуд-парк",
+  gastronom: "store.gastronom",
+  pharmacy: "store.pharmacy",
+  prorab: "store.prorab",
+  park: "store.park",
 };
 
-const STORE_STATUS: Record<string, { label: string; color: string }> = {
-  new: { label: "Новый", color: "bg-yellow-500/20 text-yellow-200" },
-  in_progress: { label: "В обработке", color: "bg-blue-500/20 text-blue-200" },
-  processing: { label: "В обработке", color: "bg-blue-500/20 text-blue-200" },
-  done: { label: "Выполнен", color: "bg-green-500/20 text-green-200" },
-  completed: { label: "Выполнен", color: "bg-green-500/20 text-green-200" },
-  delivered: { label: "Доставлен", color: "bg-green-500/20 text-green-200" },
-  cancelled: { label: "Отменён", color: "bg-red-500/20 text-red-200" },
+const STORE_STATUS: Record<string, { key: string; color: string }> = {
+  new: { key: "cabinet.orderStatus.new", color: "bg-yellow-500/20 text-yellow-200" },
+  in_progress: { key: "cabinet.orderStatus.processing", color: "bg-blue-500/20 text-blue-200" },
+  processing: { key: "cabinet.orderStatus.processing", color: "bg-blue-500/20 text-blue-200" },
+  done: { key: "cabinet.orderStatus.done", color: "bg-green-500/20 text-green-200" },
+  completed: { key: "cabinet.orderStatus.done", color: "bg-green-500/20 text-green-200" },
+  delivered: { key: "cabinet.orderStatus.delivered", color: "bg-green-500/20 text-green-200" },
+  cancelled: { key: "cabinet.orderStatus.cancelled", color: "bg-red-500/20 text-red-200" },
 };
 
 function formatOrderDate(raw?: string | null) {
@@ -82,9 +82,14 @@ const sectionTitleClass = "text-xl font-bold text-gray-900 dark:text-white";
 
 export default function Cabinet() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { t, setLang } = useLanguage();
   const taxiEnabled = useTaxiEnabled();
-  const [activeTab, setActiveTab] = useState<TabId>("profile");
+  const VALID_TABS: TabId[] = ["profile", "addresses", "bonuses", "orders", "masterRequests", "taxi", "complaints", "announcements", "settings"];
+  const initialTab = searchParams.get("tab") as TabId | null;
+  const [activeTab, setActiveTab] = useState<TabId>(
+    initialTab && VALID_TABS.includes(initialTab) ? initialTab : "profile"
+  );
   const [loading, setLoading] = useState(true);
   const [cabinet, setCabinet] = useState<any>(null);
   const [profileForm, setProfileForm] = useState({ name: "", email: "", avatar: "", language: "ru" });
@@ -97,9 +102,13 @@ export default function Cabinet() {
   const [hasPassword, setHasPassword] = useState(true);
   const [taxiRides, setTaxiRides] = useState<TaxiRide[]>([]);
   const [courierAccess, setCourierAccess] = useState<CourierAccess | null>(null);
+  const [addresses, setAddresses] = useState<SavedAddress[]>([]);
+  const [addressForm, setAddressForm] = useState<{ id: number | null; label: string; address: string; comment: string; is_default: boolean } | null>(null);
+  const [savingAddress, setSavingAddress] = useState(false);
   const tabs: { id: TabId; label: string }[] = useMemo(() => {
     const base: { id: TabId; label: string }[] = [
       { id: "profile", label: t("cabinet.tab.profile") },
+      { id: "addresses", label: t("cabinet.tab.addresses") },
       { id: "bonuses", label: t("cabinet.tab.bonuses") },
       { id: "orders", label: t("cabinet.tab.orders") },
       { id: "masterRequests", label: t("cabinet.tab.masterRequests") },
@@ -123,6 +132,7 @@ export default function Cabinet() {
       try {
         const data = await accountApi.cabinet();
         setCabinet(data);
+        if (Array.isArray(data?.addresses)) setAddresses(data.addresses);
         setHasPassword(data?.profile?.has_password !== false);
         const lang = data?.profile?.language === "kz" ? "kz" : "ru";
         setProfileForm({
@@ -157,7 +167,7 @@ export default function Cabinet() {
             avatar: cached.avatar || "",
             language: "ru",
           });
-          setError("Нет связи с сервером. Показаны сохранённые данные профиля.");
+          setError(t("cabinet.errorOffline"));
         } else {
           setError(humanizeApiError(e));
         }
@@ -208,7 +218,7 @@ export default function Cabinet() {
   const onAvatarUpload = async (file?: File) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setError("Выберите изображение (JPG, PNG, WebP)");
+      setError(t("cabinet.errorImageType"));
       return;
     }
     try {
@@ -225,7 +235,7 @@ export default function Cabinet() {
     try {
       const result = await uploadAvatar(file);
       const url = result.thumbnailUrl || result.downloadUrl;
-      if (!url) throw new Error("Не удалось получить ссылку на загруженное фото");
+      if (!url) throw new Error(t("cabinet.errorUploadFailed"));
       const updated = await accountApi.updateMe({
         name: profileForm.name.trim(),
         email: profileForm.email.trim() || undefined,
@@ -266,8 +276,8 @@ export default function Cabinet() {
     setError("");
     setSuccess("");
     try {
-      if (passwordForm.next.length < 8) throw new Error("Новый пароль должен быть не короче 8 символов");
-      if (passwordForm.next !== passwordForm.confirm) throw new Error("Пароли не совпадают");
+      if (passwordForm.next.length < 8) throw new Error(t("cabinet.errorPasswordShort"));
+      if (passwordForm.next !== passwordForm.confirm) throw new Error(t("cabinet.errorPasswordMismatch"));
       if (hasPassword) {
         await accountApi.changePassword({
           current_password: passwordForm.current,
@@ -284,6 +294,88 @@ export default function Cabinet() {
       setError(humanizeApiError(e));
     } finally {
       setChangingPassword(false);
+    }
+  };
+
+  const refreshAddresses = async () => {
+    try {
+      const list = await accountApi.listAddresses();
+      setAddresses(list);
+    } catch {
+      // keep current list on failure
+    }
+  };
+
+  const startAddAddress = () => {
+    setError("");
+    setSuccess("");
+    setAddressForm({ id: null, label: "", address: "", comment: "", is_default: addresses.length === 0 });
+  };
+
+  const startEditAddress = (a: SavedAddress) => {
+    setError("");
+    setSuccess("");
+    setAddressForm({
+      id: a.id,
+      label: a.label || "",
+      address: a.address || "",
+      comment: a.comment || "",
+      is_default: a.is_default,
+    });
+  };
+
+  const saveAddress = async () => {
+    if (!addressForm) return;
+    if (addressForm.address.trim().length < 3) {
+      setError(t("cabinet.addresses.addressRequired"));
+      return;
+    }
+    setSavingAddress(true);
+    setError("");
+    setSuccess("");
+    try {
+      const payload = {
+        label: addressForm.label.trim(),
+        address: addressForm.address.trim(),
+        comment: addressForm.comment.trim(),
+        is_default: addressForm.is_default,
+      };
+      if (addressForm.id == null) {
+        await accountApi.createAddress(payload);
+      } else {
+        await accountApi.updateAddress(addressForm.id, payload);
+      }
+      await refreshAddresses();
+      setAddressForm(null);
+      setSuccess(t("cabinet.addresses.saved"));
+    } catch (e: unknown) {
+      setError(humanizeApiError(e));
+    } finally {
+      setSavingAddress(false);
+    }
+  };
+
+  const makeDefaultAddress = async (id: number) => {
+    setError("");
+    setSuccess("");
+    try {
+      await accountApi.setDefaultAddress(id);
+      await refreshAddresses();
+    } catch (e: unknown) {
+      setError(humanizeApiError(e));
+    }
+  };
+
+  const removeAddress = async (id: number) => {
+    if (!window.confirm(t("cabinet.addresses.deleteConfirm"))) return;
+    setError("");
+    setSuccess("");
+    try {
+      await accountApi.deleteAddress(id);
+      await refreshAddresses();
+      setSuccess(t("cabinet.addresses.deleted"));
+    } catch (e: unknown) {
+      setError(humanizeApiError(e));
     }
   };
 
@@ -318,7 +410,7 @@ export default function Cabinet() {
                   to="/cabinet/driver"
                   className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-yellow-600 hover:text-yellow-700 dark:text-yellow-400"
                 >
-                  <Car className="h-4 w-4" /> Кабинет водителя →
+                  <Car className="h-4 w-4" /> {t("cabinet.driverCabinetLink")} →
                 </Link>
               )}
               {courierAccess?.can_access_cabinet && (
@@ -326,12 +418,12 @@ export default function Cabinet() {
                   to="/cabinet/courier"
                   className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-orange-600 hover:text-orange-700 dark:text-orange-400"
                 >
-                  <Bike className="h-4 w-4" /> Кабинет курьера →
+                  <Bike className="h-4 w-4" /> {t("cabinet.courierCabinetLink")} →
                 </Link>
               )}
               {courierAccess?.status === "pending" && (
                 <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
-                  📋 Заявка курьера на рассмотрении
+                  📋 {t("cabinet.courierPending")}
                 </p>
               )}
               {(cabinet?.profile?.role === "user" || cabinet?.profile?.role === "courier") && (
@@ -339,7 +431,7 @@ export default function Cabinet() {
                   to="/taxi/driver"
                   className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-yellow-600 hover:text-yellow-700 dark:text-yellow-400"
                 >
-                  <Car className="h-4 w-4" /> Стать водителем →
+                  <Car className="h-4 w-4" /> {t("cabinet.becomeDriver")} →
                 </Link>
               )}
               {!courierAccess?.can_access_cabinet && courierAccess?.status !== "pending" && (
@@ -347,7 +439,7 @@ export default function Cabinet() {
                   to="/delivery/courier"
                   className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-orange-600 hover:text-orange-700 dark:text-orange-400"
                 >
-                  <Bike className="h-4 w-4" /> Стать курьером →
+                  <Bike className="h-4 w-4" /> {t("cabinet.becomeCourier")} →
                 </Link>
               )}
             </div>
@@ -391,7 +483,7 @@ export default function Cabinet() {
 
               {activeTab === "profile" && (
                 <DarkCard>
-                  <div className="mb-4 flex items-center justify-between"><h2 className={sectionTitleClass}>Профиль</h2></div>
+                  <div className="mb-4 flex items-center justify-between"><h2 className={sectionTitleClass}>{t("cabinet.tab.profile")}</h2></div>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr]">
                     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center dark:border-[#2a3347] dark:bg-[#0f172a]">
                       {profileForm.avatar ? (
@@ -400,7 +492,7 @@ export default function Cabinet() {
                         <UserCircle2 className="mx-auto h-28 w-28 text-gray-400 dark:text-slate-400" />
                       )}
                       <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-yellow-400 px-3 py-2 text-sm font-semibold text-[#0B0F19]">
-                        <Camera className="h-4 w-4" /> {avatarUploading ? "Загрузка..." : "Загрузить"}
+                        <Camera className="h-4 w-4" /> {avatarUploading ? t("cabinet.uploadingPhoto") : t("cabinet.uploadPhoto")}
                         <input type="file" accept="image/*" className="hidden" disabled={avatarUploading} onChange={(e) => onAvatarUpload(e.target.files?.[0])} />
                       </label>
                       {profileForm.avatar ? (
@@ -425,45 +517,173 @@ export default function Cabinet() {
                           }}
                           className="mt-2 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-[#2a3347] dark:text-slate-200 dark:hover:bg-[#1a2336]"
                         >
-                          Удалить фото
+                          {t("cabinet.removePhoto")}
                         </button>
                       ) : null}
                     </div>
                     <div className="space-y-3">
-                      <input value={profileForm.name} onChange={(e) => setProfileForm((p) => ({ ...p, name: e.target.value }))} className={inputClass} placeholder="Имя" />
-                      <input disabled value={cabinet?.profile?.phone || ""} className={`${inputClass} opacity-80`} placeholder="Телефон" />
+                      <input value={profileForm.name} onChange={(e) => setProfileForm((p) => ({ ...p, name: e.target.value }))} className={inputClass} placeholder={t("cabinet.placeholderName")} />
+                      <input disabled value={cabinet?.profile?.phone || ""} className={`${inputClass} opacity-80`} placeholder={t("cabinet.placeholderPhone")} />
                       <input value={profileForm.email} onChange={(e) => setProfileForm((p) => ({ ...p, email: e.target.value }))} className={inputClass} placeholder="Email" />
                       <select value={profileForm.language} onChange={e => setProfileForm(p => ({ ...p, language: e.target.value }))} className={inputClass}>
                         <option value="ru">Русский</option>
                         <option value="kz">Қазақша</option>
                       </select>
                       <button onClick={saveProfile} disabled={savingProfile || avatarUploading} className="inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-[#0B0F19] disabled:opacity-60">
-                        <Save className="h-4 w-4" /> {savingProfile ? "Сохранение..." : "Сохранить изменения"}
+                        <Save className="h-4 w-4" /> {savingProfile ? t("cabinet.saving") : t("cabinet.saveProfile")}
                       </button>
                     </div>
                   </div>
                 </DarkCard>
               )}
 
+              {activeTab === "addresses" && (
+                <DarkCard>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <h2 className={sectionTitleClass}>{t("cabinet.addresses.title")}</h2>
+                    {!addressForm && (
+                      <button
+                        onClick={startAddAddress}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-yellow-400 px-3 py-2 text-sm font-semibold text-[#0B0F19]"
+                      >
+                        <Plus className="h-4 w-4" /> {t("cabinet.addresses.add")}
+                      </button>
+                    )}
+                  </div>
+                  <p className="mb-4 text-sm text-gray-500 dark:text-slate-400">{t("cabinet.addresses.hint")}</p>
+
+                  {addressForm && (
+                    <div className="mb-4 space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-[#2a3347] dark:bg-[#0f172a]">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {addressForm.id == null ? t("cabinet.addresses.add") : t("cabinet.addresses.edit")}
+                        </h3>
+                        <button onClick={() => setAddressForm(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-slate-200">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <input
+                        value={addressForm.label}
+                        onChange={(e) => setAddressForm((p) => (p ? { ...p, label: e.target.value } : p))}
+                        className={inputClass}
+                        placeholder={t("cabinet.addresses.labelField")}
+                      />
+                      <input
+                        value={addressForm.address}
+                        onChange={(e) => setAddressForm((p) => (p ? { ...p, address: e.target.value } : p))}
+                        className={inputClass}
+                        placeholder={t("cabinet.addresses.addressField")}
+                      />
+                      <textarea
+                        value={addressForm.comment}
+                        onChange={(e) => setAddressForm((p) => (p ? { ...p, comment: e.target.value } : p))}
+                        className={`${inputClass} min-h-[64px]`}
+                        placeholder={t("cabinet.addresses.commentField")}
+                      />
+                      <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-200">
+                        <input
+                          type="checkbox"
+                          checked={addressForm.is_default}
+                          onChange={(e) => setAddressForm((p) => (p ? { ...p, is_default: e.target.checked } : p))}
+                          className="h-4 w-4 rounded border-gray-300 text-yellow-500 focus:ring-yellow-400"
+                        />
+                        {t("cabinet.addresses.makeDefault")}
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={saveAddress}
+                          disabled={savingAddress}
+                          className="inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-[#0B0F19] disabled:opacity-60"
+                        >
+                          <Save className="h-4 w-4" /> {savingAddress ? t("cabinet.saving") : t("common.save")}
+                        </button>
+                        <button
+                          onClick={() => setAddressForm(null)}
+                          className="rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 dark:border-[#2a3347] dark:text-slate-200 dark:hover:bg-[#1a2336]"
+                        >
+                          {t("common.cancel")}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    {addresses.length === 0 && !addressForm ? (
+                      <p className="text-sm text-slate-400">{t("cabinet.addresses.empty")}</p>
+                    ) : null}
+                    {addresses.map((a) => (
+                      <div key={a.id} className={listCardClass}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-2 min-w-0">
+                            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500 dark:text-emerald-400" />
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                {a.label ? (
+                                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{a.label}</p>
+                                ) : null}
+                                {a.is_default ? (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
+                                    <Star className="h-3 w-3 fill-current" /> {t("cabinet.addresses.default")}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <p className="text-sm text-gray-800 dark:text-slate-200 break-words">{a.address}</p>
+                              {a.comment ? (
+                                <p className="mt-0.5 text-xs text-gray-500 dark:text-slate-400 break-words">{a.comment}</p>
+                              ) : null}
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1">
+                            {!a.is_default ? (
+                              <button
+                                onClick={() => makeDefaultAddress(a.id)}
+                                title={t("cabinet.addresses.setDefault")}
+                                className="rounded-lg p-2 text-gray-400 hover:bg-gray-200 hover:text-emerald-600 dark:hover:bg-[#1a2336]"
+                              >
+                                <Star className="h-4 w-4" />
+                              </button>
+                            ) : null}
+                            <button
+                              onClick={() => startEditAddress(a)}
+                              title={t("common.edit")}
+                              className="rounded-lg p-2 text-gray-400 hover:bg-gray-200 hover:text-indigo-600 dark:hover:bg-[#1a2336]"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => removeAddress(a.id)}
+                              title={t("common.delete")}
+                              className="rounded-lg p-2 text-gray-400 hover:bg-gray-200 hover:text-red-600 dark:hover:bg-[#1a2336]"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </DarkCard>
+              )}
+
               {activeTab === "bonuses" && (
                 <DarkCard>
-                  <h2 className="mb-4 text-xl font-bold">Мои бонусы</h2>
+                  <h2 className="mb-4 text-xl font-bold">{t("cabinet.myBonuses")}</h2>
                   <div className="rounded-2xl border border-yellow-400/30 bg-gradient-to-r from-yellow-500/20 to-amber-400/10 p-5">
-                    <p className="text-sm text-yellow-100/80">Текущий баланс бонусов</p>
+                    <p className="text-sm text-yellow-100/80">{t("cabinet.bonusBalance")}</p>
                     <div className="mt-2 flex items-center gap-2">
                       <Coins className="h-7 w-7 text-yellow-300" />
                       <p className="text-4xl font-black text-yellow-300">{Number(cabinet?.profile?.bonus_balance || 0).toLocaleString("ru-RU")}</p>
                     </div>
-                    <p className="mt-1 text-sm text-yellow-100/70">+300 за регистрацию · +50 за заказ еды</p>
+                    <p className="mt-1 text-sm text-yellow-100/70">{t("cabinet.bonusHint")}</p>
                   </div>
                   <div className="mt-4 space-y-2">
                     {rows.bonuses.length === 0 ? (
-                      <p className="text-sm text-slate-400">Пока нет начислений. Бонусы появятся после регистрации и заказов.</p>
+                      <p className="text-sm text-slate-400">{t("cabinet.noBonuses")}</p>
                     ) : null}
                     {rows.bonuses.map((entry: any) => (
                       <div key={entry.id} className={listCardClass}>
                         <div className="flex items-center justify-between">
-                          <p className="text-sm text-gray-900 dark:text-white">{entry.reason || "Начисление"}</p>
+                          <p className="text-sm text-gray-900 dark:text-white">{entry.reason || t("cabinet.bonusReason")}</p>
                           <p className="font-semibold text-amber-600 dark:text-yellow-300">{entry.points > 0 ? "+" : ""}{entry.points}</p>
                         </div>
                         <p className="text-xs text-gray-500 dark:text-slate-400">{entry.created_at || ""}</p>
@@ -475,7 +695,7 @@ export default function Cabinet() {
 
               {activeTab === "orders" && (
                 <DarkCard>
-                  <h2 className="mb-4 text-xl font-bold">История заказов</h2>
+                  <h2 className="mb-4 text-xl font-bold">{t("cabinet.tab.orders")}</h2>
                   <div className="space-y-2">
                     {(rows.orders || []).map((o: any) => {
                       const isFood = o.type === "food";
@@ -485,7 +705,7 @@ export default function Cabinet() {
                         : isStore
                           ? STORE_STATUS[o.status] || STORE_STATUS.new
                           : null;
-                      const payLabel = PAYMENT_LABELS[o.payment_method] || o.payment_method;
+                      const payLabel = PAYMENT_LABELS[o.payment_method] ? t(PAYMENT_LABELS[o.payment_method]) : o.payment_method;
                       return (
                         <div key={o.id} className={listCardClass}>
                           <div className="flex items-start justify-between gap-2">
@@ -499,13 +719,13 @@ export default function Cabinet() {
                                 {isFood
                                   ? (o.restaurant_name || "DAM ALEM") + (o.order_number ? ` · №${o.order_number}` : "")
                                   : isStore
-                                    ? (o.store_label || STORE_ORDER_LABELS[o.type]) + (o.order_number ? ` · №${o.order_number}` : "")
+                                    ? (o.store_label || t(STORE_ORDER_LABELS[o.type])) + (o.order_number ? ` · №${o.order_number}` : "")
                                     : (o.type || "order")}
                               </p>
                             </div>
                             {st ? (
                               <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 font-medium ${st.color}`}>
-                                {st.label}
+                                {t(st.key)}
                               </span>
                             ) : null}
                           </div>
@@ -519,9 +739,9 @@ export default function Cabinet() {
                           {isFood && (
                             <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-gray-500 dark:text-slate-400">
                               {o.delivery_method === "delivery" ? (
-                                <span className="inline-flex items-center gap-1"><Truck className="h-3 w-3" /> Доставка</span>
+                                <span className="inline-flex items-center gap-1"><Truck className="h-3 w-3" /> {t("cabinet.deliveryMethod.delivery")}</span>
                               ) : o.delivery_method === "pickup" ? (
-                                <span className="inline-flex items-center gap-1"><Store className="h-3 w-3" /> Самовывоз</span>
+                                <span className="inline-flex items-center gap-1"><Store className="h-3 w-3" /> {t("cabinet.deliveryMethod.pickup")}</span>
                               ) : null}
                               {payLabel ? <span>· {payLabel}</span> : null}
                               {o.created_at ? <span>· {formatOrderDate(o.created_at)}</span> : null}
@@ -533,7 +753,7 @@ export default function Cabinet() {
                         </div>
                       );
                     })}
-                    {(rows.orders || []).length === 0 ? <p className="text-sm text-slate-400">Пока нет заказов.</p> : null}
+                    {(rows.orders || []).length === 0 ? <p className="text-sm text-slate-400">{t("cabinet.noOrders")}</p> : null}
                   </div>
                 </DarkCard>
               )}
@@ -576,9 +796,9 @@ export default function Cabinet() {
               {activeTab === "taxi" && (
                 <DarkCard>
                   <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-xl font-bold">Поездки такси</h2>
+                    <h2 className="text-xl font-bold">{t("cabinet.tab.taxi")}</h2>
                     {taxiEnabled !== false ? (
-                      <Link to="/taxi" className="text-sm font-semibold text-yellow-400 hover:text-yellow-300">Заказать →</Link>
+                      <Link to="/taxi" className="text-sm font-semibold text-yellow-400 hover:text-yellow-300">{t("cabinet.orderNow")} →</Link>
                     ) : null}
                   </div>
                   {taxiEnabled === false && taxiRides.length === 0 ? (
@@ -597,7 +817,7 @@ export default function Cabinet() {
                         <p className="text-xs text-amber-600 dark:text-yellow-300 mt-1">{formatTenge(r.final_price ?? r.estimated_price)}</p>
                       </Link>
                     ))}
-                    {taxiRides.length === 0 ? <p className="text-sm text-slate-400">Пока нет поездок.</p> : null}
+                    {taxiRides.length === 0 ? <p className="text-sm text-slate-400">{t("cabinet.noTaxi")}</p> : null}
                   </div>
                   )}
                 </DarkCard>
@@ -605,32 +825,32 @@ export default function Cabinet() {
 
               {activeTab === "complaints" && (
                 <DarkCard>
-                  <h2 className="mb-4 text-xl font-bold">История жалоб</h2>
+                  <h2 className="mb-4 text-xl font-bold">{t("cabinet.tab.complaints")}</h2>
                   <div className="space-y-2">
                     {(rows.complaints || []).map((c: any) => (
                       <div key={c.id} className={listCardClass}>
-                        <p className="font-semibold text-gray-900 dark:text-white">{c.category || "Жалоба"}</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{c.category || t("cabinet.complaintDefault")}</p>
                         <p className="text-xs text-gray-600 dark:text-slate-400">{c.description || ""}</p>
-                        <p className="text-xs text-gray-500 dark:text-slate-500">Статус: {c.status || "-"}</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-500">{t("cabinet.statusLabel")}: {c.status || "-"}</p>
                       </div>
                     ))}
-                    {(rows.complaints || []).length === 0 ? <p className="text-sm text-slate-400">Пока нет жалоб.</p> : null}
+                    {(rows.complaints || []).length === 0 ? <p className="text-sm text-slate-400">{t("cabinet.noComplaints")}</p> : null}
                   </div>
                 </DarkCard>
               )}
 
               {activeTab === "announcements" && (
                 <DarkCard>
-                  <h2 className="mb-4 text-xl font-bold">История объявлений</h2>
+                  <h2 className="mb-4 text-xl font-bold">{t("cabinet.tab.announcements")}</h2>
                   <div className="space-y-2">
                     {(rows.announcements || []).map((a: any) => (
                       <div key={a.id} className={listCardClass}>
-                        <p className="font-semibold text-gray-900 dark:text-white">{a.title || "Объявление"}</p>
-                        <p className="text-xs text-gray-500 dark:text-slate-500">Статус: {a.status || "-"}</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{a.title || t("cabinet.announcementDefault")}</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-500">{t("cabinet.statusLabel")}: {a.status || "-"}</p>
                         <p className="text-xs text-amber-600 dark:text-yellow-300">{a.price || ""}</p>
                       </div>
                     ))}
-                    {(rows.announcements || []).length === 0 ? <p className="text-sm text-slate-400">Пока нет объявлений.</p> : null}
+                    {(rows.announcements || []).length === 0 ? <p className="text-sm text-slate-400">{t("cabinet.noAnnouncements")}</p> : null}
                   </div>
                 </DarkCard>
               )}
@@ -646,7 +866,7 @@ export default function Cabinet() {
                         value={passwordForm.current}
                         onChange={(e) => setPasswordForm((p) => ({ ...p, current: e.target.value }))}
                         className={inputClass}
-                        placeholder="Текущий пароль"
+                        placeholder={t("cabinet.placeholderCurrentPassword")}
                         autoComplete="current-password"
                       />
                     ) : null}
@@ -655,7 +875,7 @@ export default function Cabinet() {
                       value={passwordForm.next}
                       onChange={(e) => setPasswordForm((p) => ({ ...p, next: e.target.value }))}
                       className={inputClass}
-                      placeholder="Новый пароль (мин. 8 символов)"
+                      placeholder={t("cabinet.placeholderNewPassword")}
                       autoComplete="new-password"
                     />
                     <input
@@ -663,7 +883,7 @@ export default function Cabinet() {
                       value={passwordForm.confirm}
                       onChange={(e) => setPasswordForm((p) => ({ ...p, confirm: e.target.value }))}
                       className={inputClass}
-                      placeholder="Повторите новый пароль"
+                      placeholder={t("cabinet.placeholderConfirmPassword")}
                       autoComplete="new-password"
                     />
                     <button
@@ -682,7 +902,7 @@ export default function Cabinet() {
                     }}
                     className="rounded-xl border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 dark:border-red-500/40 dark:text-red-300 dark:hover:bg-red-500/10"
                   >
-                    Выйти из аккаунта
+                    {t("cabinet.logoutAccount")}
                   </button>
                 </DarkCard>
               )}

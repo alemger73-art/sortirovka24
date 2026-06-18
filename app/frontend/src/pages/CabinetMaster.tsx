@@ -172,27 +172,27 @@ export default function CabinetMaster() {
                   <textarea
                     value={form.description}
                     onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-900"
+                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder:text-slate-500"
                     rows={5}
                     placeholder={t("cabinet.master.aboutPlaceholder")}
                   />
                   <input
                     value={form.services}
                     onChange={(e) => setForm((f) => ({ ...f, services: e.target.value }))}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-900"
+                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder:text-slate-500"
                     placeholder={t("cabinet.master.servicesPlaceholder")}
                   />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <input
                       value={form.whatsapp}
                       onChange={(e) => setForm((f) => ({ ...f, whatsapp: e.target.value }))}
-                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-900"
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder:text-slate-500"
                       placeholder="WhatsApp"
                     />
                     <input
                       value={form.telegram}
                       onChange={(e) => setForm((f) => ({ ...f, telegram: e.target.value }))}
-                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-900"
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder:text-slate-500"
                       placeholder="Telegram @username"
                     />
                   </div>
@@ -233,7 +233,7 @@ export default function CabinetMaster() {
                     </div>
                   </div>
                 </div>
-                <p className="text-sm text-gray-600">{t("cabinet.master.requestsCount")}: <strong>{data?.stats?.requests_total || 0}</strong></p>
+                <p className="text-sm text-gray-600 dark:text-slate-300">{t("cabinet.master.requestsCount")}: <strong className="text-gray-900 dark:text-white">{data?.stats?.requests_total || 0}</strong></p>
                 {data?.profile?.verified && (
                   <p className="text-sm text-green-600 mt-1">{t("cabinet.master.verified")}</p>
                 )}

@@ -29,8 +29,10 @@ import {
 import { toast } from 'sonner';
 import DriverDocUpload from '@/components/taxi/DriverDocUpload';
 import StorageImg from '@/components/StorageImg';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function CabinetDriver() {
+  const { t } = useLanguage();
   const [data, setData] = useState<DriverCabinet | null>(null);
   const [loading, setLoading] = useState(true);
   const [togglingOnline, setTogglingOnline] = useState(false);
@@ -66,11 +68,11 @@ export default function CabinetDriver() {
       setTechPassportUrl(cab.profile.tech_passport_photo_url || '');
       setCarPhotoUrl(cab.profile.car_photo_url || '');
     } catch (e: any) {
-      toast.error(String(e?.message || 'Ошибка загрузки кабинета'));
+      toast.error(String(e?.message || t('driver.loadError')));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     load();
@@ -104,8 +106,8 @@ export default function CabinetDriver() {
       playTaxiNewOrderSound();
       if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
         const latest = data.offered_order ?? data.available_orders[0];
-        new Notification('Новый заказ', {
-          body: latest ? `${latest.from_address} → ${latest.to_address}` : 'Появился новый заказ',
+        new Notification(t('driver.newOrderTitle'), {
+          body: latest ? `${latest.from_address} → ${latest.to_address}` : t('driver.newOrderBody'),
         });
       }
     }
@@ -158,10 +160,10 @@ export default function CabinetDriver() {
         }
       }
       await taxiApi.setOnline(next);
-      toast.success(next ? 'Вы на линии' : 'Вы offline');
+      toast.success(next ? t('driver.online') : t('driver.offline'));
       await load();
     } catch (e: any) {
-      toast.error(String(e?.message || 'Ошибка'));
+      toast.error(String(e?.message || t('driver.genericError')));
     } finally {
       setTogglingOnline(false);
     }
@@ -171,10 +173,10 @@ export default function CabinetDriver() {
     setDecliningId(ride.id);
     try {
       await taxiApi.declineRide(ride.id);
-      toast.success('Заказ пропущен');
+      toast.success(t('driver.orderSkipped'));
       await load();
     } catch (e: any) {
-      toast.error(String(e?.message || 'Ошибка'));
+      toast.error(String(e?.message || t('driver.genericError')));
     } finally {
       setDecliningId(null);
     }
@@ -184,10 +186,10 @@ export default function CabinetDriver() {
     setAcceptingId(ride.id);
     try {
       await taxiApi.acceptRide(ride.id);
-      toast.success('Заказ принят!');
+      toast.success(t('driver.orderAccepted'));
       await load();
     } catch (e: any) {
-      toast.error(String(e?.message || 'Не удалось принять'));
+      toast.error(String(e?.message || t('driver.acceptFailed')));
     } finally {
       setAcceptingId(null);
     }
@@ -199,10 +201,10 @@ export default function CabinetDriver() {
     setUpdatingId(ride.id);
     try {
       await taxiApi.updateRideStatus(ride.id, flow.next);
-      toast.success('Статус обновлён');
+      toast.success(t('driver.statusUpdated'));
       await load();
     } catch (e: any) {
-      toast.error(String(e?.message || 'Ошибка'));
+      toast.error(String(e?.message || t('driver.genericError')));
     } finally {
       setUpdatingId(null);
     }
@@ -222,10 +224,10 @@ export default function CabinetDriver() {
         tech_passport_photo_url: techPassportUrl,
         car_photo_url: carPhotoUrl,
       });
-      toast.success('Профиль сохранён');
+      toast.success(t('driver.profileSaved'));
       await load();
     } catch (e: any) {
-      toast.error(String(e?.message || 'Ошибка'));
+      toast.error(String(e?.message || t('driver.genericError')));
     } finally {
       setSavingProfile(false);
     }
@@ -244,8 +246,8 @@ export default function CabinetDriver() {
   if (!data) {
     return (
       <Layout>
-        <div className="mx-auto max-w-lg px-4 py-16 text-center text-gray-600">
-          Кабинет водителя недоступен. Убедитесь, что у вас роль «водитель».
+        <div className="mx-auto max-w-lg px-4 py-16 text-center text-gray-600 dark:text-slate-300">
+          {t('driver.unavailable')}
         </div>
       </Layout>
     );
@@ -256,7 +258,7 @@ export default function CabinetDriver() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         <div className="bg-gray-900 px-4 py-6 md:px-8">
           <div className="mx-auto max-w-4xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -268,13 +270,13 @@ export default function CabinetDriver() {
                 )}
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">Кабинет водителя</h1>
+                <h1 className="text-xl font-bold text-white">{t('driver.title')}</h1>
                 <p className="text-white/50 text-sm">
-                  <Link to="/cabinet" className="hover:text-white/80 underline underline-offset-2">Личный кабинет</Link>
+                  <Link to="/cabinet" className="hover:text-white/80 underline underline-offset-2">{t('cabinet.personalTitle')}</Link>
                   {' · '}
                   <span className="inline-flex items-center gap-1">
                     <Star className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
-                    {profile.rating?.toFixed(1)} · {profile.rides_count} поездок
+                    {profile.rating?.toFixed(1)} · {profile.rides_count} {t('driver.ridesCount')}
                   </span>
                 </p>
               </div>
@@ -297,7 +299,7 @@ export default function CabinetDriver() {
                 ) : (
                   <Power className="h-4 w-4 mr-2" />
                 )}
-                {profile.online ? 'На линии' : 'Выйти на линию'}
+                {profile.online ? t('driver.onlineStatus') : t('driver.goOnline')}
               </Button>
             </div>
           </div>
@@ -305,28 +307,28 @@ export default function CabinetDriver() {
 
         <div className="mx-auto max-w-4xl px-4 py-6 md:px-8 space-y-6">
           {!canWork && (
-            <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 text-amber-900 text-sm space-y-1">
+            <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 text-amber-900 text-sm space-y-1 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-200">
               {profile.documents_status === 'submitted' ? (
-                <p>📋 Документы на модерации. После проверки администратором вы сможете выйти на линию.</p>
+                <p>{t('driver.docsModeration')}</p>
               ) : profile.documents_status === 'rejected' ? (
-                <p>❌ Модерация отклонена. {profile.documents_note || 'Загрузите все документы заново.'}</p>
+                <p>{t('driver.docsRejected')} {profile.documents_note || t('driver.docsRejectedDefault')}</p>
               ) : (
-                <p>⏳ Загрузите фото, права, техпаспорт и фото автомобиля — затем дождитесь модерации.</p>
+                <p>{t('driver.docsUpload')}</p>
               )}
             </div>
           )}
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { label: 'Заработок', value: formatTenge(earnings), icon: Wallet },
-              { label: 'На линии', value: profile.online ? 'Да' : 'Нет', icon: Power },
-              { label: 'Заказов', value: String(pendingCount), icon: MapPin },
-              { label: 'Рейтинг', value: profile.rating?.toFixed(1) || '5.0', icon: Star },
+              { label: t('driver.statEarnings'), value: formatTenge(earnings), icon: Wallet },
+              { label: t('driver.statOnline'), value: profile.online ? t('driver.yes') : t('driver.no'), icon: Power },
+              { label: t('driver.statOrders'), value: String(pendingCount), icon: MapPin },
+              { label: t('driver.statRating'), value: profile.rating?.toFixed(1) || '5.0', icon: Star },
             ].map(({ label, value, icon: Icon }) => (
-              <div key={label} className="rounded-2xl bg-white border border-gray-100 p-4 shadow-sm">
+              <div key={label} className="rounded-2xl bg-white border border-gray-100 p-4 shadow-sm dark:bg-gray-900 dark:border-gray-800">
                 <Icon className="h-4 w-4 text-gray-400 mb-2" />
-                <p className="text-xs text-gray-500">{label}</p>
-                <p className="text-lg font-bold text-gray-900">{value}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400">{label}</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">{value}</p>
               </div>
             ))}
           </div>
@@ -334,7 +336,7 @@ export default function CabinetDriver() {
           {active_ride && (
             <div className="rounded-2xl bg-yellow-50 border-2 border-yellow-300 p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="font-bold text-gray-900">Активная поездка #{active_ride.id}</h2>
+                <h2 className="font-bold text-gray-900">{t('driver.activeRide')} #{active_ride.id}</h2>
                 <span className={`text-xs font-semibold px-2 py-1 rounded-full ${TAXI_STATUS_LABELS[active_ride.status]?.color || ''}`}>
                   {TAXI_STATUS_LABELS[active_ride.status]?.label}
                 </span>
@@ -367,9 +369,9 @@ export default function CabinetDriver() {
           {!active_ride && profile.online && offered_order && (
             <div className="rounded-2xl bg-gradient-to-br from-yellow-300 to-amber-400 border-2 border-yellow-500 p-5 space-y-4 shadow-lg animate-pulse">
               <div className="flex items-center justify-between">
-                <h2 className="font-black text-gray-900 text-lg">🚕 Новый заказ для вас!</h2>
+                <h2 className="font-black text-gray-900 text-lg">{t('driver.newOrderForYou')}</h2>
                 <span className="text-sm font-bold bg-gray-900 text-yellow-400 px-3 py-1 rounded-full">
-                  {offered_order.offer_seconds_left ?? 15} сек
+                  {offered_order.offer_seconds_left ?? 15} {t('driver.seconds')}
                 </span>
               </div>
               <p className="text-sm font-medium text-gray-900">{offered_order.from_address}</p>
@@ -381,7 +383,7 @@ export default function CabinetDriver() {
                   disabled={acceptingId === offered_order.id}
                   onClick={() => acceptOrder(offered_order)}
                 >
-                  {acceptingId === offered_order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Принять'}
+                  {acceptingId === offered_order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : t('driver.accept')}
                 </Button>
                 <Button
                   variant="outline"
@@ -389,7 +391,7 @@ export default function CabinetDriver() {
                   disabled={decliningId === offered_order.id}
                   onClick={() => declineOrder(offered_order)}
                 >
-                  {decliningId === offered_order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Пропустить'}
+                  {decliningId === offered_order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : t('driver.skip')}
                 </Button>
               </div>
             </div>
@@ -397,28 +399,28 @@ export default function CabinetDriver() {
 
           {!active_ride && profile.online && (
             <div className="space-y-3">
-              <h2 className="font-bold text-gray-900 flex items-center gap-2">
+              <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 <Navigation className="h-4 w-4 text-yellow-500" />
-                Другие заказы ({available_orders.length})
+                {t('driver.otherOrders')} ({available_orders.length})
               </h2>
               {available_orders.length === 0 ? (
-                <div className="rounded-2xl bg-white border border-gray-100 p-8 text-center text-gray-500">
-                  <Car className="h-10 w-10 mx-auto mb-3 text-gray-300" />
-                  Ожидаем новые заказы…
+                <div className="rounded-2xl bg-white border border-gray-100 p-8 text-center text-gray-500 dark:bg-gray-900 dark:border-gray-800 dark:text-slate-400">
+                  <Car className="h-10 w-10 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+                  {t('driver.waitingOrders')}
                 </div>
               ) : (
                 available_orders.map((order) => (
-                  <div key={order.id} className="rounded-2xl bg-white border border-gray-100 p-5 shadow-sm space-y-3">
+                  <div key={order.id} className="rounded-2xl bg-white border border-gray-100 p-5 shadow-sm space-y-3 dark:bg-gray-900 dark:border-gray-800">
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="font-semibold text-gray-900">#{order.id}</p>
-                        <p className="text-sm text-gray-600 mt-1">{order.from_address}</p>
-                        <p className="text-sm text-gray-400">→ {order.to_address}</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">#{order.id}</p>
+                        <p className="text-sm text-gray-600 dark:text-slate-300 mt-1">{order.from_address}</p>
+                        <p className="text-sm text-gray-400 dark:text-slate-500">→ {order.to_address}</p>
                       </div>
-                      <p className="text-xl font-black text-gray-900">{formatTenge(order.estimated_price)}</p>
+                      <p className="text-xl font-black text-gray-900 dark:text-white">{formatTenge(order.estimated_price)}</p>
                     </div>
-                    <div className="flex gap-2 text-xs text-gray-500">
-                      <span>{order.distance_km} км</span>
+                    <div className="flex gap-2 text-xs text-gray-500 dark:text-slate-400">
+                      <span>{order.distance_km} {t('driver.km')}</span>
                       {order.passenger_phone && <span>· {order.passenger_phone}</span>}
                     </div>
                     <Button
@@ -427,7 +429,7 @@ export default function CabinetDriver() {
                       onClick={() => acceptOrder(order)}
                     >
                       {acceptingId === order.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                      Принять заказ
+                      {t('driver.acceptOrder')}
                     </Button>
                   </div>
                 ))
@@ -435,8 +437,8 @@ export default function CabinetDriver() {
             </div>
           )}
 
-          <div className="rounded-2xl bg-white border border-gray-100 p-5 space-y-4">
-            <h2 className="font-bold text-gray-900">Документы и верификация</h2>
+          <div className="rounded-2xl bg-white border border-gray-100 p-5 space-y-4 dark:bg-gray-900 dark:border-gray-800">
+            <h2 className="font-bold text-gray-900 dark:text-white">{t('driver.docsTitle')}</h2>
             <DriverDocUpload
               photoUrl={photoUrl}
               licenseUrl={licenseUrl}
@@ -449,44 +451,44 @@ export default function CabinetDriver() {
                 if (field === 'car_photo_url') setCarPhotoUrl(value);
               }}
             />
-            <Button variant="outline" className="rounded-xl w-full" disabled={savingProfile} onClick={saveProfile}>
+            <Button variant="outline" className="rounded-xl w-full dark:border-gray-700 dark:text-white dark:hover:bg-gray-800" disabled={savingProfile} onClick={saveProfile}>
               {savingProfile ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-              Сохранить документы
+              {t('driver.saveDocs')}
             </Button>
           </div>
 
-          <div className="rounded-2xl bg-white border border-gray-100 p-5 space-y-4">
-            <h2 className="font-bold text-gray-900">Автомобиль</h2>
+          <div className="rounded-2xl bg-white border border-gray-100 p-5 space-y-4 dark:bg-gray-900 dark:border-gray-800">
+            <h2 className="font-bold text-gray-900 dark:text-white">{t('driver.carTitle')}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Input value={carMake} onChange={(e) => setCarMake(e.target.value)} placeholder="Марка (Toyota)" className="rounded-xl" />
-              <Input value={carModel} onChange={(e) => setCarModel(e.target.value)} placeholder="Модель (Camry)" className="rounded-xl" />
-              <Input value={carNumber} onChange={(e) => setCarNumber(e.target.value)} placeholder="Госномер" className="rounded-xl" />
-              <Input value={carColor} onChange={(e) => setCarColor(e.target.value)} placeholder="Цвет" className="rounded-xl" />
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Телефон" className="rounded-xl sm:col-span-2" />
+              <Input value={carMake} onChange={(e) => setCarMake(e.target.value)} placeholder={t('driver.carMake')} className="rounded-xl dark:bg-gray-950 dark:border-gray-700 dark:text-white" />
+              <Input value={carModel} onChange={(e) => setCarModel(e.target.value)} placeholder={t('driver.carModel')} className="rounded-xl dark:bg-gray-950 dark:border-gray-700 dark:text-white" />
+              <Input value={carNumber} onChange={(e) => setCarNumber(e.target.value)} placeholder={t('driver.carNumber')} className="rounded-xl dark:bg-gray-950 dark:border-gray-700 dark:text-white" />
+              <Input value={carColor} onChange={(e) => setCarColor(e.target.value)} placeholder={t('driver.carColor')} className="rounded-xl dark:bg-gray-950 dark:border-gray-700 dark:text-white" />
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t('driver.phone')} className="rounded-xl sm:col-span-2 dark:bg-gray-950 dark:border-gray-700 dark:text-white" />
             </div>
             <Button
               variant="outline"
-              className="rounded-xl"
+              className="rounded-xl dark:border-gray-700 dark:text-white dark:hover:bg-gray-800"
               disabled={savingProfile}
               onClick={saveProfile}
             >
               {savingProfile ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-              Сохранить
+              {t('common.save')}
             </Button>
           </div>
 
-          <div className="rounded-2xl bg-white border border-gray-100 p-5">
-            <h2 className="font-bold text-gray-900 mb-3">История ({order_history.length})</h2>
+          <div className="rounded-2xl bg-white border border-gray-100 p-5 dark:bg-gray-900 dark:border-gray-800">
+            <h2 className="font-bold text-gray-900 dark:text-white mb-3">{t('driver.history')} ({order_history.length})</h2>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {order_history.slice(0, 20).map((r) => (
-                <div key={r.id} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0 text-sm">
+                <div key={r.id} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0 text-sm dark:border-gray-800">
                   <div>
-                    <span className="text-gray-400">#{r.id}</span>
-                    <span className="ml-2 text-gray-700">{r.to_address?.slice(0, 30)}…</span>
+                    <span className="text-gray-400 dark:text-slate-500">#{r.id}</span>
+                    <span className="ml-2 text-gray-700 dark:text-slate-300">{r.to_address?.slice(0, 30)}…</span>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold">{formatTenge(r.final_price ?? r.estimated_price)}</p>
-                    <p className="text-xs text-gray-400">{TAXI_STATUS_LABELS[r.status]?.label || r.status}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{formatTenge(r.final_price ?? r.estimated_price)}</p>
+                    <p className="text-xs text-gray-400 dark:text-slate-500">{TAXI_STATUS_LABELS[r.status]?.label || r.status}</p>
                   </div>
                 </div>
               ))}

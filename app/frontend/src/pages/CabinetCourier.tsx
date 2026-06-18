@@ -28,14 +28,16 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import StorageImg from '@/components/StorageImg';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const VEHICLE_OPTIONS = [
-  { id: 'bike', label: 'Велосипед' },
-  { id: 'car', label: 'Авто' },
-  { id: 'foot', label: 'Пешком' },
+  { id: 'bike', labelKey: 'courier.vehicleBike' },
+  { id: 'car', labelKey: 'courier.vehicleCar' },
+  { id: 'foot', labelKey: 'courier.vehicleFoot' },
 ];
 
 export default function CabinetCourier() {
+  const { t } = useLanguage();
   const [data, setData] = useState<CourierCabinet | null>(null);
   const [loading, setLoading] = useState(true);
   const [togglingOnline, setTogglingOnline] = useState(false);
@@ -57,11 +59,11 @@ export default function CabinetCourier() {
       setVehicleType(cab.profile.vehicle_type || 'bike');
       setPhone(cab.profile.phone || '');
     } catch (e: unknown) {
-      toast.error(String((e as Error)?.message || 'Ошибка загрузки кабинета'));
+      toast.error(String((e as Error)?.message || t('courier.loadError')));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     load();
@@ -95,8 +97,8 @@ export default function CabinetCourier() {
       playTaxiNewOrderSound();
       if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
         const latest = data.offered_task ?? data.available_tasks[0];
-        new Notification('Новая доставка', {
-          body: latest ? `${latest.pickup_address} → ${latest.dropoff_address}` : 'Появился новый заказ',
+        new Notification(t('courier.newDeliveryTitle'), {
+          body: latest ? `${latest.pickup_address} → ${latest.dropoff_address}` : t('courier.newDeliveryBody'),
         });
       }
     }
@@ -149,10 +151,10 @@ export default function CabinetCourier() {
         }
       }
       await logisticsApi.setOnline(next);
-      toast.success(next ? 'Вы на линии' : 'Вы offline');
+      toast.success(next ? t('courier.online') : t('courier.offline'));
       await load();
     } catch (e: unknown) {
-      toast.error(String((e as Error)?.message || 'Ошибка'));
+      toast.error(String((e as Error)?.message || t('courier.genericError')));
     } finally {
       setTogglingOnline(false);
     }
@@ -162,10 +164,10 @@ export default function CabinetCourier() {
     setDecliningId(task.id);
     try {
       await logisticsApi.declineTask(task.id);
-      toast.success('Заказ пропущен');
+      toast.success(t('courier.orderSkipped'));
       await load();
     } catch (e: unknown) {
-      toast.error(String((e as Error)?.message || 'Ошибка'));
+      toast.error(String((e as Error)?.message || t('courier.genericError')));
     } finally {
       setDecliningId(null);
     }
@@ -175,10 +177,10 @@ export default function CabinetCourier() {
     setAcceptingId(task.id);
     try {
       await logisticsApi.acceptTask(task.id);
-      toast.success('Доставка принята!');
+      toast.success(t('courier.deliveryAccepted'));
       await load();
     } catch (e: unknown) {
-      toast.error(String((e as Error)?.message || 'Не удалось принять'));
+      toast.error(String((e as Error)?.message || t('courier.acceptFailed')));
     } finally {
       setAcceptingId(null);
     }
@@ -190,10 +192,10 @@ export default function CabinetCourier() {
     setUpdatingId(task.id);
     try {
       await logisticsApi.updateTaskStatus(task.id, flow.next);
-      toast.success('Статус обновлён');
+      toast.success(t('courier.statusUpdated'));
       await load();
     } catch (e: unknown) {
-      toast.error(String((e as Error)?.message || 'Ошибка'));
+      toast.error(String((e as Error)?.message || t('courier.genericError')));
     } finally {
       setUpdatingId(null);
     }
@@ -203,10 +205,10 @@ export default function CabinetCourier() {
     setSavingProfile(true);
     try {
       await logisticsApi.updateProfile({ vehicle_type: vehicleType, phone });
-      toast.success('Профиль сохранён');
+      toast.success(t('courier.profileSaved'));
       await load();
     } catch (e: unknown) {
-      toast.error(String((e as Error)?.message || 'Ошибка'));
+      toast.error(String((e as Error)?.message || t('courier.genericError')));
     } finally {
       setSavingProfile(false);
     }
@@ -225,8 +227,8 @@ export default function CabinetCourier() {
   if (!data) {
     return (
       <Layout>
-        <div className="mx-auto max-w-lg px-4 py-16 text-center text-gray-600">
-          Кабинет курьера недоступен. Войдите в аккаунт.
+        <div className="mx-auto max-w-lg px-4 py-16 text-center text-gray-600 dark:text-slate-300">
+          {t('courier.unavailable')}
         </div>
       </Layout>
     );
@@ -237,7 +239,7 @@ export default function CabinetCourier() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         <div className="bg-orange-600 px-4 py-6 md:px-8">
           <div className="mx-auto max-w-4xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -249,13 +251,13 @@ export default function CabinetCourier() {
                 )}
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">Кабинет курьера</h1>
+                <h1 className="text-xl font-bold text-white">{t('courier.title')}</h1>
                 <p className="text-white/70 text-sm">
-                  <Link to="/cabinet" className="hover:text-white underline underline-offset-2">Личный кабинет</Link>
+                  <Link to="/cabinet" className="hover:text-white underline underline-offset-2">{t('cabinet.personalTitle')}</Link>
                   {' · '}
                   <span className="inline-flex items-center gap-1">
                     <Star className="h-3.5 w-3.5 text-yellow-300 fill-yellow-300" />
-                    {profile.rating?.toFixed(1)} · {profile.deliveries_count} доставок
+                    {profile.rating?.toFixed(1)} · {profile.deliveries_count} {t('courier.deliveriesCount')}
                   </span>
                 </p>
               </div>
@@ -278,7 +280,7 @@ export default function CabinetCourier() {
                 ) : (
                   <Power className="h-4 w-4 mr-2" />
                 )}
-                {profile.online ? 'На линии' : 'Выйти на линию'}
+                {profile.online ? t('courier.onlineStatus') : t('courier.goOnline')}
               </Button>
             </div>
           </div>
@@ -286,22 +288,22 @@ export default function CabinetCourier() {
 
         <div className="mx-auto max-w-4xl px-4 py-6 md:px-8 space-y-6">
           {!canWork && (
-            <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 text-amber-900 text-sm">
-              ⏳ Ожидайте проверки администратором. После верификации вы сможете выйти на линию.
+            <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 text-amber-900 text-sm dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-200">
+              {t('courier.waitVerify')}
             </div>
           )}
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { label: 'Заработок', value: formatTenge(earnings), icon: Wallet },
-              { label: 'На линии', value: profile.online ? 'Да' : 'Нет', icon: Power },
-              { label: 'Заказов', value: String(pendingCount), icon: MapPin },
-              { label: 'Рейтинг', value: profile.rating?.toFixed(1) || '5.0', icon: Star },
+              { label: t('courier.statEarnings'), value: formatTenge(earnings), icon: Wallet },
+              { label: t('courier.onlineStatus'), value: profile.online ? t('courier.yes') : t('courier.no'), icon: Power },
+              { label: t('courier.statOrders'), value: String(pendingCount), icon: MapPin },
+              { label: t('courier.statRating'), value: profile.rating?.toFixed(1) || '5.0', icon: Star },
             ].map(({ label, value, icon: Icon }) => (
-              <div key={label} className="rounded-2xl bg-white border border-gray-100 p-4 shadow-sm">
+              <div key={label} className="rounded-2xl bg-white border border-gray-100 p-4 shadow-sm dark:bg-gray-900 dark:border-gray-800">
                 <Icon className="h-4 w-4 text-gray-400 mb-2" />
-                <p className="text-xs text-gray-500">{label}</p>
-                <p className="text-lg font-bold text-gray-900">{value}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400">{label}</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">{value}</p>
               </div>
             ))}
           </div>
@@ -309,7 +311,7 @@ export default function CabinetCourier() {
           {active_task && (
             <div className="rounded-2xl bg-orange-50 border-2 border-orange-300 p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="font-bold text-gray-900">Активная доставка #{active_task.id}</h2>
+                <h2 className="font-bold text-gray-900">{t('courier.activeDelivery')} #{active_task.id}</h2>
                 <span className={`text-xs font-semibold px-2 py-1 rounded-full ${LOGISTICS_STATUS_LABELS[active_task.status]?.color || ''}`}>
                   {LOGISTICS_STATUS_LABELS[active_task.status]?.label}
                 </span>
@@ -344,9 +346,9 @@ export default function CabinetCourier() {
           {!active_task && profile.online && offered_task && (
             <div className="rounded-2xl bg-gradient-to-br from-orange-300 to-amber-400 border-2 border-orange-500 p-5 space-y-4 shadow-lg">
               <div className="flex items-center justify-between">
-                <h2 className="font-black text-gray-900 text-lg">🛵 Новая доставка!</h2>
+                <h2 className="font-black text-gray-900 text-lg">{t('courier.newDelivery')}</h2>
                 <span className="text-sm font-bold bg-gray-900 text-orange-300 px-3 py-1 rounded-full">
-                  {offered_task.offer_seconds_left ?? 15} сек
+                  {offered_task.offer_seconds_left ?? 15} {t('courier.seconds')}
                 </span>
               </div>
               <p className="text-sm font-medium text-gray-900">{offered_task.pickup_address}</p>
@@ -360,7 +362,7 @@ export default function CabinetCourier() {
                   disabled={acceptingId === offered_task.id}
                   onClick={() => acceptTask(offered_task)}
                 >
-                  {acceptingId === offered_task.id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Принять'}
+                  {acceptingId === offered_task.id ? <Loader2 className="h-4 w-4 animate-spin" /> : t('courier.accept')}
                 </Button>
                 <Button
                   variant="outline"
@@ -368,7 +370,7 @@ export default function CabinetCourier() {
                   disabled={decliningId === offered_task.id}
                   onClick={() => declineTask(offered_task)}
                 >
-                  {decliningId === offered_task.id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Пропустить'}
+                  {decliningId === offered_task.id ? <Loader2 className="h-4 w-4 animate-spin" /> : t('courier.skip')}
                 </Button>
               </div>
             </div>
@@ -376,41 +378,41 @@ export default function CabinetCourier() {
 
           {!active_task && profile.online && available_tasks.length > 0 && !offered_task && (
             <div className="space-y-3">
-              <h2 className="font-bold text-gray-900 flex items-center gap-2">
-                <Navigation className="h-4 w-4" /> Доступные доставки
+              <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Navigation className="h-4 w-4" /> {t('courier.availableDeliveries')}
               </h2>
               {available_tasks.map((task) => (
-                <div key={task.id} className="rounded-2xl bg-white border border-gray-100 p-4 shadow-sm space-y-2">
-                  <p className="text-sm font-medium">{task.pickup_address}</p>
-                  <p className="text-sm text-gray-500">→ {task.dropoff_address}</p>
+                <div key={task.id} className="rounded-2xl bg-white border border-gray-100 p-4 shadow-sm space-y-2 dark:bg-gray-900 dark:border-gray-800">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">{task.pickup_address}</p>
+                  <p className="text-sm text-gray-500 dark:text-slate-400">→ {task.dropoff_address}</p>
                   <Button
                     className="w-full h-10 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold"
                     disabled={acceptingId === task.id}
                     onClick={() => acceptTask(task)}
                   >
-                    {acceptingId === task.id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Принять'}
+                    {acceptingId === task.id ? <Loader2 className="h-4 w-4 animate-spin" /> : t('courier.accept')}
                   </Button>
                 </div>
               ))}
             </div>
           )}
 
-          <div className="rounded-2xl bg-white border border-gray-100 p-5 shadow-sm space-y-4">
-            <h2 className="font-bold text-gray-900">Профиль</h2>
+          <div className="rounded-2xl bg-white border border-gray-100 p-5 shadow-sm space-y-4 dark:bg-gray-900 dark:border-gray-800">
+            <h2 className="font-bold text-gray-900 dark:text-white">{t('courier.profile')}</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Телефон</label>
-                <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="rounded-xl" />
+                <label className="text-xs text-gray-500 dark:text-slate-400 mb-1 block">{t('courier.phone')}</label>
+                <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="rounded-xl dark:bg-gray-950 dark:border-gray-700 dark:text-white" />
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Транспорт</label>
+                <label className="text-xs text-gray-500 dark:text-slate-400 mb-1 block">{t('courier.transport')}</label>
                 <select
                   value={vehicleType}
                   onChange={(e) => setVehicleType(e.target.value)}
-                  className="w-full h-10 rounded-xl border border-gray-200 px-3 text-sm"
+                  className="w-full h-10 rounded-xl border border-gray-200 px-3 text-sm dark:bg-gray-950 dark:border-gray-700 dark:text-white"
                 >
                   {VEHICLE_OPTIONS.map((v) => (
-                    <option key={v.id} value={v.id}>{v.label}</option>
+                    <option key={v.id} value={v.id}>{t(v.labelKey)}</option>
                   ))}
                 </select>
               </div>
@@ -421,19 +423,19 @@ export default function CabinetCourier() {
               className="h-10 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-semibold"
             >
               {savingProfile ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-              Сохранить
+              {t('common.save')}
             </Button>
           </div>
 
           {task_history.length > 0 && (
-            <div className="rounded-2xl bg-white border border-gray-100 p-5 shadow-sm">
-              <h2 className="font-bold text-gray-900 mb-3">История</h2>
+            <div className="rounded-2xl bg-white border border-gray-100 p-5 shadow-sm dark:bg-gray-900 dark:border-gray-800">
+              <h2 className="font-bold text-gray-900 dark:text-white mb-3">{t('courier.history')}</h2>
               <div className="space-y-2">
-                {task_history.slice(0, 10).map((t) => (
-                  <div key={t.id} className="flex justify-between text-sm py-2 border-b border-gray-50 last:border-0">
-                    <span className="text-gray-700 truncate max-w-[60%]">{t.dropoff_address}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${LOGISTICS_STATUS_LABELS[t.status]?.color || 'bg-gray-100'}`}>
-                      {LOGISTICS_STATUS_LABELS[t.status]?.label || t.status}
+                {task_history.slice(0, 10).map((task) => (
+                  <div key={task.id} className="flex justify-between text-sm py-2 border-b border-gray-50 last:border-0 dark:border-gray-800">
+                    <span className="text-gray-700 dark:text-slate-300 truncate max-w-[60%]">{task.dropoff_address}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${LOGISTICS_STATUS_LABELS[task.status]?.color || 'bg-gray-100'}`}>
+                      {LOGISTICS_STATUS_LABELS[task.status]?.label || task.status}
                     </span>
                   </div>
                 ))}

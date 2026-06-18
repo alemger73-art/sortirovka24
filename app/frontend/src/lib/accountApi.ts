@@ -12,6 +12,26 @@ function apiBase(): string {
 
 export type AccountRole = "user" | "master" | "driver" | "seller" | "moderator" | "admin" | "superadmin";
 
+export interface SavedAddress {
+  id: number;
+  label?: string | null;
+  address: string;
+  comment?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  is_default: boolean;
+  created_at?: string | null;
+}
+
+export interface SavedAddressInput {
+  label?: string;
+  address?: string;
+  comment?: string;
+  lat?: number | null;
+  lng?: number | null;
+  is_default?: boolean;
+}
+
 export function getAccountToken(): string {
   return readAccountToken();
 }
@@ -90,6 +110,15 @@ export const accountApi = {
       thumbnail_object_key?: string;
     }>('/api/v1/account/me/avatar-upload-url', { method: 'POST' }),
   cabinet: () => api<any>("/api/v1/account/cabinet"),
+  listAddresses: () => api<SavedAddress[]>("/api/v1/account/me/addresses"),
+  createAddress: (body: SavedAddressInput) =>
+    api<SavedAddress>("/api/v1/account/me/addresses", { method: "POST", body: JSON.stringify(body) }),
+  updateAddress: (id: number, body: SavedAddressInput) =>
+    api<SavedAddress>(`/api/v1/account/me/addresses/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  setDefaultAddress: (id: number) =>
+    api<SavedAddress>(`/api/v1/account/me/addresses/${id}/default`, { method: "POST" }),
+  deleteAddress: (id: number) =>
+    api<{ success: boolean }>(`/api/v1/account/me/addresses/${id}`, { method: "DELETE" }),
   masterCabinet: () => api<any>("/api/v1/account/master/cabinet"),
   updateMasterProfile: (body: Record<string, unknown>) =>
     api<{ success: boolean }>("/api/v1/account/master/profile", { method: "PUT", body: JSON.stringify(body) }),

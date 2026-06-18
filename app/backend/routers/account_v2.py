@@ -27,8 +27,12 @@ from models.park_orders import Park_orders
 from models.master_reviews import Master_reviews
 from models.master_requests import Master_requests
 from models.masters import Masters
+from models.user_addresses import UserAddress
 from models.user_management import Bonus, Order, PhoneVerification, UserAction, UserSession
 from schemas.account_v2 import (
+    AddressCreateRequest,
+    AddressResponse,
+    AddressUpdateRequest,
     AdminUserUpdateRequest,
     AuthV2Response,
     ChangePasswordV2Request,
@@ -894,6 +898,181 @@ async def create_avatar_upload_url(
     )
 
 
+MAX_SAVED_ADDRESSES = 20
+
+
+def _address_to_response(row: UserAddress) -> AddressResponse:
+    return AddressResponse(
+        id=row.id,
+        label=row.label,
+        address=row.address,
+        comment=row.comment,
+        lat=row.lat,
+        lng=row.lng,
+        is_default=bool(row.is_default),
+        created_at=row.created_at.isoformat() if row.created_at else None,
+    )
+
+
+async def _list_user_addresses(db: AsyncSession, user_id: str) -> list[UserAddress]:
+    return (
+        await db.execute(
+            select(UserAddress)
+            .where(UserAddress.user_id == str(user_id))
+            .order_by(desc(UserAddress.is_default), desc(UserAddress.id))
+        )
+    ).scalars().all()
+
+
+async def _unset_default_addresses(db: AsyncSession, user_id: str, keep_id: int | None = None) -> None:
+    rows = (
+        await db.execute(
+            select(UserAddress).where(
+                UserAddress.user_id == str(user_id), UserAddress.is_default == True
+            )
+        )
+    ).scalars().all()
+    for row in rows:
+        if keep_id is not None and row.id == keep_id:
+            continue
+        row.is_default = False
+
+
+@router.get("/me/addresses", response_model=list[AddressResponse])
+async def list_addresses(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    rows = await _list_user_addresses(db, str(user.id))
+    return [_address_to_response(r) for r in rows]
+
+
+@router.post("/me/addresses", response_model=AddressResponse, status_code=201)
+async def create_address(
+    request: AddressCreateRequest,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    existing = await _list_user_addresses(db, str(user.id))
+    if len(existing) >= MAX_SAVED_ADDRESSES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Можно сохранить не более {MAX_SAVED_ADDRESSES} адресов",
+        )
+    # First address becomes default automatically.
+    make_default = request.is_default or len(existing) == 0
+    if make_default:
+        await _unset_default_addresses(db, str(user.id))
+    row = UserAddress(
+        user_id=str(user.id),
+        label=(request.label or "").strip() or None,
+        address=request.address.strip(),
+        comment=(request.comment or "").strip() or None,
+        lat=request.lat,
+        lng=request.lng,
+        is_default=make_default,
+    )
+    db.add(row)
+    await db.commit()
+    await db.refresh(row)
+    await _log_action(db, str(user.id), "address_create", "user_addresses", str(row.id))
+    return _address_to_response(row)
+
+
+@router.put("/me/addresses/{address_id}", response_model=AddressResponse)
+async def update_address(
+    address_id: int,
+    request: AddressUpdateRequest,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    row = (
+        await db.execute(
+            select(UserAddress).where(
+                UserAddress.id == address_id, UserAddress.user_id == str(user.id)
+            )
+        )
+    ).scalar_one_or_none()
+    if not row:
+        raise HTTPException(status_code=404, detail="Адрес не найден")
+    if request.label is not None:
+        row.label = request.label.strip() or None
+    if request.address is not None:
+        row.address = request.address.strip()
+    if request.comment is not None:
+        row.comment = request.comment.strip() or None
+    if request.lat is not None:
+        row.lat = request.lat
+    if request.lng is not None:
+        row.lng = request.lng
+    if request.is_default is not None:
+        if request.is_default:
+            await _unset_default_addresses(db, str(user.id), keep_id=row.id)
+            row.is_default = True
+        else:
+            row.is_default = False
+    await db.commit()
+    await db.refresh(row)
+    await _log_action(db, str(user.id), "address_update", "user_addresses", str(row.id))
+    return _address_to_response(row)
+
+
+@router.post("/me/addresses/{address_id}/default", response_model=AddressResponse)
+async def set_default_address(
+    address_id: int,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    row = (
+        await db.execute(
+            select(UserAddress).where(
+                UserAddress.id == address_id, UserAddress.user_id == str(user.id)
+            )
+        )
+    ).scalar_one_or_none()
+    if not row:
+        raise HTTPException(status_code=404, detail="Адрес не найден")
+    await _unset_default_addresses(db, str(user.id), keep_id=row.id)
+    row.is_default = True
+    await db.commit()
+    await db.refresh(row)
+    await _log_action(db, str(user.id), "address_set_default", "user_addresses", str(row.id))
+    return _address_to_response(row)
+
+
+@router.delete("/me/addresses/{address_id}")
+async def delete_address(
+    address_id: int,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    row = (
+        await db.execute(
+            select(UserAddress).where(
+                UserAddress.id == address_id, UserAddress.user_id == str(user.id)
+            )
+        )
+    ).scalar_one_or_none()
+    if not row:
+        raise HTTPException(status_code=404, detail="Адрес не найден")
+    was_default = bool(row.is_default)
+    await db.delete(row)
+    await db.flush()
+    # Promote another address to default to always keep one preferred entry.
+    if was_default:
+        remaining = await _list_user_addresses(db, str(user.id))
+        if remaining:
+            remaining[0].is_default = True
+    await db.commit()
+    await _log_action(db, str(user.id), "address_delete", "user_addresses", str(address_id))
+    return {"success": True}
+
+
 @router.get("/cabinet")
 async def cabinet(
     authorization: str | None = Header(default=None, alias="Authorization"),
@@ -923,6 +1102,7 @@ async def cabinet(
         await db.execute(select(Master_requests).order_by(desc(Master_requests.id)).limit(500))
     ).scalars().all()
     master_request_rows = [r for r in master_request_rows if _matches_user_phone(r.phone, user.phone)]
+    address_rows = await _list_user_addresses(db, str(user.id))
 
     merged_orders = [
         {"id": o.id, "type": o.order_type, "status": o.status, "amount": o.amount, "details": o.details, "created_at": o.created_at.isoformat() if o.created_at else None}
@@ -1003,6 +1183,7 @@ async def cabinet(
             }
             for r in master_request_rows[:50]
         ],
+        "addresses": [_address_to_response(a).model_dump() for a in address_rows],
         "settings": {"language": user.language, "agreement_accepted": bool(user.agreement_accepted), "privacy_accepted": bool(user.privacy_accepted)},
     }
 
@@ -1360,12 +1541,20 @@ async def partner_cabinet(
         if (o.restaurant_id in shop_ids)
         or _matches_user_phone(o.restaurant_phone, user.phone)
     ]
-    gastronom_products = (
-        await db.execute(select(Gastronom_products).where(Gastronom_products.is_active == True).limit(500))
-    ).scalars().all()
-    gastronom_orders = (
-        await db.execute(select(Gastronom_orders).order_by(desc(Gastronom_orders.id)).limit(500))
-    ).scalars().all()
+    # Global gastronom catalog/orders are platform-wide data with no per-seller
+    # ownership, so only admin-level roles may see them. A plain seller must only
+    # see their own restaurant data, never the whole platform's gastronom feed.
+    is_admin = (user.role or "") in {"moderator", "admin", "superadmin"}
+    if is_admin:
+        gastronom_products = (
+            await db.execute(select(Gastronom_products).where(Gastronom_products.is_active == True).limit(500))
+        ).scalars().all()
+        gastronom_orders = (
+            await db.execute(select(Gastronom_orders).order_by(desc(Gastronom_orders.id)).limit(500))
+        ).scalars().all()
+    else:
+        gastronom_products = []
+        gastronom_orders = []
     primary = shops[0] if shops else None
     revenue = sum(float(o.total_amount or 0) for o in partner_orders)
     return {
