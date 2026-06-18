@@ -7,6 +7,7 @@ import { cacheAccountProfile, getCurrentUser, logoutLocalUser } from "@/lib/loca
 import { humanizeApiError } from "@/lib/apiErrors";
 import { uploadAvatar, assertImageFileSize } from "@/lib/storage";
 import { formatTenge, taxiApi, TAXI_STATUS_LABELS, type TaxiRide } from "@/lib/taxiApi";
+import { logisticsApi, type CourierAccess } from "@/lib/logisticsApi";
 import { useTaxiEnabled } from "@/hooks/useTaxiEnabled";
 import { useLanguage } from "@/contexts/LanguageContext";
 import TaxiUnavailable from "@/components/taxi/TaxiUnavailable";
@@ -78,6 +79,7 @@ export default function Cabinet() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [hasPassword, setHasPassword] = useState(true);
   const [taxiRides, setTaxiRides] = useState<TaxiRide[]>([]);
+  const [courierAccess, setCourierAccess] = useState<CourierAccess | null>(null);
   const tabs: { id: TabId; label: string }[] = useMemo(() => {
     const base: { id: TabId; label: string }[] = [
       { id: "profile", label: t("cabinet.tab.profile") },
@@ -114,6 +116,7 @@ export default function Cabinet() {
         });
         if (lang === "kz" || lang === "ru") setLang(lang);
         taxiApi.myRides().then(setTaxiRides).catch(() => {});
+        logisticsApi.getCourierAccess().then(setCourierAccess).catch(() => {});
       } catch (e: unknown) {
         const cached = getCurrentUser();
         if (cached) {
@@ -298,21 +301,36 @@ export default function Cabinet() {
                   to="/cabinet/driver"
                   className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-yellow-600 hover:text-yellow-700 dark:text-yellow-400"
                 >
-                  <Car className="h-4 w-4" /> Кабинет водителя — заказы →
+                  <Car className="h-4 w-4" /> Кабинет водителя →
                 </Link>
               )}
-              <Link
-                to="/cabinet/courier"
-                className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-orange-600 hover:text-orange-700 dark:text-orange-400"
-              >
-                <Bike className="h-4 w-4" /> Кабинет курьера →
-              </Link>
-              {cabinet?.profile?.role === "user" && (
+              {courierAccess?.can_access_cabinet && (
+                <Link
+                  to="/cabinet/courier"
+                  className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-orange-600 hover:text-orange-700 dark:text-orange-400"
+                >
+                  <Bike className="h-4 w-4" /> Кабинет курьера →
+                </Link>
+              )}
+              {courierAccess?.status === "pending" && (
+                <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
+                  📋 Заявка курьера на рассмотрении
+                </p>
+              )}
+              {(cabinet?.profile?.role === "user" || cabinet?.profile?.role === "courier") && (
                 <Link
                   to="/taxi/driver"
                   className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-yellow-600 hover:text-yellow-700 dark:text-yellow-400"
                 >
                   <Car className="h-4 w-4" /> Стать водителем →
+                </Link>
+              )}
+              {!courierAccess?.can_access_cabinet && courierAccess?.status !== "pending" && (
+                <Link
+                  to="/delivery/courier"
+                  className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-orange-600 hover:text-orange-700 dark:text-orange-400"
+                >
+                  <Bike className="h-4 w-4" /> Стать курьером →
                 </Link>
               )}
             </div>

@@ -117,21 +117,10 @@ def task_to_dict(task: LogisticsTask, courier_user: Optional[User] = None, couri
 
 
 async def get_or_create_courier_profile(db: AsyncSession, user: User) -> CourierProfile:
-    profile = (
-        await db.execute(select(CourierProfile).where(CourierProfile.user_id == str(user.id)))
-    ).scalar_one_or_none()
-    if profile:
-        return profile
-    profile = CourierProfile(
-        user_id=str(user.id),
-        phone=user.phone,
-        is_online=False,
-        is_verified=user.role in {"admin", "superadmin"},
-    )
-    db.add(profile)
-    await db.commit()
-    await db.refresh(profile)
-    return profile
+    """Return verified courier profile; raises if user has no approved courier access."""
+    from services.logistics_courier import assert_courier_cabinet_access
+
+    return await assert_courier_cabinet_access(db, user)
 
 
 def courier_profile_dict(profile: CourierProfile, user: User) -> Dict[str, Any]:

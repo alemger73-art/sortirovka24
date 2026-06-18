@@ -14,6 +14,24 @@ class LogisticsSettings(Base):
     value = Column(Text, nullable=True)
 
 
+class CourierApplication(BaseModel):
+    __tablename__ = "courier_applications"
+    __table_args__ = {"extend_existing": True}
+
+    user_id = Column(String(255), ForeignKey("users.id"), unique=True, index=True, nullable=False)
+    full_name = Column(String(255), nullable=True)
+    phone = Column(String(32), nullable=True)
+    vehicle_type = Column(String(32), nullable=False, default="bike")  # bike, car, foot
+    vehicle_plate = Column(String(32), nullable=True)
+    comment = Column(Text, nullable=True)
+    photo_url = Column(String(512), nullable=True)
+    id_photo_url = Column(String(512), nullable=True)
+    vehicle_photo_url = Column(String(512), nullable=True)
+    status = Column(String(32), nullable=False, default="pending", index=True)  # pending/approved/rejected
+    admin_note = Column(Text, nullable=True)
+    reviewed_at = Column(String(64), nullable=True)
+
+
 class CourierProfile(Base):
     __tablename__ = "courier_profiles"
     __table_args__ = {"extend_existing": True}
@@ -22,6 +40,7 @@ class CourierProfile(Base):
     is_online = Column(Boolean, nullable=False, default=False)
     is_verified = Column(Boolean, nullable=False, default=False)
     vehicle_type = Column(String(32), nullable=False, default="bike")  # bike, car, foot
+    vehicle_plate = Column(String(32), nullable=True)
     rating = Column(Float, nullable=False, default=5.0)
     deliveries_count = Column(Integer, nullable=False, default=0)
     balance = Column(Float, nullable=False, default=0)
@@ -30,6 +49,8 @@ class CourierProfile(Base):
     location_updated_at = Column(String(64), nullable=True)
     phone = Column(String(32), nullable=True)
     photo_url = Column(String(512), nullable=True)
+    id_photo_url = Column(String(512), nullable=True)
+    vehicle_photo_url = Column(String(512), nullable=True)
 
 
 class LogisticsTask(BaseModel):

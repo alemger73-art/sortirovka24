@@ -100,6 +100,31 @@ export interface LogisticsTask {
   tracking?: LogisticsTracking;
 }
 
+export interface CourierApplication {
+  user_id?: string;
+  full_name?: string;
+  phone?: string;
+  vehicle_type?: string;
+  vehicle_plate?: string;
+  comment?: string;
+  photo_url?: string;
+  id_photo_url?: string;
+  vehicle_photo_url?: string;
+  status: string;
+  admin_note?: string;
+  reviewed_at?: string;
+  created_at?: string;
+  is_courier?: boolean;
+  can_access_cabinet?: boolean;
+}
+
+export interface CourierAccess {
+  status: string;
+  is_courier: boolean;
+  can_access_cabinet: boolean;
+  application?: CourierApplication | null;
+}
+
 export interface CourierProfile {
   online: boolean;
   verified: boolean;
@@ -143,6 +168,21 @@ export function formatTenge(n: number | null | undefined): string {
 }
 
 export const logisticsApi = {
+  getCourierAccess: () => api<CourierAccess>('/api/v1/logistics/courier/access'),
+
+  getCourierApplication: () => api<CourierApplication>('/api/v1/logistics/courier/application'),
+
+  submitCourierApplication: (body: {
+    full_name: string;
+    phone: string;
+    vehicle_type: string;
+    vehicle_plate?: string;
+    comment?: string;
+    photo_url: string;
+    id_photo_url: string;
+    vehicle_photo_url?: string;
+  }) => api<CourierApplication>('/api/v1/logistics/courier/application', { method: 'POST', body: JSON.stringify(body) }),
+
   courierCabinet: () => api<CourierCabinet>('/api/v1/logistics/courier/cabinet'),
 
   setOnline: (online: boolean) =>
@@ -165,15 +205,24 @@ export const logisticsApi = {
 
   trackFoodOrder: (orderId: number) => api<LogisticsTask>(`/api/v1/logistics/track/food/${orderId}`),
 
+  adminApplications: (status = 'pending') =>
+    adminApi<CourierApplication[]>(`/api/v1/logistics/admin/applications?status=${status}`),
+
+  adminApproveApplication: (userId: string, adminNote = '') =>
+    adminApi<{ success: boolean }>(`/api/v1/logistics/admin/applications/${userId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ admin_note: adminNote }),
+    }),
+
+  adminRejectApplication: (userId: string, adminNote = '') =>
+    adminApi<CourierApplication>(`/api/v1/logistics/admin/applications/${userId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ admin_note: adminNote }),
+    }),
+
   adminTasks: (limit = 50) => adminApi<LogisticsTask[]>(`/api/v1/logistics/admin/tasks?limit=${limit}`),
 
   adminCouriers: () => adminApi<Array<CourierProfile & { user_id: string }>>('/api/v1/logistics/admin/couriers'),
-
-  adminVerifyCourier: (userId: string, verified = true) =>
-    adminApi<{ success: boolean }>(`/api/v1/logistics/admin/couriers/${userId}/verify`, {
-      method: 'POST',
-      body: JSON.stringify({ verified }),
-    }),
 
   adminMarkReady: (taskId: number) =>
     adminApi<LogisticsTask>(`/api/v1/logistics/admin/tasks/${taskId}/ready`, { method: 'POST' }),

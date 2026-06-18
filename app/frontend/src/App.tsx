@@ -6,6 +6,7 @@ import AppWelcomeSplash from "@/components/AppWelcomeSplash";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import AuthGateLoader from "@/components/AuthGateLoader";
 import RequireCabinetRole from "@/components/RequireCabinetRole";
+import RequireCourierAccess from "@/components/RequireCourierAccess";
 import RequireUserAuth from "@/components/RequireUserAuth";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
@@ -62,6 +63,7 @@ const LegalPage = lazy(() => import("./pages/LegalPage"));
 const Cabinet = lazy(() => import("./pages/Cabinet"));
 const CabinetMaster = lazy(() => import("./pages/CabinetMaster"));
 const CabinetDriver = lazy(() => import("./pages/CabinetDriver"));
+const CourierHub = lazy(() => import("./pages/CourierHub"));
 const CabinetCourier = lazy(() => import("./pages/CabinetCourier"));
 const DeliveryTrack = lazy(() => import("./pages/DeliveryTrack"));
 const CabinetPartner = lazy(() => import("./pages/CabinetPartner"));
@@ -165,13 +167,14 @@ function App() {
               <Route path="/more" element={<MorePage />} />
               <Route path="/taxi" element={<TaxiPage />} />
               <Route path="/taxi/driver" element={<TaxiDriverHub />} />
+              <Route path="/delivery/courier" element={<CourierHub />} />
               <Route path="/taxi/ride/:id" element={<RequireUserAuth><TaxiRidePage /></RequireUserAuth>} />
               <Route path="/transport" element={<TransportPage />} />
               <Route path="/account" element={<AccountAuth />} />
               <Route path="/cabinet" element={<Protected><Cabinet /></Protected>} />
               <Route path="/cabinet/master" element={<Protected><RequireCabinetRole allowedRoles={["master"]}><CabinetMaster /></RequireCabinetRole></Protected>} />
               <Route path="/cabinet/driver" element={<Protected><RequireCabinetRole allowedRoles={["driver"]}><CabinetDriver /></RequireCabinetRole></Protected>} />
-              <Route path="/cabinet/courier" element={<Protected><CabinetCourier /></Protected>} />
+              <Route path="/cabinet/courier" element={<Protected><RequireCourierAccess><CabinetCourier /></RequireCourierAccess></Protected>} />
               <Route path="/delivery/food/:orderId" element={<DeliveryTrack />} />
               <Route path="/cabinet/partner" element={<Protected><RequireCabinetRole allowedRoles={["seller"]}><CabinetPartner /></RequireCabinetRole></Protected>} />
               <Route path="/cabinet/admin" element={<Protected><RequireCabinetRole allowedRoles={["admin", "superadmin", "moderator"]}><CabinetAdmin /></RequireCabinetRole></Protected>} />
