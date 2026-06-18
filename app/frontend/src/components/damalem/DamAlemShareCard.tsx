@@ -1,4 +1,5 @@
 import { MessageCircle, Share2 } from 'lucide-react';
+import { REFERRAL_SHARE_MESSAGE } from '@/lib/damAlemMarketing';
 
 interface Props {
   whatsappNumber?: string;
@@ -7,21 +8,23 @@ interface Props {
 
 export default function DamAlemShareCard({ whatsappNumber, brandName = 'DAM ALEM' }: Props) {
   const digits = (whatsappNumber || '').replace(/\D/g, '');
-  const shareText = encodeURIComponent(
-    `Заказываю в ${brandName} — вкусная доставка по Сортировке 🍕\n${typeof window !== 'undefined' ? window.location.origin : ''}/food`,
-  );
+  const pageUrl = typeof window !== 'undefined' ? `${window.location.origin}/food` : '';
+  const shareText = `${REFERRAL_SHARE_MESSAGE}\n${pageUrl}`;
 
   const share = () => {
     if (navigator.share) {
       void navigator.share({
         title: brandName,
-        text: `Заказываю в ${brandName} — доставка еды в Сортировке`,
-        url: `${window.location.origin}/food`,
+        text: REFERRAL_SHARE_MESSAGE,
+        url: pageUrl,
       }).catch(() => {});
       return;
     }
+    const encoded = encodeURIComponent(shareText);
     if (digits) {
-      window.open(`https://wa.me/?text=${shareText}`, '_blank', 'noopener');
+      window.open(`https://wa.me/?text=${encoded}`, '_blank', 'noopener');
+    } else {
+      window.open(`https://wa.me/?text=${encoded}`, '_blank', 'noopener');
     }
   };
 
@@ -31,8 +34,8 @@ export default function DamAlemShareCard({ whatsappNumber, brandName = 'DAM ALEM
         <Share2 className="h-5 w-5" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-bold text-zinc-900">Расскажи друзьям</p>
-        <p className="text-xs text-zinc-500">Поделись ссылкой на {brandName}</p>
+        <p className="text-sm font-bold text-zinc-900">Приведи друга — подари скидку</p>
+        <p className="text-xs text-zinc-500">DAMALEM10 — друг получит −10% на заказ</p>
       </div>
       <MessageCircle className="h-5 w-5 shrink-0 text-emerald-500" />
     </button>

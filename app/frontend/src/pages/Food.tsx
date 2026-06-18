@@ -57,8 +57,7 @@ import DamAlemLoyaltyShowcase from '@/components/damalem/DamAlemLoyaltyShowcase'
 import DamAlemFreeDeliveryBanner from '@/components/damalem/DamAlemFreeDeliveryBanner';
 import DamAlemShareCard from '@/components/damalem/DamAlemShareCard';
 import { resolveDamAlemItemImage, getCategoryImage } from '@/lib/damAlemImages';
-import { buildMarketingStories } from '@/lib/damAlemMarketing';
-import { parsePromoCodes } from '@/lib/foodPromo';
+import { buildMarketingStories, resolvePromoCodes } from '@/lib/damAlemMarketing';
 import DamAlemPageSkeleton from '@/components/damalem/DamAlemPageSkeleton';
 import '@/styles/damAlem.css';
 
@@ -556,7 +555,7 @@ export default function Food() {
   const uiStep: 1 | 2 | 3 = checkoutOpen ? 3 : cartOpen ? 2 : 1;
 
   const availablePromos = useMemo(
-    () => parsePromoCodes(settings.promo_codes),
+    () => resolvePromoCodes(settings.promo_codes),
     [settings.promo_codes],
   );
 
@@ -1321,6 +1320,10 @@ export default function Food() {
   }, [searchQuery]);
 
   const handleStoryCta = useCallback((storyId: string) => {
+    if (storyId === 'promo-damalem') {
+      applyPromoFromStrip('DAMALEM10');
+      return;
+    }
     if (storyId === 'hits') {
       const hit = recommendedItems[0];
       if (hit) openItemModal(hit);

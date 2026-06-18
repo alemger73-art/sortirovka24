@@ -178,6 +178,18 @@ async def validate_promo(data: PromoValidateRequest, db: AsyncSession = Depends(
     }
 
 
+@router.post("/admin/seed-marketing")
+async def admin_seed_dam_alem_marketing(
+    db: AsyncSession = Depends(get_db),
+    _admin: dict = Depends(require_panel_admin),
+):
+    """Загрузить промокоды, подарки, слайды и баннеры DAM ALEM."""
+    from services.dam_alem_marketing_seed import ensure_dam_alem_marketing
+
+    stats = await ensure_dam_alem_marketing(force=True)
+    return {"ok": True, "stats": stats or {"message": "already configured"}}
+
+
 @router.post("/admin/seed-catalog")
 async def admin_seed_dam_alem_catalog(
     db: AsyncSession = Depends(get_db),

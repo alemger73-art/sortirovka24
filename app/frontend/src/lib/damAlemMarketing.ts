@@ -1,6 +1,23 @@
 import { getCategoryImage } from '@/lib/damAlemImages';
 import type { LoyaltyGift } from '@/lib/gastronomLoyalty';
 import type { FoodPromoCode } from '@/lib/foodPromo';
+import { parsePromoCodes } from '@/lib/foodPromo';
+
+export const DEFAULT_PROMO_CODES: FoodPromoCode[] = [
+  { code: 'DAMALEM10', type: 'percent', value: 10, min_order: 2500, active: true, label: '−10% на заказ' },
+  { code: 'PIZZA500', type: 'fixed', value: 500, min_order: 3500, active: true, label: '−500 ₸ на пиццу' },
+  { code: 'OBED15', type: 'percent', value: 15, min_order: 2000, active: true, label: '−15% комплексный обед' },
+  { code: 'DOSTAVKA', type: 'free_delivery', value: 0, min_order: 8000, active: true, label: 'Бесплатная доставка' },
+  { code: 'SEMYA20', type: 'percent', value: 20, min_order: 12000, active: true, label: '−20% семейный заказ' },
+];
+
+export const REFERRAL_SHARE_MESSAGE =
+  'Привет! Заказываю в DAM ALEM — вкусная доставка по Сортировке 🍕\nПромокод DAMALEM10 — скидка 10% на заказ от 2 500 ₸';
+
+export function resolvePromoCodes(raw?: string): FoodPromoCode[] {
+  const parsed = parsePromoCodes(raw);
+  return parsed.length > 0 ? parsed : DEFAULT_PROMO_CODES;
+}
 
 export interface MarketingStory {
   id: string;
@@ -40,6 +57,15 @@ export function buildMarketingStories(opts: {
       image: getCategoryImage('pizza-30'),
       gradient: 'linear-gradient(135deg, #111 0%, #FF3B30 100%)',
       emoji: '⚡',
+    },
+    {
+      id: 'promo-damalem',
+      title: 'Код DAMALEM10',
+      subtitle: '−10% на заказ от 2 500 ₸. Нажмите «Выгодно сегодня» ниже и скопируйте код',
+      cta: 'Применить код',
+      image: getCategoryImage('pizza-30'),
+      gradient: 'linear-gradient(135deg, #FF3B30 0%, #FF9500 100%)',
+      emoji: '🏷',
     },
     {
       id: 'hits',

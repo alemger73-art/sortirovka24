@@ -11,7 +11,7 @@
     },
     {
         "setting_key": "hero_banner_subtitle",
-        "setting_value": "Доставка еды №1 в Сортировке",
+        "setting_value": "Горячая еда с доставкой · 35–45 мин · Сортировка",
         "is_active": true
     },
     {
@@ -30,6 +30,26 @@
         "is_active": true
     },
     {
+        "setting_key": "free_delivery_from",
+        "setting_value": "15000",
+        "is_active": true
+    },
+    {
+        "setting_key": "delivery_time",
+        "setting_value": "35–45 мин",
+        "is_active": true
+    },
+    {
+        "setting_key": "working_hours",
+        "setting_value": "10:00 – 22:00",
+        "is_active": true
+    },
+    {
+        "setting_key": "loyalty_enabled",
+        "setting_value": "1",
+        "is_active": true
+    },
+    {
         "setting_key": "delivery_zones",
         "setting_value": "[{\"name\":\"Сортировка (центр)\",\"radius_km\":2,\"price\":500},{\"name\":\"Сортировка (окраина)\",\"radius_km\":4,\"price\":800},{\"name\":\"Пригород\",\"radius_km\":7,\"price\":1200}]",
         "is_active": true
@@ -42,6 +62,21 @@
     {
         "setting_key": "service_fee_rate",
         "setting_value": "10",
+        "is_active": true
+    },
+    {
+        "setting_key": "promo_codes",
+        "setting_value": "[{\"code\":\"DAMALEM10\",\"type\":\"percent\",\"value\":10,\"min_order\":2500,\"active\":true,\"label\":\"−10% на заказ\"},{\"code\":\"PIZZA500\",\"type\":\"fixed\",\"value\":500,\"min_order\":3500,\"active\":true,\"label\":\"−500 ₸ на пиццу\"},{\"code\":\"OBED15\",\"type\":\"percent\",\"value\":15,\"min_order\":2000,\"active\":true,\"label\":\"−15% комплексный обед\"},{\"code\":\"DOSTAVKA\",\"type\":\"free_delivery\",\"value\":0,\"min_order\":8000,\"active\":true,\"label\":\"Бесплатная доставка\"},{\"code\":\"SEMYA20\",\"type\":\"percent\",\"value\":20,\"min_order\":12000,\"active\":true,\"label\":\"−20% семейный заказ\"}]",
+        "is_active": true
+    },
+    {
+        "setting_key": "loyalty_gifts",
+        "setting_value": "[{\"id\":\"dam-gift-shake\",\"min_amount\":5000,\"title\":\"Молочный коктейль 0.3 л\",\"description\":\"На выбор: шоколад, клубника или ваниль\",\"image_url\":\"https://images.unsplash.com/photo-1572495617767-c9a8dd371921?auto=format&fit=crop&w=600&q=80\",\"is_active\":true,\"sort_order\":1},{\"id\":\"dam-gift-fries\",\"min_amount\":8000,\"title\":\"Картофель фри 150 г\",\"description\":\"Хрустящая порция в подарок\",\"image_url\":\"https://images.unsplash.com/photo-1573080496219-bb080dd94537?auto=format&fit=crop&w=600&q=80\",\"is_active\":true,\"sort_order\":2},{\"id\":\"dam-gift-lemonade\",\"min_amount\":12000,\"title\":\"Лимонад 0.5 л\",\"description\":\"Освежающий лимонад бесплатно\",\"image_url\":\"https://images.unsplash.com/photo-1621263764928-df1444446000?auto=format&fit=crop&w=600&q=80\",\"is_active\":true,\"sort_order\":3},{\"id\":\"dam-gift-sauce\",\"min_amount\":15000,\"title\":\"Соус на выбор\",\"description\":\"Чесночный, сырный или барбекю\",\"image_url\":\"https://images.unsplash.com/photo-1568903907330-fce2b097de2d?auto=format&fit=crop&w=600&q=80\",\"is_active\":true,\"sort_order\":4},{\"id\":\"dam-gift-dessert\",\"min_amount\":20000,\"title\":\"Десерт к заказу\",\"description\":\"Сладкий финал от DAM ALEM\",\"image_url\":\"https://images.unsplash.com/photo-1572495617767-c9a8dd371921?auto=format&fit=crop&w=600&q=80\",\"is_active\":true,\"sort_order\":5}]",
+        "is_active": true
+    },
+    {
+        "setting_key": "promo_slides",
+        "setting_value": "[{\"title\":\"Бесплатная доставка\",\"lines\":[\"От 15 000 ₸ — доставим бесплатно\",\"Горячая еда прямо к подъезду\",\"Промокод DOSTAVKA — от 8 000 ₸\"]},{\"title\":\"Промокод DAMALEM10\",\"lines\":[\"−10% на первый и каждый заказ\",\"Минимум всего 2 500 ₸\",\"Введите код при оформлении\"]},{\"title\":\"Подарки к заказу\",\"lines\":[\"Коктейль от 5 000 ₸\",\"Лимонад от 12 000 ₸\",\"Добавляем автоматически\"]},{\"title\":\"Семейный заказ −20%\",\"lines\":[\"Промокод SEMYA20\",\"От 12 000 ₸ на меню\",\"Идеально на компанию\"]}]",
         "is_active": true
     }
 ]

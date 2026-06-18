@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sortirovka24 — Презентация проекта</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy: #0B0F19;
+      --navy-2: #111827;
+      --blue: #2563EB;
+      --blue-light: #3B82F6;
+      --yellow: #FACC15;
+      --amber: #F59E0B;
+      --white: #FFFFFF;
+      --gray-100: #F1F5F9;
+      --gray-400: #94A3B8;
+      --gray-600: #475569;
+      --slide-w: 297mm;
+      --slide-h: 210mm;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Manrope', system-ui, sans-serif;
+      background: #1e293b;
+      color: var(--white);
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .slide {
+      width: var(--slide-w);
+      min-height: var(--slide-h);
+      margin: 0 auto 24px;
+      padding: 48px 56px;
+      position: relative;
+      overflow: hidden;
+      page-break-after: always;
+      break-after: page;
+    }
+
+    .slide:last-child { page-break-after: auto; }
+
+    /* ── Cover ── */
+    .slide-cover {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 50%, #1e3a5f 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .slide-cover::before {
+      content: '';
+      position: absolute;
+      top: -80px; right: -80px;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(37,99,235,0.35) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .slide-cover::after {
+      content: '';
+      position: absolute;
+      bottom: -60px; left: -60px;
+      width: 320px; height: 320px;
+      background: radial-gradient(circle, rgba(250,204,21,0.15) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(250,204,21,0.15);
+      border: 1px solid rgba(250,204,21,0.4);
+      color: var(--yellow);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 999px;
+      margin-bottom: 28px;
+      position: relative;
+      z-index: 1;
+    }
+    .cover-title {
+      font-size: 52px;
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      position: relative;
+      z-index: 1;
+    }
+    .cover-title span { color: var(--yellow); }
+    .cover-sub {
+      font-size: 20px;
+      color: var(--gray-400);
+      margin-top: 20px;
+      max-width: 520px;
+      line-height: 1.5;
+      position: relative;
+      z-index: 1;
+    }
+    .cover-meta {
+      margin-top: 48px;
+      display: flex;
+      gap: 32px;
+      position: relative;
+      z-index: 1;
+    }
+    .meta-item label {
+      display: block;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--gray-400);
+      margin-bottom: 4px;
+    }
+    .meta-item span { font-size: 14px; font-weight: 600; }
+
+    /* ── Content slides ── */
+    .slide-dark {
+      background: linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 100%);
+    }
+    .slide-light {
+      background: var(--gray-100);
+      color: #0f172a;
+    }
+    .slide-accent {
+      background: linear-gradient(135deg, var(--blue) 0%, #1d4ed8 100%);
+    }
+
+    .slide-header {
+      margin-bottom: 32px;
+    }
+    .slide-num {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--yellow);
+      margin-bottom: 8px;
+    }
+    .slide-light .slide-num { color: var(--blue); }
+    .slide-title {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+    .slide-light .slide-title { color: var(--navy); }
+
+    .slide-footer {
+      position: absolute;
+      bottom: 28px;
+      left: 56px;
+      right: 56px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      color: var(--gray-400);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 12px;
+    }
+    .slide-light .slide-footer {
+      border-top-color: rgba(0,0,0,0.08);
+      color: var(--gray-600);
+    }
+
+    /* ── Components ── */
+    .lead {
+      font-size: 17px;
+      line-height: 1.65;
+      color: #cbd5e1;
+      max-width: 90%;
+    }
+    .slide-light .lead { color: var(--gray-600); }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 8px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 20px;
+    }
+    .slide-light .card {
+      background: white;
+      border-color: #e2e8f0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+    .card-icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+    .card h3 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .card p {
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--gray-400);
+    }
+    .slide-light .card p { color: var(--gray-600); }
+
+    .stat {
+      text-align: center;
+      padding: 16px;
+    }
+    .stat-num {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--yellow);
+    }
+    .slide-light .stat-num { color: var(--blue); }
+    .stat-label {
+      font-size: 11px;
+      color: var(--gray-400);
+      margin-top: 4px;
+    }
+    .slide-light .stat-label { color: var(--gray-600); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      background: rgba(37,99,235,0.2);
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .slide-light th { background: var(--blue); color: white; }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      vertical-align: top;
+    }
+    .slide-light td { border-bottom-color: #e2e8f0; color: #334155; }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .pill {
+      background: rgba(250,204,21,0.12);
+      border: 1px solid rgba(250,204,21,0.3);
+      color: var(--yellow);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 999px;
+    }
+    .slide-light .pill {
+      background: rgba(37,99,235,0.08);
+      border-color: rgba(37,99,235,0.25);
+      color: var(--blue);
+    }
+
+    .timeline {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .timeline-item {
+      flex: 1;
+      background: rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 16px;
+      border-top: 3px solid var(--yellow);
+    }
+    .slide-light .timeline-item {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-top: 3px solid var(--blue);
+    }
+    .timeline-item.done { border-top-color: #22c55e; }
+    .timeline-item.now { border-top-color: var(--yellow); }
+    .timeline-item h4 { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+    .timeline-item p { font-size: 11px; color: var(--gray-400); line-height: 1.45; }
+    .slide-light .timeline-item p { color: var(--gray-600); }
+    .tag {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+    .tag-done { background: rgba(34,197,94,0.2); color: #4ade80; }
+    .tag-now { background: rgba(250,204,21,0.2); color: var(--yellow); }
+    .tag-plan { background: rgba(148,163,184,0.2); color: var(--gray-400); }
+
+    .arch-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin: 24px 0;
+      flex-wrap: wrap;
+    }
+    .arch-node {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px;
+      padding: 14px 20px;
+      text-align: center;
+      min-width: 120px;
+    }
+    .arch-node strong { display: block; font-size: 13px; }
+    .arch-node span { font-size: 10px; color: var(--gray-400); }
+    .arch-arrow { font-size: 20px; color: var(--yellow); }
+
+    .quote {
+      border-left: 4px solid var(--yellow);
+      padding: 16px 24px;
+      margin: 20px 0;
+      background: rgba(250,204,21,0.06);
+      border-radius: 0 12px 12px 0;
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1.6;
+      font-style: italic;
+    }
+    .slide-light .quote {
+      background: rgba(37,99,235,0.06);
+      border-left-color: var(--blue);
+    }
+
+    ul.check {
+      list-style: none;
+      margin-top: 12px;
+    }
+    ul.check li {
+      font-size: 13px;
+      padding: 6px 0 6px 28px;
+      position: relative;
+      color: #cbd5e1;
+    }
+    .slide-light ul.check li { color: #334155; }
+    ul.check li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: var(--yellow);
+      font-weight: 800;
+    }
+    .slide-light ul.check li::before { color: var(--blue); }
+
+    .print-hint {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: var(--yellow);
+      color: var(--navy);
+      text-align: center;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      z-index: 9999;
+    }
+    .print-hint kbd {
+      background: rgba(0,0,0,0.15);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    @media print {
+      body { background: white; }
+      .print-hint { display: none !important; }
+      .slide {
+        margin: 0;
+        box-shadow: none;
+        page-break-after: always;
+        break-after: page;
+      }
+      @page {
+        size: A4 landscape;
+        margin: 0;
+      }
+    }
+
+    @media screen {
+      body { padding: 60px 0 40px; }
+      .slide { box-shadow: 0 25px 80px rgba(0,0,0,0.4); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="print-hint">
+  Сохранить PDF: <kbd>Ctrl+P</kbd> → «Сохранить как PDF» → включить «Фоновая графика» / Background graphics
+</div>
+
+<!-- SLIDE 1: Cover -->
+<section class="slide slide-cover">
+  <div class="badge">Караганда · микрорайон Сортировка · 2026</div>
+  <h1 class="cover-title">Sortirovka<span>24</span></h1>
+  <p class="cover-sub">Супер-приложение для жителей района: еда, такси, объявления, мастера, новости и локальные сервисы — в одном месте</p>
+  <div class="cover-meta">
+    <div class="meta-item"><label>Формат</label><span>Web · PWA · Android · iOS</span></div>
+    <div class="meta-item"><label>Языки</label><span>Русский · Қазақша</span></div>
+    <div class="meta-item"><label>App ID</label><span>kz.sortirovka24.app</span></div>
+  </div>
+  <div class="slide-footer">
+    <span>Презентация проекта</span>
+    <span>sortirovka24 · docs/presentation</span>
+  </div>
+</section>
+
+<!-- SLIDE 2: Mission -->
+<section class="slide slide-dark">
+  <div class="slide-header">
+    <div class="slide-num">01 — Миссия</div>
+    <h2 class="slide-title">Зачем существует Sortirovka24</h2>
+  </div>
+  <div class="quote">
+    Объединить повседневные сервисы микрорайона Сортировка в одном удобном приложении — чтобы жители тратили меньше времени на бытовые задачи, а местный бизнес получал прямой канал связи с аудиторией.
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-icon">🏘️</div>
+      <h3>Локальная инфраструктура</h3>
+      <p>Не универсальный маркетплейс «для всех», а цифровой портал конкретного района с его ЖКХ, автобусами, магазинами и соседями.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">📱</div>
+      <h3>Один вход — много сервисов</h3>
+      <p>Одна регистрация по SMS или Google. Личный кабинет: заказы, бонусы, роли мастера, водителя, курьера, партнёра.</p>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Sortirovka24</span>
+    <span>2 / 12</span>
+  </div>
+</section>
+
+<!-- SLIDE 3: Vision -->
+<section class="slide slide-accent">
+  <div class="slide-header">
+    <div class="slide-num" style="color:rgba(255,255,255,0.8)">02 — Видение</div>
+    <h2 class="slide-title">Цифровая «проходная» района</h2>
+  </div>
+  <p class="lead" style="color:rgba(255,255,255,0.9); max-width:95%">
+    Через 3–5 лет Sortirovka24 — привычное приложение, которое открывают каждый день: погода, новости УК, заказ обеда, вызов такси, поиск участкового, заявка сантехнику — без десятка чатов и групп в мессенджерах.
+  </p>
+  <div class="grid-4" style="margin-top:28px">
+    <div class="card" style="background:rgba(255,255,255,0.15); border-color:rgba(255,255,255,0.2)">
+      <div class="stat-num" style="color:white">17+</div>
+      <div class="stat-label" style="color:rgba(255,255,255,0.7)">модулей</div>
+    </div>
+    <div class="card" style="background:rgba(255,255,255,0.15); border-color:rgba(255,255,255,0.2)">
+      <div class="stat-num" style="color:var(--yellow)">2</div>
+      <div class="stat-label" style="color:rgba(255,255,255,0.7)">языка UI</div>
+    </div>
+    <div class="card" style="background:rgba(255,255,255,0.15); border-color:rgba(255,255,255,0.2)">
+      <div class="stat-num" style="color:white">1</div>
+      <div class="stat-label" style="color:rgba(255,255,255,0.7)">бэкенд для всех клиентов</div>
+    </div>
+    <div class="card" style="background:rgba(255,255,255,0.15); border-color:rgba(255,255,255,0.2)">
+      <div class="stat-num" style="color:var(--yellow)">∞</div>
+      <div class="stat-label" style="color:rgba(255,255,255,0.7)">модульное расширение</div>
+    </div>
+  </div>
+  <div class="slide-footer" style="border-top-color:rgba(255,255,255,0.2); color:rgba(255,255,255,0.6)">
+    <span>Sortirovka24</span>
+    <span>3 / 12</span>
+  </div>
+</section>
+
+<!-- SLIDE 4: Problems -->
+<section class="slide slide-light">
+  <div class="slide-header">
+    <div class="slide-num">03 — Проблема и решение</div>
+    <h2 class="slide-title">Что решаем для жителей</h2>
+  </div>
+  <table>
+    <thead>
+      <tr><th style="width:45%">Боль жителя</th><th>Решение в Sortirovka24</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Разрозненные чаты и группы</td><td>Единые новости, объявления, справочник района</td></tr>
+      <tr><td>Сложно найти мастера</td><td>Каталог специалистов, заявки, отзывы</td></tr>
+      <tr><td>Еда — только звонки</td><td>DAM ALEM: меню, корзина, доставка, бонусы</td></tr>
+      <tr><td>Нет такси по району</td><td>Модуль такси с отслеживанием поездки</td></tr>
+      <tr><td>Жалобы ЖКХ теряются</td><td>Жалобы с фото и статусами обработки</td></tr>
+      <tr><td>Не знаю расписание автобуса</td><td>Транспорт: маршруты, остановки, уведомления</td></tr>
+    </tbody>
+  </table>
+  <div class="slide-footer">
+    <span>Sortirovka24</span>
+    <span>4 / 12</span>
+  </div>
+</section>
+
+<!-- SLIDE 5: Modules -->
+<section class="slide slide-dark">
+  <div class="slide-header">
+    <div class="slide-num">04 — Модули</div>
+    <h2 class="slide-title">Всё в одном приложении</h2>
+  </div>
+  <div class="grid-3">
+    <div class="card"><div class="card-icon">🍔</div><h3>DAM ALEM — еда</h3><p>Меню, доставка, парк, курьеры, FrontPad, Telegram</p></div>
+    <div class="card"><div class="card-icon">🚕</div><h3>Такси</h3><p>Вызов, трекинг, кабинет водителя</p></div>
+    <div class="card"><div class="card-icon">🛒</div><h3>Гастроном · Прораб · Аптека</h3><p>Локальные магазины с доставкой</p></div>
+    <div class="card"><div class="card-icon">🔧</div><h3>Мастера · Салоны</h3><p>Каталог, заявки, «стать мастером»</p></div>
+    <div class="card"><div class="card-icon">📢</div><h3>Объявления · Недвижимость</h3><p>Локальный маркетплейс соседей</p></div>
+    <div class="card"><div class="card-icon">📰</div><h3>Новости · Жалобы · Вопросы</h3><p>Коммуникация с УК и соседями</p></div>
+    <div class="card"><div class="card-icon">🚌</div><h3>Транспорт</h3><p>Маршруты, остановки, оповещения</p></div>
+    <div class="card"><div class="card-icon">👮</div><h3>Участковые · Справочник</h3><p>Полезные контакты района</p></div>
+    <div class="card"><div class="card-icon">💼</div><h3>Вакансии · Бизнес · История</h3><p>Работа, партнёры, heritage района</p></div>
+  </div>
+  <p style="font-size:11px; color:var(--gray-400); margin-top:16px">Каждый модуль включается/выключается в админке одной кнопкой — исчезает из UI и блокируется в API</p>
+  <div class="slide-footer">
+    <span>Sortirovka24</span>
+    <span>5 / 12</span>
+  </div>
+</section>
+
+<!-- SLIDE 6: Ecosystem -->
+<section class="slide slide-light">
+  <div class="slide-header">
+    <div class="slide-num">05 — Экосистема</div>
+    <h2 class="slide-title">Кто пользуется платформой</h2>
+  </div>
+  <div class="grid-2">
+    <div>
+      <div class="card" style="margin-bottom:12px">
+        <h3>👤 Житель</h3>
+        <p>Заказы, объявления, новости, кабинет с бонусами. Регистрация по SMS (+300 бонусов) или Google.</p>
+      </div>
+      <div class="card" style="margin-bottom:12px">
+        <h3>🔧 Мастер · 💇 Салон</h3>
+        <p>Кабинет с заявками, профиль, модерация «стать мастером».</p>
+      </div>
+      <div class="card">
+        <h3>🏪 Партнёр (seller)</h3>
+        <p>Гастроном, Прораб, аптека — витрина и заказы в кабинете партнёра.</p>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:12px">
+        <h3>🚕 Водитель · 📦 Курьер</h3>
+        <p>Online/offline, GPS, приём заказов. Заявки одобряет админ.</p>
+      </div>
+      <div class="card" style="margin-bottom:12px">
+        <h3>🍳 Оператор DAM ALEM</h3>
+        <p>Telegram-бот: новый заказ → подтверждение → FrontPad (касса).</p>
+      </div>
+      <div class="card">
+        <h3>🛡️ Администратор</h3>
+        <p>Web `/admin` + отдельное APK `kz.sortirovka24.admin`. Контент, модули, push, статистика.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Sortirovka24</span>
+    <span>6 / 12</span>
+  </div>
+</section>
+
+<!-- SLIDE 7: Architecture -->
+<section class="slide slide-dark">
+  <div class="slide-header">
+    <div class="slide-num">06 — Архитектура</div>
+    <h2 class="slide-title">Технологический стек</h2>
+  </div>
+  <div class="arch-box">
+    <div class="arch-node"><strong>Web / PWA</strong><span>React 18 + Vite</span></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node"><strong>Android / iOS</strong><span>Capacitor 7</span></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node" style="border-color:var(--yellow)"><strong>FastAPI</strong><span>Railway / Lambda</span></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node"><strong>PostgreSQL</strong><span>+ Alembic</span></div>
+  </div>
+  <div class="grid-2">
+    <div>
+      <h3 style="font-size:14px; margin-bottom:10px; color:var(--yellow)">Frontend</h3>
+      <ul class="check">
+        <li>TypeScript, Tailwind, shadcn/ui</li>
+        <li>RU / KZ i18n</li>
+        <li>Lazy routes, PWA, push FCM</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="font-size:14px; margin-bottom:10px; color:var(--yellow)">Backend + интеграции</h3>
+      <ul class="check">
+        <li>Cloudinary — фото и медиа</li>
+        <li>Mobizon — SMS регистрация</li>
+        <li>FrontPad — касса DAM ALEM</li>
+        <li>Telegram — операторы, курьеры, такси</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Sortirovka24</span>
+    <span>7 / 12</span>
+  </div>
+</section>
+
+<!-- SLIDE 8: Principles -->
+<section class="slide slide-light">
+  <div class="slide-header">
+    <div class="slide-num">07 — Конституция проекта</div>
+    <h2 class="slide-title">Принципы, которым следуем</h2>
+  </div>
+  <div class="grid-2">
+    <ul class="check">
+      <li><strong>Локальность</strong> — польза для Сортировки, не «для всего KZ»</li>
+      <li><strong>Модульность</strong> — kill-switch модулей в админке</li>
+      <li><strong>Безопасность</strong> — JWT, секреты только на сервере</li>
+      <li><strong>Устойчивость</strong> — retry, health-check, fail-open</li>
+    </ul>
+    <ul class="check">
+      <li><strong>Два языка</strong> — русский и казахский интерфейс</li>
+      <li><strong>Mobile-first</strong> — большинство с телефона</li>
+      <li><strong>Один бэкенд</strong> — web, APK, admin APK</li>
+      <li><strong>Документированность</strong> — docs/ как источник правды</li>
+    </ul>
+  </div>
+  <div class="quote" style="margin-top:24px">
+    Sortirovka24 — для своих, в своём районе.
+  </div>
+  <div class="slide-footer">
+    <span>Sortirovka24</span>
+    <span>8 / 12</span>
+  </div>
+</section>
+
+<!-- SLIDE 9: Roadmap -->
+<section class="slide slide-dark">
+  <div class="slide-header">
+    <div class="slide-num">08 — Дорожная карта</div>
+    <h2 class="slide-title">Этапы развития</h2>
+  </div>
+  <div class="timeline">
+    <div class="timeline-item done">
+      <span class="tag tag-done">✓ Готово</span>
+      <h4>Этап 1 — Фундамент</h4>
+      <p>Web, PWA, контент-модули, админка, Cloudinary, JWT, деплой Railway</p>
+    </div>
+    <div class="timeline-item done">
+      <span class="tag tag-done">✓ Готово</span>
+      <h4>Этап 2 — Коммерция</h4>
+      <p>DAM ALEM, FrontPad, Telegram, Android APK/AAB, SMS, такси, курьеры</p>
+    </div>
+    <div class="timeline-item now">
+      <span class="tag tag-now">→ Сейчас</span>
+      <h4>Этап 3 — Экосистема</h4>
+      <p>Гастроном, Прораб, Аптека, push FCM, Google Play, партнёрские кабинеты</p>
+    </div>
+    <div class="timeline-item">
+      <span class="tag tag-plan">План</span>
+      <h4>Этап 4 — Зрелость</h4>
+      <p>iOS App Store, аналитика, интеграция с УК, Stripe, бонусная программа</p>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Sortirovka24</span>
+    <span>9 / 12</span>
+  </div>
+</section>
+
+<!-- SLIDE 10: KPI -->
+<section class="slide slide-light">
+  <div class="slide-header">
+    <div class="slide-num">09 — Метрики успеха</div>
+    <h2 class="slide-title">KPI проекта</h2>
+  </div>
+  <div class="grid-3">
+    <div class="card stat"><div class="stat-num">MAU/DAU</div><div class="stat-label">Активные пользователи</div></div>
+    <div class="card stat"><div class="stat-num">D7/D30</div><div class="stat-label">Retention — возврат</div></div>
+    <div class="card stat"><div class="stat-num">≥99%</div><div class="stat-label">Uptime API</div></div>
+    <div class="card stat"><div class="stat-num">SMS→Reg</div><div class="stat-label">Конверсия регистрации</div></div>
+    <div class="card stat"><div class="stat-num">Orders</div><div class="stat-label">Заказы еды / партнёров</div></div>
+    <div class="card stat"><div class="stat-num">Rides</div><div class="stat-label">Поездки такси</div></div>
+  </div>
+  <p class="lead" style="margin-top:20px; font-size:14px">
+    <strong>Продуктовая цель:</strong> житель возвращается 2–3 раза в неделю (еда, новости, объявления). Большинство домохозяйств района знают о приложении.
+  </p>
+  <div class="slide-footer">
+    <span>Sortirovka24</span>
+    <span>10 / 12</span>
+  </div>
+</section>
+
+<!-- SLIDE 11: Brand -->
+<section class="slide slide-dark">
+  <div class="slide-header">
+    <div class="slide-num">10 — Бренд</div>
+    <h2 class="slide-title">Идентичность Sortirovka24</h2>
+  </div>
+  <div class="grid-2">
+    <div>
+      <h3 style="font-size:13px; color:var(--yellow); margin-bottom:12px">Цвета</h3>
+      <div class="pill-row">
+        <span class="pill" style="background:#2563EB;color:white;border:none">#2563EB Primary</span>
+        <span class="pill" style="background:#0B0F19;color:white;border:1px solid #333">#0B0F19 Navy</span>
+        <span class="pill" style="background:#FACC15;color:#0B0F19;border:none">#FACC15 Accent</span>
+      </div>
+      <h3 style="font-size:13px; color:var(--yellow); margin:20px 0 12px">Tone of voice</h3>
+      <ul class="check">
+        <li>На «вы», коротко, по делу</li>
+        <li>Локально: «район», «соседи», «Сортировка»</li>
+        <li>Честно — если beta, говорим прямо</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="font-size:13px; color:var(--yellow); margin-bottom:12px">Store listing</h3>
+      <div class="card">
+        <p style="font-size:13px; color:white; margin-bottom:8px"><strong>Сортировка 24</strong></p>
+        <p style="font-size:12px">«Еда, такси, объявления и услуги района Сортировка — всё в одном приложении»</p>
+      </div>
+      <h3 style="font-size:13px; color:var(--yellow); margin:20px 0 12px">Платформы</h3>
+      <div class="pill-row">
+        <span class="pill">Google Play AAB</span>
+        <span class="pill">PWA</span>
+        <span class="pill">Admin APK</span>
+        <span class="pill">iOS (план)</span>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Sortirovka24</span>
+    <span>11 / 12</span>
+  </div>
+</section>
+
+<!-- SLIDE 12: CTA -->
+<section class="slide slide-cover">
+  <div class="badge">Итог</div>
+  <h2 class="cover-title" style="font-size:40px">Sortirovka24 —<br><span>цифровой дом</span> района</h2>
+  <p class="cover-sub" style="margin-top:24px">
+    Документация: <strong style="color:white">docs/</strong> · 11 разделов · API · User Stories · Брендбук<br>
+    Бэкенд: FastAPI на Railway · Приложение: kz.sortirovka24.app
+  </p>
+  <ul class="check" style="margin-top:32px; max-width:600px">
+    <li>Локальный супер-app для микрорайона Сортировка</li>
+    <li>17+ модулей, 2 языка, модульная архитектура</li>
+    <li>Еда + такси + community + admin — production ready</li>
+    <li>Масштабируется без переписывания платформы</li>
+  </ul>
+  <p style="margin-top:40px; font-size:14px; color:var(--gray-400); position:relative; z-index:1">
+    support@sortirovka24.kz · sortirovka24-production.up.railway.app
+  </p>
+  <div class="slide-footer">
+    <span>Спасибо за внимание</span>
+    <span>12 / 12</span>
+  </div>
+</section>
+
+</body>
+</html>

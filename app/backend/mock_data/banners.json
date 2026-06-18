@@ -1,19 +1,65 @@
 [
     {
-        "id": 2,
-        "title": "DAM ALEM — Доставка еды",
+        "title": "−10% с кодом DAMALEM10",
         "banner_text": "",
-        "subtitle": "Быстрая доставка из кафе и ресторанов Сортировки",
-        "image_url": "https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-15/fe194ca1-0095-44bf-a906-e50cb844ad56.png",
-        "link_url": "https://wa.me/77470304096",
-        "button_text": "Заказать",
+        "subtitle": "Скидка на любой заказ от 2 500 ₸. Введите код при оформлении",
+        "image_url": "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80",
+        "link_url": "/food",
+        "button_text": "Акция",
         "button_url": "/food",
-        "banner_type": "shop",
+        "banner_type": "food_delivery",
         "active": true,
         "created_at": "2026-03-01 08:00:00"
     },
     {
-        "id": 1,
+        "title": "Пицца выгоднее на 500 ₸",
+        "banner_text": "",
+        "subtitle": "Промокод PIZZA500 — на пиццу 30 и 35 см от 3 500 ₸",
+        "image_url": "https://images.unsplash.com/photo-1574075548507-732e12370468?auto=format&fit=crop&w=800&q=80",
+        "link_url": "/food",
+        "button_text": "Пицца",
+        "button_url": "/food",
+        "banner_type": "food_delivery",
+        "active": true,
+        "created_at": "2026-03-01 08:01:00"
+    },
+    {
+        "title": "Комплексный обед −15%",
+        "banner_text": "",
+        "subtitle": "Промокод OBED15 — горячий обед с доставкой от 2 000 ₸",
+        "image_url": "https://images.unsplash.com/photo-1546837220-16e577a10b64?auto=format&fit=crop&w=800&q=80",
+        "link_url": "/food",
+        "button_text": "Обеды",
+        "button_url": "/food",
+        "banner_type": "food_delivery",
+        "active": true,
+        "created_at": "2026-03-01 08:02:00"
+    },
+    {
+        "title": "Подарок к каждому заказу",
+        "banner_text": "",
+        "subtitle": "Коктейль, фри, лимонад — бесплатно от 5 000 ₸",
+        "image_url": "https://images.unsplash.com/photo-1572495617767-c9a8dd371921?auto=format&fit=crop&w=800&q=80",
+        "link_url": "/food",
+        "button_text": "Подарки",
+        "button_url": "/food",
+        "banner_type": "food_delivery",
+        "active": true,
+        "created_at": "2026-03-01 08:03:00"
+    },
+    {
+        "title": "DAM ALEM — Доставка еды",
+        "banner_text": "",
+        "subtitle": "Пицца, донеры, шашлыки — 35–45 мин по Сортировке",
+        "image_url": "https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-15/fe194ca1-0095-44bf-a906-e50cb844ad56.png",
+        "link_url": "/food",
+        "button_text": "Заказать",
+        "button_url": "/food",
+        "banner_type": "food_delivery",
+        "active": true,
+        "created_at": "2026-03-01 08:04:00"
+    },
+    {
         "title": "Найдите мастера рядом",
         "banner_text": "",
         "subtitle": "Электрики, сварщики, сантехники — проверенные специалисты вашего района",
@@ -23,6 +69,6 @@
         "button_url": "/masters",
         "banner_type": "",
         "active": true,
-        "created_at": "2026-03-01 08:00:00"
+        "created_at": "2026-03-01 08:05:00"
     }
 ]

@@ -116,6 +116,13 @@ async def _run_startup_initialization():
             logger.warning(f"DAM ALEM catalog seed skipped: {e}")
 
         try:
+            from services.dam_alem_marketing_seed import ensure_dam_alem_marketing
+
+            await ensure_dam_alem_marketing()
+        except Exception as e:
+            logger.warning(f"DAM ALEM marketing seed skipped: {e}")
+
+        try:
             await initialize_admin_user()
         except Exception as e:
             logger.warning(f"Admin user initialization failed: {e}")
