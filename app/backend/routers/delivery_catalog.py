@@ -94,7 +94,11 @@ async def _load_categories(db: AsyncSession, active_only: bool) -> List[Food_cat
     res = await svc.get_list(skip=0, limit=500, query_dict=None, sort="sort_order")
     items: List[Food_categories] = list(res["items"])
     if active_only:
-        items = [c for c in items if c.is_active is not False]
+        items = [
+            c for c in items
+            if c.is_active is not False
+            and (getattr(c, "category_type", None) or "") not in ("delivery", "seasonal", "service")
+        ]
     return items
 
 

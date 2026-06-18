@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Optional
 
+from core.admin_guard import require_panel_admin
 from core.database import get_db
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -175,3 +176,24 @@ async def validate_promo(data: PromoValidateRequest, db: AsyncSession = Depends(
         "discount": discount,
         "free_delivery": free_delivery,
     }
+
+
+@router.post("/admin/seed-catalog")
+async def admin_seed_dam_alem_catalog(
+    db: AsyncSession = Depends(get_db),
+    _admin: dict = Depends(require_panel_admin),
+):
+    """Полная загрузка меню DAM ALEM (категории, блюда, модификаторы)."""
+    from services.dam_alem_catalog_data import verify_catalog
+    from services.dam_alem_catalog_seed import seed_dam_alem_catalog
+
+    stats = await seed_dam_alem_catalog(db, replace=True)
+    check = verify_catalog()
+    return {"ok": True, "stats": stats, "verify": check}
+
+
+@router.get("/admin/catalog-verify")
+async def admin_verify_dam_alem_catalog(_admin: dict = Depends(require_panel_admin)):
+    from services.dam_alem_catalog_data import verify_catalog
+
+    return verify_catalog()

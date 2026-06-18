@@ -109,6 +109,13 @@ async def _run_startup_initialization():
             logger.warning(f"Mock data initialization failed: {e}")
 
         try:
+            from services.dam_alem_catalog_seed import ensure_dam_alem_catalog
+
+            await ensure_dam_alem_catalog()
+        except Exception as e:
+            logger.warning(f"DAM ALEM catalog seed skipped: {e}")
+
+        try:
             await initialize_admin_user()
         except Exception as e:
             logger.warning(f"Admin user initialization failed: {e}")

@@ -62,6 +62,7 @@ interface FoodCategory {
   slug?: string;
   image?: string;
   restaurant_id?: number | null;
+  category_type?: string | null;
 }
 interface FoodItem {
   id: number;
@@ -354,7 +355,12 @@ export default function Food() {
           const cj = await cRes.json();
           const pj = await pRes.json();
           const rawCats = Array.isArray(cj.categories) ? cj.categories : [];
-          const mappedCats: FoodCategory[] = rawCats.map((c: any) => {
+          const mappedCats: FoodCategory[] = rawCats
+            .filter((c: any) => {
+              const t = String(c.category_type || '').toLowerCase();
+              return t !== 'delivery' && t !== 'seasonal' && t !== 'service';
+            })
+            .map((c: any) => {
             const base: FoodCategory = {
               id: c.id,
               name: c.name,
@@ -399,9 +405,9 @@ export default function Food() {
         foodItems
           ? Promise.resolve({ data: { items: [] as FoodItem[] } })
           : cq('items', () => client.entities.food_items.query({ sort: 'sort_order', limit: 500 })),
-        cq('mod_groups', () => client.entities.modifier_groups.query({ sort: 'sort_order', limit: 100 })),
-        cq('mod_options', () => client.entities.modifier_options.query({ sort: 'sort_order', limit: 500 })),
-        cq('item_groups', () => client.entities.item_modifier_groups.query({ limit: 500 })),
+        cq('mod_groups', () => client.entities.modifier_groups.query({ sort: 'sort_order', limit: 200 })),
+        cq('mod_options', () => client.entities.modifier_options.query({ sort: 'sort_order', limit: 1000 })),
+        cq('item_groups', () => client.entities.item_modifier_groups.query({ limit: 2000 })),
         cq('settings', () => client.entities.food_settings.query({ limit: 50 })),
         cq('banners', () => client.entities.banners.query({ query: { active: true }, limit: 12 })),
       ]);
@@ -414,7 +420,11 @@ export default function Food() {
         setCategories(cats);
         setItems(foodItems);
       } else {
-        const ecats: FoodCategory[] = filterByRestaurant(extract(results[0]) as FoodCategory[]).filter((c: FoodCategory) => c.is_active !== false);
+        const ecats: FoodCategory[] = filterByRestaurant(extract(results[0]) as FoodCategory[]).filter((c: FoodCategory) => {
+          if (c.is_active === false) return false;
+          const t = String(c.category_type || '').toLowerCase();
+          return t !== 'delivery' && t !== 'seasonal' && t !== 'service';
+        });
         const eitems: FoodItem[] = filterByRestaurant(extract(results[1]) as FoodItem[])
           .filter((i: FoodItem) => i.is_active !== false && (i as FoodItem & { available?: boolean }).available !== false)
           .map((i: FoodItem) => ({
