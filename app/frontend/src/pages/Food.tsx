@@ -14,6 +14,7 @@ import {
 import DamAlemHero from '@/components/damalem/DamAlemHero';
 import DamAlemPromoBanners, { type FoodBanner } from '@/components/damalem/DamAlemPromoBanners';
 import DamAlemCategoryNav from '@/components/damalem/DamAlemCategoryNav';
+import DamAlemOrderGuide from '@/components/damalem/DamAlemOrderGuide';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -1012,6 +1013,14 @@ export default function Food() {
 
   const brandDescription = (brandProfile?.description || settings.hero_banner_subtitle || '').trim();
 
+  const orderPaymentHint = orderSuccess
+    ? orderSuccess.paymentMethod === 'cash'
+      ? t('food.guide.payCash')
+      : orderSuccess.paymentMethod === 'kaspi_qr'
+        ? t('food.guide.payKaspi')
+        : t('food.guide.payHalyk')
+    : '';
+
   return (
     <Layout>
       <div className="min-h-screen bg-[#F5F5F5] text-[#111111]">
@@ -1053,6 +1062,12 @@ export default function Food() {
                     className="mx-auto mt-3 h-48 w-48 rounded-xl ring-1 ring-gray-100"
                   />
                   <p className="mt-2 text-xs text-gray-400">Покажите QR при получении заказа</p>
+                </div>
+              )}
+              {orderPaymentHint && (
+                <div className="mt-4 rounded-2xl border border-red-100 bg-red-50/50 p-4">
+                  <p className="text-sm font-semibold text-[#111111] mb-1">{t('food.guide.howToPay')}</p>
+                  <p className="text-sm text-[#555555] leading-relaxed">{orderPaymentHint}</p>
                 </div>
               )}
               <div className="mt-5 space-y-2">
@@ -1145,6 +1160,12 @@ export default function Food() {
               {brandDescription}
             </p>
           )}
+
+          <DamAlemOrderGuide
+            deliveryZones={deliveryZones}
+            minOrder={minOrder}
+            formatPrice={formatPrice}
+          />
 
           <DamAlemPromoBanners banners={foodBanners} />
 
@@ -1646,6 +1667,7 @@ export default function Food() {
                     <label className="text-sm font-bold text-gray-800 mb-2.5 block flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-[#FF3B30]" /> Зона доставки
                     </label>
+                    <p className="text-xs text-gray-500 mb-3 leading-relaxed">{t('food.guide.checkoutZones')}</p>
                     <div className="space-y-2">
                       {deliveryZones.map((zone, idx) => (
                         <button
@@ -1736,6 +1758,7 @@ export default function Food() {
 
                 <div className="bg-white rounded-2xl p-4 shadow-sm">
                   <label className="text-sm font-bold text-gray-800 mb-3 block">Способ оплаты</label>
+                  <p className="text-xs text-gray-500 mb-3 leading-relaxed">{t('food.guide.paymentNote')}</p>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     {(
                       [

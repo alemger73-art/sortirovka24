@@ -23,6 +23,7 @@ import AdminDamAlemBanners from './AdminDamAlemBanners';
 import AdminDamAlemBrand from './AdminDamAlemBrand';
 
 import AdminDamAlemModifiers from './AdminDamAlemModifiers';
+import AdminDamAlemGuide from '@/components/damalem/AdminDamAlemGuide';
 
 
 
@@ -113,6 +114,10 @@ export default function AdminDamAlem({ initialSection = 'menu' }: AdminDamAlemPr
         </div>
 
       </div>
+
+
+
+      <AdminDamAlemGuide />
 
 
 
