@@ -331,17 +331,6 @@ export default function Gastronom() {
     if (prefill.phone) setPhone((v) => v || prefill.phone);
   }, []);
 
-  const applySavedAddress = useCallback((saved: SavedAddress, opts?: { auto?: boolean }) => {
-    setAddress(saved.address);
-    setAddressFormCollapsed(false);
-    void runDeliveryQuote(
-      saved.lat != null && saved.lng != null
-        ? { address: saved.address, lat: saved.lat, lng: saved.lng }
-        : { address: saved.address },
-      { notify: !opts?.auto },
-    );
-  }, [runDeliveryQuote]);
-
   const cart = useMemo(() => {
     return Object.entries(cartQty)
       .map(([id, qty]) => {
@@ -447,6 +436,17 @@ export default function Gastronom() {
       if (reqId === quoteRequestId.current) setDeliveryQuoteLoading(false);
     }
   }, []);
+
+  const applySavedAddress = useCallback((saved: SavedAddress, opts?: { auto?: boolean }) => {
+    setAddress(saved.address);
+    setAddressFormCollapsed(false);
+    void runDeliveryQuote(
+      saved.lat != null && saved.lng != null
+        ? { address: saved.address, lat: saved.lat, lng: saved.lng }
+        : { address: saved.address },
+      { notify: !opts?.auto },
+    );
+  }, [runDeliveryQuote]);
 
   const findByAddress = useCallback((addr?: string) => {
     const target = (addr ?? effectiveAddress).trim();

@@ -94,6 +94,7 @@ interface Settings {
   delivery_city?: string; delivery_area?: string;
   delivery_time?: string; working_hours?: string; promo_codes?: string;
   store_lat?: string; store_lng?: string;
+  [key: string]: string | undefined;
 }
 
 const REPEAT_ORDER_KEY = 'damalem_repeat_order';
@@ -1094,8 +1095,6 @@ export default function Food() {
       });
       setCustomerName('');
       setCustomerPhone('');
-      setStreet('');
-      setHouse('');
       setApartment('');
       setDeliveryAddress('');
       setDeliveryQuote(null);
