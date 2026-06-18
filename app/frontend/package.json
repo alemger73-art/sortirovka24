@@ -18,7 +18,9 @@
     "cap:android": "npm run cap:sync && npx cap open android",
     "cap:ios": "npm run cap:sync && npx cap open ios",
     "gen:assets": "node scripts/gen-assets.mjs && npx capacitor-assets generate --assetPath assets",
-    "build:ios": "bash scripts/build-ios.sh"
+    "build:ios": "bash scripts/build-ios.sh",
+    "build:admin": "vite build --config vite.admin.config.ts --mode mobile && node -e \"require('fs').copyFileSync('dist-admin/admin.html','dist-admin/index.html')\"",
+    "dev:admin": "vite --config vite.admin.config.ts"
   },
   "dependencies": {
     "@capacitor/android": "^7.2.0",

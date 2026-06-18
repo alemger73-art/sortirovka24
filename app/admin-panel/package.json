@@ -1,0 +1,23 @@
+{
+  "name": "sortirovka24-admin-panel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Отдельное Android-приложение админ-панели Sortirovka24. Собирает UI из app/frontend и упаковывает в APK.",
+  "scripts": {
+    "dev": "cd ../frontend && pnpm run dev:admin",
+    "build:web": "cd ../frontend && pnpm run build:admin",
+    "cap:sync": "npm run build:web && npx cap sync android",
+    "build:android": "powershell -ExecutionPolicy Bypass -File scripts/build-android.ps1"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.2.0",
+    "@capacitor/app": "^7.0.1",
+    "@capacitor/core": "^7.2.0",
+    "@capacitor/keyboard": "^7.0.1",
+    "@capacitor/status-bar": "^7.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.2.0",
+    "typescript": "^6.0.3"
+  }
+}

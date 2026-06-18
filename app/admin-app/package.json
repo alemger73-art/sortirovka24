@@ -2,7 +2,7 @@
   "name": "sortirovka24-admin",
   "version": "1.0.0",
   "private": true,
-  "description": "Отдельное Android-приложение админ-панели Sortirovka24 (live-режим: открывает /admin с Railway).",
+  "description": "Отдельное Android-приложение админ-панели Sortirovka24 (встроенный UI из dist-admin).",
   "scripts": {
     "sync": "cap sync android",
     "open": "cap open android",
