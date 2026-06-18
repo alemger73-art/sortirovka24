@@ -12,6 +12,7 @@ function stepIndex(status: string): number {
   if (status === 'done' || status === 'delivered' || status === 'completed') return 3;
   if (status === 'ready') return 2;
   if (status === 'in_progress' || status === 'cooking') return 1;
+  if (status === 'confirmed') return 1;
   return 0;
 }
 

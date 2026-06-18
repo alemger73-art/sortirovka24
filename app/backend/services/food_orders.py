@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.food_orders import Food_orders
 from services.bonus_rewards import link_food_order_to_user
-from services.telegram import notify_food_order, notify_food_order_status
+from services.telegram import notify_food_order_status
 from services.frontpad_order_push import push_food_order_to_frontpad
 
 logger = logging.getLogger(__name__)
@@ -39,18 +39,9 @@ class Food_ordersService:
             except Exception as bonus_err:
                 logger.warning("[Bonus] Food order reward skipped: %s", bonus_err)
             try:
-                await notify_food_order({
-                    "order_id": obj.id,
-                    "restaurant_name": obj.restaurant_name,
-                    "customer_name": obj.customer_name,
-                    "customer_phone": obj.customer_phone,
-                    "delivery_address": obj.delivery_address,
-                    "delivery_method": obj.delivery_method,
-                    "payment_method": obj.payment_method,
-                    "order_items": obj.order_items,
-                    "total_amount": obj.total_amount,
-                    "comment": obj.comment,
-                })
+                from services.food_telegram_flow import notify_operator_new_order
+
+                await notify_operator_new_order(obj)
             except Exception as tg_err:
                 logger.warning("[Telegram] Food order notification skipped: %s", tg_err)
             try:
@@ -150,6 +141,13 @@ class Food_ordersService:
                     })
                 except Exception as tg_err:
                     logger.warning("[Telegram] Food status notification skipped: %s", tg_err)
+                if update_data["status"] == "in_progress" and old_status != "in_progress":
+                    try:
+                        from services.food_telegram_flow import dispatch_order_to_couriers
+
+                        await dispatch_order_to_couriers(self.db, obj)
+                    except Exception as dispatch_err:
+                        logger.warning("[Telegram] Courier dispatch skipped: %s", dispatch_err)
             logger.info(f"Updated food_orders {obj_id}")
             return obj
         except Exception as e:

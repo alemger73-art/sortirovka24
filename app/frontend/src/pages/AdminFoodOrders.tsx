@@ -32,8 +32,9 @@ interface FoodOrder {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; next?: string; nextLabel?: string }> = {
-  new: { label: 'Новый', color: 'bg-yellow-100 text-yellow-800', next: 'in_progress', nextLabel: 'Взять в работу' },
-  in_progress: { label: 'Готовится', color: 'bg-blue-100 text-blue-800', next: 'done', nextLabel: 'Доставлен' },
+  new: { label: 'Новый', color: 'bg-yellow-100 text-yellow-800', next: 'confirmed', nextLabel: 'Подтвердить' },
+  confirmed: { label: 'Подтверждён', color: 'bg-emerald-100 text-emerald-800', next: 'in_progress', nextLabel: 'Курьеру' },
+  in_progress: { label: 'У курьера', color: 'bg-blue-100 text-blue-800', next: 'done', nextLabel: 'Доставлен' },
   done: { label: 'Доставлен', color: 'bg-green-100 text-green-800' },
   cancelled: { label: 'Отменён', color: 'bg-red-100 text-red-800' },
 };
@@ -56,6 +57,9 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
   const [search, setSearch] = useState('');
   const [damAlemRestaurantId, setDamAlemRestaurantId] = useState<number | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({ delivery_address: '', comment: '', total_amount: '', order_items: '' });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     if (!damAlemMode) return;
@@ -88,11 +92,56 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
   async function updateStatus(orderId: number, newStatus: string) {
     try {
       await withRetry(() => client.entities.food_orders.update({ id: String(orderId), data: { status: newStatus } }));
-      toast.success('Статус обновлён');
+      toast.success(newStatus === 'in_progress' ? 'Заказ отправлен курьерам в Telegram' : 'Статус обновлён');
       invalidateAllCaches();
       loadOrders(true);
     } catch {
       toast.error('Ошибка обновления');
+    }
+  }
+
+  function startEdit(order: FoodOrder) {
+    setEditingId(order.id);
+    setEditForm({
+      delivery_address: order.delivery_address || '',
+      comment: order.comment || '',
+      total_amount: String(order.total_amount ?? ''),
+      order_items: order.order_items || '[]',
+    });
+  }
+
+  async function saveEdit(orderId: number) {
+    let itemsJson = editForm.order_items;
+    try {
+      JSON.parse(itemsJson);
+    } catch {
+      toast.error('Неверный JSON состава заказа');
+      return;
+    }
+    const total = parseFloat(editForm.total_amount.replace(',', '.'));
+    if (!Number.isFinite(total) || total <= 0) {
+      toast.error('Укажите корректную сумму');
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      await withRetry(() => client.entities.food_orders.update({
+        id: String(orderId),
+        data: {
+          delivery_address: editForm.delivery_address.trim(),
+          comment: editForm.comment.trim(),
+          total_amount: total,
+          order_items: itemsJson,
+        },
+      }));
+      toast.success('Заказ сохранён');
+      setEditingId(null);
+      invalidateAllCaches();
+      loadOrders(true);
+    } catch {
+      toast.error('Ошибка сохранения');
+    } finally {
+      setSavingEdit(false);
     }
   }
 
@@ -142,6 +191,7 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
   }, [scopedOrders, filter, search]);
 
   const newCount = scopedOrders.filter(o => o.status === 'new').length;
+  const confirmedCount = scopedOrders.filter(o => o.status === 'confirmed').length;
   const inProgressCount = scopedOrders.filter(o => o.status === 'in_progress').length;
   const todayOrders = scopedOrders.filter(o => isToday(o.created_at));
   const todayRevenue = todayOrders.reduce((s, o) => s + (o.total_amount || 0), 0);
@@ -160,7 +210,8 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
         <div className="flex items-center gap-3 flex-wrap">
           <h3 className="font-bold text-lg">{damAlemMode ? 'Заказы DAM ALEM' : 'Заказы еды'}</h3>
           {newCount > 0 && <Badge className="bg-yellow-100 text-yellow-800 border-0">{newCount} новых</Badge>}
-          {inProgressCount > 0 && <Badge className="bg-blue-100 text-blue-800 border-0">{inProgressCount} в работе</Badge>}
+          {confirmedCount > 0 && <Badge className="bg-emerald-100 text-emerald-800 border-0">{confirmedCount} подтвержд.</Badge>}
+          {inProgressCount > 0 && <Badge className="bg-blue-100 text-blue-800 border-0">{inProgressCount} у курьера</Badge>}
         </div>
         <div className="flex items-center gap-2">
           <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
@@ -207,7 +258,8 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
         {[
           { id: 'all', label: 'Все' },
           { id: 'new', label: 'Новые' },
-          { id: 'in_progress', label: 'В работе' },
+          { id: 'confirmed', label: 'Подтверждённые' },
+          { id: 'in_progress', label: 'У курьера' },
           { id: 'done', label: 'Доставленные' },
           { id: 'cancelled', label: 'Отменённые' },
         ].map(f => (
@@ -312,6 +364,49 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
                         </div>
                       ))}
                     </div>
+
+                    {editingId === order.id ? (
+                      <div className="space-y-2 rounded-lg border border-orange-200 bg-orange-50/50 p-3">
+                        <p className="text-xs font-semibold text-orange-800">Редактирование после звонка клиенту</p>
+                        <Input
+                          value={editForm.delivery_address}
+                          onChange={e => setEditForm(f => ({ ...f, delivery_address: e.target.value }))}
+                          placeholder="Адрес доставки"
+                          className="h-9 text-sm"
+                        />
+                        <Input
+                          value={editForm.comment}
+                          onChange={e => setEditForm(f => ({ ...f, comment: e.target.value }))}
+                          placeholder="Комментарий"
+                          className="h-9 text-sm"
+                        />
+                        <Input
+                          value={editForm.total_amount}
+                          onChange={e => setEditForm(f => ({ ...f, total_amount: e.target.value }))}
+                          placeholder="Итого, ₸"
+                          className="h-9 text-sm"
+                        />
+                        <textarea
+                          value={editForm.order_items}
+                          onChange={e => setEditForm(f => ({ ...f, order_items: e.target.value }))}
+                          rows={4}
+                          className="w-full rounded-md border border-gray-200 bg-white p-2 text-xs font-mono"
+                          placeholder="JSON состава заказа"
+                        />
+                        <div className="flex gap-2 flex-wrap">
+                          <Button size="sm" disabled={savingEdit} onClick={() => saveEdit(order.id)} className="bg-orange-500 hover:bg-orange-600">
+                            Сохранить
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>Отмена</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      order.status !== 'done' && order.status !== 'cancelled' && (
+                        <Button size="sm" variant="outline" onClick={() => startEdit(order)} className="text-orange-700 border-orange-200">
+                          ✏️ Изменить заказ
+                        </Button>
+                      )
+                    )}
 
                     <div className="flex gap-2 flex-wrap">
                       {st.next && (

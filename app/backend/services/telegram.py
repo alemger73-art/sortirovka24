@@ -17,6 +17,8 @@ Per-category overrides (optional):
   TELEGRAM_BOT_TOKEN_GASTRONOM      / TELEGRAM_CHAT_ID_GASTRONOM
   TELEGRAM_BOT_TOKEN_PRORAB         / TELEGRAM_CHAT_ID_PRORAB
   TELEGRAM_BOT_TOKEN_TAXI           / TELEGRAM_CHAT_ID_TAXI
+  TELEGRAM_BOT_TOKEN_FOOD           / TELEGRAM_CHAT_ID_FOOD       — операторы DAM ALEM
+  TELEGRAM_BOT_TOKEN_FOOD_COURIER   / TELEGRAM_CHAT_ID_FOOD_COURIER — курьеры DAM ALEM
 
 If a per-category variable is not set, the default is used.
 """
@@ -42,6 +44,7 @@ CATEGORY_GASTRONOM = "GASTRONOM"
 CATEGORY_PRORAB = "PRORAB"
 CATEGORY_PHARMACY = "PHARMACY"
 CATEGORY_FOOD = "FOOD"
+CATEGORY_FOOD_COURIER = "FOOD_COURIER"
 CATEGORY_TAXI = "TAXI"
 
 
@@ -68,7 +71,7 @@ def get_routing_info() -> dict:
     categories = [
         CATEGORY_COMPLAINTS, CATEGORY_MASTERS, CATEGORY_BECOME_MASTER,
         CATEGORY_JOBS, CATEGORY_ANNOUNCEMENTS, CATEGORY_GASTRONOM, CATEGORY_PRORAB,
-        CATEGORY_PHARMACY, CATEGORY_FOOD, CATEGORY_TAXI,
+        CATEGORY_PHARMACY, CATEGORY_FOOD, CATEGORY_FOOD_COURIER, CATEGORY_TAXI,
     ]
     result = {"default": _is_configured(None)}
     for cat in categories:
@@ -84,15 +87,26 @@ def get_routing_info() -> dict:
 
 
 async def send_telegram_message(
-    text: str, parse_mode: str = "HTML", category: Optional[str] = None
+    text: str,
+    parse_mode: str = "HTML",
+    category: Optional[str] = None,
+    reply_markup: Optional[dict] = None,
+    disable_web_page_preview: bool = False,
+    chat_id_override: Optional[str] = None,
 ) -> bool:
     token, chat_id = _get_config(category)
+    if chat_id_override:
+        chat_id = chat_id_override
     if not token or not chat_id:
         logger.warning(f"Telegram not configured for category={category}. Skipping.")
         return False
 
     url = f"{TELEGRAM_API_BASE}/bot{token}/sendMessage"
-    payload = {"chat_id": chat_id, "text": text, "parse_mode": parse_mode}
+    payload: dict = {"chat_id": chat_id, "text": text, "parse_mode": parse_mode}
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+    if disable_web_page_preview:
+        payload["disable_web_page_preview"] = True
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -108,6 +122,42 @@ async def send_telegram_message(
         return False
     except Exception as e:
         logger.error(f"Telegram send error: {e}")
+        return False
+
+
+async def send_telegram_photo(
+    photo_url: str,
+    caption: str = "",
+    category: Optional[str] = None,
+    parse_mode: str = "HTML",
+) -> bool:
+    token, chat_id = _get_config(category)
+    if not token or not chat_id:
+        logger.warning(f"Telegram not configured for category={category}. Skipping photo.")
+        return False
+    url = f"{TELEGRAM_API_BASE}/bot{token}/sendPhoto"
+    payload = {"chat_id": chat_id, "photo": photo_url, "caption": caption, "parse_mode": parse_mode}
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(url, json=payload)
+            return resp.status_code == 200
+    except Exception as e:
+        logger.error(f"Telegram photo error: {e}")
+        return False
+
+
+async def answer_callback_query(callback_query_id: str, text: str = "", category: Optional[str] = None) -> bool:
+    token, _ = _get_config(category)
+    if not token:
+        return False
+    url = f"{TELEGRAM_API_BASE}/bot{token}/answerCallbackQuery"
+    payload = {"callback_query_id": callback_query_id, "text": text, "show_alert": bool(text)}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(url, json=payload)
+            return resp.status_code == 200
+    except Exception as e:
+        logger.error(f"Telegram answerCallbackQuery error: {e}")
         return False
 
 
@@ -343,7 +393,8 @@ async def notify_food_order_status(data: dict) -> bool:
     """Notify Telegram when a food order status changes."""
     status_map = {
         "new": "Новый",
-        "in_progress": "Готовится",
+        "confirmed": "Подтверждён",
+        "in_progress": "У курьера",
         "done": "Доставлен",
         "cancelled": "Отменён",
     }
