@@ -29,6 +29,19 @@ import {
   clearFoodCartStorage,
   FOOD_MENU_VERSION_KEY,
 } from '@/lib/foodCartStorage';
+import { parseDeliveryZones, type DeliveryZone } from '@/lib/gastronomDelivery';
+import { fetchFoodDeliveryQuote, type FoodDeliveryQuote } from '@/lib/foodDeliveryApi';
+import {
+  isLoyaltyEnabled,
+  parseLoyaltyGifts,
+  resolveLoyaltyGift,
+} from '@/lib/gastronomLoyalty';
+import { GeolocationError, requestCurrentPosition } from '@/lib/geolocation';
+import DeliveryAddressPicker from '@/components/gastronom/DeliveryAddressPicker';
+import SavedAddressBar from '@/components/SavedAddressBar';
+import { type SavedAddress } from '@/lib/accountApi';
+import LoyaltyGiftBanner from '@/components/gastronom/LoyaltyGiftBanner';
+import FreeDeliveryProgress from '@/components/damalem/FreeDeliveryProgress';
 
 /* ─── CDN images ─── */
 const FALLBACK_FOOD_1 = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/2034a1d7-1c57-40c0-8145-23816557ba5c.png';
@@ -67,12 +80,13 @@ interface FoodItem {
 interface ModifierGroup { id: number; name: string; type: string; is_required: boolean; min_select: number; max_select: number; sort_order: number; is_active: boolean; }
 interface ModifierOption { id: number; group_id: number; name: string; price: number; sort_order: number; is_active: boolean; }
 interface ItemModGroupLink { id: number; food_item_id: number; modifier_group_id: number; sort_order: number; }
-interface DeliveryZone { name: string; radius_km: number; price: number; }
 interface Settings {
   whatsapp_number: string; hero_banner_title: string; hero_banner_subtitle: string;
   hero_banner_image: string; min_order_amount: string; delivery_price: string;
   delivery_zones: string; show_recommendations: string; promo_slides?: string;
-  service_fee_rate?: string;
+  service_fee_rate?: string; free_delivery_from?: string; default_address?: string;
+  loyalty_enabled?: string; loyalty_gifts?: string;
+  delivery_city?: string; delivery_area?: string;
 }
 
 interface BrandProfile {
@@ -228,6 +242,13 @@ export default function Food() {
   const [payment, setPayment] = useState<'cash' | 'kaspi_qr' | 'halyk_qr'>('cash');
   const [orderSuccess, setOrderSuccess] = useState<OrderSuccessInfo | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryQuote, setDeliveryQuote] = useState<FoodDeliveryQuote | null>(null);
+  const [deliveryQuoteLoading, setDeliveryQuoteLoading] = useState(false);
+  const [deliveryQuoteError, setDeliveryQuoteError] = useState<string | null>(null);
+  const [addressFormCollapsed, setAddressFormCollapsed] = useState(false);
+  const quoteRequestId = useRef(0);
+  const addressPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { loadData(); }, []);
 
@@ -440,13 +461,12 @@ export default function Food() {
     }
   }
 
-  // Parse delivery zones from settings
-  const deliveryZones: DeliveryZone[] = useMemo(() => {
-    try {
-      const parsed = JSON.parse(settings.delivery_zones || '[]');
-      return Array.isArray(parsed) ? parsed : [];
-    } catch { return []; }
-  }, [settings.delivery_zones]);
+  // Parse delivery zones from settings (polygon map zones)
+  const mapDeliveryZones: DeliveryZone[] = useMemo(
+    () => parseDeliveryZones(settings.delivery_zones),
+    [settings.delivery_zones],
+  );
+  const hasDeliveryZones = mapDeliveryZones.length > 0;
 
   const poolItems = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -579,14 +599,141 @@ export default function Food() {
   const serviceFeeAmount = useMemo(() => Math.round(cartTotal * serviceFeeRate), [cartTotal, serviceFeeRate]);
   const cartTotalWithService = cartTotal + serviceFeeAmount;
 
-  const [selectedZoneIndex, setSelectedZoneIndex] = useState(0);
+  const freeDeliveryFrom = useMemo(
+    () => Number(settings.free_delivery_from || 15000),
+    [settings.free_delivery_from],
+  );
+  const loyaltyGifts = useMemo(
+    () => (isLoyaltyEnabled(settings) ? parseLoyaltyGifts(settings.loyalty_gifts) : []),
+    [settings.loyalty_gifts, settings.loyalty_enabled],
+  );
+  const loyaltyGift = useMemo(
+    () => resolveLoyaltyGift(cartTotal, loyaltyGifts),
+    [cartTotal, loyaltyGifts],
+  );
+
+  const effectiveAddress = useMemo(
+    () => deliveryAddress.trim() || settings.default_address?.trim() || '',
+    [deliveryAddress, settings.default_address],
+  );
+
+  const runDeliveryQuote = useCallback(async (
+    body: { address?: string; lat?: number; lng?: number },
+    options?: { notify?: boolean; fillAddress?: boolean },
+  ) => {
+    const reqId = ++quoteRequestId.current;
+    setDeliveryQuoteLoading(true);
+    setDeliveryQuoteError(null);
+    try {
+      const quote = await fetchFoodDeliveryQuote({ ...body, cart_subtotal: cartTotal });
+      if (reqId !== quoteRequestId.current) return;
+      setDeliveryQuote(quote);
+      if (options?.fillAddress && quote.display_address) {
+        setDeliveryAddress(quote.display_address);
+      }
+      if (quote.location_warning) {
+        setDeliveryQuoteError(quote.location_warning);
+        if (options?.notify) toast.warning(quote.location_warning);
+      } else if (!quote.available) {
+        const msg = quote.message || 'Доставка по этому адресу недоступна';
+        setDeliveryQuoteError(msg);
+        if (options?.notify) toast.error(msg);
+      }
+    } catch (e) {
+      if (reqId !== quoteRequestId.current) return;
+      setDeliveryQuote(null);
+      const msg = e instanceof Error ? e.message : 'Не удалось рассчитать доставку';
+      setDeliveryQuoteError(msg);
+      if (options?.notify) toast.error(msg);
+    } finally {
+      if (reqId === quoteRequestId.current) setDeliveryQuoteLoading(false);
+    }
+  }, [cartTotal]);
+
+  const findByAddress = useCallback((addr?: string) => {
+    const target = (addr ?? effectiveAddress).trim();
+    if (target.length < 5) {
+      toast.info('Введите улицу и номер дома, например: пер. Урановый 10');
+      return;
+    }
+    if (addr) setDeliveryAddress(addr);
+    void runDeliveryQuote({ address: target }, { notify: true });
+  }, [effectiveAddress, runDeliveryQuote]);
+
+  const requestGeolocation = useCallback(async () => {
+    setDeliveryQuoteLoading(true);
+    try {
+      const coords = await requestCurrentPosition();
+      await runDeliveryQuote(
+        { lat: coords.lat, lng: coords.lng },
+        { notify: true, fillAddress: true },
+      );
+    } catch (err) {
+      setDeliveryQuoteLoading(false);
+      if (err instanceof GeolocationError) {
+        if (err.code === 'denied') {
+          toast.error('Разрешите доступ к геолокации в настройках телефона');
+        } else {
+          toast.error('Не удалось получить GPS. Введите адрес вручную.');
+        }
+        return;
+      }
+      toast.error('Не удалось получить GPS. Введите адрес вручную.');
+    }
+  }, [runDeliveryQuote]);
+
+  const applySavedAddress = useCallback((saved: SavedAddress, opts?: { auto?: boolean }) => {
+    setDeliveryAddress(saved.address);
+    void runDeliveryQuote(
+      saved.lat != null && saved.lng != null
+        ? { address: saved.address, lat: saved.lat, lng: saved.lng }
+        : { address: saved.address },
+      { notify: !opts?.auto },
+    );
+  }, [runDeliveryQuote]);
+
+  const focusAddressPicker = useCallback(() => {
+    setAddressFormCollapsed(false);
+    window.setTimeout(() => {
+      addressPickerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const input = addressPickerRef.current?.querySelector('input');
+      if (input instanceof HTMLInputElement) {
+        input.focus({ preventScroll: true });
+        input.select();
+      }
+    }, 150);
+  }, []);
+
+  useEffect(() => {
+    if (deliveryQuote?.lat != null && deliveryQuote?.lng != null && cartTotal >= 0) {
+      void runDeliveryQuote({ lat: deliveryQuote.lat, lng: deliveryQuote.lng });
+    }
+  }, [cartTotal]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const def = settings.default_address?.trim();
+    if (def && !deliveryAddress.trim() && hasDeliveryZones) {
+      setDeliveryAddress(def);
+    }
+  }, [settings.default_address, hasDeliveryZones]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const activeDeliveryPrice = useMemo(() => {
     if (deliveryMethod !== 'delivery') return 0;
-    if (deliveryZones.length > 0) {
-      return deliveryZones[selectedZoneIndex]?.price || deliveryZones[0]?.price || 0;
+    if (hasDeliveryZones) {
+      if (!deliveryQuote?.available) return 0;
+      return Number(deliveryQuote.delivery_fee ?? 0);
     }
+    if (cartTotal >= freeDeliveryFrom) return 0;
     return parseInt(settings.delivery_price) || 0;
-  }, [deliveryMethod, deliveryZones, selectedZoneIndex, settings.delivery_price]);
+  }, [deliveryMethod, hasDeliveryZones, deliveryQuote, cartTotal, freeDeliveryFrom, settings.delivery_price]);
+
+  const deliveryReady =
+    !hasDeliveryZones
+    || (
+      deliveryQuote?.available === true
+      && !deliveryQuote?.location_warning
+      && !deliveryQuoteLoading
+    );
 
   /** Сумма к оплате: позиции + 10% сервис + доставка (если есть) */
   const checkoutGrandTotal = useMemo(() => {
@@ -770,11 +917,26 @@ export default function Food() {
     if (cartTotal < minOrder) { toast.error(`${t('food.minOrder')}: ${minOrder} ₸`); return; }
 
     if (!customerName.trim()) { toast.error('Заполните имя'); return; }
-    if (deliveryMethod === 'delivery' && (!street.trim() || !house.trim())) { toast.error('Укажите улицу и дом'); return; }
+    if (deliveryMethod === 'delivery') {
+      if (hasDeliveryZones) {
+        if (!deliveryReady || !effectiveAddress.trim()) {
+          toast.error('Подтвердите адрес доставки на карте');
+          return;
+        }
+      } else if (!street.trim() || !house.trim()) {
+        toast.error('Укажите улицу и дом');
+        return;
+      }
+    }
 
     const fullAddress = deliveryMethod === 'delivery'
-      ? `${street}, д. ${house}${apartment ? `, кв. ${apartment}` : ''}${noDoorDelivery ? ' (до подъезда)' : ''}`
+      ? hasDeliveryZones
+        ? `${deliveryQuote?.display_address || effectiveAddress}${apartment ? `, кв. ${apartment}` : ''}${noDoorDelivery ? ' (до подъезда)' : ''}`
+        : `${street}, д. ${house}${apartment ? `, кв. ${apartment}` : ''}${noDoorDelivery ? ' (до подъезда)' : ''}`
       : '';
+
+    const giftNote = loyaltyGift ? `\n🎁 Подарок: ${loyaltyGift.title}` : '';
+    const orderComment = (comment.trim() + giftNote).trim();
 
     const orderItems = cart.map(ci => {
       const mods: { name: string; price: number; option_id: number }[] = [];
@@ -811,13 +973,13 @@ export default function Food() {
             total_amount: total,
             delivery_fee: deliveryMethod === 'delivery' ? activeDeliveryPrice : 0,
             service_fee: serviceFeeAmount,
-            delivery_zone: deliveryMethod === 'delivery' && deliveryZones[selectedZoneIndex]
-              ? deliveryZones[selectedZoneIndex].name
+            delivery_zone: deliveryMethod === 'delivery' && deliveryQuote?.zone_name
+              ? deliveryQuote.zone_name
               : '',
             customer_name: customerName,
             customer_phone: customerPhone,
             delivery_address: fullAddress,
-            comment,
+            comment: orderComment,
             delivery_method: deliveryMethod,
             payment_method: payment,
             payment_status: payment === 'cash' ? 'pending' : 'awaiting_qr_payment',
@@ -852,6 +1014,8 @@ export default function Food() {
       setStreet('');
       setHouse('');
       setApartment('');
+      setDeliveryAddress('');
+      setDeliveryQuote(null);
       setComment('');
       setNoDoorDelivery(false);
       setPayment('cash');
@@ -924,9 +1088,16 @@ export default function Food() {
   }, [promoSlides.length]);
 
   const deliveryFromPrice = useMemo(() => {
-    if (deliveryZones.length > 0) return Math.min(...deliveryZones.map(z => z.price));
+    if (mapDeliveryZones.length > 0) {
+      return Math.min(...mapDeliveryZones.map(z => z.price));
+    }
     return parseInt(settings.delivery_price) || 0;
-  }, [deliveryZones, settings.delivery_price]);
+  }, [mapDeliveryZones, settings.delivery_price]);
+
+  const guideZones = useMemo(
+    () => mapDeliveryZones.map(z => ({ name: z.name, price: z.price })),
+    [mapDeliveryZones],
+  );
 
   const categoryNavItems = useMemo(
     () =>
@@ -1162,8 +1333,9 @@ export default function Food() {
           )}
 
           <DamAlemOrderGuide
-            deliveryZones={deliveryZones}
+            deliveryZones={guideZones}
             minOrder={minOrder}
+            freeDeliveryFrom={freeDeliveryFrom}
             formatPrice={formatPrice}
           />
 
@@ -1580,6 +1752,12 @@ export default function Food() {
               </div>
 
               <div className="food-sheet-footer space-y-3 rounded-b-3xl bg-white p-5 pt-4 ring-1 ring-gray-100/80">
+                {freeDeliveryFrom > 0 && (
+                  <FreeDeliveryProgress subtotal={cartTotal} freeFrom={freeDeliveryFrom} compact />
+                )}
+                {loyaltyGifts.length > 0 && (
+                  <LoyaltyGiftBanner subtotal={cartTotal} gifts={loyaltyGifts} />
+                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-[#777777]">{t('food.subtotal')}</span>
                   <span className="font-semibold text-[#111111]">{formatPrice(cartTotal)}</span>
@@ -1643,7 +1821,11 @@ export default function Food() {
                       <Truck className={`w-6 h-6 mx-auto mb-1.5 ${deliveryMethod === 'delivery' ? 'text-[#FF3B30]' : 'text-gray-400'}`} />
                       <span className={`text-sm font-bold block ${deliveryMethod === 'delivery' ? 'text-[#FF3B30]' : 'text-gray-600'}`}>{t('food.delivery')}</span>
                       <span className="text-xs text-gray-400">
-                        {deliveryZones.length > 0 ? `от ${formatPrice(Math.min(...deliveryZones.map(z => z.price)))}` : formatPrice(parseInt(settings.delivery_price) || 0)}
+                        {cartTotal >= freeDeliveryFrom && freeDeliveryFrom > 0
+                          ? t('food.free')
+                          : mapDeliveryZones.length > 0
+                            ? `от ${formatPrice(deliveryFromPrice)}`
+                            : formatPrice(parseInt(settings.delivery_price) || 0)}
                       </span>
                     </button>
                     <button
@@ -1661,38 +1843,40 @@ export default function Food() {
                   </div>
                 </div>
 
-                {/* Delivery zones selection */}
-                {deliveryMethod === 'delivery' && deliveryZones.length > 0 && (
-                  <div className="bg-white rounded-2xl p-4 shadow-sm">
-                    <label className="text-sm font-bold text-gray-800 mb-2.5 block flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-[#FF3B30]" /> Зона доставки
-                    </label>
-                    <p className="text-xs text-gray-500 mb-3 leading-relaxed">{t('food.guide.checkoutZones')}</p>
-                    <div className="space-y-2">
-                      {deliveryZones.map((zone, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setSelectedZoneIndex(idx)}
-                          className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all ${
-                            selectedZoneIndex === idx
-                              ? 'border-[#FF3B30] bg-red-50'
-                              : 'border-gray-100 hover:border-gray-200 bg-gray-50'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                              selectedZoneIndex === idx ? 'border-[#FF3B30]' : 'border-gray-300'
-                            }`}>
-                              {selectedZoneIndex === idx && <div className="w-2.5 h-2.5 rounded-full bg-[#FF3B30]" />}
-                            </div>
-                            <div className="text-left">
-                              <span className="text-sm font-semibold text-gray-800">{zone.name}</span>
-                            </div>
-                          </div>
-                          <span className="text-sm font-bold text-[#FF3B30]">+{formatPrice(zone.price)}</span>
-                        </button>
-                      ))}
+                {deliveryMethod === 'delivery' && freeDeliveryFrom > 0 && (
+                  <FreeDeliveryProgress subtotal={cartTotal} freeFrom={freeDeliveryFrom} />
+                )}
+
+                {deliveryMethod === 'delivery' && hasDeliveryZones && (
+                  <div className="space-y-3">
+                    <SavedAddressBar
+                      currentAddress={deliveryAddress}
+                      onSelect={applySavedAddress}
+                      accent="orange"
+                    />
+                    <div ref={addressPickerRef} className="scroll-mt-24">
+                      <DeliveryAddressPicker
+                        address={deliveryAddress}
+                        onAddressChange={(v) => {
+                          setDeliveryAddress(v);
+                          if (addressFormCollapsed) setAddressFormCollapsed(false);
+                        }}
+                        hasDeliveryZones={hasDeliveryZones}
+                        deliveryQuote={deliveryQuote}
+                        loading={deliveryQuoteLoading}
+                        error={deliveryQuoteError}
+                        onFindByAddress={() => findByAddress()}
+                        onFindByGps={requestGeolocation}
+                        onSelectExample={(ex) => findByAddress(ex)}
+                        collapsed={addressFormCollapsed && deliveryReady}
+                        onEdit={focusAddressPicker}
+                      />
                     </div>
+                    {deliveryReady && deliveryQuote?.zone_name && (
+                      <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-[#FF3B30] ring-1 ring-red-100">
+                        Зона: {deliveryQuote.zone_name} · {activeDeliveryPrice === 0 ? 'бесплатно' : formatPrice(activeDeliveryPrice)}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1718,23 +1902,33 @@ export default function Food() {
                     />
                   </div>
 
-                  {/* Split address fields */}
+                  {/* Address fields */}
                   {deliveryMethod === 'delivery' && (
                     <>
-                      <div>
-                        <label className="text-xs font-semibold text-gray-500 mb-1 block">Улица *</label>
-                        <Input value={street} onChange={e => setStreet(e.target.value)} placeholder="Название улицы" className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      {!hasDeliveryZones && (
+                        <>
+                          <div>
+                            <label className="text-xs font-semibold text-gray-500 mb-1 block">Улица *</label>
+                            <Input value={street} onChange={e => setStreet(e.target.value)} placeholder="Название улицы" className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]" />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-xs font-semibold text-gray-500 mb-1 block">Дом *</label>
+                              <Input value={house} onChange={e => setHouse(e.target.value)} placeholder="Номер дома" className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]" />
+                            </div>
+                            <div>
+                              <label className="text-xs font-semibold text-gray-500 mb-1 block">Квартира</label>
+                              <Input value={apartment} onChange={e => setApartment(e.target.value)} placeholder="Необязательно" className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]" />
+                            </div>
+                          </div>
+                        </>
+                      )}
+                      {hasDeliveryZones && (
                         <div>
-                          <label className="text-xs font-semibold text-gray-500 mb-1 block">Дом *</label>
-                          <Input value={house} onChange={e => setHouse(e.target.value)} placeholder="Номер дома" className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]" />
+                          <label className="text-xs font-semibold text-gray-500 mb-1 block">Квартира / подъезд</label>
+                          <Input value={apartment} onChange={e => setApartment(e.target.value)} placeholder="Квартира, этаж, домофон" className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]" />
                         </div>
-                        <div>
-                          <label className="text-xs font-semibold text-gray-500 mb-1 block">Квартира</label>
-                          <Input value={apartment} onChange={e => setApartment(e.target.value)} placeholder="Необязательно" className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]" />
-                        </div>
-                      </div>
+                      )}
                       <label className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
                         <input
                           type="checkbox"
@@ -1755,6 +1949,10 @@ export default function Food() {
                     <Textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Пожелания к заказу..." className="rounded-xl resize-none border-gray-200 focus:border-[#FF3B30]" rows={2} />
                   </div>
                 </div>
+
+                {loyaltyGifts.length > 0 && (
+                  <LoyaltyGiftBanner subtotal={cartTotal} gifts={loyaltyGifts} />
+                )}
 
                 <div className="bg-white rounded-2xl p-4 shadow-sm">
                   <label className="text-sm font-bold text-gray-800 mb-3 block">Способ оплаты</label>
@@ -1817,11 +2015,19 @@ export default function Food() {
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-500 flex items-center gap-1.5">
                           <Truck className="w-3.5 h-3.5" /> {t('food.delivery')}
-                          {deliveryZones.length > 0 && deliveryZones[selectedZoneIndex] && (
-                            <span className="text-[10px] text-gray-400">({deliveryZones[selectedZoneIndex].name})</span>
+                          {deliveryQuote?.zone_name && (
+                            <span className="text-[10px] text-gray-400">({deliveryQuote.zone_name})</span>
                           )}
                         </span>
-                        <span className="font-semibold text-[#FF3B30]">+{formatPrice(activeDeliveryPrice)}</span>
+                        <span className={`font-semibold ${activeDeliveryPrice === 0 ? 'text-emerald-600' : 'text-[#FF3B30]'}`}>
+                          {activeDeliveryPrice === 0 ? t('food.free') : `+${formatPrice(activeDeliveryPrice)}`}
+                        </span>
+                      </div>
+                    )}
+                    {loyaltyGift && (
+                      <div className="flex justify-between text-sm text-emerald-700">
+                        <span>🎁 Подарок</span>
+                        <span className="font-medium truncate ml-2">{loyaltyGift.title}</span>
                       </div>
                     )}
                     <div className="flex justify-between border-t border-gray-100 pt-2 text-base">
@@ -1835,7 +2041,11 @@ export default function Food() {
               <div className="food-sheet-footer rounded-b-3xl bg-white p-5">
                 <Button
                   onClick={submitOrder}
-                  disabled={submitting || cartTotal < minOrder}
+                  disabled={
+                    submitting
+                    || cartTotal < minOrder
+                    || (deliveryMethod === 'delivery' && hasDeliveryZones && !deliveryReady)
+                  }
                   className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#FF3B30] text-base font-bold text-white shadow-lg shadow-[#FF3B30]/20 transition-all hover:bg-[#E6352B] active:scale-[0.98] disabled:opacity-60"
                 >
                   {submitting ? 'Отправляем…' : `Оформить заказ — ${formatPrice(checkoutGrandTotal)}`}

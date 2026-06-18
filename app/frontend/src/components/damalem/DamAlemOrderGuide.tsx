@@ -10,12 +10,14 @@ const STORAGE_KEY = 'damalem_howto_hidden';
 interface DamAlemOrderGuideProps {
   deliveryZones?: { name: string; price: number }[];
   minOrder?: number;
+  freeDeliveryFrom?: number;
   formatPrice?: (n: number) => string;
 }
 
 export default function DamAlemOrderGuide({
   deliveryZones = [],
   minOrder = 0,
+  freeDeliveryFrom = 0,
   formatPrice = (n) => `${n.toLocaleString('ru-RU')} ₸`,
 }: DamAlemOrderGuideProps) {
   const { t } = useLanguage();
@@ -136,6 +138,13 @@ export default function DamAlemOrderGuide({
                 ))}
               </ul>
             </div>
+          )}
+
+          {freeDeliveryFrom > 0 && (
+            <p className="rounded-xl bg-emerald-50/80 px-3 py-2 text-center text-[11px] text-emerald-800 ring-1 ring-emerald-100">
+              Бесплатная доставка от{' '}
+              <span className="font-bold">{formatPrice(freeDeliveryFrom)}</span>
+            </p>
           )}
 
           {minOrder > 0 && (

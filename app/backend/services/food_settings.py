@@ -135,6 +135,17 @@ class Food_settingsService:
             logger.error(f"Error fetching food_settings by {field_name}: {str(e)}")
             raise
 
+    async def get_all_as_dict(self) -> Dict[str, str]:
+        """Key-value map of all food_settings rows (setting_key -> setting_value)."""
+        result = await self.db.execute(select(Food_settings))
+        rows = result.scalars().all()
+        settings: Dict[str, str] = {}
+        for row in rows:
+            key = getattr(row, "setting_key", None)
+            if key:
+                settings[str(key)] = getattr(row, "setting_value", None) or ""
+        return settings
+
     async def list_by_field(
         self, field_name: str, field_value: Any, skip: int = 0, limit: int = 20
     ) -> List[Food_settings]:
