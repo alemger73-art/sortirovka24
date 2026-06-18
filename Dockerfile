@@ -12,6 +12,8 @@ RUN npm ci --no-audit --no-fund || npm install --no-audit --no-fund
 
 # Build the production bundle into /app/frontend/dist.
 COPY app/frontend/ ./
+ARG APP_BUILD_ID=unknown
+ENV APP_BUILD_ID=${APP_BUILD_ID}
 RUN npm run build
 
 # ---- Stage 2: backend runtime ----

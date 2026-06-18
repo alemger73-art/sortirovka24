@@ -373,7 +373,10 @@ _RESERVED_PREFIXES = ("api", "health", "docs", "redoc", "openapi.json")
 @app.get("/")
 def root():
     if _FRONTEND_INDEX.is_file():
-        return FileResponse(_FRONTEND_INDEX)
+        return FileResponse(
+            _FRONTEND_INDEX,
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
     return {"message": "FastAPI Modular Template is running"}
 
 
@@ -383,6 +386,7 @@ async def health_check():
     return {
         "status": "healthy" if db_ok else "degraded",
         "version": "2.1.0",
+        "frontend_build": os.environ.get("APP_BUILD_ID", "unknown"),
         "database": "ok" if db_ok else "unavailable",
     }
 
@@ -397,9 +401,15 @@ if FRONTEND_DIR.is_dir():
         candidate = (FRONTEND_DIR / full_path).resolve()
         # Guard against path traversal, then serve the real file if it exists.
         if FRONTEND_DIR in candidate.parents and candidate.is_file():
-            return FileResponse(candidate)
+            headers = {}
+            if candidate.name == "index.html" or full_path == "":
+                headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            return FileResponse(candidate, headers=headers if headers else None)
         # Unknown path → let the SPA router handle it.
-        return FileResponse(_FRONTEND_INDEX)
+        return FileResponse(
+            _FRONTEND_INDEX,
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
 
 
 def run_in_debug_mode(app: FastAPI):

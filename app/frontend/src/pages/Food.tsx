@@ -240,11 +240,9 @@ export default function Food() {
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(null);
   const [currentSelections, setCurrentSelections] = useState<CartItemSelection>({});
 
-  // Checkout form - split address
+  // Checkout form
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [street, setStreet] = useState('');
-  const [house, setHouse] = useState('');
   const [apartment, setApartment] = useState('');
   const [deliverToApartment, setDeliverToApartment] = useState(false);
   const [comment, setComment] = useState('');
@@ -768,14 +766,50 @@ export default function Food() {
     return parseInt(settings.delivery_price) || 0;
   }, [deliveryMethod, promoFreeDelivery, cartTotal, freeDeliveryFrom, hasDeliveryZones, deliveryQuote, settings.delivery_price]);
 
-  const deliveryReady =
-    deliveryMethod !== 'delivery'
-    || (
-      deliveryQuote?.available === true
-      && !deliveryQuote?.location_warning
-      && !deliveryQuoteLoading
-      && !!(deliveryQuote.display_address || effectiveAddress.trim())
-    );
+  const minOrder = useMemo(() => {
+    if (brandProfile?.min_order && brandProfile.min_order > 0) return brandProfile.min_order;
+    return parseInt(settings.min_order_amount) || 0;
+  }, [brandProfile, settings.min_order_amount]);
+
+  const deliveryReady = useMemo(() => {
+    if (deliveryMethod !== 'delivery') return true;
+    if (deliveryQuoteLoading) return false;
+    const addr = (deliveryQuote?.display_address || effectiveAddress).trim();
+    if (addr.length < 5) return false;
+    if (hasDeliveryZones) {
+      return deliveryQuote?.available === true && !deliveryQuote?.location_warning;
+    }
+    return true;
+  }, [deliveryMethod, deliveryQuoteLoading, deliveryQuote, effectiveAddress, hasDeliveryZones]);
+
+  const apartmentValid = !deliverToApartment || apartment.trim().length > 0;
+
+  const checkoutBlockReason = useMemo(() => {
+    if (!kitchenStatus.open) return kitchenStatus.message || 'Кухня закрыта';
+    if (cartTotal < minOrder) return `Минимальный заказ ${formatPrice(minOrder)}`;
+    if (deliveryMethod === 'delivery' && !deliveryReady) {
+      return 'Укажите адрес: нажмите «Я здесь сейчас» или «Найти на карте»';
+    }
+    if (deliveryMethod === 'delivery' && deliverToApartment && !apartment.trim()) {
+      return 'Укажите номер квартиры для доставки до двери';
+    }
+    if (!customerName.trim()) return 'Введите имя';
+    if (!customerPhone.trim()) return 'Введите телефон';
+    return null;
+  }, [
+    kitchenStatus, cartTotal, minOrder, deliveryMethod, deliveryReady,
+    deliverToApartment, apartment, customerName, customerPhone,
+  ]);
+
+  const openCheckout = useCallback(() => {
+    setCartOpen(false);
+    setCheckoutOpen(true);
+    setAddressFormCollapsed(deliveryReady);
+    const addr = effectiveAddress.trim();
+    if (deliveryMethod === 'delivery' && addr.length >= 5 && !deliveryQuote && !deliveryQuoteLoading) {
+      void runDeliveryQuote({ address: addr });
+    }
+  }, [deliveryReady, effectiveAddress, deliveryMethod, deliveryQuote, deliveryQuoteLoading, runDeliveryQuote]);
 
   const apartmentDeliveryFee = useMemo(
     () => (deliveryMethod === 'delivery' && deliverToApartment ? APARTMENT_DELIVERY_FEE : 0),
@@ -814,11 +848,6 @@ export default function Food() {
     if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${n} товара`;
     return `${n} товаров`;
   }, [cartCount, lang]);
-
-  const minOrder = useMemo(() => {
-    if (brandProfile?.min_order && brandProfile.min_order > 0) return brandProfile.min_order;
-    return parseInt(settings.min_order_amount) || 0;
-  }, [brandProfile, settings.min_order_amount]);
 
   function getItemQuantityInCart(itemId: number) {
     return cart.filter(ci => ci.item.id === itemId).reduce((s, ci) => s + ci.quantity, 0);
@@ -1488,6 +1517,7 @@ export default function Food() {
                 onFindByGps={requestGeolocation}
                 onSelectExample={(ex) => findByAddress(ex)}
                 onEdit={focusAddressPicker}
+                onContinueCheckout={cartCount > 0 ? openCheckout : undefined}
               />
             </div>
           )}
@@ -1977,7 +2007,7 @@ export default function Food() {
                   </div>
                 )}
                 <Button
-                  onClick={() => { setCartOpen(false); setCheckoutOpen(true); }}
+                  onClick={openCheckout}
                   className="h-14 w-full rounded-2xl bg-[#FF3B30] text-base font-bold text-white hover:bg-[#E6352B] active:scale-[0.98] transition-all"
                   disabled={cartTotal < minOrder}
                 >
@@ -2055,35 +2085,95 @@ export default function Food() {
 
                 {deliveryMethod === 'delivery' && (
                   <div className="space-y-3">
-                    <SavedAddressBar
-                      currentAddress={deliveryAddress}
-                      onSelect={applySavedAddress}
-                      accent="orange"
-                    />
-                    <div ref={addressPickerRef} className="scroll-mt-24">
-                      <DeliveryAddressPicker
+                    <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
+                      <label className="text-sm font-bold text-gray-800 block flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-[#FF3B30]" />
+                        Адрес доставки
+                      </label>
+                      <SavedAddressBar
+                        currentAddress={deliveryAddress}
+                        onSelect={applySavedAddress}
                         accent="orange"
-                        address={deliveryAddress}
-                        onAddressChange={(v) => {
-                          setDeliveryAddress(v);
-                          if (addressFormCollapsed) setAddressFormCollapsed(false);
-                        }}
-                        hasDeliveryZones={hasDeliveryZones}
-                        deliveryQuote={deliveryQuote}
-                        loading={deliveryQuoteLoading}
-                        error={deliveryQuoteError}
-                        onFindByAddress={() => findByAddress()}
-                        onFindByGps={requestGeolocation}
-                        onSelectExample={(ex) => findByAddress(ex)}
-                        collapsed={addressFormCollapsed && deliveryReady}
-                        onEdit={focusAddressPicker}
                       />
-                    </div>
-                    {deliveryReady && deliveryQuote?.zone_name && (
-                      <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-[#FF3B30] ring-1 ring-red-100">
-                        Зона: {deliveryQuote.zone_name} · {activeDeliveryPrice === 0 ? 'бесплатно' : formatPrice(activeDeliveryPrice)}
+                      <div ref={addressPickerRef} className="scroll-mt-24">
+                        <DeliveryAddressPicker
+                          accent="orange"
+                          address={deliveryAddress}
+                          onAddressChange={(v) => {
+                            setDeliveryAddress(v);
+                            if (addressFormCollapsed) setAddressFormCollapsed(false);
+                          }}
+                          hasDeliveryZones={hasDeliveryZones}
+                          deliveryQuote={deliveryQuote}
+                          loading={deliveryQuoteLoading}
+                          error={deliveryQuoteError}
+                          onFindByAddress={() => findByAddress()}
+                          onFindByGps={requestGeolocation}
+                          onSelectExample={(ex) => findByAddress(ex)}
+                          collapsed={addressFormCollapsed && deliveryReady}
+                          onEdit={focusAddressPicker}
+                        />
                       </div>
-                    )}
+                      {deliveryReady && deliveryQuote?.zone_name && (
+                        <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-[#FF3B30] ring-1 ring-red-100">
+                          Зона: {deliveryQuote.zone_name} · {activeDeliveryPrice === 0 ? 'бесплатно' : formatPrice(activeDeliveryPrice)}
+                        </div>
+                      )}
+                      {!deliveryReady && !deliveryQuoteLoading && (
+                        <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
+                          Нажмите «Я здесь сейчас» или введите адрес и «Найти на карте»
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
+                      <label className="text-sm font-bold text-gray-800 block">Куда занести заказ?</label>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => setDeliverToApartment(false)}
+                          className={`rounded-2xl border-2 p-3 text-left transition-all ${
+                            !deliverToApartment
+                              ? 'border-[#FF3B30] bg-red-50 shadow-sm'
+                              : 'border-gray-100 bg-gray-50 hover:border-gray-200'
+                          }`}
+                        >
+                          <span className={`text-sm font-bold block ${!deliverToApartment ? 'text-[#FF3B30]' : 'text-gray-800'}`}>
+                            До подъезда
+                          </span>
+                          <span className="text-xs text-gray-500 mt-0.5 block">Курьер отдаст у входа · бесплатно</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeliverToApartment(true)}
+                          className={`rounded-2xl border-2 p-3 text-left transition-all ${
+                            deliverToApartment
+                              ? 'border-[#FF3B30] bg-red-50 shadow-sm'
+                              : 'border-gray-100 bg-gray-50 hover:border-gray-200'
+                          }`}
+                        >
+                          <span className={`text-sm font-bold block ${deliverToApartment ? 'text-[#FF3B30]' : 'text-gray-800'}`}>
+                            До квартиры
+                            <span className="ml-1">+{formatPrice(APARTMENT_DELIVERY_FEE)}</span>
+                          </span>
+                          <span className="text-xs text-gray-500 mt-0.5 block">Поднимем до двери · нужен № квартиры</span>
+                        </button>
+                      </div>
+                      {deliverToApartment && (
+                        <div>
+                          <label className="text-xs font-semibold text-gray-500 mb-1 block">
+                            Номер квартиры, этаж, домофон *
+                          </label>
+                          <Input
+                            value={apartment}
+                            onChange={e => setApartment(e.target.value)}
+                            placeholder="Например: кв. 42, 3 этаж"
+                            className={`rounded-xl h-11 border-gray-200 focus:border-[#FF3B30] ${!apartmentValid ? 'border-amber-400 ring-1 ring-amber-200' : ''}`}
+                            autoFocus
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -2108,40 +2198,6 @@ export default function Food() {
                       className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]"
                     />
                   </div>
-
-                  {/* Address fields */}
-                  {deliveryMethod === 'delivery' && (
-                    <>
-                      <div>
-                        <label className="text-xs font-semibold text-gray-500 mb-1 block">
-                          Квартира / подъезд{deliverToApartment ? ' *' : ''}
-                        </label>
-                        <Input
-                          value={apartment}
-                          onChange={e => setApartment(e.target.value)}
-                          placeholder={deliverToApartment ? 'Номер квартиры, этаж, домофон' : 'Необязательно'}
-                          className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]"
-                        />
-                      </div>
-                      <label className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={deliverToApartment}
-                          onChange={e => setDeliverToApartment(e.target.checked)}
-                          className="w-4 h-4 rounded border-gray-300 text-[#FF3B30] focus:ring-[#FF3B30]"
-                        />
-                        <div>
-                          <span className="text-sm font-medium text-gray-700">
-                            До квартиры
-                            <span className="ml-1.5 text-[#FF3B30] font-bold">+{formatPrice(APARTMENT_DELIVERY_FEE)}</span>
-                          </span>
-                          <span className="text-[11px] text-gray-400 block">
-                            Курьер поднимет заказ до двери — укажите номер квартиры
-                          </span>
-                        </div>
-                      </label>
-                    </>
-                  )}
 
                   <div>
                     <label className="text-xs font-semibold text-gray-500 mb-1 block">{t('food.comment')}</label>
@@ -2289,14 +2345,15 @@ export default function Food() {
                   onClick={submitOrder}
                   disabled={
                     submitting
-                    || !kitchenStatus.open
-                    || cartTotal < minOrder
-                    || (deliveryMethod === 'delivery' && !deliveryReady)
+                    || !!checkoutBlockReason
                   }
                   className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#FF3B30] text-base font-bold text-white shadow-lg shadow-[#FF3B30]/20 transition-all hover:bg-[#E6352B] active:scale-[0.98] disabled:opacity-60"
                 >
                   {submitting ? 'Отправляем…' : `Оформить заказ — ${formatPrice(checkoutGrandTotal)}`}
                 </Button>
+                {checkoutBlockReason && !submitting && (
+                  <p className="mt-2 text-center text-xs text-amber-700 font-medium">{checkoutBlockReason}</p>
+                )}
                 <p className="mt-2.5 text-center text-[11px] text-gray-400">
                   Заказ сохранится в системе. WhatsApp — по желанию после оформления.
                 </p>
