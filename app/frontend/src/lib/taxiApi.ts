@@ -343,19 +343,19 @@ export const taxiApi = {
   adminStats: () => adminApi<TaxiAdminStats>('/api/v1/taxi/admin/stats'),
 };
 
-export const TAXI_STATUS_LABELS: Record<string, { label: string; color: string; emoji: string }> = {
-  pending: { label: 'Ищем водителя', color: 'bg-yellow-100 text-yellow-900', emoji: '🔍' },
-  accepted: { label: 'Водитель едет к вам', color: 'bg-blue-100 text-blue-900', emoji: '🚗' },
-  driver_arrived: { label: 'Водитель на месте', color: 'bg-indigo-100 text-indigo-900', emoji: '📍' },
-  in_progress: { label: 'В пути', color: 'bg-purple-100 text-purple-900', emoji: '🛣️' },
-  completed: { label: 'Завершена', color: 'bg-green-100 text-green-900', emoji: '✅' },
-  cancelled: { label: 'Отменена', color: 'bg-red-100 text-red-900', emoji: '❌' },
+export const TAXI_STATUS_LABELS: Record<string, { label: string; labelKey: string; color: string; emoji: string }> = {
+  pending: { label: 'Ищем водителя', labelKey: 'taxi.status.pending', color: 'bg-yellow-100 text-yellow-900', emoji: '🔍' },
+  accepted: { label: 'Водитель едет к вам', labelKey: 'taxi.status.accepted', color: 'bg-blue-100 text-blue-900', emoji: '🚗' },
+  driver_arrived: { label: 'Водитель на месте', labelKey: 'taxi.status.driver_arrived', color: 'bg-indigo-100 text-indigo-900', emoji: '📍' },
+  in_progress: { label: 'В пути', labelKey: 'taxi.status.in_progress', color: 'bg-purple-100 text-purple-900', emoji: '🛣️' },
+  completed: { label: 'Завершена', labelKey: 'taxi.status.completed', color: 'bg-green-100 text-green-900', emoji: '✅' },
+  cancelled: { label: 'Отменена', labelKey: 'taxi.status.cancelled', color: 'bg-red-100 text-red-900', emoji: '❌' },
 };
 
-export const DRIVER_STATUS_FLOW: Record<string, { next: string; label: string }> = {
-  accepted: { next: 'driver_arrived', label: 'На месте' },
-  driver_arrived: { next: 'in_progress', label: 'Начать поездку' },
-  in_progress: { next: 'completed', label: 'Завершить' },
+export const DRIVER_STATUS_FLOW: Record<string, { next: string; label: string; labelKey: string }> = {
+  accepted: { next: 'driver_arrived', label: 'На месте', labelKey: 'taxi.flow.onPlace' },
+  driver_arrived: { next: 'in_progress', label: 'Начать поездку', labelKey: 'taxi.flow.start' },
+  in_progress: { next: 'completed', label: 'Завершить', labelKey: 'taxi.flow.finish' },
 };
 
 export function formatTenge(n: number) {

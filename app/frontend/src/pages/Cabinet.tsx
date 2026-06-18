@@ -810,7 +810,7 @@ export default function Cabinet() {
                         <div className="flex justify-between gap-2">
                           <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{r.from_address}</p>
                           <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${TAXI_STATUS_LABELS[r.status]?.color || "bg-gray-100"}`}>
-                            {TAXI_STATUS_LABELS[r.status]?.label || r.status}
+                            {TAXI_STATUS_LABELS[r.status]?.labelKey ? t(TAXI_STATUS_LABELS[r.status].labelKey) : r.status}
                           </span>
                         </div>
                         <p className="text-xs text-gray-500 dark:text-slate-400 truncate">→ {r.to_address}</p>

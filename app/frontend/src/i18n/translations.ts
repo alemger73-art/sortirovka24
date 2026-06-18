@@ -603,6 +603,27 @@ const translations: Translations = {
   'courier.vehicleCar': { ru: 'Авто', kz: 'Авто' },
   'courier.vehicleFoot': { ru: 'Пешком', kz: 'Жаяу' },
 
+  /* ─── Taxi / logistics status labels ─── */
+  'taxi.status.pending': { ru: 'Ищем водителя', kz: 'Жүргізуші іздеудеміз' },
+  'taxi.status.accepted': { ru: 'Водитель едет к вам', kz: 'Жүргізуші сізге келе жатыр' },
+  'taxi.status.driver_arrived': { ru: 'Водитель на месте', kz: 'Жүргізуші орнында' },
+  'taxi.status.in_progress': { ru: 'В пути', kz: 'Жолда' },
+  'taxi.status.completed': { ru: 'Завершена', kz: 'Аяқталды' },
+  'taxi.status.cancelled': { ru: 'Отменена', kz: 'Бас тартылды' },
+  'taxi.flow.onPlace': { ru: 'На месте', kz: 'Орнындамын' },
+  'taxi.flow.start': { ru: 'Начать поездку', kz: 'Сапарды бастау' },
+  'taxi.flow.finish': { ru: 'Завершить', kz: 'Аяқтау' },
+  'logistics.status.pending': { ru: 'Готовится', kz: 'Дайындалуда' },
+  'logistics.status.ready': { ru: 'Ищем курьера', kz: 'Курьер іздеудеміз' },
+  'logistics.status.assigned': { ru: 'Курьер назначен', kz: 'Курьер тағайындалды' },
+  'logistics.status.picked_up': { ru: 'Забрано', kz: 'Алынды' },
+  'logistics.status.on_the_way': { ru: 'В пути', kz: 'Жолда' },
+  'logistics.status.delivered': { ru: 'Доставлено', kz: 'Жеткізілді' },
+  'logistics.status.cancelled': { ru: 'Отменено', kz: 'Бас тартылды' },
+  'logistics.flow.pickedUp': { ru: 'Забрал заказ', kz: 'Тапсырысты алдым' },
+  'logistics.flow.onTheWay': { ru: 'Еду к клиенту', kz: 'Клиентке бара жатырмын' },
+  'logistics.flow.delivered': { ru: 'Доставлено', kz: 'Жеткізілді' },
+
   /* ─── Common ─── */
   'common.loading': { ru: 'Загружаем данные...', kz: 'Деректер жүктелуде...' },
   'common.error': { ru: 'Сервер временно недоступен.', kz: 'Сервер уақытша қолжетімсіз.' },

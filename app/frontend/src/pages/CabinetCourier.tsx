@@ -313,7 +313,7 @@ export default function CabinetCourier() {
               <div className="flex items-center justify-between">
                 <h2 className="font-bold text-gray-900">{t('courier.activeDelivery')} #{active_task.id}</h2>
                 <span className={`text-xs font-semibold px-2 py-1 rounded-full ${LOGISTICS_STATUS_LABELS[active_task.status]?.color || ''}`}>
-                  {LOGISTICS_STATUS_LABELS[active_task.status]?.label}
+                  {LOGISTICS_STATUS_LABELS[active_task.status]?.labelKey ? t(LOGISTICS_STATUS_LABELS[active_task.status].labelKey) : active_task.status}
                 </span>
               </div>
               <p className="text-sm text-gray-700">📍 {active_task.pickup_address}</p>
@@ -337,7 +337,7 @@ export default function CabinetCourier() {
                   ) : (
                     <Check className="h-4 w-4 mr-2" />
                   )}
-                  {COURIER_STATUS_FLOW[active_task.status].label}
+                  {t(COURIER_STATUS_FLOW[active_task.status].labelKey)}
                 </Button>
               )}
             </div>
@@ -435,7 +435,7 @@ export default function CabinetCourier() {
                   <div key={task.id} className="flex justify-between text-sm py-2 border-b border-gray-50 last:border-0 dark:border-gray-800">
                     <span className="text-gray-700 dark:text-slate-300 truncate max-w-[60%]">{task.dropoff_address}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${LOGISTICS_STATUS_LABELS[task.status]?.color || 'bg-gray-100'}`}>
-                      {LOGISTICS_STATUS_LABELS[task.status]?.label || task.status}
+                      {LOGISTICS_STATUS_LABELS[task.status]?.labelKey ? t(LOGISTICS_STATUS_LABELS[task.status].labelKey) : task.status}
                     </span>
                   </div>
                 ))}

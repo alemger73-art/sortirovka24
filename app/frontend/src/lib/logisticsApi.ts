@@ -146,20 +146,20 @@ export interface CourierCabinet {
   status_flow: Record<string, [string, string]>;
 }
 
-export const LOGISTICS_STATUS_LABELS: Record<string, { label: string; color: string; emoji: string }> = {
-  pending: { label: 'Готовится', color: 'bg-amber-100 text-amber-800', emoji: '👨‍🍳' },
-  ready: { label: 'Ищем курьера', color: 'bg-blue-100 text-blue-800', emoji: '🔍' },
-  assigned: { label: 'Курьер назначен', color: 'bg-purple-100 text-purple-800', emoji: '📦' },
-  picked_up: { label: 'Забрано', color: 'bg-indigo-100 text-indigo-800', emoji: '🏃' },
-  on_the_way: { label: 'В пути', color: 'bg-green-100 text-green-800', emoji: '🛵' },
-  delivered: { label: 'Доставлено', color: 'bg-gray-100 text-gray-800', emoji: '✅' },
-  cancelled: { label: 'Отменено', color: 'bg-red-100 text-red-800', emoji: '❌' },
+export const LOGISTICS_STATUS_LABELS: Record<string, { label: string; labelKey: string; color: string; emoji: string }> = {
+  pending: { label: 'Готовится', labelKey: 'logistics.status.pending', color: 'bg-amber-100 text-amber-800', emoji: '👨‍🍳' },
+  ready: { label: 'Ищем курьера', labelKey: 'logistics.status.ready', color: 'bg-blue-100 text-blue-800', emoji: '🔍' },
+  assigned: { label: 'Курьер назначен', labelKey: 'logistics.status.assigned', color: 'bg-purple-100 text-purple-800', emoji: '📦' },
+  picked_up: { label: 'Забрано', labelKey: 'logistics.status.picked_up', color: 'bg-indigo-100 text-indigo-800', emoji: '🏃' },
+  on_the_way: { label: 'В пути', labelKey: 'logistics.status.on_the_way', color: 'bg-green-100 text-green-800', emoji: '🛵' },
+  delivered: { label: 'Доставлено', labelKey: 'logistics.status.delivered', color: 'bg-gray-100 text-gray-800', emoji: '✅' },
+  cancelled: { label: 'Отменено', labelKey: 'logistics.status.cancelled', color: 'bg-red-100 text-red-800', emoji: '❌' },
 };
 
-export const COURIER_STATUS_FLOW: Record<string, { next: string; label: string }> = {
-  assigned: { next: 'picked_up', label: 'Забрал заказ' },
-  picked_up: { next: 'on_the_way', label: 'Еду к клиенту' },
-  on_the_way: { next: 'delivered', label: 'Доставлено' },
+export const COURIER_STATUS_FLOW: Record<string, { next: string; label: string; labelKey: string }> = {
+  assigned: { next: 'picked_up', label: 'Забрал заказ', labelKey: 'logistics.flow.pickedUp' },
+  picked_up: { next: 'on_the_way', label: 'Еду к клиенту', labelKey: 'logistics.flow.onTheWay' },
+  on_the_way: { next: 'delivered', label: 'Доставлено', labelKey: 'logistics.flow.delivered' },
 };
 
 export function formatTenge(n: number | null | undefined): string {

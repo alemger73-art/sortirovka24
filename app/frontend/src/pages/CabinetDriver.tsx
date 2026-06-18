@@ -338,7 +338,7 @@ export default function CabinetDriver() {
               <div className="flex items-center justify-between">
                 <h2 className="font-bold text-gray-900">{t('driver.activeRide')} #{active_ride.id}</h2>
                 <span className={`text-xs font-semibold px-2 py-1 rounded-full ${TAXI_STATUS_LABELS[active_ride.status]?.color || ''}`}>
-                  {TAXI_STATUS_LABELS[active_ride.status]?.label}
+                  {TAXI_STATUS_LABELS[active_ride.status]?.labelKey ? t(TAXI_STATUS_LABELS[active_ride.status].labelKey) : active_ride.status}
                 </span>
               </div>
               <p className="text-sm text-gray-700">{active_ride.from_address}</p>
@@ -360,7 +360,7 @@ export default function CabinetDriver() {
                   ) : (
                     <Check className="h-4 w-4 mr-2" />
                   )}
-                  {DRIVER_STATUS_FLOW[active_ride.status].label}
+                  {t(DRIVER_STATUS_FLOW[active_ride.status].labelKey)}
                 </Button>
               )}
             </div>
@@ -488,7 +488,7 @@ export default function CabinetDriver() {
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-gray-900 dark:text-white">{formatTenge(r.final_price ?? r.estimated_price)}</p>
-                    <p className="text-xs text-gray-400 dark:text-slate-500">{TAXI_STATUS_LABELS[r.status]?.label || r.status}</p>
+                    <p className="text-xs text-gray-400 dark:text-slate-500">{TAXI_STATUS_LABELS[r.status]?.labelKey ? t(TAXI_STATUS_LABELS[r.status].labelKey) : r.status}</p>
                   </div>
                 </div>
               ))}
