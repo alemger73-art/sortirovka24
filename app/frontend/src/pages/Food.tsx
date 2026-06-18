@@ -96,6 +96,7 @@ interface Settings {
 }
 
 const REPEAT_ORDER_KEY = 'damalem_repeat_order';
+const APARTMENT_DELIVERY_FEE = 300;
 
 interface BrandProfile {
   id: number;
@@ -244,7 +245,7 @@ export default function Food() {
   const [street, setStreet] = useState('');
   const [house, setHouse] = useState('');
   const [apartment, setApartment] = useState('');
-  const [noDoorDelivery, setNoDoorDelivery] = useState(false);
+  const [deliverToApartment, setDeliverToApartment] = useState(false);
   const [comment, setComment] = useState('');
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
   const [payment, setPayment] = useState<'cash' | 'kaspi_qr' | 'halyk_qr'>('cash');
@@ -759,13 +760,18 @@ export default function Food() {
       && !deliveryQuoteLoading
     );
 
-  /** Сумма к оплате: позиции + сервис + доставка − промокод */
+  const apartmentDeliveryFee = useMemo(
+    () => (deliveryMethod === 'delivery' && deliverToApartment ? APARTMENT_DELIVERY_FEE : 0),
+    [deliveryMethod, deliverToApartment],
+  );
+
+  /** Сумма к оплате: позиции + сервис + доставка + до квартиры − промокод */
   const checkoutGrandTotal = useMemo(() => {
     const base = deliveryMethod === 'delivery'
-      ? cartTotalWithService + activeDeliveryPrice
+      ? cartTotalWithService + activeDeliveryPrice + apartmentDeliveryFee
       : cartTotalWithService;
     return Math.max(0, base - promoDiscountAmount);
-  }, [deliveryMethod, cartTotalWithService, activeDeliveryPrice, promoDiscountAmount]);
+  }, [deliveryMethod, cartTotalWithService, activeDeliveryPrice, apartmentDeliveryFee, promoDiscountAmount]);
 
   /** Меню по категориям из API (когда фильтр «Всё меню») */
   const menuSections = useMemo(() => {
@@ -957,17 +963,24 @@ export default function Food() {
         toast.error('Укажите улицу и дом');
         return;
       }
+      if (deliverToApartment && !apartment.trim()) {
+        toast.error('Укажите номер квартиры для доставки до двери');
+        return;
+      }
     }
 
+    const aptPart = apartment.trim() ? `, кв. ${apartment.trim()}` : '';
+    const toAptNote = deliverToApartment ? ' (до квартиры)' : ' (до подъезда)';
     const fullAddress = deliveryMethod === 'delivery'
       ? hasDeliveryZones
-        ? `${deliveryQuote?.display_address || effectiveAddress}${apartment ? `, кв. ${apartment}` : ''}${noDoorDelivery ? ' (до подъезда)' : ''}`
-        : `${street}, д. ${house}${apartment ? `, кв. ${apartment}` : ''}${noDoorDelivery ? ' (до подъезда)' : ''}`
+        ? `${deliveryQuote?.display_address || effectiveAddress}${aptPart}${toAptNote}`
+        : `${street}, д. ${house}${aptPart}${toAptNote}`
       : '';
 
+    const aptFeeNote = deliverToApartment ? `\n🚪 Доставка до квартиры: +${APARTMENT_DELIVERY_FEE} ₸` : '';
     const giftNote = loyaltyGift ? `\n🎁 Подарок: ${loyaltyGift.title}` : '';
     const promoNote = appliedPromo ? `\n🏷 Промокод ${appliedPromo.code}: ${appliedPromo.label}` : '';
-    const orderComment = (comment.trim() + giftNote + promoNote).trim();
+    const orderComment = (comment.trim() + aptFeeNote + giftNote + promoNote).trim();
 
     const orderItems = cart.map(ci => {
       const mods: { name: string; price: number; option_id: number }[] = [];
@@ -1048,7 +1061,7 @@ export default function Food() {
       setDeliveryAddress('');
       setDeliveryQuote(null);
       setComment('');
-      setNoDoorDelivery(false);
+      setDeliverToApartment(false);
       setPayment('cash');
     } catch (e) {
       console.error('Error creating order:', e);
@@ -2101,28 +2114,47 @@ export default function Food() {
                               <Input value={house} onChange={e => setHouse(e.target.value)} placeholder="Номер дома" className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]" />
                             </div>
                             <div>
-                              <label className="text-xs font-semibold text-gray-500 mb-1 block">Квартира</label>
-                              <Input value={apartment} onChange={e => setApartment(e.target.value)} placeholder="Необязательно" className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]" />
+                              <label className="text-xs font-semibold text-gray-500 mb-1 block">
+                                Квартира{deliverToApartment ? ' *' : ''}
+                              </label>
+                              <Input
+                                value={apartment}
+                                onChange={e => setApartment(e.target.value)}
+                                placeholder={deliverToApartment ? 'Номер квартиры' : 'Необязательно'}
+                                className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]"
+                              />
                             </div>
                           </div>
                         </>
                       )}
                       {hasDeliveryZones && (
                         <div>
-                          <label className="text-xs font-semibold text-gray-500 mb-1 block">Квартира / подъезд</label>
-                          <Input value={apartment} onChange={e => setApartment(e.target.value)} placeholder="Квартира, этаж, домофон" className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]" />
+                          <label className="text-xs font-semibold text-gray-500 mb-1 block">
+                            Квартира / подъезд{deliverToApartment ? ' *' : ''}
+                          </label>
+                          <Input
+                            value={apartment}
+                            onChange={e => setApartment(e.target.value)}
+                            placeholder={deliverToApartment ? 'Номер квартиры, этаж, домофон' : 'Необязательно'}
+                            className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]"
+                          />
                         </div>
                       )}
                       <label className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
                         <input
                           type="checkbox"
-                          checked={noDoorDelivery}
-                          onChange={e => setNoDoorDelivery(e.target.checked)}
+                          checked={deliverToApartment}
+                          onChange={e => setDeliverToApartment(e.target.checked)}
                           className="w-4 h-4 rounded border-gray-300 text-[#FF3B30] focus:ring-[#FF3B30]"
                         />
                         <div>
-                          <span className="text-sm font-medium text-gray-700">До подъезда</span>
-                          <span className="text-[11px] text-gray-400 block">Без доставки до квартиры</span>
+                          <span className="text-sm font-medium text-gray-700">
+                            До квартиры
+                            <span className="ml-1.5 text-[#FF3B30] font-bold">+{formatPrice(APARTMENT_DELIVERY_FEE)}</span>
+                          </span>
+                          <span className="text-[11px] text-gray-400 block">
+                            Курьер поднимет заказ до двери — укажите номер квартиры
+                          </span>
                         </div>
                       </label>
                     </>
@@ -2230,6 +2262,12 @@ export default function Food() {
                       <span className="text-gray-500">{t('food.serviceFee')}</span>
                       <span className="font-semibold text-gray-900">{formatPrice(serviceFeeAmount)}</span>
                     </div>
+                    {deliveryMethod === 'delivery' && deliverToApartment && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">До квартиры</span>
+                        <span className="font-semibold text-[#FF3B30]">+{formatPrice(apartmentDeliveryFee)}</span>
+                      </div>
+                    )}
                     {deliveryMethod === 'delivery' && (
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-500 flex items-center gap-1.5">
