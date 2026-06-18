@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { resolveImageSrc } from '@/lib/storage';
 import { getAccountPrefill } from '@/lib/localAuth';
+import StoreProfileTab from '@/components/StoreProfileTab';
 import {
   fetchGastronomCatalog,
   getCachedGastronomCatalog,
@@ -1533,21 +1534,7 @@ export default function Gastronom() {
 
             {/* Profile */}
             {activeTab === 'profile' && (
-              <div className={`${PAGE_X} py-8 md:py-12`}>
-                <div className="max-w-md mx-auto bg-white rounded-3xl border border-gray-100 shadow-sm p-8 md:p-10 text-center space-y-4">
-                <User className="h-12 w-12 md:h-14 md:w-14 text-gray-300 mx-auto mb-3" />
-                <h2 className="font-bold text-gray-900 text-lg md:text-xl">Профиль</h2>
-                <p className="text-gray-500 text-sm md:text-base">Войдите в аккаунт портала</p>
-                <Link to="/account">
-                  <Button variant="outline" className="rounded-xl w-full md:w-auto md:px-8">Войти</Button>
-                </Link>
-                <div>
-                  <Link to="/" className="text-sm text-emerald-600 hover:underline">
-                    ← На главную Сортировка24
-                  </Link>
-                </div>
-                </div>
-              </div>
+              <StoreProfileTab accentBg="bg-emerald-600 hover:bg-emerald-700" accentText="text-emerald-600" />
             )}
           </>
         )}

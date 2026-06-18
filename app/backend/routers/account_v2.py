@@ -21,6 +21,9 @@ from models.food_orders import Food_orders
 from models.food_restaurants import Food_restaurants
 from models.gastronom_orders import Gastronom_orders
 from models.gastronom_products import Gastronom_products
+from models.pharmacy_orders import Pharmacy_orders
+from models.prorab_orders import Prorab_orders
+from models.park_orders import Park_orders
 from models.master_reviews import Master_reviews
 from models.master_requests import Master_requests
 from models.masters import Masters
@@ -948,6 +951,39 @@ async def cabinet(
         for f in food_rows[:100]
         if str(f.id) not in linked_food_ids
     )
+
+    # Store orders (gastronom / pharmacy / prorab / food-park) belong to the
+    # SAME personal cabinet — matched to the account by customer phone so every
+    # purchase across the app shows up in one place.
+    store_order_sources = [
+        ("gastronom", "Гастроном", Gastronom_orders),
+        ("pharmacy", "Аптека", Pharmacy_orders),
+        ("prorab", "Прораб", Prorab_orders),
+        ("park", "Фуд-парк", Park_orders),
+    ]
+    for type_key, label, model in store_order_sources:
+        try:
+            rows = (
+                await db.execute(select(model).order_by(desc(model.id)).limit(500))
+            ).scalars().all()
+        except Exception:
+            continue
+        rows = [r for r in rows if _matches_user_phone(getattr(r, "customer_phone", None), user.phone)]
+        merged_orders.extend(
+            {
+                "id": f"{type_key}_{r.id}",
+                "type": type_key,
+                "status": r.status,
+                "amount": r.total_amount,
+                "details": f"{label} — заказ #{r.id}",
+                "store_label": label,
+                "payment_method": getattr(r, "payment_method", None),
+                "order_number": r.id,
+                "created_at": r.created_at,
+            }
+            for r in rows[:100]
+        )
+
     merged_orders.sort(key=lambda item: str(item.get("created_at") or ""), reverse=True)
 
     return {

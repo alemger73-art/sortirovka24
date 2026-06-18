@@ -33,6 +33,23 @@ const PAYMENT_LABELS: Record<string, string> = {
   halyk_qr: "Halyk QR",
 };
 
+const STORE_ORDER_LABELS: Record<string, string> = {
+  gastronom: "Гастроном",
+  pharmacy: "Аптека",
+  prorab: "Прораб",
+  park: "Фуд-парк",
+};
+
+const STORE_STATUS: Record<string, { label: string; color: string }> = {
+  new: { label: "Новый", color: "bg-yellow-500/20 text-yellow-200" },
+  in_progress: { label: "В обработке", color: "bg-blue-500/20 text-blue-200" },
+  processing: { label: "В обработке", color: "bg-blue-500/20 text-blue-200" },
+  done: { label: "Выполнен", color: "bg-green-500/20 text-green-200" },
+  completed: { label: "Выполнен", color: "bg-green-500/20 text-green-200" },
+  delivered: { label: "Доставлен", color: "bg-green-500/20 text-green-200" },
+  cancelled: { label: "Отменён", color: "bg-red-500/20 text-red-200" },
+};
+
 function formatOrderDate(raw?: string | null) {
   if (!raw) return "";
   try {
@@ -462,7 +479,12 @@ export default function Cabinet() {
                   <div className="space-y-2">
                     {(rows.orders || []).map((o: any) => {
                       const isFood = o.type === "food";
-                      const st = isFood ? FOOD_STATUS[o.status] || FOOD_STATUS.new : null;
+                      const isStore = o.type in STORE_ORDER_LABELS;
+                      const st = isFood
+                        ? FOOD_STATUS[o.status] || FOOD_STATUS.new
+                        : isStore
+                          ? STORE_STATUS[o.status] || STORE_STATUS.new
+                          : null;
                       const payLabel = PAYMENT_LABELS[o.payment_method] || o.payment_method;
                       return (
                         <div key={o.id} className={listCardClass}>
@@ -470,11 +492,15 @@ export default function Cabinet() {
                             <div className="flex items-center gap-2 min-w-0">
                               {isFood ? (
                                 <UtensilsCrossed className="h-4 w-4 shrink-0 text-orange-500 dark:text-orange-400" />
+                              ) : isStore ? (
+                                <Store className="h-4 w-4 shrink-0 text-emerald-500 dark:text-emerald-400" />
                               ) : null}
                               <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                                 {isFood
                                   ? (o.restaurant_name || "DAM ALEM") + (o.order_number ? ` · №${o.order_number}` : "")
-                                  : (o.type || "order")}
+                                  : isStore
+                                    ? (o.store_label || STORE_ORDER_LABELS[o.type]) + (o.order_number ? ` · №${o.order_number}` : "")
+                                    : (o.type || "order")}
                               </p>
                             </div>
                             {st ? (
@@ -484,6 +510,12 @@ export default function Cabinet() {
                             ) : null}
                           </div>
                           <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">{o.details || ""}</p>
+                          {isStore && (payLabel || o.created_at) && (
+                            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-gray-500 dark:text-slate-400">
+                              {payLabel ? <span>{payLabel}</span> : null}
+                              {o.created_at ? <span>· {formatOrderDate(o.created_at)}</span> : null}
+                            </div>
+                          )}
                           {isFood && (
                             <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-gray-500 dark:text-slate-400">
                               {o.delivery_method === "delivery" ? (
