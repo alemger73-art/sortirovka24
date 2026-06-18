@@ -13,7 +13,7 @@ import {
   MapPin, Phone as PhoneIcon, Clock, Briefcase, Sun, Snowflake, Cloud, CloudRain,
   Home, ShoppingBag, Utensils, FileText, BookOpen,
   ArrowRight, Send, Building2, HardHat, Users, Coffee,
-  Shield, Heart, Siren, Landmark, Store, Cross
+  Shield, Heart, Siren, Landmark, Store, Cross, Scissors
 } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
 import Hero from '@/components/landing/Hero';
@@ -30,6 +30,7 @@ const ANNOUNCEMENTS_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/10
 const JOBS_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-31/8bf31dae-761d-4fac-b012-f7172de4c9c1.png';
 const GASTRONOM_IMG = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&h=800&fit=crop';
 const PRORAB_IMG = 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&h=800&fit=crop';
+const SALONS_IMG = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&h=800&fit=crop';
 const PHARMACY_IMG = 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=600&h=800&fit=crop';
 const BUSINESS_BANNER_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-31/5007abb2-2c10-46e9-9721-c83a5b9a7265.png';
 
