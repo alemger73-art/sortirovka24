@@ -13,7 +13,13 @@ from services.jobs import JobsService
 # Set up logging
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/entities/jobs", tags=["jobs"])
+from services.module_settings import require_module
+
+router = APIRouter(
+    prefix="/api/v1/entities/jobs",
+    tags=["jobs"],
+    dependencies=[Depends(require_module("jobs"))],
+)
 
 
 # ---------- Pydantic Schemas ----------

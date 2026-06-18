@@ -13,7 +13,13 @@ from services.masters import MastersService
 # Set up logging
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/entities/masters", tags=["masters"])
+from services.module_settings import require_module
+
+router = APIRouter(
+    prefix="/api/v1/entities/masters",
+    tags=["masters"],
+    dependencies=[Depends(require_module("masters"))],
+)
 
 
 # ---------- Pydantic Schemas ----------

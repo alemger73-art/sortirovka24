@@ -13,7 +13,13 @@ from services.food_categories import Food_categoriesService
 # Set up logging
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/entities/food_categories", tags=["food_categories"])
+from services.module_settings import require_module
+
+router = APIRouter(
+    prefix="/api/v1/entities/food_categories",
+    tags=["food_categories"],
+    dependencies=[Depends(require_module("food"))],
+)
 
 
 # ---------- Pydantic Schemas ----------

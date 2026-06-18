@@ -14,7 +14,13 @@ from services.push_broadcast import notify_published_news
 # Set up logging
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/entities/news", tags=["news"])
+from services.module_settings import require_module
+
+router = APIRouter(
+    prefix="/api/v1/entities/news",
+    tags=["news"],
+    dependencies=[Depends(require_module("news"))],
+)
 
 
 # ---------- Pydantic Schemas ----------

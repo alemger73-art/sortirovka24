@@ -13,7 +13,13 @@ from services.questions import QuestionsService
 # Set up logging
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/entities/questions", tags=["questions"])
+from services.module_settings import require_module
+
+router = APIRouter(
+    prefix="/api/v1/entities/questions",
+    tags=["questions"],
+    dependencies=[Depends(require_module("questions"))],
+)
 
 
 # ---------- Pydantic Schemas ----------

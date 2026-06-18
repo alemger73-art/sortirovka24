@@ -13,7 +13,13 @@ from services.directory_entries import Directory_entriesService
 # Set up logging
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/entities/directory_entries", tags=["directory_entries"])
+from services.module_settings import require_module
+
+router = APIRouter(
+    prefix="/api/v1/entities/directory_entries",
+    tags=["directory_entries"],
+    dependencies=[Depends(require_module("directory"))],
+)
 
 
 # ---------- Pydantic Schemas ----------

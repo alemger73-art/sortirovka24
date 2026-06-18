@@ -13,7 +13,13 @@ from services.history_events import History_eventsService
 # Set up logging
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/entities/history_events", tags=["history_events"])
+from services.module_settings import require_module
+
+router = APIRouter(
+    prefix="/api/v1/entities/history_events",
+    tags=["history_events"],
+    dependencies=[Depends(require_module("history"))],
+)
 
 
 # ---------- Pydantic Schemas ----------

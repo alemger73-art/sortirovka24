@@ -13,7 +13,13 @@ from services.bus_notifications import Bus_notificationsService
 # Set up logging
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/entities/bus_notifications", tags=["bus_notifications"])
+from services.module_settings import require_module
+
+router = APIRouter(
+    prefix="/api/v1/entities/bus_notifications",
+    tags=["bus_notifications"],
+    dependencies=[Depends(require_module("transport"))],
+)
 
 
 # ---------- Pydantic Schemas ----------

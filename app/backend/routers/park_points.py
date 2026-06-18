@@ -13,7 +13,13 @@ from services.park_points import Park_pointsService
 # Set up logging
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/entities/park_points", tags=["park_points"])
+from services.module_settings import require_module
+
+router = APIRouter(
+    prefix="/api/v1/entities/park_points",
+    tags=["park_points"],
+    dependencies=[Depends(require_module("food"))],
+)
 
 
 # ---------- Pydantic Schemas ----------

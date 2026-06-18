@@ -14,7 +14,13 @@ from services.complaints import ComplaintsService
 # Set up logging
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/entities/complaints", tags=["complaints"])
+from services.module_settings import require_module
+
+router = APIRouter(
+    prefix="/api/v1/entities/complaints",
+    tags=["complaints"],
+    dependencies=[Depends(require_module("complaints"))],
+)
 
 
 # ---------- Pydantic Schemas ----------

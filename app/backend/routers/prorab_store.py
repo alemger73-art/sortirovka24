@@ -56,7 +56,13 @@ logger = logging.getLogger(__name__)
 
 
 
-router = APIRouter(prefix="/api/v1/prorab", tags=["prorab"])
+from services.module_settings import require_module
+
+router = APIRouter(
+    prefix="/api/v1/prorab",
+    tags=["prorab"],
+    dependencies=[Depends(require_module("prorab"))],
+)
 
 
 

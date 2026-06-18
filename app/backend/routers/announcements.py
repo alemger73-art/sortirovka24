@@ -14,7 +14,13 @@ from services.announcements import AnnouncementsService
 # Set up logging
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/entities/announcements", tags=["announcements"])
+from services.module_settings import require_module
+
+router = APIRouter(
+    prefix="/api/v1/entities/announcements",
+    tags=["announcements"],
+    dependencies=[Depends(require_module("announcements"))],
+)
 
 
 # ---------- Pydantic Schemas ----------

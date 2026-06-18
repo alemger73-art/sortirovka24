@@ -15,7 +15,13 @@ from services.inspectors import InspectorsService
 # Set up logging
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/entities/inspectors", tags=["inspectors"])
+from services.module_settings import require_module
+
+router = APIRouter(
+    prefix="/api/v1/entities/inspectors",
+    tags=["inspectors"],
+    dependencies=[Depends(require_module("inspectors"))],
+)
 
 
 # ---------- Pydantic Schemas ----------

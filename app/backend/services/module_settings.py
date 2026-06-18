@@ -92,24 +92,62 @@ async def update_settings(db: AsyncSession, updates: Dict[str, Any]) -> Dict[str
 
 
 async def is_module_enabled(db: AsyncSession, key: str) -> bool:
-    """True unless the module is explicitly turned off. Unknown keys -> True."""
+    """True unless the module is explicitly turned off. Unknown keys -> True.
+
+    Lightweight: reads a single row and never writes, so it is cheap to call
+    on every request as a route dependency.
+    """
     if key not in MODULE_KEYS:
         return True
-    settings = await get_settings_dict(db)
-    return settings.get(key, "true") == "true"
+    try:
+        row = (
+            await db.execute(select(ModuleSettings).where(ModuleSettings.key == key))
+        ).scalar_one_or_none()
+    except Exception:
+        # Table not ready (cold start) or transient DB error: fail open so a
+        # module is never accidentally hidden because of infrastructure issues.
+        try:
+            await db.rollback()
+        except Exception:
+            pass
+        return True
+    if row is None or row.value is None:
+        return True
+    return row.value == "true"
+
+
+def _request_is_panel_admin(request) -> bool:
+    """Non-raising check: True if the request carries a valid admin panel token."""
+    auth = request.headers.get("authorization", "")
+    if not auth.lower().startswith("bearer "):
+        return False
+    token = auth[7:].strip()
+    if not token:
+        return False
+    try:
+        from core.auth import decode_access_token
+
+        payload = decode_access_token(token)
+    except Exception:
+        return False
+    return payload.get("role") == "admin" and bool(payload.get("username"))
 
 
 def require_module(key: str):
     """FastAPI dependency factory: 404 when the given module is disabled.
 
-    Attach to a module's public read endpoints so a disabled module also
-    becomes unreachable via the API, not just hidden in the UI.
+    Attach to a module's router so a disabled module becomes unreachable via
+    the API, not just hidden in the UI. Authenticated panel admins are allowed
+    through so they can still manage a switched-off module's content.
     """
     from core.database import get_db  # local import to avoid circulars
-    from fastapi import Depends, HTTPException
+    from fastapi import Depends, HTTPException, Request
 
-    async def _guard(db: AsyncSession = Depends(get_db)) -> None:
-        if not await is_module_enabled(db, key):
-            raise HTTPException(status_code=404, detail="Module is disabled")
+    async def _guard(request: Request, db: AsyncSession = Depends(get_db)) -> None:
+        if await is_module_enabled(db, key):
+            return
+        if _request_is_panel_admin(request):
+            return
+        raise HTTPException(status_code=404, detail="Module is disabled")
 
     return _guard

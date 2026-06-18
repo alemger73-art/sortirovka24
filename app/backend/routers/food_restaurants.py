@@ -8,7 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
 from services.food_restaurants import Food_restaurantsService
 
-router = APIRouter(prefix="/api/v1/entities/food_restaurants", tags=["food_restaurants"])
+from services.module_settings import require_module
+
+router = APIRouter(
+    prefix="/api/v1/entities/food_restaurants",
+    tags=["food_restaurants"],
+    dependencies=[Depends(require_module("food"))],
+)
 
 
 class Food_restaurantsData(BaseModel):

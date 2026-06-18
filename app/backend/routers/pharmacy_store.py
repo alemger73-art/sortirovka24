@@ -40,7 +40,13 @@ from services.telegram import notify_pharmacy_order, notify_pharmacy_status_chan
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/pharmacy", tags=["pharmacy"])
+from services.module_settings import require_module
+
+router = APIRouter(
+    prefix="/api/v1/pharmacy",
+    tags=["pharmacy"],
+    dependencies=[Depends(require_module("pharmacy"))],
+)
 
 VALID_PAYMENT_METHODS = {"cash", "kaspi_qr", "halyk_qr"}
 VALID_ORDER_STATUSES = {"new", "processing", "delivered", "cancelled"}

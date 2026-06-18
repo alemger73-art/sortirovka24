@@ -38,7 +38,13 @@ from services.telegram import notify_gastronom_order, notify_gastronom_status_ch
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/gastronom", tags=["gastronom"])
+from services.module_settings import require_module
+
+router = APIRouter(
+    prefix="/api/v1/gastronom",
+    tags=["gastronom"],
+    dependencies=[Depends(require_module("gastronom"))],
+)
 
 VALID_PAYMENT_METHODS = {"cash", "kaspi_qr", "halyk_qr"}
 VALID_ORDER_STATUSES = {"new", "processing", "delivered", "cancelled"}

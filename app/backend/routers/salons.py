@@ -13,7 +13,13 @@ from services.salons import SalonsService
 # Set up logging
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/entities/salons", tags=["salons"])
+from services.module_settings import require_module
+
+router = APIRouter(
+    prefix="/api/v1/entities/salons",
+    tags=["salons"],
+    dependencies=[Depends(require_module("salons"))],
+)
 
 
 # ---------- Pydantic Schemas ----------
