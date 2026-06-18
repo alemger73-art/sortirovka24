@@ -3,6 +3,8 @@ import { Home, Utensils, Megaphone, Wrench, LayoutGrid } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { isMoreTabActive } from '@/lib/appShell';
 import { prefetchPage, routeToPage } from '@/lib/prefetch';
+import { useModules } from '@/hooks/useModules';
+import type { ModuleKey } from '@/config/modules';
 
 const TABS = [
   { path: '/', key: 'nav.home', icon: Home, match: (p: string) => p === '/' },
@@ -10,6 +12,7 @@ const TABS = [
     path: '/food',
     key: 'nav.food',
     icon: Utensils,
+    module: 'food' as ModuleKey,
     match: (p: string) =>
       p === '/food' ||
       (p.startsWith('/food/') && !p.startsWith('/food/courier') && !p.startsWith('/food/park')),
@@ -18,15 +21,18 @@ const TABS = [
     path: '/announcements',
     key: 'nav.announcements',
     icon: Megaphone,
+    module: 'announcements' as ModuleKey,
     match: (p: string) => p.startsWith('/announcements') || p.startsWith('/ads'),
   },
-  { path: '/masters', key: 'nav.masters', icon: Wrench, match: (p: string) => p.startsWith('/masters') },
+  { path: '/masters', key: 'nav.masters', icon: Wrench, module: 'masters' as ModuleKey, match: (p: string) => p.startsWith('/masters') },
   { path: '/more', key: 'nav.more', icon: LayoutGrid, match: (p: string) => isMoreTabActive(p) },
 ] as const;
 
 export default function MobileBottomNav() {
   const { pathname } = useLocation();
   const { t } = useLanguage();
+  const { isEnabled } = useModules();
+  const tabs = TABS.filter((tab) => !('module' in tab) || isEnabled(tab.module));
 
   const handlePrefetch = (path: string) => {
     const page = routeToPage(path);
@@ -39,7 +45,7 @@ export default function MobileBottomNav() {
       aria-label={t('nav.bottomBar')}
     >
       <div className="mx-auto flex max-w-lg">
-        {TABS.map(({ path, key, icon: Icon, match }) => {
+        {tabs.map(({ path, key, icon: Icon, match }) => {
           const active = match(pathname);
 
           return (

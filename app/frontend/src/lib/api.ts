@@ -280,6 +280,58 @@ export const MASTER_CATEGORIES = [
   'Грузчики', 'Ремонт квартир', 'Окна и двери', 'Кровельщик', 'Натяжные потолки', 'Разнорабочие'
 ];
 
+export const SALON_CATEGORIES = [
+  'Парикмахерская', 'Барбершоп', 'Ногтевой сервис', 'Брови и ресницы',
+  'Косметология', 'СПА и массаж', 'Макияж', 'Эпиляция', 'Тату и пирсинг', 'Солярий'
+];
+
+export const SALON_CATEGORY_ICONS: Record<string, string> = {
+  'Парикмахерская': '💇',
+  'Барбершоп': '💈',
+  'Ногтевой сервис': '💅',
+  'Брови и ресницы': '👁️',
+  'Косметология': '✨',
+  'СПА и массаж': '💆',
+  'Макияж': '💄',
+  'Эпиляция': '🪒',
+  'Тату и пирсинг': '🎨',
+  'Солярий': '🌞',
+};
+
+export const SALON_CATEGORY_GRADIENTS: Record<string, string> = {
+  'Парикмахерская': 'from-pink-400 to-rose-600',
+  'Барбершоп': 'from-slate-500 to-zinc-700',
+  'Ногтевой сервис': 'from-fuchsia-400 to-pink-600',
+  'Брови и ресницы': 'from-purple-400 to-violet-600',
+  'Косметология': 'from-rose-400 to-pink-600',
+  'СПА и массаж': 'from-teal-400 to-emerald-600',
+  'Макияж': 'from-pink-400 to-fuchsia-600',
+  'Эпиляция': 'from-amber-400 to-orange-600',
+  'Тату и пирсинг': 'from-indigo-400 to-purple-600',
+  'Солярий': 'from-amber-400 to-yellow-500',
+};
+
+export function salonCategoryIcon(category?: string): string {
+  return (category && SALON_CATEGORY_ICONS[category]) || '💅';
+}
+
+export function salonCategoryGradient(category?: string): string {
+  return (category && SALON_CATEGORY_GRADIENTS[category]) || 'from-pink-500 to-rose-600';
+}
+
+export function sortSalons<T extends { featured?: boolean; verified?: boolean; sort_order?: number | null; rating?: number }>(items: T[]): T[] {
+  return [...items].sort((a, b) => {
+    const featDiff = Number(Boolean(b.featured)) - Number(Boolean(a.featured));
+    if (featDiff !== 0) return featDiff;
+    const verDiff = Number(Boolean(b.verified)) - Number(Boolean(a.verified));
+    if (verDiff !== 0) return verDiff;
+    const sa = a.sort_order ?? 9999;
+    const sb = b.sort_order ?? 9999;
+    if (sa !== sb) return sa - sb;
+    return (Number(b.rating) || 0) - (Number(a.rating) || 0);
+  });
+}
+
 export const COMPLAINT_CATEGORIES = [
   'Ямы на дорогах', 'Мусор', 'Не работает освещение', 'Проблемы ЖКХ',
   'Сломанные остановки', 'Незаконная свалка', 'Вода', 'Электричество', 'Другое'

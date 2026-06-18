@@ -6,6 +6,8 @@ import { useLanguage } from "@/contexts/LanguageContext";
 
 import { useTaxiEnabled } from "@/hooks/useTaxiEnabled";
 
+import { useModules } from "@/hooks/useModules";
+
 
 
 const HERO_BG =
@@ -26,9 +28,17 @@ export default function Hero() {
 
   const taxiEnabled = useTaxiEnabled();
 
+  const { isEnabled } = useModules();
+
   const showTaxi = taxiEnabled === true;
 
-  const btnCount = showTaxi ? 4 : 3;
+  const showFood = isEnabled("food");
+
+  const showGastronom = isEnabled("gastronom");
+
+  const showMasters = isEnabled("masters");
+
+  const btnCount = [showTaxi, showFood, showGastronom, showMasters].filter(Boolean).length;
 
 
 
@@ -120,6 +130,8 @@ export default function Hero() {
 
               )}
 
+              {showFood && (
+
               <Link to="/food" className={glassBtn}>
 
                 <div className="flex items-center gap-2">
@@ -133,6 +145,10 @@ export default function Hero() {
                 <p className="mt-1 text-sm leading-snug text-white/75">{t("hero.foodDesc")}</p>
 
               </Link>
+
+              )}
+
+              {showGastronom && (
 
               <Link to="/gastronom" className={`${glassBtn} border-emerald-400/35`}>
 
@@ -148,6 +164,10 @@ export default function Hero() {
 
               </Link>
 
+              )}
+
+              {showMasters && (
+
               <Link to="/masters" className={glassBtn}>
 
                 <div className="flex items-center gap-2">
@@ -161,6 +181,8 @@ export default function Hero() {
                 <p className="mt-1 text-sm leading-snug text-white/75">{t("hero.mastersDesc")}</p>
 
               </Link>
+
+              )}
 
             </div>
 

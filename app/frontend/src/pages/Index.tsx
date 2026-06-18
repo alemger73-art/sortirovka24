@@ -18,6 +18,8 @@ import {
 import StorageImg from '@/components/StorageImg';
 import Hero from '@/components/landing/Hero';
 import { useSupportSettings } from '@/hooks/useSupportSettings';
+import { useModules } from '@/hooks/useModules';
+import type { ModuleKey } from '@/config/modules';
 
 /* ─── CDN Images ─── */
 const HERO_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/ad8caa55-9593-448b-8f7a-39be84ed5053.png';
@@ -215,6 +217,7 @@ function SectionHeader({ title, accentColor = 'from-blue-500 to-indigo-600', lin
 export default function Index() {
   const { t, lang } = useLanguage();
   const { promoEnabled: supportPromoEnabled } = useSupportSettings();
+  const { isEnabled } = useModules();
   const [news, setNews] = useState<any[]>([]);
   const [complaints, setComplaints] = useState<any[]>([]);
   const [jobs, setJobs] = useState<any[]>([]);
@@ -391,31 +394,33 @@ export default function Index() {
 
   const dateLocale = lang === 'kz' ? 'kk-KZ' : 'ru-RU';
 
-  /* ─── Quick Actions config (7 items) ─── */
-  const quickActions = [
-    { icon: Utensils, labelKey: 'quick.orderFood', to: '/food', color: 'bg-orange-500', lightBg: 'bg-orange-50 dark:bg-orange-900/20' },
-    { icon: Store, labelKey: 'quick.gastronom', to: '/gastronom', color: 'bg-emerald-600', lightBg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-    { icon: HardHat, labelKey: 'quick.prorab', to: '/prorab', color: 'bg-amber-600', lightBg: 'bg-amber-50 dark:bg-amber-900/20' },
-    { icon: Cross, labelKey: 'quick.pharmacy', to: '/apteka', color: 'bg-teal-600', lightBg: 'bg-teal-50 dark:bg-teal-900/20' },
-    { icon: Wrench, labelKey: 'quick.findMaster', to: '/masters', color: 'bg-blue-500', lightBg: 'bg-blue-50 dark:bg-blue-900/20' },
-    { icon: Shield, labelKey: 'quick.findInspector', to: '/inspectors', color: 'bg-indigo-500', lightBg: 'bg-indigo-50 dark:bg-indigo-900/20' },
-    { icon: AlertTriangle, labelKey: 'quick.fileComplaint', to: '/complaints/new', color: 'bg-red-500', lightBg: 'bg-red-50 dark:bg-red-900/20' },
-    { icon: Megaphone, labelKey: 'quick.postAd', to: '/announcements', color: 'bg-amber-500', lightBg: 'bg-amber-50 dark:bg-amber-900/20' },
-    { icon: Briefcase, labelKey: 'quick.findJob', to: '/jobs', color: 'bg-purple-500', lightBg: 'bg-purple-50 dark:bg-purple-900/20' },
-    { icon: BookOpen, labelKey: 'quick.openDirectory', to: '/directory', color: 'bg-teal-500', lightBg: 'bg-teal-50 dark:bg-teal-900/20' },
-  ];
+  /* ─── Quick Actions config (filtered by enabled modules) ─── */
+  const quickActions = ([
+    { icon: Utensils, labelKey: 'quick.orderFood', to: '/food', color: 'bg-orange-500', lightBg: 'bg-orange-50 dark:bg-orange-900/20', module: 'food' },
+    { icon: Store, labelKey: 'quick.gastronom', to: '/gastronom', color: 'bg-emerald-600', lightBg: 'bg-emerald-50 dark:bg-emerald-900/20', module: 'gastronom' },
+    { icon: HardHat, labelKey: 'quick.prorab', to: '/prorab', color: 'bg-amber-600', lightBg: 'bg-amber-50 dark:bg-amber-900/20', module: 'prorab' },
+    { icon: Cross, labelKey: 'quick.pharmacy', to: '/apteka', color: 'bg-teal-600', lightBg: 'bg-teal-50 dark:bg-teal-900/20', module: 'pharmacy' },
+    { icon: Wrench, labelKey: 'quick.findMaster', to: '/masters', color: 'bg-blue-500', lightBg: 'bg-blue-50 dark:bg-blue-900/20', module: 'masters' },
+    { icon: Scissors, labelKey: 'quick.salons', to: '/salons', color: 'bg-pink-500', lightBg: 'bg-pink-50 dark:bg-pink-900/20', module: 'salons' },
+    { icon: Shield, labelKey: 'quick.findInspector', to: '/inspectors', color: 'bg-indigo-500', lightBg: 'bg-indigo-50 dark:bg-indigo-900/20', module: 'inspectors' },
+    { icon: AlertTriangle, labelKey: 'quick.fileComplaint', to: '/complaints/new', color: 'bg-red-500', lightBg: 'bg-red-50 dark:bg-red-900/20', module: 'complaints' },
+    { icon: Megaphone, labelKey: 'quick.postAd', to: '/announcements', color: 'bg-amber-500', lightBg: 'bg-amber-50 dark:bg-amber-900/20', module: 'announcements' },
+    { icon: Briefcase, labelKey: 'quick.findJob', to: '/jobs', color: 'bg-purple-500', lightBg: 'bg-purple-50 dark:bg-purple-900/20', module: 'jobs' },
+    { icon: BookOpen, labelKey: 'quick.openDirectory', to: '/directory', color: 'bg-teal-500', lightBg: 'bg-teal-50 dark:bg-teal-900/20', module: 'directory' },
+  ] as { icon: typeof Utensils; labelKey: string; to: string; color: string; lightBg: string; module: ModuleKey }[]).filter(a => isEnabled(a.module));
 
-  /* ─── Popular Categories config ─── */
-  const popularCategories = [
-    { labelKey: 'categories.food', to: '/food', img: FOOD_IMG },
-    { labelKey: 'categories.gastronom', to: '/gastronom', img: GASTRONOM_IMG },
-    { labelKey: 'categories.construction', to: '/prorab', img: PRORAB_IMG },
-    { labelKey: 'categories.pharmacy', to: '/apteka', img: PHARMACY_IMG },
-    { labelKey: 'categories.masters', to: '/masters', img: MASTERS_IMG },
-    { labelKey: 'categories.realEstate', to: '/real-estate', img: REALESTATE_IMG },
-    { labelKey: 'categories.announcements', to: '/announcements', img: ANNOUNCEMENTS_IMG },
-    { labelKey: 'categories.jobs', to: '/jobs', img: JOBS_IMG },
-  ];
+  /* ─── Popular Categories config (filtered by enabled modules) ─── */
+  const popularCategories = ([
+    { labelKey: 'categories.food', to: '/food', img: FOOD_IMG, module: 'food' },
+    { labelKey: 'categories.gastronom', to: '/gastronom', img: GASTRONOM_IMG, module: 'gastronom' },
+    { labelKey: 'categories.construction', to: '/prorab', img: PRORAB_IMG, module: 'prorab' },
+    { labelKey: 'categories.pharmacy', to: '/apteka', img: PHARMACY_IMG, module: 'pharmacy' },
+    { labelKey: 'categories.masters', to: '/masters', img: MASTERS_IMG, module: 'masters' },
+    { labelKey: 'categories.salons', to: '/salons', img: SALONS_IMG, module: 'salons' },
+    { labelKey: 'categories.realEstate', to: '/real-estate', img: REALESTATE_IMG, module: 'real_estate' },
+    { labelKey: 'categories.announcements', to: '/announcements', img: ANNOUNCEMENTS_IMG, module: 'announcements' },
+    { labelKey: 'categories.jobs', to: '/jobs', img: JOBS_IMG, module: 'jobs' },
+  ] as { labelKey: string; to: string; img: string; module: ModuleKey }[]).filter(c => isEnabled(c.module));
 
   const scrollNews = (dir: 'left' | 'right') => {
     if (!newsScrollRef.current) return;
@@ -433,6 +438,7 @@ export default function Index() {
           {/* ═══════════════════════════════════════════
               2. ПОПУЛЯРНЫЕ КАТЕГОРИИ (primary block — main visual entry)
           ═══════════════════════════════════════════ */}
+          {popularCategories.length > 0 && (
           <section>
             <SectionHeader title={t('categories.title')} accentColor="from-blue-500 to-indigo-600" />
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-5">
@@ -451,10 +457,12 @@ export default function Index() {
               ))}
             </div>
           </section>
+          )}
 
           {/* ═══════════════════════════════════════════
               3. БЫСТРЫЕ ДЕЙСТВИЯ (secondary — compact helper block)
           ═══════════════════════════════════════════ */}
+          {quickActions.length > 0 && (
           <section>
             <SectionHeader title={t('quick.title')} accentColor="from-orange-500 to-red-500" />
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3">
@@ -472,6 +480,7 @@ export default function Index() {
               ))}
             </div>
           </section>
+          )}
 
           {/* ═══════════════════════════════════════════
               4. СПЕЦПРЕДЛОЖЕНИЯ / БАННЕРЫ (dynamic from DB + static fallbacks)
@@ -519,6 +528,7 @@ export default function Index() {
               ) : (
                 <>
                   {/* Fallback static banners when no DB banners loaded */}
+                  {isEnabled('food') && (
                   <Link to="/food" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end">
                     <img src={FOOD_IMG} alt={t('banner.foodDelivery')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
@@ -528,6 +538,8 @@ export default function Index() {
                       <p className="text-white/70 text-sm mt-1">{t('banner.foodDeliveryDesc')}</p>
                     </div>
                   </Link>
+                  )}
+                  {isEnabled('masters') && (
                   <Link to="/masters" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end">
                     <img src={MASTERS_IMG} alt={t('banner.findMaster')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
@@ -537,10 +549,12 @@ export default function Index() {
                       <p className="text-white/70 text-sm mt-1">{t('banner.findMasterDesc')}</p>
                     </div>
                   </Link>
+                  )}
                 </>
               )}
 
-              {/* Static navigation banners (always shown) */}
+              {/* Static navigation banners */}
+              {isEnabled('directory') && (
               <Link to="/directory" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end">
                 <div className="absolute inset-0 bg-gradient-to-br from-teal-600 via-emerald-700 to-green-800" />
                 <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
@@ -553,7 +567,9 @@ export default function Index() {
                   <p className="text-white/70 text-sm mt-1">{t('banner.openDirectoryDesc')}</p>
                 </div>
               </Link>
+              )}
 
+              {isEnabled('inspectors') && (
               <Link to="/inspectors" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-700 via-indigo-800 to-blue-900" />
                 <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
@@ -566,7 +582,9 @@ export default function Index() {
                   <p className="text-white/70 text-sm mt-1">{t('banner.findInspectorDesc')}</p>
                 </div>
               </Link>
+              )}
 
+              {isEnabled('business') && (
               <Link to="/business" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end">
                 <img src={BUSINESS_BANNER_IMG} alt={t('banner.getClients')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
@@ -576,12 +594,14 @@ export default function Index() {
                   <p className="text-white/70 text-sm mt-1">{t('banner.getClientsDesc')}</p>
                 </div>
               </Link>
+              )}
             </div>
           </section>
 
           {/* ═══════════════════════════════════════════
               5. НОВОСТИ СОРТИРОВКИ (horizontal scroll cards)
           ═══════════════════════════════════════════ */}
+          {isEnabled('news') && (
           <section>
             <SectionHeader title={t('news.title')} accentColor="from-blue-500 to-cyan-500" linkTo="/news" linkText={t('news.all')} />
             {news.length > 0 ? (
@@ -638,11 +658,12 @@ export default function Index() {
               </div>
             )}
           </section>
+          )}
 
           {/* ═══════════════════════════════════════════
               6. ЖАЛОБЫ ЖИТЕЛЕЙ (3 cards with status)
           ═══════════════════════════════════════════ */}
-          {complaints.length > 0 && (
+          {isEnabled('complaints') && complaints.length > 0 && (
             <section>
               <SectionHeader title={t('complaints.title')} accentColor="from-red-500 to-rose-600" linkTo="/complaints" linkText={t('complaints.all')} />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -676,7 +697,7 @@ export default function Index() {
           {/* ═══════════════════════════════════════════
               7. ВАКАНСИИ РАЙОНА (3 cards)
           ═══════════════════════════════════════════ */}
-          {jobs.length > 0 && (
+          {isEnabled('jobs') && jobs.length > 0 && (
             <section>
               <SectionHeader title={t('jobs.title')} accentColor="from-purple-500 to-indigo-600" linkTo="/jobs" linkText={t('jobs.all')} />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -738,6 +759,7 @@ export default function Index() {
           {/* ═══════════════════════════════════════════
               9. ИСТОРИЯ СОРТИРОВКИ
           ═══════════════════════════════════════════ */}
+          {isEnabled('history') && (
           <section>
             <Link
               to="/history"
@@ -755,6 +777,7 @@ export default function Index() {
               </div>
             </Link>
           </section>
+          )}
 
         </div>
       </div>

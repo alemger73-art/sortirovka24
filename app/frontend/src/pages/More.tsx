@@ -6,6 +6,8 @@ import {
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTaxiEnabled } from '@/hooks/useTaxiEnabled';
+import { useModules } from '@/hooks/useModules';
+import { moduleForPath } from '@/config/modules';
 import { getAccountToken } from '@/lib/accountApi';
 import { prefetchPage, routeToPage } from '@/lib/prefetch';
 
@@ -20,6 +22,7 @@ type MoreItem = {
 export default function More() {
   const { t } = useLanguage();
   const taxiEnabled = useTaxiEnabled();
+  const { isEnabled } = useModules();
   const isLoggedIn = Boolean(getAccountToken());
 
   const sections: { titleKey: string; items: MoreItem[] }[] = [
@@ -79,7 +82,7 @@ export default function More() {
 
         <div className="mt-6 space-y-6">
           {sections.map(({ titleKey, items }) => {
-            const visible = items.filter((item) => !item.hidden);
+            const visible = items.filter((item) => !item.hidden && isEnabled(moduleForPath(item.path)));
             if (visible.length === 0) return null;
 
             return (

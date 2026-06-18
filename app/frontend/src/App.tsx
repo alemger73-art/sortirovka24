@@ -8,6 +8,7 @@ import AuthGateLoader from "@/components/AuthGateLoader";
 import RequireCabinetRole from "@/components/RequireCabinetRole";
 import RequireCourierAccess from "@/components/RequireCourierAccess";
 import RequireUserAuth from "@/components/RequireUserAuth";
+import ModuleRoute from "@/components/ModuleRoute";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { getAccountToken } from "@/lib/accountApi";
@@ -39,6 +40,9 @@ const QuestionDetail = lazy(() => import("./pages/Content").then(m => ({ default
 const NewQuestionForm = lazy(() => import("./pages/Content").then(m => ({ default: m.NewQuestionForm })));
 const DirectoryPage = lazy(() => import("./pages/Directory"));
 const MorePage = lazy(() => import("./pages/More"));
+
+const SalonsCatalog = lazy(() => import("./pages/Salons").then(m => ({ default: m.SalonsCatalog })));
+const SalonDetail = lazy(() => import("./pages/Salons").then(m => ({ default: m.SalonDetail })));
 
 const InspectorsPage = lazy(() => import("./pages/Inspectors"));
 const HistoryPage = lazy(() => import("./pages/History"));
@@ -142,34 +146,38 @@ function App() {
               <Route path="/" element={<Index />} />
 
               {/* Masters — lazy */}
-              <Route path="/masters" element={<MastersCatalog />} />
-              <Route path="/masters/request" element={<RequireUserAuth><MasterRequestForm /></RequireUserAuth>} />
-              <Route path="/masters/become" element={<BecomeMasterForm />} />
-              <Route path="/masters/:id" element={<MasterDetail />} />
+              <Route path="/masters" element={<ModuleRoute module="masters"><MastersCatalog /></ModuleRoute>} />
+              <Route path="/masters/request" element={<ModuleRoute module="masters"><RequireUserAuth><MasterRequestForm /></RequireUserAuth></ModuleRoute>} />
+              <Route path="/masters/become" element={<ModuleRoute module="masters"><BecomeMasterForm /></ModuleRoute>} />
+              <Route path="/masters/:id" element={<ModuleRoute module="masters"><MasterDetail /></ModuleRoute>} />
+
+              {/* Салоны красоты — lazy */}
+              <Route path="/salons" element={<ModuleRoute module="salons"><SalonsCatalog /></ModuleRoute>} />
+              <Route path="/salons/:id" element={<ModuleRoute module="salons"><SalonDetail /></ModuleRoute>} />
 
               {/* Content pages — lazy */}
-              <Route path="/news" element={<NewsList />} />
-              <Route path="/news/:id" element={<NewsDetail />} />
-              <Route path="/complaints" element={<ComplaintsList />} />
-              <Route path="/complaints/new" element={<RequireUserAuth><NewComplaintForm /></RequireUserAuth>} />
-              <Route path="/announcements" element={<AnnouncementsList />} />
-              <Route path="/announcements/new" element={<RequireUserAuth><NewAnnouncementForm /></RequireUserAuth>} />
-              <Route path="/announcements/:id" element={<AnnouncementDetail />} />
-              <Route path="/real-estate" element={<RealEstateList />} />
-              <Route path="/real-estate/new" element={<NewRealEstateForm />} />
-              <Route path="/real-estate/:id" element={<RealEstateDetail />} />
-              <Route path="/jobs" element={<JobsList />} />
-              <Route path="/jobs/new" element={<NewJobForm />} />
-              <Route path="/questions" element={<QuestionsList />} />
-              <Route path="/questions/new" element={<NewQuestionForm />} />
-              <Route path="/questions/:id" element={<QuestionDetail />} />
-              <Route path="/directory" element={<DirectoryPage />} />
+              <Route path="/news" element={<ModuleRoute module="news"><NewsList /></ModuleRoute>} />
+              <Route path="/news/:id" element={<ModuleRoute module="news"><NewsDetail /></ModuleRoute>} />
+              <Route path="/complaints" element={<ModuleRoute module="complaints"><ComplaintsList /></ModuleRoute>} />
+              <Route path="/complaints/new" element={<ModuleRoute module="complaints"><RequireUserAuth><NewComplaintForm /></RequireUserAuth></ModuleRoute>} />
+              <Route path="/announcements" element={<ModuleRoute module="announcements"><AnnouncementsList /></ModuleRoute>} />
+              <Route path="/announcements/new" element={<ModuleRoute module="announcements"><RequireUserAuth><NewAnnouncementForm /></RequireUserAuth></ModuleRoute>} />
+              <Route path="/announcements/:id" element={<ModuleRoute module="announcements"><AnnouncementDetail /></ModuleRoute>} />
+              <Route path="/real-estate" element={<ModuleRoute module="real_estate"><RealEstateList /></ModuleRoute>} />
+              <Route path="/real-estate/new" element={<ModuleRoute module="real_estate"><NewRealEstateForm /></ModuleRoute>} />
+              <Route path="/real-estate/:id" element={<ModuleRoute module="real_estate"><RealEstateDetail /></ModuleRoute>} />
+              <Route path="/jobs" element={<ModuleRoute module="jobs"><JobsList /></ModuleRoute>} />
+              <Route path="/jobs/new" element={<ModuleRoute module="jobs"><NewJobForm /></ModuleRoute>} />
+              <Route path="/questions" element={<ModuleRoute module="questions"><QuestionsList /></ModuleRoute>} />
+              <Route path="/questions/new" element={<ModuleRoute module="questions"><NewQuestionForm /></ModuleRoute>} />
+              <Route path="/questions/:id" element={<ModuleRoute module="questions"><QuestionDetail /></ModuleRoute>} />
+              <Route path="/directory" element={<ModuleRoute module="directory"><DirectoryPage /></ModuleRoute>} />
               <Route path="/more" element={<MorePage />} />
               <Route path="/taxi" element={<TaxiPage />} />
               <Route path="/taxi/driver" element={<TaxiDriverHub />} />
               <Route path="/delivery/courier" element={<CourierHub />} />
               <Route path="/taxi/ride/:id" element={<RequireUserAuth><TaxiRidePage /></RequireUserAuth>} />
-              <Route path="/transport" element={<TransportPage />} />
+              <Route path="/transport" element={<ModuleRoute module="transport"><TransportPage /></ModuleRoute>} />
               <Route path="/account" element={<AccountAuth />} />
               <Route path="/cabinet" element={<Protected><Cabinet /></Protected>} />
               <Route path="/cabinet/master" element={<Protected><RequireCabinetRole allowedRoles={["master"]}><CabinetMaster /></RequireCabinetRole></Protected>} />
@@ -180,17 +188,17 @@ function App() {
               <Route path="/cabinet/admin" element={<Protected><RequireCabinetRole allowedRoles={["admin", "superadmin", "moderator"]}><CabinetAdmin /></RequireCabinetRole></Protected>} />
 
               {/* Other pages — lazy */}
-              <Route path="/inspectors" element={<InspectorsPage />} />
-              <Route path="/history" element={<HistoryPage />} />
-              <Route path="/food" element={<Food />} />
-              <Route path="/food/restaurants" element={<FoodRestaurants />} />
-              <Route path="/gastronom" element={<Gastronom />} />
-              <Route path="/prorab" element={<Prorab />} />
-              <Route path="/apteka" element={<Pharmacy />} />
+              <Route path="/inspectors" element={<ModuleRoute module="inspectors"><InspectorsPage /></ModuleRoute>} />
+              <Route path="/history" element={<ModuleRoute module="history"><HistoryPage /></ModuleRoute>} />
+              <Route path="/food" element={<ModuleRoute module="food"><Food /></ModuleRoute>} />
+              <Route path="/food/restaurants" element={<ModuleRoute module="food"><FoodRestaurants /></ModuleRoute>} />
+              <Route path="/gastronom" element={<ModuleRoute module="gastronom"><Gastronom /></ModuleRoute>} />
+              <Route path="/prorab" element={<ModuleRoute module="prorab"><Prorab /></ModuleRoute>} />
+              <Route path="/apteka" element={<ModuleRoute module="pharmacy"><Pharmacy /></ModuleRoute>} />
               <Route path="/pharmacy" element={<Navigate to="/apteka" replace />} />
-              <Route path="/food/park" element={<FoodPark />} />
-              <Route path="/food/courier" element={<FoodCourier />} />
-              <Route path="/business" element={<BusinessPage />} />
+              <Route path="/food/park" element={<ModuleRoute module="food"><FoodPark /></ModuleRoute>} />
+              <Route path="/food/courier" element={<ModuleRoute module="food"><FoodCourier /></ModuleRoute>} />
+              <Route path="/business" element={<ModuleRoute module="business"><BusinessPage /></ModuleRoute>} />
               <Route path="/support" element={<SupportPage />} />
 
               {/* Admin panel — accessible via /admin */}

@@ -12,6 +12,8 @@ import InstallAppBanner from '@/components/InstallAppBanner';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import OfflineBanner from '@/components/OfflineBanner';
 import { useSupportSettings } from '@/hooks/useSupportSettings';
+import { useModules } from '@/hooks/useModules';
+import { moduleForPath } from '@/config/modules';
 import { shouldShowBottomNav } from '@/lib/appShell';
 
 const NAV_KEYS = [
@@ -42,10 +44,14 @@ export default function Layout({
   const { pathname } = useLocation();
   const taxiEnabled = useTaxiEnabled();
   const { promoEnabled: supportPromoEnabled } = useSupportSettings();
+  const { isEnabled } = useModules();
   const [authPromptOpen, setAuthPromptOpen] = useState(false);
   const [authRedirectTo, setAuthRedirectTo] = useState('/login');
 
-  const navItems = NAV_KEYS.filter((item) => item.path !== '/taxi' || taxiEnabled !== false);
+  const navItems = NAV_KEYS.filter((item) => {
+    if (item.path === '/taxi') return taxiEnabled !== false;
+    return isEnabled(moduleForPath(item.path));
+  });
   const showBottomNav = !hideBottomNav && shouldShowBottomNav(pathname);
 
   /** Prefetch page data on link hover/focus for instant transitions */

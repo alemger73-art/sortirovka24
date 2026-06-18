@@ -8,7 +8,11 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
+from services.module_settings import require_module
 from services.real_estate import Real_estateService
+
+# Block public reads when the "real_estate" module is turned off in admin.
+_require_real_estate = require_module("real_estate")
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -122,6 +126,7 @@ async def query_real_estates(
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
+    _enabled: None = Depends(_require_real_estate),
 ):
     """Query real_estates with filtering, sorting, and pagination"""
     logger.debug(f"Querying real_estates: query={query}, sort={sort}, skip={skip}, limit={limit}, fields={fields}")
@@ -159,6 +164,7 @@ async def query_real_estates_all(
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
+    _enabled: None = Depends(_require_real_estate),
 ):
     # Query real_estates with filtering, sorting, and pagination without user limitation
     logger.debug(f"Querying real_estates: query={query}, sort={sort}, skip={skip}, limit={limit}, fields={fields}")
@@ -193,6 +199,7 @@ async def get_real_estate(
     id: int,
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
+    _enabled: None = Depends(_require_real_estate),
 ):
     """Get a single real_estate by ID"""
     logger.debug(f"Fetching real_estate with id: {id}, fields={fields}")

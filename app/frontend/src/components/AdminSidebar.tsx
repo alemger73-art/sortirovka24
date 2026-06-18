@@ -5,7 +5,7 @@ import {
   ClipboardList, UserPlus, LogOut, Home as HomeIcon, Lock, Megaphone,
   Briefcase, FolderTree, Building2, Utensils, ShoppingBag, Settings,
   BadgeCheck, BarChart3, Clock, Plug, Bus, TreePine, MapPin,
-  ChevronDown, ChevronRight, X, Menu, Store, Car, Heart, HardHat, Bell, Bike, Cross, type LucideIcon,
+  ChevronDown, ChevronRight, X, Menu, Store, Car, Heart, HardHat, Bell, Bike, Cross, Scissors, Power, type LucideIcon,
 } from 'lucide-react';
 
 /* ─── Types ─── */
@@ -44,6 +44,7 @@ const MENU_GROUPS: MenuGroup[] = [
       { id: 'real-estate', label: 'Недвижимость', icon: Building2 },
       { id: 'jobs', label: 'Вакансии', icon: Briefcase },
       { id: 'masters', label: 'Мастера', icon: Wrench },
+      { id: 'salons', label: 'Салоны красоты', icon: Scissors },
       { id: 'master-requests', label: 'Заявки', icon: ClipboardList },
       { id: 'become-master', label: 'Заявки мастеров', icon: UserPlus },
     ],
@@ -84,6 +85,7 @@ const MENU_GROUPS: MenuGroup[] = [
     label: 'Система',
     emoji: '⚙️',
     items: [
+      { id: 'modules', label: 'Модули и партнёры', icon: Power },
       { id: 'stats', label: 'Статистика', icon: BarChart3 },
       { id: 'categories', label: 'Категории', icon: FolderTree },
       { id: 'history', label: 'История', icon: Clock },

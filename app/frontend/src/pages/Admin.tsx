@@ -13,6 +13,7 @@ import AdminAnnouncements from './AdminAnnouncements';
 import AdminRealEstate from './AdminRealEstate';
 import AdminJobs from './AdminJobs';
 import AdminMasters from './AdminMasters';
+import AdminSalons from './AdminSalons';
 import AdminDirectory from './AdminDirectory';
 import AdminBanners from './AdminBanners';
 import AdminCategories from './AdminCategories';
@@ -32,6 +33,7 @@ import AdminProrab from './AdminProrab';
 import AdminPharmacy from './AdminPharmacy';
 import AdminSupport from './AdminSupport';
 import AdminPush from './AdminPush';
+import AdminModules from './AdminModules';
 
 // JWT token key in localStorage (persists across tabs and browser restarts)
 const SESSION_KEY = '_sp924_token';
@@ -282,6 +284,7 @@ export default function AdminPanel() {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'modules': return <AdminModules />;
       case 'stats': return <AdminStats />;
       case 'categories': return <AdminCategories />;
       case 'news': return <AdminNews />;
@@ -292,6 +295,7 @@ export default function AdminPanel() {
       case 'master-requests': return <AdminMasters section="requests" />;
       case 'become-master': return <AdminMasters section="become" />;
       case 'masters': return <AdminMasters section="catalog" />;
+      case 'salons': return <AdminSalons />;
       case 'directory': return <AdminDirectory />;
       case 'inspectors': return <AdminInspectors />;
       case 'banners': return <AdminBanners />;
