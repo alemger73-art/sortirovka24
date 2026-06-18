@@ -1,0 +1,37 @@
+# Keep the railway up upload small and avoid locked mobile-build artifacts.
+# The Docker build context only needs app/frontend (source) + app/backend (source).
+
+# Dependencies / build output (rebuilt inside the Docker image)
+**/node_modules
+**/dist
+**/.vite
+app/backend/frontend_dist
+
+# Mobile builds (not used by the web image; .aab/.apk are often locked by the IDE)
+app/frontend/android
+app/frontend/ios
+app/frontend/releases
+**/*.aab
+**/*.apk
+**/*.keystore
+app/frontend/.android-sdk
+
+# Python caches / local DBs
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/*.sqlite
+**/*.sqlite3
+**/*.db
+
+# Runtime / secrets / meta
+app/backend/logs
+app/backend/.jwt_secret
+**/.env
+**/.env.*
+.git
+.idea
+.vscode
+**/*.log
+.cache
+uploads
