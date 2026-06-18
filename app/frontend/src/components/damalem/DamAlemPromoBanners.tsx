@@ -15,36 +15,51 @@ interface DamAlemPromoBannersProps {
   banners: FoodBanner[];
 }
 
+const FALLBACK_GRADIENTS = [
+  'linear-gradient(135deg, #FF3B30 0%, #C41E14 100%)',
+  'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
+  'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+];
+
 export default function DamAlemPromoBanners({ banners }: DamAlemPromoBannersProps) {
   if (banners.length === 0) return null;
 
   return (
-    <section className="space-y-3">
+    <section className="space-y-3 dam-animate-in">
       <div className="flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-lg font-extrabold tracking-tight text-[#111111]">
+        <h2 className="dam-section-title flex items-center gap-2 text-zinc-900">
           <Sparkles className="h-5 w-5 text-[#FF3B30]" />
-          Акции DAM ALEM
+          Спецпредложения
         </h2>
       </div>
-      <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 scrollbar-hide">
-        {banners.map(b => {
+      <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 scrollbar-hide snap-x snap-mandatory">
+        {banners.map((b, idx) => {
           const inner = (
-            <article className="group relative h-36 w-[280px] shrink-0 overflow-hidden rounded-2xl shadow-md ring-1 ring-black/5 transition hover:shadow-xl sm:w-[300px]">
+            <article className="dam-promo-banner group snap-start">
               {b.image_url ? (
-                <StorageImg objectKey={b.image_url} alt={b.title} className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                <StorageImg
+                  objectKey={b.image_url}
+                  alt={b.title}
+                  className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-110"
+                />
               ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-[#FF3B30] to-[#c41e14]" />
+                <div
+                  className="absolute inset-0"
+                  style={{ background: FALLBACK_GRADIENTS[idx % FALLBACK_GRADIENTS.length] }}
+                />
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
-              <div className="relative z-10 flex h-full flex-col justify-end p-4">
+              <div className="dam-promo-banner__overlay" />
+              <div className="relative z-10 flex h-full flex-col justify-end p-5">
                 {b.button_text && (
-                  <span className="mb-2 inline-flex w-fit rounded-full bg-[#FF3B30] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                  <span className="mb-2 inline-flex w-fit rounded-full bg-white/95 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[#FF3B30] shadow-sm">
                     {b.button_text}
                   </span>
                 )}
-                <h3 className="line-clamp-2 text-base font-extrabold leading-snug text-white">{b.title}</h3>
-                {b.subtitle && <p className="mt-1 line-clamp-2 text-xs text-white/75">{b.subtitle}</p>}
-                <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-white/90">
+                <h3 className="line-clamp-2 text-lg font-black leading-snug text-white drop-shadow-sm">{b.title}</h3>
+                {b.subtitle && (
+                  <p className="mt-1.5 line-clamp-2 text-sm text-white/85">{b.subtitle}</p>
+                )}
+                <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm w-fit">
                   Подробнее <ChevronRight className="h-3.5 w-3.5" />
                 </span>
               </div>
@@ -53,10 +68,10 @@ export default function DamAlemPromoBanners({ banners }: DamAlemPromoBannersProp
 
           const url = b.button_url || '/food';
           if (url.startsWith('/')) {
-            return <Link key={b.id} to={url}>{inner}</Link>;
+            return <Link key={b.id} to={url} className="shrink-0">{inner}</Link>;
           }
           return (
-            <a key={b.id} href={url} target="_blank" rel="noopener noreferrer">
+            <a key={b.id} href={url} target="_blank" rel="noopener noreferrer" className="shrink-0">
               {inner}
             </a>
           );

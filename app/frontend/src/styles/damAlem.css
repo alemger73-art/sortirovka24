@@ -737,3 +737,332 @@
 .dam-back-chip:active {
   background: #f4f4f5;
 }
+
+/* ─── Marketing: free delivery banner ─── */
+.dam-free-banner {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  background: linear-gradient(120deg, #FF3B30 0%, #FF6B35 45%, #FFB347 100%);
+  box-shadow: 0 12px 32px rgba(255, 59, 48, 0.35);
+}
+
+.dam-free-banner__shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.25) 50%,
+    transparent 60%
+  );
+  background-size: 200% 100%;
+  animation: dam-shimmer-move 3s ease-in-out infinite;
+}
+
+@keyframes dam-shimmer-move {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Stories ─── */
+.dam-story-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 4.75rem;
+  animation: dam-slide-up 0.4s ease-out both;
+}
+
+.dam-story-ring {
+  padding: 3px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #FF3B30, #FFB347, #FF3B30, #EC4899);
+  background-size: 300% 300%;
+  animation: dam-ring-spin 4s linear infinite;
+}
+
+@keyframes dam-ring-spin {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.dam-story-thumb {
+  position: relative;
+  display: block;
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: 9999px;
+  overflow: hidden;
+  border: 3px solid white;
+  background: #ececec;
+}
+
+.dam-story-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dam-story-thumb__emoji {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  font-size: 1rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+}
+
+.dam-story-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.2;
+  color: #3f3f46;
+  max-width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dam-story-viewer {
+  position: relative;
+  width: 100%;
+  max-width: 22rem;
+  aspect-ratio: 9 / 16;
+  max-height: min(85dvh, 640px);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+  animation: dam-slide-up 0.35s ease-out both;
+}
+
+.dam-story-viewer__progress {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  right: 0.75rem;
+  z-index: 20;
+  display: flex;
+  gap: 0.25rem;
+}
+
+.dam-story-viewer__bar {
+  flex: 1;
+  height: 3px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.35);
+  overflow: hidden;
+}
+
+.dam-story-viewer__bar--done {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.dam-story-viewer__bar--active {
+  background: rgba(255, 255, 255, 0.35);
+  animation: dam-story-progress 5.5s linear forwards;
+}
+
+@keyframes dam-story-progress {
+  from { background: linear-gradient(90deg, white 0%, white 0%, rgba(255,255,255,0.35) 0%); background-size: 200% 100%; background-position: 100% 0; }
+  to { background: white; }
+}
+
+.dam-story-viewer__close {
+  position: absolute;
+  top: 2rem;
+  right: 0.75rem;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.25);
+  color: white;
+  backdrop-filter: blur(8px);
+}
+
+.dam-story-viewer__body {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 2rem 1.5rem;
+}
+
+.dam-story-viewer__cta {
+  margin-top: 1.25rem;
+  align-self: flex-start;
+  padding: 0.75rem 1.25rem;
+  border-radius: 9999px;
+  background: white;
+  color: #111;
+  font-size: 0.875rem;
+  font-weight: 800;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.dam-story-viewer__tap-next {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  cursor: pointer;
+}
+
+/* ─── Promo strip ─── */
+.dam-promo-strip {
+  padding: 0.25rem 0;
+}
+
+.dam-promo-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 14px;
+  text-align: left;
+  transition: transform 0.15s ease;
+}
+
+.dam-promo-chip:active {
+  transform: scale(0.97);
+}
+
+.dam-promo-chip--delivery {
+  background: linear-gradient(135deg, #FF3B30 0%, #FF6B35 100%);
+  color: white;
+  box-shadow: 0 6px 20px rgba(255, 59, 48, 0.3);
+}
+
+.dam-promo-chip--code {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.125rem;
+  background: white;
+  border: 2px dashed #FF3B30;
+  color: #111;
+  min-width: 7.5rem;
+}
+
+.dam-promo-chip--active {
+  background: #fff1f0;
+  border-style: solid;
+}
+
+.dam-promo-chip__code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #FF3B30;
+}
+
+/* ─── Loyalty showcase ─── */
+.dam-loyalty-showcase {
+  position: relative;
+  overflow: hidden;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #3d1f14 50%, #FF3B30 100%);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15);
+}
+
+.dam-loyalty-showcase__glow {
+  position: absolute;
+  top: -40%;
+  right: -20%;
+  width: 60%;
+  height: 80%;
+  border-radius: 9999px;
+  background: rgba(255, 180, 71, 0.35);
+  filter: blur(40px);
+}
+
+.dam-loyalty-tier {
+  width: 7.5rem;
+  padding: 0.75rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  animation: dam-slide-up 0.4s ease-out both;
+}
+
+.dam-loyalty-tier__img {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 12px;
+  object-fit: cover;
+  margin-bottom: 0.5rem;
+}
+
+.dam-loyalty-tier__emoji {
+  display: block;
+  font-size: 2rem;
+  margin-bottom: 0.375rem;
+}
+
+.dam-loyalty-tier__title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: white;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dam-loyalty-tier__from {
+  margin-top: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* ─── Promo banners carousel ─── */
+.dam-promo-banner {
+  position: relative;
+  width: 18rem;
+  height: 11rem;
+  overflow: hidden;
+  border-radius: 22px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
+
+@media (min-width: 640px) {
+  .dam-promo-banner {
+    width: 20rem;
+    height: 12rem;
+  }
+}
+
+.dam-promo-banner__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.2) 55%, transparent 100%);
+}
+
+/* ─── Share card ─── */
+.dam-share-card {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 1rem 1.125rem;
+  border-radius: 18px;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: var(--dam-shadow);
+  transition: transform 0.15s ease;
+}
+
+.dam-share-card:active {
+  transform: scale(0.98);
+}

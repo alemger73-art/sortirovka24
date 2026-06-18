@@ -51,7 +51,14 @@ import DamAlemFloatingCart from '@/components/damalem/DamAlemFloatingCart';
 import DamAlemTrustBar from '@/components/damalem/DamAlemTrustBar';
 import DamAlemCategoryGrid from '@/components/damalem/DamAlemCategoryGrid';
 import DamAlemStepsBar from '@/components/damalem/DamAlemStepsBar';
+import DamAlemStories from '@/components/damalem/DamAlemStories';
+import DamAlemPromoStrip from '@/components/damalem/DamAlemPromoStrip';
+import DamAlemLoyaltyShowcase from '@/components/damalem/DamAlemLoyaltyShowcase';
+import DamAlemFreeDeliveryBanner from '@/components/damalem/DamAlemFreeDeliveryBanner';
+import DamAlemShareCard from '@/components/damalem/DamAlemShareCard';
 import { resolveDamAlemItemImage, getCategoryImage } from '@/lib/damAlemImages';
+import { buildMarketingStories } from '@/lib/damAlemMarketing';
+import { parsePromoCodes } from '@/lib/foodPromo';
 import DamAlemPageSkeleton from '@/components/damalem/DamAlemPageSkeleton';
 import '@/styles/damAlem.css';
 
@@ -548,6 +555,11 @@ export default function Food() {
   const isBrowsingMenu = selectedCategorySlug !== 'all' || !!searchQuery.trim();
   const uiStep: 1 | 2 | 3 = checkoutOpen ? 3 : cartOpen ? 2 : 1;
 
+  const availablePromos = useMemo(
+    () => parsePromoCodes(settings.promo_codes),
+    [settings.promo_codes],
+  );
+
   const activeCategoryLabel = useMemo(() => {
     if (selectedCategorySlug === 'all') return t('food.allDishes');
     const c = categories.find(x => categorySlugOf(x) === selectedCategorySlug);
@@ -789,6 +801,17 @@ export default function Food() {
     if (brandProfile?.min_order && brandProfile.min_order > 0) return brandProfile.min_order;
     return parseInt(settings.min_order_amount) || 0;
   }, [brandProfile, settings.min_order_amount]);
+
+  const marketingStories = useMemo(
+    () => buildMarketingStories({
+      freeDeliveryFrom,
+      minOrder,
+      deliveryTime: deliveryTimeLabel,
+      gifts: loyaltyGifts,
+      formatPrice: (n) => `${Math.round(n).toLocaleString('ru-RU')} ₸`,
+    }),
+    [freeDeliveryFrom, minOrder, deliveryTimeLabel, loyaltyGifts],
+  );
 
   const deliveryReady = useMemo(() => {
     if (deliveryMethod !== 'delivery') return true;
@@ -1220,6 +1243,31 @@ export default function Food() {
     }
   }
 
+  function applyPromoFromStrip(code: string) {
+    setPromoInput(code);
+    if (cartTotal > 0) {
+      void (async () => {
+        setPromoLoading(true);
+        try {
+          const result = await validateFoodPromo({ code, cart_subtotal: cartTotal });
+          setAppliedPromo({
+            code: result.code,
+            discount: result.discount,
+            free_delivery: result.free_delivery,
+            label: result.label,
+          });
+          toast.success(`Промокод ${code} применён`);
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : 'Добавьте блюда и примените в корзине');
+        } finally {
+          setPromoLoading(false);
+        }
+      })();
+    } else {
+      toast.success(`Код ${code} скопирован — добавьте блюда и оформите заказ`);
+    }
+  }
+
   useEffect(() => {
     if (items.length === 0) return;
     try {
@@ -1271,6 +1319,24 @@ export default function Food() {
       menuSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }, [searchQuery]);
+
+  const handleStoryCta = useCallback((storyId: string) => {
+    if (storyId === 'hits') {
+      const hit = recommendedItems[0];
+      if (hit) openItemModal(hit);
+      else handleCategorySelect('pizza-30');
+      return;
+    }
+    if (storyId === 'gift' && loyaltyGifts.length > 0) {
+      setCartOpen(true);
+      return;
+    }
+    if (selectedCategorySlug === 'all' && !searchQuery.trim()) {
+      handleCategorySelect('kompleksnye-obedy');
+    } else {
+      menuSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [recommendedItems, loyaltyGifts.length, selectedCategorySlug, searchQuery, handleCategorySelect]);
 
 
   function MenuDishRow({ item }: { item: FoodItem }) {
@@ -1482,12 +1548,40 @@ export default function Food() {
 
           {!isBrowsingMenu && (
             <>
+              <DamAlemFreeDeliveryBanner
+                freeDeliveryFrom={freeDeliveryFrom}
+                minOrder={minOrder}
+                formatPrice={formatPrice}
+              />
+
+              <DamAlemStories
+                stories={marketingStories}
+                onCta={(s) => handleStoryCta(s.id)}
+              />
+
+              <DamAlemPromoStrip
+                promos={availablePromos}
+                freeDeliveryFrom={freeDeliveryFrom}
+                formatPrice={formatPrice}
+                appliedCode={appliedPromo?.code}
+                onApply={applyPromoFromStrip}
+              />
+
+              {loyaltyGifts.length > 0 && (
+                <DamAlemLoyaltyShowcase gifts={loyaltyGifts} formatPrice={formatPrice} />
+              )}
+
               <DamAlemCategoryGrid
                 categories={categoryGridItems}
                 onSelect={handleCategorySelect}
               />
 
               <DamAlemPromoBanners banners={foodBanners} />
+
+              <DamAlemShareCard
+                whatsappNumber={settings.whatsapp_number || brandProfile?.whatsapp_phone}
+                brandName={settings.hero_banner_title || brandProfile?.name || 'DAM ALEM'}
+              />
 
               {showRecommendations && recommendedItems.length > 0 && (
                 <section>
