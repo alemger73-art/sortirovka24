@@ -49,13 +49,11 @@ import DeliveryZonesPreview from '@/components/damalem/DeliveryZonesPreview';
 import DamAlemProductCard from '@/components/damalem/DamAlemProductCard';
 import DamAlemFloatingCart from '@/components/damalem/DamAlemFloatingCart';
 import DamAlemTrustBar from '@/components/damalem/DamAlemTrustBar';
+import DamAlemCategoryGrid from '@/components/damalem/DamAlemCategoryGrid';
+import DamAlemStepsBar from '@/components/damalem/DamAlemStepsBar';
+import { resolveDamAlemItemImage, getCategoryImage } from '@/lib/damAlemImages';
 import DamAlemPageSkeleton from '@/components/damalem/DamAlemPageSkeleton';
 import '@/styles/damAlem.css';
-
-/* ─── CDN images ─── */
-const FALLBACK_FOOD_1 = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/2034a1d7-1c57-40c0-8145-23816557ba5c.png';
-const FALLBACK_FOOD_2 = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/e1e63b15-29d2-4b2e-b1b5-919722b3b1b9.png';
-const FALLBACK_IMAGES = [FALLBACK_FOOD_1, FALLBACK_FOOD_2];
 
 /* ─── Types ─── */
 interface FoodCategory {
@@ -198,18 +196,6 @@ const PROMO_SLIDES = [
   { titleKey: 'food.promoSlide2Title' as const, linesKeys: ['food.promoLine2a', 'food.promoLine2b', 'food.promoLine2c'] as const },
   { titleKey: 'food.promoSlide3Title' as const, linesKeys: ['food.promoLine3a', 'food.promoLine3b', 'food.promoLine3c'] as const },
 ];
-
-/** Оверлей «N В корзине» как в референсе Tasko */
-function InCartOverlay({ qty, className = '' }: { qty: number; className?: string }) {
-  if (qty <= 0) return null;
-  return (
-    <div className={`absolute inset-0 bg-black/45 flex items-center justify-center z-10 ${className}`}>
-      <span className="text-white text-sm font-semibold tracking-tight">
-        {qty} В корзине
-      </span>
-    </div>
-  );
-}
 
 export default function Food() {
   const navigate = useNavigate();
@@ -535,6 +521,33 @@ export default function Food() {
     [categories]
   );
 
+  const categorySlugById = useMemo(() => {
+    const m: Record<number, string> = {};
+    for (const c of categories) m[c.id] = categorySlugOf(c);
+    return m;
+  }, [categories]);
+
+  const itemsCountByCategory = useMemo(() => {
+    const m: Record<number, number> = {};
+    for (const item of poolItems) {
+      m[item.category_id] = (m[item.category_id] || 0) + 1;
+    }
+    return m;
+  }, [poolItems]);
+
+  const categoryGridItems = useMemo(
+    () =>
+      sortedNavCategories.map(cat => ({
+        slug: categorySlugOf(cat),
+        name: localized(cat, 'name') || cat.name,
+        itemCount: itemsCountByCategory[cat.id] || 0,
+      })).filter(c => c.itemCount > 0),
+    [sortedNavCategories, itemsCountByCategory, localized]
+  );
+
+  const isBrowsingMenu = selectedCategorySlug !== 'all' || !!searchQuery.trim();
+  const uiStep: 1 | 2 | 3 = checkoutOpen ? 3 : cartOpen ? 2 : 1;
+
   const activeCategoryLabel = useMemo(() => {
     if (selectedCategorySlug === 'all') return t('food.allDishes');
     const c = categories.find(x => categorySlugOf(x) === selectedCategorySlug);
@@ -830,19 +843,6 @@ export default function Food() {
     return Math.max(0, base - promoDiscountAmount);
   }, [deliveryMethod, cartTotalWithService, activeDeliveryPrice, apartmentDeliveryFee, promoDiscountAmount]);
 
-  /** Меню по категориям из API (когда фильтр «Всё меню») */
-  const menuSections = useMemo(() => {
-    const sortedCats = [...categories].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-    return sortedCats
-      .map(cat => ({
-        cat,
-        items: poolItems.filter(i => i.category_id === cat.id),
-      }))
-      .filter(s => s.items.length > 0);
-  }, [categories, poolItems]);
-
-  const showGroupedMenu = selectedCategorySlug === 'all';
-
   const cartBarLabel = useMemo(() => {
     const n = cartCount;
     if (lang === 'kz') {
@@ -1128,11 +1128,13 @@ export default function Food() {
   }
 
   function formatPrice(price: number) { return price.toLocaleString('ru-RU') + ' ₸'; }
-  function getFallbackImage(id: number) { return FALLBACK_IMAGES[id % FALLBACK_IMAGES.length]; }
-  /** Resolve image_url (objectKey or URL) to a displayable src, with fallback */
-  function getItemImage(item: { id: number; image_url: string }): string {
-    const resolved = resolveImageSrc(item.image_url);
-    return resolved || getFallbackImage(item.id);
+  function getItemImage(item: FoodItem): string {
+    return resolveDamAlemItemImage({
+      id: item.id,
+      name: localized(item, 'name') || item.name,
+      categorySlug: item.category_slug || categorySlugById[item.category_id],
+      imageUrl: item.image_url,
+    });
   }
 
   function getBadgeType(item: FoodItem): 'hit' | 'new' | null {
@@ -1287,6 +1289,8 @@ export default function Food() {
         optionsLabel={t('food.hasOptions')}
         isFavorite={favoriteIds.includes(item.id)}
         weight={w !== '200 г' ? w : undefined}
+        badge={getBadgeType(item)}
+        variant="grid"
         onOpen={() => openItemModal(item)}
         onAdd={() => quickAdd(item)}
         onRemove={() => quickRemove(item.id)}
@@ -1455,40 +1459,17 @@ export default function Food() {
                 ) : null}
               </button>
             </div>
-            <DamAlemCategoryNav
-              items={categoryNavItems}
-              activeSlug={selectedCategorySlug}
-              onSelect={handleCategorySelect}
-              allLabel={t('food.allMenu')}
-            />
+            {isBrowsingMenu ? (
+              <DamAlemCategoryNav
+                items={categoryNavItems}
+                activeSlug={selectedCategorySlug}
+                onSelect={handleCategorySelect}
+                allLabel={t('food.allMenu')}
+              />
+            ) : null}
           </div>
 
-          {deliveryMethod !== 'pickup' && (
-            <div className="dam-card p-4 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-bold flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-[#FF3B30]" />
-                  Куда доставить?
-                </p>
-              </div>
-              <SavedAddressBar currentAddress={deliveryAddress} onSelect={applySavedAddress} accent="orange" />
-              <DeliveryAddressPicker
-                variant="compact"
-                accent="orange"
-                address={deliveryAddress}
-                onAddressChange={setDeliveryAddress}
-                hasDeliveryZones={hasDeliveryZones}
-                deliveryQuote={deliveryQuote}
-                loading={deliveryQuoteLoading}
-                error={deliveryQuoteError}
-                onFindByAddress={() => findByAddress()}
-                onFindByGps={requestGeolocation}
-                onSelectExample={(ex) => findByAddress(ex)}
-                onEdit={focusAddressPicker}
-                onContinueCheckout={cartCount > 0 ? openCheckout : undefined}
-              />
-            </div>
-          )}
+          <DamAlemStepsBar step={uiStep} cartCount={cartCount} />
 
           {cartTotal > 0 && (freeDeliveryFrom > 0 || minOrder > 0 || nextGift) && (
             <OrderGoalsProgress
@@ -1499,35 +1480,115 @@ export default function Food() {
             />
           )}
 
-          <DamAlemPromoBanners banners={foodBanners} />
+          {!isBrowsingMenu && (
+            <>
+              <DamAlemCategoryGrid
+                categories={categoryGridItems}
+                onSelect={handleCategorySelect}
+              />
 
-          {favoriteItems.length > 0 && (
-            <section>
-              <h2 className="dam-section-title mb-3 flex items-center gap-2">
-                <Heart className="h-5 w-5 text-[#FF3B30] fill-[#FF3B30]" />
-                Ваши любимые
-              </h2>
-              <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
-                {favoriteItems.map(item => (
-                  <div key={item.id} className="w-[148px] shrink-0 overflow-hidden rounded-2xl dam-card">
-                    <button type="button" onClick={() => openItemModal(item)} className="block w-full text-left">
-                      <div className="aspect-square overflow-hidden bg-[#F0F0F0]">
-                        <img src={getItemImage(item)} alt="" className="h-full w-full object-cover" />
-                      </div>
-                      <div className="p-2.5">
-                        <p className="text-xs font-bold line-clamp-2">{item.name}</p>
-                        <p className="mt-1 text-sm font-extrabold">{formatPrice(item.price)}</p>
-                      </div>
-                    </button>
+              <DamAlemPromoBanners banners={foodBanners} />
+
+              {showRecommendations && recommendedItems.length > 0 && (
+                <section>
+                  <h2 className="dam-section-title mb-3">{t('food.popularNow')}</h2>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {recommendedItems.slice(0, 6).map(item => (
+                      <MenuDishRow key={item.id} item={item} />
+                    ))}
                   </div>
+                </section>
+              )}
+
+              {favoriteItems.length > 0 && (
+                <section>
+                  <h2 className="dam-section-title mb-3 flex items-center gap-2">
+                    <Heart className="h-5 w-5 text-[#FF3B30] fill-[#FF3B30]" />
+                    Ваши любимые
+                  </h2>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {favoriteItems.slice(0, 6).map(item => (
+                      <MenuDishRow key={`fav-${item.id}`} item={item} />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {!searchQuery.trim() && comboItems.length > 0 && (
+                <section className="rounded-3xl bg-gradient-to-br from-[#111111] via-[#1c1c1c] to-[#3d1f14] p-5 text-white shadow-lg">
+                  <h2 className="mb-4 text-lg font-extrabold">{t('food.comboDeals')}</h2>
+                  <div className="grid grid-cols-2 gap-3">
+                    {comboItems.slice(0, 4).map(item => (
+                      <MenuDishRow key={`combo-${item.id}`} item={item} />
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
+
+          {isBrowsingMenu && (
+          <section ref={menuSectionRef} id="food-menu" className="scroll-mt-24 dam-animate-in">
+            <div className="mb-4 space-y-3">
+              {selectedCategorySlug !== 'all' && !searchQuery.trim() ? (
+                <button
+                  type="button"
+                  onClick={() => handleCategorySelect('all')}
+                  className="dam-back-chip"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Все категории
+                </button>
+              ) : null}
+
+              {selectedCategorySlug !== 'all' && !searchQuery.trim() ? (
+                <div className="relative h-32 overflow-hidden rounded-2xl">
+                  <img
+                    src={getCategoryImage(selectedCategorySlug)}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                  <div className="absolute bottom-0 left-0 p-4">
+                    <h2 className="text-xl font-extrabold text-white">{activeCategoryLabel}</h2>
+                    <p className="text-sm text-white/80">{sortedFilteredItems.length} блюд</p>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <h2 className="dam-section-title">
+                    {searchQuery.trim()
+                      ? `Найдено: ${sortedFilteredItems.length}`
+                      : t('food.mainMenu')}
+                  </h2>
+                  {searchQuery.trim() ? (
+                    <p className="mt-1 text-sm text-zinc-500">По запросу «{searchQuery.trim()}»</p>
+                  ) : (
+                    <p className="mt-1 text-sm text-zinc-500">Все блюда DAM ALEM · {sortedFilteredItems.length} позиций</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {sortedFilteredItems.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {sortedFilteredItems.map(item => (
+                  <MenuDishRow key={item.id} item={item} />
                 ))}
               </div>
-            </section>
+            ) : (
+              <div className="dam-card p-10 text-center">
+                <Utensils className="mx-auto mb-3 h-10 w-10 text-zinc-400" />
+                <p className="font-bold text-zinc-900">{t('food.noDishes')}</p>
+                <p className="mt-2 text-sm text-zinc-500">{t('food.noDishesHint')}</p>
+              </div>
+            )}
+          </section>
           )}
 
           <details className="dam-card group">
             <summary className="cursor-pointer list-none p-4 text-sm font-bold text-zinc-700 marker:content-none flex items-center justify-between">
-              Условия доставки и зоны
+              Доставка · зоны · условия
               <ChevronRight className="h-4 w-4 text-zinc-400 transition group-open:rotate-90" />
             </summary>
             <div className="space-y-4 border-t border-zinc-100 px-4 pb-4 pt-2">
@@ -1548,163 +1609,6 @@ export default function Food() {
               />
             </div>
           </details>
-
-          {/* Категории — быстрый выбор с фото */}
-          {selectedCategorySlug === 'all' && !searchQuery.trim() && (
-            <section>
-              <h2 className="dam-section-title mb-3">{t('food.categories')}</h2>
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-                {sortedNavCategories.map(cat => {
-                  const slug = categorySlugOf(cat);
-                  const preview = poolItems.find(i => i.category_id === cat.id);
-                  const catImg = (cat.image || '').trim() ? resolveImageSrc(cat.image!) : '';
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => handleCategorySelect(slug)}
-                      className="dam-card dam-category-tile group"
-                    >
-                      <div className="aspect-[4/3] overflow-hidden bg-[#F0F0F0]">
-                        {catImg ? (
-                          <img src={catImg} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-                        ) : preview ? (
-                          <img src={getItemImage(preview)} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-4xl">{(cat.icon || '').trim() || '🍽'}</div>
-                        )}
-                      </div>
-                      <div className="p-3">
-                        <span className="text-sm font-bold leading-tight">{localized(cat, 'name') || cat.name}</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-
-          {/* Популярное — горизонтальная лента */}
-          {showRecommendations && recommendedItems.length > 0 && !searchQuery.trim() && (
-            <section>
-              <h2 className="dam-section-title mb-3">{t('food.popularNow')}</h2>
-              <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 scrollbar-hide">
-                {recommendedItems.slice(0, 8).map(item => {
-                  const qtyInCart = getItemQuantityInCart(item.id);
-                  const badge = getBadgeType(item);
-                  return (
-                    <div key={item.id} className="w-[160px] shrink-0 overflow-hidden dam-card sm:w-[172px]">
-                      <button type="button" onClick={() => openItemModal(item)} className="relative block aspect-square w-full bg-[#ECECEC]">
-                        <img src={getItemImage(item)} alt="" className="h-full w-full object-cover" />
-                        {badge && (
-                          <span className="absolute left-2 top-2">
-                            <FoodBadge type={badge} />
-                          </span>
-                        )}
-                        {qtyInCart > 0 && <InCartOverlay qty={qtyInCart} />}
-                      </button>
-                      <div className="p-3">
-                        <p className="line-clamp-2 min-h-[2.5rem] text-sm font-bold leading-snug">{localized(item, 'name') || item.name}</p>
-                        <div className="mt-2 flex items-center justify-between gap-2">
-                          <span className="text-sm font-extrabold">{formatPrice(item.price)}</span>
-                          <button
-                            type="button"
-                            onClick={() => quickAdd(item)}
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FF3B30] text-white shadow-md shadow-[#FF3B30]/20 active:scale-95"
-                          >
-                            <Plus className="h-5 w-5" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-
-          {/* Комбо — только если есть блюда с меткой «Комбо» */}
-          {!searchQuery.trim() && comboItems.length > 0 && (
-          <section className="rounded-3xl bg-gradient-to-br from-[#111111] via-[#1c1c1c] to-[#3d1f14] p-5 text-white shadow-lg">
-            <h2 className="mb-4 text-lg font-extrabold">{t('food.comboDeals')}</h2>
-              <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 scrollbar-hide">
-                {comboItems.slice(0, 6).map(item => {
-                  const qtyInCart = getItemQuantityInCart(item.id);
-                  return (
-                    <div key={item.id} className="w-[220px] shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/10 backdrop-blur-sm">
-                      <button type="button" onClick={() => openItemModal(item)} className="relative block aspect-[5/3] w-full bg-black/20">
-                        <img src={getItemImage(item)} alt="" className="h-full w-full object-cover opacity-95" />
-                        {qtyInCart > 0 && <InCartOverlay qty={qtyInCart} />}
-                      </button>
-                      <div className="p-3">
-                        <p className="line-clamp-2 text-sm font-bold leading-snug">{localized(item, 'name') || item.name}</p>
-                        <div className="mt-2 flex items-center justify-between gap-2">
-                          <span className="text-sm font-extrabold">{formatPrice(item.price)}</span>
-                          <button type="button" onClick={() => quickAdd(item)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FF3B30] text-white active:scale-95">
-                            <Plus className="h-5 w-5" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-          </section>
-          )}
-
-          {/* Меню */}
-          <section ref={menuSectionRef} id="food-menu" className="scroll-mt-24">
-            <div className="mb-4">
-              <h2 className="dam-section-title">
-                {searchQuery.trim()
-                  ? `Найдено: ${sortedFilteredItems.length}`
-                  : selectedCategorySlug !== 'all'
-                    ? activeCategoryLabel
-                    : t('food.mainMenu')}
-              </h2>
-              {!searchQuery.trim() && selectedCategorySlug === 'all' && (
-                <p className="mt-1 text-sm text-zinc-500">Свежее из кухни DAM ALEM · доставка по Сортировке</p>
-              )}
-            </div>
-
-            {showGroupedMenu && !searchQuery.trim() ? (
-              menuSections.length > 0 ? (
-                <div className="space-y-8">
-                  {menuSections.map(({ cat, items: secItems }) => (
-                    <div key={cat.id} id={`cat-${categorySlugOf(cat)}`}>
-                      <h3 className="mb-3 text-base font-extrabold text-[#111111]">{localized(cat, 'name') || cat.name}</h3>
-                      <div className="space-y-2.5">
-                        {secItems.map(item => (
-                          <MenuDishRow key={item.id} item={item} />
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-gray-100 bg-[#F7F7F7] p-10 text-center">
-                  <Utensils className="mx-auto mb-3 h-10 w-10 text-[#777777]" />
-                  <p className="font-medium text-[#111111]">{t('food.noDishes')}</p>
-                  <p className="mt-2 text-sm text-[#777777]">{t('food.noDishesHint')}</p>
-                </div>
-              )
-            ) : sortedFilteredItems.length > 0 ? (
-              <div className="space-y-2.5">
-                {selectedCategorySlug !== 'all' && !searchQuery.trim() && (
-                  <p className="mb-2 text-sm font-semibold text-[#777777]">{activeCategoryLabel}</p>
-                )}
-                {sortedFilteredItems.map(item => (
-                  <MenuDishRow key={item.id} item={item} />
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-gray-100 bg-[#F7F7F7] p-10 text-center">
-                <Utensils className="mx-auto mb-3 h-10 w-10 text-[#777777]" />
-                <p className="font-medium text-[#111111]">{t('food.noDishes')}</p>
-                <p className="mt-2 text-sm text-[#777777]">{t('food.noDishesHint')}</p>
-              </div>
-            )}
-          </section>
         </div>
 
         {/* ═══ PRODUCT POPUP MODAL ═══ */}
