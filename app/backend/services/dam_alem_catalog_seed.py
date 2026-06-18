@@ -19,6 +19,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 logger = logging.getLogger(__name__)
 
 RESTAURANT_NAMES = ("dam alem", "дам алем", "damalem", "däm әлемі")
+EXPECTED_ITEM_COUNT = len(build_items())
+EXPECTED_CATEGORY_COUNT = len(CATEGORIES)
+# Treat catalog as complete only when most of the full menu is present.
+MIN_COMPLETE_ITEMS = max(100, int(EXPECTED_ITEM_COUNT * 0.85))
+MIN_COMPLETE_CATEGORIES = max(15, EXPECTED_CATEGORY_COUNT - 3)
 
 
 def _now() -> str:
@@ -217,7 +222,28 @@ async def ensure_dam_alem_catalog(*, force: bool = False) -> Optional[Dict[str, 
             select(func.count(Food_items.id)).where(Food_items.restaurant_id == restaurant.id)
         )
         count = int(count_res.scalar() or 0)
-        if count > 0 and not force:
-            logger.info("DAM ALEM catalog already has %d items; seed skipped", count)
+        cat_res = await db.execute(
+            select(func.count(Food_categories.id)).where(Food_categories.restaurant_id == restaurant.id)
+        )
+        cat_count = int(cat_res.scalar() or 0)
+
+        complete = (
+            count >= MIN_COMPLETE_ITEMS
+            and cat_count >= MIN_COMPLETE_CATEGORIES
+        )
+        if complete and not force:
+            logger.info(
+                "DAM ALEM catalog complete (%d items, %d categories); seed skipped",
+                count,
+                cat_count,
+            )
             return None
+        if count > 0 and not force:
+            logger.warning(
+                "DAM ALEM catalog incomplete (%d/%d items, %d/%d categories); re-seeding",
+                count,
+                EXPECTED_ITEM_COUNT,
+                cat_count,
+                EXPECTED_CATEGORY_COUNT,
+            )
         return await seed_dam_alem_catalog(db, replace=True)

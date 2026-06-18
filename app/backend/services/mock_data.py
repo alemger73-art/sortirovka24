@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from core.database import db_manager
-from sqlalchemy import Boolean, Date, DateTime, Integer, MetaData, Numeric, Table, func, select
+from sqlalchemy import Boolean, Date, DateTime, Integer, MetaData, Numeric, String, Table, Text, func, select
 from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
 
 logger = logging.getLogger(__name__)
@@ -140,6 +140,9 @@ def _coerce_value(value: Any, column) -> Any:
         if "json" in visit_name:
             return value
         return json.dumps(value, ensure_ascii=False)
+
+    if isinstance(value, (int, float)) and isinstance(column.type, (String, Text)):
+        return str(value)
 
     return value
 
