@@ -27,16 +27,28 @@ export const DEFAULT_STORE: [number, number] = [49.9774, 73.2137];
 
 export const ZONE_COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-export function parseDeliveryZones(raw: string | undefined): DeliveryZone[] {
+export function parseDeliveryZones(
+  raw: string | undefined,
+  storeLat = DEFAULT_STORE[0],
+  storeLng = DEFAULT_STORE[1],
+): DeliveryZone[] {
   if (!raw) return [];
   try {
     const data = JSON.parse(raw);
     if (!Array.isArray(data)) return [];
     return data
       .map((item, idx) => {
-        const polygon = (item.polygon || [])
+        let polygon = (item.polygon || [])
           .filter((p: unknown) => Array.isArray(p) && p.length >= 2)
           .map((p: number[]) => [Number(p[0]), Number(p[1])] as [number, number]);
+        if (polygon.length < 3) {
+          const radiusKm = Number(item.radius_km) || 0;
+          if (radiusKm > 0) {
+            const cLat = Number(item.center_lat) || storeLat;
+            const cLng = Number(item.center_lng) || storeLng;
+            polygon = circlePolygon(cLat, cLng, radiusKm);
+          }
+        }
         if (polygon.length < 3) return null;
         return {
           id: String(item.id || `zone-${idx + 1}`),
@@ -51,6 +63,20 @@ export function parseDeliveryZones(raw: string | undefined): DeliveryZone[] {
   } catch {
     return [];
   }
+}
+
+function circlePolygon(lat: number, lng: number, radiusKm: number, points = 24): [number, number][] {
+  const coords: [number, number][] = [];
+  const latRad = (lat * Math.PI) / 180;
+  const kmPerDegLat = 111;
+  const kmPerDegLng = Math.max(111 * Math.cos(latRad), 1e-6);
+  for (let i = 0; i < points; i++) {
+    const angle = (2 * Math.PI * i) / points;
+    const dLat = (radiusKm * Math.sin(angle)) / kmPerDegLat;
+    const dLng = (radiusKm * Math.cos(angle)) / kmPerDegLng;
+    coords.push([lat + dLat, lng + dLng]);
+  }
+  return coords;
 }
 
 export function serializeDeliveryZones(zones: DeliveryZone[]): string {

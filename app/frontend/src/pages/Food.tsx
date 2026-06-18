@@ -29,7 +29,7 @@ import {
   clearFoodCartStorage,
   FOOD_MENU_VERSION_KEY,
 } from '@/lib/foodCartStorage';
-import { parseDeliveryZones, type DeliveryZone } from '@/lib/gastronomDelivery';
+import { parseDeliveryZones, DEFAULT_STORE, type DeliveryZone } from '@/lib/gastronomDelivery';
 import { fetchFoodDeliveryQuote, validateFoodPromo, type FoodDeliveryQuote } from '@/lib/foodDeliveryApi';
 import {
   isLoyaltyEnabled,
@@ -474,10 +474,18 @@ export default function Food() {
     }
   }
 
-  // Parse delivery zones from settings (polygon map zones)
+  // Parse delivery zones (polygon + legacy radius_km)
+  const storeLatNum = useMemo(
+    () => parseFloat(settings.store_lat || '') || DEFAULT_STORE[0],
+    [settings.store_lat],
+  );
+  const storeLngNum = useMemo(
+    () => parseFloat(settings.store_lng || '') || DEFAULT_STORE[1],
+    [settings.store_lng],
+  );
   const mapDeliveryZones: DeliveryZone[] = useMemo(
-    () => parseDeliveryZones(settings.delivery_zones),
-    [settings.delivery_zones],
+    () => parseDeliveryZones(settings.delivery_zones, storeLatNum, storeLngNum),
+    [settings.delivery_zones, storeLatNum, storeLngNum],
   );
   const hasDeliveryZones = mapDeliveryZones.length > 0;
 
@@ -631,8 +639,6 @@ export default function Food() {
 
   const kitchenStatus = useMemo(() => isKitchenOpen(settings), [settings]);
   const deliveryTimeLabel = settings.delivery_time || brandProfile?.delivery_time || '35–45 мин';
-  const storeLatNum = parseFloat(settings.store_lat || '') || undefined;
-  const storeLngNum = parseFloat(settings.store_lng || '') || undefined;
 
   const promoDiscountAmount = appliedPromo?.discount ?? 0;
   const promoFreeDelivery = appliedPromo?.free_delivery ?? false;
@@ -753,11 +759,12 @@ export default function Food() {
   }, [deliveryMethod, promoFreeDelivery, cartTotal, freeDeliveryFrom, hasDeliveryZones, deliveryQuote, settings.delivery_price]);
 
   const deliveryReady =
-    !hasDeliveryZones
+    deliveryMethod !== 'delivery'
     || (
       deliveryQuote?.available === true
       && !deliveryQuote?.location_warning
       && !deliveryQuoteLoading
+      && !!(deliveryQuote.display_address || effectiveAddress.trim())
     );
 
   const apartmentDeliveryFee = useMemo(
@@ -954,13 +961,8 @@ export default function Food() {
 
     if (!customerName.trim()) { toast.error('Заполните имя'); return; }
     if (deliveryMethod === 'delivery') {
-      if (hasDeliveryZones) {
-        if (!deliveryReady || !effectiveAddress.trim()) {
-          toast.error('Подтвердите адрес доставки на карте');
-          return;
-        }
-      } else if (!street.trim() || !house.trim()) {
-        toast.error('Укажите улицу и дом');
+      if (!deliveryReady) {
+        toast.error('Укажите адрес: «Я здесь сейчас» или «Найти на карте»');
         return;
       }
       if (deliverToApartment && !apartment.trim()) {
@@ -972,9 +974,7 @@ export default function Food() {
     const aptPart = apartment.trim() ? `, кв. ${apartment.trim()}` : '';
     const toAptNote = deliverToApartment ? ' (до квартиры)' : ' (до подъезда)';
     const fullAddress = deliveryMethod === 'delivery'
-      ? hasDeliveryZones
-        ? `${deliveryQuote?.display_address || effectiveAddress}${aptPart}${toAptNote}`
-        : `${street}, д. ${house}${aptPart}${toAptNote}`
+      ? `${deliveryQuote?.display_address || effectiveAddress}${aptPart}${toAptNote}`
       : '';
 
     const aptFeeNote = deliverToApartment ? `\n🚪 Доставка до квартиры: +${APARTMENT_DELIVERY_FEE} ₸` : '';
@@ -1452,7 +1452,7 @@ export default function Food() {
             </div>
           )}
 
-          {hasDeliveryZones && (
+          {deliveryMethod !== 'pickup' && (
             <div className="rounded-2xl border border-orange-100 bg-white p-4 shadow-sm space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-bold text-[#111111] flex items-center gap-2">
@@ -2043,7 +2043,7 @@ export default function Food() {
                   />
                 )}
 
-                {deliveryMethod === 'delivery' && hasDeliveryZones && (
+                {deliveryMethod === 'delivery' && (
                   <div className="space-y-3">
                     <SavedAddressBar
                       currentAddress={deliveryAddress}
@@ -2102,44 +2102,17 @@ export default function Food() {
                   {/* Address fields */}
                   {deliveryMethod === 'delivery' && (
                     <>
-                      {!hasDeliveryZones && (
-                        <>
-                          <div>
-                            <label className="text-xs font-semibold text-gray-500 mb-1 block">Улица *</label>
-                            <Input value={street} onChange={e => setStreet(e.target.value)} placeholder="Название улицы" className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]" />
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="text-xs font-semibold text-gray-500 mb-1 block">Дом *</label>
-                              <Input value={house} onChange={e => setHouse(e.target.value)} placeholder="Номер дома" className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]" />
-                            </div>
-                            <div>
-                              <label className="text-xs font-semibold text-gray-500 mb-1 block">
-                                Квартира{deliverToApartment ? ' *' : ''}
-                              </label>
-                              <Input
-                                value={apartment}
-                                onChange={e => setApartment(e.target.value)}
-                                placeholder={deliverToApartment ? 'Номер квартиры' : 'Необязательно'}
-                                className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]"
-                              />
-                            </div>
-                          </div>
-                        </>
-                      )}
-                      {hasDeliveryZones && (
-                        <div>
-                          <label className="text-xs font-semibold text-gray-500 mb-1 block">
-                            Квартира / подъезд{deliverToApartment ? ' *' : ''}
-                          </label>
-                          <Input
-                            value={apartment}
-                            onChange={e => setApartment(e.target.value)}
-                            placeholder={deliverToApartment ? 'Номер квартиры, этаж, домофон' : 'Необязательно'}
-                            className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]"
-                          />
-                        </div>
-                      )}
+                      <div>
+                        <label className="text-xs font-semibold text-gray-500 mb-1 block">
+                          Квартира / подъезд{deliverToApartment ? ' *' : ''}
+                        </label>
+                        <Input
+                          value={apartment}
+                          onChange={e => setApartment(e.target.value)}
+                          placeholder={deliverToApartment ? 'Номер квартиры, этаж, домофон' : 'Необязательно'}
+                          className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]"
+                        />
+                      </div>
                       <label className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
                         <input
                           type="checkbox"
@@ -2308,7 +2281,7 @@ export default function Food() {
                     submitting
                     || !kitchenStatus.open
                     || cartTotal < minOrder
-                    || (deliveryMethod === 'delivery' && hasDeliveryZones && !deliveryReady)
+                    || (deliveryMethod === 'delivery' && !deliveryReady)
                   }
                   className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#FF3B30] text-base font-bold text-white shadow-lg shadow-[#FF3B30]/20 transition-all hover:bg-[#E6352B] active:scale-[0.98] disabled:opacity-60"
                 >

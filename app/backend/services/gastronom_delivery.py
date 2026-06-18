@@ -32,6 +32,22 @@ def _parse_float(value: Any, default: float = 0.0) -> float:
         return default
 
 
+def _circle_polygon(lat: float, lng: float, radius_km: float, points: int = 24) -> List[List[float]]:
+    """Approximate a circle as a polygon for map display and point-in-polygon checks."""
+    if radius_km <= 0:
+        return []
+    coords: List[List[float]] = []
+    lat_rad = math.radians(lat)
+    km_per_deg_lat = 111.0
+    km_per_deg_lng = max(111.0 * math.cos(lat_rad), 1e-6)
+    for i in range(points):
+        angle = 2 * math.pi * i / points
+        d_lat = (radius_km * math.sin(angle)) / km_per_deg_lat
+        d_lng = (radius_km * math.cos(angle)) / km_per_deg_lng
+        coords.append([lat + d_lat, lng + d_lng])
+    return coords
+
+
 def parse_delivery_zones(settings: Dict[str, str]) -> List[Dict[str, Any]]:
     raw = settings.get("delivery_zones") or "[]"
     try:
@@ -40,17 +56,23 @@ def parse_delivery_zones(settings: Dict[str, str]) -> List[Dict[str, Any]]:
         return []
     if not isinstance(data, list):
         return []
+    store_lat, store_lng = get_store_coords(settings)
     zones: List[Dict[str, Any]] = []
     for idx, item in enumerate(data):
         if not isinstance(item, dict):
             continue
-        polygon = item.get("polygon") or []
-        if not isinstance(polygon, list) or len(polygon) < 3:
-            continue
+        polygon_raw = item.get("polygon") or []
         coords: List[List[float]] = []
-        for pt in polygon:
-            if isinstance(pt, (list, tuple)) and len(pt) >= 2:
-                coords.append([float(pt[0]), float(pt[1])])
+        if isinstance(polygon_raw, list) and len(polygon_raw) >= 3:
+            for pt in polygon_raw:
+                if isinstance(pt, (list, tuple)) and len(pt) >= 2:
+                    coords.append([float(pt[0]), float(pt[1])])
+        if len(coords) < 3:
+            radius_km = _parse_float(item.get("radius_km"), 0)
+            if radius_km > 0:
+                center_lat = _parse_float(item.get("center_lat"), store_lat)
+                center_lng = _parse_float(item.get("center_lng"), store_lng)
+                coords = _circle_polygon(center_lat, center_lng, radius_km)
         if len(coords) < 3:
             continue
         zones.append({
@@ -60,6 +82,7 @@ def parse_delivery_zones(settings: Dict[str, str]) -> List[Dict[str, Any]]:
             "color": str(item.get("color") or ZONE_COLORS[idx % len(ZONE_COLORS)]),
             "sort_order": int(item.get("sort_order") or idx + 1),
             "polygon": coords,
+            "radius_km": _parse_float(item.get("radius_km"), 0) or None,
         })
     zones.sort(key=lambda z: z.get("sort_order", 0))
     return zones

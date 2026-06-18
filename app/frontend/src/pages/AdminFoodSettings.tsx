@@ -218,7 +218,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
 
 
-      setDeliveryZones(parseDeliveryZones(vals.delivery_zones));
+      setDeliveryZones(parseDeliveryZones(vals.delivery_zones, storeLat, storeLng));
 
       setStoreLat(parseFloat(vals.store_lat || '') || DEFAULT_STORE[0]);
 

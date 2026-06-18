@@ -98,24 +98,6 @@ export default function DeliveryAddressPicker({
   const confirmed = deliveryQuote?.available === true && !hasLocationWarning;
   const failed = !loading && (error || hasLocationWarning || (deliveryQuote && !deliveryQuote.available));
 
-  if (!hasDeliveryZones) {
-    if (variant === 'compact') return null;
-    return (
-      <div className="rounded-2xl border border-gray-100 bg-white p-4 space-y-2">
-        <p className={`text-sm font-semibold text-gray-900 flex items-center gap-2`}>
-          <MapPin className={`h-4 w-4 ${s.icon}`} />
-          Адрес доставки
-        </p>
-        <Input
-          value={address}
-          onChange={(e) => onAddressChange(e.target.value)}
-          placeholder="Улица, дом, квартира"
-          className="rounded-xl h-11"
-        />
-      </div>
-    );
-  }
-
   if (variant === 'compact') {
     if (confirmed && deliveryQuote) {
       return (
