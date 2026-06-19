@@ -1,5 +1,6 @@
 import { ChevronRight } from 'lucide-react';
 import { getCategoryVisual } from '@/lib/damAlemImages';
+import DamAlemImage from '@/components/damalem/DamAlemImage';
 
 export interface CategoryGridItem {
   slug: string;
@@ -39,11 +40,10 @@ export default function DamAlemCategoryGrid({
               className="dam-cat-tile group"
               style={{ animationDelay: `${idx * 40}ms` }}
             >
-              <img
+              <DamAlemImage
                 src={visual.image}
                 alt=""
                 className="dam-cat-tile__photo"
-                loading="lazy"
               />
               <div
                 className="dam-cat-tile__overlay"

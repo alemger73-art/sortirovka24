@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import type { MarketingStory } from '@/lib/damAlemMarketing';
+import DamAlemImage from '@/components/damalem/DamAlemImage';
 
 interface Props {
   stories: MarketingStory[];
@@ -41,7 +42,7 @@ export default function DamAlemStories({ stories, onCta }: Props) {
             >
               <span className="dam-story-ring">
                 <span className="dam-story-thumb">
-                  <img src={s.image} alt="" />
+                  <DamAlemImage src={s.image} alt="" className="h-full w-full object-cover" />
                   <span className="dam-story-thumb__emoji">{s.emoji}</span>
                 </span>
               </span>

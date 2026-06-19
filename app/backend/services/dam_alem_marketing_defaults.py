@@ -5,15 +5,15 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List
 
-# Unsplash food photos (stable URLs)
+# Verified working food photos (Unsplash + project CDN)
 _IMG = {
     "pizza": "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600&q=80",
-    "doner": "https://images.unsplash.com/photo-1529008753430-535306148772?auto=format&fit=crop&w=600&q=80",
-    "burger": "https://images.unsplash.com/photo-1568903907330-fce2b097de2d?auto=format&fit=crop&w=600&q=80",
-    "combo": "https://images.unsplash.com/photo-1546837220-16e577a10b64?auto=format&fit=crop&w=600&q=80",
-    "shake": "https://images.unsplash.com/photo-1572495617767-c9a8dd371921?auto=format&fit=crop&w=600&q=80",
-    "fries": "https://images.unsplash.com/photo-1573080496219-bb080dd94537?auto=format&fit=crop&w=600&q=80",
-    "lemonade": "https://images.unsplash.com/photo-1621263764928-df1444446000?auto=format&fit=crop&w=600&q=80",
+    "doner": "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?auto=format&fit=crop&w=600&q=80",
+    "burger": "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=600&q=80",
+    "combo": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&q=80",
+    "shake": "https://images.unsplash.com/photo-1551024506-0bccd828d307?auto=format&fit=crop&w=600&q=80",
+    "fries": "https://images.unsplash.com/photo-1600891964092-4316c288032e?auto=format&fit=crop&w=600&q=80",
+    "lemonade": "https://images.unsplash.com/photo-1590301157890-4810ed352733?auto=format&fit=crop&w=600&q=80",
     "family": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&q=80",
     "hero": "https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-15/fe194ca1-0095-44bf-a906-e50cb844ad56.png",
 }

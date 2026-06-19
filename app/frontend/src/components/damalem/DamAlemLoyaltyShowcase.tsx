@@ -2,6 +2,7 @@ import { Gift, Sparkles } from 'lucide-react';
 import { resolveImageSrc } from '@/lib/storage';
 import type { LoyaltyGift } from '@/lib/gastronomLoyalty';
 import { formatMoney } from '@/lib/gastronomLoyalty';
+import DamAlemImage from '@/components/damalem/DamAlemImage';
 
 interface Props {
   gifts: LoyaltyGift[];
@@ -30,7 +31,11 @@ export default function DamAlemLoyaltyShowcase({ gifts, formatPrice = formatMone
           {active.map((g, i) => (
             <article key={g.id} className="dam-loyalty-tier shrink-0" style={{ animationDelay: `${i * 60}ms` }}>
               {g.image_url ? (
-                <img src={resolveImageSrc(g.image_url) || g.image_url} alt="" className="dam-loyalty-tier__img" />
+                <DamAlemImage
+                  src={resolveImageSrc(g.image_url) || g.image_url}
+                  alt=""
+                  className="dam-loyalty-tier__img"
+                />
               ) : (
                 <span className="dam-loyalty-tier__emoji">🎁</span>
               )}

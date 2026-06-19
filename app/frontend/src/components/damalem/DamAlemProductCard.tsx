@@ -1,4 +1,5 @@
 import { Heart, Minus, Plus } from 'lucide-react';
+import DamAlemImage from '@/components/damalem/DamAlemImage';
 
 export interface DamAlemProductCardProps {
   name: string;
@@ -39,7 +40,7 @@ export default function DamAlemProductCard({
     return (
       <article className="dam-product-card dam-animate-in">
         <button type="button" className="dam-product-card__media" onClick={onOpen} aria-label={name}>
-          <img src={imageUrl} alt="" loading="lazy" />
+          <DamAlemImage src={imageUrl} alt="" className="h-full w-full object-cover" />
           {onToggleFavorite && (
             <span
               role="button"
@@ -69,7 +70,7 @@ export default function DamAlemProductCard({
   return (
     <article className="dam-grid-card dam-animate-in">
       <button type="button" className="dam-grid-card__media" onClick={onOpen} aria-label={name}>
-        <img src={imageUrl} alt="" loading="lazy" />
+        <DamAlemImage src={imageUrl} alt="" className="h-full w-full object-cover" />
         {badge === 'hit' ? <span className="dam-grid-card__badge dam-grid-card__badge--hit">Хит</span> : null}
         {badge === 'new' ? <span className="dam-grid-card__badge dam-grid-card__badge--new">New</span> : null}
         {onToggleFavorite ? (

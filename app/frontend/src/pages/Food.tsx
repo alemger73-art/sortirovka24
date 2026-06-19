@@ -57,6 +57,7 @@ import DamAlemLoyaltyShowcase from '@/components/damalem/DamAlemLoyaltyShowcase'
 import DamAlemFreeDeliveryBanner from '@/components/damalem/DamAlemFreeDeliveryBanner';
 import DamAlemShareCard from '@/components/damalem/DamAlemShareCard';
 import { resolveDamAlemItemImage, getCategoryImage } from '@/lib/damAlemImages';
+import DamAlemImage from '@/components/damalem/DamAlemImage';
 import { buildMarketingStories, resolvePromoCodes } from '@/lib/damAlemMarketing';
 import DamAlemPageSkeleton from '@/components/damalem/DamAlemPageSkeleton';
 import '@/styles/damAlem.css';
@@ -1640,7 +1641,7 @@ export default function Food() {
 
               {selectedCategorySlug !== 'all' && !searchQuery.trim() ? (
                 <div className="relative h-32 overflow-hidden rounded-2xl">
-                  <img
+                  <DamAlemImage
                     src={getCategoryImage(selectedCategorySlug)}
                     alt=""
                     className="h-full w-full object-cover"
@@ -1717,7 +1718,7 @@ export default function Food() {
             >
               <div className="bg-white px-3 pb-1 pt-3 sm:rounded-t-[22px]">
                 <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-[#ECECEC]">
-                  <img src={getItemImage(selectedItem)} alt={selectedItem.name} className="h-full w-full object-cover" />
+                  <DamAlemImage src={getItemImage(selectedItem)} alt={selectedItem.name} className="h-full w-full object-cover" />
                   {selectedItemBadge && (
                     <span className="absolute left-3 top-3">
                       <FoodBadge type={selectedItemBadge} />
@@ -1876,7 +1877,7 @@ export default function Food() {
                       </button>
                       <div className="flex gap-3 pr-8">
                         <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full bg-[#F0F0F0] ring-1 ring-gray-100">
-                          <img src={getItemImage(ci.item)} alt={ci.item.name} className="h-full w-full object-cover" />
+                          <DamAlemImage src={getItemImage(ci.item)} alt={ci.item.name} className="h-full w-full object-cover" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <h4 className="text-sm font-bold leading-snug text-[#111111] line-clamp-2">{ci.item.name}</h4>
@@ -1912,7 +1913,7 @@ export default function Food() {
                       {cartSuggestions.map(item => (
                         <div key={item.id} className="w-[132px] shrink-0 overflow-hidden rounded-2xl bg-white ring-1 ring-gray-100/80">
                           <div className="aspect-square overflow-hidden bg-[#F0F0F0]">
-                            <img src={getItemImage(item)} alt={item.name} className="h-full w-full object-cover" />
+                            <DamAlemImage src={getItemImage(item)} alt={item.name} className="h-full w-full object-cover" />
                           </div>
                           <div className="p-2.5">
                             <p className="text-xs font-bold leading-tight text-[#111111] line-clamp-2">{item.name}</p>

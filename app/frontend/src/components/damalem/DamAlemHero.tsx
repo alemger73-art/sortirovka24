@@ -1,6 +1,8 @@
 import { Clock, ShoppingBag, Star, Truck } from 'lucide-react';
 import { DAM_ALEM_BRAND, DAM_ALEM_HERO_FALLBACK } from '@/lib/damAlem';
 import { resolveImageSrc } from '@/lib/storage';
+import DamAlemImage from '@/components/damalem/DamAlemImage';
+import { DAM_ALEM_CDN } from '@/lib/damAlemImages';
 
 interface PromoSlide {
   title: string;
@@ -50,7 +52,13 @@ export default function DamAlemHero({
   return (
     <section className="relative mx-auto max-w-lg overflow-hidden md:max-w-3xl lg:max-w-5xl">
       <div className="relative aspect-[16/10] min-h-[220px] max-h-[320px] sm:aspect-[21/9]">
-        <img src={bg} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <DamAlemImage
+          src={bg}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+          loading="eager"
+          fallbacks={[DAM_ALEM_CDN.hero, DAM_ALEM_CDN.food]}
+        />
         <div className="dam-hero-gradient absolute inset-0" />
         <div className="pointer-events-none absolute -left-24 top-0 h-64 w-64 rounded-full bg-[#FF3B30]/25 blur-3xl" />
 

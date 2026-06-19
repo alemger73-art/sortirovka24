@@ -2,503 +2,634 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Sortirovka24 — Презентация</title>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <title>Sortirovka24 — Полная презентация проекта</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --navy: #0B0F19; --navy2: #141B2D; --blue: #2563EB; --yellow: #FACC15;
-      --green: #22C55E; --white: #fff; --muted: #94A3B8;
-      --slide-w: 297mm; --slide-h: 210mm;
+      --navy:#060912; --navy2:#0B0F19; --navy3:#141B2D;
+      --blue:#2563EB; --blue-g:#3B82F6;
+      --gold:#FACC15; --gold2:#FDE047;
+      --green:#22C55E; --red:#EF4444;
+      --muted:#94A3B8; --text:#E2E8F0;
+      --sw:297mm; --sh:210mm;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Outfit', system-ui, sans-serif;
-      background: #0f172a; color: var(--white);
-      -webkit-print-color-adjust: exact; print-color-adjust: exact;
-    }
-    .slide {
-      width: var(--slide-w); min-height: var(--slide-h);
-      margin: 0 auto 20px; padding: 36px 44px;
-      position: relative; overflow: hidden;
-      page-break-after: always; break-after: page;
-    }
-    @page { size: A4 landscape; margin: 0; }
-    @media print {
-      body { background: #000; }
-      .no-print { display: none !important; }
-      .slide { margin: 0; }
-    }
-    @media screen {
-      body { padding: 50px 0; }
-      .slide { box-shadow: 0 40px 100px rgba(0,0,0,.55); }
-    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Outfit',system-ui,sans-serif;background:#020617;color:#fff;
+      -webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .slide{width:var(--sw);min-height:var(--sh);margin:0 auto 16px;padding:32px 40px;
+      position:relative;overflow:hidden;page-break-after:always;break-after:page}
+    @page{size:A4 landscape;margin:0}
+    @media print{.no-print{display:none!important}.slide{margin:0}}
+    @media screen{body{padding:40px 0}.slide{box-shadow:0 50px 120px rgba(0,0,0,.6)}}
 
-    .bg-hero {
-      background:
-        radial-gradient(ellipse 80% 60% at 70% 40%, rgba(37,99,235,.45) 0%, transparent 55%),
-        radial-gradient(ellipse 50% 50% at 20% 80%, rgba(250,204,21,.12) 0%, transparent 50%),
-        linear-gradient(145deg, #060912 0%, var(--navy) 40%, #1a2744 100%);
-    }
-    .bg-dark { background: linear-gradient(160deg, var(--navy) 0%, var(--navy2) 100%); }
-    .bg-warm {
-      background:
-        radial-gradient(circle at 85% 20%, rgba(250,204,21,.18) 0%, transparent 40%),
-        linear-gradient(135deg, #1a1208 0%, var(--navy) 50%, #0f1a30 100%);
-    }
-    .bg-light {
-      background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
-      color: #0f172a;
-    }
+    /* BG variants */
+    .bg-void{background:radial-gradient(ellipse 100% 80% at 50% 0%,rgba(37,99,235,.35),transparent 50%),linear-gradient(180deg,var(--navy) 0%,#000 100%)}
+    .bg-dark{background:linear-gradient(145deg,var(--navy2),var(--navy3))}
+    .bg-gold{background:linear-gradient(135deg,#1a1508 0%,var(--navy2) 40%,#0f1a30 100%)}
+    .bg-light{background:linear-gradient(180deg,#f8fafc,#e0e7ff);color:#0f172a}
+    .bg-partner{background:radial-gradient(circle at 0% 100%,rgba(250,204,21,.15),transparent 50%),linear-gradient(160deg,#0a1628,var(--navy2))}
 
-    .glow { position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none; }
-    .glow-blue { width: 400px; height: 400px; background: rgba(37,99,235,.35); top: -100px; right: -50px; }
-    .glow-yellow { width: 300px; height: 300px; background: rgba(250,204,21,.2); bottom: -80px; left: -60px; }
+    .orb{position:absolute;border-radius:50%;filter:blur(90px);pointer-events:none}
+    .orb-b{width:500px;height:500px;background:rgba(37,99,235,.3);top:-150px;right:-100px}
+    .orb-g{width:350px;height:350px;background:rgba(250,204,21,.15);bottom:-100px;left:-80px}
 
-    .tag {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
-      padding: 6px 14px; border-radius: 999px;
-      background: rgba(250,204,21,.12); border: 1px solid rgba(250,204,21,.35); color: var(--yellow);
-    }
-    .tag-live {
-      background: rgba(34,197,94,.12); border-color: rgba(34,197,94,.4); color: #4ade80;
-    }
-    h1 { font-size: 46px; font-weight: 900; line-height: 1.02; letter-spacing: -.03em; }
-    h1 .hl { color: var(--yellow); }
-    h2 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
-    .sub { font-size: 15px; color: var(--muted); line-height: 1.55; margin-top: 12px; max-width: 420px; }
-    .bg-light .sub { color: #64748b; }
-    .footer {
-      position: absolute; bottom: 22px; left: 44px; right: 44px;
-      display: flex; justify-content: space-between; font-size: 9px; color: rgba(148,163,184,.7);
-      border-top: 1px solid rgba(255,255,255,.06); padding-top: 10px;
-    }
-    .bg-light .footer { border-color: rgba(0,0,0,.08); color: #94a3b8; }
+    /* Typography */
+    .eyebrow{font-size:9px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
+      color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+    .eyebrow::before{content:'';width:24px;height:2px;background:var(--gold)}
+    .eyebrow-blue{color:var(--blue-g)}.eyebrow-blue::before{background:var(--blue-g)}
+    .eyebrow-green{color:var(--green)}.eyebrow-green::before{background:var(--green)}
+    h1{font-size:52px;font-weight:900;line-height:.98;letter-spacing:-.03em}
+    h1 em{font-family:'Playfair Display',serif;font-style:italic;color:var(--gold)}
+    h2{font-size:28px;font-weight:800;letter-spacing:-.02em;line-height:1.12;margin-bottom:8px}
+    h3{font-size:14px;font-weight:800;margin-bottom:4px}
+    .lead{font-size:14px;line-height:1.6;color:var(--muted);max-width:92%}
+    .bg-light .lead{color:#64748b}
+    .hl{color:var(--gold)}.hl-b{color:var(--blue)}
 
-    .row { display: flex; align-items: center; gap: 32px; height: calc(100% - 50px); }
-    .col-text { flex: 0 0 38%; z-index: 2; }
-    .col-visual { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; }
+    .footer{position:absolute;bottom:18px;left:40px;right:40px;display:flex;
+      justify-content:space-between;font-size:8px;color:rgba(148,163,184,.6);
+      border-top:1px solid rgba(255,255,255,.06);padding-top:8px}
+    .bg-light .footer{border-color:rgba(0,0,0,.08);color:#94a3b8}
+    .sn{font-size:9px;font-weight:800;color:var(--gold);letter-spacing:.1em}
 
-    .devices-row { display: flex; align-items: flex-end; justify-content: center; gap: 24px; }
-    .device-label {
-      text-align: center; font-size: 10px; font-weight: 700; letter-spacing: .1em;
-      text-transform: uppercase; color: var(--muted); margin-top: 10px;
-    }
-    .screen-caption {
-      text-align: center; font-size: 9px; color: var(--muted); margin-top: 6px; opacity: .85;
-    }
+    /* Layout */
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .flex-row{display:flex;gap:24px;align-items:center;height:calc(100% - 36px)}
 
-    /* Device frames */
-    .phone {
-      width: 118px; background: #1a1a1a; border-radius: 28px; padding: 8px;
-      box-shadow: 0 30px 60px rgba(0,0,0,.5), inset 0 0 0 2px #333, 0 0 0 1px #000;
-    }
-    .phone-lg { width: 156px; border-radius: 32px; padding: 10px; }
-    .phone-xl { width: 180px; }
-    .phone-notch {
-      width: 50px; height: 14px; background: #000; border-radius: 0 0 12px 12px;
-      margin: 0 auto 4px; position: relative; z-index: 2;
-    }
-    .phone-screen, .tablet-screen, .laptop-screen {
-      overflow: hidden; background: #000; position: relative;
-    }
-    .phone-screen {
-      border-radius: 20px; aspect-ratio: 390/844;
-    }
-    .phone-lg .phone-screen { border-radius: 24px; }
+    /* Cards */
+    .glass{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+      border-radius:16px;padding:16px 18px;backdrop-filter:blur(8px)}
+    .glass-gold{border-color:rgba(250,204,21,.25);background:rgba(250,204,21,.05)}
+    .glass-green{border-color:rgba(34,197,94,.25);background:rgba(34,197,94,.05)}
+    .bg-light .glass{background:#fff;border-color:#e2e8f0;box-shadow:0 4px 24px rgba(0,0,0,.06)}
 
-    .tablet {
-      width: 220px; background: #1a1a1a; border-radius: 18px; padding: 10px;
-      box-shadow: 0 30px 60px rgba(0,0,0,.45), inset 0 0 0 2px #333;
-    }
-    .tablet-screen { border-radius: 10px; aspect-ratio: 834/1112; max-height: 200px; }
+    .stat-huge{font-size:42px;font-weight:900;color:var(--gold);line-height:1}
+    .stat-lbl{font-size:10px;color:var(--muted);margin-top:4px}
+    .bg-light .stat-huge{color:var(--blue)}
 
-    .laptop { width: 300px; }
-    .laptop-screen-wrap {
-      background: #1a1a1a; border-radius: 10px 10px 0 0; padding: 8px 8px 0;
-      box-shadow: 0 20px 50px rgba(0,0,0,.4);
-    }
-    .laptop-screen { border-radius: 6px 6px 0 0; aspect-ratio: 1280/800; }
-    .laptop-base {
-      height: 12px; background: linear-gradient(#2a2a2a, #1a1a1a);
-      border-radius: 0 0 8px 8px; margin: 0 24px;
-      box-shadow: 0 8px 20px rgba(0,0,0,.3);
-    }
-    .laptop-base::before {
-      content: ''; display: block; width: 50px; height: 3px;
-      background: #444; border-radius: 2px; margin: 4px auto 0;
-    }
+    /* Module cards */
+    .mod{border-radius:12px;padding:12px 14px;background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.07);height:100%}
+    .mod-icon{font-size:20px;margin-bottom:6px}
+    .mod h3{font-size:11px;font-weight:800;margin-bottom:4px;line-height:1.2}
+    .mod p{font-size:9px;color:var(--muted);line-height:1.45}
+    .mod .route{font-size:8px;color:var(--gold);margin-top:5px;font-weight:700;opacity:.8}
 
-    /* Real app screenshots */
-    .screen-img {
-      width: 100%; height: 100%; display: block;
-      object-fit: cover; object-position: top center;
-    }
-    .tablet-screen .screen-img { object-position: top center; }
-    .laptop-screen .screen-img { object-fit: cover; object-position: top left; }
+    /* Device + screenshot */
+    .phone{width:130px;background:#111;border-radius:26px;padding:7px;
+      box-shadow:0 24px 50px rgba(0,0,0,.55),inset 0 0 0 2px #333}
+    .phone-xl{width:155px;border-radius:30px;padding:9px}
+    .phone-h{width:44px;height:12px;background:#000;border-radius:0 0 10px 10px;margin:0 auto 3px}
+    .scr{border-radius:18px;overflow:hidden;aspect-ratio:390/844;background:#000}
+    .phone-xl .scr{border-radius:22px}
+    .scr img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+    .tablet{width:175px;background:#111;border-radius:14px;padding:8px;
+      box-shadow:0 24px 50px rgba(0,0,0,.5)}
+    .tablet .scr{border-radius:8px;aspect-ratio:834/1112;max-height:175px}
+    .laptop{width:240px}
+    .lap-wrap{background:#111;border-radius:8px 8px 0 0;padding:7px 7px 0}
+    .laptop .scr{border-radius:4px 4px 0 0;aspect-ratio:1280/800}
+    .lap-base{height:10px;background:linear-gradient(#333,#111);border-radius:0 0 6px 6px;margin:0 18px}
 
-    .hero-phones { position: relative; width: 380px; height: 340px; }
-    .hero-phones .phone { position: absolute; }
-    .hero-phones .p1 { left: 0; top: 50px; transform: rotate(-8deg); z-index: 1; }
-    .hero-phones .p2 { left: 108px; top: 0; transform: scale(1.06); z-index: 3; }
-    .hero-phones .p3 { left: 218px; top: 55px; transform: rotate(8deg); z-index: 2; }
+    /* Lists */
+    ul.tick{list-style:none}
+    ul.tick li{font-size:11px;padding:5px 0 5px 22px;position:relative;color:var(--text);line-height:1.4}
+    ul.tick li::before{content:'✦';position:absolute;left:0;color:var(--gold);font-size:10px;top:6px}
+    ul.cross li::before{content:'✕';color:var(--red)}
+    ul.check li::before{content:'✓';color:var(--green);font-weight:900}
 
-    .journey-line { display: flex; margin-top: 16px; }
-    .j-step { flex: 1; text-align: center; position: relative; padding: 0 6px; }
-    .j-step::after {
-      content: ''; position: absolute; top: 18px; left: 55%; width: 90%; height: 2px;
-      background: linear-gradient(90deg, var(--yellow), rgba(250,204,21,.2));
-    }
-    .j-step:last-child::after { display: none; }
-    .j-num {
-      width: 36px; height: 36px; border-radius: 50%; margin: 0 auto 8px;
-      background: var(--yellow); color: #111; font-weight: 900; font-size: 14px;
-      display: flex; align-items: center; justify-content: center; position: relative; z-index: 1;
-    }
-    .j-step p { font-size: 11px; color: var(--muted); line-height: 1.35; }
+    .quote{border-left:3px solid var(--gold);padding:12px 18px;margin:12px 0;
+      background:rgba(250,204,21,.05);border-radius:0 12px 12px 0;
+      font-size:13px;font-style:italic;line-height:1.55;color:var(--text)}
 
-    .emotion {
-      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
-      border-radius: 20px; padding: 18px 22px; margin-top: 16px;
-    }
-    .emotion-quote { font-size: 17px; font-weight: 600; line-height: 1.45; font-style: italic; color: #e2e8f0; }
-    .emotion-author { font-size: 12px; color: var(--yellow); margin-top: 10px; font-weight: 700; }
+    .partner-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px}
+    .partner-box{border-radius:14px;padding:16px;text-align:center}
+    .partner-box .icon{font-size:28px;margin-bottom:8px}
+    .partner-box h3{font-size:13px;margin-bottom:6px}
+    .partner-box p{font-size:10px;color:var(--muted);line-height:1.45}
 
-    .person-card {
-      display: flex; align-items: center; gap: 14px;
-      background: rgba(255,255,255,.07); border-radius: 16px; padding: 12px 16px;
-      margin-top: 14px; max-width: 320px;
-    }
-    .person-avatar {
-      width: 48px; height: 48px; border-radius: 50%;
-      background: linear-gradient(135deg, #6366f1, var(--blue));
-      display: flex; align-items: center; justify-content: center; font-size: 22px;
-    }
-    .person-card span { font-size: 11px; color: var(--muted); }
+    .timeline{display:flex;gap:8px;margin-top:12px}
+    .tl{flex:1;border-radius:10px;padding:12px;border-top:3px solid var(--gold)}
+    .tl.done{border-color:var(--green)}.tl.now{border-color:var(--gold);background:rgba(250,204,21,.06)}
+    .tl h4{font-size:11px;font-weight:800;margin-bottom:4px}
+    .tl p{font-size:9px;color:var(--muted);line-height:1.4}
 
-    .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 12px; }
-    .compare-box { border-radius: 16px; padding: 18px; }
-    .compare-bad { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25); }
-    .compare-good { background: rgba(34,197,94,.08); border: 1px solid rgba(34,197,94,.25); }
-    .compare-box h3 { font-size: 14px; margin-bottom: 10px; }
-    .compare-bad h3 { color: #f87171; }
-    .compare-good h3 { color: #4ade80; }
-    .compare-box li {
-      font-size: 11px; color: #cbd5e1; margin-bottom: 5px;
-      list-style: none; padding-left: 16px; position: relative;
-    }
-    .compare-bad li::before { content: '✕'; position: absolute; left: 0; color: #f87171; }
-    .compare-good li::before { content: '✓'; position: absolute; left: 0; color: #4ade80; font-weight: 800; }
+    .section-num{font-size:80px;font-weight:900;color:rgba(250,204,21,.08);
+      position:absolute;right:40px;top:20px;line-height:1}
 
-    .big-stat-row { display: flex; gap: 24px; margin-top: 20px; }
-    .big-stat b { display: block; font-size: 36px; font-weight: 900; color: var(--yellow); }
-    .big-stat span { font-size: 11px; color: var(--muted); }
-    .stars { color: var(--yellow); font-size: 14px; letter-spacing: 2px; }
-
-    .gallery { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 16px; }
-    .gallery-item {
-      border-radius: 12px; overflow: hidden;
-      border: 2px solid rgba(255,255,255,.1);
-      box-shadow: 0 8px 24px rgba(0,0,0,.3);
-    }
-    .gallery-item img { width: 100%; aspect-ratio: 390/844; object-fit: cover; object-position: top; display: block; }
-    .gallery-item span {
-      display: block; font-size: 8px; text-align: center; padding: 4px;
-      background: rgba(0,0,0,.5); color: var(--muted);
-    }
-
-    .print-bar {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
-      background: var(--yellow); color: #111; text-align: center;
-      padding: 8px; font-size: 12px; font-weight: 700;
-    }
+    .print-bar{position:fixed;top:0;left:0;right:0;z-index:999;background:var(--gold);
+      color:#111;text-align:center;padding:7px;font-size:11px;font-weight:800}
+    .tag-pill{display:inline-block;font-size:8px;font-weight:800;padding:3px 8px;
+      border-radius:999px;background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.3)}
   </style>
 </head>
 <body>
+<div class="print-bar no-print">Ctrl+P → PDF · Альбомная · Фоновая графика · 24 слайда</div>
 
-<div class="print-bar no-print">Реальные скриншоты prod · Ctrl+P → PDF · Фоновая графика ON</div>
-
-<!-- 1 COVER -->
-<section class="slide bg-hero">
-  <div class="glow glow-blue"></div>
-  <div class="glow glow-yellow"></div>
-  <div class="row">
-    <div class="col-text">
-      <div class="tag tag-live">● Реальное приложение · prod</div>
-      <h1 style="margin-top:16px">Жизнь района<br>в <span class="hl">одном</span><br>приложении</h1>
-      <p class="sub">Sortirovka24 — супер-app для соседей. Ниже — настоящие экраны с sortirovka24-production, как в APK и PWA.</p>
-      <div class="big-stat-row">
-        <div class="big-stat"><b>17+</b><span>сервисов</span></div>
-        <div class="big-stat"><b>2</b><span>языка</span></div>
-        <div class="big-stat"><b>1</b><span>аккаунт</span></div>
+<!-- S01 COVER -->
+<section class="slide bg-void">
+  <div class="orb orb-b"></div><div class="orb orb-g"></div>
+  <div class="flex-row">
+    <div style="flex:0 0 48%;z-index:2">
+      <div class="eyebrow">Караганда · микрорайон Сортировка · 2026</div>
+      <h1 style="margin-top:8px">Цифровая<br><em>экосистема</em><br>района</h1>
+      <p class="lead" style="margin-top:16px;max-width:400px">Sortirovka24 — не «ещё одно приложение». Это локальная инфраструктура для <strong style="color:#fff">30+ тысяч соседей</strong>: еда, такси, ЖКХ, бизнес и community — в одном месте, на русском и казахском.</p>
+      <div style="display:flex;gap:28px;margin-top:28px">
+        <div><div class="stat-huge">17+</div><div class="stat-lbl">модулей</div></div>
+        <div><div class="stat-huge">3</div><div class="stat-lbl">платформы</div></div>
+        <div><div class="stat-huge">1</div><div class="stat-lbl">аккаунт</div></div>
+        <div><div class="stat-huge">2</div><div class="stat-lbl">языка</div></div>
       </div>
+      <p style="margin-top:20px;font-size:10px;color:var(--muted)">kz.sortirovka24.app · Web · PWA · Android · Admin APK</p>
     </div>
-    <div class="col-visual">
-      <div class="hero-phones">
-        <div class="phone phone-lg p1">
-          <div class="phone-notch"></div>
-          <div class="phone-screen"><img class="screen-img" src="screenshots/mobile-home.png" alt="Главная" /></div>
-        </div>
-        <div class="phone phone-lg p2">
-          <div class="phone-notch"></div>
-          <div class="phone-screen"><img class="screen-img" src="screenshots/mobile-food.png" alt="DAM ALEM" /></div>
-        </div>
-        <div class="phone phone-lg p3">
-          <div class="phone-notch"></div>
-          <div class="phone-screen"><img class="screen-img" src="screenshots/mobile-taxi.png" alt="Такси" /></div>
-        </div>
-      </div>
+    <div style="flex:1;display:flex;justify-content:center;align-items:center;gap:12px">
+      <div class="phone phone-xl" style="transform:rotate(-6deg)"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-home.png" alt=""/></div></div>
+      <div class="phone phone-xl" style="transform:scale(1.08);z-index:2"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-food.png" alt=""/></div></div>
+      <div class="phone phone-xl" style="transform:rotate(6deg)"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-taxi.png" alt=""/></div></div>
     </div>
   </div>
-  <div class="footer"><span>Sortirovka24 · kz.sortirovka24.app</span><span>1 / 10</span></div>
+  <div class="footer"><span>SORTIROVKA 24 · Полная презентация</span><span class="sn">01 / 24</span></div>
 </section>
 
-<!-- 2 DEVICES -->
-<section class="slide bg-dark">
-  <div class="glow glow-blue" style="left:-100px;top:50%"></div>
-  <div style="text-align:center;margin-bottom:4px">
-    <div class="tag tag-live" style="margin-bottom:10px">Скриншоты с production</div>
-    <h2>Телефон · Планшет · Компьютер</h2>
-    <p class="sub" style="margin:8px auto 0;max-width:540px">Один и тот же Sortirovka24 — адаптивный интерфейс. Снимки сделаны с живого сервера, как видит пользователь.</p>
-  </div>
-  <div class="devices-row" style="margin-top:16px">
+<!-- S02 WHY SORTIROVKA -->
+<section class="slide bg-gold">
+  <div class="section-num">01</div>
+  <div class="eyebrow">Зачем это Сортировке</div>
+  <h2>Почему именно наш район<br>нуждался в <span class="hl">своём</span> приложении</h2>
+  <div class="grid2" style="margin-top:16px">
     <div>
-      <div class="phone phone-lg phone-xl">
-        <div class="phone-notch"></div>
-        <div class="phone-screen"><img class="screen-img" src="screenshots/mobile-home.png" alt="Mobile" /></div>
-      </div>
-      <div class="device-label">📱 iPhone / Android</div>
-      <div class="screen-caption">Главная · 390×844</div>
+      <p class="lead" style="margin-bottom:14px">Сортировка — крупный микрорайон Караганды с плотной застройкой, своим парком, локальным бизнесом (DAM ALEM, магазины, сервисы) и активным community в мессенджерах. Но информация <strong style="color:#fff">размазана</strong>: 10+ чатов, звонки, «спроси у соседа».</p>
+      <div class="quote">«Мы делаем не маркетплейс для всего Казахстана — мы делаем цифровой дом для своих»</div>
     </div>
-    <div>
-      <div class="tablet">
-        <div class="tablet-screen"><img class="screen-img" src="screenshots/tablet-home.png" alt="Tablet" /></div>
-      </div>
-      <div class="device-label">📲 iPad / планшет</div>
-      <div class="screen-caption">Главная · 834×1112</div>
-    </div>
-    <div>
-      <div class="laptop">
-        <div class="laptop-screen-wrap">
-          <div class="laptop-screen"><img class="screen-img" src="screenshots/desktop-home.png" alt="Desktop" /></div>
-        </div>
-        <div class="laptop-base"></div>
-      </div>
-      <div class="device-label">💻 Браузер / PWA</div>
-      <div class="screen-caption">Главная · 1280×800</div>
-    </div>
-  </div>
-  <div class="footer"><span>sortirovka24-production.up.railway.app</span><span>2 / 10</span></div>
-</section>
-
-<!-- 3 STORY HOME -->
-<section class="slide bg-warm">
-  <div class="row">
-    <div class="col-text">
-      <div class="tag">Шаг 1 · Главная</div>
-      <h2 style="margin-top:14px">Утро.<br>Открыла приложение ☀️</h2>
-      <p class="sub">Реальный экран главной: сервисы района, погода, быстрые действия — всё на одном экране.</p>
-      <div class="person-card">
-        <div class="person-avatar">👩</div>
-        <div><b>Айгуль, жительница Сортировки</b><br><span>«Вижу всё сразу — не листаю чаты»</span></div>
-      </div>
-      <div class="journey-line">
-        <div class="j-step"><div class="j-num">1</div><p>Главная</p></div>
-        <div class="j-step"><div class="j-num">2</div><p>Еда</p></div>
-        <div class="j-step"><div class="j-num">3</div><p>Такси</p></div>
-        <div class="j-step"><div class="j-num">4</div><p>Кабинет</p></div>
-      </div>
-    </div>
-    <div class="col-visual">
-      <div class="phone phone-xl">
-        <div class="phone-notch"></div>
-        <div class="phone-screen"><img class="screen-img" src="screenshots/mobile-home.png" alt="Главная" /></div>
-      </div>
-    </div>
-  </div>
-  <div class="footer"><span>/ — Index</span><span>3 / 10</span></div>
-</section>
-
-<!-- 4 FOOD -->
-<section class="slide bg-dark">
-  <div class="row">
-    <div class="col-visual">
-      <div class="phone phone-xl" style="transform:rotate(-4deg)">
-        <div class="phone-notch"></div>
-        <div class="phone-screen"><img class="screen-img" src="screenshots/mobile-food.png" alt="Еда" /></div>
-      </div>
-      <div class="phone phone-lg" style="position:absolute;right:40px;top:70px;transform:rotate(5deg)">
-        <div class="phone-notch"></div>
-        <div class="phone-screen"><img class="screen-img" src="screenshots/mobile-food-menu.png" alt="Меню" /></div>
-      </div>
-    </div>
-    <div class="col-text">
-      <div class="tag">Шаг 2 · DAM ALEM</div>
-      <h2 style="margin-top:14px">Заказала обед 🍔</h2>
-      <p class="sub">Экраны /food и /food/restaurants — настоящее меню DAM ALEM с доставкой по району.</p>
-      <div class="emotion">
-        <p class="emotion-quote">«Меню как в приложении — не макет, а то, что жители видят каждый день»</p>
-        <p class="emotion-author">— production screenshot</p>
-      </div>
-    </div>
-  </div>
-  <div class="footer"><span>/food · /food/restaurants</span><span>4 / 10</span></div>
-</section>
-
-<!-- 5 TAXI -->
-<section class="slide bg-warm">
-  <div class="row">
-    <div class="col-text">
-      <div class="tag">Шаг 3 · Такси</div>
-      <h2 style="margin-top:14px">Вызвала машину 🚕</h2>
-      <p class="sub">Модуль такси по Сортировке — заказ и трекинг поездки в том же приложении.</p>
-      <ul style="list-style:none;margin-top:16px;font-size:13px;color:#cbd5e1;line-height:2.2">
-        <li>✅ &nbsp;Адрес откуда / куда</li>
-        <li>✅ &nbsp;Расчёт стоимости</li>
-        <li>✅ &nbsp;Водитель на карте</li>
+    <div class="glass glass-gold">
+      <h3 style="font-size:13px;margin-bottom:10px;color:var(--gold)">Что получает район</h3>
+      <ul class="tick">
+        <li>Единая точка правды — новости УК, объявления, справочник</li>
+        <li>Деньги остаются в районе — локальные кафе и магазины</li>
+        <li>Меньше хаоса в WhatsApp — официальный канал + модерация</li>
+        <li>Цифровая репутация Сортировки — современный, удобный район</li>
+        <li>Масштаб без хаоса — новый сервис = новый модуль, не новый сайт</li>
       </ul>
     </div>
-    <div class="col-visual">
-      <div class="phone phone-xl">
-        <div class="phone-notch"></div>
-        <div class="phone-screen"><img class="screen-img" src="screenshots/mobile-taxi.png" alt="Такси" /></div>
-      </div>
-    </div>
   </div>
-  <div class="footer"><span>/taxi</span><span>5 / 10</span></div>
+  <div class="footer"><span>Локальность — главный принцип</span><span class="sn">02 / 24</span></div>
 </section>
 
-<!-- 6 COMMUNITY -->
-<section class="slide bg-hero">
-  <div class="glow glow-yellow" style="right:15%;top:15%"></div>
-  <div class="row">
-    <div class="col-visual" style="flex-direction:column;gap:10px">
-      <div class="phone phone-xl">
-        <div class="phone-notch"></div>
-        <div class="phone-screen"><img class="screen-img" src="screenshots/mobile-announcements.png" alt="Объявления" /></div>
-      </div>
-      <div class="stars">★ ★ ★ ★ ★</div>
-    </div>
-    <div class="col-text">
-      <div class="tag">Шаг 4 · Соседи</div>
-      <h2 style="margin-top:14px">Объявления<br>и мастера 🔧</h2>
-      <p class="sub">Локальный маркетплейс и каталог мастеров — только для района, не для всего интернета.</p>
-      <div class="phone phone-lg" style="margin-top:12px">
-        <div class="phone-notch"></div>
-        <div class="phone-screen"><img class="screen-img" src="screenshots/mobile-masters.png" alt="Мастера" /></div>
-      </div>
-    </div>
-  </div>
-  <div class="footer"><span>/announcements · /masters</span><span>6 / 10</span></div>
-</section>
-
-<!-- 7 ACCOUNT -->
+<!-- S03 PAIN -->
 <section class="slide bg-dark">
-  <div class="row">
-    <div class="col-text">
-      <div class="tag" style="background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.35);color:#4ade80">Личный кабинет</div>
-      <h2 style="margin-top:14px">Регистрация<br>и бонусы 🎁</h2>
-      <p class="sub">Экран входа по SMS — один аккаунт на все сервисы. Бонусы за регистрацию и заказы.</p>
-      <div class="big-stat-row">
-        <div class="big-stat"><b>+300</b><span>за регистрацию</span></div>
-        <div class="big-stat"><b>+50</b><span>за заказ</span></div>
-      </div>
-    </div>
-    <div class="col-visual">
-      <div class="phone phone-xl">
-        <div class="phone-notch"></div>
-        <div class="phone-screen"><img class="screen-img" src="screenshots/mobile-account.png" alt="Аккаунт" /></div>
-      </div>
-    </div>
+  <div class="eyebrow eyebrow-blue">Проблема сегодня</div>
+  <h2>Боль жителя Сортировки <span style="font-size:20px">😤</span></h2>
+  <div class="grid3" style="margin-top:14px">
+    <div class="glass"><h3>📱 Хаос в чатах</h3><p class="lead" style="font-size:10px;margin-top:6px">Новости теряются между мемами. Объявления уезжают в архив. Жалобы никто не отслеживает.</p></div>
+    <div class="glass"><h3>📞 Еда — только звонки</h3><p class="lead" style="font-size:10px;margin-top:6px">Ждёшь на линии, не видишь меню, не знаешь статус. Оператор занят — заказ сорвался.</p></div>
+    <div class="glass"><h3>🔧 Мастера «по знакомству»</h3><p class="lead" style="font-size:10px;margin-top:6px">Нет каталога, отзывов, гарантий. Сантехник из другого района — дорого и долго.</p></div>
+    <div class="glass"><h3>🚕 Такси</h3><p class="lead" style="font-size:10px;margin-top:6px">Стоишь на морозе, ловишь машину. Нет трекинга, нет истории, нет приложения «своих».</p></div>
+    <div class="glass"><h3>🏢 ЖКХ</h3><p class="lead" style="font-size:10px;margin-top:6px">Прорвал трубу — куда писать? Фото в чат — и тишина. Нет статуса «принято / исправлено».</p></div>
+    <div class="glass"><h3>🚌 Транспорт</h3><p class="lead" style="font-size:10px;margin-top:6px">Расписание автобусов — спросить или гуглить. Изменения маршрута узнаёшь на остановке.</p></div>
   </div>
-  <div class="footer"><span>/account · SMS Mobizon</span><span>7 / 10</span></div>
+  <div class="footer"><span>Sortirovka24 решает каждый пункт</span><span class="sn">03 / 24</span></div>
 </section>
 
-<!-- 8 TABLET DESKTOP -->
-<section class="slide bg-light">
-  <div class="row">
-    <div class="col-text">
-      <div class="tag" style="background:rgba(37,99,235,.1);border-color:rgba(37,99,235,.3);color:var(--blue)">Большой экран</div>
-      <h2 style="margin-top:14px;color:#0f172a">Планшет и ПК</h2>
-      <p class="sub">Объявления на iPad и портал на ноутбуке — те же данные, удобная вёрстка.</p>
+<!-- S04 MISSION VISION -->
+<section class="slide bg-void">
+  <div class="orb orb-b"></div>
+  <div class="grid2" style="height:calc(100% - 30px);align-items:center">
+    <div>
+      <div class="eyebrow">Миссия</div>
+      <h2 style="font-size:32px">Объединить повседневные сервисы микрорайона в <span class="hl">одном</span> приложении</h2>
+      <p class="lead" style="margin-top:12px">Житель тратит меньше времени на быт. Местный бизнес получает прямой канал к аудитории без посредников из других городов.</p>
     </div>
-    <div class="col-visual">
-      <div class="devices-row">
-        <div>
-          <div class="tablet" style="width:200px">
-            <div class="tablet-screen"><img class="screen-img" src="screenshots/tablet-announcements.png" alt="Tablet ads" /></div>
-          </div>
-          <div class="screen-caption">/announcements</div>
-        </div>
-        <div>
-          <div class="laptop" style="width:280px">
-            <div class="laptop-screen-wrap">
-              <div class="laptop-screen"><img class="screen-img" src="screenshots/desktop-food.png" alt="Desktop food" /></div>
-            </div>
-            <div class="laptop-base"></div>
-          </div>
-          <div class="screen-caption">/food · desktop</div>
-        </div>
-      </div>
+    <div class="glass glass-gold">
+      <div class="eyebrow eyebrow-green" style="margin-bottom:8px">Видение · 3–5 лет</div>
+      <h3 style="font-size:16px;line-height:1.35;margin-bottom:10px">«Цифровая проходная» Сортировки</h3>
+      <p class="lead" style="font-size:11px">Открыл app → погода, новости УК, заказ обеда, такси, участковый, заявка мастеру. Новые сервисы подключаются <strong style="color:var(--gold)">модульно</strong> — без переписывания платформы.</p>
     </div>
   </div>
-  <div class="footer"><span>Responsive layout</span><span>8 / 10</span></div>
+  <div class="footer"><span>Конституция проекта · docs/01-КОНСТИТУЦИЯ.md</span><span class="sn">04 / 24</span></div>
 </section>
 
-<!-- 9 GALLERY ALL SCREENS -->
+<!-- S05 GOALS -->
 <section class="slide bg-dark">
-  <div style="text-align:center;margin-bottom:12px">
-    <div class="tag tag-live" style="margin-bottom:10px">Полная галерея UI</div>
-    <h2>Все ключевые экраны</h2>
-    <p class="sub" style="margin:6px auto 0;max-width:500px">Снимки с production — обновляются командой: <code style="color:var(--yellow);font-size:11px">node scripts/capture-presentation-screenshots.mjs</code></p>
-  </div>
-  <div class="gallery">
-    <div class="gallery-item"><img src="screenshots/mobile-home.png" alt="" /><span>Главная</span></div>
-    <div class="gallery-item"><img src="screenshots/mobile-food.png" alt="" /><span>DAM ALEM</span></div>
-    <div class="gallery-item"><img src="screenshots/mobile-taxi.png" alt="" /><span>Такси</span></div>
-    <div class="gallery-item"><img src="screenshots/mobile-more.png" alt="" /><span>Ещё</span></div>
-  </div>
-  <div class="compare" style="margin-top:14px">
-    <div class="compare-box compare-bad">
-      <h3>😤 Без Sortirovka24</h3>
-      <ul><li>10 чатов WhatsApp</li><li>Звонки в кафе</li><li>Мастера «по знакомству»</li></ul>
+  <div class="eyebrow">Цели и намерения</div>
+  <h2>Стратегические цели проекта</h2>
+  <div class="grid3" style="margin-top:14px">
+    <div class="glass glass-gold">
+      <h3 style="color:var(--gold);font-size:12px;margin-bottom:10px">📈 Продуктовые</h3>
+      <ul class="tick">
+        <li>Retention 2–3 раза в неделю</li>
+        <li>Охват большинства домохозяйств</li>
+        <li>SMS-регистрация + бонус +300</li>
+        <li>Закрытый цикл еды: app → Telegram → FrontPad → курьер</li>
+      </ul>
     </div>
-    <div class="compare-box compare-good">
-      <h3>😊 С Sortirovka24</h3>
-      <ul><li>Один app — скриншоты выше</li><li>Заказ в 2 тапа</li><li>Каталог + бонусы</li></ul>
+    <div class="glass">
+      <h3 style="color:var(--blue-g);font-size:12px;margin-bottom:10px">⚙️ Технические</h3>
+      <ul class="tick">
+        <li>Uptime API ≥ 99%</li>
+        <li>Быстрая главная (eager load)</li>
+        <li>1 backend: web + PWA + APK + admin</li>
+        <li>Alembic миграции без простоя</li>
+      </ul>
+    </div>
+    <div class="glass glass-green">
+      <h3 style="color:var(--green);font-size:12px;margin-bottom:10px">🏛 Операционные</h3>
+      <ul class="tick">
+        <li>Модерация контента (SLA)</li>
+        <li>Push при важных новостях</li>
+        <li>Документированный деплой</li>
+        <li>Модули вкл/выкл одной кнопкой</li>
+      </ul>
     </div>
   </div>
-  <div class="footer"><span>12 экранов в screenshots/</span><span>9 / 10</span></div>
+  <div class="grid4" style="margin-top:14px">
+    <div class="glass" style="text-align:center;padding:12px"><div class="stat-huge" style="font-size:28px">MAU</div><div class="stat-lbl">активные / месяц</div></div>
+    <div class="glass" style="text-align:center;padding:12px"><div class="stat-huge" style="font-size:28px">D7</div><div class="stat-lbl">retention 7 дней</div></div>
+    <div class="glass" style="text-align:center;padding:12px"><div class="stat-huge" style="font-size:28px">UGC</div><div class="stat-lbl">объявления, жалобы</div></div>
+    <div class="glass" style="text-align:center;padding:12px"><div class="stat-huge" style="font-size:28px">99%</div><div class="stat-lbl">uptime API</div></div>
+  </div>
+  <div class="footer"><span>KPI · AdminStats</span><span class="sn">05 / 24</span></div>
 </section>
 
-<!-- 10 FINALE -->
-<section class="slide bg-hero">
-  <div class="glow glow-blue"></div>
-  <div class="glow glow-yellow"></div>
-  <div class="row" style="flex-direction:column;justify-content:center;text-align:center">
-    <div class="tag tag-live" style="margin:0 auto 14px">Реальное приложение · не mockup</div>
-    <h1 style="font-size:48px">Цифровой дом<br>для <span class="hl">своих</span> соседей</h1>
-    <p class="sub" style="margin:14px auto;max-width:460px;text-align:center">
-      Скачайте kz.sortirovka24.app — и увидите те же экраны, что в этой презентации.
-    </p>
-    <div class="devices-row" style="margin-top:24px">
-      <div class="phone phone-lg">
-        <div class="phone-notch"></div>
-        <div class="phone-screen"><img class="screen-img" src="screenshots/mobile-home.png" alt="" /></div>
-      </div>
-      <div class="tablet" style="width:180px">
-        <div class="tablet-screen"><img class="screen-img" src="screenshots/tablet-home.png" alt="" /></div>
-      </div>
-      <div class="laptop" style="width:260px">
-        <div class="laptop-screen-wrap">
-          <div class="laptop-screen"><img class="screen-img" src="screenshots/desktop-home.png" alt="" /></div>
-        </div>
-        <div class="laptop-base"></div>
-      </div>
+<!-- S06 RESIDENTS -->
+<section class="slide bg-gold">
+  <div class="flex-row">
+    <div style="flex:0 0 42%">
+      <div class="eyebrow">Для жителей</div>
+      <h2>Один аккаунт —<br>весь район</h2>
+      <ul class="tick" style="margin-top:14px">
+        <li>Регистрация по SMS или Google — 30 секунд</li>
+        <li>+300 бонусов за регистрацию, +50 за заказ еды</li>
+        <li>Личный кабинет: заказы, бонусы, история</li>
+        <li>RU / KZ — переключатель в один тап</li>
+        <li>PWA + Android APK — ставится как обычное app</li>
+      </ul>
+      <div class="phone phone-xl" style="margin-top:16px"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-account.png" alt=""/></div></div>
     </div>
-    <p style="margin-top:20px;font-size:13px;color:var(--muted)">Google Play · PWA · support@sortirovka24.kz</p>
+    <div style="flex:1">
+      <div class="phone phone-xl" style="margin:0 auto"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-home.png" alt=""/></div></div>
+      <p style="text-align:center;font-size:9px;color:var(--muted);margin-top:8px"><span class="tag-pill">REAL SCREENSHOT</span> production · главная</p>
+    </div>
   </div>
-  <div class="footer"><span>Sortirovka24</span><span>10 / 10</span></div>
+  <div class="footer"><span>/account · /cabinet</span><span class="sn">06 / 24</span></div>
+</section>
+
+<!-- S07 PARTNERS -->
+<section class="slide bg-partner">
+  <div class="eyebrow">Для партнёров и бизнеса</div>
+  <h2>Почему <span class="hl">выгодно</span> сотрудничать</h2>
+  <div class="partner-row">
+    <div class="partner-box glass glass-gold">
+      <div class="icon">🍔</div>
+      <h3>Кафе / DAM ALEM</h3>
+      <p>Готовый канал заказов. FrontPad-касса. Telegram операторам. Курьеры. Без своего IT.</p>
+    </div>
+    <div class="partner-box glass">
+      <div class="icon">🛒</div>
+      <h3>Магазины</h3>
+      <p>Гастроном, Прораб, Аптека — витрина + доставка + уведомления. Кабинет партнёра (seller).</p>
+    </div>
+    <div class="partner-box glass glass-green">
+      <div class="icon">🔧</div>
+      <h3>Мастера / салоны</h3>
+      <p>Каталог, заявки, профиль. Жители находят вас локально — не на OLX всего города.</p>
+    </div>
+  </div>
+  <div class="grid2" style="margin-top:14px">
+    <div class="glass">
+      <h3 style="color:var(--gold);margin-bottom:8px">Что получает партнёр</h3>
+      <ul class="tick check">
+        <li>Доступ к аудитории района без рекламы в Instagram</li>
+        <li>Push и Telegram при новом заказе</li>
+        <li>Аналитика в админке</li>
+        <li>Модуль включается — не нужен свой сайт</li>
+      </ul>
+    </div>
+    <div class="glass">
+      <h3 style="color:var(--blue-g);margin-bottom:8px">Что получает район</h3>
+      <ul class="tick check">
+        <li>Налоги и выручка остаются локально</li>
+        <li>Меньше «серых» объявлений — всё в app</li>
+        <li>Единый стандарт сервиса для жителей</li>
+        <li>Репутация «умного» микрорайона</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer"><span>/business · /cabinet/partner</span><span class="sn">07 / 24</span></div>
+</section>
+
+<!-- S08 DEVICES -->
+<section class="slide bg-void">
+  <div class="eyebrow eyebrow-blue">Реальное приложение</div>
+  <h2 style="text-align:center">Телефон · Планшет · Компьютер</h2>
+  <p class="lead" style="text-align:center;margin:6px auto 20px;max-width:500px">Скриншоты с production-сервера — то, что видит пользователь сегодня</p>
+  <div style="display:flex;justify-content:center;align-items:flex-end;gap:28px">
+    <div style="text-align:center"><div class="phone phone-xl"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-home.png"/></div></div><p style="font-size:9px;color:var(--muted);margin-top:8px">📱 Android / iOS</p></div>
+    <div style="text-align:center"><div class="tablet"><div class="scr"><img src="screenshots/tablet-home.png"/></div></div><p style="font-size:9px;color:var(--muted);margin-top:8px">📲 Планшет</p></div>
+    <div style="text-align:center"><div class="laptop"><div class="lap-wrap"><div class="scr"><img src="screenshots/desktop-home.png"/></div></div><div class="lap-base"></div></div><p style="font-size:9px;color:var(--muted);margin-top:8px">💻 Браузер / PWA</p></div>
+  </div>
+  <div class="footer"><span>sortirovka24-production.up.railway.app</span><span class="sn">08 / 24</span></div>
+</section>
+
+<!-- S09 COMMERCE FOOD -->
+<section class="slide bg-dark">
+  <div class="flex-row">
+    <div style="flex:0 0 40%">
+      <div class="eyebrow">Модуль · food</div>
+      <h2>🍔 DAM ALEM —<br>доставка еды</h2>
+      <p class="lead" style="margin:10px 0">Полный цикл: меню → корзина → адрес → оплата → Telegram оператору → FrontPad (касса) → курьер → трекинг.</p>
+      <ul class="tick" style="margin-top:8px">
+        <li><strong>/food</strong> — хаб доставки</li>
+        <li><strong>/food/restaurants</strong> — меню и заказ</li>
+        <li><strong>/food/park</strong> — заказ с карты парка (SVG)</li>
+        <li><strong>/delivery/food/:id</strong> — трекинг</li>
+        <li>Бонусы +50 за заказ · промокоды</li>
+      </ul>
+    </div>
+    <div style="flex:1;display:flex;gap:10px;justify-content:center">
+      <div class="phone phone-xl"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-food.png"/></div></div>
+      <div class="phone"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-food-menu.png"/></div></div>
+    </div>
+  </div>
+  <div class="footer"><span>FrontPad · Telegram FOOD · Courier bot</span><span class="sn">09 / 24</span></div>
+</section>
+
+<!-- S10 COMMERCE SHOPS -->
+<section class="slide bg-gold">
+  <div class="eyebrow">Модули · gastronom · prorab · pharmacy</div>
+  <h2>Магазины района с доставкой</h2>
+  <div class="grid3" style="margin-top:12px">
+    <div class="mod glass">
+      <div class="mod-icon">🛒</div><h3>Гастроном</h3>
+      <p>Продуктовый магазин: каталог, корзина, зоны доставки, лояльность. Заказы в Telegram.</p>
+      <div class="route">/gastronom</div>
+    </div>
+    <div class="mod glass">
+      <div class="mod-icon">🔨</div><h3>Прораб</h3>
+      <p>Стройматериалы и услуги для ремонта. Категории, товары, заказы — локальный «строймаркет».</p>
+      <div class="route">/prorab</div>
+    </div>
+    <div class="mod glass">
+      <div class="mod-icon">💊</div><h3>Аптека</h3>
+      <p>Витрина аптеки с доставкой по району. Отдельный модуль — вкл/выкл в админке.</p>
+      <div class="route">/apteka</div>
+    </div>
+  </div>
+  <div class="phone phone-xl" style="margin:14px auto 0"><div class="phone-h"></div><div class="scr"><img src="screenshots/desktop-food.png" style="object-fit:cover"/></div></div>
+  <div class="footer"><span>Кабинет партнёра · seller role</span><span class="sn">10 / 24</span></div>
+</section>
+
+<!-- S11 TAXI -->
+<section class="slide bg-void">
+  <div class="flex-row">
+    <div style="flex:1;text-align:center"><div class="phone phone-xl" style="margin:0 auto"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-taxi.png"/></div></div></div>
+    <div style="flex:0 0 45%">
+      <div class="eyebrow">Сервис · taxi</div>
+      <h2>🚕 Такси по Сортировке</h2>
+      <ul class="tick" style="margin-top:12px">
+        <li>Вызов машины — адрес, расчёт, маршрут</li>
+        <li>Трекинг поездки <strong>/taxi/ride/:id</strong></li>
+        <li>Кабинет водителя — online, GPS, accept/decline</li>
+        <li>Заявка «стать водителем» + модерация</li>
+        <li>Telegram-бот для диспетчеризации</li>
+        <li>Admin: тарифы, статистика, верификация</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer"><span>/taxi · /cabinet/driver</span><span class="sn">11 / 24</span></div>
+</section>
+
+<!-- S12 COMMUNITY -->
+<section class="slide bg-dark">
+  <div class="eyebrow">Community-модули</div>
+  <h2>Новости · Объявления · Жалобы · Вопросы</h2>
+  <div class="grid4" style="margin-top:10px">
+    <div class="mod"><div class="mod-icon">📰</div><h3>Новости</h3><p>Лента района, YouTube, push при публикации. Официальный канал вместо чатов.</p><div class="route">/news</div></div>
+    <div class="mod"><div class="mod-icon">📢</div><h3>Объявления</h3><p>Продажа, услуги, аренда — только соседи. Модерация, фото.</p><div class="route">/announcements</div></div>
+    <div class="mod"><div class="mod-icon">📋</div><h3>Жалобы ЖКХ</h3><p>Фото/видео, статус обработки. Прозрачность для УК и жителей.</p><div class="route">/complaints</div></div>
+    <div class="mod"><div class="mod-icon">❓</div><h3>Вопросы</h3><p>Форум соседей: спросил — получил ответ от тех, кто рядом.</p><div class="route">/questions</div></div>
+  </div>
+  <div style="display:flex;gap:12px;justify-content:center;margin-top:14px">
+    <div class="phone"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-announcements.png"/></div></div>
+    <div class="tablet" style="width:140px"><div class="scr"><img src="screenshots/tablet-announcements.png"/></div></div>
+  </div>
+  <div class="footer"><span>UGC · модерация в /admin</span><span class="sn">12 / 24</span></div>
+</section>
+
+<!-- S13 SERVICES -->
+<section class="slide bg-gold">
+  <div class="eyebrow">Сервисы и люди</div>
+  <h2>Мастера · Салоны · Участковые · Справочник</h2>
+  <div class="grid2" style="margin-top:10px">
+    <div class="grid2" style="gap:8px">
+      <div class="mod glass"><div class="mod-icon">🔧</div><h3>Мастера</h3><p>Каталог, заявки, отзывы, «стать мастером». Кабинет /cabinet/master.</p><div class="route">/masters</div></div>
+      <div class="mod glass"><div class="mod-icon">💇</div><h3>Салоны</h3><p>Салоны красоты района — профили, контакты.</p><div class="route">/salons</div></div>
+      <div class="mod glass"><div class="mod-icon">👮</div><h3>Участковые</h3><p>Карта и список инспекторов — безопасность района.</p><div class="route">/inspectors</div></div>
+      <div class="mod glass"><div class="mod-icon">📖</div><h3>Справочник</h3><p>Телефоны служб, организаций, экстренных контактов.</p><div class="route">/directory</div></div>
+    </div>
+    <div style="text-align:center"><div class="phone phone-xl" style="margin:0 auto"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-masters.png"/></div></div></div>
+  </div>
+  <div class="footer"><span>Локальные специалисты — не OLX</span><span class="sn">13 / 24</span></div>
+</section>
+
+<!-- S14 LIFE INFO -->
+<section class="slide bg-dark">
+  <div class="eyebrow">Быт и информация</div>
+  <h2>Недвижимость · Работа · Транспорт · История</h2>
+  <div class="grid4" style="margin-top:12px">
+    <div class="mod glass"><div class="mod-icon">🏢</div><h3>Недвижимость</h3><p>Аренда и продажа жилья в Сортировке.</p><div class="route">/real-estate</div></div>
+    <div class="mod glass"><div class="mod-icon">💼</div><h3>Вакансии</h3><p>Работа рядом с домом — для соседей.</p><div class="route">/jobs</div></div>
+    <div class="mod glass"><div class="mod-icon">🚌</div><h3>Транспорт</h3><p>Маршруты, остановки, уведомления об изменениях.</p><div class="route">/transport</div></div>
+    <div class="mod glass"><div class="mod-icon">📜</div><h3>История</h3><p>Heritage микрорайона — память района.</p><div class="route">/history</div></div>
+  </div>
+  <div class="glass" style="margin-top:14px;padding:14px">
+    <h3 style="color:var(--gold);margin-bottom:6px">🏠 Главная страница</h3>
+    <p class="lead" style="font-size:10px">Погода · баннеры · плитки всех модулей · prefetch · скрытие выключенных модулей · hero · быстрые действия</p>
+  </div>
+  <div class="footer"><span>17 переключаемых модулей</span><span class="sn">14 / 24</span></div>
+</section>
+
+<!-- S15 ALL MODULES MAP -->
+<section class="slide bg-void">
+  <div class="eyebrow">Полная карта · 17+ модулей</div>
+  <h2>Каждая функция — отдельный блок</h2>
+  <div class="grid4" style="margin-top:8px;gap:6px">
+    <div class="mod" style="padding:8px"><h3 style="font-size:9px">🍔 food</h3><p style="font-size:8px">DAM ALEM</p></div>
+    <div class="mod" style="padding:8px"><h3 style="font-size:9px">🛒 gastronom</h3><p style="font-size:8px">Продукты</p></div>
+    <div class="mod" style="padding:8px"><h3 style="font-size:9px">🔨 prorab</h3><p style="font-size:8px">Стройка</p></div>
+    <div class="mod" style="padding:8px"><h3 style="font-size:9px">💊 pharmacy</h3><p style="font-size:8px">Аптека</p></div>
+    <div class="mod" style="padding:8px"><h3 style="font-size:9px">🚕 taxi</h3><p style="font-size:8px">Отдельный toggle</p></div>
+    <div class="mod" style="padding:8px"><h3 style="font-size:9px">🔧 masters</h3><p style="font-size:8px">Мастера</p></div>
+    <div class="mod" style="padding:8px"><h3 style="font-size:9px">💇 salons</h3><p style="font-size:8px">Салоны</p></div>
+    <div class="mod" style="padding:8px"><h3 style="font-size:9px">📰 news</h3><p style="font-size:8px">Новости</p></div>
+    <div class="mod" style="padding:8px"><h3 style="font-size:9px">📢 announcements</h3><p style="font-size:8px">Объявления</p></div>
+    <div class="mod" style="padding:8px"><h3 style="font-size:9px">📋 complaints</h3><p style="font-size:8px">Жалобы</p></div>
+    <div class="mod" style="padding:8px"><h3 style="font-size:9px">❓ questions</h3><p style="font-size:8px">Форум</p></div>
+    <div class="mod" style="padding:8px"><h3 style="font-size:9px">👮 inspectors</h3><p style="font-size:8px">Участковые</p></div>
+    <div class="mod" style="padding:8px"><h3 style="font-size:9px">🏢 real_estate</h3><p style="font-size:8px">Жильё</p></div>
+    <div class="mod" style="padding:8px"><h3 style="font-size:9px">💼 jobs</h3><p style="font-size:8px">Вакансии</p></div>
+    <div class="mod" style="padding:8px"><h3 style="font-size:9px">🚌 transport</h3><p style="font-size:8px">Автобусы</p></div>
+    <div class="mod" style="padding:8px"><h3 style="font-size:9px">📖 directory</h3><p style="font-size:8px">Справочник</p></div>
+    <div class="mod" style="padding:8px"><h3 style="font-size:9px">🏪 business</h3><p style="font-size:8px">Для бизнеса</p></div>
+    <div class="mod" style="padding:8px"><h3 style="font-size:9px">📜 history</h3><p style="font-size:8px">История</p></div>
+    <div class="mod" style="padding:8px;border-color:var(--gold)"><h3 style="font-size:9px">➕ /more</h3><p style="font-size:8px">Все сервисы</p></div>
+    <div class="mod" style="padding:8px;border-color:var(--gold)"><h3 style="font-size:9px">💝 /support</h3><p style="font-size:8px">Поддержка</p></div>
+  </div>
+  <div class="phone" style="position:absolute;right:40px;bottom:50px;width:100px"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-more.png"/></div></div>
+  <div class="footer"><span>AdminModules — kill-switch</span><span class="sn">15 / 24</span></div>
+</section>
+
+<!-- S16 ROLES -->
+<section class="slide bg-partner">
+  <div class="eyebrow">Экосистема ролей</div>
+  <h2>Кто участвует в платформе</h2>
+  <div class="grid3" style="margin-top:12px">
+    <div class="glass"><h3>👤 Житель (user)</h3><p class="lead" style="font-size:10px;margin-top:6px">Заказы, объявления, жалобы, бонусы, один профиль на всё.</p></div>
+    <div class="glass"><h3>🔧 Мастер (master)</h3><p class="lead" style="font-size:10px;margin-top:6px">Заявки, профиль, фото работ, статусы.</p></div>
+    <div class="glass"><h3>🚕 Водитель (driver)</h3><p class="lead" style="font-size:10px;margin-top:6px">Такси: online, GPS, поездки, баланс.</p></div>
+    <div class="glass"><h3>📦 Курьер</h3><p class="lead" style="font-size:10px;margin-top:6px">Доставка еды: задачи, accept, GPS, Telegram.</p></div>
+    <div class="glass"><h3>🏪 Партнёр (seller)</h3><p class="lead" style="font-size:10px;margin-top:6px">Витрина магазина, заказы, кабинет.</p></div>
+    <div class="glass glass-gold"><h3>🛡️ Админ</h3><p class="lead" style="font-size:10px;margin-top:6px">Web /admin + APK kz.sortirovka24.admin. Контент, модули, push, FrontPad.</p></div>
+  </div>
+  <div class="footer"><span>JWT · SMS Mobizon · Google OAuth</span><span class="sn">16 / 24</span></div>
+</section>
+
+<!-- S17 ADMIN -->
+<section class="slide bg-dark">
+  <div class="eyebrow eyebrow-green">Управление</div>
+  <h2>Админ-панель — мозг платформы</h2>
+  <div class="grid2" style="margin-top:10px">
+    <ul class="tick">
+      <li>Новости, баннеры, жалобы, модерация</li>
+      <li>DAM ALEM, FrontPad sync, заказы парка</li>
+      <li>Такси, логистика, курьеры, транспорт</li>
+      <li>Гастроном, Прораб, Аптека</li>
+      <li>Модули вкл/выкл · Push FCM · Статистика</li>
+      <li>Заявки: мастер, водитель, курьер</li>
+    </ul>
+    <div class="glass glass-green">
+      <h3 style="margin-bottom:8px">Отдельное Admin APK</h3>
+      <p class="lead" style="font-size:10px">kz.sortirovka24.admin — управление с телефона модератора без браузера.</p>
+      <p style="margin-top:10px;font-size:10px;color:var(--gold)">/admin · JWT · brute-force protection</p>
+    </div>
+  </div>
+  <div class="footer"><span>AdminSidebar · 20+ разделов</span><span class="sn">17 / 24</span></div>
+</section>
+
+<!-- S18 TECH -->
+<section class="slide bg-void">
+  <div class="eyebrow eyebrow-blue">Технологии</div>
+  <h2>Надёжная архитектура</h2>
+  <div class="grid3" style="margin-top:14px">
+    <div class="glass"><h3>Frontend</h3><p class="lead" style="font-size:10px;margin-top:6px">React 18 · TypeScript · Vite · Tailwind · Capacitor 7 · PWA · RU/KZ</p></div>
+    <div class="glass"><h3>Backend</h3><p class="lead" style="font-size:10px;margin-top:6px">FastAPI · PostgreSQL · Alembic · Railway · JWT · async SQLAlchemy</p></div>
+    <div class="glass"><h3>Интеграции</h3><p class="lead" style="font-size:10px;margin-top:6px">Cloudinary · Mobizon SMS · FrontPad · Telegram · FCM Push · Google OAuth</p></div>
+  </div>
+  <div class="quote" style="margin-top:14px;font-size:12px">Один backend обслуживает web, PWA, Android APK, iOS и Admin APK. Модуль выключен в админке → исчезает из UI и API (404).</div>
+  <div class="footer"><span>docs/03-АРХИТЕКТУРА.md</span><span class="sn">18 / 24</span></div>
+</section>
+
+<!-- S19 ROADMAP -->
+<section class="slide bg-gold">
+  <div class="eyebrow">Дорожная карта</div>
+  <h2>Этапы развития</h2>
+  <div class="timeline">
+    <div class="tl done"><h4>✅ Этап 1 · Фундамент</h4><p>Web, PWA, контент, админка, Cloudinary, деплой</p></div>
+    <div class="tl done"><h4>✅ Этап 2 · Коммерция</h4><p>DAM ALEM, FrontPad, APK, SMS, такси, курьеры</p></div>
+    <div class="tl now"><h4>→ Этап 3 · Экосистема</h4><p>Гастроном, Прораб, Аптека, push, Google Play</p></div>
+    <div class="tl"><h4>📋 Этап 4 · Зрелость</h4><p>iOS, аналитика, УК, Stripe, бонусы 2.0</p></div>
+  </div>
+  <div class="footer"><span>Roadmap · docs/02-ЦЕЛИ-И-ВИДЕНИЕ.md</span><span class="sn">19 / 24</span></div>
+</section>
+
+<!-- S20 BEFORE AFTER -->
+<section class="slide bg-dark">
+  <div class="eyebrow">Трансформация</div>
+  <h2>Было → Стало</h2>
+  <div class="grid2" style="margin-top:12px">
+    <div class="glass" style="border-color:rgba(239,68,68,.3)">
+      <h3 style="color:#f87171;margin-bottom:10px">❌ Без Sortirovka24</h3>
+      <ul class="tick cross"><li>10 чатов WhatsApp</li><li>Звонки в кафе</li><li>OLX всего города</li><li>Жалобы в никуда</li><li>Нет такsi app</li></ul>
+    </div>
+    <div class="glass glass-green">
+      <h3 style="color:#4ade80;margin-bottom:10px">✅ С Sortirovka24</h3>
+      <ul class="tick check"><li>1 app — 17+ сервисов</li><li>Меню + доставка + бонусы</li><li>Только соседи и местный бизнес</li><li>Жалобы со статусом</li><li>Такси + трекинг</li></ul>
+    </div>
+  </div>
+  <div class="footer"><span>Ценность для каждого жителя</span><span class="sn">20 / 24</span></div>
+</section>
+
+<!-- S21 COLLABORATION -->
+<section class="slide bg-partner">
+  <div class="section-num">★</div>
+  <div class="eyebrow">Предложение сотрудничества</div>
+  <h2>Давайте развивать<br><span class="hl">Сортировку</span> вместе</h2>
+  <div class="grid3" style="margin-top:14px">
+    <div class="glass glass-gold">
+      <h3>УК / Администрация</h3>
+      <p class="lead" style="font-size:10px;margin-top:8px">Официальный канал новостей и жалоб. Push жителям. Прозрачность ЖКХ.</p>
+    </div>
+    <div class="glass">
+      <h3>Бизнес / ИП</h3>
+      <p class="lead" style="font-size:10px;margin-top:8px">Подключение модуля за дни, не месяцы. Готовая аудитория. Telegram-заказы.</p>
+    </div>
+    <div class="glass glass-green">
+      <h3>Инвесторы / Партнёры</h3>
+      <p class="lead" style="font-size:10px;margin-top:8px">Локальный super-app с production, APK в Google Play, документацией и roadmap.</p>
+    </div>
+  </div>
+  <div class="quote" style="margin-top:14px;text-align:center;font-size:14px">Sortirovka24 — инфраструктура, а не стартап «на выход». Мы строим для соседей на годы.</div>
+  <div class="footer"><span>support@sortirovka24.kz</span><span class="sn">21 / 24</span></div>
+</section>
+
+<!-- S22 GALLERY -->
+<section class="slide bg-void">
+  <div class="eyebrow eyebrow-blue">Real UI · production</div>
+  <h2>Галерея экранов</h2>
+  <div class="grid4" style="margin-top:10px;gap:8px">
+    <div style="border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.1)"><img src="screenshots/mobile-home.png" style="width:100%;aspect-ratio:390/844;object-fit:cover;object-position:top;display:block"/><p style="font-size:8px;text-align:center;padding:4px;background:rgba(0,0,0,.5)">Главная</p></div>
+    <div style="border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.1)"><img src="screenshots/mobile-food.png" style="width:100%;aspect-ratio:390/844;object-fit:cover;object-position:top;display:block"/><p style="font-size:8px;text-align:center;padding:4px;background:rgba(0,0,0,.5)">DAM ALEM</p></div>
+    <div style="border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.1)"><img src="screenshots/mobile-taxi.png" style="width:100%;aspect-ratio:390/844;object-fit:cover;object-position:top;display:block"/><p style="font-size:8px;text-align:center;padding:4px;background:rgba(0,0,0,.5)">Такси</p></div>
+    <div style="border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.1)"><img src="screenshots/mobile-masters.png" style="width:100%;aspect-ratio:390/844;object-fit:cover;object-position:top;display:block"/><p style="font-size:8px;text-align:center;padding:4px;background:rgba(0,0,0,.5)">Мастера</p></div>
+  </div>
+  <p class="lead" style="text-align:center;margin-top:12px;font-size:10px">Обновление: <code style="color:var(--gold)">pnpm run capture:presentation</code></p>
+  <div class="footer"><span>screenshots/ · 12 PNG</span><span class="sn">22 / 24</span></div>
+</section>
+
+<!-- S23 PRINCIPLES -->
+<section class="slide bg-dark">
+  <div class="eyebrow">Конституция</div>
+  <h2>7 принципов проекта</h2>
+  <div class="grid2" style="margin-top:10px;gap:8px">
+    <div class="mod glass"><h3>1. Локальность</h3><p>Польза для Сортировки — не «для всех»</p></div>
+    <div class="mod glass"><h3>2. Один вход</h3><p>1 регистрация — все сервисы</p></div>
+    <div class="mod glass"><h3>3. Модульность</h3><p>Kill-switch в админке</p></div>
+    <div class="mod glass"><h3>4. RU + KZ</h3><p>Два языка интерфейса</p></div>
+    <div class="mod glass"><h3>5. Безопасность</h3><p>JWT, секреты на сервере</p></div>
+    <div class="mod glass"><h3>6. Устойчивость</h3><p>Retry, health-check</p></div>
+    <div class="mod glass glass-gold" style="grid-column:span 2"><h3>7. Sortirovka24 — для своих, в своём районе</h3><p>docs/01-КОНСТИТУЦИЯ.md</p></div>
+  </div>
+  <div class="footer"><span>Устав проекта</span><span class="sn">23 / 24</span></div>
+</section>
+
+<!-- S24 FINALE -->
+<section class="slide bg-void">
+  <div class="orb orb-b"></div><div class="orb orb-g"></div>
+  <div style="text-align:center;padding-top:20px">
+    <div class="eyebrow" style="justify-content:center">Sortirovka24</div>
+    <h1 style="font-size:56px;margin-top:8px">Цифровой дом<br>для <em style="font-family:'Playfair Display',serif;font-style:italic;color:var(--gold)">своих</em></h1>
+    <p class="lead" style="margin:16px auto;max-width:520px;text-align:center;font-size:15px">Скачайте. Подключайте бизнес. Развивайте район. <strong style="color:#fff">17+ сервисов</strong> · реальные экраны · production ready · Google Play</p>
+    <div style="display:flex;justify-content:center;gap:16px;margin-top:24px">
+      <div class="phone phone-xl"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-home.png"/></div></div>
+      <div class="phone phone-xl"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-food.png"/></div></div>
+      <div class="phone phone-xl"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-taxi.png"/></div></div>
+    </div>
+    <p style="margin-top:24px;font-size:14px"><strong style="color:var(--gold)">kz.sortirovka24.app</strong> · support@sortirovka24.kz</p>
+    <p style="font-size:11px;color:var(--muted);margin-top:8px">Спасибо за внимание · docs/presentation</p>
+  </div>
+  <div class="footer"><span>SORTIROVKA 24 · Караганда · 2026</span><span class="sn">24 / 24</span></div>
 </section>
 
 </body>
