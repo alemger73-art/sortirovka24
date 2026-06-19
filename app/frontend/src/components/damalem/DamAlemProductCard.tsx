@@ -39,7 +39,14 @@ export default function DamAlemProductCard({
   if (variant === 'row') {
     return (
       <article className="dam-product-card dam-animate-in">
-        <button type="button" className="dam-product-card__media" onClick={onOpen} aria-label={name}>
+        <div
+          role="button"
+          tabIndex={0}
+          className="dam-product-card__media cursor-pointer"
+          onClick={onOpen}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
+          aria-label={name}
+        >
           <DamAlemImage src={imageUrl} alt="" className="h-full w-full object-cover" />
           {onToggleFavorite && (
             <span
@@ -52,7 +59,7 @@ export default function DamAlemProductCard({
               <Heart className={`h-3.5 w-3.5 ${isFavorite ? 'fill-[#FF3B30] text-[#FF3B30]' : 'text-gray-400'}`} />
             </span>
           )}
-        </button>
+        </div>
         <div className="dam-product-card__body">
           <button type="button" className="text-left flex-1" onClick={onOpen}>
             <h3 className="dam-product-card__title">{name}</h3>
@@ -69,7 +76,14 @@ export default function DamAlemProductCard({
 
   return (
     <article className="dam-grid-card dam-animate-in">
-      <button type="button" className="dam-grid-card__media" onClick={onOpen} aria-label={name}>
+      <div
+        role="button"
+        tabIndex={0}
+        className="dam-grid-card__media cursor-pointer"
+        onClick={onOpen}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
+        aria-label={name}
+      >
         <DamAlemImage src={imageUrl} alt="" className="h-full w-full object-cover" />
         {badge === 'hit' ? <span className="dam-grid-card__badge dam-grid-card__badge--hit">Хит</span> : null}
         {badge === 'new' ? <span className="dam-grid-card__badge dam-grid-card__badge--new">New</span> : null}
@@ -93,7 +107,7 @@ export default function DamAlemProductCard({
             </button>
           )}
         </div>
-      </button>
+      </div>
       <button type="button" className="dam-grid-card__body text-left w-full" onClick={onOpen}>
         <h3 className="dam-grid-card__title">{name}</h3>
         <div className="mt-1 flex flex-wrap gap-1">

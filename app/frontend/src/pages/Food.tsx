@@ -58,6 +58,7 @@ import DamAlemFreeDeliveryBanner from '@/components/damalem/DamAlemFreeDeliveryB
 import DamAlemShareCard from '@/components/damalem/DamAlemShareCard';
 import { resolveDamAlemItemImage, getCategoryImage } from '@/lib/damAlemImages';
 import DamAlemImage from '@/components/damalem/DamAlemImage';
+import DamAlemSheet from '@/components/damalem/DamAlemSheet';
 import { buildMarketingStories, resolvePromoCodes } from '@/lib/damAlemMarketing';
 import DamAlemPageSkeleton from '@/components/damalem/DamAlemPageSkeleton';
 import '@/styles/damAlem.css';
@@ -1392,8 +1393,8 @@ export default function Food() {
     <Layout>
       <div className="dam-page min-h-screen">
         {orderSuccess && (
-          <div className="dam-sheet-overlay sm:items-center" onClick={() => setOrderSuccess(null)}>
-            <div className="dam-success-modal" onClick={e => e.stopPropagation()}>
+          <DamAlemSheet open bare overlayClassName="sm:items-center" onClose={() => setOrderSuccess(null)}>
+            <div className="dam-success-modal">
               <div className="flex flex-col items-center text-center">
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/30">
                   <CheckCircle2 className="h-8 w-8" />
@@ -1471,7 +1472,7 @@ export default function Food() {
                 </button>
               </div>
             </div>
-          </div>
+          </DamAlemSheet>
         )}
         <DamAlemHero
           title={settings.hero_banner_title || brandProfile?.name || t('food.heroTitle')}
@@ -1711,11 +1712,12 @@ export default function Food() {
 
         {/* ═══ PRODUCT POPUP MODAL ═══ */}
         {selectedItem && (
-          <div className="dam-sheet-overlay sm:p-4" onClick={() => setSelectedItem(null)}>
-            <div
-              className="dam-sheet-panel max-w-md !h-auto !max-h-[92vh] overflow-y-auto bg-[#FAFAFA]"
-              onClick={e => e.stopPropagation()}
-            >
+          <DamAlemSheet
+            open
+            overlayClassName="sm:p-4 sm:items-center"
+            panelClassName="max-w-md !h-auto !max-h-[92vh] overflow-y-auto bg-[#FAFAFA] !rounded-t-[22px] sm:!rounded-[22px]"
+            onClose={() => setSelectedItem(null)}
+          >
               <div className="bg-white px-3 pb-1 pt-3 sm:rounded-t-[22px]">
                 <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-[#ECECEC]">
                   <DamAlemImage src={getItemImage(selectedItem)} alt={selectedItem.name} className="h-full w-full object-cover" />
@@ -1835,8 +1837,7 @@ export default function Food() {
                   </Button>
                 </div>
               </div>
-            </div>
-          </div>
+          </DamAlemSheet>
         )}
 
         {/* ═══ FLOATING CART BUTTON ═══ */}
@@ -1850,9 +1851,7 @@ export default function Food() {
         )}
 
         {/* ═══ CART DRAWER ═══ */}
-        {cartOpen && (
-          <div className="dam-sheet-overlay" onClick={() => setCartOpen(false)}>
-            <div className="dam-sheet-panel" onClick={e => e.stopPropagation()}>
+        <DamAlemSheet open={cartOpen} onClose={() => setCartOpen(false)}>
               <div className="dam-sheet-header">
                 <h2>{t('food.yourOrder')}</h2>
                 <button type="button" onClick={() => setCartOpen(false)} className="absolute right-5 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 transition-colors">
@@ -1977,14 +1976,10 @@ export default function Food() {
                   {t('food.checkout')} — {formatPrice(cartTotalWithService)}
                 </button>
               </div>
-            </div>
-          </div>
-        )}
+        </DamAlemSheet>
 
         {/* ═══ CHECKOUT MODAL ═══ */}
-        {checkoutOpen && (
-          <div className="dam-sheet-overlay" onClick={() => setCheckoutOpen(false)}>
-            <div className="dam-sheet-panel" onClick={e => e.stopPropagation()}>
+        <DamAlemSheet open={checkoutOpen} onClose={() => setCheckoutOpen(false)}>
               <div className="dam-sheet-header !justify-between !px-4">
                 <div className="flex items-center gap-3">
                   <button onClick={() => { setCheckoutOpen(false); setCartOpen(true); }} className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 hover:bg-zinc-200 transition-colors">
@@ -2316,9 +2311,7 @@ export default function Food() {
                   Заказ сохранится в системе. WhatsApp — по желанию после оформления.
                 </p>
               </div>
-            </div>
-          </div>
-        )}
+        </DamAlemSheet>
       </div>
     </Layout>
   );

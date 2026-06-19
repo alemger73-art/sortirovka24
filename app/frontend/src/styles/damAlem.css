@@ -259,7 +259,7 @@
 .dam-sheet-overlay {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  z-index: 110;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -286,6 +286,13 @@
   background: var(--dam-bg);
   box-shadow: var(--dam-shadow-lg);
   animation: dam-slide-up 0.35s ease-out both;
+}
+
+.dam-sheet-panel--interactive {
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+  touch-action: manipulation;
 }
 
 @media (min-width: 640px) {
@@ -556,6 +563,7 @@
   position: absolute;
   bottom: 0.5rem;
   right: 0.5rem;
+  z-index: 2;
 }
 
 .dam-grid-card__add {
@@ -576,6 +584,8 @@
 }
 
 .dam-grid-qty {
+  position: relative;
+  z-index: 3;
   display: flex;
   align-items: center;
   height: 2.5rem;

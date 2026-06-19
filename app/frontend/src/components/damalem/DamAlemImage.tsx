@@ -36,7 +36,9 @@ export default function DamAlemImage({ src, alt = '', className, loading = 'lazy
       className={className}
       loading={loading}
       decoding="async"
+      draggable={false}
       onError={handleError}
+      style={{ pointerEvents: 'none' }}
     />
   );
 }
