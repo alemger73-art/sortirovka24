@@ -1,0 +1,12 @@
+{
+  "terminalAllowlist": [
+    "npm",
+    "npx",
+    "node",
+    "gradle",
+    "gradlew",
+    "gradlew.bat",
+    "powershell",
+    "cmd"
+  ]
+}

@@ -41,8 +41,16 @@ if ($LASTEXITCODE -ne 0) { Log "BUILD FAILED at gradle"; exit 1 }
 New-Item -ItemType Directory -Force -Path $Releases | Out-Null
 $apk = Join-Path $Android "app\build\outputs\apk\debug\app-debug.apk"
 $aab = Join-Path $Android "app\build\outputs\bundle\release\app-release.aab"
+
+$versionName = "unknown"
+$gradleFile = Join-Path $Android "app\build.gradle"
+if (Test-Path $gradleFile) {
+    $gradleContent = Get-Content $gradleFile -Raw
+    if ($gradleContent -match 'versionName\s+"([^"]+)"') { $versionName = $Matches[1] }
+}
+
 Copy-Item $apk (Join-Path $Releases "Sortirovka24-latest-debug.apk") -Force
-Copy-Item $apk (Join-Path $Releases "Sortirovka24-v1.0.24-debug.apk") -Force
+Copy-Item $apk (Join-Path $Releases "Sortirovka24-v$versionName-debug.apk") -Force
 Copy-Item $aab (Join-Path $Releases "Sortirovka24-release.aab") -Force
 
 $aapt = Join-Path $env:ANDROID_HOME "build-tools\35.0.0\aapt.exe"
