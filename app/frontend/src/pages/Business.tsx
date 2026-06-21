@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import Layout from '@/components/Layout';
-import { whatsappUrl } from '@/lib/config';
+import { submitBusinessApplication } from '@/lib/businessApi';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { toast } from 'sonner';
 import {
   Users, FileText, BookOpen, Utensils, ShoppingBag,
   Wrench, Building2, ArrowRight, CheckCircle2, Send,
@@ -11,6 +12,7 @@ import {
 export default function BusinessPage() {
   const { t } = useLanguage();
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -23,13 +25,23 @@ export default function BusinessPage() {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Build WhatsApp message
-    const msg = `Заявка на размещение бизнеса:\n\nИмя: ${form.name}\nТелефон: ${form.phone}\nWhatsApp: ${form.whatsapp}\nДеятельность: ${form.activity}\nОписание: ${form.description}`;
-    const waUrl = whatsappUrl(msg);
-    window.open(waUrl, '_blank');
-    setSubmitted(true);
+    setSubmitting(true);
+    try {
+      await submitBusinessApplication({
+        name: form.name,
+        phone: form.phone,
+        whatsapp: form.whatsapp || undefined,
+        activity: form.activity,
+        description: form.description || undefined,
+      });
+      setSubmitted(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Не удалось отправить заявку');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const benefits = [
@@ -222,10 +234,11 @@ export default function BusinessPage() {
                   </div>
                   <button
                     type="submit"
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 text-sm min-h-[48px]"
+                    disabled={submitting}
+                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 text-sm min-h-[48px]"
                   >
                     <Send className="w-4 h-4" />
-                    {t('business.submit')}
+                    {submitting ? 'Отправка…' : t('business.submit')}
                   </button>
                 </form>
               )}

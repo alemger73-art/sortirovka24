@@ -17,6 +17,7 @@ Per-category overrides (optional):
   TELEGRAM_BOT_TOKEN_GASTRONOM      / TELEGRAM_CHAT_ID_GASTRONOM
   TELEGRAM_BOT_TOKEN_PRORAB         / TELEGRAM_CHAT_ID_PRORAB
   TELEGRAM_BOT_TOKEN_TAXI           / TELEGRAM_CHAT_ID_TAXI
+  TELEGRAM_BOT_TOKEN_BUSINESS       / TELEGRAM_CHAT_ID_BUSINESS
   TELEGRAM_BOT_TOKEN_FOOD           / TELEGRAM_CHAT_ID_FOOD       — операторы DAM ALEM
   TELEGRAM_BOT_TOKEN_FOOD_COURIER   / TELEGRAM_CHAT_ID_FOOD_COURIER — курьеры DAM ALEM
 
@@ -46,6 +47,7 @@ CATEGORY_PHARMACY = "PHARMACY"
 CATEGORY_FOOD = "FOOD"
 CATEGORY_FOOD_COURIER = "FOOD_COURIER"
 CATEGORY_TAXI = "TAXI"
+CATEGORY_BUSINESS = "BUSINESS"
 
 
 def _get_config(category: Optional[str] = None) -> tuple[Optional[str], Optional[str]]:
@@ -71,7 +73,7 @@ def get_routing_info() -> dict:
     categories = [
         CATEGORY_COMPLAINTS, CATEGORY_MASTERS, CATEGORY_BECOME_MASTER,
         CATEGORY_JOBS, CATEGORY_ANNOUNCEMENTS, CATEGORY_GASTRONOM, CATEGORY_PRORAB,
-        CATEGORY_PHARMACY, CATEGORY_FOOD, CATEGORY_FOOD_COURIER, CATEGORY_TAXI,
+        CATEGORY_PHARMACY, CATEGORY_FOOD, CATEGORY_FOOD_COURIER, CATEGORY_TAXI, CATEGORY_BUSINESS,
     ]
     result = {"default": _is_configured(None)}
     for cat in categories:
@@ -685,3 +687,27 @@ async def notify_taxi_driver_application(data: dict) -> bool:
         f"<b>Дата:</b> {_format_date()}"
     )
     return await send_telegram_message(text, category=CATEGORY_TAXI)
+
+
+_ACTIVITY_LABELS = {
+    "food": "Доставка еды",
+    "shop": "Магазин",
+    "master": "Мастер / услуги",
+    "local": "Местный бизнес",
+}
+
+
+async def notify_new_business_partner(data: dict) -> bool:
+    activity = _ACTIVITY_LABELS.get(data.get("activity", ""), data.get("activity", "—"))
+    text = (
+        "💼 <b>Новая заявка партнёра — Sortirovka24</b>\n\n"
+        f"<b>№:</b> {data.get('id', '—')}\n"
+        f"<b>Имя:</b> {_escape_html(data.get('name', '—'))}\n"
+        f"<b>Телефон:</b> {_escape_html(data.get('phone', '—'))}\n"
+        f"<b>WhatsApp:</b> {_escape_html(data.get('whatsapp', '—'))}\n"
+        f"<b>Деятельность:</b> {_escape_html(activity)}\n"
+        f"<b>Описание:</b> {_escape_html(data.get('description', '—'))}\n"
+        f"<b>Дата:</b> {_format_date()}\n\n"
+        "⏳ Связаться с заявителем"
+    )
+    return await send_telegram_message(text, category=CATEGORY_BUSINESS)

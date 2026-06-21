@@ -21,6 +21,7 @@ except ImportError:
 
 from core.env import is_production
 from core.config import settings
+from core.monitoring import init_sentry
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -315,6 +316,7 @@ def include_routers_from_package(app: FastAPI, package_name: str = "routers") ->
 
 # Setup logging before router discovery
 setup_logging()
+init_sentry()
 include_routers_from_package(app, "routers")
 
 def _collect_route_paths(routes, prefix: str = "") -> set[str]:

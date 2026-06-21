@@ -63,54 +63,39 @@
       }, 12000);
     </script>
     <script>
-      // Early error suppression + overlay removal.
-      // The @metagptx/web-sdk injects an error overlay with id="custom-vite-error-overlay"
-      // whenever an unhandled error/rejection occurs. We use multiple strategies:
-      // 1. Suppress errors at capture phase (stopImmediatePropagation)
-      // 2. MutationObserver to immediately remove the overlay DOM element if it appears
-      // 3. CSS to hide the overlay as a fallback
+      // Hide MetaGPT SDK error overlay for transient network failures only.
       (function() {
-        // Strategy 1: Inject CSS to hide the overlay immediately
+        var TRANSIENT = /503|502|504|temporarily.unavailable|service.unavailable|econnrefused|enotfound|econnreset|failed.to.fetch|load.failed|network.error|loading.chunk|dynamically.imported/i;
+
         var style = document.createElement('style');
-        style.textContent = '#custom-vite-error-overlay { display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; }';
+        style.textContent = '#custom-vite-error-overlay { display: none !important; }';
         document.head.appendChild(style);
 
-        // Strategy 2: MutationObserver to remove overlay DOM element
         var observer = new MutationObserver(function(mutations) {
           for (var i = 0; i < mutations.length; i++) {
             var added = mutations[i].addedNodes;
             for (var j = 0; j < added.length; j++) {
               var node = added[j];
-              if (node.nodeType === 1) {
-                if (node.id === 'custom-vite-error-overlay') {
-                  node.remove();
-                  console.warn('[Overlay suppressed] Removed error overlay');
-                }
+              if (node.nodeType === 1 && node.id === 'custom-vite-error-overlay') {
+                node.remove();
               }
             }
           }
         });
         observer.observe(document.documentElement, { childList: true, subtree: true });
 
-        // Strategy 3: Suppress error/rejection events at capture phase
-        var SUPPRESSED = /dns|fetch|network|timeout|balancer|econnrefused|enotfound|econnreset|service.unavailable|failed.to.fetch|load.failed|not.ready|lambda|502|503|504|chunk|dynamically.imported|script.error|query|entities|api|request|status|response|abort|cancel/i;
-
         window.addEventListener('error', function(e) {
-          var m = String(e.message || '') + ' ' + String(e.error && e.error.message || '');
-          if (SUPPRESSED.test(m)) {
+          var m = String(e.message || '');
+          if (TRANSIENT.test(m)) {
             e.stopImmediatePropagation();
-            console.warn('[Early suppress] error:', m.slice(0, 120));
           }
         }, true);
 
         window.addEventListener('unhandledrejection', function(e) {
           var m = String(e.reason && e.reason.message || e.reason || '');
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          if (SUPPRESSED.test(m)) {
-            console.warn('[Early suppress] rejection:', m.slice(0, 120));
-          } else {
-            console.error('[Suppressed rejection]', m.slice(0, 200));
+          if (TRANSIENT.test(m)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
           }
         }, true);
       })();

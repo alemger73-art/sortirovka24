@@ -92,6 +92,7 @@ def _verify_password(raw: str, password_hash: str) -> bool:
 
 
 from utils.phone import normalize_phone as _normalize_phone, phone_digits as _phone_digits
+from utils.rate_limit import check_ip_rate_limit, check_keyed_rate_limit
 from utils.timeutils import as_aware_utc as _as_aware_utc
 def _matches_user_phone(candidate: str | None, user_phone: str | None) -> bool:
     left = _phone_digits(candidate)
@@ -112,10 +113,19 @@ async def _find_master_listing(db: AsyncSession, user: User) -> Masters | None:
 
 
 async def _find_user_by_phone(db: AsyncSession, phone: str | None) -> User | None:
-    if not phone:
+    normalized = _normalize_phone(phone or "")
+    if not normalized:
         return None
-    users = (await db.execute(select(User).limit(1000))).scalars().all()
-    return next((u for u in users if _matches_user_phone(u.phone, phone)), None)
+    user = (await db.execute(select(User).where(User.phone == normalized))).scalar_one_or_none()
+    if user:
+        return user
+    # Legacy rows may store phone in alternate formats — bounded fallback scan.
+    candidates = (
+        await db.execute(
+            select(User).where(User.phone.isnot(None)).order_by(desc(User.created_at)).limit(200)
+        )
+    ).scalars().all()
+    return next((u for u in candidates if _matches_user_phone(u.phone, normalized)), None)
 
 
 def _is_legacy_admin_jwt(token: str) -> bool:
@@ -559,24 +569,20 @@ async def register_request_sms(
         return _existing_code_response(active_row, resend=True)
 
     client_ip = http_request.client.host if http_request.client else "unknown"
-    phone_key = f"phone:{normalized_phone}"
-    ip_key = f"ip:{client_ip}"
-    phone_attempts = _clean_sms_requests(phone_key)
-    ip_attempts = _clean_sms_requests(ip_key)
-    if len(phone_attempts) >= MAX_SMS_REQUESTS_PER_WINDOW or len(ip_attempts) >= MAX_SMS_REQUESTS_PER_WINDOW:
-        wait_minutes = _sms_retry_minutes(phone_attempts, ip_attempts)
-        raise HTTPException(
-            status_code=429,
-            detail=(
-                f"Слишком много запросов SMS. Подождите около {wait_minutes} мин. "
-                "и нажмите «Получить SMS-код» снова — код появится на экране."
-            ),
-        )
+    window_sec = SMS_REQUEST_WINDOW.total_seconds()
+    check_keyed_rate_limit(
+        f"sms:phone:{normalized_phone}",
+        window_seconds=window_sec,
+        max_hits=MAX_SMS_REQUESTS_PER_WINDOW,
+        message="Слишком много запросов SMS. Подождите 15 минут и попробуйте снова.",
+    )
+    check_keyed_rate_limit(
+        f"sms:ip:{client_ip}",
+        window_seconds=window_sec,
+        max_hits=MAX_SMS_REQUESTS_PER_WINDOW,
+        message="Слишком много запросов SMS с вашего IP. Попробуйте позже.",
+    )
     now = datetime.now(timezone.utc)
-    phone_attempts.append(now)
-    ip_attempts.append(now)
-    SMS_REQUEST_ATTEMPTS[phone_key] = phone_attempts
-    SMS_REQUEST_ATTEMPTS[ip_key] = ip_attempts
 
     existing = (await db.execute(select(User).where(User.phone == normalized_phone))).scalar_one_or_none()
     if existing:
@@ -695,21 +701,21 @@ async def login(
     db: AsyncSession = Depends(get_db),
 ):
     normalized_phone = _normalize_phone(request.phone)
-    attempts = _clean_attempts(normalized_phone)
-    if len(attempts) >= MAX_ATTEMPTS:
-        raise HTTPException(status_code=429, detail="Too many login attempts")
+    check_keyed_rate_limit(
+        f"login:{normalized_phone}",
+        window_seconds=LOGIN_WINDOW.total_seconds(),
+        max_hits=MAX_ATTEMPTS,
+        message="Too many login attempts",
+    )
 
     user = (
         await db.execute(select(User).where(User.phone == normalized_phone))
     ).scalar_one_or_none()
     if not user or not user.password_hash or not _verify_password(request.password, user.password_hash):
-        attempts.append(datetime.now(timezone.utc))
-        LOGIN_ATTEMPTS[normalized_phone] = attempts
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if user.status == "blocked" or not user.is_active:
         raise HTTPException(status_code=403, detail="User is blocked")
 
-    LOGIN_ATTEMPTS[normalized_phone] = []
     return await _issue_account_session(user, http_request, db)
 
 

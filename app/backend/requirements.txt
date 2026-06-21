@@ -33,6 +33,12 @@ greenlet
 # >=3.4.0 fixes CVE-2024-33663 (algorithm confusion) and CVE-2024-33664 (JWT bomb)
 python-jose[cryptography]>=3.4.0
 
+# Optional: Redis rate limiting (REDIS_URL)
+redis>=5.0.0
+
+# Optional: Sentry error tracking (SENTRY_DSN)
+sentry-sdk[fastapi]>=2.0.0
+
 # aihub module dependencies
 openai==2.16.0
 sse-starlette>=1.6.0

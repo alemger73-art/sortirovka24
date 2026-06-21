@@ -46,7 +46,6 @@ const SalonDetail = lazy(() => import("./pages/Salons").then(m => ({ default: m.
 
 const InspectorsPage = lazy(() => import("./pages/Inspectors"));
 const HistoryPage = lazy(() => import("./pages/History"));
-const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const AdminPanel = lazy(() => import("./pages/Admin"));
 const Gastronom = lazy(() => import("./pages/Gastronom"));
 const Prorab = lazy(() => import("./pages/Prorab"));
@@ -221,7 +220,7 @@ function App() {
               <Route path="/wp-admin" element={<Navigate to="/" replace />} />
               <Route path="/wp-admin/*" element={<Navigate to="/" replace />} />
 
-              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/auth/callback" element={<Navigate to="/" replace />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

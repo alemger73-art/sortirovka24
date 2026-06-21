@@ -12,7 +12,7 @@ venv/
 env/
 .pytest_cache/
 
-# ---- Build output ----
+backups/
 app/frontend/dist/
 app/frontend/.android-sdk/
 app/backend/frontend_dist/
