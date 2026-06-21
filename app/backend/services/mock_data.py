@@ -18,6 +18,11 @@ MAX_CONCURRENT_LOADS = 5
 
 async def initialize_mock_data():
     """Populate tables with mock JSON data when they are empty."""
+    from core.env import is_production
+
+    if is_production():
+        logger.info("Production mode: skipping mock JSON seed")
+        return
     if "MGX_IGNORE_INIT_DATA" in os.environ:
         logger.info("Ignore initialize data")
         return

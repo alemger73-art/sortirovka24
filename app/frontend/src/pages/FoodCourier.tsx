@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { client, withRetry } from '@/lib/api';
+import { apiUrl } from '@/lib/config';
 import {
   Bike, Phone, MessageSquare, MapPin, Check, Clock,
   RefreshCw, LogIn, LogOut, Navigation, ChevronDown, ChevronUp,
@@ -87,16 +88,20 @@ export default function FoodCourier() {
     }
     setLoginLoading(true);
     try {
-      const result = await withRetry(() => client.entities.couriers.query({ limit: 50 }));
-      const couriers: Courier[] = result?.data?.items || [];
-      const found = couriers.find(c => c.pin_code === pinCode.trim() && c.is_active);
-      if (found) {
-        setCourier(found);
-        sessionStorage.setItem('courier_session', JSON.stringify(found));
-        toast.success(`Добро пожаловать, ${found.name}!`);
-      } else {
+      const res = await fetch(apiUrl('/api/v1/park/courier/login'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin_code: pinCode.trim() }),
+      });
+      if (!res.ok) {
         toast.error('Неверный PIN-код');
+        return;
       }
+      const found: Courier = await res.json();
+      setCourier(found);
+      sessionStorage.setItem('courier_session', JSON.stringify(found));
+      sessionStorage.setItem('courier_pin', pinCode.trim());
+      toast.success(`Добро пожаловать, ${found.name}!`);
     } catch (e) {
       console.error('Login error:', e);
       toast.error('Ошибка подключения');
@@ -109,6 +114,7 @@ export default function FoodCourier() {
     setCourier(null);
     setOrders([]);
     sessionStorage.removeItem('courier_session');
+    sessionStorage.removeItem('courier_pin');
     setPinCode('');
   }
 
@@ -131,12 +137,23 @@ export default function FoodCourier() {
   }
 
   async function updateOrderStatus(orderId: number, newStatus: string) {
+    const storedPin = sessionStorage.getItem('courier_pin') || pinCode.trim();
+    if (!storedPin) {
+      toast.error('Сессия истекла — войдите снова');
+      handleLogout();
+      return;
+    }
     setUpdatingOrder(orderId);
     try {
-      await withRetry(() => client.entities.park_orders.update({
-        id: String(orderId),
-        data: { status: newStatus, updated_at: new Date().toISOString() }
-      }));
+      const res = await fetch(apiUrl(`/api/v1/park/courier/orders/${orderId}/status`), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin_code: storedPin, status: newStatus }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Update failed');
+      }
       toast.success(newStatus === 'delivered' ? '🎉 Заказ доставлен!' : 'Статус обновлён');
       loadOrders();
     } catch (e) {

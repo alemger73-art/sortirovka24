@@ -61,6 +61,7 @@ import DamAlemImage from '@/components/damalem/DamAlemImage';
 import DamAlemSheet from '@/components/damalem/DamAlemSheet';
 import { buildMarketingStories, resolvePromoCodes } from '@/lib/damAlemMarketing';
 import DamAlemPageSkeleton from '@/components/damalem/DamAlemPageSkeleton';
+import LoadErrorState from '@/components/LoadErrorState';
 import '@/styles/damAlem.css';
 
 /* ─── Types ─── */
@@ -235,6 +236,7 @@ export default function Food() {
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [brandProfile, setBrandProfile] = useState<BrandProfile | null>(null);
   const [damAlemRestaurantId, setDamAlemRestaurantId] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(null);
@@ -326,6 +328,7 @@ export default function Food() {
 
   async function loadData() {
     setLoading(true);
+    setLoadError(false);
     const CACHE_TTL = 5 * 60 * 1000;
     const cq = (key: string, fn: () => Promise<any>) => fetchWithCache(`food_${key}`, () => withRetry(fn), CACHE_TTL);
     const catalogHeaders: Record<string, string> = {
@@ -477,6 +480,7 @@ export default function Food() {
       setFoodBanners(damBanners);
     } catch (e) {
       console.error('Error loading food data:', e);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -1375,6 +1379,14 @@ export default function Food() {
     return (
       <Layout>
         <DamAlemPageSkeleton />
+      </Layout>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <Layout>
+        <LoadErrorState onRetry={() => loadData()} />
       </Layout>
     );
   }

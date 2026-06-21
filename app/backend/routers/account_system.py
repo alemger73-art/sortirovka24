@@ -82,27 +82,12 @@ async def _get_account_user(db: AsyncSession, current_user: UserResponse) -> Acc
     return user
 
 
-@router.post("/register", response_model=AuthTokenResponse)
+@router.post("/register", response_model=AuthTokenResponse, deprecated=True)
 async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    if not request.email and not request.phone:
-        raise HTTPException(status_code=400, detail="Either email or phone must be provided")
-    try:
-        user = await create_user(
-            db=db,
-            email=request.email,
-            phone=request.phone,
-            password=request.password,
-            role="user",
-            full_name=request.full_name,
-            accepted_agreement=request.accepted_agreement,
-            accepted_privacy=request.accepted_privacy,
-        )
-        await ensure_default_feature_toggles(db)
-        token = build_token_for_user(user)
-        await write_audit_log(db, user.id, "register", "account_users", user.id)
-        return AuthTokenResponse(token=token, user_id=user.id, role=user.role)  # type: ignore[arg-type]
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+    raise HTTPException(
+        status_code=410,
+        detail="Legacy registration disabled. Use /api/v1/account/register/request-sms and /api/v1/account/register/confirm",
+    )
 
 
 @router.post("/login", response_model=AuthTokenResponse)

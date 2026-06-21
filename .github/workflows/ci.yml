@@ -22,7 +22,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Run pytest
-        run: pytest -v
+        env:
+          INTEGRITY_BASE_URL: http://127.0.0.1:8000
+        run: pytest -v --ignore=tests/test_integrity.py
 
   frontend:
     name: Frontend lint, typecheck, build

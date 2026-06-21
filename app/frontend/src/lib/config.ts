@@ -63,3 +63,12 @@ export const config = {
     return _baseURL;
   },
 };
+
+/** Support / business WhatsApp (digits only for wa.me links). */
+export const SUPPORT_WHATSAPP =
+  (import.meta.env.VITE_SUPPORT_WHATSAPP as string | undefined)?.replace(/\D/g, '') || '77470304096';
+
+export function whatsappUrl(text?: string): string {
+  const base = `https://wa.me/${SUPPORT_WHATSAPP}`;
+  return text ? `${base}?text=${encodeURIComponent(text)}` : base;
+}

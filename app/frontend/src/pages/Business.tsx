@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Layout from '@/components/Layout';
+import { whatsappUrl } from '@/lib/config';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
   Users, FileText, BookOpen, Utensils, ShoppingBag,
@@ -26,7 +27,7 @@ export default function BusinessPage() {
     e.preventDefault();
     // Build WhatsApp message
     const msg = `Заявка на размещение бизнеса:\n\nИмя: ${form.name}\nТелефон: ${form.phone}\nWhatsApp: ${form.whatsapp}\nДеятельность: ${form.activity}\nОписание: ${form.description}`;
-    const waUrl = `https://wa.me/77001234567?text=${encodeURIComponent(msg)}`;
+    const waUrl = whatsappUrl(msg);
     window.open(waUrl, '_blank');
     setSubmitted(true);
   };

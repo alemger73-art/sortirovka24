@@ -8,6 +8,7 @@ import {
   Search, Phone, MapPin, BookOpen, BadgeCheck, Bus, ChevronLeft,
   Copy, AlertTriangle
 } from 'lucide-react';
+import LoadErrorState from '@/components/LoadErrorState';
 import { toast } from 'sonner';
 
 interface DirectoryEntry {
@@ -50,6 +51,7 @@ export default function DirectoryPage() {
   const { t } = useLanguage();
   const [entries, setEntries] = useState<DirectoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [category, setCategory] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -57,6 +59,7 @@ export default function DirectoryPage() {
 
   async function loadData() {
     setLoading(true);
+    setLoadError(false);
     try {
       const res = await fetchWithCache(
         'directory_entries_v2',
@@ -66,6 +69,7 @@ export default function DirectoryPage() {
       setEntries(sortDirectoryEntries(res.data?.items || []));
     } catch (e) {
       console.error(e);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -247,6 +251,8 @@ export default function DirectoryPage() {
               <div className="inline-block w-10 h-10 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin" />
               <p className="text-gray-400 mt-4 text-sm">{t('common.loading')}</p>
             </div>
+          ) : loadError ? (
+            <LoadErrorState onRetry={loadData} />
           ) : filtered.length === 0 ? (
             <div className="text-center py-16">
               <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">

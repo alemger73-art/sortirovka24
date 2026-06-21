@@ -4,6 +4,7 @@ import Layout from '@/components/Layout';
 import { client, withRetry, timeAgo } from '@/lib/api';
 import { fetchWithCache } from '@/lib/cache';
 import { ChevronLeft, ChevronRight, Clock, MapPin, Bus, AlertTriangle, Info, Navigation } from 'lucide-react';
+import LoadErrorState from '@/components/LoadErrorState';
 
 /* ─── Types ─── */
 interface BusRoute {
@@ -332,6 +333,7 @@ export default function TransportPage() {
   const [stops, setStops] = useState<BusStop[]>([]);
   const [notifications, setNotifications] = useState<BusNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [expandedRoute, setExpandedRoute] = useState<number | null>(null);
 
   useEffect(() => {
@@ -340,6 +342,7 @@ export default function TransportPage() {
 
   async function loadData() {
     setLoading(true);
+    setLoadError(false);
     try {
       const [routesRes, stopsRes, notifsRes] = await Promise.allSettled([
         fetchWithCache('bus_routes', () => withRetry(() => client.entities.bus_routes.query({ sort: 'sort_order', limit: 50 })), 10 * 60 * 1000),
@@ -356,8 +359,12 @@ export default function TransportPage() {
       if (notifsRes.status === 'fulfilled') {
         setNotifications((notifsRes.value.data?.items || []).filter((n: BusNotification) => n.is_active));
       }
+      if (routesRes.status === 'rejected' && stopsRes.status === 'rejected') {
+        setLoadError(true);
+      }
     } catch (e) {
       console.error(e);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -452,6 +459,8 @@ export default function TransportPage() {
                 <p className="text-gray-500 font-medium text-sm">Загружаем маршруты...</p>
               </div>
             </div>
+          ) : loadError ? (
+            <LoadErrorState onRetry={loadData} />
           ) : routes.length > 0 ? (
             <div className="space-y-3">
               {routes.map(route => (

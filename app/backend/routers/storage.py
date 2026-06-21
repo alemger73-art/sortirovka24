@@ -19,6 +19,7 @@ from schemas.storage import (
     UploadImageResponse,
 )
 from services.storage import StorageService
+from utils.rate_limit import check_ip_rate_limit
 
 logger = logging.getLogger(__name__)
 
@@ -203,7 +204,7 @@ MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
 
 
 @router.post("/public/upload-url", response_model=FileUpDownResponse)
-async def public_upload_file(request: FileUpDownRequest):
+async def public_upload_file(request: FileUpDownRequest, http_request: Request):
     """
     Get a presigned URL for uploading a file to public buckets.
     No authentication required — intended for public user forms
@@ -211,6 +212,13 @@ async def public_upload_file(request: FileUpDownRequest):
     Only whitelisted public buckets are accessible.
     Only image/video file extensions are allowed.
     """
+    check_ip_rate_limit(
+        http_request,
+        key_prefix="public_upload",
+        max_hits=30,
+        window_seconds=3600,
+        message="Слишком много загрузок. Попробуйте позже.",
+    )
     if request.bucket_name not in PUBLIC_BUCKETS:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

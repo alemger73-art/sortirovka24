@@ -13,6 +13,7 @@ import StorageImg from '@/components/StorageImg';
 import { MapContainer, TileLayer, Polygon, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { toast } from 'sonner';
+import LoadErrorState from '@/components/LoadErrorState';
 import 'leaflet/dist/leaflet.css';
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -107,6 +108,7 @@ export default function InspectorsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [inspectors, setInspectors] = useState<Inspector[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('street') || searchParams.get('q') || '');
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('search');
@@ -125,6 +127,7 @@ export default function InspectorsPage() {
 
   async function loadInspectors() {
     setLoading(true);
+    setLoadError(false);
     try {
       const res = await fetchWithCache(
         'inspectors_list_v2',
@@ -134,6 +137,7 @@ export default function InspectorsPage() {
       setInspectors(res.data?.items || []);
     } catch (e) {
       console.error(e);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -324,6 +328,8 @@ export default function InspectorsPage() {
 
           {loading ? (
             <LoadingState t={t} />
+          ) : loadError ? (
+            <LoadErrorState onRetry={loadInspectors} />
           ) : (
             <>
               {/* TAB: SEARCH */}

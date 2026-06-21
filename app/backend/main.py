@@ -19,6 +19,7 @@ try:
 except ImportError:
     pass
 
+from core.env import is_production
 from core.config import settings
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -103,10 +104,13 @@ async def _run_startup_initialization():
         logger.warning("Application will start without database - lazy init on first request")
 
     if db_ready:
-        try:
-            await initialize_mock_data()
-        except Exception as e:
-            logger.warning(f"Mock data initialization failed: {e}")
+        if not is_production() and "MGX_IGNORE_INIT_DATA" not in os.environ:
+            try:
+                await initialize_mock_data()
+            except Exception as e:
+                logger.warning(f"Mock data initialization failed: {e}")
+        elif is_production():
+            logger.info("Production mode: skipping mock JSON seed (set MGX_IGNORE_INIT_DATA to suppress this log in dev)")
 
         try:
             from services.dam_alem_catalog_seed import ensure_dam_alem_catalog
@@ -210,11 +214,16 @@ async def lifespan(app: FastAPI):
     # MODULE_SHUTDOWN_END
 
 
+_production = is_production()
+
 app = FastAPI(
-    title="FastAPI Modular Template",
-    description="A best-practice FastAPI template with modular architecture",
+    title="Sortirovka24 API",
+    description="Backend API for Sortirovka24 super-app",
     version="2.1.0",
     lifespan=lifespan,
+    docs_url=None if _production else "/docs",
+    redoc_url=None if _production else "/redoc",
+    openapi_url=None if _production else "/openapi.json",
 )
 
 
@@ -354,7 +363,7 @@ async def general_exception_handler(request: Request, exc: Exception):
     logger.error(f"Exception: {error_type}: {error_message}\n{traceback.format_exc()}")
 
     # Determine if we're in dev environment
-    is_dev = os.getenv("ENVIRONMENT", "prod").lower() == "dev"
+    is_dev = not is_production()
 
     if is_dev:
         # Dev environment: return full stack trace and exception details

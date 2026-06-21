@@ -63,7 +63,7 @@ from services.google_oauth import (
     fetch_google_userinfo,
     google_oauth_enabled,
 )
-from services.sms import SMSDeliveryError, send_verification_code, should_expose_code_on_screen
+from services.sms import SMSDeliveryError, SMSDeliveryResult, send_verification_code, should_expose_code_on_screen
 from services.storage import StorageService
 from sqlalchemy import and_, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -248,12 +248,17 @@ def _existing_code_response(row: PhoneVerification, *, resend: bool) -> RequestS
         if resend
         else "SMS проходит модерацию Mobizon. Пока SMS не пришло — введите код с экрана."
     )
+    expose = (
+        row.pending_code
+        if should_expose_code_on_screen(SMSDeliveryResult(delivered=False, pending_moderation=True))
+        else None
+    )
     return RequestSmsCodeResponse(
         success=True,
         ttl_seconds=ttl,
-        debug_code=row.pending_code,
+        debug_code=expose,
         sms_pending_moderation=True,
-        on_screen_code_hint=hint,
+        on_screen_code_hint=hint if expose else None,
     )
 
 

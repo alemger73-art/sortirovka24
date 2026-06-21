@@ -56,13 +56,13 @@ ADMIN_READ_ENTITIES = {
     "food_orders",
     "master_requests",
     "become_master_requests",
+    "frontpad_settings",
+    "couriers",
 }
 
-# Entities whose UPDATE (PUT/PATCH) is performed by a public client, e.g. a
-# courier updating the status of an order from the courier screen.
-PUBLIC_UPDATE_ENTITIES = {
-    "park_orders",
-}
+# Entities whose UPDATE (PUT/PATCH) is performed by a public client.
+# park_orders updates go through /api/v1/park/courier/orders/{id}/status (PIN auth).
+PUBLIC_UPDATE_ENTITIES: set[str] = set()
 
 _DISABLED_VALUES = {"0", "off", "false", "no", "disabled"}
 
