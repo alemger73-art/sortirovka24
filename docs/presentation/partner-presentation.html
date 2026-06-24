@@ -13,15 +13,48 @@
       --sw:297mm; --sh:210mm;
     }
     *{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
     body{font-family:'Outfit',system-ui,sans-serif;background:#020617;color:#fff;
       -webkit-print-color-adjust:exact;print-color-adjust:exact}
     .slide{width:var(--sw);min-height:var(--sh);margin:0 auto 16px;padding:28px 36px;
       position:relative;overflow:hidden;page-break-after:always;break-after:page}
     @page{size:A4 landscape;margin:0}
-    @media print{.no-print{display:none!important}.slide{margin:0}}
+    @media print{.no-print{display:none!important}.slide{margin:0;width:var(--sw);min-height:var(--sh);height:auto}}
     @media screen{
-      body{padding:24px 0 80px}
-      .slide{box-shadow:0 40px 100px rgba(0,0,0,.55);border-radius:4px}
+      html{scroll-snap-type:y mandatory;height:100%;scroll-padding-top:36px}
+      body{padding:0;margin:0;overflow-x:hidden;padding-bottom:0}
+      .slide{
+        width:100vw;min-height:100vh;height:100vh;max-width:none;margin:0;
+        padding:clamp(32px,4vw,60px) clamp(36px,5vw,72px) clamp(52px,6vw,80px);
+        box-shadow:none;border-radius:0;
+        display:flex;flex-direction:column;justify-content:center;
+        scroll-snap-align:start;scroll-snap-stop:always
+      }
+      .slide.dense{justify-content:flex-start;padding-top:clamp(44px,6vh,68px)}
+      .eyebrow{font-size:13px!important;margin-bottom:14px!important}
+      .eyebrow::before{width:28px;height:3px}
+      h1{font-size:clamp(40px,6vw,80px)!important}
+      h2{font-size:clamp(26px,3.5vw,52px)!important;margin-bottom:clamp(10px,1.4vw,18px)!important}
+      h3{font-size:clamp(15px,1.6vw,22px)!important}
+      .lead{font-size:clamp(14px,1.45vw,20px)!important;max-width:100%!important}
+      .footer{left:clamp(36px,5vw,72px)!important;right:clamp(36px,5vw,72px)!important;
+        bottom:clamp(18px,3vh,32px)!important;font-size:11px!important;padding-top:10px!important}
+      .sn{font-size:13px!important}
+      .grid2{gap:clamp(18px,2.2vw,36px)!important}
+      .grid3{gap:clamp(12px,1.4vw,22px)!important}
+      .glass{padding:clamp(16px,1.8vw,26px)!important;border-radius:18px!important}
+      ul.tick li{font-size:clamp(13px,1.3vw,17px)!important;padding:6px 0 6px 26px!important}
+      .step p{font-size:clamp(12px,1.2vw,15px)!important}
+      .step-num{width:28px!important;height:28px!important;font-size:12px!important}
+      .compare li{font-size:clamp(12px,1.15vw,15px)!important}
+      .compare h4{font-size:clamp(13px,1.25vw,16px)!important}
+      .phone{width:clamp(130px,13vw,200px)!important}
+      .phone-xl{width:clamp(150px,15vw,240px)!important}
+      .scr-label{font-size:clamp(11px,1.1vw,14px)!important;margin-top:8px!important}
+      .cta-box h3{font-size:clamp(16px,1.6vw,22px)!important}
+      .cta-box p{font-size:clamp(13px,1.25vw,16px)!important}
+      .badge{font-size:11px!important;padding:5px 12px!important}
+      .section-tag{font-size:clamp(48px,9vw,120px)!important}
       .nav-bar{position:fixed;bottom:0;left:0;right:0;z-index:99;
         background:rgba(6,9,18,.95);backdrop-filter:blur(12px);
         border-top:1px solid rgba(255,255,255,.08);padding:12px 24px;
@@ -30,6 +63,13 @@
         padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.15);
         background:rgba(255,255,255,.06);color:#fff;cursor:pointer;text-decoration:none}
       .nav-bar button.active,.nav-bar a.active{background:var(--blue);border-color:var(--blue)}
+      .glass p{font-size:clamp(13px,1.25vw,16px)!important;line-height:1.5!important}
+      .glass h3{font-size:clamp(15px,1.5vw,20px)!important}
+      .shot-row{margin-top:clamp(16px,2vh,32px)!important}
+      .slide-nav{position:fixed;bottom:72px;right:24px;z-index:998;display:flex;gap:8px;align-items:center;
+        background:rgba(6,9,18,.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1);
+        border-radius:999px;padding:8px 14px;font-size:12px;color:var(--muted)}
+      .slide-nav kbd{background:rgba(255,255,255,.08);padding:2px 8px;border-radius:6px;color:#fff;font-weight:700}
     }
 
     .bg-void{background:radial-gradient(ellipse 90% 70% at 70% 0%,rgba(37,99,235,.35),transparent 50%),linear-gradient(180deg,var(--navy),#000)}
@@ -443,19 +483,45 @@
   <a href="sortirovka24-presentation.html">Общая презентация</a>
   <button type="button" onclick="window.print()">📄 PDF / Печать</button>
 </nav>
+<div class="slide-nav no-print" id="slideNav"><span id="slideCounter">1 / 18</span><span style="opacity:.4">·</span><kbd>←</kbd><kbd>→</kbd></div>
 
 <script>
 (function(){
   const slides = document.querySelectorAll('.slide[data-audience]');
   const btns = document.querySelectorAll('#nav button[data-filter]');
+  const counter = document.getElementById('slideCounter');
+  function visibleSlides(){return [].slice.call(slides).filter(s=>s.style.display!=='none');}
   function applyFilter(f){
     btns.forEach(b => b.classList.toggle('active', b.dataset.filter === f));
     slides.forEach(s => {
       const a = s.dataset.audience;
       s.style.display = (f === 'all' || a === 'all' || a === f) ? '' : 'none';
     });
+    updateCounter();
+  }
+  function idx(list){
+    const y=window.scrollY+window.innerHeight/2;
+    return list.findIndex((s,i)=>s.offsetTop<=y&&(list[i+1]?list[i+1].offsetTop>y:true));
+  }
+  function updateCounter(){
+    const v=visibleSlides();const i=idx(v);
+    if(i>=0)counter.textContent=(i+1)+' / '+v.length;
+  }
+  function go(n){
+    const v=visibleSlides();let i=idx(v);if(i<0)i=0;
+    i=Math.max(0,Math.min(v.length-1,i+n));
+    v[i].scrollIntoView({behavior:'smooth'});
+    counter.textContent=(i+1)+' / '+v.length;
   }
   btns.forEach(b => b.addEventListener('click', () => applyFilter(b.dataset.filter)));
+  if(!window.matchMedia('print').matches){
+    document.addEventListener('keydown',function(e){
+      if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){e.preventDefault();go(1);}
+      if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(-1);}
+    });
+    window.addEventListener('scroll',updateCounter,{passive:true});
+    updateCounter();
+  }
 })();
 </script>
 </body>

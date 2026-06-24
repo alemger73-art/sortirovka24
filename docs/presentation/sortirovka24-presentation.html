@@ -14,13 +14,67 @@
       --sw:297mm; --sh:210mm;
     }
     *{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
     body{font-family:'Outfit',system-ui,sans-serif;background:#020617;color:#fff;
       -webkit-print-color-adjust:exact;print-color-adjust:exact}
     .slide{width:var(--sw);min-height:var(--sh);margin:0 auto 16px;padding:32px 40px;
       position:relative;overflow:hidden;page-break-after:always;break-after:page}
     @page{size:A4 landscape;margin:0}
-    @media print{.no-print{display:none!important}.slide{margin:0}}
-    @media screen{body{padding:40px 0}.slide{box-shadow:0 50px 120px rgba(0,0,0,.6)}}
+    @media print{.no-print{display:none!important}.slide{margin:0;width:var(--sw);min-height:var(--sh);height:auto}}
+    @media screen{
+      html{scroll-snap-type:y mandatory;height:100%;scroll-padding-top:36px}
+      body{padding:0;margin:0;overflow-x:hidden}
+      .slide{
+        width:100vw;min-height:100vh;height:100vh;max-width:none;margin:0;
+        padding:clamp(36px,4vw,64px) clamp(40px,5vw,80px) clamp(56px,6vw,88px);
+        box-shadow:none;border-radius:0;
+        display:flex;flex-direction:column;justify-content:center;
+        scroll-snap-align:start;scroll-snap-stop:always
+      }
+      .slide.dense{justify-content:flex-start;padding-top:clamp(48px,6vh,72px)}
+      .eyebrow{font-size:13px!important;margin-bottom:16px!important;letter-spacing:.18em}
+      .eyebrow::before{width:32px;height:3px}
+      h1{font-size:clamp(44px,6.5vw,88px)!important}
+      h2{font-size:clamp(28px,3.8vw,56px)!important;margin-bottom:clamp(12px,1.5vw,20px)!important}
+      h3{font-size:clamp(16px,1.7vw,24px)!important;margin-bottom:8px!important}
+      .lead{font-size:clamp(15px,1.5vw,22px)!important;max-width:100%!important;line-height:1.55!important}
+      .footer{left:clamp(40px,5vw,80px)!important;right:clamp(40px,5vw,80px)!important;
+        bottom:clamp(20px,3vh,36px)!important;font-size:11px!important;padding-top:10px!important}
+      .sn{font-size:13px!important}
+      .grid2{gap:clamp(20px,2.5vw,40px)!important}
+      .grid3{gap:clamp(14px,1.5vw,24px)!important}
+      .grid4{gap:clamp(12px,1.2vw,20px)!important}
+      .glass{padding:clamp(18px,2vw,28px) clamp(20px,2.2vw,32px)!important;border-radius:20px!important}
+      .glass p,.glass .lead{font-size:clamp(14px,1.35vw,18px)!important;margin-top:8px!important}
+      .glass h3{font-size:clamp(16px,1.6vw,22px)!important}
+      ul.tick li{font-size:clamp(14px,1.35vw,18px)!important;padding:7px 0 7px 28px!important}
+      ul.tick li::before{font-size:12px!important;top:9px!important}
+      .mod{padding:clamp(14px,1.5vw,22px)!important}
+      .mod h3{font-size:clamp(14px,1.4vw,18px)!important}
+      .mod p{font-size:clamp(13px,1.25vw,16px)!important}
+      .mod .route{font-size:clamp(11px,1.1vw,14px)!important}
+      .mod-icon{font-size:clamp(24px,2.5vw,36px)!important;margin-bottom:10px!important}
+      .stat-huge{font-size:clamp(36px,5vw,72px)!important}
+      .stat-lbl{font-size:clamp(12px,1.2vw,16px)!important}
+      .quote{font-size:clamp(15px,1.5vw,20px)!important;padding:clamp(14px,1.5vw,22px) clamp(18px,2vw,28px)!important}
+      .flex-row{flex:0 1 auto;height:auto!important;min-height:0;gap:clamp(24px,3vw,48px)!important;align-items:center!important}
+      .slide .grid2[style*="height:calc"],.slide [style*="height:calc(100%"]{height:auto!important;flex:1;align-items:center!important}
+      .phone{width:clamp(130px,13vw,210px)!important}
+      .phone-xl{width:clamp(150px,15vw,250px)!important}
+      .tablet{width:clamp(170px,17vw,280px)!important}
+      .laptop{width:clamp(240px,26vw,420px)!important}
+      .partner-box h3{font-size:clamp(16px,1.6vw,22px)!important}
+      .partner-box p{font-size:clamp(13px,1.25vw,16px)!important}
+      .partner-box .icon{font-size:clamp(32px,3.5vw,48px)!important}
+      .tl h4{font-size:clamp(14px,1.4vw,18px)!important}
+      .tl p{font-size:clamp(12px,1.2vw,16px)!important}
+      .section-num{font-size:clamp(72px,11vw,160px)!important;right:clamp(40px,5vw,80px)!important;top:clamp(24px,3vh,48px)!important}
+      .tag-pill{font-size:11px!important;padding:5px 12px!important}
+      .slide-nav{position:fixed;bottom:24px;right:24px;z-index:998;display:flex;gap:8px;align-items:center;
+        background:rgba(6,9,18,.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1);
+        border-radius:999px;padding:8px 14px;font-size:12px;color:var(--muted)}
+      .slide-nav kbd{background:rgba(255,255,255,.08);padding:2px 8px;border-radius:6px;color:#fff;font-weight:700}
+    }
 
     /* BG variants */
     .bg-void{background:radial-gradient(ellipse 100% 80% at 50% 0%,rgba(37,99,235,.35),transparent 50%),linear-gradient(180deg,var(--navy) 0%,#000 100%)}
@@ -179,7 +233,7 @@
 </section>
 
 <!-- S03 PAIN -->
-<section class="slide bg-dark">
+<section class="slide dense bg-dark">
   <div class="eyebrow eyebrow-blue">Проблема сегодня</div>
   <h2>Боль жителя Сортировки <span style="font-size:20px">😤</span></h2>
   <div class="grid3" style="margin-top:14px">
@@ -212,7 +266,7 @@
 </section>
 
 <!-- S05 GOALS -->
-<section class="slide bg-dark">
+<section class="slide dense bg-dark">
   <div class="eyebrow">Цели и намерения</div>
   <h2>Стратегические цели проекта</h2>
   <div class="grid3" style="margin-top:14px">
@@ -277,7 +331,7 @@
 </section>
 
 <!-- S07 PARTNERS -->
-<section class="slide bg-partner">
+<section class="slide dense bg-partner">
   <div class="eyebrow">Для партнёров и бизнеса</div>
   <h2>Почему <span class="hl">выгодно</span> сотрудничать</h2>
   <div class="partner-row">
@@ -402,7 +456,7 @@
 </section>
 
 <!-- S12 COMMUNITY -->
-<section class="slide bg-dark">
+<section class="slide dense bg-dark">
   <div class="eyebrow">Community-модули</div>
   <h2>Новости · Объявления · Жалобы · Вопросы</h2>
   <div class="grid4" style="margin-top:10px">
@@ -419,7 +473,7 @@
 </section>
 
 <!-- S13 SERVICES -->
-<section class="slide bg-gold">
+<section class="slide dense bg-gold">
   <div class="eyebrow">Сервисы и люди</div>
   <h2>Мастера · Салоны · Участковые · Справочник</h2>
   <div class="grid2" style="margin-top:10px">
@@ -435,7 +489,7 @@
 </section>
 
 <!-- S14 LIFE INFO -->
-<section class="slide bg-dark">
+<section class="slide dense bg-dark">
   <div class="eyebrow">Быт и информация</div>
   <h2>Недвижимость · Работа · Транспорт · История</h2>
   <div class="grid4" style="margin-top:12px">
@@ -452,7 +506,7 @@
 </section>
 
 <!-- S15 ALL MODULES MAP -->
-<section class="slide bg-void">
+<section class="slide dense bg-void">
   <div class="eyebrow">Полная карта · 17+ модулей</div>
   <h2>Каждая функция — отдельный блок</h2>
   <div class="grid4" style="margin-top:8px;gap:6px">
@@ -497,7 +551,7 @@
 </section>
 
 <!-- S17 ADMIN -->
-<section class="slide bg-dark">
+<section class="slide dense bg-dark">
   <div class="eyebrow eyebrow-green">Управление</div>
   <h2>Админ-панель — мозг платформы</h2>
   <div class="grid2" style="margin-top:10px">
@@ -585,7 +639,7 @@
 </section>
 
 <!-- S22 GALLERY -->
-<section class="slide bg-void">
+<section class="slide dense bg-void">
   <div class="eyebrow eyebrow-blue">Real UI · production</div>
   <h2>Галерея экранов</h2>
   <div class="grid4" style="margin-top:10px;gap:8px">
@@ -599,7 +653,7 @@
 </section>
 
 <!-- S23 PRINCIPLES -->
-<section class="slide bg-dark">
+<section class="slide dense bg-dark">
   <div class="eyebrow">Конституция</div>
   <h2>7 принципов проекта</h2>
   <div class="grid2" style="margin-top:10px;gap:8px">
@@ -632,5 +686,26 @@
   <div class="footer"><span>SORTIROVKA 24 · Караганда · 2026</span><span class="sn">24 / 24</span></div>
 </section>
 
+<div class="slide-nav no-print" id="slideNav"><span id="slideCounter">1 / 24</span><span style="opacity:.4">·</span><kbd>←</kbd><kbd>→</kbd></div>
+<script>
+(function(){
+  if(window.matchMedia('print').matches)return;
+  var slides=[].slice.call(document.querySelectorAll('.slide'));
+  var counter=document.getElementById('slideCounter');
+  function idx(){var y=window.scrollY+window.innerHeight/2;return slides.findIndex(function(s,i){
+    return s.offsetTop<=y&&(slides[i+1]?slides[i+1].offsetTop>y:true);});}
+  function go(n){var i=idx();i=Math.max(0,Math.min(slides.length-1,(i<0?0:i)+n));
+    slides[i].scrollIntoView({behavior:'smooth'});counter.textContent=(i+1)+' / '+slides.length;}
+  document.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){e.preventDefault();go(1);}
+    if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(-1);}
+    if(e.key==='Home'){e.preventDefault();slides[0].scrollIntoView({behavior:'smooth'});}
+    if(e.key==='End'){e.preventDefault();slides[slides.length-1].scrollIntoView({behavior:'smooth'});}
+  });
+  window.addEventListener('scroll',function(){
+    var i=idx();if(i>=0)counter.textContent=(i+1)+' / '+slides.length;
+  },{passive:true});
+})();
+</script>
 </body>
 </html>
