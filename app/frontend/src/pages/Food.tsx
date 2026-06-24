@@ -261,6 +261,7 @@ export default function Food() {
   const [addressFormCollapsed, setAddressFormCollapsed] = useState(false);
   const quoteRequestId = useRef(0);
   const addressPickerRef = useRef<HTMLDivElement>(null);
+  const addressFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<number[]>(() => loadFavoriteIds());
   const [promoInput, setPromoInput] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<{ code: string; discount: number; free_delivery: boolean; label: string } | null>(null);
@@ -305,7 +306,12 @@ export default function Food() {
     if (items.length === 0) return;
     if (!cartHydratedRef.current) {
       const restored = loadFoodCart(items);
-      if (restored.length > 0) setCart(restored);
+      if (restored.length > 0) {
+        setCart(restored);
+        if (restored.some(ci => Object.keys(ci.selections).length > 0)) {
+          void loadModifiers();
+        }
+      }
       cartHydratedRef.current = true;
       return;
     }
@@ -326,6 +332,10 @@ export default function Food() {
     const prefill = getAccountPrefill();
     if (prefill.name) setCustomerName((v) => v || prefill.name);
     if (prefill.phone) setCustomerPhone((v) => v || prefill.phone);
+  }, []);
+
+  useEffect(() => () => {
+    if (addressFocusTimerRef.current) clearTimeout(addressFocusTimerRef.current);
   }, []);
 
   async function loadModifiers(force = false) {
@@ -801,7 +811,9 @@ export default function Food() {
 
   const focusAddressPicker = useCallback(() => {
     setAddressFormCollapsed(false);
-    window.setTimeout(() => {
+    if (addressFocusTimerRef.current) clearTimeout(addressFocusTimerRef.current);
+    addressFocusTimerRef.current = window.setTimeout(() => {
+      addressFocusTimerRef.current = null;
       addressPickerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       const input = addressPickerRef.current?.querySelector('input');
       if (input instanceof HTMLInputElement) {
@@ -1366,7 +1378,7 @@ export default function Food() {
     }
     if (storyId === 'hits') {
       const hit = recommendedItems[0];
-      if (hit) openItemModal(hit);
+      if (hit) void openItemModal(hit);
       else handleCategorySelect('pizza-30');
       return;
     }
@@ -1400,8 +1412,8 @@ export default function Food() {
         weight={w !== '200 г' ? w : undefined}
         badge={getBadgeType(item)}
         variant="grid"
-        onOpen={() => openItemModal(item)}
-        onAdd={() => quickAdd(item)}
+        onOpen={() => void openItemModal(item)}
+        onAdd={() => void quickAdd(item)}
         onRemove={() => quickRemove(item.id)}
         onToggleFavorite={() => toggleFavorite(item.id)}
       />
@@ -1971,7 +1983,7 @@ export default function Food() {
                               <span className="text-xs font-extrabold text-[#111111]">{formatPrice(item.price)}</span>
                               <button
                                 type="button"
-                                onClick={() => quickAdd(item)}
+                                onClick={() => void quickAdd(item)}
                                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FF3B30] text-white shadow-sm active:scale-90 transition-transform"
                               >
                                 <Plus className="h-3.5 w-3.5" />

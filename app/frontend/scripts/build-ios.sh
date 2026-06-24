@@ -24,8 +24,13 @@ mkdir -p "$EXPORT_DIR"
 
 echo "==> Building bundled web assets (App Store mode)"
 printf 'VITE_API_BASE_URL=%s\n' "$API_BASE_URL" > .env.mobile
-npm run build:mobile
-npx cap sync ios
+if command -v pnpm >/dev/null 2>&1; then
+  pnpm run build:mobile
+  pnpm exec cap sync ios
+else
+  npm run build:mobile
+  npx cap sync ios
+fi
 
 echo "==> Installing CocoaPods"
 ( cd ios/App && pod install )

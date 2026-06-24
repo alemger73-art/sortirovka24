@@ -8,6 +8,7 @@ import { fetchWithCache } from '@/lib/cache';
 import { whatsappUrl } from '@/lib/config';
 import { preloadCriticalImages, preloadImagesOnIdle, extractImageUrls } from '@/lib/imageCache';
 import { resolveImageSrc } from '@/lib/storage';
+import { prefetchFromIndex } from '@/lib/prefetch';
 import {
   Wrench, AlertTriangle, Megaphone, ChevronRight, ChevronLeft,
   MapPin, Phone as PhoneIcon, Clock, Briefcase, Sun, Snowflake, Cloud, CloudRain,

@@ -70,8 +70,13 @@ Write-LocalProperties
 Set-Location $FrontendRoot
 
 if (-not (Test-Path "node_modules")) {
-    Write-Host "npm install..."
-    npm install 2>&1 | Write-Host
+    if (Get-Command pnpm -ErrorAction SilentlyContinue) {
+        Write-Host "pnpm install..."
+        pnpm install 2>&1 | Write-Host
+    } else {
+        Write-Host "npm install..."
+        npm install 2>&1 | Write-Host
+    }
 }
 
 if (-not (Test-Path ".env.mobile")) {
@@ -81,10 +86,17 @@ if (-not (Test-Path ".env.mobile")) {
 Write-Host "[4/5] Building web bundle..."
 $prevEAP = $ErrorActionPreference
 $ErrorActionPreference = "Continue"
-npm run build:mobile 2>&1 | ForEach-Object { Write-Host $_ }
-if ($LASTEXITCODE -ne 0) { throw "npm run build:mobile failed with exit $LASTEXITCODE" }
-npx cap sync android 2>&1 | ForEach-Object { Write-Host $_ }
-if ($LASTEXITCODE -ne 0) { throw "cap sync failed with exit $LASTEXITCODE" }
+if (Get-Command pnpm -ErrorAction SilentlyContinue) {
+    pnpm run build:mobile 2>&1 | ForEach-Object { Write-Host $_ }
+    if ($LASTEXITCODE -ne 0) { throw "pnpm run build:mobile failed with exit $LASTEXITCODE" }
+    pnpm exec cap sync android 2>&1 | ForEach-Object { Write-Host $_ }
+    if ($LASTEXITCODE -ne 0) { throw "cap sync failed with exit $LASTEXITCODE" }
+} else {
+    npm run build:mobile 2>&1 | ForEach-Object { Write-Host $_ }
+    if ($LASTEXITCODE -ne 0) { throw "npm run build:mobile failed with exit $LASTEXITCODE" }
+    npx cap sync android 2>&1 | ForEach-Object { Write-Host $_ }
+    if ($LASTEXITCODE -ne 0) { throw "cap sync failed with exit $LASTEXITCODE" }
+}
 $ErrorActionPreference = $prevEAP
 
 if ($SkipGradle) {
