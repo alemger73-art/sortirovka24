@@ -15,6 +15,7 @@ Per-category overrides (optional):
   TELEGRAM_BOT_TOKEN_JOBS           / TELEGRAM_CHAT_ID_JOBS
   TELEGRAM_BOT_TOKEN_ANNOUNCEMENTS  / TELEGRAM_CHAT_ID_ANNOUNCEMENTS
   TELEGRAM_BOT_TOKEN_GASTRONOM      / TELEGRAM_CHAT_ID_GASTRONOM
+  TELEGRAM_BOT_TOKEN_VOLNA          / TELEGRAM_CHAT_ID_VOLNA
   TELEGRAM_BOT_TOKEN_PRORAB         / TELEGRAM_CHAT_ID_PRORAB
   TELEGRAM_BOT_TOKEN_TAXI           / TELEGRAM_CHAT_ID_TAXI
   TELEGRAM_BOT_TOKEN_BUSINESS       / TELEGRAM_CHAT_ID_BUSINESS
@@ -42,6 +43,7 @@ CATEGORY_BECOME_MASTER = "BECOME_MASTER"
 CATEGORY_JOBS = "JOBS"
 CATEGORY_ANNOUNCEMENTS = "ANNOUNCEMENTS"
 CATEGORY_GASTRONOM = "GASTRONOM"
+CATEGORY_VOLNA = "VOLNA"
 CATEGORY_PRORAB = "PRORAB"
 CATEGORY_PHARMACY = "PHARMACY"
 CATEGORY_FOOD = "FOOD"
@@ -72,7 +74,7 @@ def get_routing_info() -> dict:
     """Return current Telegram routing configuration for diagnostics."""
     categories = [
         CATEGORY_COMPLAINTS, CATEGORY_MASTERS, CATEGORY_BECOME_MASTER,
-        CATEGORY_JOBS, CATEGORY_ANNOUNCEMENTS, CATEGORY_GASTRONOM, CATEGORY_PRORAB,
+        CATEGORY_JOBS, CATEGORY_ANNOUNCEMENTS, CATEGORY_GASTRONOM, CATEGORY_VOLNA, CATEGORY_PRORAB,
         CATEGORY_PHARMACY, CATEGORY_FOOD, CATEGORY_FOOD_COURIER, CATEGORY_TAXI, CATEGORY_BUSINESS,
     ]
     result = {"default": _is_configured(None)}
@@ -528,6 +530,91 @@ async def notify_pharmacy_status_change(data: dict) -> bool:
         f"<b>Дата:</b> {_format_date()}"
     )
     return await send_telegram_message(text, category=CATEGORY_PHARMACY)
+
+
+async def notify_volna_order(data: dict) -> bool:
+    """Send notification about a new VOLNA alcohol order."""
+    items = data.get("items") or []
+    if isinstance(items, str):
+        try:
+            import json
+            items = json.loads(items)
+        except Exception:
+            items = []
+
+    lines = []
+    for idx, item in enumerate(items, 1):
+        name = item.get("name", "—")
+        qty = item.get("qty", 1)
+        price = item.get("price", 0)
+        sum_val = item.get("sum", qty * price)
+        weight = item.get("weight", "")
+        weight_part = f" ({weight})" if weight else ""
+        if item.get("is_gift"):
+            lines.append(f"🎁 {_escape_html(name)}{weight_part}")
+        else:
+            lines.append(f"{idx}. {_escape_html(name)}{weight_part} ×{qty} = {sum_val} ₸")
+
+    items_text = "\n".join(lines) if lines else "—"
+    payment_map = {"cash": "Наличные", "kaspi_qr": "Kaspi QR", "halyk_qr": "Halyk QR", "card": "Картой"}
+    payment_label = payment_map.get(data.get("payment_method", ""), data.get("payment_method", "—"))
+
+    comment_line = ""
+    if data.get("comment"):
+        comment_line = f"\n<b>Комментарий:</b> {_escape_html(data.get('comment'))}"
+
+    gift_line = ""
+    gift = data.get("loyalty_gift")
+    if isinstance(gift, dict) and gift.get("title"):
+        gift_line = f"\n<b>🎁 Подарок:</b> {_escape_html(gift.get('title'))} (от {int(gift.get('min_amount', 0))} ₸)"
+
+    delivery_fee = data.get("delivery_fee") or 0
+    delivery_line = ""
+    try:
+        if float(delivery_fee) > 0:
+            zone_part = f" ({_escape_html(data.get('delivery_zone'))})" if data.get("delivery_zone") else ""
+            delivery_line = f"\n<b>Доставка:</b> {delivery_fee} ₸{zone_part}"
+    except (TypeError, ValueError):
+        pass
+
+    text = (
+        "🍷 <b>Новый заказ VOLNA</b>\n\n"
+        f"<b>№ заказа:</b> {data.get('order_id', '—')}\n"
+        f"<b>Клиент:</b> {_escape_html(data.get('customer_name', '—'))}\n"
+        f"<b>Телефон:</b> {_escape_html(data.get('customer_phone', '—'))}\n"
+        f"<b>Адрес:</b> {_escape_html(data.get('customer_address', '—'))}\n"
+        f"<b>Оплата:</b> {_escape_html(payment_label)}\n\n"
+        f"<b>Товары:</b>\n{items_text}"
+        f"{delivery_line}\n\n"
+        f"<b>Итого:</b> {data.get('total_amount', 0)} ₸"
+        f"{gift_line}"
+        f"{comment_line}\n"
+        f"<b>Дата:</b> {_format_date()}"
+    )
+    return await send_telegram_message(text, category=CATEGORY_VOLNA)
+
+
+async def notify_volna_status_change(data: dict) -> bool:
+    """Notify Telegram when a VOLNA order status changes."""
+    status_map = {
+        "new": "Новый",
+        "processing": "В работе",
+        "delivered": "Доставлен",
+        "cancelled": "Отменён",
+    }
+    old_label = status_map.get(data.get("old_status", ""), data.get("old_status", "—"))
+    new_label = status_map.get(data.get("new_status", ""), data.get("new_status", "—"))
+    text = (
+        "🍷 <b>Изменение статуса заказа VOLNA</b>\n\n"
+        f"<b>№ заказа:</b> {data.get('order_id', '—')}\n"
+        f"<b>Клиент:</b> {_escape_html(data.get('customer_name', '—'))}\n"
+        f"<b>Телефон:</b> {_escape_html(data.get('customer_phone', '—'))}\n"
+        f"<b>Было:</b> {_escape_html(old_label)}\n"
+        f"<b>Стало:</b> {_escape_html(new_label)}\n"
+        f"<b>Сумма:</b> {data.get('total_amount', 0)} ₸\n"
+        f"<b>Дата:</b> {_format_date()}"
+    )
+    return await send_telegram_message(text, category=CATEGORY_VOLNA)
 
 
 async def notify_prorab_order(data: dict) -> bool:

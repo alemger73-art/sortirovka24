@@ -52,6 +52,12 @@ export default function MultiImageUpload({
   const [urlInput, setUrlInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounterRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   // Parse value string into keys and resolve URLs
   useEffect(() => {
@@ -72,10 +78,11 @@ export default function MultiImageUpload({
       });
 
       // Resolve URLs for items without them (non-direct URLs)
-      newItems.forEach((item, idx) => {
+      newItems.forEach((item) => {
         if (!item.url && !isDirectUrl(item.key)) {
           resolveImageUrl(item.key).then(url => {
-            setImages(curr => curr.map((img, i) => i === idx && img.key === item.key ? { ...img, url } : img));
+            if (!mountedRef.current) return;
+            setImages(curr => curr.map(img => img.key === item.key ? { ...img, url } : img));
           });
         }
       });

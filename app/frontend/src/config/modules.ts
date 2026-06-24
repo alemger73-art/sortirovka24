@@ -13,6 +13,7 @@
 export type ModuleKey =
   | 'food'
   | 'gastronom'
+  | 'volna'
   | 'prorab'
   | 'pharmacy'
   | 'masters'
@@ -40,6 +41,7 @@ export interface ModuleDef {
 export const MODULE_DEFS: ModuleDef[] = [
   { key: 'food', label: 'Еда / доставка', paths: ['/food'] },
   { key: 'gastronom', label: 'Гастроном', paths: ['/gastronom'] },
+  { key: 'volna', label: 'VOLNA (алкоголь)', paths: ['/volna'] },
   { key: 'prorab', label: 'Прораб (стройка)', paths: ['/prorab'] },
   { key: 'pharmacy', label: 'Аптека', paths: ['/apteka', '/pharmacy'] },
   { key: 'masters', label: 'Мастера', paths: ['/masters'] },

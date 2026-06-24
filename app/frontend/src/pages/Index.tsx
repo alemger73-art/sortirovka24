@@ -13,7 +13,7 @@ import {
   MapPin, Phone as PhoneIcon, Clock, Briefcase, Sun, Snowflake, Cloud, CloudRain,
   Home, ShoppingBag, Utensils, FileText, BookOpen,
   ArrowRight, Send, Building2, HardHat, Users, Coffee,
-  Shield, Heart, Siren, Landmark, Store, Cross, Scissors
+  Shield, Heart, Siren, Landmark, Store, Cross, Scissors, Wine
 } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
 import Hero from '@/components/landing/Hero';
@@ -32,6 +32,7 @@ const GASTRONOM_IMG = 'https://images.unsplash.com/photo-1542838132-92c53300491e
 const PRORAB_IMG = 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&h=800&fit=crop';
 const SALONS_IMG = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&h=800&fit=crop';
 const PHARMACY_IMG = 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=600&h=800&fit=crop';
+const VOLNA_IMG = 'https://images.unsplash.com/photo-1510812431401-41d2bd2724f3?w=600&h=800&fit=crop';
 const BUSINESS_BANNER_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-31/5007abb2-2c10-46e9-9721-c83a5b9a7265.png';
 
 /* ─── Types ─── */
@@ -399,6 +400,7 @@ export default function Index() {
   const quickActions = ([
     { icon: Utensils, labelKey: 'quick.orderFood', to: '/food', color: 'bg-orange-500', lightBg: 'bg-orange-50 dark:bg-orange-900/20', module: 'food' },
     { icon: Store, labelKey: 'quick.gastronom', to: '/gastronom', color: 'bg-emerald-600', lightBg: 'bg-emerald-50 dark:bg-emerald-900/20', module: 'gastronom' },
+    { icon: Wine, labelKey: 'quick.volna', to: '/volna', color: 'bg-violet-700', lightBg: 'bg-violet-50 dark:bg-violet-900/20', module: 'volna' },
     { icon: HardHat, labelKey: 'quick.prorab', to: '/prorab', color: 'bg-amber-600', lightBg: 'bg-amber-50 dark:bg-amber-900/20', module: 'prorab' },
     { icon: Cross, labelKey: 'quick.pharmacy', to: '/apteka', color: 'bg-teal-600', lightBg: 'bg-teal-50 dark:bg-teal-900/20', module: 'pharmacy' },
     { icon: Wrench, labelKey: 'quick.findMaster', to: '/masters', color: 'bg-blue-500', lightBg: 'bg-blue-50 dark:bg-blue-900/20', module: 'masters' },
@@ -414,6 +416,7 @@ export default function Index() {
   const popularCategories = ([
     { labelKey: 'categories.food', to: '/food', img: FOOD_IMG, module: 'food' },
     { labelKey: 'categories.gastronom', to: '/gastronom', img: GASTRONOM_IMG, module: 'gastronom' },
+    { labelKey: 'categories.volna', to: '/volna', img: VOLNA_IMG, module: 'volna' },
     { labelKey: 'categories.construction', to: '/prorab', img: PRORAB_IMG, module: 'prorab' },
     { labelKey: 'categories.pharmacy', to: '/apteka', img: PHARMACY_IMG, module: 'pharmacy' },
     { labelKey: 'categories.masters', to: '/masters', img: MASTERS_IMG, module: 'masters' },

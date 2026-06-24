@@ -32,7 +32,7 @@ export default function InstallAppBanner() {
 
   return (
     <div
-      className="fixed bottom-0 inset-x-0 z-[100] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+      className="fixed inset-x-0 z-[45] p-3 max-md:bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] md:bottom-0 md:pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       data-install-banner
     >
       <div className="mx-auto flex max-w-lg items-start gap-3 rounded-2xl border border-blue-200 bg-white p-4 shadow-lg dark:border-blue-900 dark:bg-gray-900">

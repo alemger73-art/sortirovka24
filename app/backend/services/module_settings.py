@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 MODULE_KEYS: tuple[str, ...] = (
     "food",
     "gastronom",
+    "volna",
     "prorab",
     "pharmacy",
     "masters",

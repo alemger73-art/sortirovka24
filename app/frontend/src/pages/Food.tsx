@@ -232,6 +232,8 @@ export default function Food() {
   const menuSectionRef = useRef<HTMLElement>(null);
   const cartHydratedRef = useRef(false);
   const menuVersionRef = useRef<string | null>(null);
+  const modifiersLoadedRef = useRef(false);
+  const modifiersLoadingRef = useRef<Promise<void> | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -326,7 +328,49 @@ export default function Food() {
     if (prefill.phone) setCustomerPhone((v) => v || prefill.phone);
   }, []);
 
+  async function loadModifiers(force = false) {
+    if (!force && modifiersLoadedRef.current) return;
+    if (modifiersLoadingRef.current) {
+      await modifiersLoadingRef.current;
+      return;
+    }
+
+    const CACHE_TTL = 5 * 60 * 1000;
+    const cq = (key: string, fn: () => Promise<any>) => fetchWithCache(`food_${key}`, () => withRetry(fn), CACHE_TTL);
+
+    const task = (async () => {
+      try {
+        const results = await Promise.allSettled([
+          cq('mod_groups', () => client.entities.modifier_groups.query({ sort: 'sort_order', limit: 200 })),
+          cq('mod_options', () => client.entities.modifier_options.query({ sort: 'sort_order', limit: 1000 })),
+          cq('item_groups', () => client.entities.item_modifier_groups.query({ limit: 2000 })),
+        ]);
+        const extract = (r: PromiseSettledResult<any>) => (r.status === 'fulfilled' ? (r.value?.data?.items || []) : []);
+
+        setModGroups(
+          extract(results[0])
+            .filter((g: ModifierGroup) => g.is_active)
+            .map((g: ModifierGroup) => ({
+              ...g,
+              type: g.type === 'single' ? 'radio' : (g.type === 'multiple' || g.type === 'quantity') ? 'checkbox' : g.type,
+            })),
+        );
+        setModOptions(extract(results[1]).filter((o: ModifierOption) => o.is_active));
+        setItemGroupLinks(extract(results[2]));
+        modifiersLoadedRef.current = true;
+      } catch (e) {
+        console.warn('[Food] modifiers load failed:', e);
+      } finally {
+        modifiersLoadingRef.current = null;
+      }
+    })();
+
+    modifiersLoadingRef.current = task;
+    await task;
+  }
+
   async function loadData() {
+    modifiersLoadedRef.current = false;
     setLoading(true);
     setLoadError(false);
     const CACHE_TTL = 5 * 60 * 1000;
@@ -406,9 +450,6 @@ export default function Food() {
         foodItems
           ? Promise.resolve({ data: { items: [] as FoodItem[] } })
           : cq('items', () => client.entities.food_items.query({ sort: 'sort_order', limit: 500 })),
-        cq('mod_groups', () => client.entities.modifier_groups.query({ sort: 'sort_order', limit: 200 })),
-        cq('mod_options', () => client.entities.modifier_options.query({ sort: 'sort_order', limit: 1000 })),
-        cq('item_groups', () => client.entities.item_modifier_groups.query({ limit: 2000 })),
         cq('settings', () => client.entities.food_settings.query({ limit: 50 })),
         cq('banners', () => client.entities.banners.query({ query: { active: true }, limit: 12 })),
       ]);
@@ -445,24 +486,14 @@ export default function Food() {
       }
       setSelectedCategorySlug('all');
 
-      setModGroups(
-        extract(results[2])
-          .filter((g: ModifierGroup) => g.is_active)
-          .map((g: ModifierGroup) => ({
-            ...g,
-            type: g.type === 'single' ? 'radio' : (g.type === 'multiple' || g.type === 'quantity') ? 'checkbox' : g.type,
-          }))
-      );
-      setModOptions(extract(results[3]).filter((o: ModifierOption) => o.is_active));
-      setItemGroupLinks(extract(results[4]));
-      const settingsArr = extract(results[5]);
+      const settingsArr = extract(results[2]);
       const s: Record<string, string> = {};
       settingsArr.forEach((item: any) => {
         if (item.setting_key != null) s[item.setting_key] = item.setting_value ?? '';
       });
       setSettings(prev => ({ ...prev, ...s }));
 
-      const bannerRows = extract(results[6]);
+      const bannerRows = extract(results[3]);
       const damBanners = bannerRows
         .filter((b: any) => {
           const url = String(b.button_url || b.link_url || '').toLowerCase();
@@ -478,6 +509,7 @@ export default function Food() {
           button_url: b.button_url,
         }));
       setFoodBanners(damBanners);
+      void loadModifiers(true);
     } catch (e) {
       console.error('Error loading food data:', e);
       setLoadError(true);
@@ -935,7 +967,8 @@ export default function Food() {
     );
   }
 
-  function quickAdd(item: FoodItem) {
+  async function quickAdd(item: FoodItem) {
+    await loadModifiers();
     if (itemHasGroups(item.id)) {
       openItemModal(item);
     } else {
@@ -943,7 +976,8 @@ export default function Food() {
     }
   }
 
-  function openItemModal(item: FoodItem) {
+  async function openItemModal(item: FoodItem) {
+    await loadModifiers();
     setSelectedItem(item);
     const groups = getGroupsForItem(item.id);
     const defaults: CartItemSelection = {};

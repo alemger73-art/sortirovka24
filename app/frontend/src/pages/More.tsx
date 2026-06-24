@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import {
   User, Bus, BookOpen, Car, Newspaper, AlertTriangle, Briefcase, HelpCircle,
-  ShoppingBag, Shield, Heart, Landmark, Store, UtensilsCrossed, ChevronRight, LogIn, Cross,
+  ShoppingBag, Shield, Heart, Landmark, Store, UtensilsCrossed, ChevronRight, LogIn, Cross, Wine,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -45,6 +45,7 @@ export default function More() {
         { path: '/taxi', key: 'nav.taxi', icon: Car, accent: 'bg-amber-500', hidden: taxiEnabled === false },
         { path: '/food/restaurants', key: 'more.foodRestaurants', icon: UtensilsCrossed, accent: 'bg-orange-500' },
         { path: '/gastronom', key: 'more.gastronom', icon: ShoppingBag, accent: 'bg-green-600' },
+        { path: '/volna', key: 'more.volna', icon: Wine, accent: 'bg-violet-700' },
         { path: '/apteka', key: 'more.pharmacy', icon: Cross, accent: 'bg-teal-600' },
         { path: '/inspectors', key: 'more.inspectors', icon: Shield, accent: 'bg-slate-600' },
       ],

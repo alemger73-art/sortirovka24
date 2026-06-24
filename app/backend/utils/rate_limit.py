@@ -59,6 +59,14 @@ def _memory_hit(key: str, *, window_seconds: float, max_hits: int) -> bool:
         return True
     hits.append(now)
     _RATE_BUCKETS[key] = hits
+    # Evict stale bucket keys so memory stays bounded without Redis.
+    if len(_RATE_BUCKETS) > 10_000:
+        stale = [
+            k for k, ts in _RATE_BUCKETS.items()
+            if not ts or now - ts[-1] >= window_seconds
+        ]
+        for k in stale[:5000]:
+            _RATE_BUCKETS.pop(k, None)
     return False
 
 

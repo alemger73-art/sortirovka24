@@ -48,6 +48,7 @@ const InspectorsPage = lazy(() => import("./pages/Inspectors"));
 const HistoryPage = lazy(() => import("./pages/History"));
 const AdminPanel = lazy(() => import("./pages/Admin"));
 const Gastronom = lazy(() => import("./pages/Gastronom"));
+const Volna = lazy(() => import("./pages/Volna"));
 const Prorab = lazy(() => import("./pages/Prorab"));
 const Pharmacy = lazy(() => import("./pages/Pharmacy"));
 const Food = lazy(() => import("./pages/Food"));
@@ -192,6 +193,7 @@ function App() {
               <Route path="/food" element={<ModuleRoute module="food"><Food /></ModuleRoute>} />
               <Route path="/food/restaurants" element={<ModuleRoute module="food"><FoodRestaurants /></ModuleRoute>} />
               <Route path="/gastronom" element={<ModuleRoute module="gastronom"><Gastronom /></ModuleRoute>} />
+              <Route path="/volna" element={<ModuleRoute module="volna"><Volna /></ModuleRoute>} />
               <Route path="/prorab" element={<ModuleRoute module="prorab"><Prorab /></ModuleRoute>} />
               <Route path="/apteka" element={<ModuleRoute module="pharmacy"><Pharmacy /></ModuleRoute>} />
               <Route path="/pharmacy" element={<Navigate to="/apteka" replace />} />

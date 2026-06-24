@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
 import { accountApi, getAccountToken, type SavedAddress } from '@/lib/accountApi';
 
-type Accent = 'emerald' | 'teal' | 'amber' | 'orange';
+type Accent = 'emerald' | 'teal' | 'amber' | 'orange' | 'violet';
 
 const ACCENTS: Record<Accent, { active: string; idle: string; badge: string; icon: string; link: string }> = {
   emerald: {
@@ -33,6 +33,13 @@ const ACCENTS: Record<Accent, { active: string; idle: string; badge: string; ico
     badge: 'bg-orange-500/15 text-orange-700',
     icon: 'text-orange-600',
     link: 'text-orange-700 hover:text-orange-800',
+  },
+  violet: {
+    active: 'border-violet-500 bg-violet-50 text-violet-800',
+    idle: 'border-gray-200 bg-gray-50 text-gray-700 hover:border-violet-300 hover:bg-violet-50/50',
+    badge: 'bg-violet-500/15 text-violet-700',
+    icon: 'text-violet-600',
+    link: 'text-violet-700 hover:text-violet-800',
   },
 };
 

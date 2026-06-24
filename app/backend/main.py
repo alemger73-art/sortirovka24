@@ -95,6 +95,18 @@ async def _run_startup_initialization():
     """
     logger = logging.getLogger(__name__)
 
+    if is_production():
+        jwt_secret = os.getenv("JWT_SECRET_KEY", "").strip() or os.getenv("SECRET_KEY", "").strip()
+        if not jwt_secret:
+            logger.critical(
+                "Production startup: JWT_SECRET_KEY (or SECRET_KEY) is not set — "
+                "admin tokens may reset on redeploy. Set JWT_SECRET_KEY in Railway."
+            )
+        if os.getenv("DEBUG", "").strip().lower() in ("1", "true", "yes", "on"):
+            logger.critical("Production startup: DEBUG=1 exposes SMS codes and verbose logs.")
+        if os.getenv("SMS_EXPOSE_CODE", "").strip().lower() in ("1", "true", "yes", "on"):
+            logger.critical("Production startup: SMS_EXPOSE_CODE=1 must not be enabled in production.")
+
     # MODULE_STARTUP_START
     db_ready = False
     try:

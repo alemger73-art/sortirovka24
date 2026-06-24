@@ -7,6 +7,7 @@ const HIDDEN_BOTTOM_NAV_PREFIXES = [
   '/auth/callback',
   '/login/google/callback',
   '/gastronom',
+  '/volna',
   '/apteka',
   '/food/courier',
   '/food/park',

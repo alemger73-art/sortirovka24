@@ -3,4 +3,8 @@ from models.gastronom_categories import Gastronom_categories  # noqa: F401
 from models.gastronom_orders import Gastronom_orders  # noqa: F401
 from models.gastronom_products import Gastronom_products  # noqa: F401
 from models.gastronom_settings import Gastronom_settings  # noqa: F401
+from models.volna_categories import Volna_categories  # noqa: F401
+from models.volna_orders import Volna_orders  # noqa: F401
+from models.volna_products import Volna_products  # noqa: F401
+from models.volna_settings import Volna_settings  # noqa: F401
 from models.user_addresses import UserAddress  # noqa: F401
