@@ -16,6 +16,8 @@ class Prorab_orders(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True, nullable=False)
 
+    user_id = Column(String(255), nullable=True, index=True)
+
     customer_name = Column(String, nullable=True)
 
     customer_phone = Column(String, nullable=True)

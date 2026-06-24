@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Layout from "@/components/Layout";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Camera, Coins, Save, UserCircle2, UtensilsCrossed, Truck, Store, Wrench, Car, Bike, MapPin, Plus, Trash2, Star, Pencil, X, Loader2, CheckCircle2, AlertCircle, Search, RotateCcw } from "lucide-react";
+import { Camera, Coins, Save, UserCircle2, UtensilsCrossed, Truck, Store, Wrench, Car, Bike, MapPin, Plus, Trash2, Star, Pencil, X, Loader2, CheckCircle2, AlertCircle, Search, RotateCcw, Wine, ChevronRight } from "lucide-react";
 import FoodOrderStatusBar from "@/components/damalem/FoodOrderStatusBar";
 import { accountApi, getAccountToken, type SavedAddress } from "@/lib/accountApi";
 import { cacheAccountProfile, getCurrentUser, logoutLocalUser } from "@/lib/localAuth";
@@ -12,6 +12,7 @@ import { logisticsApi, type CourierAccess } from "@/lib/logisticsApi";
 import { useTaxiEnabled } from "@/hooks/useTaxiEnabled";
 import { useLanguage } from "@/contexts/LanguageContext";
 import TaxiUnavailable from "@/components/taxi/TaxiUnavailable";
+import { cabinetOrderDetailPath, orderDetailId, type CabinetOrderRow } from "@/lib/orderRoutes";
 
 type TabId = "profile" | "addresses" | "bonuses" | "orders" | "masterRequests" | "taxi" | "complaints" | "announcements" | "settings";
 
@@ -54,6 +55,7 @@ function repeatFoodOrder(o: {
 }
 
 const STORE_ORDER_LABELS: Record<string, string> = {
+  volna: "store.volna",
   gastronom: "store.gastronom",
   pharmacy: "store.pharmacy",
   prorab: "store.prorab",
@@ -807,21 +809,25 @@ export default function Cabinet() {
                 <DarkCard>
                   <h2 className="mb-4 text-xl font-bold">{t("cabinet.tab.orders")}</h2>
                   <div className="space-y-2">
-                    {(rows.orders || []).map((o: any) => {
+                    {(rows.orders || []).map((o: CabinetOrderRow) => {
                       const isFood = o.type === "food";
                       const isStore = o.type in STORE_ORDER_LABELS;
+                      const detail = orderDetailId(o);
+                      const detailPath = detail ? cabinetOrderDetailPath(detail.source, detail.id) : null;
                       const st = isFood
-                        ? FOOD_STATUS[o.status] || FOOD_STATUS.new
+                        ? FOOD_STATUS[o.status || ""] || FOOD_STATUS.new
                         : isStore
-                          ? STORE_STATUS[o.status] || STORE_STATUS.new
+                          ? STORE_STATUS[o.status || ""] || STORE_STATUS.new
                           : null;
-                      const payLabel = PAYMENT_LABELS[o.payment_method] ? t(PAYMENT_LABELS[o.payment_method]) : o.payment_method;
-                      return (
-                        <div key={o.id} className={listCardClass}>
+                      const payLabel = o.payment_method && PAYMENT_LABELS[o.payment_method] ? t(PAYMENT_LABELS[o.payment_method]) : o.payment_method;
+                      const cardInner = (
+                        <>
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2 min-w-0">
                               {isFood ? (
                                 <UtensilsCrossed className="h-4 w-4 shrink-0 text-orange-500 dark:text-orange-400" />
+                              ) : o.type === "volna" ? (
+                                <Wine className="h-4 w-4 shrink-0 text-violet-500 dark:text-violet-400" />
                               ) : isStore ? (
                                 <Store className="h-4 w-4 shrink-0 text-emerald-500 dark:text-emerald-400" />
                               ) : null}
@@ -833,11 +839,14 @@ export default function Cabinet() {
                                     : (o.type || "order")}
                               </p>
                             </div>
-                            {st ? (
-                              <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 font-medium ${st.color}`}>
-                                {t(st.key)}
-                              </span>
-                            ) : null}
+                            <div className="flex items-center gap-1 shrink-0">
+                              {st ? (
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${st.color}`}>
+                                  {t(st.key)}
+                                </span>
+                              ) : null}
+                              {detailPath ? <ChevronRight className="h-4 w-4 text-gray-400" /> : null}
+                            </div>
                           </div>
                           <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">{o.details || ""}</p>
                           {isStore && (payLabel || o.created_at) && (
@@ -861,7 +870,7 @@ export default function Cabinet() {
                             <FoodOrderStatusBar status={o.status || "new"} />
                           )}
                           {isFood && o.order_number ? (
-                            <div className="mt-3 flex flex-wrap gap-2">
+                            <div className="mt-3 flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
                               {o.delivery_method === "delivery" && !["done", "cancelled", "delivered"].includes(String(o.status)) && (
                                 <Link
                                   to={`/delivery/food/${o.order_number}`}
@@ -884,6 +893,15 @@ export default function Cabinet() {
                           <p className="text-sm font-bold text-amber-600 dark:text-yellow-300 mt-2">
                             {Number(o.amount || 0).toLocaleString("ru-RU")} ₸
                           </p>
+                        </>
+                      );
+                      return detailPath ? (
+                        <Link key={o.id} to={detailPath} className={`${listCardClass} block hover:border-blue-300 dark:hover:border-blue-700 transition-colors`}>
+                          {cardInner}
+                        </Link>
+                      ) : (
+                        <div key={o.id} className={listCardClass}>
+                          {cardInner}
                         </div>
                       );
                     })}

@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from core.auth import AccessTokenError, decode_access_token
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +22,7 @@ from services.gastronom_seed import (
     seed_gastronom_if_empty,
 )
 from services.gastronom_settings import Gastronom_settingsService
+from services.store_order_account import optional_account_user, user_id_for_order
 from services.gastronom_delivery import (
     geocode_address,
     resolve_delivery_quote,
@@ -350,7 +351,12 @@ async def list_orders(request: Request, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/orders", status_code=201)
-async def create_order(data: OrderData, db: AsyncSession = Depends(get_db)):
+async def create_order(
+    data: OrderData,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    account_user = await optional_account_user(db, authorization)
     prod_svc = Gastronom_productsService(db)
     set_svc = Gastronom_settingsService(db)
     settings = await set_svc.get_all_as_dict()
@@ -392,6 +398,7 @@ async def create_order(data: OrderData, db: AsyncSession = Depends(get_db)):
 
     svc = Gastronom_ordersService(db)
     payload = {
+        "user_id": user_id_for_order(account_user),
         "customer_name": data.customer_name.strip(),
         "customer_phone": data.customer_phone.strip(),
         "customer_address": data.customer_address.strip(),

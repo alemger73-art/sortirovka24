@@ -1,5 +1,6 @@
 import { appCache } from './cache';
 import { getAPIBaseURL } from './config';
+import { storeApiHeaders } from './storeApiAuth';
 import type { DeliveryQuote } from './gastronomDelivery';
 
 const CATALOG_CACHE_KEY = 'gastronom_catalog';
@@ -7,27 +8,8 @@ const CATALOG_TTL = 5 * 60 * 1000;
 
 const apiBase = () => getAPIBaseURL();
 
-function headers(admin = false): HeadersInit {
-  const h: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'App-Host':
-      typeof globalThis !== 'undefined' && (globalThis as any).window?.location?.origin
-        ? (globalThis as any).window.location.origin
-        : '',
-  };
-  if (admin) {
-    try {
-      const t = localStorage.getItem('token') || localStorage.getItem('_sp924_token');
-      if (t) h.Authorization = `Bearer ${t}`;
-    } catch {
-      /* ignore */
-    }
-  }
-  return h;
-}
-
 async function request<T>(path: string, options: RequestInit = {}, admin = false): Promise<T> {
-  const res = await fetch(`${apiBase()}${path}`, { ...options, headers: { ...headers(admin), ...options.headers } });
+  const res = await fetch(`${apiBase()}${path}`, { ...options, headers: { ...storeApiHeaders(admin), ...options.headers } });
   if (!res.ok) {
     let message = `Request failed: ${res.status}`;
     try {

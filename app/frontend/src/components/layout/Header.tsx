@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Globe, Moon, Sun } from 'lucide-react';
 import AppLogo from '@/components/AppLogo';
+import PlatformCartDrawer, { PlatformCartButton } from '@/components/PlatformCartDrawer';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { prefetchPage, routeToPage } from '@/lib/prefetch';
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
   const [user, setUser] = useState(getCurrentUser());
   const location = useLocation();
   const { lang, setLang, t } = useLanguage();
@@ -77,6 +79,7 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <PlatformCartButton onClick={() => setCartOpen(true)} />
           {user ? (
             <>
               <Link
@@ -180,6 +183,7 @@ export default function Header() {
           </nav>
         </div>
       )}
+      <PlatformCartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
     </header>
   );
 }

@@ -7,6 +7,7 @@ class Volna_orders(Base):
     __table_args__ = {"extend_existing": True}
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True, nullable=False)
+    user_id = Column(String(255), nullable=True, index=True)
     customer_name = Column(String, nullable=True)
     customer_phone = Column(String, nullable=True)
     customer_address = Column(String, nullable=True)

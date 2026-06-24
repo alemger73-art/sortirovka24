@@ -110,6 +110,8 @@ export const accountApi = {
       thumbnail_object_key?: string;
     }>('/api/v1/account/me/avatar-upload-url', { method: 'POST' }),
   cabinet: () => api<any>("/api/v1/account/cabinet"),
+  orderDetail: (source: string, orderId: number | string) =>
+    api<any>(`/api/v1/account/orders/${encodeURIComponent(source)}/${orderId}`),
   listAddresses: () => api<SavedAddress[]>("/api/v1/account/me/addresses"),
   geocodeAddress: (address: string) =>
     api<{ found: boolean; lat?: number | null; lng?: number | null; display_address?: string | null; detected_city?: string | null }>(

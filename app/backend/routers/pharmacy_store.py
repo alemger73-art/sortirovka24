@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from core.auth import AccessTokenError, decode_access_token
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,6 +19,7 @@ from services.pharmacy_categories import Pharmacy_categoriesService
 from services.pharmacy_orders import Pharmacy_ordersService
 from services.pharmacy_products import Pharmacy_productsService
 from services.pharmacy_settings import Pharmacy_settingsService
+from services.store_order_account import optional_account_user, user_id_for_order
 from services.pharmacy_seed import (
     ensure_pharmacy_location_settings,
     ensure_pharmacy_loyalty_settings,
@@ -371,7 +372,12 @@ async def list_orders(request: Request, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/orders", status_code=201)
-async def create_order(data: OrderData, db: AsyncSession = Depends(get_db)):
+async def create_order(
+    data: OrderData,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    account_user = await optional_account_user(db, authorization)
     prod_svc = Pharmacy_productsService(db)
     set_svc = Pharmacy_settingsService(db)
     settings = await set_svc.get_all_as_dict()
@@ -414,6 +420,7 @@ async def create_order(data: OrderData, db: AsyncSession = Depends(get_db)):
 
     svc = Pharmacy_ordersService(db)
     payload = {
+        "user_id": user_id_for_order(account_user),
         "customer_name": data.customer_name.strip(),
         "customer_phone": data.customer_phone.strip(),
         "customer_address": data.customer_address.strip(),

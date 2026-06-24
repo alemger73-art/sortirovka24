@@ -4,6 +4,7 @@ import hashlib
 import logging
 import os
 import random
+from typing import Any
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -24,6 +25,7 @@ from models.gastronom_products import Gastronom_products
 from models.pharmacy_orders import Pharmacy_orders
 from models.prorab_orders import Prorab_orders
 from models.park_orders import Park_orders
+from models.volna_orders import Volna_orders
 from models.master_reviews import Master_reviews
 from models.master_requests import Master_requests
 from models.masters import Masters
@@ -192,6 +194,35 @@ def _owns_user_content(user: User, record_user_id: str | None, record_phone: str
     if record_user_id and str(record_user_id) == str(user.id):
         return True
     return _matches_user_phone(record_phone, user.phone)
+
+
+def _store_order_summary(type_key: str, label: str, store_path: str, row: Any) -> dict:
+    return {
+        "id": f"{type_key}_{row.id}",
+        "type": type_key,
+        "status": row.status,
+        "amount": row.total_amount,
+        "details": f"{label} — заказ #{row.id}",
+        "store_label": label,
+        "store_path": store_path,
+        "payment_method": getattr(row, "payment_method", None),
+        "order_number": row.id,
+        "order_items": getattr(row, "order_items", None),
+        "customer_name": getattr(row, "customer_name", None),
+        "customer_phone": getattr(row, "customer_phone", None),
+        "customer_address": getattr(row, "customer_address", None),
+        "comment": getattr(row, "comment", None),
+        "created_at": row.created_at,
+    }
+
+
+STORE_ORDER_SOURCES = [
+    ("volna", "VOLNA", "/volna", Volna_orders),
+    ("gastronom", "Гастроном", "/gastronom", Gastronom_orders),
+    ("pharmacy", "Аптека", "/apteka", Pharmacy_orders),
+    ("prorab", "Прораб", "/prorab", Prorab_orders),
+    ("park", "Фуд-парк", "/food/park", Park_orders),
+]
 
 
 def _assert_role(user: User, allowed: set[str]):
@@ -1137,7 +1168,14 @@ async def cabinet(
     food_rows = (
         await db.execute(select(Food_orders).order_by(desc(Food_orders.id)).limit(500))
     ).scalars().all()
-    food_rows = [f for f in food_rows if _matches_user_phone(f.customer_phone, user.phone)]
+    food_rows = [
+        f for f in food_rows
+        if _owns_user_content(
+            user,
+            str(f.user_id) if getattr(f, "user_id", None) else None,
+            f.customer_phone,
+        )
+    ]
     complaint_rows = (
         await db.execute(select(Complaints).order_by(desc(Complaints.id)).limit(500))
     ).scalars().all()
@@ -1177,6 +1215,10 @@ async def cabinet(
             "food_order_id": f.id,
             "order_items": f.order_items,
             "delivery_address": f.delivery_address,
+            "customer_name": f.customer_name,
+            "customer_phone": f.customer_phone,
+            "comment": f.comment,
+            "store_path": "/food",
             "created_at": f.created_at,
         }
         for f in food_rows[:100]
@@ -1186,32 +1228,19 @@ async def cabinet(
     # Store orders (gastronom / pharmacy / prorab / food-park) belong to the
     # SAME personal cabinet — matched to the account by customer phone so every
     # purchase across the app shows up in one place.
-    store_order_sources = [
-        ("gastronom", "Гастроном", Gastronom_orders),
-        ("pharmacy", "Аптека", Pharmacy_orders),
-        ("prorab", "Прораб", Prorab_orders),
-        ("park", "Фуд-парк", Park_orders),
-    ]
-    for type_key, label, model in store_order_sources:
+    for type_key, label, store_path, model in STORE_ORDER_SOURCES:
         try:
             rows = (
                 await db.execute(select(model).order_by(desc(model.id)).limit(500))
             ).scalars().all()
         except Exception:
             continue
-        rows = [r for r in rows if _matches_user_phone(getattr(r, "customer_phone", None), user.phone)]
+        rows = [
+            r for r in rows
+            if _owns_user_content(user, getattr(r, "user_id", None), getattr(r, "customer_phone", None))
+        ]
         merged_orders.extend(
-            {
-                "id": f"{type_key}_{r.id}",
-                "type": type_key,
-                "status": r.status,
-                "amount": r.total_amount,
-                "details": f"{label} — заказ #{r.id}",
-                "store_label": label,
-                "payment_method": getattr(r, "payment_method", None),
-                "order_number": r.id,
-                "created_at": r.created_at,
-            }
+            _store_order_summary(type_key, label, store_path, r)
             for r in rows[:100]
         )
 
@@ -1237,6 +1266,64 @@ async def cabinet(
         "addresses": [_address_to_response(a).model_dump() for a in address_rows],
         "settings": {"language": user.language, "agreement_accepted": bool(user.agreement_accepted), "privacy_accepted": bool(user.privacy_accepted)},
     }
+
+
+def _serialize_food_order_detail(row: Food_orders) -> dict:
+    return {
+        "id": f"food_{row.id}",
+        "type": "food",
+        "status": row.status,
+        "amount": row.total_amount,
+        "details": f"{row.restaurant_name or 'DAM ALEM'} — заказ #{row.id}",
+        "store_label": row.restaurant_name or "DAM ALEM",
+        "store_path": "/food",
+        "payment_method": row.payment_method,
+        "order_number": row.id,
+        "food_order_id": row.id,
+        "order_items": row.order_items,
+        "delivery_address": row.delivery_address,
+        "customer_name": row.customer_name,
+        "customer_phone": row.customer_phone,
+        "comment": row.comment,
+        "delivery_method": row.delivery_method,
+        "restaurant_name": row.restaurant_name,
+        "created_at": row.created_at,
+    }
+
+
+@router.get("/orders/{source}/{order_id}")
+async def cabinet_order_detail(
+    source: str,
+    order_id: int,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    source = source.strip().lower()
+
+    if source == "food":
+        row = (await db.execute(select(Food_orders).where(Food_orders.id == order_id))).scalar_one_or_none()
+        if not row or not _owns_user_content(
+            user,
+            str(row.user_id) if getattr(row, "user_id", None) else None,
+            row.customer_phone,
+        ):
+            raise HTTPException(status_code=404, detail="Order not found")
+        return _serialize_food_order_detail(row)
+
+    for type_key, label, store_path, model in STORE_ORDER_SOURCES:
+        if type_key != source:
+            continue
+        row = (await db.execute(select(model).where(model.id == order_id))).scalar_one_or_none()
+        if not row or not _owns_user_content(
+            user,
+            getattr(row, "user_id", None),
+            getattr(row, "customer_phone", None),
+        ):
+            raise HTTPException(status_code=404, detail="Order not found")
+        return _store_order_summary(type_key, label, store_path, row)
+
+    raise HTTPException(status_code=404, detail="Unknown order source")
 
 
 @router.get("/master/cabinet")

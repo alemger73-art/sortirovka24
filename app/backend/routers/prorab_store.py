@@ -14,7 +14,7 @@ from typing import Any, Dict, Optional
 
 from core.auth import AccessTokenError, decode_access_token
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
 from pydantic import BaseModel
 
@@ -33,6 +33,7 @@ from services.prorab_products import Prorab_productsService
 from services.prorab_seed import ensure_prorab_location_settings, seed_prorab_if_empty
 
 from services.prorab_settings import Prorab_settingsService
+from services.store_order_account import optional_account_user, user_id_for_order
 
 from services.gastronom_delivery import (
 
@@ -736,7 +737,12 @@ async def list_orders(request: Request, db: AsyncSession = Depends(get_db)):
 
 @router.post("/orders", status_code=201)
 
-async def create_order(data: OrderData, db: AsyncSession = Depends(get_db)):
+async def create_order(
+    data: OrderData,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    account_user = await optional_account_user(db, authorization)
 
     prod_svc = Prorab_productsService(db)
 
@@ -813,6 +819,8 @@ async def create_order(data: OrderData, db: AsyncSession = Depends(get_db)):
     svc = Prorab_ordersService(db)
 
     payload = {
+
+        "user_id": user_id_for_order(account_user),
 
         "customer_name": data.customer_name.strip(),
 

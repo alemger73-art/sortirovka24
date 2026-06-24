@@ -72,6 +72,7 @@ const CabinetCourier = lazy(() => import("./pages/CabinetCourier"));
 const DeliveryTrack = lazy(() => import("./pages/DeliveryTrack"));
 const CabinetPartner = lazy(() => import("./pages/CabinetPartner"));
 const CabinetAdmin = lazy(() => import("./pages/CabinetAdmin"));
+const CabinetOrderDetail = lazy(() => import("./pages/CabinetOrderDetail"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Minimal skeleton loading fallback
@@ -180,6 +181,7 @@ function App() {
               <Route path="/transport" element={<ModuleRoute module="transport"><TransportPage /></ModuleRoute>} />
               <Route path="/account" element={<AccountAuth />} />
               <Route path="/cabinet" element={<Protected><Cabinet /></Protected>} />
+              <Route path="/cabinet/orders/:source/:orderId" element={<Protected><CabinetOrderDetail /></Protected>} />
               <Route path="/cabinet/master" element={<Protected><RequireCabinetRole allowedRoles={["master"]}><CabinetMaster /></RequireCabinetRole></Protected>} />
               <Route path="/cabinet/driver" element={<Protected><RequireCabinetRole allowedRoles={["driver"]}><CabinetDriver /></RequireCabinetRole></Protected>} />
               <Route path="/cabinet/courier" element={<Protected><RequireCourierAccess><CabinetCourier /></RequireCourierAccess></Protected>} />
