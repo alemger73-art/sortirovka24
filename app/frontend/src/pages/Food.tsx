@@ -1863,7 +1863,7 @@ export default function Food() {
         )}
 
         {/* ═══ CART DRAWER ═══ */}
-        <DamAlemSheet open={cartOpen} onClose={() => setCartOpen(false)}>
+        <DamAlemSheet open={cartOpen} onClose={() => setCartOpen(false)} testId="dam-cart-sheet">
               <div className="dam-sheet-header">
                 <h2>{t('food.yourOrder')}</h2>
                 <button type="button" onClick={() => setCartOpen(false)} className="absolute right-5 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 transition-colors">
@@ -1902,11 +1902,11 @@ export default function Food() {
                           <div className="mt-3 flex items-center justify-between gap-2">
                             <span className="text-sm font-extrabold text-[#111111]">{formatPrice(linePrice)}</span>
                             <div className="flex h-9 items-center gap-0 rounded-full bg-[#F0F0F0] px-1 ring-1 ring-gray-100/80">
-                              <button type="button" onClick={() => updateQuantity(idx, -1)} className="flex h-7 w-7 items-center justify-center rounded-full text-[#111111] hover:bg-white/90 active:scale-95 transition">
+                              <button type="button" onClick={() => updateQuantity(idx, -1)} data-testid="dam-cart-qty-minus" className="flex h-7 w-7 items-center justify-center rounded-full text-[#111111] hover:bg-white/90 active:scale-95 transition">
                                 <Minus className="h-3.5 w-3.5" />
                               </button>
-                              <span className="min-w-[1.25rem] text-center text-sm font-bold tabular-nums">{ci.quantity}</span>
-                              <button type="button" onClick={() => updateQuantity(idx, 1)} className="flex h-7 w-7 items-center justify-center rounded-full bg-[#FF3B30] text-white hover:bg-[#E6352B] active:scale-95 transition">
+                              <span className="min-w-[1.25rem] text-center text-sm font-bold tabular-nums" data-testid="dam-cart-qty-value">{ci.quantity}</span>
+                              <button type="button" onClick={() => updateQuantity(idx, 1)} data-testid="dam-cart-qty-plus" className="flex h-7 w-7 items-center justify-center rounded-full bg-[#FF3B30] text-white hover:bg-[#E6352B] active:scale-95 transition">
                                 <Plus className="h-3.5 w-3.5" />
                               </button>
                             </div>
@@ -1984,6 +1984,7 @@ export default function Food() {
                   onClick={openCheckout}
                   className="dam-btn-primary"
                   disabled={cartTotal < minOrder}
+                  data-testid="dam-cart-checkout"
                 >
                   {t('food.checkout')} — {formatPrice(cartTotalWithService)}
                 </button>

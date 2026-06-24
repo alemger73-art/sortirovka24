@@ -9,6 +9,8 @@ interface Props {
   panelClassName?: string;
   /** Skip full-height sheet panel — for compact modals (success, product) */
   bare?: boolean;
+  /** For e2e tests */
+  testId?: string;
 }
 
 export default function DamAlemSheet({
@@ -18,37 +20,42 @@ export default function DamAlemSheet({
   overlayClassName = '',
   panelClassName = '',
   bare = false,
+  testId,
 }: Props) {
   useEffect(() => {
     if (!open) return;
-    const prev = document.body.style.overflow;
+    const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    document.body.classList.add('dam-sheet-open');
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.overflow = prevOverflow;
+      document.body.classList.remove('dam-sheet-open');
     };
   }, [open]);
 
   if (!open) return null;
 
+  const panelClass = bare
+    ? `dam-sheet-panel--interactive dam-sheet-bare ${panelClassName}`.trim()
+    : `dam-sheet-panel dam-sheet-panel--interactive ${panelClassName}`.trim();
+
   return createPortal(
     <div
       className={`dam-sheet-overlay ${overlayClassName}`.trim()}
-      onClick={onClose}
       role="dialog"
       aria-modal="true"
+      data-testid={testId ? `${testId}-overlay` : undefined}
     >
-      {bare ? (
-        <div className="dam-sheet-panel--interactive w-full max-w-md" onClick={e => e.stopPropagation()}>
-          {children}
-        </div>
-      ) : (
-        <div
-          className={`dam-sheet-panel dam-sheet-panel--interactive ${panelClassName}`.trim()}
-          onClick={e => e.stopPropagation()}
-        >
-          {children}
-        </div>
-      )}
+      <button
+        type="button"
+        className="dam-sheet-backdrop"
+        onClick={onClose}
+        aria-label="Закрыть"
+        tabIndex={-1}
+      />
+      <div className={panelClass} data-testid={testId}>
+        {children}
+      </div>
     </div>,
     document.body,
   );

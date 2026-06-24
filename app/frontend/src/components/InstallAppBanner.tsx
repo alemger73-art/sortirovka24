@@ -31,7 +31,10 @@ export default function InstallAppBanner() {
   if (!visible || !deferredPrompt) return null;
 
   return (
-    <div className="fixed bottom-0 inset-x-0 z-[100] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+    <div
+      className="fixed bottom-0 inset-x-0 z-[100] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+      data-install-banner
+    >
       <div className="mx-auto flex max-w-lg items-start gap-3 rounded-2xl border border-blue-200 bg-white p-4 shadow-lg dark:border-blue-900 dark:bg-gray-900">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
           <Download className="h-5 w-5" />
