@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
-import { resolveImageSrc } from '@/lib/storage';
 import { getAccountPrefill } from '@/lib/localAuth';
 import { type SavedAddress } from '@/lib/accountApi';
 import SavedAddressBar from '@/components/SavedAddressBar';
@@ -27,6 +26,8 @@ import GastronomSideMenu from '@/components/gastronom/GastronomSideMenu';
 import GastronomPortalBar from '@/components/gastronom/GastronomPortalBar';
 import LoyaltyGiftBanner from '@/components/gastronom/LoyaltyGiftBanner';
 import CatalogCategoryStrip from '@/components/gastronom/CatalogCategoryStrip';
+import VolnaImage from '@/components/volna/VolnaImage';
+import VolnaCrossPromo from '@/components/volna/VolnaCrossPromo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -36,11 +37,6 @@ import {
   Wine, Sparkles, Zap, Loader2, AlertCircle, Gift,
 } from 'lucide-react';
 import { toast } from 'sonner';
-
-const HERO_IMG =
-  'https://images.unsplash.com/photo-1510812431401-41d2bd2724f3?w=900&h=560&fit=crop';
-const PROMO_IMG =
-  'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=600&h=320&fit=crop';
 
 interface CartLine {
   product: VolnaProduct;
@@ -85,11 +81,6 @@ function isAgeConfirmed(): boolean {
   } catch {
     return false;
   }
-}
-
-function imgSrc(url: string) {
-  if (!url) return '';
-  return resolveImageSrc(url) || url;
 }
 
 function loadCartQty(): Record<number, number> {
@@ -195,8 +186,8 @@ export default function Volna() {
   const addressPickerRef = useRef<HTMLDivElement>(null);
   const geoPromptStarted = useRef(false);
 
-  const heroImage = settings.hero_image_url || HERO_IMG;
-  const promoImage = settings.promo_image_url || PROMO_IMG;
+  const heroImage = settings.hero_image_url;
+  const promoImage = settings.promo_image_url;
 
   const selectedProduct = useMemo(
     () => (productIdFromUrl ? products.find((p) => p.id === productIdFromUrl) ?? null : null),
@@ -453,7 +444,7 @@ export default function Volna() {
         >
           <span className="absolute top-2 left-12 z-10 rounded-full bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-bold text-white">21+</span>
           {product.image_url ? (
-            <img src={imgSrc(product.image_url)} alt={product.name} className="h-full w-full object-cover" loading="lazy" />
+            <VolnaImage src={product.image_url} kind="product" alt={product.name} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full items-center justify-center"><Wine className="h-10 w-10 text-violet-300" /></div>
           )}
@@ -546,6 +537,7 @@ export default function Volna() {
             <Button className="w-full bg-violet-600 hover:bg-violet-700 h-12 rounded-xl" onClick={() => { setConfirmedOrder(null); setActiveTab('home'); }}>
               Вернуться в VOLNA
             </Button>
+            <VolnaCrossPromo variant="success" />
           </div>
         </div>
       </Layout>
@@ -627,7 +619,7 @@ export default function Volna() {
                   {/* Hero */}
                   <div className={`${PAGE_X} mt-4`}>
                     <div className="relative overflow-hidden rounded-3xl shadow-xl">
-                      <img src={imgSrc(heroImage)} alt="" className="w-full h-52 md:h-72 object-cover" />
+                      <VolnaImage src={heroImage} kind="hero" alt="" className="w-full h-52 md:h-72 object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-violet-950/90 via-violet-900/40 to-transparent" />
                       <div className="absolute inset-0 p-6 flex flex-col justify-end">
                         <span className="text-amber-400 text-xs font-semibold uppercase tracking-wider mb-2">Сортировка · Караганда</span>
@@ -654,7 +646,7 @@ export default function Volna() {
                   {/* Marketing promos */}
                   <div className={`${PAGE_X} grid grid-cols-1 md:grid-cols-2 gap-3`}>
                     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-700 to-indigo-800 p-5 min-h-[120px]">
-                      <img src={imgSrc(promoImage)} alt="" className="absolute right-0 top-0 h-full w-2/5 object-cover opacity-40 rounded-l-2xl" />
+                      <VolnaImage src={promoImage} kind="promo" alt="" className="absolute right-0 top-0 h-full w-2/5 object-cover opacity-40 rounded-l-2xl" />
                       <Gift className="h-5 w-5 text-amber-300 mb-2" />
                       <p className="text-white font-bold text-base relative z-10">{settings.promo_title || 'Волна выходного'}</p>
                       <p className="text-violet-200 text-sm mt-1 relative z-10">{settings.promo_subtitle || '−10% на игристое в пт–сб'}</p>
@@ -674,7 +666,7 @@ export default function Volna() {
                         <button key={cat.id} type="button" onClick={() => selectCategory(cat.id)} className="flex flex-col items-center shrink-0 w-20 md:w-auto group">
                           <div className="w-16 h-16 md:w-full md:aspect-square rounded-2xl overflow-hidden ring-2 ring-violet-100 group-hover:ring-violet-300 transition-all">
                             {cat.image_url ? (
-                              <img src={imgSrc(cat.image_url)} alt={cat.name} className="w-full h-full object-cover" />
+                              <VolnaImage src={cat.image_url} kind="category" alt={cat.name} className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full bg-violet-100 flex items-center justify-center"><Wine className="h-6 w-6 text-violet-400" /></div>
                             )}
@@ -696,6 +688,11 @@ export default function Volna() {
                         <ProductCard key={p.id} product={p} />
                       ))}
                     </div>
+                  </div>
+
+                  {/* Cross-marketing: DAM ALEM food pairings */}
+                  <div className={PAGE_X}>
+                    <VolnaCrossPromo variant="home" />
                   </div>
 
                   {/* Trust strip */}
@@ -760,7 +757,7 @@ export default function Volna() {
                       {cart.map(({ product, qty }) => (
                         <div key={product.id} className="flex gap-3 bg-white rounded-2xl p-3 border border-violet-100">
                           <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0">
-                            {product.image_url && <img src={imgSrc(product.image_url)} alt="" className="w-full h-full object-cover" />}
+                            {product.image_url && <VolnaImage src={product.image_url} kind="product" alt="" className="w-full h-full object-cover" />}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-sm truncate">{product.name}</p>
@@ -773,6 +770,7 @@ export default function Volna() {
                           </div>
                         </div>
                       ))}
+                      <VolnaCrossPromo variant="cart" />
                       {loyaltyGifts.length > 0 && <LoyaltyGiftBanner subtotal={subtotal} gifts={loyaltyGifts} />}
                       <div className="bg-white rounded-2xl border p-4 space-y-2 sticky bottom-24 md:static">
                         <div className="flex justify-between font-bold text-lg">
@@ -816,7 +814,7 @@ export default function Volna() {
             <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
               <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto">
                 <div className="relative aspect-[4/3]">
-                  {selectedProduct.image_url && <img src={imgSrc(selectedProduct.image_url)} alt="" className="w-full h-full object-cover" />}
+                  {selectedProduct.image_url && <VolnaImage src={selectedProduct.image_url} kind="product" alt="" className="w-full h-full object-cover" />}
                   <button type="button" onClick={() => patchSearch((p) => p.delete('product'), true)} className="absolute top-3 right-3 h-9 w-9 rounded-full bg-white/90 flex items-center justify-center"><X className="h-5 w-5" /></button>
                   <span className="absolute top-3 left-3 rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold text-white">21+</span>
                 </div>

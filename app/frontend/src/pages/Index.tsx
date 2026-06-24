@@ -17,6 +17,8 @@ import {
   Shield, Heart, Siren, Landmark, Store, Cross, Scissors, Wine
 } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
+import VolnaImage from '@/components/volna/VolnaImage';
+import { VOLNA_INDEX_IMAGE } from '@/lib/volnaImages';
 import Hero from '@/components/landing/Hero';
 import { useSupportSettings } from '@/hooks/useSupportSettings';
 import { useModules } from '@/hooks/useModules';
@@ -33,7 +35,6 @@ const GASTRONOM_IMG = 'https://images.unsplash.com/photo-1542838132-92c53300491e
 const PRORAB_IMG = 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&h=800&fit=crop';
 const SALONS_IMG = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&h=800&fit=crop';
 const PHARMACY_IMG = 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=600&h=800&fit=crop';
-const VOLNA_IMG = 'https://images.unsplash.com/photo-1510812431401-41d2bd2724f3?w=600&h=800&fit=crop';
 const BUSINESS_BANNER_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-31/5007abb2-2c10-46e9-9721-c83a5b9a7265.png';
 
 /* ─── Types ─── */
@@ -417,7 +418,7 @@ export default function Index() {
   const popularCategories = ([
     { labelKey: 'categories.food', to: '/food', img: FOOD_IMG, module: 'food' },
     { labelKey: 'categories.gastronom', to: '/gastronom', img: GASTRONOM_IMG, module: 'gastronom' },
-    { labelKey: 'categories.volna', to: '/volna', img: VOLNA_IMG, module: 'volna' },
+    { labelKey: 'categories.volna', to: '/volna', img: VOLNA_INDEX_IMAGE, module: 'volna' },
     { labelKey: 'categories.construction', to: '/prorab', img: PRORAB_IMG, module: 'prorab' },
     { labelKey: 'categories.pharmacy', to: '/apteka', img: PHARMACY_IMG, module: 'pharmacy' },
     { labelKey: 'categories.masters', to: '/masters', img: MASTERS_IMG, module: 'masters' },
@@ -453,7 +454,16 @@ export default function Index() {
                   to={cat.to}
                   className="group relative overflow-hidden rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 aspect-[4/5] flex items-end"
                 >
-                  <img src={cat.img} alt={t(cat.labelKey)} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
+                  {cat.module === 'volna' ? (
+                    <VolnaImage
+                      src={cat.img}
+                      kind="category"
+                      alt={t(cat.labelKey)}
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                  ) : (
+                    <img src={cat.img} alt={t(cat.labelKey)} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                   <div className="relative z-10 p-4 w-full">
                     <h3 className="font-bold text-white text-sm md:text-base">{t(cat.labelKey)}</h3>

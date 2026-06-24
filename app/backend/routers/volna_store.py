@@ -17,6 +17,7 @@ from services.volna_products import Volna_productsService
 from services.volna_seed import (
     ensure_volna_location_settings,
     ensure_volna_loyalty_settings,
+    ensure_volna_media_urls,
     seed_volna_if_empty,
 )
 from services.volna_settings import Volna_settingsService
@@ -194,6 +195,7 @@ async def get_catalog(db: AsyncSession = Depends(get_db)):
     await seed_volna_if_empty(db)
     await ensure_volna_location_settings(db)
     await ensure_volna_loyalty_settings(db)
+    await ensure_volna_media_urls(db)
 
     cat_svc = Volna_categoriesService(db)
     prod_svc = Volna_productsService(db)

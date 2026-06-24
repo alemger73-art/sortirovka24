@@ -19,27 +19,39 @@ from services.gastronom_loyalty import default_loyalty_gifts_json
 
 logger = logging.getLogger(__name__)
 
-# Curated Unsplash images — alcohol-themed, consistent quality
+# Project CDN (reliable in KZ) + Unsplash with auto=format for fallbacks
+CDN = {
+    "index": "https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/e1e63b15-29d2-4b2e-b1b5-919722b3b1b9.png",
+    "hero": "https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-15/fe194ca1-0095-44bf-a906-e50cb844ad56.png",
+    "promo": "https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/2034a1d7-1c57-40c0-8145-23816557ba5c.png",
+}
+
+
+def _u(photo_id: str, w: int = 400, h: int = 400) -> str:
+    return f"https://images.unsplash.com/{photo_id}?auto=format&fit=crop&w={w}&h={h}&q=85"
+
+
+# Curated images — CDN first where possible, Unsplash auto=format otherwise
 IMG = {
-    "hero": "https://images.unsplash.com/photo-1510812431401-41d2bd2724f3?w=900&h=560&fit=crop",
-    "wine_cat": "https://images.unsplash.com/photo-1510812431401-41d2bd2724f3?w=400&h=400&fit=crop",
-    "beer_cat": "https://images.unsplash.com/photo-1608270586620-248524c67de9?w=400&h=400&fit=crop",
-    "spirits_cat": "https://images.unsplash.com/photo-1569529465841-df137b257a08?w=400&h=400&fit=crop",
-    "sparkling_cat": "https://images.unsplash.com/photo-1544145945-f90425340c7e?w=400&h=400&fit=crop",
-    "cocktail_cat": "https://images.unsplash.com/photo-1551538827-9c037cb80827?w=400&h=400&fit=crop",
-    "snacks_cat": "https://images.unsplash.com/photo-1604908177521-402890a3a563?w=400&h=400&fit=crop",
-    "wine_red": "https://images.unsplash.com/photo-1506377247377-2ccd4979b731?w=400&h=400&fit=crop",
-    "wine_white": "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?w=400&h=400&fit=crop",
-    "beer_lager": "https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=400&h=400&fit=crop",
-    "beer_craft": "https://images.unsplash.com/photo-1618885472175-75d9a061ecb8?w=400&h=400&fit=crop",
-    "vodka": "https://images.unsplash.com/photo-1569529465841-df137b257a08?w=400&h=400&fit=crop",
-    "whiskey": "https://images.unsplash.com/photo-1527281400683-1aae7261f764?w=400&h=400&fit=crop",
-    "champagne": "https://images.unsplash.com/photo-1544145945-f90425340c7e?w=400&h=400&fit=crop",
-    "prosecco": "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=400&h=400&fit=crop",
-    "gin_tonic": "https://images.unsplash.com/photo-1551538827-9c037cb80827?w=400&h=400&fit=crop",
-    "cider": "https://images.unsplash.com/photo-1566633806327-68e152aaf26d?w=400&h=400&fit=crop",
-    "snacks": "https://images.unsplash.com/photo-1604908177521-402890a3a563?w=400&h=400&fit=crop",
-    "promo": "https://images.unsplash.com/photo-1544145945-f90425340c7e?w=600&h=320&fit=crop",
+    "hero": CDN["hero"],
+    "wine_cat": _u("photo-1510812431401-41d2bd2724f3"),
+    "beer_cat": _u("photo-1608270586620-248524c67de9"),
+    "spirits_cat": _u("photo-1569529465841-df137b257a08"),
+    "sparkling_cat": _u("photo-1544145945-f90425340c7e"),
+    "cocktail_cat": _u("photo-1551538827-9c037cb80827"),
+    "snacks_cat": _u("photo-1604908177521-402890a3a563"),
+    "wine_red": _u("photo-1506377247377-2ccd4979b731"),
+    "wine_white": _u("photo-1584916201218-f4242ceb4809"),
+    "beer_lager": _u("photo-1535958636474-b021ee887b13"),
+    "beer_craft": _u("photo-1618885472175-75d9a061ecb8"),
+    "vodka": _u("photo-1569529465841-df137b257a08"),
+    "whiskey": _u("photo-1527281400683-1aae7261f764"),
+    "champagne": _u("photo-1544145945-f90425340c7e"),
+    "prosecco": _u("photo-1598300042247-d088f8ab3a91"),
+    "gin_tonic": _u("photo-1551538827-9c037cb80827"),
+    "cider": _u("photo-1566633806327-68e152aaf26d"),
+    "snacks": _u("photo-1604908177521-402890a3a563"),
+    "promo": CDN["promo"],
 }
 
 DEFAULT_CATEGORIES = [
@@ -92,6 +104,9 @@ DEFAULT_SETTINGS = {
     "promo_image_url": IMG["promo"],
     "promo2_title": "Бесплатная доставка",
     "promo2_subtitle": "При заказе от 15 000 ₸ по району",
+    "cross_promo_title": "Закуски к напиткам",
+    "cross_promo_subtitle": "Закажите DAM ALEM — пицца, шашлык и горячие блюда с доставкой",
+    "cross_promo_link": "/food",
 }
 
 
@@ -194,3 +209,31 @@ async def ensure_volna_loyalty_settings(db: AsyncSession) -> bool:
     })
     logger.info("Added default loyalty gifts to VOLNA settings")
     return True
+
+
+async def ensure_volna_media_urls(db: AsyncSession) -> bool:
+    """Fix legacy bare Unsplash URLs and empty hero/promo images after deploy."""
+    set_svc = Volna_settingsService(db)
+    settings = await set_svc.get_all_as_dict()
+    patch: dict[str, str] = {}
+
+    for key, fallback in (
+        ("hero_image_url", IMG["hero"]),
+        ("promo_image_url", IMG["promo"]),
+    ):
+        val = (settings.get(key) or "").strip()
+        if not val or ("unsplash.com" in val and "auto=format" not in val):
+            patch[key] = fallback
+
+    if not settings.get("cross_promo_title"):
+        patch["cross_promo_title"] = DEFAULT_SETTINGS["cross_promo_title"]
+    if not settings.get("cross_promo_subtitle"):
+        patch["cross_promo_subtitle"] = DEFAULT_SETTINGS["cross_promo_subtitle"]
+    if not settings.get("cross_promo_link"):
+        patch["cross_promo_link"] = DEFAULT_SETTINGS["cross_promo_link"]
+
+    if patch:
+        await set_svc.upsert_many(patch)
+        logger.info("Patched VOLNA media/marketing settings")
+        return True
+    return False
