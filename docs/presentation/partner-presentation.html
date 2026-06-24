@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sortirovka24 — Презентация для партнёров</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy:#060912; --navy2:#0B0F19; --navy3:#141B2D;
+      --blue:#2563EB; --blue-g:#3B82F6;
+      --gold:#FACC15; --emerald:#10B981; --rose:#F43F5E;
+      --muted:#94A3B8; --text:#E2E8F0;
+      --sw:297mm; --sh:210mm;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Outfit',system-ui,sans-serif;background:#020617;color:#fff;
+      -webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .slide{width:var(--sw);min-height:var(--sh);margin:0 auto 16px;padding:28px 36px;
+      position:relative;overflow:hidden;page-break-after:always;break-after:page}
+    @page{size:A4 landscape;margin:0}
+    @media print{.no-print{display:none!important}.slide{margin:0}}
+    @media screen{
+      body{padding:24px 0 80px}
+      .slide{box-shadow:0 40px 100px rgba(0,0,0,.55);border-radius:4px}
+      .nav-bar{position:fixed;bottom:0;left:0;right:0;z-index:99;
+        background:rgba(6,9,18,.95);backdrop-filter:blur(12px);
+        border-top:1px solid rgba(255,255,255,.08);padding:12px 24px;
+        display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:center}
+      .nav-bar button,.nav-bar a{font-family:inherit;font-size:12px;font-weight:700;
+        padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.15);
+        background:rgba(255,255,255,.06);color:#fff;cursor:pointer;text-decoration:none}
+      .nav-bar button.active,.nav-bar a.active{background:var(--blue);border-color:var(--blue)}
+    }
+
+    .bg-void{background:radial-gradient(ellipse 90% 70% at 70% 0%,rgba(37,99,235,.35),transparent 50%),linear-gradient(180deg,var(--navy),#000)}
+    .bg-dark{background:linear-gradient(145deg,var(--navy2),var(--navy3))}
+    .bg-partner{background:radial-gradient(circle at 0% 100%,rgba(250,204,21,.12),transparent 45%),linear-gradient(160deg,#0a1628,var(--navy2))}
+    .bg-shop{background:radial-gradient(circle at 100% 0%,rgba(16,185,129,.2),transparent 50%),linear-gradient(160deg,#052e1a,var(--navy2))}
+    .bg-pharmacy{background:radial-gradient(circle at 0% 0%,rgba(244,63,94,.18),transparent 50%),linear-gradient(160deg,#2a0a12,var(--navy2))}
+    .bg-light{background:linear-gradient(180deg,#f8fafc,#e0e7ff);color:#0f172a}
+
+    .eyebrow{font-size:8px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;
+      color:var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+    .eyebrow::before{content:'';width:20px;height:2px;background:var(--gold)}
+    .eyebrow-green{color:var(--emerald)}.eyebrow-green::before{background:var(--emerald)}
+    .eyebrow-rose{color:var(--rose)}.eyebrow-rose::before{background:var(--rose)}
+    .eyebrow-blue{color:var(--blue-g)}.eyebrow-blue::before{background:var(--blue-g)}
+
+    h1{font-size:46px;font-weight:900;line-height:.98;letter-spacing:-.03em}
+    h1 em{font-family:'Playfair Display',serif;font-style:italic;color:var(--gold)}
+    h2{font-size:26px;font-weight:800;line-height:1.1;margin-bottom:6px}
+    h3{font-size:13px;font-weight:800;margin-bottom:4px}
+    .lead{font-size:13px;line-height:1.55;color:var(--muted);max-width:95%}
+    .bg-light .lead{color:#64748b}
+    .hl{color:var(--gold)}.hl-g{color:var(--emerald)}.hl-r{color:var(--rose)}
+
+    .footer{position:absolute;bottom:14px;left:36px;right:36px;display:flex;
+      justify-content:space-between;font-size:7px;color:rgba(148,163,184,.55);
+      border-top:1px solid rgba(255,255,255,.06);padding-top:6px}
+    .sn{font-weight:800;color:var(--gold);letter-spacing:.08em}
+
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:center}
+    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .flex-row{display:flex;gap:20px;align-items:center}
+
+    .glass{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;padding:14px 16px}
+    .glass-gold{border-color:rgba(250,204,21,.22);background:rgba(250,204,21,.04)}
+    .glass-green{border-color:rgba(16,185,129,.25);background:rgba(16,185,129,.06)}
+    .glass-rose{border-color:rgba(244,63,94,.25);background:rgba(244,63,94,.06)}
+    .bg-light .glass{background:#fff;border-color:#e2e8f0;box-shadow:0 4px 20px rgba(0,0,0,.05)}
+
+    .phone{width:138px;background:#111;border-radius:26px;padding:7px;
+      box-shadow:0 20px 45px rgba(0,0,0,.5),inset 0 0 0 2px #333;flex-shrink:0}
+    .phone-xl{width:168px;border-radius:30px;padding:9px}
+    .phone-h{width:44px;height:11px;background:#000;border-radius:0 0 10px 10px;margin:0 auto 3px}
+    .scr{border-radius:18px;overflow:hidden;aspect-ratio:390/844;background:#1e293b}
+    .phone-xl .scr{border-radius:22px}
+    .scr img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+    .scr-label{font-size:8px;text-align:center;color:var(--muted);margin-top:6px;font-weight:600}
+
+    .steps{display:flex;gap:8px;margin-top:12px}
+    .step{flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;padding:10px;text-align:center}
+    .step-num{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;
+      font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;margin:0 auto 6px}
+    .step p{font-size:9px;color:var(--muted);line-height:1.35}
+
+    ul.tick{list-style:none}
+    ul.tick li{font-size:10px;padding:4px 0 4px 20px;position:relative;line-height:1.4}
+    ul.tick li::before{content:'✓';position:absolute;left:0;color:var(--emerald);font-weight:900}
+
+    .compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+    .compare-bad,.compare-good{border-radius:12px;padding:12px}
+    .compare-bad{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2)}
+    .compare-good{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25)}
+    .compare h4{font-size:10px;margin-bottom:6px}
+    .compare-bad h4{color:#fca5a5}.compare-good h4{color:#6ee7b7}
+    .compare li{font-size:9px;color:var(--muted);margin:3px 0;list-style:none;padding-left:14px;position:relative}
+    .compare-bad li::before{content:'✗';position:absolute;left:0;color:#f87171}
+    .compare-good li::before{content:'✓';position:absolute;left:0;color:#34d399}
+
+    .badge{display:inline-block;font-size:8px;font-weight:800;padding:4px 10px;border-radius:999px;
+      background:rgba(37,99,235,.2);color:var(--blue-g);border:1px solid rgba(37,99,235,.3);margin-bottom:8px}
+    .section-tag{font-size:56px;font-weight:900;opacity:.06;position:absolute;right:24px;top:20px;letter-spacing:-.04em}
+
+    .shot-row{display:flex;gap:14px;justify-content:center;align-items:flex-end;margin-top:8px}
+    .cta-box{margin-top:14px;padding:16px 20px;border-radius:16px;
+      background:linear-gradient(135deg,rgba(37,99,235,.25),rgba(250,204,21,.12));
+      border:1px solid rgba(250,204,21,.25);text-align:center}
+    .cta-box h3{font-size:16px;margin-bottom:4px}
+    .cta-box p{font-size:11px;color:var(--muted)}
+  </style>
+</head>
+<body>
+
+<!-- ═══ SLIDE 1: COVER ═══ -->
+<section class="slide bg-void" data-audience="all">
+  <div class="eyebrow">Партнёрская презентация · Sortirovka24</div>
+  <h1>Ваш бизнес в кармане<br><em>каждого жителя</em> Сортировки</h1>
+  <p class="lead" style="margin-top:14px;max-width:70%">
+    Готовое мобильное приложение района: каталог, заказы, доставка, уведомления в Telegram.
+    Примеры: <strong class="hl-g">магазин «Волна»</strong>, <strong class="hl-r">аптека</strong>, продуктовый, DAM ALEM.
+  </p>
+  <div class="shot-row" style="margin-top:28px">
+    <div><div class="phone phone-xl"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-home.png" alt="Главная" /></div></div><div class="scr-label">Главная — все видят вас</div></div>
+    <div><div class="phone phone-xl"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-gastronom.png" alt="Магазин" onerror="this.src='screenshots/mobile-food.png'" /></div></div><div class="scr-label">Каталог магазина</div></div>
+    <div><div class="phone phone-xl"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-pharmacy.png" alt="Аптека" onerror="this.src='screenshots/mobile-more.png'" /></div></div><div class="scr-label">Каталог аптеки</div></div>
+  </div>
+  <div class="footer"><span>Sortirovka24 · микрорайон Сортировка, Караганда</span><span class="sn">01 / 18</span></div>
+</section>
+
+<!-- ═══ SLIDE 2: WHAT IS IT ═══ -->
+<section class="slide bg-dark" data-audience="all">
+  <div class="grid2">
+    <div>
+      <div class="eyebrow-blue">Что это</div>
+      <h2>Sortirovka24 — цифровой портал <span class="hl">вашего района</span></h2>
+      <p class="lead" style="margin-top:10px">
+        Не маркетплейс из другого города. Это приложение, которое жители Сортировки открывают каждый день:
+        новости, объявления, еда, магазины, аптека, мастера, такси — <strong>в одном месте</strong>.
+      </p>
+      <div class="grid3" style="margin-top:16px">
+        <div class="glass"><h3>📱 Android + Web</h3><p style="font-size:9px;color:var(--muted);margin-top:4px">Приложение в Google Play и в браузере</p></div>
+        <div class="glass"><h3>🏘️ Только Сортировка</h3><p style="font-size:9px;color:var(--muted);margin-top:4px">Ваша целевая аудитория — соседи</p></div>
+        <div class="glass"><h3>🇷🇺 🇰🇿 RU / KZ</h3><p style="font-size:9px;color:var(--muted);margin-top:4px">Два языка интерфейса</p></div>
+      </div>
+    </div>
+    <div class="flex-row" style="justify-content:center">
+      <div class="phone phone-xl"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-more.png" alt="Все сервисы" /></div></div>
+    </div>
+  </div>
+  <div class="footer"><span>Житель заходит в «Ещё» — видит все модули, включая ваш</span><span class="sn">02 / 18</span></div>
+</section>
+
+<!-- ═══ SLIDE 3: WHO IS CLIENT ═══ -->
+<section class="slide bg-partner" data-audience="all">
+  <div class="eyebrow">Для кого</div>
+  <h2>Кто ваш <span class="hl">клиент</span> уже сегодня</h2>
+  <div class="grid3" style="margin-top:16px">
+    <div class="glass glass-gold">
+      <h3>👨‍👩‍👧 Семьи района</h3>
+      <p style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5">Заказывают продукты, лекарства, еду домой. Не хотят ехать через весь город.</p>
+    </div>
+    <div class="glass glass-gold">
+      <h3>🏢 Жители домов</h3>
+      <p style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5">Пенсионеры, молодёжь, родители — все пользуются смартфоном. SMS-регистрация за 1 минуту.</p>
+    </div>
+    <div class="glass glass-gold">
+      <h3>🔄 Постоянные</h3>
+      <p style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5">Бонусы за регистрацию, история заказов в личном кабинете — возвращаются снова.</p>
+    </div>
+  </div>
+  <div class="compare" style="margin-top:18px">
+    <div class="compare-bad"><h4>Без Sortirovka24</h4><ul><li>Клиент звонит / пишет в WhatsApp</li><li>Вы вручную записываете заказ</li><li>Нет истории, легко потерять</li><li>Новые жители вас не знают</li></ul></div>
+    <div class="compare-good"><h4>С Sortirovka24</h4><ul><li>Клиент сам оформляет в приложении</li><li>Заказ приходит структурированно</li><li>Telegram-уведомление сразу</li><li>Вы в каталоге на главной района</li></ul></div>
+  </div>
+  <div class="footer"><span>Вы не ищете клиентов — они уже в приложении</span><span class="sn">03 / 18</span></div>
+</section>
+
+<!-- ═══ SLIDE 4: SHOP DIVIDER ═══ -->
+<section class="slide bg-shop" data-audience="shop">
+  <div class="section-tag">МАГАЗИН</div>
+  <div class="eyebrow-green">Пример: магазин «Волна» · модуль Гастроном</div>
+  <h1 style="font-size:42px">Продуктовый магазин<br>в <em style="color:var(--emerald);font-style:italic">Sortirovka24</em></h1>
+  <p class="lead" style="margin-top:12px;max-width:75%">
+    Модуль <strong>/gastronom</strong> — ваш онлайн-витрина: категории, цены, фото, корзина, доставка по району,
+    программа лояльности, заказы в Telegram.
+  </p>
+  <div class="badge" style="margin-top:16px;background:rgba(16,185,129,.15);color:#6ee7b7;border-color:rgba(16,185,129,.3)">Маршрут в приложении: Главная → Гастроном → ваш каталог</div>
+  <div class="footer"><span>Модуль gastronom · API /api/v1/gastronom/*</span><span class="sn">04 / 18</span></div>
+</section>
+
+<!-- ═══ SLIDE 5: SHOP WHY ═══ -->
+<section class="slide bg-dark" data-audience="shop">
+  <div class="grid2">
+    <div>
+      <div class="eyebrow-green">Зачем магазину</div>
+      <h2>Что получает <span class="hl-g">«Волна»</span> и любой магазин</h2>
+      <ul class="tick" style="margin-top:12px">
+        <li><strong>Онлайн-каталог</strong> — товары с фото, категории, акции, «хиты»</li>
+        <li><strong>Корзина и заказ</strong> — клиент сам собирает, вы получаете готовый список</li>
+        <li><strong>Доставка по Сортировке</strong> — зоны, минимальная сумма, время</li>
+        <li><strong>Telegram</strong> — мгновенное уведомление о каждом заказе</li>
+        <li><strong>Кабинет партнёра</strong> — товары, заказы, аналитика</li>
+        <li><strong>Лояльность</strong> — бонусы жителям, повторные покупки</li>
+      </ul>
+    </div>
+    <div class="phone phone-xl" style="margin:0 auto"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-gastronom.png" alt="Гастроном" onerror="this.src='screenshots/mobile-food.png'" /></div><div class="scr-label">Реальный экран приложения</div></div>
+  </div>
+  <div class="footer"><span>Скриншот с production · sortirovka24</span><span class="sn">05 / 18</span></div>
+</section>
+
+<!-- ═══ SLIDE 6: SHOP HOW ═══ -->
+<section class="slide bg-shop" data-audience="shop">
+  <div class="eyebrow-green">Как это работает</div>
+  <h2>Путь заказа: от жителя до вашей кассы</h2>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><p><strong>Житель</strong> открывает «Гастроном», выбирает товары</p></div>
+    <div class="step"><div class="step-num">2</div><p><strong>Корзина</strong> — адрес, оплата (нал / Kaspi QR / Halyk)</p></div>
+    <div class="step"><div class="step-num">3</div><p><strong>Заказ</strong> сохраняется в системе + Telegram вам</p></div>
+    <div class="step"><div class="step-num">4</div><p><strong>Вы</strong> собираете, доставляете или клиент забирает</p></div>
+    <div class="step"><div class="step-num">5</div><p><strong>Статус</strong> «Доставлен» — клиент видит в кабинете</p></div>
+  </div>
+  <div class="grid2" style="margin-top:14px">
+    <div class="glass glass-green">
+      <h3>📲 Что видит клиент</h3>
+      <p style="font-size:9px;color:var(--muted);margin-top:6px;line-height:1.5">Каталог → корзина → подтверждение → статус заказа в личном кабинете. Всё на русском и казахском.</p>
+    </div>
+    <div class="glass glass-green">
+      <h3>🔔 Что видите вы</h3>
+      <p style="font-size:9px;color:var(--muted);margin-top:6px;line-height:1.5">Telegram: имя, телефон, адрес, список товаров, сумма. Админ-панель для модерации каталога.</p>
+    </div>
+  </div>
+  <div class="footer"><span>Без звонков «а сколько стоит?» — цены уже в приложении</span><span class="sn">06 / 18</span></div>
+</section>
+
+<!-- ═══ SLIDE 7: SHOP SCREENS ═══ -->
+<section class="slide bg-dark" data-audience="shop">
+  <div class="eyebrow-green">Реальные экраны</div>
+  <h2>Так выглядит магазин в приложении</h2>
+  <div class="shot-row">
+    <div><div class="phone"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-home.png" alt="" /></div></div><div class="scr-label">1. Плитка на главной</div></div>
+    <div><div class="phone"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-gastronom.png" alt="" onerror="this.src='screenshots/mobile-food.png'" /></div></div><div class="scr-label">2. Каталог товаров</div></div>
+    <div><div class="phone"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-account.png" alt="" /></div></div><div class="scr-label">3. Кабинет жителя</div></div>
+  </div>
+  <p class="lead" style="margin-top:14px;text-align:center">
+    Все скриншоты — <strong>оригинал production</strong>, не макеты. После подключения ваш логотип и товары — на тех же экранах.
+  </p>
+  <div class="footer"><span>Desktop-версия также доступна жителям</span><span class="sn">07 / 18</span></div>
+</section>
+
+<!-- ═══ SLIDE 8: SHOP PARTNER CABINET ═══ -->
+<section class="slide bg-partner" data-audience="shop">
+  <div class="grid2">
+    <div>
+      <div class="eyebrow-green">Кабинет партнёра</div>
+      <h2>Управление без программиста</h2>
+      <ul class="tick" style="margin-top:10px">
+        <li>Профиль магазина: название, телефон, описание</li>
+        <li>Товары: добавить, цена, фото, категория, вкл/выкл</li>
+        <li>Заказы: список, статусы, история</li>
+        <li>Аналитика: количество товаров и заказов</li>
+        <li>Админ помогает с первичным наполнением</li>
+      </ul>
+      <div class="glass glass-gold" style="margin-top:12px">
+        <h3>💡 Для «Волны»</h3>
+        <p style="font-size:9px;color:var(--muted);margin-top:4px">Передаёте прайс и фото — мы загружаем. Дальше сами меняете цены в админке за 2 минуты.</p>
+      </div>
+    </div>
+    <div class="phone phone-xl" style="margin:0 auto"><div class="phone-h"></div><div class="scr"><img src="screenshots/desktop-gastronom.png" alt="" onerror="this.src='screenshots/desktop-food.png'" style="object-fit:cover" /></div><div class="scr-label">Веб / планшет</div></div>
+  </div>
+  <div class="footer"><span>/cabinet/partner · роль «продавец»</span><span class="sn">08 / 18</span></div>
+</section>
+
+<!-- ═══ SLIDE 9: PHARMACY DIVIDER ═══ -->
+<section class="slide bg-pharmacy" data-audience="pharmacy">
+  <div class="section-tag">АПТЕКА</div>
+  <div class="eyebrow-rose">Пример: аптека района · модуль Аптека</div>
+  <h1 style="font-size:42px">Аптека<br>в <em style="color:var(--rose);font-style:italic">Sortirovka24</em></h1>
+  <p class="lead" style="margin-top:12px;max-width:75%">
+    Модуль <strong>/apteka</strong> — каталог лекарств и товаров здоровья, заказ с доставкой,
+    рецептурные позиции по правилам аптеки, уведомления оператору.
+  </p>
+  <div class="badge" style="background:rgba(244,63,94,.12);color:#fda4af;border-color:rgba(244,63,94,.3)">Маршрут: Главная → Аптека → каталог → заказ</div>
+  <div class="footer"><span>Модуль pharmacy · API /api/v1/pharmacy/*</span><span class="sn">09 / 18</span></div>
+</section>
+
+<!-- ═══ SLIDE 10: PHARMACY WHY ═══ -->
+<section class="slide bg-dark" data-audience="pharmacy">
+  <div class="grid2">
+    <div>
+      <div class="eyebrow-rose">Зачем аптеке</div>
+      <h2>Почему аптеке <span class="hl-r">выгодно</span> быть в приложении</h2>
+      <ul class="tick" style="margin-top:12px">
+        <li><strong>Близость к дому</strong> — житель заказывает, не идя через район</li>
+        <li><strong>Каталог</strong> — лекарства, БАДы, гигиена с ценами и наличием</li>
+        <li><strong>Заказ на дом</strong> — особенно важно пожилым и семьям с детьми</li>
+        <li><strong>Telegram-оператор</strong> — заявка сразу фармацевту</li>
+        <li><strong>Доверие</strong> — официальный канал района, не случайный чат</li>
+        <li><strong>Конкуренты</strong> — пока другие аптеки не подключены, вы первые</li>
+      </ul>
+    </div>
+    <div class="phone phone-xl" style="margin:0 auto"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-pharmacy.png" alt="Аптека" onerror="this.src='screenshots/mobile-more.png'" /></div><div class="scr-label">Реальный экран аптеки</div></div>
+  </div>
+  <div class="footer"><span>Скриншот production</span><span class="sn">10 / 18</span></div>
+</section>
+
+<!-- ═══ SLIDE 11: PHARMACY HOW ═══ -->
+<section class="slide bg-pharmacy" data-audience="pharmacy">
+  <div class="eyebrow-rose">Как работает заказ</div>
+  <h2>Путь клиента в аптеке</h2>
+  <div class="steps">
+    <div class="step"><div class="step-num" style="background:var(--rose)">1</div><p>Ищет препарат в каталоге или категории</p></div>
+    <div class="step"><div class="step-num" style="background:var(--rose)">2</div><p>Добавляет в корзину, указывает адрес</p></div>
+    <div class="step"><div class="step-num" style="background:var(--rose)">3</div><p>Оформляет — заказ в системе + Telegram</p></div>
+    <div class="step"><div class="step-num" style="background:var(--rose)">4</div><p>Фармацевт звонит при необходимости</p></div>
+    <div class="step"><div class="step-num" style="background:var(--rose)">5</div><p>Доставка или самовывоз — статус в приложении</p></div>
+  </div>
+  <div class="compare" style="margin-top:14px">
+    <div class="compare-bad"><h4>Раньше</h4><ul><li>«Есть ли Нурофен?» — 10 звонков в день</li><li>Клиент не знает ассортимент</li><li>Нет доставки — теряете заказы</li></ul></div>
+    <div class="compare-good"><h4>С Sortirovka24</h4><ul><li>Клиент видит каталог 24/7</li><li>Заказ структурирован — меньше ошибок</li><li>Доставка по Сортировке встроена</li></ul></div>
+  </div>
+  <div class="footer"><span>Рецептурные препараты — по вашим правилам и законодательству</span><span class="sn">11 / 18</span></div>
+</section>
+
+<!-- ═══ SLIDE 12: PHARMACY SCREENS ═══ -->
+<section class="slide bg-dark" data-audience="pharmacy">
+  <div class="eyebrow-rose">Реальные экраны</div>
+  <h2>Аптека глазами жителя</h2>
+  <div class="shot-row">
+    <div><div class="phone"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-home.png" alt="" /></div></div><div class="scr-label">Главная</div></div>
+    <div><div class="phone"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-pharmacy.png" alt="" onerror="this.src='screenshots/mobile-more.png'" /></div></div><div class="scr-label">Каталог аптеки</div></div>
+    <div><div class="phone"><div class="phone-h"></div><div class="scr"><img src="screenshots/tablet-pharmacy.png" alt="" onerror="this.src='screenshots/tablet-home.png'" /></div></div><div class="scr-label">Планшет</div></div>
+  </div>
+  <p class="lead" style="margin-top:12px;text-align:center">Оригинальные скриншоты приложения Sortirovka24 — не дизайн-макеты.</p>
+  <div class="footer"><span>desktop-pharmacy.png · tablet-pharmacy.png</span><span class="sn">12 / 18</span></div>
+</section>
+
+<!-- ═══ SLIDE 13: ALL MODULES ═══ -->
+<section class="slide bg-light" data-audience="all">
+  <div class="eyebrow-blue" style="color:var(--blue)">Экосистема</div>
+  <h2 style="color:#0f172a">Вы — часть большого портала</h2>
+  <p class="lead">Житель, который заказал в аптеке, завтра закажет в «Волне». Один аккаунт — все сервисы.</p>
+  <div class="grid3" style="margin-top:14px">
+    <div class="glass"><h3>🍔 DAM ALEM</h3><p style="font-size:9px;color:#64748b;margin-top:4px">Доставка еды · /food</p></div>
+    <div class="glass"><h3>🛒 Гастроном</h3><p style="font-size:9px;color:#64748b;margin-top:4px">Магазины · /gastronom</p></div>
+    <div class="glass"><h3>💊 Аптека</h3><p style="font-size:9px;color:#64748b;margin-top:4px">Лекарства · /apteka</p></div>
+    <div class="glass"><h3>🔧 Прораб</h3><p style="font-size:9px;color:#64748b;margin-top:4px">Стройматериалы · /prorab</p></div>
+    <div class="glass"><h3>🚕 Такси</h3><p style="font-size:9px;color:#64748b;margin-top:4px">Поездки по району</p></div>
+    <div class="glass"><h3>📢 Объявления</h3><p style="font-size:9px;color:#64748b;margin-top:4px">Трафик жителей каждый день</p></div>
+  </div>
+  <div class="footer" style="border-color:#e2e8f0;color:#94a3b8"><span>17 модулей · включаются по одному</span><span class="sn" style="color:var(--blue)">13 / 18</span></div>
+</section>
+
+<!-- ═══ SLIDE 14: ONBOARDING ═══ -->
+<section class="slide bg-partner" data-audience="all">
+  <div class="eyebrow">Подключение</div>
+  <h2>Старт за <span class="hl">3 рабочих дня</span></h2>
+  <div class="steps" style="margin-top:14px">
+    <div class="step"><div class="step-num">1</div><p><strong>День 1</strong><br>Заявка, договорённость, доступы</p></div>
+    <div class="step"><div class="step-num">2</div><p><strong>День 2</strong><br>Загрузка каталога, фото, цены</p></div>
+    <div class="step"><div class="step-num">3</div><p><strong>День 3</strong><br>Тестовый заказ, Telegram, запуск</p></div>
+  </div>
+  <div class="grid2" style="margin-top:16px">
+    <div class="glass glass-gold">
+      <h3>От вас нужно</h3>
+      <ul class="tick"><li>Прайс / список товаров</li><li>Фото (или мы снимаем)</li><li>Telegram для заказов</li><li>Условия доставки</li></ul>
+    </div>
+    <div class="glass glass-gold">
+      <h3>Мы делаем</h3>
+      <ul class="tick"><li>Настройка модуля в приложении</li><li>Загрузка каталога</li><li>Обучение 30 минут</li><li>Техподдержка</li></ul>
+    </div>
+  </div>
+  <div class="footer"><span>Модуль включается в админке — можно выключить в любой момент</span><span class="sn">14 / 18</span></div>
+</section>
+
+<!-- ═══ SLIDE 15: NUMBERS ═══ -->
+<section class="slide bg-dark" data-audience="all">
+  <div class="eyebrow-blue">Цифры</div>
+  <h2>Потенциал района</h2>
+  <div class="grid3" style="margin-top:16px">
+    <div class="glass" style="text-align:center"><div style="font-size:36px;font-weight:900;color:var(--gold)">10 000+</div><p style="font-size:10px;color:var(--muted);margin-top:4px">Жителей микрорайона — ваша аудитория</p></div>
+    <div class="glass" style="text-align:center"><div style="font-size:36px;font-weight:900;color:var(--emerald)">24/7</div><p style="font-size:10px;color:var(--muted);margin-top:4px">Каталог работает, пока магазин закрыт</p></div>
+    <div class="glass" style="text-align:center"><div style="font-size:36px;font-weight:900;color:var(--blue-g)">0 ₸</div><p style="font-size:10px;color:var(--muted);margin-top:4px">Реклама в Instagram — клиент уже в приложении</p></div>
+  </div>
+  <p class="lead" style="margin-top:16px;text-align:center">
+    Первые партнёры получают <strong class="hl">максимальную видимость</strong> на главной и в разделе «Ещё».
+  </p>
+  <div class="footer"><span>Sortirovka24 · KPI: заказы, повторные визиты, retention</span><span class="sn">15 / 18</span></div>
+</section>
+
+<!-- ═══ SLIDE 16: FAQ ═══ -->
+<section class="slide bg-light" data-audience="all">
+  <div class="eyebrow-blue" style="color:var(--blue)">Вопросы</div>
+  <h2 style="color:#0f172a">Частые вопросы партнёров</h2>
+  <div class="grid2" style="margin-top:12px">
+    <div class="glass"><h3>Нужно ли своё приложение?</h3><p style="font-size:9px;color:#64748b;margin-top:4px;line-height:1.5">Нет. Вы внутри Sortirovka24 — жители уже установили его.</p></div>
+    <div class="glass"><h3>Кто меняет цены?</h3><p style="font-size:9px;color:#64748b;margin-top:4px;line-height:1.5">Вы через админку или просите нас — быстро.</p></div>
+    <div class="glass"><h3>Как приходят заказы?</h3><p style="font-size:9px;color:#64748b;margin-top:4px;line-height:1.5">Telegram + админ-панель. Можно добавить WhatsApp.</p></div>
+    <div class="glass"><h3>Комиссия?</h3><p style="font-size:9px;color:#64748b;margin-top:4px;line-height:1.5">Обсуждается индивидуально — зависит от объёма и модуля.</p></div>
+    <div class="glass"><h3>Если нет интернета?</h3><p style="font-size:9px;color:#64748b;margin-top:4px;line-height:1.5">У вас Telegram на телефоне — заказы всё равно приходят.</p></div>
+    <div class="glass"><h3>Можно только самовывоз?</h3><p style="font-size:9px;color:#64748b;margin-top:4px;line-height:1.5">Да, настраивается: доставка / самовывоз / оба варианта.</p></div>
+  </div>
+  <div class="footer" style="border-color:#e2e8f0;color:#94a3b8"><span>FAQ · дополняется под ваш бизнес</span><span class="sn" style="color:var(--blue)">16 / 18</span></div>
+</section>
+
+<!-- ═══ SLIDE 17: CTA ═══ -->
+<section class="slide bg-void" data-audience="all">
+  <div class="eyebrow">Следующий шаг</div>
+  <h1>Готовы подключить<br><em>«Волну»</em>, аптеку<br>или ваш бизнес?</h1>
+  <div class="cta-box" style="margin-top:20px;max-width:520px">
+    <h3>Оставьте заявку</h3>
+    <p>В приложении: раздел «Для бизнеса» → форма<br>
+    WhatsApp: +7 747 030 4096<br>
+    Сайт: sortirovka24-production-8788.up.railway.app</p>
+  </div>
+  <div class="grid2" style="margin-top:18px">
+    <div class="glass glass-gold"><h3>🛒 Магазин</h3><p style="font-size:9px;color:var(--muted);margin-top:4px">Модуль Гастроном · пример «Волна»</p></div>
+    <div class="glass glass-rose"><h3>💊 Аптека</h3><p style="font-size:9px;color:var(--muted);margin-top:4px">Модуль Аптека · доставка лекарств</p></div>
+  </div>
+  <div class="footer"><span>Sortirovka24 · партнёрская программа 2026</span><span class="sn">17 / 18</span></div>
+</section>
+
+<!-- ═══ SLIDE 18: BACK ═══ -->
+<section class="slide bg-partner" data-audience="all">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:calc(100% - 40px);text-align:center">
+    <div style="font-size:11px;font-weight:800;letter-spacing:.3em;color:var(--gold);margin-bottom:12px">SORTIROVKA 24</div>
+    <h2 style="font-size:32px">Спасибо за внимание</h2>
+    <p class="lead" style="margin-top:10px;max-width:60%">Портал района · Еда, магазины, аптека, такси — всё в одном приложении</p>
+    <div class="shot-row" style="margin-top:24px">
+      <div class="phone"><div class="phone-h"></div><div class="scr"><img src="screenshots/mobile-home.png" alt="" /></div></div>
+    </div>
+  </div>
+  <div class="footer"><span>sortirovka24-presentation · partner edition</span><span class="sn">18 / 18</span></div>
+</section>
+
+<nav class="no-print nav-bar" id="nav">
+  <span style="font-size:11px;color:var(--muted);margin-right:8px">Показать:</span>
+  <button type="button" class="active" data-filter="all">Вся презентация</button>
+  <button type="button" data-filter="shop">🛒 Магазин (Волна)</button>
+  <button type="button" data-filter="pharmacy">💊 Аптека</button>
+  <a href="sortirovka24-presentation.html">Общая презентация</a>
+  <button type="button" onclick="window.print()">📄 PDF / Печать</button>
+</nav>
+
+<script>
+(function(){
+  const slides = document.querySelectorAll('.slide[data-audience]');
+  const btns = document.querySelectorAll('#nav button[data-filter]');
+  function applyFilter(f){
+    btns.forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+    slides.forEach(s => {
+      const a = s.dataset.audience;
+      s.style.display = (f === 'all' || a === 'all' || a === f) ? '' : 'none';
+    });
+  }
+  btns.forEach(b => b.addEventListener('click', () => applyFilter(b.dataset.filter)));
+})();
+</script>
+</body>
+</html>

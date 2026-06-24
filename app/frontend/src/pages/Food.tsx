@@ -812,7 +812,7 @@ export default function Food() {
   const focusAddressPicker = useCallback(() => {
     setAddressFormCollapsed(false);
     if (addressFocusTimerRef.current) clearTimeout(addressFocusTimerRef.current);
-    addressFocusTimerRef.current = window.setTimeout(() => {
+    addressFocusTimerRef.current = setTimeout(() => {
       addressFocusTimerRef.current = null;
       addressPickerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       const input = addressPickerRef.current?.querySelector('input');

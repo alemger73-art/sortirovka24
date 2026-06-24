@@ -33,7 +33,7 @@
 - [PLAY_STORE.md](../app/frontend/play-store/PLAY_STORE.md) — публикация в Google Play
 - [DAM ALEM — инструкция](../app/frontend/docs/DAM_ALEM_ИНСТРУКЦИЯ.md) — заказы еды и FrontPad
 - [Admin APK](../app/admin-panel/README.md) — отдельное приложение администратора
-- **[PDF-презентация](./presentation/README.md)** — 12 слайдов для показа проекта
+- **[Презентации](./presentation/README.md)** — общая (24 слайда) + **партнёрская для магазина/аптеки** (18 слайдов, реальные скрины)
 
 ## О проекте в одном абзаце
 

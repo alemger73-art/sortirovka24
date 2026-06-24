@@ -16,15 +16,23 @@ const shots = [
   { file: 'mobile-home.png', url: '/', viewport: { width: 390, height: 844 } },
   { file: 'mobile-food.png', url: '/food', viewport: { width: 390, height: 844 } },
   { file: 'mobile-food-menu.png', url: '/food/restaurants', viewport: { width: 390, height: 844 } },
+  { file: 'mobile-gastronom.png', url: '/gastronom', viewport: { width: 390, height: 844 } },
+  { file: 'mobile-pharmacy.png', url: '/apteka', viewport: { width: 390, height: 844 } },
+  { file: 'mobile-prorab.png', url: '/prorab', viewport: { width: 390, height: 844 } },
+  { file: 'mobile-business.png', url: '/business', viewport: { width: 390, height: 844 } },
   { file: 'mobile-taxi.png', url: '/taxi', viewport: { width: 390, height: 844 } },
   { file: 'mobile-announcements.png', url: '/announcements', viewport: { width: 390, height: 844 } },
   { file: 'mobile-masters.png', url: '/masters', viewport: { width: 390, height: 844 } },
   { file: 'mobile-account.png', url: '/account', viewport: { width: 390, height: 844 } },
   { file: 'mobile-more.png', url: '/more', viewport: { width: 390, height: 844 } },
   { file: 'tablet-home.png', url: '/', viewport: { width: 834, height: 1112 } },
+  { file: 'tablet-gastronom.png', url: '/gastronom', viewport: { width: 834, height: 1112 } },
+  { file: 'tablet-pharmacy.png', url: '/apteka', viewport: { width: 834, height: 1112 } },
   { file: 'tablet-announcements.png', url: '/announcements', viewport: { width: 834, height: 1112 } },
   { file: 'desktop-home.png', url: '/', viewport: { width: 1280, height: 800 } },
   { file: 'desktop-food.png', url: '/food', viewport: { width: 1280, height: 800 } },
+  { file: 'desktop-gastronom.png', url: '/gastronom', viewport: { width: 1280, height: 800 } },
+  { file: 'desktop-pharmacy.png', url: '/apteka', viewport: { width: 1280, height: 800 } },
 ];
 
 await mkdir(OUT, { recursive: true });
