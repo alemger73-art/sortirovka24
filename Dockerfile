@@ -7,8 +7,9 @@ FROM node:20-slim AS frontend
 WORKDIR /app/frontend
 
 # Install dependencies first for better layer caching.
-COPY app/frontend/package.json app/frontend/package-lock.json ./
-RUN npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+# package-lock.json is not in git (project uses pnpm locally); npm install from package.json.
+COPY app/frontend/package.json ./
+RUN npm install --no-audit --no-fund
 
 # Build the production bundle into /app/frontend/dist.
 COPY app/frontend/ ./
