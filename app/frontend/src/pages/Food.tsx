@@ -1145,6 +1145,8 @@ export default function Food() {
             total_amount: total,
             delivery_fee: deliveryMethod === 'delivery' ? activeDeliveryPrice : 0,
             service_fee: serviceFeeAmount,
+            ...(appliedPromo?.code ? { promo_code: appliedPromo.code } : {}),
+            ...(apartmentDeliveryFee > 0 ? { apartment_delivery_fee: apartmentDeliveryFee } : {}),
             delivery_zone: deliveryMethod === 'delivery' && deliveryQuote?.zone_name
               ? deliveryQuote.zone_name
               : '',
@@ -1191,7 +1193,9 @@ export default function Food() {
       setPayment('cash');
     } catch (e) {
       console.error('Error creating order:', e);
-      toast.error('Ошибка при оформлении заказа');
+      const err = e as { message?: string; response?: { data?: { detail?: string } } };
+      const detail = err.response?.data?.detail;
+      toast.error(typeof detail === 'string' ? detail : (err.message || 'Ошибка при оформлении заказа'));
     } finally {
       setSubmitting(false);
     }

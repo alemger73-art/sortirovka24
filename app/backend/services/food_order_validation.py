@@ -18,6 +18,7 @@ from services.modifier_options import Modifier_optionsService
 logger = logging.getLogger(__name__)
 
 DEFAULT_SERVICE_FEE_RATE = 0.10
+APARTMENT_DELIVERY_FEE = 300.0
 VALID_PAYMENT_METHODS = frozenset({"cash", "kaspi_qr", "halyk_qr"})
 
 
@@ -54,6 +55,65 @@ def _parse_zones(settings: Dict[str, str]) -> List[Dict[str, Any]]:
         return parsed if isinstance(parsed, list) else []
     except json.JSONDecodeError:
         return []
+
+
+def _parse_promo_codes(raw: str) -> List[Dict[str, Any]]:
+    try:
+        parsed = json.loads(raw or "[]")
+        return parsed if isinstance(parsed, list) else []
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return []
+
+
+def _apply_free_delivery_threshold(
+    subtotal: float,
+    delivery_fee: float,
+    settings: Dict[str, str],
+) -> float:
+    try:
+        free_from = float(settings.get("free_delivery_from") or 0)
+    except (TypeError, ValueError):
+        free_from = 0.0
+    if free_from > 0 and subtotal >= free_from:
+        return 0.0
+    return delivery_fee
+
+
+def _resolve_promo(
+    code: str,
+    subtotal: float,
+    settings: Dict[str, str],
+) -> Tuple[float, bool]:
+    """Return (discount, free_delivery) for a promo code."""
+    promos = _parse_promo_codes(settings.get("promo_codes") or "[]")
+    matched = None
+    for promo in promos:
+        if not promo or not isinstance(promo, dict):
+            continue
+        if str(promo.get("code", "")).strip().upper() != code:
+            continue
+        if promo.get("active") is False or str(promo.get("active", "")).lower() in ("0", "false"):
+            continue
+        matched = promo
+        break
+    if not matched:
+        raise HTTPException(status_code=400, detail="Промокод не найден или недействителен")
+
+    min_order = float(matched.get("min_order") or 0)
+    if min_order > 0 and subtotal < min_order:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Промокод действует от {int(min_order):,} ₸".replace(",", " "),
+        )
+
+    ptype = str(matched.get("type") or "percent")
+    value = float(matched.get("value") or 0)
+    if ptype == "free_delivery":
+        return 0.0, True
+    if ptype == "fixed":
+        return min(subtotal, value), False
+    pct = max(0.0, min(100.0, value))
+    return round(subtotal * (pct / 100.0)), False
 
 
 def _resolve_delivery_fee(
@@ -244,11 +304,32 @@ async def validate_food_order(
     delivery_fee = _resolve_delivery_fee(
         delivery_method, settings, delivery_fee_hint, zone_name
     )
+    delivery_fee = _apply_free_delivery_threshold(subtotal, delivery_fee, settings)
+
+    promo_code = (data.get("promo_code") or "").strip().upper()
+    promo_discount = 0.0
+    if promo_code:
+        promo_discount, promo_free_delivery = _resolve_promo(promo_code, subtotal, settings)
+        if promo_free_delivery:
+            delivery_fee = 0.0
+
+    apartment_fee = 0.0
+    if delivery_method == "delivery":
+        apt_hint = data.get("apartment_delivery_fee")
+        if apt_hint is not None:
+            try:
+                apartment_fee = float(apt_hint)
+            except (TypeError, ValueError):
+                raise HTTPException(status_code=400, detail="Некорректная доплата за доставку до квартиры")
+            if apartment_fee not in (0.0, APARTMENT_DELIVERY_FEE):
+                raise HTTPException(status_code=400, detail="Некорректная доплата за доставку до квартиры")
+
     if delivery_fee_hint is not None and delivery_method == "delivery":
         if abs(float(delivery_fee_hint) - delivery_fee) > 1:
             raise HTTPException(status_code=400, detail="Стоимость доставки не совпадает")
 
-    expected_total = round(subtotal + expected_service + delivery_fee, 2)
+    expected_total = round(subtotal + expected_service + delivery_fee + apartment_fee - promo_discount, 2)
+    expected_total = max(0.0, expected_total)
     client_total = round(float(data.get("total_amount") or 0), 2)
 
     # Marketplace checkout: total may equal subtotal only (no service/delivery line items sent).
@@ -269,6 +350,8 @@ async def validate_food_order(
         raise HTTPException(status_code=400, detail="Некорректный способ оплаты")
 
     sanitized = dict(data)
+    for transient_key in ("promo_code", "apartment_delivery_fee", "delivery_fee", "service_fee", "delivery_zone"):
+        sanitized.pop(transient_key, None)
     sanitized["payment_method"] = payment_method
     if not sanitized.get("payment_status"):
         sanitized["payment_status"] = "pending" if payment_method == "cash" else "awaiting_qr_payment"

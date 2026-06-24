@@ -55,6 +55,8 @@ class Food_ordersData(BaseModel):
     delivery_fee: Optional[float] = None
     service_fee: Optional[float] = None
     delivery_zone: Optional[str] = None
+    promo_code: Optional[str] = None
+    apartment_delivery_fee: Optional[float] = None
 
 
 class Food_ordersUpdateData(BaseModel):
