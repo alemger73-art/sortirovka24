@@ -705,6 +705,8 @@ export default function Food() {
   }, [settings.service_fee_rate]);
   const serviceFeeAmount = useMemo(() => Math.round(cartTotal * serviceFeeRate), [cartTotal, serviceFeeRate]);
   const cartTotalWithService = cartTotal + serviceFeeAmount;
+  const serviceFeePercent = Math.round(serviceFeeRate * 100);
+  const serviceFeeLabel = `${t('food.serviceFeeBase')} (${serviceFeePercent}%)`;
 
   const freeDeliveryFrom = useMemo(
     () => Number(settings.free_delivery_from || 15000),
@@ -850,6 +852,13 @@ export default function Food() {
     if (brandProfile?.min_order && brandProfile.min_order > 0) return brandProfile.min_order;
     return parseInt(settings.min_order_amount) || 0;
   }, [brandProfile, settings.min_order_amount]);
+
+  const cartCheckoutLabel = useMemo(() => {
+    if (minOrder > 0 && cartTotal < minOrder) {
+      return `Добавьте ещё ${formatPrice(minOrder - cartTotal)} до мин. заказа`;
+    }
+    return `${t('food.checkout')} — ${formatPrice(cartTotalWithService)}`;
+  }, [minOrder, cartTotal, cartTotalWithService, t, formatPrice]);
 
   const marketingStories = useMemo(
     () => buildMarketingStories({
@@ -1938,10 +1947,6 @@ export default function Food() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <h4 className="text-sm font-bold leading-snug text-[#111111] line-clamp-2">{ci.item.name}</h4>
-                          <p className="mt-0.5 text-xs text-[#777777]">{itemDisplayWeight(ci.item)}</p>
-                          {ci.item.description && (
-                            <p className="mt-1 text-[11px] leading-snug text-[#777777] line-clamp-2">{ci.item.description}</p>
-                          )}
                           {selNames.length > 0 && (
                             <p className="mt-1 text-[11px] text-[#FF3B30] line-clamp-1">+ {selNames.join(', ')}</p>
                           )}
@@ -2005,26 +2010,18 @@ export default function Food() {
                   nextGift={nextGift}
                   compact
                 />
-                {loyaltyGifts.length > 0 && (
-                  <LoyaltyGiftBanner subtotal={cartTotal} gifts={loyaltyGifts} />
-                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-[#777777]">{t('food.subtotal')}</span>
                   <span className="font-semibold text-[#111111]">{formatPrice(cartTotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-[#777777]">{t('food.serviceFee')}</span>
+                  <span className="text-[#777777]">{serviceFeeLabel}</span>
                   <span className="font-semibold text-[#111111]">{formatPrice(serviceFeeAmount)}</span>
                 </div>
                 <div className="flex justify-between border-t border-gray-100 pt-3 text-base font-extrabold text-[#111111]">
                   <span>{t('food.total')}</span>
                   <span>{formatPrice(cartTotalWithService)}</span>
                 </div>
-                {minOrder > 0 && cartTotal < minOrder && (
-                  <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-red-600">
-                    {t('food.minOrder')}: {formatPrice(minOrder)}
-                  </div>
-                )}
                 <button
                   type="button"
                   onClick={openCheckout}
@@ -2032,7 +2029,7 @@ export default function Food() {
                   disabled={cartTotal < minOrder}
                   data-testid="dam-cart-checkout"
                 >
-                  {t('food.checkout')} — {formatPrice(cartTotalWithService)}
+                  {cartCheckoutLabel}
                 </button>
               </div>
         </DamAlemSheet>
@@ -2220,7 +2217,7 @@ export default function Food() {
                 </div>
 
                 {loyaltyGifts.length > 0 && (
-                  <LoyaltyGiftBanner subtotal={cartTotal} gifts={loyaltyGifts} />
+                  <LoyaltyGiftBanner subtotal={cartTotal} gifts={loyaltyGifts} compact />
                 )}
 
                 <div className="bg-white rounded-2xl p-4 shadow-sm space-y-2">
@@ -2312,7 +2309,7 @@ export default function Food() {
                       <span className="font-semibold text-gray-900">{formatPrice(cartTotal)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">{t('food.serviceFee')}</span>
+                      <span className="text-gray-500">{serviceFeeLabel}</span>
                       <span className="font-semibold text-gray-900">{formatPrice(serviceFeeAmount)}</span>
                     </div>
                     {deliveryMethod === 'delivery' && deliverToApartment && (

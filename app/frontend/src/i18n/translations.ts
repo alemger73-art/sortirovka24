@@ -764,6 +764,7 @@ const translations: Translations = {
   'food.total': { ru: 'Итого', kz: 'Барлығы' },
   'food.subtotal': { ru: 'Товары', kz: 'Тағамдар' },
   'food.serviceFee': { ru: 'Сервисный сбор (10%)', kz: 'Қызмет жинағы (10%)' },
+  'food.serviceFeeBase': { ru: 'Сервисный сбор', kz: 'Қызмет жинағы' },
   'food.serviceFeeIncluded': { ru: 'включая сервисный сбор 10%', kz: '10% қызмет жинағы ескерілген' },
   'food.yourOrder': { ru: 'Ваш заказ', kz: 'Сіздің тапсырысыңыз' },
   'food.togetherTastier': { ru: 'Вместе вкуснее', kz: 'Бірге дәмдірек' },

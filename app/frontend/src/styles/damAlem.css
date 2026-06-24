@@ -350,41 +350,57 @@
   flex: 1;
   overflow-y: auto;
   padding: 1rem;
+  -webkit-overflow-scrolling: touch;
 }
 
-.dam-sheet-footer {
-  flex-shrink: 0;
-  padding: 1.25rem;
-  padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
-  background: white;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  border-radius: 0 0 24px 24px;
-}
-
+button.dam-btn-primary,
 .dam-btn-primary {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 3.5rem;
+  min-height: 3.5rem;
+  padding: 0 1rem;
+  border: none;
   border-radius: 16px;
-  background: var(--dam-accent);
-  color: white;
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--dam-accent);
+  color: #ffffff;
   font-size: 1rem;
   font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
   box-shadow: 0 8px 24px rgba(255, 59, 48, 0.35);
-  transition: transform 0.15s ease, background 0.15s ease;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+  touch-action: manipulation;
 }
 
+button.dam-btn-primary:active:not(:disabled),
 .dam-btn-primary:active:not(:disabled) {
   transform: scale(0.98);
-  background: var(--dam-accent-hover);
+  background-color: var(--dam-accent-hover);
 }
 
+button.dam-btn-primary:disabled,
 .dam-btn-primary:disabled {
-  opacity: 0.5;
+  opacity: 1;
   cursor: not-allowed;
+  background-color: #e4e4e7;
+  color: #52525b;
   box-shadow: none;
+}
+
+.dam-sheet-footer {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+  padding: 1.25rem;
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
+  background: white;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 0 0 24px 24px;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.06);
 }
 
 /* Hide fixed UI under open cart/checkout sheets */
