@@ -7,14 +7,14 @@ import CabinetHeader from "@/components/cabinet/CabinetHeader";
 import CabinetOrderCard from "@/components/cabinet/CabinetOrderCard";
 import CabinetNotifications from "@/components/cabinet/CabinetNotifications";
 import CabinetLockScreen from "@/components/cabinet/CabinetLockScreen";
-import CabinetSecuritySettings from "@/components/cabinet/CabinetSecuritySettings";
+import CabinetSecurityPanel from "@/components/cabinet/CabinetSecuritySettings";
 import {
   loadNotificationPrefs,
   loadSecuritySettings,
   shouldLockCabinet,
   isNotificationCategoryEnabled,
   clearCabinetUnlock,
-  type CabinetSecuritySettings as SecuritySettings,
+  type CabinetSecuritySettings,
 } from "@/lib/cabinetPreferences";
 import { getBiometricSupport, type BiometricSupport } from "@/lib/biometricAuth";
 import { accountApi, getAccountToken, type SavedAddress, type UserNotificationItem } from "@/lib/accountApi";
@@ -107,7 +107,7 @@ export default function Cabinet() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const seenNotificationIds = useRef<Set<number>>(new Set());
-  const [securitySettings, setSecuritySettings] = useState<SecuritySettings | null>(null);
+  const [securitySettings, setSecuritySettings] = useState<CabinetSecuritySettings | null>(null);
   const [cabinetLocked, setCabinetLocked] = useState(false);
   const [biometricSupport, setBiometricSupport] = useState<BiometricSupport | null>(null);
   const tabs: { id: TabId; label: string }[] = useMemo(() => {
@@ -1014,7 +1014,7 @@ export default function Cabinet() {
               {activeTab === "settings" && (
                 <DarkCard>
                   <h2 className={`mb-4 ${sectionTitleClass}`}>{t("cabinet.tab.settings")}</h2>
-                  <CabinetSecuritySettings
+                  <CabinetSecurityPanel
                     t={t}
                     onSettingsChange={(sec) => {
                       setSecuritySettings(sec);
