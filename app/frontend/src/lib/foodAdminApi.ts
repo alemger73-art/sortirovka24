@@ -1,6 +1,7 @@
 /** Direct HTTP helpers for food entities when @metagptx/web-sdk has no generated client (e.g. food_restaurants). */
 
 import { getAPIBaseURL } from './config';
+import { getPartnerToken } from './partnerAuthApi';
 
 const apiBase = () => getAPIBaseURL();
 
@@ -12,9 +13,9 @@ function adminHeaders(): HeadersInit {
       : '',
   };
   try {
-    const t = localStorage.getItem('token')
-      || localStorage.getItem('_dam_alem_partner_token')
-      || localStorage.getItem('_sp924_token');
+    const t = localStorage.getItem('_sp924_token')
+      || getPartnerToken('dam_alem')
+      || localStorage.getItem('token');
     if (t) h.Authorization = `Bearer ${t}`;
   } catch {
     /* ignore */

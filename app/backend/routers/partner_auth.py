@@ -13,7 +13,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.auth import AccessTokenError, create_access_token, decode_access_token
 from core.database import db_manager, get_db
-from core.partner_guard import DAM_ALEM_PARTNER_TYPE, is_dam_alem_partner_payload, is_panel_admin_payload
+from core.partner_guard import (
+    DAM_ALEM_PARTNER_TYPE,
+    PARTNER_TYPES,
+    is_panel_admin_payload,
+    is_partner_payload,
+)
 from models.partner_auth import PartnerCredentials, PartnerLoginAttempt
 from utils.phone import normalize_phone as _normalize_phone
 
@@ -22,7 +27,22 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/partner-auth", tags=["partner-auth"])
 
 SESSION_EXPIRY_HOURS = 72
-_DEFAULT_PARTNER_PASSWORD = "dam-alem-change-me"
+
+PARTNER_DEFAULT_NAMES: dict[str, str] = {
+    "dam_alem": "DAM ALEM",
+    "gastronom": "Гастроном",
+    "volna": "VOLNA",
+    "prorab": "PRORAB",
+    "pharmacy": "Аптека",
+}
+
+PARTNER_ENV_PREFIX: dict[str, str] = {
+    "dam_alem": "DAM_ALEM",
+    "gastronom": "GASTRONOM",
+    "volna": "VOLNA",
+    "prorab": "PRORAB",
+    "pharmacy": "PHARMACY",
+}
 
 
 def _truthy(value: str) -> bool:
@@ -54,13 +74,22 @@ def _get_client_ip(request: Request) -> str:
 
 
 def _normalize_login(login: str) -> tuple[str, str]:
-    """Return (kind, normalized_value) where kind is 'email' or 'phone'."""
     raw = (login or "").strip()
     if not raw:
         return "", ""
     if "@" in raw:
         return "email", raw.lower()
     return "phone", _normalize_phone(raw)
+
+
+def _assert_partner_type(partner_type: str) -> str:
+    if partner_type not in PARTNER_TYPES:
+        raise HTTPException(status_code=404, detail="Неизвестный тип партнёра")
+    return partner_type
+
+
+def _default_name(partner_type: str) -> str:
+    return PARTNER_DEFAULT_NAMES.get(partner_type, partner_type)
 
 
 def _create_partner_jwt(partner_id: int, partner_type: str, login: str, display_name: str = "") -> str:
@@ -78,14 +107,12 @@ def _create_partner_jwt(partner_id: int, partner_type: str, login: str, display_
     )
 
 
-def _verify_partner_jwt(token: str, partner_type: str = DAM_ALEM_PARTNER_TYPE) -> Optional[dict]:
+def _verify_partner_jwt(token: str, partner_type: str) -> Optional[dict]:
     try:
         payload = decode_access_token(token)
     except AccessTokenError:
         return None
-    if not is_dam_alem_partner_payload(payload):
-        return None
-    if payload.get("partner_type") != partner_type:
+    if not is_partner_payload(payload, partner_type):
         return None
     return payload
 
@@ -119,10 +146,7 @@ async def _find_partner(db: AsyncSession, partner_type: str, login: str) -> Part
     kind, normalized = _normalize_login(login)
     if not normalized:
         return None
-    if kind == "email":
-        clause = PartnerCredentials.email == normalized
-    else:
-        clause = PartnerCredentials.phone == normalized
+    clause = PartnerCredentials.email == normalized if kind == "email" else PartnerCredentials.phone == normalized
     return (
         await db.execute(
             select(PartnerCredentials).where(
@@ -189,7 +213,6 @@ class PartnerCredentialItem(BaseModel):
 
 
 class PartnerCredentialCreateRequest(BaseModel):
-    partner_type: str = DAM_ALEM_PARTNER_TYPE
     email: str | None = None
     phone: str | None = None
     password: str
@@ -204,46 +227,68 @@ class PartnerCredentialUpdateRequest(BaseModel):
     is_active: bool | None = None
 
 
-@router.post("/dam-alem/login", response_model=PartnerLoginResponse)
-async def dam_alem_login(
+def _credential_item(row: PartnerCredentials) -> PartnerCredentialItem:
+    return PartnerCredentialItem(
+        id=row.id,
+        partner_type=row.partner_type,
+        email=row.email,
+        phone=row.phone,
+        display_name=row.display_name,
+        is_active=row.is_active,
+        created_at=row.created_at.isoformat() if row.created_at else None,
+    )
+
+
+@router.post("/{partner_type}/login", response_model=PartnerLoginResponse)
+async def partner_login(
+    partner_type: str,
     payload: PartnerLoginRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    partner_type = _assert_partner_type(partner_type)
     login_raw = payload.login.strip()
     ip_address = _get_client_ip(request)
     user_agent = request.headers.get("user-agent", "")
 
     if not login_raw or not payload.password:
-        await _log_attempt(db, DAM_ALEM_PARTNER_TYPE, login_raw, ip_address, user_agent, False, "empty_fields")
+        await _log_attempt(db, partner_type, login_raw, ip_address, user_agent, False, "empty_fields")
         return PartnerLoginResponse(success=False, message="Введите email или телефон и пароль.")
 
-    partner = await _find_partner(db, DAM_ALEM_PARTNER_TYPE, login_raw)
+    partner = await _find_partner(db, partner_type, login_raw)
     if not partner or not _verify_password(payload.password, partner.password_hash):
-        await _log_attempt(db, DAM_ALEM_PARTNER_TYPE, login_raw, ip_address, user_agent, False, "invalid_credentials")
+        await _log_attempt(db, partner_type, login_raw, ip_address, user_agent, False, "invalid_credentials")
         return PartnerLoginResponse(success=False, message="Неверный email/телефон или пароль.")
 
     kind, normalized = _normalize_login(login_raw)
     login_label = partner.email if kind == "email" else (partner.phone or normalized)
-    token = _create_partner_jwt(partner.id, DAM_ALEM_PARTNER_TYPE, login_label or login_raw, partner.display_name or "")
-    await _log_attempt(db, DAM_ALEM_PARTNER_TYPE, login_raw, ip_address, user_agent, True)
+    default_name = _default_name(partner_type)
+    token = _create_partner_jwt(
+        partner.id, partner_type, login_label or login_raw, partner.display_name or default_name
+    )
+    await _log_attempt(db, partner_type, login_raw, ip_address, user_agent, True)
 
     return PartnerLoginResponse(
         success=True,
         message="Вход выполнен",
         token=token,
         jwt_token=token,
-        display_name=partner.display_name or "DAM ALEM",
+        display_name=partner.display_name or default_name,
     )
 
 
-@router.post("/dam-alem/verify-session", response_model=PartnerSessionCheckResponse)
-async def dam_alem_verify_session(request: Request, db: AsyncSession = Depends(get_db)):
+@router.post("/{partner_type}/verify-session", response_model=PartnerSessionCheckResponse)
+async def partner_verify_session(
+    partner_type: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    partner_type = _assert_partner_type(partner_type)
     auth = request.headers.get("authorization", "")
     if not auth.lower().startswith("bearer "):
         return PartnerSessionCheckResponse(valid=False)
     token = auth[7:].strip()
-    claims = _verify_partner_jwt(token)
+    claims = _verify_partner_jwt(token, partner_type)
     if not claims:
         return PartnerSessionCheckResponse(valid=False)
 
@@ -263,21 +308,23 @@ async def dam_alem_verify_session(request: Request, db: AsyncSession = Depends(g
     return PartnerSessionCheckResponse(
         valid=True,
         login=str(claims.get("login") or ""),
-        display_name=str(claims.get("display_name") or "DAM ALEM"),
+        display_name=str(claims.get("display_name") or _default_name(partner_type)),
         jwt_token=token,
     )
 
 
-@router.post("/dam-alem/change-password", response_model=PartnerChangePasswordResponse)
-async def dam_alem_change_password(
+@router.post("/{partner_type}/change-password", response_model=PartnerChangePasswordResponse)
+async def partner_change_password(
+    partner_type: str,
     payload: PartnerChangePasswordRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    partner_type = _assert_partner_type(partner_type)
     auth = request.headers.get("authorization", "")
     if not auth.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="Требуется авторизация")
-    claims = _verify_partner_jwt(auth[7:].strip())
+    claims = _verify_partner_jwt(auth[7:].strip(), partner_type)
     if not claims:
         raise HTTPException(status_code=401, detail="Сессия истекла")
 
@@ -298,39 +345,32 @@ async def dam_alem_change_password(
     return PartnerChangePasswordResponse(success=True, message="Пароль обновлён.")
 
 
-@router.get("/dam-alem/credentials", response_model=list[PartnerCredentialItem])
-async def list_dam_alem_credentials(
+@router.get("/{partner_type}/credentials", response_model=list[PartnerCredentialItem])
+async def list_partner_credentials(
+    partner_type: str,
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    partner_type = _assert_partner_type(partner_type)
     _require_panel_admin(request)
     rows = (
         await db.execute(
             select(PartnerCredentials)
-            .where(PartnerCredentials.partner_type == DAM_ALEM_PARTNER_TYPE)
+            .where(PartnerCredentials.partner_type == partner_type)
             .order_by(PartnerCredentials.id)
         )
     ).scalars().all()
-    return [
-        PartnerCredentialItem(
-            id=r.id,
-            partner_type=r.partner_type,
-            email=r.email,
-            phone=r.phone,
-            display_name=r.display_name,
-            is_active=r.is_active,
-            created_at=r.created_at.isoformat() if r.created_at else None,
-        )
-        for r in rows
-    ]
+    return [_credential_item(r) for r in rows]
 
 
-@router.post("/dam-alem/credentials", response_model=PartnerCredentialItem, status_code=status.HTTP_201_CREATED)
-async def create_dam_alem_credential(
+@router.post("/{partner_type}/credentials", response_model=PartnerCredentialItem, status_code=status.HTTP_201_CREATED)
+async def create_partner_credential(
+    partner_type: str,
     payload: PartnerCredentialCreateRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    partner_type = _assert_partner_type(partner_type)
     _require_panel_admin(request)
 
     email = (payload.email or "").strip().lower() or None
@@ -349,49 +389,43 @@ async def create_dam_alem_credential(
         existing = (
             await db.execute(
                 select(PartnerCredentials).where(
-                    PartnerCredentials.partner_type == DAM_ALEM_PARTNER_TYPE,
+                    PartnerCredentials.partner_type == partner_type,
                     or_(*filters),
                 )
             )
         ).scalar_one_or_none()
         if existing:
-            raise HTTPException(status_code=409, detail="Такой email или телефон уже используется.")
+            raise HTTPException(status_code=409, detail="Такой email или телефон уже используется для этого партнёра.")
 
     row = PartnerCredentials(
-        partner_type=DAM_ALEM_PARTNER_TYPE,
+        partner_type=partner_type,
         email=email,
         phone=phone,
         password_hash=_hash_password(payload.password),
-        display_name=(payload.display_name or "").strip() or "DAM ALEM",
+        display_name=(payload.display_name or "").strip() or _default_name(partner_type),
         is_active=True,
     )
     db.add(row)
     await db.commit()
     await db.refresh(row)
-    return PartnerCredentialItem(
-        id=row.id,
-        partner_type=row.partner_type,
-        email=row.email,
-        phone=row.phone,
-        display_name=row.display_name,
-        is_active=row.is_active,
-        created_at=row.created_at.isoformat() if row.created_at else None,
-    )
+    return _credential_item(row)
 
 
-@router.patch("/dam-alem/credentials/{credential_id}", response_model=PartnerCredentialItem)
-async def update_dam_alem_credential(
+@router.patch("/{partner_type}/credentials/{credential_id}", response_model=PartnerCredentialItem)
+async def update_partner_credential(
+    partner_type: str,
     credential_id: int,
     payload: PartnerCredentialUpdateRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    partner_type = _assert_partner_type(partner_type)
     _require_panel_admin(request)
     row = (
         await db.execute(
             select(PartnerCredentials).where(
                 PartnerCredentials.id == credential_id,
-                PartnerCredentials.partner_type == DAM_ALEM_PARTNER_TYPE,
+                PartnerCredentials.partner_type == partner_type,
             )
         )
     ).scalar_one_or_none()
@@ -416,66 +450,69 @@ async def update_dam_alem_credential(
 
     await db.commit()
     await db.refresh(row)
-    return PartnerCredentialItem(
-        id=row.id,
-        partner_type=row.partner_type,
-        email=row.email,
-        phone=row.phone,
-        display_name=row.display_name,
-        is_active=row.is_active,
-        created_at=row.created_at.isoformat() if row.created_at else None,
-    )
+    return _credential_item(row)
+
+
+async def _initialize_partner_from_env(partner_type: str) -> None:
+    prefix = PARTNER_ENV_PREFIX.get(partner_type, partner_type.upper())
+    email = os.getenv(f"{prefix}_PARTNER_EMAIL", "").strip().lower() or None
+    phone = _normalize_phone(os.getenv(f"{prefix}_PARTNER_PHONE", "")) or None
+    password = os.getenv(f"{prefix}_PARTNER_PASSWORD", "").strip()
+    display_name = os.getenv(f"{prefix}_PARTNER_NAME", "").strip() or _default_name(partner_type)
+    force_reset = _truthy(os.getenv(f"{prefix}_PARTNER_FORCE_RESET", ""))
+
+    if not email and not phone:
+        return
+
+    async with db_manager.async_session_maker() as db:
+        existing = (
+            await db.execute(
+                select(PartnerCredentials).where(PartnerCredentials.partner_type == partner_type)
+            )
+        ).scalars().first()
+
+        if existing and not force_reset:
+            logger.info("[Partner Auth] %s partner account already exists (id=%s).", partner_type, existing.id)
+            return
+
+        pwd = password or f"{partner_type}-change-me"
+        if existing:
+            existing.email = email or existing.email
+            existing.phone = phone or existing.phone
+            existing.display_name = display_name
+            existing.password_hash = _hash_password(pwd)
+            existing.is_active = True
+            logger.info("[Partner Auth] %s partner account updated (id=%s).", partner_type, existing.id)
+        else:
+            db.add(
+                PartnerCredentials(
+                    partner_type=partner_type,
+                    email=email,
+                    phone=phone,
+                    password_hash=_hash_password(pwd),
+                    display_name=display_name,
+                    is_active=True,
+                )
+            )
+            logger.info("[Partner Auth] %s partner account created.", partner_type)
+        await db.commit()
 
 
 async def initialize_dam_alem_partner_credentials():
-    """Create default DAM ALEM partner login from env if none exists."""
+    """Backward-compatible entry point."""
+    await initialize_all_partner_credentials()
+
+
+async def initialize_all_partner_credentials():
     try:
         await db_manager.ensure_initialized()
         if not db_manager.async_session_maker:
             logger.error("[Partner Auth] Database unavailable — skipping partner credential setup.")
             return
-
-        email = os.getenv("DAM_ALEM_PARTNER_EMAIL", "").strip().lower() or None
-        phone = _normalize_phone(os.getenv("DAM_ALEM_PARTNER_PHONE", "")) or None
-        password = os.getenv("DAM_ALEM_PARTNER_PASSWORD", "").strip()
-        display_name = os.getenv("DAM_ALEM_PARTNER_NAME", "").strip() or "DAM ALEM"
-        force_reset = _truthy(os.getenv("DAM_ALEM_PARTNER_FORCE_RESET", ""))
-
-        if not email and not phone:
-            logger.info("[Partner Auth] DAM_ALEM_PARTNER_EMAIL/PHONE not set — skipping default partner account.")
-            return
-
-        async with db_manager.async_session_maker() as db:
-            existing = (
-                await db.execute(
-                    select(PartnerCredentials).where(PartnerCredentials.partner_type == DAM_ALEM_PARTNER_TYPE)
-                )
-            ).scalars().first()
-
-            if existing and not force_reset:
-                logger.info("[Partner Auth] DAM ALEM partner account already exists (id=%s).", existing.id)
-                return
-
-            pwd = password or _DEFAULT_PARTNER_PASSWORD
-            if existing:
-                existing.email = email or existing.email
-                existing.phone = phone or existing.phone
-                existing.display_name = display_name
-                existing.password_hash = _hash_password(pwd)
-                existing.is_active = True
-                logger.info("[Partner Auth] DAM ALEM partner account updated (id=%s).", existing.id)
-            else:
-                db.add(
-                    PartnerCredentials(
-                        partner_type=DAM_ALEM_PARTNER_TYPE,
-                        email=email,
-                        phone=phone,
-                        password_hash=_hash_password(pwd),
-                        display_name=display_name,
-                        is_active=True,
-                    )
-                )
-                logger.info("[Partner Auth] DAM ALEM partner account created.")
-            await db.commit()
+        for partner_type in PARTNER_TYPES:
+            try:
+                await _initialize_partner_from_env(partner_type)
+            except Exception as exc:
+                logger.warning("[Partner Auth] Init failed for %s: %s", partner_type, exc)
     except Exception as exc:
         logger.exception("[Partner Auth] Failed to initialize partner credentials: %s", exc)

@@ -18,6 +18,11 @@ import {
   type VolnaCategory, type VolnaProduct, type VolnaOrder, type VolnaSettings,
 } from '@/lib/volnaApi';
 import { isLoyaltyEnabled, parseLoyaltyGifts, serializeLoyaltyGifts, type LoyaltyGift } from '@/lib/gastronomLoyalty';
+import AdminPartnerAccess from '@/components/partner/AdminPartnerAccess';
+
+interface AdminVolnaProps {
+  partnerMode?: boolean;
+}
 
 type Section = 'products' | 'categories' | 'orders' | 'delivery' | 'gifts' | 'settings';
 
@@ -32,7 +37,7 @@ function formatOrderDate(raw: string) {
 const PAYMENT_LABELS: Record<string, string> = { cash: 'Наличные', kaspi_qr: 'Kaspi QR', halyk_qr: 'Halyk QR' };
 const MOBILE_DIALOG = 'max-h-[90vh] overflow-y-auto max-sm:fixed max-sm:inset-0 max-sm:left-0 max-sm:top-0 max-sm:max-w-none max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:border-0 max-sm:p-4';
 
-export default function AdminVolna() {
+export default function AdminVolna({ partnerMode = false }: AdminVolnaProps) {
   const [section, setSection] = useState<Section>('products');
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<VolnaCategory[]>([]);
@@ -204,6 +209,7 @@ export default function AdminVolna() {
       )}
 
       {section === 'settings' && (
+        <div className="space-y-6">
         <div className="bg-white border rounded-xl p-4 space-y-4 max-w-lg">
           <ImageUpload value={settings.logo_url || ''} onChange={(url) => setSettings(s => ({ ...s, logo_url: url }))} />
           <ImageUpload value={settings.hero_image_url || ''} onChange={(url) => setSettings(s => ({ ...s, hero_image_url: url }))} />
@@ -213,6 +219,8 @@ export default function AdminVolna() {
           ))}
           <Button onClick={() => void handleSaveSettings()} className="bg-violet-600 hover:bg-violet-700 w-full"><Save className="h-4 w-4 mr-1" /> Сохранить</Button>
           <p className="text-xs text-gray-400">Telegram: TELEGRAM_BOT_TOKEN_VOLNA / TELEGRAM_CHAT_ID_VOLNA</p>
+        </div>
+        {!partnerMode && <AdminPartnerAccess partnerType="volna" />}
         </div>
       )}
 

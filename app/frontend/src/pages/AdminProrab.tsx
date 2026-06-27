@@ -16,6 +16,11 @@ import {
   saveProrabSettings, updateProrabOrderStatus,
   type ProrabCategory, type ProrabProduct, type ProrabOrder, type ProrabSettings,
 } from '@/lib/prorabApi';
+import AdminPartnerAccess from '@/components/partner/AdminPartnerAccess';
+
+interface AdminProrabProps {
+  partnerMode?: boolean;
+}
 
 type Section = 'products' | 'categories' | 'orders' | 'delivery' | 'settings';
 
@@ -40,7 +45,7 @@ function formatOrderDate(raw: string) {
   } catch { return raw; }
 }
 
-export default function AdminProrab() {
+export default function AdminProrab({ partnerMode = false }: AdminProrabProps) {
   const [section, setSection] = useState<Section>('products');
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<ProrabCategory[]>([]);
@@ -267,6 +272,7 @@ export default function AdminProrab() {
         )}
 
         {section === 'settings' && (
+          <div className="space-y-6">
           <div className="bg-white border rounded-xl p-4 space-y-4 max-w-lg">
             <ImageUpload value={settings.logo_url || ''} onChange={(url) => setSettings(s => ({ ...s, logo_url: url }))} />
             <ImageUpload value={settings.hero_image_url || ''} onChange={(url) => setSettings(s => ({ ...s, hero_image_url: url }))} />
@@ -288,6 +294,8 @@ export default function AdminProrab() {
             <p className="text-xs text-gray-400">
               Заказы в Telegram: TELEGRAM_BOT_TOKEN_PRORAB и TELEGRAM_CHAT_ID_PRORAB
             </p>
+          </div>
+          {!partnerMode && <AdminPartnerAccess partnerType="prorab" />}
           </div>
         )}
       </div>

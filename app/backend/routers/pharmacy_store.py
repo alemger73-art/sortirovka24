@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from core.auth import AccessTokenError, decode_access_token
+from core.partner_guard import require_store_partner_or_admin
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -58,16 +58,7 @@ def _normalize_phone_digits(phone: str) -> str:
 
 
 def _require_admin(request: Request) -> None:
-    auth = request.headers.get("authorization", "")
-    if not auth.lower().startswith("bearer "):
-        raise HTTPException(status_code=401, detail="Admin authentication required")
-    token = auth[7:].strip()
-    try:
-        payload = decode_access_token(token)
-    except AccessTokenError as e:
-        raise HTTPException(status_code=401, detail=str(e)) from e
-    if payload.get("role") != "admin" or not payload.get("username"):
-        raise HTTPException(status_code=403, detail="Admin access required")
+    require_store_partner_or_admin(request, "pharmacy")
 
 
 # ─── Schemas ───────────────────────────────────────────────────────

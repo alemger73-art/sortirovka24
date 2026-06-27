@@ -24,7 +24,7 @@ import AdminDamAlemBrand from './AdminDamAlemBrand';
 
 import AdminDamAlemModifiers from './AdminDamAlemModifiers';
 import AdminDamAlemGuide from '@/components/damalem/AdminDamAlemGuide';
-import AdminDamAlemPartnerAccess from '@/components/damalem/AdminDamAlemPartnerAccess';
+import AdminPartnerAccess from '@/components/partner/AdminPartnerAccess';
 
 
 
@@ -196,7 +196,7 @@ export default function AdminDamAlem({ initialSection = 'menu', partnerMode = fa
       {section === 'settings' && (
         <>
           <AdminFoodSettings damAlemMode />
-          {!partnerMode && <AdminDamAlemPartnerAccess />}
+          {!partnerMode && <AdminPartnerAccess partnerType="dam_alem" />}
         </>
       )}
 

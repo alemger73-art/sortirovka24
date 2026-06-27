@@ -30,7 +30,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from core.auth import AccessTokenError, decode_access_token
-from core.partner_guard import can_access_dam_alem_entity
+from core.partner_guard import can_access_partner_entity
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +96,7 @@ def _has_entity_access(request: Request, entity: str) -> bool:
     """Platform admin or scoped partner access for food/DAM ALEM entities."""
     if _is_admin(request):
         return True
-    return can_access_dam_alem_entity(request, entity)
+    return can_access_partner_entity(request, entity)
 
 
 class EntityWriteGuardMiddleware(BaseHTTPMiddleware):

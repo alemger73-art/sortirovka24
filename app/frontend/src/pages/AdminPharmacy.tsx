@@ -38,6 +38,11 @@ import {
   serializeLoyaltyGifts,
   type LoyaltyGift,
 } from '@/lib/gastronomLoyalty';
+import AdminPartnerAccess from '@/components/partner/AdminPartnerAccess';
+
+interface AdminPharmacyProps {
+  partnerMode?: boolean;
+}
 
 type Section = 'products' | 'categories' | 'orders' | 'delivery' | 'gifts' | 'settings';
 
@@ -74,7 +79,7 @@ const PAYMENT_LABELS: Record<string, string> = {
 const MOBILE_DIALOG =
   'max-h-[90vh] overflow-y-auto max-sm:fixed max-sm:inset-0 max-sm:left-0 max-sm:top-0 max-sm:max-w-none max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:border-0 max-sm:p-4';
 
-export default function AdminPharmacy() {
+export default function AdminPharmacy({ partnerMode = false }: AdminPharmacyProps) {
   const [section, setSection] = useState<Section>('products');
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<PharmacyCategory[]>([]);
@@ -580,6 +585,7 @@ export default function AdminPharmacy() {
 
       {/* Settings */}
       {section === 'settings' && (
+        <div className="space-y-6">
         <div className="bg-white border rounded-xl p-3 sm:p-4 space-y-4 max-w-lg">
           <div>
             <label className="text-sm font-medium text-gray-700 mb-1 block">Логотип аптеки</label>
@@ -629,6 +635,8 @@ export default function AdminPharmacy() {
             Заказы отправляются в Telegram. Настройте TELEGRAM_BOT_TOKEN_PHARMACY и TELEGRAM_CHAT_ID_PHARMACY
             (или общие TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID).
           </p>
+        </div>
+        {!partnerMode && <AdminPartnerAccess partnerType="pharmacy" />}
         </div>
       )}
     </div>

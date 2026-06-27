@@ -150,11 +150,11 @@ async def _run_startup_initialization():
             logger.warning(f"Admin credentials initialization failed: {e}")
 
         try:
-            from routers.partner_auth import initialize_dam_alem_partner_credentials
+            from routers.partner_auth import initialize_all_partner_credentials
 
-            await initialize_dam_alem_partner_credentials()
+            await initialize_all_partner_credentials()
         except Exception as e:
-            logger.warning(f"DAM ALEM partner credentials initialization failed: {e}")
+            logger.warning(f"Partner credentials initialization failed: {e}")
 
         try:
             await initialize_buckets()

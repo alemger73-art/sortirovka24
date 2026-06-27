@@ -17,9 +17,14 @@ function readToken(): string | null {
     const storage = globalThis?.localStorage;
     if (!storage) return null;
     return storage.getItem('account_token')
-      || storage.getItem('token')
-      || storage.getItem('_dam_alem_partner_token')
       || storage.getItem('_sp924_token')
+      || storage.getItem('token')
+      || storage.getItem('_partner_token_dam_alem')
+      || storage.getItem('_dam_alem_partner_token')
+      || storage.getItem('_partner_token_gastronom')
+      || storage.getItem('_partner_token_volna')
+      || storage.getItem('_partner_token_prorab')
+      || storage.getItem('_partner_token_pharmacy')
       || null;
   } catch {
     return null;

@@ -48,6 +48,10 @@ const InspectorsPage = lazy(() => import("./pages/Inspectors"));
 const HistoryPage = lazy(() => import("./pages/History"));
 const AdminPanel = lazy(() => import("./pages/Admin"));
 const PartnerDamAlemAdmin = lazy(() => import("./pages/PartnerDamAlemAdmin"));
+const PartnerGastronomAdmin = lazy(() => import("./pages/PartnerGastronomAdmin"));
+const PartnerVolnaAdmin = lazy(() => import("./pages/PartnerVolnaAdmin"));
+const PartnerProrabAdmin = lazy(() => import("./pages/PartnerProrabAdmin"));
+const PartnerPharmacyAdmin = lazy(() => import("./pages/PartnerPharmacyAdmin"));
 const Gastronom = lazy(() => import("./pages/Gastronom"));
 const Volna = lazy(() => import("./pages/Volna"));
 const Prorab = lazy(() => import("./pages/Prorab"));
@@ -210,6 +214,10 @@ function App() {
               {/* Admin panel — accessible via /admin */}
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="/partner/dam-alem" element={<PartnerDamAlemAdmin />} />
+              <Route path="/partner/gastronom" element={<PartnerGastronomAdmin />} />
+              <Route path="/partner/volna" element={<PartnerVolnaAdmin />} />
+              <Route path="/partner/prorab" element={<PartnerProrabAdmin />} />
+              <Route path="/partner/pharmacy" element={<PartnerPharmacyAdmin />} />
               {/* Legacy hidden URL — redirect to /admin */}
               <Route path="/system-portal-924" element={<Navigate to="/admin" replace />} />
 

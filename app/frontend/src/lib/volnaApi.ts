@@ -9,7 +9,7 @@ const CATALOG_TTL = 5 * 60 * 1000;
 const apiBase = () => getAPIBaseURL();
 
 async function request<T>(path: string, options: RequestInit = {}, admin = false): Promise<T> {
-  const res = await fetch(`${apiBase()}${path}`, { ...options, headers: { ...storeApiHeaders(admin), ...options.headers } });
+  const res = await fetch(`${apiBase()}${path}`, { ...options, headers: { ...storeApiHeaders(admin, 'volna'), ...options.headers } });
   if (!res.ok) {
     let message = `Request failed: ${res.status}`;
     try {
