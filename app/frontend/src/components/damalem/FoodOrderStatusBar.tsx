@@ -40,15 +40,15 @@ export default function FoodOrderStatusBar({ status, compact = false }: Props) {
         return (
           <div key={step.key} className="flex items-center gap-1 flex-1 min-w-0">
             {done ? (
-              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-orange-400" />
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-orange-500 dark:text-orange-400" />
             ) : (
-              <Circle className="h-3.5 w-3.5 shrink-0 text-gray-600" />
+              <Circle className="h-3.5 w-3.5 shrink-0 text-gray-300 dark:text-gray-600" />
             )}
-            <span className={`text-[10px] truncate ${done ? 'text-orange-300 font-medium' : 'text-gray-500'}`}>
+            <span className={`text-[10px] truncate ${done ? 'text-orange-600 font-semibold dark:text-orange-300' : 'text-gray-400 dark:text-gray-500'}`}>
               {step.label}
             </span>
             {idx < STEPS.length - 1 && (
-              <div className={`h-px flex-1 mx-0.5 ${idx < current ? 'bg-orange-400/50' : 'bg-gray-700'}`} />
+              <div className={`h-px flex-1 mx-0.5 ${idx < current ? 'bg-orange-400/60 dark:bg-orange-400/50' : 'bg-gray-200 dark:bg-gray-700'}`} />
             )}
           </div>
         );

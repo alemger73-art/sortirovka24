@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import Layout from "@/components/Layout";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Camera, Coins, Save, UserCircle2, UtensilsCrossed, Truck, Store, Wrench, Car, Bike, MapPin, Plus, Trash2, Star, Pencil, X, Loader2, CheckCircle2, AlertCircle, Search, RotateCcw, Wine, ChevronRight } from "lucide-react";
-import FoodOrderStatusBar from "@/components/damalem/FoodOrderStatusBar";
+import { Camera, Coins, Save, UserCircle2, Wrench, MapPin, Plus, Trash2, Star, Pencil, X, Loader2, CheckCircle2, AlertCircle, Search } from "lucide-react";
+import CabinetNav from "@/components/cabinet/CabinetNav";
+import CabinetHeader from "@/components/cabinet/CabinetHeader";
+import CabinetOrderCard from "@/components/cabinet/CabinetOrderCard";
 import { accountApi, getAccountToken, type SavedAddress } from "@/lib/accountApi";
 import { cacheAccountProfile, getCurrentUser, logoutLocalUser } from "@/lib/localAuth";
 import { humanizeApiError } from "@/lib/apiErrors";
@@ -20,56 +22,6 @@ const MASTER_REQUEST_STATUS: Record<string, { labelKey: string; color: string }>
   new: { labelKey: "cabinet.master.statusNew", color: "bg-yellow-500/20 text-yellow-200" },
   in_progress: { labelKey: "cabinet.master.statusInProgress", color: "bg-blue-500/20 text-blue-200" },
   done: { labelKey: "cabinet.master.statusDone", color: "bg-green-500/20 text-green-200" },
-};
-
-const FOOD_STATUS: Record<string, { key: string; color: string }> = {
-  new: { key: "cabinet.orderStatus.new", color: "bg-yellow-500/20 text-yellow-200" },
-  in_progress: { key: "cabinet.orderStatus.cooking", color: "bg-blue-500/20 text-blue-200" },
-  done: { key: "cabinet.orderStatus.delivered", color: "bg-green-500/20 text-green-200" },
-  cancelled: { key: "cabinet.orderStatus.cancelled", color: "bg-red-500/20 text-red-200" },
-};
-
-const PAYMENT_LABELS: Record<string, string> = {
-  cash: "payment.cash",
-  kaspi_qr: "payment.kaspiQr",
-  halyk_qr: "payment.halykQr",
-};
-
-const REPEAT_ORDER_KEY = "damalem_repeat_order";
-
-function repeatFoodOrder(o: {
-  order_items?: string;
-  delivery_address?: string;
-  delivery_method?: string;
-}, navigate: ReturnType<typeof useNavigate>) {
-  try {
-    sessionStorage.setItem(REPEAT_ORDER_KEY, JSON.stringify({
-      order_items: o.order_items,
-      delivery_address: o.delivery_address,
-      delivery_method: o.delivery_method,
-    }));
-    navigate("/food");
-  } catch {
-    /* ignore */
-  }
-}
-
-const STORE_ORDER_LABELS: Record<string, string> = {
-  volna: "store.volna",
-  gastronom: "store.gastronom",
-  pharmacy: "store.pharmacy",
-  prorab: "store.prorab",
-  park: "store.park",
-};
-
-const STORE_STATUS: Record<string, { key: string; color: string }> = {
-  new: { key: "cabinet.orderStatus.new", color: "bg-yellow-500/20 text-yellow-200" },
-  in_progress: { key: "cabinet.orderStatus.processing", color: "bg-blue-500/20 text-blue-200" },
-  processing: { key: "cabinet.orderStatus.processing", color: "bg-blue-500/20 text-blue-200" },
-  done: { key: "cabinet.orderStatus.done", color: "bg-green-500/20 text-green-200" },
-  completed: { key: "cabinet.orderStatus.done", color: "bg-green-500/20 text-green-200" },
-  delivered: { key: "cabinet.orderStatus.delivered", color: "bg-green-500/20 text-green-200" },
-  cancelled: { key: "cabinet.orderStatus.cancelled", color: "bg-red-500/20 text-red-200" },
 };
 
 function formatOrderDate(raw?: string | null) {
@@ -138,6 +90,7 @@ export default function Cabinet() {
   const [savingAddress, setSavingAddress] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [geoError, setGeoError] = useState("");
+  const [orderFilter, setOrderFilter] = useState<"all" | "food" | "store">("all");
   const tabs: { id: TabId; label: string }[] = useMemo(() => {
     const base: { id: TabId; label: string }[] = [
       { id: "profile", label: t("cabinet.tab.profile") },
@@ -452,95 +405,53 @@ export default function Cabinet() {
     announcements: cabinet?.announcements || [],
   }), [cabinet]);
 
+  const filteredOrders = useMemo(() => {
+    const orders: CabinetOrderRow[] = rows.orders || [];
+    if (orderFilter === "food") return orders.filter((o) => o.type === "food");
+    if (orderFilter === "store") {
+      return orders.filter((o) => ["volna", "gastronom", "pharmacy", "prorab", "park"].includes(o.type));
+    }
+    return orders;
+  }, [rows.orders, orderFilter]);
+
+  const switchTab = (tab: TabId) => {
+    setError("");
+    setSuccess("");
+    setActiveTab(tab);
+  };
+
   if (loading) return <Layout><div className="mx-auto max-w-6xl px-4 py-10 text-gray-500 dark:text-slate-300">{t("cabinet.loading")}</div></Layout>;
 
   return (
     <Layout>
       <div className="min-h-screen bg-gray-50 px-4 py-8 text-gray-900 dark:bg-[#0B0F19] dark:text-white">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="text-3xl font-extrabold">{t("cabinet.personalTitle")}</h1>
-              <p className="text-gray-500 dark:text-slate-300">{cabinet?.profile?.name} · {cabinet?.profile?.phone}</p>
-              {(cabinet?.profile?.role === "master" || cabinet?.profile?.role === "admin" || cabinet?.profile?.role === "superadmin") && (
-                <Link
-                  to="/cabinet/master"
-                  className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
-                >
-                  <Wrench className="h-4 w-4" /> {t("cabinet.masterTitle")} →
-                </Link>
-              )}
-              {cabinet?.profile?.role === "driver" && (
-                <Link
-                  to="/cabinet/driver"
-                  className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-yellow-600 hover:text-yellow-700 dark:text-yellow-400"
-                >
-                  <Car className="h-4 w-4" /> {t("cabinet.driverCabinetLink")} →
-                </Link>
-              )}
-              {courierAccess?.can_access_cabinet && (
-                <Link
-                  to="/cabinet/courier"
-                  className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-orange-600 hover:text-orange-700 dark:text-orange-400"
-                >
-                  <Bike className="h-4 w-4" /> {t("cabinet.courierCabinetLink")} →
-                </Link>
-              )}
-              {courierAccess?.status === "pending" && (
-                <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
-                  📋 {t("cabinet.courierPending")}
-                </p>
-              )}
-              {(cabinet?.profile?.role === "user" || cabinet?.profile?.role === "courier") && (
-                <Link
-                  to="/taxi/driver"
-                  className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-yellow-600 hover:text-yellow-700 dark:text-yellow-400"
-                >
-                  <Car className="h-4 w-4" /> {t("cabinet.becomeDriver")} →
-                </Link>
-              )}
-              {!courierAccess?.can_access_cabinet && courierAccess?.status !== "pending" && (
-                <Link
-                  to="/delivery/courier"
-                  className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-orange-600 hover:text-orange-700 dark:text-orange-400"
-                >
-                  <Bike className="h-4 w-4" /> {t("cabinet.becomeCourier")} →
-                </Link>
-              )}
-            </div>
-            <button
-              className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-100 dark:border-[#2a3347] dark:bg-[#111827] dark:text-white dark:hover:bg-[#1a2336]"
-              onClick={() => {
+          <div className="mb-6">
+            <CabinetHeader
+              profile={cabinet?.profile}
+              ordersCount={(rows.orders || []).length}
+              ordersCountLabel={`${(rows.orders || []).length} ${t("cabinet.ordersCount")}`}
+              courierAccess={courierAccess}
+              logoutLabel={t("cabinet.logout")}
+              bonusLabel={t("cabinet.bonusShort")}
+              onLogout={() => {
                 logoutLocalUser();
                 navigate("/account");
               }}
-            >
-              {t("cabinet.logout")}
-            </button>
+              onOpenBonuses={() => switchTab("bonuses")}
+              links={{
+                master: t("cabinet.masterTitle"),
+                driver: t("cabinet.driverCabinetLink"),
+                courier: t("cabinet.courierCabinetLink"),
+                becomeDriver: t("cabinet.becomeDriver"),
+                becomeCourier: t("cabinet.becomeCourier"),
+                courierPending: t("cabinet.courierPending"),
+              }}
+            />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[250px_minmax(0,1fr)]">
-            <DarkCard>
-              <div className="space-y-2">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setError("");
-                      setSuccess("");
-                      setActiveTab(tab.id);
-                    }}
-                    className={`w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
-                      activeTab === tab.id
-                        ? "bg-yellow-400 text-[#0B0F19]"
-                        : "bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-[#0f172a] dark:text-slate-200 dark:hover:bg-[#1a2336]"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-            </DarkCard>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+            <CabinetNav tabs={tabs} activeTab={activeTab} onTabChange={switchTab} />
 
             <div className="space-y-4">
               {error ? <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">{error}</p> : null}
@@ -780,13 +691,19 @@ export default function Cabinet() {
               {activeTab === "bonuses" && (
                 <DarkCard>
                   <h2 className="mb-4 text-xl font-bold">{t("cabinet.myBonuses")}</h2>
-                  <div className="rounded-2xl border border-yellow-400/30 bg-gradient-to-r from-yellow-500/20 to-amber-400/10 p-5">
-                    <p className="text-sm text-yellow-100/80">{t("cabinet.bonusBalance")}</p>
+                  <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 p-5 dark:border-yellow-400/30 dark:from-yellow-500/20 dark:via-amber-500/10 dark:to-orange-500/5">
+                    <p className="text-sm text-amber-800/80 dark:text-yellow-100/80">{t("cabinet.bonusBalance")}</p>
                     <div className="mt-2 flex items-center gap-2">
-                      <Coins className="h-7 w-7 text-yellow-300" />
-                      <p className="text-4xl font-black text-yellow-300">{Number(cabinet?.profile?.bonus_balance || 0).toLocaleString("ru-RU")}</p>
+                      <Coins className="h-7 w-7 text-amber-600 dark:text-yellow-300" />
+                      <p className="text-4xl font-black text-amber-700 dark:text-yellow-300">{Number(cabinet?.profile?.bonus_balance || 0).toLocaleString("ru-RU")}</p>
                     </div>
-                    <p className="mt-1 text-sm text-yellow-100/70">{t("cabinet.bonusHint")}</p>
+                    <p className="mt-1 text-sm text-amber-900/70 dark:text-yellow-100/70">{t("cabinet.bonusHint")}</p>
+                    <Link
+                      to="/food"
+                      className="mt-4 inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-600"
+                    >
+                      {t("cabinet.spendBonusesCta")}
+                    </Link>
                   </div>
                   <div className="mt-4 space-y-2">
                     {rows.bonuses.length === 0 ? (
@@ -807,105 +724,50 @@ export default function Cabinet() {
 
               {activeTab === "orders" && (
                 <DarkCard>
-                  <h2 className="mb-4 text-xl font-bold">{t("cabinet.tab.orders")}</h2>
-                  <div className="space-y-2">
-                    {(rows.orders || []).map((o: CabinetOrderRow) => {
-                      const isFood = o.type === "food";
-                      const isStore = o.type in STORE_ORDER_LABELS;
+                  <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <h2 className={sectionTitleClass}>{t("cabinet.tab.orders")}</h2>
+                    <div className="flex flex-wrap gap-2">
+                      {([
+                        ["all", t("cabinet.orders.filterAll")],
+                        ["food", t("cabinet.orders.filterFood")],
+                        ["store", t("cabinet.orders.filterStores")],
+                      ] as const).map(([key, label]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setOrderFilter(key)}
+                          className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                            orderFilter === key
+                              ? "bg-amber-400 text-[#0B0F19]"
+                              : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-[#0f172a] dark:text-slate-300 dark:hover:bg-[#1a2336]"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {filteredOrders.map((o: CabinetOrderRow) => {
                       const detail = orderDetailId(o);
                       const detailPath = detail ? cabinetOrderDetailPath(detail.source, detail.id) : null;
-                      const st = isFood
-                        ? FOOD_STATUS[o.status || ""] || FOOD_STATUS.new
-                        : isStore
-                          ? STORE_STATUS[o.status || ""] || STORE_STATUS.new
-                          : null;
-                      const payLabel = o.payment_method && PAYMENT_LABELS[o.payment_method] ? t(PAYMENT_LABELS[o.payment_method]) : o.payment_method;
-                      const cardInner = (
-                        <>
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                              {isFood ? (
-                                <UtensilsCrossed className="h-4 w-4 shrink-0 text-orange-500 dark:text-orange-400" />
-                              ) : o.type === "volna" ? (
-                                <Wine className="h-4 w-4 shrink-0 text-violet-500 dark:text-violet-400" />
-                              ) : isStore ? (
-                                <Store className="h-4 w-4 shrink-0 text-emerald-500 dark:text-emerald-400" />
-                              ) : null}
-                              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                                {isFood
-                                  ? (o.restaurant_name || "DAM ALEM") + (o.order_number ? ` · №${o.order_number}` : "")
-                                  : isStore
-                                    ? (o.store_label || t(STORE_ORDER_LABELS[o.type])) + (o.order_number ? ` · №${o.order_number}` : "")
-                                    : (o.type || "order")}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-1 shrink-0">
-                              {st ? (
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${st.color}`}>
-                                  {t(st.key)}
-                                </span>
-                              ) : null}
-                              {detailPath ? <ChevronRight className="h-4 w-4 text-gray-400" /> : null}
-                            </div>
-                          </div>
-                          <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">{o.details || ""}</p>
-                          {isStore && (payLabel || o.created_at) && (
-                            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-gray-500 dark:text-slate-400">
-                              {payLabel ? <span>{payLabel}</span> : null}
-                              {o.created_at ? <span>· {formatOrderDate(o.created_at)}</span> : null}
-                            </div>
-                          )}
-                          {isFood && (
-                            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-gray-500 dark:text-slate-400">
-                              {o.delivery_method === "delivery" ? (
-                                <span className="inline-flex items-center gap-1"><Truck className="h-3 w-3" /> {t("cabinet.deliveryMethod.delivery")}</span>
-                              ) : o.delivery_method === "pickup" ? (
-                                <span className="inline-flex items-center gap-1"><Store className="h-3 w-3" /> {t("cabinet.deliveryMethod.pickup")}</span>
-                              ) : null}
-                              {payLabel ? <span>· {payLabel}</span> : null}
-                              {o.created_at ? <span>· {formatOrderDate(o.created_at)}</span> : null}
-                            </div>
-                          )}
-                          {isFood && o.status !== "cancelled" && o.status !== "done" && (
-                            <FoodOrderStatusBar status={o.status || "new"} />
-                          )}
-                          {isFood && o.order_number ? (
-                            <div className="mt-3 flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
-                              {o.delivery_method === "delivery" && !["done", "cancelled", "delivered"].includes(String(o.status)) && (
-                                <Link
-                                  to={`/delivery/food/${o.order_number}`}
-                                  className="inline-flex items-center gap-1.5 rounded-lg bg-orange-600/90 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-orange-600"
-                                >
-                                  <MapPin className="h-3 w-3" /> Отследить
-                                </Link>
-                              )}
-                              {o.order_items ? (
-                                <button
-                                  type="button"
-                                  onClick={() => repeatFoodOrder(o, navigate)}
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-orange-500/40 bg-orange-500/10 px-3 py-1.5 text-[11px] font-semibold text-orange-300 hover:bg-orange-500/20"
-                                >
-                                  <RotateCcw className="h-3 w-3" /> Заказать снова
-                                </button>
-                              ) : null}
-                            </div>
-                          ) : null}
-                          <p className="text-sm font-bold text-amber-600 dark:text-yellow-300 mt-2">
-                            {Number(o.amount || 0).toLocaleString("ru-RU")} ₸
-                          </p>
-                        </>
-                      );
-                      return detailPath ? (
-                        <Link key={o.id} to={detailPath} className={`${listCardClass} block hover:border-blue-300 dark:hover:border-blue-700 transition-colors`}>
-                          {cardInner}
-                        </Link>
-                      ) : (
-                        <div key={o.id} className={listCardClass}>
-                          {cardInner}
-                        </div>
+                      return (
+                        <CabinetOrderCard
+                          key={o.id}
+                          order={o}
+                          detailPath={detailPath}
+                          t={t}
+                        />
                       );
                     })}
-                    {(rows.orders || []).length === 0 ? <p className="text-sm text-slate-400">{t("cabinet.noOrders")}</p> : null}
+                    {filteredOrders.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-6 py-10 text-center dark:border-[#26324a] dark:bg-[#0f172a]">
+                        <p className="text-sm text-gray-500 dark:text-slate-400">{t("cabinet.noOrders")}</p>
+                        <Link to="/food" className="mt-3 inline-block text-sm font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400">
+                          {t("cabinet.orders.goToFood")} →
+                        </Link>
+                      </div>
+                    ) : null}
                   </div>
                 </DarkCard>
               )}
