@@ -24,6 +24,7 @@ import AdminDamAlemBrand from './AdminDamAlemBrand';
 
 import AdminDamAlemModifiers from './AdminDamAlemModifiers';
 import AdminDamAlemGuide from '@/components/damalem/AdminDamAlemGuide';
+import AdminDamAlemPartnerAccess from '@/components/damalem/AdminDamAlemPartnerAccess';
 
 
 
@@ -34,6 +35,9 @@ type Section = 'brand' | 'menu' | 'categories' | 'modifiers' | 'orders' | 'setti
 interface AdminDamAlemProps {
 
   initialSection?: Section;
+
+  /** When true, hides platform-only controls (partner panel at /partner/dam-alem). */
+  partnerMode?: boolean;
 
 }
 
@@ -59,7 +63,7 @@ const TABS: { id: Section; label: string; icon: typeof Utensils }[] = [
 
 
 
-export default function AdminDamAlem({ initialSection = 'menu' }: AdminDamAlemProps) {
+export default function AdminDamAlem({ initialSection = 'menu', partnerMode = false }: AdminDamAlemProps) {
 
   const [section, setSection] = useState<Section>(initialSection);
 
@@ -189,10 +193,16 @@ export default function AdminDamAlem({ initialSection = 'menu' }: AdminDamAlemPr
 
       {section === 'orders' && <AdminFoodOrders damAlemMode />}
 
-      {section === 'settings' && <AdminFoodSettings damAlemMode />}
+      {section === 'settings' && (
+        <>
+          <AdminFoodSettings damAlemMode />
+          {!partnerMode && <AdminDamAlemPartnerAccess />}
+        </>
+      )}
 
       {section === 'banners' && <AdminDamAlemBanners />}
 
+      {!partnerMode && (
       <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/80 p-4 text-sm text-gray-600">
         <p className="font-semibold text-gray-800">FrontPad и POS</p>
         <p className="mt-1">Синхронизация меню и заказов с кассой — в разделе интеграций.</p>
@@ -203,6 +213,7 @@ export default function AdminDamAlem({ initialSection = 'menu' }: AdminDamAlemPr
           Открыть FrontPad <ExternalLink className="h-3.5 w-3.5" />
         </Link>
       </div>
+      )}
 
     </div>
 

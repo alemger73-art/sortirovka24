@@ -12,7 +12,9 @@ function adminHeaders(): HeadersInit {
       : '',
   };
   try {
-    const t = localStorage.getItem('token') || localStorage.getItem('_sp924_token');
+    const t = localStorage.getItem('token')
+      || localStorage.getItem('_dam_alem_partner_token')
+      || localStorage.getItem('_sp924_token');
     if (t) h.Authorization = `Bearer ${t}`;
   } catch {
     /* ignore */

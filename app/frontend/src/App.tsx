@@ -47,6 +47,7 @@ const SalonDetail = lazy(() => import("./pages/Salons").then(m => ({ default: m.
 const InspectorsPage = lazy(() => import("./pages/Inspectors"));
 const HistoryPage = lazy(() => import("./pages/History"));
 const AdminPanel = lazy(() => import("./pages/Admin"));
+const PartnerDamAlemAdmin = lazy(() => import("./pages/PartnerDamAlemAdmin"));
 const Gastronom = lazy(() => import("./pages/Gastronom"));
 const Volna = lazy(() => import("./pages/Volna"));
 const Prorab = lazy(() => import("./pages/Prorab"));
@@ -208,6 +209,7 @@ function App() {
 
               {/* Admin panel — accessible via /admin */}
               <Route path="/admin" element={<AdminPanel />} />
+              <Route path="/partner/dam-alem" element={<PartnerDamAlemAdmin />} />
               {/* Legacy hidden URL — redirect to /admin */}
               <Route path="/system-portal-924" element={<Navigate to="/admin" replace />} />
 

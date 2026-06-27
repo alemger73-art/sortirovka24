@@ -30,6 +30,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from core.auth import AccessTokenError, decode_access_token
+from core.partner_guard import can_access_dam_alem_entity
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +92,13 @@ def _is_admin(request: Request) -> bool:
     return payload.get("role") == "admin" and bool(payload.get("username"))
 
 
+def _has_entity_access(request: Request, entity: str) -> bool:
+    """Platform admin or scoped partner access for food/DAM ALEM entities."""
+    if _is_admin(request):
+        return True
+    return can_access_dam_alem_entity(request, entity)
+
+
 class EntityWriteGuardMiddleware(BaseHTTPMiddleware):
     """Reject unauthenticated mutations to admin-managed entity endpoints."""
 
@@ -102,7 +110,7 @@ class EntityWriteGuardMiddleware(BaseHTTPMiddleware):
             entity = _entity_name(path)
 
             # Block public reads of sensitive entities (e.g. food order PII).
-            if method in ("GET", "HEAD") and entity in ADMIN_READ_ENTITIES and not _is_admin(request):
+            if method in ("GET", "HEAD") and entity in ADMIN_READ_ENTITIES and not _has_entity_access(request, entity):
                 logger.warning("[EntityGuard] Blocked unauthenticated read %s %s", method, path)
                 return JSONResponse(
                     status_code=401,
@@ -110,7 +118,7 @@ class EntityWriteGuardMiddleware(BaseHTTPMiddleware):
                 )
 
             # Batch mutations are admin-only (no public batch order spam).
-            if method == "POST" and path.rstrip("/").endswith("/batch") and not _is_admin(request):
+            if method == "POST" and path.rstrip("/").endswith("/batch") and not _has_entity_access(request, entity):
                 logger.warning("[EntityGuard] Blocked unauthenticated batch %s", path)
                 return JSONResponse(
                     status_code=401,
@@ -131,7 +139,7 @@ class EntityWriteGuardMiddleware(BaseHTTPMiddleware):
             else:  # DELETE
                 allowed = False
 
-            if not allowed and not _is_admin(request):
+            if not allowed and not _has_entity_access(request, entity):
                 logger.warning("[EntityGuard] Blocked unauthenticated %s %s", method, path)
                 return JSONResponse(
                     status_code=401,

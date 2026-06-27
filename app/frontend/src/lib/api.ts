@@ -16,7 +16,11 @@ function readToken(): string | null {
   try {
     const storage = globalThis?.localStorage;
     if (!storage) return null;
-    return storage.getItem('account_token') || storage.getItem('token') || null;
+    return storage.getItem('account_token')
+      || storage.getItem('token')
+      || storage.getItem('_dam_alem_partner_token')
+      || storage.getItem('_sp924_token')
+      || null;
   } catch {
     return null;
   }
