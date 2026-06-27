@@ -3,6 +3,7 @@
  * Legacy local-only registration was removed; all flows go through /account.
  */
 import { accountApi, clearAccountToken, getAccountToken } from './accountApi';
+import { clearCabinetUnlock } from './cabinetPreferences';
 import { persistAccountProfileJson } from './sessionStore';
 
 export interface LocalUser {
@@ -142,6 +143,7 @@ export function logoutLocalUser() {
   accountApi.logout().catch(() => {});
   clearAccountToken();
   localStorage.removeItem(PROFILE_KEY);
+  clearCabinetUnlock();
   emitAuthChanged();
 }
 

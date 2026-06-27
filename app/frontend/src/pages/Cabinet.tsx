@@ -6,6 +6,17 @@ import CabinetNav from "@/components/cabinet/CabinetNav";
 import CabinetHeader from "@/components/cabinet/CabinetHeader";
 import CabinetOrderCard from "@/components/cabinet/CabinetOrderCard";
 import CabinetNotifications from "@/components/cabinet/CabinetNotifications";
+import CabinetLockScreen from "@/components/cabinet/CabinetLockScreen";
+import CabinetSecuritySettings from "@/components/cabinet/CabinetSecuritySettings";
+import {
+  loadNotificationPrefs,
+  loadSecuritySettings,
+  shouldLockCabinet,
+  isNotificationCategoryEnabled,
+  clearCabinetUnlock,
+  type CabinetSecuritySettings,
+} from "@/lib/cabinetPreferences";
+import { getBiometricSupport, type BiometricSupport } from "@/lib/biometricAuth";
 import { accountApi, getAccountToken, type SavedAddress, type UserNotificationItem } from "@/lib/accountApi";
 import { cacheAccountProfile, getCurrentUser, logoutLocalUser } from "@/lib/localAuth";
 import { humanizeApiError } from "@/lib/apiErrors";
@@ -96,6 +107,9 @@ export default function Cabinet() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const seenNotificationIds = useRef<Set<number>>(new Set());
+  const [securitySettings, setSecuritySettings] = useState<CabinetSecuritySettings | null>(null);
+  const [cabinetLocked, setCabinetLocked] = useState(false);
+  const [biometricSupport, setBiometricSupport] = useState<BiometricSupport | null>(null);
   const tabs: { id: TabId; label: string }[] = useMemo(() => {
     const base: { id: TabId; label: string }[] = [
       { id: "profile", label: t("cabinet.tab.profile") },
@@ -431,11 +445,13 @@ export default function Cabinet() {
     if (!silent) setNotificationsLoading(true);
     try {
       const data = await accountApi.notifications();
+      const prefs = await loadNotificationPrefs();
       setNotifications(data.items || []);
       setUnreadCount(Number(data.unread_count || 0));
 
       for (const item of data.items || []) {
         if (!item.is_read && !seenNotificationIds.current.has(item.id)) {
+          if (!isNotificationCategoryEnabled(item.category, prefs)) continue;
           seenNotificationIds.current.add(item.id);
           if (typeof Notification !== "undefined" && Notification.permission === "granted") {
             try {
@@ -452,6 +468,28 @@ export default function Cabinet() {
       if (!silent) setNotificationsLoading(false);
     }
   };
+
+  useEffect(() => {
+    void (async () => {
+      const [sec, bio] = await Promise.all([loadSecuritySettings(), getBiometricSupport()]);
+      setSecuritySettings(sec);
+      setBiometricSupport(bio);
+      setCabinetLocked(shouldLockCabinet(sec));
+    })();
+  }, []);
+
+  useEffect(() => {
+    const handler = () => {
+      if (!securitySettings?.lockEnabled) return;
+      if (document.visibilityState === 'hidden') {
+        clearCabinetUnlock();
+      } else if (document.visibilityState === 'visible') {
+        setCabinetLocked(shouldLockCabinet(securitySettings));
+      }
+    };
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
+  }, [securitySettings]);
 
   useEffect(() => {
     if (!getAccountToken()) return;
@@ -489,6 +527,25 @@ export default function Cabinet() {
   );
 
   if (loading) return <Layout><div className="mx-auto max-w-6xl px-4 py-10 text-gray-500 dark:text-slate-300">{t("cabinet.loading")}</div></Layout>;
+
+  if (cabinetLocked && securitySettings) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gray-50 px-4 py-8 dark:bg-[#0B0F19]">
+          <CabinetLockScreen
+            biometricAvailable={securitySettings.biometricEnabled && (biometricSupport?.available ?? false)}
+            biometricLabel={biometricSupport?.label || t('cabinet.security.biometric')}
+            onUnlocked={() => setCabinetLocked(false)}
+            title={t('cabinet.security.lockTitle')}
+            subtitle={t('cabinet.security.lockSubtitle')}
+            pinLabel={t('cabinet.security.enterPin')}
+            biometricButton={t('cabinet.security.useBiometric')}
+            wrongPin={t('cabinet.security.wrongPin')}
+          />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -957,6 +1014,14 @@ export default function Cabinet() {
               {activeTab === "settings" && (
                 <DarkCard>
                   <h2 className={`mb-4 ${sectionTitleClass}`}>{t("cabinet.tab.settings")}</h2>
+                  <CabinetSecuritySettings
+                    t={t}
+                    onSettingsChange={(sec) => {
+                      setSecuritySettings(sec);
+                      setCabinetLocked(false);
+                    }}
+                  />
+                  <div className="my-6 border-t border-gray-200 dark:border-[#26324a]" />
                   <div className="mb-6 space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-[#2a3347] dark:bg-[#0f172a]">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{hasPassword ? t("cabinet.changePassword") : t("cabinet.setPassword")}</h3>
                     {hasPassword ? (
