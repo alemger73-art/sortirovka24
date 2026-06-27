@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { KeyRound, Plus, RefreshCw, Shield } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ExternalLink, Copy, KeyRound, Plus, RefreshCw, Shield } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +20,20 @@ export default function AdminDamAlemPartnerAccess() {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('DAM ALEM');
   const [saving, setSaving] = useState(false);
+
+  const partnerAdminUrl = useMemo(() => {
+    if (typeof window === 'undefined') return '/partner/dam-alem';
+    return `${window.location.origin}/partner/dam-alem`;
+  }, []);
+
+  async function copyPartnerLink() {
+    try {
+      await navigator.clipboard.writeText(partnerAdminUrl);
+      toast.success('Ссылка скопирована');
+    } catch {
+      toast.error('Не удалось скопировать — выделите ссылку вручную');
+    }
+  }
 
   async function load() {
     setLoading(true);
@@ -81,8 +96,19 @@ export default function AdminDamAlemPartnerAccess() {
             <h3 className="text-lg font-bold text-gray-900">Доступ партнёра DAM ALEM</h3>
           </div>
           <p className="mt-1 text-sm text-gray-500">
-            Отдельная админка: <code className="rounded bg-gray-100 px-1">/partner/dam-alem</code> — вход по email или телефону и паролю.
+            Отдельная админка для партнёра — вход по email или телефону и паролю (не системная /admin).
           </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-[#FF3B30]/5 p-3 ring-1 ring-[#FF3B30]/20">
+            <code className="flex-1 break-all text-sm font-semibold text-gray-800">{partnerAdminUrl}</code>
+            <Button type="button" variant="outline" size="sm" onClick={copyPartnerLink} className="gap-1.5 shrink-0">
+              <Copy className="h-4 w-4" /> Копировать
+            </Button>
+            <Button type="button" size="sm" asChild className="gap-1.5 shrink-0 bg-[#FF3B30] hover:bg-[#e8352b]">
+              <Link to="/partner/dam-alem" target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-4 w-4" /> Открыть
+              </Link>
+            </Button>
+          </div>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-1.5">
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Обновить
