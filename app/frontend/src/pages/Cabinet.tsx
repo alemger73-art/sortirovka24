@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import Layout from "@/components/Layout";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Camera, Coins, Save, UserCircle2, Wrench, MapPin, Plus, Trash2, Star, Pencil, X, Loader2, CheckCircle2, AlertCircle, Search } from "lucide-react";
 import CabinetNav from "@/components/cabinet/CabinetNav";
 import CabinetHeader from "@/components/cabinet/CabinetHeader";
 import CabinetOrderCard from "@/components/cabinet/CabinetOrderCard";
-import { accountApi, getAccountToken, type SavedAddress } from "@/lib/accountApi";
+import CabinetNotifications from "@/components/cabinet/CabinetNotifications";
+import { accountApi, getAccountToken, type SavedAddress, type UserNotificationItem } from "@/lib/accountApi";
 import { cacheAccountProfile, getCurrentUser, logoutLocalUser } from "@/lib/localAuth";
 import { humanizeApiError } from "@/lib/apiErrors";
 import { uploadAvatar, assertImageFileSize } from "@/lib/storage";
@@ -16,7 +17,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import TaxiUnavailable from "@/components/taxi/TaxiUnavailable";
 import { cabinetOrderDetailPath, orderDetailId, type CabinetOrderRow } from "@/lib/orderRoutes";
 
-type TabId = "profile" | "addresses" | "bonuses" | "orders" | "masterRequests" | "taxi" | "complaints" | "announcements" | "settings";
+type TabId = "profile" | "addresses" | "bonuses" | "notifications" | "orders" | "masterRequests" | "taxi" | "complaints" | "announcements" | "settings";
 
 const MASTER_REQUEST_STATUS: Record<string, { labelKey: string; color: string }> = {
   new: { labelKey: "cabinet.master.statusNew", color: "bg-yellow-500/20 text-yellow-200" },
@@ -59,7 +60,7 @@ export default function Cabinet() {
   const [searchParams] = useSearchParams();
   const { t, setLang } = useLanguage();
   const taxiEnabled = useTaxiEnabled();
-  const VALID_TABS: TabId[] = ["profile", "addresses", "bonuses", "orders", "masterRequests", "taxi", "complaints", "announcements", "settings"];
+  const VALID_TABS: TabId[] = ["profile", "addresses", "bonuses", "notifications", "orders", "masterRequests", "taxi", "complaints", "announcements", "settings"];
   const initialTab = searchParams.get("tab") as TabId | null;
   const [activeTab, setActiveTab] = useState<TabId>(
     initialTab && VALID_TABS.includes(initialTab) ? initialTab : "profile"
@@ -91,11 +92,16 @@ export default function Cabinet() {
   const [geocoding, setGeocoding] = useState(false);
   const [geoError, setGeoError] = useState("");
   const [orderFilter, setOrderFilter] = useState<"all" | "food" | "store">("all");
+  const [notifications, setNotifications] = useState<UserNotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const seenNotificationIds = useRef<Set<number>>(new Set());
   const tabs: { id: TabId; label: string }[] = useMemo(() => {
     const base: { id: TabId; label: string }[] = [
       { id: "profile", label: t("cabinet.tab.profile") },
       { id: "addresses", label: t("cabinet.tab.addresses") },
       { id: "bonuses", label: t("cabinet.tab.bonuses") },
+      { id: "notifications", label: t("cabinet.tab.notifications") },
       { id: "orders", label: t("cabinet.tab.orders") },
       { id: "masterRequests", label: t("cabinet.tab.masterRequests") },
       { id: "taxi", label: t("cabinet.tab.taxi") },
@@ -420,6 +426,68 @@ export default function Cabinet() {
     setActiveTab(tab);
   };
 
+  const refreshNotifications = async (silent = false) => {
+    if (!getAccountToken()) return;
+    if (!silent) setNotificationsLoading(true);
+    try {
+      const data = await accountApi.notifications();
+      setNotifications(data.items || []);
+      setUnreadCount(Number(data.unread_count || 0));
+
+      for (const item of data.items || []) {
+        if (!item.is_read && !seenNotificationIds.current.has(item.id)) {
+          seenNotificationIds.current.add(item.id);
+          if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+            try {
+              new Notification(item.title, { body: item.body || undefined, icon: "/favicon.ico" });
+            } catch {
+              /* ignore */
+            }
+          }
+        }
+      }
+    } catch {
+      /* ignore polling errors */
+    } finally {
+      if (!silent) setNotificationsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!getAccountToken()) return;
+    void refreshNotifications(true);
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      void Notification.requestPermission();
+    }
+    const id = window.setInterval(() => refreshNotifications(true), 30000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const markNotificationRead = async (id: number) => {
+    try {
+      await accountApi.markNotificationRead(id);
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
+      setUnreadCount((c) => Math.max(0, c - 1));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const markAllNotificationsRead = async () => {
+    try {
+      await accountApi.markAllNotificationsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const tabsWithBadges = useMemo(
+    () => tabs.map((tab) => (tab.id === "notifications" ? { ...tab, badge: unreadCount } : tab)),
+    [tabs, unreadCount],
+  );
+
   if (loading) return <Layout><div className="mx-auto max-w-6xl px-4 py-10 text-gray-500 dark:text-slate-300">{t("cabinet.loading")}</div></Layout>;
 
   return (
@@ -439,6 +507,8 @@ export default function Cabinet() {
                 navigate("/account");
               }}
               onOpenBonuses={() => switchTab("bonuses")}
+              onOpenNotifications={() => switchTab("notifications")}
+              unreadNotifications={unreadCount}
               links={{
                 master: t("cabinet.masterTitle"),
                 driver: t("cabinet.driverCabinetLink"),
@@ -451,7 +521,7 @@ export default function Cabinet() {
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
-            <CabinetNav tabs={tabs} activeTab={activeTab} onTabChange={switchTab} />
+            <CabinetNav tabs={tabsWithBadges} activeTab={activeTab} onTabChange={switchTab} />
 
             <div className="space-y-4">
               {error ? <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">{error}</p> : null}
@@ -719,6 +789,21 @@ export default function Cabinet() {
                       </div>
                     ))}
                   </div>
+                </DarkCard>
+              )}
+
+              {activeTab === "notifications" && (
+                <DarkCard>
+                  <CabinetNotifications
+                    items={notifications}
+                    loading={notificationsLoading}
+                    unreadCount={unreadCount}
+                    onMarkRead={markNotificationRead}
+                    onMarkAllRead={markAllNotificationsRead}
+                    title={t("cabinet.tab.notifications")}
+                    emptyLabel={t("cabinet.notifications.empty")}
+                    markAllLabel={t("cabinet.notifications.markAll")}
+                  />
                 </DarkCard>
               )}
 

@@ -32,6 +32,18 @@ export interface SavedAddressInput {
   is_default?: boolean;
 }
 
+export interface UserNotificationItem {
+  id: number;
+  category: string;
+  title: string;
+  body?: string | null;
+  path?: string | null;
+  entity_type?: string | null;
+  entity_id?: string | null;
+  is_read: boolean;
+  created_at?: string | null;
+}
+
 export function getAccountToken(): string {
   return readAccountToken();
 }
@@ -96,6 +108,11 @@ export const accountApi = {
   login: (body: any) => api<{ token: string; user_id: string; role: AccountRole }>("/api/v1/account/login", { method: "POST", body: JSON.stringify(body) }),
   logout: () => api<{ success: boolean }>("/api/v1/account/logout", { method: "POST" }),
   me: () => api<any>("/api/v1/account/me"),
+  notifications: () => api<{ unread_count: number; items: UserNotificationItem[] }>("/api/v1/account/notifications"),
+  markNotificationRead: (id: number) =>
+    api<{ success: boolean }>(`/api/v1/account/notifications/${id}/read`, { method: "POST" }),
+  markAllNotificationsRead: () =>
+    api<{ success: boolean; marked: number }>("/api/v1/account/notifications/read-all", { method: "POST" }),
   updateMe: (body: any) => api<any>("/api/v1/account/me", { method: "PUT", body: JSON.stringify(body) }),
   changePassword: (body: { current_password: string; new_password: string }) =>
     api<{ success: boolean }>("/api/v1/account/me/change-password", { method: "POST", body: JSON.stringify(body) }),

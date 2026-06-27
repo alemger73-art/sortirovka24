@@ -126,6 +126,12 @@ async def award_food_order_bonus(
     )
     await db.commit()
     logger.info("[Bonus] Awarded %s points to user %s for food order #%s", points, user.id, food_order_id)
+    try:
+        from services.user_notifications import notify_bonus_awarded
+
+        await notify_bonus_awarded(db, user_id=str(user.id), points=points, food_order_id=food_order_id)
+    except Exception as exc:
+        logger.warning("[Notify] bonus award notify skipped: %s", exc)
 
 
 async def handle_food_order_status_bonus(
@@ -157,6 +163,12 @@ async def handle_food_order_status_bonus(
         if pts > 0:
             await refund_bonuses_for_order(db, user=user, food_order_id=food_order_id, points=pts)
             await db.commit()
+            try:
+                from services.user_notifications import notify_bonus_refunded
+
+                await notify_bonus_refunded(db, user_id=str(user.id), points=pts, food_order_id=food_order_id)
+            except Exception as exc:
+                logger.warning("[Notify] bonus refund notify skipped: %s", exc)
 
 
 reward_food_order = link_food_order_to_user

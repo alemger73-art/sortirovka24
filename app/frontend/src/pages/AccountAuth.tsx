@@ -5,6 +5,7 @@ import Layout from "@/components/Layout";
 import LegalDocModal from "@/components/LegalDocModal";
 import { PRIVACY_POLICY, USER_AGREEMENT } from "@/content/legal";
 import { accountApi, setAccountToken } from "@/lib/accountApi";
+import { linkPushTokenToAccount } from "@/lib/pushNotifications";
 import { cacheAccountProfile } from "@/lib/localAuth";
 
 type RegStep = 1 | 2 | 3;
@@ -191,6 +192,7 @@ export default function AccountAuth() {
       if (!form.password.trim()) throw new Error("Введите пароль");
       const res = await accountApi.login({ phone: form.phone, password: form.password });
       setAccountToken(res.token);
+      void linkPushTokenToAccount();
       const me = await accountApi.me();
       cacheAccountProfile({ id: me.id, name: me.name, phone: me.phone, email: me.email, avatar: me.avatar });
       navigate(redirectTo || getCabinetRouteByRole(res.role));
@@ -217,6 +219,7 @@ export default function AccountAuth() {
         sms_code: smsCode.trim(),
       });
       setAccountToken(res.token);
+      void linkPushTokenToAccount();
       const me = await accountApi.me();
       cacheAccountProfile({ id: me.id, name: me.name, phone: me.phone, email: me.email, avatar: me.avatar });
       navigate(redirectTo || getCabinetRouteByRole(res.role));

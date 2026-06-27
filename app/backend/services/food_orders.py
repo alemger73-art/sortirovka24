@@ -67,6 +67,12 @@ class Food_ordersService:
                     await self.db.refresh(obj)
             except Exception as fp_err:
                 logger.warning("[FrontPad] Auto push skipped: %s", fp_err)
+            try:
+                from services.user_notifications import notify_food_order_created
+
+                await notify_food_order_created(self.db, obj)
+            except Exception as notify_err:
+                logger.warning("[Notify] Food order created notify skipped: %s", notify_err)
             logger.info(f"Created food_orders with id: {obj.id}")
             return obj
         except Exception as e:
@@ -170,6 +176,12 @@ class Food_ordersService:
                     )
                 except Exception as bonus_err:
                     logger.warning("[Bonus] Food order status bonus handling skipped: %s", bonus_err)
+                try:
+                    from services.user_notifications import notify_food_order_status
+
+                    await notify_food_order_status(self.db, obj, old_status, obj.status)
+                except Exception as notify_err:
+                    logger.warning("[Notify] Food order status notify skipped: %s", notify_err)
                 if update_data["status"] == "in_progress" and old_status != "in_progress":
                     try:
                         from services.food_telegram_flow import dispatch_order_to_couriers

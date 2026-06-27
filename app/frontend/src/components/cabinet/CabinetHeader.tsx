@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Bike, Car, Coins, LogOut, UserCircle2, Wrench } from "lucide-react";
+import { Bike, Car, Coins, LogOut, UserCircle2, Wrench, Bell } from "lucide-react";
 import type { CourierAccess } from "@/lib/logisticsApi";
 
 interface Profile {
@@ -14,11 +14,13 @@ interface Props {
   profile?: Profile | null;
   ordersCount?: number;
   ordersCountLabel?: string;
+  unreadNotifications?: number;
   courierAccess?: CourierAccess | null;
   logoutLabel: string;
   bonusLabel: string;
   onLogout: () => void;
   onOpenBonuses: () => void;
+  onOpenNotifications: () => void;
   links: {
     master?: string;
     driver?: string;
@@ -33,11 +35,13 @@ export default function CabinetHeader({
   profile,
   ordersCount = 0,
   ordersCountLabel = "",
+  unreadNotifications = 0,
   courierAccess,
   logoutLabel,
   bonusLabel,
   onLogout,
   onOpenBonuses,
+  onOpenNotifications,
   links,
 }: Props) {
   const bonus = Number(profile?.bonus_balance || 0);
@@ -81,6 +85,18 @@ export default function CabinetHeader({
             </h1>
             <p className="truncate text-sm text-gray-500 dark:text-slate-300">{profile?.phone}</p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={onOpenNotifications}
+                className="relative inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-bold text-gray-700 transition hover:bg-gray-50 dark:border-[#2a3347] dark:bg-[#0f172a] dark:text-slate-200 dark:hover:bg-[#1a2336]"
+              >
+                <Bell className="h-3.5 w-3.5" />
+                {(unreadNotifications || 0) > 0 ? (
+                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                    {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                  </span>
+                ) : null}
+              </button>
               <button
                 type="button"
                 onClick={onOpenBonuses}

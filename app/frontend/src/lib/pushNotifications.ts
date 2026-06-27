@@ -76,6 +76,16 @@ export async function initPushNotifications(): Promise<void> {
   }
 }
 
+export async function linkPushTokenToAccount(): Promise<void> {
+  if (!Capacitor.isNativePlatform() || !pushEnabledInBuild() || !registeredToken) return;
+  try {
+    const platform = Capacitor.getPlatform() === "ios" ? "ios" : "android";
+    await pushApiClient.register(registeredToken, platform);
+  } catch (err) {
+    console.warn("[push] relink to account failed:", err);
+  }
+}
+
 export async function unregisterPushNotifications(): Promise<void> {
   if (!registeredToken) return;
   try {

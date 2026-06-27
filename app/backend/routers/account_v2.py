@@ -886,6 +886,66 @@ async def bonus_rules(
     return rules
 
 
+@router.get("/notifications")
+async def list_notifications(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+    limit: int = 50,
+    unread_only: bool = False,
+):
+    from services.user_notifications import list_user_notifications, unread_notification_count
+
+    user = await _current_user(db, authorization)
+    rows = await list_user_notifications(
+        db, str(user.id), limit=min(max(limit, 1), 100), unread_only=unread_only
+    )
+    unread = await unread_notification_count(db, str(user.id))
+    return {
+        "unread_count": unread,
+        "items": [
+            {
+                "id": row.id,
+                "category": row.category,
+                "title": row.title,
+                "body": row.body,
+                "path": row.path,
+                "entity_type": row.entity_type,
+                "entity_id": row.entity_id,
+                "is_read": bool(row.is_read),
+                "created_at": row.created_at.isoformat() if row.created_at else None,
+            }
+            for row in rows
+        ],
+    }
+
+
+@router.post("/notifications/{notification_id}/read")
+async def read_notification(
+    notification_id: int,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    from services.user_notifications import mark_notification_read
+
+    user = await _current_user(db, authorization)
+    ok = await mark_notification_read(db, str(user.id), notification_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Уведомление не найдено")
+    return {"success": True}
+
+
+@router.post("/notifications/read-all")
+async def read_all_notifications(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    from services.user_notifications import mark_all_notifications_read
+
+    user = await _current_user(db, authorization)
+    count = await mark_all_notifications_read(db, str(user.id))
+    return {"success": True, "marked": count}
+
+
 @router.put("/me", response_model=UserV2Response)
 async def update_me(
     request: UserV2UpdateRequest,
@@ -1598,6 +1658,12 @@ async def update_master_request_status(
     req.status = target
     await db.commit()
     await _log_action(db, str(user.id), "master_request_status", "master_requests", str(request_id))
+    try:
+        from services.user_notifications import notify_master_request_status
+
+        await notify_master_request_status(db, req, target)
+    except Exception:
+        pass
     return {"success": True, "status": req.status}
 
 

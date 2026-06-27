@@ -417,6 +417,12 @@ async def create_order(
         "delivery_zone": zone_name,
         "loyalty_gift": loyalty_gift,
     })
+    try:
+        from services.user_notifications import notify_store_order_created
+
+        await notify_store_order_created(db, store_type="gastronom", order=obj)
+    except Exception:
+        pass
 
     return _serialize(obj)
 
@@ -443,6 +449,12 @@ async def update_order_status(order_id: int, status: str, request: Request, db: 
             "new_status": status,
             "total_amount": obj.total_amount,
         })
+        try:
+            from services.user_notifications import notify_store_order_status
+
+            await notify_store_order_status(db, store_type="gastronom", order=obj, new_status=status)
+        except Exception:
+            pass
     return _serialize(obj)
 
 

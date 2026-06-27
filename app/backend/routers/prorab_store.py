@@ -910,6 +910,12 @@ async def update_order_status(order_id: int, status: str, request: Request, db: 
             "total_amount": obj.total_amount,
 
         })
+        try:
+            from services.user_notifications import notify_store_order_status
+
+            await notify_store_order_status(db, store_type="prorab", order=obj, new_status=status)
+        except Exception:
+            pass
 
     return _serialize(obj)
 

@@ -268,6 +268,13 @@ async def accept_task(db: AsyncSession, task_id: int, courier_user: User) -> Log
     task = await get_task_by_id(db, task_id)
     if not task:
         raise ValueError("Задача не найдена")
+    try:
+        from services.user_notifications import notify_logistics_task_status
+
+        await notify_logistics_task_status(db, task, "ready", "assigned")
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("[Notify] logistics assign notify skipped: %s", exc)
     return task
 
 
@@ -278,6 +285,7 @@ async def advance_task_status(db: AsyncSession, task: LogisticsTask, courier_use
     if not expected or expected[0] != new_status:
         raise ValueError(f"Нельзя перейти из {task.status} в {new_status}")
 
+    old_status = task.status
     task.status = new_status
     now = _now_iso()
     if new_status == "picked_up":
@@ -295,6 +303,13 @@ async def advance_task_status(db: AsyncSession, task: LogisticsTask, courier_use
 
     await db.commit()
     await db.refresh(task)
+    try:
+        from services.user_notifications import notify_logistics_task_status
+
+        await notify_logistics_task_status(db, task, old_status, new_status)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("[Notify] logistics status notify skipped: %s", exc)
     return task
 
 

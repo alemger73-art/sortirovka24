@@ -1,11 +1,12 @@
 import {
-  UserCircle2, MapPin, Coins, Package, Wrench, Car, AlertCircle, Megaphone, Settings,
+  UserCircle2, MapPin, Coins, Package, Wrench, Car, AlertCircle, Megaphone, Settings, Bell,
 } from "lucide-react";
 
 export type CabinetTabId =
   | "profile"
   | "addresses"
   | "bonuses"
+  | "notifications"
   | "orders"
   | "masterRequests"
   | "taxi"
@@ -17,6 +18,7 @@ const TAB_ICONS: Record<CabinetTabId, typeof UserCircle2> = {
   profile: UserCircle2,
   addresses: MapPin,
   bonuses: Coins,
+  notifications: Bell,
   orders: Package,
   masterRequests: Wrench,
   taxi: Car,
@@ -28,6 +30,7 @@ const TAB_ICONS: Record<CabinetTabId, typeof UserCircle2> = {
 interface TabItem {
   id: CabinetTabId;
   label: string;
+  badge?: number;
 }
 
 interface Props {
@@ -56,7 +59,12 @@ export default function CabinetNav({ tabs, activeTab, onTabChange }: Props) {
                   }`}
                 >
                   <Icon className={`h-4 w-4 shrink-0 ${active ? "text-[#0B0F19]" : "text-gray-400 dark:text-slate-400"}`} />
-                  <span className="truncate">{tab.label}</span>
+                  <span className="truncate flex-1">{tab.label}</span>
+                  {(tab.badge || 0) > 0 ? (
+                    <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                      {tab.badge}
+                    </span>
+                  ) : null}
                 </button>
               </li>
             );

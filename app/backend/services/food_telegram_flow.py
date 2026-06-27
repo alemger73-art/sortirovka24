@@ -236,21 +236,30 @@ async def handle_food_callback(db: AsyncSession, data: str) -> Optional[str]:
     try:
         if action == "fcd_pick":
             if task.status in ("pending", "ready", "assigned"):
+                old_status = task.status
                 task.status = "picked_up"
                 task.picked_up_at = _now_iso()
             else:
                 return f"Уже: {task.status}"
         elif action == "fcd_way":
             if task.status in ("pending", "ready", "assigned", "picked_up"):
+                old_status = task.status
                 task.status = "on_the_way"
             else:
                 return f"Уже: {task.status}"
         elif action in ("fcd_done", "fcd_cash"):
+            old_status = task.status
             task.status = "delivered"
             task.delivered_at = _now_iso()
             payment_status = "paid"
             await db.commit()
             await db.refresh(task)
+            try:
+                from services.user_notifications import notify_logistics_task_status
+
+                await notify_logistics_task_status(db, task, old_status, "delivered")
+            except Exception as exc:
+                logger.warning("[Notify] logistics delivered notify skipped: %s", exc)
             await svc.update(order.id, {"status": "done", "payment_status": payment_status})
             label = "💵 Наличные приняты" if action == "fcd_cash" else "✅ Доставлено"
             return label
@@ -258,6 +267,13 @@ async def handle_food_callback(db: AsyncSession, data: str) -> Optional[str]:
             return None
 
         await db.commit()
+        await db.refresh(task)
+        try:
+            from services.user_notifications import notify_logistics_task_status
+
+            await notify_logistics_task_status(db, task, old_status, task.status)
+        except Exception as exc:
+            logger.warning("[Notify] logistics callback notify skipped: %s", exc)
     except Exception as exc:
         logger.warning("Courier callback failed: %s", exc)
         await db.rollback()

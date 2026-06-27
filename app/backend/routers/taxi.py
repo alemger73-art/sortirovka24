@@ -50,6 +50,15 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/taxi", tags=["taxi"])
 
+
+async def _notify_passenger_ride(db: AsyncSession, ride, status: str) -> None:
+    try:
+        from services.user_notifications import notify_taxi_ride_status
+
+        await notify_taxi_ride_status(db, ride, status)
+    except Exception as exc:
+        logger.warning("[Notify] taxi passenger notify skipped: %s", exc)
+
 VALID_PAYMENT = {"cash", "card"}
 
 
@@ -383,6 +392,7 @@ async def cancel_taxi_ride(
 
     data = ride_to_dict(ride)
     await notify_taxi_status_change(data, "cancelled")
+    await _notify_passenger_ride(db, ride, "cancelled")
     return data
 
 
@@ -488,6 +498,7 @@ async def update_driver_location(
         if updated:
             data = await get_ride_with_driver(db, updated.id)
             await notify_taxi_status_change(data, "driver_arrived")
+            await _notify_passenger_ride(db, updated, "driver_arrived")
     return {"success": True}
 
 
@@ -566,6 +577,7 @@ async def driver_accept_ride(
         raise HTTPException(status_code=400, detail=str(e))
     data = await get_ride_with_driver(db, ride.id)
     await notify_taxi_status_change(data, "accepted")
+    await _notify_passenger_ride(db, ride, "accepted")
     return data
 
 
@@ -587,6 +599,7 @@ async def driver_update_status(
         raise HTTPException(status_code=400, detail=str(e))
     data = await get_ride_with_driver(db, ride.id)
     await notify_taxi_status_change(data, body.status)
+    await _notify_passenger_ride(db, ride, body.status)
     return data
 
 
