@@ -30,6 +30,7 @@ interface Banner {
 const BANNER_TYPES: Record<string, string> = {
   hero: 'Главный баннер',
   promo: 'Промо',
+  awareness: 'Профилактика',
   shop: 'Магазин',
   food_delivery: 'Доставка еды',
   services: 'Услуги',

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Wrench, Newspaper, AlertTriangle, BookOpen, Megaphone, Briefcase, HelpCircle, Phone, Utensils, Bus, Car, Heart } from 'lucide-react';
+import { Home, Wrench, Newspaper, AlertTriangle, BookOpen, Megaphone, Briefcase, HelpCircle, Phone, Utensils, Bus, Car, Heart, Bug, Shield } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { prefetchPage, routeToPage } from '@/lib/prefetch';
 import Header from '@/components/layout/Header';
@@ -11,6 +11,7 @@ import { useTaxiEnabled } from '@/hooks/useTaxiEnabled';
 import InstallAppBanner from '@/components/InstallAppBanner';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import OfflineBanner from '@/components/OfflineBanner';
+import SafetyTipBar from '@/components/SafetyTipBar';
 import { useSupportSettings } from '@/hooks/useSupportSettings';
 import { useModules } from '@/hooks/useModules';
 import { moduleForPath } from '@/config/modules';
@@ -77,6 +78,7 @@ export default function Layout({
       {!hideHeader && (
         <Header />
       )}
+      <SafetyTipBar />
 
       {/* Main content */}
       <main className="flex-1">{children}</main>
@@ -112,6 +114,24 @@ export default function Layout({
               >
                 <Heart className="w-3.5 h-3.5" />
                 {supportPromoEnabled ? t('footer.support') : t('footer.aboutProject')}
+              </Link>
+              <Link
+                to="/inspectors#safety-tips"
+                onMouseEnter={() => handlePrefetch('/inspectors')}
+                onFocus={() => handlePrefetch('/inspectors')}
+                className="inline-flex items-center gap-1.5 mt-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+              >
+                <Shield className="w-3.5 h-3.5" />
+                {t('footer.safety')}
+              </Link>
+              <Link
+                to="/report-problem"
+                onMouseEnter={() => handlePrefetch('/report-problem')}
+                onFocus={() => handlePrefetch('/report-problem')}
+                className="inline-flex items-center gap-1.5 mt-2 text-sm text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
+              >
+                <Bug className="w-3.5 h-3.5" />
+                {t('footer.reportProblem')}
               </Link>
             </div>
             <div>

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import {
   User, Bus, BookOpen, Car, Newspaper, AlertTriangle, Briefcase, HelpCircle,
-  ShoppingBag, Shield, Heart, Landmark, Store, UtensilsCrossed, ChevronRight, LogIn, Cross, Wine,
+  ShoppingBag, Shield, Heart, Landmark, Store, UtensilsCrossed, ChevronRight, LogIn, Cross, Wine, Bug,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -66,6 +66,7 @@ export default function More() {
       titleKey: 'more.sectionAbout',
       items: [
         { path: '/support', key: 'footer.aboutProject', icon: Heart, accent: 'bg-rose-500' },
+        { path: '/report-problem', key: 'more.reportProblem', icon: Bug, accent: 'bg-amber-500' },
       ],
     },
   ];

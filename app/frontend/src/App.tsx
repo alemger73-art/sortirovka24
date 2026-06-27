@@ -57,6 +57,7 @@ const FoodPark = lazy(() => import("./pages/FoodPark"));
 const FoodCourier = lazy(() => import("./pages/FoodCourier"));
 const BusinessPage = lazy(() => import("./pages/Business"));
 const SupportPage = lazy(() => import("./pages/Support"));
+const ReportProblemPage = lazy(() => import("./pages/ReportProblem"));
 const TransportPage = lazy(() => import("./pages/Transport"));
 const TaxiPage = lazy(() => import("./pages/Taxi"));
 const TaxiRidePage = lazy(() => import("./pages/TaxiRide"));
@@ -203,6 +204,7 @@ function App() {
               <Route path="/food/courier" element={<ModuleRoute module="food"><FoodCourier /></ModuleRoute>} />
               <Route path="/business" element={<ModuleRoute module="business"><BusinessPage /></ModuleRoute>} />
               <Route path="/support" element={<SupportPage />} />
+              <Route path="/report-problem" element={<ReportProblemPage />} />
 
               {/* Admin panel — accessible via /admin */}
               <Route path="/admin" element={<AdminPanel />} />

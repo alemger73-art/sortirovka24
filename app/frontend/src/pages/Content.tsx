@@ -12,6 +12,7 @@ import VideoUpload from '@/components/VideoUpload';
 import StorageVideo from '@/components/StorageVideo';
 import { pushCabinetItem, requireAuthDialog, getAccountPrefill, getCurrentUser } from '@/lib/localAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
+import SafetyAlert from '@/components/SafetyAlert';
 
 function normalizeYoutubeWatchUrl(value: string): string {
   const raw = (value || '').trim();
@@ -319,9 +320,10 @@ export function NewComplaintForm() {
     <Layout>
       <div className="max-w-lg mx-auto px-4 py-8">
         <Link to="/complaints" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> Назад</Link>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Подать жалобу</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Подать жалobу</h1>
         <p className="text-gray-500 mb-6">Сообщите о проблеме в районе</p>
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4">
+        <SafetyAlert variant="complaint_form" />
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4 mt-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Категория *</label>
             <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
@@ -542,7 +544,8 @@ export function NewAnnouncementForm() {
       <div className="max-w-lg mx-auto px-4 py-8">
         <Link to="/announcements" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> Назад</Link>
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Разместить объявление</h1>
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4">
+        <SafetyAlert variant="announcement_form" />
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4 mt-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Категория *</label>
             <select value={form.ann_type} onChange={e => setForm({ ...form, ann_type: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
@@ -655,6 +658,10 @@ export function AnnouncementDetail() {
                 <StorageGallery keys={item.gallery_images} />
               </div>
             )}
+
+            <div className="mb-6">
+              <SafetyAlert variant="announcement_detail" />
+            </div>
 
             <div className="border-t border-gray-100 pt-4 space-y-2">
               {item.address && (
@@ -832,7 +839,8 @@ export function NewJobForm() {
         <Link to="/jobs" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> Назад</Link>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Разместить вакансию</h1>
         <p className="text-gray-500 mb-6">Заполните форму — вакансия появится на сайте после модерации</p>
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4">
+        <SafetyAlert variant="job_form" />
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4 mt-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Название вакансии *</label>
             <input type="text" value={form.job_title} onChange={e => setForm({ ...form, job_title: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Например: Продавец-консультант" required />
@@ -1708,6 +1716,8 @@ export function RealEstateDetail() {
               </div>
             </div>
           )}
+
+          <SafetyAlert variant="announcement_detail" />
         </div>
 
         {/* ═══ FIXED BOTTOM CONTACT BAR ═══ */}
@@ -1798,7 +1808,8 @@ export function NewRealEstateForm() {
         <Link to="/real-estate" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> Назад</Link>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Разместить объявление о недвижимости</h1>
         <p className="text-gray-500 mb-6">Заполните форму — объявление появится после модерации</p>
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4">
+        <SafetyAlert variant="real_estate_form" />
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4 mt-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Тип объявления *</label>
             <select value={form.re_type} onChange={e => setForm({ ...form, re_type: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" required>

@@ -14,7 +14,7 @@ import {
 
   Heart, Users, Utensils, Wrench, Megaphone, Bus, Shield,
 
-  Copy, Check, ChevronLeft, Sparkles, Smartphone
+  Copy, Check, ChevronLeft, Sparkles, Smartphone, Bug
 
 } from 'lucide-react';
 
@@ -282,6 +282,32 @@ export default function SupportPage() {
 
             </div>
 
+          </section>
+
+
+
+          <section className="bg-white dark:bg-gray-900 rounded-2xl p-6 md:p-8 border border-amber-100 dark:border-amber-900/40 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white">
+                  <Bug className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                    {t('report.title')}
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    {t('report.subtitle')}
+                  </p>
+                </div>
+              </div>
+              <Link
+                to="/report-problem"
+                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-amber-500 px-5 py-3 text-sm font-bold text-white hover:bg-amber-600 transition-colors"
+              >
+                {t('support.reportProblemLink')}
+              </Link>
+            </div>
           </section>
 
 

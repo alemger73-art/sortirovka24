@@ -26,6 +26,7 @@ export const MORE_TAB_PREFIXES = [
   '/questions',
   '/cabinet',
   '/support',
+  '/report-problem',
   '/real-estate',
   '/inspectors',
   '/history',

@@ -14,6 +14,7 @@ import { MapContainer, TileLayer, Polygon, Marker, Popup, useMap } from 'react-l
 import L from 'leaflet';
 import { toast } from 'sonner';
 import LoadErrorState from '@/components/LoadErrorState';
+import SafetyAwarenessCards from '@/components/SafetyAwarenessCards';
 import 'leaflet/dist/leaflet.css';
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -283,6 +284,8 @@ export default function InspectorsPage() {
           </div>
         </div>
       </div>
+
+      <SafetyAwarenessCards />
 
       <div className="bg-slate-50 dark:bg-gray-950 min-h-[60vh] pb-24 md:pb-8">
         <div className="max-w-3xl mx-auto px-4 py-5">

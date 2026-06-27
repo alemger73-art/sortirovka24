@@ -19,6 +19,7 @@ Per-category overrides (optional):
   TELEGRAM_BOT_TOKEN_PRORAB         / TELEGRAM_CHAT_ID_PRORAB
   TELEGRAM_BOT_TOKEN_TAXI           / TELEGRAM_CHAT_ID_TAXI
   TELEGRAM_BOT_TOKEN_BUSINESS       / TELEGRAM_CHAT_ID_BUSINESS
+  TELEGRAM_BOT_TOKEN_SUPPORT        / TELEGRAM_CHAT_ID_SUPPORT    — сообщения о проблемах в приложении
   TELEGRAM_BOT_TOKEN_FOOD           / TELEGRAM_CHAT_ID_FOOD       — операторы DAM ALEM
   TELEGRAM_BOT_TOKEN_FOOD_COURIER   / TELEGRAM_CHAT_ID_FOOD_COURIER — курьеры DAM ALEM
 
@@ -50,6 +51,7 @@ CATEGORY_FOOD = "FOOD"
 CATEGORY_FOOD_COURIER = "FOOD_COURIER"
 CATEGORY_TAXI = "TAXI"
 CATEGORY_BUSINESS = "BUSINESS"
+CATEGORY_SUPPORT = "SUPPORT"
 
 
 def _get_config(category: Optional[str] = None) -> tuple[Optional[str], Optional[str]]:
@@ -76,6 +78,7 @@ def get_routing_info() -> dict:
         CATEGORY_COMPLAINTS, CATEGORY_MASTERS, CATEGORY_BECOME_MASTER,
         CATEGORY_JOBS, CATEGORY_ANNOUNCEMENTS, CATEGORY_GASTRONOM, CATEGORY_VOLNA, CATEGORY_PRORAB,
         CATEGORY_PHARMACY, CATEGORY_FOOD, CATEGORY_FOOD_COURIER, CATEGORY_TAXI, CATEGORY_BUSINESS,
+        CATEGORY_SUPPORT,
     ]
     result = {"default": _is_configured(None)}
     for cat in categories:
@@ -194,6 +197,47 @@ async def notify_new_master_request(data: dict) -> bool:
         f"<b>Дата:</b> {_format_date()}"
     )
     return await send_telegram_message(text, category=CATEGORY_MASTERS)
+
+
+async def notify_app_issue(data: dict) -> bool:
+    """Send notification about a technical issue reported by a user."""
+    contact_lines = []
+    if data.get("contact_name"):
+        contact_lines.append(f"<b>Имя:</b> {_escape_html(data.get('contact_name', '—'))}")
+    if data.get("contact_phone"):
+        contact_lines.append(f"<b>Телефон:</b> {_escape_html(data.get('contact_phone', '—'))}")
+    contact_block = "\n".join(contact_lines)
+    if contact_block:
+        contact_block = f"\n{contact_block}"
+
+    page_url = data.get("page_url") or ""
+    page_line = f"\n<b>Страница:</b> {_escape_html(page_url)}" if page_url else ""
+
+    ua = data.get("user_agent") or ""
+    ua_short = ua[:180] + "…" if len(ua) > 180 else ua
+    ua_line = f"\n<b>Устройство:</b> {_escape_html(ua_short)}" if ua_short else ""
+
+    screenshot_url = data.get("screenshot_url") or ""
+    screenshot_line = "\n<b>Скриншот:</b> приложен" if screenshot_url else ""
+
+    text = (
+        "🐛 <b>Сообщение о проблеме</b>\n\n"
+        f"<b>Раздел:</b> {_escape_html(data.get('section', '—'))}\n"
+        f"<b>Описание:</b> {_escape_html(data.get('description', '—'))}"
+        f"{contact_block}"
+        f"{page_line}"
+        f"{ua_line}"
+        f"{screenshot_line}\n"
+        f"<b>Дата:</b> {_format_date()}"
+    )
+    sent = await send_telegram_message(text, category=CATEGORY_SUPPORT)
+    if sent and screenshot_url:
+        await send_telegram_photo(
+            screenshot_url,
+            caption="📎 Скриншот от пользователя",
+            category=CATEGORY_SUPPORT,
+        )
+    return sent
 
 
 async def notify_new_complaint(data: dict) -> bool:
