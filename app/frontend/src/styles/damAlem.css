@@ -387,8 +387,298 @@ button.dam-btn-primary:disabled,
   opacity: 1;
   cursor: not-allowed;
   background-color: #e4e4e7;
-  color: #52525b;
+  color: #52525b !important;
+  -webkit-text-fill-color: #52525b;
   box-shadow: none;
+}
+
+/* ─── Premium cart / checkout ─── */
+.dam-step-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.dam-step-bar__dot {
+  height: 0.35rem;
+  width: 1.75rem;
+  border-radius: 999px;
+  background: #e4e4e7;
+  transition: all 0.25s ease;
+}
+
+.dam-step-bar__dot--active {
+  width: 2.25rem;
+  background: linear-gradient(90deg, #ff3b30, #ff8c42);
+}
+
+.dam-step-bar__dot--done {
+  background: #22c55e;
+}
+
+.dam-sheet-header--cart {
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+}
+
+.dam-sheet-header__meta {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #71717a;
+  margin-top: 0.15rem;
+}
+
+.dam-cart-line {
+  display: flex;
+  gap: 0.875rem;
+  padding: 0.875rem;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.04);
+  position: relative;
+}
+
+.dam-cart-line__media {
+  width: 4.5rem;
+  height: 4.5rem;
+  flex-shrink: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #f0f0f0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+.dam-cart-line__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dam-cart-line__qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.125rem;
+  border-radius: 999px;
+  background: #f4f4f5;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.dam-cart-line__qty button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: #18181b;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.dam-cart-line__qty button:last-child {
+  background: linear-gradient(135deg, #ff3b30, #ff6b35);
+  color: #fff;
+}
+
+.dam-cart-line__qty button:active {
+  transform: scale(0.92);
+}
+
+.dam-upsell-rail {
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px dashed rgba(0, 0, 0, 0.08);
+}
+
+.dam-upsell-rail__title {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #71717a;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+
+.dam-upsell-card {
+  width: 7.5rem;
+  flex-shrink: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
+.dam-order-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border-radius: 16px;
+  background: #fafafa;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.dam-order-totals__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  color: #71717a;
+}
+
+.dam-order-totals__row span:last-child {
+  font-weight: 700;
+  color: #18181b;
+}
+
+.dam-order-totals__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-top: 0.625rem;
+  margin-top: 0.25rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: #18181b;
+}
+
+.dam-order-totals__total span:last-child {
+  font-size: 1.25rem;
+  color: #ff3b30;
+}
+
+.dam-sheet-footer--premium {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, #ffffff 40%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.08);
+}
+
+.dam-checkout-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 3.75rem;
+  padding: 0.75rem 1rem 0.75rem 1.25rem;
+  border: none;
+  border-radius: 18px;
+  cursor: pointer;
+  touch-action: manipulation;
+  background: linear-gradient(135deg, #ff3b30 0%, #ff5a3d 45%, #ff8c42 100%);
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff;
+  box-shadow:
+    0 10px 28px rgba(255, 59, 48, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.dam-checkout-cta:active:not(:disabled) {
+  transform: scale(0.985);
+  filter: brightness(0.96);
+}
+
+.dam-checkout-cta--disabled,
+.dam-checkout-cta:disabled {
+  cursor: not-allowed;
+  background: #f4f4f5 !important;
+  color: #3f3f46 !important;
+  -webkit-text-fill-color: #3f3f46;
+  box-shadow: inset 0 0 0 2px #e4e4e7;
+}
+
+.dam-checkout-cta__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  min-width: 0;
+  flex: 1;
+}
+
+.dam-checkout-cta__label {
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.dam-checkout-cta__sub {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  opacity: 0.92;
+  margin-top: 0.125rem;
+}
+
+.dam-checkout-cta__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  flex-shrink: 0;
+}
+
+.dam-checkout-section {
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  padding: 1rem;
+}
+
+.dam-checkout-section__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: #18181b;
+  margin-bottom: 0.875rem;
+}
+
+.dam-method-card {
+  border-radius: 18px;
+  border: 2px solid #f4f4f5;
+  background: #fafafa;
+  padding: 1rem 0.75rem;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.dam-method-card--active {
+  border-color: #ff3b30;
+  background: linear-gradient(180deg, #fff5f4 0%, #ffffff 100%);
+  box-shadow: 0 8px 24px rgba(255, 59, 48, 0.12);
+}
+
+.dam-checkout-total-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(255, 59, 48, 0.1);
+  color: #ff3b30;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.dam-checkout-cta--disabled .dam-checkout-cta__sub,
+.dam-checkout-cta:disabled .dam-checkout-cta__sub {
+  color: #b45309;
+  opacity: 1;
 }
 
 .dam-sheet-footer {

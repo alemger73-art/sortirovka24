@@ -60,6 +60,7 @@ import DamAlemShareCard from '@/components/damalem/DamAlemShareCard';
 import { resolveDamAlemItemImage, getCategoryImage } from '@/lib/damAlemImages';
 import DamAlemImage from '@/components/damalem/DamAlemImage';
 import DamAlemSheet from '@/components/damalem/DamAlemSheet';
+import DamAlemCheckoutButton from '@/components/damalem/DamAlemCheckoutButton';
 import { buildMarketingStories, resolvePromoCodes } from '@/lib/damAlemMarketing';
 import DamAlemPageSkeleton from '@/components/damalem/DamAlemPageSkeleton';
 import LoadErrorState from '@/components/LoadErrorState';
@@ -867,13 +868,6 @@ export default function Food() {
     if (brandProfile?.min_order && brandProfile.min_order > 0) return brandProfile.min_order;
     return parseInt(settings.min_order_amount) || 0;
   }, [brandProfile, settings.min_order_amount]);
-
-  const cartCheckoutLabel = useMemo(() => {
-    if (minOrder > 0 && cartTotal < minOrder) {
-      return `Добавьте ещё ${formatPrice(minOrder - cartTotal)} до мин. заказа`;
-    }
-    return `${t('food.checkout')} — ${formatPrice(cartTotalWithService)}`;
-  }, [minOrder, cartTotal, cartTotalWithService, t, formatPrice]);
 
   const marketingStories = useMemo(
     () => buildMarketingStories({
@@ -1959,8 +1953,18 @@ export default function Food() {
 
         {/* ═══ CART DRAWER ═══ */}
         <DamAlemSheet open={cartOpen} onClose={() => setCartOpen(false)} testId="dam-cart-sheet">
-              <div className="dam-sheet-header">
-                <h2>{t('food.yourOrder')}</h2>
+              <div className="dam-sheet-header dam-sheet-header--cart">
+                <div>
+                  <h2>{t('food.yourOrder')}</h2>
+                  <p className="dam-sheet-header__meta">
+                    {cart.reduce((sum, ci) => sum + ci.quantity, 0)} {cart.length === 1 ? 'позиция' : cart.length < 5 ? 'позиции' : 'позиций'}
+                  </p>
+                  <div className="dam-step-bar" aria-hidden>
+                    <span className={`dam-step-bar__dot ${uiStep >= 1 ? 'dam-step-bar__dot--done' : ''}`} />
+                    <span className={`dam-step-bar__dot ${uiStep === 2 ? 'dam-step-bar__dot--active' : uiStep > 2 ? 'dam-step-bar__dot--done' : ''}`} />
+                    <span className={`dam-step-bar__dot ${uiStep === 3 ? 'dam-step-bar__dot--active' : ''}`} />
+                  </div>
+                </div>
                 <button type="button" onClick={() => setCartOpen(false)} className="absolute right-5 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
@@ -1972,35 +1976,35 @@ export default function Food() {
                   const selNames = getSelectionNames(ci.selections);
                   const linePrice = (ci.item.price + modTotal) * ci.quantity;
                   return (
-                    <div key={idx} className="relative dam-card p-4">
-                      <button
-                        type="button"
-                        onClick={() => removeCartLine(idx)}
-                        className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full text-[#777777] hover:bg-[#F5F5F5] hover:text-[#111111] transition-colors"
-                        aria-label={t('common.close')}
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                      <div className="flex gap-3 pr-8">
-                        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full bg-[#F0F0F0] ring-1 ring-gray-100">
-                          <DamAlemImage src={getItemImage(ci.item)} alt={ci.item.name} className="h-full w-full object-cover" />
+                    <div key={idx} className="dam-cart-line">
+                      <div className="dam-cart-line__media">
+                        <DamAlemImage src={getItemImage(ci.item)} alt={ci.item.name} className="h-full w-full object-cover" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2 pr-1">
+                          <h4 className="text-sm font-extrabold leading-snug text-[#18181b] line-clamp-2">{ci.item.name}</h4>
+                          <button
+                            type="button"
+                            onClick={() => removeCartLine(idx)}
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+                            aria-label={t('common.close')}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <h4 className="text-sm font-bold leading-snug text-[#111111] line-clamp-2">{ci.item.name}</h4>
-                          {selNames.length > 0 && (
-                            <p className="mt-1 text-[11px] text-[#FF3B30] line-clamp-1">+ {selNames.join(', ')}</p>
-                          )}
-                          <div className="mt-3 flex items-center justify-between gap-2">
-                            <span className="text-sm font-extrabold text-[#111111]">{formatPrice(linePrice)}</span>
-                            <div className="flex h-9 items-center gap-0 rounded-full bg-[#F0F0F0] px-1 ring-1 ring-gray-100/80">
-                              <button type="button" onClick={() => updateQuantity(idx, -1)} data-testid="dam-cart-qty-minus" className="flex h-7 w-7 items-center justify-center rounded-full text-[#111111] hover:bg-white/90 active:scale-95 transition">
-                                <Minus className="h-3.5 w-3.5" />
-                              </button>
-                              <span className="min-w-[1.25rem] text-center text-sm font-bold tabular-nums" data-testid="dam-cart-qty-value">{ci.quantity}</span>
-                              <button type="button" onClick={() => updateQuantity(idx, 1)} data-testid="dam-cart-qty-plus" className="flex h-7 w-7 items-center justify-center rounded-full bg-[#FF3B30] text-white hover:bg-[#E6352B] active:scale-95 transition">
-                                <Plus className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
+                        {selNames.length > 0 && (
+                          <p className="mt-1 text-[11px] font-semibold text-[#FF3B30] line-clamp-2">+ {selNames.join(', ')}</p>
+                        )}
+                        <div className="mt-3 flex items-center justify-between gap-2">
+                          <span className="text-base font-extrabold text-[#18181b] tabular-nums">{formatPrice(linePrice)}</span>
+                          <div className="dam-cart-line__qty">
+                            <button type="button" onClick={() => updateQuantity(idx, -1)} data-testid="dam-cart-qty-minus">
+                              <Minus className="h-3.5 w-3.5" />
+                            </button>
+                            <span className="min-w-[1.5rem] text-center text-sm font-bold tabular-nums px-0.5" data-testid="dam-cart-qty-value">{ci.quantity}</span>
+                            <button type="button" onClick={() => updateQuantity(idx, 1)} data-testid="dam-cart-qty-plus">
+                              <Plus className="h-3.5 w-3.5" />
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -2009,29 +2013,24 @@ export default function Food() {
                 })}
 
                 {showRecommendations && cartSuggestions.length > 0 && (
-                  <div className="pt-3">
-                    <h4 className="mb-3 px-0.5 text-base font-extrabold text-[#111111]">{t('food.addToOrder')}</h4>
-                    <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
+                  <div className="dam-upsell-rail">
+                    <h4 className="dam-upsell-rail__title">{t('food.addToOrder')}</h4>
+                    <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide -mx-0.5 px-0.5">
                       {cartSuggestions.map(item => (
-                        <div key={item.id} className="w-[132px] shrink-0 overflow-hidden rounded-2xl bg-white ring-1 ring-gray-100/80">
+                        <div key={item.id} className="dam-upsell-card">
                           <div className="aspect-square overflow-hidden bg-[#F0F0F0]">
                             <DamAlemImage src={getItemImage(item)} alt={item.name} className="h-full w-full object-cover" />
                           </div>
-                          <div className="p-2.5">
-                            <p className="text-xs font-bold leading-tight text-[#111111] line-clamp-2">{item.name}</p>
-                            <p className="mt-1 text-[10px] font-semibold text-[#FF3B30] line-clamp-1">
-                              {itemMetaTags(item).slice(0, 2).map((tag, i) => (
-                                <span key={tag}>{i > 0 ? ' • ' : ''}{tag}</span>
-                              ))}
-                            </p>
+                          <div className="p-2">
+                            <p className="text-[11px] font-bold leading-tight text-[#18181b] line-clamp-2">{item.name}</p>
                             <div className="mt-2 flex items-center justify-between gap-1">
-                              <span className="text-xs font-extrabold text-[#111111]">{formatPrice(item.price)}</span>
+                              <span className="text-[11px] font-extrabold text-[#18181b]">{formatPrice(item.price)}</span>
                               <button
                                 type="button"
                                 onClick={() => void quickAdd(item)}
-                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FF3B30] text-white shadow-sm active:scale-90 transition-transform"
+                                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#FF3B30] to-[#FF8C42] text-white shadow-sm active:scale-90 transition-transform"
                               >
-                                <Plus className="h-3.5 w-3.5" />
+                                <Plus className="h-3 w-3" />
                               </button>
                             </div>
                           </div>
@@ -2042,7 +2041,7 @@ export default function Food() {
                 )}
               </div>
 
-              <div className="dam-sheet-footer space-y-3">
+              <div className="dam-sheet-footer dam-sheet-footer--premium space-y-3">
                 <OrderGoalsProgress
                   subtotal={cartTotal}
                   minOrder={minOrder}
@@ -2050,59 +2049,70 @@ export default function Food() {
                   nextGift={nextGift}
                   compact
                 />
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#777777]">{t('food.subtotal')}</span>
-                  <span className="font-semibold text-[#111111]">{formatPrice(cartTotal)}</span>
+                <div className="dam-order-totals">
+                  <div className="dam-order-totals__row">
+                    <span>{t('food.subtotal')}</span>
+                    <span>{formatPrice(cartTotal)}</span>
+                  </div>
+                  <div className="dam-order-totals__row">
+                    <span>{serviceFeeLabel}</span>
+                    <span>{formatPrice(serviceFeeAmount)}</span>
+                  </div>
+                  <div className="dam-order-totals__total">
+                    <span>{t('food.total')}</span>
+                    <span>{formatPrice(cartTotalWithService)}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#777777]">{serviceFeeLabel}</span>
-                  <span className="font-semibold text-[#111111]">{formatPrice(serviceFeeAmount)}</span>
-                </div>
-                <div className="flex justify-between border-t border-gray-100 pt-3 text-base font-extrabold text-[#111111]">
-                  <span>{t('food.total')}</span>
-                  <span>{formatPrice(cartTotalWithService)}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={openCheckout}
-                  className="dam-btn-primary"
+                <DamAlemCheckoutButton
+                  label={t('food.checkout')}
+                  sublabel={
+                    minOrder > 0 && cartTotal < minOrder
+                      ? `Ещё ${formatPrice(minOrder - cartTotal)} до мин. заказа`
+                      : formatPrice(cartTotalWithService)
+                  }
                   disabled={cartTotal < minOrder}
-                  data-testid="dam-cart-checkout"
-                >
-                  {cartCheckoutLabel}
-                </button>
+                  onClick={openCheckout}
+                  testId="dam-cart-checkout"
+                />
               </div>
         </DamAlemSheet>
 
         {/* ═══ CHECKOUT MODAL ═══ */}
         <DamAlemSheet open={checkoutOpen} onClose={() => setCheckoutOpen(false)}>
-              <div className="dam-sheet-header !justify-between !px-4">
-                <div className="flex items-center gap-3">
-                  <button onClick={() => { setCheckoutOpen(false); setCartOpen(true); }} className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 hover:bg-zinc-200 transition-colors">
+              <div className="dam-sheet-header dam-sheet-header--cart !justify-between !px-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <button onClick={() => { setCheckoutOpen(false); setCartOpen(true); }} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-zinc-100 hover:bg-zinc-200 transition-colors">
                     <ArrowLeft className="w-4 h-4" />
                   </button>
-                  <h2>{t('food.checkout')}</h2>
+                  <div className="min-w-0">
+                    <h2 className="truncate">{t('food.checkout')}</h2>
+                    <div className="dam-step-bar !justify-start !mt-1" aria-hidden>
+                      <span className="dam-step-bar__dot dam-step-bar__dot--done" />
+                      <span className="dam-step-bar__dot dam-step-bar__dot--done" />
+                      <span className="dam-step-bar__dot dam-step-bar__dot--active" />
+                    </div>
+                  </div>
                 </div>
-                <button onClick={() => setCheckoutOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 hover:bg-zinc-200 transition-colors">
-                  <X className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="dam-checkout-total-chip">{formatPrice(checkoutGrandTotal)}</span>
+                  <button onClick={() => setCheckoutOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 hover:bg-zinc-200 transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               <div className="dam-sheet-body space-y-4">
-                <div className="dam-card p-4 space-y-3">
-                  <label className="text-sm font-bold text-gray-800 mb-3 block">Способ получения</label>
+                <div className="dam-checkout-section">
+                  <div className="dam-checkout-section__title">Способ получения</div>
                   <div className="grid grid-cols-2 gap-3">
                     <button
+                      type="button"
                       onClick={() => setDeliveryMethod('delivery')}
-                      className={`p-4 rounded-2xl border-2 text-center transition-all duration-200 ${
-                        deliveryMethod === 'delivery'
-                          ? 'border-[#FF3B30] bg-red-50 shadow-sm'
-                          : 'border-gray-100 hover:border-gray-200 bg-gray-50'
-                      }`}
+                      className={`dam-method-card ${deliveryMethod === 'delivery' ? 'dam-method-card--active' : ''}`}
                     >
                       <Truck className={`w-6 h-6 mx-auto mb-1.5 ${deliveryMethod === 'delivery' ? 'text-[#FF3B30]' : 'text-gray-400'}`} />
                       <span className={`text-sm font-bold block ${deliveryMethod === 'delivery' ? 'text-[#FF3B30]' : 'text-gray-600'}`}>{t('food.delivery')}</span>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-gray-400 mt-0.5 block">
                         {cartTotal >= freeDeliveryFrom && freeDeliveryFrom > 0
                           ? t('food.free')
                           : mapDeliveryZones.length > 0
@@ -2111,16 +2121,13 @@ export default function Food() {
                       </span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => setDeliveryMethod('pickup')}
-                      className={`p-4 rounded-2xl border-2 text-center transition-all duration-200 ${
-                        deliveryMethod === 'pickup'
-                          ? 'border-[#FF3B30] bg-red-50 shadow-sm'
-                          : 'border-gray-100 hover:border-gray-200 bg-gray-50'
-                      }`}
+                      className={`dam-method-card ${deliveryMethod === 'pickup' ? 'dam-method-card--active' : ''}`}
                     >
                       <Store className={`w-6 h-6 mx-auto mb-1.5 ${deliveryMethod === 'pickup' ? 'text-[#FF3B30]' : 'text-gray-400'}`} />
                       <span className={`text-sm font-bold block ${deliveryMethod === 'pickup' ? 'text-[#FF3B30]' : 'text-gray-600'}`}>{t('food.pickup')}</span>
-                      <span className="text-xs text-gray-400">{t('food.free')}</span>
+                      <span className="text-xs text-gray-400 mt-0.5 block">{t('food.free')}</span>
                     </button>
                   </div>
                 </div>
@@ -2136,11 +2143,11 @@ export default function Food() {
 
                 {deliveryMethod === 'delivery' && (
                   <div className="space-y-3">
-                    <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
-                      <label className="text-sm font-bold text-gray-800 block flex items-center gap-2">
+                    <div className="dam-checkout-section">
+                      <div className="dam-checkout-section__title">
                         <MapPin className="h-4 w-4 text-[#FF3B30]" />
                         Адрес доставки
-                      </label>
+                      </div>
                       <SavedAddressBar
                         currentAddress={deliveryAddress}
                         onSelect={applySavedAddress}
@@ -2177,8 +2184,8 @@ export default function Food() {
                       )}
                     </div>
 
-                    <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
-                      <label className="text-sm font-bold text-gray-800 block">Куда занести заказ?</label>
+                    <div className="dam-checkout-section">
+                      <div className="dam-checkout-section__title">Куда занести заказ?</div>
                       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         <button
                           type="button"
@@ -2229,8 +2236,8 @@ export default function Food() {
                 )}
 
                 {/* Contact info */}
-                <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
-                  <label className="text-sm font-bold text-gray-800 block">Контактные данные</label>
+                <div className="dam-checkout-section">
+                  <div className="dam-checkout-section__title">Контактные данные</div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 mb-1 block">
                       {t('food.yourName')} *
@@ -2260,8 +2267,8 @@ export default function Food() {
                   <LoyaltyGiftBanner subtotal={cartTotal} gifts={loyaltyGifts} compact />
                 )}
 
-                <div className="bg-white rounded-2xl p-4 shadow-sm space-y-2">
-                  <label className="text-sm font-bold text-gray-800 block">Промокод</label>
+                <div className="dam-checkout-section space-y-2">
+                  <div className="dam-checkout-section__title !mb-2">Промокод</div>
                   <div className="flex gap-2">
                     <Input
                       value={promoInput}
@@ -2295,9 +2302,9 @@ export default function Food() {
                   )}
                 </div>
 
-                <div className="bg-white rounded-2xl p-4 shadow-sm">
-                  <label className="text-sm font-bold text-gray-800 mb-3 block">Способ оплаты</label>
-                  <p className="text-xs text-gray-500 mb-3 leading-relaxed">{t('food.guide.paymentNote')}</p>
+                <div className="dam-checkout-section">
+                  <div className="dam-checkout-section__title">Способ оплаты</div>
+                  <p className="text-xs text-gray-500 mb-3 leading-relaxed -mt-2">{t('food.guide.paymentNote')}</p>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     {(
                       [
@@ -2324,8 +2331,8 @@ export default function Food() {
                 </div>
 
                 {/* Order summary */}
-                <div className="bg-white rounded-2xl p-4 shadow-sm">
-                  <h4 className="font-bold text-gray-800 text-sm mb-3">{t('food.yourOrder')}</h4>
+                <div className="dam-checkout-section">
+                  <div className="dam-checkout-section__title">{t('food.yourOrder')}</div>
                   <div className="space-y-2.5">
                     {cart.map((ci, idx) => {
                       const modTotal = calcSelectionsPrice(ci.selections);
@@ -2420,18 +2427,19 @@ export default function Food() {
                 </div>
               </div>
 
-              <div className="dam-sheet-footer">
-                <button
-                  type="button"
+              <div className="dam-sheet-footer dam-sheet-footer--premium">
+                <DamAlemCheckoutButton
+                  label={submitting ? 'Отправляем заказ…' : 'Оформить заказ'}
+                  sublabel={
+                    checkoutBlockReason && !submitting
+                      ? checkoutBlockReason
+                      : formatPrice(checkoutGrandTotal)
+                  }
+                  disabled={!!checkoutBlockReason}
+                  loading={submitting}
                   onClick={submitOrder}
-                  disabled={submitting || !!checkoutBlockReason}
-                  className="dam-btn-primary flex items-center justify-center gap-2"
-                >
-                  {submitting ? 'Отправляем…' : `Оформить заказ — ${formatPrice(checkoutGrandTotal)}`}
-                </button>
-                {checkoutBlockReason && !submitting && (
-                  <p className="mt-2 text-center text-xs text-amber-700 font-medium">{checkoutBlockReason}</p>
-                )}
+                  testId="dam-checkout-submit"
+                />
                 <p className="mt-2.5 text-center text-[11px] text-gray-400">
                   Заказ сохранится в системе. WhatsApp — по желанию после оформления.
                 </p>
