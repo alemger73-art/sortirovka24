@@ -9,7 +9,7 @@ import {
   Plus, Minus, X, Utensils, Truck, Store,
   ChevronRight, MapPin, MessageSquare,
   ArrowLeft, Check, CheckCircle2,
-  AlertCircle, Search, Smartphone, Banknote, ShoppingCart, Heart, Clock,
+  AlertCircle, Search, Smartphone, Banknote, ShoppingCart, Heart, Clock, Coins,
 } from 'lucide-react';
 import DamAlemHero from '@/components/damalem/DamAlemHero';
 import DamAlemPromoBanners, { type FoodBanner } from '@/components/damalem/DamAlemPromoBanners';
@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { getAccountPrefill, getCurrentUser, pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
+import { accountApi, getAccountToken } from '@/lib/accountApi';
 import { fetchFoodRestaurantsList } from '@/lib/foodAdminApi';
 import { apiUrl } from '@/lib/config';
 import { findDamAlemRestaurantId } from '@/lib/damAlem';
@@ -266,8 +267,22 @@ export default function Food() {
   const [promoInput, setPromoInput] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<{ code: string; discount: number; free_delivery: boolean; label: string } | null>(null);
   const [promoLoading, setPromoLoading] = useState(false);
+  const [bonusBalance, setBonusBalance] = useState(0);
+  const [useBonuses, setUseBonuses] = useState(false);
+  const BONUS_MAX_PERCENT = 30;
 
   useEffect(() => { loadData(); }, []);
+
+  useEffect(() => {
+    if (!checkoutOpen || !getAccountToken()) {
+      setBonusBalance(0);
+      setUseBonuses(false);
+      return;
+    }
+    accountApi.me()
+      .then((me) => setBonusBalance(Number(me?.bonus_balance || 0)))
+      .catch(() => setBonusBalance(0));
+  }, [checkoutOpen]);
 
   useEffect(() => {
     try {
@@ -916,13 +931,30 @@ export default function Food() {
     [deliveryMethod, deliverToApartment],
   );
 
-  /** Сумма к оплате: позиции + сервис + доставка + до квартиры − промокод */
-  const checkoutGrandTotal = useMemo(() => {
+  /** Сумма к оплате до списания бонусов */
+  const checkoutTotalBeforeBonus = useMemo(() => {
     const base = deliveryMethod === 'delivery'
       ? cartTotalWithService + activeDeliveryPrice + apartmentDeliveryFee
       : cartTotalWithService;
     return Math.max(0, base - promoDiscountAmount);
   }, [deliveryMethod, cartTotalWithService, activeDeliveryPrice, apartmentDeliveryFee, promoDiscountAmount]);
+
+  const maxBonusPoints = useMemo(() => {
+    if (!getAccountToken() || bonusBalance <= 0 || appliedPromo) return 0;
+    const capBySubtotal = Math.floor(cartTotal * (BONUS_MAX_PERCENT / 100));
+    return Math.max(0, Math.min(bonusBalance, capBySubtotal, checkoutTotalBeforeBonus));
+  }, [bonusBalance, cartTotal, checkoutTotalBeforeBonus, appliedPromo]);
+
+  const bonusDiscountAmount = useMemo(
+    () => (useBonuses && maxBonusPoints > 0 ? maxBonusPoints : 0),
+    [useBonuses, maxBonusPoints],
+  );
+
+  /** Сумма к оплате: позиции + сервис + доставка + до квартиры − промокод − бонусы */
+  const checkoutGrandTotal = useMemo(
+    () => Math.max(0, checkoutTotalBeforeBonus - bonusDiscountAmount),
+    [checkoutTotalBeforeBonus, bonusDiscountAmount],
+  );
 
   const cartBarLabel = useMemo(() => {
     const n = cartCount;
@@ -1108,7 +1140,8 @@ export default function Food() {
     const aptFeeNote = deliverToApartment ? `\n🚪 Доставка до квартиры: +${APARTMENT_DELIVERY_FEE} ₸` : '';
     const giftNote = loyaltyGift ? `\n🎁 Подарок: ${loyaltyGift.title}` : '';
     const promoNote = appliedPromo ? `\n🏷 Промокод ${appliedPromo.code}: ${appliedPromo.label}` : '';
-    const orderComment = (comment.trim() + aptFeeNote + giftNote + promoNote).trim();
+    const bonusNote = bonusDiscountAmount > 0 ? `\n🪙 Бонусы: −${bonusDiscountAmount} ₸` : '';
+    const orderComment = (comment.trim() + aptFeeNote + giftNote + promoNote + bonusNote).trim();
 
     const orderItems = cart.map(ci => {
       const mods: { name: string; price: number; option_id: number }[] = [];
@@ -1146,6 +1179,7 @@ export default function Food() {
             delivery_fee: deliveryMethod === 'delivery' ? activeDeliveryPrice : 0,
             service_fee: serviceFeeAmount,
             ...(appliedPromo?.code ? { promo_code: appliedPromo.code } : {}),
+            ...(bonusDiscountAmount > 0 ? { bonus_points_to_use: bonusDiscountAmount } : {}),
             ...(apartmentDeliveryFee > 0 ? { apartment_delivery_fee: apartmentDeliveryFee } : {}),
             delivery_zone: deliveryMethod === 'delivery' && deliveryQuote?.zone_name
               ? deliveryQuote.zone_name
@@ -1298,6 +1332,7 @@ export default function Food() {
         free_delivery: result.free_delivery,
         label: result.label,
       });
+      setUseBonuses(false);
       toast.success(`Промокод ${result.code} применён`);
     } catch (e) {
       setAppliedPromo(null);
@@ -1320,6 +1355,7 @@ export default function Food() {
             free_delivery: result.free_delivery,
             label: result.label,
           });
+          setUseBonuses(false);
           toast.success(`Промокод ${code} применён`);
         } catch (e) {
           toast.error(e instanceof Error ? e.message : 'Добавьте блюда и примените в корзине');
@@ -2339,6 +2375,35 @@ export default function Food() {
                       <div className="flex justify-between text-sm text-emerald-700">
                         <span>Промокод {appliedPromo.code}</span>
                         <span className="font-semibold">−{formatPrice(promoDiscountAmount)}</span>
+                      </div>
+                    )}
+                    {getAccountToken() && bonusBalance > 0 && !appliedPromo && (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3 space-y-2">
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={useBonuses && maxBonusPoints > 0}
+                            disabled={maxBonusPoints <= 0}
+                            onChange={(e) => setUseBonuses(e.target.checked)}
+                            className="mt-1 h-4 w-4 rounded border-amber-300 text-[#FF3B30]"
+                          />
+                          <span className="flex-1 min-w-0">
+                            <span className="flex items-center gap-1.5 text-sm font-semibold text-amber-900">
+                              <Coins className="h-4 w-4" />
+                              Списать бонусы
+                            </span>
+                            <span className="block text-xs text-amber-800/80 mt-0.5">
+                              Баланс: {formatPrice(bonusBalance)} · до {BONUS_MAX_PERCENT}% от блюд
+                              {useBonuses && bonusDiscountAmount > 0 ? ` · −${formatPrice(bonusDiscountAmount)}` : ''}
+                            </span>
+                          </span>
+                        </label>
+                      </div>
+                    )}
+                    {bonusDiscountAmount > 0 && (
+                      <div className="flex justify-between text-sm text-amber-700">
+                        <span>Бонусы Sortirovka24</span>
+                        <span className="font-semibold">−{formatPrice(bonusDiscountAmount)}</span>
                       </div>
                     )}
                     {loyaltyGift && (

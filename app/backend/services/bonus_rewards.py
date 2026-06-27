@@ -12,7 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 logger = logging.getLogger(__name__)
 
 FOOD_ORDER_BONUS_POINTS = float(os.getenv("FOOD_ORDER_BONUS_POINTS", "50"))
-FOOD_ORDER_BONUS_PERCENT = float(os.getenv("FOOD_ORDER_BONUS_PERCENT", "0"))  # 0 = fixed only
+FOOD_ORDER_BONUS_PERCENT = float(os.getenv("FOOD_ORDER_BONUS_PERCENT", "0"))
+FOOD_BONUS_AWARD_STATUS = os.getenv("FOOD_BONUS_AWARD_STATUS", "done").strip() or "done"
 
 
 def phone_digits(phone: str | None) -> str:
@@ -43,6 +44,20 @@ def _calc_food_bonus(total_amount: float | None) -> float:
     return fixed
 
 
+async def _bonus_already_awarded(db: AsyncSession, user_id: str, food_order_id: int) -> bool:
+    row = (
+        await db.execute(
+            select(UserAction).where(
+                UserAction.user_id == user_id,
+                UserAction.action == "bonus_food_order",
+                UserAction.entity == "food_orders",
+                UserAction.entity_id == str(food_order_id),
+            )
+        )
+    ).scalar_one_or_none()
+    return row is not None
+
+
 async def link_food_order_to_user(
     db: AsyncSession,
     *,
@@ -52,7 +67,7 @@ async def link_food_order_to_user(
     restaurant_name: str | None,
     status: str | None,
 ) -> None:
-    """Link food order to registered user: cabinet history + optional bonus."""
+    """Link food order to registered user cabinet history (no bonus yet)."""
     user = await find_user_by_phone(db, customer_phone)
     if not user:
         return
@@ -70,33 +85,78 @@ async def link_food_order_to_user(
             details=details,
         )
     )
+    await db.commit()
+    logger.info("[Bonus] Linked food order #%s to user %s", food_order_id, user.id)
+
+
+async def award_food_order_bonus(
+    db: AsyncSession,
+    *,
+    customer_phone: str | None,
+    food_order_id: int,
+    total_amount: float | None,
+) -> None:
+    """Award bonus points when order reaches delivered/done status."""
+    user = await find_user_by_phone(db, customer_phone)
+    if not user:
+        return
+    if await _bonus_already_awarded(db, str(user.id), food_order_id):
+        return
 
     points = _calc_food_bonus(total_amount)
-    if points > 0:
-        db.add(
-            Bonus(
-                user_id=str(user.id),
-                points=points,
-                reason=f"Бонус за заказ еды #{food_order_id}",
-            )
-        )
-        user.bonus_balance = float(user.bonus_balance or 0) + points
-        db.add(
-            UserAction(
-                user_id=str(user.id),
-                action="bonus_food_order",
-                entity="food_orders",
-                entity_id=str(food_order_id),
-                payload=json.dumps({"points": points, "amount": total_amount}, ensure_ascii=False),
-            )
-        )
+    if points <= 0:
+        return
 
+    db.add(
+        Bonus(
+            user_id=str(user.id),
+            points=points,
+            reason=f"Бонус за заказ еды #{food_order_id}",
+        )
+    )
+    user.bonus_balance = float(user.bonus_balance or 0) + points
+    db.add(
+        UserAction(
+            user_id=str(user.id),
+            action="bonus_food_order",
+            entity="food_orders",
+            entity_id=str(food_order_id),
+            payload=json.dumps({"points": points, "amount": total_amount}, ensure_ascii=False),
+        )
+    )
     await db.commit()
-    if points > 0:
-        logger.info("[Bonus] Awarded %s points to user %s for food order #%s", points, user.id, food_order_id)
-    else:
-        logger.info("[Bonus] Linked food order #%s to user %s (no bonus points)", food_order_id, user.id)
+    logger.info("[Bonus] Awarded %s points to user %s for food order #%s", points, user.id, food_order_id)
 
 
-# Backward-compatible alias
+async def handle_food_order_status_bonus(
+    db: AsyncSession,
+    *,
+    customer_phone: str | None,
+    food_order_id: int,
+    total_amount: float | None,
+    old_status: str | None,
+    new_status: str | None,
+    bonus_points_used: float | None = None,
+) -> None:
+    from services.bonus_spending import refund_bonuses_for_order
+
+    user = await find_user_by_phone(db, customer_phone)
+    if not user:
+        return
+
+    if new_status == FOOD_BONUS_AWARD_STATUS and old_status != FOOD_BONUS_AWARD_STATUS:
+        await award_food_order_bonus(
+            db,
+            customer_phone=customer_phone,
+            food_order_id=food_order_id,
+            total_amount=total_amount,
+        )
+
+    if new_status == "cancelled" and old_status != "cancelled":
+        pts = float(bonus_points_used or 0)
+        if pts > 0:
+            await refund_bonuses_for_order(db, user=user, food_order_id=food_order_id, points=pts)
+            await db.commit()
+
+
 reward_food_order = link_food_order_to_user

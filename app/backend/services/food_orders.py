@@ -19,12 +19,27 @@ class Food_ordersService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create(self, data: Dict[str, Any]) -> Optional[Food_orders]:
+    async def create(self, data: Dict[str, Any], account_user=None) -> Optional[Food_orders]:
         """Create a new food_orders"""
         try:
             _allowed = set(Food_orders.__table__.columns.keys())
+            bonus_points = float(data.get("bonus_points_used") or 0)
+            bonus_discount = float(data.get("bonus_discount_amount") or 0)
             obj = Food_orders(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
+            await self.db.flush()
+
+            if bonus_points > 0 and account_user is not None:
+                from services.bonus_spending import spend_bonuses_for_order
+
+                await spend_bonuses_for_order(
+                    self.db,
+                    user=account_user,
+                    food_order_id=int(obj.id),
+                    points=bonus_points,
+                    discount=bonus_discount,
+                )
+
             await self.db.commit()
             await self.db.refresh(obj)
             try:
@@ -141,6 +156,20 @@ class Food_ordersService:
                     })
                 except Exception as tg_err:
                     logger.warning("[Telegram] Food status notification skipped: %s", tg_err)
+                try:
+                    from services.bonus_rewards import handle_food_order_status_bonus
+
+                    await handle_food_order_status_bonus(
+                        self.db,
+                        customer_phone=obj.customer_phone,
+                        food_order_id=int(obj.id),
+                        total_amount=obj.total_amount,
+                        old_status=old_status,
+                        new_status=obj.status,
+                        bonus_points_used=getattr(obj, "bonus_points_used", None),
+                    )
+                except Exception as bonus_err:
+                    logger.warning("[Bonus] Food order status bonus handling skipped: %s", bonus_err)
                 if update_data["status"] == "in_progress" and old_status != "in_progress":
                     try:
                         from services.food_telegram_flow import dispatch_order_to_couriers

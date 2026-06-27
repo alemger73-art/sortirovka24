@@ -57,6 +57,7 @@ class Food_ordersData(BaseModel):
     delivery_zone: Optional[str] = None
     promo_code: Optional[str] = None
     apartment_delivery_fee: Optional[float] = None
+    bonus_points_to_use: Optional[float] = None
 
 
 class Food_ordersUpdateData(BaseModel):
@@ -95,6 +96,8 @@ class Food_ordersResponse(BaseModel):
     payment_method: Optional[str] = None
     payment_status: Optional[str] = None
     status: Optional[str] = None
+    bonus_points_used: Optional[float] = None
+    bonus_discount_amount: Optional[float] = None
     created_at: Optional[str] = None
 
     class Config:
@@ -239,10 +242,15 @@ async def create_food_orders(
     logger.debug(f"Creating new food_orders with data: {data}")
     _check_order_rate_limit(request)
 
+    from services.bonus_spending import resolve_optional_account_user
+
+    account_user = await resolve_optional_account_user(request, db)
+
     payload = data.model_dump()
     delivery_fee = payload.pop("delivery_fee", None)
     service_fee = payload.pop("service_fee", None)
     zone_name = payload.pop("delivery_zone", None)
+    bonus_points_to_use = payload.pop("bonus_points_to_use", None)
 
     try:
         payload, _, _ = await validate_food_order(
@@ -251,6 +259,8 @@ async def create_food_orders(
             delivery_fee_hint=delivery_fee,
             service_fee_hint=service_fee,
             zone_name=zone_name,
+            account_user=account_user,
+            bonus_points_to_use=bonus_points_to_use,
         )
     except HTTPException:
         raise
@@ -260,7 +270,7 @@ async def create_food_orders(
 
     service = Food_ordersService(db)
     try:
-        result = await service.create(payload)
+        result = await service.create(payload, account_user=account_user)
         if not result:
             raise HTTPException(status_code=400, detail="Failed to create food_orders")
 

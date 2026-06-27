@@ -869,6 +869,23 @@ async def me(
     return _to_user_response(user)
 
 
+@router.get("/bonus-rules")
+async def bonus_rules(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    from services.bonus_spending import bonus_rules_public
+
+    rules = bonus_rules_public()
+    if authorization:
+        try:
+            user = await _current_user(db, authorization)
+            rules = {**rules, "balance": float(user.bonus_balance or 0)}
+        except HTTPException:
+            pass
+    return rules
+
+
 @router.put("/me", response_model=UserV2Response)
 async def update_me(
     request: UserV2UpdateRequest,

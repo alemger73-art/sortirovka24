@@ -5,10 +5,13 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+
+if TYPE_CHECKING:
+    from models.auth import User
 
 from services.food_items import Food_itemsService
 from services.food_restaurants import Food_restaurantsService
@@ -158,6 +161,8 @@ async def validate_food_order(
     delivery_fee_hint: Optional[float] = None,
     service_fee_hint: Optional[float] = None,
     zone_name: Optional[str] = None,
+    account_user: Optional["User"] = None,
+    bonus_points_to_use: Optional[float] = None,
 ) -> Tuple[Dict[str, Any], List[dict], float]:
     """
     Validate order payload against catalog and settings.
@@ -345,16 +350,47 @@ async def validate_food_order(
         )
         raise HTTPException(status_code=400, detail="Сумма заказа не совпадает с каталогом")
 
+    bonus_points_used = 0.0
+    bonus_discount = 0.0
+    requested_bonus = float(bonus_points_to_use or 0)
+    if requested_bonus > 0:
+        from services.bonus_spending import _phones_match, calculate_bonus_discount
+
+        if not account_user:
+            raise HTTPException(status_code=401, detail="Войдите в аккаунт, чтобы списать бонусы")
+        if not _phones_match(account_user.phone, customer_phone):
+            raise HTTPException(status_code=400, detail="Телефон заказа должен совпадать с аккаунтом")
+        bonus_points_used, bonus_discount = calculate_bonus_discount(
+            user=account_user,
+            subtotal=subtotal,
+            total_before_bonus=expected_total,
+            bonus_points_requested=requested_bonus,
+            has_promo=bool(promo_code),
+        )
+        expected_total = round(max(0.0, expected_total - bonus_discount), 2)
+        if abs(expected_total - client_total) > 1:
+            raise HTTPException(status_code=400, detail="Сумма заказа с бонусами не совпадает")
+
     payment_method = (data.get("payment_method") or "cash").strip()
     if payment_method not in VALID_PAYMENT_METHODS:
         raise HTTPException(status_code=400, detail="Некорректный способ оплаты")
 
     sanitized = dict(data)
-    for transient_key in ("promo_code", "apartment_delivery_fee", "delivery_fee", "service_fee", "delivery_zone"):
+    for transient_key in (
+        "promo_code",
+        "apartment_delivery_fee",
+        "delivery_fee",
+        "service_fee",
+        "delivery_zone",
+        "bonus_points_to_use",
+    ):
         sanitized.pop(transient_key, None)
     sanitized["payment_method"] = payment_method
     if not sanitized.get("payment_status"):
         sanitized["payment_status"] = "pending" if payment_method == "cash" else "awaiting_qr_payment"
     sanitized["order_items"] = json.dumps(validated_items, ensure_ascii=False)
     sanitized["total_amount"] = expected_total
+    if bonus_points_used > 0:
+        sanitized["bonus_points_used"] = bonus_points_used
+        sanitized["bonus_discount_amount"] = bonus_discount
     return sanitized, validated_items, expected_total

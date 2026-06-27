@@ -27,6 +27,8 @@ interface FoodOrder {
   payment_method?: string;
   payment_status?: string;
   frontpad_order_number?: string;
+  bonus_points_used?: number;
+  bonus_discount_amount?: number;
   status: string;
   created_at: string;
 }
@@ -346,6 +348,13 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
                       <div className="flex items-start gap-2 text-sm bg-yellow-50 p-2.5 rounded-lg">
                         <MessageSquare className="w-4 h-4 text-yellow-600 mt-0.5" />
                         <span className="text-yellow-800">{order.comment}</span>
+                      </div>
+                    )}
+
+                    {(order.bonus_points_used || 0) > 0 && (
+                      <div className="text-sm text-amber-800 bg-amber-50 rounded-lg px-3 py-2">
+                        Бонусы: −{(order.bonus_discount_amount ?? order.bonus_points_used).toLocaleString()} ₸
+                        {order.bonus_points_used ? ` (${order.bonus_points_used} баллов)` : ''}
                       </div>
                     )}
 

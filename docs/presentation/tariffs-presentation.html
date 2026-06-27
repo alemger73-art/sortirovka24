@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sortirovka24 — Тарифы и монетизация</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy:#060912; --navy2:#0B0F19; --navy3:#141B2D;
+      --blue:#2563EB; --blue-g:#3B82F6;
+      --gold:#FACC15; --emerald:#10B981; --rose:#F43F5E; --violet:#8B5CF6; --amber:#F59E0B;
+      --muted:#94A3B8; --text:#E2E8F0;
+      --sw:297mm; --sh:210mm;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{font-family:'Outfit',system-ui,sans-serif;background:#020617;color:#fff;
+      -webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .slide{width:var(--sw);min-height:var(--sh);margin:0 auto 16px;padding:28px 36px;
+      position:relative;overflow:hidden;page-break-after:always;break-after:page}
+    @page{size:A4 landscape;margin:0}
+    @media print{.no-print{display:none!important}.slide{margin:0;width:var(--sw);min-height:var(--sh);height:auto}}
+
+    .bg-void{background:radial-gradient(ellipse 90% 70% at 70% 0%,rgba(37,99,235,.35),transparent 50%),linear-gradient(180deg,var(--navy),#000)}
+    .bg-dark{background:linear-gradient(145deg,var(--navy2),var(--navy3))}
+    .bg-gold{background:radial-gradient(circle at 100% 0%,rgba(250,204,21,.18),transparent 50%),linear-gradient(160deg,#1a1508,var(--navy2))}
+    .bg-emerald{background:radial-gradient(circle at 0% 100%,rgba(16,185,129,.2),transparent 45%),linear-gradient(160deg,#052e1a,var(--navy2))}
+    .bg-violet{background:radial-gradient(circle at 100% 100%,rgba(139,92,246,.2),transparent 50%),linear-gradient(160deg,#1a0f2e,var(--navy2))}
+    .bg-rose{background:radial-gradient(circle at 0% 0%,rgba(244,63,94,.18),transparent 50%),linear-gradient(160deg,#2a0a12,var(--navy2))}
+    .bg-light{background:linear-gradient(180deg,#f8fafc,#e0e7ff);color:#0f172a}
+
+    .eyebrow{font-size:8px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;
+      color:var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+    .eyebrow::before{content:'';width:20px;height:2px;background:var(--gold)}
+    .eyebrow-green{color:var(--emerald)}.eyebrow-green::before{background:var(--emerald)}
+    .eyebrow-rose{color:var(--rose)}.eyebrow-rose::before{background:var(--rose)}
+    .eyebrow-blue{color:var(--blue-g)}.eyebrow-blue::before{background:var(--blue-g)}
+    .eyebrow-violet{color:var(--violet)}.eyebrow-violet::before{background:var(--violet)}
+
+    h1{font-size:46px;font-weight:900;line-height:.98;letter-spacing:-.03em}
+    h1 em{font-family:'Playfair Display',serif;font-style:italic;color:var(--gold)}
+    h2{font-size:26px;font-weight:800;line-height:1.1;margin-bottom:6px}
+    h3{font-size:13px;font-weight:800;margin-bottom:4px}
+    .lead{font-size:13px;line-height:1.55;color:var(--muted);max-width:95%}
+    .bg-light .lead{color:#64748b}
+    .hl{color:var(--gold)}.hl-g{color:var(--emerald)}.hl-r{color:var(--rose)}.hl-v{color:var(--violet)}
+
+    .footer{position:absolute;bottom:14px;left:36px;right:36px;display:flex;
+      justify-content:space-between;font-size:7px;color:rgba(148,163,184,.55);
+      border-top:1px solid rgba(255,255,255,.06);padding-top:6px}
+    .sn{font-weight:800;color:var(--gold);letter-spacing:.08em}
+    .bg-light .footer{border-color:#e2e8f0;color:#94a3b8}
+    .bg-light .sn{color:var(--blue)}
+
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+
+    .glass{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;padding:14px 16px}
+    .glass-gold{border-color:rgba(250,204,21,.22);background:rgba(250,204,21,.04)}
+    .glass-green{border-color:rgba(16,185,129,.25);background:rgba(16,185,129,.06)}
+    .glass-rose{border-color:rgba(244,63,94,.25);background:rgba(244,63,94,.06)}
+    .glass-violet{border-color:rgba(139,92,246,.25);background:rgba(139,92,246,.06)}
+    .bg-light .glass{background:#fff;border-color:#e2e8f0;box-shadow:0 4px 20px rgba(0,0,0,.05)}
+
+    ul.tick{list-style:none}
+    ul.tick li{font-size:10px;padding:4px 0 4px 20px;position:relative;line-height:1.4}
+    ul.tick li::before{content:'✓';position:absolute;left:0;color:var(--emerald);font-weight:900}
+
+    .badge{display:inline-block;font-size:8px;font-weight:800;padding:4px 10px;border-radius:999px;
+      background:rgba(37,99,235,.2);color:var(--blue-g);border:1px solid rgba(37,99,235,.3);margin-bottom:8px}
+    .badge-gold{background:rgba(250,204,21,.15);color:var(--gold);border-color:rgba(250,204,21,.3)}
+    .badge-green{background:rgba(16,185,129,.15);color:#6ee7b7;border-color:rgba(16,185,129,.3)}
+    .section-tag{font-size:56px;font-weight:900;opacity:.06;position:absolute;right:24px;top:20px;letter-spacing:-.04em}
+
+    /* ── Pricing cards ── */
+    .price-card{border-radius:16px;padding:16px 14px;text-align:center;position:relative;
+      background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);height:100%}
+    .price-card.featured{border-color:rgba(250,204,21,.45);
+      background:linear-gradient(160deg,rgba(250,204,21,.12),rgba(37,99,235,.08));
+      box-shadow:0 0 40px rgba(250,204,21,.08)}
+    .price-card .tag{position:absolute;top:-8px;left:50%;transform:translateX(-50%);
+      font-size:7px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+      background:var(--gold);color:#0f172a;padding:3px 10px;border-radius:999px;white-space:nowrap}
+    .price-card .icon{font-size:28px;margin-bottom:6px;line-height:1}
+    .price-card .amount{font-size:28px;font-weight:900;line-height:1;margin:8px 0 4px}
+    .price-card .amount span{font-size:12px;font-weight:600;color:var(--muted)}
+    .price-card .period{font-size:9px;color:var(--muted);margin-bottom:10px}
+    .price-card ul{list-style:none;text-align:left}
+    .price-card li{font-size:9px;color:var(--muted);padding:3px 0 3px 14px;position:relative;line-height:1.35}
+    .price-card li::before{content:'•';position:absolute;left:0;color:var(--blue-g)}
+
+    .price-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+      padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+    .price-row:last-child{border-bottom:none}
+    .price-row .name{font-size:10px;font-weight:600;flex:1}
+    .price-row .val{font-size:11px;font-weight:800;color:var(--gold);white-space:nowrap}
+    .price-row .val-free{color:var(--emerald)}
+    .bg-light .price-row{border-color:#e2e8f0}
+    .bg-light .price-row .val{color:var(--blue)}
+
+    .tbl{width:100%;border-collapse:collapse;font-size:9px;margin-top:8px}
+    .tbl th{text-align:left;padding:8px 10px;font-weight:800;color:var(--gold);
+      border-bottom:1px solid rgba(255,255,255,.12);font-size:8px;letter-spacing:.06em;text-transform:uppercase}
+    .tbl td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.05);color:var(--muted);vertical-align:top}
+    .tbl td:first-child{font-weight:600;color:var(--text)}
+    .tbl td.price{font-weight:800;color:var(--gold);white-space:nowrap;text-align:right}
+    .tbl tr:last-child td{border-bottom:none}
+    .bg-light .tbl th{color:var(--blue);border-color:#e2e8f0}
+    .bg-light .tbl td{border-color:#f1f5f9;color:#64748b}
+    .bg-light .tbl td:first-child{color:#0f172a}
+    .bg-light .tbl td.price{color:var(--blue)}
+
+    .metric{text-align:center;padding:14px}
+    .metric .num{font-size:32px;font-weight:900;line-height:1}
+    .metric .lbl{font-size:9px;color:var(--muted);margin-top:6px;line-height:1.4}
+
+    .steps{display:flex;gap:8px;margin-top:12px}
+    .step{flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;padding:10px;text-align:center}
+    .step-num{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;
+      font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;margin:0 auto 6px}
+    .step p{font-size:9px;color:var(--muted);line-height:1.35}
+
+    .cta-box{margin-top:14px;padding:16px 20px;border-radius:16px;
+      background:linear-gradient(135deg,rgba(37,99,235,.25),rgba(250,204,21,.12));
+      border:1px solid rgba(250,204,21,.25);text-align:center}
+    .cta-box h3{font-size:16px;margin-bottom:4px}
+    .cta-box p{font-size:11px;color:var(--muted)}
+
+    .pill-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+    .pill{font-size:8px;font-weight:700;padding:5px 12px;border-radius:999px;
+      background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--muted)}
+    .pill-free{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.25);color:#6ee7b7}
+
+    .bar-chart{display:flex;align-items:flex-end;gap:8px;height:100px;margin-top:12px;padding-top:8px}
+    .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+    .bar{width:100%;border-radius:6px 6px 0 0;min-height:4px;
+      background:linear-gradient(180deg,var(--blue-g),rgba(37,99,235,.4))}
+    .bar.gold{background:linear-gradient(180deg,var(--gold),rgba(250,204,21,.4))}
+    .bar.green{background:linear-gradient(180deg,var(--emerald),rgba(16,185,129,.4))}
+    .bar-col .lbl{font-size:7px;color:var(--muted);text-align:center;line-height:1.2}
+    .bar-col .amt{font-size:8px;font-weight:800;color:var(--gold)}
+
+    @media screen{
+      html{scroll-snap-type:y mandatory;height:100%;scroll-padding-top:36px}
+      body{padding:0;margin:0;overflow-x:hidden}
+      .slide{
+        width:100vw;min-height:100vh;height:100vh;max-width:none;margin:0;
+        padding:clamp(32px,4vw,60px) clamp(36px,5vw,72px) clamp(52px,6vw,80px);
+        display:flex;flex-direction:column;justify-content:center;
+        scroll-snap-align:start;scroll-snap-stop:always
+      }
+      .slide.dense{justify-content:flex-start;padding-top:clamp(44px,6vh,68px)}
+      .eyebrow{font-size:13px!important;margin-bottom:14px!important}
+      h1{font-size:clamp(40px,6vw,72px)!important}
+      h2{font-size:clamp(24px,3.2vw,44px)!important}
+      .lead{font-size:clamp(14px,1.4vw,18px)!important}
+      .price-card .amount{font-size:clamp(24px,2.5vw,36px)!important}
+      .tbl{font-size:clamp(11px,1.1vw,14px)!important}
+      .tbl th{font-size:clamp(9px,0.9vw,11px)!important}
+      .nav-bar{position:fixed;bottom:0;left:0;right:0;z-index:99;
+        background:rgba(6,9,18,.95);backdrop-filter:blur(12px);
+        border-top:1px solid rgba(255,255,255,.08);padding:12px 24px;
+        display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:center}
+      .nav-bar button,.nav-bar a{font-family:inherit;font-size:12px;font-weight:700;
+        padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.15);
+        background:rgba(255,255,255,.06);color:#fff;cursor:pointer;text-decoration:none}
+      .nav-bar button.active,.nav-bar a.active{background:var(--blue);border-color:var(--blue)}
+      .slide-nav{position:fixed;bottom:72px;right:24px;z-index:998;display:flex;gap:8px;align-items:center;
+        background:rgba(6,9,18,.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1);
+        border-radius:999px;padding:8px 14px;font-size:12px;color:var(--muted)}
+      .slide-nav kbd{background:rgba(255,255,255,.08);padding:2px 8px;border-radius:6px;color:#fff;font-weight:700}
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ 01 COVER ═══ -->
+<section class="slide bg-void" data-audience="all">
+  <div class="eyebrow">Sortirovka24 · Тарифная политика v1.0</div>
+  <h1>Тарифы<br><em>платформы</em> района</h1>
+  <p class="lead" style="margin-top:14px;max-width:65%">
+    Полный прайс монетизации: объявления, недвижимость, партнёры, DAM ALEM, такси, курьер и реклама.
+    Жителям — бесплатно. Бизнес платит за клиентов и видимость.
+  </p>
+  <div class="pill-row" style="margin-top:20px">
+    <span class="pill-free">✓ Жителям — 0 ₸</span>
+    <span class="pill">Объявления от 300 ₸</span>
+    <span class="pill">Партнёры от 3%</span>
+    <span class="pill">Цель: 2–3 млн ₸/мес</span>
+  </div>
+  <div class="footer"><span>Sortirovka24 · микрорайон Сортировка, Караганда · 2026</span><span class="sn">01 / 14</span></div>
+</section>
+
+<!-- ═══ 02 PRINCIPLES ═══ -->
+<section class="slide bg-dark dense" data-audience="all">
+  <div class="eyebrow-blue">Принципы</div>
+  <h2>Как устроена <span class="hl">монетизация</span></h2>
+  <div class="grid3" style="margin-top:16px">
+    <div class="glass glass-gold">
+      <h3>👨‍👩‍👧 Жители</h3>
+      <p style="font-size:10px;color:var(--muted);margin-top:8px;line-height:1.5">Приложение, регистрация, новости, транспорт, жалобы — <strong style="color:var(--emerald)">всегда бесплатно</strong>. Платят только за публикацию и продвижение.</p>
+    </div>
+    <div class="glass glass-green">
+      <h3>🏪 Бизнес</h3>
+      <p style="font-size:10px;color:var(--muted);margin-top:8px;line-height:1.5">Подключение + абонент <strong>или</strong> % с заказа — <strong style="color:var(--gold)">что больше</strong>. Первые партнёры — льготный период.</p>
+    </div>
+    <div class="glass glass-violet">
+      <h3>🍔 DAM ALEM</h3>
+      <p style="font-size:10px;color:var(--muted);margin-top:8px;line-height:1.5">Собственный бизнес: маржа кухни + сервисный сбор 10% + доставка. Главный двигатель выручки.</p>
+    </div>
+  </div>
+  <div class="grid4" style="margin-top:12px">
+    <div class="glass metric"><div class="num" style="color:var(--gold)">10</div><div class="lbl">источников дохода</div></div>
+    <div class="glass metric"><div class="num" style="color:var(--emerald)">300 ₸</div><div class="lbl">мин. объявление</div></div>
+    <div class="glass metric"><div class="num" style="color:var(--blue-g)">5%</div><div class="lbl">стандарт партнёра</div></div>
+    <div class="glass metric"><div class="num" style="color:var(--rose)">15%</div><div class="lbl">комиссия такси</div></div>
+  </div>
+  <div class="footer"><span>Оплата: Kaspi QR · перевод · позже — в приложении</span><span class="sn">02 / 14</span></div>
+</section>
+
+<!-- ═══ 03 ANNOUNCEMENTS ═══ -->
+<section class="slide bg-gold dense" data-audience="residents">
+  <div class="section-tag">300 ₸</div>
+  <div class="eyebrow">Объявления</div>
+  <h2>Доска объявлений · <span class="hl">/announcements</span></h2>
+  <div class="grid2" style="margin-top:12px">
+    <div>
+      <div class="badge badge-green">Бесплатно</div>
+      <div class="glass glass-green" style="margin-bottom:10px">
+        <ul class="tick">
+          <li>Отдам бесплатно — 14 дней</li>
+          <li>Куплю — 14 дней</li>
+          <li>Просмотр всех объявлений</li>
+        </ul>
+      </div>
+      <table class="tbl">
+        <thead><tr><th>Категория</th><th>Цена</th><th>Срок</th></tr></thead>
+        <tbody>
+          <tr><td>Продам</td><td class="price">300 ₸</td><td>7 дней</td></tr>
+          <tr><td>Услуги</td><td class="price">300 ₸</td><td>7 дней</td></tr>
+          <tr><td>Сдам (не жильё)</td><td class="price">300 ₸</td><td>7 дней</td></tr>
+          <tr><td>Другое</td><td class="price">300 ₸</td><td>7 дней</td></tr>
+          <tr><td>Продление</td><td class="price">+300 ₸</td><td>+7 дней</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="badge badge-gold">Продвижение</div>
+      <div class="glass glass-gold">
+        <div class="price-row"><span class="name">⬆️ Поднять в топ</span><span class="val">500 ₸</span></div>
+        <div class="price-row"><span class="name">✨ Выделить (рамка + бейдж)</span><span class="val">800 ₸</span></div>
+        <div class="price-row"><span class="name">🔥 Топ недели + блок «Горячее»</span><span class="val">2 000 ₸</span></div>
+        <div class="price-row"><span class="name">📲 Push по району</span><span class="val">3 000 ₸</span></div>
+        <div class="price-row" style="margin-top:8px;padding-top:12px;border-top:1px solid rgba(250,204,21,.2)">
+          <span class="name"><strong>Пакет «Быстрая продажа»</strong><br><span style="font-size:8px;color:var(--muted)">размещение + топ недели</span></span>
+          <span class="val">2 200 ₸</span>
+        </div>
+      </div>
+      <p class="lead" style="margin-top:12px;font-size:10px">Квартиры и дома — в модуле «Недвижимость» (отдельный тариф).</p>
+    </div>
+  </div>
+  <div class="footer"><span>Модуль announcements · до 5 фото</span><span class="sn">03 / 14</span></div>
+</section>
+
+<!-- ═══ 04 REAL ESTATE ═══ -->
+<section class="slide bg-violet dense" data-audience="residents">
+  <div class="section-tag">ЖИЛЬЁ</div>
+  <div class="eyebrow-violet">Недвижимость</div>
+  <h2>Квартиры и дома · <span class="hl-v">/real-estate</span></h2>
+  <div class="grid2" style="margin-top:12px">
+    <div>
+      <table class="tbl">
+        <thead><tr><th>Тип</th><th>Размещение</th><th>Срок</th></tr></thead>
+        <tbody>
+          <tr><td>Сдам квартиру</td><td class="price">2 000 ₸</td><td>14 дней</td></tr>
+          <tr><td>Продам квартиру</td><td class="price">3 000 ₸</td><td>30 дней</td></tr>
+          <tr><td>Сдам / продам дом</td><td class="price">2 500–4 000 ₸</td><td>14–30 дней</td></tr>
+          <tr><td>Коммерческая</td><td class="price">3 500 ₸</td><td>30 дней</td></tr>
+          <tr><td>Участок</td><td class="price">2 500 ₸</td><td>30 дней</td></tr>
+          <tr><td>Сниму квартиру</td><td class="price" style="color:var(--emerald)">Бесплатно</td><td>14 дней</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="glass glass-violet">
+        <h3 style="margin-bottom:10px">Продвижение</h3>
+        <div class="price-row"><span class="name">Поднять</span><span class="val">1 000 ₸</span></div>
+        <div class="price-row"><span class="name">VIP-карточка (до 10 фото)</span><span class="val">5 000 ₸</span></div>
+        <div class="price-row"><span class="name">VIP + push</span><span class="val">8 000 ₸</span></div>
+        <div class="price-row"><span class="name">Закрепить на главной</span><span class="val">6 000 ₸</span></div>
+      </div>
+      <div class="grid2" style="margin-top:10px;gap:8px">
+        <div class="price-card">
+          <div class="icon">🏠</div>
+          <h3>Риелтор Старт</h3>
+          <div class="amount">15 000 <span>₸/мес</span></div>
+          <div class="period">5 объявлений + 2 поднятия</div>
+        </div>
+        <div class="price-card featured">
+          <div class="tag">Выгодно</div>
+          <div class="icon">🏢</div>
+          <h3>Риелтор Про</h3>
+          <div class="amount">35 000 <span>₸/мес</span></div>
+          <div class="period">15 объявлений + 5 VIP</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>Модуль real_estate · модерация объявлений</span><span class="sn">04 / 14</span></div>
+</section>
+
+<!-- ═══ 05 JOBS MASTERS ═══ -->
+<section class="slide bg-dark dense" data-audience="residents">
+  <div class="grid2">
+    <div>
+      <div class="eyebrow-rose">Вакансии</div>
+      <h2>Работа · <span class="hl-r">/jobs</span></h2>
+      <table class="tbl" style="margin-top:10px">
+        <tbody>
+          <tr><td>Размещение вакансии</td><td class="price">500 ₸</td><td>14 дней</td></tr>
+          <tr><td>Бейдж «Срочно»</td><td class="price">+800 ₸</td><td>7 дней</td></tr>
+          <tr><td>Топ вакансий</td><td class="price">1 500 ₸</td><td>7 дней</td></tr>
+          <tr><td>Безлимит работодатель</td><td class="price">10 000 ₸</td><td>до 10 вак.</td></tr>
+        </tbody>
+      </table>
+      <p class="lead" style="margin-top:10px;font-size:9px">Отклики соискателей — бесплатно.</p>
+    </div>
+    <div>
+      <div class="eyebrow-green">Мастера и салоны</div>
+      <h2>Каталог · <span class="hl-g">/masters</span></h2>
+      <div class="glass glass-green" style="margin-top:10px;margin-bottom:10px">
+        <p style="font-size:10px;color:var(--muted);line-height:1.5"><strong style="color:#6ee7b7">Базовое размещение — бесплатно.</strong> Заявки, звонки, WhatsApp — без комиссии.</p>
+      </div>
+      <div class="grid3" style="gap:8px">
+        <div class="price-card">
+          <div class="icon">🔧</div>
+          <h3>Профи</h3>
+          <div class="amount">5 000<span> ₸</span></div>
+          <div class="period">/ месяц</div>
+          <ul><li>Бейдж «Проверен»</li><li>Выше в списке</li></ul>
+        </div>
+        <div class="price-card featured">
+          <div class="tag">Топ</div>
+          <div class="icon">⭐</div>
+          <h3>Топ мастер</h3>
+          <div class="amount">8 000<span> ₸</span></div>
+          <div class="period">/ месяц</div>
+          <ul><li>Топ категории</li><li>На главной</li></ul>
+        </div>
+        <div class="price-card">
+          <div class="icon">📢</div>
+          <h3>Баннер</h3>
+          <div class="amount">12 000<span> ₸</span></div>
+          <div class="period">/ месяц</div>
+          <ul><li>Раздел мастеров</li><li>Разовое: 700 ₸</li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>Модули jobs · masters · salons</span><span class="sn">05 / 14</span></div>
+</section>
+
+<!-- ═══ 06 PARTNERS ═══ -->
+<section class="slide bg-partner dense" data-audience="partners" style="background:radial-gradient(circle at 0% 100%,rgba(250,204,21,.12),transparent 45%),linear-gradient(160deg,#0a1628,var(--navy2))">
+  <div class="section-tag">B2B</div>
+  <div class="eyebrow">Партнёры</div>
+  <h2>Тарифы для <span class="hl">бизнеса</span></h2>
+  <p class="lead" style="margin-bottom:12px">Магазин · аптека · прораб · ресторан. Платится <strong>большее</strong>: абонент или % с заказа.</p>
+  <div class="grid3" style="gap:12px">
+    <div class="price-card">
+      <div class="icon">🌱</div>
+      <h3>Старт</h3>
+      <div class="amount">0 <span>₸</span></div>
+      <div class="period">3 месяца · затем 3% с заказа</div>
+      <ul>
+        <li>Первые партнёры района</li>
+        <li>Каталог + Telegram</li>
+        <li>Кабинет партнёра</li>
+      </ul>
+    </div>
+    <div class="price-card featured">
+      <div class="tag">Популярный</div>
+      <div class="icon">🛒</div>
+      <h3>Стандарт</h3>
+      <div class="amount">15 000 <span>₸</span></div>
+      <div class="period">/ мес или 5% с заказа</div>
+      <ul>
+        <li>Гастроном · аптека</li>
+        <li>Аналитика заказов</li>
+        <li>Техподдержка</li>
+      </ul>
+    </div>
+    <div class="price-card">
+      <div class="icon">👑</div>
+      <h3>Эксклюзив</h3>
+      <div class="amount">50 000 <span>₸</span></div>
+      <div class="period">/ мес + 3% с заказа</div>
+      <ul>
+        <li>Единственный в категории</li>
+        <li>Главная + 1 push/мес</li>
+        <li>Приоритет поддержки</li>
+      </ul>
+    </div>
+  </div>
+  <div class="glass glass-gold" style="margin-top:12px">
+    <div class="grid4" style="gap:8px;font-size:9px;text-align:center">
+      <div><strong>Подключение магазин</strong><br><span style="color:var(--gold);font-size:12px;font-weight:800">30 000 ₸</span></div>
+      <div><strong>Подключение аптека</strong><br><span style="color:var(--gold);font-size:12px;font-weight:800">30 000 ₸</span></div>
+      <div><strong>Подключение прораб</strong><br><span style="color:var(--gold);font-size:12px;font-weight:800">20 000 ₸</span></div>
+      <div><strong>Ресторан (не DAM ALEM)</strong><br><span style="color:var(--gold);font-size:12px;font-weight:800">40 000 ₸</span></div>
+    </div>
+    <p style="font-size:8px;color:var(--muted);margin-top:8px;text-align:center">Первым 3 партнёрам — скидка 50% на подключение</p>
+  </div>
+  <div class="footer"><span>Модули gastronom · pharmacy · prorab · food</span><span class="sn">06 / 14</span></div>
+</section>
+
+<!-- ═══ 07 DAM ALEM ═══ -->
+<section class="slide bg-emerald dense" data-audience="food">
+  <div class="section-tag">DAM ALEM</div>
+  <div class="eyebrow-green">Собственный бизнес</div>
+  <h2>DAM ALEM · <span class="hl-g">/food</span></h2>
+  <div class="grid2" style="margin-top:12px">
+    <div>
+      <table class="tbl">
+        <thead><tr><th>Параметр</th><th>Значение</th></tr></thead>
+        <tbody>
+          <tr><td>Минимальный заказ</td><td class="price">2 000 ₸</td></tr>
+          <tr><td>Доставка (центр)</td><td class="price">500 ₸</td></tr>
+          <tr><td>Доставка (окраина)</td><td class="price">800 ₸</td></tr>
+          <tr><td>Доставка (пригород)</td><td class="price">1 200 ₸</td></tr>
+          <tr><td>Бесплатная доставка от</td><td class="price">15 000 ₸</td></tr>
+          <tr><td>Сервисный сбор</td><td class="price">10%</td></tr>
+          <tr><td>Доставка до квартиры</td><td class="price">+300 ₸</td></tr>
+        </tbody>
+      </table>
+      <div class="glass glass-green" style="margin-top:10px">
+        <p style="font-size:10px;color:var(--muted);line-height:1.5">Доход = <strong style="color:#6ee7b7">маржа кухни</strong> + сервисный сбор + доставка. Главный источник выручки платформы.</p>
+      </div>
+    </div>
+    <div>
+      <div class="badge badge-green">Пример: 40 заказов/день</div>
+      <div class="grid2" style="gap:8px">
+        <div class="glass metric"><div class="num" style="color:var(--emerald);font-size:24px">1 500</div><div class="lbl">заказов/мес</div></div>
+        <div class="glass metric"><div class="num" style="color:var(--gold);font-size:24px">9 000 ₸</div><div class="lbl">средний чек</div></div>
+        <div class="glass metric"><div class="num" style="color:var(--blue-g);font-size:24px">13.5 млн</div><div class="lbl">оборот/мес</div></div>
+        <div class="glass metric"><div class="num" style="color:var(--gold);font-size:24px">~1.2 млн</div><div class="lbl">ваш доход/мес*</div></div>
+      </div>
+      <p style="font-size:8px;color:var(--muted);margin-top:8px">* маржа ~25% + 10% сервисный сбор, оценочно</p>
+      <div class="bar-chart">
+        <div class="bar-col"><div class="bar green" style="height:85%"></div><div class="amt">1.2M</div><div class="lbl">DAM ALEM</div></div>
+        <div class="bar-col"><div class="bar" style="height:12%"></div><div class="amt">165K</div><div class="lbl">Партнёры</div></div>
+        <div class="bar-col"><div class="bar gold" style="height:6%"></div><div class="amt">71K</div><div class="lbl">Объявл.</div></div>
+        <div class="bar-col"><div class="bar" style="height:5%"></div><div class="amt">80K</div><div class="lbl">Жильё</div></div>
+        <div class="bar-col"><div class="bar" style="height:4%"></div><div class="amt">132K</div><div class="lbl">Такси+кур.</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>FrontPad · Telegram · курьеры · loyalty</span><span class="sn">07 / 14</span></div>
+</section>
+
+<!-- ═══ 08 TAXI COURIER ═══ -->
+<section class="slide bg-dark dense" data-audience="logistics">
+  <div class="grid2">
+    <div>
+      <div class="eyebrow-blue">Такси</div>
+      <h2>Поездки · <span class="hl">/taxi</span></h2>
+      <table class="tbl" style="margin-top:10px">
+        <tbody>
+          <tr><td>Посадка</td><td class="price">500 ₸</td></tr>
+          <tr><td>За км</td><td class="price">150 ₸</td></tr>
+          <tr><td>Минимум поездки</td><td class="price">800 ₸</td></tr>
+          <tr><td>Ожидание / мин</td><td class="price">25 ₸</td></tr>
+          <tr><td><strong>Комиссия платформы</strong></td><td class="price">15%</td></tr>
+          <tr><td>Минимум с поездки</td><td class="price">100 ₸</td></tr>
+          <tr><td>Водителю</td><td class="price" style="color:var(--emerald)">85%</td></tr>
+        </tbody>
+      </table>
+      <div class="glass" style="margin-top:10px;font-size:9px;color:var(--muted)">
+        Пример: поездка <strong style="color:#fff">1 200 ₸</strong> → платформе <strong style="color:var(--gold)">180 ₸</strong>, водителю <strong style="color:var(--emerald)">1 020 ₸</strong>
+      </div>
+    </div>
+    <div>
+      <div class="eyebrow-green">Курьер</div>
+      <h2>Доставка · <span class="hl-g">/delivery</span></h2>
+      <div class="glass glass-green" style="margin-bottom:10px">
+        <h3 style="margin-bottom:8px">Ваш курьер</h3>
+        <div class="price-row"><span class="name">Клиент платит</span><span class="val">500–1 200 ₸</span></div>
+        <div class="price-row"><span class="name">Курьер получает</span><span class="val val-free">65%</span></div>
+        <div class="price-row"><span class="name">Платформа</span><span class="val">35%</span></div>
+      </div>
+      <div class="glass">
+        <h3 style="margin-bottom:8px">Магазин доставляет сам</h3>
+        <div class="price-row"><span class="name">Комиссия платформы</span><span class="val">3%</span></div>
+        <div class="price-row"><span class="name">Минимум с заказа</span><span class="val">150 ₸</span></div>
+      </div>
+      <div class="glass glass-gold" style="margin-top:10px;font-size:9px">
+        <strong style="color:var(--gold)">Премиум водитель</strong> — приоритет заказов: <strong>3 000 ₸/мес</strong> (опционально)
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>Модули taxi · logistics · cabinet/driver · cabinet/courier</span><span class="sn">08 / 14</span></div>
+</section>
+
+<!-- ═══ 09 ADVERTISING ═══ -->
+<section class="slide bg-rose dense" data-audience="ads">
+  <div class="section-tag">ADS</div>
+  <div class="eyebrow-rose">Реклама</div>
+  <h2>Размещение для <span class="hl-r">рекламодателей</span></h2>
+  <div class="grid3" style="margin-top:14px">
+    <div class="price-card">
+      <div class="icon">🏠</div>
+      <h3>Баннер главная</h3>
+      <div class="amount">25 000 <span>₸</span></div>
+      <div class="period">7 дней</div>
+    </div>
+    <div class="price-card">
+      <div class="icon">⭐</div>
+      <h3>Плитка «Рекомендуем»</h3>
+      <div class="amount">20 000 <span>₸</span></div>
+      <div class="period">14 дней</div>
+    </div>
+    <div class="price-card">
+      <div class="icon">📲</div>
+      <h3>Push по району</h3>
+      <div class="amount">15 000 <span>₸</span></div>
+      <div class="period">1 рассылка</div>
+    </div>
+    <div class="price-card">
+      <div class="icon">🍔</div>
+      <h3>Баннер в разделе</h3>
+      <div class="amount">12 000 <span>₸</span></div>
+      <div class="period">14 дней</div>
+    </div>
+    <div class="price-card">
+      <div class="icon">📰</div>
+      <h3>Спонсор новости</h3>
+      <div class="amount">10 000 <span>₸</span></div>
+      <div class="period">1 публикация</div>
+    </div>
+    <div class="price-card featured">
+      <div class="tag">Пакет −25%</div>
+      <div class="icon">🚀</div>
+      <h3>Доминируй район</h3>
+      <div class="amount">45 000 <span>₸</span></div>
+      <div class="period">главная + push + баннер</div>
+    </div>
+  </div>
+  <p class="lead" style="margin-top:12px;text-align:center;font-size:10px">Для банков, Kaspi, застройщиков, крупного локального бизнеса</p>
+  <div class="footer"><span>AdminBanners · push · модерация</span><span class="sn">09 / 14</span></div>
+</section>
+
+<!-- ═══ 10 FREE ═══ -->
+<section class="slide bg-light dense" data-audience="all">
+  <div class="eyebrow-blue" style="color:var(--blue)">Для жителей</div>
+  <h2 style="color:#0f172a">Всегда <span style="color:var(--blue)">бесплатно</span></h2>
+  <div class="grid3" style="margin-top:14px">
+    <div class="glass"><h3 style="color:#0f172a">📱 Приложение</h3><p style="font-size:9px;color:#64748b;margin-top:6px;line-height:1.5">Регистрация, личный кабинет, бонусы, история заказов</p></div>
+    <div class="glass"><h3 style="color:#0f172a">📰 Контент</h3><p style="font-size:9px;color:#64748b;margin-top:6px;line-height:1.5">Новости, транспорт, справочник, жалобы ЖКХ, история района</p></div>
+    <div class="glass"><h3 style="color:#0f172a">👀 Просмотр</h3><p style="font-size:9px;color:#64748b;margin-top:6px;line-height:1.5">Все объявления, каталоги, мастера — без подписки</p></div>
+    <div class="glass"><h3 style="color:#0f172a">🎁 Отдам / Куплю</h3><p style="font-size:9px;color:#64748b;margin-top:6px;line-height:1.5">Бесплатные категории объявлений · «Сниму» в недвижимости</p></div>
+    <div class="glass"><h3 style="color:#0f172a">🔧 Мастера (база)</h3><p style="font-size:9px;color:#64748b;margin-top:6px;line-height:1.5">Каталог после модерации — звонки без комиссии</p></div>
+    <div class="glass"><h3 style="color:#0f172a">🚕 Вызов такси</h3><p style="font-size:9px;color:#64748b;margin-top:6px;line-height:1.5">Платите за поездку, не за приложение</p></div>
+  </div>
+  <div class="cta-box" style="margin-top:16px;background:linear-gradient(135deg,rgba(37,99,235,.08),rgba(16,185,129,.08));border-color:#e2e8f0">
+    <h3 style="color:#0f172a">Sortirovka24 — бесплатный портал района</h3>
+    <p style="color:#64748b">Монетизация не мешает жителям — платят те, кто продаёт, рекламирует и зарабатывает на клиентах</p>
+  </div>
+  <div class="footer"><span>Принцип конституции проекта · локальность и доверие</span><span class="sn">10 / 14</span></div>
+</section>
+
+<!-- ═══ 11 REVENUE ═══ -->
+<section class="slide bg-void dense" data-audience="all">
+  <div class="eyebrow">Прогноз</div>
+  <h2>Доход <span class="hl">1 район</span> · зрелая фаза</h2>
+  <table class="tbl" style="margin-top:12px">
+    <thead><tr><th>Источник</th><th>Расчёт</th><th style="text-align:right">₸/мес</th></tr></thead>
+    <tbody>
+      <tr><td>DAM ALEM</td><td>40 зак/день · маржа + 10% сбор</td><td class="price">~1 200 000</td></tr>
+      <tr><td>Партнёры</td><td>6 × 15 000 + 5% с 1.5 млн оборота</td><td class="price">~165 000</td></tr>
+      <tr><td>Объявления</td><td>120 × 300 + продвижение</td><td class="price">~71 000</td></tr>
+      <tr><td>Недвижимость</td><td>20 объявлений + VIP + риелтор</td><td class="price">~80 000</td></tr>
+      <tr><td>Такси + курьер</td><td>400 поездок + 300 доставок</td><td class="price">~132 000</td></tr>
+      <tr><td>Мастера + вакансии</td><td>5 профи + 15 вакансий</td><td class="price">~51 000</td></tr>
+      <tr><td>Реклама</td><td>2 баннера + 1 push</td><td class="price">~65 000</td></tr>
+      <tr style="background:rgba(250,204,21,.08)"><td><strong>ИТОГО</strong></td><td><strong>Sortirovka · 10 000+ жителей</strong></td><td class="price" style="font-size:14px">≈ 1 765 000 ₸</td></tr>
+    </tbody>
+  </table>
+  <div class="grid3" style="margin-top:12px">
+    <div class="glass metric"><div class="num" style="color:var(--gold)">2–3 млн</div><div class="lbl">цель при 50+ заказах/день DAM ALEM</div></div>
+    <div class="glass metric"><div class="num" style="color:var(--emerald)">×3</div><div class="lbl">района = 2.5+ млн стабильно</div></div>
+    <div class="glass metric"><div class="num" style="color:var(--blue-g)">68%</div><div class="lbl">дохода — DAM ALEM + партнёры</div></div>
+  </div>
+  <div class="footer"><span>Консервативная модель · v1.0 · 2026</span><span class="sn">11 / 14</span></div>
+</section>
+
+<!-- ═══ 12 LAUNCH ═══ -->
+<section class="slide bg-partner dense" data-audience="all" style="background:radial-gradient(circle at 100% 0%,rgba(37,99,235,.15),transparent 50%),linear-gradient(160deg,#0a1628,var(--navy2))">
+  <div class="eyebrow">Запуск</div>
+  <h2>План <span class="hl">включения тарифов</span></h2>
+  <div class="steps" style="margin-top:16px">
+    <div class="step">
+      <div class="step-num">1</div>
+      <p><strong>Мес 1–2</strong><br>Объявления и жильё <span style="color:var(--emerald)">бесплатно</span><br>Партнёры: 0 ₸ + 3%</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <p><strong>Мес 3</strong><br>Объявления <span style="color:var(--gold)">300 ₸</span><br>Жильё промо <span style="color:var(--gold)">1 000 ₸</span></p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <p><strong>Мес 4</strong><br>Полный прайс<br>Партнёры: 15 000 или 5%</p>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <p><strong>Мес 6+</strong><br>VIP, push, рекламные слоты<br>Риелторские абонементы</p>
+    </div>
+  </div>
+  <div class="grid2" style="margin-top:16px">
+    <div class="glass glass-gold">
+      <h3>Не делать на старте</h3>
+      <ul class="tick" style="margin-top:8px">
+        <li style="color:var(--muted)">Комиссия 15–20% — партнёры уйдут в WhatsApp</li>
+        <li style="color:var(--muted)">Платить за регистрацию жителей</li>
+        <li style="color:var(--muted)">Включить всё платным в один день</li>
+      </ul>
+    </div>
+    <div class="glass glass-green">
+      <h3>Фокус первых 90 дней</h3>
+      <ul class="tick" style="margin-top:8px">
+        <li>500+ регистраций жителей</li>
+        <li>3 якорных партнёра (еда, магазин, аптека)</li>
+        <li>20+ заказов/день через приложение</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer"><span>Тарифная политика v1.0 · поэтапный rollout</span><span class="sn">12 / 14</span></div>
+</section>
+
+<!-- ═══ 13 SUMMARY ═══ -->
+<section class="slide bg-light dense" data-audience="all">
+  <div class="eyebrow-blue" style="color:var(--blue)">Сводка</div>
+  <h2 style="color:#0f172a">Все тарифы <span style="color:var(--blue)">одной таблицей</span></h2>
+  <table class="tbl">
+    <thead><tr><th>Направление</th><th>Базовая цена</th><th>Доп. услуги</th></tr></thead>
+    <tbody>
+      <tr><td>Объявление</td><td class="price">300 ₸ / 7 дн</td><td>поднять 500 ₸ · топ 2 000 ₸</td></tr>
+      <tr><td>Квартира / дом</td><td class="price">2 000–4 000 ₸</td><td>VIP 5 000 ₸ · push 8 000 ₸</td></tr>
+      <tr><td>Вакансия</td><td class="price">500 ₸ / 14 дн</td><td>срочная +800 ₸</td></tr>
+      <tr><td>Мастер Профи</td><td class="price">5 000 ₸/мес</td><td>топ 8 000 ₸</td></tr>
+      <tr><td>Партнёр Стандарт</td><td class="price">15 000 ₸ или 5%</td><td>подключение 20–40 тыс.</td></tr>
+      <tr><td>DAM ALEM</td><td class="price">маржа + 10%</td><td>доставка 500–1 200 ₸</td></tr>
+      <tr><td>Такси</td><td class="price">15% с поездки</td><td>мин. 100 ₸</td></tr>
+      <tr><td>Курьер</td><td class="price">35% от доставки</td><td>или 3% если свой курьер магазина</td></tr>
+      <tr><td>Реклама</td><td class="price">от 10 000 ₸</td><td>пакет 45 000 ₸</td></tr>
+    </tbody>
+  </table>
+  <div class="footer"><span>Sortirovka24 · tariffs v1.0</span><span class="sn">13 / 14</span></div>
+</section>
+
+<!-- ═══ 14 CTA ═══ -->
+<section class="slide bg-void" data-audience="all">
+  <div class="eyebrow">Следующий шаг</div>
+  <h1>Готовы<br><em>подключиться?</em></h1>
+  <div class="cta-box" style="margin-top:20px;max-width:560px">
+    <h3>Заявка и вопросы по тарифам</h3>
+    <p>В приложении: раздел «Для бизнеса» → форма<br>
+    WhatsApp: +7 747 030 4096<br>
+    Сайт: sortirovka24-production-8788.up.railway.app</p>
+  </div>
+  <div class="grid3" style="margin-top:20px;max-width:560px">
+    <div class="glass glass-gold"><h3>🛒 Партнёр</h3><p style="font-size:9px;color:var(--muted);margin-top:4px">3 мес бесплатно · затем 5%</p></div>
+    <div class="glass glass-green"><h3>📢 Объявление</h3><p style="font-size:9px;color:var(--muted);margin-top:4px">от 300 ₸ · поднять 500 ₸</p></div>
+    <div class="glass glass-violet"><h3>🏠 Жильё</h3><p style="font-size:9px;color:var(--muted);margin-top:4px">от 2 000 ₸ · VIP 5 000 ₸</p></div>
+  </div>
+  <div class="footer"><span>Sortirovka24 · tariffs-presentation · 2026</span><span class="sn">14 / 14</span></div>
+</section>
+
+<nav class="no-print nav-bar" id="nav">
+  <span style="font-size:11px;color:var(--muted);margin-right:8px">Показать:</span>
+  <button type="button" class="active" data-filter="all">Все слайды</button>
+  <button type="button" data-filter="residents">Жители</button>
+  <button type="button" data-filter="partners">Партнёры</button>
+  <button type="button" data-filter="food">DAM ALEM</button>
+  <button type="button" data-filter="logistics">Такси / курьер</button>
+  <button type="button" data-filter="ads">Реклама</button>
+  <a href="partner-presentation.html">Партнёрам</a>
+  <a href="sortirovka24-presentation.html">О проекте</a>
+  <button type="button" onclick="window.print()">📄 PDF / Печать</button>
+</nav>
+<div class="slide-nav no-print" id="slideNav"><span id="slideCounter">1 / 14</span><span style="opacity:.4">·</span><kbd>←</kbd><kbd>→</kbd></div>
+
+<script>
+(function(){
+  const slides = document.querySelectorAll('.slide[data-audience]');
+  const btns = document.querySelectorAll('#nav button[data-filter]');
+  const counter = document.getElementById('slideCounter');
+  function visibleSlides(){return [].slice.call(slides).filter(s=>s.style.display!=='none');}
+  function applyFilter(f){
+    btns.forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+    slides.forEach(s => {
+      const a = s.dataset.audience;
+      s.style.display = (f === 'all' || a === 'all' || a === f) ? '' : 'none';
+    });
+    updateCounter();
+  }
+  function idx(list){
+    const y=window.scrollY+window.innerHeight/2;
+    return list.findIndex((s,i)=>s.offsetTop<=y&&(list[i+1]?list[i+1].offsetTop>y:true));
+  }
+  function updateCounter(){
+    const v=visibleSlides();const i=idx(v);
+    if(i>=0)counter.textContent=(i+1)+' / '+v.length;
+  }
+  function go(n){
+    const v=visibleSlides();let i=idx(v);if(i<0)i=0;
+    i=Math.max(0,Math.min(v.length-1,i+n));
+    v[i].scrollIntoView({behavior:'smooth'});
+    counter.textContent=(i+1)+' / '+v.length;
+  }
+  btns.forEach(b => b.addEventListener('click', () => applyFilter(b.dataset.filter)));
+  if(!window.matchMedia('print').matches){
+    document.addEventListener('keydown',function(e){
+      if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){e.preventDefault();go(1);}
+      if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(-1);}
+    });
+    window.addEventListener('scroll',updateCounter,{passive:true});
+    updateCounter();
+  }
+})();
+</script>
+</body>
+</html>

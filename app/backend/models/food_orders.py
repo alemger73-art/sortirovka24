@@ -22,4 +22,6 @@ class Food_orders(Base):
     payment_status = Column(String, nullable=True)
     status = Column(String, nullable=True)
     frontpad_order_number = Column(String, nullable=True)
+    bonus_points_used = Column(Float, nullable=True)
+    bonus_discount_amount = Column(Float, nullable=True)
     created_at = Column(String, nullable=True)
