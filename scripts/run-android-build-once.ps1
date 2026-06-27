@@ -36,11 +36,11 @@ $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
 Set-Location $Frontend
 
 if (-not (Test-Path "node_modules")) {
-    Run-Step "pnpm install..." { pnpm install }
+    Run-Step "pnpm install..." { pnpm install --config.node-linker=hoisted }
 } elseif (-not (Test-Path "node_modules\vite")) {
-    Run-Step "pnpm install (vite missing)..." { pnpm install }
+    Run-Step "pnpm install (vite missing)..." { pnpm install --config.node-linker=hoisted }
 } elseif (-not (Test-Path "node_modules\@sentry\react")) {
-    Run-Step "pnpm install (@sentry/react missing)..." { pnpm install }
+    Run-Step "pnpm install (@sentry/react missing)..." { pnpm install --config.node-linker=hoisted }
 }
 
 if (-not (Test-Path ".env.mobile")) {
