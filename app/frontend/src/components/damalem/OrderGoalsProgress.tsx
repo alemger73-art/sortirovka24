@@ -90,21 +90,21 @@ export default function OrderGoalsProgress({
   const Icon = active.icon;
 
   return (
-    <div className={`overflow-hidden rounded-2xl border border-gray-100 bg-white ${compact ? 'p-3' : 'p-4'} shadow-sm`}>
+    <div className={`overflow-hidden rounded-2xl border border-gray-100/80 bg-white shadow-sm ${compact ? 'p-3' : 'p-4'}`}>
       <div className="flex items-start gap-2.5">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FF3B30]/10 text-[#FF3B30]">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF3B30]/10 to-orange-100 text-[#FF3B30]">
           <Icon className="h-4 w-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-[#111111]">{active.label}</p>
+          <p className="text-sm font-extrabold tracking-tight text-[#18181b]">{active.label}</p>
           {!compact && (
-            <p className="text-xs text-[#777777] mt-0.5">
+            <p className="text-xs text-[#71717a] mt-0.5 tabular-nums">
               {formatMoney(subtotal)} из {formatMoney(active.target)}
             </p>
           )}
         </div>
       </div>
-      <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-gray-100">
+      <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-zinc-100">
         <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${progress}%` }} />
       </div>
     </div>

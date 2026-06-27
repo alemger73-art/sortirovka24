@@ -50,7 +50,7 @@ export default function DamAlemHero({
   const slide = promoSlides[promoSlide] ?? promoSlides[0];
 
   return (
-    <section className="relative mx-auto max-w-lg overflow-hidden md:max-w-3xl lg:max-w-5xl">
+    <section className="relative mx-auto max-w-lg overflow-hidden md:max-w-3xl lg:max-w-6xl dam-hero-desktop">
       <div className="relative aspect-[16/10] min-h-[220px] max-h-[320px] sm:aspect-[21/9]">
         <DamAlemImage
           src={bg}

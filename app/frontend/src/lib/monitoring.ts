@@ -1,9 +1,16 @@
 /**
  * Optional Sentry for production. No-op when VITE_SENTRY_DSN is unset.
+ * @sentry/react is optional — build works without it installed.
  */
 
 const TRANSIENT_NETWORK =
   /503|502|504|temporarily unavailable|service unavailable|econnrefused|enotfound|econnreset|failed to fetch|load failed|network error|fetch failed/i;
+
+function sentryDsn(): string | undefined {
+  const dsn = import.meta.env.VITE_SENTRY_DSN as string | undefined;
+  if (!dsn || dsn.includes('$$')) return undefined;
+  return dsn;
+}
 
 export function isTransientNetworkError(reason: unknown): boolean {
   const msg = String(
@@ -13,13 +20,12 @@ export function isTransientNetworkError(reason: unknown): boolean {
 }
 
 export function initMonitoring(): void {
-  const dsn = import.meta.env.VITE_SENTRY_DSN as string | undefined;
-  if (!dsn || dsn.includes('$$')) return;
+  if (!sentryDsn()) return;
 
-  void import('@sentry/react')
+  void import(/* @vite-ignore */ '@sentry/react')
     .then((Sentry) => {
       Sentry.init({
-        dsn,
+        dsn: sentryDsn(),
         environment: import.meta.env.MODE,
         release: 'sortirovka24@2.1.0',
         tracesSampleRate: import.meta.env.PROD ? 0.1 : 0,
@@ -36,7 +42,12 @@ export function initMonitoring(): void {
 }
 
 export function captureError(error: unknown, context?: Record<string, string>): void {
-  void import('@sentry/react')
+  if (!sentryDsn()) {
+    console.error('[error]', error, context);
+    return;
+  }
+
+  void import(/* @vite-ignore */ '@sentry/react')
     .then((Sentry) => {
       Sentry.captureException(error, context ? { extra: context } : undefined);
     })

@@ -49,6 +49,7 @@ import OrderGoalsProgress from '@/components/damalem/OrderGoalsProgress';
 import DeliveryZonesPreview from '@/components/damalem/DeliveryZonesPreview';
 import DamAlemProductCard from '@/components/damalem/DamAlemProductCard';
 import DamAlemFloatingCart from '@/components/damalem/DamAlemFloatingCart';
+import DamAlemCartSidebar from '@/components/damalem/DamAlemCartSidebar';
 import DamAlemTrustBar from '@/components/damalem/DamAlemTrustBar';
 import DamAlemCategoryGrid from '@/components/damalem/DamAlemCategoryGrid';
 import DamAlemStepsBar from '@/components/damalem/DamAlemStepsBar';
@@ -723,6 +724,22 @@ export default function Food() {
   const cartTotalWithService = cartTotal + serviceFeeAmount;
   const serviceFeePercent = Math.round(serviceFeeRate * 100);
   const serviceFeeLabel = `${t('food.serviceFeeBase')} (${serviceFeePercent}%)`;
+
+  const cartSidebarLines = useMemo(
+    () =>
+      cart.map((ci) => {
+        const modTotal = calcSelectionsPrice(ci.selections);
+        const selNames = getSelectionNames(ci.selections);
+        return {
+          name: ci.item.name,
+          quantity: ci.quantity,
+          linePrice: (ci.item.price + modTotal) * ci.quantity,
+          image: getItemImage(ci.item),
+          modifiers: selNames.length > 0 ? `+ ${selNames.join(', ')}` : undefined,
+        };
+      }),
+    [cart],
+  );
 
   const freeDeliveryFrom = useMemo(
     () => Number(settings.free_delivery_from || 15000),
@@ -1592,7 +1609,8 @@ export default function Food() {
           onOpenCart={() => setCartOpen(true)}
         />
 
-        <div className="mx-auto max-w-lg space-y-5 px-4 pb-32 pt-4 md:max-w-3xl lg:max-w-5xl">
+        <div className="dam-page-shell mx-auto max-w-lg px-4 pb-32 pt-4 md:max-w-3xl lg:max-w-6xl">
+          <div className="dam-page-main space-y-5">
           <DamAlemTrustBar
             deliveryTime={deliveryTimeLabel}
             minOrderLabel={`от ${formatPrice(minOrder)}`}
@@ -1641,24 +1659,30 @@ export default function Food() {
             ) : null}
           </div>
 
-          <DamAlemStepsBar step={uiStep} cartCount={cartCount} />
+          <div className={cartCount > 0 && uiStep === 1 ? 'lg:hidden' : ''}>
+            <DamAlemStepsBar step={uiStep} cartCount={cartCount} />
+          </div>
 
           {cartTotal > 0 && (freeDeliveryFrom > 0 || minOrder > 0 || nextGift) && (
-            <OrderGoalsProgress
-              subtotal={cartTotal}
-              minOrder={minOrder}
-              freeDeliveryFrom={freeDeliveryFrom}
-              nextGift={nextGift}
-            />
+            <div className="lg:hidden">
+              <OrderGoalsProgress
+                subtotal={cartTotal}
+                minOrder={minOrder}
+                freeDeliveryFrom={freeDeliveryFrom}
+                nextGift={nextGift}
+              />
+            </div>
           )}
 
           {!isBrowsingMenu && (
             <>
-              <DamAlemFreeDeliveryBanner
-                freeDeliveryFrom={freeDeliveryFrom}
-                minOrder={minOrder}
-                formatPrice={formatPrice}
-              />
+              {cartTotal === 0 && (
+                <DamAlemFreeDeliveryBanner
+                  freeDeliveryFrom={freeDeliveryFrom}
+                  minOrder={minOrder}
+                  formatPrice={formatPrice}
+                />
+              )}
 
               <DamAlemStories
                 stories={marketingStories}
@@ -1692,8 +1716,8 @@ export default function Food() {
               {showRecommendations && recommendedItems.length > 0 && (
                 <section>
                   <h2 className="dam-section-title mb-3">{t('food.popularNow')}</h2>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {recommendedItems.slice(0, 6).map(item => (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
+                    {recommendedItems.slice(0, 8).map(item => (
                       <MenuDishRow key={item.id} item={item} />
                     ))}
                   </div>
@@ -1706,8 +1730,8 @@ export default function Food() {
                     <Heart className="h-5 w-5 text-[#FF3B30] fill-[#FF3B30]" />
                     Ваши любимые
                   </h2>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {favoriteItems.slice(0, 6).map(item => (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
+                    {favoriteItems.slice(0, 8).map(item => (
                       <MenuDishRow key={`fav-${item.id}`} item={item} />
                     ))}
                   </div>
@@ -1809,6 +1833,27 @@ export default function Food() {
               />
             </div>
           </details>
+          </div>
+
+          {cartCount > 0 && !checkoutOpen && (
+            <DamAlemCartSidebar
+              lines={cartSidebarLines}
+              itemCount={cart.reduce((sum, ci) => sum + ci.quantity, 0)}
+              subtotal={cartTotal}
+              serviceFeeLabel={serviceFeeLabel}
+              serviceFeeAmount={serviceFeeAmount}
+              totalWithService={cartTotalWithService}
+              minOrder={minOrder}
+              freeDeliveryFrom={freeDeliveryFrom}
+              nextGift={nextGift}
+              formatPrice={formatPrice}
+              checkoutLabel={t('food.checkout')}
+              onOpenCart={() => setCartOpen(true)}
+              onCheckout={openCheckout}
+              onUpdateQty={updateQuantity}
+              onRemoveLine={removeCartLine}
+            />
+          )}
         </div>
 
         {/* ═══ PRODUCT POPUP MODAL ═══ */}
@@ -1952,7 +1997,7 @@ export default function Food() {
         )}
 
         {/* ═══ CART DRAWER ═══ */}
-        <DamAlemSheet open={cartOpen} onClose={() => setCartOpen(false)} testId="dam-cart-sheet">
+        <DamAlemSheet open={cartOpen} onClose={() => setCartOpen(false)} testId="dam-cart-sheet" panelClassName="dam-sheet-panel--cart">
               <div className="dam-sheet-header dam-sheet-header--cart">
                 <div>
                   <h2>{t('food.yourOrder')}</h2>
@@ -2078,7 +2123,7 @@ export default function Food() {
         </DamAlemSheet>
 
         {/* ═══ CHECKOUT MODAL ═══ */}
-        <DamAlemSheet open={checkoutOpen} onClose={() => setCheckoutOpen(false)}>
+        <DamAlemSheet open={checkoutOpen} onClose={() => setCheckoutOpen(false)} panelClassName="dam-sheet-panel--wide">
               <div className="dam-sheet-header dam-sheet-header--cart !justify-between !px-4">
                 <div className="flex items-center gap-3 min-w-0">
                   <button onClick={() => { setCheckoutOpen(false); setCartOpen(true); }} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-zinc-100 hover:bg-zinc-200 transition-colors">
@@ -2101,7 +2146,9 @@ export default function Food() {
                 </div>
               </div>
 
-              <div className="dam-sheet-body space-y-4">
+              <div className="dam-sheet-body">
+                <div className="dam-checkout-layout">
+                  <div className="dam-checkout-main space-y-4">
                 <div className="dam-checkout-section">
                   <div className="dam-checkout-section__title">Способ получения</div>
                   <div className="grid grid-cols-2 gap-3">
@@ -2238,14 +2285,15 @@ export default function Food() {
                 {/* Contact info */}
                 <div className="dam-checkout-section">
                   <div className="dam-checkout-section__title">Контактные данные</div>
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 mb-1 block">
+                  <div className="dam-field-grid dam-field-grid--2">
+                  <div className="dam-field">
+                    <label className="mb-1.5 block">
                       {t('food.yourName')} *
                     </label>
-                    <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Введите имя" className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]" />
+                    <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Введите имя" className="dam-input" />
                   </div>
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 mb-1 block">{t('food.phone')} *</label>
+                  <div className="dam-field">
+                    <label className="mb-1.5 block">{t('food.phone')} *</label>
                     <Input
                       type="tel"
                       inputMode="tel"
@@ -2253,13 +2301,14 @@ export default function Food() {
                       value={customerPhone}
                       onChange={e => setCustomerPhone(e.target.value)}
                       placeholder="+7 (___) ___-__-__"
-                      className="rounded-xl h-11 border-gray-200 focus:border-[#FF3B30]"
+                      className="dam-input"
                     />
                   </div>
+                  </div>
 
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 mb-1 block">{t('food.comment')}</label>
-                    <Textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Пожелания к заказу..." className="rounded-xl resize-none border-gray-200 focus:border-[#FF3B30]" rows={2} />
+                  <div className="dam-field mt-3">
+                    <label className="mb-1.5 block">{t('food.comment')}</label>
+                    <Textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Пожелания к заказу..." className="dam-input dam-textarea" rows={2} />
                   </div>
                 </div>
 
@@ -2289,7 +2338,7 @@ export default function Food() {
                     ) : (
                       <Button
                         type="button"
-                        className="h-11 shrink-0 bg-orange-600 hover:bg-orange-700"
+                        className="dam-promo-apply h-11 shrink-0"
                         disabled={promoLoading || !promoInput.trim()}
                         onClick={() => void applyPromoCode()}
                       >
@@ -2329,23 +2378,30 @@ export default function Food() {
                     ))}
                   </div>
                 </div>
+                  </div>
 
+                  <aside className="dam-checkout-aside space-y-4">
                 {/* Order summary */}
-                <div className="dam-checkout-section">
+                <div className="dam-checkout-section dam-checkout-section--summary">
                   <div className="dam-checkout-section__title">{t('food.yourOrder')}</div>
                   <div className="space-y-2.5">
                     {cart.map((ci, idx) => {
                       const modTotal = calcSelectionsPrice(ci.selections);
                       const selNames = getSelectionNames(ci.selections);
                       return (
-                        <div key={idx} className="flex justify-between items-start">
+                        <div key={idx} className="flex gap-2.5 items-start">
+                          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-zinc-100">
+                            <DamAlemImage src={getItemImage(ci.item)} alt="" className="h-full w-full object-cover" />
+                          </div>
+                          <div className="flex flex-1 min-w-0 items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
-                            <span className="text-sm text-gray-700 font-medium">{ci.item.name} × {ci.quantity}</span>
+                            <span className="text-sm text-gray-800 font-semibold leading-snug">{ci.item.name} × {ci.quantity}</span>
                             {selNames.length > 0 && (
-                              <span className="text-[11px] text-[#FF3B30] block">+ {selNames.join(', ')}</span>
+                              <span className="text-[11px] text-[#FF3B30] block mt-0.5">+ {selNames.join(', ')}</span>
                             )}
                           </div>
-                          <span className="font-bold text-sm text-gray-900 whitespace-nowrap ml-3">{formatPrice((ci.item.price + modTotal) * ci.quantity)}</span>
+                          <span className="font-bold text-sm text-gray-900 whitespace-nowrap">{formatPrice((ci.item.price + modTotal) * ci.quantity)}</span>
+                          </div>
                         </div>
                       );
                     })}
@@ -2424,6 +2480,8 @@ export default function Food() {
                       <span className="font-extrabold text-[#FF3B30]">{formatPrice(checkoutGrandTotal)}</span>
                     </div>
                   </div>
+                </div>
+                  </aside>
                 </div>
               </div>
 

@@ -1,0 +1,8 @@
+{
+  "updated_at": "2026-06-27",
+  "phase": "failed",
+  "ok": false,
+  "message": "APK ещё не собран. Cursor-агент не может запускать Gradle (spawn EPERM). Запустите СОБРАТЬ APK.bat двойным кликом в проводнике — один раз, 15 минут.",
+  "version": "1.0.25",
+  "apk_path": "app/frontend/releases/Sortirovka24-latest-debug.apk"
+}

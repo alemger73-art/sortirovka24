@@ -1,5 +1,5 @@
 import { Gift, Sparkles } from 'lucide-react';
-import { resolveImageSrc } from '@/lib/storage';
+import DamAlemImage from '@/components/damalem/DamAlemImage';
 import type { LoyaltyGift } from '@/lib/gastronomLoyalty';
 import { formatMoney, nextLoyaltyGift, resolveLoyaltyGift } from '@/lib/gastronomLoyalty';
 
@@ -20,29 +20,27 @@ export default function LoyaltyGiftBanner({ subtotal, gifts, compact = false }: 
   if (compact && !current && !next) return null;
 
   return (
-    <div className={`rounded-2xl border overflow-hidden ${current ? 'border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50' : 'border-gray-100 bg-white'}`}>
+    <div className={`dam-loyalty-gift ${compact ? '' : 'shadow-sm'}`}>
       <div className={`p-4 space-y-3 ${compact ? 'p-3 space-y-2' : ''}`}>
         <div className="flex items-center gap-2">
-          <span className="w-8 h-8 rounded-full bg-amber-400 text-white flex items-center justify-center shrink-0">
+          <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center shrink-0 shadow-sm">
             <Gift className="h-4 w-4" />
           </span>
           <div>
-            <p className="text-sm font-bold text-gray-900">Подарки к заказу</p>
-            <p className="text-[11px] text-gray-500">Бесплатно — сумма по товарам</p>
+            <p className="text-sm font-extrabold text-gray-900 tracking-tight">Подарки к заказу</p>
+            <p className="text-[11px] text-gray-500">Бесплатно при достижении суммы</p>
           </div>
         </div>
 
         {current ? (
-          <div className="flex items-start gap-3 rounded-xl bg-white/80 border border-amber-100 p-3">
-            {current.image_url ? (
-              <img
-                src={resolveImageSrc(current.image_url) || current.image_url}
-                alt=""
-                className="w-12 h-12 rounded-lg object-cover shrink-0"
-              />
-            ) : (
-              <span className="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center shrink-0 text-xl">🎁</span>
-            )}
+          <div className="flex items-start gap-3 rounded-2xl bg-white/90 border border-amber-100/80 p-3 shadow-sm">
+            <div className="dam-loyalty-gift__thumb">
+              {current.image_url ? (
+                <DamAlemImage src={current.image_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <span aria-hidden>🎁</span>
+              )}
+            </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Ваш подарок</p>
               <p className="text-sm font-bold text-gray-900">{current.title}</p>
