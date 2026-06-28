@@ -343,13 +343,6 @@ async def validate_food_order(
         expected_service = 0
         delivery_fee = 0
 
-    if abs(expected_total - client_total) > 1:
-        logger.warning(
-            "Order total mismatch: expected=%s client=%s subtotal=%s service=%s delivery=%s",
-            expected_total, client_total, subtotal, expected_service, delivery_fee,
-        )
-        raise HTTPException(status_code=400, detail="Сумма заказа не совпадает с каталогом")
-
     bonus_points_used = 0.0
     bonus_discount = 0.0
     requested_bonus = float(bonus_points_to_use or 0)
@@ -368,8 +361,20 @@ async def validate_food_order(
             has_promo=bool(promo_code),
         )
         expected_total = round(max(0.0, expected_total - bonus_discount), 2)
-        if abs(expected_total - client_total) > 1:
+
+    if abs(expected_total - client_total) > 1:
+        logger.warning(
+            "Order total mismatch: expected=%s client=%s subtotal=%s service=%s delivery=%s bonus=%s",
+            expected_total,
+            client_total,
+            subtotal,
+            expected_service,
+            delivery_fee,
+            bonus_discount,
+        )
+        if bonus_discount > 0:
             raise HTTPException(status_code=400, detail="Сумма заказа с бонусами не совпадает")
+        raise HTTPException(status_code=400, detail="Сумма заказа не совпадает с каталогом")
 
     payment_method = (data.get("payment_method") or "cash").strip()
     if payment_method not in VALID_PAYMENT_METHODS:

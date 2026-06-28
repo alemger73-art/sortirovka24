@@ -1,23 +1,1220 @@
-﻿2026-06-27 20:43:12 === BUILD START ===
-2026-06-27 20:43:12 pnpm install (vite missing)...
-(node:12664) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
-(Use `node --trace-deprecation ...` to show where the warning was created)
-Progress: resolved 0, reused 1, downloaded 0, added 0
-Progress: resolved 88, reused 88, downloaded 0, added 0
-Progress: resolved 226, reused 181, downloaded 0, added 0
-Progress: resolved 558, reused 475, downloaded 0, added 0
-Progress: resolved 961, reused 880, downloaded 0, added 0
-Progress: resolved 988, reused 907, downloaded 0, added 0
-Progress: resolved 1015, reused 934, downloaded 0, added 0
-Progress: resolved 1038, reused 956, downloaded 0, added 0
-Progress: resolved 1070, reused 989, downloaded 0, added 0
-Progress: resolved 1102, reused 1021, downloaded 0, added 0
-Progress: resolved 1118, reused 1037, downloaded 0, added 0
-Progress: resolved 1159, reused 1077, downloaded 0, added 0
-Progress: resolved 1191, reused 1110, downloaded 0, added 0
-тАЙWARNтАЙ 10 deprecated subdependencies found: git-raw-commits@2.0.11, git-semver-tags@4.1.1, glob@11.1.0, glob@9.3.5, prebuild-install@7.1.3, q@1.5.1, rollup-plugin-terser@7.0.2, source-map@0.8.0-beta.0, tar@6.2.1, uuid@7.0.3
-Progress: resolved 1208, reused 1126, downloaded 0, added 0
-Packages: +1127
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Progress: resolved 1208, reused 1127, downloaded 0, added 0
-тАЙERR_PNPM_SYMLINK_FAILEDтАЙ Error: EPERM: operation not permitted, symlink 'C:\Users\User\Documents\GitHub\sortirovka24\app\frontend\node_modules\.pnpm\@babel+plugin-bugfix-safari-id-destructuring-collision-in-function-expression@7.29.7_@babel+core@7.29.7\node_modules\@babel\plugin-bugfix-safari-id-destructuring-collision-in-function-expression' -> 'C:\Users\User\Documents\GitHub\sortirovka24\app\frontend\node_modules\.pnpm\@babel+preset-env@7.29.7_@babel+core@7.29.7\node_modules\@babel\plugin-bugfix-safari-id-destructuring-collision-in-function-expression'
+﻿2026-06-27 22:59:36 === BUILD START ===
+2026-06-27 22:59:36 Removing broken node_modules...
+2026-06-27 23:00:08 npm install...
+npm warn Unknown project config "node-linker". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn deprecated tar@6.2.1: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated glob@9.3.5: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated recharts@2.15.4: 1.x and 2.x branches are no longer active. Bump to Recharts v3 to receive latest features and bugfixes. See https://github.com/recharts/recharts/wiki/3.0-migration-guide
+
+added 154 packages, changed 81 packages, and audited 1216 packages in 3m
+
+246 packages are looking for funding
+  run `npm fund` for details
+
+16 vulnerabilities (3 moderate, 13 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues possible (including breaking changes), run:
+  npm audit fix --force
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+2026-06-27 23:03:21 npm run build:mobile...
+npm warn Unknown project config "node-linker". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> build:mobile
+> vite build --mode mobile
+
+[36mvite v5.4.21 [32mbuilding for mobile...[36m[39m
+transforming...
+System.Management.Automation.RemoteException
+[1m[33mwarn[39m[22m - The class `delay-[25ms]` is ambiguous and matches multiple utilities.
+[1m[33mwarn[39m[22m - If this is content and not a class, replace it with `delay-&lsqb;25ms&rsqb;` to silence this warning.
+[32mтЬУ[39m 2344 modules transformed.
+rendering chunks...
+[1m[33m[plugin:vite:reporter][39m[22m [33m[plugin vite:reporter] 
+(!) C:/Users/User/Documents/GitHub/sortirovka24/app/frontend/src/lib/monitoring.ts is dynamically imported by C:/Users/User/Documents/GitHub/sortirovka24/app/frontend/src/lib/errorHandlers.ts but also statically imported by C:/Users/User/Documents/GitHub/sortirovka24/app/frontend/src/main.tsx, dynamic import will not move module into another chunk.
+[39m
+computing gzip size...
+[2mdist/[22m[32mindex.html                                [39m[1m[2m  4.99 kB[22m[1m[22m[2m тФВ gzip:   1.84 kB[22m
+[2mdist/[22m[35massets/leaflet-Dgihpmma.css               [39m[1m[2m 15.04 kB[22m[1m[22m[2m тФВ gzip:   6.38 kB[22m
+[2mdist/[22m[35massets/Food-bqf0aWvi.css                  [39m[1m[2m 26.93 kB[22m[1m[22m[2m тФВ gzip:   5.56 kB[22m
+[2mdist/[22m[35massets/index-zscXMhgi.css                 [39m[1m[2m211.71 kB[22m[1m[22m[2m тФВ gzip:  31.29 kB[22m
+[2mdist/[22m[36massets/react-vendor-CixBsO4W.js           [39m[1m[2m  0.04 kB[22m[1m[22m[2m тФВ gzip:   0.06 kB[22m
+[2mdist/[22m[36massets/form-vendor-CixBsO4W.js            [39m[1m[2m  0.04 kB[22m[1m[22m[2m тФВ gzip:   0.06 kB[22m
+[2mdist/[22m[36massets/query-vendor-DcIVop4Z.js           [39m[1m[2m  0.07 kB[22m[1m[22m[2m тФВ gzip:   0.07 kB[22m
+[2mdist/[22m[36massets/hooks-HjmM_SmJ.js                  [39m[1m[2m  0.24 kB[22m[1m[22m[2m тФВ gzip:   0.19 kB[22m
+[2mdist/[22m[36massets/web-DTjH3z7i.js                    [39m[1m[2m  0.26 kB[22m[1m[22m[2m тФВ gzip:   0.19 kB[22m
+[2mdist/[22m[36massets/Polygon-BFzVQmvE.js                [39m[1m[2m  0.30 kB[22m[1m[22m[2m тФВ gzip:   0.23 kB[22m
+[2mdist/[22m[36massets/index-DL4F_ezv.js                  [39m[1m[2m  0.43 kB[22m[1m[22m[2m тФВ gzip:   0.30 kB[22m
+[2mdist/[22m[36massets/base-Bd3IVDOY.js                   [39m[1m[2m  0.49 kB[22m[1m[22m[2m тФВ gzip:   0.32 kB[22m
+[2mdist/[22m[36massets/textarea-BzfRknv0.js               [39m[1m[2m  0.56 kB[22m[1m[22m[2m тФВ gzip:   0.35 kB[22m
+[2mdist/[22m[36massets/storeApiAuth-bsU2ElGB.js           [39m[1m[2m  0.59 kB[22m[1m[22m[2m тФВ gzip:   0.33 kB[22m
+[2mdist/[22m[36massets/CabinetCard-CFBMp0li.js            [39m[1m[2m  0.59 kB[22m[1m[22m[2m тФВ gzip:   0.36 kB[22m
+[2mdist/[22m[36massets/index-Dw4h40v5.js                  [39m[1m[2m  0.61 kB[22m[1m[22m[2m тФВ gzip:   0.33 kB[22m
+[2mdist/[22m[36massets/index-Cfq1ECqD.js                  [39m[1m[2m  0.64 kB[22m[1m[22m[2m тФВ gzip:   0.33 kB[22m
+[2mdist/[22m[36massets/taxiDriverSound-DUX9lxc1.js        [39m[1m[2m  0.64 kB[22m[1m[22m[2m тФВ gzip:   0.38 kB[22m
+[2mdist/[22m[36massets/index-BgpHInef.js                  [39m[1m[2m  0.64 kB[22m[1m[22m[2m тФВ gzip:   0.33 kB[22m
+[2mdist/[22m[36massets/input-Brlh5lFR.js                  [39m[1m[2m  0.65 kB[22m[1m[22m[2m тФВ gzip:   0.39 kB[22m
+[2mdist/[22m[36massets/Popup-BF9ZFqz4.js                  [39m[1m[2m  0.66 kB[22m[1m[22m[2m тФВ gzip:   0.38 kB[22m
+[2mdist/[22m[36massets/StarRating-D0-CJCWu.js             [39m[1m[2m  0.71 kB[22m[1m[22m[2m тФВ gzip:   0.39 kB[22m
+[2mdist/[22m[36massets/LoadErrorState-C1Vyjd8N.js         [39m[1m[2m  0.75 kB[22m[1m[22m[2m тФВ gzip:   0.52 kB[22m
+[2mdist/[22m[36massets/native-gJyNGER0.js                 [39m[1m[2m  0.78 kB[22m[1m[22m[2m тФВ gzip:   0.39 kB[22m
+[2mdist/[22m[36massets/PartnerProrabAdmin-NNc6Tma6.js     [39m[1m[2m  0.81 kB[22m[1m[22m[2m тФВ gzip:   0.46 kB[22m
+[2mdist/[22m[36massets/switch-ChW5ylql.js                 [39m[1m[2m  0.85 kB[22m[1m[22m[2m тФВ gzip:   0.45 kB[22m
+[2mdist/[22m[36massets/NotFound-BUXLBoTQ.js               [39m[1m[2m  0.87 kB[22m[1m[22m[2m тФВ gzip:   0.57 kB[22m
+[2mdist/[22m[36massets/PartnerDamAlemAdmin-_0D27Hof.js    [39m[1m[2m  0.88 kB[22m[1m[22m[2m тФВ gzip:   0.49 kB[22m
+[2mdist/[22m[36massets/PartnerVolnaAdmin-DRjAVaSe.js      [39m[1m[2m  0.88 kB[22m[1m[22m[2m тФВ gzip:   0.49 kB[22m
+[2mdist/[22m[36massets/PartnerPharmacyAdmin-qIM036ue.js   [39m[1m[2m  0.89 kB[22m[1m[22m[2m тФВ gzip:   0.49 kB[22m
+[2mdist/[22m[36massets/PartnerGastronomAdmin-BBELmQcd.js  [39m[1m[2m  0.90 kB[22m[1m[22m[2m тФВ gzip:   0.49 kB[22m
+[2mdist/[22m[36massets/web-BLs-qTEQ.js                    [39m[1m[2m  0.90 kB[22m[1m[22m[2m тФВ gzip:   0.42 kB[22m
+[2mdist/[22m[36massets/DocFilePreview-BE8KGxxM.js         [39m[1m[2m  0.95 kB[22m[1m[22m[2m тФВ gzip:   0.62 kB[22m
+[2mdist/[22m[36massets/StorageVideo-Ce4MN0L7.js           [39m[1m[2m  0.97 kB[22m[1m[22m[2m тФВ gzip:   0.64 kB[22m
+[2mdist/[22m[36massets/LegalPage-CAYhqxLU.js              [39m[1m[2m  1.03 kB[22m[1m[22m[2m тФВ gzip:   0.58 kB[22m
+[2mdist/[22m[36massets/web-U1j3AI0z.js                    [39m[1m[2m  1.05 kB[22m[1m[22m[2m тФВ gzip:   0.54 kB[22m
+[2mdist/[22m[36massets/TaxiUnavailable-DT8qUvkt.js        [39m[1m[2m  1.08 kB[22m[1m[22m[2m тФВ gzip:   0.68 kB[22m
+[2mdist/[22m[36massets/gastronomLoyalty-BuUnbz1r.js       [39m[1m[2m  1.19 kB[22m[1m[22m[2m тФВ gzip:   0.61 kB[22m
+[2mdist/[22m[36massets/index-QODiflH7.js                  [39m[1m[2m  1.22 kB[22m[1m[22m[2m тФВ gzip:   0.58 kB[22m
+[2mdist/[22m[36massets/web-oxFU0nnc.js                    [39m[1m[2m  1.37 kB[22m[1m[22m[2m тФВ gzip:   0.64 kB[22m
+[2mdist/[22m[36massets/GoogleAccountCallback-CsEeB0j2.js  [39m[1m[2m  1.65 kB[22m[1m[22m[2m тФВ gzip:   0.99 kB[22m
+[2mdist/[22m[36massets/card-CYFsrafM.js                   [39m[1m[2m  1.76 kB[22m[1m[22m[2m тФВ gzip:   0.66 kB[22m
+[2mdist/[22m[36massets/volnaApi-C9cUL0N8.js               [39m[1m[2m  2.01 kB[22m[1m[22m[2m тФВ gzip:   0.72 kB[22m
+[2mdist/[22m[36massets/prorabApi-1q6Tw4jx.js              [39m[1m[2m  2.03 kB[22m[1m[22m[2m тФВ gzip:   0.73 kB[22m
+[2mdist/[22m[36massets/pharmacyApi-Cl00ZIAg.js            [39m[1m[2m  2.05 kB[22m[1m[22m[2m тФВ gzip:   0.73 kB[22m
+[2mdist/[22m[36massets/gastronomApi-OE1WZ7Bc.js           [39m[1m[2m  2.08 kB[22m[1m[22m[2m тФВ gzip:   0.73 kB[22m
+[2mdist/[22m[36massets/orderRoutes-l60oTa_g.js            [39m[1m[2m  2.13 kB[22m[1m[22m[2m тФВ gzip:   1.12 kB[22m
+[2mdist/[22m[36massets/foodPromo-ChRapoB0.js              [39m[1m[2m  2.17 kB[22m[1m[22m[2m тФВ gzip:   1.06 kB[22m
+[2mdist/[22m[36massets/web-DfzpAkI0.js                    [39m[1m[2m  2.27 kB[22m[1m[22m[2m тФВ gzip:   0.90 kB[22m
+[2mdist/[22m[36massets/index-lUWOx0VY.js                  [39m[1m[2m  2.32 kB[22m[1m[22m[2m тФВ gzip:   0.94 kB[22m
+[2mdist/[22m[36massets/DriverDocUpload-CnphB-P3.js        [39m[1m[2m  2.69 kB[22m[1m[22m[2m тФВ gzip:   1.53 kB[22m
+[2mdist/[22m[36massets/CatalogCategoryStrip-BgFfkJpp.js   [39m[1m[2m  2.73 kB[22m[1m[22m[2m тФВ gzip:   1.11 kB[22m
+[2mdist/[22m[36massets/GastronomSideMenu-lcf4VzOX.js      [39m[1m[2m  2.85 kB[22m[1m[22m[2m тФВ gzip:   1.27 kB[22m
+[2mdist/[22m[36massets/geolocation-Bwm-F2sj.js            [39m[1m[2m  2.97 kB[22m[1m[22m[2m тФВ gzip:   0.95 kB[22m
+[2mdist/[22m[36massets/SavedAddressBar-BjYpoDS8.js        [39m[1m[2m  3.03 kB[22m[1m[22m[2m тФВ gzip:   1.24 kB[22m
+[2mdist/[22m[36massets/GastronomPortalBar-DVwdrnbh.js     [39m[1m[2m  3.31 kB[22m[1m[22m[2m тФВ gzip:   1.38 kB[22m
+[2mdist/[22m[36massets/LoyaltyGiftBanner-FcG0WyXd.js      [39m[1m[2m  3.33 kB[22m[1m[22m[2m тФВ gzip:   1.49 kB[22m
+[2mdist/[22m[36massets/CabinetPartner-Cz1XZTUs.js         [39m[1m[2m  3.38 kB[22m[1m[22m[2m тФВ gzip:   1.08 kB[22m
+[2mdist/[22m[36massets/More-Deo5vHPB.js                   [39m[1m[2m  3.44 kB[22m[1m[22m[2m тФВ gzip:   1.40 kB[22m
+[2mdist/[22m[36massets/TaxiLiveMap-BhPYmg0Z.js            [39m[1m[2m  3.69 kB[22m[1m[22m[2m тФВ gzip:   1.83 kB[22m
+[2mdist/[22m[36massets/legal-Bem3gpO5.js                  [39m[1m[2m  3.81 kB[22m[1m[22m[2m тФВ gzip:   2.29 kB[22m
+[2mdist/[22m[36massets/LoyaltyGiftsEditor-BdneFlGS.js     [39m[1m[2m  4.06 kB[22m[1m[22m[2m тФВ gzip:   1.74 kB[22m
+[2mdist/[22m[36massets/TileLayer-BoCuzh5n.js              [39m[1m[2m  4.31 kB[22m[1m[22m[2m тФВ gzip:   1.66 kB[22m
+[2mdist/[22m[36massets/gastronomDelivery-DhGPBDr9.js      [39m[1m[2m  5.16 kB[22m[1m[22m[2m тФВ gzip:   2.11 kB[22m
+[2mdist/[22m[36massets/CabinetAdmin-DUPhYTLP.js           [39m[1m[2m  5.37 kB[22m[1m[22m[2m тФВ gzip:   1.53 kB[22m
+[2mdist/[22m[36massets/DeliveryTrack-DaI6AAim.js          [39m[1m[2m  5.61 kB[22m[1m[22m[2m тФВ gzip:   2.19 kB[22m
+[2mdist/[22m[36massets/PartnerAdminShell-BDW4SX0V.js      [39m[1m[2m  5.88 kB[22m[1m[22m[2m тФВ gzip:   2.36 kB[22m
+[2mdist/[22m[36massets/CabinetOrderDetail-Bi1S9dDi.js     [39m[1m[2m  6.04 kB[22m[1m[22m[2m тФВ gzip:   2.21 kB[22m
+[2mdist/[22m[36massets/ReportProblem-CcPbd4Pp.js          [39m[1m[2m  6.12 kB[22m[1m[22m[2m тФВ gzip:   2.15 kB[22m
+[2mdist/[22m[36massets/TaxiDriverHub-DSJoWX6R.js          [39m[1m[2m  7.09 kB[22m[1m[22m[2m тФВ gzip:   2.78 kB[22m
+[2mdist/[22m[36massets/Support-C3g_vMOl.js                [39m[1m[2m  7.90 kB[22m[1m[22m[2m тФВ gzip:   2.30 kB[22m
+[2mdist/[22m[36massets/DeliveryAddressPicker-DbAYUbhi.js  [39m[1m[2m  8.87 kB[22m[1m[22m[2m тФВ gzip:   2.98 kB[22m
+[2mdist/[22m[36massets/ParkMap-CucA3YwO.js                [39m[1m[2m  9.37 kB[22m[1m[22m[2m тФВ gzip:   3.03 kB[22m
+[2mdist/[22m[36massets/CourierHub-989dh1IW.js             [39m[1m[2m  9.63 kB[22m[1m[22m[2m тФВ gzip:   3.80 kB[22m
+[2mdist/[22m[36massets/CabinetMaster-CLUlPzuj.js          [39m[1m[2m  9.76 kB[22m[1m[22m[2m тФВ gzip:   2.69 kB[22m
+[2mdist/[22m[36massets/History-DRHvnTKg.js                [39m[1m[2m  9.84 kB[22m[1m[22m[2m тФВ gzip:   3.65 kB[22m
+[2mdist/[22m[36massets/Business-C86sHQtD.js               [39m[1m[2m 10.00 kB[22m[1m[22m[2m тФВ gzip:   2.51 kB[22m
+[2mdist/[22m[36massets/TaxiRide-CRIyo06a.js               [39m[1m[2m 10.00 kB[22m[1m[22m[2m тФВ gzip:   3.57 kB[22m
+[2mdist/[22m[36massets/Directory-Q4X1AJEt.js              [39m[1m[2m 10.35 kB[22m[1m[22m[2m тФВ gzip:   3.19 kB[22m
+[2mdist/[22m[36massets/FoodCourier-bZUTUZRO.js            [39m[1m[2m 10.58 kB[22m[1m[22m[2m тФВ gzip:   3.65 kB[22m
+[2mdist/[22m[36massets/AdminVolna-grIz-qIw.js             [39m[1m[2m 10.65 kB[22m[1m[22m[2m тФВ gzip:   3.72 kB[22m
+[2mdist/[22m[36massets/AdminPartnerAccess-ohIbeXeE.js     [39m[1m[2m 11.61 kB[22m[1m[22m[2m тФВ gzip:   4.49 kB[22m
+[2mdist/[22m[36massets/CabinetCourier-vtdNyWQv.js         [39m[1m[2m 11.90 kB[22m[1m[22m[2m тФВ gzip:   3.48 kB[22m
+[2mdist/[22m[36massets/MultiImageUpload-C2Fm3pz3.js       [39m[1m[2m 12.19 kB[22m[1m[22m[2m тФВ gzip:   4.18 kB[22m
+[2mdist/[22m[36massets/AdminProrab-BHM97v__.js            [39m[1m[2m 12.52 kB[22m[1m[22m[2m тФВ gzip:   4.36 kB[22m
+[2mdist/[22m[36massets/Taxi-Dv07MaGl.js                   [39m[1m[2m 13.53 kB[22m[1m[22m[2m тФВ gzip:   5.12 kB[22m
+[2mdist/[22m[36massets/ImageUpload-B3INWiUz.js            [39m[1m[2m 13.74 kB[22m[1m[22m[2m тФВ gzip:   3.90 kB[22m
+[2mdist/[22m[36massets/Transport-B6rFsQO7.js              [39m[1m[2m 14.43 kB[22m[1m[22m[2m тФВ gzip:   4.27 kB[22m
+[2mdist/[22m[36massets/CabinetDriver-CGkHoIUS.js          [39m[1m[2m 14.54 kB[22m[1m[22m[2m тФВ gzip:   3.93 kB[22m
+[2mdist/[22m[36massets/AccountAuth-C7pmOmns.js            [39m[1m[2m 15.49 kB[22m[1m[22m[2m тФВ gzip:   5.12 kB[22m
+[2mdist/[22m[36massets/Salons-CbMFshS-.js                 [39m[1m[2m 18.36 kB[22m[1m[22m[2m тФВ gzip:   5.01 kB[22m
+[2mdist/[22m[36massets/Prorab-8nbKbvGU.js                 [39m[1m[2m 20.58 kB[22m[1m[22m[2m тФВ gzip:   6.75 kB[22m
+[2mdist/[22m[36massets/AdminGastronom-4cLsLA3G.js         [39m[1m[2m 21.38 kB[22m[1m[22m[2m тФВ gzip:   6.42 kB[22m
+[2mdist/[22m[36massets/utils-vendor-Ck2jj3zz.js           [39m[1m[2m 21.47 kB[22m[1m[22m[2m тФВ gzip:   6.97 kB[22m
+[2mdist/[22m[36massets/FoodPark-C8IBUg6k.js               [39m[1m[2m 22.65 kB[22m[1m[22m[2m тФВ gzip:   6.52 kB[22m
+[2mdist/[22m[36massets/AdminPharmacy-DngyFk-b.js          [39m[1m[2m 22.80 kB[22m[1m[22m[2m тФВ gzip:   6.77 kB[22m
+[2mdist/[22m[36massets/FoodDelivery-CNwfWtzF.js           [39m[1m[2m 23.70 kB[22m[1m[22m[2m тФВ gzip:   7.01 kB[22m
+[2mdist/[22m[36massets/Volna-CKbIKYd2.js                  [39m[1m[2m 28.70 kB[22m[1m[22m[2m тФВ gzip:   9.08 kB[22m
+[2mdist/[22m[36massets/Inspectors-DouLsoYL.js             [39m[1m[2m 29.74 kB[22m[1m[22m[2m тФВ gzip:   7.38 kB[22m
+[2mdist/[22m[36massets/icons-vendor-CA4Rb-K1.js           [39m[1m[2m 34.11 kB[22m[1m[22m[2m тФВ gzip:  11.26 kB[22m
+[2mdist/[22m[36massets/Masters-Bteovfr_.js                [39m[1m[2m 42.34 kB[22m[1m[22m[2m тФВ gzip:   9.38 kB[22m
+[2mdist/[22m[36massets/Gastronom-CEXJSMd2.js              [39m[1m[2m 44.97 kB[22m[1m[22m[2m тФВ gzip:  12.60 kB[22m
+[2mdist/[22m[36massets/Pharmacy-7CELriKy.js               [39m[1m[2m 62.19 kB[22m[1m[22m[2m тФВ gzip:  16.44 kB[22m
+[2mdist/[22m[36massets/Cabinet-ByJV9jFw.js                [39m[1m[2m 62.63 kB[22m[1m[22m[2m тФВ gzip:  16.59 kB[22m
+[2mdist/[22m[36massets/AdminDamAlem-CcpU6lfa.js           [39m[1m[2m 72.85 kB[22m[1m[22m[2m тФВ gzip:  18.06 kB[22m
+[2mdist/[22m[36massets/Content-BKnLKi5A.js                [39m[1m[2m 77.10 kB[22m[1m[22m[2m тФВ gzip:  15.21 kB[22m
+[2mdist/[22m[36massets/ui-vendor-BsO26g4T.js              [39m[1m[2m 90.42 kB[22m[1m[22m[2m тФВ gzip:  29.73 kB[22m
+[2mdist/[22m[36massets/Food-COEvbDjo.js                   [39m[1m[2m 93.05 kB[22m[1m[22m[2m тФВ gzip:  27.26 kB[22m
+[2mdist/[22m[36massets/leaflet-src-8R5L3pmo.js            [39m[1m[2m148.97 kB[22m[1m[22m[2m тФВ gzip:  43.02 kB[22m
+[2mdist/[22m[36massets/router-vendor-BksoQ3X5.js          [39m[1m[2m161.77 kB[22m[1m[22m[2m тФВ gzip:  52.56 kB[22m
+[2mdist/[22m[36massets/Admin-D45sscAO.js                  [39m[1m[2m241.08 kB[22m[1m[22m[2m тФВ gzip:  46.23 kB[22m
+[2mdist/[22m[36massets/index-D6L2NO4L.js                  [39m[1m[2m354.50 kB[22m[1m[22m[2m тФВ gzip: 110.87 kB[22m
+[2mdist/[22m[36massets/index-HH--po8C.js                  [39m[1m[2m367.63 kB[22m[1m[22m[2m тФВ gzip: 120.44 kB[22m
+[32mтЬУ built in 21.29s[39m
+2026-06-27 23:03:45 npx tsc --noEmit...
+npm warn Unknown project config "node-linker". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+2026-06-27 23:03:47 npx cap sync android...
+npm warn Unknown project config "node-linker". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+тИЪ Copying web assets from dist to android\app\src\main\assets\public in 140.26ms
+тИЪ Creating capacitor.config.json in android\app\src\main\assets in 1.60ms
+тИЪ copy android in 262.12ms
+тИЪ Updating Android plugins in 28.07ms
+[info] Found 8 Capacitor plugins for android:
+       @aparajita/capacitor-biometric-auth@9.1.2
+       @capacitor/app@7.1.2
+       @capacitor/geolocation@7.1.8
+       @capacitor/keyboard@7.0.6
+       @capacitor/preferences@7.0.4
+       @capacitor/push-notifications@7.0.6
+       @capacitor/splash-screen@7.0.5
+       @capacitor/status-bar@7.0.6
+тИЪ update android in 1.24s
+[info] Sync finished in 1.65s
+2026-06-27 23:03:50 Gradle assembleDebug bundleRelease assembleRelease...
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.11.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :app
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :capacitor-cordova-android-plugins
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Task :aparajita-capacitor-biometric-auth:preBuild UP-TO-DATE
+> Task :aparajita-capacitor-biometric-auth:preDebugBuild UP-TO-DATE
+> Task :aparajita-capacitor-biometric-auth:mergeDebugJniLibFolders
+> Task :aparajita-capacitor-biometric-auth:mergeDebugNativeLibs NO-SOURCE
+> Task :aparajita-capacitor-biometric-auth:stripDebugDebugSymbols NO-SOURCE
+> Task :aparajita-capacitor-biometric-auth:copyDebugJniLibsProjectAndLocalJars
+> Task :aparajita-capacitor-biometric-auth:generateDebugResValues
+> Task :aparajita-capacitor-biometric-auth:generateDebugResources
+> Task :aparajita-capacitor-biometric-auth:packageDebugResources
+> Task :capacitor-android:preBuild UP-TO-DATE
+> Task :capacitor-android:preDebugBuild UP-TO-DATE
+> Task :capacitor-android:generateDebugResValues
+> Task :capacitor-android:generateDebugResources
+> Task :aparajita-capacitor-biometric-auth:parseDebugLocalResources
+> Task :capacitor-android:packageDebugResources
+> Task :aparajita-capacitor-biometric-auth:extractDeepLinksForAarDebug
+> Task :capacitor-android:javaPreCompileDebug
+> Task :aparajita-capacitor-biometric-auth:javaPreCompileDebug
+> Task :capacitor-android:parseDebugLocalResources
+> Task :aparajita-capacitor-biometric-auth:mergeDebugShaders
+> Task :aparajita-capacitor-biometric-auth:generateDebugRFile
+> Task :aparajita-capacitor-biometric-auth:compileDebugShaders NO-SOURCE
+> Task :aparajita-capacitor-biometric-auth:generateDebugAssets UP-TO-DATE
+> Task :aparajita-capacitor-biometric-auth:packageDebugAssets
+> Task :aparajita-capacitor-biometric-auth:prepareDebugArtProfile
+> Task :aparajita-capacitor-biometric-auth:prepareLintJarForPublish
+> Task :capacitor-android:generateDebugRFile
+> Task :aparajita-capacitor-biometric-auth:processDebugManifest
+
+> Task :capacitor-android:compileDebugJavaWithJavac
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :aparajita-capacitor-biometric-auth:processDebugJavaRes NO-SOURCE
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :aparajita-capacitor-biometric-auth:writeDebugAarMetadata
+> Task :capacitor-android:bundleLibCompileToJarDebug
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :aparajita-capacitor-biometric-auth:mergeDebugJavaResource
+> Task :aparajita-capacitor-biometric-auth:extractDebugAnnotations
+> Task :aparajita-capacitor-biometric-auth:compileDebugJavaWithJavac
+> Task :aparajita-capacitor-biometric-auth:mergeDebugGeneratedProguardFiles
+> Task :aparajita-capacitor-biometric-auth:mergeDebugConsumerProguardFiles
+> Task :aparajita-capacitor-biometric-auth:syncDebugLibJars
+> Task :aparajita-capacitor-biometric-auth:bundleDebugAar
+> Task :aparajita-capacitor-biometric-auth:assembleDebug
+> Task :aparajita-capacitor-biometric-auth:bundleLibCompileToJarDebug
+> Task :capacitor-app:preBuild UP-TO-DATE
+> Task :capacitor-app:preDebugBuild UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:preBuild UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:preDebugBuild UP-TO-DATE
+> Task :capacitor-android:writeDebugAarMetadata
+> Task :capacitor-geolocation:preBuild UP-TO-DATE
+> Task :capacitor-geolocation:preDebugBuild UP-TO-DATE
+> Task :capacitor-app:writeDebugAarMetadata
+> Task :capacitor-keyboard:preBuild UP-TO-DATE
+> Task :capacitor-keyboard:preDebugBuild UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:writeDebugAarMetadata
+> Task :capacitor-preferences:preBuild UP-TO-DATE
+> Task :capacitor-preferences:preDebugBuild UP-TO-DATE
+> Task :capacitor-geolocation:writeDebugAarMetadata
+> Task :capacitor-push-notifications:preBuild UP-TO-DATE
+> Task :capacitor-push-notifications:preDebugBuild UP-TO-DATE
+> Task :capacitor-keyboard:writeDebugAarMetadata
+> Task :capacitor-splash-screen:preBuild UP-TO-DATE
+> Task :capacitor-splash-screen:preDebugBuild UP-TO-DATE
+> Task :capacitor-preferences:writeDebugAarMetadata
+> Task :capacitor-push-notifications:writeDebugAarMetadata
+> Task :capacitor-status-bar:preBuild UP-TO-DATE
+> Task :capacitor-status-bar:preDebugBuild UP-TO-DATE
+> Task :capacitor-splash-screen:writeDebugAarMetadata
+> Task :aparajita-capacitor-biometric-auth:compileDebugLibraryResources
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :capacitor-status-bar:writeDebugAarMetadata
+> Task :capacitor-app:generateDebugResValues
+> Task :app:checkDebugAarMetadata
+> Task :capacitor-app:generateDebugResources
+> Task :capacitor-app:packageDebugResources
+> Task :capacitor-cordova-android-plugins:generateDebugResValues
+> Task :capacitor-cordova-android-plugins:generateDebugResources
+> Task :capacitor-cordova-android-plugins:packageDebugResources
+> Task :capacitor-geolocation:generateDebugResValues
+> Task :capacitor-geolocation:generateDebugResources
+> Task :capacitor-geolocation:packageDebugResources
+> Task :capacitor-keyboard:generateDebugResValues
+> Task :capacitor-keyboard:generateDebugResources
+> Task :capacitor-keyboard:packageDebugResources
+> Task :capacitor-preferences:generateDebugResValues
+> Task :capacitor-preferences:generateDebugResources
+> Task :capacitor-preferences:packageDebugResources
+> Task :capacitor-push-notifications:generateDebugResValues
+> Task :capacitor-push-notifications:generateDebugResources
+> Task :capacitor-push-notifications:packageDebugResources
+> Task :capacitor-splash-screen:generateDebugResValues
+> Task :capacitor-splash-screen:generateDebugResources
+> Task :capacitor-splash-screen:packageDebugResources
+> Task :capacitor-status-bar:generateDebugResValues
+> Task :capacitor-status-bar:generateDebugResources
+> Task :capacitor-status-bar:packageDebugResources
+> Task :app:mapDebugSourceSetPaths
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests
+> Task :aparajita-capacitor-biometric-auth:extractDeepLinksDebug
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :capacitor-android:extractDeepLinksDebug
+> Task :capacitor-android:processDebugManifest
+> Task :capacitor-app:extractDeepLinksDebug
+> Task :capacitor-cordova-android-plugins:extractDeepLinksDebug
+> Task :app:mergeDebugResources
+> Task :capacitor-geolocation:extractDeepLinksDebug
+> Task :capacitor-app:processDebugManifest
+> Task :capacitor-keyboard:extractDeepLinksDebug
+> Task :capacitor-cordova-android-plugins:processDebugManifest
+> Task :capacitor-preferences:extractDeepLinksDebug
+> Task :capacitor-geolocation:processDebugManifest
+> Task :capacitor-keyboard:processDebugManifest
+> Task :capacitor-push-notifications:extractDeepLinksDebug
+> Task :capacitor-preferences:processDebugManifest
+> Task :capacitor-push-notifications:processDebugManifest
+> Task :capacitor-status-bar:extractDeepLinksDebug
+> Task :capacitor-splash-screen:processDebugManifest
+> Task :capacitor-status-bar:processDebugManifest
+> Task :capacitor-android:compileDebugLibraryResources
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :capacitor-app:compileDebugLibraryResources
+> Task :app:processDebugManifestForPackage
+> Task :capacitor-app:parseDebugLocalResources
+> Task :capacitor-cordova-android-plugins:compileDebugLibraryResources
+> Task :capacitor-geolocation:compileDebugLibraryResources
+> Task :capacitor-keyboard:compileDebugLibraryResources
+> Task :capacitor-cordova-android-plugins:parseDebugLocalResources
+> Task :capacitor-geolocation:parseDebugLocalResources
+> Task :capacitor-keyboard:parseDebugLocalResources
+> Task :capacitor-app:generateDebugRFile
+> Task :capacitor-preferences:compileDebugLibraryResources
+> Task :capacitor-cordova-android-plugins:generateDebugRFile
+> Task :capacitor-push-notifications:compileDebugLibraryResources
+> Task :capacitor-preferences:parseDebugLocalResources
+> Task :capacitor-geolocation:generateDebugRFile
+> Task :capacitor-splash-screen:compileDebugLibraryResources
+> Task :capacitor-keyboard:generateDebugRFile
+> Task :capacitor-status-bar:compileDebugLibraryResources
+> Task :capacitor-push-notifications:parseDebugLocalResources
+> Task :capacitor-splash-screen:parseDebugLocalResources
+> Task :capacitor-preferences:generateDebugRFile
+> Task :capacitor-status-bar:parseDebugLocalResources
+> Task :capacitor-app:javaPreCompileDebug
+> Task :capacitor-push-notifications:generateDebugRFile
+> Task :capacitor-splash-screen:generateDebugRFile
+> Task :capacitor-status-bar:generateDebugRFile
+> Task :capacitor-app:compileDebugJavaWithJavac
+> Task :capacitor-geolocation:checkKotlinGradlePluginConfigurationErrors
+> Task :capacitor-app:bundleLibCompileToJarDebug
+> Task :capacitor-cordova-android-plugins:javaPreCompileDebug
+> Task :capacitor-cordova-android-plugins:compileDebugJavaWithJavac NO-SOURCE
+> Task :capacitor-cordova-android-plugins:bundleLibCompileToJarDebug
+> Task :capacitor-geolocation:javaPreCompileDebug
+> Task :capacitor-keyboard:javaPreCompileDebug
+> Task :capacitor-preferences:javaPreCompileDebug
+> Task :capacitor-keyboard:compileDebugJavaWithJavac
+> Task :capacitor-keyboard:bundleLibCompileToJarDebug
+> Task :capacitor-preferences:compileDebugJavaWithJavac
+> Task :capacitor-preferences:bundleLibCompileToJarDebug
+> Task :capacitor-push-notifications:javaPreCompileDebug
+> Task :capacitor-splash-screen:javaPreCompileDebug
+> Task :app:processDebugResources
+
+> Task :capacitor-push-notifications:compileDebugJavaWithJavac
+Note: C:\Users\User\Documents\GitHub\sortirovka24\app\frontend\node_modules\@capacitor\push-notifications\android\src\main\java\com\capacitorjs\plugins\pushnotifications\PushNotificationsPlugin.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :capacitor-push-notifications:bundleLibCompileToJarDebug
+> Task :capacitor-splash-screen:compileDebugJavaWithJavac
+> Task :app:mergeDebugShaders UP-TO-DATE
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :capacitor-splash-screen:bundleLibCompileToJarDebug
+> Task :capacitor-status-bar:javaPreCompileDebug
+> Task :capacitor-android:mergeDebugShaders
+
+> Task :capacitor-status-bar:compileDebugJavaWithJavac
+Note: C:\Users\User\Documents\GitHub\sortirovka24\app\frontend\node_modules\@capacitor\status-bar\android\src\main\java\com\capacitorjs\plugins\statusbar\StatusBar.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :capacitor-android:compileDebugShaders NO-SOURCE
+> Task :capacitor-android:generateDebugAssets UP-TO-DATE
+> Task :capacitor-status-bar:bundleLibCompileToJarDebug
+> Task :capacitor-android:packageDebugAssets
+> Task :capacitor-app:mergeDebugShaders
+> Task :capacitor-app:compileDebugShaders NO-SOURCE
+> Task :capacitor-app:generateDebugAssets UP-TO-DATE
+> Task :capacitor-app:packageDebugAssets
+> Task :capacitor-cordova-android-plugins:mergeDebugShaders
+> Task :capacitor-cordova-android-plugins:compileDebugShaders NO-SOURCE
+> Task :capacitor-cordova-android-plugins:generateDebugAssets UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:packageDebugAssets
+> Task :capacitor-geolocation:mergeDebugShaders
+> Task :capacitor-geolocation:compileDebugShaders NO-SOURCE
+> Task :capacitor-geolocation:generateDebugAssets UP-TO-DATE
+> Task :capacitor-keyboard:packageDebugAssets
+> Task :capacitor-preferences:mergeDebugShaders
+> Task :capacitor-preferences:compileDebugShaders NO-SOURCE
+> Task :capacitor-preferences:generateDebugAssets UP-TO-DATE
+> Task :capacitor-preferences:packageDebugAssets
+> Task :capacitor-push-notifications:mergeDebugShaders
+> Task :capacitor-push-notifications:compileDebugShaders NO-SOURCE
+> Task :capacitor-push-notifications:generateDebugAssets UP-TO-DATE
+> Task :capacitor-push-notifications:packageDebugAssets
+> Task :capacitor-splash-screen:mergeDebugShaders
+> Task :capacitor-splash-screen:compileDebugShaders NO-SOURCE
+> Task :capacitor-splash-screen:generateDebugAssets UP-TO-DATE
+> Task :capacitor-splash-screen:packageDebugAssets
+> Task :capacitor-status-bar:mergeDebugShaders
+> Task :capacitor-status-bar:compileDebugShaders NO-SOURCE
+> Task :capacitor-status-bar:generateDebugAssets UP-TO-DATE
+> Task :capacitor-status-bar:packageDebugAssets
+> Task :app:mergeDebugAssets
+> Task :aparajita-capacitor-biometric-auth:bundleLibRuntimeToJarDebug
+> Task :app:compressDebugAssets
+> Task :capacitor-android:bundleLibRuntimeToJarDebug
+> Task :capacitor-app:bundleLibRuntimeToJarDebug
+> Task :capacitor-keyboard:bundleLibRuntimeToJarDebug
+> Task :capacitor-preferences:bundleLibRuntimeToJarDebug
+> Task :capacitor-push-notifications:bundleLibRuntimeToJarDebug
+> Task :capacitor-splash-screen:bundleLibRuntimeToJarDebug
+> Task :capacitor-status-bar:bundleLibRuntimeToJarDebug
+> Task :capacitor-cordova-android-plugins:bundleLibRuntimeToJarDebug
+> Task :app:desugarDebugFileDependencies
+> Task :app:processDebugJavaRes NO-SOURCE
+> Task :capacitor-android:processDebugJavaRes NO-SOURCE
+> Task :capacitor-app:processDebugJavaRes NO-SOURCE
+> Task :capacitor-cordova-android-plugins:processDebugJavaRes NO-SOURCE
+> Task :capacitor-keyboard:processDebugJavaRes NO-SOURCE
+> Task :capacitor-preferences:processDebugJavaRes NO-SOURCE
+> Task :capacitor-push-notifications:processDebugJavaRes NO-SOURCE
+> Task :capacitor-splash-screen:processDebugJavaRes NO-SOURCE
+> Task :capacitor-status-bar:processDebugJavaRes NO-SOURCE
+> Task :aparajita-capacitor-biometric-auth:copyDebugJniLibsProjectOnly
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :capacitor-android:mergeDebugJniLibFolders
+> Task :capacitor-android:mergeDebugNativeLibs NO-SOURCE
+> Task :app:checkDebugDuplicateClasses
+> Task :app:mergeExtDexDebug
+WARNING: C:\Users\User\Documents\GitHub\sortirovka24\app\frontend\.gradle-home\caches\8.11.1\transforms\d253a2d6e9532956024d3ef1050820cc\transformed\play-services-location-21.3.0-runtime.jar: D8: The companion object Companion could not be found in class com.google.android.gms.internal.location.zze
+
+> Task :capacitor-geolocation:compileDebugJavaWithJavac NO-SOURCE
+> Task :capacitor-geolocation:bundleLibRuntimeToJarDebug
+> Task :capacitor-geolocation:bundleLibCompileToJarDebug
+> Task :capacitor-geolocation:processDebugJavaRes
+> Task :app:compileDebugJavaWithJavac
+> Task :app:dexBuilderDebug
+> Task :app:mergeDebugGlobalSynthetics UP-TO-DATE
+> Task :capacitor-app:mergeDebugJniLibFolders
+> Task :capacitor-app:mergeDebugNativeLibs NO-SOURCE
+> Task :app:mergeLibDexDebug
+> Task :capacitor-app:copyDebugJniLibsProjectOnly
+> Task :capacitor-cordova-android-plugins:mergeDebugJniLibFolders
+> Task :capacitor-cordova-android-plugins:mergeDebugNativeLibs NO-SOURCE
+> Task :capacitor-cordova-android-plugins:copyDebugJniLibsProjectOnly
+> Task :app:mergeProjectDexDebug
+> Task :capacitor-geolocation:mergeDebugJniLibFolders
+> Task :capacitor-geolocation:mergeDebugNativeLibs NO-SOURCE
+> Task :capacitor-geolocation:copyDebugJniLibsProjectOnly
+> Task :capacitor-keyboard:mergeDebugJniLibFolders
+> Task :capacitor-keyboard:mergeDebugNativeLibs NO-SOURCE
+> Task :capacitor-keyboard:copyDebugJniLibsProjectOnly
+> Task :capacitor-preferences:mergeDebugJniLibFolders
+> Task :capacitor-preferences:mergeDebugNativeLibs NO-SOURCE
+> Task :capacitor-preferences:copyDebugJniLibsProjectOnly
+> Task :capacitor-push-notifications:mergeDebugJniLibFolders
+> Task :capacitor-push-notifications:mergeDebugNativeLibs NO-SOURCE
+> Task :capacitor-push-notifications:copyDebugJniLibsProjectOnly
+> Task :capacitor-splash-screen:mergeDebugJniLibFolders
+> Task :capacitor-splash-screen:mergeDebugNativeLibs NO-SOURCE
+> Task :capacitor-splash-screen:copyDebugJniLibsProjectOnly
+> Task :capacitor-status-bar:mergeDebugJniLibFolders
+> Task :capacitor-status-bar:mergeDebugNativeLibs NO-SOURCE
+> Task :capacitor-status-bar:copyDebugJniLibsProjectOnly
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:mergeDebugNativeLibs NO-SOURCE
+> Task :app:stripDebugDebugSymbols NO-SOURCE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :capacitor-android:stripDebugDebugSymbols NO-SOURCE
+> Task :capacitor-android:copyDebugJniLibsProjectAndLocalJars
+> Task :capacitor-android:extractDebugAnnotations
+> Task :capacitor-android:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :capacitor-android:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :capacitor-android:mergeDebugConsumerProguardFiles
+> Task :capacitor-android:prepareDebugArtProfile UP-TO-DATE
+> Task :capacitor-android:prepareLintJarForPublish UP-TO-DATE
+> Task :capacitor-app:stripDebugDebugSymbols NO-SOURCE
+> Task :capacitor-app:copyDebugJniLibsProjectAndLocalJars
+> Task :capacitor-android:mergeDebugJavaResource
+> Task :capacitor-app:extractDebugAnnotations
+> Task :capacitor-android:syncDebugLibJars
+> Task :capacitor-android:bundleDebugAar
+> Task :capacitor-android:assembleDebug
+> Task :capacitor-app:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :capacitor-app:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :capacitor-app:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :capacitor-app:prepareDebugArtProfile UP-TO-DATE
+> Task :capacitor-app:prepareLintJarForPublish UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:stripDebugDebugSymbols NO-SOURCE
+> Task :capacitor-cordova-android-plugins:copyDebugJniLibsProjectAndLocalJars
+> Task :capacitor-app:mergeDebugJavaResource
+> Task :capacitor-cordova-android-plugins:extractDebugAnnotations
+> Task :capacitor-app:syncDebugLibJars
+> Task :capacitor-app:bundleDebugAar
+> Task :capacitor-app:assembleDebug
+> Task :capacitor-cordova-android-plugins:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:prepareDebugArtProfile UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:prepareLintJarForPublish UP-TO-DATE
+> Task :capacitor-geolocation:stripDebugDebugSymbols NO-SOURCE
+> Task :capacitor-geolocation:copyDebugJniLibsProjectAndLocalJars
+> Task :capacitor-geolocation:extractDebugAnnotations
+> Task :capacitor-geolocation:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :capacitor-geolocation:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:mergeDebugJavaResource
+> Task :capacitor-geolocation:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:syncDebugLibJars
+> Task :capacitor-cordova-android-plugins:bundleDebugAar
+> Task :capacitor-cordova-android-plugins:assembleDebug
+> Task :capacitor-geolocation:prepareDebugArtProfile UP-TO-DATE
+> Task :capacitor-geolocation:prepareLintJarForPublish UP-TO-DATE
+> Task :capacitor-keyboard:stripDebugDebugSymbols NO-SOURCE
+> Task :capacitor-keyboard:copyDebugJniLibsProjectAndLocalJars
+> Task :capacitor-keyboard:extractDebugAnnotations
+> Task :capacitor-keyboard:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :capacitor-geolocation:mergeDebugJavaResource
+> Task :capacitor-keyboard:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :capacitor-geolocation:syncDebugLibJars
+> Task :capacitor-geolocation:bundleDebugAar
+> Task :capacitor-geolocation:assembleDebug
+> Task :capacitor-keyboard:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :capacitor-keyboard:prepareDebugArtProfile UP-TO-DATE
+> Task :capacitor-keyboard:prepareLintJarForPublish UP-TO-DATE
+> Task :capacitor-preferences:stripDebugDebugSymbols NO-SOURCE
+> Task :capacitor-preferences:copyDebugJniLibsProjectAndLocalJars
+> Task :capacitor-keyboard:mergeDebugJavaResource
+> Task :capacitor-preferences:extractDebugAnnotations
+> Task :capacitor-keyboard:syncDebugLibJars
+> Task :capacitor-keyboard:bundleDebugAar
+> Task :capacitor-keyboard:assembleDebug
+> Task :capacitor-preferences:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :capacitor-preferences:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :capacitor-preferences:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :capacitor-preferences:prepareDebugArtProfile UP-TO-DATE
+> Task :capacitor-preferences:prepareLintJarForPublish UP-TO-DATE
+> Task :capacitor-push-notifications:stripDebugDebugSymbols NO-SOURCE
+> Task :capacitor-push-notifications:copyDebugJniLibsProjectAndLocalJars
+> Task :capacitor-preferences:mergeDebugJavaResource
+> Task :capacitor-push-notifications:extractDebugAnnotations
+> Task :capacitor-preferences:syncDebugLibJars
+> Task :capacitor-preferences:bundleDebugAar
+> Task :capacitor-preferences:assembleDebug
+> Task :capacitor-push-notifications:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :capacitor-push-notifications:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :capacitor-push-notifications:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :capacitor-push-notifications:prepareDebugArtProfile UP-TO-DATE
+> Task :capacitor-push-notifications:prepareLintJarForPublish UP-TO-DATE
+> Task :capacitor-splash-screen:stripDebugDebugSymbols NO-SOURCE
+> Task :capacitor-splash-screen:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :capacitor-splash-screen:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :capacitor-splash-screen:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :capacitor-splash-screen:prepareDebugArtProfile UP-TO-DATE
+> Task :capacitor-splash-screen:prepareLintJarForPublish UP-TO-DATE
+> Task :capacitor-status-bar:stripDebugDebugSymbols NO-SOURCE
+> Task :capacitor-status-bar:copyDebugJniLibsProjectAndLocalJars
+> Task :capacitor-splash-screen:mergeDebugJavaResource
+> Task :capacitor-status-bar:extractDebugAnnotations
+> Task :capacitor-splash-screen:syncDebugLibJars
+> Task :capacitor-splash-screen:bundleDebugAar
+> Task :capacitor-splash-screen:assembleDebug
+> Task :capacitor-status-bar:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :capacitor-status-bar:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :capacitor-status-bar:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :capacitor-status-bar:prepareDebugArtProfile UP-TO-DATE
+> Task :capacitor-status-bar:prepareLintJarForPublish UP-TO-DATE
+> Task :aparajita-capacitor-biometric-auth:preReleaseBuild UP-TO-DATE
+> Task :aparajita-capacitor-biometric-auth:generateReleaseResValues
+> Task :capacitor-status-bar:mergeDebugJavaResource
+> Task :aparajita-capacitor-biometric-auth:generateReleaseResources
+> Task :capacitor-status-bar:syncDebugLibJars
+> Task :capacitor-status-bar:bundleDebugAar
+> Task :capacitor-status-bar:assembleDebug
+> Task :aparajita-capacitor-biometric-auth:packageReleaseResources
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :app:generateReleaseResValues UP-TO-DATE
+> Task :capacitor-android:preReleaseBuild UP-TO-DATE
+> Task :capacitor-android:generateReleaseResValues
+> Task :aparajita-capacitor-biometric-auth:compileReleaseLibraryResources
+> Task :capacitor-android:generateReleaseResources
+> Task :app:mergeDebugJavaResource
+> Task :capacitor-android:packageReleaseResources
+> Task :capacitor-app:preReleaseBuild UP-TO-DATE
+> Task :capacitor-app:generateReleaseResValues
+> Task :capacitor-app:generateReleaseResources
+> Task :capacitor-app:packageReleaseResources
+> Task :capacitor-cordova-android-plugins:preReleaseBuild UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:generateReleaseResValues
+> Task :capacitor-cordova-android-plugins:generateReleaseResources
+> Task :capacitor-cordova-android-plugins:packageReleaseResources
+> Task :capacitor-geolocation:preReleaseBuild UP-TO-DATE
+> Task :capacitor-geolocation:generateReleaseResValues
+> Task :capacitor-geolocation:generateReleaseResources
+> Task :capacitor-geolocation:packageReleaseResources
+> Task :capacitor-keyboard:preReleaseBuild UP-TO-DATE
+> Task :capacitor-keyboard:generateReleaseResValues
+> Task :capacitor-keyboard:generateReleaseResources
+> Task :capacitor-keyboard:packageReleaseResources
+> Task :capacitor-preferences:preReleaseBuild UP-TO-DATE
+> Task :capacitor-preferences:generateReleaseResValues
+> Task :capacitor-preferences:generateReleaseResources
+> Task :capacitor-preferences:packageReleaseResources
+> Task :capacitor-push-notifications:preReleaseBuild UP-TO-DATE
+> Task :capacitor-push-notifications:generateReleaseResValues
+> Task :capacitor-push-notifications:generateReleaseResources
+> Task :capacitor-push-notifications:packageReleaseResources
+> Task :capacitor-splash-screen:preReleaseBuild UP-TO-DATE
+> Task :capacitor-splash-screen:generateReleaseResValues
+> Task :capacitor-splash-screen:generateReleaseResources
+> Task :capacitor-splash-screen:packageReleaseResources
+> Task :capacitor-status-bar:preReleaseBuild UP-TO-DATE
+> Task :capacitor-status-bar:generateReleaseResValues
+> Task :capacitor-status-bar:generateReleaseResources
+> Task :capacitor-status-bar:packageReleaseResources
+> Task :app:mapReleaseSourceSetPaths
+> Task :app:generateReleaseResources UP-TO-DATE
+> Task :app:createReleaseCompatibleScreenManifests
+> Task :aparajita-capacitor-biometric-auth:extractDeepLinksRelease
+> Task :aparajita-capacitor-biometric-auth:processReleaseManifest
+> Task :app:extractDeepLinksRelease UP-TO-DATE
+> Task :capacitor-android:extractDeepLinksRelease
+> Task :app:packageDebug
+> Task :app:createDebugApkListingFileRedirect
+> Task :app:assembleDebug
+> Task :capacitor-app:extractDeepLinksRelease
+> Task :capacitor-cordova-android-plugins:extractDeepLinksRelease
+> Task :capacitor-android:processReleaseManifest
+> Task :capacitor-geolocation:extractDeepLinksRelease
+> Task :capacitor-app:processReleaseManifest
+> Task :capacitor-keyboard:extractDeepLinksRelease
+> Task :capacitor-geolocation:processReleaseManifest
+> Task :capacitor-preferences:extractDeepLinksRelease
+> Task :capacitor-cordova-android-plugins:processReleaseManifest
+> Task :capacitor-push-notifications:extractDeepLinksRelease
+> Task :capacitor-keyboard:processReleaseManifest
+> Task :capacitor-preferences:processReleaseManifest
+> Task :capacitor-status-bar:extractDeepLinksRelease
+> Task :capacitor-push-notifications:processReleaseManifest
+> Task :aparajita-capacitor-biometric-auth:parseReleaseLocalResources
+> Task :capacitor-status-bar:processReleaseManifest
+> Task :capacitor-splash-screen:processReleaseManifest
+> Task :app:processReleaseMainManifest
+> Task :app:processReleaseManifest
+> Task :app:processApplicationManifestReleaseForBundle
+> Task :aparajita-capacitor-biometric-auth:generateReleaseRFile
+> Task :aparajita-capacitor-biometric-auth:writeReleaseAarMetadata
+> Task :capacitor-android:writeReleaseAarMetadata
+> Task :capacitor-cordova-android-plugins:writeReleaseAarMetadata
+> Task :capacitor-app:writeReleaseAarMetadata
+> Task :capacitor-geolocation:writeReleaseAarMetadata
+> Task :capacitor-keyboard:writeReleaseAarMetadata
+> Task :capacitor-preferences:writeReleaseAarMetadata
+> Task :capacitor-push-notifications:writeReleaseAarMetadata
+> Task :app:packageReleaseResources UP-TO-DATE
+> Task :app:parseReleaseLocalResources UP-TO-DATE
+> Task :capacitor-splash-screen:writeReleaseAarMetadata
+> Task :capacitor-status-bar:writeReleaseAarMetadata
+> Task :app:processReleaseManifestForPackage
+> Task :app:checkReleaseAarMetadata
+> Task :capacitor-android:parseReleaseLocalResources
+> Task :capacitor-android:compileReleaseLibraryResources
+> Task :capacitor-app:parseReleaseLocalResources
+> Task :capacitor-android:generateReleaseRFile
+> Task :capacitor-app:compileReleaseLibraryResources
+> Task :capacitor-app:generateReleaseRFile
+> Task :capacitor-geolocation:compileReleaseLibraryResources
+> Task :capacitor-cordova-android-plugins:parseReleaseLocalResources
+> Task :capacitor-cordova-android-plugins:compileReleaseLibraryResources
+> Task :capacitor-keyboard:compileReleaseLibraryResources
+> Task :capacitor-geolocation:parseReleaseLocalResources
+> Task :capacitor-cordova-android-plugins:generateReleaseRFile
+> Task :capacitor-geolocation:generateReleaseRFile
+> Task :capacitor-keyboard:parseReleaseLocalResources
+> Task :capacitor-preferences:compileReleaseLibraryResources
+> Task :capacitor-preferences:parseReleaseLocalResources
+> Task :capacitor-keyboard:generateReleaseRFile
+> Task :capacitor-push-notifications:compileReleaseLibraryResources
+> Task :capacitor-preferences:generateReleaseRFile
+> Task :capacitor-push-notifications:parseReleaseLocalResources
+> Task :capacitor-splash-screen:compileReleaseLibraryResources
+> Task :capacitor-splash-screen:parseReleaseLocalResources
+> Task :capacitor-splash-screen:generateReleaseRFile
+> Task :capacitor-status-bar:compileReleaseLibraryResources
+> Task :app:extractReleaseVersionControlInfo UP-TO-DATE
+> Task :capacitor-push-notifications:generateReleaseRFile
+> Task :aparajita-capacitor-biometric-auth:javaPreCompileRelease
+> Task :capacitor-status-bar:parseReleaseLocalResources
+> Task :capacitor-android:javaPreCompileRelease
+> Task :capacitor-app:javaPreCompileRelease
+> Task :capacitor-status-bar:generateReleaseRFile
+
+> Task :capacitor-android:compileReleaseJavaWithJavac
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :capacitor-android:bundleLibCompileToJarRelease
+> Task :capacitor-android:bundleLibRuntimeToJarRelease
+> Task :aparajita-capacitor-biometric-auth:compileReleaseJavaWithJavac
+> Task :aparajita-capacitor-biometric-auth:bundleLibRuntimeToJarRelease
+> Task :capacitor-geolocation:javaPreCompileRelease
+> Task :capacitor-geolocation:compileReleaseKotlin
+> Task :capacitor-geolocation:compileReleaseJavaWithJavac NO-SOURCE
+> Task :capacitor-app:bundleLibRuntimeToJarRelease
+> Task :capacitor-geolocation:bundleLibRuntimeToJarRelease
+> Task :capacitor-keyboard:javaPreCompileRelease
+> Task :capacitor-push-notifications:javaPreCompileRelease
+> Task :app:mergeReleaseResources
+> Task :capacitor-keyboard:compileReleaseJavaWithJavac
+> Task :capacitor-preferences:javaPreCompileRelease
+> Task :capacitor-keyboard:bundleLibRuntimeToJarRelease
+> Task :capacitor-preferences:compileReleaseJavaWithJavac
+> Task :capacitor-preferences:bundleLibRuntimeToJarRelease
+
+> Task :capacitor-push-notifications:compileReleaseJavaWithJavac
+Note: C:\Users\User\Documents\GitHub\sortirovka24\app\frontend\node_modules\@capacitor\push-notifications\android\src\main\java\com\capacitorjs\plugins\pushnotifications\PushNotificationsPlugin.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :capacitor-splash-screen:javaPreCompileRelease
+> Task :capacitor-status-bar:javaPreCompileRelease
+> Task :capacitor-push-notifications:bundleLibRuntimeToJarRelease
+> Task :capacitor-splash-screen:compileReleaseJavaWithJavac
+> Task :capacitor-splash-screen:bundleLibRuntimeToJarRelease
+
+> Task :capacitor-status-bar:compileReleaseJavaWithJavac
+Note: C:\Users\User\Documents\GitHub\sortirovka24\app\frontend\node_modules\@capacitor\status-bar\android\src\main\java\com\capacitorjs\plugins\statusbar\StatusBar.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :app:checkReleaseDuplicateClasses
+> Task :capacitor-status-bar:bundleLibRuntimeToJarRelease
+> Task :app:javaPreCompileRelease UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:javaPreCompileRelease
+> Task :capacitor-cordova-android-plugins:compileReleaseJavaWithJavac NO-SOURCE
+> Task :capacitor-cordova-android-plugins:bundleLibRuntimeToJarRelease
+> Task :capacitor-app:bundleLibCompileToJarRelease
+> Task :aparajita-capacitor-biometric-auth:bundleLibCompileToJarRelease
+> Task :capacitor-cordova-android-plugins:bundleLibCompileToJarRelease
+> Task :capacitor-preferences:bundleLibCompileToJarRelease
+> Task :capacitor-geolocation:bundleLibCompileToJarRelease
+> Task :capacitor-keyboard:bundleLibCompileToJarRelease
+> Task :capacitor-splash-screen:bundleLibCompileToJarRelease
+> Task :app:desugarReleaseFileDependencies
+> Task :app:mergeReleaseStartupProfile UP-TO-DATE
+
+> Task :app:mergeExtDexRelease
+WARNING: C:\Users\User\Documents\GitHub\sortirovka24\app\frontend\.gradle-home\caches\8.11.1\transforms\d253a2d6e9532956024d3ef1050820cc\transformed\play-services-location-21.3.0-runtime.jar: D8: The companion object Companion could not be found in class com.google.android.gms.internal.location.zze
+
+> Task :capacitor-push-notifications:bundleLibCompileToJarRelease
+> Task :capacitor-status-bar:bundleLibCompileToJarRelease
+> Task :aparajita-capacitor-biometric-auth:mergeReleaseShaders
+> Task :aparajita-capacitor-biometric-auth:compileReleaseShaders NO-SOURCE
+> Task :aparajita-capacitor-biometric-auth:generateReleaseAssets UP-TO-DATE
+> Task :aparajita-capacitor-biometric-auth:packageReleaseAssets
+> Task :app:mergeReleaseShaders UP-TO-DATE
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :capacitor-android:mergeReleaseShaders
+> Task :capacitor-android:compileReleaseShaders NO-SOURCE
+> Task :capacitor-android:generateReleaseAssets UP-TO-DATE
+> Task :capacitor-android:packageReleaseAssets
+> Task :capacitor-app:mergeReleaseShaders
+> Task :capacitor-app:compileReleaseShaders NO-SOURCE
+> Task :capacitor-app:generateReleaseAssets UP-TO-DATE
+> Task :capacitor-app:packageReleaseAssets
+> Task :capacitor-cordova-android-plugins:mergeReleaseShaders
+> Task :capacitor-cordova-android-plugins:compileReleaseShaders NO-SOURCE
+> Task :capacitor-cordova-android-plugins:generateReleaseAssets UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:packageReleaseAssets
+> Task :capacitor-geolocation:mergeReleaseShaders
+> Task :capacitor-geolocation:compileReleaseShaders NO-SOURCE
+> Task :capacitor-geolocation:generateReleaseAssets UP-TO-DATE
+> Task :capacitor-geolocation:packageReleaseAssets
+> Task :capacitor-keyboard:mergeReleaseShaders
+> Task :capacitor-keyboard:compileReleaseShaders NO-SOURCE
+> Task :capacitor-keyboard:generateReleaseAssets UP-TO-DATE
+> Task :capacitor-keyboard:packageReleaseAssets
+> Task :capacitor-preferences:mergeReleaseShaders
+> Task :capacitor-preferences:compileReleaseShaders NO-SOURCE
+> Task :capacitor-preferences:generateReleaseAssets UP-TO-DATE
+> Task :capacitor-preferences:packageReleaseAssets
+> Task :capacitor-push-notifications:mergeReleaseShaders
+> Task :capacitor-push-notifications:compileReleaseShaders NO-SOURCE
+> Task :capacitor-push-notifications:generateReleaseAssets UP-TO-DATE
+> Task :capacitor-push-notifications:packageReleaseAssets
+> Task :capacitor-splash-screen:mergeReleaseShaders
+> Task :capacitor-splash-screen:compileReleaseShaders NO-SOURCE
+> Task :capacitor-splash-screen:generateReleaseAssets UP-TO-DATE
+> Task :capacitor-splash-screen:packageReleaseAssets
+> Task :capacitor-status-bar:mergeReleaseShaders
+> Task :capacitor-status-bar:compileReleaseShaders NO-SOURCE
+> Task :capacitor-status-bar:generateReleaseAssets UP-TO-DATE
+> Task :capacitor-status-bar:packageReleaseAssets
+> Task :app:mergeReleaseAssets
+> Task :aparajita-capacitor-biometric-auth:processReleaseJavaRes NO-SOURCE
+> Task :app:processReleaseJavaRes NO-SOURCE
+> Task :capacitor-android:processReleaseJavaRes NO-SOURCE
+> Task :capacitor-app:processReleaseJavaRes NO-SOURCE
+> Task :capacitor-cordova-android-plugins:processReleaseJavaRes NO-SOURCE
+> Task :capacitor-geolocation:processReleaseJavaRes
+> Task :capacitor-keyboard:processReleaseJavaRes NO-SOURCE
+> Task :capacitor-preferences:processReleaseJavaRes NO-SOURCE
+> Task :capacitor-push-notifications:processReleaseJavaRes NO-SOURCE
+> Task :capacitor-splash-screen:processReleaseJavaRes NO-SOURCE
+> Task :capacitor-status-bar:processReleaseJavaRes NO-SOURCE
+> Task :aparajita-capacitor-biometric-auth:mergeReleaseJniLibFolders
+> Task :aparajita-capacitor-biometric-auth:mergeReleaseNativeLibs NO-SOURCE
+> Task :aparajita-capacitor-biometric-auth:copyReleaseJniLibsProjectOnly
+> Task :app:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :capacitor-android:mergeReleaseJniLibFolders
+> Task :capacitor-android:mergeReleaseNativeLibs NO-SOURCE
+> Task :capacitor-android:copyReleaseJniLibsProjectOnly
+> Task :app:mergeReleaseJavaResource
+> Task :capacitor-app:mergeReleaseJniLibFolders
+> Task :capacitor-app:mergeReleaseNativeLibs NO-SOURCE
+> Task :capacitor-app:copyReleaseJniLibsProjectOnly
+> Task :capacitor-cordova-android-plugins:mergeReleaseJniLibFolders
+> Task :capacitor-cordova-android-plugins:mergeReleaseNativeLibs NO-SOURCE
+> Task :capacitor-cordova-android-plugins:copyReleaseJniLibsProjectOnly
+> Task :capacitor-geolocation:mergeReleaseJniLibFolders
+> Task :capacitor-geolocation:mergeReleaseNativeLibs NO-SOURCE
+> Task :capacitor-geolocation:copyReleaseJniLibsProjectOnly
+> Task :capacitor-keyboard:mergeReleaseJniLibFolders
+> Task :capacitor-keyboard:mergeReleaseNativeLibs NO-SOURCE
+> Task :capacitor-keyboard:copyReleaseJniLibsProjectOnly
+> Task :capacitor-preferences:mergeReleaseJniLibFolders
+> Task :capacitor-preferences:mergeReleaseNativeLibs NO-SOURCE
+> Task :capacitor-preferences:copyReleaseJniLibsProjectOnly
+> Task :capacitor-push-notifications:mergeReleaseJniLibFolders
+> Task :capacitor-push-notifications:mergeReleaseNativeLibs NO-SOURCE
+> Task :capacitor-push-notifications:copyReleaseJniLibsProjectOnly
+> Task :capacitor-splash-screen:mergeReleaseJniLibFolders
+> Task :capacitor-splash-screen:mergeReleaseNativeLibs NO-SOURCE
+> Task :capacitor-splash-screen:copyReleaseJniLibsProjectOnly
+> Task :capacitor-status-bar:mergeReleaseJniLibFolders
+> Task :capacitor-status-bar:mergeReleaseNativeLibs NO-SOURCE
+> Task :capacitor-status-bar:copyReleaseJniLibsProjectOnly
+> Task :app:writeReleaseAppMetadata UP-TO-DATE
+> Task :app:mergeReleaseNativeLibs NO-SOURCE
+> Task :app:stripReleaseDebugSymbols NO-SOURCE
+> Task :aparajita-capacitor-biometric-auth:prepareReleaseArtProfile
+> Task :capacitor-android:prepareReleaseArtProfile UP-TO-DATE
+> Task :capacitor-app:prepareReleaseArtProfile UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:prepareReleaseArtProfile UP-TO-DATE
+> Task :capacitor-geolocation:prepareReleaseArtProfile UP-TO-DATE
+> Task :capacitor-keyboard:prepareReleaseArtProfile UP-TO-DATE
+> Task :capacitor-preferences:prepareReleaseArtProfile UP-TO-DATE
+> Task :capacitor-push-notifications:prepareReleaseArtProfile UP-TO-DATE
+> Task :app:processReleaseResources
+> Task :capacitor-splash-screen:prepareReleaseArtProfile UP-TO-DATE
+> Task :app:compileReleaseJavaWithJavac
+> Task :app:dexBuilderRelease
+> Task :app:bundleReleaseResources
+> Task :capacitor-status-bar:prepareReleaseArtProfile UP-TO-DATE
+> Task :app:mergeReleaseGlobalSynthetics
+> Task :app:mergeReleaseArtProfile
+> Task :app:collectReleaseDependencies
+> Task :app:configureReleaseDependencies
+> Task :app:extractReleaseNativeSymbolTables NO-SOURCE
+> Task :app:parseReleaseIntegrityConfig UP-TO-DATE
+> Task :app:validateSigningRelease UP-TO-DATE
+> Task :aparajita-capacitor-biometric-auth:stripReleaseDebugSymbols NO-SOURCE
+> Task :aparajita-capacitor-biometric-auth:copyReleaseJniLibsProjectAndLocalJars
+> Task :aparajita-capacitor-biometric-auth:extractDeepLinksForAarRelease
+> Task :aparajita-capacitor-biometric-auth:extractReleaseAnnotations
+> Task :aparajita-capacitor-biometric-auth:mergeReleaseGeneratedProguardFiles
+> Task :aparajita-capacitor-biometric-auth:mergeReleaseConsumerProguardFiles
+> Task :aparajita-capacitor-biometric-auth:mergeReleaseJavaResource
+> Task :aparajita-capacitor-biometric-auth:mapReleaseSourceSetPaths
+> Task :aparajita-capacitor-biometric-auth:syncReleaseLibJars
+> Task :aparajita-capacitor-biometric-auth:bundleReleaseAar
+> Task :app:mergeDexRelease
+> Task :aparajita-capacitor-biometric-auth:mergeReleaseResources
+> Task :app:buildReleasePreBundle
+> Task :capacitor-android:createFullJarRelease
+> Task :capacitor-android:extractProguardFiles
+> Task :app:compileReleaseArtProfile
+> Task :capacitor-android:generateReleaseLintModel
+> Task :app:packageReleaseBundle
+> Task :aparajita-capacitor-biometric-auth:generateReleaseLintVitalModel
+> Task :capacitor-android:stripReleaseDebugSymbols NO-SOURCE
+> Task :capacitor-android:copyReleaseJniLibsProjectAndLocalJars
+> Task :capacitor-android:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :capacitor-android:extractReleaseAnnotations
+> Task :capacitor-android:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :aparajita-capacitor-biometric-auth:verifyReleaseResources
+> Task :capacitor-android:mergeReleaseConsumerProguardFiles
+> Task :aparajita-capacitor-biometric-auth:assembleRelease
+> Task :capacitor-android:writeReleaseLintModelMetadata
+> Task :aparajita-capacitor-biometric-auth:createFullJarRelease
+> Task :capacitor-android:mergeReleaseJavaResource
+> Task :aparajita-capacitor-biometric-auth:generateReleaseLintModel
+> Task :capacitor-android:syncReleaseLibJars
+> Task :capacitor-android:bundleReleaseLocalLintAar
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :capacitor-app:createFullJarRelease
+> Task :capacitor-app:extractProguardFiles
+> Task :app:signReleaseBundle
+> Task :capacitor-app:generateReleaseLintModel
+> Task :app:produceReleaseBundleIdeListingFile
+> Task :app:createReleaseBundleListingFileRedirect UP-TO-DATE
+> Task :app:bundleRelease
+> Task :capacitor-cordova-android-plugins:createFullJarRelease
+> Task :capacitor-cordova-android-plugins:extractProguardFiles
+> Task :capacitor-cordova-android-plugins:generateReleaseLintModel
+> Task :capacitor-geolocation:createFullJarRelease
+> Task :capacitor-geolocation:extractProguardFiles
+> Task :capacitor-geolocation:generateReleaseLintModel
+> Task :capacitor-keyboard:createFullJarRelease
+> Task :capacitor-keyboard:extractProguardFiles
+> Task :capacitor-keyboard:generateReleaseLintModel
+> Task :capacitor-preferences:createFullJarRelease
+> Task :capacitor-preferences:extractProguardFiles
+> Task :capacitor-preferences:generateReleaseLintModel
+> Task :capacitor-push-notifications:createFullJarRelease
+> Task :capacitor-push-notifications:extractProguardFiles
+> Task :capacitor-push-notifications:generateReleaseLintModel
+> Task :capacitor-splash-screen:createFullJarRelease
+> Task :capacitor-splash-screen:extractProguardFiles
+> Task :capacitor-splash-screen:generateReleaseLintModel
+> Task :capacitor-status-bar:createFullJarRelease
+> Task :capacitor-status-bar:extractProguardFiles
+> Task :capacitor-status-bar:generateReleaseLintModel
+> Task :app:generateReleaseLintVitalReportModel
+> Task :aparajita-capacitor-biometric-auth:bundleReleaseLocalLintAar
+> Task :capacitor-app:stripReleaseDebugSymbols NO-SOURCE
+> Task :capacitor-app:copyReleaseJniLibsProjectAndLocalJars
+> Task :capacitor-app:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :capacitor-app:extractReleaseAnnotations
+> Task :capacitor-app:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :capacitor-app:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :capacitor-app:mergeReleaseJavaResource
+> Task :capacitor-app:syncReleaseLibJars
+> Task :capacitor-app:bundleReleaseLocalLintAar
+> Task :capacitor-geolocation:stripReleaseDebugSymbols NO-SOURCE
+> Task :capacitor-geolocation:copyReleaseJniLibsProjectAndLocalJars
+> Task :capacitor-geolocation:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :capacitor-geolocation:extractReleaseAnnotations
+> Task :capacitor-geolocation:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :capacitor-geolocation:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :capacitor-keyboard:stripReleaseDebugSymbols NO-SOURCE
+> Task :capacitor-geolocation:mergeReleaseJavaResource
+> Task :capacitor-keyboard:copyReleaseJniLibsProjectAndLocalJars
+> Task :capacitor-geolocation:syncReleaseLibJars
+> Task :capacitor-geolocation:bundleReleaseLocalLintAar
+> Task :capacitor-keyboard:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :capacitor-keyboard:extractReleaseAnnotations
+> Task :capacitor-keyboard:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :capacitor-keyboard:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :capacitor-preferences:stripReleaseDebugSymbols NO-SOURCE
+> Task :capacitor-preferences:copyReleaseJniLibsProjectAndLocalJars
+> Task :capacitor-preferences:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :capacitor-preferences:extractReleaseAnnotations
+> Task :capacitor-preferences:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :capacitor-keyboard:mergeReleaseJavaResource
+> Task :capacitor-preferences:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :capacitor-keyboard:syncReleaseLibJars
+> Task :capacitor-keyboard:bundleReleaseLocalLintAar
+> Task :capacitor-push-notifications:stripReleaseDebugSymbols NO-SOURCE
+> Task :capacitor-push-notifications:copyReleaseJniLibsProjectAndLocalJars
+> Task :capacitor-push-notifications:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :capacitor-preferences:mergeReleaseJavaResource
+> Task :capacitor-push-notifications:extractReleaseAnnotations
+> Task :capacitor-preferences:syncReleaseLibJars
+> Task :capacitor-preferences:bundleReleaseLocalLintAar
+> Task :capacitor-push-notifications:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :capacitor-push-notifications:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :capacitor-splash-screen:stripReleaseDebugSymbols NO-SOURCE
+> Task :capacitor-splash-screen:copyReleaseJniLibsProjectAndLocalJars
+> Task :capacitor-splash-screen:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :capacitor-push-notifications:mergeReleaseJavaResource
+> Task :capacitor-splash-screen:extractReleaseAnnotations
+> Task :capacitor-push-notifications:syncReleaseLibJars
+> Task :capacitor-push-notifications:bundleReleaseLocalLintAar
+> Task :capacitor-splash-screen:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :capacitor-splash-screen:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :capacitor-status-bar:stripReleaseDebugSymbols NO-SOURCE
+> Task :capacitor-status-bar:copyReleaseJniLibsProjectAndLocalJars
+> Task :capacitor-status-bar:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :capacitor-splash-screen:mergeReleaseJavaResource
+> Task :capacitor-status-bar:extractReleaseAnnotations
+> Task :capacitor-splash-screen:syncReleaseLibJars
+> Task :capacitor-splash-screen:bundleReleaseLocalLintAar
+> Task :capacitor-status-bar:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :capacitor-status-bar:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:stripReleaseDebugSymbols NO-SOURCE
+> Task :capacitor-cordova-android-plugins:copyReleaseJniLibsProjectAndLocalJars
+> Task :capacitor-cordova-android-plugins:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:extractReleaseAnnotations
+> Task :capacitor-cordova-android-plugins:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :capacitor-status-bar:mergeReleaseJavaResource
+> Task :capacitor-status-bar:syncReleaseLibJars
+> Task :capacitor-cordova-android-plugins:mergeReleaseJavaResource
+> Task :capacitor-status-bar:bundleReleaseLocalLintAar
+> Task :capacitor-cordova-android-plugins:syncReleaseLibJars
+> Task :capacitor-cordova-android-plugins:bundleReleaseLocalLintAar
+> Task :aparajita-capacitor-biometric-auth:writeReleaseLintModelMetadata
+> Task :capacitor-app:writeReleaseLintModelMetadata
+> Task :capacitor-cordova-android-plugins:writeReleaseLintModelMetadata
+> Task :capacitor-geolocation:writeReleaseLintModelMetadata
+> Task :capacitor-keyboard:writeReleaseLintModelMetadata
+> Task :capacitor-preferences:writeReleaseLintModelMetadata
+> Task :capacitor-push-notifications:writeReleaseLintModelMetadata
+> Task :capacitor-splash-screen:writeReleaseLintModelMetadata
+> Task :capacitor-status-bar:writeReleaseLintModelMetadata
+> Task :capacitor-android:generateReleaseLintVitalModel
+> Task :capacitor-app:generateReleaseLintVitalModel
+> Task :capacitor-cordova-android-plugins:generateReleaseLintVitalModel
+> Task :capacitor-geolocation:generateReleaseLintVitalModel
+> Task :capacitor-keyboard:generateReleaseLintVitalModel
+> Task :capacitor-preferences:generateReleaseLintVitalModel
+> Task :capacitor-push-notifications:generateReleaseLintVitalModel
+> Task :capacitor-splash-screen:generateReleaseLintVitalModel
+> Task :capacitor-status-bar:generateReleaseLintVitalModel
+> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:compressReleaseAssets
+> Task :app:sdkReleaseDependencyData
+> Task :app:writeReleaseSigningConfigVersions UP-TO-DATE
+> Task :capacitor-android:bundleReleaseAar
+> Task :capacitor-android:mapReleaseSourceSetPaths
+> Task :capacitor-android:mergeReleaseResources
+> Task :app:optimizeReleaseResources
+> Task :app:packageRelease
+> Task :app:createReleaseApkListingFileRedirect
+> Task :capacitor-app:bundleReleaseAar
+> Task :capacitor-app:mapReleaseSourceSetPaths
+> Task :capacitor-android:verifyReleaseResources
+> Task :aparajita-capacitor-biometric-auth:lintVitalAnalyzeRelease
+> Task :capacitor-app:mergeReleaseResources
+> Task :capacitor-android:assembleRelease
+> Task :capacitor-cordova-android-plugins:bundleReleaseAar
+> Task :capacitor-cordova-android-plugins:mapReleaseSourceSetPaths
+> Task :capacitor-app:verifyReleaseResources
+> Task :capacitor-android:lintVitalAnalyzeRelease
+> Task :capacitor-cordova-android-plugins:mergeReleaseResources
+> Task :capacitor-app:assembleRelease
+> Task :capacitor-geolocation:bundleReleaseAar
+> Task :capacitor-geolocation:mapReleaseSourceSetPaths
+> Task :capacitor-app:lintVitalAnalyzeRelease
+> Task :capacitor-cordova-android-plugins:verifyReleaseResources
+> Task :capacitor-geolocation:mergeReleaseResources
+> Task :capacitor-cordova-android-plugins:assembleRelease
+> Task :capacitor-keyboard:bundleReleaseAar
+> Task :capacitor-keyboard:mapReleaseSourceSetPaths
+> Task :capacitor-cordova-android-plugins:lintVitalAnalyzeRelease
+> Task :capacitor-geolocation:verifyReleaseResources
+> Task :capacitor-keyboard:mergeReleaseResources
+> Task :capacitor-geolocation:assembleRelease
+> Task :capacitor-preferences:bundleReleaseAar
+> Task :capacitor-preferences:mapReleaseSourceSetPaths
+> Task :capacitor-keyboard:verifyReleaseResources
+> Task :capacitor-geolocation:lintVitalAnalyzeRelease
+> Task :capacitor-preferences:mergeReleaseResources
+> Task :capacitor-keyboard:assembleRelease
+> Task :capacitor-push-notifications:bundleReleaseAar
+> Task :capacitor-push-notifications:mapReleaseSourceSetPaths
+> Task :capacitor-keyboard:lintVitalAnalyzeRelease
+> Task :capacitor-preferences:verifyReleaseResources
+> Task :capacitor-push-notifications:mergeReleaseResources
+> Task :capacitor-preferences:assembleRelease
+> Task :capacitor-splash-screen:bundleReleaseAar
+> Task :capacitor-splash-screen:mapReleaseSourceSetPaths
+> Task :capacitor-preferences:lintVitalAnalyzeRelease
+> Task :capacitor-push-notifications:verifyReleaseResources
+> Task :capacitor-splash-screen:mergeReleaseResources
+> Task :capacitor-push-notifications:assembleRelease
+> Task :capacitor-status-bar:bundleReleaseAar
+> Task :capacitor-status-bar:mapReleaseSourceSetPaths
+> Task :capacitor-push-notifications:lintVitalAnalyzeRelease
+> Task :capacitor-splash-screen:verifyReleaseResources
+> Task :capacitor-status-bar:mergeReleaseResources
+> Task :capacitor-splash-screen:assembleRelease
+> Task :capacitor-status-bar:verifyReleaseResources
+> Task :capacitor-status-bar:assembleRelease
+> Task :capacitor-splash-screen:lintVitalAnalyzeRelease
+> Task :capacitor-status-bar:lintVitalAnalyzeRelease
+> Task :app:lintVitalAnalyzeRelease
+> Task :app:lintVitalReportRelease
+> Task :app:lintVitalRelease
+> Task :app:assembleRelease
+[Incubating] Problems report is available at: file:///C:/Users/User/Documents/GitHub/sortirovka24/app/frontend/android/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 8m 9s
+715 actionable tasks: 608 executed, 107 up-to-date
+2026-06-27 23:12:02 aapt badging...
+package: name='kz.sortirovka24.app' versionCode='26' versionName='1.0.26' platformBuildVersionName='15' platformBuildVersionCode='35' compileSdkVersion='35' compileSdkVersionCodename='15'
+sdkVersion:'23'
+targetSdkVersion:'35'
+uses-permission: name='android.permission.INTERNET'
+uses-permission: name='android.permission.ACCESS_COARSE_LOCATION'
+uses-permission: name='android.permission.ACCESS_FINE_LOCATION'
+uses-permission: name='android.permission.USE_BIOMETRIC'
+uses-permission: name='android.permission.USE_FINGERPRINT'
+uses-permission: name='android.permission.ACCESS_NETWORK_STATE'
+uses-permission: name='android.permission.POST_NOTIFICATIONS'
+uses-permission: name='android.permission.WAKE_LOCK'
+uses-permission: name='com.google.android.c2dm.permission.RECEIVE'
+uses-permission: name='kz.sortirovka24.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
+application-label:'Sortirovka24'
+application-label-af:'Sortirovka24'
+application-label-am:'Sortirovka24'
+application-label-ar:'Sortirovka24'
+application-label-as:'Sortirovka24'
+application-label-az:'Sortirovka24'
+application-label-be:'Sortirovka24'
+application-label-bg:'Sortirovka24'
+application-label-bn:'Sortirovka24'
+application-label-bs:'Sortirovka24'
+application-label-ca:'Sortirovka24'
+application-label-cs:'Sortirovka24'
+application-label-da:'Sortirovka24'
+application-label-de:'Sortirovka24'
+application-label-el:'Sortirovka24'
+application-label-en-AU:'Sortirovka24'
+application-label-en-CA:'Sortirovka24'
+application-label-en-GB:'Sortirovka24'
+application-label-en-IN:'Sortirovka24'
+application-label-en-XC:'Sortirovka24'
+application-label-es:'Sortirovka24'
+application-label-es-419:'Sortirovka24'
+application-label-es-US:'Sortirovka24'
+application-label-et:'Sortirovka24'
+application-label-eu:'Sortirovka24'
+application-label-fa:'Sortirovka24'
+application-label-fi:'Sortirovka24'
+application-label-fr:'Sortirovka24'
+application-label-fr-CA:'Sortirovka24'
+application-label-gl:'Sortirovka24'
+application-label-gu:'Sortirovka24'
+application-label-hi:'Sortirovka24'
+application-label-hr:'Sortirovka24'
+application-label-hu:'Sortirovka24'
+application-label-hy:'Sortirovka24'
+application-label-in:'Sortirovka24'
+application-label-is:'Sortirovka24'
+application-label-it:'Sortirovka24'
+application-label-iw:'Sortirovka24'
+application-label-ja:'Sortirovka24'
+application-label-ka:'Sortirovka24'
+application-label-kk:'Sortirovka24'
+application-label-km:'Sortirovka24'
+application-label-kn:'Sortirovka24'
+application-label-ko:'Sortirovka24'
+application-label-ky:'Sortirovka24'
+application-label-lo:'Sortirovka24'
+application-label-lt:'Sortirovka24'
+application-label-lv:'Sortirovka24'
+application-label-mk:'Sortirovka24'
+application-label-ml:'Sortirovka24'
+application-label-mn:'Sortirovka24'
+application-label-mr:'Sortirovka24'
+application-label-ms:'Sortirovka24'
+application-label-my:'Sortirovka24'
+application-label-nb:'Sortirovka24'
+application-label-ne:'Sortirovka24'
+application-label-nl:'Sortirovka24'
+application-label-or:'Sortirovka24'
+application-label-pa:'Sortirovka24'
+application-label-pl:'Sortirovka24'
+application-label-pt:'Sortirovka24'
+application-label-pt-BR:'Sortirovka24'
+application-label-pt-PT:'Sortirovka24'
+application-label-ro:'Sortirovka24'
+application-label-ru:'Sortirovka24'
+application-label-si:'Sortirovka24'
+application-label-sk:'Sortirovka24'
+application-label-sl:'Sortirovka24'
+application-label-sq:'Sortirovka24'
+application-label-sr:'Sortirovka24'
+application-label-sr-Latn:'Sortirovka24'
+application-label-sv:'Sortirovka24'
+application-label-sw:'Sortirovka24'
+application-label-ta:'Sortirovka24'
+application-label-te:'Sortirovka24'
+application-label-th:'Sortirovka24'
+application-label-tl:'Sortirovka24'
+application-label-tr:'Sortirovka24'
+application-label-uk:'Sortirovka24'
+application-label-ur:'Sortirovka24'
+application-label-uz:'Sortirovka24'
+application-label-vi:'Sortirovka24'
+application-label-zh-CN:'Sortirovka24'
+application-label-zh-HK:'Sortirovka24'
+application-label-zh-TW:'Sortirovka24'
+application-label-zu:'Sortirovka24'
+application-icon-120:'res/mipmap-anydpi-v26/ic_launcher.xml'
+application-icon-160:'res/mipmap-anydpi-v26/ic_launcher.xml'
+application-icon-240:'res/mipmap-anydpi-v26/ic_launcher.xml'
+application-icon-320:'res/mipmap-anydpi-v26/ic_launcher.xml'
+application-icon-480:'res/mipmap-anydpi-v26/ic_launcher.xml'
+application-icon-640:'res/mipmap-anydpi-v26/ic_launcher.xml'
+application-icon-65534:'res/mipmap-anydpi-v26/ic_launcher.xml'
+application: label='Sortirovka24' icon='res/mipmap-anydpi-v26/ic_launcher.xml'
+application-debuggable
+launchable-activity: name='kz.sortirovka24.app.MainActivity'  label='Sortirovka24' icon=''
+feature-group: label=''
+  uses-feature: name='android.hardware.faketouch'
+  uses-implied-feature: name='android.hardware.faketouch' reason='default feature for all apps'
+  uses-feature: name='android.hardware.location'
+  uses-implied-feature: name='android.hardware.location' reason='requested android.permission.ACCESS_COARSE_LOCATION permission, and requested android.permission.ACCESS_FINE_LOCATION permission'
+main
+other-activities
+other-receivers
+other-services
+supports-screens: 'small' 'normal' 'large' 'xlarge'
+supports-any-density: 'true'
+locales: '--_--' 'af' 'am' 'ar' 'as' 'az' 'be' 'bg' 'bn' 'bs' 'ca' 'cs' 'da' 'de' 'el' 'en-AU' 'en-CA' 'en-GB' 'en-IN' 'en-XC' 'es' 'es-419' 'es-US' 'et' 'eu' 'fa' 'fi' 'fr' 'fr-CA' 'gl' 'gu' 'hi' 'hr' 'hu' 'hy' 'in' 'is' 'it' 'iw' 'ja' 'ka' 'kk' 'km' 'kn' 'ko' 'ky' 'lo' 'lt' 'lv' 'mk' 'ml' 'mn' 'mr' 'ms' 'my' 'nb' 'ne' 'nl' 'or' 'pa' 'pl' 'pt' 'pt-BR' 'pt-PT' 'ro' 'ru' 'si' 'sk' 'sl' 'sq' 'sr' 'sr-Latn' 'sv' 'sw' 'ta' 'te' 'th' 'tl' 'tr' 'uk' 'ur' 'uz' 'vi' 'zh-CN' 'zh-HK' 'zh-TW' 'zu'
+densities: '120' '160' '240' '320' '480' '640' '65534'
+
+Name                            Length LastWriteTime      
+----                            ------ -------------      
+Sortirovka24-latest-debug.apk 22719043 27.06.2026 23:09:28
+
+
+
+2026-06-27 23:12:03 === BUILD SUCCESS END ===

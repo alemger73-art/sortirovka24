@@ -35,12 +35,15 @@ $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
 
 Set-Location $Frontend
 
-if (-not (Test-Path "node_modules")) {
-    Run-Step "pnpm install..." { pnpm install --config.node-linker=hoisted }
-} elseif (-not (Test-Path "node_modules\vite")) {
-    Run-Step "pnpm install (vite missing)..." { pnpm install --config.node-linker=hoisted }
-} elseif (-not (Test-Path "node_modules\@sentry\react")) {
-    Run-Step "pnpm install (@sentry/react missing)..." { pnpm install --config.node-linker=hoisted }
+# Windows: pnpm symlinks often fail (EPERM). Use npm for install/build.
+if (Test-Path "node_modules") {
+    if (-not (Test-Path "node_modules\vite\package.json")) {
+        Log "Removing broken node_modules..."
+        Remove-Item "node_modules" -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+if (-not (Test-Path "node_modules\vite\package.json")) {
+    Run-Step "npm install..." { npm install }
 }
 
 if (-not (Test-Path ".env.mobile")) {
@@ -50,9 +53,9 @@ if (-not (Test-Path ".env.mobile")) {
     }
 }
 
-Run-Step "pnpm run build:mobile..." { pnpm run build:mobile }
-Run-Step "pnpm exec tsc --noEmit..." { pnpm exec tsc --noEmit }
-Run-Step "pnpm exec cap sync android..." { pnpm exec cap sync android }
+Run-Step "npm run build:mobile..." { npm run build:mobile }
+Run-Step "npx tsc --noEmit..." { npx tsc --noEmit }
+Run-Step "npx cap sync android..." { npx cap sync android }
 
 Set-Location $Android
 Run-Step "Gradle assembleDebug bundleRelease assembleRelease..." {
