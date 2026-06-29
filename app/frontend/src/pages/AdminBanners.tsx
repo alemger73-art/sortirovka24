@@ -12,6 +12,10 @@ import { Switch } from '@/components/ui/switch';
 import { Plus, Pencil, Trash2, Loader2, ExternalLink, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import ImageUpload, { StorageImage } from '@/components/ImageUpload';
+import {
+  damAlemPromoBannerSizeHint,
+  sitePromoBannerSizeHint,
+} from '@/lib/bannerSpecs';
 
 interface Banner {
   id: number;
@@ -36,6 +40,11 @@ const BANNER_TYPES: Record<string, string> = {
   services: 'Услуги',
   other: 'Другое',
 };
+
+function bannerImageSizeHint(bannerType?: string): string {
+  if (bannerType === 'food_delivery') return damAlemPromoBannerSizeHint();
+  return sitePromoBannerSizeHint();
+}
 
 export default function AdminBanners() {
   const [items, setItems] = useState<Banner[]>([]);
@@ -202,11 +211,14 @@ export default function AdminBanners() {
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Изображение</label>
-                <ImageUpload
-                  value={editItem.image_url || ''}
-                  onChange={(key) => setEditItem({ ...editItem, image_url: key })}
-                  folder="banners"
-                />
+                <p className="mt-0.5 text-xs text-gray-500">{bannerImageSizeHint(editItem.banner_type)}</p>
+                <div className="mt-2">
+                  <ImageUpload
+                    value={editItem.image_url || ''}
+                    onChange={(key) => setEditItem({ ...editItem, image_url: key })}
+                    folder="banners"
+                  />
+                </div>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Ссылка (основная)</label>

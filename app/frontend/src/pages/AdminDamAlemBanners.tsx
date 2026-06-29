@@ -21,6 +21,7 @@ import { Switch } from '@/components/ui/switch';
 import { Plus, Pencil, Trash2, Loader2, ExternalLink, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import ImageUpload, { StorageImage } from '@/components/ImageUpload';
+import { damAlemPromoBannerSizeHint, DAM_ALEM_PROMO_BANNER_SPEC } from '@/lib/bannerSpecs';
 
 interface Banner {
   id: number;
@@ -154,7 +155,11 @@ export default function AdminDamAlemBanners() {
         <div>
           <p className="text-sm font-semibold text-gray-900">Баннеры DAM ALEM</p>
           <p className="mt-1 text-xs text-gray-600">
-            Карусель и промо на странице /food. По умолчанию — баннеры со ссылкой на /food.
+            Карусель «Спецпредложения» на странице /food. По умолчанию — баннеры со ссылкой на /food.
+          </p>
+          <p className="mt-2 text-xs text-orange-800/90">
+            <span className="font-medium">Размер изображения:</span>{' '}
+            {damAlemPromoBannerSizeHint(true)} · соотношение {DAM_ALEM_PROMO_BANNER_SPEC.aspectRatio}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -255,7 +260,10 @@ export default function AdminDamAlemBanners() {
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Изображение</label>
-                <ImageUpload value={editItem.image_url || ''} onChange={key => setEditItem({ ...editItem, image_url: key })} folder="banners" />
+                <p className="mt-0.5 text-xs text-gray-500">{damAlemPromoBannerSizeHint()}</p>
+                <div className="mt-2">
+                  <ImageUpload value={editItem.image_url || ''} onChange={key => setEditItem({ ...editItem, image_url: key })} folder="banners" />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>

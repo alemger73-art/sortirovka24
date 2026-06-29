@@ -54,6 +54,8 @@ import {
 
 } from '@/lib/gastronomLoyalty';
 
+import { damAlemHeroBannerSizeHint } from '@/lib/bannerSpecs';
+
 
 
 interface SettingRow {
@@ -573,6 +575,8 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
               <label className="text-sm font-medium text-gray-800">Фоновое изображение баннера</label>
 
             </div>
+
+            <p className="mb-2 text-xs text-gray-500">{damAlemHeroBannerSizeHint()}</p>
 
             <ImageUpload value={heroImage} onChange={setHeroImage} folder="food" />
 

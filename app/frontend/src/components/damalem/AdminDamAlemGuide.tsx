@@ -42,6 +42,7 @@ export default function AdminDamAlemGuide() {
               <li><strong>Заведение</strong> — описание видно на /food</li>
               <li><strong>Блюда / Категории / Опции</strong> — меню без программиста</li>
               <li><strong>Заказы</strong> — статусы, поиск, выручка за сегодня, автообновление</li>
+              <li><strong>Баннеры</strong> — карусель на /food, файл <strong>1200×720 px</strong> (5:3)</li>
               <li><strong>Настройки</strong> — зоны доставки, мин. заказ, сервисный сбор %</li>
             </ul>
           </div>
