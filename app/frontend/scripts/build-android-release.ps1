@@ -17,6 +17,9 @@ if (-not (Test-Path $KeystoreProps)) {
 
 Write-Host "=== Sortirovka24 Android RELEASE build ==="
 
+& node (Join-Path $PSScriptRoot "store-prep.mjs")
+if ($LASTEXITCODE -ne 0) { throw "store-prep failed" }
+
 & (Join-Path $PSScriptRoot "build-android.ps1") -SkipGradle
 
 Set-Location $AndroidRoot

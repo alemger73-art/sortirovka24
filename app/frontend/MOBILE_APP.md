@@ -1,5 +1,18 @@
 # Sortirovka24 — сборка мобильного приложения
 
+## Публикация в Google Play / App Store
+
+| Действие | Windows |
+|----------|---------|
+| Подготовка (env, скрины, проверка) | Двойной клик **`STORE_PREP.bat`** |
+| Сборка AAB для Play | Двойной клик **`BUILD_PLAY_RELEASE.bat`** |
+| iOS без Mac | GitHub Actions → **iOS Release** (секреты: `.github/STORE_SECRETS_SETUP.md`) |
+| Что куда вставить в консолях | `play-store/UPLOAD_PACK.md`, `app-store/UPLOAD_PACK.md` |
+
+Полный чеклист: [`docs/mobile/STORE_RELEASE_CHECKLIST.md`](../../docs/mobile/STORE_RELEASE_CHECKLIST.md)
+
+---
+
 Пошаговая инструкция: как упаковать веб-проект в **APK (Android)** или **IPA (iOS)**,
 настроить push-уведомления и опубликовать в магазинах.
 

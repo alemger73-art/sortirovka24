@@ -85,6 +85,8 @@ pnpm run build      # результат в app/frontend/dist/
 **Подробная пошаговая инструкция:** [MOBILE_APP.md](app/frontend/MOBILE_APP.md)  
 **Публикация в магазины:** [STORE_RELEASE_CHECKLIST.md](docs/mobile/STORE_RELEASE_CHECKLIST.md)
 
+**Два клика (Windows):** `app/frontend/STORE_PREP.bat` → `app/frontend/BUILD_PLAY_RELEASE.bat`
+
 Кратко:
 
 ### PWA (установка из браузера)

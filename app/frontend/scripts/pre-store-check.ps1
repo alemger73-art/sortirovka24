@@ -61,12 +61,21 @@ if (Test-Path $privacyLocal) { Ok "privacy.html in repo" } else { Bad "Missing p
 
 $playShots = Join-Path $FrontendRoot "play-store\screenshots"
 $iosShots = Join-Path $FrontendRoot "app-store\screenshots"
+$presShots = Join-Path (Split-Path (Split-Path $FrontendRoot -Parent) -Parent) "docs\presentation\screenshots"
 $playCount = if (Test-Path $playShots) { @(Get-ChildItem -Path $playShots -Filter *.png -File).Count + @(Get-ChildItem -Path $playShots -Filter *.jpg -File).Count } else { 0 }
 $iosCount = if (Test-Path $iosShots) { @(Get-ChildItem -Path $iosShots -Filter *.png -File).Count + @(Get-ChildItem -Path $iosShots -Filter *.jpg -File).Count } else { 0 }
-if ($playCount -ge 2) { Ok "Play screenshots: $playCount files in play-store/screenshots/" }
-else { Warn "Need 2+ phone screenshots in play-store/screenshots/ (run: npm run prepare:store-screenshots)" }
-if ($iosCount -ge 3) { Ok "App Store screenshots: $iosCount files in app-store/screenshots/" }
-else { Warn "Need 3+ screenshots 1290x2796 in app-store/screenshots/" }
+$presCount = if (Test-Path $presShots) { @(Get-ChildItem -Path $presShots -Filter mobile-*.png -File).Count } else { 0 }
+if ($playCount -ge 2) { Ok "Play screenshots: $playCount in play-store/screenshots/" }
+elseif ($presCount -ge 2) { Ok "Play screenshots source: $presCount in docs/presentation/screenshots/ (run npm run store:prep to copy)" }
+else { Warn "Need 2+ screenshots — run: npm run store:prep or BUILD_PLAY_RELEASE.bat" }
+if ($iosCount -ge 3) { Ok "App Store screenshots: $iosCount in app-store/screenshots/" }
+elseif ($presCount -ge 3) { Ok "App Store screenshot source: docs/presentation/screenshots/ ($presCount files)" }
+else { Warn "Need 3+ screenshots — run: npm run store:prep" }
+
+# --- Release AAB ---
+$aab = Join-Path $FrontendRoot "releases\Sortirovka24-release.aab"
+if (Test-Path $aab) { Ok "Release AAB built: releases/Sortirovka24-release.aab" }
+else { Warn "AAB not built yet — double-click BUILD_PLAY_RELEASE.bat or npm run build:android:release" }
 
 # --- Live URLs ---
 foreach ($path in @("/health", "/privacy.html", "/terms.html")) {

@@ -82,6 +82,7 @@ if (-not (Test-Path "node_modules")) {
 if (-not (Test-Path ".env.mobile")) {
     Copy-Item ".env.mobile.example" ".env.mobile"
 }
+# Release builds overwrite .env.mobile via store-prep.mjs before this script runs.
 
 Write-Host "[4/5] Building web bundle..."
 $prevEAP = $ErrorActionPreference

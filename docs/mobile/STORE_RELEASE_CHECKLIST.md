@@ -15,10 +15,17 @@
 
 ### 0. Проверка готовности (Windows)
 
+**Два клика:**
+1. `app\frontend\STORE_PREP.bat` — env + скрины + проверка
+2. `app\frontend\BUILD_PLAY_RELEASE.bat` — AAB для Google Play
+
+Или в терминале:
+
 ```powershell
 cd app\frontend
+npm run store:prep
 npm run pre:store-check
-npm run prepare:store-screenshots
+npm run build:android:release
 ```
 
 ### 1. Бэкенд и юридические страницы
