@@ -16,7 +16,7 @@ from services.dam_alem_marketing_defaults import (
     MARKETING_SETTING_KEYS,
     PROMO_CODES,
 )
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
@@ -52,23 +52,35 @@ async def _upsert_setting(db, key: str, value: str) -> bool:
     return True
 
 
-async def _ensure_food_banners(db) -> int:
-    res = await db.execute(
-        select(func.count(Banners.id)).where(
-            Banners.banner_type == "food_delivery",
-            Banners.active.is_(True),
-        )
-    )
-    count = int(res.scalar() or 0)
-    if count >= len(FOOD_BANNERS):
-        return 0
+def _defaults_by_title() -> dict[str, dict]:
+    return {str(b.get("title") or "").strip(): b for b in FOOD_BANNERS}
 
-    existing_titles = set()
-    if count > 0:
-        rows = await db.execute(
-            select(Banners.title).where(Banners.banner_type == "food_delivery")
-        )
-        existing_titles = {str(r[0] or "").strip() for r in rows.all()}
+
+async def _refresh_food_banner_images(db) -> int:
+    """Replace broken Unsplash / empty URLs with project CDN images."""
+    defaults = _defaults_by_title()
+    rows = await db.execute(select(Banners).where(Banners.banner_type == "food_delivery"))
+    updated = 0
+    for row in rows.scalars():
+        default = defaults.get(str(row.title or "").strip())
+        if not default:
+            continue
+        new_url = str(default.get("image_url") or "").strip()
+        if not new_url:
+            continue
+        old_url = str(row.image_url or "").strip()
+        if old_url == new_url:
+            continue
+        if not old_url or "unsplash.com" in old_url or "images.unsplash" in old_url:
+            row.image_url = new_url
+            updated += 1
+    return updated
+
+
+async def _ensure_food_banners(db) -> int:
+    defaults = _defaults_by_title()
+    rows = await db.execute(select(Banners).where(Banners.banner_type == "food_delivery"))
+    existing_titles = {str(r.title or "").strip() for r in rows.scalars()}
 
     added = 0
     for banner in FOOD_BANNERS:
@@ -129,8 +141,9 @@ async def ensure_dam_alem_marketing(*, force: bool = False) -> Optional[Dict[str
                 )
 
         banners_added = await _ensure_food_banners(db)
+        banners_patched = await _refresh_food_banner_images(db)
 
-        if settings_changed == 0 and banners_added == 0:
+        if settings_changed == 0 and banners_added == 0 and banners_patched == 0:
             logger.info("DAM ALEM marketing already configured; seed skipped")
             return None
 
@@ -138,6 +151,7 @@ async def ensure_dam_alem_marketing(*, force: bool = False) -> Optional[Dict[str
         stats = {
             "settings_updated": settings_changed,
             "banners_added": banners_added,
+            "banners_patched": banners_patched,
             "promo_codes": len(PROMO_CODES),
         }
         logger.info("DAM ALEM marketing seeded: %s", stats)

@@ -17,7 +17,9 @@ import {
   Shield, Heart, Siren, Landmark, Store, Cross, Scissors, Wine
 } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
+import PromoBannerMedia from '@/components/PromoBannerMedia';
 import VolnaImage from '@/components/volna/VolnaImage';
+import { SITE_BANNER_IMAGES } from '@/lib/siteBannerImages';
 import { VOLNA_INDEX_IMAGE } from '@/lib/volnaImages';
 import Hero from '@/components/landing/Hero';
 import { useSupportSettings } from '@/hooks/useSupportSettings';
@@ -35,7 +37,9 @@ const GASTRONOM_IMG = 'https://images.unsplash.com/photo-1542838132-92c53300491e
 const PRORAB_IMG = 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&h=800&fit=crop';
 const SALONS_IMG = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&h=800&fit=crop';
 const PHARMACY_IMG = 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=600&h=800&fit=crop';
-const BUSINESS_BANNER_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-31/5007abb2-2c10-46e9-9721-c83a5b9a7265.png';
+const BUSINESS_BANNER_IMG = SITE_BANNER_IMAGES.business;
+const DIRECTORY_BANNER_IMG = SITE_BANNER_IMAGES.directory;
+const INSPECTOR_BANNER_IMG = SITE_BANNER_IMAGES.inspector;
 
 /* ─── Types ─── */
 interface Category { id: number; name: string; slug: string; cat_type: string; icon: string; description: string; parent_id: number | null; sort_order: number; show_on_main: boolean; is_active: boolean; }
@@ -517,13 +521,15 @@ export default function Index() {
                   const isInternal = linkTo.startsWith('/');
 
                   const bannerContent = (
-                    <div className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end">
-                      {b.image_url ? (
-                        <StorageImg objectKey={b.image_url} alt={b.title || ''} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      ) : (
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-700 via-indigo-800 to-blue-900" />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                    <div className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end ring-1 ring-black/5">
+                      <PromoBannerMedia
+                        imageUrl={b.image_url}
+                        title={b.title}
+                        alt={b.title || ''}
+                        priority={idx < 2}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/10" />
+                      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.12),transparent_55%)]" />
                       <div className="relative z-10 p-5">
                         {b.button_text && (
                           <span className={`text-xs font-bold backdrop-blur-sm px-3 py-1 rounded-full ${accent.tag}`}>{b.button_text}</span>
@@ -570,11 +576,12 @@ export default function Index() {
 
               {/* Static navigation banners */}
               {isEnabled('directory') && (
-              <Link to="/directory" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end">
-                <div className="absolute inset-0 bg-gradient-to-br from-teal-600 via-emerald-700 to-green-800" />
-                <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
-                <div className="absolute top-4 right-4 w-20 h-20 bg-white/5 rounded-full flex items-center justify-center">
-                  <BookOpen className="w-10 h-10 text-white/20" />
+              <Link to="/directory" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end ring-1 ring-black/5">
+                <img src={DIRECTORY_BANNER_IMG} alt={t('banner.openDirectory')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/90 via-emerald-900/45 to-emerald-800/20" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.1),transparent_50%)]" />
+                <div className="absolute top-4 right-4 w-20 h-20 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
+                  <BookOpen className="w-10 h-10 text-white/30" />
                 </div>
                 <div className="relative z-10 p-5">
                   <span className="text-xs font-bold text-teal-200 bg-teal-500/30 backdrop-blur-sm px-3 py-1 rounded-full">📖 {t('banner.directoryTag')}</span>
@@ -585,11 +592,12 @@ export default function Index() {
               )}
 
               {isEnabled('inspectors') && (
-              <Link to="/inspectors" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-700 via-indigo-800 to-blue-900" />
-                <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
-                <div className="absolute top-4 right-4 w-20 h-20 bg-white/5 rounded-full flex items-center justify-center">
-                  <Shield className="w-10 h-10 text-white/20" />
+              <Link to="/inspectors" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end ring-1 ring-black/5">
+                <img src={INSPECTOR_BANNER_IMG} alt={t('banner.findInspector')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                <div className="absolute inset-0 bg-gradient-to-t from-blue-950/90 via-indigo-900/50 to-blue-800/20" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.1),transparent_50%)]" />
+                <div className="absolute top-4 right-4 w-20 h-20 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
+                  <Shield className="w-10 h-10 text-white/30" />
                 </div>
                 <div className="relative z-10 p-5">
                   <span className="text-xs font-bold text-blue-200 bg-blue-500/30 backdrop-blur-sm px-3 py-1 rounded-full">🛡️ {t('banner.inspectorTag')}</span>
@@ -600,9 +608,10 @@ export default function Index() {
               )}
 
               {isEnabled('business') && (
-              <Link to="/business" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end">
+              <Link to="/business" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end ring-1 ring-black/5">
                 <img src={BUSINESS_BANNER_IMG} alt={t('banner.getClients')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/10" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.12),transparent_55%)]" />
                 <div className="relative z-10 p-5">
                   <span className="text-xs font-bold text-emerald-300 bg-emerald-500/30 backdrop-blur-sm px-3 py-1 rounded-full">💼 {t('banner.forBusiness')}</span>
                   <h3 className="text-lg font-extrabold text-white mt-2">{t('banner.getClients')}</h3>

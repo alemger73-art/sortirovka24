@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import StorageImg from '@/components/StorageImg';
+import PromoBannerMedia from '@/components/PromoBannerMedia';
 import { ChevronRight, Sparkles } from 'lucide-react';
 
 export interface FoodBanner {
@@ -37,8 +37,9 @@ export default function DamAlemPromoBanners({ banners }: DamAlemPromoBannersProp
           const inner = (
             <article className="dam-promo-banner group snap-start">
               {b.image_url ? (
-                <StorageImg
-                  objectKey={b.image_url}
+                <PromoBannerMedia
+                  imageUrl={b.image_url}
+                  title={b.title}
                   alt={b.title}
                   className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-110"
                 />
