@@ -1370,6 +1370,12 @@ async def cabinet(
     ).scalars().all()
     master_request_rows = [r for r in master_request_rows if _matches_user_phone(r.phone, user.phone)]
     address_rows = await _list_user_addresses(db, str(user.id))
+    become_rows = (
+        await db.execute(
+            select(Become_master_requests).order_by(desc(Become_master_requests.id)).limit(100)
+        )
+    ).scalars().all()
+    become_rows = [b for b in become_rows if _matches_user_phone(b.phone, user.phone)]
 
     merged_orders = [
         {"id": o.id, "type": o.order_type, "status": o.status, "amount": o.amount, "details": o.details, "created_at": o.created_at.isoformat() if o.created_at else None}
@@ -1444,6 +1450,15 @@ async def cabinet(
                 "created_at": r.created_at,
             }
             for r in master_request_rows[:50]
+        ],
+        "become_master_requests": [
+            {
+                "id": b.id,
+                "category": b.category,
+                "status": b.status,
+                "created_at": b.created_at,
+            }
+            for b in become_rows[:10]
         ],
         "addresses": [_address_to_response(a).model_dump() for a in address_rows],
         "settings": {"language": user.language, "agreement_accepted": bool(user.agreement_accepted), "privacy_accepted": bool(user.privacy_accepted)},
@@ -1571,6 +1586,7 @@ async def master_cabinet(
         ],
         "stats": {
             "requests_total": len(requests),
+            "new_requests_count": sum(1 for r in requests if (r.status or "new") == "new"),
             "reviews_total": int(listing.reviews_count or 0) if listing else 0,
             "avg_rating": float(listing.rating or 0) if listing else 0,
         },
@@ -2149,6 +2165,12 @@ async def approve_become_master_request(
         str(req.id),
         {"master_id": listing.id, "user_id": str(matched_user.id) if matched_user else None, "role_assigned": role_assigned},
     )
+    try:
+        from services.user_notifications import notify_become_master_decision
+
+        await notify_become_master_decision(db, req, "approved")
+    except Exception:
+        pass
     return {"success": True, "master_id": listing.id, "role_assigned": role_assigned}
 
 

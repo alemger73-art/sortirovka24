@@ -201,6 +201,20 @@ async def _run_dispatch_loop() -> None:
         await asyncio.sleep(5)
 
 
+async def _run_admin_summary_watch() -> None:
+    """Broadcast admin dashboard updates to WebSocket clients."""
+    logger = logging.getLogger(__name__)
+    from services.admin_event_hub import admin_event_hub
+
+    await asyncio.sleep(3)
+    try:
+        await admin_event_hub.run_watch_loop()
+    except asyncio.CancelledError:
+        raise
+    except Exception as exc:
+        logger.warning("Admin summary watch loop stopped: %s", exc)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger = logging.getLogger(__name__)
@@ -211,6 +225,7 @@ async def lifespan(app: FastAPI):
     # the database is doing a cold start, is slow, or is temporarily unreachable.
     app.state._startup_task = asyncio.create_task(_run_startup_initialization())
     app.state._taxi_dispatch_task = asyncio.create_task(_run_dispatch_loop())
+    app.state._admin_summary_task = asyncio.create_task(_run_admin_summary_watch())
 
     logger.info("=== Application startup completed (initialization running in background) ===")
     yield
@@ -221,6 +236,13 @@ async def lifespan(app: FastAPI):
         dispatch_task.cancel()
         try:
             await dispatch_task
+        except (asyncio.CancelledError, Exception):
+            pass
+    admin_summary_task = getattr(app.state, "_admin_summary_task", None)
+    if admin_summary_task is not None and not admin_summary_task.done():
+        admin_summary_task.cancel()
+        try:
+            await admin_summary_task
         except (asyncio.CancelledError, Exception):
             pass
     startup_task = getattr(app.state, "_startup_task", None)

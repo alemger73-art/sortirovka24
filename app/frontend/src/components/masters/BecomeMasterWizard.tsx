@@ -5,6 +5,7 @@ import ImageUpload from '@/components/ImageUpload';
 import MultiImageUpload from '@/components/MultiImageUpload';
 import { client, withRetry, MASTER_CATEGORIES, CATEGORY_ICONS } from '@/lib/api';
 import { getAccountPrefill } from '@/lib/localAuth';
+import { invalidateEntityCache } from '@/lib/cache';
 import { ChevronLeft, CheckCircle, User, FileText, Camera, ChevronRight, Sparkles } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -63,6 +64,7 @@ export default function BecomeMasterWizard() {
         }),
       );
       setSuccess(true);
+      invalidateEntityCache('become_master_requests');
     } catch (e: any) {
       console.error(e);
       setError(String(e?.message || t('masters.becomeError')));

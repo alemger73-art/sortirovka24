@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import MasterCard from '@/components/masters/MasterCard';
+import FeaturedMastersStrip from '@/components/masters/FeaturedMastersStrip';
+import SimilarMasters from '@/components/masters/SimilarMasters';
 import HowItWorks from '@/components/masters/HowItWorks';
 import StarRating from '@/components/masters/StarRating';
 import MasterReviews from '@/components/masters/MasterReviews';
-import { categoryGradient, categoryIcon, sortMasters } from '@/components/masters/mastersTheme';
+import { categoryGradient, categoryIcon, categoryBg, sortMasters } from '@/components/masters/mastersTheme';
 import { client, withRetry, MASTER_CATEGORIES, CATEGORY_ICONS } from '@/lib/api';
 import { fetchWithCache } from '@/lib/cache';
 import { Phone, MessageCircle, MapPin, Clock, ChevronLeft, Search, Send, UserPlus, Shield, Zap, Award, AlertTriangle, ArrowRight, CheckCircle } from 'lucide-react';
@@ -118,6 +120,9 @@ export function MastersCatalog() {
   }
 
   const displayMasters = masters;
+  const featuredMasters = !selectedCategory && !debouncedQ
+    ? displayMasters.filter((m) => m.verified && m.available_today).slice(0, 6)
+    : [];
 
   const scrollToMasters = () => {
     document.getElementById('masters-grid')?.scrollIntoView({ behavior: 'smooth' });
@@ -196,6 +201,10 @@ export function MastersCatalog() {
           </div>
 
           <HowItWorks />
+
+          {featuredMasters.length > 0 && !loading && (
+            <FeaturedMastersStrip masters={featuredMasters} />
+          )}
 
           {/* Categories — horizontal chips */}
           <section className="mb-6">
@@ -353,6 +362,9 @@ export function MasterDetail() {
   );
 
   const gradient = categoryGradient(master.category);
+  const bgTint = categoryBg(master.category);
+  const rating = Number(master.rating) || 0;
+  const isTop = rating >= 4.5 && (master.reviews_count ?? 0) >= 1;
 
   return (
     <Layout>
@@ -361,82 +373,82 @@ export function MasterDetail() {
           <ChevronLeft className="w-4 h-4" /> {t('masters.backToCatalog')}
         </Link>
 
-        {/* Profile card */}
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden shadow-sm">
-          <div className={`h-20 bg-gradient-to-r ${gradient}`} />
-          <div className="px-5 pb-5 -mt-10">
-            <div className="flex gap-4">
-              <div className={`w-20 h-20 rounded-2xl overflow-hidden ring-4 ring-white dark:ring-gray-900 shadow-md flex-shrink-0 bg-gradient-to-br ${gradient}`}>
+        {/* Hero profile */}
+        <div className="rounded-3xl border border-gray-200/80 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden shadow-lg">
+          <div className={`relative h-32 sm:h-36 bg-gradient-to-br ${gradient}`}>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.25),transparent_50%)]" />
+          </div>
+          <div className="px-5 pb-6 -mt-14 relative">
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-end">
+              <div className={`w-28 h-28 rounded-3xl overflow-hidden ring-4 ring-white dark:ring-gray-900 shadow-xl flex-shrink-0 bg-gradient-to-br ${gradient}`}>
                 {master.photo_url ? (
                   <StorageImg objectKey={master.photo_url} alt={master.name} className="w-full h-full object-cover" />
                 ) : (
-                  <span className="w-full h-full flex items-center justify-center text-3xl">{categoryIcon(master.category)}</span>
+                  <span className="w-full h-full flex items-center justify-center text-4xl">{categoryIcon(master.category)}</span>
                 )}
               </div>
-              <div className="pt-12 min-w-0 flex-1">
+              <div className="flex-1 min-w-0 pb-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl font-bold text-gray-900 dark:text-white truncate">{master.name}</h1>
+                  <h1 className="text-2xl font-black text-gray-900 dark:text-white">{master.name}</h1>
                   {master.verified && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-full" title={t('masters.verifiedHint')}>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-950/50 px-2.5 py-1 rounded-full">
                       <Shield className="w-3 h-3" /> {t('masters.verified')}
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">{master.category}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <StarRating rating={Number(master.rating) || 0} size="sm" />
-                  <span className="text-sm font-bold">{master.rating ?? '—'}</span>
-                  <span className="text-xs text-gray-400">({master.reviews_count} {t('masters.reviews')})</span>
+                <span className={`inline-flex items-center gap-1.5 mt-2 text-xs font-bold px-3 py-1 rounded-full ${bgTint}`}>
+                  {categoryIcon(master.category)} {master.category}
+                </span>
+                <div className="flex items-center gap-2 mt-2">
+                  <StarRating rating={rating} size="md" />
+                  <span className="text-lg font-black text-gray-900 dark:text-white">{rating > 0 ? rating.toFixed(1) : '—'}</span>
+                  <span className="text-sm text-gray-400">({master.reviews_count ?? 0} {t('masters.reviews')})</span>
                 </div>
               </div>
             </div>
 
-            {/* Meta chips */}
-            <div className="flex flex-wrap gap-1.5 mt-4">
+            <div className="flex flex-wrap gap-1.5 mt-5">
               {master.available_today && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-green-700 bg-green-50 dark:bg-green-950/40 dark:text-green-300 px-2.5 py-1 rounded-full">
-                  <Zap className="w-3 h-3" /> {t('masters.availableToday')}
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 px-3 py-1.5 rounded-full">
+                  <Zap className="w-3.5 h-3.5" /> {t('masters.availableToday')}
                 </span>
               )}
               {master.district && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-full">
-                  <MapPin className="w-3 h-3" /> {master.district}
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-full">
+                  <MapPin className="w-3.5 h-3.5" /> {master.district}
                 </span>
               )}
               {master.experience_years && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-full">
-                  <Clock className="w-3 h-3" /> {t('masters.experience').replace('{years}', String(master.experience_years))}
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-full">
+                  <Clock className="w-3.5 h-3.5" /> {t('masters.experience').replace('{years}', String(master.experience_years))}
                 </span>
               )}
-              {Number(master.rating) >= 4.5 && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-300 px-2.5 py-1 rounded-full">
-                  <Award className="w-3 h-3" /> {t('masters.topMaster')}
+              {isTop && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-300 px-3 py-1.5 rounded-full">
+                  <Award className="w-3.5 h-3.5" /> {t('masters.topMaster')}
                 </span>
               )}
             </div>
 
-            <p className="text-xs text-gray-400 mt-3">{t('masters.detailStickyHint')}</p>
-
-            {/* Desktop actions */}
-            <div className="hidden md:flex flex-wrap gap-2 mt-4">
+            <div className="hidden md:flex flex-wrap gap-2 mt-5">
               {master.phone && (
-                <a href={`tel:${master.phone}`} className="inline-flex items-center gap-1.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 px-4 py-2.5 rounded-xl">
+                <a href={`tel:${master.phone}`} className="inline-flex items-center gap-1.5 text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 px-5 py-3 rounded-2xl shadow-md transition-all">
                   <Phone className="w-4 h-4" /> {t('masters.call')}
                 </a>
               )}
               {master.whatsapp && (
-                <a href={`https://wa.me/${master.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm font-bold text-white bg-green-600 hover:bg-green-700 px-4 py-2.5 rounded-xl">
-                  <MessageCircle className="w-4 h-4" /> {t('masters.write')}
+                <a href={`https://wa.me/${master.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm font-bold text-white bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 px-5 py-3 rounded-2xl shadow-md transition-all">
+                  <MessageCircle className="w-4 h-4" /> {t('masters.writeWhatsapp')}
                 </a>
               )}
               {master.telegram && telegramUrl(master.telegram) && (
-                <a href={telegramUrl(master.telegram)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm font-bold text-white bg-sky-500 hover:bg-sky-600 px-4 py-2.5 rounded-xl">
-                  <Send className="w-4 h-4" /> Telegram
+                <a href={telegramUrl(master.telegram)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm font-bold text-white bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 px-5 py-3 rounded-2xl shadow-md transition-all">
+                  <Send className="w-4 h-4" /> {t('masters.writeTelegram')}
                 </a>
               )}
               <Link
                 to={`/masters/request?category=${encodeURIComponent(master.category || '')}&master_id=${master.id}&master_name=${encodeURIComponent(master.name || '')}`}
-                className="inline-flex items-center gap-1.5 text-sm font-bold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 px-4 py-2.5 rounded-xl"
+                className="inline-flex items-center gap-1.5 text-sm font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 px-5 py-3 rounded-2xl border border-indigo-200 dark:border-indigo-800 transition-all"
               >
                 <Send className="w-4 h-4" /> {t('masters.leaveRequest')}
               </Link>
@@ -458,7 +470,7 @@ export function MasterDetail() {
               <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-2">{t('masters.services')}</h2>
               <div className="flex flex-wrap gap-1.5">
                 {master.services.split(',').map((s: string, i: number) => (
-                  <span key={i} className="text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-lg">
+                  <span key={i} className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1 rounded-lg border border-indigo-100 dark:border-indigo-900/50">
                     {s.trim()}
                   </span>
                 ))}
@@ -482,28 +494,30 @@ export function MasterDetail() {
               }}
             />
           </section>
+
+          <SimilarMasters masterId={master.id} category={master.category} />
         </div>
       </div>
 
       {/* Mobile sticky bar */}
-      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur px-4 py-3 safe-area-pb">
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md px-4 py-3 safe-area-pb shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         <div className="flex gap-2 max-w-2xl mx-auto">
           {master.phone && (
-            <a href={`tel:${master.phone}`} className="flex-1 inline-flex items-center justify-center gap-1.5 text-sm font-bold text-white bg-blue-600 py-3 rounded-xl">
+            <a href={`tel:${master.phone}`} className="flex-1 inline-flex items-center justify-center gap-1.5 text-sm font-bold text-white bg-blue-600 py-3.5 rounded-2xl shadow-sm">
               <Phone className="w-4 h-4" /> {t('masters.call')}
             </a>
           )}
           {master.whatsapp && (
-            <a href={`https://wa.me/${master.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex-1 inline-flex items-center justify-center gap-1.5 text-sm font-bold text-white bg-green-600 py-3 rounded-xl">
-              <MessageCircle className="w-4 h-4" /> {t('masters.write')}
+            <a href={`https://wa.me/${master.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex-1 inline-flex items-center justify-center gap-1.5 text-sm font-bold text-white bg-emerald-600 py-3.5 rounded-2xl shadow-sm">
+              <MessageCircle className="w-4 h-4" /> WA
             </a>
           )}
           <Link
             to={`/masters/request?category=${encodeURIComponent(master.category || '')}&master_id=${master.id}&master_name=${encodeURIComponent(master.name || '')}`}
-            className="inline-flex items-center justify-center w-12 bg-gray-100 dark:bg-gray-800 rounded-xl"
+            className="inline-flex items-center justify-center min-w-[3.25rem] bg-indigo-600 text-white rounded-2xl px-3 shadow-sm"
             title={t('masters.leaveRequest')}
           >
-            <Send className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+            <Send className="w-4 h-4" />
           </Link>
         </div>
       </div>

@@ -37,3 +37,4 @@ class PushStatsResponse(BaseModel):
     active_devices: int
     android_active: int
     ios_active: int
+    admin_active: int = 0

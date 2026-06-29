@@ -80,3 +80,34 @@ export function getPlatformCartSegments(): PlatformCartSegment[] {
 export function platformCartTotalCount(segments = getPlatformCartSegments()): number {
   return segments.reduce((sum, s) => sum + s.count, 0);
 }
+
+export const PLATFORM_CART_CHANGED_EVENT = 'platform-cart-changed';
+
+export function notifyPlatformCartChanged(): void {
+  window.dispatchEvent(new Event(PLATFORM_CART_CHANGED_EVENT));
+}
+
+export function clearPlatformCartSegment(id: string): void {
+  switch (id) {
+    case 'food':
+      localStorage.removeItem('damalem_cart_v1');
+      break;
+    case 'volna':
+      localStorage.removeItem('volna_cart_qty');
+      localStorage.removeItem('volna_cart');
+      break;
+    case 'gastronom':
+      localStorage.removeItem('gastronom_cart_qty');
+      localStorage.removeItem('gastronom_cart');
+      break;
+    case 'pharmacy':
+      localStorage.removeItem('pharmacy_cart_qty');
+      break;
+    case 'prorab':
+      localStorage.removeItem('prorab_cart_qty');
+      break;
+    default:
+      return;
+  }
+  notifyPlatformCartChanged();
+}

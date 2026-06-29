@@ -39,7 +39,7 @@ function MasterRequestsSection() {
   const [items, setItems] = useState<MasterRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewItem, setViewItem] = useState<MasterRequest | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('new');
 
   const fetchItems = async () => {
     setLoading(true);
@@ -50,7 +50,11 @@ function MasterRequestsSection() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchItems(); }, []);
+  useEffect(() => {
+    fetchItems();
+    const id = setInterval(fetchItems, 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   const updateStatus = async (id: number, status: string) => {
     try {
@@ -160,6 +164,7 @@ function BecomeMasterSection() {
   const [loading, setLoading] = useState(true);
   const [viewItem, setViewItem] = useState<BecomeMasterReq | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>('pending');
 
   const fetchItems = async () => {
     setLoading(true);
@@ -170,7 +175,11 @@ function BecomeMasterSection() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchItems(); }, []);
+  useEffect(() => {
+    fetchItems();
+    const id = setInterval(fetchItems, 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   const updateStatus = async (id: number, status: string) => {
     try {
@@ -206,11 +215,25 @@ function BecomeMasterSection() {
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
 
+  const pendingCount = items.filter(i => i.status === 'pending').length;
+  const filtered = statusFilter === 'all' ? items : items.filter(i => i.status === statusFilter);
+
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-500">{items.length} заявок</p>
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <strong>Модерация:</strong> одобряйте через «Одобрить и добавить» — так создаётся карточка в каталоге и назначается роль мастера. При отклонении пользователь получит push-уведомление.
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {['pending', 'approved', 'rejected', 'all'].map((s) => (
+          <Button key={s} size="sm" variant={statusFilter === s ? 'default' : 'outline'} onClick={() => setStatusFilter(s)}>
+            {s === 'all' ? 'Все' : (STATUS_MAP[s]?.label || s)}
+            {s === 'pending' && pendingCount > 0 ? ` (${pendingCount})` : s !== 'all' ? ` (${items.filter(i => i.status === s).length})` : ` (${items.length})`}
+          </Button>
+        ))}
+      </div>
+      <p className="text-sm text-gray-500">{filtered.length} заявок</p>
       <div className="space-y-2">
-        {items.map(item => {
+        {filtered.map(item => {
           const st = STATUS_MAP[item.status] || STATUS_MAP.pending;
           return (
             <Card key={item.id}>
@@ -247,7 +270,7 @@ function BecomeMasterSection() {
             </Card>
           );
         })}
-        {items.length === 0 && <p className="text-center text-gray-400 py-8">Нет заявок</p>}
+        {filtered.length === 0 && <p className="text-center text-gray-400 py-8">Нет заявок</p>}
       </div>
 
       <Dialog open={!!viewItem} onOpenChange={() => setViewItem(null)}>

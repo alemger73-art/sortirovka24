@@ -32,6 +32,10 @@ export function categoryGradient(category: string) {
   return CATEGORY_GRADIENTS[category] || 'from-blue-500 to-indigo-600';
 }
 
+export function categoryBg(category: string) {
+  return CATEGORY_BG[category] || 'bg-indigo-50 dark:bg-indigo-950/40';
+}
+
 export function categoryIcon(category: string) {
   return CATEGORY_ICONS[category] || '🔧';
 }

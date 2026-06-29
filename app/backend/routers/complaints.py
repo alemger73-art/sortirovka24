@@ -219,11 +219,19 @@ async def create_complaints(
                 payload["phone"] = account_user.phone
             if not payload.get("author_name"):
                 payload["author_name"] = account_user.name
+        if not payload.get("status"):
+            payload["status"] = "new"
         result = await service.create(payload)
         if not result:
             raise HTTPException(status_code=400, detail="Failed to create complaints")
         
         logger.info(f"Complaints created successfully with id: {result.id}")
+        try:
+            from services.admin_alerts import alert_new_complaint
+
+            await alert_new_complaint(db, payload)
+        except Exception as admin_push_err:
+            logger.warning(f"Admin push notify skipped: {admin_push_err}")
         return result
     except ValueError as e:
         logger.error(f"Validation error creating complaints: {str(e)}")

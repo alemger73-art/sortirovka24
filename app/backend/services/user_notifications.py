@@ -7,7 +7,7 @@ Event categories and typical triggers:
 - taxi: driver assigned, arrived, trip started, completed, cancelled
 - store: order processing, ready/delivered, cancelled (gastronom/pharmacy/volna/prorab)
 - bonus: points awarded or refunded
-- master: request taken, completed
+- master: request taken, completed; new request (to master); become-master approved/rejected
 """
 
 from __future__ import annotations
@@ -341,6 +341,108 @@ async def notify_store_order_created(db: AsyncSession, *, store_type: str, order
 
 
 # ── Master requests ───────────────────────────────────────────────────────────
+
+async def _notify_masters_by_listings(
+    db: AsyncSession,
+    *,
+    listings: list[Any],
+    event_key_prefix: str,
+    title: str,
+    body: str,
+    path: str,
+    entity_type: str,
+    entity_id: str,
+) -> None:
+    seen_users: set[str] = set()
+    for listing in listings:
+        user = await find_user_by_phone(db, getattr(listing, "phone", None))
+        if not user or str(user.id) in seen_users:
+            continue
+        seen_users.add(str(user.id))
+        try:
+            await send_user_notification(
+                db,
+                user_id=str(user.id),
+                category="master",
+                event_key=f"{event_key_prefix}:{listing.id}",
+                title=title,
+                body=body,
+                path=path,
+                entity_type=entity_type,
+                entity_id=entity_id,
+            )
+        except Exception as exc:
+            logger.warning("[Notify] master listing push skipped (%s): %s", listing.id, exc)
+            await db.rollback()
+
+
+async def notify_new_master_request_to_masters(db: AsyncSession, request: Any) -> None:
+    """Push to target master or all masters in the request category."""
+    from models.masters import Masters
+    from sqlalchemy import select
+
+    req_id = int(request.id)
+    category = (getattr(request, "category", None) or "Мастер").strip()
+    problem = (getattr(request, "problem_description", None) or "").strip()
+    body = category
+    if problem:
+        body = f"{category}. {problem[:100]}"
+    master_id = getattr(request, "master_id", None)
+
+    if master_id:
+        listing = (
+            await db.execute(select(Masters).where(Masters.id == int(master_id)))
+        ).scalar_one_or_none()
+        listings = [listing] if listing else []
+    else:
+        listings = list(
+            (
+                await db.execute(
+                    select(Masters)
+                    .where(Masters.category == category)
+                    .order_by(Masters.verified.desc(), Masters.rating.desc())
+                    .limit(50)
+                )
+            ).scalars().all()
+        )
+
+    await _notify_masters_by_listings(
+        db,
+        listings=listings,
+        event_key_prefix=f"master:{req_id}:new",
+        title="Новая заявка!",
+        body=body,
+        path="/cabinet/master",
+        entity_type="master_requests",
+        entity_id=str(req_id),
+    )
+
+
+async def notify_become_master_decision(db: AsyncSession, request: Any, status: str) -> None:
+    if status == "approved":
+        title = "Заявка одобрена!"
+        body = "Добро пожаловать в каталог мастеров. Кабинет мастера уже доступен."
+        path = "/cabinet/master"
+    elif status == "rejected":
+        title = "Заявка отклонена"
+        body = "К сожалению, заявка не прошла модерацию. Можете подать повторно."
+        path = "/masters/become"
+    else:
+        return
+    req_id = int(request.id)
+    category = (getattr(request, "category", None) or "Мастер").strip()
+    await notify_user_by_phone(
+        db,
+        phone=getattr(request, "phone", None),
+        category="master",
+        event_key=f"become_master:{req_id}:{status}",
+        title=title,
+        body=f"{category}. {body}",
+        path=path,
+        entity_type="become_master_requests",
+        entity_id=str(req_id),
+    )
+
 
 async def notify_master_request_status(db: AsyncSession, request: Any, new_status: str) -> None:
     if new_status == "in_progress":

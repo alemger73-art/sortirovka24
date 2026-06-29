@@ -12,6 +12,7 @@ from core.database import get_db
 from models.masters import Masters
 from services.master_requests import Master_requestsService
 from services.telegram import notify_new_master_request
+from services.user_notifications import notify_master_request_status, notify_new_master_request_to_masters
 from utils.phone import normalize_phone, matches_phone
 from utils.rate_limit import check_ip_rate_limit
 
@@ -233,6 +234,18 @@ async def create_master_requests(
             })
         except Exception as notify_err:
             logger.warning(f"Telegram notify skipped: {notify_err}")
+
+        try:
+            from services.admin_alerts import alert_new_master_request
+
+            await alert_new_master_request(db, payload)
+        except Exception as admin_push_err:
+            logger.warning(f"Admin push notify skipped: {admin_push_err}")
+
+        try:
+            await notify_new_master_request_to_masters(db, result)
+        except Exception as push_err:
+            logger.warning(f"Master push notify skipped: {push_err}")
         
         logger.info(f"Master_requests created successfully with id: {result.id}")
         return result
@@ -309,10 +322,19 @@ async def update_master_requests(
     try:
         # Only include non-None values for partial updates
         update_dict = {k: v for k, v in data.model_dump().items() if v is not None}
+        existing = await service.get_by_id(id)
+        old_status = getattr(existing, "status", None) if existing else None
         result = await service.update(id, update_dict)
         if not result:
             logger.warning(f"Master_requests with id {id} not found for update")
             raise HTTPException(status_code=404, detail="Master_requests not found")
+
+        new_status = getattr(result, "status", None)
+        if new_status and new_status != old_status and new_status in {"in_progress", "done"}:
+            try:
+                await notify_master_request_status(db, result, new_status)
+            except Exception as notify_err:
+                logger.warning(f"Master request status push skipped: {notify_err}")
         
         logger.info(f"Master_requests {id} updated successfully")
         return result

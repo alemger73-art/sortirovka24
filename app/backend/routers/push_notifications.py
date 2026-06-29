@@ -18,7 +18,7 @@ from schemas.push import (
     PushUnregisterRequest,
 )
 from services.account_session import resolve_account_user
-from services.push_broadcast import broadcast_push
+from services.push_broadcast import ADMIN_DEVICE_USER_ID, broadcast_push
 from services.push_notifications import push_enabled
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -56,6 +56,40 @@ async def register_push_device(
         token=token,
         platform=body.platform,
         user_id=user.id if user else None,
+        is_active=True,
+    )
+    db.add(device)
+    await db.commit()
+    return PushRegisterResponse(success=True, registered=True)
+
+
+@router.post("/register-admin", response_model=PushRegisterResponse)
+async def register_admin_push_device(
+    body: PushRegisterRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Register admin APK device for operational alerts (requires panel JWT)."""
+    require_panel_admin(request)
+    token = body.token.strip()
+    device_id = _device_id(token)
+
+    existing = (
+        await db.execute(select(PushDevice).where(PushDevice.token == token))
+    ).scalar_one_or_none()
+
+    if existing:
+        existing.platform = body.platform
+        existing.user_id = ADMIN_DEVICE_USER_ID
+        existing.is_active = True
+        await db.commit()
+        return PushRegisterResponse(success=True, registered=True)
+
+    device = PushDevice(
+        id=device_id or str(uuid4()),
+        token=token,
+        platform=body.platform,
+        user_id=ADMIN_DEVICE_USER_ID,
         is_active=True,
     )
     db.add(device)
@@ -155,6 +189,17 @@ async def push_stats(
         )
         or 0
     )
+    admin_active = int(
+        await db.scalar(
+            select(func.count())
+            .select_from(PushDevice)
+            .where(
+                PushDevice.is_active.is_(True),
+                PushDevice.user_id == ADMIN_DEVICE_USER_ID,
+            )
+        )
+        or 0
+    )
 
     return PushStatsResponse(
         enabled=push_enabled(),
@@ -162,4 +207,5 @@ async def push_stats(
         active_devices=active,
         android_active=android_active,
         ios_active=ios_active,
+        admin_active=admin_active,
     )

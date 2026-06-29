@@ -52,6 +52,7 @@ export default defineConfig(({ mode }) => ({
       '/api': {
         target: `http://localhost:${process.env.BACKEND_PORT || '8000'}`,
         changeOrigin: true,
+        ws: true,
       },
     },
     watch: { usePolling: true, interval: 600 },

@@ -50,7 +50,7 @@ const ANN_TYPE_KEYS = Object.keys(ANN_TYPES);
 export default function AdminAnnouncements() {
   const [items, setItems] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('pending');
   const [viewItem, setViewItem] = useState<Announcement | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Partial<Announcement> | null>(null);
@@ -67,7 +67,11 @@ export default function AdminAnnouncements() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchItems(); }, [filterStatus]);
+  useEffect(() => {
+    fetchItems();
+    const id = setInterval(fetchItems, 30_000);
+    return () => clearInterval(id);
+  }, [filterStatus]);
 
   const changeStatus = async (id: number, status: string) => {
     try {

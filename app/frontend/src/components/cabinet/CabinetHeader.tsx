@@ -16,6 +16,8 @@ interface Props {
   ordersCountLabel?: string;
   unreadNotifications?: number;
   courierAccess?: CourierAccess | null;
+  masterApplicationPending?: boolean;
+  masterNewRequests?: number;
   logoutLabel: string;
   bonusLabel: string;
   onLogout: () => void;
@@ -27,6 +29,8 @@ interface Props {
     courier?: string;
     becomeDriver?: string;
     becomeCourier?: string;
+    becomeMaster?: string;
+    masterPending?: string;
     courierPending?: string;
   };
 }
@@ -37,6 +41,8 @@ export default function CabinetHeader({
   ordersCountLabel = "",
   unreadNotifications = 0,
   courierAccess,
+  masterApplicationPending,
+  masterNewRequests = 0,
   logoutLabel,
   bonusLabel,
   onLogout,
@@ -60,6 +66,9 @@ export default function CabinetHeader({
       : null,
     !courierAccess?.can_access_cabinet && courierAccess?.status !== "pending" && links.becomeCourier
       ? { to: "/delivery/courier", label: links.becomeCourier, icon: Bike, tone: "text-orange-600 dark:text-orange-400" }
+      : null,
+    (profile?.role === "user" || profile?.role === "courier") && links.becomeMaster
+      ? { to: "/masters/become", label: links.becomeMaster, icon: Wrench, tone: "text-indigo-600 dark:text-indigo-400" }
       : null,
   ].filter(Boolean) as { to: string; label: string; icon: typeof Wrench; tone: string }[];
 
@@ -126,6 +135,9 @@ export default function CabinetHeader({
           {courierAccess?.status === "pending" && links.courierPending ? (
             <p className="text-xs text-amber-600 dark:text-amber-400">{links.courierPending}</p>
           ) : null}
+          {masterApplicationPending && links.masterPending ? (
+            <p className="text-xs text-indigo-600 dark:text-indigo-400">{links.masterPending}</p>
+          ) : null}
         </div>
       </div>
 
@@ -133,14 +145,20 @@ export default function CabinetHeader({
         <div className="relative flex flex-wrap gap-2 border-t border-gray-100 px-5 py-3 dark:border-[#1f2a3f]">
           {roleLinks.map((link) => {
             const Icon = link.icon;
+            const isMasterLink = link.to === "/cabinet/master";
             return (
               <Link
                 key={link.to}
                 to={link.to}
-                className={`inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-3 py-1.5 text-xs font-semibold transition hover:bg-gray-100 dark:bg-[#0f172a] dark:hover:bg-[#1a2336] ${link.tone}`}
+                className={`relative inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-3 py-1.5 text-xs font-semibold transition hover:bg-gray-100 dark:bg-[#0f172a] dark:hover:bg-[#1a2336] ${link.tone}`}
               >
                 <Icon className="h-3.5 w-3.5" />
                 {link.label}
+                {isMasterLink && masterNewRequests > 0 ? (
+                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                    {masterNewRequests > 9 ? "9+" : masterNewRequests}
+                  </span>
+                ) : null}
               </Link>
             );
           })}

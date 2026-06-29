@@ -47,7 +47,7 @@ const RE_TYPE_KEYS = Object.keys(REAL_ESTATE_TYPES);
 export default function AdminRealEstate() {
   const [items, setItems] = useState<RealEstateItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('pending');
   const [filterType, setFilterType] = useState('all');
   const [viewItem, setViewItem] = useState<RealEstateItem | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -66,7 +66,11 @@ export default function AdminRealEstate() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchItems(); }, [filterStatus, filterType]);
+  useEffect(() => {
+    fetchItems();
+    const id = setInterval(fetchItems, 30_000);
+    return () => clearInterval(id);
+  }, [filterStatus, filterType]);
 
   const changeStatus = async (id: number, status: string) => {
     try {

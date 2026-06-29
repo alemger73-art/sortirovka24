@@ -5,8 +5,9 @@ import {
   ClipboardList, UserPlus, LogOut, Home as HomeIcon, Lock, Megaphone,
   Briefcase, FolderTree, Building2, Utensils, ShoppingBag, Settings,
   BadgeCheck, BarChart3, Clock, Plug, Bus, TreePine, MapPin,
-  ChevronDown, ChevronRight, X, Menu, Store, Car, Heart, HardHat, Bell, Bike, Cross, Scissors, Power, Wine, type LucideIcon,
+  ChevronDown, ChevronRight, X, Menu, Store, Car, Heart, HardHat, Bell, Bike, Cross, Scissors, Power, Wine, LayoutDashboard, Handshake, type LucideIcon,
 } from 'lucide-react';
+import { getGroupBadgeCount, getTabBadgeCount, type AdminSummary } from '@/lib/adminSummaryApi';
 
 /* ─── Types ─── */
 interface TabItem {
@@ -24,6 +25,14 @@ interface MenuGroup {
 
 /* ─── Grouped menu structure ─── */
 const MENU_GROUPS: MenuGroup[] = [
+  {
+    id: 'overview',
+    label: 'Обзор',
+    emoji: '📊',
+    items: [
+      { id: 'dashboard', label: 'Центр управления', icon: LayoutDashboard },
+    ],
+  },
   {
     id: 'content',
     label: 'Контент',
@@ -75,6 +84,7 @@ const MENU_GROUPS: MenuGroup[] = [
     label: 'Партнёры',
     emoji: '🤝',
     items: [
+      { id: 'partners-business', label: 'Заявки партнёров', icon: Handshake },
       { id: 'partners-gastronom', label: 'Гастроном', icon: Store },
       { id: 'partners-volna', label: 'VOLNA', icon: Wine },
       { id: 'partners-prorab', label: 'PRORAB', icon: HardHat },
@@ -107,13 +117,23 @@ function findGroupForTab(tabId: string): string | null {
 }
 
 /* ─── Desktop Sidebar ─── */
+function BadgePill({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span className="ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center tabular-nums">
+      {count > 99 ? '99+' : count}
+    </span>
+  );
+}
+
 interface SidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   onLogout: () => void;
+  summary?: AdminSummary | null;
 }
 
-export function DesktopSidebar({ activeTab, onTabChange, onLogout }: SidebarProps) {
+export function DesktopSidebar({ activeTab, onTabChange, onLogout, summary }: SidebarProps) {
   // Initialize expanded groups — always expand the group containing the active tab
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
     const initial = new Set<string>();
@@ -165,6 +185,7 @@ export function DesktopSidebar({ activeTab, onTabChange, onLogout }: SidebarProp
         {MENU_GROUPS.map(group => {
           const isExpanded = expandedGroups.has(group.id);
           const hasActiveItem = group.items.some(item => item.id === activeTab);
+          const groupBadge = getGroupBadgeCount(summary ?? null, group.items.map(i => i.id));
 
           return (
             <div key={group.id} className="mb-0.5">
@@ -180,6 +201,11 @@ export function DesktopSidebar({ activeTab, onTabChange, onLogout }: SidebarProp
                 <span className="flex items-center gap-1.5">
                   <span className="text-sm">{group.emoji}</span>
                   {group.label}
+                  {groupBadge > 0 && (
+                    <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold inline-flex items-center justify-center">
+                      {groupBadge > 99 ? '99+' : groupBadge}
+                    </span>
+                  )}
                 </span>
                 {isExpanded ? (
                   <ChevronDown className="w-3.5 h-3.5" />
@@ -194,6 +220,7 @@ export function DesktopSidebar({ activeTab, onTabChange, onLogout }: SidebarProp
                   {group.items.map(item => {
                     const Icon = item.icon;
                     const isActive = activeTab === item.id;
+                    const badge = getTabBadgeCount(summary ?? null, item.id);
                     return (
                       <button
                         key={item.id}
@@ -201,11 +228,14 @@ export function DesktopSidebar({ activeTab, onTabChange, onLogout }: SidebarProp
                         className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${
                           isActive
                             ? 'bg-blue-50 text-blue-700 font-medium shadow-sm'
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                            : badge > 0
+                              ? 'text-gray-900 hover:bg-gray-50 font-medium'
+                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                         }`}
                       >
-                        <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
-                        {item.label}
+                        <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? 'text-blue-600' : badge > 0 ? 'text-red-500' : 'text-gray-400'}`} />
+                        <span className="truncate">{item.label}</span>
+                        <BadgePill count={badge} />
                       </button>
                     );
                   })}
@@ -236,9 +266,10 @@ interface MobileDrawerProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   onLogout: () => void;
+  summary?: AdminSummary | null;
 }
 
-export function MobileDrawer({ isOpen, onClose, activeTab, onTabChange, onLogout }: MobileDrawerProps) {
+export function MobileDrawer({ isOpen, onClose, activeTab, onTabChange, onLogout, summary }: MobileDrawerProps) {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
     const initial = new Set<string>();
     const activeGroup = findGroupForTab(activeTab);
@@ -331,6 +362,7 @@ export function MobileDrawer({ isOpen, onClose, activeTab, onTabChange, onLogout
           {MENU_GROUPS.map(group => {
             const isExpanded = expandedGroups.has(group.id);
             const hasActiveItem = group.items.some(item => item.id === activeTab);
+            const groupBadge = getGroupBadgeCount(summary ?? null, group.items.map(i => i.id));
 
             return (
               <div key={group.id} className="mb-0.5">
@@ -345,6 +377,11 @@ export function MobileDrawer({ isOpen, onClose, activeTab, onTabChange, onLogout
                   <span className="flex items-center gap-2">
                     <span className="text-sm">{group.emoji}</span>
                     {group.label}
+                    {groupBadge > 0 && (
+                      <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold inline-flex items-center justify-center">
+                        {groupBadge > 99 ? '99+' : groupBadge}
+                      </span>
+                    )}
                   </span>
                   {isExpanded ? (
                     <ChevronDown className="w-3.5 h-3.5" />
@@ -358,6 +395,7 @@ export function MobileDrawer({ isOpen, onClose, activeTab, onTabChange, onLogout
                     {group.items.map(item => {
                       const Icon = item.icon;
                       const isActive = activeTab === item.id;
+                      const badge = getTabBadgeCount(summary ?? null, item.id);
                       return (
                         <button
                           key={item.id}
@@ -365,11 +403,14 @@ export function MobileDrawer({ isOpen, onClose, activeTab, onTabChange, onLogout
                           className={`w-full flex items-center gap-2.5 px-3 py-3 rounded-lg text-sm transition-all ${
                             isActive
                               ? 'bg-blue-50 text-blue-700 font-medium'
-                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 active:bg-gray-100'
+                              : badge > 0
+                                ? 'text-gray-900 font-medium'
+                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 active:bg-gray-100'
                           }`}
                         >
-                          <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
-                          {item.label}
+                          <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? 'text-blue-600' : badge > 0 ? 'text-red-500' : 'text-gray-400'}`} />
+                          <span className="truncate">{item.label}</span>
+                          <BadgePill count={badge} />
                         </button>
                       );
                     })}
@@ -399,9 +440,10 @@ interface MobileHeaderProps {
   activeTab: string;
   onMenuOpen: () => void;
   onLogout: () => void;
+  pendingTotal?: number;
 }
 
-export function MobileHeader({ activeTab, onMenuOpen, onLogout }: MobileHeaderProps) {
+export function MobileHeader({ activeTab, onMenuOpen, onLogout, pendingTotal = 0 }: MobileHeaderProps) {
   // Find current tab label
   let currentLabel = 'Панель';
   for (const group of MENU_GROUPS) {
@@ -420,7 +462,14 @@ export function MobileHeader({ activeTab, onMenuOpen, onLogout }: MobileHeaderPr
           <Menu className="w-5 h-5 text-gray-700" />
         </button>
         <div className="min-w-0">
-          <span className="font-bold text-gray-900 text-sm truncate block">{currentLabel}</span>
+          <span className="font-bold text-gray-900 text-sm truncate block flex items-center gap-1.5">
+            {currentLabel}
+            {pendingTotal > 0 && (
+              <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold inline-flex items-center justify-center shrink-0">
+                {pendingTotal > 99 ? '99+' : pendingTotal}
+              </span>
+            )}
+          </span>
         </div>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">

@@ -157,7 +157,7 @@ function App() {
               {/* Masters — lazy */}
               <Route path="/masters" element={<ModuleRoute module="masters"><MastersCatalog /></ModuleRoute>} />
               <Route path="/masters/request" element={<ModuleRoute module="masters"><RequireUserAuth><MasterRequestForm /></RequireUserAuth></ModuleRoute>} />
-              <Route path="/masters/become" element={<ModuleRoute module="masters"><BecomeMasterForm /></ModuleRoute>} />
+              <Route path="/masters/become" element={<ModuleRoute module="masters"><RequireUserAuth><BecomeMasterForm /></RequireUserAuth></ModuleRoute>} />
               <Route path="/masters/:id" element={<ModuleRoute module="masters"><MasterDetail /></ModuleRoute>} />
 
               {/* Салоны красоты — lazy */}

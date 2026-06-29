@@ -22,6 +22,10 @@ export default defineConfig(({ mode }) => ({
   define: {
     'import.meta.env.VITE_APP_TITLE': JSON.stringify('Sortirovka24 Админ'),
     'import.meta.env.VITE_APP_DESCRIPTION': JSON.stringify('Панель управления Sortirovka24'),
+    'import.meta.env.VITE_ADMIN_APP': JSON.stringify('true'),
+    'import.meta.env.VITE_ENABLE_NATIVE_PUSH': JSON.stringify(
+      process.env.VITE_ENABLE_NATIVE_PUSH === 'true' || mode === 'mobile' ? 'true' : 'false',
+    ),
   },
   build: {
     outDir: 'dist-admin',
@@ -41,6 +45,7 @@ export default defineConfig(({ mode }) => ({
       '/api': {
         target: `http://localhost:${process.env.BACKEND_PORT || '8000'}`,
         changeOrigin: true,
+        ws: true,
       },
     },
   },

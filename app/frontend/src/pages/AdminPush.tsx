@@ -94,7 +94,10 @@ export default function AdminPush() {
               <h2 className="text-lg font-bold text-gray-900">Push-уведомления</h2>
             </div>
             <p className="text-sm text-gray-500">
-              Рассылка на телефоны с установленным приложением. При публикации новости push уходит автоматически.
+              Исходящая рассылка жителям с установленным приложением. При публикации новости push уходит автоматически.
+            </p>
+            <p className="text-xs text-amber-600 mt-1.5">
+              Входящие алерты: «Центр управления» (toast), Telegram-бот и push на admin APK.
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
@@ -109,7 +112,10 @@ export default function AdminPush() {
           </Badge>
           <Badge variant="secondary">
             <Smartphone className="w-3 h-3 mr-1 inline" />
-            Устройств: {stats?.active_devices ?? 0} активных
+            Жители: {stats?.active_devices ?? 0} активных
+          </Badge>
+          <Badge variant="secondary">
+            Админ APK: {stats?.admin_active ?? 0}
           </Badge>
           <Badge variant="outline">Android: {stats?.android_active ?? 0}</Badge>
           <Badge variant="outline">iOS: {stats?.ios_active ?? 0}</Badge>

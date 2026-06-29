@@ -92,6 +92,7 @@ export default function Cabinet() {
   const [hasPassword, setHasPassword] = useState(true);
   const [taxiRides, setTaxiRides] = useState<TaxiRide[]>([]);
   const [courierAccess, setCourierAccess] = useState<CourierAccess | null>(null);
+  const [masterNewRequests, setMasterNewRequests] = useState(0);
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
   const [addressForm, setAddressForm] = useState<{
     id: number | null;
@@ -135,6 +136,28 @@ export default function Cabinet() {
   }, [taxiEnabled, taxiRides.length, t]);
 
   useEffect(() => {
+    const tab = searchParams.get("tab") as TabId | null;
+    if (tab && VALID_TABS.includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
+  const loadMasterNewRequests = async (role?: string) => {
+    const r = role || cabinet?.profile?.role;
+    if (r !== "master" && r !== "admin" && r !== "superadmin" && r !== "moderator") {
+      setMasterNewRequests(0);
+      return;
+    }
+    try {
+      const mc = await accountApi.masterCabinet();
+      const count = mc?.stats?.new_requests_count ?? (mc?.requests || []).filter((req: { status?: string }) => req.status === "new").length;
+      setMasterNewRequests(count);
+    } catch {
+      setMasterNewRequests(0);
+    }
+  };
+
+  useEffect(() => {
     (async () => {
       if (!getAccountToken()) {
         navigate("/account");
@@ -155,6 +178,7 @@ export default function Cabinet() {
         if (lang === "kz" || lang === "ru") setLang(lang);
         taxiApi.myRides().then(setTaxiRides).catch(() => {});
         logisticsApi.getCourierAccess().then(setCourierAccess).catch(() => {});
+        loadMasterNewRequests(data?.profile?.role).catch(() => {});
       } catch (e: unknown) {
         const cached = getCurrentUser();
         if (cached) {
@@ -427,6 +451,7 @@ export default function Cabinet() {
     const data = await accountApi.cabinet();
     setCabinet(data);
     if (Array.isArray(data?.addresses)) setAddresses(data.addresses);
+    await loadMasterNewRequests(data?.profile?.role);
     return data;
   };
 
@@ -526,10 +551,16 @@ export default function Cabinet() {
     bonuses: cabinet?.bonuses || [],
     orders: cabinet?.orders || [],
     master_requests: cabinet?.master_requests || [],
+    become_master_requests: cabinet?.become_master_requests || [],
     complaints: cabinet?.complaints || [],
     announcements: cabinet?.announcements || [],
     real_estate: cabinet?.real_estate || [],
   }), [cabinet]);
+
+  const masterApplicationPending = useMemo(
+    () => (rows.become_master_requests || []).some((b: { status?: string }) => b.status === "pending"),
+    [rows.become_master_requests],
+  );
 
   const filteredOrders = useMemo(() => {
     const orders: CabinetOrderRow[] = rows.orders || [];
@@ -544,6 +575,10 @@ export default function Cabinet() {
     setError("");
     setSuccess("");
     setActiveTab(tab);
+    const next = new URLSearchParams(searchParams);
+    if (tab === "profile") next.delete("tab");
+    else next.set("tab", tab);
+    navigate({ pathname: "/cabinet", search: next.toString() ? `?${next.toString()}` : "" }, { replace: true });
   };
 
   const refreshNotifications = async (silent = false) => {
@@ -663,6 +698,8 @@ export default function Cabinet() {
               ordersCount={(rows.orders || []).length}
               ordersCountLabel={`${(rows.orders || []).length} ${t("cabinet.ordersCount")}`}
               courierAccess={courierAccess}
+              masterApplicationPending={masterApplicationPending}
+              masterNewRequests={masterNewRequests}
               logoutLabel={t("cabinet.logout")}
               bonusLabel={t("cabinet.bonusShort")}
               onLogout={() => {
@@ -678,6 +715,8 @@ export default function Cabinet() {
                 courier: t("cabinet.courierCabinetLink"),
                 becomeDriver: t("cabinet.becomeDriver"),
                 becomeCourier: t("cabinet.becomeCourier"),
+                becomeMaster: masterApplicationPending ? undefined : t("masters.becomeMaster"),
+                masterPending: t("cabinet.masterPending"),
                 courierPending: t("cabinet.courierPending"),
               }}
             />
@@ -691,6 +730,13 @@ export default function Cabinet() {
               {success ? <p className="rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300">{success}</p> : null}
 
               {activeTab === "profile" && (
+                <>
+                  {masterApplicationPending && (
+                    <div className="rounded-2xl border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/80 dark:bg-indigo-950/20 px-4 py-4">
+                      <p className="text-sm font-bold text-indigo-900 dark:text-indigo-200">{t("cabinet.masterPending")}</p>
+                      <p className="text-xs text-indigo-700/80 dark:text-indigo-300/80 mt-1">{t("cabinet.master.becomePendingHint")}</p>
+                    </div>
+                  )}
                 <DarkCard>
                   <div className="mb-4 flex items-center justify-between"><h2 className={sectionTitleClass}>{t("cabinet.tab.profile")}</h2></div>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr]">
@@ -744,6 +790,7 @@ export default function Cabinet() {
                     </div>
                   </div>
                 </DarkCard>
+                </>
               )}
 
               {activeTab === "addresses" && (

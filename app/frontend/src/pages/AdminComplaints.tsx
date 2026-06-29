@@ -39,7 +39,7 @@ const STATUS_MAP: Record<string, { label: string; color: string }> = {
 export default function AdminComplaints() {
   const [items, setItems] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('new');
   const [viewItem, setViewItem] = useState<Complaint | null>(null);
   const [editItem, setEditItem] = useState<Partial<Complaint> | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -56,7 +56,11 @@ export default function AdminComplaints() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchItems(); }, [filterStatus]);
+  useEffect(() => {
+    fetchItems();
+    const id = setInterval(fetchItems, 30_000);
+    return () => clearInterval(id);
+  }, [filterStatus]);
 
   const changeStatus = async (id: number, status: string) => {
     try {

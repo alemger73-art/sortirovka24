@@ -40,7 +40,7 @@ const STATUS_MAP: Record<string, { label: string; color: string }> = {
 export default function AdminJobs() {
   const [items, setItems] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('pending');
   const [viewItem, setViewItem] = useState<Job | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Partial<Job> | null>(null);
@@ -57,7 +57,11 @@ export default function AdminJobs() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchItems(); }, [filterStatus]);
+  useEffect(() => {
+    fetchItems();
+    const id = setInterval(fetchItems, 30_000);
+    return () => clearInterval(id);
+  }, [filterStatus]);
 
   const changeStatus = async (id: number, status: string) => {
     try {

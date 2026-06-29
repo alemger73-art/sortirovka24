@@ -42,6 +42,7 @@ export interface PushStats {
   active_devices: number;
   android_active: number;
   ios_active: number;
+  admin_active?: number;
 }
 
 export interface PushBroadcastResult {

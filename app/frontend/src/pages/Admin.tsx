@@ -35,6 +35,10 @@ import AdminPharmacy from './AdminPharmacy';
 import AdminSupport from './AdminSupport';
 import AdminPush from './AdminPush';
 import AdminModules from './AdminModules';
+import AdminDashboard from './AdminDashboard';
+import AdminBusinessPartners from './AdminBusinessPartners';
+import { AdminSummaryProvider, useAdminSummary } from '@/hooks/useAdminSummary';
+import { initAdminPushNotifications } from '@/lib/adminPushNotifications';
 
 // JWT token key in localStorage (persists across tabs and browser restarts)
 const SESSION_KEY = '_sp924_token';
@@ -197,7 +201,7 @@ export default function AdminPanel() {
   const [verifying, setVerifying] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const activeTab = searchParams.get('tab') || 'news';
+  const activeTab = searchParams.get('tab') || 'dashboard';
 
   const verifySession = useCallback(async () => {
     const token = localStorage.getItem(SESSION_KEY);
@@ -242,6 +246,7 @@ export default function AdminPanel() {
   const handleLogin = (token: string) => {
     setSessionToken(token);
     setIsAuth(true);
+    setTimeout(() => { void initAdminPushNotifications(); }, 500);
   };
 
   const handleLogout = async () => {
@@ -283,8 +288,41 @@ export default function AdminPanel() {
     return <AdminLogin onLogin={handleLogin} />;
   }
 
+  return (
+    <AdminSummaryProvider>
+      <AdminPanelContent
+        activeTab={activeTab}
+        setTab={setTab}
+        mobileMenuOpen={mobileMenuOpen}
+        setMobileMenuOpen={setMobileMenuOpen}
+        handleLogout={handleLogout}
+      />
+    </AdminSummaryProvider>
+  );
+}
+
+function AdminPanelContent({
+  activeTab,
+  setTab,
+  mobileMenuOpen,
+  setMobileMenuOpen,
+  handleLogout,
+}: {
+  activeTab: string;
+  setTab: (tab: string) => void;
+  mobileMenuOpen: boolean;
+  setMobileMenuOpen: (open: boolean) => void;
+  handleLogout: () => void;
+}) {
+  const { summary, live } = useAdminSummary();
+
+  useEffect(() => {
+    void initAdminPushNotifications();
+  }, []);
+
   const renderContent = () => {
     switch (activeTab) {
+      case 'dashboard': return <AdminDashboard onNavigate={setTab} />;
       case 'modules': return <AdminModules />;
       case 'stats': return <AdminStats />;
       case 'categories': return <AdminCategories />;
@@ -313,12 +351,13 @@ export default function AdminPanel() {
       case 'pos-integration': return <AdminFrontpad />;
       case 'account-settings': return <AdminAccountSettings />;
       case 'partners-gastronom': return <AdminGastronom />;
+      case 'partners-business': return <AdminBusinessPartners />;
       case 'partners-volna': return <AdminVolna />;
       case 'partners-prorab': return <AdminProrab />;
       case 'partners-pharmacy': return <AdminPharmacy />;
       case 'support': return <AdminSupport />;
       case 'push': return <AdminPush />;
-      default: return <AdminCategories />;
+      default: return <AdminDashboard onNavigate={setTab} />;
     }
   };
 
@@ -329,6 +368,7 @@ export default function AdminPanel() {
         activeTab={activeTab}
         onTabChange={setTab}
         onLogout={handleLogout}
+        summary={summary}
       />
 
       {/* Mobile Drawer */}
@@ -338,6 +378,7 @@ export default function AdminPanel() {
         activeTab={activeTab}
         onTabChange={setTab}
         onLogout={handleLogout}
+        summary={summary}
       />
 
       {/* Main Content */}
@@ -347,11 +388,24 @@ export default function AdminPanel() {
           activeTab={activeTab}
           onMenuOpen={() => setMobileMenuOpen(true)}
           onLogout={handleLogout}
+          pendingTotal={summary?.total_pending ?? 0}
         />
 
         {/* Desktop Header */}
-        <div className="hidden md:block px-6 py-4 border-b border-gray-200 bg-white">
-          <h1 className="text-xl font-bold text-gray-900">{getTabLabel(activeTab)}</h1>
+        <div className="hidden md:flex px-6 py-4 border-b border-gray-200 bg-white items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold text-gray-900">{getTabLabel(activeTab)}</h1>
+            {live && (
+              <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                Live
+              </span>
+            )}
+          </div>
+          {(summary?.total_pending ?? 0) > 0 && (
+            <span className="text-sm text-red-600 font-medium">
+              {summary!.total_pending} необработанных
+            </span>
+          )}
         </div>
 
         <div className={`p-3 sm:p-4 md:p-6 ${activeTab === 'partners-gastronom' || activeTab === 'partners-volna' || activeTab === 'partners-prorab' || activeTab === 'partners-pharmacy' ? 'pb-24 md:pb-6' : ''}`}>

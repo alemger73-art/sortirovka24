@@ -202,4 +202,8 @@ export function invalidateAllCaches(): void {
   } catch {
     /* ignore */
   }
+  // Refresh admin sidebar badges if panel is open
+  import('@/lib/adminSummaryApi').then(({ notifyAdminSummaryRefresh }) => {
+    notifyAdminSummaryRefresh();
+  }).catch(() => {});
 }

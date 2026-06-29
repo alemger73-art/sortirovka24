@@ -60,6 +60,12 @@ class Food_ordersService:
             except Exception as tg_err:
                 logger.warning("[Telegram] Food order notification skipped: %s", tg_err)
             try:
+                from services.admin_alerts import alert_new_food_order
+
+                await alert_new_food_order(self.db, obj)
+            except Exception as admin_err:
+                logger.warning("[Admin] Food order push skipped: %s", admin_err)
+            try:
                 fp_num = await push_food_order_to_frontpad(self.db, obj)
                 if fp_num:
                     obj.frontpad_order_number = fp_num

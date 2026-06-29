@@ -257,6 +257,14 @@ async def create_announcements(
             raise HTTPException(status_code=400, detail="Failed to create announcements")
         
         logger.info(f"Announcements created successfully with id: {result.id}")
+        status = (payload.get("status") or getattr(result, "status", None) or "pending").lower()
+        if status in ("pending", ""):
+            try:
+                from services.admin_alerts import alert_new_announcement
+
+                await alert_new_announcement(db, payload)
+            except Exception as admin_push_err:
+                logger.warning(f"Admin push notify skipped: {admin_push_err}")
         return result
     except ValueError as e:
         logger.error(f"Validation error creating announcements: {str(e)}")

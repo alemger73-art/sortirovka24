@@ -11,6 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
+# Devices registered via POST /api/v1/push/register-admin
+ADMIN_DEVICE_USER_ID = "__admin_panel__"
+
 
 async def broadcast_push(
     db: AsyncSession,

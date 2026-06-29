@@ -35,6 +35,20 @@ async function bindPushListeners(): Promise<void> {
     console.warn('[push] registration error:', err);
   });
 
+  await PushNotifications.addListener('pushNotificationReceived', (notification) => {
+    const title = notification.title || 'Уведомление';
+    const body = notification.body || '';
+    const path = notification.data?.path;
+    import('sonner').then(({ toast }) => {
+      toast(title, {
+        description: body || undefined,
+        action: typeof path === 'string' && path.startsWith('/')
+          ? { label: 'Открыть', onClick: () => navigateToPath(path) }
+          : undefined,
+      });
+    }).catch(() => {});
+  });
+
   await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
     const path = action.notification.data?.path;
     if (typeof path === 'string' && path.startsWith('/')) {

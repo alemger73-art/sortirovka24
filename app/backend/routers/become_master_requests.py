@@ -12,6 +12,7 @@ from core.database import get_db
 from models.become_master_requests import Become_master_requests
 from services.become_master_requests import Become_master_requestsService
 from services.telegram import notify_new_become_master
+from services.user_notifications import notify_become_master_decision
 from utils.phone import normalize_phone, matches_phone
 from utils.rate_limit import check_ip_rate_limit
 
@@ -229,6 +230,13 @@ async def create_become_master_requests(
             await notify_new_become_master(payload)
         except Exception as notify_err:
             logger.warning(f"Telegram notify skipped: {notify_err}")
+
+        try:
+            from services.admin_alerts import alert_new_become_master
+
+            await alert_new_become_master(db, payload)
+        except Exception as admin_push_err:
+            logger.warning(f"Admin push notify skipped: {admin_push_err}")
         
         logger.info(f"Become_master_requests created successfully with id: {result.id}")
         return result
@@ -305,10 +313,19 @@ async def update_become_master_requests(
     try:
         # Only include non-None values for partial updates
         update_dict = {k: v for k, v in data.model_dump().items() if v is not None}
+        existing = await service.get_by_id(id)
+        old_status = getattr(existing, "status", None) if existing else None
         result = await service.update(id, update_dict)
         if not result:
             logger.warning(f"Become_master_requests with id {id} not found for update")
             raise HTTPException(status_code=404, detail="Become_master_requests not found")
+
+        new_status = getattr(result, "status", None)
+        if new_status and new_status != old_status and new_status in {"approved", "rejected"}:
+            try:
+                await notify_become_master_decision(db, result, new_status)
+            except Exception as notify_err:
+                logger.warning(f"Become-master push notify skipped: {notify_err}")
         
         logger.info(f"Become_master_requests {id} updated successfully")
         return result

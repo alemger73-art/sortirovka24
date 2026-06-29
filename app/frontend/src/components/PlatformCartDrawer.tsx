@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, X } from 'lucide-react';
-import { getPlatformCartSegments, platformCartTotalCount } from '@/lib/platformCart';
+import { ShoppingBag, Trash2, X } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  clearPlatformCartSegment,
+  getPlatformCartSegments,
+  PLATFORM_CART_CHANGED_EVENT,
+  platformCartTotalCount,
+} from '@/lib/platformCart';
 
 interface Props {
   open: boolean;
@@ -18,10 +24,21 @@ export default function PlatformCartDrawer({ open, onClose }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    const onStorage = () => setSegments(getPlatformCartSegments());
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    const refresh = () => setSegments(getPlatformCartSegments());
+    window.addEventListener('storage', refresh);
+    window.addEventListener(PLATFORM_CART_CHANGED_EVENT, refresh);
+    return () => {
+      window.removeEventListener('storage', refresh);
+      window.removeEventListener(PLATFORM_CART_CHANGED_EVENT, refresh);
+    };
   }, [open]);
+
+  function handleClear(segId: string, label: string) {
+    if (!window.confirm(`Очистить корзину «${label}»? Все товары будут удалены.`)) return;
+    clearPlatformCartSegment(segId);
+    setSegments(getPlatformCartSegments());
+    toast.success(`Корзина «${label}» очищена`);
+  }
 
   if (!open) return null;
 
@@ -46,23 +63,38 @@ export default function PlatformCartDrawer({ open, onClose }: Props) {
             <p className="text-center text-gray-500 py-12">Корзины пусты</p>
           ) : (
             segments.map((seg) => (
-              <Link
+              <div
                 key={seg.id}
-                to={seg.path}
-                onClick={onClose}
-                className="flex items-center justify-between rounded-2xl border p-4 hover:shadow-md transition dark:border-gray-800"
+                className="flex items-center gap-2 rounded-2xl border p-4 dark:border-gray-800"
               >
-                <div className="flex items-center gap-3">
-                  <span className={`h-10 w-10 rounded-xl ${seg.accent} text-white flex items-center justify-center text-sm font-bold`}>
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <span className={`h-10 w-10 shrink-0 rounded-xl ${seg.accent} text-white flex items-center justify-center text-sm font-bold`}>
                     {seg.count}
                   </span>
-                  <div>
-                    <p className="font-semibold">{seg.label}</p>
+                  <div className="min-w-0">
+                    <p className="font-semibold truncate">{seg.label}</p>
                     <p className="text-xs text-gray-500">{seg.count} {seg.count === 1 ? 'товар' : seg.count < 5 ? 'товара' : 'товаров'}</p>
                   </div>
                 </div>
-                <span className="text-sm font-semibold text-blue-600">Оформить →</span>
-              </Link>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => handleClear(seg.id, seg.label)}
+                    className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
+                    aria-label={`Очистить корзину ${seg.label}`}
+                    title="Очистить корзину"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                  <Link
+                    to={seg.path}
+                    onClick={onClose}
+                    className="rounded-lg px-3 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                  >
+                    Оформить →
+                  </Link>
+                </div>
+              </div>
             ))
           )}
         </div>
@@ -85,9 +117,11 @@ export function PlatformCartButton({ onClick }: { onClick: () => void }) {
     const refresh = () => setCount(platformCartTotalCount());
     refresh();
     window.addEventListener('storage', refresh);
+    window.addEventListener(PLATFORM_CART_CHANGED_EVENT, refresh);
     const id = window.setInterval(refresh, 2000);
     return () => {
       window.removeEventListener('storage', refresh);
+      window.removeEventListener(PLATFORM_CART_CHANGED_EVENT, refresh);
       window.clearInterval(id);
     };
   }, []);
