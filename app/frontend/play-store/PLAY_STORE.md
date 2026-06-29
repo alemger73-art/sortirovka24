@@ -42,14 +42,24 @@ https://sortirovka24-production-8788.up.railway.app/terms.html
 
 ---
 
-## Шаг 2 — Собрать release AAB (на вашем ПК)
+## Шаг 2 — Собрать release AAB
+
+**Вариант A — локально (Windows):**
 
 ```powershell
 cd app\frontend
+npm run setup:play-keystore    # один раз
 npm run build:android:release
 ```
 
-Файл для загрузки:
+**Вариант B — GitHub Actions (без локального keystore на CI-машине):**
+
+1. После `setup:play-keystore` на своём ПК: `npm run export:play-keystore`
+2. GitHub → Secrets → добавить `PLAY_KEYSTORE_BASE64`, `PLAY_KEYSTORE_PASSWORD`, `PLAY_KEY_ALIAS`, `PLAY_KEY_PASSWORD`
+3. Actions → **Android Release (Google Play AAB)** → Run workflow
+4. Скачать AAB из Artifacts
+
+Файл для загрузки (локальная сборка):
 ```
 app\frontend\releases\Sortirovka24-release.aab
 ```

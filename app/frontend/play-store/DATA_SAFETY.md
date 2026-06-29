@@ -32,6 +32,7 @@
 ## Разрешения Android (из манифеста)
 - `INTERNET` — работа с API
 - `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` — такси и доставка (по запросу пользователя)
+- `POST_NOTIFICATIONS` — push-уведомления (Android 13+, только после настройки Firebase)
 
 ## Политика конфиденциальности
 ```

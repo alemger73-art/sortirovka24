@@ -30,7 +30,9 @@
 - [README в корне](../README.md) — быстрый старт
 - [PRODUCTION_CHECKLIST.md](../PRODUCTION_CHECKLIST.md) — чеклист перед запуском
 - [MOBILE_APP.md](../app/frontend/MOBILE_APP.md) — сборка Android/iOS
-- [PLAY_STORE.md](../app/frontend/play-store/PLAY_STORE.md) — публикация в Google Play
+- [STORE_RELEASE_CHECKLIST.md](./mobile/STORE_RELEASE_CHECKLIST.md) — **публикация App Store + Google Play**
+- [PLAY_STORE.md](../app/frontend/play-store/PLAY_STORE.md) — Google Play пошагово
+- [APP_STORE.md](../app/frontend/app-store/APP_STORE.md) — App Store пошагово
 - [DAM ALEM — инструкция](../app/frontend/docs/DAM_ALEM_ИНСТРУКЦИЯ.md) — заказы еды и FrontPad
 - [Admin APK](../app/admin-panel/README.md) — отдельное приложение администратора
 - **[Презентации](./presentation/README.md)** — общая (24 слайда) + **партнёрская для магазина/аптеки** (18 слайдов, реальные скрины)

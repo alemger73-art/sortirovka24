@@ -82,7 +82,8 @@ pnpm run build      # результат в app/frontend/dist/
 
 ## Мобильное приложение (Android / iOS)
 
-**Подробная пошаговая инструкция:** [MOBILE_APP.md](app/frontend/MOBILE_APP.md)
+**Подробная пошаговая инструкция:** [MOBILE_APP.md](app/frontend/MOBILE_APP.md)  
+**Публикация в магазины:** [STORE_RELEASE_CHECKLIST.md](docs/mobile/STORE_RELEASE_CHECKLIST.md)
 
 Кратко:
 

@@ -53,11 +53,9 @@ echo "==> Archiving (build $BUILD_NUMBER)"
     "${AUTH_ARGS[@]}" clean archive )
 
 echo "==> Exporting IPA"
+EXPORT_PLIST="$(pwd)/ios/ExportOptions.plist"
 ( cd ios/App && xcodebuild -exportArchive -archivePath "$ARCHIVE_PATH" \
-    -exportOptionsPlist ios/ExportOptions.plist 2>/dev/null \
-    -exportPath "$EXPORT_DIR" -allowProvisioningUpdates "${AUTH_ARGS[@]}" || \
-  xcodebuild -exportArchive -archivePath "$ARCHIVE_PATH" \
-    -exportOptionsPlist "$(pwd)/ios/ExportOptions.plist" \
+    -exportOptionsPlist "$EXPORT_PLIST" \
     -exportPath "$EXPORT_DIR" -allowProvisioningUpdates "${AUTH_ARGS[@]}" )
 
 IPA=$(ls "$EXPORT_DIR"/*.ipa | head -n1)

@@ -267,6 +267,9 @@ FCM_SERVER_KEY=AAAA...ваш_ключ...
 
 ## Шаг 6. Публикация в магазинах
 
+> **Единый чеклист:** [`docs/mobile/STORE_RELEASE_CHECKLIST.md`](../../docs/mobile/STORE_RELEASE_CHECKLIST.md)  
+> Перед отправкой: `npm run pre:store-check`
+
 ### Google Play
 
 1. Аккаунт разработчика — https://play.google.com/console ($25 единоразово)  
@@ -278,7 +281,7 @@ FCM_SERVER_KEY=AAAA...ваш_ключ...
 - Иконка 512×512 PNG  
 - Скриншоты телефона (минимум 2)  
 - Краткое и полное описание на русском  
-- Политика конфиденциальности (страница `/legal/privacy` на сайте)
+- Политика конфиденциальности (страница `/privacy.html` на сайте)
 
 ### App Store (Apple)
 
@@ -314,6 +317,12 @@ npm run cap:sync
 Затем в Android Studio / Xcode — **Run** или пересоберите release.
 
 Увеличьте версию перед публикацией в магазин:
+
+```powershell
+npm run bump:mobile-version
+```
+
+Или вручную:
 
 **Android** — `android/app/build.gradle`:
 ```gradle

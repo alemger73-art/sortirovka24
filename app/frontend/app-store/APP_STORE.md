@@ -19,7 +19,7 @@
 | Исходники брендинга | `assets/icon.svg`, `assets/splash.svg` (+ `npm run gen:assets`) |
 | Privacy-строки (камера, фото, геолокация, микрофон) | `ios/App/App/Info.plist` |
 | Export compliance (`ITSAppUsesNonExemptEncryption=false`) | `Info.plist` |
-| Версия `1.0.23`, build `23` | `ios/App/App.xcodeproj` |
+| Версия `1.0.26`, build `26` | `ios/App/App.xcodeproj` |
 | Bundled-режим (работает без сети при ревью) | `ios/App/App/capacitor.config.json` |
 | CI-сборка подписанного IPA + загрузка в TestFlight | `.github/workflows/ios-release.yml` |
 | Локальная сборка на Mac | `scripts/build-ios.sh` (`npm run build:ios`) |

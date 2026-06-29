@@ -1,0 +1,84 @@
+name: Android Release (Google Play AAB)
+
+# Builds a signed release AAB for Google Play upload.
+# Requires repository secrets (Settings → Secrets → Actions):
+#   PLAY_KEYSTORE_BASE64     — base64-encoded sortirovka24-release.jks
+#   PLAY_KEYSTORE_PASSWORD   — store password
+#   PLAY_KEY_ALIAS           — sortirovka24
+#   PLAY_KEY_PASSWORD        — key password
+#
+# Generate base64 (PowerShell):
+#   [Convert]::ToBase64String([IO.File]::ReadAllBytes("app/frontend/android/sortirovka24-release.jks"))
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build signed AAB
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app/frontend
+    env:
+      API_BASE_URL: ${{ secrets.ANDROID_API_BASE_URL || 'https://sortirovka24-production-8788.up.railway.app' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: app/frontend/pnpm-lock.yaml
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Restore signing keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.PLAY_KEYSTORE_BASE64 }}
+          STORE_PASS: ${{ secrets.PLAY_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.PLAY_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.PLAY_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "PLAY_KEYSTORE_BASE64 secret is required"
+            exit 1
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > android/sortirovka24-release.jks
+          printf 'storeFile=sortirovka24-release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "$STORE_PASS" "$KEY_ALIAS" "$KEY_PASSWORD" > android/keystore.properties
+
+      - name: Build web (bundled — no live URL for store review)
+        run: |
+          pnpm install --frozen-lockfile
+          printf 'VITE_API_BASE_URL=%s\n' "$API_BASE_URL" > .env.mobile
+          pnpm run build:mobile
+          pnpm exec cap sync android
+
+      - name: Gradle bundleRelease
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease --no-daemon
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sortirovka24-release-aab
+          path: app/frontend/android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30

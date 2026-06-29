@@ -23,6 +23,10 @@
     "cap:ios": "pnpm run cap:sync && pnpm exec cap open ios",
     "gen:assets": "node scripts/gen-assets.mjs && pnpm exec capacitor-assets generate --assetPath assets",
     "build:ios": "bash scripts/build-ios.sh",
+    "bump:mobile-version": "powershell -ExecutionPolicy Bypass -File scripts/bump-mobile-version.ps1",
+    "pre:store-check": "powershell -ExecutionPolicy Bypass -File scripts/pre-store-check.ps1",
+    "prepare:store-screenshots": "node scripts/prepare-store-screenshots.mjs",
+    "export:play-keystore": "powershell -ExecutionPolicy Bypass -File scripts/export-play-keystore-base64.ps1",
     "build:admin": "vite build --config vite.admin.config.ts --mode mobile && node -e \"require('fs').copyFileSync('dist-admin/admin.html','dist-admin/index.html')\"",
     "dev:admin": "vite --config vite.admin.config.ts"
   },

@@ -45,6 +45,14 @@ app/frontend/releases/
 *.aab
 *.ipa
 *.keystore
+*.jks
+app/frontend/android/keystore.properties
+app/frontend/android/PLAY_SIGNING_SECRET.txt
+app/frontend/android/PLAY_KEYSTORE_BASE64.txt
+app/frontend/android/sortirovka24-release.jks
+app/frontend/android/app/google-services.json
+app/frontend/ios/App/App/GoogleService-Info.plist
+app/frontend/store-screenshots-report.txt
 
 # ---- Test / e2e artifacts ----
 test-results/
@@ -68,6 +76,8 @@ logs/
 .env.*
 !.env.example
 !.env.mobile.example
+!app/frontend/play-store/screenshots/**
+!app/frontend/app-store/screenshots/**
 !.env.*.example
 .jwt_secret
 
