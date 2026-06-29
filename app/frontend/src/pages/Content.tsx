@@ -18,6 +18,7 @@ import {
   type AnnouncementSort,
   annTypeForCategory,
   defaultExpiresAtIso,
+  fallbackAnnouncementCategories,
   fetchAnnouncementCategories,
   filterPublicAnnouncements,
   formatExpiryLabel,
@@ -460,7 +461,7 @@ function AnnouncementFormFields({
         <label className="block text-sm font-medium text-gray-700 mb-1">Категория *</label>
         <select value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
           <option value="">Выберите категорию</option>
-          {(categories.length ? categories : Object.entries(ANN_TYPES).map(([k, v]) => ({ id: k, name: v, slug: k } as AnnCategory))).map((cat) => (
+          {(categories.length ? categories : fallbackAnnouncementCategories()).map((cat) => (
             <option key={cat.id} value={String(cat.id)}>{cat.icon ? `${cat.icon} ` : ''}{cat.name}</option>
           ))}
         </select>
@@ -557,7 +558,7 @@ export function AnnouncementsList() {
 
   const filterCategories = categories.length
     ? categories
-    : Object.entries(ANN_TYPES).map(([key, label]) => ({ id: key, name: label, slug: key } as AnnCategory));
+    : fallbackAnnouncementCategories();
 
   return (
     <Layout>

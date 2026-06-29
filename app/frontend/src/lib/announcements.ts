@@ -16,13 +16,18 @@ export const ANN_SLUG_BY_TYPE: Record<string, string> = Object.fromEntries(
 );
 
 export type AnnCategory = {
-  id: number;
+  id: number | string;
   name: string;
   slug?: string;
   icon?: string;
   parent_id?: number | string | null;
   sort_order?: number;
 };
+
+/** Fallback when API categories are unavailable (uses ann_type slug as id). */
+export function fallbackAnnouncementCategories(): AnnCategory[] {
+  return Object.entries(ANN_TYPES).map(([slug, name]) => ({ id: slug, name, slug }));
+}
 
 export type AnnouncementSort = 'new' | 'price_asc' | 'price_desc';
 
