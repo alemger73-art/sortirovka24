@@ -61,6 +61,26 @@
         "created_at": {
             "type": "string",
             "description": "Creation timestamp"
+        },
+        "category_id": {
+            "type": "integer",
+            "description": "Category ID from categories table"
+        },
+        "expires_at": {
+            "type": "string",
+            "description": "Expiration timestamp (ISO)"
+        },
+        "promoted_until": {
+            "type": "string",
+            "description": "Promotion active until (ISO)"
+        },
+        "promotion_tier": {
+            "type": "string",
+            "description": "Promotion tier: boost or vip"
+        },
+        "views_count": {
+            "type": "integer",
+            "description": "View counter"
         }
     },
     "required": [

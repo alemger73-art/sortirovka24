@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { client, withRetry, ANN_TYPES, formatDate, timeAgo } from '@/lib/api';
+import { defaultExpiresAtIso } from '@/lib/announcements';
 import { invalidateAllCaches } from '@/lib/cache';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +30,11 @@ interface Announcement {
   active?: boolean;
   status?: string;
   created_at?: string;
+  category_id?: number;
+  expires_at?: string;
+  promoted_until?: string;
+  promotion_tier?: string;
+  views_count?: number;
 }
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
@@ -65,7 +71,12 @@ export default function AdminAnnouncements() {
 
   const changeStatus = async (id: number, status: string) => {
     try {
-      await withRetry(() => client.entities.announcements.update({ id: String(id), data: { status } }));
+      const patch: Record<string, string> = { status };
+      if (status === 'approved' || status === 'published') {
+        const item = items.find((i) => i.id === id);
+        if (item && !item.expires_at) patch.expires_at = defaultExpiresAtIso(30);
+      }
+      await withRetry(() => client.entities.announcements.update({ id: String(id), data: patch }));
       toast.success(status === 'approved' ? 'Объявление одобрено' : status === 'rejected' ? 'Объявление отклонено' : 'Статус обновлён');
       invalidateAllCaches();
       fetchItems();
@@ -88,6 +99,7 @@ export default function AdminAnnouncements() {
       ann_type: 'sell', title: '', description: '', price: '', address: '',
       image_url: '', gallery_images: '', phone: '', whatsapp: '', telegram: '',
       author_name: '', active: true, status: 'approved',
+      expires_at: defaultExpiresAtIso(30),
     });
     setDialogOpen(true);
   };
@@ -118,6 +130,10 @@ export default function AdminAnnouncements() {
         author_name: editItem.author_name || '',
         active: editItem.active ?? true,
         status: editItem.status || 'approved',
+        category_id: editItem.category_id,
+        expires_at: editItem.expires_at || defaultExpiresAtIso(30),
+        promoted_until: editItem.promoted_until || '',
+        promotion_tier: editItem.promotion_tier || '',
       };
       if (editItem.id) {
         await withRetry(() => client.entities.announcements.update({ id: String(editItem.id), data }));
@@ -174,6 +190,8 @@ export default function AdminAnnouncements() {
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <Badge variant="outline" className="text-xs">{ANN_TYPES[item.ann_type] || item.ann_type}</Badge>
                         <Badge className={`text-xs border ${st.color}`}>{st.label}</Badge>
+                        {item.promotion_tier === 'vip' && <Badge className="text-xs bg-purple-100 text-purple-800 border-purple-200">VIP</Badge>}
+                        {item.promotion_tier === 'boost' && <Badge className="text-xs bg-blue-100 text-blue-800 border-blue-200">Топ</Badge>}
                       </div>
                       <h3 className="font-medium text-gray-900 text-sm truncate">{item.title}</h3>
                       <p className="text-xs text-gray-500 line-clamp-1">{item.description}</p>
@@ -367,6 +385,35 @@ export default function AdminAnnouncements() {
                     <SelectItem value="published">Опубликовано</SelectItem>
                     <SelectItem value="rejected">Отклонено</SelectItem>
                     <SelectItem value="hidden">Скрыто</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Активно до</label>
+                  <Input
+                    type="datetime-local"
+                    value={editItem.expires_at ? editItem.expires_at.slice(0, 16) : ''}
+                    onChange={(e) => setEditItem({ ...editItem, expires_at: e.target.value ? new Date(e.target.value).toISOString() : '' })}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Продвижение до</label>
+                  <Input
+                    type="datetime-local"
+                    value={editItem.promoted_until ? editItem.promoted_until.slice(0, 16) : ''}
+                    onChange={(e) => setEditItem({ ...editItem, promoted_until: e.target.value ? new Date(e.target.value).toISOString() : '' })}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Тип продвижения</label>
+                <Select value={editItem.promotion_tier || 'none'} onValueChange={v => setEditItem({ ...editItem, promotion_tier: v === 'none' ? '' : v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Без продвижения</SelectItem>
+                    <SelectItem value="boost">Поднять (Топ)</SelectItem>
+                    <SelectItem value="vip">VIP</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

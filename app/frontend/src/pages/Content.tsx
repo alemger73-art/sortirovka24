@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { client, withRetry, COMPLAINT_CATEGORIES, NEWS_CATEGORIES, ANN_TYPES, REAL_ESTATE_TYPES, JOB_CATEGORIES, STATUS_LABELS, timeAgo, formatDate } from '@/lib/api';
 import { fetchWithCache } from '@/lib/cache';
-import { ChevronLeft, MapPin, Phone, MessageCircle, Clock, CheckCircle, AlertTriangle, Star, Briefcase, HelpCircle, Send, BookOpen, Megaphone, Shield, Loader2, Plus, Home, Search, Pencil, Trash2, EyeOff } from 'lucide-react';
+import { ChevronLeft, MapPin, Phone, MessageCircle, Clock, CheckCircle, AlertTriangle, Star, Briefcase, HelpCircle, Send, BookOpen, Megaphone, Shield, Loader2, Plus, Home, Search, Pencil, Trash2, EyeOff, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import ImageUpload, { StorageImage } from "@/components/ImageUpload";
 import StorageImg from "@/components/StorageImg";
@@ -12,6 +12,23 @@ import VideoUpload from '@/components/VideoUpload';
 import StorageVideo from '@/components/StorageVideo';
 import { pushCabinetItem, requireAuthDialog, getAccountPrefill, getCurrentUser } from '@/lib/localAuth';
 import { accountApi } from '@/lib/accountApi';
+import {
+  ANN_VISIBLE_STATUSES,
+  type AnnCategory,
+  type AnnouncementSort,
+  annTypeForCategory,
+  defaultExpiresAtIso,
+  fetchAnnouncementCategories,
+  filterPublicAnnouncements,
+  formatExpiryLabel,
+  getAnnouncementCover,
+  isAnnouncementExpired,
+  isAnnouncementPromoted,
+  loadAnnFavorites,
+  resolveCategoryLabel,
+  sortAnnouncements,
+  toggleAnnFavorite,
+} from '@/lib/announcements';
 import { useLanguage } from '@/contexts/LanguageContext';
 import SafetyAlert from '@/components/SafetyAlert';
 
@@ -400,17 +417,6 @@ export function NewComplaintForm() {
 }
 
 /* ============ ANNOUNCEMENTS HELPERS ============ */
-const ANN_VISIBLE_STATUSES = ['approved', 'published'];
-
-function getAnnouncementCover(ann: { image_url?: string; gallery_images?: string }) {
-  if (ann.image_url) return ann.image_url;
-  if (ann.gallery_images) {
-    const first = ann.gallery_images.split(',').map((k) => k.trim()).find(Boolean);
-    if (first) return first;
-  }
-  return null;
-}
-
 function normalizePhoneDigits(value?: string | null) {
   return (value || '').replace(/\D/g, '');
 }
@@ -425,7 +431,7 @@ function userOwnsAnnouncement(ann: { user_id?: string; phone?: string }) {
 }
 
 type AnnouncementFormState = {
-  ann_type: string;
+  category_id: string;
   title: string;
   description: string;
   price: string;
@@ -440,19 +446,23 @@ function AnnouncementFormFields({
   setForm,
   galleryKeys,
   setGalleryKeys,
+  categories,
 }: {
   form: AnnouncementFormState;
   setForm: React.Dispatch<React.SetStateAction<AnnouncementFormState>>;
   galleryKeys: string;
   setGalleryKeys: (value: string) => void;
+  categories: AnnCategory[];
 }) {
   return (
     <>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Категория *</label>
-        <select value={form.ann_type} onChange={e => setForm({ ...form, ann_type: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        <select value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
           <option value="">Выберите категорию</option>
-          {Object.entries(ANN_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          {(categories.length ? categories : Object.entries(ANN_TYPES).map(([k, v]) => ({ id: k, name: v, slug: k } as AnnCategory))).map((cat) => (
+            <option key={cat.id} value={String(cat.id)}>{cat.icon ? `${cat.icon} ` : ''}{cat.name}</option>
+          ))}
         </select>
       </div>
       <div>
@@ -499,29 +509,55 @@ function AnnouncementFormFields({
 /* ============ ANNOUNCEMENTS LIST ============ */
 export function AnnouncementsList() {
   const [items, setItems] = useState<any[]>([]);
+  const [categories, setCategories] = useState<AnnCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [typeFilter, setTypeFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<AnnouncementSort>('new');
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [favorites, setFavorites] = useState<number[]>(() => loadAnnFavorites());
 
-  useEffect(() => { loadData(); }, [typeFilter]);
+  useEffect(() => {
+    fetchAnnouncementCategories().then(setCategories).catch(() => setCategories([]));
+  }, []);
+
+  useEffect(() => { loadData(); }, [categoryFilter]);
 
   async function loadData() {
     setLoading(true);
     try {
       const query: any = {};
-      if (typeFilter) query.ann_type = typeFilter;
-      const res = await fetchWithCache(`announcements_list_${typeFilter || 'all'}`, () => withRetry(() => client.entities.announcements.query({ query, sort: '-created_at', limit: 50 })), 5 * 60 * 1000);
-      setItems((res.data?.items || []).filter((a: any) => ANN_VISIBLE_STATUSES.includes(a.status)));
+      if (categoryFilter) {
+        const num = Number(categoryFilter);
+        if (Number.isFinite(num)) query.category_id = num;
+        else query.ann_type = categoryFilter;
+      }
+      const res = await fetchWithCache(`announcements_list_${categoryFilter || 'all'}`, () => withRetry(() => client.entities.announcements.query({ query, sort: '-created_at', limit: 100 })), 5 * 60 * 1000);
+      setItems(filterPublicAnnouncements(res.data?.items || []));
     } catch (e) { console.error(e); } finally { setLoading(false); }
   }
 
-  const filteredItems = items.filter((ann) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return [ann.title, ann.description, ann.address, ann.price, ANN_TYPES[ann.ann_type]]
-      .filter(Boolean)
-      .some((part: string) => String(part).toLowerCase().includes(q));
-  });
+  function handleToggleFavorite(e: React.MouseEvent, id: number) {
+    e.preventDefault();
+    e.stopPropagation();
+    setFavorites(toggleAnnFavorite(id));
+  }
+
+  const filteredItems = sortAnnouncements(
+    items.filter((ann) => {
+      if (showFavoritesOnly && !favorites.includes(ann.id)) return false;
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      return [ann.title, ann.description, ann.address, ann.price, resolveCategoryLabel(ann, categories)]
+        .filter(Boolean)
+        .some((part: string) => String(part).toLowerCase().includes(q));
+    }),
+    sortBy,
+  );
+
+  const filterCategories = categories.length
+    ? categories
+    : Object.entries(ANN_TYPES).map(([key, label]) => ({ id: key, name: label, slug: key } as AnnCategory));
 
   return (
     <Layout>
@@ -536,22 +572,45 @@ export function AnnouncementsList() {
           </Link>
         </div>
 
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Поиск по заголовку, описанию, адресу..."
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400"
-          />
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Поиск по заголовку, описанию, адресу..."
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400"
+            />
+          </div>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as AnnouncementSort)}
+            className="rounded-xl border border-gray-200 px-3 py-2.5 text-sm bg-white"
+          >
+            <option value="new">Сначала новые</option>
+            <option value="price_asc">Дешевле</option>
+            <option value="price_desc">Дороже</option>
+          </select>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-6">
-          <button onClick={() => setTypeFilter('')} className={`px-3 py-1.5 rounded-full text-sm font-medium ${!typeFilter ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Все</button>
-          {Object.entries(ANN_TYPES).map(([key, label]) => (
-            <button key={key} onClick={() => setTypeFilter(key === typeFilter ? '' : key)} className={`px-3 py-1.5 rounded-full text-sm font-medium ${typeFilter === key ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{label}</button>
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button onClick={() => setCategoryFilter('')} className={`px-3 py-1.5 rounded-full text-sm font-medium ${!categoryFilter ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Все</button>
+          {filterCategories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setCategoryFilter(String(cat.id) === categoryFilter ? '' : String(cat.id))}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium ${categoryFilter === String(cat.id) ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            >
+              {cat.icon ? `${cat.icon} ` : ''}{cat.name}
+            </button>
           ))}
+          <button
+            onClick={() => setShowFavoritesOnly((v) => !v)}
+            className={`px-3 py-1.5 rounded-full text-sm font-medium ${showFavoritesOnly ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          >
+            ❤️ Избранное{favorites.length > 0 ? ` (${favorites.length})` : ''}
+          </button>
         </div>
 
         {loading ? <div className="text-center py-12 text-gray-400">Загрузка...</div> : filteredItems.length === 0 ? (
@@ -563,15 +622,33 @@ export function AnnouncementsList() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredItems.map(ann => {
               const cover = getAnnouncementCover(ann);
+              const isFav = favorites.includes(ann.id);
+              const promoted = isAnnouncementPromoted(ann);
               return (
-              <Link key={ann.id} to={`/announcements/${ann.id}`} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all hover:-translate-y-0.5 block">
+              <Link key={ann.id} to={`/announcements/${ann.id}`} className="relative bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all hover:-translate-y-0.5 block">
+                <button
+                  type="button"
+                  onClick={(e) => handleToggleFavorite(e, ann.id)}
+                  className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/90 shadow flex items-center justify-center"
+                  aria-label="Избранное"
+                >
+                  <Heart className={`w-4 h-4 ${isFav ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+                </button>
                 {cover && (
                   <StorageImg objectKey={cover} alt={ann.title} className="w-full h-40 object-cover" />
                 )}
                 <div className="p-5">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">{ANN_TYPES[ann.ann_type] || ann.ann_type}</span>
-                    <span className="text-xs text-gray-400">{timeAgo(ann.created_at)}</span>
+                  <div className="flex items-center justify-between mb-2 gap-2">
+                    <div className="flex flex-wrap gap-1">
+                      <span className="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">{resolveCategoryLabel(ann, categories)}</span>
+                      {promoted && ann.promotion_tier === 'vip' && (
+                        <span className="text-xs font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">VIP</span>
+                      )}
+                      {promoted && ann.promotion_tier === 'boost' && (
+                        <span className="text-xs font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">Топ</span>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-400 shrink-0">{timeAgo(ann.created_at)}</span>
                   </div>
                   <h3 className="font-semibold text-gray-900">{ann.title}</h3>
                   <p className="text-sm text-gray-500 mt-1 line-clamp-2">{ann.description}</p>
@@ -594,13 +671,15 @@ export function AnnouncementsList() {
 /* ============ NEW ANNOUNCEMENT FORM ============ */
 export function NewAnnouncementForm() {
   const navigate = useNavigate();
-  const [form, setForm] = useState<AnnouncementFormState>({ ann_type: '', title: '', description: '', price: '', address: '', phone: '', whatsapp: '', author_name: '' });
+  const [categories, setCategories] = useState<AnnCategory[]>([]);
+  const [form, setForm] = useState<AnnouncementFormState>({ category_id: '', title: '', description: '', price: '', address: '', phone: '', whatsapp: '', author_name: '' });
   const [galleryKeys, setGalleryKeys] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
+    fetchAnnouncementCategories().then(setCategories).catch(() => setCategories([]));
     const prefill = getAccountPrefill();
     if (prefill.name || prefill.phone) {
       setForm((f) => ({
@@ -614,28 +693,34 @@ export function NewAnnouncementForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!requireAuthDialog(navigate)) return;
-    if (!form.ann_type || !form.title || !form.description || !form.phone) return;
+    if (!form.category_id || !form.title || !form.description || !form.phone) return;
     if (submitted) return;
     setSubmitting(true);
     setSubmitted(true);
     try {
       const accountUser = getCurrentUser();
+      const categoryId = Number(form.category_id);
+      const cat = categories.find((c) => c.id === categoryId);
+      const ann_type = annTypeForCategory(cat, categoryId);
       const firstImage = galleryKeys.split(',').map((k) => k.trim()).find(Boolean) || null;
       await withRetry(() => client.entities.announcements.create({
         data: {
           ...form,
+          category_id: Number.isFinite(categoryId) ? categoryId : undefined,
+          ann_type,
           user_id: accountUser?.id,
           active: true,
           status: 'pending',
           gallery_images: galleryKeys,
           image_url: firstImage,
+          expires_at: defaultExpiresAtIso(30),
           created_at: new Date().toISOString(),
         },
       }));
       setSuccess(true);
       pushCabinetItem('announcements', {
         title: form.title,
-        subtitle: form.price || form.ann_type,
+        subtitle: form.price || cat?.name || ann_type,
         status: 'На модерации',
       });
       const photoCount = galleryKeys ? galleryKeys.split(',').filter((k: string) => k.trim()).length : 0;
@@ -643,7 +728,7 @@ export function NewAnnouncementForm() {
         url: '/api/v1/telegram/notify/announcement',
         method: 'POST',
         data: {
-          ann_type: form.ann_type,
+          ann_type,
           title: form.title,
           description: form.description,
           price: form.price,
@@ -682,7 +767,7 @@ export function NewAnnouncementForm() {
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Разместить объявление</h1>
         <SafetyAlert variant="announcement_form" />
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4 mt-4">
-          <AnnouncementFormFields form={form} setForm={setForm} galleryKeys={galleryKeys} setGalleryKeys={setGalleryKeys} />
+          <AnnouncementFormFields form={form} setForm={setForm} galleryKeys={galleryKeys} setGalleryKeys={setGalleryKeys} categories={categories} />
           <button type="submit" disabled={submitting || submitted} className="w-full bg-amber-500 text-white font-medium py-3 rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-50">
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
@@ -700,18 +785,24 @@ export function NewAnnouncementForm() {
 export function EditAnnouncementForm() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [form, setForm] = useState<AnnouncementFormState>({ ann_type: '', title: '', description: '', price: '', address: '', phone: '', whatsapp: '', author_name: '' });
+  const [categories, setCategories] = useState<AnnCategory[]>([]);
+  const [form, setForm] = useState<AnnouncementFormState>({ category_id: '', title: '', description: '', price: '', address: '', phone: '', whatsapp: '', author_name: '' });
   const [galleryKeys, setGalleryKeys] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState('');
+  const [expiresAt, setExpiresAt] = useState('');
+
+  useEffect(() => {
+    fetchAnnouncementCategories().then(setCategories).catch(() => setCategories([]));
+  }, []);
 
   useEffect(() => {
     if (!id) return;
     accountApi.getMyAnnouncement(Number(id))
       .then((data) => {
         setForm({
-          ann_type: data.ann_type || '',
+          category_id: data.category_id ? String(data.category_id) : '',
           title: data.title || '',
           description: data.description || '',
           price: data.price || '',
@@ -722,6 +813,7 @@ export function EditAnnouncementForm() {
         });
         setGalleryKeys(data.gallery_images || '');
         setStatus(data.status || '');
+        setExpiresAt(data.expires_at || '');
       })
       .catch((err) => {
         console.error(err);
@@ -733,10 +825,17 @@ export function EditAnnouncementForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!id || !form.ann_type || !form.title || !form.description || !form.phone) return;
+    if (!id || !form.category_id || !form.title || !form.description || !form.phone) return;
     setSubmitting(true);
     try {
-      await accountApi.updateMyAnnouncement(Number(id), { ...form, gallery_images: galleryKeys });
+      const categoryId = Number(form.category_id);
+      const cat = categories.find((c) => c.id === categoryId);
+      await accountApi.updateMyAnnouncement(Number(id), {
+        ...form,
+        category_id: Number.isFinite(categoryId) ? categoryId : undefined,
+        ann_type: annTypeForCategory(cat, categoryId),
+        gallery_images: galleryKeys,
+      });
       toast.success('Изменения сохранены. Объявление отправлено на модерацию.');
       navigate('/cabinet?tab=announcements');
     } catch (err) {
@@ -757,13 +856,16 @@ export function EditAnnouncementForm() {
         <Link to="/cabinet?tab=announcements" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> Мои объявления</Link>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Редактировать объявление</h1>
         {status && (
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-gray-500 mb-2">
             Статус: <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_LABELS[status]?.color || 'bg-gray-100 text-gray-800'}`}>{STATUS_LABELS[status]?.label || status}</span>
           </p>
         )}
+        {expiresAt && (
+          <p className="text-sm text-gray-500 mb-4">Активно до: {formatExpiryLabel(expiresAt)}</p>
+        )}
         <SafetyAlert variant="announcement_form" />
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4 mt-4">
-          <AnnouncementFormFields form={form} setForm={setForm} galleryKeys={galleryKeys} setGalleryKeys={setGalleryKeys} />
+          <AnnouncementFormFields form={form} setForm={setForm} galleryKeys={galleryKeys} setGalleryKeys={setGalleryKeys} categories={categories} />
           <button type="submit" disabled={submitting} className="w-full bg-amber-500 text-white font-medium py-3 rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-50">
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
@@ -782,21 +884,36 @@ export function AnnouncementDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [item, setItem] = useState<any>(null);
+  const [categories, setCategories] = useState<AnnCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  useEffect(() => {
+    fetchAnnouncementCategories().then(setCategories).catch(() => setCategories([]));
+  }, []);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetchWithCache(`announcement_detail_${id}`, () => withRetry(() => client.entities.announcements.get({ id: id! })), 5 * 60 * 1000);
+        const res = await withRetry(() => client.entities.announcements.get({ id: id! }));
         setItem(res.data);
+        const favs = loadAnnFavorites();
+        setIsFavorite(favs.includes(Number(id)));
       } catch (e) { console.error(e); } finally { setLoading(false); }
     })();
   }, [id]);
 
   const isOwner = item ? userOwnsAnnouncement(item) : false;
-  const isPublic = item ? ANN_VISIBLE_STATUSES.includes(item.status) : false;
+  const isPublic = item ? ANN_VISIBLE_STATUSES.includes(item.status) && !isAnnouncementExpired(item) : false;
   const cover = item ? getAnnouncementCover(item) : null;
+  const promoted = item ? isAnnouncementPromoted(item) : false;
+
+  function toggleFavorite() {
+    if (!item?.id) return;
+    const next = toggleAnnFavorite(Number(item.id));
+    setIsFavorite(next.includes(Number(item.id)));
+  }
 
   async function handleUnpublish() {
     if (!item?.id || !window.confirm('Снять объявление с публикации?')) return;
@@ -841,19 +958,37 @@ export function AnnouncementDetail() {
         {isOwner && !isPublic && (
           <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             Это ваше объявление. Статус: {STATUS_LABELS[item.status]?.label || item.status}
+            {item.expires_at ? ` · активно до ${formatExpiryLabel(item.expires_at)}` : ''}
           </div>
         )}
 
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden relative">
+          <button
+            type="button"
+            onClick={toggleFavorite}
+            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/90 shadow flex items-center justify-center"
+            aria-label="Избранное"
+          >
+            <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+          </button>
           {cover && (
             <StorageImg objectKey={cover} alt={item.title} className="w-full h-64 object-cover" />
           )}
           <div className="p-6">
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
               <span className="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
-                {ANN_TYPES[item.ann_type] || item.ann_type}
+                {resolveCategoryLabel(item, categories)}
               </span>
+              {promoted && item.promotion_tier === 'vip' && (
+                <span className="text-xs font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">VIP</span>
+              )}
+              {promoted && item.promotion_tier === 'boost' && (
+                <span className="text-xs font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">Топ</span>
+              )}
               <span className="text-xs text-gray-400">{item.created_at ? formatDate(item.created_at) : ''}</span>
+              {item.views_count != null && (
+                <span className="text-xs text-gray-400">· {item.views_count} просмотров</span>
+              )}
             </div>
 
             <h1 className="text-2xl font-bold text-gray-900 mb-3">{item.title}</h1>

@@ -31,9 +31,10 @@ const AnnouncementsList = lazy(() => import("./pages/Content").then(m => ({ defa
 const AnnouncementDetail = lazy(() => import("./pages/Content").then(m => ({ default: m.AnnouncementDetail })));
 const NewAnnouncementForm = lazy(() => import("./pages/Content").then(m => ({ default: m.NewAnnouncementForm })));
 const EditAnnouncementForm = lazy(() => import("./pages/Content").then(m => ({ default: m.EditAnnouncementForm })));
-const RealEstateList = lazy(() => import("./pages/Content").then(m => ({ default: m.RealEstateList })));
-const RealEstateDetail = lazy(() => import("./pages/Content").then(m => ({ default: m.RealEstateDetail })));
-const NewRealEstateForm = lazy(() => import("./pages/Content").then(m => ({ default: m.NewRealEstateForm })));
+const RealEstateList = lazy(() => import("./pages/RealEstate").then(m => ({ default: m.RealEstateList })));
+const RealEstateDetail = lazy(() => import("./pages/RealEstate").then(m => ({ default: m.RealEstateDetail })));
+const NewRealEstateForm = lazy(() => import("./pages/RealEstate").then(m => ({ default: m.NewRealEstateForm })));
+const EditRealEstateForm = lazy(() => import("./pages/RealEstate").then(m => ({ default: m.EditRealEstateForm })));
 const JobsList = lazy(() => import("./pages/Content").then(m => ({ default: m.JobsList })));
 const NewJobForm = lazy(() => import("./pages/Content").then(m => ({ default: m.NewJobForm })));
 const QuestionsList = lazy(() => import("./pages/Content").then(m => ({ default: m.QuestionsList })));
@@ -173,7 +174,8 @@ function App() {
               <Route path="/announcements/:id/edit" element={<ModuleRoute module="announcements"><RequireUserAuth><EditAnnouncementForm /></RequireUserAuth></ModuleRoute>} />
               <Route path="/announcements/:id" element={<ModuleRoute module="announcements"><AnnouncementDetail /></ModuleRoute>} />
               <Route path="/real-estate" element={<ModuleRoute module="real_estate"><RealEstateList /></ModuleRoute>} />
-              <Route path="/real-estate/new" element={<ModuleRoute module="real_estate"><NewRealEstateForm /></ModuleRoute>} />
+              <Route path="/real-estate/new" element={<ModuleRoute module="real_estate"><RequireUserAuth><NewRealEstateForm /></RequireUserAuth></ModuleRoute>} />
+              <Route path="/real-estate/:id/edit" element={<ModuleRoute module="real_estate"><RequireUserAuth><EditRealEstateForm /></RequireUserAuth></ModuleRoute>} />
               <Route path="/real-estate/:id" element={<ModuleRoute module="real_estate"><RealEstateDetail /></ModuleRoute>} />
               <Route path="/jobs" element={<ModuleRoute module="jobs"><JobsList /></ModuleRoute>} />
               <Route path="/jobs/new" element={<ModuleRoute module="jobs"><NewJobForm /></ModuleRoute>} />

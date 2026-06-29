@@ -176,6 +176,24 @@ export const accountApi = {
     }),
   deleteMyAnnouncement: (id: number) =>
     api<{ success: boolean }>(`/api/v1/account/me/announcements/${id}`, { method: "DELETE" }),
+  extendMyAnnouncement: (id: number) =>
+    api<{ success: boolean; announcement: any }>(`/api/v1/account/me/announcements/${id}/extend`, { method: "POST" }),
+  boostMyAnnouncement: (id: number) =>
+    api<{ success: boolean; announcement: any }>(`/api/v1/account/me/announcements/${id}/boost`, { method: "POST" }),
+  getMyRealEstate: (id: number) => api<any>(`/api/v1/account/me/real-estate/${id}`),
+  updateMyRealEstate: (id: number, body: Record<string, unknown>) =>
+    api<{ success: boolean; listing: any }>(`/api/v1/account/me/real-estate/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  unpublishMyRealEstate: (id: number) =>
+    api<{ success: boolean; listing: any }>(`/api/v1/account/me/real-estate/${id}/unpublish`, { method: "POST" }),
+  deleteMyRealEstate: (id: number) =>
+    api<{ success: boolean }>(`/api/v1/account/me/real-estate/${id}`, { method: "DELETE" }),
+  extendMyRealEstate: (id: number) =>
+    api<{ success: boolean; listing: any }>(`/api/v1/account/me/real-estate/${id}/extend`, { method: "POST" }),
+  boostMyRealEstate: (id: number) =>
+    api<{ success: boolean; listing: any }>(`/api/v1/account/me/real-estate/${id}/boost`, { method: "POST" }),
   approveBecomeMasterRequest: (requestId: number) =>
     api<{ success: boolean; master_id: number; role_assigned: boolean }>(
       `/api/v1/account/admin/masters/approve-become-request/${requestId}`,

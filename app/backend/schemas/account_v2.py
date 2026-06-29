@@ -78,6 +78,7 @@ class MasterRequestStatusUpdate(BaseModel):
 
 class AnnouncementUpdateRequest(BaseModel):
     ann_type: Optional[str] = None
+    category_id: Optional[int] = None
     title: Optional[str] = None
     description: Optional[str] = None
     price: Optional[str] = None
@@ -85,6 +86,23 @@ class AnnouncementUpdateRequest(BaseModel):
     gallery_images: Optional[str] = None
     phone: Optional[str] = None
     whatsapp: Optional[str] = None
+    author_name: Optional[str] = None
+
+
+class RealEstateUpdateRequest(BaseModel):
+    re_type: Optional[str] = None
+    category_id: Optional[int] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[str] = None
+    address: Optional[str] = None
+    rooms: Optional[str] = None
+    area: Optional[str] = None
+    floor_info: Optional[str] = None
+    gallery_images: Optional[str] = None
+    phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    telegram: Optional[str] = None
     author_name: Optional[str] = None
 
 

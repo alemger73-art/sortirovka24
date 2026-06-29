@@ -8,6 +8,18 @@ from models.real_estate import Real_estate
 
 logger = logging.getLogger(__name__)
 
+RE_TYPE_SLUG: dict[str, str] = {
+    "sell_apartment": "prodam-kvartiru",
+    "rent_apartment": "sdam-kvartiru",
+    "need_apartment": "snimu-kvartiru",
+    "sell_house": "prodam-dom",
+    "rent_house": "arenda-doma",
+    "commercial": "kommercheskaya",
+    "land": "uchastki",
+}
+
+RE_TYPE_BY_SLUG: dict[str, str] = {slug: re_type for re_type, slug in RE_TYPE_SLUG.items()}
+
 
 # ------------------ Service Layer ------------------
 class Real_estateService:

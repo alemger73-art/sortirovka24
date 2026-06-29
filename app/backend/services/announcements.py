@@ -1,12 +1,22 @@
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.announcements import Announcements
+from models.categories import Categories
 
 logger = logging.getLogger(__name__)
+
+ANN_TYPE_SLUG = {
+    "sell": "prodam",
+    "buy": "kuplyu",
+    "rent": "sdam",
+    "services": "uslugi-ann",
+    "free": "otdam-besplatno",
+}
 
 
 # ------------------ Service Layer ------------------
@@ -16,11 +26,44 @@ class AnnouncementsService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    async def enrich_payload(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        payload = dict(data)
+        if not payload.get("expires_at"):
+            payload["expires_at"] = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+        if payload.get("views_count") is None:
+            payload["views_count"] = 0
+        if not payload.get("image_url") and payload.get("gallery_images"):
+            first = (str(payload["gallery_images"]).split(",")[0] or "").strip()
+            if first:
+                payload["image_url"] = first
+        if not payload.get("category_id") and payload.get("ann_type"):
+            slug = ANN_TYPE_SLUG.get(str(payload["ann_type"]))
+            if slug:
+                cat = (
+                    await self.db.execute(
+                        select(Categories).where(
+                            Categories.slug == slug,
+                            Categories.cat_type == "announcements",
+                        )
+                    )
+                ).scalar_one_or_none()
+                if cat:
+                    payload["category_id"] = cat.id
+        return payload
+
+    async def increment_views(self, obj_id: int) -> None:
+        obj = await self.get_by_id(obj_id)
+        if not obj:
+            return
+        obj.views_count = int(obj.views_count or 0) + 1
+        await self.db.commit()
+
     async def create(self, data: Dict[str, Any]) -> Optional[Announcements]:
         """Create a new announcements"""
         try:
+            payload = await self.enrich_payload(data)
             _allowed = set(Announcements.__table__.columns.keys())
-            obj = Announcements(**{k: v for k, v in data.items() if k in _allowed})
+            obj = Announcements(**{k: v for k, v in payload.items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)

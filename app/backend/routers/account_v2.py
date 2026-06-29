@@ -15,6 +15,7 @@ from core.database import get_db
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse
 from models.announcements import Announcements
+from models.real_estate import Real_estate
 from models.auth import User
 from models.become_master_requests import Become_master_requests
 from models.complaints import Complaints
@@ -31,6 +32,9 @@ from models.master_requests import Master_requests
 from models.masters import Masters
 from models.user_addresses import UserAddress
 from models.user_management import Bonus, Order, PhoneVerification, UserAction, UserSession
+from models.categories import Categories
+from services.announcements import ANN_TYPE_SLUG
+from services.real_estate import RE_TYPE_BY_SLUG
 from schemas.account_v2 import (
     AddressCreateRequest,
     AddressGeocodeRequest,
@@ -44,6 +48,7 @@ from schemas.account_v2 import (
     DashboardStatsResponse,
     LoginV2Request,
     AnnouncementUpdateRequest,
+    RealEstateUpdateRequest,
     MasterProfileUpdateRequest,
     MasterRequestStatusUpdate,
     MasterReviewCreateRequest,
@@ -206,11 +211,15 @@ def _announcement_cover_image(row: Announcements) -> str | None:
     return None
 
 
+SLUG_TO_ANN_TYPE = {slug: ann_type for ann_type, slug in ANN_TYPE_SLUG.items()}
+
+
 def _announcement_to_dict(row: Announcements) -> dict:
     return {
         "id": row.id,
         "user_id": row.user_id,
         "ann_type": row.ann_type,
+        "category_id": row.category_id,
         "title": row.title,
         "description": row.description,
         "price": row.price,
@@ -224,12 +233,63 @@ def _announcement_to_dict(row: Announcements) -> dict:
         "active": row.active,
         "status": row.status,
         "created_at": row.created_at,
+        "expires_at": row.expires_at,
+        "promoted_until": row.promoted_until,
+        "promotion_tier": row.promotion_tier,
+        "views_count": int(row.views_count or 0),
     }
 
 
 async def _get_owned_announcement(db: AsyncSession, user: User, announcement_id: int) -> Announcements:
     row = (
         await db.execute(select(Announcements).where(Announcements.id == announcement_id))
+    ).scalar_one_or_none()
+    if not row or not _owns_user_content(user, row.user_id, row.phone):
+        raise HTTPException(status_code=404, detail="Объявление не найдено")
+    return row
+
+
+def _real_estate_cover_image(row: Real_estate) -> str | None:
+    if row.image_url:
+        return row.image_url
+    if row.gallery_images:
+        first = (row.gallery_images.split(",")[0] or "").strip()
+        return first or None
+    return None
+
+
+def _real_estate_to_dict(row: Real_estate) -> dict:
+    return {
+        "id": row.id,
+        "user_id": row.user_id,
+        "re_type": row.re_type,
+        "category_id": row.category_id,
+        "title": row.title,
+        "description": row.description,
+        "price": row.price,
+        "address": row.address,
+        "rooms": row.rooms,
+        "area": row.area,
+        "floor_info": row.floor_info,
+        "image_url": _real_estate_cover_image(row),
+        "gallery_images": row.gallery_images,
+        "phone": row.phone,
+        "whatsapp": row.whatsapp,
+        "telegram": row.telegram,
+        "author_name": row.author_name,
+        "active": row.active,
+        "status": row.status,
+        "created_at": row.created_at,
+        "expires_at": row.expires_at,
+        "promoted_until": row.promoted_until,
+        "promotion_tier": row.promotion_tier,
+        "views_count": int(row.views_count or 0),
+    }
+
+
+async def _get_owned_real_estate(db: AsyncSession, user: User, listing_id: int) -> Real_estate:
+    row = (
+        await db.execute(select(Real_estate).where(Real_estate.id == listing_id))
     ).scalar_one_or_none()
     if not row or not _owns_user_content(user, row.user_id, row.phone):
         raise HTTPException(status_code=404, detail="Объявление не найдено")
@@ -1301,6 +1361,10 @@ async def cabinet(
         await db.execute(select(Announcements).order_by(desc(Announcements.id)).limit(500))
     ).scalars().all()
     announcement_rows = [a for a in announcement_rows if _owns_user_content(user, a.user_id, a.phone)]
+    real_estate_rows = (
+        await db.execute(select(Real_estate).order_by(desc(Real_estate.id)).limit(500))
+    ).scalars().all()
+    real_estate_rows = [r for r in real_estate_rows if _owns_user_content(user, r.user_id, r.phone)]
     master_request_rows = (
         await db.execute(select(Master_requests).order_by(desc(Master_requests.id)).limit(500))
     ).scalars().all()
@@ -1369,6 +1433,7 @@ async def cabinet(
         "orders": merged_orders[:100],
         "complaints": [{"id": c.id, "category": c.category, "status": c.status, "description": c.description} for c in complaint_rows[:100]],
         "announcements": [_announcement_to_dict(a) for a in announcement_rows[:100]],
+        "real_estate": [_real_estate_to_dict(r) for r in real_estate_rows[:100]],
         "master_requests": [
             {
                 "id": r.id,
@@ -1566,6 +1631,15 @@ async def update_my_announcement(
     if request.ann_type is not None:
         row.ann_type = request.ann_type.strip() or None
         changed = True
+    if request.category_id is not None:
+        row.category_id = request.category_id or None
+        if row.category_id:
+            cat = (
+                await db.execute(select(Categories).where(Categories.id == row.category_id))
+            ).scalar_one_or_none()
+            if cat and cat.slug and cat.slug in SLUG_TO_ANN_TYPE:
+                row.ann_type = SLUG_TO_ANN_TYPE[cat.slug]
+        changed = True
     if request.title is not None:
         row.title = request.title.strip() or None
         changed = True
@@ -1628,6 +1702,211 @@ async def delete_my_announcement(
     await db.commit()
     await _log_action(db, str(user.id), "announcement_delete", "announcements", str(announcement_id))
     return {"success": True}
+
+
+def _parse_iso_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except ValueError:
+        return None
+
+
+@router.post("/me/announcements/{announcement_id}/extend")
+async def extend_my_announcement(
+    announcement_id: int,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    row = await _get_owned_announcement(db, user, announcement_id)
+    now = datetime.now(timezone.utc)
+    base = _parse_iso_datetime(row.expires_at) or now
+    if base < now:
+        base = now
+    row.expires_at = (base + timedelta(days=30)).isoformat()
+    row.active = True
+    if row.status == "hidden":
+        row.status = "pending"
+    await db.commit()
+    await _log_action(db, str(user.id), "announcement_extend", "announcements", str(row.id))
+    return {"success": True, "announcement": _announcement_to_dict(row)}
+
+
+@router.post("/me/announcements/{announcement_id}/boost")
+async def boost_my_announcement(
+    announcement_id: int,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    row = await _get_owned_announcement(db, user, announcement_id)
+    if row.status not in {"approved", "published"}:
+        raise HTTPException(status_code=400, detail="Поднять можно только опубликованное объявление")
+    now = datetime.now(timezone.utc)
+    active_until = _parse_iso_datetime(row.promoted_until)
+    if active_until and active_until > now and row.promotion_tier:
+        raise HTTPException(status_code=400, detail="Объявление уже поднято. Повторите после окончания текущего периода.")
+    row.promoted_until = (now + timedelta(days=7)).isoformat()
+    row.promotion_tier = "boost"
+    await db.commit()
+    await _log_action(db, str(user.id), "announcement_boost", "announcements", str(row.id))
+    return {"success": True, "announcement": _announcement_to_dict(row)}
+
+
+@router.get("/me/real-estate/{listing_id}")
+async def get_my_real_estate(
+    listing_id: int,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    row = await _get_owned_real_estate(db, user, listing_id)
+    return _real_estate_to_dict(row)
+
+
+@router.put("/me/real-estate/{listing_id}")
+async def update_my_real_estate(
+    listing_id: int,
+    request: RealEstateUpdateRequest,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    row = await _get_owned_real_estate(db, user, listing_id)
+    changed = False
+    if request.re_type is not None:
+        row.re_type = request.re_type.strip() or None
+        changed = True
+    if request.category_id is not None:
+        row.category_id = request.category_id or None
+        if row.category_id:
+            cat = (
+                await db.execute(select(Categories).where(Categories.id == row.category_id))
+            ).scalar_one_or_none()
+            if cat and cat.slug and cat.slug in RE_TYPE_BY_SLUG:
+                row.re_type = RE_TYPE_BY_SLUG[cat.slug]
+        changed = True
+    if request.title is not None:
+        row.title = request.title.strip() or None
+        changed = True
+    if request.description is not None:
+        row.description = request.description.strip() or None
+        changed = True
+    if request.price is not None:
+        row.price = request.price.strip() or None
+        changed = True
+    if request.address is not None:
+        row.address = request.address.strip() or None
+        changed = True
+    if request.rooms is not None:
+        row.rooms = request.rooms.strip() or None
+        changed = True
+    if request.area is not None:
+        row.area = request.area.strip() or None
+        changed = True
+    if request.floor_info is not None:
+        row.floor_info = request.floor_info.strip() or None
+        changed = True
+    if request.phone is not None:
+        row.phone = request.phone.strip() or None
+        changed = True
+    if request.whatsapp is not None:
+        row.whatsapp = request.whatsapp.strip() or None
+        changed = True
+    if request.telegram is not None:
+        row.telegram = request.telegram.strip() or None
+        changed = True
+    if request.author_name is not None:
+        row.author_name = request.author_name.strip() or None
+        changed = True
+    if request.gallery_images is not None:
+        gallery = request.gallery_images.strip() or None
+        row.gallery_images = gallery
+        first = (gallery.split(",")[0] or "").strip() if gallery else None
+        row.image_url = first or None
+        changed = True
+    if changed and row.status in {"approved", "published"}:
+        row.status = "pending"
+        row.active = True
+    await db.commit()
+    await _log_action(db, str(user.id), "real_estate_update", "real_estate", str(row.id))
+    return {"success": True, "listing": _real_estate_to_dict(row)}
+
+
+@router.post("/me/real-estate/{listing_id}/unpublish")
+async def unpublish_my_real_estate(
+    listing_id: int,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    row = await _get_owned_real_estate(db, user, listing_id)
+    row.status = "hidden"
+    row.active = False
+    await db.commit()
+    await _log_action(db, str(user.id), "real_estate_unpublish", "real_estate", str(row.id))
+    return {"success": True, "listing": _real_estate_to_dict(row)}
+
+
+@router.delete("/me/real-estate/{listing_id}")
+async def delete_my_real_estate(
+    listing_id: int,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    row = await _get_owned_real_estate(db, user, listing_id)
+    await db.delete(row)
+    await db.commit()
+    await _log_action(db, str(user.id), "real_estate_delete", "real_estate", str(listing_id))
+    return {"success": True}
+
+
+@router.post("/me/real-estate/{listing_id}/extend")
+async def extend_my_real_estate(
+    listing_id: int,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    row = await _get_owned_real_estate(db, user, listing_id)
+    now = datetime.now(timezone.utc)
+    base = _parse_iso_datetime(row.expires_at) or now
+    if base < now:
+        base = now
+    row.expires_at = (base + timedelta(days=30)).isoformat()
+    row.active = True
+    if row.status == "hidden":
+        row.status = "pending"
+    await db.commit()
+    await _log_action(db, str(user.id), "real_estate_extend", "real_estate", str(row.id))
+    return {"success": True, "listing": _real_estate_to_dict(row)}
+
+
+@router.post("/me/real-estate/{listing_id}/boost")
+async def boost_my_real_estate(
+    listing_id: int,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    row = await _get_owned_real_estate(db, user, listing_id)
+    if row.status not in {"approved", "published"}:
+        raise HTTPException(status_code=400, detail="Поднять можно только опубликованное объявление")
+    now = datetime.now(timezone.utc)
+    active_until = _parse_iso_datetime(row.promoted_until)
+    if active_until and active_until > now and row.promotion_tier:
+        raise HTTPException(status_code=400, detail="Объявление уже поднято. Повторите после окончания текущего периода.")
+    row.promoted_until = (now + timedelta(days=7)).isoformat()
+    row.promotion_tier = "boost"
+    await db.commit()
+    await _log_action(db, str(user.id), "real_estate_boost", "real_estate", str(row.id))
+    return {"success": True, "listing": _real_estate_to_dict(row)}
 
 
 async def _recalc_master_rating(db: AsyncSession, master_id: int) -> None:

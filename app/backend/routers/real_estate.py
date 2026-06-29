@@ -26,14 +26,16 @@ router = APIRouter(
 # ---------- Pydantic Schemas ----------
 class Real_estateData(BaseModel):
     """Entity data schema (for create/update)"""
-    estate_type: str = None
+    user_id: str = None
+    re_type: str = None
+    category_id: int = None
     title: str = None
     description: str = None
     price: str = None
     address: str = None
-    rooms: int = None
-    area: float = None
-    floor: str = None
+    rooms: str = None
+    area: str = None
+    floor_info: str = None
     image_url: str = None
     gallery_images: str = None
     phone: str = None
@@ -43,18 +45,24 @@ class Real_estateData(BaseModel):
     active: bool = None
     status: str = None
     created_at: str = None
+    expires_at: str = None
+    promoted_until: str = None
+    promotion_tier: str = None
+    views_count: int = None
 
 
 class Real_estateUpdateData(BaseModel):
     """Update entity data (partial updates allowed)"""
-    estate_type: Optional[str] = None
+    user_id: Optional[str] = None
+    re_type: Optional[str] = None
+    category_id: Optional[int] = None
     title: Optional[str] = None
     description: Optional[str] = None
     price: Optional[str] = None
     address: Optional[str] = None
-    rooms: Optional[int] = None
-    area: Optional[float] = None
-    floor: Optional[str] = None
+    rooms: Optional[str] = None
+    area: Optional[str] = None
+    floor_info: Optional[str] = None
     image_url: Optional[str] = None
     gallery_images: Optional[str] = None
     phone: Optional[str] = None
@@ -64,19 +72,25 @@ class Real_estateUpdateData(BaseModel):
     active: Optional[bool] = None
     status: Optional[str] = None
     created_at: Optional[str] = None
+    expires_at: Optional[str] = None
+    promoted_until: Optional[str] = None
+    promotion_tier: Optional[str] = None
+    views_count: Optional[int] = None
 
 
 class Real_estateResponse(BaseModel):
     """Entity response schema"""
     id: int
-    estate_type: Optional[str] = None
+    user_id: Optional[str] = None
+    re_type: Optional[str] = None
+    category_id: Optional[int] = None
     title: Optional[str] = None
     description: Optional[str] = None
     price: Optional[str] = None
     address: Optional[str] = None
-    rooms: Optional[int] = None
-    area: Optional[float] = None
-    floor: Optional[str] = None
+    rooms: Optional[str] = None
+    area: Optional[str] = None
+    floor_info: Optional[str] = None
     image_url: Optional[str] = None
     gallery_images: Optional[str] = None
     phone: Optional[str] = None
@@ -86,6 +100,10 @@ class Real_estateResponse(BaseModel):
     active: Optional[bool] = None
     status: Optional[str] = None
     created_at: Optional[str] = None
+    expires_at: Optional[str] = None
+    promoted_until: Optional[str] = None
+    promotion_tier: Optional[str] = None
+    views_count: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -210,6 +228,11 @@ async def get_real_estate(
         if not result:
             logger.warning(f"Real_estate with id {id} not found")
             raise HTTPException(status_code=404, detail="Real_estate not found")
+
+        if result.status in {"approved", "published"}:
+            result.views_count = int(result.views_count or 0) + 1
+            await db.commit()
+            await db.refresh(result)
         
         return result
     except HTTPException:

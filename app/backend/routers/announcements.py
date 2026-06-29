@@ -41,6 +41,11 @@ class AnnouncementsData(BaseModel):
     status: str = None
     created_at: str = None
     user_id: str = None
+    category_id: int = None
+    expires_at: str = None
+    promoted_until: str = None
+    promotion_tier: str = None
+    views_count: int = None
 
 
 class AnnouncementsUpdateData(BaseModel):
@@ -59,6 +64,11 @@ class AnnouncementsUpdateData(BaseModel):
     active: Optional[bool] = None
     status: Optional[str] = None
     created_at: Optional[str] = None
+    category_id: Optional[int] = None
+    expires_at: Optional[str] = None
+    promoted_until: Optional[str] = None
+    promotion_tier: Optional[str] = None
+    views_count: Optional[int] = None
 
 
 class AnnouncementsResponse(BaseModel):
@@ -79,6 +89,11 @@ class AnnouncementsResponse(BaseModel):
     status: Optional[str] = None
     created_at: Optional[str] = None
     user_id: Optional[str] = None
+    category_id: Optional[int] = None
+    expires_at: Optional[str] = None
+    promoted_until: Optional[str] = None
+    promotion_tier: Optional[str] = None
+    views_count: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -203,7 +218,13 @@ async def get_announcements(
         if not result:
             logger.warning(f"Announcements with id {id} not found")
             raise HTTPException(status_code=404, detail="Announcements not found")
-        
+
+        try:
+            await service.increment_views(id)
+            result.views_count = int(result.views_count or 0) + 1
+        except Exception:
+            logger.warning(f"Failed to increment views for announcement {id}", exc_info=True)
+
         return result
     except HTTPException:
         raise

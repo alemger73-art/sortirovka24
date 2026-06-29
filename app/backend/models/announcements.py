@@ -22,3 +22,8 @@ class Announcements(Base):
     active = Column(Boolean, nullable=True)
     status = Column(String, nullable=True)
     created_at = Column(String, nullable=True)
+    category_id = Column(Integer, nullable=True, index=True)
+    expires_at = Column(String, nullable=True)
+    promoted_until = Column(String, nullable=True)
+    promotion_tier = Column(String, nullable=True)
+    views_count = Column(Integer, nullable=True, default=0)

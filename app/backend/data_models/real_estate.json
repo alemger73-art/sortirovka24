@@ -6,9 +6,17 @@
             "type": "integer",
             "description": "Primary key, auto-increment"
         },
-        "estate_type": {
+        "user_id": {
             "type": "string",
-            "description": "Type of real estate"
+            "description": "Owner user id"
+        },
+        "re_type": {
+            "type": "string",
+            "description": "Type of real estate listing"
+        },
+        "category_id": {
+            "type": "integer",
+            "description": "Category from categories table"
         },
         "title": {
             "type": "string",
@@ -27,16 +35,16 @@
             "description": "Address"
         },
         "rooms": {
-            "type": "integer",
+            "type": "string",
             "description": "Number of rooms"
         },
         "area": {
-            "type": "number",
+            "type": "string",
             "description": "Area in sq meters"
         },
-        "floor": {
+        "floor_info": {
             "type": "string",
-            "description": "Floor"
+            "description": "Floor info"
         },
         "image_url": {
             "type": "string",
@@ -73,6 +81,22 @@
         "created_at": {
             "type": "string",
             "description": "Creation timestamp"
+        },
+        "expires_at": {
+            "type": "string",
+            "description": "Expiry timestamp"
+        },
+        "promoted_until": {
+            "type": "string",
+            "description": "Promotion end timestamp"
+        },
+        "promotion_tier": {
+            "type": "string",
+            "description": "Promotion tier"
+        },
+        "views_count": {
+            "type": "integer",
+            "description": "View count"
         }
     },
     "required": [

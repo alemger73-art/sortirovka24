@@ -1,5 +1,5 @@
 import {
-  UserCircle2, MapPin, Coins, Package, Wrench, Car, AlertCircle, Megaphone, Settings, Bell,
+  UserCircle2, MapPin, Coins, Package, Wrench, Car, AlertCircle, Megaphone, Settings, Bell, Building2,
 } from "lucide-react";
 
 export type CabinetTabId =
@@ -12,6 +12,7 @@ export type CabinetTabId =
   | "taxi"
   | "complaints"
   | "announcements"
+  | "realEstate"
   | "settings";
 
 const TAB_ICONS: Record<CabinetTabId, typeof UserCircle2> = {
@@ -24,6 +25,7 @@ const TAB_ICONS: Record<CabinetTabId, typeof UserCircle2> = {
   taxi: Car,
   complaints: AlertCircle,
   announcements: Megaphone,
+  realEstate: Building2,
   settings: Settings,
 };
 

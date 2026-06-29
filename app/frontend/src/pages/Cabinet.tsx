@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import Layout from "@/components/Layout";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Camera, Coins, Save, UserCircle2, Wrench, MapPin, Plus, Trash2, Star, Pencil, X, Loader2, CheckCircle2, AlertCircle, Search, Megaphone, EyeOff } from "lucide-react";
+import { Camera, Coins, Save, UserCircle2, Wrench, MapPin, Plus, Trash2, Star, Pencil, X, Loader2, CheckCircle2, AlertCircle, Search, Megaphone, EyeOff, Home } from "lucide-react";
 import CabinetNav from "@/components/cabinet/CabinetNav";
 import CabinetHeader from "@/components/cabinet/CabinetHeader";
 import CabinetOrderCard from "@/components/cabinet/CabinetOrderCard";
@@ -21,6 +21,8 @@ import { accountApi, getAccountToken, type SavedAddress, type UserNotificationIt
 import { cacheAccountProfile, getCurrentUser, logoutLocalUser } from "@/lib/localAuth";
 import { humanizeApiError } from "@/lib/apiErrors";
 import { STATUS_LABELS, ANN_TYPES } from "@/lib/api";
+import { formatExpiryLabel, isAnnouncementExpired, isAnnouncementPromoted } from "@/lib/announcements";
+import { isRealEstateExpired, isRealEstatePromoted, resolveReTypeLabel } from "@/lib/realEstate";
 import { toast } from "sonner";
 import { uploadAvatar, assertImageFileSize } from "@/lib/storage";
 import { formatTenge, taxiApi, TAXI_STATUS_LABELS, type TaxiRide } from "@/lib/taxiApi";
@@ -30,7 +32,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import TaxiUnavailable from "@/components/taxi/TaxiUnavailable";
 import { cabinetOrderDetailPath, orderDetailId, type CabinetOrderRow } from "@/lib/orderRoutes";
 
-type TabId = "profile" | "addresses" | "bonuses" | "notifications" | "orders" | "masterRequests" | "taxi" | "complaints" | "announcements" | "settings";
+type TabId = "profile" | "addresses" | "bonuses" | "notifications" | "orders" | "masterRequests" | "taxi" | "complaints" | "announcements" | "realEstate" | "settings";
 
 const MASTER_REQUEST_STATUS: Record<string, { labelKey: string; color: string }> = {
   new: { labelKey: "cabinet.master.statusNew", color: "bg-yellow-500/20 text-yellow-200" },
@@ -73,7 +75,7 @@ export default function Cabinet() {
   const [searchParams] = useSearchParams();
   const { t, setLang } = useLanguage();
   const taxiEnabled = useTaxiEnabled();
-  const VALID_TABS: TabId[] = ["profile", "addresses", "bonuses", "notifications", "orders", "masterRequests", "taxi", "complaints", "announcements", "settings"];
+  const VALID_TABS: TabId[] = ["profile", "addresses", "bonuses", "notifications", "orders", "masterRequests", "taxi", "complaints", "announcements", "realEstate", "settings"];
   const initialTab = searchParams.get("tab") as TabId | null;
   const [activeTab, setActiveTab] = useState<TabId>(
     initialTab && VALID_TABS.includes(initialTab) ? initialTab : "profile"
@@ -123,6 +125,7 @@ export default function Cabinet() {
       { id: "taxi", label: t("cabinet.tab.taxi") },
       { id: "complaints", label: t("cabinet.tab.complaints") },
       { id: "announcements", label: t("cabinet.tab.announcements") },
+      { id: "realEstate", label: t("cabinet.tab.realEstate") },
       { id: "settings", label: t("cabinet.tab.settings") },
     ];
     if (taxiEnabled === false && taxiRides.length === 0) {
@@ -168,6 +171,7 @@ export default function Cabinet() {
             orders: [],
             complaints: [],
             announcements: [],
+            real_estate: [],
           });
           setProfileForm({
             name: cached.name || "",
@@ -450,12 +454,81 @@ export default function Cabinet() {
     }
   };
 
+  const extendAnnouncement = async (id: number) => {
+    setError("");
+    try {
+      await accountApi.extendMyAnnouncement(id);
+      await refreshCabinet();
+      toast.success(t("cabinet.announcements.extended"));
+    } catch (e: unknown) {
+      setError(humanizeApiError(e));
+    }
+  };
+
+  const boostAnnouncement = async (id: number) => {
+    setError("");
+    try {
+      await accountApi.boostMyAnnouncement(id);
+      await refreshCabinet();
+      toast.success(t("cabinet.announcements.boosted"));
+    } catch (e: unknown) {
+      setError(humanizeApiError(e));
+    }
+  };
+
+  const unpublishRealEstate = async (id: number) => {
+    if (!window.confirm(t("cabinet.realEstate.unpublishConfirm"))) return;
+    setError("");
+    try {
+      await accountApi.unpublishMyRealEstate(id);
+      await refreshCabinet();
+      toast.success(t("cabinet.realEstate.unpublished"));
+    } catch (e: unknown) {
+      setError(humanizeApiError(e));
+    }
+  };
+
+  const deleteRealEstate = async (id: number) => {
+    if (!window.confirm(t("cabinet.realEstate.deleteConfirm"))) return;
+    setError("");
+    try {
+      await accountApi.deleteMyRealEstate(id);
+      await refreshCabinet();
+      toast.success(t("cabinet.realEstate.deleted"));
+    } catch (e: unknown) {
+      setError(humanizeApiError(e));
+    }
+  };
+
+  const extendRealEstate = async (id: number) => {
+    setError("");
+    try {
+      await accountApi.extendMyRealEstate(id);
+      await refreshCabinet();
+      toast.success(t("cabinet.realEstate.extended"));
+    } catch (e: unknown) {
+      setError(humanizeApiError(e));
+    }
+  };
+
+  const boostRealEstate = async (id: number) => {
+    setError("");
+    try {
+      await accountApi.boostMyRealEstate(id);
+      await refreshCabinet();
+      toast.success(t("cabinet.realEstate.boosted"));
+    } catch (e: unknown) {
+      setError(humanizeApiError(e));
+    }
+  };
+
   const rows = useMemo(() => ({
     bonuses: cabinet?.bonuses || [],
     orders: cabinet?.orders || [],
     master_requests: cabinet?.master_requests || [],
     complaints: cabinet?.complaints || [],
     announcements: cabinet?.announcements || [],
+    real_estate: cabinet?.real_estate || [],
   }), [cabinet]);
 
   const filteredOrders = useMemo(() => {
@@ -1059,6 +1132,16 @@ export default function Cabinet() {
                               </div>
                               {a.price ? <p className="mt-1 text-sm text-amber-600 dark:text-yellow-300">{a.price}</p> : null}
                               {a.address ? <p className="mt-1 text-xs text-gray-500 dark:text-slate-500">{a.address}</p> : null}
+                              {a.expires_at ? (
+                                <p className={`mt-1 text-xs ${isAnnouncementExpired(a) ? 'text-red-500' : 'text-gray-500 dark:text-slate-500'}`}>
+                                  {isAnnouncementExpired(a) ? t("cabinet.announcements.expired") : `${t("cabinet.announcements.activeUntil")} ${formatExpiryLabel(a.expires_at)}`}
+                                </p>
+                              ) : null}
+                              {isAnnouncementPromoted(a) ? (
+                                <p className="mt-1 text-xs text-blue-600 dark:text-blue-300">
+                                  {a.promotion_tier === 'vip' ? 'VIP' : 'Топ'} {t("cabinet.announcements.until")} {formatExpiryLabel(a.promoted_until)}
+                                </p>
+                              ) : null}
                             </div>
                             <div className="flex flex-wrap gap-2">
                               <Link
@@ -1075,15 +1158,31 @@ export default function Cabinet() {
                                 {t("cabinet.announcements.edit")}
                               </Link>
                               {isPublished ? (
-                                <button
-                                  type="button"
-                                  onClick={() => unpublishAnnouncement(Number(a.id))}
-                                  className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-white dark:border-[#2a3347] dark:text-slate-200 dark:hover:bg-[#111827]"
-                                >
-                                  <EyeOff className="h-3.5 w-3.5" />
-                                  {t("cabinet.announcements.unpublish")}
-                                </button>
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => boostAnnouncement(Number(a.id))}
+                                    className="inline-flex items-center gap-1 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-500/30 dark:text-blue-200 dark:hover:bg-blue-500/10"
+                                  >
+                                    {t("cabinet.announcements.boost")}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => unpublishAnnouncement(Number(a.id))}
+                                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-white dark:border-[#2a3347] dark:text-slate-200 dark:hover:bg-[#111827]"
+                                  >
+                                    <EyeOff className="h-3.5 w-3.5" />
+                                    {t("cabinet.announcements.unpublish")}
+                                  </button>
+                                </>
                               ) : null}
+                              <button
+                                type="button"
+                                onClick={() => extendAnnouncement(Number(a.id))}
+                                className="inline-flex items-center gap-1 rounded-lg border border-green-200 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50 dark:border-green-500/30 dark:text-green-200 dark:hover:bg-green-500/10"
+                              >
+                                {t("cabinet.announcements.extend")}
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => deleteAnnouncement(Number(a.id))}
@@ -1103,6 +1202,116 @@ export default function Cabinet() {
                         <Link to="/announcements/new" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-amber-600 hover:text-amber-700">
                           <Megaphone className="h-4 w-4" />
                           {t("cabinet.announcements.createFirst")}
+                        </Link>
+                      </div>
+                    ) : null}
+                  </div>
+                </DarkCard>
+              )}
+
+              {activeTab === "realEstate" && (
+                <DarkCard>
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <h2 className={sectionTitleClass}>{t("cabinet.tab.realEstate")}</h2>
+                    <Link
+                      to="/real-estate/new"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                    >
+                      <Home className="h-4 w-4" />
+                      {t("cabinet.realEstate.create")}
+                    </Link>
+                  </div>
+                  <div className="space-y-3">
+                    {(rows.real_estate || []).map((r: any) => {
+                      const statusMeta = STATUS_LABELS[r.status] || { label: r.status || "-", color: "bg-gray-100 text-gray-800" };
+                      const isPublished = ["approved", "published"].includes(r.status);
+                      const typeLabel = resolveReTypeLabel(r, []);
+                      return (
+                        <div key={r.id} className={listCardClass}>
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-gray-900 dark:text-white">{r.title || t("cabinet.realEstate.default")}</p>
+                              <div className="mt-1 flex flex-wrap items-center gap-2">
+                                <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusMeta.color}`}>
+                                  {statusMeta.label}
+                                </span>
+                                {typeLabel ? (
+                                  <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
+                                    {typeLabel}
+                                  </span>
+                                ) : null}
+                                {r.price ? <span className="text-xs font-semibold text-emerald-600">{r.price}</span> : null}
+                              </div>
+                              {r.expires_at ? (
+                                <p className={`mt-1 text-xs ${isRealEstateExpired(r) ? "text-red-500" : "text-gray-500 dark:text-slate-500"}`}>
+                                  {isRealEstateExpired(r) ? t("cabinet.realEstate.expired") : `${t("cabinet.realEstate.activeUntil")} ${formatExpiryLabel(r.expires_at)}`}
+                                </p>
+                              ) : null}
+                              {isRealEstatePromoted(r) && r.promoted_until ? (
+                                <p className="mt-1 text-xs text-blue-600 dark:text-blue-300">
+                                  {r.promotion_tier === "vip" ? "VIP" : "Топ"} {t("cabinet.realEstate.until")} {formatExpiryLabel(r.promoted_until)}
+                                </p>
+                              ) : null}
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <Link
+                                to={`/real-estate/${r.id}`}
+                                className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-white dark:border-[#2a3347] dark:text-slate-200 dark:hover:bg-[#111827]"
+                              >
+                                {t("cabinet.realEstate.view")}
+                              </Link>
+                              <Link
+                                to={`/real-estate/${r.id}/edit`}
+                                className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-200 dark:hover:bg-emerald-500/10"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                                {t("cabinet.realEstate.edit")}
+                              </Link>
+                              {isPublished ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => boostRealEstate(Number(r.id))}
+                                    className="inline-flex items-center gap-1 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-500/30 dark:text-blue-200 dark:hover:bg-blue-500/10"
+                                  >
+                                    {t("cabinet.realEstate.boost")}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => unpublishRealEstate(Number(r.id))}
+                                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-white dark:border-[#2a3347] dark:text-slate-200 dark:hover:bg-[#111827]"
+                                  >
+                                    <EyeOff className="h-3.5 w-3.5" />
+                                    {t("cabinet.realEstate.unpublish")}
+                                  </button>
+                                </>
+                              ) : null}
+                              <button
+                                type="button"
+                                onClick={() => extendRealEstate(Number(r.id))}
+                                className="inline-flex items-center gap-1 rounded-lg border border-green-200 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50 dark:border-green-500/30 dark:text-green-200 dark:hover:bg-green-500/10"
+                              >
+                                {t("cabinet.realEstate.extend")}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => deleteRealEstate(Number(r.id))}
+                                className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                {t("cabinet.realEstate.delete")}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {(rows.real_estate || []).length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-gray-200 p-6 text-center dark:border-[#2a3347]">
+                        <p className="text-sm text-slate-400">{t("cabinet.noRealEstate")}</p>
+                        <Link to="/real-estate/new" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-emerald-600 hover:text-emerald-700">
+                          <Home className="h-4 w-4" />
+                          {t("cabinet.realEstate.createFirst")}
                         </Link>
                       </div>
                     ) : null}
