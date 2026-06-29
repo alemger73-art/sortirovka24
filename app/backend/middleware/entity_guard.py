@@ -25,12 +25,14 @@ environment.
 import logging
 import os
 
+from fastapi import HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from core.auth import AccessTokenError, decode_access_token
 from core.partner_guard import can_access_partner_entity
+from utils.rate_limit import check_ip_rate_limit
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +68,13 @@ ADMIN_READ_ENTITIES = {
 PUBLIC_UPDATE_ENTITIES: set[str] = set()
 
 _DISABLED_VALUES = {"0", "off", "false", "no", "disabled"}
+
+# Per-IP limits for public submission forms (announcements, orders, …).
+_PUBLIC_CREATE_RATE = {
+    "max_hits": 30,
+    "window_seconds": 3600.0,
+    "message": "Слишком много отправок. Попробуйте позже.",
+}
 
 
 def _protection_enabled() -> bool:
@@ -124,6 +133,25 @@ class EntityWriteGuardMiddleware(BaseHTTPMiddleware):
                     status_code=401,
                     content={"detail": "Требуется авторизация администратора."},
                 )
+
+            # Rate-limit unauthenticated public form submissions.
+            if (
+                method == "POST"
+                and entity in PUBLIC_CREATE_ENTITIES
+                and not path.rstrip("/").endswith("/batch")
+                and not _has_entity_access(request, entity)
+            ):
+                try:
+                    check_ip_rate_limit(
+                        request,
+                        key_prefix=f"entity_create:{entity}",
+                        max_hits=_PUBLIC_CREATE_RATE["max_hits"],
+                        window_seconds=_PUBLIC_CREATE_RATE["window_seconds"],
+                        message=_PUBLIC_CREATE_RATE["message"],
+                    )
+                except HTTPException as exc:
+                    logger.warning("[EntityGuard] Rate limited %s %s", method, path)
+                    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
         if (
             method in _MUTATING_METHODS

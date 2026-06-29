@@ -74,3 +74,17 @@ async def test_public_complaint_create_allowed(client: AsyncClient):
         },
     )
     assert response.status_code == 201
+
+
+@pytest.mark.asyncio
+async def test_public_entity_create_rate_limited(client: AsyncClient):
+    payload = {
+        "category": "Другое",
+        "description": "rate limit probe",
+        "status": "new",
+    }
+    for _ in range(30):
+        response = await client.post("/api/v1/entities/complaints", json=payload)
+        assert response.status_code in {201, 400, 422}
+    blocked = await client.post("/api/v1/entities/complaints", json=payload)
+    assert blocked.status_code == 429

@@ -5,8 +5,16 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.couriers import Couriers
+from utils.courier_pin import maybe_hash_pin_value
 
 logger = logging.getLogger(__name__)
+
+
+def _prepare_courier_data(data: Dict[str, Any]) -> Dict[str, Any]:
+    prepared = dict(data)
+    if "pin_code" in prepared:
+        prepared["pin_code"] = maybe_hash_pin_value(prepared.get("pin_code"))
+    return prepared
 
 
 # ------------------ Service Layer ------------------
@@ -20,7 +28,7 @@ class CouriersService:
         """Create a new couriers"""
         try:
             _allowed = set(Couriers.__table__.columns.keys())
-            obj = Couriers(**{k: v for k, v in data.items() if k in _allowed})
+            obj = Couriers(**{k: v for k, v in _prepare_courier_data(data).items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
             await self.db.refresh(obj)
@@ -93,7 +101,8 @@ class CouriersService:
             if not obj:
                 logger.warning(f"Couriers {obj_id} not found for update")
                 return None
-            for key, value in update_data.items():
+            prepared = _prepare_courier_data(update_data)
+            for key, value in prepared.items():
                 if hasattr(obj, key):
                     setattr(obj, key, value)
 

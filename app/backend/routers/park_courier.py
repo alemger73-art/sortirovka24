@@ -3,18 +3,25 @@
 from datetime import datetime, timezone
 
 from core.database import get_db
-from fastapi import APIRouter, Depends, HTTPException
-from models.couriers import Couriers
+from fastapi import APIRouter, Depends, HTTPException, Request
 from models.park_orders import Park_orders
 from pydantic import BaseModel, Field
+from services.courier_auth import find_active_courier_by_pin
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from utils.rate_limit import check_ip_rate_limit
 
 router = APIRouter(prefix="/api/v1/park/courier", tags=["park_courier"])
 
 ALLOWED_STATUS_TRANSITIONS = {
     "courier_assigned": "on_the_way",
     "on_the_way": "delivered",
+}
+
+_PIN_RATE_LIMIT = {
+    "max_hits": 5,
+    "window_seconds": 900.0,
+    "message": "Слишком много попыток PIN. Попробуйте через 15 минут.",
 }
 
 
@@ -34,14 +41,24 @@ class CourierStatusUpdateRequest(BaseModel):
     status: str = Field(..., min_length=3, max_length=32)
 
 
+def _enforce_pin_rate_limit(request: Request, *, action: str) -> None:
+    check_ip_rate_limit(
+        request,
+        key_prefix=f"park_courier_pin:{action}",
+        max_hits=_PIN_RATE_LIMIT["max_hits"],
+        window_seconds=_PIN_RATE_LIMIT["window_seconds"],
+        message=_PIN_RATE_LIMIT["message"],
+    )
+
+
 @router.post("/login", response_model=CourierPublicProfile)
-async def courier_login(body: CourierLoginRequest, db: AsyncSession = Depends(get_db)):
-    pin = body.pin_code.strip()
-    row = (
-        await db.execute(
-            select(Couriers).where(Couriers.pin_code == pin, Couriers.is_active == True)  # noqa: E712
-        )
-    ).scalar_one_or_none()
+async def courier_login(
+    body: CourierLoginRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    _enforce_pin_rate_limit(request, action="login")
+    row = await find_active_courier_by_pin(db, body.pin_code)
     if not row:
         raise HTTPException(status_code=401, detail="Invalid PIN")
     return CourierPublicProfile(
@@ -56,14 +73,11 @@ async def courier_login(body: CourierLoginRequest, db: AsyncSession = Depends(ge
 async def update_courier_order_status(
     order_id: int,
     body: CourierStatusUpdateRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    pin = body.pin_code.strip()
-    courier = (
-        await db.execute(
-            select(Couriers).where(Couriers.pin_code == pin, Couriers.is_active == True)  # noqa: E712
-        )
-    ).scalar_one_or_none()
+    _enforce_pin_rate_limit(request, action="status")
+    courier = await find_active_courier_by_pin(db, body.pin_code)
     if not courier:
         raise HTTPException(status_code=401, detail="Invalid PIN")
 
