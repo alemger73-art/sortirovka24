@@ -30,6 +30,7 @@ const NewComplaintForm = lazy(() => import("./pages/Content").then(m => ({ defau
 const AnnouncementsList = lazy(() => import("./pages/Content").then(m => ({ default: m.AnnouncementsList })));
 const AnnouncementDetail = lazy(() => import("./pages/Content").then(m => ({ default: m.AnnouncementDetail })));
 const NewAnnouncementForm = lazy(() => import("./pages/Content").then(m => ({ default: m.NewAnnouncementForm })));
+const EditAnnouncementForm = lazy(() => import("./pages/Content").then(m => ({ default: m.EditAnnouncementForm })));
 const RealEstateList = lazy(() => import("./pages/Content").then(m => ({ default: m.RealEstateList })));
 const RealEstateDetail = lazy(() => import("./pages/Content").then(m => ({ default: m.RealEstateDetail })));
 const NewRealEstateForm = lazy(() => import("./pages/Content").then(m => ({ default: m.NewRealEstateForm })));
@@ -169,6 +170,7 @@ function App() {
               <Route path="/complaints/new" element={<ModuleRoute module="complaints"><RequireUserAuth><NewComplaintForm /></RequireUserAuth></ModuleRoute>} />
               <Route path="/announcements" element={<ModuleRoute module="announcements"><AnnouncementsList /></ModuleRoute>} />
               <Route path="/announcements/new" element={<ModuleRoute module="announcements"><RequireUserAuth><NewAnnouncementForm /></RequireUserAuth></ModuleRoute>} />
+              <Route path="/announcements/:id/edit" element={<ModuleRoute module="announcements"><RequireUserAuth><EditAnnouncementForm /></RequireUserAuth></ModuleRoute>} />
               <Route path="/announcements/:id" element={<ModuleRoute module="announcements"><AnnouncementDetail /></ModuleRoute>} />
               <Route path="/real-estate" element={<ModuleRoute module="real_estate"><RealEstateList /></ModuleRoute>} />
               <Route path="/real-estate/new" element={<ModuleRoute module="real_estate"><NewRealEstateForm /></ModuleRoute>} />

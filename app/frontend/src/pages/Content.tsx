@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { client, withRetry, COMPLAINT_CATEGORIES, NEWS_CATEGORIES, ANN_TYPES, REAL_ESTATE_TYPES, JOB_CATEGORIES, STATUS_LABELS, timeAgo, formatDate } from '@/lib/api';
 import { fetchWithCache } from '@/lib/cache';
-import { ChevronLeft, MapPin, Phone, MessageCircle, Clock, CheckCircle, AlertTriangle, Star, Briefcase, HelpCircle, Send, BookOpen, Megaphone, Shield, Loader2, Plus, Home } from 'lucide-react';
+import { ChevronLeft, MapPin, Phone, MessageCircle, Clock, CheckCircle, AlertTriangle, Star, Briefcase, HelpCircle, Send, BookOpen, Megaphone, Shield, Loader2, Plus, Home, Search, Pencil, Trash2, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import ImageUpload, { StorageImage } from "@/components/ImageUpload";
 import StorageImg from "@/components/StorageImg";
@@ -11,6 +11,7 @@ import MultiImageUpload, { StorageGallery } from '@/components/MultiImageUpload'
 import VideoUpload from '@/components/VideoUpload';
 import StorageVideo from '@/components/StorageVideo';
 import { pushCabinetItem, requireAuthDialog, getAccountPrefill, getCurrentUser } from '@/lib/localAuth';
+import { accountApi } from '@/lib/accountApi';
 import { useLanguage } from '@/contexts/LanguageContext';
 import SafetyAlert from '@/components/SafetyAlert';
 
@@ -398,11 +399,109 @@ export function NewComplaintForm() {
   );
 }
 
+/* ============ ANNOUNCEMENTS HELPERS ============ */
+const ANN_VISIBLE_STATUSES = ['approved', 'published'];
+
+function getAnnouncementCover(ann: { image_url?: string; gallery_images?: string }) {
+  if (ann.image_url) return ann.image_url;
+  if (ann.gallery_images) {
+    const first = ann.gallery_images.split(',').map((k) => k.trim()).find(Boolean);
+    if (first) return first;
+  }
+  return null;
+}
+
+function normalizePhoneDigits(value?: string | null) {
+  return (value || '').replace(/\D/g, '');
+}
+
+function userOwnsAnnouncement(ann: { user_id?: string; phone?: string }) {
+  const user = getCurrentUser();
+  if (!user) return false;
+  if (ann.user_id && String(ann.user_id) === String(user.id)) return true;
+  const userPhone = normalizePhoneDigits(user.phone);
+  const annPhone = normalizePhoneDigits(ann.phone);
+  return Boolean(userPhone && annPhone && userPhone === annPhone);
+}
+
+type AnnouncementFormState = {
+  ann_type: string;
+  title: string;
+  description: string;
+  price: string;
+  address: string;
+  phone: string;
+  whatsapp: string;
+  author_name: string;
+};
+
+function AnnouncementFormFields({
+  form,
+  setForm,
+  galleryKeys,
+  setGalleryKeys,
+}: {
+  form: AnnouncementFormState;
+  setForm: React.Dispatch<React.SetStateAction<AnnouncementFormState>>;
+  galleryKeys: string;
+  setGalleryKeys: (value: string) => void;
+}) {
+  return (
+    <>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Категория *</label>
+        <select value={form.ann_type} onChange={e => setForm({ ...form, ann_type: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+          <option value="">Выберите категорию</option>
+          {Object.entries(ANN_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Заголовок *</label>
+        <input type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Описание *</label>
+        <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={4} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" required />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Цена</label>
+          <input type="text" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Например: 50 000 ₸" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Адрес / район</label>
+          <input type="text" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Телефон *</label>
+          <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
+          <input type="tel" value={form.whatsapp} onChange={e => setForm({ ...form, whatsapp: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Ваше имя</label>
+        <input type="text" value={form.author_name} onChange={e => setForm({ ...form, author_name: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Фотографии (до 5 штук)</label>
+        <p className="text-xs text-gray-400 mb-1.5">Загрузите фото. Перетаскивайте для изменения порядка.</p>
+        <MultiImageUpload value={galleryKeys} onChange={setGalleryKeys} folder="announcements" maxImages={5} />
+      </div>
+    </>
+  );
+}
+
 /* ============ ANNOUNCEMENTS LIST ============ */
 export function AnnouncementsList() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => { loadData(); }, [typeFilter]);
 
@@ -412,10 +511,17 @@ export function AnnouncementsList() {
       const query: any = {};
       if (typeFilter) query.ann_type = typeFilter;
       const res = await fetchWithCache(`announcements_list_${typeFilter || 'all'}`, () => withRetry(() => client.entities.announcements.query({ query, sort: '-created_at', limit: 50 })), 5 * 60 * 1000);
-      const VISIBLE_STATUSES = ['approved', 'published'];
-      setItems((res.data?.items || []).filter((a: any) => VISIBLE_STATUSES.includes(a.status)));
+      setItems((res.data?.items || []).filter((a: any) => ANN_VISIBLE_STATUSES.includes(a.status)));
     } catch (e) { console.error(e); } finally { setLoading(false); }
   }
+
+  const filteredItems = items.filter((ann) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return [ann.title, ann.description, ann.address, ann.price, ANN_TYPES[ann.ann_type]]
+      .filter(Boolean)
+      .some((part: string) => String(part).toLowerCase().includes(q));
+  });
 
   return (
     <Layout>
@@ -430,6 +536,17 @@ export function AnnouncementsList() {
           </Link>
         </div>
 
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Поиск по заголовку, описанию, адресу..."
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400"
+          />
+        </div>
+
         <div className="flex flex-wrap gap-2 mb-6">
           <button onClick={() => setTypeFilter('')} className={`px-3 py-1.5 rounded-full text-sm font-medium ${!typeFilter ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Все</button>
           {Object.entries(ANN_TYPES).map(([key, label]) => (
@@ -437,12 +554,19 @@ export function AnnouncementsList() {
           ))}
         </div>
 
-        {loading ? <div className="text-center py-12 text-gray-400">Загрузка...</div> : (
+        {loading ? <div className="text-center py-12 text-gray-400">Загрузка...</div> : filteredItems.length === 0 ? (
+          <div className="text-center py-16 text-gray-400">
+            <Megaphone className="w-12 h-12 mx-auto mb-3 opacity-40" />
+            <p>Объявлений не найдено</p>
+          </div>
+        ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {items.map(ann => (
+            {filteredItems.map(ann => {
+              const cover = getAnnouncementCover(ann);
+              return (
               <Link key={ann.id} to={`/announcements/${ann.id}`} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all hover:-translate-y-0.5 block">
-                {ann.image_url && (
-                  <StorageImg objectKey={ann.image_url} alt={ann.title} className="w-full h-40 object-cover" />
+                {cover && (
+                  <StorageImg objectKey={cover} alt={ann.title} className="w-full h-40 object-cover" />
                 )}
                 <div className="p-5">
                   <div className="flex items-center justify-between mb-2">
@@ -459,7 +583,7 @@ export function AnnouncementsList() {
                   </div>
                 </div>
               </Link>
-            ))}
+            );})}
           </div>
         )}
       </div>
@@ -470,7 +594,7 @@ export function AnnouncementsList() {
 /* ============ NEW ANNOUNCEMENT FORM ============ */
 export function NewAnnouncementForm() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ ann_type: '', title: '', description: '', price: '', address: '', phone: '', whatsapp: '', author_name: '' });
+  const [form, setForm] = useState<AnnouncementFormState>({ ann_type: '', title: '', description: '', price: '', address: '', phone: '', whatsapp: '', author_name: '' });
   const [galleryKeys, setGalleryKeys] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -496,8 +620,17 @@ export function NewAnnouncementForm() {
     setSubmitted(true);
     try {
       const accountUser = getCurrentUser();
+      const firstImage = galleryKeys.split(',').map((k) => k.trim()).find(Boolean) || null;
       await withRetry(() => client.entities.announcements.create({
-        data: { ...form, user_id: accountUser?.id, active: true, status: 'pending', gallery_images: galleryKeys, created_at: new Date().toISOString() },
+        data: {
+          ...form,
+          user_id: accountUser?.id,
+          active: true,
+          status: 'pending',
+          gallery_images: galleryKeys,
+          image_url: firstImage,
+          created_at: new Date().toISOString(),
+        },
       }));
       setSuccess(true);
       pushCabinetItem('announcements', {
@@ -535,7 +668,10 @@ export function NewAnnouncementForm() {
       <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4"><Clock className="w-8 h-8 text-amber-600" /></div>
       <h2 className="text-2xl font-bold text-gray-900 mb-2">Ваше объявление отправлено на модерацию!</h2>
       <p className="text-gray-500 mb-6">Объявление будет опубликовано после проверки администратором.</p>
-      <Link to="/announcements" className="text-blue-600 hover:text-blue-700 font-medium">Все объявления</Link>
+      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        <Link to="/cabinet?tab=announcements" className="text-blue-600 hover:text-blue-700 font-medium">Мои объявления</Link>
+        <Link to="/announcements" className="text-blue-600 hover:text-blue-700 font-medium">Все объявления</Link>
+      </div>
     </div></Layout>
   );
 
@@ -546,50 +682,7 @@ export function NewAnnouncementForm() {
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Разместить объявление</h1>
         <SafetyAlert variant="announcement_form" />
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4 mt-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Категория *</label>
-            <select value={form.ann_type} onChange={e => setForm({ ...form, ann_type: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-              <option value="">Выберите категорию</option>
-              {Object.entries(ANN_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Заголовок *</label>
-            <input type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Описание *</label>
-            <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={4} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" required />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Цена</label>
-              <input type="text" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Например: 50 000 ₸" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Адрес / район</label>
-              <input type="text" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Телефон *</label>
-              <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
-              <input type="tel" value={form.whatsapp} onChange={e => setForm({ ...form, whatsapp: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Ваше имя</label>
-            <input type="text" value={form.author_name} onChange={e => setForm({ ...form, author_name: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Фотографии (до 5 штук)</label>
-            <p className="text-xs text-gray-400 mb-1.5">Загрузите фото. Перетаскивайте для изменения порядка.</p>
-            <MultiImageUpload value={galleryKeys} onChange={setGalleryKeys} folder="announcements" maxImages={5} />
-          </div>
+          <AnnouncementFormFields form={form} setForm={setForm} galleryKeys={galleryKeys} setGalleryKeys={setGalleryKeys} />
           <button type="submit" disabled={submitting || submitted} className="w-full bg-amber-500 text-white font-medium py-3 rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-50">
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
@@ -603,11 +696,94 @@ export function NewAnnouncementForm() {
   );
 }
 
+/* ============ EDIT ANNOUNCEMENT FORM ============ */
+export function EditAnnouncementForm() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [form, setForm] = useState<AnnouncementFormState>({ ann_type: '', title: '', description: '', price: '', address: '', phone: '', whatsapp: '', author_name: '' });
+  const [galleryKeys, setGalleryKeys] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [status, setStatus] = useState('');
+
+  useEffect(() => {
+    if (!id) return;
+    accountApi.getMyAnnouncement(Number(id))
+      .then((data) => {
+        setForm({
+          ann_type: data.ann_type || '',
+          title: data.title || '',
+          description: data.description || '',
+          price: data.price || '',
+          address: data.address || '',
+          phone: data.phone || '',
+          whatsapp: data.whatsapp || '',
+          author_name: data.author_name || '',
+        });
+        setGalleryKeys(data.gallery_images || '');
+        setStatus(data.status || '');
+      })
+      .catch((err) => {
+        console.error(err);
+        toast.error('Не удалось загрузить объявление');
+        navigate('/cabinet?tab=announcements');
+      })
+      .finally(() => setLoading(false));
+  }, [id, navigate]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!id || !form.ann_type || !form.title || !form.description || !form.phone) return;
+    setSubmitting(true);
+    try {
+      await accountApi.updateMyAnnouncement(Number(id), { ...form, gallery_images: galleryKeys });
+      toast.success('Изменения сохранены. Объявление отправлено на модерацию.');
+      navigate('/cabinet?tab=announcements');
+    } catch (err) {
+      console.error(err);
+      toast.error('Не удалось сохранить изменения');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (loading) {
+    return <Layout><div className="max-w-lg mx-auto px-4 py-12 text-center text-gray-400">Загрузка...</div></Layout>;
+  }
+
+  return (
+    <Layout>
+      <div className="max-w-lg mx-auto px-4 py-8">
+        <Link to="/cabinet?tab=announcements" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> Мои объявления</Link>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Редактировать объявление</h1>
+        {status && (
+          <p className="text-sm text-gray-500 mb-4">
+            Статус: <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_LABELS[status]?.color || 'bg-gray-100 text-gray-800'}`}>{STATUS_LABELS[status]?.label || status}</span>
+          </p>
+        )}
+        <SafetyAlert variant="announcement_form" />
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4 mt-4">
+          <AnnouncementFormFields form={form} setForm={setForm} galleryKeys={galleryKeys} setGalleryKeys={setGalleryKeys} />
+          <button type="submit" disabled={submitting} className="w-full bg-amber-500 text-white font-medium py-3 rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-50">
+            {submitting ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" /> Сохранение...
+              </span>
+            ) : 'Сохранить изменения'}
+          </button>
+        </form>
+      </div>
+    </Layout>
+  );
+}
+
 /* ============ ANNOUNCEMENT DETAIL ============ */
 export function AnnouncementDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [item, setItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -618,8 +794,42 @@ export function AnnouncementDetail() {
     })();
   }, [id]);
 
+  const isOwner = item ? userOwnsAnnouncement(item) : false;
+  const isPublic = item ? ANN_VISIBLE_STATUSES.includes(item.status) : false;
+  const cover = item ? getAnnouncementCover(item) : null;
+
+  async function handleUnpublish() {
+    if (!item?.id || !window.confirm('Снять объявление с публикации?')) return;
+    setActionLoading(true);
+    try {
+      await accountApi.unpublishMyAnnouncement(Number(item.id));
+      toast.success('Объявление снято с публикации');
+      navigate('/cabinet?tab=announcements');
+    } catch (err) {
+      console.error(err);
+      toast.error('Не удалось снять объявление');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!item?.id || !window.confirm('Удалить объявление без возможности восстановления?')) return;
+    setActionLoading(true);
+    try {
+      await accountApi.deleteMyAnnouncement(Number(item.id));
+      toast.success('Объявление удалено');
+      navigate('/cabinet?tab=announcements');
+    } catch (err) {
+      console.error(err);
+      toast.error('Не удалось удалить объявление');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
   if (loading) return <Layout><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400">Загрузка...</div></Layout>;
-  if (!item) return <Layout><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400">Объявление не найдено</div></Layout>;
+  if (!item || (!isPublic && !isOwner)) return <Layout><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400">Объявление не найдено</div></Layout>;
 
   return (
     <Layout>
@@ -628,9 +838,15 @@ export function AnnouncementDetail() {
           <ChevronLeft className="w-4 h-4" /> Все объявления
         </Link>
 
+        {isOwner && !isPublic && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Это ваше объявление. Статус: {STATUS_LABELS[item.status]?.label || item.status}
+          </div>
+        )}
+
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          {item.image_url && (
-            <StorageImg objectKey={item.image_url} alt={item.title} className="w-full h-64 object-cover" />
+          {cover && (
+            <StorageImg objectKey={cover} alt={item.title} className="w-full h-64 object-cover" />
           )}
           <div className="p-6">
             <div className="flex items-center gap-2 mb-3">
@@ -685,6 +901,35 @@ export function AnnouncementDetail() {
                 <p className="text-sm text-gray-500">Автор: {item.author_name}</p>
               )}
             </div>
+
+            {isOwner && (
+              <div className="mt-6 pt-4 border-t border-gray-100 flex flex-wrap gap-2">
+                <Link
+                  to={`/announcements/${item.id}/edit`}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600"
+                >
+                  <Pencil className="w-4 h-4" /> Редактировать
+                </Link>
+                {isPublic && (
+                  <button
+                    type="button"
+                    disabled={actionLoading}
+                    onClick={handleUnpublish}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <EyeOff className="w-4 h-4" /> Снять с публикации
+                  </button>
+                )}
+                <button
+                  type="button"
+                  disabled={actionLoading}
+                  onClick={handleDelete}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                >
+                  <Trash2 className="w-4 h-4" /> Удалить
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

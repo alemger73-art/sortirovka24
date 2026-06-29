@@ -43,6 +43,7 @@ from schemas.account_v2 import (
     ConfirmRegistrationRequest,
     DashboardStatsResponse,
     LoginV2Request,
+    AnnouncementUpdateRequest,
     MasterProfileUpdateRequest,
     MasterRequestStatusUpdate,
     MasterReviewCreateRequest,
@@ -194,6 +195,45 @@ def _owns_user_content(user: User, record_user_id: str | None, record_phone: str
     if record_user_id and str(record_user_id) == str(user.id):
         return True
     return _matches_user_phone(record_phone, user.phone)
+
+
+def _announcement_cover_image(row: Announcements) -> str | None:
+    if row.image_url:
+        return row.image_url
+    if row.gallery_images:
+        first = (row.gallery_images.split(",")[0] or "").strip()
+        return first or None
+    return None
+
+
+def _announcement_to_dict(row: Announcements) -> dict:
+    return {
+        "id": row.id,
+        "user_id": row.user_id,
+        "ann_type": row.ann_type,
+        "title": row.title,
+        "description": row.description,
+        "price": row.price,
+        "address": row.address,
+        "image_url": _announcement_cover_image(row),
+        "gallery_images": row.gallery_images,
+        "phone": row.phone,
+        "whatsapp": row.whatsapp,
+        "telegram": row.telegram,
+        "author_name": row.author_name,
+        "active": row.active,
+        "status": row.status,
+        "created_at": row.created_at,
+    }
+
+
+async def _get_owned_announcement(db: AsyncSession, user: User, announcement_id: int) -> Announcements:
+    row = (
+        await db.execute(select(Announcements).where(Announcements.id == announcement_id))
+    ).scalar_one_or_none()
+    if not row or not _owns_user_content(user, row.user_id, row.phone):
+        raise HTTPException(status_code=404, detail="Объявление не найдено")
+    return row
 
 
 def _store_order_summary(type_key: str, label: str, store_path: str, row: Any) -> dict:
@@ -1328,7 +1368,7 @@ async def cabinet(
         "bonuses": [{"id": b.id, "points": b.points, "reason": b.reason, "created_at": b.created_at.isoformat() if b.created_at else None} for b in bonus_rows],
         "orders": merged_orders[:100],
         "complaints": [{"id": c.id, "category": c.category, "status": c.status, "description": c.description} for c in complaint_rows[:100]],
-        "announcements": [{"id": a.id, "title": a.title, "status": a.status, "price": a.price} for a in announcement_rows[:100]],
+        "announcements": [_announcement_to_dict(a) for a in announcement_rows[:100]],
         "master_requests": [
             {
                 "id": r.id,
@@ -1500,6 +1540,94 @@ async def update_master_profile(
     await db.commit()
     await _log_action(db, str(user.id), "master_profile_update", "masters", str(listing.id))
     return {"success": True, "listing_id": listing.id}
+
+
+@router.get("/me/announcements/{announcement_id}")
+async def get_my_announcement(
+    announcement_id: int,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    row = await _get_owned_announcement(db, user, announcement_id)
+    return _announcement_to_dict(row)
+
+
+@router.put("/me/announcements/{announcement_id}")
+async def update_my_announcement(
+    announcement_id: int,
+    request: AnnouncementUpdateRequest,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    row = await _get_owned_announcement(db, user, announcement_id)
+    changed = False
+    if request.ann_type is not None:
+        row.ann_type = request.ann_type.strip() or None
+        changed = True
+    if request.title is not None:
+        row.title = request.title.strip() or None
+        changed = True
+    if request.description is not None:
+        row.description = request.description.strip() or None
+        changed = True
+    if request.price is not None:
+        row.price = request.price.strip() or None
+        changed = True
+    if request.address is not None:
+        row.address = request.address.strip() or None
+        changed = True
+    if request.phone is not None:
+        row.phone = request.phone.strip() or None
+        changed = True
+    if request.whatsapp is not None:
+        row.whatsapp = request.whatsapp.strip() or None
+        changed = True
+    if request.author_name is not None:
+        row.author_name = request.author_name.strip() or None
+        changed = True
+    if request.gallery_images is not None:
+        gallery = request.gallery_images.strip() or None
+        row.gallery_images = gallery
+        first = (gallery.split(",")[0] or "").strip() if gallery else None
+        row.image_url = first or None
+        changed = True
+    if changed and row.status in {"approved", "published"}:
+        row.status = "pending"
+        row.active = True
+    await db.commit()
+    await _log_action(db, str(user.id), "announcement_update", "announcements", str(row.id))
+    return {"success": True, "announcement": _announcement_to_dict(row)}
+
+
+@router.post("/me/announcements/{announcement_id}/unpublish")
+async def unpublish_my_announcement(
+    announcement_id: int,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    row = await _get_owned_announcement(db, user, announcement_id)
+    row.status = "hidden"
+    row.active = False
+    await db.commit()
+    await _log_action(db, str(user.id), "announcement_unpublish", "announcements", str(row.id))
+    return {"success": True, "announcement": _announcement_to_dict(row)}
+
+
+@router.delete("/me/announcements/{announcement_id}")
+async def delete_my_announcement(
+    announcement_id: int,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _current_user(db, authorization)
+    row = await _get_owned_announcement(db, user, announcement_id)
+    await db.delete(row)
+    await db.commit()
+    await _log_action(db, str(user.id), "announcement_delete", "announcements", str(announcement_id))
+    return {"success": True}
 
 
 async def _recalc_master_rating(db: AsyncSession, master_id: int) -> None:

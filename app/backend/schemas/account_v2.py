@@ -76,6 +76,18 @@ class MasterRequestStatusUpdate(BaseModel):
     status: Literal["in_progress", "done"]
 
 
+class AnnouncementUpdateRequest(BaseModel):
+    ann_type: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[str] = None
+    address: Optional[str] = None
+    gallery_images: Optional[str] = None
+    phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    author_name: Optional[str] = None
+
+
 class AdminUserUpdateRequest(BaseModel):
     role: Optional[RoleType] = None
     status: Optional[Literal["active", "blocked", "deleted"]] = None

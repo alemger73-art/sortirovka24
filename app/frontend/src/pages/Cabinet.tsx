@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import Layout from "@/components/Layout";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Camera, Coins, Save, UserCircle2, Wrench, MapPin, Plus, Trash2, Star, Pencil, X, Loader2, CheckCircle2, AlertCircle, Search } from "lucide-react";
+import { Camera, Coins, Save, UserCircle2, Wrench, MapPin, Plus, Trash2, Star, Pencil, X, Loader2, CheckCircle2, AlertCircle, Search, Megaphone, EyeOff } from "lucide-react";
 import CabinetNav from "@/components/cabinet/CabinetNav";
 import CabinetHeader from "@/components/cabinet/CabinetHeader";
 import CabinetOrderCard from "@/components/cabinet/CabinetOrderCard";
@@ -20,6 +20,8 @@ import { getBiometricSupport, type BiometricSupport } from "@/lib/biometricAuth"
 import { accountApi, getAccountToken, type SavedAddress, type UserNotificationItem } from "@/lib/accountApi";
 import { cacheAccountProfile, getCurrentUser, logoutLocalUser } from "@/lib/localAuth";
 import { humanizeApiError } from "@/lib/apiErrors";
+import { STATUS_LABELS, ANN_TYPES } from "@/lib/api";
+import { toast } from "sonner";
 import { uploadAvatar, assertImageFileSize } from "@/lib/storage";
 import { formatTenge, taxiApi, TAXI_STATUS_LABELS, type TaxiRide } from "@/lib/taxiApi";
 import { logisticsApi, type CourierAccess } from "@/lib/logisticsApi";
@@ -412,6 +414,37 @@ export default function Cabinet() {
       await accountApi.deleteAddress(id);
       await refreshAddresses();
       setSuccess(t("cabinet.addresses.deleted"));
+    } catch (e: unknown) {
+      setError(humanizeApiError(e));
+    }
+  };
+
+  const refreshCabinet = async () => {
+    const data = await accountApi.cabinet();
+    setCabinet(data);
+    if (Array.isArray(data?.addresses)) setAddresses(data.addresses);
+    return data;
+  };
+
+  const unpublishAnnouncement = async (id: number) => {
+    if (!window.confirm(t("cabinet.announcements.unpublishConfirm"))) return;
+    setError("");
+    try {
+      await accountApi.unpublishMyAnnouncement(id);
+      await refreshCabinet();
+      toast.success(t("cabinet.announcements.unpublished"));
+    } catch (e: unknown) {
+      setError(humanizeApiError(e));
+    }
+  };
+
+  const deleteAnnouncement = async (id: number) => {
+    if (!window.confirm(t("cabinet.announcements.deleteConfirm"))) return;
+    setError("");
+    try {
+      await accountApi.deleteMyAnnouncement(id);
+      await refreshCabinet();
+      toast.success(t("cabinet.announcements.deleted"));
     } catch (e: unknown) {
       setError(humanizeApiError(e));
     }
@@ -997,16 +1030,82 @@ export default function Cabinet() {
 
               {activeTab === "announcements" && (
                 <DarkCard>
-                  <h2 className="mb-4 text-xl font-bold">{t("cabinet.tab.announcements")}</h2>
-                  <div className="space-y-2">
-                    {(rows.announcements || []).map((a: any) => (
-                      <div key={a.id} className={listCardClass}>
-                        <p className="font-semibold text-gray-900 dark:text-white">{a.title || t("cabinet.announcementDefault")}</p>
-                        <p className="text-xs text-gray-500 dark:text-slate-500">{t("cabinet.statusLabel")}: {a.status || "-"}</p>
-                        <p className="text-xs text-amber-600 dark:text-yellow-300">{a.price || ""}</p>
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <h2 className={sectionTitleClass}>{t("cabinet.tab.announcements")}</h2>
+                    <Link
+                      to="/announcements/new"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-white hover:bg-amber-600"
+                    >
+                      <Megaphone className="h-4 w-4" />
+                      {t("cabinet.announcements.create")}
+                    </Link>
+                  </div>
+                  <div className="space-y-3">
+                    {(rows.announcements || []).map((a: any) => {
+                      const statusMeta = STATUS_LABELS[a.status] || { label: a.status || "-", color: "bg-gray-100 text-gray-800" };
+                      const isPublished = ["approved", "published"].includes(a.status);
+                      return (
+                        <div key={a.id} className={listCardClass}>
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-gray-900 dark:text-white">{a.title || t("cabinet.announcementDefault")}</p>
+                              <div className="mt-1 flex flex-wrap items-center gap-2">
+                                <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusMeta.color}`}>
+                                  {statusMeta.label}
+                                </span>
+                                {a.ann_type ? (
+                                  <span className="text-xs text-amber-600 dark:text-yellow-300">{ANN_TYPES[a.ann_type] || a.ann_type}</span>
+                                ) : null}
+                              </div>
+                              {a.price ? <p className="mt-1 text-sm text-amber-600 dark:text-yellow-300">{a.price}</p> : null}
+                              {a.address ? <p className="mt-1 text-xs text-gray-500 dark:text-slate-500">{a.address}</p> : null}
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <Link
+                                to={`/announcements/${a.id}`}
+                                className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-white dark:border-[#2a3347] dark:text-slate-200 dark:hover:bg-[#111827]"
+                              >
+                                {t("cabinet.announcements.view")}
+                              </Link>
+                              <Link
+                                to={`/announcements/${a.id}/edit`}
+                                className="inline-flex items-center gap-1 rounded-lg border border-amber-200 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50 dark:border-amber-500/30 dark:text-yellow-200 dark:hover:bg-amber-500/10"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                                {t("cabinet.announcements.edit")}
+                              </Link>
+                              {isPublished ? (
+                                <button
+                                  type="button"
+                                  onClick={() => unpublishAnnouncement(Number(a.id))}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-white dark:border-[#2a3347] dark:text-slate-200 dark:hover:bg-[#111827]"
+                                >
+                                  <EyeOff className="h-3.5 w-3.5" />
+                                  {t("cabinet.announcements.unpublish")}
+                                </button>
+                              ) : null}
+                              <button
+                                type="button"
+                                onClick={() => deleteAnnouncement(Number(a.id))}
+                                className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                {t("cabinet.announcements.delete")}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {(rows.announcements || []).length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-gray-200 p-6 text-center dark:border-[#2a3347]">
+                        <p className="text-sm text-slate-400">{t("cabinet.noAnnouncements")}</p>
+                        <Link to="/announcements/new" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-amber-600 hover:text-amber-700">
+                          <Megaphone className="h-4 w-4" />
+                          {t("cabinet.announcements.createFirst")}
+                        </Link>
                       </div>
-                    ))}
-                    {(rows.announcements || []).length === 0 ? <p className="text-sm text-slate-400">{t("cabinet.noAnnouncements")}</p> : null}
+                    ) : null}
                   </div>
                 </DarkCard>
               )}

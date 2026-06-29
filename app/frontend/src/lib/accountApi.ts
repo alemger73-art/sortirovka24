@@ -164,6 +164,18 @@ export const accountApi = {
       method: "PUT",
       body: JSON.stringify({ status }),
     }),
+  getMyAnnouncement: (id: number) => api<any>(`/api/v1/account/me/announcements/${id}`),
+  updateMyAnnouncement: (id: number, body: Record<string, unknown>) =>
+    api<{ success: boolean; announcement: any }>(`/api/v1/account/me/announcements/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  unpublishMyAnnouncement: (id: number) =>
+    api<{ success: boolean; announcement: any }>(`/api/v1/account/me/announcements/${id}/unpublish`, {
+      method: "POST",
+    }),
+  deleteMyAnnouncement: (id: number) =>
+    api<{ success: boolean }>(`/api/v1/account/me/announcements/${id}`, { method: "DELETE" }),
   approveBecomeMasterRequest: (requestId: number) =>
     api<{ success: boolean; master_id: number; role_assigned: boolean }>(
       `/api/v1/account/admin/masters/approve-become-request/${requestId}`,

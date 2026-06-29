@@ -379,6 +379,7 @@ export const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   approved: { label: 'Одобрено', color: 'bg-green-100 text-green-800' },
   published: { label: 'Опубликовано', color: 'bg-green-100 text-green-800' },
   rejected: { label: 'Отклонено', color: 'bg-red-100 text-red-800' },
+  hidden: { label: 'Снято с публикации', color: 'bg-gray-100 text-gray-800' },
 };
 
 export const DIRECTORY_CATEGORIES = [
