@@ -13,13 +13,14 @@ import {
   fetchAdminSummary,
   TAB_BADGE_MAP,
   type AdminSummary,
+  type AdminBadgeKey,
 } from '@/lib/adminSummaryApi';
 import { connectAdminSummaryWs } from '@/lib/adminSummaryWs';
 
 /** Fallback HTTP poll when WebSocket is disconnected */
 const FALLBACK_POLL_MS = 60_000;
 
-const ALERT_LABELS: Record<string, string> = {
+const ALERT_LABELS: Record<AdminBadgeKey, string> = {
   master_requests_new: 'Новые заявки на мастера',
   become_master_pending: 'Заявки «Стать мастером»',
   announcements_pending: 'Объявления на модерации',
@@ -48,7 +49,7 @@ export function AdminSummaryProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [live, setLive] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const prevCountsRef = useRef<Record<string, number> | null>(null);
+  const prevCountsRef = useRef<Partial<Record<AdminBadgeKey, number>> | null>(null);
   const initialLoadRef = useRef(true);
 
   const applySummary = useCallback((data: AdminSummary) => {
@@ -56,9 +57,10 @@ export function AdminSummaryProvider({ children }: { children: ReactNode }) {
     setLastUpdated(new Date());
 
     if (!initialLoadRef.current && prevCountsRef.current) {
-      for (const [key, label] of Object.entries(ALERT_LABELS)) {
+      for (const key of Object.keys(ALERT_LABELS) as AdminBadgeKey[]) {
+        const label = ALERT_LABELS[key];
         const prev = prevCountsRef.current[key] ?? 0;
-        const next = (data as Record<string, number>)[key] ?? 0;
+        const next = data[key] ?? 0;
         if (next > prev) {
           const tab = Object.entries(TAB_BADGE_MAP).find(([, k]) => k === key)?.[0];
           toast.info(`${label}: +${next - prev}`, {
@@ -77,9 +79,11 @@ export function AdminSummaryProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    prevCountsRef.current = Object.fromEntries(
-      Object.keys(ALERT_LABELS).map((k) => [k, (data as Record<string, number>)[k] ?? 0]),
-    );
+    const nextCounts: Partial<Record<AdminBadgeKey, number>> = {};
+    for (const key of Object.keys(ALERT_LABELS) as AdminBadgeKey[]) {
+      nextCounts[key] = data[key] ?? 0;
+    }
+    prevCountsRef.current = nextCounts;
     initialLoadRef.current = false;
     setLoading(false);
   }, []);

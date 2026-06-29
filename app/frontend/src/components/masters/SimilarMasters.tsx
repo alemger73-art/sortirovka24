@@ -18,7 +18,8 @@ export default function SimilarMasters({ masterId, category }: { masterId: numbe
           () => withRetry(() => client.entities.masters.query({ query: { category }, sort: '-rating', limit: 8 })),
           5 * 60 * 1000,
         );
-        const list = sortMasters(res.data?.items || []).filter((m: MasterCardData) => String(m.id) !== String(masterId));
+        const raw = (res.data?.items ?? []) as MasterCardData[];
+        const list = sortMasters<MasterCardData>(raw).filter((m) => String(m.id) !== String(masterId));
         setItems(list.slice(0, 3));
       } catch {
         setItems([]);
