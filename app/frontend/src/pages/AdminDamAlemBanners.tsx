@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { client, withRetry } from '@/lib/api';
+import { withRetry } from '@/lib/api';
+import {
+  createBanner,
+  deleteBanner,
+  fetchBannersList,
+  updateBanner,
+  type BannerPayload,
+} from '@/lib/foodAdminApi';
+import { humanizeApiError } from '@/lib/apiErrors';
 import { invalidateAllCaches } from '@/lib/cache';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,11 +59,10 @@ export default function AdminDamAlemBanners() {
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const res = await withRetry(() => client.entities.banners.query({ sort: '-created_at', limit: 100 }));
-      const rows: Banner[] = res.data?.items || [];
+      const rows: Banner[] = await withRetry(() => fetchBannersList({ sort: '-created_at', limit: 100 }));
       setItems(showAll ? rows : rows.filter(isFoodBanner));
-    } catch {
-      toast.error('Ошибка загрузки');
+    } catch (err) {
+      toast.error(humanizeApiError(err) || 'Ошибка загрузки');
     } finally {
       setLoading(false);
     }
@@ -90,7 +97,7 @@ export default function AdminDamAlemBanners() {
     }
     setSaving(true);
     try {
-      const data = {
+      const data: BannerPayload = {
         title: editItem.title.trim(),
         banner_text: editItem.banner_text || '',
         subtitle: editItem.subtitle || '',
@@ -102,19 +109,20 @@ export default function AdminDamAlemBanners() {
         active: editItem.active ?? true,
       };
       if (editItem.id) {
-        await withRetry(() => client.entities.banners.update({ id: String(editItem.id), data }));
+        await withRetry(() => updateBanner(editItem.id!, data));
         toast.success('Баннер обновлён');
       } else {
-        await withRetry(() => client.entities.banners.create({
-          data: { ...data, created_at: new Date().toISOString().replace('T', ' ').slice(0, 19) },
+        await withRetry(() => createBanner({
+          ...data,
+          created_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
         }));
         toast.success('Баннер создан');
       }
       invalidateAllCaches();
       setDialogOpen(false);
       fetchItems();
-    } catch {
-      toast.error('Ошибка сохранения');
+    } catch (err) {
+      toast.error(humanizeApiError(err) || 'Ошибка сохранения');
     } finally {
       setSaving(false);
     }
@@ -123,12 +131,12 @@ export default function AdminDamAlemBanners() {
   const handleDelete = async (id: number) => {
     if (!confirm('Удалить баннер?')) return;
     try {
-      await withRetry(() => client.entities.banners.delete({ id: String(id) }));
+      await withRetry(() => deleteBanner(id));
       invalidateAllCaches();
       toast.success('Удалено');
       fetchItems();
-    } catch {
-      toast.error('Ошибка удаления');
+    } catch (err) {
+      toast.error(humanizeApiError(err) || 'Ошибка удаления');
     }
   };
 

@@ -1,5 +1,5 @@
 from core.database import Base
-from sqlalchemy import Boolean, Column, Integer, String
+from sqlalchemy import Boolean, Column, Integer, String, Text
 
 
 class Banners(Base):
@@ -10,10 +10,10 @@ class Banners(Base):
     title = Column(String, nullable=True)
     banner_text = Column(String, nullable=True)
     subtitle = Column(String, nullable=True)
-    image_url = Column(String, nullable=True)
-    link_url = Column(String, nullable=True)
+    image_url = Column(Text, nullable=True)
+    link_url = Column(Text, nullable=True)
     button_text = Column(String, nullable=True)
-    button_url = Column(String, nullable=True)
+    button_url = Column(Text, nullable=True)
     banner_type = Column(String, nullable=True)
     active = Column(Boolean, nullable=True)
     created_at = Column(String, nullable=True)

@@ -7,7 +7,7 @@ envelope when calling create/update endpoints:
   SDK sends:  POST /api/v1/entities/news  { "data": { "title": "...", "content": "..." } }
   Router expects:  POST /api/v1/entities/news  { "title": "...", "content": "..." }
 
-This ASGI middleware intercepts POST/PUT requests to /api/v1/entities/* and unwraps the 
+This ASGI middleware intercepts POST/PUT/PATCH requests to /api/v1/entities/* and unwraps the 
 `data` envelope so the existing Pydantic schemas work correctly.
 """
 
@@ -32,8 +32,8 @@ class SDKCompatMiddleware:
         method = scope.get("method", "")
         path = scope.get("path", "")
 
-        # Only intercept POST/PUT to entity endpoints
-        if method not in ("POST", "PUT") or "/api/v1/entities/" not in path:
+        # Only intercept POST/PUT/PATCH to entity endpoints
+        if method not in ("POST", "PUT", "PATCH") or "/api/v1/entities/" not in path:
             await self.app(scope, receive, send)
             return
 

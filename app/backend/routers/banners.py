@@ -267,13 +267,12 @@ async def update_bannerss_batch(
         raise HTTPException(status_code=500, detail=f"Batch update failed: {str(e)}")
 
 
-@router.put("/{id}", response_model=BannersResponse)
-async def update_banners(
+async def _update_banners_record(
     id: int,
     data: BannersUpdateData,
-    db: AsyncSession = Depends(get_db),
-):
-    """Update an existing banners"""
+    db: AsyncSession,
+) -> BannersResponse:
+    """Shared update handler for PUT and PATCH."""
     logger.debug(f"Updating banners {id} with data: {data}")
 
     service = BannersService(db)
@@ -284,7 +283,7 @@ async def update_banners(
         if not result:
             logger.warning(f"Banners with id {id} not found for update")
             raise HTTPException(status_code=404, detail="Banners not found")
-        
+
         logger.info(f"Banners {id} updated successfully")
         return result
     except HTTPException:
@@ -295,6 +294,26 @@ async def update_banners(
     except Exception as e:
         logger.error(f"Error updating banners {id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.put("/{id}", response_model=BannersResponse)
+async def update_banners(
+    id: int,
+    data: BannersUpdateData,
+    db: AsyncSession = Depends(get_db),
+):
+    """Update an existing banners"""
+    return await _update_banners_record(id, data, db)
+
+
+@router.patch("/{id}", response_model=BannersResponse)
+async def patch_banners(
+    id: int,
+    data: BannersUpdateData,
+    db: AsyncSession = Depends(get_db),
+):
+    """Partial update (SDK compatibility)."""
+    return await _update_banners_record(id, data, db)
 
 
 @router.delete("/batch")

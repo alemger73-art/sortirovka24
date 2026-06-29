@@ -110,9 +110,8 @@ export default function ImageUpload({ value, onChange, folder = 'general', class
       setUploadProgress(100);
 
       setDownloadUrl(result.downloadUrl);
-      // Save the permanent download URL if available (never expires),
-      // otherwise fall back to the objectKey (requires resolution on display)
-      onChange(result.downloadUrl || result.objectKey);
+      // Prefer stable object key; display layer resolves it to a CDN URL.
+      onChange(result.objectKey || result.downloadUrl || '');
       setUploadSuccess(true);
       toast.success('Изображение загружено');
 
