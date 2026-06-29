@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Bike, Car, Coins, LogOut, UserCircle2, Wrench, Bell } from "lucide-react";
 import type { CourierAccess } from "@/lib/logisticsApi";
+import type { DriverApplication } from "@/lib/taxiApi";
 
 interface Profile {
   name?: string;
@@ -16,6 +17,7 @@ interface Props {
   ordersCountLabel?: string;
   unreadNotifications?: number;
   courierAccess?: CourierAccess | null;
+  driverApplication?: DriverApplication | null;
   masterApplicationPending?: boolean;
   masterNewRequests?: number;
   logoutLabel: string;
@@ -31,6 +33,7 @@ interface Props {
     becomeCourier?: string;
     becomeMaster?: string;
     masterPending?: string;
+    driverPending?: string;
     courierPending?: string;
   };
 }
@@ -41,6 +44,7 @@ export default function CabinetHeader({
   ordersCountLabel = "",
   unreadNotifications = 0,
   courierAccess,
+  driverApplication,
   masterApplicationPending,
   masterNewRequests = 0,
   logoutLabel,
@@ -51,17 +55,19 @@ export default function CabinetHeader({
   links,
 }: Props) {
   const bonus = Number(profile?.bonus_balance || 0);
+  const isApprovedDriver = Boolean(driverApplication?.is_driver);
+  const driverPending = driverApplication?.status === "pending";
   const roleLinks = [
     (profile?.role === "master" || profile?.role === "admin" || profile?.role === "superadmin") && links.master
       ? { to: "/cabinet/master", label: links.master, icon: Wrench, tone: "text-indigo-600 dark:text-indigo-400" }
       : null,
-    profile?.role === "driver" && links.driver
+    isApprovedDriver && links.driver
       ? { to: "/cabinet/driver", label: links.driver, icon: Car, tone: "text-amber-600 dark:text-amber-400" }
       : null,
     courierAccess?.can_access_cabinet && links.courier
       ? { to: "/cabinet/courier", label: links.courier, icon: Bike, tone: "text-orange-600 dark:text-orange-400" }
       : null,
-    (profile?.role === "user" || profile?.role === "courier") && links.becomeDriver
+    !isApprovedDriver && !driverPending && (profile?.role === "user" || profile?.role === "courier") && links.becomeDriver
       ? { to: "/taxi/driver", label: links.becomeDriver, icon: Car, tone: "text-amber-600 dark:text-amber-400" }
       : null,
     !courierAccess?.can_access_cabinet && courierAccess?.status !== "pending" && links.becomeCourier
@@ -134,6 +140,9 @@ export default function CabinetHeader({
           </button>
           {courierAccess?.status === "pending" && links.courierPending ? (
             <p className="text-xs text-amber-600 dark:text-amber-400">{links.courierPending}</p>
+          ) : null}
+          {driverPending && links.driverPending ? (
+            <p className="text-xs text-amber-600 dark:text-amber-400">{links.driverPending}</p>
           ) : null}
           {masterApplicationPending && links.masterPending ? (
             <p className="text-xs text-indigo-600 dark:text-indigo-400">{links.masterPending}</p>

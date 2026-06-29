@@ -3,7 +3,7 @@ import logging
 from typing import List, Optional
 
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Header, Query, Request
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +25,7 @@ router = APIRouter(prefix="/api/v1/entities/become_master_requests", tags=["beco
 # ---------- Pydantic Schemas ----------
 class Become_master_requestsData(BaseModel):
     """Entity data schema (for create/update)"""
+    user_id: str = None
     name: str = None
     category: str = None
     phone: str = None
@@ -39,6 +40,7 @@ class Become_master_requestsData(BaseModel):
 
 class Become_master_requestsUpdateData(BaseModel):
     """Update entity data (partial updates allowed)"""
+    user_id: Optional[str] = None
     name: Optional[str] = None
     category: Optional[str] = None
     phone: Optional[str] = None
@@ -54,6 +56,7 @@ class Become_master_requestsUpdateData(BaseModel):
 class Become_master_requestsResponse(BaseModel):
     """Entity response schema"""
     id: int
+    user_id: Optional[str] = None
     name: Optional[str] = None
     category: Optional[str] = None
     phone: Optional[str] = None
@@ -201,15 +204,20 @@ async def get_become_master_requests(
 async def create_become_master_requests(
     data: Become_master_requestsData,
     request: Request,
+    authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new become_master_requests"""
     check_ip_rate_limit(request, key_prefix="become_master_requests", max_hits=5)
+    user = await get_account_user(db, authorization)
     logger.debug(f"Creating new become_master_requests with data: {data}")
 
     payload = data.model_dump()
+    payload["user_id"] = str(user.id)
     if payload.get("phone"):
         payload["phone"] = normalize_phone(payload["phone"]) or payload["phone"]
+    elif user.phone:
+        payload["phone"] = user.phone
     if payload.get("whatsapp"):
         payload["whatsapp"] = normalize_phone(payload["whatsapp"]) or payload["whatsapp"]
     pending_rows = (
@@ -217,7 +225,13 @@ async def create_become_master_requests(
             select(Become_master_requests).where(Become_master_requests.status == "pending").limit(300)
         )
     ).scalars().all()
-    if payload.get("phone") and any(matches_phone(r.phone, payload["phone"]) for r in pending_rows):
+    if any(getattr(r, "user_id", None) == str(user.id) for r in pending_rows):
+        raise HTTPException(status_code=400, detail="У вас уже есть заявка на рассмотрении. Дождитесь ответа администратора.")
+    if payload.get("phone") and any(
+        matches_phone(r.phone, payload["phone"])
+        and (not getattr(r, "user_id", None) or getattr(r, "user_id", None) == str(user.id))
+        for r in pending_rows
+    ):
         raise HTTPException(status_code=400, detail="У вас уже есть заявка на рассмотрении. Дождитесь ответа администратора.")
     
     service = Become_master_requestsService(db)

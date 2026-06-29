@@ -179,7 +179,7 @@ async def _maybe_promote_master_role(db: AsyncSession, user: User) -> bool:
             .limit(200)
         )
     ).scalars().all()
-    if any(_matches_user_phone(b.phone, user.phone) for b in become_rows):
+    if any(_owns_become_master_request(user, b) for b in become_rows):
         user.role = "master"
         await db.commit()
         await db.refresh(user)
@@ -200,6 +200,13 @@ def _owns_user_content(user: User, record_user_id: str | None, record_phone: str
     if record_user_id and str(record_user_id) == str(user.id):
         return True
     return _matches_user_phone(record_phone, user.phone)
+
+
+def _owns_become_master_request(user: User, row: Become_master_requests) -> bool:
+    row_uid = getattr(row, "user_id", None)
+    if row_uid:
+        return str(row_uid) == str(user.id)
+    return _matches_user_phone(row.phone, user.phone)
 
 
 def _announcement_cover_image(row: Announcements) -> str | None:
@@ -1375,7 +1382,7 @@ async def cabinet(
             select(Become_master_requests).order_by(desc(Become_master_requests.id)).limit(100)
         )
     ).scalars().all()
-    become_rows = [b for b in become_rows if _matches_user_phone(b.phone, user.phone)]
+    become_rows = [b for b in become_rows if _owns_become_master_request(user, b)]
 
     merged_orders = [
         {"id": o.id, "type": o.order_type, "status": o.status, "amount": o.amount, "details": o.details, "created_at": o.created_at.isoformat() if o.created_at else None}
@@ -1539,7 +1546,7 @@ async def master_cabinet(
             .limit(50)
         )
     ).scalars().all()
-    become_rows = [b for b in become if _matches_user_phone(b.phone, user.phone)]
+    become_rows = [b for b in become if _owns_become_master_request(user, b)]
     requests = (
         await db.execute(select(Master_requests).order_by(desc(Master_requests.id)).limit(200))
     ).scalars().all()

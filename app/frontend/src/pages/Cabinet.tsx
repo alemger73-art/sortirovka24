@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Camera, Coins, Save, UserCircle2, Wrench, MapPin, Plus, Trash2, Star, Pencil, X, Loader2, CheckCircle2, AlertCircle, Search, Megaphone, EyeOff, Home } from "lucide-react";
 import CabinetNav from "@/components/cabinet/CabinetNav";
 import CabinetHeader from "@/components/cabinet/CabinetHeader";
+import CabinetRoleApplications from "@/components/cabinet/CabinetRoleApplications";
 import CabinetOrderCard from "@/components/cabinet/CabinetOrderCard";
 import CabinetNotifications from "@/components/cabinet/CabinetNotifications";
 import CabinetLockScreen from "@/components/cabinet/CabinetLockScreen";
@@ -25,7 +26,7 @@ import { formatExpiryLabel, isAnnouncementExpired, isAnnouncementPromoted } from
 import { isRealEstateExpired, isRealEstatePromoted, resolveReTypeLabel } from "@/lib/realEstate";
 import { toast } from "sonner";
 import { uploadAvatar, assertImageFileSize } from "@/lib/storage";
-import { formatTenge, taxiApi, TAXI_STATUS_LABELS, type TaxiRide } from "@/lib/taxiApi";
+import { formatTenge, taxiApi, TAXI_STATUS_LABELS, type TaxiRide, type DriverApplication } from "@/lib/taxiApi";
 import { logisticsApi, type CourierAccess } from "@/lib/logisticsApi";
 import { useTaxiEnabled } from "@/hooks/useTaxiEnabled";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -92,6 +93,7 @@ export default function Cabinet() {
   const [hasPassword, setHasPassword] = useState(true);
   const [taxiRides, setTaxiRides] = useState<TaxiRide[]>([]);
   const [courierAccess, setCourierAccess] = useState<CourierAccess | null>(null);
+  const [driverApplication, setDriverApplication] = useState<DriverApplication | null>(null);
   const [masterNewRequests, setMasterNewRequests] = useState(0);
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
   const [addressForm, setAddressForm] = useState<{
@@ -178,6 +180,7 @@ export default function Cabinet() {
         if (lang === "kz" || lang === "ru") setLang(lang);
         taxiApi.myRides().then(setTaxiRides).catch(() => {});
         logisticsApi.getCourierAccess().then(setCourierAccess).catch(() => {});
+        taxiApi.getDriverApplication().then(setDriverApplication).catch(() => {});
         loadMasterNewRequests(data?.profile?.role).catch(() => {});
       } catch (e: unknown) {
         const cached = getCurrentUser();
@@ -698,6 +701,7 @@ export default function Cabinet() {
               ordersCount={(rows.orders || []).length}
               ordersCountLabel={`${(rows.orders || []).length} ${t("cabinet.ordersCount")}`}
               courierAccess={courierAccess}
+              driverApplication={driverApplication}
               masterApplicationPending={masterApplicationPending}
               masterNewRequests={masterNewRequests}
               logoutLabel={t("cabinet.logout")}
@@ -718,6 +722,7 @@ export default function Cabinet() {
                 becomeMaster: masterApplicationPending ? undefined : t("masters.becomeMaster"),
                 masterPending: t("cabinet.masterPending"),
                 courierPending: t("cabinet.courierPending"),
+                driverPending: t("cabinet.driverPending"),
               }}
             />
           </div>
@@ -731,6 +736,25 @@ export default function Cabinet() {
 
               {activeTab === "profile" && (
                 <>
+                  <CabinetRoleApplications
+                    profileRole={cabinet?.profile?.role}
+                    becomeMasterRequests={rows.become_master_requests}
+                    courierAccess={courierAccess}
+                    driverApplication={driverApplication}
+                    labels={{
+                      title: t("cabinet.roles.title"),
+                      master: t("cabinet.roles.master"),
+                      courier: t("cabinet.roles.courier"),
+                      driver: t("cabinet.roles.driver"),
+                      statusNone: t("cabinet.roles.statusNone"),
+                      statusPending: t("cabinet.roles.statusPending"),
+                      statusApproved: t("cabinet.roles.statusApproved"),
+                      statusRejected: t("cabinet.roles.statusRejected"),
+                      actionApply: t("cabinet.roles.actionApply"),
+                      actionCabinet: t("cabinet.roles.actionCabinet"),
+                      masterRequestsHint: t("cabinet.roles.masterRequestsHint"),
+                    }}
+                  />
                   {masterApplicationPending && (
                     <div className="rounded-2xl border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/80 dark:bg-indigo-950/20 px-4 py-4">
                       <p className="text-sm font-bold text-indigo-900 dark:text-indigo-200">{t("cabinet.masterPending")}</p>

@@ -7,6 +7,7 @@ class Become_master_requests(Base):
     __table_args__ = {"extend_existing": True}
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True, nullable=False)
+    user_id = Column(String(255), nullable=True, index=True)
     name = Column(String, nullable=True)
     category = Column(String, nullable=True)
     phone = Column(String, nullable=True)
