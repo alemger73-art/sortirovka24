@@ -1,4 +1,13 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  createElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { toast } from 'sonner';
 import {
   fetchAdminSummary,
@@ -86,7 +95,6 @@ export function AdminSummaryProvider({ children }: { children: ReactNode }) {
     }
   }, [applySummary]);
 
-  // WebSocket live stream
   useEffect(() => {
     const disconnect = connectAdminSummaryWs({
       onSummary: applySummary,
@@ -96,7 +104,6 @@ export function AdminSummaryProvider({ children }: { children: ReactNode }) {
     return disconnect;
   }, [applySummary]);
 
-  // Fallback poll when WS is down + manual refresh events
   useEffect(() => {
     refresh();
     const id = setInterval(() => {
@@ -129,10 +136,10 @@ export function AdminSummaryProvider({ children }: { children: ReactNode }) {
     };
   }, [summary?.total_pending]);
 
-  return (
-    <AdminSummaryContext.Provider value={{ summary, loading, live, refresh, lastUpdated }}>
-      {children}
-    </AdminSummaryContext.Provider>
+  return createElement(
+    AdminSummaryContext.Provider,
+    { value: { summary, loading, live, refresh, lastUpdated } },
+    children,
   );
 }
 
