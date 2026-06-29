@@ -3,7 +3,7 @@
  *
  * Admin can switch a module off and it disappears everywhere: home tiles,
  * quick actions, banners, hero buttons, footer nav, bottom nav, the "More"
- * page, and its routes (which redirect home). Keep this list in sync with the
+ * page, personal cabinet tabs, and its routes (which redirect home). Keep this list in sync with the
  * backend services/module_settings.py MODULE_KEYS.
  *
  * Taxi and "Support project" keep their own dedicated toggles and are NOT

@@ -2,18 +2,8 @@ import {
   UserCircle2, MapPin, Coins, Package, Wrench, Car, AlertCircle, Megaphone, Settings, Bell, Building2,
 } from "lucide-react";
 
-export type CabinetTabId =
-  | "profile"
-  | "addresses"
-  | "bonuses"
-  | "notifications"
-  | "orders"
-  | "masterRequests"
-  | "taxi"
-  | "complaints"
-  | "announcements"
-  | "realEstate"
-  | "settings";
+export type { CabinetTabId } from '@/config/cabinetTabs';
+import type { CabinetTabId } from '@/config/cabinetTabs';
 
 const TAB_ICONS: Record<CabinetTabId, typeof UserCircle2> = {
   profile: UserCircle2,

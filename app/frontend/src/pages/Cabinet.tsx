@@ -29,11 +29,18 @@ import { uploadAvatar, assertImageFileSize } from "@/lib/storage";
 import { formatTenge, taxiApi, TAXI_STATUS_LABELS, type TaxiRide, type DriverApplication } from "@/lib/taxiApi";
 import { logisticsApi, type CourierAccess } from "@/lib/logisticsApi";
 import { useTaxiEnabled } from "@/hooks/useTaxiEnabled";
+import { useModules } from "@/hooks/useModules";
+import {
+  type CabinetTabId,
+  DELIVERY_MODULE_KEYS,
+  isCabinetTabVisible,
+  anyModuleEnabled,
+} from "@/config/cabinetTabs";
 import { useLanguage } from "@/contexts/LanguageContext";
 import TaxiUnavailable from "@/components/taxi/TaxiUnavailable";
 import { cabinetOrderDetailPath, orderDetailId, type CabinetOrderRow } from "@/lib/orderRoutes";
 
-type TabId = "profile" | "addresses" | "bonuses" | "notifications" | "orders" | "masterRequests" | "taxi" | "complaints" | "announcements" | "realEstate" | "settings";
+type TabId = CabinetTabId;
 
 const MASTER_REQUEST_STATUS: Record<string, { labelKey: string; color: string }> = {
   new: { labelKey: "cabinet.master.statusNew", color: "bg-yellow-500/20 text-yellow-200" },
@@ -71,15 +78,33 @@ const listCardClass =
 
 const sectionTitleClass = "text-xl font-bold text-gray-900 dark:text-white";
 
+const ALL_CABINET_TAB_IDS: TabId[] = [
+  "profile",
+  "addresses",
+  "bonuses",
+  "notifications",
+  "orders",
+  "masterRequests",
+  "taxi",
+  "complaints",
+  "announcements",
+  "realEstate",
+  "settings",
+];
+
+function isCabinetTabId(value: string | null): value is TabId {
+  return value !== null && ALL_CABINET_TAB_IDS.includes(value as TabId);
+}
+
 export default function Cabinet() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { t, setLang } = useLanguage();
   const taxiEnabled = useTaxiEnabled();
-  const VALID_TABS: TabId[] = ["profile", "addresses", "bonuses", "notifications", "orders", "masterRequests", "taxi", "complaints", "announcements", "realEstate", "settings"];
-  const initialTab = searchParams.get("tab") as TabId | null;
+  const { isEnabled } = useModules();
+  const initialTab = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState<TabId>(
-    initialTab && VALID_TABS.includes(initialTab) ? initialTab : "profile"
+    isCabinetTabId(initialTab) ? initialTab : "profile",
   );
   const [loading, setLoading] = useState(true);
   const [cabinet, setCabinet] = useState<any>(null);
@@ -117,29 +142,10 @@ export default function Cabinet() {
   const [securitySettings, setSecuritySettings] = useState<CabinetSecuritySettings | null>(null);
   const [cabinetLocked, setCabinetLocked] = useState(false);
   const [biometricSupport, setBiometricSupport] = useState<BiometricSupport | null>(null);
-  const tabs: { id: TabId; label: string }[] = useMemo(() => {
-    const base: { id: TabId; label: string }[] = [
-      { id: "profile", label: t("cabinet.tab.profile") },
-      { id: "addresses", label: t("cabinet.tab.addresses") },
-      { id: "bonuses", label: t("cabinet.tab.bonuses") },
-      { id: "notifications", label: t("cabinet.tab.notifications") },
-      { id: "orders", label: t("cabinet.tab.orders") },
-      { id: "masterRequests", label: t("cabinet.tab.masterRequests") },
-      { id: "taxi", label: t("cabinet.tab.taxi") },
-      { id: "complaints", label: t("cabinet.tab.complaints") },
-      { id: "announcements", label: t("cabinet.tab.announcements") },
-      { id: "realEstate", label: t("cabinet.tab.realEstate") },
-      { id: "settings", label: t("cabinet.tab.settings") },
-    ];
-    if (taxiEnabled === false && taxiRides.length === 0) {
-      return base.filter((t) => t.id !== "taxi");
-    }
-    return base;
-  }, [taxiEnabled, taxiRides.length, t]);
 
   useEffect(() => {
-    const tab = searchParams.get("tab") as TabId | null;
-    if (tab && VALID_TABS.includes(tab)) {
+    const tab = searchParams.get("tab");
+    if (isCabinetTabId(tab)) {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -574,6 +580,71 @@ export default function Cabinet() {
     return orders;
   }, [rows.orders, orderFilter]);
 
+  const tabVisibilityCtx = useMemo(
+    () => ({
+      isEnabled,
+      taxiEnabled,
+      hasData: {
+        addresses: addresses.length > 0,
+        orders: rows.orders.length > 0,
+        masterRequests: rows.master_requests.length > 0,
+        taxi: taxiRides.length > 0,
+        complaints: rows.complaints.length > 0,
+        announcements: rows.announcements.length > 0,
+        realEstate: rows.real_estate.length > 0,
+      },
+    }),
+    [isEnabled, taxiEnabled, addresses.length, rows, taxiRides.length],
+  );
+
+  const tabs = useMemo(() => {
+    const base: { id: TabId; label: string }[] = [
+      { id: "profile", label: t("cabinet.tab.profile") },
+      { id: "addresses", label: t("cabinet.tab.addresses") },
+      { id: "bonuses", label: t("cabinet.tab.bonuses") },
+      { id: "notifications", label: t("cabinet.tab.notifications") },
+      { id: "orders", label: t("cabinet.tab.orders") },
+      { id: "masterRequests", label: t("cabinet.tab.masterRequests") },
+      { id: "taxi", label: t("cabinet.tab.taxi") },
+      { id: "complaints", label: t("cabinet.tab.complaints") },
+      { id: "announcements", label: t("cabinet.tab.announcements") },
+      { id: "realEstate", label: t("cabinet.tab.realEstate") },
+      { id: "settings", label: t("cabinet.tab.settings") },
+    ];
+    return base.filter((tab) => isCabinetTabVisible(tab.id, tabVisibilityCtx));
+  }, [tabVisibilityCtx, t]);
+
+  const deliveryEnabled = anyModuleEnabled(DELIVERY_MODULE_KEYS, isEnabled);
+  const mastersEnabled = isEnabled("masters");
+  const taxiOn = taxiEnabled !== false;
+  const isApprovedDriver = Boolean(driverApplication?.is_driver);
+  const hasMasterRole =
+    cabinet?.profile?.role === "master" ||
+    cabinet?.profile?.role === "admin" ||
+    cabinet?.profile?.role === "superadmin" ||
+    cabinet?.profile?.role === "moderator";
+  const hasCourierAccess = Boolean(courierAccess?.can_access_cabinet);
+  const hasCourierHistory = Boolean(courierAccess?.status && courierAccess.status !== "none");
+  const hasDriverHistory =
+    isApprovedDriver || Boolean(driverApplication?.status && driverApplication.status !== "none");
+  const hasMasterHistory =
+    hasMasterRole || masterApplicationPending || rows.become_master_requests.length > 0;
+
+  const roleVisibility = {
+    master: mastersEnabled || hasMasterRole,
+    becomeMaster: mastersEnabled && !masterApplicationPending,
+    driver: taxiOn || isApprovedDriver,
+    becomeDriver: taxiOn && !isApprovedDriver && driverApplication?.status !== "pending",
+    courier: deliveryEnabled || hasCourierAccess,
+    becomeCourier: deliveryEnabled && !hasCourierAccess && courierAccess?.status !== "pending",
+  };
+
+  const showRoles = {
+    master: mastersEnabled || hasMasterHistory,
+    courier: deliveryEnabled || hasCourierHistory,
+    driver: taxiOn || hasDriverHistory,
+  };
+
   const switchTab = (tab: TabId) => {
     setError("");
     setSuccess("");
@@ -670,6 +741,11 @@ export default function Cabinet() {
     [tabs, unreadCount],
   );
 
+  useEffect(() => {
+    if (tabs.some((tab) => tab.id === activeTab)) return;
+    switchTab("profile");
+  }, [tabs, activeTab]);
+
   if (loading) return <Layout><div className="mx-auto max-w-6xl px-4 py-10 text-gray-500 dark:text-slate-300">{t("cabinet.loading")}</div></Layout>;
 
   if (cabinetLocked && securitySettings) {
@@ -724,6 +800,7 @@ export default function Cabinet() {
                 courierPending: t("cabinet.courierPending"),
                 driverPending: t("cabinet.driverPending"),
               }}
+              roleVisibility={roleVisibility}
             />
           </div>
 
@@ -754,6 +831,7 @@ export default function Cabinet() {
                       actionCabinet: t("cabinet.roles.actionCabinet"),
                       masterRequestsHint: t("cabinet.roles.masterRequestsHint"),
                     }}
+                    showRoles={showRoles}
                   />
                   {masterApplicationPending && (
                     <div className="rounded-2xl border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/80 dark:bg-indigo-950/20 px-4 py-4">

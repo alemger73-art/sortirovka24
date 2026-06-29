@@ -36,6 +36,15 @@ interface Props {
     driverPending?: string;
     courierPending?: string;
   };
+  /** When omitted, all role links are shown (legacy behaviour). */
+  roleVisibility?: {
+    master?: boolean;
+    driver?: boolean;
+    courier?: boolean;
+    becomeDriver?: boolean;
+    becomeCourier?: boolean;
+    becomeMaster?: boolean;
+  };
 }
 
 export default function CabinetHeader({
@@ -53,27 +62,29 @@ export default function CabinetHeader({
   onOpenBonuses,
   onOpenNotifications,
   links,
+  roleVisibility,
 }: Props) {
+  const show = (key: keyof NonNullable<Props['roleVisibility']>) => roleVisibility?.[key] !== false;
   const bonus = Number(profile?.bonus_balance || 0);
   const isApprovedDriver = Boolean(driverApplication?.is_driver);
   const driverPending = driverApplication?.status === "pending";
   const roleLinks = [
-    (profile?.role === "master" || profile?.role === "admin" || profile?.role === "superadmin") && links.master
+    (profile?.role === "master" || profile?.role === "admin" || profile?.role === "superadmin") && links.master && show("master")
       ? { to: "/cabinet/master", label: links.master, icon: Wrench, tone: "text-indigo-600 dark:text-indigo-400" }
       : null,
-    isApprovedDriver && links.driver
+    isApprovedDriver && links.driver && show("driver")
       ? { to: "/cabinet/driver", label: links.driver, icon: Car, tone: "text-amber-600 dark:text-amber-400" }
       : null,
-    courierAccess?.can_access_cabinet && links.courier
+    courierAccess?.can_access_cabinet && links.courier && show("courier")
       ? { to: "/cabinet/courier", label: links.courier, icon: Bike, tone: "text-orange-600 dark:text-orange-400" }
       : null,
-    !isApprovedDriver && !driverPending && (profile?.role === "user" || profile?.role === "courier") && links.becomeDriver
+    !isApprovedDriver && !driverPending && (profile?.role === "user" || profile?.role === "courier") && links.becomeDriver && show("becomeDriver")
       ? { to: "/taxi/driver", label: links.becomeDriver, icon: Car, tone: "text-amber-600 dark:text-amber-400" }
       : null,
-    !courierAccess?.can_access_cabinet && courierAccess?.status !== "pending" && links.becomeCourier
+    !courierAccess?.can_access_cabinet && courierAccess?.status !== "pending" && links.becomeCourier && show("becomeCourier")
       ? { to: "/delivery/courier", label: links.becomeCourier, icon: Bike, tone: "text-orange-600 dark:text-orange-400" }
       : null,
-    (profile?.role === "user" || profile?.role === "courier") && links.becomeMaster
+    (profile?.role === "user" || profile?.role === "courier") && links.becomeMaster && show("becomeMaster")
       ? { to: "/masters/become", label: links.becomeMaster, icon: Wrench, tone: "text-indigo-600 dark:text-indigo-400" }
       : null,
   ].filter(Boolean) as { to: string; label: string; icon: typeof Wrench; tone: string }[];

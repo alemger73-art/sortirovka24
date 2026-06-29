@@ -28,6 +28,8 @@ type Props = {
     actionCabinet: string;
     masterRequestsHint: string;
   };
+  /** When omitted, all three role rows are shown. */
+  showRoles?: Partial<Record<"master" | "courier" | "driver", boolean>>;
 };
 
 function statusTone(status: string) {
@@ -50,7 +52,9 @@ export default function CabinetRoleApplications({
   courierAccess,
   driverApplication,
   labels,
+  showRoles,
 }: Props) {
+  const roleOn = (key: "master" | "courier" | "driver") => showRoles?.[key] !== false;
   const latestMaster = becomeMasterRequests[0];
   const masterStatus =
     profileRole === "master" || profileRole === "admin" || profileRole === "superadmin" || profileRole === "moderator"
@@ -100,7 +104,9 @@ export default function CabinetRoleApplications({
       cabinetTo: "/cabinet/driver",
       canCabinet: Boolean(driverApplication?.is_driver),
     },
-  ];
+  ].filter((row) => roleOn(row.key as "master" | "courier" | "driver"));
+
+  if (rows.length === 0) return null;
 
   const statusLabel = (status: string) => {
     if (status === "pending") return labels.statusPending;
