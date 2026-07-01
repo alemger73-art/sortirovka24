@@ -11,4 +11,6 @@ class Homepage_stats(Base):
     ads_count = Column(Integer, nullable=True)
     cafes_count = Column(Integer, nullable=True)
     is_auto = Column(Boolean, nullable=True)
+    is_visible = Column(Boolean, nullable=True)
+    residents_count = Column(Integer, nullable=True)
     updated_at = Column(String, nullable=True)

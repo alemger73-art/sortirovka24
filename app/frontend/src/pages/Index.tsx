@@ -230,7 +230,6 @@ export default function Index() {
   const [complaints, setComplaints] = useState<any[]>([]);
   const [jobs, setJobs] = useState<any[]>([]);
   const [banners, setBanners] = useState<any[]>([]);
-  const [heroStats, setHeroStats] = useState<{ num: number; suffix: string; labelKey: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isStale, setIsStale] = useState(false);
@@ -282,7 +281,6 @@ export default function Index() {
         cachedQuery('complaints', () => client.entities.complaints.query({ sort: '-created_at', limit: 3 })),
         cachedQuery('jobs', () => client.entities.jobs.query({ query: { active: true }, sort: '-created_at', limit: 3 })),
         cachedQuery('banners', () => client.entities.banners.query({ query: { active: true }, limit: 4 })),
-        cachedQuery('homepage_stats', () => client.entities.homepage_stats.query({ limit: 1 })),
       ]);
 
       const extract = (r: PromiseSettledResult<any>): any[] => {
@@ -302,61 +300,8 @@ export default function Index() {
       setJobs(extract(results[2]));
       setBanners(extract(results[3]));
 
-      // Show main content before optional hero stats (3 extra API calls).
       setLoading(false);
       if (isManualRetry) setRetrying(false);
-
-      // Stats logic (non-blocking)
-      const statsItems = extract(results[4]);
-      const statsRow = statsItems.length > 0 ? statsItems[0] : null;
-      const isAuto = statsRow ? (statsRow.is_auto === true || statsRow.is_auto === 'true') : true;
-
-      if (isAuto) {
-        try {
-          const getTotal = (r: PromiseSettledResult<any>): number => {
-            try {
-              if (r.status !== 'fulfilled') return 0;
-              const val = r.value;
-              if (!val || typeof val !== 'object') return 0;
-              const total = val?.data?.total ?? val?.total ?? 0;
-              if (typeof total === 'number' && total > 0) return total;
-              const items = val?.data?.items ?? val?.items;
-              return Array.isArray(items) ? items.length : 0;
-            } catch { return 0; }
-          };
-          const [mastersRes, adsRes, cafesRes] = await Promise.allSettled([
-            cachedQuery('stats_masters_count', () => client.entities.masters.query({ limit: 1 })),
-            cachedQuery('stats_ads_count', () => client.entities.announcements.query({ query: { active: true, status: 'approved' }, limit: 1 })),
-            cachedQuery('stats_cafes_count', () => client.entities.food_categories.query({ limit: 1 })),
-          ]);
-          const mc = getTotal(mastersRes);
-          const ac = getTotal(adsRes);
-          const cc = getTotal(cafesRes);
-          const autoStats: { num: number; suffix: string; labelKey: string }[] = [];
-          if (mc > 0) autoStats.push({ num: mc, suffix: '+', labelKey: 'hero.masters' });
-          if (ac > 0) autoStats.push({ num: ac, suffix: '+', labelKey: 'hero.announcements' });
-          if (cc > 0) autoStats.push({ num: cc, suffix: '+', labelKey: 'hero.cafes' });
-          setHeroStats(autoStats);
-        } catch {
-          setHeroStats([
-            { num: 150, suffix: '+', labelKey: 'hero.masters' },
-            { num: 500, suffix: '+', labelKey: 'hero.announcements' },
-            { num: 50, suffix: '+', labelKey: 'hero.cafes' },
-          ]);
-        }
-      } else if (statsRow) {
-        const manualStats: { num: number; suffix: string; labelKey: string }[] = [];
-        if ((statsRow.masters_count || 0) > 0) manualStats.push({ num: statsRow.masters_count, suffix: '+', labelKey: 'hero.masters' });
-        if ((statsRow.ads_count || 0) > 0) manualStats.push({ num: statsRow.ads_count, suffix: '+', labelKey: 'hero.announcements' });
-        if ((statsRow.cafes_count || 0) > 0) manualStats.push({ num: statsRow.cafes_count, suffix: '+', labelKey: 'hero.cafes' });
-        setHeroStats(manualStats);
-      } else {
-        setHeroStats([
-          { num: 150, suffix: '+', labelKey: 'hero.masters' },
-          { num: 500, suffix: '+', labelKey: 'hero.announcements' },
-          { num: 50, suffix: '+', labelKey: 'hero.cafes' },
-        ]);
-      }
 
       const failedCount = results.filter(r => r.status === 'rejected').length;
       const hasAnyData = results.some(r => {

@@ -6,20 +6,21 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Save, RefreshCw, BarChart3, Users, Megaphone, Utensils, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Save, RefreshCw, BarChart3, Users, Utensils, ShieldCheck, Loader2, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 interface HomepageStats {
   id: number;
   masters_count: number;
   ads_count: number;
   cafes_count: number;
+  residents_count: number;
   is_auto: boolean;
+  is_visible: boolean;
   updated_at: string;
 }
 
 interface AutoCounts {
   masters: number;
-  ads: number;
   cafes: number;
 }
 
@@ -28,14 +29,15 @@ export default function AdminStats() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [autoLoading, setAutoLoading] = useState(false);
-  const [autoCounts, setAutoCounts] = useState<AutoCounts>({ masters: 0, ads: 0, cafes: 0 });
+  const [autoCounts, setAutoCounts] = useState<AutoCounts>({ masters: 0, cafes: 0 });
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Form state
   const [mastersCount, setMastersCount] = useState(0);
-  const [adsCount, setAdsCount] = useState(0);
   const [cafesCount, setCafesCount] = useState(0);
+  const [residentsCount, setResidentsCount] = useState(1000);
   const [isAuto, setIsAuto] = useState(true);
+  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     loadStats();
@@ -51,9 +53,10 @@ export default function AdminStats() {
         const s = items[0] as HomepageStats;
         setStats(s);
         setMastersCount(s.masters_count || 0);
-        setAdsCount(s.ads_count || 0);
         setCafesCount(s.cafes_count || 0);
+        setResidentsCount(s.residents_count || 1000);
         setIsAuto(s.is_auto === true || (s.is_auto as any) === 'true');
+        setIsVisible(s.is_visible !== false && (s.is_visible as any) !== 'false');
       }
     } catch (err) {
       console.error('Failed to load stats:', err);
@@ -66,9 +69,8 @@ export default function AdminStats() {
   const loadAutoCounts = async () => {
     setAutoLoading(true);
     try {
-      const [mastersRes, adsRes, cafesRes] = await Promise.allSettled([
+      const [mastersRes, cafesRes] = await Promise.allSettled([
         withRetry(() => client.entities.masters.query({ limit: 1 })),
-        withRetry(() => client.entities.announcements.query({ query: { active: true, status: 'approved' }, limit: 1 })),
         withRetry(() => client.entities.food_categories.query({ limit: 1 })),
       ]);
 
@@ -81,7 +83,6 @@ export default function AdminStats() {
 
       setAutoCounts({
         masters: getTotal(mastersRes),
-        ads: getTotal(adsRes),
         cafes: getTotal(cafesRes),
       });
     } catch {
@@ -97,9 +98,10 @@ export default function AdminStats() {
     try {
       const data = {
         masters_count: mastersCount,
-        ads_count: adsCount,
         cafes_count: cafesCount,
+        residents_count: residentsCount,
         is_auto: isAuto,
+        is_visible: isVisible,
         updated_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
       };
 
@@ -159,6 +161,27 @@ export default function AdminStats() {
         </div>
       )}
 
+      {/* Visibility toggle */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Отображение счётчика</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm font-medium text-gray-900 flex items-center gap-1.5">
+                {isVisible ? <Eye className="w-4 h-4 text-green-600" /> : <EyeOff className="w-4 h-4 text-gray-400" />}
+                {isVisible ? 'Счётчик показывается' : 'Счётчик скрыт'}
+              </Label>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Блок с цифрами (мастера, кафе, жители) в секции героя на главной
+              </p>
+            </div>
+            <Switch checked={isVisible} onCheckedChange={setIsVisible} />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Mode Switch */}
       <Card>
         <CardHeader className="pb-3">
@@ -184,6 +207,28 @@ export default function AdminStats() {
               />
               <span className="text-xs text-gray-400">Авто</span>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Residents count — always manual */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Жители района</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="max-w-xs">
+            <Label className="text-sm text-gray-600 flex items-center gap-1.5 mb-1.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" /> Количество жителей
+            </Label>
+            <Input
+              type="number"
+              min={0}
+              value={residentsCount}
+              onChange={(e) => setResidentsCount(parseInt(e.target.value) || 0)}
+              placeholder="1000"
+            />
+            <p className="text-xs text-gray-400 mt-1">Отображение: {formatDisplay(residentsCount)}</p>
           </div>
         </CardContent>
       </Card>
@@ -214,14 +259,14 @@ export default function AdminStats() {
                 <p className="text-xs text-gray-500">Мастера</p>
               </div>
               <div className="text-center p-3 bg-white rounded-xl border border-blue-100">
-                <Megaphone className="w-5 h-5 text-amber-500 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-gray-900">{autoCounts.ads}</p>
-                <p className="text-xs text-gray-500">Объявления</p>
-              </div>
-              <div className="text-center p-3 bg-white rounded-xl border border-blue-100">
                 <Utensils className="w-5 h-5 text-orange-500 mx-auto mb-1" />
                 <p className="text-2xl font-bold text-gray-900">{autoCounts.cafes}</p>
                 <p className="text-xs text-gray-500">Кафе</p>
+              </div>
+              <div className="text-center p-3 bg-white rounded-xl border border-blue-100">
+                <ShieldCheck className="w-5 h-5 text-emerald-500 mx-auto mb-1" />
+                <p className="text-2xl font-bold text-gray-900">{residentsCount}</p>
+                <p className="text-xs text-gray-500">Жители (вручную)</p>
               </div>
             </div>
             <p className="text-xs text-blue-600 mt-3">
@@ -238,7 +283,7 @@ export default function AdminStats() {
             <CardTitle className="text-base">Ручные значения</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label className="text-sm text-gray-600 flex items-center gap-1.5 mb-1.5">
                   <Users className="w-4 h-4 text-blue-500" /> Мастера
@@ -251,19 +296,6 @@ export default function AdminStats() {
                   placeholder="0"
                 />
                 <p className="text-xs text-gray-400 mt-1">Отображение: {formatDisplay(mastersCount)}</p>
-              </div>
-              <div>
-                <Label className="text-sm text-gray-600 flex items-center gap-1.5 mb-1.5">
-                  <Megaphone className="w-4 h-4 text-amber-500" /> Объявления
-                </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={adsCount}
-                  onChange={(e) => setAdsCount(parseInt(e.target.value) || 0)}
-                  placeholder="0"
-                />
-                <p className="text-xs text-gray-400 mt-1">Отображение: {formatDisplay(adsCount)}</p>
               </div>
               <div>
                 <Label className="text-sm text-gray-600 flex items-center gap-1.5 mb-1.5">
@@ -293,18 +325,21 @@ export default function AdminStats() {
         </CardHeader>
         <CardContent>
           <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl p-6">
+            {!isVisible ? (
+              <p className="text-white/40 text-sm text-center">Счётчик скрыт на главной</p>
+            ) : (
             <div className="flex items-center gap-8 justify-center">
               {(() => {
                 const items = isAuto
                   ? [
                       { val: autoCounts.masters, label: 'Мастеров' },
-                      { val: autoCounts.ads, label: 'Объявлений' },
                       { val: autoCounts.cafes, label: 'Кафе' },
+                      { val: residentsCount, label: 'Жителей' },
                     ]
                   : [
                       { val: mastersCount, label: 'Мастеров' },
-                      { val: adsCount, label: 'Объявлений' },
                       { val: cafesCount, label: 'Кафе' },
+                      { val: residentsCount, label: 'Жителей' },
                     ];
                 return items
                   .filter(i => i.val > 0)
@@ -317,13 +352,14 @@ export default function AdminStats() {
               })()}
               {(() => {
                 const vals = isAuto
-                  ? [autoCounts.masters, autoCounts.ads, autoCounts.cafes]
-                  : [mastersCount, adsCount, cafesCount];
+                  ? [autoCounts.masters, autoCounts.cafes, residentsCount]
+                  : [mastersCount, cafesCount, residentsCount];
                 return vals.every(v => v === 0) ? (
                   <p className="text-white/40 text-sm">Все значения = 0, блок скрыт</p>
                 ) : null;
               })()}
             </div>
+            )}
           </div>
         </CardContent>
       </Card>

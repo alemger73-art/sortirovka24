@@ -22,6 +22,14 @@
             "type": "boolean",
             "description": "Is auto-calculated"
         },
+        "is_visible": {
+            "type": "boolean",
+            "description": "Show counter on homepage hero"
+        },
+        "residents_count": {
+            "type": "integer",
+            "description": "District residents count"
+        },
         "updated_at": {
             "type": "string",
             "description": "Last updated"
