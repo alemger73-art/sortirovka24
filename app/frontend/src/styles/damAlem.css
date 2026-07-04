@@ -1906,11 +1906,25 @@ body.dam-sheet-open [data-bottom-nav] {
 /* ─── Promo banners carousel ─── */
 .dam-promo-banner {
   position: relative;
+  display: block;
   width: 19rem;
   height: 12rem;
   overflow: hidden;
+  border: none;
+  padding: 0;
+  cursor: pointer;
   border-radius: 22px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dam-promo-banner:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.16);
+}
+
+.dam-promo-banner:active {
+  transform: scale(0.98);
 }
 
 @media (min-width: 640px) {

@@ -62,7 +62,7 @@ import { resolveDamAlemItemImage, getCategoryImage } from '@/lib/damAlemImages';
 import DamAlemImage from '@/components/damalem/DamAlemImage';
 import DamAlemSheet from '@/components/damalem/DamAlemSheet';
 import DamAlemCheckoutButton from '@/components/damalem/DamAlemCheckoutButton';
-import { buildMarketingStories, resolvePromoCodes } from '@/lib/damAlemMarketing';
+import { buildMarketingStories, resolvePromoCodes, type FoodBannerAction } from '@/lib/damAlemMarketing';
 import DamAlemPageSkeleton from '@/components/damalem/DamAlemPageSkeleton';
 import LoadErrorState from '@/components/LoadErrorState';
 import '@/styles/damAlem.css';
@@ -1453,6 +1453,40 @@ export default function Food() {
     }
   }, [recommendedItems, loyaltyGifts.length, selectedCategorySlug, searchQuery, handleCategorySelect]);
 
+  const handleBannerAction = useCallback((action: FoodBannerAction) => {
+    switch (action.type) {
+      case 'category':
+        handleCategorySelect(action.slug);
+        break;
+      case 'promo':
+        applyPromoFromStrip(action.code);
+        if (action.categorySlug) {
+          handleCategorySelect(action.categorySlug);
+        }
+        break;
+      case 'popular':
+        if (!isBrowsingMenu) {
+          document.getElementById('dam-popular')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          handleCategorySelect('donery');
+        }
+        break;
+      case 'gifts':
+        document.getElementById('dam-loyalty')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        break;
+      case 'menu':
+        handleCategorySelect('all');
+        break;
+      case 'link':
+        if (action.url.startsWith('/')) {
+          window.location.assign(action.url);
+        } else {
+          window.open(action.url, '_blank', 'noopener');
+        }
+        break;
+    }
+  }, [handleCategorySelect, isBrowsingMenu]);
+
 
   function MenuDishRow({ item }: { item: FoodItem }) {
     const hasGroups = itemHasGroups(item.id);
@@ -1708,7 +1742,9 @@ export default function Food() {
               />
 
               {loyaltyGifts.length > 0 && (
+                <div id="dam-loyalty">
                 <DamAlemLoyaltyShowcase gifts={loyaltyGifts} formatPrice={formatPrice} />
+                </div>
               )}
 
               <DamAlemCategoryGrid
@@ -1716,7 +1752,7 @@ export default function Food() {
                 onSelect={handleCategorySelect}
               />
 
-              <DamAlemPromoBanners banners={foodBanners} />
+              <DamAlemPromoBanners banners={foodBanners} onAction={handleBannerAction} />
 
               <DamAlemShareCard
                 whatsappNumber={settings.whatsapp_number || brandProfile?.whatsapp_phone}
@@ -1724,7 +1760,7 @@ export default function Food() {
               />
 
               {showRecommendations && recommendedItems.length > 0 && (
-                <section>
+                <section id="dam-popular">
                   <h2 className="dam-section-title mb-3">{t('food.popularNow')}</h2>
                   <div className="dam-product-grid">
                     {recommendedItems.slice(0, 8).map(item => (

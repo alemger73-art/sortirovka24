@@ -120,3 +120,108 @@ export function promoChipHint(p: FoodPromoCode, formatPrice: (n: number) => stri
   if (p.min_order && p.min_order > 0) parts.push(`от ${formatPrice(p.min_order)}`);
   return parts.join(' · ');
 }
+
+/** What happens when user taps a food promo banner */
+export type FoodBannerAction =
+  | { type: 'category'; slug: string }
+  | { type: 'promo'; code: string; categorySlug?: string }
+  | { type: 'popular' }
+  | { type: 'gifts' }
+  | { type: 'menu' }
+  | { type: 'link'; url: string };
+
+export interface FoodBannerLike {
+  title?: string;
+  subtitle?: string;
+  button_text?: string;
+  button_url?: string;
+}
+
+function parseBannerUrl(url: string): FoodBannerAction | null {
+  const raw = url.trim();
+  if (!raw) return null;
+
+  if (!raw.startsWith('/food')) {
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      return { type: 'link', url: raw };
+    }
+    return null;
+  }
+
+  const hash = raw.includes('#') ? raw.split('#')[1] : '';
+  if (!hash) return null;
+
+  const params = new URLSearchParams(hash.replace(/^\?/, ''));
+  const promo = (params.get('promo') || params.get('code') || '').trim().toUpperCase();
+  const category = (params.get('category') || params.get('cat') || '').trim().toLowerCase();
+
+  if (hash === 'popular' || params.get('section') === 'popular') {
+    return { type: 'popular' };
+  }
+  if (hash === 'gifts' || params.get('section') === 'gifts') {
+    return { type: 'gifts' };
+  }
+  if (promo) {
+    return { type: 'promo', code: promo, categorySlug: category || undefined };
+  }
+  if (category) {
+    return { type: 'category', slug: category };
+  }
+  return null;
+}
+
+/** Map banner content → scroll category / apply promo / open section */
+export function resolveFoodBannerAction(banner: FoodBannerLike): FoodBannerAction {
+  const fromUrl = parseBannerUrl(banner.button_url || '');
+  if (fromUrl) return fromUrl;
+
+  const text = `${banner.title || ''} ${banner.subtitle || ''} ${banner.button_text || ''}`.toLowerCase();
+
+  if (/semya20|семейн/.test(text)) {
+    return { type: 'promo', code: 'SEMYA20', categorySlug: 'sety-na-kompaniyu' };
+  }
+  if (/obed15|комплексн.*обед|обед.*−15/.test(text)) {
+    return { type: 'promo', code: 'OBED15', categorySlug: 'kompleksnye-obedy' };
+  }
+  if (/damalem10|−10\s*%|скидка.*10/.test(text)) {
+    return { type: 'promo', code: 'DAMALEM10' };
+  }
+  if (/pizza500|пицц.*500|пицц.*выгод/.test(text)) {
+    return { type: 'promo', code: 'PIZZA500', categorySlug: 'pizza-30' };
+  }
+  if (/донер|шашлык|хит/.test(text)) {
+    return { type: 'popular' };
+  }
+  if (/подарок|подарки|коктейл.*фри/.test(text)) {
+    return { type: 'gifts' };
+  }
+  if (/обед/.test(text)) {
+    return { type: 'category', slug: 'kompleksnye-obedy' };
+  }
+  if (/сет|набор/.test(text)) {
+    return { type: 'category', slug: 'sety-na-kompaniyu' };
+  }
+  if (/пицц/.test(text)) {
+    return { type: 'category', slug: 'pizza-30' };
+  }
+
+  return { type: 'menu' };
+}
+
+export function foodBannerCtaLabel(action: FoodBannerAction, buttonText?: string): string {
+  const custom = buttonText?.trim();
+  switch (action.type) {
+    case 'promo':
+      return custom || `Применить ${action.code}`;
+    case 'category':
+      return custom || 'Смотреть меню';
+    case 'popular':
+      return custom || 'Хиты меню';
+    case 'gifts':
+      return custom || 'Подарки';
+    case 'menu':
+      return custom || 'В меню';
+    case 'link':
+      return custom || 'Подробнее';
+  }
+}
