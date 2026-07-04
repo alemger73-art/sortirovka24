@@ -108,9 +108,9 @@ export default function DamAlemProductCard({
           )}
         </div>
       </div>
-      <button type="button" className="dam-grid-card__body text-left w-full" onClick={onOpen}>
+      <button type="button" className="dam-grid-card__body text-left w-full text-zinc-900" onClick={onOpen}>
         <h3 className="dam-grid-card__title">{name}</h3>
-        <div className="mt-1 flex flex-wrap gap-1">
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           {weight ? <span className="dam-grid-card__tag">{weight}</span> : null}
           {hasOptions ? <span className="dam-grid-card__tag dam-grid-card__tag--opt">{optionsLabel}</span> : null}
         </div>

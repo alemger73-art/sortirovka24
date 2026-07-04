@@ -1609,7 +1609,11 @@ export default function Food() {
           onOpenCart={() => setCartOpen(true)}
         />
 
-        <div className="dam-page-shell w-full px-4 pb-32 pt-4 sm:px-6 lg:px-10 lg:pt-5 xl:px-12">
+        <div
+          className={`dam-page-shell w-full px-4 pb-32 pt-4 sm:px-6 lg:px-10 lg:pt-5 xl:px-12${
+            cartCount > 0 && !checkoutOpen && !isBrowsingMenu ? ' dam-page-shell--with-sidebar' : ''
+          }`}
+        >
           <div className="dam-page-main space-y-5 lg:space-y-6">
           {kitchenStatus.open ? null : (
           <DamAlemTrustBar
@@ -1743,9 +1747,9 @@ export default function Food() {
               )}
 
               {!searchQuery.trim() && comboItems.length > 0 && (
-                <section className="rounded-3xl bg-gradient-to-br from-[#111111] via-[#1c1c1c] to-[#3d1f14] p-5 text-white shadow-lg">
-                  <h2 className="mb-4 text-lg font-extrabold">{t('food.comboDeals')}</h2>
-                  <div className="grid grid-cols-2 gap-4 lg:gap-5">
+                <section className="dam-combo-section">
+                  <h2 className="dam-combo-section__title">{t('food.comboDeals')}</h2>
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 lg:gap-5">
                     {comboItems.slice(0, 4).map(item => (
                       <MenuDishRow key={`combo-${item.id}`} item={item} />
                     ))}
@@ -1839,7 +1843,7 @@ export default function Food() {
           </details>
           </div>
 
-          {cartCount > 0 && !checkoutOpen && (
+          {cartCount > 0 && !checkoutOpen && !isBrowsingMenu && (
             <DamAlemCartSidebar
               lines={cartSidebarLines}
               itemCount={cart.reduce((sum, ci) => sum + ci.quantity, 0)}
