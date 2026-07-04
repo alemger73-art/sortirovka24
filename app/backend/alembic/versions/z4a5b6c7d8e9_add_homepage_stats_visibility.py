@@ -17,13 +17,23 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def _ensure_column(table: str, name: str, column: sa.Column) -> None:
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    cols = {c["name"] for c in inspector.get_columns(table)}
+    if name not in cols:
+        op.add_column(table, column)
+
+
 def upgrade() -> None:
-    op.add_column(
+    _ensure_column(
         "homepage_stats",
+        "is_visible",
         sa.Column("is_visible", sa.Boolean(), nullable=True, server_default=sa.true()),
     )
-    op.add_column(
+    _ensure_column(
         "homepage_stats",
+        "residents_count",
         sa.Column("residents_count", sa.Integer(), nullable=True, server_default="1000"),
     )
 

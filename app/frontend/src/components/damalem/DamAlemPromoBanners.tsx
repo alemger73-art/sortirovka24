@@ -32,7 +32,7 @@ export default function DamAlemPromoBanners({ banners }: DamAlemPromoBannersProp
           Спецпредложения
         </h2>
       </div>
-      <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 scrollbar-hide snap-x snap-mandatory">
+      <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 scrollbar-hide snap-x snap-mandatory lg:gap-4">
         {banners.map((b, idx) => {
           const inner = (
             <article className="dam-promo-banner group snap-start">
@@ -50,18 +50,18 @@ export default function DamAlemPromoBanners({ banners }: DamAlemPromoBannersProp
                 />
               )}
               <div className="dam-promo-banner__overlay" />
-              <div className="relative z-10 flex h-full flex-col justify-end p-5">
+              <div className="relative z-10 flex h-full flex-col justify-end p-5 lg:p-6">
                 {b.button_text && (
-                  <span className="mb-2 inline-flex w-fit rounded-full bg-white/95 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[#FF3B30] shadow-sm">
+                  <span className="mb-2 inline-flex w-fit rounded-full bg-white/95 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[#FF3B30] shadow-sm lg:text-xs">
                     {b.button_text}
                   </span>
                 )}
-                <h3 className="line-clamp-2 text-lg font-black leading-snug text-white drop-shadow-sm">{b.title}</h3>
+                <h3 className="line-clamp-2 text-lg font-black leading-snug text-white drop-shadow-sm lg:text-xl">{b.title}</h3>
                 {b.subtitle && (
-                  <p className="mt-1.5 line-clamp-2 text-sm text-white/85">{b.subtitle}</p>
+                  <p className="mt-1.5 line-clamp-2 text-sm text-white/85 lg:text-base">{b.subtitle}</p>
                 )}
-                <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm w-fit">
-                  Подробнее <ChevronRight className="h-3.5 w-3.5" />
+                <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm w-fit lg:text-sm">
+                  Подробнее <ChevronRight className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
                 </span>
               </div>
             </article>

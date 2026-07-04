@@ -1609,8 +1609,9 @@ export default function Food() {
           onOpenCart={() => setCartOpen(true)}
         />
 
-        <div className="dam-page-shell mx-auto max-w-lg px-4 pb-32 pt-4 md:max-w-3xl lg:max-w-6xl">
-          <div className="dam-page-main space-y-5">
+        <div className="dam-page-shell mx-auto w-full px-4 pb-32 pt-5 sm:px-6 lg:px-8 lg:pt-6">
+          <div className="dam-page-main space-y-5 lg:space-y-6">
+          <div className={kitchenStatus.open ? 'lg:hidden' : ''}>
           <DamAlemTrustBar
             deliveryTime={deliveryTimeLabel}
             minOrderLabel={`от ${formatPrice(minOrder)}`}
@@ -1618,11 +1619,12 @@ export default function Food() {
             kitchenOpen={kitchenStatus.open}
             kitchenMessage={kitchenStatus.message}
           />
+          </div>
 
           <div className="dam-sticky-nav space-y-3">
             <div className="flex items-center gap-2">
               <div className="relative min-w-0 flex-1">
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400 lg:left-5" />
                 <input
                   type="search"
                   value={searchQuery}
@@ -1634,14 +1636,14 @@ export default function Food() {
               <button
                 type="button"
                 onClick={() => cartCount > 0 ? setCartOpen(true) : toast.info('Добавьте блюда в корзину')}
-                className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition active:scale-95 ${
+                className={`relative flex h-[3.25rem] w-[3.25rem] shrink-0 items-center justify-center rounded-2xl transition active:scale-95 lg:h-14 lg:w-14 ${
                   cartCount > 0
                     ? 'bg-[#FF3B30] text-white shadow-lg shadow-[#FF3B30]/30'
                     : 'dam-card text-zinc-400'
                 }`}
                 aria-label={t('food.cart')}
               >
-                <ShoppingCart className="h-5 w-5" />
+                <ShoppingCart className="h-5 w-5 lg:h-6 lg:w-6" />
                 {cartCount > 0 ? (
                   <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-[#FF3B30] ring-2 ring-[#FF3B30]">
                     {cartCount > 99 ? '99+' : cartCount}
@@ -1716,7 +1718,7 @@ export default function Food() {
               {showRecommendations && recommendedItems.length > 0 && (
                 <section>
                   <h2 className="dam-section-title mb-3">{t('food.popularNow')}</h2>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 lg:gap-5">
                     {recommendedItems.slice(0, 8).map(item => (
                       <MenuDishRow key={item.id} item={item} />
                     ))}
@@ -1730,7 +1732,7 @@ export default function Food() {
                     <Heart className="h-5 w-5 text-[#FF3B30] fill-[#FF3B30]" />
                     Ваши любимые
                   </h2>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 lg:gap-5">
                     {favoriteItems.slice(0, 8).map(item => (
                       <MenuDishRow key={`fav-${item.id}`} item={item} />
                     ))}
@@ -1741,7 +1743,7 @@ export default function Food() {
               {!searchQuery.trim() && comboItems.length > 0 && (
                 <section className="rounded-3xl bg-gradient-to-br from-[#111111] via-[#1c1c1c] to-[#3d1f14] p-5 text-white shadow-lg">
                   <h2 className="mb-4 text-lg font-extrabold">{t('food.comboDeals')}</h2>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-4 lg:gap-5">
                     {comboItems.slice(0, 4).map(item => (
                       <MenuDishRow key={`combo-${item.id}`} item={item} />
                     ))}
@@ -1795,7 +1797,7 @@ export default function Food() {
             </div>
 
             {sortedFilteredItems.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
                 {sortedFilteredItems.map(item => (
                   <MenuDishRow key={item.id} item={item} />
                 ))}

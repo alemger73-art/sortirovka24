@@ -27,9 +27,9 @@ export default function DamAlemCategoryGrid({
     <section className="dam-animate-in">
       <div className="mb-4">
         <h2 className="dam-section-title text-zinc-900">{title}</h2>
-        <p className="mt-1 text-sm text-zinc-500">{subtitle}</p>
+        <p className="mt-1 text-sm text-zinc-500 lg:text-base">{subtitle}</p>
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
         {categories.map((cat, idx) => {
           const visual = getCategoryVisual(cat.slug);
           return (

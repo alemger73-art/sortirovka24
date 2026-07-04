@@ -24,18 +24,18 @@ export default function DamAlemPromoStrip({
 
   return (
     <section className="dam-promo-strip dam-animate-in">
-      <div className="flex items-center gap-2 mb-3">
-        <Tag className="h-4 w-4 text-[#FF3B30]" />
-        <h2 className="text-sm font-extrabold text-zinc-900">Выгодно сегодня</h2>
+      <div className="flex items-center gap-2 mb-3 lg:mb-4">
+        <Tag className="h-5 w-5 text-[#FF3B30]" />
+        <h2 className="dam-section-title text-zinc-900">Выгодно сегодня</h2>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-0.5">
+      <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-0.5 lg:gap-3">
         {freeDeliveryFrom > 0 && (
           <div className="dam-promo-chip dam-promo-chip--delivery shrink-0">
-            <Truck className="h-4 w-4" />
+            <Truck className="h-5 w-5" />
             <div>
-              <p className="text-xs font-bold">Бесплатная доставка</p>
-              <p className="text-[10px] opacity-90">от {formatPrice(freeDeliveryFrom)}</p>
+              <p className="text-sm font-bold lg:text-base">Бесплатная доставка</p>
+              <p className="text-xs opacity-90 lg:text-sm">от {formatPrice(freeDeliveryFrom)}</p>
             </div>
           </div>
         )}
@@ -50,8 +50,8 @@ export default function DamAlemPromoStrip({
               className={`dam-promo-chip dam-promo-chip--code shrink-0 ${active ? 'dam-promo-chip--active' : ''}`}
             >
               <span className="dam-promo-chip__code">{p.code}</span>
-              <span className="text-[10px] font-semibold opacity-90">{promoChipHint(p, formatPrice)}</span>
-              <Copy className="h-3 w-3 opacity-60 ml-1" />
+              <span className="text-xs font-semibold opacity-90 lg:text-sm">{promoChipHint(p, formatPrice)}</span>
+              <Copy className="h-3.5 w-3.5 opacity-60 ml-1" />
             </button>
           );
         })}

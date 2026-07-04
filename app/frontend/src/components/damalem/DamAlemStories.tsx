@@ -120,8 +120,8 @@ export default function DamAlemStories({ stories, onCta }: Props) {
   return (
     <>
       <section className="dam-animate-in">
-        <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-zinc-400">Акции и новости</p>
-        <div className="-mx-1 flex gap-4 overflow-x-auto px-1 pb-1 scrollbar-hide">
+        <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-zinc-400 lg:mb-4 lg:text-sm">Акции и новости</p>
+        <div className="-mx-1 flex gap-4 overflow-x-auto px-1 pb-1 scrollbar-hide lg:gap-5">
           {stories.map((s, i) => (
             <button
               key={s.id}

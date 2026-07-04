@@ -21,7 +21,7 @@ export default function DamAlemStepsBar({ step, cartCount = 0 }: Props) {
           <div key={n} className="dam-steps__item">
             {i > 0 ? <div className={`dam-steps__line ${done || active ? 'dam-steps__line--on' : ''}`} /> : null}
             <div className={`dam-steps__dot ${active ? 'dam-steps__dot--active' : ''} ${done ? 'dam-steps__dot--done' : ''}`}>
-              <Icon className="h-3.5 w-3.5" />
+              <Icon className="h-4 w-4 lg:h-[1.125rem] lg:w-[1.125rem]" />
               {n === 2 && cartCount > 0 ? (
                 <span className="dam-steps__badge">{cartCount > 9 ? '9+' : cartCount}</span>
               ) : null}

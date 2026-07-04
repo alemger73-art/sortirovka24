@@ -103,7 +103,7 @@ export default function DamAlemProductCard({
             <QtyControl qty={qtyInCart} onAdd={onAdd} onRemove={onRemove} floating />
           ) : (
             <button type="button" onClick={e => { e.stopPropagation(); onAdd(); }} className="dam-grid-card__add" aria-label="В корзину">
-              <Plus className="h-5 w-5" />
+              <Plus className="h-5 w-5 lg:h-6 lg:w-6" />
             </button>
           )}
         </div>
