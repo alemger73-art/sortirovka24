@@ -15,6 +15,12 @@ interface Props {
   subtitle?: string;
 }
 
+function countLabel(n: number): string {
+  if (n === 1) return '1 блюдо';
+  if (n < 5) return `${n} блюда`;
+  return `${n} блюд`;
+}
+
 export default function DamAlemCategoryGrid({
   categories,
   onSelect,
@@ -25,11 +31,11 @@ export default function DamAlemCategoryGrid({
 
   return (
     <section className="dam-animate-in">
-      <div className="mb-4">
+      <div className="dam-section-header">
         <h2 className="dam-section-title text-zinc-900">{title}</h2>
-        <p className="mt-1 text-sm text-zinc-500 lg:text-base">{subtitle}</p>
+        <p className="dam-section-header__sub">{subtitle}</p>
       </div>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
+      <div className="dam-cat-grid">
         {categories.map((cat, idx) => {
           const visual = getCategoryVisual(cat.slug);
           return (
@@ -38,7 +44,7 @@ export default function DamAlemCategoryGrid({
               type="button"
               onClick={() => onSelect(cat.slug)}
               className="dam-cat-tile group"
-              style={{ animationDelay: `${idx * 40}ms` }}
+              style={{ animationDelay: `${idx * 30}ms` }}
             >
               <DamAlemImage
                 src={visual.image}
@@ -47,18 +53,20 @@ export default function DamAlemCategoryGrid({
               />
               <div
                 className="dam-cat-tile__overlay"
-                style={{ background: visual.gradient }}
+                style={{
+                  background: `linear-gradient(to top, ${visual.accent}eb 0%, ${visual.accent}66 32%, transparent 68%)`,
+                }}
               />
               <div className="dam-cat-tile__content">
-                <span className="dam-cat-tile__emoji" aria-hidden>{visual.emoji}</span>
-                <span className="dam-cat-tile__name">{cat.name}</span>
-                <span className="dam-cat-tile__count">
-                  {cat.itemCount} {cat.itemCount === 1 ? 'блюдо' : cat.itemCount < 5 ? 'блюда' : 'блюд'}
-                </span>
+                <div className="dam-cat-tile__head">
+                  <span className="dam-cat-tile__emoji" aria-hidden>{visual.emoji}</span>
+                  <span className="dam-cat-tile__name">{cat.name}</span>
+                </div>
+                <div className="dam-cat-tile__meta">
+                  <span className="dam-cat-tile__count">{countLabel(cat.itemCount)}</span>
+                  <ChevronRight className="dam-cat-tile__chevron h-3.5 w-3.5 shrink-0" aria-hidden />
+                </div>
               </div>
-              <span className="dam-cat-tile__arrow">
-                <ChevronRight className="h-4 w-4" />
-              </span>
             </button>
           );
         })}

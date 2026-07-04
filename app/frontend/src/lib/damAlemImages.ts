@@ -34,11 +34,41 @@ const PHOTOS = {
 
 /** Project CDN — always available, used as last-resort fallback */
 export const DAM_ALEM_CDN = {
-  hero: 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-15/fe194ca1-0095-44bf-a906-e50cb844ad56.png',
+  hero: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1920&h=820&q=90',
   food: 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/8455d66f-e18f-4075-9b91-972d3002381b.png',
   pizza: 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/2034a1d7-1c57-40c0-8145-23816557ba5c.png',
   combo: 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/e1e63b15-29d2-4b2e-b1b5-919722b3b1b9.png',
 } as const;
+
+/** Wide appetizing hero — grilled spread, warm tones (Unsplash) */
+export const DAM_ALEM_HERO_URL = DAM_ALEM_CDN.hero;
+
+/** Alternate juicy hero for stories/marketing */
+export const DAM_ALEM_HERO_ALT =
+  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1920&h=820&q=90';
+
+/** Old blurry logo banners — replace with food photography */
+const LEGACY_HERO_URLS = new Set([
+  'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-15/fe194ca1-0095-44bf-a906-e50cb844ad56.png',
+]);
+
+function isLegacyHeroUrl(url: string): boolean {
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+  if (LEGACY_HERO_URLS.has(trimmed)) return true;
+  return /fe194ca1-0095-44bf-a906-e50cb844ad56/i.test(trimmed);
+}
+
+/** Pick the best hero background: admin upload → brand photo → default food shot */
+export function resolveDamAlemHeroImage(heroImage?: string, brandPhoto?: string): string {
+  const candidates = [heroImage, brandPhoto].map(v => (v || '').trim()).filter(Boolean);
+  for (const raw of candidates) {
+    if (isLegacyHeroUrl(raw)) continue;
+    const resolved = resolveImageSrc(raw) || raw;
+    if (resolved && !isLegacyHeroUrl(resolved)) return resolved;
+  }
+  return DAM_ALEM_HERO_URL;
+}
 
 export const DAM_ALEM_IMAGE_FALLBACKS: string[] = [
   DAM_ALEM_CDN.food,

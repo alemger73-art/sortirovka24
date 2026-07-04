@@ -1,8 +1,7 @@
 import { Clock, ShoppingBag, Star, Truck } from 'lucide-react';
-import { DAM_ALEM_BRAND, DAM_ALEM_HERO_FALLBACK } from '@/lib/damAlem';
-import { resolveImageSrc } from '@/lib/storage';
+import { DAM_ALEM_BRAND } from '@/lib/damAlem';
 import DamAlemImage from '@/components/damalem/DamAlemImage';
-import { DAM_ALEM_CDN } from '@/lib/damAlemImages';
+import { DAM_ALEM_CDN, resolveDamAlemHeroImage } from '@/lib/damAlemImages';
 
 interface PromoSlide {
   title: string;
@@ -42,11 +41,7 @@ export default function DamAlemHero({
   cartCount = 0,
   onOpenCart,
 }: DamAlemHeroProps) {
-  const bg =
-    resolveImageSrc(heroImage || '') ||
-    resolveImageSrc(brandPhoto || '') ||
-    (heroImage || '').trim() ||
-    DAM_ALEM_HERO_FALLBACK;
+  const bg = resolveDamAlemHeroImage(heroImage, brandPhoto);
   const slide = promoSlides[promoSlide] ?? promoSlides[0];
   const brandLabel = title || DAM_ALEM_BRAND;
   const headline = subtitle || 'Горячая еда с доставкой';
@@ -57,7 +52,7 @@ export default function DamAlemHero({
         <DamAlemImage
           src={bg}
           alt=""
-          className="absolute inset-0 h-full w-full object-cover"
+          className="dam-hero-photo absolute inset-0 h-full w-full object-cover"
           loading="eager"
           fallbacks={[DAM_ALEM_CDN.hero, DAM_ALEM_CDN.food]}
         />

@@ -1665,9 +1665,11 @@ export default function Food() {
             ) : null}
           </div>
 
-          <div className={cartCount > 0 && uiStep === 1 ? 'lg:hidden' : ''}>
+          {cartCount > 0 ? (
+          <div className={uiStep === 1 ? 'lg:hidden' : ''}>
             <DamAlemStepsBar step={uiStep} cartCount={cartCount} />
           </div>
+          ) : null}
 
           {cartTotal > 0 && (freeDeliveryFrom > 0 || minOrder > 0 || nextGift) && (
             <div className="lg:hidden">
@@ -1724,7 +1726,7 @@ export default function Food() {
               {showRecommendations && recommendedItems.length > 0 && (
                 <section>
                   <h2 className="dam-section-title mb-3">{t('food.popularNow')}</h2>
-                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 lg:gap-5">
+                  <div className="dam-product-grid">
                     {recommendedItems.slice(0, 8).map(item => (
                       <MenuDishRow key={item.id} item={item} />
                     ))}
@@ -1738,7 +1740,7 @@ export default function Food() {
                     <Heart className="h-5 w-5 text-[#FF3B30] fill-[#FF3B30]" />
                     Ваши любимые
                   </h2>
-                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 lg:gap-5">
+                  <div className="dam-product-grid">
                     {favoriteItems.slice(0, 8).map(item => (
                       <MenuDishRow key={`fav-${item.id}`} item={item} />
                     ))}
@@ -1749,7 +1751,7 @@ export default function Food() {
               {!searchQuery.trim() && comboItems.length > 0 && (
                 <section className="dam-combo-section">
                   <h2 className="dam-combo-section__title">{t('food.comboDeals')}</h2>
-                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 lg:gap-5">
+                  <div className="dam-product-grid">
                     {comboItems.slice(0, 4).map(item => (
                       <MenuDishRow key={`combo-${item.id}`} item={item} />
                     ))}
@@ -1774,7 +1776,7 @@ export default function Food() {
               ) : null}
 
               {selectedCategorySlug !== 'all' && !searchQuery.trim() ? (
-                <div className="relative h-32 overflow-hidden rounded-2xl">
+                <div className="relative h-36 overflow-hidden rounded-2xl sm:h-40 md:h-44">
                   <DamAlemImage
                     src={getCategoryImage(selectedCategorySlug)}
                     alt=""
@@ -1803,7 +1805,7 @@ export default function Food() {
             </div>
 
             {sortedFilteredItems.length > 0 ? (
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
+              <div className="dam-product-grid">
                 {sortedFilteredItems.map(item => (
                   <MenuDishRow key={item.id} item={item} />
                 ))}
