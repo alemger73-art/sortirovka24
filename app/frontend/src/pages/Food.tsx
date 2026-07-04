@@ -1609,9 +1609,9 @@ export default function Food() {
           onOpenCart={() => setCartOpen(true)}
         />
 
-        <div className="dam-page-shell mx-auto w-full px-4 pb-32 pt-5 sm:px-6 lg:px-8 lg:pt-6">
+        <div className="dam-page-shell w-full px-4 pb-32 pt-4 sm:px-6 lg:px-10 lg:pt-5 xl:px-12">
           <div className="dam-page-main space-y-5 lg:space-y-6">
-          <div className={kitchenStatus.open ? 'lg:hidden' : ''}>
+          {kitchenStatus.open ? null : (
           <DamAlemTrustBar
             deliveryTime={deliveryTimeLabel}
             minOrderLabel={`от ${formatPrice(minOrder)}`}
@@ -1619,7 +1619,7 @@ export default function Food() {
             kitchenOpen={kitchenStatus.open}
             kitchenMessage={kitchenStatus.message}
           />
-          </div>
+          )}
 
           <div className="dam-sticky-nav space-y-3">
             <div className="flex items-center gap-2">
@@ -1679,11 +1679,13 @@ export default function Food() {
           {!isBrowsingMenu && (
             <>
               {cartTotal === 0 && (
-                <DamAlemFreeDeliveryBanner
-                  freeDeliveryFrom={freeDeliveryFrom}
-                  minOrder={minOrder}
-                  formatPrice={formatPrice}
-                />
+                <div className="md:hidden">
+                  <DamAlemFreeDeliveryBanner
+                    freeDeliveryFrom={freeDeliveryFrom}
+                    minOrder={minOrder}
+                    formatPrice={formatPrice}
+                  />
+                </div>
               )}
 
               <DamAlemStories

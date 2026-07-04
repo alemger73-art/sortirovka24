@@ -48,9 +48,11 @@ export default function DamAlemHero({
     (heroImage || '').trim() ||
     DAM_ALEM_HERO_FALLBACK;
   const slide = promoSlides[promoSlide] ?? promoSlides[0];
+  const brandLabel = title || DAM_ALEM_BRAND;
+  const headline = subtitle || 'Горячая еда с доставкой';
 
   return (
-    <section className="relative w-full overflow-hidden dam-hero-desktop">
+    <section className="dam-hero-bleed dam-hero-desktop" aria-label={brandLabel}>
       <div className="dam-hero-media">
         <DamAlemImage
           src={bg}
@@ -59,21 +61,18 @@ export default function DamAlemHero({
           loading="eager"
           fallbacks={[DAM_ALEM_CDN.hero, DAM_ALEM_CDN.food]}
         />
-        <div className="dam-hero-gradient absolute inset-0" />
-        <div className="pointer-events-none absolute -left-24 top-0 h-64 w-64 rounded-full bg-[#FF3B30]/25 blur-3xl lg:h-96 lg:w-96" />
+        <div className="dam-hero-gradient-top" aria-hidden />
+        <div className="dam-hero-gradient absolute inset-0" aria-hidden />
+        <div className="pointer-events-none absolute -left-24 top-0 h-64 w-64 rounded-full bg-[#FF3B30]/20 blur-3xl lg:h-96 lg:w-96" />
 
-        <div className="dam-hero-inner relative z-10 flex h-full flex-col justify-end px-4 pb-5 pt-8 sm:px-6 sm:pb-6 lg:px-8 lg:pb-8">
+        <div className="dam-hero-inner relative z-10 flex h-full flex-col justify-between gap-4 px-4 pb-5 pt-5 sm:px-6 sm:pb-6 sm:pt-6 lg:gap-6 lg:px-10 lg:pb-8 lg:pt-7">
           <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <div className="mb-2.5 inline-flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-white backdrop-blur-md lg:text-sm">
-                {title || DAM_ALEM_BRAND}
-              </div>
-              <h1 className="max-w-2xl text-[1.625rem] font-black leading-[1.08] tracking-tight text-white sm:text-3xl md:text-4xl lg:text-5xl xl:text-[3.25rem]">
-                {subtitle || 'Горячая еда с доставкой'}
-              </h1>
+            <div className="min-w-0 flex-1 space-y-2.5 lg:space-y-3">
+              <span className="dam-hero-brand-mark">{DAM_ALEM_BRAND}</span>
+              <p className="dam-hero-tagline">{brandLabel}</p>
             </div>
             <div className="flex shrink-0 flex-col items-end gap-2.5">
-              <div className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm font-bold text-zinc-900 shadow-lg lg:px-3.5 lg:py-2 lg:text-base">
+              <div className="dam-hero-rating">
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400 lg:h-5 lg:w-5" />
                 {rating.toFixed(1)}
               </div>
@@ -93,39 +92,45 @@ export default function DamAlemHero({
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2 lg:mt-5 lg:gap-2.5">
-            <span className="inline-flex items-center gap-2 rounded-xl bg-black/30 px-3.5 py-2 text-sm font-semibold text-white backdrop-blur-sm lg:text-base">
-              <Clock className="h-4 w-4 lg:h-[1.125rem] lg:w-[1.125rem]" />
-              {deliveryTime}
-            </span>
-            <span className="inline-flex items-center gap-2 rounded-xl bg-black/30 px-3.5 py-2 text-sm font-semibold text-white backdrop-blur-sm lg:text-base">
-              <Truck className="h-4 w-4 lg:h-[1.125rem] lg:w-[1.125rem]" />
-              от {formatPrice(deliveryFrom)}
-            </span>
-            <span className="inline-flex items-center gap-2 rounded-xl bg-black/30 px-3.5 py-2 text-sm font-semibold text-white backdrop-blur-sm lg:text-base">
-              мин. {formatPrice(minOrder)}
-            </span>
-          </div>
+          <div className="mt-auto space-y-4 lg:space-y-5">
+            <h1 className="dam-hero-headline">{headline}</h1>
 
-          {slide && promoSlides.length > 0 && (
-            <div className="mt-4 max-w-xl rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-md lg:mt-5 lg:p-5">
-              <p className="text-base font-bold text-white lg:text-lg">{slide.title}</p>
-              {slide.lines[0] ? <p className="mt-1.5 text-sm text-white/75 line-clamp-2 lg:text-base">{slide.lines[0]}</p> : null}
-              {promoSlides.length > 1 && (
-                <div className="mt-3 flex gap-1.5">
-                  {promoSlides.map((_, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      aria-label={`Слайд ${i + 1}`}
-                      onClick={() => onPromoSlideChange(i)}
-                      className={`h-1.5 rounded-full transition-all ${i === promoSlide ? 'w-7 bg-white' : 'w-1.5 bg-white/40'}`}
-                    />
-                  ))}
-                </div>
-              )}
+            <div className="flex flex-wrap gap-2 lg:gap-2.5">
+              <span className="dam-hero-chip">
+                <Clock className="h-4 w-4 shrink-0 lg:h-[1.125rem] lg:w-[1.125rem]" />
+                {deliveryTime}
+              </span>
+              <span className="dam-hero-chip">
+                <Truck className="h-4 w-4 shrink-0 lg:h-[1.125rem] lg:w-[1.125rem]" />
+                от {formatPrice(deliveryFrom)}
+              </span>
+              <span className="dam-hero-chip">
+                мин. {formatPrice(minOrder)}
+              </span>
             </div>
-          )}
+
+            {slide && promoSlides.length > 0 && (
+              <div className="dam-hero-promo max-w-xl">
+                <p className="text-base font-bold text-white lg:text-lg">{slide.title}</p>
+                {slide.lines[0] ? (
+                  <p className="mt-1.5 text-sm text-white/80 line-clamp-2 lg:text-base">{slide.lines[0]}</p>
+                ) : null}
+                {promoSlides.length > 1 && (
+                  <div className="mt-3 flex gap-1.5">
+                    {promoSlides.map((_, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        aria-label={`Слайд ${i + 1}`}
+                        onClick={() => onPromoSlideChange(i)}
+                        className={`h-1.5 rounded-full transition-all ${i === promoSlide ? 'w-7 bg-white' : 'w-1.5 bg-white/40'}`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </section>
