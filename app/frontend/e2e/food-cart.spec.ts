@@ -40,7 +40,7 @@ test("cart drawer: add item, change quantity, open checkout", async ({ page }) =
   await expect(checkoutBtn).toBeEnabled({ timeout: 5_000 });
   await checkoutBtn.click();
 
-  await expect(page.getByRole("heading", { name: /оформ|checkout/i })).toBeVisible({
+  await expect(page.getByRole("heading", { name: /получение|оформ|checkout/i })).toBeVisible({
     timeout: 5_000,
   });
 });

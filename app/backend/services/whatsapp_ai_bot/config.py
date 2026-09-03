@@ -13,6 +13,16 @@ def _env_bool(name: str, default: bool = False) -> bool:
     return raw.strip().lower() in ("1", "true", "yes", "on")
 
 
+def _env_int(name: str, default: int) -> int:
+    raw = (os.environ.get(name) or "").strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        return default
+
+
 @dataclass(frozen=True)
 class WhatsAppBotConfig:
     """Runtime flags and Meta Cloud API settings. Never expose to frontend."""
@@ -24,6 +34,8 @@ class WhatsAppBotConfig:
     phone_number_id: str
     business_account_id: str
     api_version: str
+    graph_base_url: str
+    session_ttl_seconds: int
 
 
 def get_whatsapp_config() -> WhatsAppBotConfig:
@@ -36,4 +48,7 @@ def get_whatsapp_config() -> WhatsAppBotConfig:
         phone_number_id=(os.environ.get("WHATSAPP_PHONE_NUMBER_ID") or "").strip(),
         business_account_id=(os.environ.get("WHATSAPP_BUSINESS_ACCOUNT_ID") or "").strip(),
         api_version=(os.environ.get("WHATSAPP_API_VERSION") or "v21.0").strip() or "v21.0",
+        graph_base_url=(os.environ.get("WHATSAPP_GRAPH_BASE_URL") or "https://graph.facebook.com").strip()
+        or "https://graph.facebook.com",
+        session_ttl_seconds=_env_int("WHATSAPP_SESSION_TTL_SECONDS", 3600),
     )

@@ -9,20 +9,27 @@ async function waitForFoodMenu(page: import("@playwright/test").Page) {
   );
 }
 
-test("checkout shows a reason instead of a silent disabled button", async ({ page }) => {
-  await waitForFoodMenu(page);
+async function openCheckoutWizard(page: import("@playwright/test").Page) {
   await page.locator(".dam-grid-card__add").first().click();
   await page.locator(".dam-floating-cart").click();
   await expect(page.getByTestId("dam-cart-sheet")).toBeVisible();
+  await page.getByTestId("dam-cart-checkout").click();
+  await expect(page.getByRole("heading", { name: /получение/i })).toBeVisible({ timeout: 5_000 });
+}
 
-  const cartCheckout = page.getByTestId("dam-cart-checkout");
-  await expect(cartCheckout).toBeEnabled();
-  await cartCheckout.click();
+test("checkout shows a reason instead of a silent disabled button", async ({ page }) => {
+  await waitForFoodMenu(page);
+  await openCheckoutWizard(page);
 
-  await expect(page.getByRole("heading", { name: /оформ/i })).toBeVisible({ timeout: 5_000 });
   await page.getByRole("button", { name: /самовывоз|алып кету/i }).click().catch(() => {});
+  await page.getByTestId("dam-checkout-next").click();
+
+  await expect(page.getByRole("heading", { name: /контакт/i })).toBeVisible({ timeout: 5_000 });
   await page.getByPlaceholder("Введите имя").fill("Тест");
   await page.getByPlaceholder("+7 (___) ___-__-__").fill("+77001234567");
+  await page.getByTestId("dam-checkout-next").click();
+
+  await expect(page.getByRole("heading", { name: /подтверждение/i })).toBeVisible({ timeout: 5_000 });
   const submit = page.getByTestId("dam-checkout-submit");
   await expect(submit).toBeEnabled();
   await submit.click();
@@ -49,9 +56,13 @@ test("double click on submit does not enable a second in-flight request", async 
   });
 
   await waitForFoodMenu(page);
-  await page.locator(".dam-grid-card__add").first().click();
-  await page.locator(".dam-floating-cart").click();
-  await page.getByTestId("dam-cart-checkout").click();
+  await openCheckoutWizard(page);
+  await page.getByRole("button", { name: /самовывоз|алып кету/i }).click().catch(() => {});
+  await page.getByTestId("dam-checkout-next").click();
+  await page.getByPlaceholder("Введите имя").fill("Тест");
+  await page.getByPlaceholder("+7 (___) ___-__-__").fill("+77001234567");
+  await page.getByTestId("dam-checkout-next").click();
+
   const submit = page.getByTestId("dam-checkout-submit");
   await submit.click();
   await submit.click();
