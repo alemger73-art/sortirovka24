@@ -1,24 +1,49 @@
-"""WhatsApp Cloud API webhook — Meta verify challenge + signed ingress (stage 1).
+"""WhatsApp Cloud API webhook — Meta verify + signed ingress + stage 2 replies.
 
-No OpenAI, no outbound WhatsApp replies, no food order creation.
+Stage 2: sessions + read-only DAM ALEM catalog + Cloud API text replies.
+No OpenAI. No food order creation. Fast ACK via asyncio.create_task.
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Header, HTTPException, Query, Request, Response
 from fastapi.responses import PlainTextResponse
 
 from services.whatsapp_ai_bot.config import get_whatsapp_config
-from services.whatsapp_ai_bot.ingress import log_parsed_event, parse_webhook_payload
+from services.whatsapp_ai_bot.handler import handle_inbound_message
+from services.whatsapp_ai_bot.ingress import (
+    extract_inbound_message,
+    log_parsed_event,
+    parse_webhook_payload,
+)
 from services.whatsapp_ai_bot.verify import verify_meta_signature, verify_webhook_challenge
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/whatsapp", tags=["whatsapp"])
+
+
+async def _process_inbound_background(payload: Any) -> None:
+    """Load catalog + reply off the webhook critical path. Catch-all."""
+    try:
+        inbound = extract_inbound_message(payload)
+        if inbound is None:
+            return
+        from core.database import db_manager
+
+        await db_manager.ensure_initialized()
+        if not db_manager.async_session_maker:
+            logger.error("whatsapp_webhook background: db session maker unavailable")
+            return
+        async with db_manager.async_session_maker() as db:
+            await handle_inbound_message(db, inbound)
+    except Exception:
+        logger.exception("whatsapp_webhook background processing failed")
 
 
 @router.get("/webhook")
@@ -46,7 +71,7 @@ async def whatsapp_webhook_ingress(
     request: Request,
     x_hub_signature_256: Optional[str] = Header(None, alias="X-Hub-Signature-256"),
 ):
-    """Accept signed Meta webhooks; ack quickly. Stage 1: parse + log metadata only."""
+    """Accept signed Meta webhooks; ack quickly; process inbound in background."""
     config = get_whatsapp_config()
     raw_body = await request.body()
 
@@ -76,4 +101,5 @@ async def whatsapp_webhook_ingress(
 
     event = parse_webhook_payload(payload)
     log_parsed_event(event, enabled=True)
+    asyncio.create_task(_process_inbound_background(payload))
     return Response(content='{"ok":true}', media_type="application/json", status_code=200)

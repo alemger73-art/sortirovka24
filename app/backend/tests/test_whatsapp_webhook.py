@@ -190,6 +190,14 @@ async def test_http_post_valid_hmac(client: AsyncClient, monkeypatch):
     secret = "test-app-secret"
     monkeypatch.setenv("WHATSAPP_APP_SECRET", secret)
     monkeypatch.setenv("WHATSAPP_BOT_ENABLED", "true")
+
+    async def _noop_background(_payload):
+        return None
+
+    monkeypatch.setattr(
+        "routers.whatsapp_webhook._process_inbound_background",
+        _noop_background,
+    )
     body = json.dumps(SAMPLE_MESSAGE_PAYLOAD, separators=(",", ":")).encode("utf-8")
     response = await client.post(
         "/api/v1/whatsapp/webhook",
@@ -236,6 +244,14 @@ async def test_http_post_unknown_type_acked(client: AsyncClient, monkeypatch):
     secret = "test-app-secret"
     monkeypatch.setenv("WHATSAPP_APP_SECRET", secret)
     monkeypatch.setenv("WHATSAPP_BOT_ENABLED", "true")
+
+    async def _noop_background(_payload):
+        return None
+
+    monkeypatch.setattr(
+        "routers.whatsapp_webhook._process_inbound_background",
+        _noop_background,
+    )
     payload = {"object": "unknown_object", "entry": [{"id": "x", "changes": []}]}
     body = json.dumps(payload).encode("utf-8")
     response = await client.post(

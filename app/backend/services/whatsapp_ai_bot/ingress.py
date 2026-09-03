@@ -10,10 +10,14 @@ from typing import Any, Optional
 logger = logging.getLogger(__name__)
 
 
-def _fingerprint(value: str) -> str:
+def wa_id_fingerprint(value: str) -> str:
     """Stable non-reversible short hash for logs (not the phone / wa_id itself)."""
     digest = hashlib.sha256(value.encode("utf-8")).hexdigest()
     return digest[:12]
+
+
+def _fingerprint(value: str) -> str:
+    return wa_id_fingerprint(value)
 
 
 @dataclass(frozen=True)
@@ -28,6 +32,17 @@ class ParsedWhatsAppEvent:
     entry_count: int = 0
     has_contacts: bool = False
     notes: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
+class InboundWhatsAppMessage:
+    """Inbound message fields needed to reply (not for logging PII)."""
+
+    event_kind: str
+    message_id: Optional[str]
+    wa_id: Optional[str]
+    message_type: Optional[str]
+    text: Optional[str]
 
 
 def _first_message_and_contact(
@@ -45,6 +60,61 @@ def _first_message_and_contact(
         contact if isinstance(contact, dict) else None,
         status if isinstance(status, dict) else None,
     )
+
+
+def _extract_message_text(message: dict[str, Any]) -> Optional[str]:
+    """Pull user-visible text from text / button / interactive payloads."""
+    msg_type = str(message.get("type") or "").lower()
+
+    if msg_type == "text":
+        text_obj = message.get("text")
+        if isinstance(text_obj, dict):
+            body = text_obj.get("body")
+            if body is not None and str(body).strip():
+                return str(body).strip()
+        return None
+
+    if msg_type == "button":
+        button = message.get("button")
+        if isinstance(button, dict):
+            for key in ("text", "payload"):
+                val = button.get(key)
+                if val is not None and str(val).strip():
+                    return str(val).strip()
+        return None
+
+    if msg_type == "interactive":
+        interactive = message.get("interactive")
+        if not isinstance(interactive, dict):
+            return None
+        for reply_key in ("button_reply", "list_reply"):
+            reply = interactive.get(reply_key)
+            if isinstance(reply, dict):
+                for key in ("title", "id", "description"):
+                    val = reply.get(key)
+                    if val is not None and str(val).strip():
+                        return str(val).strip()
+        return None
+
+    return None
+
+
+def _iter_change_values(payload: dict[str, Any]):
+    entries = payload.get("entry")
+    if not isinstance(entries, list):
+        return
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        changes = entry.get("changes")
+        if not isinstance(changes, list):
+            continue
+        for change in changes:
+            if not isinstance(change, dict):
+                continue
+            value = change.get("value")
+            if isinstance(value, dict):
+                yield value
 
 
 def parse_webhook_payload(payload: Any) -> ParsedWhatsAppEvent:
@@ -137,6 +207,42 @@ def parse_webhook_payload(payload: Any) -> ParsedWhatsAppEvent:
         entry_count=entry_count,
         notes=("no_message_or_status",),
     )
+
+
+def extract_inbound_message(payload: Any) -> Optional[InboundWhatsAppMessage]:
+    """Extract the first inbound message (with text when available).
+
+    Returns None when the payload has no message object.
+    """
+    if not isinstance(payload, dict):
+        return None
+
+    for value in _iter_change_values(payload):
+        message, contact, _status = _first_message_and_contact(value)
+        if not message:
+            continue
+
+        wa_raw: Optional[str] = None
+        if contact:
+            raw = contact.get("wa_id")
+            if raw is not None and str(raw).strip():
+                wa_raw = str(raw).strip()
+        if not wa_raw:
+            raw_from = message.get("from")
+            if raw_from is not None and str(raw_from).strip():
+                wa_raw = str(raw_from).strip()
+
+        msg_id = message.get("id")
+        msg_type = message.get("type")
+        return InboundWhatsAppMessage(
+            event_kind="message",
+            message_id=str(msg_id) if msg_id else None,
+            wa_id=wa_raw,
+            message_type=str(msg_type) if msg_type else "unknown",
+            text=_extract_message_text(message),
+        )
+
+    return None
 
 
 def log_parsed_event(event: ParsedWhatsAppEvent, *, enabled: bool) -> None:
