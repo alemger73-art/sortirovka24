@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { getAccountPrefill, getCurrentUser, pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
+import { getAccountPrefill, isLoggedIn, pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
 import { accountApi, getAccountToken } from '@/lib/accountApi';
 import { fetchFoodRestaurantsList } from '@/lib/foodAdminApi';
 import { apiUrl } from '@/lib/config';
@@ -62,6 +62,7 @@ import { resolveDamAlemItemImage, getCategoryImage } from '@/lib/damAlemImages';
 import DamAlemImage from '@/components/damalem/DamAlemImage';
 import DamAlemSheet from '@/components/damalem/DamAlemSheet';
 import DamAlemCheckoutButton from '@/components/damalem/DamAlemCheckoutButton';
+import { foodCheckoutBlockReason, publicOrderErrorMessage } from '@/lib/foodCheckoutGuards';
 import { buildMarketingStories, resolvePromoCodes, type FoodBannerAction } from '@/lib/damAlemMarketing';
 import DamAlemPageSkeleton from '@/components/damalem/DamAlemPageSkeleton';
 import LoadErrorState from '@/components/LoadErrorState';
@@ -910,24 +911,44 @@ export default function Food() {
 
   const apartmentValid = !deliverToApartment || apartment.trim().length > 0;
 
-  const checkoutBlockReason = useMemo(() => {
-    if (!kitchenStatus.open) return kitchenStatus.message || 'Кухня закрыта';
-    if (cartTotal < minOrder) return `Минимальный заказ ${formatPrice(minOrder)}`;
-    if (deliveryMethod === 'delivery' && !deliveryReady) {
-      return 'Укажите адрес: нажмите «Я здесь сейчас» или «Найти на карте»';
+  const deliveryUnavailableMessage = useMemo(() => {
+    if (deliveryMethod !== 'delivery' || deliveryQuoteLoading) return null;
+    if (deliveryQuote?.location_warning) return deliveryQuote.location_warning;
+    if (deliveryQuote && deliveryQuote.available === false) {
+      return deliveryQuote.message || 'Адрес вне зоны доставки';
     }
-    if (deliveryMethod === 'delivery' && deliverToApartment && !apartment.trim()) {
-      return 'Укажите номер квартиры для доставки до двери';
-    }
-    if (!customerName.trim()) return 'Введите имя';
-    if (!customerPhone.trim()) return 'Введите телефон';
     return null;
+  }, [deliveryMethod, deliveryQuoteLoading, deliveryQuote]);
+
+  const checkoutBlockReason = useMemo(() => {
+    return foodCheckoutBlockReason({
+      kitchenOpen: kitchenStatus.open,
+      kitchenMessage: kitchenStatus.message,
+      cartTotal,
+      minOrder,
+      deliveryMethod,
+      deliveryReady,
+      deliveryQuoteLoading,
+      deliveryAddress: deliveryQuote?.display_address || effectiveAddress,
+      deliveryQuoteError,
+      deliveryUnavailableMessage,
+      deliverToApartment,
+      apartment,
+      customerName,
+      customerPhone,
+      loggedIn: isLoggedIn(),
+    });
   }, [
-    kitchenStatus, cartTotal, minOrder, deliveryMethod, deliveryReady,
-    deliverToApartment, apartment, customerName, customerPhone,
+    kitchenStatus, cartTotal, minOrder, deliveryMethod, deliveryReady, deliveryQuoteLoading,
+    deliveryQuote, effectiveAddress, deliveryQuoteError, deliveryUnavailableMessage,
+    deliverToApartment, apartment, customerName, customerPhone, getAccountToken(),
   ]);
 
   const openCheckout = useCallback(() => {
+    if (minOrder > 0 && cartTotal < minOrder) {
+      toast.error(`Минимальная сумма заказа — ${minOrder.toLocaleString('ru-RU')} ₸`);
+      return;
+    }
     setCartOpen(false);
     setCheckoutOpen(true);
     setAddressFormCollapsed(deliveryReady);
@@ -1121,26 +1142,30 @@ export default function Food() {
   }
 
   async function submitOrder() {
-    if (!requireAuthDialog(navigate)) return;
     if (submitting) return;
-    if (!kitchenStatus.open) {
-      toast.error(kitchenStatus.message || 'Кухня сейчас закрыта');
+    const block = foodCheckoutBlockReason({
+      kitchenOpen: kitchenStatus.open,
+      kitchenMessage: kitchenStatus.message,
+      cartTotal,
+      minOrder,
+      deliveryMethod,
+      deliveryReady,
+      deliveryQuoteLoading,
+      deliveryAddress: deliveryQuote?.display_address || effectiveAddress,
+      deliveryQuoteError,
+      deliveryUnavailableMessage,
+      deliverToApartment,
+      apartment,
+      customerName,
+      customerPhone,
+      loggedIn: isLoggedIn(),
+    });
+    if (block) {
+      toast.error(block);
+      if (!isLoggedIn()) requireAuthDialog(navigate);
       return;
     }
-    if (!customerPhone.trim()) { toast.error('Укажите телефон'); return; }
-    if (cartTotal < minOrder) { toast.error(`${t('food.minOrder')}: ${minOrder} ₸`); return; }
-
-    if (!customerName.trim()) { toast.error('Заполните имя'); return; }
-    if (deliveryMethod === 'delivery') {
-      if (!deliveryReady) {
-        toast.error('Укажите адрес: «Я здесь сейчас» или «Найти на карте»');
-        return;
-      }
-      if (deliverToApartment && !apartment.trim()) {
-        toast.error('Укажите номер квартиры для доставки до двери');
-        return;
-      }
-    }
+    if (!requireAuthDialog(navigate)) return;
 
     const aptPart = apartment.trim() ? `, кв. ${apartment.trim()}` : '';
     const toAptNote = deliverToApartment ? ' (до квартиры)' : ' (до подъезда)';
@@ -1176,12 +1201,9 @@ export default function Food() {
     const paymentLabel = PAYMENT_LABELS[payment];
     setSubmitting(true);
     try {
-      const u = getCurrentUser();
-      const uidNum = u?.id && /^\d+$/.test(u.id) ? parseInt(u.id, 10) : undefined;
       const created = await withRetry(() =>
         client.entities.food_orders.create({
           data: {
-            ...(uidNum != null ? { user_id: uidNum } : {}),
             restaurant_id: damAlemRestaurantId ?? 1,
             restaurant_name: settings.hero_banner_title || brandProfile?.name || 'DAM ALEM',
             restaurant_phone: settings.whatsapp_number || brandProfile?.whatsapp_phone || '',
@@ -1192,18 +1214,15 @@ export default function Food() {
             ...(appliedPromo?.code ? { promo_code: appliedPromo.code } : {}),
             ...(bonusDiscountAmount > 0 ? { bonus_points_to_use: bonusDiscountAmount } : {}),
             ...(apartmentDeliveryFee > 0 ? { apartment_delivery_fee: apartmentDeliveryFee } : {}),
-            delivery_zone: deliveryMethod === 'delivery' && deliveryQuote?.zone_name
-              ? deliveryQuote.zone_name
-              : '',
+            ...(deliveryMethod === 'delivery' && deliveryQuote?.lat != null && deliveryQuote?.lng != null
+              ? { delivery_lat: deliveryQuote.lat, delivery_lng: deliveryQuote.lng }
+              : {}),
             customer_name: customerName,
             customer_phone: customerPhone,
             delivery_address: fullAddress,
             comment: orderComment,
             delivery_method: deliveryMethod,
             payment_method: payment,
-            payment_status: payment === 'cash' ? 'pending' : 'awaiting_qr_payment',
-            status: 'new',
-            created_at: new Date().toISOString(),
           },
         })
       );
@@ -1238,9 +1257,7 @@ export default function Food() {
       setPayment('cash');
     } catch (e) {
       console.error('Error creating order:', e);
-      const err = e as { message?: string; response?: { data?: { detail?: string } } };
-      const detail = err.response?.data?.detail;
-      toast.error(typeof detail === 'string' ? detail : (err.message || 'Ошибка при оформлении заказа'));
+      toast.error(publicOrderErrorMessage(e));
     } finally {
       setSubmitting(false);
     }
@@ -2158,10 +2175,9 @@ export default function Food() {
                   label={t('food.checkout')}
                   sublabel={
                     minOrder > 0 && cartTotal < minOrder
-                      ? `Ещё ${formatPrice(minOrder - cartTotal)} до мин. заказа`
+                      ? `Минимальная сумма заказа — ${minOrder.toLocaleString('ru-RU')} ₸`
                       : formatPrice(cartTotalWithService)
                   }
-                  disabled={cartTotal < minOrder}
                   onClick={openCheckout}
                   testId="dam-cart-checkout"
                 />
@@ -2272,7 +2288,13 @@ export default function Food() {
                       )}
                       {!deliveryReady && !deliveryQuoteLoading && (
                         <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
-                          Нажмите «Я здесь сейчас» или введите адрес и «Найти на карте»
+                          {deliveryQuoteError
+                            ? deliveryQuoteError
+                            : deliveryUnavailableMessage
+                              ? deliveryUnavailableMessage
+                              : (deliveryQuote?.display_address || effectiveAddress).trim().length < 5
+                                ? 'Укажите адрес доставки'
+                                : 'Нажмите «Я здесь сейчас» или введите адрес и «Найти на карте»'}
                         </p>
                       )}
                     </div>
@@ -2532,6 +2554,15 @@ export default function Food() {
               </div>
 
               <div className="dam-sheet-footer dam-sheet-footer--premium">
+                {checkoutBlockReason && !submitting ? (
+                  <p
+                    role="alert"
+                    data-testid="dam-checkout-block-reason"
+                    className="mb-2 rounded-xl bg-amber-50 px-3 py-2 text-center text-sm font-semibold text-amber-900"
+                  >
+                    {checkoutBlockReason}
+                  </p>
+                ) : null}
                 <DamAlemCheckoutButton
                   label={submitting ? 'Отправляем заказ…' : 'Оформить заказ'}
                   sublabel={
@@ -2539,7 +2570,7 @@ export default function Food() {
                       ? checkoutBlockReason
                       : formatPrice(checkoutGrandTotal)
                   }
-                  disabled={!!checkoutBlockReason}
+                  disabled={submitting}
                   loading={submitting}
                   onClick={submitOrder}
                   testId="dam-checkout-submit"

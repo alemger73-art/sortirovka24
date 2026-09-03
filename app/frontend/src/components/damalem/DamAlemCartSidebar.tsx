@@ -144,10 +144,9 @@ export default function DamAlemCartSidebar({
           label={checkoutLabel}
           sublabel={
             belowMin
-              ? `Ещё ${formatPrice(minOrder - subtotal)} до мин. заказа`
+              ? `Минимальная сумма заказа — ${minOrder.toLocaleString('ru-RU')} ₸`
               : formatPrice(totalWithService)
           }
-          disabled={belowMin}
           onClick={onCheckout}
           testId="dam-sidebar-checkout"
         />

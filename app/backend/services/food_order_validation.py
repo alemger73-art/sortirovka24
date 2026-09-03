@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from fastapi import HTTPException
@@ -16,6 +17,13 @@ if TYPE_CHECKING:
 from services.food_items import Food_itemsService
 from services.food_restaurants import Food_restaurantsService
 from services.food_settings import Food_settingsService
+from services.gastronom_delivery import (
+    geocode_address,
+    haversine_km,
+    parse_delivery_zones,
+    resolve_delivery_quote,
+)
+from services.item_modifier_groups import Item_modifier_groupsService
 from services.modifier_options import Modifier_optionsService
 
 logger = logging.getLogger(__name__)
@@ -23,6 +31,26 @@ logger = logging.getLogger(__name__)
 DEFAULT_SERVICE_FEE_RATE = 0.10
 APARTMENT_DELIVERY_FEE = 300.0
 VALID_PAYMENT_METHODS = frozenset({"cash", "kaspi_qr", "halyk_qr"})
+CLIENT_OWNED_TRANSIENT = (
+    "promo_code",
+    "apartment_delivery_fee",
+    "delivery_fee",
+    "service_fee",
+    "delivery_zone",
+    "delivery_lat",
+    "delivery_lng",
+    "bonus_points_to_use",
+)
+SERVER_OWNED_FIELDS = (
+    "id",
+    "status",
+    "payment_status",
+    "user_id",
+    "created_at",
+    "frontpad_order_number",
+    "bonus_points_used",
+    "bonus_discount_amount",
+)
 
 
 def _normalize_phone(phone: str) -> str:
@@ -50,14 +78,6 @@ def _service_fee_rate(settings: Dict[str, str]) -> float:
         return max(0.0, min(val, 1.0))
     except ValueError:
         return DEFAULT_SERVICE_FEE_RATE
-
-
-def _parse_zones(settings: Dict[str, str]) -> List[Dict[str, Any]]:
-    try:
-        parsed = json.loads(settings.get("delivery_zones") or "[]")
-        return parsed if isinstance(parsed, list) else []
-    except json.JSONDecodeError:
-        return []
 
 
 def _parse_promo_codes(raw: str) -> List[Dict[str, Any]]:
@@ -119,39 +139,135 @@ def _resolve_promo(
     return round(subtotal * (pct / 100.0)), False
 
 
-def _resolve_delivery_fee(
+def _parse_coord(value: Any) -> Optional[float]:
+    if value is None or value == "":
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _fallback_delivery_price(settings: Dict[str, str]) -> float:
+    try:
+        return float(settings.get("delivery_price") or settings.get("delivery_fee") or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+_DELIVERY_NOTE_RE = re.compile(r"\s*\((?:до квартиры|до подъезда)\)\s*$", re.IGNORECASE)
+_APT_SUFFIX_RE = re.compile(r",?\s*кв\.?\s*.*$", re.IGNORECASE)
+_CLIENT_GEOCODE_MAX_KM = 2.0
+
+
+def _address_for_geocode(address: str) -> str:
+    """Strip apartment / handoff notes so Nominatim can resolve the street point."""
+    q = (address or "").strip()
+    q = _DELIVERY_NOTE_RE.sub("", q)
+    q = _APT_SUFFIX_RE.sub("", q)
+    return q.strip(" ,")
+
+
+def _requires_priced_food_checkout(settings: Dict[str, str]) -> bool:
+    """True when food settings imply zone/service/delivery pricing (DAM ALEM path).
+
+    Legacy marketplace carts omit fee hints and pay only catalog subtotal.
+    They must not inherit this path when priced food settings are configured.
+    """
+    if parse_delivery_zones(settings):
+        return True
+    if _service_fee_rate(settings) > 0:
+        return True
+    if _fallback_delivery_price(settings) > 0:
+        return True
+    return False
+
+
+async def _resolve_trusted_delivery_coords(
+    settings: Dict[str, str],
+    delivery_address: str,
+    client_lat: Optional[float],
+    client_lng: Optional[float],
+    *,
+    require_server_geocode: bool,
+) -> Tuple[Optional[float], Optional[float]]:
+    """Prefer server geocode of the address over client-supplied lat/lng."""
+    cleaned = _address_for_geocode(delivery_address)
+    geocoded: Optional[Tuple[float, float]] = None
+    if len(cleaned) >= 5:
+        geocoded = await geocode_address(cleaned, settings=settings)
+
+    if geocoded:
+        g_lat, g_lng = geocoded
+        if client_lat is not None and client_lng is not None:
+            drift = haversine_km(g_lat, g_lng, client_lat, client_lng)
+            if drift > _CLIENT_GEOCODE_MAX_KM:
+                logger.warning(
+                    "Client delivery coords diverge from geocoded address by %.1f km; using geocode",
+                    drift,
+                )
+        return g_lat, g_lng
+
+    if require_server_geocode:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Не удалось проверить адрес доставки. "
+                "Укажите адрес через «Найти на карте» или «Я здесь сейчас»."
+            ),
+        )
+    return client_lat, client_lng
+
+
+def _server_delivery_fee(
     delivery_method: str,
     settings: Dict[str, str],
-    delivery_fee_hint: Optional[float],
-    zone_name: Optional[str],
+    lat: Optional[float],
+    lng: Optional[float],
+    *,
+    marketplace_no_fee_hints: bool,
 ) -> float:
+    """Price delivery from server settings / polygons. Never from client zone name."""
     if (delivery_method or "delivery") != "delivery":
         return 0.0
-    zones = _parse_zones(settings)
-    if zone_name and zones:
-        for z in zones:
-            if isinstance(z, dict) and z.get("name") == zone_name:
-                try:
-                    return float(z.get("price") or 0)
-                except (TypeError, ValueError):
-                    pass
-    if delivery_fee_hint is not None:
+
+    polygon_zones = parse_delivery_zones(settings)
+    if polygon_zones:
+        if lat is None or lng is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Не удалось определить зону доставки. Укажите адрес на карте или «Я здесь сейчас».",
+            )
+        quote = resolve_delivery_quote(settings, lat, lng)
+        if not quote.get("available"):
+            raise HTTPException(
+                status_code=400,
+                detail=str(quote.get("message") or "Доставка по этому адресу недоступна"),
+            )
         try:
-            fee = float(delivery_fee_hint)
-            if fee >= 0:
-                if zones:
-                    allowed = {float(z.get("price", 0)) for z in zones if isinstance(z, dict)}
-                    base = float(settings.get("delivery_price") or 0)
-                    if fee in allowed or (base and fee == base):
-                        return fee
-                else:
-                    return fee
+            return float(quote.get("delivery_fee") or 0)
         except (TypeError, ValueError):
-            pass
-    try:
-        return float(settings.get("delivery_price") or 0)
-    except ValueError:
+            return 0.0
+
+    if marketplace_no_fee_hints:
         return 0.0
+    return _fallback_delivery_price(settings)
+
+
+def _account_user_id(account_user: Optional["User"]) -> Optional[int]:
+    if account_user is None:
+        return None
+    raw = getattr(account_user, "id", None)
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    if text.isdigit():
+        return int(text)
+    return None
+
+
+def _server_now() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 async def validate_food_order(
@@ -168,6 +284,7 @@ async def validate_food_order(
     Validate order payload against catalog and settings.
     Returns (sanitized_data, validated_items, expected_total).
     """
+    _ = zone_name
     customer_name = (data.get("customer_name") or "").strip()
     customer_phone = (data.get("customer_phone") or "").strip()
     delivery_method = (data.get("delivery_method") or "delivery").strip()
@@ -196,11 +313,16 @@ async def validate_food_order(
     mod_svc = Modifier_optionsService(db)
     mod_res = await mod_svc.get_list(skip=0, limit=2000, query_dict=None, sort="sort_order")
     options_by_id = {int(o.id): o for o in mod_res["items"] if o.id is not None}
-    options_by_name: Dict[str, Any] = {}
-    for o in mod_res["items"]:
-        name = (o.name or "").strip().lower()
-        if name:
-            options_by_name[name] = o
+
+    links_svc = Item_modifier_groupsService(db)
+    links_res = await links_svc.get_list(skip=0, limit=5000, query_dict=None, sort="id")
+    groups_by_item: Dict[int, set[int]] = {}
+    for link in links_res["items"]:
+        item_id = getattr(link, "food_item_id", None)
+        group_id = getattr(link, "modifier_group_id", None)
+        if item_id is None or group_id is None:
+            continue
+        groups_by_item.setdefault(int(item_id), set()).add(int(group_id))
 
     set_svc = Food_settingsService(db)
     set_res = await set_svc.get_list(skip=0, limit=100, query_dict=None, sort="id")
@@ -260,23 +382,40 @@ async def validate_food_order(
 
         mod_total = 0.0
         validated_mods: List[dict] = []
+        allowed_groups = groups_by_item.get(int(product.id), set())
         for mod in raw.get("modifiers") or []:
             if not isinstance(mod, dict):
-                continue
-            opt_id = mod.get("option_id") or mod.get("id")
-            opt = options_by_id.get(int(opt_id)) if opt_id is not None else None
-            if not opt:
-                name = (mod.get("name") or "").strip().lower()
-                opt = options_by_name.get(name)
-            if opt and opt.is_active is not False:
-                price = float(opt.price or 0)
-            else:
-                price = float(mod.get("price") or 0)
+                raise HTTPException(status_code=400, detail=f"Некорректная опция для «{product.name}»")
+            opt_id = mod.get("option_id") if mod.get("option_id") is not None else mod.get("id")
+            if opt_id is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Некорректная опция для «{product.name}»",
+                )
+            try:
+                opt = options_by_id.get(int(opt_id))
+            except (TypeError, ValueError):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Некорректная опция для «{product.name}»",
+                )
+            if not opt or opt.is_active is False:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Опция недоступна для «{product.name}»",
+                )
+            group_id = getattr(opt, "group_id", None)
+            if group_id is None or int(group_id) not in allowed_groups:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Опция не относится к блюду «{product.name}»",
+                )
+            price = float(opt.price or 0)
             mod_total += price
             validated_mods.append({
-                "name": (opt.name if opt else mod.get("name")) or "",
+                "name": opt.name or "",
                 "price": price,
-                "option_id": opt.id if opt else opt_id,
+                "option_id": opt.id,
             })
 
         client_mod_total = float(raw.get("modTotal") or raw.get("mod_total") or 0)
@@ -299,15 +438,41 @@ async def validate_food_order(
     if min_order > 0 and subtotal < min_order:
         raise HTTPException(status_code=400, detail=f"Минимальный заказ {int(min_order)} ₸")
 
-    fee_rate = _service_fee_rate(settings)
-    expected_service = round(subtotal * fee_rate) if service_fee_hint is not None else 0
-    if service_fee_hint is not None and abs(float(service_fee_hint) - round(subtotal * fee_rate)) > 1:
-        raise HTTPException(status_code=400, detail="Сервисный сбор не совпадает. Обновите страницу")
-    if service_fee_hint is not None:
-        expected_service = round(subtotal * fee_rate)
+    requires_priced_checkout = _requires_priced_food_checkout(settings)
+    # Legacy marketplace: no fee hints AND no priced food settings.
+    # Omitting fee hints must NOT zero delivery when DAM ALEM / zone pricing is on.
+    marketplace_no_fee_hints = (
+        delivery_fee_hint is None
+        and service_fee_hint is None
+        and not requires_priced_checkout
+    )
 
-    delivery_fee = _resolve_delivery_fee(
-        delivery_method, settings, delivery_fee_hint, zone_name
+    fee_rate = _service_fee_rate(settings)
+    if service_fee_hint is not None or requires_priced_checkout:
+        expected_service = round(subtotal * fee_rate)
+        if service_fee_hint is not None and abs(float(service_fee_hint) - expected_service) > 1:
+            raise HTTPException(status_code=400, detail="Сервисный сбор не совпадает. Обновите страницу")
+    else:
+        expected_service = 0
+
+    client_lat = _parse_coord(data.get("delivery_lat"))
+    client_lng = _parse_coord(data.get("delivery_lng"))
+    lat, lng = client_lat, client_lng
+    if delivery_method == "delivery" and parse_delivery_zones(settings):
+        lat, lng = await _resolve_trusted_delivery_coords(
+            settings,
+            delivery_address,
+            client_lat,
+            client_lng,
+            require_server_geocode=not marketplace_no_fee_hints,
+        )
+
+    delivery_fee = _server_delivery_fee(
+        delivery_method,
+        settings,
+        lat,
+        lng,
+        marketplace_no_fee_hints=marketplace_no_fee_hints,
     )
     delivery_fee = _apply_free_delivery_threshold(subtotal, delivery_fee, settings)
 
@@ -337,8 +502,8 @@ async def validate_food_order(
     expected_total = max(0.0, expected_total)
     client_total = round(float(data.get("total_amount") or 0), 2)
 
-    # Marketplace checkout: total may equal subtotal only (no service/delivery line items sent).
-    if service_fee_hint is None and delivery_fee_hint is None and abs(client_total - subtotal) <= 1:
+    # Legacy marketplace checkout omits service/delivery line items (total == subtotal).
+    if marketplace_no_fee_hints and abs(client_total - subtotal) <= 1:
         expected_total = subtotal
         expected_service = 0
         delivery_fee = 0
@@ -381,18 +546,15 @@ async def validate_food_order(
         raise HTTPException(status_code=400, detail="Некорректный способ оплаты")
 
     sanitized = dict(data)
-    for transient_key in (
-        "promo_code",
-        "apartment_delivery_fee",
-        "delivery_fee",
-        "service_fee",
-        "delivery_zone",
-        "bonus_points_to_use",
-    ):
+    for transient_key in CLIENT_OWNED_TRANSIENT:
         sanitized.pop(transient_key, None)
+    for owned_key in SERVER_OWNED_FIELDS:
+        sanitized.pop(owned_key, None)
     sanitized["payment_method"] = payment_method
-    if not sanitized.get("payment_status"):
-        sanitized["payment_status"] = "pending" if payment_method == "cash" else "awaiting_qr_payment"
+    sanitized["payment_status"] = "pending" if payment_method == "cash" else "awaiting_qr_payment"
+    sanitized["status"] = "new"
+    sanitized["user_id"] = _account_user_id(account_user)
+    sanitized["created_at"] = _server_now()
     sanitized["order_items"] = json.dumps(validated_items, ensure_ascii=False)
     sanitized["total_amount"] = expected_total
     if bonus_points_used > 0:
