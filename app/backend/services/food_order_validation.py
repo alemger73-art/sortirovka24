@@ -113,7 +113,7 @@ def _resolve_promo(
     for promo in promos:
         if not promo or not isinstance(promo, dict):
             continue
-        if str(promo.get("code", "")).strip().upper() != code:
+        if str(promo.get("code", "")).strip().upper() != code.strip().upper():
             continue
         if promo.get("active") is False or str(promo.get("active", "")).lower() in ("0", "false"):
             continue

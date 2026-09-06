@@ -1,6 +1,6 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
-async function waitForFoodMenu(page: import("@playwright/test").Page) {
+async function waitForFoodMenu(page: Page) {
   await page.goto("/food");
   await expect(page.locator(".dam-page")).toBeVisible({ timeout: 30_000 });
   await page.waitForFunction(
@@ -9,8 +9,27 @@ async function waitForFoodMenu(page: import("@playwright/test").Page) {
   );
 }
 
-async function openCheckoutWizard(page: import("@playwright/test").Page) {
+async function addItemToCart(page: Page) {
+  const cards = page.locator(".dam-grid-card");
+  const count = await cards.count();
+  for (let i = 0; i < count; i++) {
+    const card = cards.nth(i);
+    if ((await card.locator(".dam-grid-card__tag--opt").count()) > 0) continue;
+    const addBtn = card.locator(".dam-grid-card__add");
+    if ((await addBtn.count()) === 0) continue;
+    await addBtn.click();
+    return;
+  }
   await page.locator(".dam-grid-card__add").first().click();
+  const modalAdd = page.locator(
+    'button:has-text("В корзину"), button:has-text("Қосу"), [data-testid="dam-product-add"]',
+  ).first();
+  await expect(modalAdd).toBeVisible({ timeout: 8_000 });
+  await modalAdd.click();
+}
+
+async function openCheckoutWizard(page: Page) {
+  await addItemToCart(page);
   await page.locator(".dam-floating-cart").click();
   await expect(page.getByTestId("dam-cart-sheet")).toBeVisible();
   await page.getByTestId("dam-cart-checkout").click();

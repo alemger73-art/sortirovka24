@@ -113,7 +113,7 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
   }
 
   async function saveEdit(orderId: number) {
-    let itemsJson = editForm.order_items;
+    const itemsJson = editForm.order_items;
     try {
       JSON.parse(itemsJson);
     } catch {

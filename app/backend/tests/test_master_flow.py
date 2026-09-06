@@ -61,6 +61,7 @@ async def test_become_master_request_visible_in_cabinet(client: AsyncClient):
 
     create = await client.post(
         "/api/v1/entities/become_master_requests",
+        headers=headers,
         json={
             "name": "Master Applicant",
             "category": "Сантехник",
@@ -87,6 +88,7 @@ async def test_approve_become_master_promotes_role_and_opens_cabinet(client: Asy
 
     create = await client.post(
         "/api/v1/entities/become_master_requests",
+        headers=user_headers,
         json={
             "name": "Approved Master",
             "category": "Электрик",
@@ -98,6 +100,7 @@ async def test_approve_become_master_promotes_role_and_opens_cabinet(client: Asy
             "created_at": "2026-01-01 12:00:00",
         },
     )
+    assert create.status_code == 201, create.text
     req_id = create.json()["id"]
 
     approve = await client.post(
@@ -122,8 +125,10 @@ async def test_master_request_create_and_cabinet_visibility(client: AsyncClient,
     master_token, master_phone = await _register(client)
     admin_headers = _admin_headers()
 
+    master_headers = {"Authorization": f"Bearer {master_token}"}
     create_req = await client.post(
         "/api/v1/entities/become_master_requests",
+        headers=master_headers,
         json={
             "name": "Working Master",
             "category": "Сантехник",
@@ -135,13 +140,12 @@ async def test_master_request_create_and_cabinet_visibility(client: AsyncClient,
             "created_at": "2026-01-01 12:00:00",
         },
     )
+    assert create_req.status_code == 201, create_req.text
     req_id = create_req.json()["id"]
     await client.post(
         f"/api/v1/account/admin/masters/approve-become-request/{req_id}",
         headers=admin_headers,
     )
-
-    master_headers = {"Authorization": f"Bearer {master_token}"}
     cabinet_before = await client.get("/api/v1/account/master/cabinet", headers=master_headers)
     listing_id = cabinet_before.json()["profile"]["listing_id"]
 
