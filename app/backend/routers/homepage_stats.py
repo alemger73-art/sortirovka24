@@ -23,6 +23,8 @@ class Homepage_statsData(BaseModel):
     ads_count: int = None
     cafes_count: int = None
     is_auto: bool = None
+    is_visible: bool = False
+    residents_count: int = None
     updated_at: str = None
 
 
@@ -32,6 +34,8 @@ class Homepage_statsUpdateData(BaseModel):
     ads_count: Optional[int] = None
     cafes_count: Optional[int] = None
     is_auto: Optional[bool] = None
+    is_visible: Optional[bool] = None
+    residents_count: Optional[int] = None
     updated_at: Optional[str] = None
 
 
@@ -42,6 +46,8 @@ class Homepage_statsResponse(BaseModel):
     ads_count: Optional[int] = None
     cafes_count: Optional[int] = None
     is_auto: Optional[bool] = None
+    is_visible: Optional[bool] = False
+    residents_count: Optional[int] = None
     updated_at: Optional[str] = None
 
     class Config:

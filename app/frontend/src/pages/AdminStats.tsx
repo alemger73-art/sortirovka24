@@ -37,7 +37,7 @@ export default function AdminStats() {
   const [cafesCount, setCafesCount] = useState(0);
   const [residentsCount, setResidentsCount] = useState(1000);
   const [isAuto, setIsAuto] = useState(true);
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     loadStats();
@@ -56,7 +56,7 @@ export default function AdminStats() {
         setCafesCount(s.cafes_count || 0);
         setResidentsCount(s.residents_count || 1000);
         setIsAuto(s.is_auto === true || (s.is_auto as any) === 'true');
-        setIsVisible(s.is_visible !== false && (s.is_visible as any) !== 'false');
+        setIsVisible(s.is_visible === true || (s.is_visible as any) === 'true');
       }
     } catch (err) {
       console.error('Failed to load stats:', err);
@@ -164,17 +164,17 @@ export default function AdminStats() {
       {/* Visibility toggle */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Отображение счётчика</CardTitle>
+          <CardTitle className="text-base">Показывать статистику на главной</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-sm font-medium text-gray-900 flex items-center gap-1.5">
                 {isVisible ? <Eye className="w-4 h-4 text-green-600" /> : <EyeOff className="w-4 h-4 text-gray-400" />}
-                {isVisible ? 'Счётчик показывается' : 'Счётчик скрыт'}
+                {isVisible ? 'ON — блок статистики виден' : 'OFF — блок скрыт и не занимает место'}
               </Label>
               <p className="text-xs text-gray-500 mt-0.5">
-                Блок с цифрами (мастера, кафе, жители) в секции героя на главной
+                Блок с цифрами (мастера, кафе, жители) в секции героя на главной. По умолчанию выключен.
               </p>
             </div>
             <Switch checked={isVisible} onCheckedChange={setIsVisible} />

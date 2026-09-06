@@ -17,7 +17,11 @@ def _reset_account_rate_limiters():
     account_v2.LOGIN_ATTEMPTS.clear()
     account_v2.SMS_REQUEST_ATTEMPTS.clear()
     rate_limit._RATE_BUCKETS.clear()
+    from routers import food_orders as food_orders_router
+
+    food_orders_router._ORDER_RATE.clear()
     yield
     account_v2.LOGIN_ATTEMPTS.clear()
     account_v2.SMS_REQUEST_ATTEMPTS.clear()
     rate_limit._RATE_BUCKETS.clear()
+    food_orders_router._ORDER_RATE.clear()

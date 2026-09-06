@@ -24,7 +24,7 @@
         },
         "is_visible": {
             "type": "boolean",
-            "description": "Show counter on homepage hero"
+            "description": "Show statistics block on homepage hero. Default off."
         },
         "residents_count": {
             "type": "integer",

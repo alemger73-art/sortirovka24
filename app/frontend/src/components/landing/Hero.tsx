@@ -44,15 +44,15 @@ export default function Hero() {
       <div className="relative z-10">
         <div className="mx-auto flex min-h-[450px] max-w-7xl items-end px-4 pb-8 pt-6 md:min-h-[560px] md:px-8 md:pb-14">
           <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <h1 className="text-5xl font-black leading-[0.95] tracking-[-0.03em] text-white md:text-7xl">
-              <span className="text-yellow-400">{t("hero.foodDeliveryHighlight")}</span>{" "}
-              {t("hero.foodDeliveryTitleRest")} <br />
-              {t("hero.foodDeliveryTitle2")}
+            <h1 className="text-[2.35rem] font-black leading-[0.95] tracking-[-0.03em] text-balance text-white sm:text-5xl md:text-7xl">
+              <span className="text-yellow-400">{t("hero.title1")}</span>{" "}
+              <br className="hidden md:block" />
+              {t("hero.title2")}
             </h1>
 
             <p className="mt-4 max-w-xl text-lg leading-snug text-white/80 md:text-3xl md:leading-[1.05]">
-              Еда, услуги, объявления и помощь — <br className="hidden md:block" />
-              в одном сервисе
+              {t("hero.subtitleLead")} <br className="hidden md:block" />
+              {t("hero.subtitleRest")}
             </p>
 
             <div

@@ -4,7 +4,7 @@
         "ads_count": 500,
         "cafes_count": 50,
         "is_auto": true,
-        "is_visible": true,
+        "is_visible": false,
         "residents_count": 1000,
         "updated_at": "2026-03-23 00:00:00"
     }

@@ -25,9 +25,13 @@ function getTotal(r: PromiseSettledResult<any>): number {
   return Array.isArray(items) ? items.length : 0;
 }
 
+function isExplicitlyVisible(value: unknown): boolean {
+  return value === true || value === 'true';
+}
+
 export function useHomepageHeroStats() {
-  const [visible, setVisible] = useState(true);
-  const [items, setItems] = useState<HeroStatItem[]>(DEFAULT_STATS);
+  const [visible, setVisible] = useState(false);
+  const [items, setItems] = useState<HeroStatItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,7 +45,7 @@ export function useHomepageHeroStats() {
           CACHE_TTL,
         );
         const row = res?.data?.items?.[0] ?? null;
-        const isVisible = row?.is_visible !== false && row?.is_visible !== 'false';
+        const isVisible = isExplicitlyVisible(row?.is_visible);
         if (cancelled) return;
 
         if (!isVisible) {
@@ -76,8 +80,8 @@ export function useHomepageHeroStats() {
         setItems(next.length > 0 ? next : DEFAULT_STATS);
       } catch {
         if (!cancelled) {
-          setVisible(true);
-          setItems(DEFAULT_STATS);
+          setVisible(false);
+          setItems([]);
         }
       } finally {
         if (!cancelled) setLoading(false);

@@ -11,8 +11,9 @@ export interface DamAlemProductCardProps {
   optionsLabel?: string;
   isFavorite?: boolean;
   weight?: string;
-  badge?: 'hit' | 'new' | null;
-  variant?: 'grid' | 'row';
+  badge?: 'hit' | 'new' | 'combo' | null;
+  /** hero = large photo (UFO); grid = standard; row = compact upsell */
+  variant?: 'grid' | 'row' | 'hero';
   onOpen: () => void;
   onAdd: () => void;
   onRemove: () => void;
@@ -74,8 +75,18 @@ export default function DamAlemProductCard({
     );
   }
 
+  const isHero = variant === 'hero';
+  const badgeLabel =
+    badge === 'hit' ? 'Хит' : badge === 'new' ? 'New' : badge === 'combo' ? 'Комбо' : null;
+  const badgeClass =
+    badge === 'hit'
+      ? 'dam-grid-card__badge--hit'
+      : badge === 'combo'
+        ? 'dam-grid-card__badge--combo'
+        : 'dam-grid-card__badge--new';
+
   return (
-    <article className="dam-grid-card dam-animate-in">
+    <article className={`dam-grid-card dam-animate-in${isHero ? ' dam-grid-card--hero' : ''}`}>
       <div
         role="button"
         tabIndex={0}
@@ -85,8 +96,7 @@ export default function DamAlemProductCard({
         aria-label={name}
       >
         <DamAlemImage src={imageUrl} alt="" className="h-full w-full object-cover" />
-        {badge === 'hit' ? <span className="dam-grid-card__badge dam-grid-card__badge--hit">Хит</span> : null}
-        {badge === 'new' ? <span className="dam-grid-card__badge dam-grid-card__badge--new">New</span> : null}
+        {badgeLabel ? <span className={`dam-grid-card__badge ${badgeClass}`}>{badgeLabel}</span> : null}
         {onToggleFavorite ? (
           <span
             role="button"
