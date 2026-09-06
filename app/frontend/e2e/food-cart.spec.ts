@@ -1,6 +1,6 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
-async function waitForFoodMenu(page: import("@playwright/test").Page) {
+async function waitForFoodMenu(page: Page) {
   await page.goto("/food");
   await expect(page.locator(".dam-page")).toBeVisible({ timeout: 30_000 });
   await page.waitForFunction(
@@ -13,15 +13,34 @@ async function waitForFoodMenu(page: import("@playwright/test").Page) {
   );
 }
 
+/** Prefer a card without required options so quick-add fills the cart immediately. */
+async function addItemToCart(page: Page) {
+  const cards = page.locator(".dam-grid-card");
+  const count = await cards.count();
+  for (let i = 0; i < count; i++) {
+    const card = cards.nth(i);
+    if ((await card.locator(".dam-grid-card__tag--opt").count()) > 0) continue;
+    const addBtn = card.locator(".dam-grid-card__add");
+    if ((await addBtn.count()) === 0) continue;
+    await addBtn.click();
+    return;
+  }
+
+  // Fallback: open first add (may open options modal) and confirm.
+  await page.locator(".dam-grid-card__add").first().click();
+  const modalAdd = page.locator(
+    'button:has-text("В корзину"), button:has-text("Қосу"), [data-testid="dam-product-add"]',
+  ).first();
+  await expect(modalAdd).toBeVisible({ timeout: 8_000 });
+  await modalAdd.click();
+}
+
 test("cart drawer: add item, change quantity, open checkout", async ({ page }) => {
   await waitForFoodMenu(page);
-
-  const quickAdd = page.locator(".dam-grid-card__add").first();
-  await expect(quickAdd).toBeVisible({ timeout: 15_000 });
-  await quickAdd.click();
+  await addItemToCart(page);
 
   const floatingCart = page.locator(".dam-floating-cart");
-  await expect(floatingCart).toBeVisible({ timeout: 5_000 });
+  await expect(floatingCart).toBeVisible({ timeout: 10_000 });
   await floatingCart.click();
 
   const sheet = page.getByTestId("dam-cart-sheet");
@@ -47,9 +66,7 @@ test("cart drawer: add item, change quantity, open checkout", async ({ page }) =
 
 test("cart drawer: close button works", async ({ page }) => {
   await waitForFoodMenu(page);
-
-  const quickAdd = page.locator(".dam-grid-card__add").first();
-  await quickAdd.click();
+  await addItemToCart(page);
   await page.locator(".dam-floating-cart").click();
 
   await expect(page.getByTestId("dam-cart-sheet")).toBeVisible();
