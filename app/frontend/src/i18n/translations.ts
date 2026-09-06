@@ -159,7 +159,7 @@ const translations: Translations = {
   'hero.announcements': { ru: 'Объявлений', kz: 'Хабарландыру' },
   'hero.cafes': { ru: 'Кафе', kz: 'Кафе' },
   'hero.food': { ru: 'Еда', kz: 'Тамақ' },
-  'hero.foodDesc': { ru: 'Из кафе и ресторанов', kz: 'Кафе мен мейрамханалардан' },
+  'hero.foodDesc': { ru: 'Доставка DAM ALEM 2.0', kz: 'DAM ALEM 2.0 жеткізу' },
   'hero.gastronom': { ru: 'Гастроном', kz: 'Гастроном' },
   'hero.gastronomDesc': { ru: 'Доставка продуктов по Сортировке', kz: 'Сортировка бойынша өнімдер жеткізу' },
   'hero.volna': { ru: 'VOLNA', kz: 'VOLNA' },
@@ -168,6 +168,13 @@ const translations: Translations = {
   'hero.mastersDesc': { ru: 'Все услуги', kz: 'Барлық қызметтер' },
   'hero.taxi': { ru: 'Такси', kz: 'Такси' },
   'hero.taxiDesc': { ru: 'Быстро по району', kz: 'Аудан бойынша жылдам' },
+  'hero.inspector': { ru: 'Найти участкового', kz: 'Учаскелік табу' },
+  'hero.inspectorDesc': { ru: 'По вашей улице', kz: 'Көшеңіз бойынша' },
+  'hero.directory': { ru: 'Справочник', kz: 'Анықтамалық' },
+  'hero.directoryDesc': { ru: 'Телефоны района', kz: 'Аудан телефондары' },
+  'hero.weatherCold': { ru: 'Одевайтесь теплее', kz: 'Жылы киініңіз' },
+  'hero.weatherCool': { ru: 'Прохладно', kz: 'Салқын' },
+  'hero.weatherNice': { ru: 'Отличная погода', kz: 'Керемет ауа райы' },
 
   /* ─── Services ─── */
   'services.title': { ru: 'Сервисы', kz: 'Сервистер' },

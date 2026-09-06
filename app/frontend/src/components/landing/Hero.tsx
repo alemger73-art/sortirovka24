@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
-import { Car, Utensils, Wrench, Users, Coffee, ShieldCheck, ShoppingBag } from "lucide-react";
+import { BookOpen, Car, Shield, ShoppingBag, Utensils, Wrench, Users, Coffee, ShieldCheck } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTaxiEnabled } from "@/hooks/useTaxiEnabled";
 import { useModules } from "@/hooks/useModules";
 import { useHomepageHeroStats, type HeroStatItem } from "@/hooks/useHomepageHeroStats";
+import WeatherWidget from "@/components/landing/WeatherWidget";
 
 const HERO_BG =
   "https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/ad8caa55-9593-448b-8f7a-39be84ed5053.png";
@@ -27,7 +28,10 @@ export default function Hero() {
   const showFood = isEnabled("food");
   const showGastronom = isEnabled("gastronom");
   const showMasters = isEnabled("masters");
-  const btnCount = [showTaxi, showFood, showGastronom, showMasters].filter(Boolean).length;
+  const showInspectors = isEnabled("inspectors");
+  const showDirectory = isEnabled("directory");
+  const btnCount = [showTaxi, showFood, showGastronom, showMasters, showInspectors, showDirectory].filter(Boolean).length;
+  const gridCols = btnCount >= 5 ? "grid-cols-2 lg:grid-cols-3" : btnCount === 4 ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-2 sm:grid-cols-3";
 
   return (
     <section className="relative min-h-[520px] overflow-hidden md:min-h-[640px]">
@@ -44,6 +48,13 @@ export default function Hero() {
       <div className="relative z-10">
         <div className="mx-auto flex min-h-[450px] max-w-7xl items-end px-4 pb-8 pt-6 md:min-h-[560px] md:px-8 md:pb-14">
           <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80 backdrop-blur-sm">
+                {t("hero.todayIn")}
+              </span>
+              <WeatherWidget />
+            </div>
+
             <h1 className="text-[2.35rem] font-black leading-[0.95] tracking-[-0.03em] text-balance text-white sm:text-5xl md:text-7xl">
               <span className="text-yellow-400">{t("hero.title1")}</span>{" "}
               <br className="hidden md:block" />
@@ -55,11 +66,7 @@ export default function Hero() {
               {t("hero.subtitleRest")}
             </p>
 
-            <div
-              className={`mt-7 grid grid-cols-1 gap-3 sm:grid-cols-2 ${
-                btnCount >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"
-              }`}
-            >
+            <div className={`mt-7 grid gap-3 ${gridCols}`}>
               {showTaxi && (
                 <Link
                   to="/taxi"
@@ -97,6 +104,24 @@ export default function Hero() {
                     <p className="text-base font-bold">{t("hero.mastersBtn")}</p>
                   </div>
                   <p className="mt-1 text-sm leading-snug text-white/75">{t("hero.mastersDesc")}</p>
+                </Link>
+              )}
+              {showInspectors && (
+                <Link to="/inspectors" className={glassBtn}>
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 shrink-0" />
+                    <p className="text-base font-bold">{t("hero.inspector")}</p>
+                  </div>
+                  <p className="mt-1 text-sm leading-snug text-white/75">{t("hero.inspectorDesc")}</p>
+                </Link>
+              )}
+              {showDirectory && (
+                <Link to="/directory" className={glassBtn}>
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 shrink-0" />
+                    <p className="text-base font-bold">{t("hero.directory")}</p>
+                  </div>
+                  <p className="mt-1 text-sm leading-snug text-white/75">{t("hero.directoryDesc")}</p>
                 </Link>
               )}
             </div>
