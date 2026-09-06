@@ -1,8 +1,19 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
+  "$comment": "SPA+API image. Railway Root Directory MUST be empty (repo root). Do NOT set Root Directory to app/backend — frontend will be missing from the build context.",
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile"
+    "dockerfilePath": "Dockerfile",
+    "watchPatterns": [
+      "Dockerfile",
+      "railway.json",
+      "app/backend/**",
+      "app/frontend/package.json",
+      "app/frontend/pnpm-lock.yaml",
+      "app/frontend/src/**",
+      "app/frontend/index.html",
+      "app/frontend/vite.config.*"
+    ]
   },
   "deploy": {
     "startCommand": "sh -c \"alembic upgrade head || echo 'WARNING: alembic upgrade failed'; uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips=*\"",

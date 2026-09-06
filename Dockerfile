@@ -1,29 +1,35 @@
-# Railway / Docker build: builds the React frontend and serves it together with
-# the FastAPI backend from a single image (one URL for the whole site).
-# Build context is the repository root.
+# Railway / Docker: build React SPA + FastAPI in one image (one URL for the site).
+# REQUIRED: build context = repository root (Railway Root Directory empty / "/").
+# Do NOT set Root Directory to app/backend — that context cannot reach app/frontend.
 
-# ---- Stage 1: build the frontend ----
+# ---- Stage 1: build the frontend (pnpm + locked deps) ----
 FROM node:20-slim AS frontend
 WORKDIR /app/frontend
 
+RUN corepack enable && corepack prepare pnpm@8.10.0 --activate
+
 # Install dependencies first for better layer caching.
-# package-lock.json is not in git (project uses pnpm locally); npm install from package.json.
-COPY app/frontend/package.json ./
-RUN npm install --no-audit --no-fund
+COPY app/frontend/package.json app/frontend/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 # Build the production bundle into /app/frontend/dist.
 COPY app/frontend/ ./
-ARG APP_BUILD_ID=unknown
+# Railway injects RAILWAY_GIT_COMMIT_SHA as a build arg when available.
+ARG RAILWAY_GIT_COMMIT_SHA=
+ARG APP_BUILD_ID=${RAILWAY_GIT_COMMIT_SHA:-unknown}
 ENV APP_BUILD_ID=${APP_BUILD_ID}
-RUN npm run build
+RUN pnpm run build
 
 # ---- Stage 2: backend runtime ----
 FROM python:3.12-slim
 
+ARG RAILWAY_GIT_COMMIT_SHA=
+ARG APP_BUILD_ID=${RAILWAY_GIT_COMMIT_SHA:-unknown}
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    APP_BUILD_ID=${APP_BUILD_ID}
 
 WORKDIR /app/backend
 

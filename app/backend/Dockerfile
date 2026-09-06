@@ -1,19 +1,16 @@
-# Docker build for the FastAPI backend when the build context is app/backend
-# (e.g. Railway service "Root Directory" set to app/backend).
+# INTENTIONAL FAIL when Railway Root Directory is app/backend.
+# Docker build context cannot reach ../frontend, so this path can never ship the SPA.
+#
+# Fix (required for www / SPA+API):
+#   Railway → Service → Settings → Root Directory = empty (repository root)
+#   Use the root Dockerfile + root railway.json (dockerfilePath: "Dockerfile").
+#   Config path for that service should be /railway.json (absolute from repo root).
+#
+# Do not set Root Directory to app/backend for the public site.
+
 FROM python:3.12-slim
-
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
-
-WORKDIR /app
-
-COPY requirements.txt ./requirements.txt
-RUN pip install --upgrade pip && pip install -r requirements.txt
-
-COPY . ./
-
-EXPOSE 8000
-
-CMD ["sh", "start.sh"]
+RUN printf '%s\n' \
+  'ERROR: app/backend/Dockerfile cannot build frontend+API.' \
+  'Build context is app/backend only — COPY cannot reach app/frontend.' \
+  'Set Railway Root Directory to repository root (empty) and use /Dockerfile.' \
+  >&2 && exit 1
