@@ -36,7 +36,9 @@ async function openCheckoutWizard(page: Page) {
   await addItemToCart(page);
   await page.getByTestId("dam-floating-cart").click();
   await expect(page.getByTestId("dam-cart-sheet")).toBeVisible();
+  await expect(page).toHaveURL(/tab=cart/);
   await page.getByTestId("dam-cart-checkout").click();
+  await expect(page.getByTestId("dam-checkout")).toBeVisible();
   await expect(page.getByRole("heading", { name: /получение/i })).toBeVisible({ timeout: 5_000 });
 }
 
@@ -65,6 +67,15 @@ test("checkout shows a reason instead of a silent disabled button", async ({ pag
 
 test("double click on submit does not enable a second in-flight request", async ({ page }) => {
   let posts = 0;
+  await page.addInitScript(() => {
+    localStorage.setItem("account_token", "e2e-food-checkout-token");
+    localStorage.setItem("account_user_profile", JSON.stringify({
+      id: "e2e-user",
+      name: "Тест",
+      phone: "+77001234567",
+      password: "",
+    }));
+  });
   await page.route("**/api/v1/entities/food_orders", async (route) => {
     if (route.request().method() === "POST") {
       posts += 1;
@@ -88,8 +99,10 @@ test("double click on submit does not enable a second in-flight request", async 
   await page.getByTestId("dam-checkout-next").click();
 
   const submit = page.getByTestId("dam-checkout-submit");
-  await submit.click();
-  await submit.click();
+  await Promise.all([
+    submit.click(),
+    submit.click({ force: true }),
+  ]);
   await page.waitForTimeout(600);
-  expect(posts).toBeLessThanOrEqual(1);
+  expect(posts).toBe(1);
 });

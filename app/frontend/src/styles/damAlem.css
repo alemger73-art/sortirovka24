@@ -154,18 +154,18 @@
 .dam-floating-cart {
   background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
   color: white;
-  border-radius: 18px;
-  padding: 0.875rem 1.125rem;
+  border-radius: 16px;
+  padding: 0.7rem 0.8rem;
   box-shadow: var(--dam-shadow-lg), 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
-  padding-bottom: max(0.875rem, env(safe-area-inset-bottom, 0px));
+  padding-bottom: max(0.7rem, env(safe-area-inset-bottom, 0px));
 }
 
 .dam-floating-cart__cta {
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.5rem 1rem;
-  border-radius: 12px;
+  padding: 0.45rem 0.75rem;
+  border-radius: 10px;
   background: var(--dam-accent);
   font-size: 0.875rem;
   font-weight: 700;
@@ -292,256 +292,6 @@
 @media (min-width: 1024px) {
   .dam-section-title {
     font-size: 1.75rem;
-  }
-}
-
-.dam-hero-gradient {
-  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.55) 45%, rgba(0, 0, 0, 0.92) 100%);
-}
-
-.dam-hero-gradient-top {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.22) 36%, transparent 58%);
-  pointer-events: none;
-}
-
-.dam-hero-photo {
-  object-position: center 42%;
-  transform: scale(1.05);
-  transform-origin: center center;
-  transition: transform 8s ease-out;
-}
-
-.dam-hero-media:hover .dam-hero-photo {
-  transform: scale(1.08);
-}
-
-/* Full-bleed hero — edge to edge on any screen */
-.dam-hero-bleed {
-  width: 100vw;
-  max-width: 100vw;
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
-}
-
-.dam-hero-desktop {
-  width: 100%;
-  overflow: hidden;
-}
-
-.dam-hero-media {
-  position: relative;
-  min-height: 320px;
-  height: clamp(320px, 48vw, 620px);
-}
-
-@media (min-width: 768px) {
-  .dam-hero-media {
-    min-height: 380px;
-    height: clamp(380px, 40vw, 580px);
-  }
-}
-
-@media (min-width: 1024px) {
-  .dam-hero-media {
-    min-height: 420px;
-    height: clamp(420px, 34vw, 640px);
-  }
-}
-
-.dam-hero-inner {
-  max-width: var(--dam-content-max);
-  margin-left: auto;
-  margin-right: auto;
-  width: 100%;
-  height: 100%;
-}
-
-.dam-hero-brand-mark {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.375rem 0.875rem;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.95);
-  color: #111;
-  font-size: 0.6875rem;
-  font-weight: 900;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-}
-
-@media (min-width: 640px) {
-  .dam-hero-brand-mark {
-    font-size: 0.75rem;
-    padding: 0.4375rem 1rem;
-  }
-}
-
-.dam-hero-tagline {
-  display: block;
-  max-width: 36rem;
-  font-size: 1.125rem;
-  font-weight: 800;
-  line-height: 1.25;
-  letter-spacing: -0.02em;
-  color: #fff;
-  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.45);
-}
-
-@media (min-width: 640px) {
-  .dam-hero-tagline {
-    font-size: 1.3125rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .dam-hero-tagline {
-    font-size: 1.5rem;
-    max-width: 42rem;
-  }
-}
-
-.dam-hero-headline {
-  max-width: 48rem;
-  font-size: 1.625rem;
-  font-weight: 900;
-  line-height: 1.08;
-  letter-spacing: -0.03em;
-  color: #fff;
-  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
-}
-
-@media (min-width: 640px) {
-  .dam-hero-headline {
-    font-size: 2rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .dam-hero-headline {
-    font-size: 2.75rem;
-  }
-}
-
-@media (min-width: 1280px) {
-  .dam-hero-headline {
-    font-size: 3.25rem;
-  }
-}
-
-.dam-hero-rating {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  border-radius: 9999px;
-  background: #fff;
-  padding: 0.5rem 0.875rem;
-  font-size: 0.875rem;
-  font-weight: 800;
-  color: #18181b;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-}
-
-@media (min-width: 1024px) {
-  .dam-hero-rating {
-    padding: 0.5625rem 1rem;
-    font-size: 1rem;
-  }
-}
-
-.dam-hero-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  border-radius: 14px;
-  background: rgba(0, 0, 0, 0.45);
-  padding: 0.5rem 0.875rem;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: #fff;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-@media (min-width: 640px) {
-  .dam-hero-chip {
-    font-size: 0.875rem;
-    padding: 0.5625rem 1rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .dam-hero-chip {
-    font-size: 0.9375rem;
-    padding: 0.625rem 1.125rem;
-    border-radius: 16px;
-  }
-}
-
-.dam-hero-promo {
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(0, 0, 0, 0.4);
-  padding: 1rem 1.125rem;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.dam-hero-support {
-  max-width: 36rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  line-height: 1.4;
-  color: rgba(255, 255, 255, 0.82);
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
-}
-
-@media (min-width: 640px) {
-  .dam-hero-support {
-    font-size: 1rem;
-  }
-}
-
-.dam-hero-cta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 3rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 9999px;
-  background: #ff3b30;
-  color: #fff;
-  font-size: 0.9375rem;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  box-shadow: 0 10px 28px rgba(255, 59, 48, 0.45);
-  transition: transform 0.15s ease, background 0.15s ease;
-}
-
-.dam-hero-cta:hover {
-  background: #e6352b;
-}
-
-.dam-hero-cta:active {
-  transform: scale(0.97);
-}
-
-@media (min-width: 1024px) {
-  .dam-hero-cta {
-    min-height: 3.25rem;
-    padding: 0.875rem 1.75rem;
-    font-size: 1rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .dam-hero-promo {
-    padding: 1.125rem 1.25rem;
-    border-radius: 20px;
   }
 }
 
@@ -681,165 +431,9 @@ button.dam-btn-primary:disabled,
   box-shadow: none;
 }
 
-/* ─── Premium cart / checkout ─── */
-.dam-step-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  margin-top: 0.35rem;
-}
-
-.dam-step-bar__dot {
-  height: 0.35rem;
-  width: 1.75rem;
-  border-radius: 999px;
-  background: #e4e4e7;
-  transition: all 0.25s ease;
-}
-
-.dam-step-bar__dot--active {
-  width: 2.25rem;
-  background: linear-gradient(90deg, #ff3b30, #ff8c42);
-}
-
-.dam-step-bar__dot--done {
-  background: #22c55e;
-}
-
+/* ─── Premium checkout ─── */
 .dam-sheet-header--cart {
   background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
-}
-
-.dam-sheet-header__meta {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #71717a;
-  margin-top: 0.15rem;
-}
-
-.dam-cart-line {
-  display: flex;
-  gap: 0.875rem;
-  padding: 0.875rem;
-  border-radius: 18px;
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.04);
-  position: relative;
-}
-
-.dam-cart-line__media {
-  width: 4.5rem;
-  height: 4.5rem;
-  flex-shrink: 0;
-  border-radius: 14px;
-  overflow: hidden;
-  background: #f0f0f0;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
-}
-
-.dam-cart-line__media img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.dam-cart-line__qty {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.125rem;
-  padding: 0.125rem;
-  border-radius: 999px;
-  background: #f4f4f5;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.dam-cart-line__qty button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 999px;
-  border: none;
-  background: transparent;
-  color: #18181b;
-  transition: transform 0.15s ease, background 0.15s ease;
-}
-
-.dam-cart-line__qty button:last-child {
-  background: linear-gradient(135deg, #ff3b30, #ff6b35);
-  color: #fff;
-}
-
-.dam-cart-line__qty button:active {
-  transform: scale(0.92);
-}
-
-.dam-upsell-rail {
-  margin-top: 0.5rem;
-  padding-top: 1rem;
-  border-top: 1px dashed rgba(0, 0, 0, 0.08);
-}
-
-.dam-upsell-rail__title {
-  font-size: 0.8125rem;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  color: #71717a;
-  text-transform: uppercase;
-  margin-bottom: 0.75rem;
-}
-
-.dam-upsell-card {
-  width: 7.5rem;
-  flex-shrink: 0;
-  border-radius: 16px;
-  overflow: hidden;
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
-}
-
-.dam-order-totals {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.875rem 1rem;
-  border-radius: 16px;
-  background: #fafafa;
-  border: 1px solid rgba(0, 0, 0, 0.04);
-}
-
-.dam-order-totals__row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.875rem;
-  color: #71717a;
-}
-
-.dam-order-totals__row span:last-child {
-  font-weight: 700;
-  color: #18181b;
-}
-
-.dam-order-totals__total {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding-top: 0.625rem;
-  margin-top: 0.25rem;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  font-size: 1.125rem;
-  font-weight: 800;
-  color: #18181b;
-}
-
-.dam-order-totals__total span:last-child {
-  font-size: 1.25rem;
-  color: #ff3b30;
 }
 
 .dam-sheet-footer--premium {
@@ -1006,194 +600,6 @@ body.dam-sheet-open [data-bottom-nav] {
   }
 }
 
-.dam-category-tile {
-  overflow: hidden;
-  text-align: left;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.dam-category-tile:active {
-  transform: scale(0.98);
-}
-
-.dam-category-tile:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1);
-}
-
-/* ─── Category tiles (home grid) — compact landscape cards ─── */
-.dam-cat-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.625rem;
-}
-
-@media (min-width: 640px) {
-  .dam-cat-grid {
-    gap: 0.75rem;
-  }
-}
-
-@media (min-width: 768px) {
-  .dam-cat-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.875rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .dam-cat-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1280px) {
-  .dam-cat-grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-}
-
-.dam-cat-tile {
-  position: relative;
-  aspect-ratio: 5 / 3;
-  min-height: 0;
-  border-radius: 16px;
-  overflow: hidden;
-  text-align: left;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  animation: dam-slide-up 0.4s ease-out both;
-}
-
-@media (min-width: 768px) {
-  .dam-cat-tile {
-    aspect-ratio: 4 / 3;
-    border-radius: 18px;
-  }
-}
-
-.dam-cat-tile:active {
-  transform: scale(0.98);
-}
-
-.dam-cat-tile:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
-}
-
-.dam-cat-tile__photo {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.45s ease;
-}
-
-.dam-cat-tile:hover .dam-cat-tile__photo {
-  transform: scale(1.05);
-}
-
-.dam-cat-tile__overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.dam-cat-tile__content {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: 0.125rem;
-  padding: 0.625rem 0.75rem;
-  color: white;
-  pointer-events: none;
-}
-
-@media (min-width: 768px) {
-  .dam-cat-tile__content {
-    padding: 0.75rem 0.875rem;
-    gap: 0.1875rem;
-  }
-}
-
-.dam-cat-tile__head {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  min-width: 0;
-}
-
-.dam-cat-tile__emoji {
-  flex-shrink: 0;
-  font-size: 1.125rem;
-  line-height: 1;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.35));
-}
-
-@media (min-width: 768px) {
-  .dam-cat-tile__emoji {
-    font-size: 1.25rem;
-  }
-}
-
-.dam-cat-tile__name {
-  font-size: 0.8125rem;
-  font-weight: 800;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-@media (min-width: 768px) {
-  .dam-cat-tile__name {
-    font-size: 0.875rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .dam-cat-tile__name {
-    font-size: 0.9375rem;
-  }
-}
-
-.dam-cat-tile__meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.25rem;
-}
-
-.dam-cat-tile__count {
-  font-size: 0.625rem;
-  font-weight: 600;
-  opacity: 0.9;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
-}
-
-@media (min-width: 768px) {
-  .dam-cat-tile__count {
-    font-size: 0.6875rem;
-  }
-}
-
-.dam-cat-tile__chevron {
-  opacity: 0.85;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
-}
-
-.dam-cat-tile__arrow {
-  display: none;
-}
-
 /* ─── Product grid card (Wolt style) ─── */
 .dam-grid-card {
   display: flex;
@@ -1215,7 +621,7 @@ body.dam-sheet-open [data-bottom-nav] {
   position: relative;
   display: block;
   width: 100%;
-  aspect-ratio: 1;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
   background: #ececec;
 }
@@ -1233,6 +639,7 @@ body.dam-sheet-open [data-bottom-nav] {
 
 .dam-grid-card__badge {
   position: absolute;
+  z-index: 2;
   top: 0.625rem;
   left: 0.625rem;
   padding: 0.3125rem 0.625rem;
@@ -1276,6 +683,7 @@ body.dam-sheet-open [data-bottom-nav] {
 
 .dam-grid-card__fav {
   position: absolute;
+  z-index: 2;
   top: 0.5rem;
   right: 0.5rem;
   display: flex;
@@ -1306,6 +714,10 @@ body.dam-sheet-open [data-bottom-nav] {
   color: #FF3B30;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   transition: transform 0.15s ease;
+}
+
+.dam-grid-card__add span {
+  display: none;
 }
 
 @media (min-width: 1024px) {
@@ -1361,6 +773,18 @@ body.dam-sheet-open [data-bottom-nav] {
   min-height: 2.4em;
 }
 
+.dam-grid-card__desc {
+  margin-top: 0.35rem;
+  color: #71717a;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.05em;
+}
+
 @media (min-width: 1024px) {
   .dam-grid-card__title {
     font-size: 1rem;
@@ -1404,681 +828,6 @@ body.dam-sheet-open [data-bottom-nav] {
   }
 }
 
-/* ─── Steps bar ─── */
-.dam-steps {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.25rem;
-  padding: 0.875rem 1rem;
-  border-radius: 18px;
-  background: white;
-  box-shadow: var(--dam-shadow);
-  border: 1px solid rgba(0, 0, 0, 0.04);
-}
-
-.dam-steps__item {
-  position: relative;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.375rem;
-  min-width: 0;
-}
-
-.dam-steps__line {
-  position: absolute;
-  top: 1rem;
-  right: 50%;
-  width: 100%;
-  height: 2px;
-  background: #e4e4e7;
-  transform: translateX(50%);
-  z-index: 0;
-}
-
-.dam-steps__line--on {
-  background: linear-gradient(90deg, #FF3B30, #ff6b63);
-}
-
-.dam-steps__dot {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 9999px;
-  background: #f4f4f5;
-  color: #a1a1aa;
-  border: 2px solid #e4e4e7;
-}
-
-@media (min-width: 1024px) {
-  .dam-steps__dot {
-    width: 2.5rem;
-    height: 2.5rem;
-  }
-}
-
-.dam-steps__dot--active {
-  background: #FF3B30;
-  color: white;
-  border-color: #FF3B30;
-  box-shadow: 0 4px 14px rgba(255, 59, 48, 0.35);
-}
-
-.dam-steps__dot--done {
-  background: #111;
-  color: white;
-  border-color: #111;
-}
-
-.dam-steps__badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 1rem;
-  height: 1rem;
-  padding: 0 0.25rem;
-  border-radius: 9999px;
-  background: white;
-  color: #FF3B30;
-  font-size: 0.5625rem;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 0 2px #FF3B30;
-}
-
-.dam-steps__label {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: #a1a1aa;
-  text-align: center;
-  line-height: 1.2;
-}
-
-@media (min-width: 640px) {
-  .dam-steps__label {
-    font-size: 0.75rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .dam-steps__label {
-    font-size: 0.8125rem;
-  }
-}
-
-.dam-steps__label--active {
-  color: #111;
-  font-weight: 700;
-}
-
-.dam-back-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem 0.875rem;
-  border-radius: 9999px;
-  background: white;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: #111;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: background 0.15s ease;
-}
-
-.dam-back-chip:active {
-  background: #f4f4f5;
-}
-
-/* ─── Marketing: free delivery banner ─── */
-.dam-free-banner {
-  position: relative;
-  overflow: hidden;
-  border-radius: 22px;
-  background: linear-gradient(120deg, #FF3B30 0%, #FF6B35 45%, #FFB347 100%);
-  box-shadow: 0 12px 32px rgba(255, 59, 48, 0.35);
-}
-
-@media (min-width: 1024px) {
-  .dam-free-banner {
-    border-radius: 24px;
-  }
-}
-
-.dam-free-banner__content {
-  position: relative;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.125rem 1.25rem;
-}
-
-@media (min-width: 1024px) {
-  .dam-free-banner__content {
-    padding: 1.375rem 1.5rem;
-    gap: 1.25rem;
-  }
-}
-
-.dam-free-banner__title {
-  font-size: 0.9375rem;
-  font-weight: 900;
-  color: white;
-  line-height: 1.25;
-}
-
-@media (min-width: 640px) {
-  .dam-free-banner__title {
-    font-size: 1.0625rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .dam-free-banner__title {
-    font-size: 1.25rem;
-  }
-}
-
-.dam-free-banner__sub {
-  margin-top: 0.25rem;
-  font-size: 0.8125rem;
-  color: rgba(255, 255, 255, 0.85);
-}
-
-@media (min-width: 1024px) {
-  .dam-free-banner__sub {
-    font-size: 0.875rem;
-  }
-}
-
-.dam-free-banner__shimmer {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 40%,
-    rgba(255, 255, 255, 0.25) 50%,
-    transparent 60%
-  );
-  background-size: 200% 100%;
-  animation: dam-shimmer-move 3s ease-in-out infinite;
-}
-
-@keyframes dam-shimmer-move {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-/* ─── Stories ─── */
-.dam-story-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.625rem;
-  width: 5.25rem;
-  animation: dam-slide-up 0.4s ease-out both;
-}
-
-@media (min-width: 640px) {
-  .dam-story-btn {
-    width: 5.75rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .dam-story-btn {
-    width: 6.5rem;
-    gap: 0.75rem;
-  }
-}
-
-.dam-story-ring {
-  padding: 3px;
-  border-radius: 9999px;
-  background: linear-gradient(135deg, #FF3B30, #FFB347, #FF3B30, #EC4899);
-  background-size: 300% 300%;
-  animation: dam-ring-spin 4s linear infinite;
-}
-
-@keyframes dam-ring-spin {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.dam-story-thumb {
-  position: relative;
-  display: block;
-  width: 4.75rem;
-  height: 4.75rem;
-  border-radius: 9999px;
-  overflow: hidden;
-  border: 3px solid white;
-  background: #ececec;
-}
-
-@media (min-width: 640px) {
-  .dam-story-thumb {
-    width: 5.25rem;
-    height: 5.25rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .dam-story-thumb {
-    width: 5.75rem;
-    height: 5.75rem;
-    border-width: 4px;
-  }
-}
-
-.dam-story-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.dam-story-thumb__emoji {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  font-size: 1rem;
-  line-height: 1;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
-}
-
-.dam-story-label {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-align: center;
-  line-height: 1.25;
-  color: #3f3f46;
-  max-width: 100%;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-@media (min-width: 1024px) {
-  .dam-story-label {
-    font-size: 0.75rem;
-  }
-}
-
-.dam-story-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 115;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  touch-action: manipulation;
-}
-
-.dam-story-viewer {
-  position: relative;
-  width: 100%;
-  max-width: 22rem;
-  aspect-ratio: 9 / 16;
-  max-height: min(85dvh, 640px);
-  border-radius: 24px;
-  overflow: hidden;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
-  animation: dam-slide-up 0.35s ease-out both;
-  touch-action: manipulation;
-}
-
-.dam-story-viewer__progress {
-  position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
-  right: 0.75rem;
-  z-index: 20;
-  display: flex;
-  gap: 0.25rem;
-}
-
-.dam-story-viewer__bar {
-  flex: 1;
-  height: 3px;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.35);
-  overflow: hidden;
-}
-
-.dam-story-viewer__bar--done {
-  background: rgba(255, 255, 255, 0.9);
-}
-
-.dam-story-viewer__bar--active {
-  background: rgba(255, 255, 255, 0.35);
-  animation: dam-story-progress 5.5s linear forwards;
-}
-
-@keyframes dam-story-progress {
-  from { background: linear-gradient(90deg, white 0%, white 0%, rgba(255,255,255,0.35) 0%); background-size: 200% 100%; background-position: 100% 0; }
-  to { background: white; }
-}
-
-.dam-story-viewer__close {
-  position: absolute;
-  top: 2rem;
-  right: 0.75rem;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: 9999px;
-  background: rgba(0, 0, 0, 0.35);
-  color: white;
-  backdrop-filter: blur(8px);
-  touch-action: manipulation;
-}
-
-.dam-story-viewer__body {
-  position: absolute;
-  inset: 0;
-  z-index: 20;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 2rem 1.5rem;
-  pointer-events: none;
-}
-
-.dam-story-viewer__body > * {
-  pointer-events: auto;
-}
-
-.dam-story-viewer__cta {
-  position: relative;
-  z-index: 25;
-  margin-top: 1.25rem;
-  align-self: flex-start;
-  padding: 0.75rem 1.25rem;
-  border-radius: 9999px;
-  background: white;
-  color: #111;
-  font-size: 0.875rem;
-  font-weight: 800;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  touch-action: manipulation;
-}
-
-.dam-story-viewer__tap-zone {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  z-index: 10;
-  width: 35%;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.dam-story-viewer__tap-zone--prev {
-  left: 0;
-}
-
-.dam-story-viewer__tap-zone--next {
-  right: 0;
-  width: 65%;
-}
-
-/* ─── Promo strip ─── */
-.dam-promo-strip {
-  padding: 0.25rem 0;
-}
-
-.dam-promo-chip {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  padding: 0.75rem 1rem;
-  border-radius: 16px;
-  text-align: left;
-  transition: transform 0.15s ease;
-}
-
-@media (min-width: 1024px) {
-  .dam-promo-chip {
-    padding: 0.875rem 1.125rem;
-    border-radius: 18px;
-  }
-}
-
-.dam-promo-chip:active {
-  transform: scale(0.97);
-}
-
-.dam-promo-chip--delivery {
-  background: linear-gradient(135deg, #FF3B30 0%, #FF6B35 100%);
-  color: white;
-  box-shadow: 0 6px 20px rgba(255, 59, 48, 0.3);
-}
-
-.dam-promo-chip--code {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.125rem;
-  background: white;
-  border: 2px dashed #FF3B30;
-  color: #111;
-  min-width: 7.5rem;
-}
-
-.dam-promo-chip--active {
-  background: #fff1f0;
-  border-style: solid;
-}
-
-.dam-promo-chip__code {
-  font-family: ui-monospace, monospace;
-  font-size: 0.9375rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  color: #FF3B30;
-}
-
-@media (min-width: 1024px) {
-  .dam-promo-chip__code {
-    font-size: 1rem;
-  }
-}
-
-/* ─── Loyalty showcase ─── */
-.dam-loyalty-showcase {
-  position: relative;
-  overflow: hidden;
-  border-radius: 22px;
-  background: linear-gradient(135deg, #1a1a1a 0%, #3d1f14 50%, #FF3B30 100%);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15);
-}
-
-.dam-loyalty-showcase__glow {
-  position: absolute;
-  top: -40%;
-  right: -20%;
-  width: 60%;
-  height: 80%;
-  border-radius: 9999px;
-  background: rgba(255, 180, 71, 0.35);
-  filter: blur(40px);
-}
-
-.dam-loyalty-tier {
-  width: 7.5rem;
-  padding: 0.75rem;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  animation: dam-slide-up 0.4s ease-out both;
-}
-
-.dam-loyalty-tier__img {
-  width: 3rem;
-  height: 3rem;
-  border-radius: 12px;
-  object-fit: cover;
-  margin-bottom: 0.5rem;
-}
-
-.dam-loyalty-tier__emoji {
-  display: block;
-  font-size: 2rem;
-  margin-bottom: 0.375rem;
-}
-
-.dam-loyalty-tier__title {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: white;
-  line-height: 1.25;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.dam-loyalty-tier__from {
-  margin-top: 0.25rem;
-  font-size: 0.625rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.75);
-}
-
-/* ─── Promo banners carousel ─── */
-.dam-promo-banner {
-  position: relative;
-  display: block;
-  width: 19rem;
-  height: 12rem;
-  overflow: hidden;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  border-radius: 22px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.dam-promo-banner:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.16);
-}
-
-.dam-promo-banner:active {
-  transform: scale(0.98);
-}
-
-@media (min-width: 640px) {
-  .dam-promo-banner {
-    width: 22rem;
-    height: 13rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .dam-promo-banner {
-    width: 24rem;
-    height: 14rem;
-    border-radius: 24px;
-  }
-}
-
-.dam-promo-banner__overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.2) 55%, transparent 100%);
-}
-
-/* ─── Share card ─── */
-.dam-share-card {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  padding: 1rem 1.125rem;
-  border-radius: 18px;
-  background: white;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  box-shadow: var(--dam-shadow);
-  transition: transform 0.15s ease;
-}
-
-.dam-share-card:active {
-  transform: scale(0.98);
-}
-
-/* ─── Desktop layout shell ─── */
-.dam-page-shell {
-  display: block;
-  width: 100%;
-  max-width: var(--dam-content-max);
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.dam-page-main {
-  min-width: 0;
-}
-
-@media (min-width: 1024px) {
-  .dam-page-shell--with-sidebar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 380px;
-    gap: 2.5rem;
-    align-items: start;
-  }
-}
-
-/* ─── Combo deals block ─── */
-.dam-combo-section {
-  border-radius: 24px;
-  background: linear-gradient(135deg, #111111 0%, #1c1c1c 50%, #3d1f14 100%);
-  padding: 1.25rem;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-}
-
-@media (min-width: 1024px) {
-  .dam-combo-section {
-    padding: 1.5rem;
-    border-radius: 28px;
-  }
-}
-
-.dam-combo-section__title {
-  margin-bottom: 1rem;
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: -0.02em;
-}
-
-@media (min-width: 1024px) {
-  .dam-combo-section__title {
-    font-size: 1.375rem;
-    margin-bottom: 1.25rem;
-  }
-}
-
 /* ─── Unified product grid (phone → tablet → desktop) ─── */
 .dam-product-grid {
   display: grid;
@@ -2101,97 +850,8 @@ body.dam-sheet-open [data-bottom-nav] {
 
 @media (min-width: 1280px) {
   .dam-product-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
-
-  .dam-page-shell--with-sidebar .dam-product-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-.dam-section-header {
-  margin-bottom: 0.875rem;
-}
-
-@media (min-width: 768px) {
-  .dam-section-header {
-    margin-bottom: 1rem;
-  }
-}
-
-.dam-section-header__sub {
-  margin-top: 0.25rem;
-  font-size: 0.875rem;
-  color: var(--dam-muted);
-}
-
-@media (min-width: 768px) {
-  .dam-section-header__sub {
-    font-size: 0.9375rem;
-  }
-}
-
-/* ─── Desktop cart sidebar ─── */
-.dam-cart-sidebar__inner {
-  position: sticky;
-  top: 5.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.875rem;
-  padding: 1.125rem;
-  border-radius: 22px;
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.08);
-}
-
-.dam-cart-sidebar__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.dam-cart-sidebar__title {
-  font-size: 1rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: #18181b;
-}
-
-.dam-cart-sidebar__meta {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #71717a;
-}
-
-.dam-cart-sidebar__lines {
-  display: flex;
-  flex-direction: column;
-  gap: 0.625rem;
-  max-height: 280px;
-  overflow-y: auto;
-  padding-right: 0.125rem;
-}
-
-.dam-cart-sidebar__line {
-  display: flex;
-  gap: 0.625rem;
-  padding: 0.625rem;
-  border-radius: 14px;
-  background: #fafafa;
-  border: 1px solid rgba(0, 0, 0, 0.04);
-}
-
-.dam-cart-sidebar__line-media {
-  width: 3.25rem;
-  height: 3.25rem;
-  flex-shrink: 0;
-  border-radius: 12px;
-  overflow: hidden;
-  background: #ececec;
 }
 
 /* ─── Wide checkout sheet (desktop) ─── */
@@ -2200,10 +860,6 @@ body.dam-sheet-open [data-bottom-nav] {
     max-width: 56rem;
     width: min(56rem, calc(100vw - 2rem));
     max-height: min(92vh, 900px);
-  }
-
-  .dam-sheet-panel--cart {
-    max-width: 26rem;
   }
 }
 
@@ -2297,12 +953,6 @@ body.dam-sheet-open [data-bottom-nav] {
   box-shadow: none;
 }
 
-@media (min-width: 1024px) {
-  .dam-steps {
-    padding: 1rem 1.5rem;
-  }
-}
-
 .dam-floating-cart-wrap {
   display: block;
 }
@@ -2339,7 +989,7 @@ body.dam-sheet-open [data-bottom-nav] {
   object-fit: cover;
 }
 
-/* ─── DÄM ALEM 2.0: status strip, brand header, sticky pills, menu feed ─── */
+/* ─── DÄM ALEM 2.0: status strip and sticky pills ─── */
 
 .dam-status-strip {
   display: flex;
@@ -2392,104 +1042,6 @@ body.dam-sheet-open [data-bottom-nav] {
   font-weight: 700;
 }
 
-.dam-brand-header {
-  position: relative;
-  border-radius: 0 0 1.25rem 1.25rem;
-  overflow: hidden;
-  margin: 0 -1rem;
-  min-height: 7.5rem;
-}
-
-@media (min-width: 640px) {
-  .dam-brand-header {
-    margin: 0;
-    border-radius: 1.25rem;
-    min-height: 8.5rem;
-  }
-}
-
-.dam-brand-header__media {
-  position: absolute;
-  inset: 0;
-}
-
-.dam-brand-header__scrim {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, rgba(10, 10, 10, 0.88) 0%, rgba(10, 10, 10, 0.55) 55%, rgba(10, 10, 10, 0.35) 100%);
-}
-
-.dam-brand-header__content {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem 1.125rem 1.125rem;
-  min-height: 7.5rem;
-}
-
-@media (min-width: 640px) {
-  .dam-brand-header__content {
-    min-height: 8.5rem;
-    padding: 1.25rem 1.5rem;
-  }
-}
-
-.dam-brand-header__mark {
-  font-size: 0.625rem;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.dam-brand-header__title {
-  margin-top: 0.2rem;
-  font-size: 1.375rem;
-  font-weight: 900;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
-  color: #fff;
-}
-
-.dam-brand-header__tagline {
-  margin-top: 0.35rem;
-  font-size: 0.75rem;
-  line-height: 1.35;
-  color: rgba(255, 255, 255, 0.75);
-  max-width: 16rem;
-}
-
-.dam-brand-header__rating {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.95);
-  font-size: 0.75rem;
-  font-weight: 800;
-  color: #0a0a0a;
-}
-
-.dam-brand-header__cta {
-  padding: 0.5rem 0.875rem;
-  border-radius: 9999px;
-  background: var(--dam-accent);
-  color: #fff;
-  font-size: 0.75rem;
-  font-weight: 800;
-  box-shadow: 0 4px 14px rgba(255, 59, 48, 0.4);
-  transition: transform 0.15s ease, background 0.15s ease;
-}
-
-.dam-brand-header__cta:active {
-  transform: scale(0.96);
-  background: var(--dam-accent-hover);
-}
-
 .dam-sticky-pills {
   position: sticky;
   top: 0;
@@ -2529,74 +1081,799 @@ body.dam-sheet-open [data-bottom-nav] {
   box-shadow: 0 4px 14px rgba(255, 59, 48, 0.3);
 }
 
-.dam-menu-section {
-  scroll-margin-top: 4.5rem;
+/* ─── DAM ALEM marketplace (menu-first) ─── */
+.dam-market-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid #e4e4e7;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 1px 12px rgba(24, 24, 27, 0.05);
+  backdrop-filter: blur(14px);
 }
 
-.dam-menu-section__head {
+.dam-market-header__main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 4rem;
+}
+
+.dam-market-icon-btn {
+  display: inline-flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 0.875rem;
+  color: #3f3f46;
+  background: #f4f4f5;
+}
+
+.dam-market-brand {
+  min-width: 0;
+  text-align: left;
+}
+
+.dam-market-brand strong {
+  display: block;
+  overflow: hidden;
+  color: #18181b;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dam-market-brand span {
+  display: block;
+  margin-top: 0.1rem;
+  color: #71717a;
+  font-size: 0.6875rem;
+}
+
+.dam-market-search {
+  grid-column: 1 / -1;
+  grid-row: 2;
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0 0.875rem;
+  border: 1px solid #e4e4e7;
+  border-radius: 0.875rem;
+  background: #f4f4f5;
+  color: #71717a;
+}
+
+.dam-market-search input {
+  width: 100%;
+  min-width: 0;
+  outline: none;
+  border: 0;
+  background: transparent;
+  color: #18181b;
+  font-size: 0.875rem;
+}
+
+.dam-market-cart-button {
+  grid-column: 3;
+  grid-row: 1;
+  display: inline-flex;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0 0.75rem;
+  border-radius: 0.875rem;
+  background: #ff3b30;
+  color: white;
+  font-size: 0.8125rem;
+  font-weight: 750;
+}
+
+.dam-market-cart-button b {
+  display: inline-flex;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.3rem;
+  border-radius: 9999px;
+  background: white;
+  color: #c41e14;
+  font-size: 0.6875rem;
+}
+
+.dam-market-desktop-nav {
+  display: none;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.dam-market-desktop-nav button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.75rem;
+  color: #71717a;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dam-market-desktop-nav button.is-active {
+  background: #fee2e2;
+  color: #c41e14;
+}
+
+.dam-market-header__meta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-bottom: 0.875rem;
-}
-
-.dam-menu-section__count {
+  min-height: 2.5rem;
+  border-top: 1px solid #f4f4f5;
+  background: #fafafa;
+  color: #52525b;
   font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--dam-muted);
 }
 
-.dam-hits-rail {
+.dam-market-header__meta span {
   display: flex;
-  gap: 0.75rem;
-  overflow-x: auto;
-  padding-bottom: 0.25rem;
-  margin: 0 -0.25rem;
-  padding-left: 0.25rem;
-  padding-right: 0.25rem;
-  scrollbar-width: none;
-  scroll-snap-type: x mandatory;
+  min-width: 0;
+  align-items: center;
+  gap: 0.35rem;
 }
 
-.dam-hits-rail::-webkit-scrollbar {
-  display: none;
+.dam-market-header__meta span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.dam-hits-rail > * {
-  flex: 0 0 11.5rem;
-  scroll-snap-align: start;
+.dam-market-menu {
+  padding: 1rem 0 7rem;
 }
 
-@media (min-width: 430px) {
-  .dam-hits-rail > * {
-    flex-basis: 12.5rem;
-  }
-}
-
-.dam-repeat-card {
+.dam-market-offer {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  width: 100%;
   padding: 0.875rem 1rem;
+  border-radius: 1.125rem;
+  background: linear-gradient(115deg, #24100e, #6f1c16);
+  color: white;
+  box-shadow: 0 12px 28px rgba(83, 25, 19, 0.16);
+}
+
+.dam-market-offer__icon {
+  display: flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ff8a80;
+}
+
+.dam-market-offer span {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dam-market-offer h1 {
+  overflow: hidden;
+  margin-top: 0.1rem;
+  font-size: 0.875rem;
+  font-weight: 800;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dam-market-offer p {
+  margin-top: 0.15rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.6875rem;
+}
+
+.dam-market-offer > button {
+  display: none;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.75rem;
+  background: white;
+  color: #c41e14;
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+#dam-market-categories.dam-sticky-pills {
+  top: 10.25rem;
+  z-index: 35;
+  margin-top: 0.75rem;
+  margin-right: 0;
+  margin-left: 0;
+  padding: 0.625rem 1rem;
+  border-top: 0;
+  border-bottom: 1px solid #e4e4e7;
+  background: rgba(250, 250, 250, 0.96);
+  box-shadow: none;
+  backdrop-filter: blur(12px);
+}
+
+.dam-market-feed {
+  display: grid;
+  gap: 2rem;
+  padding-top: 1.25rem;
+}
+
+.dam-market-category {
+  scroll-margin-top: 14rem;
+}
+
+.dam-market-section-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.dam-market-section-head span {
+  color: #a1a1aa;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.dam-market-section-head h2,
+.dam-market-section-head h3 {
+  margin-top: 0.1rem;
+  color: #18181b;
+  font-size: 1.25rem;
+  font-weight: 850;
+  letter-spacing: -0.035em;
+}
+
+.dam-market-section-head > button {
+  color: #c41e14;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.dam-market-empty {
+  display: flex;
+  min-height: 60vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem 7rem;
+  text-align: center;
+}
+
+.dam-market-empty--compact {
+  min-height: 15rem;
+  padding-bottom: 2rem;
+  color: #a1a1aa;
+}
+
+.dam-market-empty__icon {
+  display: flex;
+  width: 4rem;
+  height: 4rem;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  border-radius: 1.25rem;
+  background: #fee2e2;
+  color: #ff3b30;
+}
+
+.dam-market-empty h2 {
+  color: #18181b;
+  font-size: 1.25rem;
+  font-weight: 850;
+}
+
+.dam-market-empty p {
+  margin-top: 0.35rem;
+  color: #71717a;
+  font-size: 0.875rem;
+}
+
+.dam-market-primary {
+  min-height: 2.75rem;
+  margin-top: 1.25rem;
+  padding: 0 1.25rem;
+  border-radius: 0.875rem;
+  background: #ff3b30;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 750;
+}
+
+.dam-market-cart {
+  padding: 1rem 0 10.5rem;
+}
+
+.dam-market-cart__head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.dam-market-cart__head h2 {
+  color: #18181b;
+  font-size: 1.35rem;
+  font-weight: 850;
+  letter-spacing: -0.035em;
+}
+
+.dam-market-cart__head p {
+  color: #a1a1aa;
+  font-size: 0.75rem;
+}
+
+.dam-market-cart__layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.dam-market-cart__lines {
+  overflow: hidden;
+  border: 1px solid #e4e4e7;
+  border-radius: 1.125rem;
+  background: white;
+}
+
+.dam-market-cart-mobile-promo {
+  display: grid;
+  gap: 0.875rem;
+  padding: 1rem;
+  border: 1px solid #e4e4e7;
+  border-radius: 1.125rem;
+  background: white;
+}
+
+.dam-market-cart-mobile-promo > div > strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #52525b;
+  font-size: 0.75rem;
+}
+
+.dam-market-cart-mobile-promo .dam-market-promo {
+  display: grid;
+}
+
+.dam-market-cart-mobile-totals {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px solid #e4e4e7;
+  border-radius: 1.125rem;
+  background: white;
+}
+
+.dam-market-cart-mobile-totals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #71717a;
+  font-size: 0.8125rem;
+}
+
+.dam-market-cart-mobile-totals > div:last-child {
+  margin-top: 0.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e4e4e7;
+  color: #18181b;
+  font-size: 1rem;
+}
+
+.dam-market-cart-line {
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid #f4f4f5;
+}
+
+.dam-market-cart-line:last-child {
+  border-bottom: 0;
+}
+
+.dam-market-cart-line__image {
+  width: 5rem;
+  height: 5rem;
+  border-radius: 0.875rem;
+  object-fit: cover;
+  background: #f4f4f5;
+}
+
+.dam-market-cart-line__content {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.dam-market-cart-line h3 {
+  color: #18181b;
+  font-size: 0.875rem;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.dam-market-cart-line p {
+  overflow: hidden;
+  margin-top: 0.2rem;
+  color: #c41e14;
+  font-size: 0.6875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dam-market-cart-line__remove {
+  flex: 0 0 auto;
+  padding: 0.3rem;
+  color: #a1a1aa;
+}
+
+.dam-market-cart-line__bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.dam-market-cart-line__bottom strong {
+  color: #18181b;
+  font-size: 0.875rem;
+}
+
+.dam-market-qty {
+  display: flex;
+  height: 2.25rem;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: #f4f4f5;
+}
+
+.dam-market-qty button {
+  display: flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.dam-market-qty button:last-child {
+  background: #ff3b30;
+  color: white;
+}
+
+.dam-market-qty span {
+  min-width: 1.5rem;
+  text-align: center;
+  color: #18181b;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.dam-market-upsell {
+  display: flex;
+  gap: 0.625rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  scrollbar-width: none;
+}
+
+.dam-market-upsell::-webkit-scrollbar {
+  display: none;
+}
+
+.dam-market-upsell-card {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(7rem, 1fr) auto;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 16rem;
+  padding: 0.5rem;
+  border: 1px solid #e4e4e7;
   border-radius: 1rem;
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  transition: transform 0.15s ease;
+  background: white;
 }
 
-.dam-repeat-card:active {
-  transform: scale(0.99);
+.dam-market-upsell-card__image {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 0.75rem;
+  object-fit: cover;
 }
 
-.dam-product-grid--hero {
-  grid-template-columns: 1fr;
+.dam-market-upsell-card h4 {
+  overflow: hidden;
+  color: #27272a;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-@media (min-width: 430px) {
-  .dam-product-grid--hero {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+.dam-market-upsell-card strong {
+  color: #c41e14;
+  font-size: 0.75rem;
+}
+
+.dam-market-upsell-card > button {
+  display: flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: #ff3b30;
+  color: white;
+}
+
+.dam-market-cart-summary {
+  position: fixed;
+  right: 0;
+  bottom: calc(4rem + env(safe-area-inset-bottom));
+  left: 0;
+  z-index: 30;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  border-top: 1px solid #e4e4e7;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 -10px 30px rgba(24, 24, 27, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+.dam-market-cart-summary > h3,
+.dam-market-goal,
+.dam-market-promo,
+.dam-market-totals {
+  display: none;
+}
+
+.dam-market-goal__track {
+  height: 0.35rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: #e4e4e7;
+}
+
+.dam-market-goal__track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #ff3b30;
+}
+
+.dam-market-goal p {
+  margin-top: 0.4rem;
+  color: #71717a;
+  font-size: 0.6875rem;
+}
+
+.dam-market-promo {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+}
+
+.dam-market-promo input {
+  min-width: 0;
+  height: 2.625rem;
+  padding: 0 0.75rem;
+  outline: none;
+  border: 1px solid #e4e4e7;
+  border-radius: 0.75rem;
+  background: #fafafa;
+  font-size: 0.8125rem;
+}
+
+.dam-market-promo button {
+  padding: 0 0.75rem;
+  border-radius: 0.75rem;
+  background: #27272a;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.dam-market-promo button:disabled {
+  opacity: 0.45;
+}
+
+.dam-market-promo p {
+  grid-column: 1 / -1;
+  color: #15803d;
+  font-size: 0.6875rem;
+}
+
+.dam-market-totals {
+  gap: 0.5rem;
+}
+
+.dam-market-totals > div {
+  display: flex;
+  justify-content: space-between;
+  color: #71717a;
+  font-size: 0.8125rem;
+}
+
+.dam-market-totals .dam-market-totals__total {
+  margin-top: 0.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e4e4e7;
+  color: #18181b;
+  font-size: 1rem;
+  font-weight: 850;
+}
+
+.dam-checkout-fullscreen {
+  width: 100% !important;
+  max-width: none !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  border-radius: 0 !important;
+}
+
+.dam-sheet-overlay.dam-checkout-overlay {
+  align-items: stretch;
+  padding: 0;
+}
+
+.dam-market-checkout-progress {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.dam-market-checkout-progress span {
+  color: #a1a1aa;
+  font-size: 0.625rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.dam-market-checkout-progress span.is-active {
+  color: #ff3b30;
+}
+
+@media (min-width: 640px) {
+  .dam-market-header__main {
+    grid-template-columns: auto auto minmax(12rem, 1fr) auto auto;
+    min-height: 4.5rem;
+  }
+
+  .dam-market-search {
+    grid-column: auto;
+    grid-row: auto;
+    margin-bottom: 0;
+  }
+
+  .dam-market-cart-button {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .dam-market-offer > button {
+    display: flex;
+  }
+
+  #dam-market-categories.dam-sticky-pills {
+    top: 7rem;
+  }
+
+  .dam-market-category {
+    scroll-margin-top: 10rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .dam-market-menu {
+    padding-top: 1.5rem;
+  }
+
+  #dam-market-categories.dam-sticky-pills {
+    top: 7rem;
+    padding-right: 1.5rem;
+    padding-left: 1.5rem;
+  }
+
+  .dam-market-section-head {
+    margin-bottom: 1rem;
+  }
+
+  .dam-market-section-head h2,
+  .dam-market-section-head h3 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .dam-market-desktop-nav {
+    display: flex;
+  }
+
+  .dam-market-cart {
+    padding: 2rem 0;
+  }
+
+  .dam-market-cart__layout {
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    gap: 2rem;
+    align-items: start;
+  }
+
+  .dam-market-cart-mobile-promo {
+    display: none;
+  }
+
+  .dam-market-cart-mobile-totals {
+    display: none;
+  }
+
+  .dam-market-cart-summary {
+    position: sticky;
+    top: 8rem;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    z-index: auto;
+    display: grid;
+    gap: 1rem;
+    padding: 1.25rem;
+    border: 1px solid #e4e4e7;
+    border-radius: 1.125rem;
+    box-shadow: 0 8px 30px rgba(24, 24, 27, 0.06);
+  }
+
+  .dam-market-cart-summary > h3,
+  .dam-market-goal,
+  .dam-market-totals {
+    display: grid;
+  }
+
+  .dam-market-promo {
+    display: grid;
+  }
+
+  .dam-market-cart-summary > h3 {
+    color: #18181b;
+    font-size: 1.125rem;
+    font-weight: 850;
+  }
+
+  .dam-grid-card__add {
+    width: auto;
+    padding: 0 0.9rem;
+    gap: 0.25rem;
+  }
+
+  .dam-grid-card__add span {
+    display: inline;
+    font-size: 0.75rem;
+    font-weight: 750;
   }
 }

@@ -41,24 +41,19 @@ export default function DamAlemProductCard({
     return (
       <article className="dam-product-card dam-animate-in">
         <div
-          role="button"
-          tabIndex={0}
-          className="dam-product-card__media cursor-pointer"
-          onClick={onOpen}
-          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
-          aria-label={name}
+          className="dam-product-card__media"
         >
           <DamAlemImage src={imageUrl} alt="" className="h-full w-full object-cover" />
+          <button type="button" className="absolute inset-0 z-[1]" onClick={onOpen} aria-label={name} />
           {onToggleFavorite && (
-            <span
-              role="button"
-              tabIndex={0}
+            <button
+              type="button"
               onClick={e => { e.stopPropagation(); onToggleFavorite(); }}
-              onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); onToggleFavorite(); } }}
-              className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 shadow-sm"
+              className="absolute right-1.5 top-1.5 z-[2] flex h-7 w-7 items-center justify-center rounded-full bg-white/95 shadow-sm"
+              aria-label={isFavorite ? 'Убрать из избранного' : 'В избранное'}
             >
               <Heart className={`h-3.5 w-3.5 ${isFavorite ? 'fill-[#FF3B30] text-[#FF3B30]' : 'text-gray-400'}`} />
-            </span>
+            </button>
           )}
         </div>
         <div className="dam-product-card__body">
@@ -88,25 +83,20 @@ export default function DamAlemProductCard({
   return (
     <article className={`dam-grid-card dam-animate-in${isHero ? ' dam-grid-card--hero' : ''}`}>
       <div
-        role="button"
-        tabIndex={0}
-        className="dam-grid-card__media cursor-pointer"
-        onClick={onOpen}
-        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
-        aria-label={name}
+        className="dam-grid-card__media"
       >
         <DamAlemImage src={imageUrl} alt="" className="h-full w-full object-cover" />
+        <button type="button" className="absolute inset-0 z-[1]" onClick={onOpen} aria-label={name} />
         {badgeLabel ? <span className={`dam-grid-card__badge ${badgeClass}`}>{badgeLabel}</span> : null}
         {onToggleFavorite ? (
-          <span
-            role="button"
-            tabIndex={0}
+          <button
+            type="button"
             onClick={e => { e.stopPropagation(); onToggleFavorite(); }}
-            onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); onToggleFavorite(); } }}
             className="dam-grid-card__fav"
+            aria-label={isFavorite ? 'Убрать из избранного' : 'В избранное'}
           >
             <Heart className={`h-4 w-4 ${isFavorite ? 'fill-[#FF3B30] text-[#FF3B30]' : 'text-white drop-shadow'}`} />
-          </span>
+          </button>
         ) : null}
         <div className="dam-grid-card__add-wrap">
           {qtyInCart > 0 ? (
@@ -114,12 +104,14 @@ export default function DamAlemProductCard({
           ) : (
             <button type="button" onClick={e => { e.stopPropagation(); onAdd(); }} className="dam-grid-card__add" aria-label="В корзину">
               <Plus className="h-5 w-5 lg:h-6 lg:w-6" />
+              <span>Добавить</span>
             </button>
           )}
         </div>
       </div>
       <button type="button" className="dam-grid-card__body text-left w-full text-zinc-900" onClick={onOpen}>
         <h3 className="dam-grid-card__title">{name}</h3>
+        {description ? <p className="dam-grid-card__desc">{description}</p> : null}
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           {weight ? <span className="dam-grid-card__tag">{weight}</span> : null}
           {hasOptions ? <span className="dam-grid-card__tag dam-grid-card__tag--opt">{optionsLabel}</span> : null}

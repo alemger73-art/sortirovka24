@@ -39,7 +39,7 @@ async function addItemToCart(page: Page) {
   await modalAdd.click();
 }
 
-test("cart drawer: add item, change quantity, open checkout", async ({ page }) => {
+test("cart tab: add item, change quantity, open checkout", async ({ page }) => {
   await waitForFoodMenu(page);
   await addItemToCart(page);
 
@@ -47,8 +47,9 @@ test("cart drawer: add item, change quantity, open checkout", async ({ page }) =
   await expect(floatingCart).toBeVisible({ timeout: 10_000 });
   await floatingCart.click();
 
-  const sheet = page.getByTestId("dam-cart-sheet");
-  await expect(sheet).toBeVisible();
+  const cartPage = page.getByTestId("dam-cart-sheet");
+  await expect(cartPage).toBeVisible();
+  await expect(page).toHaveURL(/tab=cart/);
 
   const qtyValue = page.getByTestId("dam-cart-qty-value");
   await expect(qtyValue).toHaveText("1");
@@ -68,13 +69,14 @@ test("cart drawer: add item, change quantity, open checkout", async ({ page }) =
   });
 });
 
-test("cart drawer: close button works", async ({ page }) => {
+test("cart tab: back to menu works", async ({ page }) => {
   await waitForFoodMenu(page);
   await addItemToCart(page);
   await page.getByTestId("dam-floating-cart").click();
 
   await expect(page.getByTestId("dam-cart-sheet")).toBeVisible();
 
-  await page.getByTestId("dam-cart-sheet").locator(".dam-sheet-header button").click();
+  await page.getByRole("button", { name: "Вернуться в меню" }).click();
   await expect(page.getByTestId("dam-cart-sheet")).toBeHidden();
+  await expect(page).not.toHaveURL(/tab=cart/);
 });
