@@ -1,7 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Cloud, CloudRain, Snowflake, Sun } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { client, withRetry } from "@/lib/api";
+import { apiUrl } from "@/lib/config";
+
+const OPEN_METEO =
+  "https://api.open-meteo.com/v1/forecast?latitude=49.8047&longitude=73.1094&current=temperature_2m,weather_code&timezone=Asia/Almaty";
 
 function WeatherIcon({ weatherMain, className }: { weatherMain: string; className?: string }) {
   const main = (weatherMain || "").toLowerCase();
@@ -29,69 +32,74 @@ function weatherTipKey(temp: number): "hero.weatherCold" | "hero.weatherCool" | 
   return "hero.weatherNice";
 }
 
+function wmoToMain(code: number): string {
+  if (code === 0) return "Clear";
+  if ([1, 2, 3].includes(code)) return "Clouds";
+  if ([45, 48].includes(code)) return "Fog";
+  if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "Rain";
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return "Snow";
+  if ([95, 96, 99].includes(code)) return "Thunderstorm";
+  return "Clouds";
+}
+
+function readBackendWeather(payload: unknown): { temp: number; weather_main: string } | null {
+  const data = payload && typeof payload === "object" && "data" in payload
+    ? (payload as { data: unknown }).data
+    : payload;
+  if (!data || typeof data !== "object") return null;
+  const row = data as { success?: boolean; temp?: unknown; weather_main?: string };
+  if (typeof row.temp !== "number") return null;
+  if (row.success === false) return null;
+  return { temp: Math.round(row.temp), weather_main: row.weather_main || "" };
+}
+
+async function loadWeather(): Promise<{ temp: number; weather_main: string } | null> {
+  try {
+    const res = await fetch(apiUrl("/api/v1/weather"));
+    if (res.ok) {
+      const parsed = readBackendWeather(await res.json());
+      if (parsed) return parsed;
+    }
+  } catch {
+    // fall through to Open-Meteo
+  }
+
+  try {
+    const res = await fetch(OPEN_METEO);
+    if (!res.ok) return null;
+    const json = await res.json();
+    const temp = json?.current?.temperature_2m;
+    if (typeof temp !== "number") return null;
+    return {
+      temp: Math.round(temp),
+      weather_main: wmoToMain(Number(json?.current?.weather_code || 0)),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default function WeatherWidget() {
   const { t } = useLanguage();
-  const [weather, setWeather] = useState<{
-    temp: number | null;
-    weather_main: string;
-    success: boolean;
-  }>({ temp: null, weather_main: "", success: false });
-
-  const applyWeather = (res: unknown) => {
-    const data = res && typeof res === "object" && "data" in res ? (res as { data: any }).data : res;
-    if (data && data.success && data.temp !== null && data.temp !== undefined) {
-      setWeather({
-        temp: data.temp,
-        weather_main: data.weather_main || "",
-        success: true,
-      });
-    }
-  };
-
-  const fetchWeather = useCallback(async () => {
-    try {
-      const res = await withRetry(
-        () =>
-          client.apiCall.invoke<any>({
-            url: "/api/v1/weather",
-            method: "GET",
-          }),
-        2,
-        800,
-      );
-      applyWeather(res);
-    } catch {
-      setTimeout(fetchWeatherQuiet, 15000);
-    }
-  }, []);
-
-  const fetchWeatherQuiet = useCallback(async () => {
-    try {
-      const res = await withRetry(
-        () =>
-          client.apiCall.invoke<any>({
-            url: "/api/v1/weather",
-            method: "GET",
-          }),
-        2,
-        3000,
-      );
-      applyWeather(res);
-    } catch {
-      // keep hidden
-    }
-  }, []);
+  const [weather, setWeather] = useState<{ temp: number; weather_main: string } | null>(null);
 
   useEffect(() => {
-    const initialTimer = setTimeout(fetchWeather, 800);
-    const interval = setInterval(fetchWeather, 10 * 60 * 1000);
+    let cancelled = false;
+
+    async function run() {
+      const next = await loadWeather();
+      if (!cancelled && next) setWeather(next);
+    }
+
+    run();
+    const interval = setInterval(run, 10 * 60 * 1000);
     return () => {
-      clearTimeout(initialTimer);
+      cancelled = true;
       clearInterval(interval);
     };
-  }, [fetchWeather]);
+  }, []);
 
-  if (!weather.success || weather.temp === null) return null;
+  if (!weather) return null;
 
   const iconColor = getWeatherIconColor(weather.weather_main);
   const tip = t(weatherTipKey(weather.temp));
