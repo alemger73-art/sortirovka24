@@ -57,9 +57,10 @@ test("checkout shows a reason instead of a silent disabled button", async ({ pag
   await expect(submit).toBeEnabled();
   await submit.click();
 
-  await expect(page.getByTestId("auth-prompt-modal").or(page.getByTestId("dam-checkout-block-reason"))).toBeVisible({
-    timeout: 5_000,
-  });
+  // Either (or both) may appear when guest checkout is blocked.
+  await expect(
+    page.getByTestId("auth-prompt-modal").or(page.getByTestId("dam-checkout-block-reason")).first(),
+  ).toBeVisible({ timeout: 5_000 });
 });
 
 test("double click on submit does not enable a second in-flight request", async ({ page }) => {
