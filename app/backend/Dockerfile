@@ -1,16 +1,43 @@
-# INTENTIONAL FAIL when Railway Root Directory is app/backend.
-# Docker build context cannot reach ../frontend, so this path can never ship the SPA.
-#
-# Fix (required for www / SPA+API):
-#   Railway → Service → Settings → Root Directory = empty (repository root)
-#   Use the root Dockerfile + root railway.json (dockerfilePath: "Dockerfile").
-#   Config path for that service should be /railway.json (absolute from repo root).
-#
-# Do not set Root Directory to app/backend for the public site.
+# Works when Railway Root Directory is app/backend (Docker context cannot see ../frontend).
+# Frontend is fetched from GitHub at RAILWAY_GIT_COMMIT_SHA so the SPA matches this deploy.
+# Prefer repo-root Dockerfile when Root Directory is empty — that path is simpler/faster.
 
+# ---- Stage 1: build frontend from the monorepo commit being deployed ----
+FROM node:20-slim AS frontend
+WORKDIR /src
+
+ARG RAILWAY_GIT_COMMIT_SHA=main
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates curl \
+ && rm -rf /var/lib/apt/lists/* \
+ && curl -fsSL "https://codeload.github.com/alemger73-art/sortirovka24/tar.gz/${RAILWAY_GIT_COMMIT_SHA}" -o /tmp/repo.tgz \
+ && tar -xzf /tmp/repo.tgz -C /src --strip-components=1 \
+ && rm /tmp/repo.tgz
+
+WORKDIR /src/app/frontend
+RUN corepack enable \
+ && corepack prepare pnpm@8.10.0 --activate \
+ && pnpm install --frozen-lockfile \
+ && pnpm run build
+
+# ---- Stage 2: backend runtime + SPA ----
 FROM python:3.12-slim
-RUN printf '%s\n' \
-  'ERROR: app/backend/Dockerfile cannot build frontend+API.' \
-  'Build context is app/backend only — COPY cannot reach app/frontend.' \
-  'Set Railway Root Directory to repository root (empty) and use /Dockerfile.' \
-  >&2 && exit 1
+
+ARG RAILWAY_GIT_COMMIT_SHA=unknown
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    APP_BUILD_ID=${RAILWAY_GIT_COMMIT_SHA}
+
+WORKDIR /app
+
+COPY requirements.txt ./requirements.txt
+RUN pip install --upgrade pip && pip install -r requirements.txt
+
+COPY . ./
+COPY --from=frontend /src/app/frontend/dist ./frontend_dist
+
+EXPOSE 8000
+
+CMD ["sh", "start.sh"]

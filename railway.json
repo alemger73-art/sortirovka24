@@ -1,6 +1,5 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
-  "$comment": "SPA+API image. Railway Root Directory MUST be empty (repo root). Do NOT set Root Directory to app/backend — frontend will be missing from the build context.",
   "build": {
     "builder": "DOCKERFILE",
     "dockerfilePath": "Dockerfile",

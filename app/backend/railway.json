@@ -1,22 +1,11 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
-  "$comment": "Misconfigured if service Root Directory is app/backend: that Dockerfile fails on purpose. Point the service at repo-root /railway.json with Root Directory empty so the root multi-stage Dockerfile builds frontend_dist + API.",
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile",
-    "watchPatterns": [
-      "Dockerfile",
-      "railway.json",
-      "app/backend/**",
-      "app/frontend/package.json",
-      "app/frontend/pnpm-lock.yaml",
-      "app/frontend/src/**",
-      "app/frontend/index.html",
-      "app/frontend/vite.config.*"
-    ]
+    "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "sh -c \"alembic upgrade head || echo 'WARNING: alembic upgrade failed'; uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips=*\"",
+    "startCommand": "sh start.sh",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
