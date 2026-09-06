@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
 from models.become_master_requests import Become_master_requests
+from services.account_auth import get_account_user
 from services.become_master_requests import Become_master_requestsService
 from services.telegram import notify_new_become_master
 from services.user_notifications import notify_become_master_decision

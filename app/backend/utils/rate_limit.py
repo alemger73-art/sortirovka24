@@ -65,8 +65,16 @@ def _memory_hit(key: str, *, window_seconds: float, max_hits: int) -> bool:
             k for k, ts in _RATE_BUCKETS.items()
             if not ts or now - ts[-1] >= window_seconds
         ]
-        for k in stale[:5000]:
+        for k in stale:
             _RATE_BUCKETS.pop(k, None)
+        # If still over cap (all keys active), drop oldest by last hit.
+        if len(_RATE_BUCKETS) > 10_000:
+            overflow = sorted(
+                _RATE_BUCKETS.items(),
+                key=lambda item: item[1][-1] if item[1] else 0.0,
+            )
+            for k, _ in overflow[: len(_RATE_BUCKETS) - 10_000]:
+                _RATE_BUCKETS.pop(k, None)
     return False
 
 
