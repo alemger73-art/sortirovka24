@@ -1,14 +1,24 @@
 # Keep the Docker build context small and reproducible.
+# MUST keep for SPA build: app/frontend/{src,public,index.html,package.json,
+# pnpm-lock.yaml,.npmrc,vite.config.*,tsconfig*,tailwind*,postcss*,assets}.
 
-# Frontend source IS needed: the backend image builds it and serves the SPA.
-# We still exclude its node_modules/dist below so the context stays small.
+# Accidental nested path (not used)
 app/app
 
-# Node
+# Node (rebuilt inside the image)
 **/node_modules
 **/dist
 **/.vite
 **/*.tsbuildinfo
+
+# Mobile / store artifacts not needed for the web image
+app/frontend/android
+app/frontend/ios
+app/frontend/releases
+**/*.aab
+**/*.apk
+**/*.keystore
+app/frontend/.android-sdk
 
 # Python caches / local artifacts
 **/__pycache__
@@ -21,6 +31,7 @@ app/app
 app/backend/logs
 app/backend/.jwt_secret
 app/backend/.env
+app/backend/frontend_dist
 
 # Repo meta
 .git

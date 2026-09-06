@@ -1,15 +1,19 @@
-# Railway / Docker: build React SPA + FastAPI in one image (one URL for the site).
-# REQUIRED: build context = repository root (Railway Root Directory empty / "/").
-# Do NOT set Root Directory to app/backend — that context cannot reach app/frontend.
+# SPA+API image when the Docker build context is the repository root.
+# Railway Root Directory is a dashboard setting (cannot be changed from git).
+# If a service uses Root Directory=app/backend, it builds app/backend/Dockerfile
+# instead (API-only). Prefer empty Root Directory + this file for www / SPA+API.
 
 # ---- Stage 1: build the frontend (pnpm + locked deps) ----
 FROM node:20-slim AS frontend
 WORKDIR /app/frontend
 
+ENV NODE_OPTIONS=--max-old-space-size=4096
+
 RUN corepack enable && corepack prepare pnpm@8.10.0 --activate
 
 # Install dependencies first for better layer caching.
-COPY app/frontend/package.json app/frontend/pnpm-lock.yaml ./
+# .npmrc (node-linker=hoisted) must be present before install.
+COPY app/frontend/package.json app/frontend/pnpm-lock.yaml app/frontend/.npmrc ./
 RUN pnpm install --frozen-lockfile
 
 # Build the production bundle into /app/frontend/dist.
@@ -17,7 +21,7 @@ COPY app/frontend/ ./
 # Railway injects RAILWAY_GIT_COMMIT_SHA as a build arg when available.
 ARG RAILWAY_GIT_COMMIT_SHA=unknown
 ENV APP_BUILD_ID=${RAILWAY_GIT_COMMIT_SHA}
-# vite build only — tsc is enforced in CI; skipping here keeps Railway deploys unblocked
+# vite build only — tsc is enforced in CI; keeps Railway deploys resilient
 RUN pnpm exec vite build
 
 # ---- Stage 2: backend runtime ----

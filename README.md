@@ -125,8 +125,9 @@ ID приложения: `kz.sortirovka24.app`.
 ## Деплой
 
 - **Production (рекомендуется):** один сервис на **Railway** из корневого `Dockerfile`
-  (сборка React + FastAPI, сайт и API с одного URL).
-- **Бэкенд:** Railway (`railway.json` / `app/backend/`).
+  (сборка React + FastAPI, сайт и API с одного URL; Root Directory пустой).
+- **API-only:** Railway Root Directory `app/backend` (`app/backend/Dockerfile` + `start.sh`).
+  Root Directory — настройка dashboard, из git не меняется.
 - **Vercel:** автодеплой из Git **отключён** (`app/frontend/vercel.json` →
   `git.deploymentEnabled: false`). Не используйте Vercel как основной хостинг.
 - Альтернатива API: AWS Lambda (`app/backend/lambda_handler.py`).
