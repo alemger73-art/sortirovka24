@@ -1345,7 +1345,14 @@ export default function Food() {
       id: item.id,
       name: localized(item, 'name') || item.name,
       categorySlug: item.category_slug || categorySlugOf(
-        categories.find(c => c.id === item.category_id) || { id: item.category_id, name: '', slug: '' },
+        categories.find(c => c.id === item.category_id) || {
+          id: item.category_id,
+          name: '',
+          icon: '',
+          sort_order: 0,
+          is_active: true,
+          slug: '',
+        },
       ),
       imageUrl: item.image_url,
     });

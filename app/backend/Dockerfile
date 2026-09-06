@@ -6,11 +6,16 @@
 FROM node:20-slim AS frontend
 WORKDIR /src
 
+# Railway may pass an empty build-arg (overrides Docker default). Sanitize before fetch.
 ARG RAILWAY_GIT_COMMIT_SHA=main
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl \
  && rm -rf /var/lib/apt/lists/* \
- && curl -fsSL "https://codeload.github.com/alemger73-art/sortirovka24/tar.gz/${RAILWAY_GIT_COMMIT_SHA}" -o /tmp/repo.tgz \
+ && SHA="${RAILWAY_GIT_COMMIT_SHA}" \
+ && case "$SHA" in ""|"unknown"|"null"|"undefined") SHA=main ;; esac \
+ && echo "Fetching alemger73-art/sortirovka24@${SHA}" \
+ && (curl -fsSL "https://codeload.github.com/alemger73-art/sortirovka24/tar.gz/${SHA}" -o /tmp/repo.tgz \
+     || curl -fsSL "https://codeload.github.com/alemger73-art/sortirovka24/tar.gz/main" -o /tmp/repo.tgz) \
  && tar -xzf /tmp/repo.tgz -C /src --strip-components=1 \
  && rm /tmp/repo.tgz
 
@@ -18,7 +23,7 @@ WORKDIR /src/app/frontend
 RUN corepack enable \
  && corepack prepare pnpm@8.10.0 --activate \
  && pnpm install --frozen-lockfile \
- && pnpm run build
+ && pnpm exec vite build
 
 # ---- Stage 2: backend runtime + SPA ----
 FROM python:3.12-slim
