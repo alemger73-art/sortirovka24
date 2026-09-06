@@ -92,11 +92,11 @@
     },
     {
         "id": 39,
-        "name": "DAM ALEM",
+        "name": "DAM ALEM 2.0",
         "slug": "dam-alem",
         "cat_type": "food",
         "icon": "🍽️",
-        "description": "DAM ALEM — доставка еды №1 в Сортировке!",
+        "description": "DAM ALEM 2.0 — доставка еды №1 в Сортировке!",
         "parent_id": "",
         "sort_order": 1,
         "show_on_main": true,

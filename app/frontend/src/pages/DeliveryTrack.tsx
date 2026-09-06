@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
+import { DAM_ALEM_BRAND } from '@/lib/damAlem';
 import TaxiLiveMap from '@/components/taxi/TaxiLiveMap';
 import StorageImg from '@/components/StorageImg';
 import { Button } from '@/components/ui/button';
@@ -122,7 +123,7 @@ export default function DeliveryTrack() {
             </button>
             <div>
               <h1 className="font-bold text-gray-900">Доставка #{foodOrderId}</h1>
-              <p className="text-sm text-gray-500">{task.merchant_name || 'DAM ALEM'}</p>
+              <p className="text-sm text-gray-500">{task.merchant_name || DAM_ALEM_BRAND}</p>
             </div>
             <button onClick={load} className="ml-auto p-2 rounded-xl hover:bg-gray-100">
               <RefreshCw className="h-4 w-4 text-gray-500" />

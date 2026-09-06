@@ -117,7 +117,7 @@ function pinDamAlemFirst(list: Restaurant[]): Restaurant[] {
 function legacyPlaceholderRestaurant(): Restaurant {
   return {
     id: LEGACY_RESTAURANT_ID,
-    name: 'DAM ALEM',
+    name: 'DAM ALEM 2.0',
     photo: '',
     description: 'Доставка еды №1 в Сортировке',
     whatsapp_phone: '',
@@ -449,10 +449,10 @@ export default function FoodDelivery() {
                   Доставка
                 </p>
                 <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-                  DAM ALEM и рестораны
+                  DAM ALEM 2.0 и рестораны
                 </h1>
                 <p className="mt-2 max-w-md text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                  DAM ALEM — доставка №1 в Сортировке. Также доступны партнёрские заведения.
+                  DAM ALEM 2.0 — доставка №1 в Сортировке. Также доступны партнёрские заведения.
                 </p>
               </header>
 

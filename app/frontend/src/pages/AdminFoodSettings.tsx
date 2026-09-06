@@ -98,7 +98,7 @@ const SETTING_FIELDS = [
 
   { key: 'whatsapp_number', label: 'Номер WhatsApp', icon: Phone, placeholder: '+77001234567', description: 'Номер для получения заказов в WhatsApp', type: 'text' as const },
 
-  { key: 'hero_banner_title', label: 'Заголовок баннера', icon: Image, placeholder: 'DAM ALEM', description: 'Бренд на странице доставки', type: 'text' as const },
+  { key: 'hero_banner_title', label: 'Заголовок баннера', icon: Image, placeholder: 'DAM ALEM 2.0', description: 'Бренд на странице доставки', type: 'text' as const },
 
   { key: 'hero_banner_subtitle', label: 'Подзаголовок баннера', icon: Image, placeholder: 'Доставка еды №1 в Сортировке', description: 'Слоган под брендом', type: 'text' as const },
 
@@ -454,7 +454,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
       <div className="flex flex-wrap items-center justify-between gap-3">
 
-        <h3 className="font-bold text-lg">{damAlemMode ? 'Настройки DAM ALEM' : 'Настройки доставки еды'}</h3>
+        <h3 className="font-bold text-lg">{damAlemMode ? 'Настройки DAM ALEM 2.0' : 'Настройки доставки еды'}</h3>
 
         <Button onClick={saveSettings} disabled={saving} className="bg-orange-500 hover:bg-orange-600">
 

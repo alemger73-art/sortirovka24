@@ -105,7 +105,7 @@ DEFAULT_SETTINGS = {
     "promo2_title": "Бесплатная доставка",
     "promo2_subtitle": "При заказе от 15 000 ₸ по району",
     "cross_promo_title": "Закуски к напиткам",
-    "cross_promo_subtitle": "Закажите DAM ALEM — пицца, шашлык и горячие блюда с доставкой",
+    "cross_promo_subtitle": "Закажите DAM ALEM 2.0 — пицца, шашлык и горячие блюда с доставкой",
     "cross_promo_link": "/food",
 }
 

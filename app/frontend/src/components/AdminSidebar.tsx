@@ -7,6 +7,7 @@ import {
   BadgeCheck, BarChart3, Clock, Plug, Bus, TreePine, MapPin,
   ChevronDown, ChevronRight, X, Menu, Store, Car, Heart, HardHat, Bell, Bike, Cross, Scissors, Power, Wine, LayoutDashboard, Handshake, type LucideIcon,
 } from 'lucide-react';
+import { DAM_ALEM_BRAND } from '@/lib/damAlem';
 import { getGroupBadgeCount, getTabBadgeCount, type AdminSummary } from '@/lib/adminSummaryApi';
 
 /* ─── Types ─── */
@@ -63,7 +64,7 @@ const MENU_GROUPS: MenuGroup[] = [
     label: 'Еда',
     emoji: '🍕',
     items: [
-      { id: 'dam-alem', label: 'DAM ALEM', icon: Utensils },
+      { id: 'dam-alem', label: DAM_ALEM_BRAND, icon: Utensils },
       { id: 'park-points', label: 'Точки парка', icon: MapPin },
       { id: 'park-orders', label: 'Заказы в парк', icon: TreePine },
     ],

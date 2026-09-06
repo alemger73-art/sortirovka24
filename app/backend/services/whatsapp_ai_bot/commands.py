@@ -67,7 +67,7 @@ def parse_intent(text: str) -> BotIntent:
     return BotIntent(name="unknown", query=normalized)
 
 
-def help_text(*, brand: str = "DAM ALEM") -> str:
+def help_text(*, brand: str = "DAM ALEM 2.0") -> str:
     return (
         f"🍽️ *{brand}* — WhatsApp-меню\n\n"
         "Команды:\n"

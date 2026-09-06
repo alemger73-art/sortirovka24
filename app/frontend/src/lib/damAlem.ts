@@ -1,4 +1,12 @@
-export const DAM_ALEM_BRAND = 'DAM ALEM';
+export const DAM_ALEM_BRAND = 'DAM ALEM 2.0';
+
+export function normalizeDamAlemBrand(name: string): string {
+  return name.toLowerCase().replace(/\s+/g, '').replace(/2\.0/g, '');
+}
+
+export function isSameDamAlemBrand(name: string | null | undefined, brand = DAM_ALEM_BRAND): boolean {
+  return normalizeDamAlemBrand(name || '') === normalizeDamAlemBrand(brand);
+}
 
 export const DAM_ALEM_HERO_FALLBACK =
   'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1920&h=820&q=90';

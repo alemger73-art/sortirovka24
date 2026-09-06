@@ -102,7 +102,7 @@ async def alert_new_business_partner(db, data: dict) -> None:
 
 
 async def alert_new_food_order(db, order) -> None:
-    restaurant = getattr(order, "restaurant_name", None) or "DAM ALEM"
+    restaurant = getattr(order, "restaurant_name", None) or "DAM ALEM 2.0"
     total = getattr(order, "total_amount", None)
     amount = f" · {total:.0f} ₸" if total else ""
     await notify_admin_operators(

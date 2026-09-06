@@ -104,7 +104,7 @@ LOYALTY_GIFTS: List[Dict[str, Any]] = [
         "id": "dam-gift-dessert",
         "min_amount": 20000,
         "title": "Десерт к заказу",
-        "description": "Сладкий финал от DAM ALEM",
+        "description": "Сладкий финал от DAM ALEM 2.0",
         "image_url": _IMG["shake"],
         "is_active": True,
         "sort_order": 5,
@@ -218,6 +218,6 @@ FOOD_BANNERS: List[Dict[str, Any]] = [
 ]
 
 REFERRAL_SHARE_TEXT = (
-    "Привет! Заказываю в DAM ALEM — вкусная доставка по Сортировке 🍕\n"
+    "Привет! Заказываю в DAM ALEM 2.0 — вкусная доставка по Сортировке 🍕\n"
     "Промокод DAMALEM10 — скидка 10% на заказ от 2 500 ₸"
 )

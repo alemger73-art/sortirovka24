@@ -161,7 +161,7 @@ async def create_task_from_food_order(db: AsyncSession, order: Food_orders, *, d
 
     pickup_lat = float(settings.get("pickup_lat") or DEFAULT_CENTER_LAT)
     pickup_lng = float(settings.get("pickup_lng") or DEFAULT_CENTER_LNG)
-    pickup_address = order.restaurant_name or "DAM ALEM, Сортировка"
+    pickup_address = order.restaurant_name or "DAM ALEM 2.0, Сортировка"
 
     geo_ctx = geo_context_from_taxi_settings({})
     drop_lat, drop_lng = None, None

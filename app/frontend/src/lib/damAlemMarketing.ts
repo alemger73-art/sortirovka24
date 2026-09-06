@@ -12,7 +12,7 @@ export const DEFAULT_PROMO_CODES: FoodPromoCode[] = [
 ];
 
 export const REFERRAL_SHARE_MESSAGE =
-  'Привет! Заказываю в DAM ALEM — вкусная доставка по Сортировке 🍕\nПромокод DAMALEM10 — скидка 10% на заказ от 2 500 ₸';
+  'Привет! Заказываю в DAM ALEM 2.0 — вкусная доставка по Сортировке 🍕\nПромокод DAMALEM10 — скидка 10% на заказ от 2 500 ₸';
 
 export function resolvePromoCodes(raw?: string): FoodPromoCode[] {
   const parsed = parsePromoCodes(raw);
@@ -117,7 +117,7 @@ export function buildMarketingStories(opts: {
     },
     {
       id: 'hits',
-      title: 'Хиты DAM ALEM',
+      title: 'Хиты DAM ALEM 2.0',
       subtitle: 'Пицца, донеры, шашлыки и комплексные обеды — всё в одном приложении',
       cta: 'Популярное',
       image: getCategoryImage('donery'),

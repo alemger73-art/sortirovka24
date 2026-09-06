@@ -17,7 +17,7 @@ export default function AdminDamAlemGuide() {
             <BookOpen className="h-5 w-5" />
           </span>
           <div>
-            <p className="font-bold text-gray-900">Инструкция DAM ALEM</p>
+            <p className="font-bold text-gray-900">Инструкция DAM ALEM 2.0</p>
             <p className="text-xs text-gray-500">Для вас и для клиентов — коротко и по делу</p>
           </div>
         </div>

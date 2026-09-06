@@ -16,8 +16,8 @@ export interface PartnerModuleConfig {
 export const PARTNER_MODULES: Record<PartnerType, PartnerModuleConfig> = {
   dam_alem: {
     type: 'dam_alem',
-    label: 'DAM ALEM',
-    defaultDisplayName: 'DAM ALEM',
+    label: 'DAM ALEM 2.0',
+    defaultDisplayName: 'DAM ALEM 2.0',
     route: '/partner/dam-alem',
     storefront: '/food',
     accentClass: 'text-[#FF3B30]',

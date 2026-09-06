@@ -4,6 +4,7 @@ import {
 } from "lucide-react";
 import FoodOrderStatusBar from "@/components/damalem/FoodOrderStatusBar";
 import { parseOrderItems, type CabinetOrderRow } from "@/lib/orderRoutes";
+import { DAM_ALEM_BRAND } from "@/lib/damAlem";
 
 const STORE_ORDER_LABELS: Record<string, string> = {
   volna: "store.volna",
@@ -84,7 +85,7 @@ function orderTitle(o: CabinetOrderRow, t: (key: string) => string) {
   const isFood = o.type === "food";
   const isStore = o.type in STORE_ORDER_LABELS;
   if (isFood) {
-    return (o.restaurant_name || "DAM ALEM") + (o.order_number ? ` · №${o.order_number}` : "");
+    return (o.restaurant_name || DAM_ALEM_BRAND) + (o.order_number ? ` · №${o.order_number}` : "");
   }
   if (isStore) {
     return (o.store_label || t(STORE_ORDER_LABELS[o.type])) + (o.order_number ? ` · №${o.order_number}` : "");

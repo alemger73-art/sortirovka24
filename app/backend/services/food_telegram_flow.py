@@ -33,7 +33,7 @@ PAYMENT_LABELS = {
 def _admin_order_url(order_id: int) -> str:
     base = (os.environ.get("PUBLIC_FRONTEND_URL") or os.environ.get("FRONTEND_URL") or "").rstrip("/")
     if not base:
-        return f"Заказ #{order_id} — откройте админку DAM ALEM → Заказы"
+        return f"Заказ #{order_id} — откройте админку DAM ALEM 2.0 → Заказы"
     return f"{base}/admin?section=food-orders&order={order_id}"
 
 
@@ -147,7 +147,7 @@ async def dispatch_order_to_couriers(db: AsyncSession, order: Food_orders, *, de
 
     text = (
         f"🚴 <b>ДОСТАВКА #{order.id}</b>\n\n"
-        f"<b>Забрать:</b> {_escape_html(task.pickup_address or order.restaurant_name or 'DAM ALEM')}\n"
+        f"<b>Забрать:</b> {_escape_html(task.pickup_address or order.restaurant_name or 'DAM ALEM 2.0')}\n"
         f"<b>Отвезти:</b> {_escape_html(task.dropoff_address or order.delivery_address or '—')}\n\n"
         f"<b>Клиент:</b> {_escape_html(order.customer_name or '—')}\n"
         f"<b>Телефон:</b> <a href=\"tel:{_escape_html(order.customer_phone or '')}\">"

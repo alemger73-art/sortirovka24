@@ -1,5 +1,5 @@
 import { Clock, ShoppingBag, Star, Truck } from 'lucide-react';
-import { DAM_ALEM_BRAND } from '@/lib/damAlem';
+import { DAM_ALEM_BRAND, isSameDamAlemBrand } from '@/lib/damAlem';
 import DamAlemImage from '@/components/damalem/DamAlemImage';
 import { DAM_ALEM_CDN, resolveDamAlemHeroImage } from '@/lib/damAlemImages';
 
@@ -49,7 +49,7 @@ export default function DamAlemHero({
   const slide = promoSlides[promoSlide] ?? promoSlides[0];
   const brandLabel = title || DAM_ALEM_BRAND;
   const headline = subtitle || 'Горячая еда с доставкой по Сортировке';
-  const showTagline = brandLabel.trim().toLowerCase() !== DAM_ALEM_BRAND.toLowerCase();
+  const showTagline = !isSameDamAlemBrand(brandLabel);
 
   return (
     <section className="dam-hero-bleed dam-hero-desktop" aria-label={brandLabel}>

@@ -17,8 +17,8 @@ export function buildVolnaCrossPromos(): VolnaCrossPromo[] {
     {
       id: 'dam-alem-snacks',
       title: 'Закуски к напиткам',
-      subtitle: 'Шашлык, пицца и горячие блюда — закажите в DAM ALEM с доставкой по Сортировке',
-      cta: 'Открыть DAM ALEM',
+      subtitle: 'Шашлык, пицца и горячие блюда — закажите в DAM ALEM 2.0 с доставкой по Сортировке',
+      cta: 'Открыть DAM ALEM 2.0',
       href: '/food',
       image: getCategoryImage('shashlyki'),
       badge: 'Партнёр',
@@ -26,7 +26,7 @@ export function buildVolnaCrossPromos(): VolnaCrossPromo[] {
     {
       id: 'dam-alem-party',
       title: 'Компания собралась?',
-      subtitle: 'Добавьте еду из DAM ALEM — промокод DAMALEM10 даёт −10% от 2 500 ₸',
+      subtitle: 'Добавьте еду из DAM ALEM 2.0 — промокод DAMALEM10 даёт −10% от 2 500 ₸',
       cta: 'Заказать еду',
       href: '/food?promo=DAMALEM10',
       image: getCategoryImage('pizza-30'),
@@ -35,7 +35,7 @@ export function buildVolnaCrossPromos(): VolnaCrossPromo[] {
     {
       id: 'dam-alem-combo',
       title: 'Вино + ужин',
-      subtitle: 'После алкоголя из VOLNA — доставим горячий ужин из DAM ALEM за 30–60 мин',
+      subtitle: 'После алкоголя из VOLNA — доставим горячий ужин из DAM ALEM 2.0 за 30–60 мин',
       cta: 'Смотреть меню',
       href: '/food',
       image: getCategoryImage('kompleksnye-obedy'),

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { client, withRetry } from '@/lib/api';
@@ -7,8 +7,10 @@ import { fetchWithCache } from '@/lib/cache';
 import {
   Plus, Minus, X, Utensils, Truck, Store,
   ChevronRight, MapPin, MessageSquare,
-  ArrowLeft, Check, CheckCircle2,
+  ArrowLeft, Check, CheckCircle2, ChevronDown,
   AlertCircle, Smartphone, Banknote, Coins, RotateCcw,
+  Menu, Search, ShoppingCart, Clock, Home, LayoutGrid, Heart, User,
+  ShieldCheck, CreditCard, Loader2, Percent,
 } from 'lucide-react';
 import DamAlemOrderGuide from '@/components/damalem/DamAlemOrderGuide';
 import { Button } from '@/components/ui/button';
@@ -19,7 +21,7 @@ import { getAccountPrefill, isLoggedIn, pushCabinetItem, requireAuthDialog } fro
 import { accountApi, getAccountToken } from '@/lib/accountApi';
 import { fetchFoodRestaurantsList } from '@/lib/foodAdminApi';
 import { apiUrl } from '@/lib/config';
-import { findDamAlemRestaurantId } from '@/lib/damAlem';
+import { DAM_ALEM_BRAND, findDamAlemRestaurantId } from '@/lib/damAlem';
 import {
   saveFoodCart,
   loadFoodCart,
@@ -45,32 +47,20 @@ import OrderGoalsProgress from '@/components/damalem/OrderGoalsProgress';
 import DeliveryZonesPreview from '@/components/damalem/DeliveryZonesPreview';
 import DamAlemProductCard from '@/components/damalem/DamAlemProductCard';
 import DamAlemFloatingCart from '@/components/damalem/DamAlemFloatingCart';
-import DamAlemCartSidebar from '@/components/damalem/DamAlemCartSidebar';
 import DamAlemStatusStrip from '@/components/damalem/DamAlemStatusStrip';
-import DamAlemHero from '@/components/damalem/DamAlemHero';
-import DamAlemStickyPills from '@/components/damalem/DamAlemStickyPills';
-import DamAlemStories from '@/components/damalem/DamAlemStories';
-import DamAlemPromoStrip from '@/components/damalem/DamAlemPromoStrip';
-import DamAlemPromoBanners from '@/components/damalem/DamAlemPromoBanners';
-import type { FoodBanner } from '@/components/damalem/DamAlemPromoBanners';
-import DamAlemFreeDeliveryBanner from '@/components/damalem/DamAlemFreeDeliveryBanner';
-import DamAlemLoyaltyShowcase from '@/components/damalem/DamAlemLoyaltyShowcase';
-import DamAlemStepsBar from '@/components/damalem/DamAlemStepsBar';
-import { resolveDamAlemItemImage } from '@/lib/damAlemImages';
+import { resolveDamAlemHeroImage, getCategoryImage, resolveDamAlemItemImage } from '@/lib/damAlemImages';
 import DamAlemImage from '@/components/damalem/DamAlemImage';
 import DamAlemSheet from '@/components/damalem/DamAlemSheet';
 import DamAlemCheckoutButton from '@/components/damalem/DamAlemCheckoutButton';
 import FoodOrderStatusBar from '@/components/damalem/FoodOrderStatusBar';
+import GastronomPortalBar from '@/components/gastronom/GastronomPortalBar';
+import PharmacySideMenu from '@/components/pharmacy/PharmacySideMenu';
+import PharmacyCategoryStrip from '@/components/pharmacy/PharmacyCategoryStrip';
+import StoreProfileTab from '@/components/StoreProfileTab';
 import { foodCheckoutBlockReason, publicOrderErrorMessage } from '@/lib/foodCheckoutGuards';
-import {
-  buildMarketingStories,
-  defaultPromoSlides,
-  parsePromoSlides,
-  resolvePromoCodes,
-  type FoodBannerAction,
-  type MarketingStory,
-} from '@/lib/damAlemMarketing';
-import { buildDamAlemMenuSections, sectionDomId } from '@/lib/damAlemMenu';
+import { resolvePromoCodes } from '@/lib/damAlemMarketing';
+import { parsePromoCodes } from '@/lib/foodPromo';
+import { buildDamAlemMenuSections } from '@/lib/damAlemMenu';
 import DamAlemPageSkeleton from '@/components/damalem/DamAlemPageSkeleton';
 import LoadErrorState from '@/components/LoadErrorState';
 import '@/styles/damAlem.css';
@@ -196,14 +186,32 @@ function categorySlugOf(cat: FoodCategory): string {
   return `cat-${cat.id}`;
 }
 
+type DamTab = 'home' | 'catalog' | 'cart' | 'favorites' | 'profile';
+const DAM_TABS: DamTab[] = ['home', 'catalog', 'cart', 'favorites', 'profile'];
+const DAM_NAV: { id: DamTab; icon: typeof Home; label: string }[] = [
+  { id: 'home', icon: Home, label: 'Витрина' },
+  { id: 'catalog', icon: LayoutGrid, label: 'Меню' },
+  { id: 'cart', icon: ShoppingCart, label: 'Корзина' },
+  { id: 'favorites', icon: Heart, label: 'Избранное' },
+  { id: 'profile', icon: User, label: 'Профиль' },
+];
+const PAGE_X = 'px-4 sm:px-6 lg:px-8 xl:px-10';
+const CATALOG_SIDEBAR =
+  'hidden lg:block lg:sticky lg:top-36 lg:self-start space-y-1 rounded-2xl border border-gray-100 bg-white p-3 shadow-sm';
+
+function parseDamTab(raw: string | null): DamTab {
+  return DAM_TABS.includes(raw as DamTab) ? (raw as DamTab) : 'home';
+}
+
 export default function Food() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t, localized, lang } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
-  const [activeSectionId, setActiveSectionId] = useState('hits');
-  const [promoSlide, setPromoSlide] = useState(0);
-  const [foodBanners, setFoodBanners] = useState<FoodBanner[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [addressEditing, setAddressEditing] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [categories, setCategories] = useState<FoodCategory[]>([]);
   const [items, setItems] = useState<FoodItem[]>([]);
   const [modGroups, setModGroups] = useState<ModifierGroup[]>([]);
@@ -211,7 +219,7 @@ export default function Food() {
   const [itemGroupLinks, setItemGroupLinks] = useState<ItemModGroupLink[]>([]);
   const [settings, setSettings] = useState<Settings>({
     whatsapp_number: '+77470304096',
-    hero_banner_title: 'DAM ALEM',
+    hero_banner_title: DAM_ALEM_BRAND,
     hero_banner_subtitle: 'Доставка еды №1 в Сортировке',
     hero_banner_image: '',
     min_order_amount: '2000',
@@ -219,7 +227,6 @@ export default function Food() {
     delivery_zones: '[]',
     show_recommendations: 'true',
   });
-  const sectionObserverSkipRef = useRef(false);
   const cartHydratedRef = useRef(false);
   const menuVersionRef = useRef<string | null>(null);
   const modifiersLoadedRef = useRef(false);
@@ -535,34 +542,6 @@ export default function Food() {
       });
       setSettings(prev => ({ ...prev, ...s }));
 
-      const bannerRows = extract(results[3]) as Array<{
-        id: number;
-        title?: string;
-        subtitle?: string;
-        banner_text?: string;
-        image_url?: string;
-        button_text?: string;
-        button_url?: string;
-        link_url?: string;
-        banner_type?: string;
-        active?: boolean;
-      }>;
-      const mappedBanners: FoodBanner[] = bannerRows
-        .filter(b => b.active !== false)
-        .map(b => ({
-          id: b.id,
-          title: b.title || '',
-          subtitle: b.subtitle || b.banner_text,
-          image_url: b.image_url,
-          button_text: b.button_text,
-          button_url: b.button_url || b.link_url,
-        }));
-      const foodOnly = mappedBanners.filter(b => {
-        const blob = `${b.title} ${b.subtitle || ''} ${b.button_url || ''}`.toLowerCase();
-        return blob.includes('/food') || blob.includes('dam alem') || blob.includes('еда') || blob.includes('доставка');
-      });
-      setFoodBanners((foodOnly.length > 0 ? foodOnly : mappedBanners).slice(0, 8));
-
       void loadModifiers(true);
     } catch (e) {
       console.error('Error loading food data:', e);
@@ -599,21 +578,38 @@ export default function Food() {
 
   const menuSections = useMemo(
     () =>
-      buildDamAlemMenuSections(categories, poolItems, {
+      buildDamAlemMenuSections(categories, items, {
         categorySlugOf,
       }),
-    [categories, poolItems],
+    [categories, items],
   );
 
-  const stickyPills = useMemo(
-    () => menuSections.map(s => ({ id: s.id, label: s.label })),
-    [menuSections],
+  const hitsItems = useMemo(
+    () => menuSections.find(s => s.id === 'hits')?.items ?? items.filter(i => i.is_popular || i.is_recommended).slice(0, 8),
+    [menuSections, items],
   );
+  const comboItems = useMemo(
+    () => menuSections.find(s => s.id === 'combo')?.items ?? items.filter(i => i.is_combo).slice(0, 8),
+    [menuSections, items],
+  );
+  const favoriteItems = useMemo(
+    () => items.filter(i => favoriteIds.includes(i.id)),
+    [items, favoriteIds],
+  );
+  const catalogItems = useMemo(() => {
+    let list = poolItems;
+    if (selectedCategoryId != null) list = list.filter(i => i.category_id === selectedCategoryId);
+    return list;
+  }, [poolItems, selectedCategoryId]);
 
   const uiStep: 1 | 2 | 3 = checkoutOpen ? 3 : cartOpen ? 2 : 1;
 
   const availablePromos = useMemo(
     () => resolvePromoCodes(settings.promo_codes),
+    [settings.promo_codes],
+  );
+  const configuredPromos = useMemo(
+    () => parsePromoCodes(settings.promo_codes).filter(p => p.active !== false),
     [settings.promo_codes],
   );
 
@@ -624,62 +620,28 @@ export default function Food() {
 
   const showRecommendations = settings.show_recommendations !== 'false';
 
-  const scrollToSection = useCallback((sectionId: string) => {
-    setActiveSectionId(sectionId);
-    sectionObserverSkipRef.current = true;
-    const el = document.getElementById(sectionDomId(sectionId));
-    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    window.setTimeout(() => {
-      sectionObserverSkipRef.current = false;
-    }, 700);
-  }, []);
+  const activeTab = parseDamTab(searchParams.get('tab'));
+  const patchSearch = useCallback((patch: (p: URLSearchParams) => void, replace = false) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      patch(next);
+      return next;
+    }, { replace });
+  }, [setSearchParams]);
 
-  const scrollToMenu = useCallback(() => {
-    document.getElementById('dam-menu')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, []);
+  const setActiveTab = useCallback((tab: DamTab, replace = false) => {
+    patchSearch(p => {
+      if (tab === 'home') p.delete('tab');
+      else p.set('tab', tab);
+    }, replace);
+    setMenuOpen(false);
+    if (tab !== 'catalog') setSearchOpen(false);
+  }, [patchSearch]);
 
-  const scrollToSectionOrSlug = useCallback((slug: string) => {
-    const id = slug.trim().toLowerCase();
-    if (!id) {
-      scrollToMenu();
-      return;
-    }
-    if (menuSections.some(s => s.id === id)) {
-      scrollToSection(id);
-      return;
-    }
-    const hit = menuSections.find(s =>
-      s.id.includes(id) ||
-      id.includes(s.id) ||
-      s.label.toLowerCase().includes(id.replace(/-/g, ' ')),
-    );
-    if (hit) scrollToSection(hit.id);
-    else scrollToMenu();
-  }, [menuSections, scrollToMenu, scrollToSection]);
-
-  useEffect(() => {
-    if (menuSections.length === 0) return;
-    const nodes = menuSections
-      .map(s => document.getElementById(sectionDomId(s.id)))
-      .filter(Boolean) as HTMLElement[];
-    if (nodes.length === 0) return;
-
-    const observer = new IntersectionObserver(
-      entries => {
-        if (sectionObserverSkipRef.current) return;
-        const visible = entries
-          .filter(e => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        const top = visible[0];
-        if (!top?.target?.id) return;
-        const id = top.target.id.replace(/^dam-section-/, '');
-        if (id) setActiveSectionId(id);
-      },
-      { rootMargin: '-20% 0px -55% 0px', threshold: [0.15, 0.35, 0.55] },
-    );
-    nodes.forEach(n => observer.observe(n));
-    return () => observer.disconnect();
-  }, [menuSections]);
+  const openCatalog = useCallback((categoryId?: number | null) => {
+    setSelectedCategoryId(categoryId === undefined ? selectedCategoryId : categoryId);
+    setActiveTab('catalog');
+  }, [selectedCategoryId, setActiveTab]);
 
   // Get modifier groups for a food item
   const getGroupsForItem = useCallback((itemId: number): ModifierGroup[] => {
@@ -773,22 +735,6 @@ export default function Food() {
   const cartTotalWithService = cartTotal + serviceFeeAmount;
   const serviceFeePercent = Math.round(serviceFeeRate * 100);
   const serviceFeeLabel = `${t('food.serviceFeeBase')} (${serviceFeePercent}%)`;
-
-  const cartSidebarLines = useMemo(
-    () =>
-      cart.map((ci) => {
-        const modTotal = calcSelectionsPrice(ci.selections);
-        const selNames = getSelectionNames(ci.selections);
-        return {
-          name: ci.item.name,
-          quantity: ci.quantity,
-          linePrice: (ci.item.price + modTotal) * ci.quantity,
-          image: getItemImage(ci.item),
-          modifiers: selNames.length > 0 ? `+ ${selNames.join(', ')}` : undefined,
-        };
-      }),
-    [cart],
-  );
 
   const freeDeliveryFrom = useMemo(
     () => Number(settings.free_delivery_from || 15000),
@@ -934,36 +880,6 @@ export default function Food() {
     if (brandProfile?.min_order && brandProfile.min_order > 0) return brandProfile.min_order;
     return parseInt(settings.min_order_amount) || 0;
   }, [brandProfile, settings.min_order_amount]);
-
-  const marketingStories = useMemo(
-    () =>
-      buildMarketingStories({
-        freeDeliveryFrom,
-        minOrder,
-        deliveryTime: deliveryTimeLabel,
-        gifts: loyaltyGifts,
-        formatPrice: formatDamPrice,
-      }),
-    [freeDeliveryFrom, minOrder, deliveryTimeLabel, loyaltyGifts, formatDamPrice],
-  );
-
-  const heroPromoSlides = useMemo(() => {
-    const fromSettings = parsePromoSlides(settings.promo_slides);
-    if (fromSettings.length > 0) return fromSettings;
-    return defaultPromoSlides({
-      freeDeliveryFrom,
-      formatPrice: formatDamPrice,
-      promos: availablePromos,
-    });
-  }, [settings.promo_slides, freeDeliveryFrom, formatDamPrice, availablePromos]);
-
-  useEffect(() => {
-    if (heroPromoSlides.length < 2) return;
-    const timer = window.setInterval(() => {
-      setPromoSlide(i => (i + 1) % heroPromoSlides.length);
-    }, 5200);
-    return () => window.clearInterval(timer);
-  }, [heroPromoSlides.length]);
 
   const deliveryReady = useMemo(() => {
     if (deliveryMethod !== 'delivery') return true;
@@ -1342,7 +1258,7 @@ export default function Food() {
         client.entities.food_orders.create({
           data: {
             restaurant_id: damAlemRestaurantId ?? 1,
-            restaurant_name: settings.hero_banner_title || brandProfile?.name || 'DAM ALEM',
+            restaurant_name: settings.hero_banner_title || brandProfile?.name || DAM_ALEM_BRAND,
             restaurant_phone: settings.whatsapp_number || brandProfile?.whatsapp_phone || '',
             order_items: JSON.stringify(orderItems),
             total_amount: total,
@@ -1430,7 +1346,7 @@ export default function Food() {
 
   function openWhatsAppForOrder(info: OrderSuccessInfo) {
     const whatsappNumber = settings.whatsapp_number.replace(/[^0-9]/g, '');
-    let msg = `🍽 *DAM ALEM — заказ #${info.id || '—'}*\n\n👤 ${info.name}\n📞 ${info.phone}\n`;
+    let msg = `🍽 *${DAM_ALEM_BRAND} — заказ #${info.id || '—'}*\n\n👤 ${info.name}\n📞 ${info.phone}\n`;
     if (info.deliveryMethod === 'delivery') {
       msg += `📍 ${info.address}\n`;
     } else {
@@ -1515,48 +1431,6 @@ export default function Food() {
     await applyPromoByCode(promoInput);
   }
 
-  const handleBannerAction = useCallback((action: FoodBannerAction) => {
-    switch (action.type) {
-      case 'promo':
-        void applyPromoByCode(action.code);
-        if (action.categorySlug) scrollToSectionOrSlug(action.categorySlug);
-        else scrollToMenu();
-        break;
-      case 'category':
-        scrollToSectionOrSlug(action.slug);
-        break;
-      case 'popular':
-        scrollToSection('hits');
-        break;
-      case 'gifts':
-        document.getElementById('dam-loyalty')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        break;
-      case 'menu':
-        scrollToMenu();
-        break;
-      case 'link':
-        window.open(action.url, '_blank', 'noopener,noreferrer');
-        break;
-    }
-  }, [applyPromoByCode, scrollToMenu, scrollToSection, scrollToSectionOrSlug]);
-
-  const handleStoryCta = useCallback((story: MarketingStory) => {
-    if (story.id === 'promo-damalem') {
-      void applyPromoByCode('DAMALEM10');
-      scrollToMenu();
-      return;
-    }
-    if (story.id === 'hits') {
-      scrollToSection('hits');
-      return;
-    }
-    if (story.id === 'gift') {
-      document.getElementById('dam-loyalty')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      return;
-    }
-    scrollToMenu();
-  }, [applyPromoByCode, scrollToMenu, scrollToSection]);
-
   useEffect(() => {
     if (items.length === 0) return;
     try {
@@ -1635,21 +1509,27 @@ export default function Food() {
   /* ─── LOADING ─── */
   if (loading) {
     return (
-      <Layout>
-        <DamAlemPageSkeleton />
+      <Layout hideHeader hideBottomNav>
+        <div className="dam-page min-h-screen bg-gray-50">
+          <GastronomPortalBar />
+          <DamAlemPageSkeleton />
+        </div>
       </Layout>
     );
   }
 
   if (loadError) {
     return (
-      <Layout>
+      <Layout hideHeader hideBottomNav>
+        <GastronomPortalBar />
         <LoadErrorState onRetry={() => loadData()} />
       </Layout>
     );
   }
 
   const brandDescription = (brandProfile?.description || settings.hero_banner_subtitle || '').trim();
+  const heroBg = resolveDamAlemHeroImage(settings.hero_banner_image, brandProfile?.photo);
+  const headline = settings.hero_banner_title || brandProfile?.name || t('food.heroTitle');
 
   const orderPaymentHint = orderSuccess
     ? orderSuccess.paymentMethod === 'cash'
@@ -1659,9 +1539,62 @@ export default function Food() {
         : t('food.guide.payHalyk')
     : '';
 
+  function renderNavButton(tab: DamTab, Icon: typeof Home, label: string, compact = false) {
+    const isActive = activeTab === tab;
+    return (
+      <button
+        key={tab}
+        type="button"
+        onClick={() => setActiveTab(tab)}
+        className={
+          compact
+            ? `flex-1 flex flex-col items-center py-2.5 gap-0.5 relative transition-colors ${
+                isActive ? 'text-[#FF3B30]' : 'text-gray-400'
+              }`
+            : `flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                isActive
+                  ? 'bg-red-50 text-[#C41E14]'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`
+        }
+      >
+        <Icon className={compact ? 'h-5 w-5' : 'h-4 w-4'} />
+        {tab === 'cart' && cartCount > 0 && (
+          <span
+            className={
+              compact
+                ? 'absolute top-1.5 right-[calc(50%-14px)] flex h-4 w-4 items-center justify-center rounded-full bg-[#FF3B30] text-[9px] font-bold text-white'
+                : 'ml-0.5 flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-[#FF3B30] text-[10px] font-bold text-white'
+            }
+          >
+            {cartCount}
+          </span>
+        )}
+        <span className={compact ? 'text-[10px] font-medium' : ''}>{label}</span>
+      </button>
+    );
+  }
+
   return (
-    <Layout>
-      <div className="dam-page min-h-screen">
+    <Layout hideHeader hideBottomNav>
+      <PharmacySideMenu
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        items={DAM_NAV.map(({ id, icon, label }) => ({
+          id,
+          label,
+          icon,
+          badge: id === 'cart' ? cartCount : undefined,
+        }))}
+        activeId={activeTab}
+        onSelect={id => setActiveTab(id as DamTab)}
+        storeName={DAM_ALEM_BRAND}
+        storePhone={settings.whatsapp_number}
+        accent="rose"
+        sectionsLabel="Разделы DAM ALEM 2.0"
+        ariaLabel="Меню DAM ALEM 2.0"
+      />
+      <div className="dam-page min-h-screen bg-gray-50 pb-20 md:pb-8">
         {orderSuccess && (
           <DamAlemSheet open bare overlayClassName="sm:items-center" onClose={() => setOrderSuccess(null)}>
             <div className="dam-success-modal">
@@ -1747,234 +1680,501 @@ export default function Food() {
             </div>
           </DamAlemSheet>
         )}
-        <DamAlemStatusStrip
-          kitchenOpen={kitchenStatus.open}
-          kitchenMessage={kitchenStatus.message}
-          deliveryTime={deliveryTimeLabel}
-          freeDeliveryLabel={
-            freeDeliveryFrom > 0 ? `бесплатно от ${formatPrice(freeDeliveryFrom)}` : undefined
-          }
-          offerLabel={
-            availablePromos[0]
-              ? availablePromos[0].label || availablePromos[0].code
-              : undefined
-          }
-        />
+        <div className="max-w-7xl mx-auto relative">
+        <header className="sticky top-0 z-40 bg-white border-b border-gray-100 shadow-sm">
+          <GastronomPortalBar />
+          <div className={`flex items-center justify-between ${PAGE_X} py-3 md:py-4 gap-4 lg:hidden`}>
+            <button type="button" className="p-2 -ml-2 text-gray-600 hover:text-[#FF3B30] transition-colors" aria-label="Меню" onClick={() => setMenuOpen(true)}>
+              <Menu className="h-5 w-5 md:h-6 md:w-6" />
+            </button>
+            <div className="text-center flex-1 min-w-0">
+              <h1 className="text-lg md:text-2xl font-bold text-[#FF3B30] tracking-wide">{DAM_ALEM_BRAND}</h1>
+              <p className="text-[10px] md:text-xs text-gray-400 uppercase tracking-widest mt-0.5">
+                доставка еды по Сортировке
+              </p>
+            </div>
+            <div className="flex items-center gap-1 md:gap-2 shrink-0">
+              <button type="button" className="p-2 text-gray-600 hover:text-[#FF3B30] md:hidden" aria-label="Поиск" onClick={() => { setSearchOpen(true); setActiveTab('catalog'); }}>
+                <Search className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                className="relative hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF3B30] text-white text-sm font-medium hover:bg-[#e6352b] transition-colors"
+                onClick={() => setActiveTab('cart')}
+              >
+                <ShoppingCart className="h-4 w-4" />
+                Корзина
+                {cartCount > 0 && (
+                  <span className="flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-white text-[#C41E14] text-xs font-bold">
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+              <button type="button" className="relative p-2 text-gray-600 md:hidden" onClick={() => setActiveTab('cart')} aria-label="Корзина">
+                <ShoppingCart className="h-5 w-5" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#FF3B30] text-[10px] font-bold text-white">
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
 
-        <DamAlemHero
-          title={settings.hero_banner_title || brandProfile?.name || t('food.heroTitle')}
-          subtitle={settings.hero_banner_subtitle || t('food.heroSubtitle')}
-          heroImage={settings.hero_banner_image}
-          brandPhoto={brandProfile?.photo}
-          rating={brandProfile?.rating ?? 4.9}
-          deliveryTime={deliveryTimeLabel}
-          minOrder={minOrder}
-          deliveryFrom={deliveryFromPrice}
-          promoSlide={promoSlide}
-          promoSlides={heroPromoSlides}
-          onPromoSlideChange={setPromoSlide}
-          formatPrice={formatPrice}
-          cartCount={cartCount}
-          onOpenCart={() =>
-            cartCount > 0 ? setCartOpen(true) : toast.info('Добавьте блюда в корзину')
-          }
-          onMenuCta={scrollToMenu}
-          menuCtaLabel={menuSections.some(s => s.id === 'combo') ? 'К комбо и хитам' : 'Смотреть меню'}
-        />
+          <div className={`hidden lg:flex items-center gap-6 ${PAGE_X} py-4`}>
+            <button type="button" className="p-2 -ml-2 text-gray-600 hover:text-[#FF3B30] transition-colors" aria-label="Меню" onClick={() => setMenuOpen(true)}>
+              <Menu className="h-6 w-6" />
+            </button>
+            <div className="shrink-0">
+              <h1 className="text-2xl xl:text-3xl font-bold text-[#FF3B30] tracking-wide">{DAM_ALEM_BRAND}</h1>
+              <p className="text-xs text-gray-400 uppercase tracking-widest mt-0.5">доставка еды по Сортировке</p>
+            </div>
+            <div className="flex-1 max-w-md xl:max-w-lg">
+              <Input
+                placeholder={t('food.searchPlaceholder')}
+                value={searchQuery}
+                onChange={e => {
+                  setSearchQuery(e.target.value);
+                  if (e.target.value && activeTab === 'home') setActiveTab('catalog');
+                }}
+                className="rounded-xl"
+              />
+            </div>
+            <nav className="flex items-center gap-1 shrink-0">
+              {DAM_NAV.map(({ id, icon, label }) => renderNavButton(id, icon, label))}
+            </nav>
+            <button
+              type="button"
+              className="relative flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF3B30] text-white text-sm font-medium hover:bg-[#e6352b] transition-colors shrink-0"
+              onClick={() => setActiveTab('cart')}
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Корзина
+              {cartCount > 0 && (
+                <span className="flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-white text-[#C41E14] text-xs font-bold">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+          </div>
 
-        <div
-          className={`dam-page-shell w-full px-4 pb-32 pt-5 sm:px-6 lg:px-10 lg:pt-7 xl:px-12${
-            cartCount > 0 && !checkoutOpen ? ' dam-page-shell--with-sidebar' : ''
-          }`}
-        >
-          <div className="dam-page-main space-y-5 lg:space-y-7">
-            <DamAlemStepsBar step={uiStep} cartCount={cartCount} />
+          <div className={`hidden md:block lg:hidden ${PAGE_X} pb-3 space-y-3`}>
+            <Input
+              placeholder={t('food.searchPlaceholder')}
+              value={searchQuery}
+              onChange={e => {
+                setSearchQuery(e.target.value);
+                if (e.target.value && activeTab === 'home') setActiveTab('catalog');
+              }}
+              className="rounded-xl max-w-xl"
+            />
+            <nav className="flex items-center gap-1 overflow-x-auto">
+              {DAM_NAV.map(({ id, icon, label }) => renderNavButton(id, icon, label))}
+            </nav>
+          </div>
 
-            <DamAlemStories stories={marketingStories} onCta={handleStoryCta} />
-
-            <DamAlemFreeDeliveryBanner
-              freeDeliveryFrom={freeDeliveryFrom}
-              minOrder={minOrder}
-              formatPrice={formatPrice}
+          {!kitchenStatus.open && (
+            <DamAlemStatusStrip
+              kitchenOpen={false}
+              kitchenMessage={kitchenStatus.message}
               deliveryTime={deliveryTimeLabel}
             />
+          )}
 
-            <DamAlemPromoBanners banners={foodBanners} onAction={handleBannerAction} />
+          <button
+            type="button"
+            className={`flex items-center justify-between w-full ${PAGE_X} py-2 md:py-3 bg-gray-50 text-sm md:text-base border-t border-gray-100`}
+            onClick={() => {
+              if (activeTab === 'cart') {
+                setAddressEditing(true);
+                setActiveTab('cart');
+                return;
+              }
+              setAddressEditing(v => !v);
+            }}
+          >
+            <div className="flex items-center gap-1.5 text-gray-700 min-w-0">
+              {hasDeliveryZones && (
+                deliveryReady ? (
+                  <CheckCircle2 className="h-4 w-4 text-[#FF3B30] shrink-0" />
+                ) : deliveryQuoteLoading ? (
+                  <Loader2 className="h-4 w-4 text-gray-400 animate-spin shrink-0" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                )
+              )}
+              {!hasDeliveryZones && <MapPin className="h-4 w-4 text-[#FF3B30] shrink-0" />}
+              <span className="truncate font-medium">
+                {deliveryReady && deliveryQuote?.zone_name
+                  ? `${effectiveAddress || 'Адрес'} · ${deliveryQuote.zone_name}`
+                  : effectiveAddress || (hasDeliveryZones ? 'Укажите адрес доставки' : 'Укажите адрес')}
+              </span>
+              <ChevronDown className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+            </div>
+            <div className="flex items-center gap-1 text-gray-500 shrink-0 ml-2">
+              <Clock className="h-3.5 w-3.5" />
+              <span className="text-xs">{deliveryTimeLabel}</span>
+            </div>
+          </button>
 
-            <DamAlemPromoStrip
-              promos={availablePromos.filter(p => p.active !== false)}
-              freeDeliveryFrom={freeDeliveryFrom}
-              formatPrice={formatPrice}
-              appliedCode={appliedPromo?.code}
-              onApply={code => void applyPromoByCode(code)}
-            />
+          {(searchOpen || (searchQuery && activeTab === 'catalog')) && (
+            <div className={`md:hidden ${PAGE_X} pb-3 bg-gray-50`}>
+              <Input
+                autoFocus={searchOpen}
+                placeholder={t('food.searchPlaceholder')}
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="rounded-xl bg-white"
+              />
+            </div>
+          )}
 
-            <div id="dam-loyalty">
-              <DamAlemLoyaltyShowcase gifts={loyaltyGifts} formatPrice={formatPrice} />
+          {addressEditing && (
+            <div className={`${PAGE_X} pb-3 bg-gray-50 space-y-2`}>
+              <DeliveryAddressPicker
+                variant="compact"
+                accent="orange"
+                address={deliveryAddress}
+                onAddressChange={setDeliveryAddress}
+                hasDeliveryZones={hasDeliveryZones}
+                deliveryQuote={deliveryQuote}
+                loading={deliveryQuoteLoading}
+                error={deliveryQuoteError}
+                onFindByAddress={() => findByAddress()}
+                onFindByGps={requestGeolocation}
+                onEdit={() => setDeliveryQuote(null)}
+              />
+              {hasDeliveryZones && deliveryReady && deliveryQuote?.zone_name && (
+                <p className="text-xs text-[#C41E14] font-medium px-1">
+                  ✓ {deliveryQuote.zone_name}
+                  {freeDeliveryFrom > 0 ? ` · бесплатно от ${formatPrice(freeDeliveryFrom)}` : ''}
+                </p>
+              )}
+            </div>
+          )}
+        </header>
+
+        {activeTab === 'home' && (
+          <div className="space-y-5 md:space-y-8 pb-4 md:pb-8">
+            <div className={`${PAGE_X} mt-4 md:mt-6`}>
+              <div className="relative overflow-hidden rounded-2xl md:rounded-3xl">
+                <DamAlemImage src={heroBg} alt="" className="w-full h-48 sm:h-56 md:h-64 lg:h-80 object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-red-950/85 via-red-900/40 to-transparent" />
+                <div className="absolute inset-0 p-5 md:p-8 lg:p-10 flex flex-col justify-end max-w-3xl">
+                  <h2 className="text-white font-bold text-lg md:text-2xl lg:text-3xl leading-tight mb-3 md:mb-4">
+                    {headline}
+                  </h2>
+                  <div className="flex gap-4 md:gap-8 mb-4 md:mb-6">
+                    {[
+                      { icon: Clock, label: deliveryTimeLabel },
+                      { icon: Truck, label: minOrder > 0 ? `от ${formatPrice(minOrder)}` : 'Без мин. заказа' },
+                      { icon: ShieldCheck, label: 'Готовим после заказа' },
+                    ].map(({ icon: Icon, label }) => (
+                      <div key={label} className="flex flex-col items-center md:items-start gap-1">
+                        <Icon className="h-4 w-4 md:h-5 md:w-5 text-[#FF8A80]" />
+                        <span className="text-[9px] md:text-sm text-white/80 text-center md:text-left leading-tight">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openCatalog(null)}
+                    className="w-full md:w-auto md:px-10 py-2.5 md:py-3 rounded-full bg-[#FF3B30] text-white font-semibold text-sm md:text-base hover:bg-[#e6352b] transition-colors"
+                  >
+                    Перейти в меню
+                  </button>
+                </div>
+              </div>
             </div>
 
             {lastOrderPreview && cartCount === 0 ? (
-              <button
-                type="button"
-                className="dam-repeat-card"
-                onClick={() => applyRepeatPayload(lastOrderPreview)}
-              >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FF3B30]/10 text-[#FF3B30]">
-                  <RotateCcw className="h-5 w-5" />
-                </span>
-                <span className="min-w-0 flex-1 text-left">
-                  <span className="block text-sm font-extrabold text-zinc-900">Заказать как в прошлый раз</span>
-                  <span className="block text-xs text-zinc-500 truncate">{lastOrderPreview.label}</span>
-                </span>
-                <ChevronRight className="h-4 w-4 shrink-0 text-zinc-400" />
-              </button>
+              <div className={PAGE_X}>
+                <button type="button" className="dam-repeat-card w-full" onClick={() => applyRepeatPayload(lastOrderPreview)}>
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FF3B30]/10 text-[#FF3B30]">
+                    <RotateCcw className="h-5 w-5" />
+                  </span>
+                  <span className="min-w-0 flex-1 text-left">
+                    <span className="block text-sm font-extrabold text-zinc-900">Заказать как в прошлый раз</span>
+                    <span className="block text-xs text-zinc-500 truncate">{lastOrderPreview.label}</span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-zinc-400" />
+                </button>
+              </div>
             ) : null}
 
-            <DamAlemStickyPills
-              id="dam-menu"
-              pills={stickyPills}
-              activeId={activeSectionId}
-              onSelect={scrollToSection}
-              searchOpen={searchOpen}
-              searchValue={searchQuery}
-              onSearchChange={setSearchQuery}
-              onToggleSearch={() => {
-                setSearchOpen(v => {
-                  if (v) setSearchQuery('');
-                  return !v;
-                });
-              }}
-              searchPlaceholder={t('food.searchPlaceholder')}
-              cartCount={cartCount}
-              onOpenCart={() =>
-                cartCount > 0 ? setCartOpen(true) : toast.info('Добавьте блюда в корзину')
-              }
-            />
-
-            {searchQuery.trim() ? (
-              <section className="dam-menu-section dam-animate-in" id="food-menu-search">
-                <div className="dam-menu-section__head">
-                  <h2 className="dam-section-title">Найдено: {poolItems.length}</h2>
-                  <span className="dam-menu-section__count">«{searchQuery.trim()}»</span>
+            {configuredPromos.length > 0 && (
+              <div className={PAGE_X}>
+                <div className="flex items-end justify-between gap-2 mb-3">
+                  <h2 className="font-bold text-gray-900 text-base md:text-lg flex items-center gap-2">
+                    <Percent className="h-5 w-5 text-orange-500" /> Скидки и акции
+                  </h2>
                 </div>
-                {poolItems.length > 0 ? (
+                <div className="flex gap-2.5 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:flex-wrap">
+                  {configuredPromos.slice(0, 6).map(promo => {
+                    const applied = appliedPromo?.code === promo.code;
+                    return (
+                      <button
+                        key={promo.code}
+                        type="button"
+                        onClick={() => void applyPromoByCode(promo.code)}
+                        className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-2xl border shadow-sm transition-colors ${
+                          applied
+                            ? 'bg-[#FF3B30] text-white border-[#FF3B30]'
+                            : 'bg-white border-red-100 hover:border-[#FF3B30] hover:bg-red-50/60'
+                        }`}
+                      >
+                        <span className="text-sm font-medium whitespace-nowrap">
+                          {promo.label || promo.code}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className={PAGE_X}>
+              <div className="flex items-end justify-between gap-2 mb-3 md:mb-4">
+                <h2 className="font-bold text-gray-900 text-base md:text-lg">Категории</h2>
+                <span className="md:hidden text-[11px] font-medium text-[#C41E14]">Листайте →</span>
+              </div>
+              <div className="relative md:static">
+                <div
+                  className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-gray-50 to-transparent md:hidden"
+                  aria-hidden
+                />
+                <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-4 lg:grid-cols-6 md:overflow-visible md:gap-4 md:pb-0">
+                {categories.map(cat => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => openCatalog(cat.id)}
+                    className="flex flex-col items-center shrink-0 w-[4.75rem] md:w-auto snap-start group touch-manipulation"
+                  >
+                    <div className="w-[4.25rem] h-[4.25rem] md:w-full md:aspect-square md:max-h-28 rounded-2xl overflow-hidden bg-white mb-1.5 ring-2 ring-red-100 shadow-sm group-hover:ring-[#FF3B30] group-active:scale-95 transition-all">
+                      <DamAlemImage src={getCategoryImage(categorySlugOf(cat))} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    <span className="text-[11px] md:text-sm text-gray-700 font-medium text-center leading-tight line-clamp-2 px-0.5">
+                      {cat.name}
+                    </span>
+                  </button>
+                ))}
+                </div>
+              </div>
+            </div>
+
+            {hitsItems.length > 0 && (
+              <div className={PAGE_X}>
+                <div className="flex items-center justify-between mb-3 md:mb-5">
+                  <h2 className="font-bold text-gray-900 text-base md:text-xl">Популярное</h2>
+                  <button type="button" onClick={() => openCatalog(null)} className="text-[#FF3B30] text-sm md:text-base font-medium flex items-center gap-0.5 hover:underline">
+                    Смотреть все →
+                  </button>
+                </div>
+                <div className="dam-product-grid">
+                  {hitsItems.map(item => (
+                    <MenuDishRow key={`hit-${item.id}`} item={item} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {comboItems.length > 0 && (
+              <div className={PAGE_X}>
+                <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-red-950 min-h-[140px] md:min-h-[180px] mb-4 md:mb-6">
+                  <DamAlemImage
+                    src={getItemImage(comboItems[0])}
+                    alt=""
+                    className="absolute right-0 top-0 h-full w-1/2 md:w-2/5 object-cover opacity-50"
+                  />
+                  <div className="relative p-5 md:p-8 max-w-full md:max-w-[55%]">
+                    <p className="text-white/60 text-xs md:text-sm mb-1">Выгоднее вместе</p>
+                    <h3 className="text-white font-bold text-sm md:text-xl mb-1">Комбо-наборы</h3>
+                    <p className="text-white/70 text-xs md:text-base mb-3 md:mb-5">Готовый обед или ужин — соберите заказ быстрее.</p>
+                    <button
+                      type="button"
+                      onClick={() => openCatalog(null)}
+                      className="px-4 md:px-6 py-1.5 md:py-2.5 rounded-full border border-white/40 text-white text-xs md:text-sm hover:bg-white/10 transition-colors"
+                    >
+                      Смотреть комбо
+                    </button>
+                  </div>
+                </div>
+                <div className="dam-product-grid">
+                  {comboItems.map(item => (
+                    <MenuDishRow key={`combo-${item.id}`} item={item} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className={`${PAGE_X} grid grid-cols-3 gap-2 md:gap-8 py-3 md:py-6 border-t border-gray-100`}>
+              {[
+                { icon: Truck, title: 'Доставка', desc: deliveryTimeLabel },
+                { icon: ShieldCheck, title: 'Горячим к вам', desc: 'готовим после заказа' },
+                { icon: CreditCard, title: 'Оплата', desc: 'наличные, Kaspi, Halyk' },
+              ].map(({ icon: Icon, title, desc }) => (
+                <div key={title} className="text-center px-1 md:px-4 md:bg-white md:rounded-2xl md:py-5 md:shadow-sm">
+                  <Icon className="h-5 w-5 md:h-7 md:w-7 text-[#FF3B30] mx-auto mb-1 md:mb-2" />
+                  <p className="text-[10px] md:text-base font-semibold text-gray-800 leading-tight">{title}</p>
+                  <p className="text-[9px] md:text-sm text-gray-400 leading-tight mt-0.5">{desc}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className={PAGE_X}>
+              <details className="bg-white rounded-2xl border border-gray-100 group">
+                <summary className="cursor-pointer list-none p-4 text-sm font-bold text-gray-700 marker:content-none flex items-center justify-between">
+                  Доставка и условия
+                  <ChevronRight className="h-4 w-4 text-gray-400 transition group-open:rotate-90" />
+                </summary>
+                <div className="space-y-4 border-t border-gray-100 px-4 pb-4 pt-2">
+                  {brandDescription ? <p className="text-sm leading-relaxed text-gray-600">{brandDescription}</p> : null}
+                  <DamAlemOrderGuide deliveryZones={guideZones} minOrder={minOrder} freeDeliveryFrom={freeDeliveryFrom} formatPrice={formatPrice} />
+                  <DeliveryZonesPreview zones={mapDeliveryZones} storeLat={storeLatNum} storeLng={storeLngNum} formatPrice={formatPrice} />
+                </div>
+              </details>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'catalog' && (
+          <div className={`${PAGE_X} py-4 md:py-6`}>
+            <h2 className="hidden md:block font-bold text-gray-900 text-xl lg:text-2xl mb-4 md:mb-6">Меню</h2>
+            <div className="lg:grid lg:grid-cols-[minmax(200px,240px)_1fr] lg:gap-8 lg:items-start">
+              <aside className={CATALOG_SIDEBAR}>
+                <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Категории</p>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategoryId(null)}
+                  className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                    selectedCategoryId == null ? 'bg-[#FF3B30] text-white' : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  Все блюда
+                </button>
+                {categories.map(cat => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setSelectedCategoryId(cat.id)}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                      selectedCategoryId === cat.id ? 'bg-[#FF3B30] text-white' : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </aside>
+
+              <div className="space-y-4 md:space-y-6 min-w-0">
+                <Input
+                  placeholder={t('food.searchPlaceholder')}
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="rounded-xl lg:hidden"
+                />
+                <PharmacyCategoryStrip
+                  categories={categories}
+                  selectedId={selectedCategoryId}
+                  onSelectAll={() => setSelectedCategoryId(null)}
+                  onSelectCategory={id => setSelectedCategoryId(id)}
+                  accent="rose"
+                  title="Меню"
+                />
+                {catalogItems.length > 0 ? (
                   <div className="dam-product-grid">
-                    {poolItems.map(item => (
-                      <MenuDishRow key={`search-${item.id}`} item={item} />
+                    {catalogItems.map(item => (
+                      <MenuDishRow key={`cat-${item.id}`} item={item} />
                     ))}
                   </div>
                 ) : (
-                  <div className="dam-card p-10 text-center">
-                    <Utensils className="mx-auto mb-3 h-10 w-10 text-zinc-400" />
-                    <p className="font-bold text-zinc-900">{t('food.noDishes')}</p>
-                    <p className="mt-2 text-sm text-zinc-500">{t('food.noDishesHint')}</p>
+                  <div className="text-center py-16">
+                    <Utensils className="mx-auto mb-3 h-10 w-10 text-gray-300" />
+                    <p className="font-bold text-gray-900">{t('food.noDishes')}</p>
+                    <p className="mt-2 text-sm text-gray-500">{t('food.noDishesHint')}</p>
                   </div>
                 )}
-              </section>
-            ) : (
-              menuSections.map(section => {
-                const isHits = section.id === 'hits';
-                const isUfo = section.id === 'ufo';
-                const isCompact =
-                  section.id === 'sauces' ||
-                  section.id === 'drinks' ||
-                  section.id === 'snacks';
-                return (
-                  <section
-                    key={section.id}
-                    id={sectionDomId(section.id)}
-                    className={`dam-menu-section dam-animate-in${section.id === 'combo' ? ' dam-combo-section' : ''}`}
-                  >
-                    <div className="dam-menu-section__head">
-                      <h2 className="dam-section-title">{section.label}</h2>
-                      <span className="dam-menu-section__count">{section.items.length}</span>
-                    </div>
-                    {isHits ? (
-                      <div className="dam-hits-rail">
-                        {section.items.map(item => (
-                          <MenuDishRow key={`${section.id}-${item.id}`} item={item} />
-                        ))}
-                      </div>
-                    ) : isUfo ? (
-                      <div className="dam-product-grid dam-product-grid--hero">
-                        {section.items.map(item => (
-                          <MenuDishRow key={`${section.id}-${item.id}`} item={item} variant="hero" />
-                        ))}
-                      </div>
-                    ) : isCompact ? (
-                      <div className="space-y-2.5">
-                        {section.items.map(item => (
-                          <MenuDishRow
-                            key={`${section.id}-${item.id}`}
-                            item={item}
-                            variant="row"
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="dam-product-grid">
-                        {section.items.map(item => (
-                          <MenuDishRow key={`${section.id}-${item.id}`} item={item} />
-                        ))}
-                      </div>
-                    )}
-                  </section>
-                );
-              })
-            )}
-
-            {!searchQuery.trim() && menuSections.length === 0 ? (
-              <div className="dam-card p-10 text-center">
-                <Utensils className="mx-auto mb-3 h-10 w-10 text-zinc-400" />
-                <p className="font-bold text-zinc-900">{t('food.noDishes')}</p>
-                <p className="mt-2 text-sm text-zinc-500">{t('food.noDishesHint')}</p>
               </div>
-            ) : null}
-
-            <details className="dam-card group">
-              <summary className="cursor-pointer list-none p-4 text-sm font-bold text-zinc-700 marker:content-none flex items-center justify-between">
-                Доставка · зоны · условия
-                <ChevronRight className="h-4 w-4 text-zinc-400 transition group-open:rotate-90" />
-              </summary>
-              <div className="space-y-4 border-t border-zinc-100 px-4 pb-4 pt-2">
-                {brandDescription ? (
-                  <p className="text-sm leading-relaxed text-zinc-600">{brandDescription}</p>
-                ) : null}
-                <DamAlemOrderGuide
-                  deliveryZones={guideZones}
-                  minOrder={minOrder}
-                  freeDeliveryFrom={freeDeliveryFrom}
-                  formatPrice={formatPrice}
-                />
-                <DeliveryZonesPreview
-                  zones={mapDeliveryZones}
-                  storeLat={storeLatNum}
-                  storeLng={storeLngNum}
-                  formatPrice={formatPrice}
-                />
-              </div>
-            </details>
+            </div>
           </div>
+        )}
 
-          {cartCount > 0 && !checkoutOpen ? (
-            <DamAlemCartSidebar
-              lines={cartSidebarLines}
-              itemCount={cart.reduce((sum, ci) => sum + ci.quantity, 0)}
-              subtotal={cartTotal}
-              serviceFeeLabel={serviceFeeLabel}
-              serviceFeeAmount={serviceFeeAmount}
-              totalWithService={cartTotalWithService}
-              minOrder={minOrder}
-              freeDeliveryFrom={freeDeliveryFrom}
-              nextGift={nextGift}
-              formatPrice={formatPrice}
-              checkoutLabel={t('food.checkout')}
-              onOpenCart={() => setCartOpen(true)}
-              onCheckout={openCheckout}
-              onUpdateQty={updateQuantity}
-              onRemoveLine={removeCartLine}
-            />
-          ) : null}
+        {activeTab === 'cart' && (
+          <div className={`${PAGE_X} py-4 md:py-6 ${cart.length > 0 ? 'pb-36 md:pb-6' : ''}`}>
+            <h2 className="hidden md:block font-bold text-gray-900 text-xl mb-4">Корзина</h2>
+            {cart.length === 0 ? (
+              <div className="text-center py-16">
+                <ShoppingCart className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">Корзина пуста</p>
+                <button type="button" className="mt-4 h-11 px-6 rounded-xl bg-[#FF3B30] text-white font-semibold" onClick={() => openCatalog(null)}>
+                  Перейти в меню
+                </button>
+              </div>
+            ) : (
+              <div className="lg:grid lg:grid-cols-3 lg:gap-8 lg:items-start">
+                <div className="lg:col-span-2 space-y-3">
+                  {cart.map((ci, idx) => {
+                    const modTotal = calcSelectionsPrice(ci.selections);
+                    const selNames = getSelectionNames(ci.selections);
+                    const linePrice = (ci.item.price + modTotal) * ci.quantity;
+                    return (
+                      <div key={idx} className="flex gap-3 bg-white rounded-2xl p-3 border border-gray-100">
+                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-50 shrink-0">
+                          <DamAlemImage src={getItemImage(ci.item)} alt="" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm text-gray-900 truncate">{ci.item.name}</p>
+                          {selNames.length > 0 && <p className="text-[11px] text-[#FF3B30] truncate">+ {selNames.join(', ')}</p>}
+                          <p className="font-bold text-[#FF3B30] mt-0.5">{formatPrice(linePrice)}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button type="button" onClick={() => updateQuantity(idx, -1)} className="h-8 w-8 rounded-full border flex items-center justify-center"><Minus className="h-3.5 w-3.5" /></button>
+                          <span className="w-5 text-center text-sm font-bold">{ci.quantity}</span>
+                          <button type="button" onClick={() => updateQuantity(idx, 1)} className="h-8 w-8 rounded-full bg-[#FF3B30] text-white flex items-center justify-center"><Plus className="h-3.5 w-3.5" /></button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-4 lg:mt-0 bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
+                  <div className="flex justify-between text-sm"><span className="text-gray-500">{t('food.subtotal')}</span><span>{formatPrice(cartTotal)}</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-gray-500">{serviceFeeLabel}</span><span>{formatPrice(serviceFeeAmount)}</span></div>
+                  <div className="flex justify-between font-bold pt-2 border-t"><span>К оплате</span><span className="text-[#FF3B30]">{formatPrice(cartTotalWithService)}</span></div>
+                  <DamAlemCheckoutButton label={t('food.checkout')} sublabel={formatPrice(cartTotalWithService)} onClick={openCheckout} testId="dam-cart-checkout-page" />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'favorites' && (
+          <div className={`${PAGE_X} py-4 md:py-6`}>
+            <h2 className="hidden md:block font-bold text-gray-900 text-xl mb-4">Избранное</h2>
+            {favoriteItems.length === 0 ? (
+              <div className="text-center py-16">
+                <Heart className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 text-sm">Нажмите ♥ на блюде, чтобы добавить в избранное</p>
+              </div>
+            ) : (
+              <div className="dam-product-grid">
+                {favoriteItems.map(item => (
+                  <MenuDishRow key={`fav-${item.id}`} item={item} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'profile' && (
+          <StoreProfileTab accentBg="bg-[#FF3B30] hover:bg-[#e6352b]" accentText="text-[#FF3B30]" />
+        )}
+
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 safe-area-pb">
+          <div className="flex max-w-7xl mx-auto">
+            {DAM_NAV.map(({ id, icon, label }) => renderNavButton(id, icon, label, true))}
+          </div>
+        </nav>
         </div>
 
         {/* ═══ PRODUCT POPUP MODAL ═══ */}
@@ -2108,7 +2308,7 @@ export default function Food() {
         )}
 
         {/* ═══ FLOATING CART BUTTON ═══ */}
-        {cartCount > 0 && !cartOpen && !checkoutOpen && !selectedItem && (
+        {cartCount > 0 && !cartOpen && !checkoutOpen && !selectedItem && activeTab !== 'cart' && activeTab !== 'profile' && (
           <DamAlemFloatingCart
             itemLabel={cartBarLabel}
             totalLabel={formatPrice(cartTotalWithService)}

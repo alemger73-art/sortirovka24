@@ -7,7 +7,7 @@ import {
   updateFoodRestaurant,
   deleteFoodRestaurant,
 } from '@/lib/foodAdminApi';
-import { findDamAlemRestaurantId, isDamAlemName } from '@/lib/damAlem';
+import { DAM_ALEM_BRAND, findDamAlemRestaurantId, isDamAlemName } from '@/lib/damAlem';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -313,7 +313,7 @@ export default function AdminFood({ damAlemMode = false, initialSection, hideSub
         )}
         {damAlemMode && (
           <span className="rounded-full bg-orange-100 px-3 py-1.5 text-xs font-semibold text-orange-800">
-            {restaurants.find(r => isDamAlemName(r.name))?.name || 'DAM ALEM'}
+            {restaurants.find(r => isDamAlemName(r.name))?.name || DAM_ALEM_BRAND}
           </span>
         )}
       </div>}

@@ -16,6 +16,9 @@ interface Props {
   onSelect: (id: string) => void;
   storeName?: string;
   storePhone?: string;
+  accent?: 'teal' | 'rose';
+  sectionsLabel?: string;
+  ariaLabel?: string;
 }
 
 export default function PharmacySideMenu({
@@ -26,8 +29,19 @@ export default function PharmacySideMenu({
   onSelect,
   storeName,
   storePhone,
+  accent = 'teal',
+  sectionsLabel,
+  ariaLabel,
 }: Props) {
   const phoneDigits = storePhone?.replace(/\D/g, '') ?? '';
+  const activeNav =
+    accent === 'rose'
+      ? 'bg-red-50 text-[#C41E14] font-semibold'
+      : 'bg-teal-50 text-teal-700 font-semibold';
+  const idleNav = 'text-gray-700 hover:bg-gray-50';
+  const activeIcon = accent === 'rose' ? 'text-[#FF3B30]' : 'text-teal-600';
+  const idleIcon = 'text-gray-400';
+  const badgeBg = accent === 'rose' ? 'bg-[#FF3B30]' : 'bg-teal-600';
 
   return (
     <>
@@ -44,7 +58,7 @@ export default function PharmacySideMenu({
         }`}
         role="dialog"
         aria-modal="true"
-        aria-label="Меню аптеки"
+        aria-label={ariaLabel || 'Меню аптеки'}
         aria-hidden={!open}
         onClick={(e) => e.stopPropagation()}
       >
@@ -61,7 +75,7 @@ export default function PharmacySideMenu({
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
               <p className="font-bold text-gray-900 truncate">{storeName || 'АПТЕКА 24'}</p>
-              <p className="text-xs text-gray-400">Разделы аптеки</p>
+              <p className="text-xs text-gray-400">{sectionsLabel || 'Разделы аптеки'}</p>
             </div>
             <button
               type="button"
@@ -81,15 +95,13 @@ export default function PharmacySideMenu({
               type="button"
               onClick={() => onSelect(id)}
               className={`w-full flex items-center gap-3 px-5 py-3.5 text-left text-sm transition-colors touch-manipulation ${
-                activeId === id
-                  ? 'bg-teal-50 text-teal-700 font-semibold'
-                  : 'text-gray-700 hover:bg-gray-50'
+                activeId === id ? activeNav : idleNav
               }`}
             >
-              <Icon className={`h-5 w-5 shrink-0 ${activeId === id ? 'text-teal-600' : 'text-gray-400'}`} />
+              <Icon className={`h-5 w-5 shrink-0 ${activeId === id ? activeIcon : idleIcon}`} />
               <span className="flex-1">{label}</span>
               {badge != null && badge > 0 && (
-                <span className="flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-teal-600 text-[10px] font-bold text-white">
+                <span className={`flex h-5 min-w-5 px-1 items-center justify-center rounded-full ${badgeBg} text-[10px] font-bold text-white`}>
                   {badge > 99 ? '99+' : badge}
                 </span>
               )}
@@ -103,7 +115,7 @@ export default function PharmacySideMenu({
               href={`tel:+${phoneDigits}`}
               className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm text-gray-700 hover:bg-gray-50 touch-manipulation"
             >
-              <Phone className="h-4 w-4 text-teal-600" />
+              <Phone className={`h-4 w-4 ${accent === 'rose' ? 'text-[#FF3B30]' : 'text-teal-600'}`} />
               {storePhone}
             </a>
           )}

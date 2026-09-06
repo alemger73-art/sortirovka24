@@ -271,7 +271,7 @@ export default function AdminDamAlemModifiers() {
         <div>
           <h3 className="text-lg font-bold text-gray-900">Модификаторы блюд</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Группы опций (размер, добавки) и привязка к блюдам DAM ALEM
+            Группы опций (размер, добавки) и привязка к блюдам DAM ALEM 2.0
           </p>
         </div>
         <Button

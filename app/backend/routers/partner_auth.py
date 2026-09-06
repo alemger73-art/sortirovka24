@@ -29,7 +29,7 @@ router = APIRouter(prefix="/api/v1/partner-auth", tags=["partner-auth"])
 SESSION_EXPIRY_HOURS = 72
 
 PARTNER_DEFAULT_NAMES: dict[str, str] = {
-    "dam_alem": "DAM ALEM",
+    "dam_alem": "DAM ALEM 2.0",
     "gastronom": "Гастроном",
     "volna": "VOLNA",
     "prorab": "PRORAB",

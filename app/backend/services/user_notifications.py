@@ -175,7 +175,7 @@ FOOD_STATUS_MESSAGES: dict[str, tuple[str, str]] = {
 
 async def notify_food_order_created(db: AsyncSession, order: Any) -> None:
     order_id = int(order.id)
-    name = (getattr(order, "restaurant_name", None) or "DAM ALEM").strip()
+    name = (getattr(order, "restaurant_name", None) or "DAM ALEM 2.0").strip()
     total = getattr(order, "total_amount", None)
     amount_txt = f" · {int(total):,} ₸".replace(",", " ") if total else ""
     await notify_user_by_phone(
@@ -201,7 +201,7 @@ async def notify_food_order_status(db: AsyncSession, order: Any, old_status: str
     if new_status == "done" and getattr(order, "delivery_method", "delivery") != "pickup":
         return
     title, body = tpl
-    name = (getattr(order, "restaurant_name", None) or "DAM ALEM").strip()
+    name = (getattr(order, "restaurant_name", None) or "DAM ALEM 2.0").strip()
     await notify_user_by_phone(
         db,
         phone=getattr(order, "customer_phone", None),

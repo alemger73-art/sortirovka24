@@ -267,7 +267,7 @@ export default function CourierHub() {
           )}
 
           <p className="text-center text-white/40 text-sm">
-            Заказать еду — <Link to="/food" className="text-orange-300 underline">DAM ALEM</Link>
+            Заказать еду — <Link to="/food" className="text-orange-300 underline">DAM ALEM 2.0</Link>
             {' · '}
             Водителям — <Link to="/taxi/driver" className="text-orange-300 underline">такси</Link>
           </p>

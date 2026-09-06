@@ -96,7 +96,7 @@ export default function AdminDamAlemBrand() {
         });
         setForm(prev => ({ ...prev, id: created.id }));
       }
-      toast.success('Профиль DAM ALEM сохранён');
+      toast.success('Профиль DAM ALEM 2.0 сохранён');
       invalidateAllCaches();
       await load();
     } catch (e) {
@@ -132,7 +132,7 @@ export default function AdminDamAlemBrand() {
 
       {!form.id && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          Запись DAM ALEM ещё не создана в базе. Заполните поля и нажмите «Сохранить» — заведение будет создано автоматически.
+          Запись DAM ALEM 2.0 ещё не создана в базе. Заполните поля и нажмите «Сохранить» — заведение будет создано автоматически.
         </div>
       )}
 

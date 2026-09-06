@@ -1,3 +1,5 @@
+import { DAM_ALEM_BRAND } from './damAlem';
+
 export interface PlatformCartSegment {
   id: string;
   label: string;
@@ -40,7 +42,7 @@ export function getPlatformCartSegments(): PlatformCartSegment[] {
   const segments: PlatformCartSegment[] = [
     {
       id: 'food',
-      label: 'DAM ALEM',
+      label: DAM_ALEM_BRAND,
       path: '/food',
       count: readFoodCartCount(),
       accent: 'bg-orange-500',

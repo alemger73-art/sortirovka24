@@ -405,7 +405,7 @@ async def notify_food_order(data: dict) -> bool:
             lines.append(f"{idx}. {name}{mod_part} ×{qty} = {line_sum:.0f} ₸")
 
     items_text = "\n".join(lines) if lines else "—"
-    restaurant = _escape_html(data.get("restaurant_name") or "DAM ALEM")
+    restaurant = _escape_html(data.get("restaurant_name") or "DAM ALEM 2.0")
     delivery_method = data.get("delivery_method") or "delivery"
     method_label = "🚗 Доставка" if delivery_method == "delivery" else "🏪 Самовывоз"
 
@@ -448,7 +448,7 @@ async def notify_food_order_status(data: dict) -> bool:
     }
     old_label = status_map.get(data.get("old_status", ""), data.get("old_status", "—"))
     new_label = status_map.get(data.get("new_status", ""), data.get("new_status", "—"))
-    restaurant = _escape_html(data.get("restaurant_name") or "DAM ALEM")
+    restaurant = _escape_html(data.get("restaurant_name") or "DAM ALEM 2.0")
     text = (
         f"📦 <b>Статус заказа — {restaurant}</b>\n\n"
         f"<b>№:</b> {data.get('order_id', '—')}\n"

@@ -1,4 +1,5 @@
 import { MessageCircle, Share2 } from 'lucide-react';
+import { DAM_ALEM_BRAND } from '@/lib/damAlem';
 import { REFERRAL_SHARE_MESSAGE } from '@/lib/damAlemMarketing';
 
 interface Props {
@@ -6,7 +7,7 @@ interface Props {
   brandName?: string;
 }
 
-export default function DamAlemShareCard({ whatsappNumber, brandName = 'DAM ALEM' }: Props) {
+export default function DamAlemShareCard({ whatsappNumber, brandName = DAM_ALEM_BRAND }: Props) {
   const digits = (whatsappNumber || '').replace(/\D/g, '');
   const pageUrl = typeof window !== 'undefined' ? `${window.location.origin}/food` : '';
   const shareText = `${REFERRAL_SHARE_MESSAGE}\n${pageUrl}`;

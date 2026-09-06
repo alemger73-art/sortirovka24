@@ -24,7 +24,7 @@ export default function VolnaCrossPromo({ variant = 'home' }: Props) {
             <VolnaImage src={secondary.image} kind="category" className="h-full w-full object-cover" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-orange-600">DAM ALEM × VOLNA</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-orange-600">DAM ALEM 2.0 × VOLNA</p>
             <p className="font-bold text-gray-900">{secondary.title}</p>
             <p className="text-xs text-gray-600 mt-0.5">{secondary.subtitle}</p>
           </div>
@@ -60,7 +60,7 @@ export default function VolnaCrossPromo({ variant = 'home' }: Props) {
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-bold text-gray-900">К заказу из VOLNA</h2>
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-orange-600">DAM ALEM</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-orange-600">DAM ALEM 2.0</span>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {promos.slice(0, 2).map((promo) => (

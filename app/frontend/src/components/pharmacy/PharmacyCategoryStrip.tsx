@@ -11,6 +11,8 @@ interface Props {
   selectedId: number | null;
   onSelectAll: () => void;
   onSelectCategory: (id: number) => void;
+  accent?: 'teal' | 'rose';
+  title?: string;
 }
 
 export default function PharmacyCategoryStrip({
@@ -18,17 +20,30 @@ export default function PharmacyCategoryStrip({
   selectedId,
   onSelectAll,
   onSelectCategory,
+  accent = 'teal',
+  title = 'Каталог',
 }: Props) {
+  const rose = accent === 'rose';
+  const iconWrap = rose ? 'bg-red-100 text-[#C41E14]' : 'bg-teal-100 text-teal-700';
+  const hint = rose ? 'text-[#C41E14]/90' : 'text-teal-700/90';
+  const activeBtn = rose
+    ? 'bg-[#FF3B30] text-white border-2 border-[#FF3B30] shadow-md shadow-[#FF3B30]/25 scale-[1.02]'
+    : 'bg-teal-600 text-white border-2 border-teal-600 shadow-md shadow-teal-600/25 scale-[1.02]';
+  const idleBtn = rose
+    ? 'bg-white text-[#C41E14] border-2 border-red-200 shadow-sm hover:border-red-300 hover:bg-red-50/80'
+    : 'bg-white text-teal-800 border-2 border-teal-200 shadow-sm hover:border-teal-300 hover:bg-teal-50/80';
+  const chevron = rose ? 'text-[#FF3B30]/50' : 'text-teal-600/50';
+
   return (
     <div className="lg:hidden space-y-2.5">
       <div className="flex items-end justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
+          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${iconWrap}`}>
             <LayoutGrid className="h-4 w-4" />
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-gray-900 leading-tight">Каталог</p>
-            <p className="text-[11px] text-teal-700/90 leading-tight">Листайте категории влево →</p>
+            <p className="text-sm font-bold text-gray-900 leading-tight">{title}</p>
+            <p className={`text-[11px] leading-tight ${hint}`}>Листайте категории влево →</p>
           </div>
         </div>
         <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-gray-400 pb-0.5">
@@ -52,9 +67,7 @@ export default function PharmacyCategoryStrip({
             aria-selected={selectedId === null}
             onClick={onSelectAll}
             className={`shrink-0 snap-start px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all touch-manipulation ${
-              selectedId === null
-                ? 'bg-teal-600 text-white border-2 border-teal-600 shadow-md shadow-teal-600/25 scale-[1.02]'
-                : 'bg-white text-teal-800 border-2 border-teal-200 shadow-sm hover:border-teal-300 hover:bg-teal-50/80'
+              selectedId === null ? activeBtn : idleBtn
             }`}
           >
             Все
@@ -69,9 +82,7 @@ export default function PharmacyCategoryStrip({
                 aria-selected={active}
                 onClick={() => onSelectCategory(cat.id)}
                 className={`shrink-0 snap-start max-w-[min(72vw,16rem)] px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all touch-manipulation whitespace-nowrap ${
-                  active
-                    ? 'bg-teal-600 text-white border-2 border-teal-600 shadow-md shadow-teal-600/25 scale-[1.02]'
-                    : 'bg-white text-teal-800 border-2 border-teal-200 shadow-sm hover:border-teal-300 hover:bg-teal-50/80'
+                  active ? activeBtn : idleBtn
                 }`}
               >
                 {cat.name}
@@ -80,7 +91,7 @@ export default function PharmacyCategoryStrip({
             );
           })}
           <span
-            className="shrink-0 snap-start flex items-center pl-1 pr-3 text-teal-600/50"
+            className={`shrink-0 snap-start flex items-center pl-1 pr-3 ${chevron}`}
             aria-hidden
           >
             <ChevronRight className="h-5 w-5" />

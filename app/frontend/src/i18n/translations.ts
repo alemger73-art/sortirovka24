@@ -16,7 +16,7 @@ const translations: Translations = {
   'nav.announcements': { ru: 'Объявления', kz: 'Хабарландырулар' },
   'nav.jobs': { ru: 'Работа', kz: 'Жұмыс' },
   'nav.questions': { ru: 'Вопросы', kz: 'Сұрақтар' },
-  'nav.food': { ru: 'DAM ALEM', kz: 'DAM ALEM' },
+  'nav.food': { ru: 'DAM ALEM 2.0', kz: 'DAM ALEM 2.0' },
   'nav.transport': { ru: 'Транспорт', kz: 'Көлік' },
   'nav.taxi': { ru: 'Такси', kz: 'Тaksi' },
   'nav.directory': { ru: 'Справочник', kz: 'Анықтамалық' },
@@ -109,7 +109,7 @@ const translations: Translations = {
   'report.fieldSection': { ru: 'Где возникла проблема', kz: 'Мәселе қайда пайда болды' },
   'report.sectionPlaceholder': { ru: 'Выберите раздел (необязательно)', kz: 'Бөлімді таңдаңыз (міндетті емес)' },
   'report.sectionGeneral': { ru: 'Главная / общее', kz: 'Басты / жалпы' },
-  'report.sectionFood': { ru: 'DAM ALEM (еда)', kz: 'DAM ALEM (тамақ)' },
+  'report.sectionFood': { ru: 'DAM ALEM 2.0 (еда)', kz: 'DAM ALEM 2.0 (тамақ)' },
   'report.sectionGastronom': { ru: 'Гастроном', kz: 'Гастроном' },
   'report.sectionVolna': { ru: 'VOLNA', kz: 'VOLNA' },
   'report.sectionPharmacy': { ru: 'Аптека', kz: 'Дәріхана' },
@@ -119,7 +119,7 @@ const translations: Translations = {
   'report.sectionCabinet': { ru: 'Кабинет / вход', kz: 'Кабинет / кіру' },
   'report.sectionOther': { ru: 'Другое', kz: 'Басқа' },
   'report.fieldDescription': { ru: 'Что не работает', kz: 'Не жұмыс істейді' },
-  'report.descriptionPlaceholder': { ru: 'Например: не открывается меню в DAM ALEM, кнопка «Оформить заказ» не нажимается…', kz: 'Мысалы: DAM ALEM мәзірі ашылмайды, «Тапсырыс беру» батырмасы басылмайды…' },
+  'report.descriptionPlaceholder': { ru: 'Например: не открывается меню в DAM ALEM 2.0, кнопка «Оформить заказ» не нажимается…', kz: 'Мысалы: DAM ALEM 2.0 мәзірі ашылмайды, «Тапсырыс беру» батырмасы басылмайды…' },
   'report.fieldScreenshot': { ru: 'Скриншот', kz: 'Скриншот' },
   'report.screenshotHint': { ru: 'Необязательно — поможет быстрее понять проблему', kz: 'Міндетті емес — мәселені тезірек түсінуге көмектеседі' },
   'report.fieldName': { ru: 'Ваше имя', kz: 'Атыңыз' },
@@ -192,7 +192,7 @@ const translations: Translations = {
 
   /* ─── Quick Actions ─── */
   'quick.title': { ru: 'Быстрые действия', kz: 'Жылдам әрекеттер' },
-  'quick.orderFood': { ru: 'DAM ALEM', kz: 'DAM ALEM' },
+  'quick.orderFood': { ru: 'DAM ALEM 2.0', kz: 'DAM ALEM 2.0' },
   'quick.gastronom': { ru: 'Гастроном', kz: 'Гастроном' },
   'quick.volna': { ru: 'VOLNA', kz: 'VOLNA' },
   'quick.findMaster': { ru: 'Найти мастера', kz: 'Шебер табу' },
@@ -212,7 +212,7 @@ const translations: Translations = {
 
   /* ─── Banners ─── */
   'banner.promo': { ru: '🍔 Акция', kz: '🍔 Акция' },
-  'banner.foodDelivery': { ru: 'DAM ALEM', kz: 'DAM ALEM' },
+  'banner.foodDelivery': { ru: 'DAM ALEM 2.0', kz: 'DAM ALEM 2.0' },
   'banner.foodDeliveryDesc': { ru: 'Доставка еды №1 в Сортировке', kz: 'Сортировкадағы №1 тамақ жеткізу' },
   'banner.special': { ru: '⭐ Спецпредложение', kz: '⭐ Арнайы ұсыныс' },
   'banner.findMaster': { ru: 'Найдите мастера', kz: 'Шебер табыңыз' },
@@ -241,7 +241,7 @@ const translations: Translations = {
   /* ─── Sections / Categories ─── */
   'sections.title': { ru: 'Все разделы', kz: 'Барлық бөлімдер' },
   'categories.title': { ru: 'Популярные категории', kz: 'Танымал санаттар' },
-  'categories.food': { ru: 'DAM ALEM', kz: 'DAM ALEM' },
+  'categories.food': { ru: 'DAM ALEM 2.0', kz: 'DAM ALEM 2.0' },
   'categories.gastronom': { ru: 'Гастроном', kz: 'Гастроном' },
   'categories.volna': { ru: 'VOLNA', kz: 'VOLNA' },
   'categories.masters': { ru: 'Мастера', kz: 'Шеберлер' },
@@ -527,9 +527,9 @@ const translations: Translations = {
   'cabinet.avatarSaved': { ru: 'Фото профиля сохранено', kz: 'Профиль фотосы сақталды' },
   'cabinet.avatarRemoved': { ru: 'Фото удалено', kz: 'Фото жойылды' },
   'cabinet.bonusBalance': { ru: 'Текущий баланс бонусов', kz: 'Бonus балансы' },
-  'cabinet.bonusHint': { ru: '+300 за регистрацию · +50 за доставленный заказ · списание до 30% в DAM ALEM', kz: '+300 тіркелу · +50 жеткізілген тапсырыс · DAM ALEM-де 30%-ға дейін' },
+  'cabinet.bonusHint': { ru: '+300 за регистрацию · +50 за доставленный заказ · списание до 30% в DAM ALEM 2.0', kz: '+300 тіркелу · +50 жеткізілген тапсырыс · DAM ALEM 2.0-де 30%-ға дейін' },
   'cabinet.bonusShort': { ru: 'бонусов', kz: 'бонус' },
-  'cabinet.spendBonusesCta': { ru: 'Потратить в DAM ALEM', kz: 'DAM ALEM-де пайдалану' },
+  'cabinet.spendBonusesCta': { ru: 'Потратить в DAM ALEM 2.0', kz: 'DAM ALEM 2.0-де пайдалану' },
   'cabinet.orders.filterAll': { ru: 'Все', kz: 'Барлығы' },
   'cabinet.orders.filterFood': { ru: 'Еда', kz: 'Тамақ' },
   'cabinet.orders.filterStores': { ru: 'Магазины', kz: 'Дүкендер' },
@@ -935,7 +935,7 @@ const translations: Translations = {
   'safety.cards.complaintLink': { ru: 'Подать жалобу', kz: 'Шағым беру' },
 
   /* ─── Food ─── */
-  'food.heroTitle': { ru: 'DAM ALEM', kz: 'DAM ALEM' },
+  'food.heroTitle': { ru: 'DAM ALEM 2.0', kz: 'DAM ALEM 2.0' },
   'food.heroSubtitle': { ru: 'Доставка еды №1 в Сортировке', kz: 'Сортировкадағы №1 тамақ жеткізу' },
   'food.delivery': { ru: 'Доставка', kz: 'Жеткізу' },
   'food.pickup': { ru: 'Самовывоз', kz: 'Өзі алу' },
@@ -1010,7 +1010,7 @@ const translations: Translations = {
   'food.promoLine2a': { ru: 'Соберите заказ за пару минут', kz: 'Бірнеше минутта тапсырыс жинаңыз' },
   'food.promoLine2b': { ru: 'Крупные фото и понятные опции', kz: 'Ірі фото және түсінікті опциялар' },
   'food.promoLine2c': { ru: 'Оплата и уточнение — в WhatsApp', kz: 'Төлем және нақтылау — WhatsApp-та' },
-  'food.promoSlide3Title': { ru: 'DAM ALEM — свежая кухня', kz: 'DAM ALEM — жаңа асхана' },
+  'food.promoSlide3Title': { ru: 'DAM ALEM 2.0 — свежая кухня', kz: 'DAM ALEM 2.0 — жаңа асхана' },
   'food.promoLine3a': { ru: 'Готовим после заказа', kz: 'Тапсырыстан кейін дайындаймыз' },
   'food.promoLine3b': { ru: 'Доставка по зонам города', kz: 'Қала аймақтары бойынша жеткізу' },
   'food.promoLine3c': { ru: 'Самовывоз без комиссии', kz: 'Комиссиясыз өзі алу' },

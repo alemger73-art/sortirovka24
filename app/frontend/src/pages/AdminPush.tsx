@@ -5,12 +5,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { pushApiClient, type PushStats } from '@/lib/pushApi';
+import { DAM_ALEM_BRAND } from '@/lib/damAlem';
 import { Bell, Loader2, RefreshCw, Send, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 
 const PATH_PRESETS = [
   { value: '/', label: 'Главная' },
-  { value: '/food', label: 'DAM ALEM' },
+  { value: '/food', label: DAM_ALEM_BRAND },
   { value: '/gastronom', label: 'Гастроном' },
   { value: '/taxi', label: 'Такси' },
   { value: '/content', label: 'Объявления' },

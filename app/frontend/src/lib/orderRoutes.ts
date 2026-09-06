@@ -1,7 +1,9 @@
+import { DAM_ALEM_BRAND } from '@/lib/damAlem';
+
 export type OrderSource = 'food' | 'volna' | 'gastronom' | 'pharmacy' | 'prorab' | 'park';
 
 export const ORDER_SOURCE_LABELS: Record<OrderSource, string> = {
-  food: 'DAM ALEM',
+  food: DAM_ALEM_BRAND,
   volna: 'VOLNA',
   gastronom: 'Гастроном',
   pharmacy: 'Аптека',

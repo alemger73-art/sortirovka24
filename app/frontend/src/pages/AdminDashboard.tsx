@@ -71,7 +71,7 @@ const CARDS: DashboardCard[] = [
   {
     key: 'food_orders_new',
     tab: 'dam-alem',
-    label: 'Заказы DAM ALEM',
+    label: 'Заказы DAM ALEM 2.0',
     description: 'Новые заказы',
     icon: Utensils,
     color: 'bg-green-50 border-green-200 text-green-800',

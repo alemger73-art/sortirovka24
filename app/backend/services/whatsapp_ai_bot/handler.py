@@ -51,7 +51,7 @@ def _format_items(title: str, items, *, empty_hint: str) -> str:
 
 
 def build_reply_text(intent: BotIntent, catalog: CatalogSnapshot) -> str:
-    brand = catalog.restaurant_name or "DAM ALEM"
+    brand = catalog.restaurant_name or "DAM ALEM 2.0"
 
     if intent.name == "help":
         return help_text(brand=brand)
