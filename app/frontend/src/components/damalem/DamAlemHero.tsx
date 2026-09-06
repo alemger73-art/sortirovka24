@@ -23,6 +23,8 @@ interface DamAlemHeroProps {
   formatPrice: (n: number) => string;
   cartCount?: number;
   onOpenCart?: () => void;
+  onMenuCta?: () => void;
+  menuCtaLabel?: string;
 }
 
 export default function DamAlemHero({
@@ -40,11 +42,14 @@ export default function DamAlemHero({
   formatPrice,
   cartCount = 0,
   onOpenCart,
+  onMenuCta,
+  menuCtaLabel = 'Смотреть меню',
 }: DamAlemHeroProps) {
   const bg = resolveDamAlemHeroImage(heroImage, brandPhoto);
   const slide = promoSlides[promoSlide] ?? promoSlides[0];
   const brandLabel = title || DAM_ALEM_BRAND;
-  const headline = subtitle || 'Горячая еда с доставкой';
+  const headline = subtitle || 'Горячая еда с доставкой по Сортировке';
+  const showTagline = brandLabel.trim().toLowerCase() !== DAM_ALEM_BRAND.toLowerCase();
 
   return (
     <section className="dam-hero-bleed dam-hero-desktop" aria-label={brandLabel}>
@@ -64,7 +69,7 @@ export default function DamAlemHero({
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1 space-y-2.5 lg:space-y-3">
               <span className="dam-hero-brand-mark">{DAM_ALEM_BRAND}</span>
-              <p className="dam-hero-tagline">{brandLabel}</p>
+              {showTagline ? <p className="dam-hero-tagline">{brandLabel}</p> : null}
             </div>
             <div className="flex shrink-0 flex-col items-end gap-2.5">
               <div className="dam-hero-rating">
@@ -88,7 +93,10 @@ export default function DamAlemHero({
           </div>
 
           <div className="mt-auto space-y-4 lg:space-y-5">
-            <h1 className="dam-hero-headline">{headline}</h1>
+            <div className="space-y-2">
+              <h1 className="dam-hero-headline">{headline}</h1>
+              <p className="dam-hero-support">Пицца · донеры · шашлыки · комбо — готовим после вашего заказа</p>
+            </div>
 
             <div className="flex flex-wrap gap-2 lg:gap-2.5">
               <span className="dam-hero-chip">
@@ -104,27 +112,35 @@ export default function DamAlemHero({
               </span>
             </div>
 
-            {slide && promoSlides.length > 0 && (
-              <div className="dam-hero-promo max-w-xl">
-                <p className="text-base font-bold text-white lg:text-lg">{slide.title}</p>
-                {slide.lines[0] ? (
-                  <p className="mt-1.5 text-sm text-white/80 line-clamp-2 lg:text-base">{slide.lines[0]}</p>
-                ) : null}
-                {promoSlides.length > 1 && (
-                  <div className="mt-3 flex gap-1.5">
-                    {promoSlides.map((_, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        aria-label={`Слайд ${i + 1}`}
-                        onClick={() => onPromoSlideChange(i)}
-                        className={`h-1.5 rounded-full transition-all ${i === promoSlide ? 'w-7 bg-white' : 'w-1.5 bg-white/40'}`}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+              {slide && promoSlides.length > 0 ? (
+                <div className="dam-hero-promo max-w-xl flex-1">
+                  <p className="text-base font-bold text-white lg:text-lg">{slide.title}</p>
+                  {slide.lines[0] ? (
+                    <p className="mt-1.5 text-sm text-white/80 line-clamp-2 lg:text-base">{slide.lines[0]}</p>
+                  ) : null}
+                  {promoSlides.length > 1 && (
+                    <div className="mt-3 flex gap-1.5">
+                      {promoSlides.map((_, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          aria-label={`Слайд ${i + 1}`}
+                          onClick={() => onPromoSlideChange(i)}
+                          className={`h-1.5 rounded-full transition-all ${i === promoSlide ? 'w-7 bg-white' : 'w-1.5 bg-white/40'}`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              {onMenuCta ? (
+                <button type="button" className="dam-hero-cta shrink-0" onClick={onMenuCta}>
+                  {menuCtaLabel}
+                </button>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>

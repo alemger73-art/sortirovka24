@@ -7,7 +7,7 @@
   --dam-ink: #0a0a0a;
   --dam-muted: #6b7280;
   --dam-surface: #ffffff;
-  --dam-bg: #f4f4f5;
+  --dam-bg: #f6f1ea;
   --dam-radius: 20px;
   --dam-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
   --dam-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
@@ -42,7 +42,7 @@
   margin-left: -1rem;
   margin-right: -1rem;
   padding: 0.75rem 1rem;
-  background: linear-gradient(180deg, rgba(244, 244, 245, 0.98) 0%, rgba(244, 244, 245, 0.85) 100%);
+  background: linear-gradient(180deg, rgba(246, 241, 234, 0.98) 0%, rgba(246, 241, 234, 0.85) 100%);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
@@ -333,21 +333,21 @@
 
 .dam-hero-media {
   position: relative;
-  min-height: 280px;
-  height: clamp(280px, 44vw, 560px);
+  min-height: 320px;
+  height: clamp(320px, 48vw, 620px);
 }
 
 @media (min-width: 768px) {
   .dam-hero-media {
-    min-height: 320px;
-    height: clamp(320px, 36vw, 520px);
+    min-height: 380px;
+    height: clamp(380px, 40vw, 580px);
   }
 }
 
 @media (min-width: 1024px) {
   .dam-hero-media {
-    min-height: 360px;
-    height: clamp(360px, 30vw, 560px);
+    min-height: 420px;
+    height: clamp(420px, 34vw, 640px);
   }
 }
 
@@ -489,6 +489,53 @@
   padding: 1rem 1.125rem;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+}
+
+.dam-hero-support {
+  max-width: 36rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.82);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+}
+
+@media (min-width: 640px) {
+  .dam-hero-support {
+    font-size: 1rem;
+  }
+}
+
+.dam-hero-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  background: #ff3b30;
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  box-shadow: 0 10px 28px rgba(255, 59, 48, 0.45);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.dam-hero-cta:hover {
+  background: #e6352b;
+}
+
+.dam-hero-cta:active {
+  transform: scale(0.97);
+}
+
+@media (min-width: 1024px) {
+  .dam-hero-cta {
+    min-height: 3.25rem;
+    padding: 0.875rem 1.75rem;
+    font-size: 1rem;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -2450,7 +2497,7 @@ body.dam-sheet-open [data-bottom-nav] {
   margin-left: -1rem;
   margin-right: -1rem;
   padding: 0.625rem 1rem;
-  background: rgba(244, 244, 245, 0.94);
+  background: rgba(246, 241, 234, 0.94);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);

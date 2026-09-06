@@ -19,6 +19,54 @@ export function resolvePromoCodes(raw?: string): FoodPromoCode[] {
   return parsed.length > 0 ? parsed : DEFAULT_PROMO_CODES;
 }
 
+export interface PromoSlide {
+  title: string;
+  lines: string[];
+}
+
+export function parsePromoSlides(raw?: string): PromoSlide[] {
+  if (!raw?.trim()) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((s): s is { title?: unknown; lines?: unknown } => !!s && typeof s === 'object')
+      .map(s => ({
+        title: String(s.title || '').trim(),
+        lines: Array.isArray(s.lines) ? s.lines.map(line => String(line)) : [],
+      }))
+      .filter(s => s.title.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+export function defaultPromoSlides(opts: {
+  freeDeliveryFrom: number;
+  formatPrice: (n: number) => string;
+  promos: FoodPromoCode[];
+}): PromoSlide[] {
+  const slides: PromoSlide[] = [];
+  if (opts.freeDeliveryFrom > 0) {
+    slides.push({
+      title: 'Бесплатная доставка',
+      lines: [`От ${opts.formatPrice(opts.freeDeliveryFrom)} по Сортировке`],
+    });
+  }
+  const first = opts.promos.find(p => p.active !== false);
+  if (first) {
+    slides.push({
+      title: first.label || first.code,
+      lines: [`Промокод ${first.code}`],
+    });
+  }
+  slides.push({
+    title: 'Готовим после заказа',
+    lines: ['Пицца, донеры, шашлыки и комбо — горячими к подъезду'],
+  });
+  return slides;
+}
+
 export interface MarketingStory {
   id: string;
   title: string;

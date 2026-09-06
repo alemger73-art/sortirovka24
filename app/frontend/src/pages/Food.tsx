@@ -47,15 +47,29 @@ import DamAlemProductCard from '@/components/damalem/DamAlemProductCard';
 import DamAlemFloatingCart from '@/components/damalem/DamAlemFloatingCart';
 import DamAlemCartSidebar from '@/components/damalem/DamAlemCartSidebar';
 import DamAlemStatusStrip from '@/components/damalem/DamAlemStatusStrip';
-import DamAlemBrandHeader from '@/components/damalem/DamAlemBrandHeader';
+import DamAlemHero from '@/components/damalem/DamAlemHero';
 import DamAlemStickyPills from '@/components/damalem/DamAlemStickyPills';
+import DamAlemStories from '@/components/damalem/DamAlemStories';
+import DamAlemPromoStrip from '@/components/damalem/DamAlemPromoStrip';
+import DamAlemPromoBanners from '@/components/damalem/DamAlemPromoBanners';
+import type { FoodBanner } from '@/components/damalem/DamAlemPromoBanners';
+import DamAlemFreeDeliveryBanner from '@/components/damalem/DamAlemFreeDeliveryBanner';
+import DamAlemLoyaltyShowcase from '@/components/damalem/DamAlemLoyaltyShowcase';
+import DamAlemStepsBar from '@/components/damalem/DamAlemStepsBar';
 import { resolveDamAlemItemImage } from '@/lib/damAlemImages';
 import DamAlemImage from '@/components/damalem/DamAlemImage';
 import DamAlemSheet from '@/components/damalem/DamAlemSheet';
 import DamAlemCheckoutButton from '@/components/damalem/DamAlemCheckoutButton';
 import FoodOrderStatusBar from '@/components/damalem/FoodOrderStatusBar';
 import { foodCheckoutBlockReason, publicOrderErrorMessage } from '@/lib/foodCheckoutGuards';
-import { resolvePromoCodes } from '@/lib/damAlemMarketing';
+import {
+  buildMarketingStories,
+  defaultPromoSlides,
+  parsePromoSlides,
+  resolvePromoCodes,
+  type FoodBannerAction,
+  type MarketingStory,
+} from '@/lib/damAlemMarketing';
 import { buildDamAlemMenuSections, sectionDomId } from '@/lib/damAlemMenu';
 import DamAlemPageSkeleton from '@/components/damalem/DamAlemPageSkeleton';
 import LoadErrorState from '@/components/LoadErrorState';
@@ -188,6 +202,8 @@ export default function Food() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [activeSectionId, setActiveSectionId] = useState('hits');
+  const [promoSlide, setPromoSlide] = useState(0);
+  const [foodBanners, setFoodBanners] = useState<FoodBanner[]>([]);
   const [categories, setCategories] = useState<FoodCategory[]>([]);
   const [items, setItems] = useState<FoodItem[]>([]);
   const [modGroups, setModGroups] = useState<ModifierGroup[]>([]);
@@ -519,6 +535,34 @@ export default function Food() {
       });
       setSettings(prev => ({ ...prev, ...s }));
 
+      const bannerRows = extract(results[3]) as Array<{
+        id: number;
+        title?: string;
+        subtitle?: string;
+        banner_text?: string;
+        image_url?: string;
+        button_text?: string;
+        button_url?: string;
+        link_url?: string;
+        banner_type?: string;
+        active?: boolean;
+      }>;
+      const mappedBanners: FoodBanner[] = bannerRows
+        .filter(b => b.active !== false)
+        .map(b => ({
+          id: b.id,
+          title: b.title || '',
+          subtitle: b.subtitle || b.banner_text,
+          image_url: b.image_url,
+          button_text: b.button_text,
+          button_url: b.button_url || b.link_url,
+        }));
+      const foodOnly = mappedBanners.filter(b => {
+        const blob = `${b.title} ${b.subtitle || ''} ${b.button_url || ''}`.toLowerCase();
+        return blob.includes('/food') || blob.includes('dam alem') || blob.includes('еда') || blob.includes('доставка');
+      });
+      setFoodBanners((foodOnly.length > 0 ? foodOnly : mappedBanners).slice(0, 8));
+
       void loadModifiers(true);
     } catch (e) {
       console.error('Error loading food data:', e);
@@ -573,6 +617,11 @@ export default function Food() {
     [settings.promo_codes],
   );
 
+  const formatDamPrice = useCallback(
+    (price: number) => price.toLocaleString('ru-RU') + ' ₸',
+    [],
+  );
+
   const showRecommendations = settings.show_recommendations !== 'false';
 
   const scrollToSection = useCallback((sectionId: string) => {
@@ -584,6 +633,29 @@ export default function Food() {
       sectionObserverSkipRef.current = false;
     }, 700);
   }, []);
+
+  const scrollToMenu = useCallback(() => {
+    document.getElementById('dam-menu')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
+  const scrollToSectionOrSlug = useCallback((slug: string) => {
+    const id = slug.trim().toLowerCase();
+    if (!id) {
+      scrollToMenu();
+      return;
+    }
+    if (menuSections.some(s => s.id === id)) {
+      scrollToSection(id);
+      return;
+    }
+    const hit = menuSections.find(s =>
+      s.id.includes(id) ||
+      id.includes(s.id) ||
+      s.label.toLowerCase().includes(id.replace(/-/g, ' ')),
+    );
+    if (hit) scrollToSection(hit.id);
+    else scrollToMenu();
+  }, [menuSections, scrollToMenu, scrollToSection]);
 
   useEffect(() => {
     if (menuSections.length === 0) return;
@@ -862,6 +934,36 @@ export default function Food() {
     if (brandProfile?.min_order && brandProfile.min_order > 0) return brandProfile.min_order;
     return parseInt(settings.min_order_amount) || 0;
   }, [brandProfile, settings.min_order_amount]);
+
+  const marketingStories = useMemo(
+    () =>
+      buildMarketingStories({
+        freeDeliveryFrom,
+        minOrder,
+        deliveryTime: deliveryTimeLabel,
+        gifts: loyaltyGifts,
+        formatPrice: formatDamPrice,
+      }),
+    [freeDeliveryFrom, minOrder, deliveryTimeLabel, loyaltyGifts, formatDamPrice],
+  );
+
+  const heroPromoSlides = useMemo(() => {
+    const fromSettings = parsePromoSlides(settings.promo_slides);
+    if (fromSettings.length > 0) return fromSettings;
+    return defaultPromoSlides({
+      freeDeliveryFrom,
+      formatPrice: formatDamPrice,
+      promos: availablePromos,
+    });
+  }, [settings.promo_slides, freeDeliveryFrom, formatDamPrice, availablePromos]);
+
+  useEffect(() => {
+    if (heroPromoSlides.length < 2) return;
+    const timer = window.setInterval(() => {
+      setPromoSlide(i => (i + 1) % heroPromoSlides.length);
+    }, 5200);
+    return () => window.clearInterval(timer);
+  }, [heroPromoSlides.length]);
 
   const deliveryReady = useMemo(() => {
     if (deliveryMethod !== 'delivery') return true;
@@ -1339,7 +1441,7 @@ export default function Food() {
     window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msg)}`, '_blank');
   }
 
-  function formatPrice(price: number) { return price.toLocaleString('ru-RU') + ' ₸'; }
+  function formatPrice(price: number) { return formatDamPrice(price); }
   function getItemImage(item: FoodItem): string {
     return resolveDamAlemItemImage({
       id: item.id,
@@ -1386,9 +1488,10 @@ export default function Food() {
     saveFavoriteIds(next);
   }
 
-  async function applyPromoCode() {
-    const code = promoInput.trim();
+  const applyPromoByCode = useCallback(async (raw: string) => {
+    const code = raw.trim();
     if (!code) return;
+    setPromoInput(code);
     setPromoLoading(true);
     try {
       const result = await validateFoodPromo({ code, cart_subtotal: cartTotal });
@@ -1406,7 +1509,53 @@ export default function Food() {
     } finally {
       setPromoLoading(false);
     }
+  }, [cartTotal]);
+
+  async function applyPromoCode() {
+    await applyPromoByCode(promoInput);
   }
+
+  const handleBannerAction = useCallback((action: FoodBannerAction) => {
+    switch (action.type) {
+      case 'promo':
+        void applyPromoByCode(action.code);
+        if (action.categorySlug) scrollToSectionOrSlug(action.categorySlug);
+        else scrollToMenu();
+        break;
+      case 'category':
+        scrollToSectionOrSlug(action.slug);
+        break;
+      case 'popular':
+        scrollToSection('hits');
+        break;
+      case 'gifts':
+        document.getElementById('dam-loyalty')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        break;
+      case 'menu':
+        scrollToMenu();
+        break;
+      case 'link':
+        window.open(action.url, '_blank', 'noopener,noreferrer');
+        break;
+    }
+  }, [applyPromoByCode, scrollToMenu, scrollToSection, scrollToSectionOrSlug]);
+
+  const handleStoryCta = useCallback((story: MarketingStory) => {
+    if (story.id === 'promo-damalem') {
+      void applyPromoByCode('DAMALEM10');
+      scrollToMenu();
+      return;
+    }
+    if (story.id === 'hits') {
+      scrollToSection('hits');
+      return;
+    }
+    if (story.id === 'gift') {
+      document.getElementById('dam-loyalty')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    scrollToMenu();
+  }, [applyPromoByCode, scrollToMenu, scrollToSection]);
 
   useEffect(() => {
     if (items.length === 0) return;
@@ -1612,27 +1761,57 @@ export default function Food() {
           }
         />
 
+        <DamAlemHero
+          title={settings.hero_banner_title || brandProfile?.name || t('food.heroTitle')}
+          subtitle={settings.hero_banner_subtitle || t('food.heroSubtitle')}
+          heroImage={settings.hero_banner_image}
+          brandPhoto={brandProfile?.photo}
+          rating={brandProfile?.rating ?? 4.9}
+          deliveryTime={deliveryTimeLabel}
+          minOrder={minOrder}
+          deliveryFrom={deliveryFromPrice}
+          promoSlide={promoSlide}
+          promoSlides={heroPromoSlides}
+          onPromoSlideChange={setPromoSlide}
+          formatPrice={formatPrice}
+          cartCount={cartCount}
+          onOpenCart={() =>
+            cartCount > 0 ? setCartOpen(true) : toast.info('Добавьте блюда в корзину')
+          }
+          onMenuCta={scrollToMenu}
+          menuCtaLabel={menuSections.some(s => s.id === 'combo') ? 'К комбо и хитам' : 'Смотреть меню'}
+        />
+
         <div
-          className={`dam-page-shell w-full px-4 pb-32 pt-3 sm:px-6 lg:px-10 lg:pt-5 xl:px-12${
+          className={`dam-page-shell w-full px-4 pb-32 pt-5 sm:px-6 lg:px-10 lg:pt-7 xl:px-12${
             cartCount > 0 && !checkoutOpen ? ' dam-page-shell--with-sidebar' : ''
           }`}
         >
-          <div className="dam-page-main space-y-5 lg:space-y-6">
-            <DamAlemBrandHeader
-              title={settings.hero_banner_title || brandProfile?.name || t('food.heroTitle')}
-              subtitle={settings.hero_banner_subtitle || t('food.heroSubtitle')}
-              heroImage={settings.hero_banner_image}
-              brandPhoto={brandProfile?.photo}
-              rating={brandProfile?.rating ?? 4.9}
-              primaryCtaLabel={menuSections.some(s => s.id === 'combo') ? 'К комбо' : 'К хитам'}
-              onPrimaryCta={() =>
-                scrollToSection(
-                  menuSections.some(s => s.id === 'combo')
-                    ? 'combo'
-                    : menuSections[0]?.id || 'hits',
-                )
-              }
+          <div className="dam-page-main space-y-5 lg:space-y-7">
+            <DamAlemStepsBar step={uiStep} cartCount={cartCount} />
+
+            <DamAlemStories stories={marketingStories} onCta={handleStoryCta} />
+
+            <DamAlemFreeDeliveryBanner
+              freeDeliveryFrom={freeDeliveryFrom}
+              minOrder={minOrder}
+              formatPrice={formatPrice}
+              deliveryTime={deliveryTimeLabel}
             />
+
+            <DamAlemPromoBanners banners={foodBanners} onAction={handleBannerAction} />
+
+            <DamAlemPromoStrip
+              promos={availablePromos.filter(p => p.active !== false)}
+              freeDeliveryFrom={freeDeliveryFrom}
+              formatPrice={formatPrice}
+              appliedCode={appliedPromo?.code}
+              onApply={code => void applyPromoByCode(code)}
+            />
+
+            <div id="dam-loyalty">
+              <DamAlemLoyaltyShowcase gifts={loyaltyGifts} formatPrice={formatPrice} />
+            </div>
 
             {lastOrderPreview && cartCount === 0 ? (
               <button
@@ -1652,6 +1831,7 @@ export default function Food() {
             ) : null}
 
             <DamAlemStickyPills
+              id="dam-menu"
               pills={stickyPills}
               activeId={activeSectionId}
               onSelect={scrollToSection}

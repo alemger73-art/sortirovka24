@@ -16,6 +16,7 @@ interface Props {
   searchPlaceholder?: string;
   cartCount?: number;
   onOpenCart?: () => void;
+  id?: string;
 }
 
 /** Sticky category pills + optional search / cart for continuous menu feed */
@@ -30,6 +31,7 @@ export default function DamAlemStickyPills({
   searchPlaceholder = 'Поиск…',
   cartCount = 0,
   onOpenCart,
+  id,
 }: Props) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
@@ -39,7 +41,7 @@ export default function DamAlemStickyPills({
   }, [activeId]);
 
   return (
-    <div className="dam-sticky-pills">
+    <div id={id} className="dam-sticky-pills">
       {searchOpen ? (
         <div className="flex items-center gap-2 px-1 pb-2">
           <input

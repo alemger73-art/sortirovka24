@@ -4,9 +4,10 @@ interface Props {
   freeDeliveryFrom: number;
   minOrder: number;
   formatPrice: (n: number) => string;
+  deliveryTime?: string;
 }
 
-export default function DamAlemFreeDeliveryBanner({ freeDeliveryFrom, minOrder, formatPrice }: Props) {
+export default function DamAlemFreeDeliveryBanner({ freeDeliveryFrom, minOrder, formatPrice, deliveryTime = '35–45 мин' }: Props) {
   if (freeDeliveryFrom <= 0) return null;
 
   return (
@@ -22,7 +23,7 @@ export default function DamAlemFreeDeliveryBanner({ freeDeliveryFrom, minOrder, 
           </p>
           <p className="dam-free-banner__sub">
             {minOrder > 0
-              ? `Мин. заказ ${formatPrice(minOrder)} · 35–45 мин · Сортировка`
+              ? `Мин. заказ ${formatPrice(minOrder)} · ${deliveryTime} · Сортировка`
               : 'Доставим горячим прямо к подъезду'}
           </p>
         </div>
