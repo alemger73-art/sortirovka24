@@ -1,5 +1,9 @@
 import { test, expect, type Page } from "@playwright/test";
 
+
+// Floating cart is hidden on desktop (>=1024px); food flows are mobile-first.
+test.use({ viewport: { width: 390, height: 844 } });
+
 async function waitForFoodMenu(page: Page) {
   await page.goto("/food");
   await expect(page.locator(".dam-page")).toBeVisible({ timeout: 30_000 });
@@ -39,7 +43,7 @@ test("cart drawer: add item, change quantity, open checkout", async ({ page }) =
   await waitForFoodMenu(page);
   await addItemToCart(page);
 
-  const floatingCart = page.locator(".dam-floating-cart");
+  const floatingCart = page.getByTestId("dam-floating-cart");
   await expect(floatingCart).toBeVisible({ timeout: 10_000 });
   await floatingCart.click();
 
@@ -67,7 +71,7 @@ test("cart drawer: add item, change quantity, open checkout", async ({ page }) =
 test("cart drawer: close button works", async ({ page }) => {
   await waitForFoodMenu(page);
   await addItemToCart(page);
-  await page.locator(".dam-floating-cart").click();
+  await page.getByTestId("dam-floating-cart").click();
 
   await expect(page.getByTestId("dam-cart-sheet")).toBeVisible();
 
