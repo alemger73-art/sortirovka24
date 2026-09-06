@@ -15,21 +15,19 @@ RUN pnpm install --frozen-lockfile
 # Build the production bundle into /app/frontend/dist.
 COPY app/frontend/ ./
 # Railway injects RAILWAY_GIT_COMMIT_SHA as a build arg when available.
-ARG RAILWAY_GIT_COMMIT_SHA=
-ARG APP_BUILD_ID=${RAILWAY_GIT_COMMIT_SHA:-unknown}
-ENV APP_BUILD_ID=${APP_BUILD_ID}
+ARG RAILWAY_GIT_COMMIT_SHA=unknown
+ENV APP_BUILD_ID=${RAILWAY_GIT_COMMIT_SHA}
 RUN pnpm run build
 
 # ---- Stage 2: backend runtime ----
 FROM python:3.12-slim
 
-ARG RAILWAY_GIT_COMMIT_SHA=
-ARG APP_BUILD_ID=${RAILWAY_GIT_COMMIT_SHA:-unknown}
+ARG RAILWAY_GIT_COMMIT_SHA=unknown
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    APP_BUILD_ID=${APP_BUILD_ID}
+    APP_BUILD_ID=${RAILWAY_GIT_COMMIT_SHA}
 
 WORKDIR /app/backend
 
