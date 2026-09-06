@@ -32,7 +32,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -91,10 +91,16 @@ jobs:
       - name: Build for iOS Simulator
         run: |
           cd ios/App
+          # Prefer a concrete iPhone sim when present; fall back to generic destination.
+          DEST=$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/{gsub(/ /,"",$2); print "platform=iOS Simulator,id="$2; exit}')
+          if [ -z "$DEST" ]; then
+            DEST='generic/platform=iOS Simulator'
+          fi
+          echo "Using destination: $DEST"
           xcodebuild -workspace App.xcworkspace \
             -scheme App \
             -configuration Debug \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination "$DEST" \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             build
