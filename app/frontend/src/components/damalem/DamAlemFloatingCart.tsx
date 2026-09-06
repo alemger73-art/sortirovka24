@@ -25,6 +25,7 @@ export default function DamAlemFloatingCart({
       <button
         type="button"
         onClick={onOpen}
+        data-testid="dam-floating-cart"
         className="dam-floating-cart flex w-full flex-col gap-2 active:scale-[0.99] transition-transform"
       >
         {showProgress ? (
