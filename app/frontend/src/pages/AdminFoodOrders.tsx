@@ -362,13 +362,17 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
                       {orderItems.map((oi: any, idx: number) => (
                         <div key={idx} className="flex justify-between text-sm">
                           <div>
-                            <span className="text-gray-800">{oi.name} × {oi.quantity}</span>
+                            <span className={oi.is_gift ? 'font-semibold text-emerald-700' : 'text-gray-800'}>
+                              {oi.is_gift ? '🎁 Подарок: ' : ''}{oi.name} × {oi.quantity}
+                            </span>
                             {oi.modifiers?.length > 0 && (
                               <span className="text-xs text-orange-500 block">+ {oi.modifiers.map((m: any) => m.name).join(', ')}</span>
                             )}
                           </div>
                           <span className="font-medium text-gray-700">
-                            {(oi.sum ?? ((oi.price + (oi.modTotal ?? oi.mod_total ?? (oi.modifiers?.reduce((s: number, m: any) => s + (m.price || 0), 0) || 0))) * (oi.quantity ?? oi.qty ?? 1))).toLocaleString()} ₸
+                            {oi.is_gift
+                              ? 'Бесплатно'
+                              : `${(oi.sum ?? ((oi.price + (oi.modTotal ?? oi.mod_total ?? (oi.modifiers?.reduce((s: number, m: any) => s + (m.price || 0), 0) || 0))) * (oi.quantity ?? oi.qty ?? 1))).toLocaleString()} ₸`}
                           </span>
                         </div>
                       ))}

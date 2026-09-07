@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Optional
 
 from core.admin_guard import require_panel_admin
 from core.database import get_db
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from services.food_settings import Food_settingsService
 from services.gastronom_delivery import (
@@ -18,6 +19,7 @@ from services.gastronom_delivery import (
     reverse_geocode,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
+from utils.rate_limit import check_ip_rate_limit
 
 router = APIRouter(prefix="/api/v1/food", tags=["food-store"])
 
@@ -119,7 +121,18 @@ class PromoValidateRequest(BaseModel):
 
 
 @router.post("/validate-promo")
-async def validate_promo(data: PromoValidateRequest, db: AsyncSession = Depends(get_db)):
+async def validate_promo(
+    data: PromoValidateRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    check_ip_rate_limit(
+        request,
+        key_prefix="food_validate_promo",
+        window_seconds=60.0,
+        max_hits=20,
+        message="Слишком много проверок промокода. Подождите минуту.",
+    )
     code = (data.code or "").strip().upper()
     if not code:
         raise HTTPException(status_code=400, detail="Введите промокод")
@@ -127,6 +140,9 @@ async def validate_promo(data: PromoValidateRequest, db: AsyncSession = Depends(
     svc = Food_settingsService(db)
     settings = await svc.get_all_as_dict()
     promos = _parse_promo_codes(settings.get("promo_codes") or "[]")
+    if not promos:
+        from services.dam_alem_marketing_defaults import PROMO_CODES
+        promos = list(PROMO_CODES)
     matched = None
     for p in promos:
         if not p or not isinstance(p, dict):
@@ -139,6 +155,13 @@ async def validate_promo(data: PromoValidateRequest, db: AsyncSession = Depends(
         break
     if not matched:
         raise HTTPException(status_code=404, detail="Промокод не найден или недействителен")
+    today = date.today().isoformat()
+    valid_from = str(matched.get("valid_from") or "").strip()
+    valid_until = str(matched.get("valid_until") or "").strip()
+    if valid_from and today < valid_from:
+        raise HTTPException(status_code=400, detail=f"Промокод начнёт действовать {valid_from}")
+    if valid_until and today > valid_until:
+        raise HTTPException(status_code=400, detail="Срок действия промокода закончился")
     min_order = float(matched.get("min_order") or 0)
     if min_order > 0 and subtotal < min_order:
         raise HTTPException(
@@ -157,6 +180,12 @@ async def validate_promo(data: PromoValidateRequest, db: AsyncSession = Depends(
     else:
         pct = max(0.0, min(100.0, value))
         discount = round(subtotal * (pct / 100.0))
+        try:
+            max_discount = max(0.0, float(matched.get("max_discount") or 0))
+        except (TypeError, ValueError):
+            max_discount = 0.0
+        if max_discount > 0:
+            discount = min(discount, max_discount)
 
     label = str(matched.get("label") or "").strip()
     if not label:

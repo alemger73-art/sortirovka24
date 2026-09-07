@@ -60,6 +60,10 @@ async def push_food_order_to_frontpad(
     for raw in items:
         if not isinstance(raw, dict):
             continue
+        # Marketing gifts are recorded in the order/comment but do not have a
+        # FrontPad product id unless the merchant creates one explicitly.
+        if raw.get("is_gift"):
+            continue
         qty = int(raw.get("quantity") or raw.get("qty") or 1)
         if qty <= 0:
             continue

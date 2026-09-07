@@ -37,6 +37,21 @@ def _link(**kw):
     return SimpleNamespace(**defaults)
 
 
+def _group(**kw):
+    defaults = dict(
+        id=3,
+        name="Добавки",
+        type="multiple",
+        is_required=False,
+        min_select=0,
+        max_select=3,
+        sort_order=1,
+        is_active=True,
+    )
+    defaults.update(kw)
+    return SimpleNamespace(**defaults)
+
+
 def _svc(items):
     svc = MagicMock()
     svc.get_list = AsyncMock(return_value={"items": items, "total": len(items)})
@@ -98,6 +113,7 @@ def catalog_patches():
     with (
         patch("services.food_order_validation.Food_itemsService", return_value=_svc([_product()])),
         patch("services.food_order_validation.Modifier_optionsService", return_value=_svc([_option()])),
+        patch("services.food_order_validation.Modifier_groupsService", return_value=_svc([_group()])),
         patch(
             "services.food_order_validation.Item_modifier_groupsService",
             return_value=_svc([_link()]),
@@ -135,6 +151,16 @@ async def test_rejects_base_price_tamper(catalog_patches):
 
 
 @pytest.mark.asyncio
+async def test_rejects_fractional_quantity(catalog_patches):
+    data = _base_order(
+        order_items='[{"id":10,"name":"Донер Куриный","price":1500,"quantity":1.9,"modifiers":[],"modTotal":0}]',
+    )
+    with pytest.raises(HTTPException) as exc:
+        await validate_food_order(MagicMock(), data)
+    assert "целым" in exc.value.detail.lower()
+
+
+@pytest.mark.asyncio
 async def test_rejects_unknown_modifier(catalog_patches):
     data = _base_order(
         order_items='[{"id":10,"name":"Донер Куриный","price":1500,"quantity":1,"modifiers":[{"option_id":999,"name":"X","price":0}],"modTotal":0}]',
@@ -163,6 +189,10 @@ async def test_rejects_modifier_not_on_item(catalog_patches):
         patch(
             "services.food_order_validation.Modifier_optionsService",
             return_value=_svc([_option(), foreign_opt]),
+        ),
+        patch(
+            "services.food_order_validation.Modifier_groupsService",
+            return_value=_svc([_group()]),
         ),
         patch(
             "services.food_order_validation.Item_modifier_groupsService",
@@ -237,6 +267,7 @@ async def test_rejects_coords_outside_delivery_zone(catalog_patches):
     with (
         patch("services.food_order_validation.Food_itemsService", return_value=_svc([_product()])),
         patch("services.food_order_validation.Modifier_optionsService", return_value=_svc([])),
+        patch("services.food_order_validation.Modifier_groupsService", return_value=_svc([])),
         patch("services.food_order_validation.Item_modifier_groupsService", return_value=_svc([])),
         patch("services.food_order_validation.Food_settingsService", return_value=_svc(settings)),
         patch(
@@ -285,6 +316,7 @@ async def test_delivery_zone_name_does_not_pick_cheap_fee():
     with (
         patch("services.food_order_validation.Food_itemsService", return_value=_svc([_product()])),
         patch("services.food_order_validation.Modifier_optionsService", return_value=_svc([])),
+        patch("services.food_order_validation.Modifier_groupsService", return_value=_svc([])),
         patch("services.food_order_validation.Item_modifier_groupsService", return_value=_svc([])),
         patch("services.food_order_validation.Food_settingsService", return_value=_svc(settings)),
         patch("services.food_order_validation.Food_restaurantsService", return_value=rest),
@@ -327,6 +359,7 @@ async def test_server_geocode_overrides_cheap_client_coords():
     with (
         patch("services.food_order_validation.Food_itemsService", return_value=_svc([_product()])),
         patch("services.food_order_validation.Modifier_optionsService", return_value=_svc([])),
+        patch("services.food_order_validation.Modifier_groupsService", return_value=_svc([])),
         patch("services.food_order_validation.Item_modifier_groupsService", return_value=_svc([])),
         patch("services.food_order_validation.Food_settingsService", return_value=_svc(settings)),
         patch("services.food_order_validation.Food_restaurantsService", return_value=rest),
@@ -369,6 +402,7 @@ async def test_omitting_fee_hints_cannot_zero_delivery_with_zones():
     with (
         patch("services.food_order_validation.Food_itemsService", return_value=_svc([_product()])),
         patch("services.food_order_validation.Modifier_optionsService", return_value=_svc([])),
+        patch("services.food_order_validation.Modifier_groupsService", return_value=_svc([])),
         patch("services.food_order_validation.Item_modifier_groupsService", return_value=_svc([])),
         patch("services.food_order_validation.Food_settingsService", return_value=_svc(settings)),
         patch("services.food_order_validation.Food_restaurantsService", return_value=rest),
@@ -402,6 +436,7 @@ async def test_legacy_marketplace_without_zones_still_allows_subtotal_only():
     with (
         patch("services.food_order_validation.Food_itemsService", return_value=_svc([_product()])),
         patch("services.food_order_validation.Modifier_optionsService", return_value=_svc([])),
+        patch("services.food_order_validation.Modifier_groupsService", return_value=_svc([])),
         patch("services.food_order_validation.Item_modifier_groupsService", return_value=_svc([])),
         patch("services.food_order_validation.Food_settingsService", return_value=_svc(settings)),
         patch("services.food_order_validation.Food_restaurantsService", return_value=rest),
@@ -422,3 +457,153 @@ async def test_missing_customer_name(catalog_patches):
         await validate_food_order(MagicMock(), _base_order(customer_name=""))
     assert exc.value.status_code == 400
     assert "имя" in exc.value.detail.lower()
+
+
+@pytest.mark.asyncio
+async def test_required_modifier_group_is_enforced(catalog_patches):
+    required = _group(is_required=True, min_select=1, max_select=1)
+    with patch(
+        "services.food_order_validation.Modifier_groupsService",
+        return_value=_svc([required]),
+    ):
+        with pytest.raises(HTTPException) as exc:
+            await validate_food_order(MagicMock(), _base_order())
+    assert "выберите" in exc.value.detail.lower()
+
+
+@pytest.mark.asyncio
+async def test_customer_must_choose_one_of_multiple_gifts(catalog_patches):
+    gifts = [
+        {"id": "fries", "min_amount": 1000, "title": "Фри", "is_active": True},
+        {"id": "drink", "min_amount": 1000, "title": "Напиток", "is_active": True},
+    ]
+    settings = _settings_rows({
+        "min_order_amount": "0",
+        "service_fee_rate": "0",
+        "loyalty_enabled": "1",
+        "loyalty_gifts": json.dumps(gifts),
+    })
+    with patch(
+        "services.food_order_validation.Food_settingsService",
+        return_value=_svc(settings),
+    ):
+        with pytest.raises(HTTPException) as exc:
+            await validate_food_order(MagicMock(), _base_order())
+        assert "подарок" in exc.value.detail.lower()
+
+        selected = _base_order(selected_gift_id="drink")
+        sanitized, items, total = await validate_food_order(MagicMock(), selected)
+        assert total == 1500
+        assert items[-1]["is_gift"] is True
+        assert items[-1]["gift_id"] == "drink"
+        assert "selected_gift_id" not in sanitized
+
+
+@pytest.mark.asyncio
+async def test_free_delivery_threshold_waives_apartment_fee(catalog_patches):
+    settings = _settings_rows({
+        "min_order_amount": "0",
+        "service_fee_rate": "0",
+        "delivery_price": "500",
+        "free_delivery_from": "1500",
+        "apartment_delivery_price": "300",
+        "apartment_free_from": "1500",
+    })
+    with patch(
+        "services.food_order_validation.Food_settingsService",
+        return_value=_svc(settings),
+    ):
+        data = _base_order(
+            delivery_method="delivery",
+            delivery_address="ул. Тестовая 1, кв. 2 (до квартиры)",
+            delivery_fee=0,
+            service_fee=0,
+            apartment_delivery_fee=0,
+            total_amount=1500,
+        )
+        _, _, total = await validate_food_order(
+            MagicMock(),
+            data,
+            delivery_fee_hint=0,
+            service_fee_hint=0,
+        )
+        assert total == 1500
+
+
+@pytest.mark.asyncio
+async def test_apartment_flag_charges_fee_without_client_hint(catalog_patches):
+    settings = _settings_rows({
+        "min_order_amount": "0",
+        "service_fee_rate": "0",
+        "delivery_price": "500",
+        "apartment_delivery_price": "300",
+        "apartment_free_from": "15000",
+    })
+    with patch(
+        "services.food_order_validation.Food_settingsService",
+        return_value=_svc(settings),
+    ):
+        data = _base_order(
+            delivery_method="delivery",
+            delivery_address="ул. Тестовая 1",
+            deliver_to_apartment=True,
+            delivery_fee=500,
+            service_fee=0,
+            total_amount=2300,
+        )
+        _, _, total = await validate_food_order(
+            MagicMock(),
+            data,
+            delivery_fee_hint=500,
+            service_fee_hint=0,
+        )
+        assert total == 2300
+
+
+@pytest.mark.asyncio
+async def test_kitchen_hours_reject_closed_order(catalog_patches):
+    settings = _settings_rows({
+        "min_order_amount": "0",
+        "service_fee_rate": "0",
+        "working_hours": "10:00-22:00",
+    })
+    with (
+        patch(
+            "services.food_order_validation.Food_settingsService",
+            return_value=_svc(settings),
+        ),
+        patch(
+            "services.food_order_validation.kitchen_is_open",
+            return_value=(False, "10:00", "22:00"),
+        ),
+    ):
+        with pytest.raises(HTTPException) as exc:
+            await validate_food_order(MagicMock(), _base_order())
+        assert exc.value.status_code == 400
+        assert "10:00" in exc.value.detail
+
+
+@pytest.mark.asyncio
+async def test_percent_promo_respects_max_discount(catalog_patches):
+    promos = [{
+        "code": "MAX100",
+        "type": "percent",
+        "value": 50,
+        "max_discount": 100,
+        "min_order": 0,
+        "active": True,
+    }]
+    settings = _settings_rows({
+        "min_order_amount": "0",
+        "service_fee_rate": "0",
+        "promo_codes": json.dumps(promos),
+    })
+    with patch(
+        "services.food_order_validation.Food_settingsService",
+        return_value=_svc(settings),
+    ):
+        _, _, total = await validate_food_order(
+            MagicMock(),
+            _base_order(promo_code="MAX100", total_amount=1400),
+        )
+        assert total == 1400

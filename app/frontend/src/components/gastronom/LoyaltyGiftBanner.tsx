@@ -1,20 +1,38 @@
 import { Gift, Sparkles } from 'lucide-react';
 import DamAlemImage from '@/components/damalem/DamAlemImage';
 import type { LoyaltyGift } from '@/lib/gastronomLoyalty';
-import { formatMoney, nextLoyaltyGift, resolveLoyaltyGift } from '@/lib/gastronomLoyalty';
+import {
+  availableLoyaltyGiftChoices,
+  formatMoney,
+  nextLoyaltyGift,
+} from '@/lib/gastronomLoyalty';
 
 interface Props {
   subtotal: number;
   gifts: LoyaltyGift[];
   compact?: boolean;
+  selectedGiftId?: string | null;
+  onSelectGift?: (gift: LoyaltyGift) => void;
 }
 
-export default function LoyaltyGiftBanner({ subtotal, gifts, compact = false }: Props) {
+export default function LoyaltyGiftBanner({
+  subtotal,
+  gifts,
+  compact = false,
+  selectedGiftId,
+  onSelectGift,
+}: Props) {
   const active = gifts.filter((g) => g.is_active);
   if (active.length === 0) return null;
 
-  const current = resolveLoyaltyGift(subtotal, active);
+  const choices = availableLoyaltyGiftChoices(subtotal, active);
+  const current =
+    choices.find((gift) => gift.id === selectedGiftId) ??
+    (choices.length === 1 ? choices[0] : null);
   const next = nextLoyaltyGift(subtotal, active);
+  const nextChoiceCount = next
+    ? active.filter((gift) => gift.min_amount === next.min_amount).length
+    : 0;
   const remaining = next ? Math.max(0, next.min_amount - subtotal) : 0;
 
   if (compact && !current && !next) return null;
@@ -32,29 +50,56 @@ export default function LoyaltyGiftBanner({ subtotal, gifts, compact = false }: 
           </div>
         </div>
 
-        {current ? (
-          <div className="flex items-start gap-3 rounded-2xl bg-white/90 border border-amber-100/80 p-3 shadow-sm">
-            <div className="dam-loyalty-gift__thumb">
-              {current.image_url ? (
-                <DamAlemImage src={current.image_url} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <span aria-hidden>🎁</span>
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Ваш подарок</p>
-              <p className="text-sm font-bold text-gray-900">{current.title}</p>
-              {current.description && (
-                <p className="text-xs text-gray-600 mt-0.5">{current.description}</p>
-              )}
-              <p className="text-[11px] text-amber-700 mt-1">от {formatMoney(current.min_amount)}</p>
+        {choices.length > 0 ? (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-emerald-800">
+              {choices.length > 1 ? 'Выберите один подарок бесплатно' : 'Ваш подарок добавлен бесплатно'}
+            </p>
+            <div className={`grid gap-2 ${choices.length > 1 ? 'sm:grid-cols-2' : ''}`}>
+              {choices.map((gift) => {
+                const selected = gift.id === current?.id;
+                return (
+                  <button
+                    key={gift.id}
+                    type="button"
+                    onClick={() => onSelectGift?.(gift)}
+                    disabled={!onSelectGift}
+                    className={`flex items-start gap-3 rounded-2xl border p-3 text-left shadow-sm transition ${
+                      selected
+                        ? 'border-emerald-400 bg-emerald-50 ring-2 ring-emerald-100'
+                        : 'border-amber-100/80 bg-white/90 hover:border-emerald-200'
+                    }`}
+                    aria-pressed={selected}
+                  >
+                    <div className="dam-loyalty-gift__thumb">
+                      {gift.image_url ? (
+                        <DamAlemImage src={gift.image_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <span aria-hidden>🎁</span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                        {selected ? 'Выбран' : 'Выбрать'}
+                      </p>
+                      <p className="text-sm font-bold text-gray-900">{gift.title}</p>
+                      {gift.description && (
+                        <p className="mt-0.5 text-xs text-gray-600">{gift.description}</p>
+                      )}
+                      <p className="mt-1 text-[11px] text-amber-700">от {formatMoney(gift.min_amount)}</p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         ) : next ? (
           <p className="text-sm text-gray-600">
             Добавьте товаров ещё на{' '}
             <span className="font-bold text-emerald-700">{formatMoney(remaining)}</span>
-            {' '}— и получите <span className="font-semibold">{next.title}</span>
+            {' '}— и <span className="font-semibold">
+              {nextChoiceCount > 1 ? `выберите подарок из ${nextChoiceCount} вариантов` : `получите ${next.title}`}
+            </span>
           </p>
         ) : null}
 
@@ -63,7 +108,8 @@ export default function LoyaltyGiftBanner({ subtotal, gifts, compact = false }: 
             <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
             <span>
               Ещё <span className="font-semibold text-emerald-700">{formatMoney(remaining)}</span>
-              {' '}до подарка «{next.title}» (от {formatMoney(next.min_amount)})
+              {' '}до {nextChoiceCount > 1 ? `выбора подарка (${nextChoiceCount} варианта)` : `подарка «${next.title}»`}
+              {' '}(от {formatMoney(next.min_amount)})
             </span>
           </p>
         )}

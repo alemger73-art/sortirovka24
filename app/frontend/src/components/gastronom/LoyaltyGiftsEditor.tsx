@@ -35,7 +35,8 @@ export default function LoyaltyGiftsEditor({ gifts, onChange, enabled, onEnabled
           <div>
             <p className="font-semibold text-gray-900">Подарки за сумму заказа</p>
             <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-              Клиент получает лучший подарок из достигнутых порогов. Сумма считается по товарам в корзине, без доставки.
+              Добавьте несколько подарков с одинаковой суммой — клиент выберет один.
+              При разных суммах действует самый высокий достигнутый порог. Считаются блюда без доставки.
             </p>
           </div>
           <label className="flex items-center gap-2 shrink-0 cursor-pointer">
@@ -139,7 +140,8 @@ export default function LoyaltyGiftsEditor({ gifts, onChange, enabled, onEnabled
 
       {sorted.length > 1 && (
         <p className="text-xs text-gray-400 leading-relaxed">
-          Если заказ на 12 000 ₸, а есть пороги 5 000 и 10 000 — клиент получит подарок от 10 000 ₸ (лучший из достигнутых).
+          Пример: три подарка по 5 000 ₸ — клиент выбирает один из трёх.
+          Если добавить подарки от 10 000 ₸, после этого порога выбирать можно уже из них.
         </p>
       )}
     </div>

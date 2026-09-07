@@ -63,6 +63,36 @@ export default function FoodPromoCodesEditor({ codes, onChange }: Props) {
                 className="h-9"
               />
             </div>
+            {code.type === 'percent' && (
+              <Input
+                type="number"
+                min={0}
+                value={code.max_discount ?? ''}
+                onChange={(e) => update(idx, { max_discount: Number(e.target.value) || undefined })}
+                placeholder="Максимальная скидка, ₸ (без лимита)"
+                className="h-9"
+              />
+            )}
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <label className="text-[11px] text-gray-500">
+                Действует с
+                <Input
+                  type="date"
+                  value={code.valid_from || ''}
+                  onChange={(e) => update(idx, { valid_from: e.target.value || undefined })}
+                  className="mt-1 h-9"
+                />
+              </label>
+              <label className="text-[11px] text-gray-500">
+                Действует до
+                <Input
+                  type="date"
+                  value={code.valid_until || ''}
+                  onChange={(e) => update(idx, { valid_until: e.target.value || undefined })}
+                  className="mt-1 h-9"
+                />
+              </label>
+            </div>
             <Input
               value={code.label || ''}
               onChange={(e) => update(idx, { label: e.target.value })}

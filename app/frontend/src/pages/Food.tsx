@@ -30,9 +30,8 @@ import {
 import { parseDeliveryZones, DEFAULT_STORE, type DeliveryZone } from '@/lib/gastronomDelivery';
 import { fetchFoodDeliveryQuote, validateFoodPromo, type FoodDeliveryQuote } from '@/lib/foodDeliveryApi';
 import {
+  availableLoyaltyGiftChoices,
   isLoyaltyEnabled,
-  parseLoyaltyGifts,
-  resolveLoyaltyGift,
   nextLoyaltyGift,
 } from '@/lib/gastronomLoyalty';
 import { GeolocationError, requestCurrentPosition } from '@/lib/geolocation';
@@ -54,13 +53,15 @@ import DamAlemStickyPills from '@/components/damalem/DamAlemStickyPills';
 import FoodOrderStatusBar from '@/components/damalem/FoodOrderStatusBar';
 import StoreProfileTab from '@/components/StoreProfileTab';
 import { foodCheckoutBlockReason, publicOrderErrorMessage } from '@/lib/foodCheckoutGuards';
-import { parsePromoCodes } from '@/lib/foodPromo';
+import { isPromoCurrent } from '@/lib/foodPromo';
 import DamAlemPageSkeleton from '@/components/damalem/DamAlemPageSkeleton';
 import LoadErrorState from '@/components/LoadErrorState';
 import DamAlemPromoBanners, { type FoodBanner } from '@/components/damalem/DamAlemPromoBanners';
 import DamAlemPromoStrip from '@/components/damalem/DamAlemPromoStrip';
 import DeliveryZonesPreview from '@/components/damalem/DeliveryZonesPreview';
-import { type FoodBannerAction } from '@/lib/damAlemMarketing';
+import AlemFoodCampaign from '@/components/damalem/AlemFoodCampaign';
+import AlemFoodGoalsDock from '@/components/damalem/AlemFoodGoalsDock';
+import { resolveLoyaltyGifts, resolvePromoCodes, type FoodBannerAction } from '@/lib/damAlemMarketing';
 import '@/styles/damAlem.css';
 
 /* ─── Types ─── */
@@ -101,6 +102,7 @@ interface Settings {
   hero_banner_image: string; min_order_amount: string; delivery_price: string;
   delivery_zones: string; show_recommendations: string; promo_slides?: string;
   service_fee_rate?: string; free_delivery_from?: string; default_address?: string;
+  apartment_delivery_price?: string; apartment_free_from?: string;
   loyalty_enabled?: string; loyalty_gifts?: string;
   delivery_city?: string; delivery_area?: string;
   delivery_time?: string; working_hours?: string; promo_codes?: string;
@@ -110,8 +112,6 @@ interface Settings {
 
 const REPEAT_ORDER_KEY = 'damalem_repeat_order';
 const LAST_ORDER_KEY = 'damalem_last_order_v1';
-const APARTMENT_DELIVERY_FEE = 300;
-
 interface BrandProfile {
   id: number;
   name: string;
@@ -269,6 +269,7 @@ export default function Food() {
   const [promoLoading, setPromoLoading] = useState(false);
   const [bonusBalance, setBonusBalance] = useState(0);
   const [useBonuses, setUseBonuses] = useState(false);
+  const [selectedGiftId, setSelectedGiftId] = useState<string | null>(null);
   const BONUS_MAX_PERCENT = 30;
 
   useEffect(() => { loadData(); }, []);
@@ -599,9 +600,33 @@ export default function Food() {
     [items, favoriteIds],
   );
   const configuredPromos = useMemo(
-    () => parsePromoCodes(settings.promo_codes).filter(p => p.active !== false),
+    () => resolvePromoCodes(settings.promo_codes).filter((promo) => isPromoCurrent(promo)),
     [settings.promo_codes],
   );
+  const promoDeepLinkRef = useRef('');
+  useEffect(() => {
+    const hash = typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.hash.replace(/^#\??/, ''))
+      : new URLSearchParams();
+    const code = (
+      searchParams.get('promo') ||
+      searchParams.get('code') ||
+      hash.get('promo') ||
+      hash.get('code') ||
+      ''
+    ).trim().toUpperCase();
+    if (!code || promoDeepLinkRef.current === code) return;
+    promoDeepLinkRef.current = code;
+    setPromoInput(code);
+    const promo = configuredPromos.find((candidate) => candidate.code === code);
+    if (promo) {
+      toast.info(
+        promo.min_order && promo.min_order > 0
+          ? `Промокод ${code} готов. Соберите заказ от ${promo.min_order.toLocaleString('ru-RU')} ₸ и примените в корзине`
+          : `Промокод ${code} готов — примените его в корзине`,
+      );
+    }
+  }, [configuredPromos, searchParams]);
 
   const formatDamPrice = useCallback(
     (price: number) => price.toLocaleString('ru-RU') + ' ₸',
@@ -657,6 +682,17 @@ export default function Food() {
       });
     }
   }, [selectedCategoryId, setActiveTab]);
+  const categoryDeepLinkRef = useRef('');
+  useEffect(() => {
+    if (categories.length === 0 || typeof window === 'undefined') return;
+    const hash = new URLSearchParams(window.location.hash.replace(/^#\??/, ''));
+    const slug = (searchParams.get('category') || hash.get('category') || hash.get('cat') || '').trim();
+    if (!slug || categoryDeepLinkRef.current === slug) return;
+    const category = categories.find((candidate) => categorySlugOf(candidate) === slug);
+    if (!category) return;
+    categoryDeepLinkRef.current = slug;
+    openCatalog(category.id);
+  }, [categories, openCatalog, searchParams]);
 
   useEffect(() => {
     if (activeTab !== 'menu' || searchQuery.trim() || menuCategorySections.length === 0) return;
@@ -736,7 +772,7 @@ export default function Food() {
       const optionIds = selections[Number(groupId)];
       for (const optId of optionIds) {
         const opt = modOptionsRef.current.find(o => o.id === optId);
-        if (opt) names.push(opt.name);
+        if (opt) names.push(opt.price > 0 ? `${opt.name} (+${opt.price.toLocaleString('ru-RU')} ₸)` : opt.name);
       }
     }
     return names;
@@ -773,18 +809,64 @@ export default function Food() {
     () => Number(settings.free_delivery_from || 15000),
     [settings.free_delivery_from],
   );
+  const apartmentDeliveryPrice = useMemo(
+    () => Math.max(0, Number(settings.apartment_delivery_price || 300)),
+    [settings.apartment_delivery_price],
+  );
+  const apartmentFreeFrom = useMemo(
+    () => Math.max(0, Number(settings.apartment_free_from || settings.free_delivery_from || 15000)),
+    [settings.apartment_free_from, settings.free_delivery_from],
+  );
   const loyaltyGifts = useMemo(
-    () => (isLoyaltyEnabled(settings) ? parseLoyaltyGifts(settings.loyalty_gifts) : []),
+    () => resolveLoyaltyGifts(settings.loyalty_gifts, isLoyaltyEnabled(settings)),
     [settings.loyalty_gifts, settings.loyalty_enabled],
   );
-  const loyaltyGift = useMemo(
-    () => resolveLoyaltyGift(cartTotal, loyaltyGifts),
+  const availableGiftChoices = useMemo(
+    () => availableLoyaltyGiftChoices(cartTotal, loyaltyGifts),
     [cartTotal, loyaltyGifts],
+  );
+  const loyaltyGift = useMemo(
+    () => availableGiftChoices.find((gift) => gift.id === selectedGiftId) ?? null,
+    [availableGiftChoices, selectedGiftId],
   );
   const nextGift = useMemo(
     () => nextLoyaltyGift(cartTotal, loyaltyGifts),
     [cartTotal, loyaltyGifts],
   );
+
+  useEffect(() => {
+    if (availableGiftChoices.length === 0) {
+      setSelectedGiftId(null);
+    } else if (availableGiftChoices.length === 1) {
+      setSelectedGiftId(availableGiftChoices[0].id);
+    } else {
+      setSelectedGiftId((current) =>
+        current && availableGiftChoices.some((gift) => gift.id === current) ? current : null,
+      );
+    }
+  }, [availableGiftChoices]);
+  const sectionDeepLinkRef = useRef('');
+  useEffect(() => {
+    if (items.length === 0 || typeof window === 'undefined') return;
+    const action = window.location.hash.replace(/^#/, '').split(/[?&]/)[0];
+    if (!['gifts', 'popular'].includes(action) || sectionDeepLinkRef.current === action) return;
+    sectionDeepLinkRef.current = action;
+    if (action === 'popular') {
+      requestAnimationFrame(() => {
+        document.getElementById('alem-hits')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      return;
+    }
+    const firstGift = loyaltyGifts.filter((gift) => gift.is_active).sort((a, b) => a.min_amount - b.min_amount)[0];
+    if (cartCount > 0) {
+      setActiveTab('cart');
+    } else if (firstGift) {
+      toast.info(`Соберите заказ от ${firstGift.min_amount.toLocaleString('ru-RU')} ₸ и выберите подарок`);
+      requestAnimationFrame(() => {
+        document.getElementById('dam-market-categories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }, [items.length, loyaltyGifts, cartCount, setActiveTab]);
 
   const kitchenStatus = useMemo(() => isKitchenOpen(settings), [settings]);
   const deliveryTimeLabel = settings.delivery_time || brandProfile?.delivery_time || '35–45 мин';
@@ -899,6 +981,13 @@ export default function Food() {
     }
   }, [settings.default_address, hasDeliveryZones]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const deliveryFeeKnown = useMemo(() => {
+    if (deliveryMethod !== 'delivery') return true;
+    if (promoFreeDelivery || (freeDeliveryFrom > 0 && cartTotal >= freeDeliveryFrom)) return true;
+    if (hasDeliveryZones) return deliveryQuote?.available === true;
+    return true;
+  }, [deliveryMethod, promoFreeDelivery, cartTotal, freeDeliveryFrom, hasDeliveryZones, deliveryQuote]);
+
   const activeDeliveryPrice = useMemo(() => {
     if (deliveryMethod !== 'delivery') return 0;
     if (promoFreeDelivery || cartTotal >= freeDeliveryFrom) return 0;
@@ -931,10 +1020,10 @@ export default function Food() {
     if (deliveryMethod !== 'delivery' || deliveryQuoteLoading) return null;
     if (deliveryQuote?.location_warning) return deliveryQuote.location_warning;
     if (deliveryQuote && deliveryQuote.available === false) {
-      return deliveryQuote.message || 'Адрес вне зоны доставки';
+      return deliveryQuote.message || settings.outside_zone_message || 'Адрес вне зоны доставки';
     }
     return null;
-  }, [deliveryMethod, deliveryQuoteLoading, deliveryQuote]);
+  }, [deliveryMethod, deliveryQuoteLoading, deliveryQuote, settings.outside_zone_message]);
 
   const checkoutBlockReason = useMemo(() => {
     return foodCheckoutBlockReason({
@@ -959,6 +1048,10 @@ export default function Food() {
     deliveryQuote, effectiveAddress, deliveryQuoteError, deliveryUnavailableMessage,
     deliverToApartment, apartment, customerName, customerPhone, getAccountToken(),
   ]);
+  const giftSelectionRequired = availableGiftChoices.length > 1 && !loyaltyGift;
+  const checkoutFinalBlockReason = giftSelectionRequired
+    ? 'Выберите один бесплатный подарок'
+    : checkoutBlockReason;
 
   const openCheckout = useCallback(() => {
     if (minOrder > 0 && cartTotal < minOrder) {
@@ -975,8 +1068,22 @@ export default function Food() {
   }, [deliveryReady, effectiveAddress, deliveryMethod, deliveryQuote, deliveryQuoteLoading, runDeliveryQuote, minOrder, cartTotal]);
 
   const apartmentDeliveryFee = useMemo(
-    () => (deliveryMethod === 'delivery' && deliverToApartment ? APARTMENT_DELIVERY_FEE : 0),
-    [deliveryMethod, deliverToApartment],
+    () => (
+      deliveryMethod === 'delivery' &&
+      deliverToApartment &&
+      !(apartmentFreeFrom > 0 && cartTotal >= apartmentFreeFrom) &&
+      !promoFreeDelivery
+        ? apartmentDeliveryPrice
+        : 0
+    ),
+    [
+      deliveryMethod,
+      deliverToApartment,
+      apartmentFreeFrom,
+      cartTotal,
+      promoFreeDelivery,
+      apartmentDeliveryPrice,
+    ],
   );
 
   /** Сумма к оплате до списания бонусов */
@@ -1182,6 +1289,11 @@ export default function Food() {
 
   async function submitOrder() {
     if (submittingRef.current) return;
+    if (giftSelectionRequired) {
+      toast.error('Выберите один бесплатный подарок');
+      setCheckoutStep(2);
+      return;
+    }
     const block = foodCheckoutBlockReason({
       kitchenOpen: kitchenStatus.open,
       kitchenMessage: kitchenStatus.message,
@@ -1212,7 +1324,11 @@ export default function Food() {
       ? `${deliveryQuote?.display_address || effectiveAddress}${aptPart}${toAptNote}`
       : '';
 
-    const aptFeeNote = deliverToApartment ? `\n🚪 Доставка до квартиры: +${APARTMENT_DELIVERY_FEE} ₸` : '';
+    const aptFeeNote = deliverToApartment
+      ? apartmentDeliveryFee > 0
+        ? `\n🚪 Доставка до квартиры: +${apartmentDeliveryFee} ₸`
+        : '\n🚪 Доставка до квартиры: бесплатно'
+      : '';
     const giftNote = loyaltyGift ? `\n🎁 Подарок: ${loyaltyGift.title}` : '';
     const promoNote = appliedPromo ? `\n🏷 Промокод ${appliedPromo.code}: ${appliedPromo.label}` : '';
     const bonusNote = bonusDiscountAmount > 0 ? `\n🪙 Бонусы: −${bonusDiscountAmount} ₸` : '';
@@ -1252,8 +1368,11 @@ export default function Food() {
             delivery_fee: deliveryMethod === 'delivery' ? activeDeliveryPrice : 0,
             service_fee: serviceFeeAmount,
             ...(appliedPromo?.code ? { promo_code: appliedPromo.code } : {}),
+            ...(loyaltyGift ? { selected_gift_id: loyaltyGift.id } : {}),
             ...(bonusDiscountAmount > 0 ? { bonus_points_to_use: bonusDiscountAmount } : {}),
-            ...(apartmentDeliveryFee > 0 ? { apartment_delivery_fee: apartmentDeliveryFee } : {}),
+            ...(deliveryMethod === 'delivery' && deliverToApartment
+              ? { deliver_to_apartment: true, apartment_delivery_fee: apartmentDeliveryFee }
+              : {}),
             ...(deliveryMethod === 'delivery' && deliveryQuote?.lat != null && deliveryQuote?.lng != null
               ? { delivery_lat: deliveryQuote.lat, delivery_lng: deliveryQuote.lng }
               : {}),
@@ -1274,6 +1393,10 @@ export default function Food() {
           name: ci.item.name,
           price: ci.item.price,
           quantity: ci.quantity,
+          selections: ci.selections,
+          modifiers: Object.keys(ci.selections).flatMap(gid =>
+            (ci.selections[Number(gid)] || []).map(optionId => ({ option_id: optionId })),
+          ),
         })),
       );
       try {
@@ -1415,13 +1538,17 @@ export default function Food() {
 
   function handleBannerAction(action: FoodBannerAction) {
     if (action.type === 'promo') {
-      void applyPromoByCode(action.code);
+      const promo = configuredPromos.find((candidate) => candidate.code === action.code);
+      const minimum = promo?.min_order || 0;
+      setPromoInput(action.code);
+      if (cartTotal >= minimum) {
+        void applyPromoByCode(action.code);
+      } else {
+        toast.info(`Промокод сохранён. Добавьте блюда ещё на ${formatPrice(minimum - cartTotal)}`);
+      }
       if (action.categorySlug) {
         const cat = categories.find(c => categorySlugOf(c) === action.categorySlug);
         if (cat) openCatalog(cat.id);
-        else setActiveTab('cart');
-      } else {
-        setActiveTab('cart');
       }
       return;
     }
@@ -1432,6 +1559,23 @@ export default function Food() {
     }
     if (action.type === 'popular') {
       document.getElementById('alem-hits')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    if (action.type === 'gifts') {
+      const firstGift = loyaltyGifts
+        .filter((gift) => gift.is_active)
+        .sort((a, b) => a.min_amount - b.min_amount)[0];
+      if (firstGift) {
+        toast.info(
+          cartTotal >= firstGift.min_amount
+            ? 'Подарок уже доступен — выберите его в корзине'
+            : `Добавьте блюда ещё на ${formatPrice(firstGift.min_amount - cartTotal)} и выберите подарок`,
+        );
+      }
+      setActiveTab(cartCount > 0 ? 'cart' : 'menu');
+      if (cartCount === 0) {
+        document.getElementById('dam-market-categories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
       return;
     }
     if (action.type === 'link') {
@@ -1487,11 +1631,40 @@ export default function Food() {
         delivery_address?: string;
         delivery_method?: string;
       };
-      applyRepeatPayload(payload);
+      void (async () => {
+        await loadModifiers();
+        applyRepeatPayload(payload);
+      })();
     } catch {
       /* ignore */
     }
   }, [items]);
+
+  function selectionsFromRepeatRow(row: {
+    selections?: CartItemSelection;
+    modifiers?: Array<{ option_id?: number; id?: number }>;
+  }): CartItemSelection {
+    const saved = row.selections;
+    if (saved && typeof saved === 'object') {
+      const restored: CartItemSelection = {};
+      for (const [groupId, optionIds] of Object.entries(saved)) {
+        if (!Array.isArray(optionIds)) continue;
+        const ids = optionIds.map(Number).filter(id => Number.isFinite(id) && id > 0);
+        if (ids.length > 0) restored[Number(groupId)] = ids;
+      }
+      if (Object.keys(restored).length > 0) return restored;
+    }
+    const fromModifiers: CartItemSelection = {};
+    for (const mod of row.modifiers || []) {
+      const optionId = Number(mod.option_id ?? mod.id);
+      const option = modOptionsRef.current.find(candidate => candidate.id === optionId);
+      if (!option) continue;
+      const groupId = Number(option.group_id);
+      if (!fromModifiers[groupId]) fromModifiers[groupId] = [];
+      if (!fromModifiers[groupId].includes(option.id)) fromModifiers[groupId].push(option.id);
+    }
+    return fromModifiers;
+  }
 
   function applyRepeatPayload(payload: {
     order_items?: string;
@@ -1507,7 +1680,7 @@ export default function Food() {
       const qty = Math.max(1, Number(row.quantity) || 1);
       const fresh = byId.get(id);
       if (!fresh) continue;
-      lines.push({ item: fresh, quantity: qty, selections: {} });
+      lines.push({ item: fresh, quantity: qty, selections: selectionsFromRepeatRow(row) });
     }
     if (lines.length > 0) {
       setCart(lines);
@@ -1636,7 +1809,7 @@ export default function Food() {
 
   return (
     <Layout hideHeader hideBottomNav>
-      <div className="dam-page min-h-screen bg-gray-50 pb-20 lg:pb-8">
+      <div className={`dam-page min-h-screen bg-gray-50 ${cartCount > 0 && activeTab !== 'cart' ? 'pb-36 lg:pb-24' : 'pb-20 lg:pb-8'}`}>
         {orderSuccess && (
           <DamAlemSheet open bare overlayClassName="sm:items-center" onClose={() => setOrderSuccess(null)}>
             <div className="dam-success-modal">
@@ -1800,7 +1973,10 @@ export default function Food() {
                   type="button"
                   onClick={() => {
                     if (lastOrderPreview && cartCount === 0) {
-                      applyRepeatPayload(lastOrderPreview);
+                      void (async () => {
+                        await loadModifiers();
+                        applyRepeatPayload(lastOrderPreview);
+                      })();
                       return;
                     }
                     document.getElementById('dam-market-categories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1828,6 +2004,20 @@ export default function Food() {
                   </div>
                 </article>
               </section>
+
+              <div className="mt-4">
+                <AlemFoodCampaign
+                  freeDeliveryFrom={freeDeliveryFrom}
+                  apartmentPrice={apartmentDeliveryPrice}
+                  apartmentFreeFrom={apartmentFreeFrom}
+                  gifts={loyaltyGifts}
+                  formatPrice={formatPrice}
+                  onOpenGifts={() => {
+                    if (cartCount > 0) setActiveTab('cart');
+                    else toast.info(`Соберите заказ от ${loyaltyGifts[0] ? loyaltyGifts[0].min_amount.toLocaleString('ru-RU') : '5 000'} ₸ — и выберите подарок в корзине`);
+                  }}
+                />
+              </div>
 
               {(configuredPromos.length > 0 || freeDeliveryFrom > 0) ? (
                 <div className="mt-4">
@@ -1938,6 +2128,9 @@ export default function Food() {
               total={Math.max(0, cartTotalWithService - promoDiscountAmount)}
               minOrder={minOrder}
               freeDeliveryFrom={freeDeliveryFrom}
+              apartmentFreeFrom={apartmentFreeFrom}
+              gifts={loyaltyGifts}
+              selectedGiftId={selectedGiftId}
               promoInput={promoInput}
               promoLoading={promoLoading}
               appliedPromo={appliedPromo}
@@ -1956,6 +2149,7 @@ export default function Food() {
                 setPromoInput('');
               }}
               onCheckout={openCheckout}
+              onSelectGift={(gift) => setSelectedGiftId(gift.id)}
             />
           </div>
         )}
@@ -1980,6 +2174,19 @@ export default function Food() {
 
         {activeTab === 'profile' && (
           <StoreProfileTab accentBg="bg-[#FF3B30] hover:bg-[#e6352b]" accentText="text-[#FF3B30]" />
+        )}
+
+        {activeTab !== 'cart' && !checkoutOpen && cartCount > 0 && (
+          <AlemFoodGoalsDock
+            cartCount={cartCount}
+            subtotal={cartTotal}
+            minOrder={minOrder}
+            freeDeliveryFrom={freeDeliveryFrom}
+            apartmentFreeFrom={apartmentFreeFrom}
+            nextGift={nextGift}
+            formatPrice={formatPrice}
+            onOpenCart={() => setActiveTab('cart')}
+          />
         )}
 
         {activeTab !== 'cart' && (
@@ -2212,6 +2419,7 @@ export default function Food() {
                     subtotal={cartTotal}
                     minOrder={minOrder}
                     freeDeliveryFrom={freeDeliveryFrom}
+                    apartmentFreeFrom={apartmentFreeFrom}
                     nextGift={nextGift}
                   />
                 )}
@@ -2293,9 +2501,15 @@ export default function Food() {
                         >
                           <span className={`text-sm font-bold block ${deliverToApartment ? 'text-[#FF3B30]' : 'text-gray-800'}`}>
                             До квартиры
-                            <span className="ml-1">+{formatPrice(APARTMENT_DELIVERY_FEE)}</span>
+                            <span className={`ml-1 ${apartmentDeliveryFee === 0 ? 'text-emerald-600' : ''}`}>
+                              {apartmentDeliveryFee === 0 ? 'бесплатно' : `+${formatPrice(apartmentDeliveryFee)}`}
+                            </span>
                           </span>
-                          <span className="text-xs text-gray-500 mt-0.5 block">Поднимем до двери · нужен № квартиры</span>
+                          <span className="text-xs text-gray-500 mt-0.5 block">
+                            {apartmentFreeFrom > 0 && cartTotal < apartmentFreeFrom
+                              ? `Поднимем до двери · бесплатно от ${formatPrice(apartmentFreeFrom)}`
+                              : 'Поднимем до двери · нужен № квартиры'}
+                          </span>
                         </button>
                       </div>
                       {deliverToApartment && (
@@ -2351,7 +2565,13 @@ export default function Food() {
                 </div>
 
                 {loyaltyGifts.length > 0 && (
-                  <LoyaltyGiftBanner subtotal={cartTotal} gifts={loyaltyGifts} compact />
+                  <LoyaltyGiftBanner
+                    subtotal={cartTotal}
+                    gifts={loyaltyGifts}
+                    compact
+                    selectedGiftId={selectedGiftId}
+                    onSelectGift={(gift) => setSelectedGiftId(gift.id)}
+                  />
                 )}
 
                 <div className="dam-checkout-section space-y-2">
@@ -2476,7 +2696,9 @@ export default function Food() {
                     {deliveryMethod === 'delivery' && deliverToApartment && (
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-500">До квартиры</span>
-                        <span className="font-semibold text-[#FF3B30]">+{formatPrice(apartmentDeliveryFee)}</span>
+                        <span className={`font-semibold ${apartmentDeliveryFee === 0 ? 'text-emerald-600' : 'text-[#FF3B30]'}`}>
+                          {apartmentDeliveryFee === 0 ? 'Бесплатно' : `+${formatPrice(apartmentDeliveryFee)}`}
+                        </span>
                       </div>
                     )}
                     {deliveryMethod === 'delivery' && (
@@ -2487,16 +2709,27 @@ export default function Food() {
                             <span className="text-[10px] text-gray-400">({deliveryQuote.zone_name})</span>
                           )}
                         </span>
-                        <span className={`font-semibold ${activeDeliveryPrice === 0 ? 'text-emerald-600' : 'text-[#FF3B30]'}`}>
-                          {activeDeliveryPrice === 0 ? t('food.free') : `+${formatPrice(activeDeliveryPrice)}`}
+                        <span className={`font-semibold ${deliveryFeeKnown && activeDeliveryPrice === 0 ? 'text-emerald-600' : 'text-[#FF3B30]'}`}>
+                          {!deliveryFeeKnown
+                            ? 'по адресу'
+                            : activeDeliveryPrice === 0
+                              ? t('food.free')
+                              : `+${formatPrice(activeDeliveryPrice)}`}
                         </span>
                       </div>
                     )}
-                    {appliedPromo && promoDiscountAmount > 0 && (
+                    {appliedPromo && (promoDiscountAmount > 0 || promoFreeDelivery) && (
                       <div className="flex justify-between text-sm text-emerald-700">
                         <span>Промокод {appliedPromo.code}</span>
-                        <span className="font-semibold">−{formatPrice(promoDiscountAmount)}</span>
+                        <span className="font-semibold">
+                          {promoDiscountAmount > 0
+                            ? `−${formatPrice(promoDiscountAmount)}`
+                            : 'доставка бесплатно'}
+                        </span>
                       </div>
+                    )}
+                    {getAccountToken() && bonusBalance > 0 && appliedPromo && (
+                      <p className="text-xs text-gray-500">Бонусы нельзя списать вместе с промокодом</p>
                     )}
                     {getAccountToken() && bonusBalance > 0 && !appliedPromo && (
                       <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3 space-y-2">
@@ -2544,13 +2777,13 @@ export default function Food() {
               </div>
 
               <div className="dam-sheet-footer dam-sheet-footer--premium">
-                {checkoutStep === 3 && checkoutBlockReason && !submitting ? (
+                {checkoutStep === 3 && checkoutFinalBlockReason && !submitting ? (
                   <p
                     role="alert"
                     data-testid="dam-checkout-block-reason"
                     className="mb-2 rounded-xl bg-amber-50 px-3 py-2 text-center text-sm font-semibold text-amber-900"
                   >
-                    {checkoutBlockReason}
+                    {checkoutFinalBlockReason}
                   </p>
                 ) : null}
                 {checkoutStep < 3 ? (
@@ -2578,6 +2811,10 @@ export default function Food() {
                         toast.error('Укажите имя и телефон');
                         return;
                       }
+                      if (giftSelectionRequired) {
+                        toast.error('Выберите один бесплатный подарок');
+                        return;
+                      }
                       setCheckoutStep(3);
                     }}
                     testId="dam-checkout-next"
@@ -2587,8 +2824,8 @@ export default function Food() {
                     <DamAlemCheckoutButton
                       label={submitting ? 'Отправляем заказ…' : 'Оформить заказ'}
                       sublabel={
-                        checkoutBlockReason && !submitting
-                          ? checkoutBlockReason
+                        checkoutFinalBlockReason && !submitting
+                          ? checkoutFinalBlockReason
                           : formatPrice(checkoutGrandTotal)
                       }
                       disabled={submitting}

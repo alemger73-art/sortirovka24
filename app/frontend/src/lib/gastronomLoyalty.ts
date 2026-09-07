@@ -51,17 +51,27 @@ export function serializeLoyaltyGifts(gifts: LoyaltyGift[]): string {
 }
 
 export function resolveLoyaltyGift(subtotal: number, gifts: LoyaltyGift[]): LoyaltyGift | null {
-  const active = gifts.filter((g) => g.is_active);
-  let matched: LoyaltyGift | null = null;
-  for (const gift of active) {
-    if (subtotal >= gift.min_amount) matched = gift;
-  }
-  return matched;
+  return availableLoyaltyGiftChoices(subtotal, gifts)[0] ?? null;
+}
+
+/**
+ * Gifts available at the highest reached threshold.
+ * Several active gifts may share a threshold so the customer can choose one.
+ */
+export function availableLoyaltyGiftChoices(subtotal: number, gifts: LoyaltyGift[]): LoyaltyGift[] {
+  const reached = gifts.filter((gift) => gift.is_active && subtotal >= gift.min_amount);
+  if (reached.length === 0) return [];
+  const bestThreshold = Math.max(...reached.map((gift) => gift.min_amount));
+  return reached
+    .filter((gift) => gift.min_amount === bestThreshold)
+    .sort((a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title, 'ru'));
 }
 
 export function nextLoyaltyGift(subtotal: number, gifts: LoyaltyGift[]): LoyaltyGift | null {
-  const active = gifts.filter((g) => g.is_active);
-  return active.find((g) => subtotal < g.min_amount) ?? null;
+  const active = gifts
+    .filter((g) => g.is_active && subtotal < g.min_amount)
+    .sort((a, b) => a.min_amount - b.min_amount || a.sort_order - b.sort_order);
+  return active[0] ?? null;
 }
 
 export function newLoyaltyGift(index: number): LoyaltyGift {

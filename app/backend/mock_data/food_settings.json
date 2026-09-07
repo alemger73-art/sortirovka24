@@ -35,6 +35,16 @@
         "is_active": true
     },
     {
+        "setting_key": "apartment_delivery_price",
+        "setting_value": "300",
+        "is_active": true
+    },
+    {
+        "setting_key": "apartment_free_from",
+        "setting_value": "15000",
+        "is_active": true
+    },
+    {
         "setting_key": "delivery_time",
         "setting_value": "35–45 мин",
         "is_active": true
@@ -66,17 +76,17 @@
     },
     {
         "setting_key": "promo_codes",
-        "setting_value": "[{\"code\":\"DAMALEM10\",\"type\":\"percent\",\"value\":10,\"min_order\":2500,\"active\":true,\"label\":\"−10% на заказ\"},{\"code\":\"PIZZA500\",\"type\":\"fixed\",\"value\":500,\"min_order\":3500,\"active\":true,\"label\":\"−500 ₸ на пиццу\"},{\"code\":\"OBED15\",\"type\":\"percent\",\"value\":15,\"min_order\":2000,\"active\":true,\"label\":\"−15% комплексный обед\"},{\"code\":\"DOSTAVKA\",\"type\":\"free_delivery\",\"value\":0,\"min_order\":8000,\"active\":true,\"label\":\"Бесплатная доставка\"},{\"code\":\"SEMYA20\",\"type\":\"percent\",\"value\":20,\"min_order\":12000,\"active\":true,\"label\":\"−20% семейный заказ\"}]",
+        "setting_value": "[{\"code\":\"DAMALEM10\",\"type\":\"percent\",\"value\":10,\"min_order\":2500,\"max_discount\":1000,\"active\":true,\"label\":\"−10% на заказ\"},{\"code\":\"PIZZA500\",\"type\":\"fixed\",\"value\":500,\"min_order\":3500,\"active\":true,\"label\":\"−500 ₸ на заказ\"},{\"code\":\"DOSTAVKA\",\"type\":\"free_delivery\",\"value\":0,\"min_order\":8000,\"active\":true,\"label\":\"Бесплатная доставка\"},{\"code\":\"SEMYA20\",\"type\":\"percent\",\"value\":20,\"min_order\":12000,\"max_discount\":3000,\"active\":true,\"label\":\"−20% семейный заказ\"}]",
         "is_active": true
     },
     {
         "setting_key": "loyalty_gifts",
-        "setting_value": "[{\"id\":\"dam-gift-shake\",\"min_amount\":5000,\"title\":\"Молочный коктейль 0.3 л\",\"description\":\"На выбор: шоколад, клубника или ваниль\",\"image_url\":\"https://images.unsplash.com/photo-1551024506-0bccd828d307?auto=format&fit=crop&w=600&q=80\",\"is_active\":true,\"sort_order\":1},{\"id\":\"dam-gift-fries\",\"min_amount\":8000,\"title\":\"Картофель фри 150 г\",\"description\":\"Хрустящая порция в подарок\",\"image_url\":\"https://images.unsplash.com/photo-1600891964092-4316c288032e?auto=format&fit=crop&w=600&q=80\",\"is_active\":true,\"sort_order\":2},{\"id\":\"dam-gift-lemonade\",\"min_amount\":12000,\"title\":\"Лимонад 0.5 л\",\"description\":\"Освежающий лимонад бесплатно\",\"image_url\":\"https://images.unsplash.com/photo-1590301157890-4810ed352733?auto=format&fit=crop&w=600&q=80\",\"is_active\":true,\"sort_order\":3},{\"id\":\"dam-gift-sauce\",\"min_amount\":15000,\"title\":\"Соус на выбор\",\"description\":\"Чесночный, сырный или барбекю\",\"image_url\":\"https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=600&q=80\",\"is_active\":true,\"sort_order\":4},{\"id\":\"dam-gift-dessert\",\"min_amount\":20000,\"title\":\"Десерт к заказу\",\"description\":\"Сладкий финал от DAM ALEM\",\"image_url\":\"https://images.unsplash.com/photo-1551024506-0bccd828d307?auto=format&fit=crop&w=600&q=80\",\"is_active\":true,\"sort_order\":5}]",
+        "setting_value": "[{\"id\":\"dam-gift-fries\",\"min_amount\":5000,\"title\":\"Картофель фри 150 г\",\"description\":\"Выберите бесплатно к заказу\",\"image_url\":\"https://images.unsplash.com/photo-1600891964092-4316c288032e?auto=format&fit=crop&w=600&q=80\",\"is_active\":true,\"sort_order\":1},{\"id\":\"dam-gift-lemonade\",\"min_amount\":5000,\"title\":\"Лимонад 0.5 л\",\"description\":\"Выберите бесплатно к заказу\",\"image_url\":\"https://images.unsplash.com/photo-1590301157890-4810ed352733?auto=format&fit=crop&w=600&q=80\",\"is_active\":true,\"sort_order\":2},{\"id\":\"dam-gift-sauce\",\"min_amount\":5000,\"title\":\"Соус на выбор\",\"description\":\"Выберите бесплатно к заказу\",\"image_url\":\"https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=600&q=80\",\"is_active\":true,\"sort_order\":3}]",
         "is_active": true
     },
     {
         "setting_key": "promo_slides",
-        "setting_value": "[{\"title\":\"Бесплатная доставка\",\"lines\":[\"От 15 000 ₸ — доставим бесплатно\",\"Горячая еда прямо к подъезду\",\"Промокод DOSTAVKA — от 8 000 ₸\"]},{\"title\":\"Промокод DAMALEM10\",\"lines\":[\"−10% на первый и каждый заказ\",\"Минимум всего 2 500 ₸\",\"Введите код при оформлении\"]},{\"title\":\"Подарки к заказу\",\"lines\":[\"Коктейль от 5 000 ₸\",\"Лимонад от 12 000 ₸\",\"Добавляем автоматически\"]},{\"title\":\"Семейный заказ −20%\",\"lines\":[\"Промокод SEMYA20\",\"От 12 000 ₸ на меню\",\"Идеально на компанию\"]}]",
+        "setting_value": "[{\"title\":\"Бесплатно до квартиры\",\"lines\":[\"От 15 000 ₸ — доставка и подъём бесплатно\",\"Стоимость пересчитывается автоматически\",\"Промокод DOSTAVKA — от 8 000 ₸\"]},{\"title\":\"Промокод DAMALEM10\",\"lines\":[\"−10% на заказ, максимум 1 000 ₸\",\"Минимум всего 2 500 ₸\",\"Введите код при оформлении\"]},{\"title\":\"Подарок от 5 000 ₸\",\"lines\":[\"Фри, лимонад или соус\",\"Выберите один подарок бесплатно\",\"Выбор появится при оформлении\"]},{\"title\":\"Семейный заказ −20%\",\"lines\":[\"Промокод SEMYA20\",\"От 12 000 ₸ на меню\",\"Максимальная скидка 3 000 ₸\"]}]",
         "is_active": true
     }
 ]

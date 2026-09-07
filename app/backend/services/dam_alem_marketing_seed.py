@@ -35,6 +35,56 @@ def _json_empty(raw: Optional[str]) -> bool:
         return True
 
 
+def _is_legacy_default_gifts(raw: str) -> bool:
+    """Upgrade only the old built-in five-tier gift set, never merchant data."""
+    try:
+        gifts = json.loads(raw or "[]")
+    except (TypeError, ValueError):
+        return False
+    if not isinstance(gifts, list) or len(gifts) != 5:
+        return False
+    expected = {
+        "dam-gift-shake": 5000,
+        "dam-gift-fries": 8000,
+        "dam-gift-lemonade": 12000,
+        "dam-gift-sauce": 15000,
+        "dam-gift-dessert": 20000,
+    }
+    actual = {
+        str(gift.get("id") or ""): int(gift.get("min_amount") or 0)
+        for gift in gifts
+        if isinstance(gift, dict)
+    }
+    return actual == expected
+
+
+def _is_legacy_default_promos(raw: str) -> bool:
+    """Recognize the original built-in campaign set without touching custom codes."""
+    try:
+        promos = json.loads(raw or "[]")
+    except (TypeError, ValueError):
+        return False
+    if not isinstance(promos, list):
+        return False
+    codes = {str(promo.get("code") or "").strip().upper() for promo in promos if isinstance(promo, dict)}
+    return codes == {"DAMALEM10", "PIZZA500", "OBED15", "DOSTAVKA", "SEMYA20"} and all(
+        not promo.get("valid_from") and not promo.get("valid_until") and not promo.get("max_discount")
+        for promo in promos
+        if isinstance(promo, dict)
+    )
+
+
+def _is_legacy_promo_slides(raw: str) -> bool:
+    try:
+        slides = json.loads(raw or "[]")
+    except (TypeError, ValueError):
+        return False
+    return isinstance(slides, list) and any(
+        isinstance(slide, dict) and "Добавляем автоматически" in (slide.get("lines") or [])
+        for slide in slides
+    )
+
+
 async def _upsert_setting(db, key: str, value: str) -> bool:
     res = await db.execute(select(Food_settings).where(Food_settings.setting_key == key))
     row = res.scalar_one_or_none()
@@ -56,15 +106,38 @@ def _defaults_by_title() -> dict[str, dict]:
     return {str(b.get("title") or "").strip(): b for b in FOOD_BANNERS}
 
 
+_LEGACY_BANNER_TITLES = {
+    "Подарок к каждому заказу": "Подарок на выбор от 5 000 ₸",
+    "Комплексный обед −15%": "Доставка бесплатно",
+    "Пицца выгоднее на 500 ₸": "Заказ выгоднее на 500 ₸",
+}
+
+
 async def _refresh_food_banner_images(db) -> int:
-    """Replace broken Unsplash / empty URLs with project CDN images."""
+    """Upgrade built-in legacy banners and replace unstable images."""
     defaults = _defaults_by_title()
-    rows = await db.execute(select(Banners).where(Banners.banner_type == "food_delivery"))
+    result = await db.execute(select(Banners).where(Banners.banner_type == "food_delivery"))
+    rows = list(result.scalars())
+    existing_titles = {str(row.title or "").strip() for row in rows}
     updated = 0
-    for row in rows.scalars():
-        default = defaults.get(str(row.title or "").strip())
+    for row in rows:
+        old_title = str(row.title or "").strip()
+        target_title = _LEGACY_BANNER_TITLES.get(old_title, old_title)
+        default = defaults.get(target_title)
         if not default:
             continue
+        if target_title != old_title:
+            if target_title in existing_titles:
+                row.active = False
+                updated += 1
+                continue
+            row.title = target_title
+            row.subtitle = default.get("subtitle") or ""
+            row.button_text = default.get("button_text") or "Подробнее"
+            row.button_url = default.get("button_url") or "/food"
+            row.link_url = default.get("button_url") or "/food"
+            existing_titles.add(target_title)
+            updated += 1
         new_url = str(default.get("image_url") or "").strip()
         if not new_url:
             continue
@@ -131,6 +204,12 @@ async def ensure_dam_alem_marketing(*, force: bool = False) -> Optional[Dict[str
                     should_set = _json_empty(existing)
                 else:
                     should_set = not existing
+            if key == "loyalty_gifts" and _is_legacy_default_gifts(existing):
+                should_set = True
+            if key == "promo_codes" and _is_legacy_default_promos(existing):
+                should_set = True
+            if key == "promo_slides" and _is_legacy_promo_slides(existing):
+                should_set = True
             if should_set:
                 created = await _upsert_setting(db, key, default_value)
                 settings_changed += 1
@@ -140,8 +219,8 @@ async def ensure_dam_alem_marketing(*, force: bool = False) -> Optional[Dict[str
                     "created" if created else "updated",
                 )
 
-        banners_added = await _ensure_food_banners(db)
         banners_patched = await _refresh_food_banner_images(db)
+        banners_added = await _ensure_food_banners(db)
 
         if settings_changed == 0 and banners_added == 0 and banners_patched == 0:
             logger.info("DAM ALEM marketing already configured; seed skipped")

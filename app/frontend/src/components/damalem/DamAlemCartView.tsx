@@ -1,6 +1,8 @@
 import { ArrowLeft, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import DamAlemImage from '@/components/damalem/DamAlemImage';
 import DamAlemCheckoutButton from '@/components/damalem/DamAlemCheckoutButton';
+import LoyaltyGiftBanner from '@/components/gastronom/LoyaltyGiftBanner';
+import { nextLoyaltyGift, type LoyaltyGift } from '@/lib/gastronomLoyalty';
 
 export interface DamAlemCartLineView {
   key: string;
@@ -28,9 +30,12 @@ interface Props {
   total: number;
   minOrder: number;
   freeDeliveryFrom: number;
+  apartmentFreeFrom?: number;
+  gifts?: LoyaltyGift[];
+  selectedGiftId?: string | null;
   promoInput: string;
   promoLoading: boolean;
-  appliedPromo?: { code: string; label: string } | null;
+  appliedPromo?: { code: string; label: string; free_delivery?: boolean } | null;
   formatPrice: (price: number) => string;
   onBrowse: () => void;
   onUpdateQty: (index: number, delta: number) => void;
@@ -40,6 +45,7 @@ interface Props {
   onApplyPromo: () => void;
   onClearPromo: () => void;
   onCheckout: () => void;
+  onSelectGift?: (gift: LoyaltyGift) => void;
 }
 
 export default function DamAlemCartView({
@@ -52,6 +58,9 @@ export default function DamAlemCartView({
   total,
   minOrder,
   freeDeliveryFrom,
+  apartmentFreeFrom = 0,
+  gifts = [],
+  selectedGiftId,
   promoInput,
   promoLoading,
   appliedPromo,
@@ -64,6 +73,7 @@ export default function DamAlemCartView({
   onApplyPromo,
   onClearPromo,
   onCheckout,
+  onSelectGift,
 }: Props) {
   if (lines.length === 0) {
     return (
@@ -78,11 +88,36 @@ export default function DamAlemCartView({
     );
   }
 
-  const goal = minOrder > subtotal
-    ? { target: minOrder, label: `До минимального заказа ${formatPrice(minOrder - subtotal)}` }
-    : freeDeliveryFrom > subtotal
-      ? { target: freeDeliveryFrom, label: `До бесплатной доставки ${formatPrice(freeDeliveryFrom - subtotal)}` }
-      : null;
+  const nextGift = nextLoyaltyGift(subtotal, gifts);
+  const goals = [
+    minOrder > subtotal
+      ? { target: minOrder, remaining: minOrder - subtotal, label: `Добавьте ещё ${formatPrice(minOrder - subtotal)} до минимального заказа` }
+      : null,
+    freeDeliveryFrom > subtotal
+      ? {
+          target: freeDeliveryFrom,
+          remaining: freeDeliveryFrom - subtotal,
+          label: apartmentFreeFrom === freeDeliveryFrom
+            ? `Добавьте ещё ${formatPrice(freeDeliveryFrom - subtotal)} — доставка до квартиры будет бесплатной`
+            : `Добавьте ещё ${formatPrice(freeDeliveryFrom - subtotal)} до бесплатной доставки`,
+        }
+      : null,
+    apartmentFreeFrom > subtotal && apartmentFreeFrom !== freeDeliveryFrom
+      ? {
+          target: apartmentFreeFrom,
+          remaining: apartmentFreeFrom - subtotal,
+          label: `Добавьте ещё ${formatPrice(apartmentFreeFrom - subtotal)} — поднимем до квартиры бесплатно`,
+        }
+      : null,
+    nextGift
+      ? {
+          target: nextGift.min_amount,
+          remaining: nextGift.min_amount - subtotal,
+          label: `Добавьте ещё ${formatPrice(nextGift.min_amount - subtotal)} и выберите подарок`,
+        }
+      : null,
+  ].filter(Boolean).sort((a, b) => a!.remaining - b!.remaining);
+  const goal = goals[0] ?? null;
   const progress = goal ? Math.min(100, Math.round((subtotal / goal.target) * 100)) : 100;
   const itemCount = lines.reduce((sum, line) => sum + line.quantity, 0);
   const itemCountLabel = itemCount % 10 === 1 && itemCount % 100 !== 11
@@ -105,6 +140,16 @@ export default function DamAlemCartView({
 
       <div className="dam-market-cart__layout">
         <div className="min-w-0 space-y-5">
+          {gifts.length > 0 ? (
+            <LoyaltyGiftBanner
+              subtotal={subtotal}
+              gifts={gifts}
+              compact
+              selectedGiftId={selectedGiftId}
+              onSelectGift={onSelectGift}
+            />
+          ) : null}
+
           <div className="dam-market-cart__lines">
             {lines.map((line, index) => (
               <article key={line.key} className="dam-market-cart-line">
@@ -159,6 +204,9 @@ export default function DamAlemCartView({
             <div><span>Блюда</span><span>{formatPrice(subtotal)}</span></div>
             <div><span>{serviceFeeLabel}</span><span>{formatPrice(serviceFee)}</span></div>
             {discount > 0 ? <div className="text-emerald-700"><span>Скидка</span><span>−{formatPrice(discount)}</span></div> : null}
+            {discount <= 0 && appliedPromo?.free_delivery ? (
+              <div className="text-emerald-700"><span>Промокод {appliedPromo.code}</span><span>доставка 0 ₸</span></div>
+            ) : null}
             <div><strong>К оплате</strong><strong>{formatPrice(total)}</strong></div>
           </div>
 
@@ -188,6 +236,9 @@ export default function DamAlemCartView({
             <div><span>Блюда</span><span>{formatPrice(subtotal)}</span></div>
             <div><span>{serviceFeeLabel}</span><span>{formatPrice(serviceFee)}</span></div>
             {discount > 0 ? <div className="text-emerald-700"><span>Скидка</span><span>−{formatPrice(discount)}</span></div> : null}
+            {discount <= 0 && appliedPromo?.free_delivery ? (
+              <div className="text-emerald-700"><span>Промокод {appliedPromo.code}</span><span>доставка 0 ₸</span></div>
+            ) : null}
             <div className="dam-market-totals__total"><span>К оплате</span><span>{formatPrice(total)}</span></div>
           </div>
 

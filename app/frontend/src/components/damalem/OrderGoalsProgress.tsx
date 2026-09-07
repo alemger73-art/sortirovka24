@@ -19,6 +19,7 @@ interface Props {
   subtotal: number;
   minOrder: number;
   freeDeliveryFrom: number;
+  apartmentFreeFrom?: number;
   nextGift: LoyaltyGift | null;
   compact?: boolean;
 }
@@ -28,6 +29,7 @@ export default function OrderGoalsProgress({
   subtotal,
   minOrder,
   freeDeliveryFrom,
+  apartmentFreeFrom = 0,
   nextGift,
   compact = false,
 }: Props) {
@@ -49,9 +51,28 @@ export default function OrderGoalsProgress({
     goals.push({
       id: 'delivery',
       icon: Truck,
-      label: `Ещё ${formatMoney(freeDeliveryFrom - subtotal)} до бесплатной доставки`,
+      label:
+        apartmentFreeFrom === freeDeliveryFrom
+          ? `Ещё ${formatMoney(freeDeliveryFrom - subtotal)} — и доставка до квартиры бесплатная`
+          : `Ещё ${formatMoney(freeDeliveryFrom - subtotal)} до бесплатной доставки`,
       remaining: freeDeliveryFrom - subtotal,
       target: freeDeliveryFrom,
+      reached: false,
+      accent: 'red',
+    });
+  }
+
+  if (
+    apartmentFreeFrom > 0 &&
+    apartmentFreeFrom !== freeDeliveryFrom &&
+    subtotal < apartmentFreeFrom
+  ) {
+    goals.push({
+      id: 'apartment',
+      icon: Truck,
+      label: `Ещё ${formatMoney(apartmentFreeFrom - subtotal)} — и поднимем до квартиры бесплатно`,
+      remaining: apartmentFreeFrom - subtotal,
+      target: apartmentFreeFrom,
       reached: false,
       accent: 'red',
     });
@@ -61,7 +82,7 @@ export default function OrderGoalsProgress({
     goals.push({
       id: 'gift',
       icon: Gift,
-      label: `Ещё ${formatMoney(nextGift.min_amount - subtotal)} — ${nextGift.title}`,
+      label: `Ещё ${formatMoney(nextGift.min_amount - subtotal)} — и подарок на выбор бесплатно`,
       remaining: nextGift.min_amount - subtotal,
       target: nextGift.min_amount,
       reached: false,

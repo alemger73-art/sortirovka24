@@ -5,12 +5,20 @@ export interface KitchenHours {
   close: string;
 }
 
+function extractTimes(value: string): [string, string] | null {
+  const matches = [...value.matchAll(/(\d{1,2}):(\d{2})/g)];
+  if (matches.length < 2) return null;
+  const first = matches[0];
+  const last = matches[matches.length - 1];
+  const pad = (hours: string, minutes: string) =>
+    `${String(Number(hours)).padStart(2, '0')}:${minutes}`;
+  return [pad(first[1], first[2]), pad(last[1], last[2])];
+}
+
 export function parseKitchenHours(settings: Record<string, string | undefined>): KitchenHours {
   const combined = (settings.working_hours || '').trim();
-  if (combined.includes('-')) {
-    const [open, close] = combined.split('-').map(s => s.trim());
-    if (open && close) return { open, close };
-  }
+  const fromCombined = combined ? extractTimes(combined) : null;
+  if (fromCombined) return { open: fromCombined[0], close: fromCombined[1] };
   return {
     open: (settings.kitchen_open || '10:00').trim(),
     close: (settings.kitchen_close || '22:00').trim(),
@@ -20,7 +28,10 @@ export function parseKitchenHours(settings: Record<string, string | undefined>):
 function parseHm(value: string): number | null {
   const m = value.match(/^(\d{1,2}):(\d{2})$/);
   if (!m) return null;
-  return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+  const hours = parseInt(m[1], 10);
+  const minutes = parseInt(m[2], 10);
+  if (hours > 23 || minutes > 59) return null;
+  return hours * 60 + minutes;
 }
 
 export function isKitchenOpen(

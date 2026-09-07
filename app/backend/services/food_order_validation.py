@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from fastapi import HTTPException
@@ -24,6 +24,7 @@ from services.gastronom_delivery import (
     resolve_delivery_quote,
 )
 from services.item_modifier_groups import Item_modifier_groupsService
+from services.modifier_groups import Modifier_groupsService
 from services.modifier_options import Modifier_optionsService
 
 logger = logging.getLogger(__name__)
@@ -33,7 +34,9 @@ APARTMENT_DELIVERY_FEE = 300.0
 VALID_PAYMENT_METHODS = frozenset({"cash", "kaspi_qr", "halyk_qr"})
 CLIENT_OWNED_TRANSIENT = (
     "promo_code",
+    "selected_gift_id",
     "apartment_delivery_fee",
+    "deliver_to_apartment",
     "delivery_fee",
     "service_fee",
     "delivery_zone",
@@ -41,6 +44,8 @@ CLIENT_OWNED_TRANSIENT = (
     "delivery_lng",
     "bonus_points_to_use",
 )
+_TIME_RE = re.compile(r"(\d{1,2}):(\d{2})")
+_KITCHEN_TZ = timezone(timedelta(hours=5))
 SERVER_OWNED_FIELDS = (
     "id",
     "status",
@@ -88,6 +93,83 @@ def _parse_promo_codes(raw: str) -> List[Dict[str, Any]]:
         return []
 
 
+def _parse_loyalty_gifts(settings: Dict[str, str]) -> List[Dict[str, Any]]:
+    enabled = settings.get("loyalty_enabled", "1").strip().lower()
+    if enabled in ("0", "false", "no", "off"):
+        return []
+    try:
+        parsed = json.loads(settings.get("loyalty_gifts") or "[]")
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return []
+    if not isinstance(parsed, list):
+        return []
+    gifts: List[Dict[str, Any]] = []
+    for index, gift in enumerate(parsed):
+        if not isinstance(gift, dict):
+            continue
+        active = gift.get("is_active", True)
+        if active is False or str(active).strip().lower() in ("0", "false", "no", "off"):
+            continue
+        gift_id = str(gift.get("id") or "").strip()
+        title = str(gift.get("title") or "").strip()
+        try:
+            min_amount = float(gift.get("min_amount") or 0)
+        except (TypeError, ValueError):
+            continue
+        if not gift_id or not title or min_amount <= 0:
+            continue
+        gifts.append({
+            "id": gift_id,
+            "title": title,
+            "description": str(gift.get("description") or "").strip(),
+            "min_amount": min_amount,
+            "sort_order": int(gift.get("sort_order") or index + 1),
+        })
+    if gifts:
+        return gifts
+    from services.dam_alem_marketing_defaults import LOYALTY_GIFTS
+    return [
+        {
+            "id": str(gift.get("id") or f"gift-{index + 1}"),
+            "title": str(gift.get("title") or ""),
+            "description": str(gift.get("description") or ""),
+            "min_amount": float(gift.get("min_amount") or 0),
+            "sort_order": int(gift.get("sort_order") or index + 1),
+        }
+        for index, gift in enumerate(LOYALTY_GIFTS)
+        if gift.get("is_active", True) and gift.get("title") and float(gift.get("min_amount") or 0) > 0
+    ]
+
+
+def _resolve_selected_gift(
+    selected_gift_id: str,
+    subtotal: float,
+    settings: Dict[str, str],
+) -> Optional[Dict[str, Any]]:
+    reached = [gift for gift in _parse_loyalty_gifts(settings) if subtotal >= gift["min_amount"]]
+    if not reached:
+        if selected_gift_id:
+            raise HTTPException(status_code=400, detail="Подарок недоступен для этой суммы заказа")
+        return None
+    best_threshold = max(gift["min_amount"] for gift in reached)
+    choices = [gift for gift in reached if gift["min_amount"] == best_threshold]
+    if not selected_gift_id:
+        if len(choices) > 1:
+            raise HTTPException(status_code=400, detail="Выберите один бесплатный подарок")
+        return choices[0]
+    selected = next((gift for gift in choices if gift["id"] == selected_gift_id), None)
+    if not selected:
+        raise HTTPException(status_code=400, detail="Выбранный подарок недоступен")
+    return selected
+
+
+def _nonnegative_setting(settings: Dict[str, str], key: str, default: float) -> float:
+    try:
+        return max(0.0, float(settings.get(key) or default))
+    except (TypeError, ValueError):
+        return default
+
+
 def _apply_free_delivery_threshold(
     subtotal: float,
     delivery_fee: float,
@@ -100,6 +182,103 @@ def _apply_free_delivery_threshold(
     if free_from > 0 and subtotal >= free_from:
         return 0.0
     return delivery_fee
+
+
+def _hm_to_minutes(value: str) -> Optional[int]:
+    match = _TIME_RE.search(value or "")
+    if not match:
+        return None
+    hours, minutes = int(match.group(1)), int(match.group(2))
+    if hours > 23 or minutes > 59:
+        return None
+    return hours * 60 + minutes
+
+
+def parse_kitchen_hours(settings: Dict[str, str]) -> Optional[Tuple[int, int, str, str]]:
+    """Return (open_min, close_min, open_label, close_label) when hours are configured."""
+    combined = (settings.get("working_hours") or "").strip()
+    open_raw = (settings.get("kitchen_open") or "").strip()
+    close_raw = (settings.get("kitchen_close") or "").strip()
+    matches = _TIME_RE.findall(combined) if combined else []
+    if len(matches) >= 2:
+        open_raw = f"{int(matches[0][0]):02d}:{matches[0][1]}"
+        close_raw = f"{int(matches[-1][0]):02d}:{matches[-1][1]}"
+    if not open_raw or not close_raw:
+        return None
+    open_min = _hm_to_minutes(open_raw)
+    close_min = _hm_to_minutes(close_raw)
+    if open_min is None or close_min is None:
+        return None
+    open_label = f"{open_min // 60:02d}:{open_min % 60:02d}"
+    close_label = f"{close_min // 60:02d}:{close_min % 60:02d}"
+    return open_min, close_min, open_label, close_label
+
+
+def kitchen_is_open(
+    settings: Dict[str, str],
+    now: Optional[datetime] = None,
+) -> Tuple[bool, str, str]:
+    parsed = parse_kitchen_hours(settings)
+    if parsed is None:
+        return True, "", ""
+    open_min, close_min, open_label, close_label = parsed
+    current = now or datetime.now(_KITCHEN_TZ)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=_KITCHEN_TZ)
+    else:
+        current = current.astimezone(_KITCHEN_TZ)
+    cur = current.hour * 60 + current.minute
+    if close_min > open_min:
+        open_now = open_min <= cur < close_min
+    else:
+        open_now = cur >= open_min or cur < close_min
+    return open_now, open_label, close_label
+
+
+def assert_kitchen_open(settings: Dict[str, str], now: Optional[datetime] = None) -> None:
+    open_now, opens_at, closes_at = kitchen_is_open(settings, now)
+    if not open_now:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Приём заказов с {opens_at} до {closes_at}",
+        )
+
+
+def _truthy_flag(value: Any) -> bool:
+    if value is True:
+        return True
+    if value is False or value is None:
+        return False
+    return str(value).strip().lower() in ("1", "true", "yes", "on")
+
+
+def requests_apartment_delivery(data: Dict[str, Any], delivery_address: str) -> bool:
+    if _truthy_flag(data.get("deliver_to_apartment")):
+        return True
+    if data.get("apartment_delivery_fee") is not None:
+        return True
+    return "до квартиры" in (delivery_address or "").lower()
+
+
+def expected_apartment_fee(
+    *,
+    delivery_method: str,
+    subtotal: float,
+    settings: Dict[str, str],
+    promo_free_delivery: bool,
+    requested: bool,
+) -> float:
+    if (delivery_method or "delivery") != "delivery" or not requested:
+        return 0.0
+    apartment_price = _nonnegative_setting(settings, "apartment_delivery_price", APARTMENT_DELIVERY_FEE)
+    apartment_free_from = _nonnegative_setting(
+        settings,
+        "apartment_free_from",
+        _nonnegative_setting(settings, "free_delivery_from", 0.0),
+    )
+    if promo_free_delivery or (apartment_free_from > 0 and subtotal >= apartment_free_from):
+        return 0.0
+    return apartment_price
 
 
 def _resolve_promo(
@@ -122,6 +301,14 @@ def _resolve_promo(
     if not matched:
         raise HTTPException(status_code=400, detail="Промокод не найден или недействителен")
 
+    today = date.today().isoformat()
+    valid_from = str(matched.get("valid_from") or "").strip()
+    valid_until = str(matched.get("valid_until") or "").strip()
+    if valid_from and today < valid_from:
+        raise HTTPException(status_code=400, detail=f"Промокод начнёт действовать {valid_from}")
+    if valid_until and today > valid_until:
+        raise HTTPException(status_code=400, detail="Срок действия промокода закончился")
+
     min_order = float(matched.get("min_order") or 0)
     if min_order > 0 and subtotal < min_order:
         raise HTTPException(
@@ -136,7 +323,14 @@ def _resolve_promo(
     if ptype == "fixed":
         return min(subtotal, value), False
     pct = max(0.0, min(100.0, value))
-    return round(subtotal * (pct / 100.0)), False
+    discount = round(subtotal * (pct / 100.0))
+    try:
+        max_discount = max(0.0, float(matched.get("max_discount") or 0))
+    except (TypeError, ValueError):
+        max_discount = 0.0
+    if max_discount > 0:
+        discount = min(discount, max_discount)
+    return discount, False
 
 
 def _parse_coord(value: Any) -> Optional[float]:
@@ -314,6 +508,14 @@ async def validate_food_order(
     mod_res = await mod_svc.get_list(skip=0, limit=2000, query_dict=None, sort="sort_order")
     options_by_id = {int(o.id): o for o in mod_res["items"] if o.id is not None}
 
+    group_svc = Modifier_groupsService(db)
+    group_res = await group_svc.get_list(skip=0, limit=1000, query_dict=None, sort="sort_order")
+    modifier_groups_by_id = {
+        int(group.id): group
+        for group in group_res["items"]
+        if group.id is not None and group.is_active is not False
+    }
+
     links_svc = Item_modifier_groupsService(db)
     links_res = await links_svc.get_list(skip=0, limit=5000, query_dict=None, sort="id")
     groups_by_item: Dict[int, set[int]] = {}
@@ -327,6 +529,7 @@ async def validate_food_order(
     set_svc = Food_settingsService(db)
     set_res = await set_svc.get_list(skip=0, limit=100, query_dict=None, sort="id")
     settings = _parse_settings(set_res["items"])
+    assert_kitchen_open(settings)
 
     restaurant_id = data.get("restaurant_id")
     min_order = 0.0
@@ -352,9 +555,12 @@ async def validate_food_order(
         if qty is None:
             qty = raw.get("qty")
         try:
-            qty_int = int(qty)
+            qty_number = float(qty)
         except (TypeError, ValueError):
             raise HTTPException(status_code=400, detail="Некорректное количество")
+        if not qty_number.is_integer():
+            raise HTTPException(status_code=400, detail="Количество должно быть целым числом")
+        qty_int = int(qty_number)
         if qty_int <= 0:
             raise HTTPException(status_code=400, detail="Некорректное количество")
 
@@ -383,6 +589,8 @@ async def validate_food_order(
         mod_total = 0.0
         validated_mods: List[dict] = []
         allowed_groups = groups_by_item.get(int(product.id), set())
+        selected_by_group: Dict[int, int] = {}
+        seen_option_ids: set[int] = set()
         for mod in raw.get("modifiers") or []:
             if not isinstance(mod, dict):
                 raise HTTPException(status_code=400, detail=f"Некорректная опция для «{product.name}»")
@@ -393,7 +601,8 @@ async def validate_food_order(
                     detail=f"Некорректная опция для «{product.name}»",
                 )
             try:
-                opt = options_by_id.get(int(opt_id))
+                option_id = int(opt_id)
+                opt = options_by_id.get(option_id)
             except (TypeError, ValueError):
                 raise HTTPException(
                     status_code=400,
@@ -404,12 +613,19 @@ async def validate_food_order(
                     status_code=400,
                     detail=f"Опция недоступна для «{product.name}»",
                 )
+            if option_id in seen_option_ids:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Опция «{opt.name}» выбрана повторно",
+                )
+            seen_option_ids.add(option_id)
             group_id = getattr(opt, "group_id", None)
             if group_id is None or int(group_id) not in allowed_groups:
                 raise HTTPException(
                     status_code=400,
                     detail=f"Опция не относится к блюду «{product.name}»",
                 )
+            selected_by_group[int(group_id)] = selected_by_group.get(int(group_id), 0) + 1
             price = float(opt.price or 0)
             mod_total += price
             validated_mods.append({
@@ -417,6 +633,29 @@ async def validate_food_order(
                 "price": price,
                 "option_id": opt.id,
             })
+
+        for group_id in allowed_groups:
+            group = modifier_groups_by_id.get(group_id)
+            if not group:
+                continue
+            selected_count = selected_by_group.get(group_id, 0)
+            min_select = max(
+                int(getattr(group, "min_select", 0) or 0),
+                1 if getattr(group, "is_required", False) else 0,
+            )
+            max_select = int(getattr(group, "max_select", 0) or 0)
+            if str(getattr(group, "type", "") or "").strip().lower() in ("single", "radio"):
+                max_select = 1
+            if selected_count < min_select:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Для «{product.name}» выберите: {group.name}",
+                )
+            if max_select > 0 and selected_count > max_select:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Для «{product.name}» можно выбрать максимум {max_select}: {group.name}",
+                )
 
         client_mod_total = float(raw.get("modTotal") or raw.get("mod_total") or 0)
         if abs(client_mod_total - mod_total) > 0.02:
@@ -437,6 +676,11 @@ async def validate_food_order(
     subtotal = round(subtotal, 2)
     if min_order > 0 and subtotal < min_order:
         raise HTTPException(status_code=400, detail=f"Минимальный заказ {int(min_order)} ₸")
+    selected_gift = _resolve_selected_gift(
+        str(data.get("selected_gift_id") or "").strip(),
+        subtotal,
+        settings,
+    )
 
     requires_priced_checkout = _requires_priced_food_checkout(settings)
     # Legacy marketplace: no fee hints AND no priced food settings.
@@ -478,21 +722,29 @@ async def validate_food_order(
 
     promo_code = (data.get("promo_code") or "").strip().upper()
     promo_discount = 0.0
+    promo_free_delivery = False
     if promo_code:
         promo_discount, promo_free_delivery = _resolve_promo(promo_code, subtotal, settings)
         if promo_free_delivery:
             delivery_fee = 0.0
 
-    apartment_fee = 0.0
-    if delivery_method == "delivery":
+    requested_apartment = requests_apartment_delivery(data, delivery_address)
+    apartment_fee = expected_apartment_fee(
+        delivery_method=delivery_method,
+        subtotal=subtotal,
+        settings=settings,
+        promo_free_delivery=promo_free_delivery,
+        requested=requested_apartment,
+    )
+    if requested_apartment and delivery_method == "delivery":
         apt_hint = data.get("apartment_delivery_fee")
         if apt_hint is not None:
             try:
-                apartment_fee = float(apt_hint)
+                hinted_apartment = float(apt_hint)
             except (TypeError, ValueError):
                 raise HTTPException(status_code=400, detail="Некорректная доплата за доставку до квартиры")
-            if apartment_fee not in (0.0, APARTMENT_DELIVERY_FEE):
-                raise HTTPException(status_code=400, detail="Некорректная доплата за доставку до квартиры")
+            if abs(hinted_apartment - apartment_fee) > 1:
+                raise HTTPException(status_code=400, detail="Доплата до квартиры изменилась. Обновите страницу")
 
     if delivery_fee_hint is not None and delivery_method == "delivery":
         if abs(float(delivery_fee_hint) - delivery_fee) > 1:
@@ -555,6 +807,19 @@ async def validate_food_order(
     sanitized["status"] = "new"
     sanitized["user_id"] = _account_user_id(account_user)
     sanitized["created_at"] = _server_now()
+    if selected_gift:
+        validated_items.append({
+            "id": f"gift:{selected_gift['id']}",
+            "name": selected_gift["title"],
+            "price": 0,
+            "quantity": 1,
+            "modifiers": [],
+            "modTotal": 0,
+            "sum": 0,
+            "is_gift": True,
+            "gift_id": selected_gift["id"],
+            "gift_threshold": selected_gift["min_amount"],
+        })
     sanitized["order_items"] = json.dumps(validated_items, ensure_ascii=False)
     sanitized["total_amount"] = expected_total
     if bonus_points_used > 0:

@@ -90,7 +90,17 @@ interface AdminFoodSettingsProps {
 
 
 
-type SettingsTab = 'general' | 'zones' | 'gifts';
+type SettingsTab = 'delivery' | 'promo' | 'gifts' | 'zones' | 'general';
+
+const DELIVERY_KEYS = [
+  'min_order_amount',
+  'delivery_price',
+  'free_delivery_from',
+  'apartment_delivery_price',
+  'apartment_free_from',
+  'delivery_time',
+  'working_hours',
+];
 
 
 
@@ -107,6 +117,10 @@ const SETTING_FIELDS = [
   { key: 'delivery_price', label: 'Базовая стоимость доставки (₸)', icon: Truck, placeholder: '500', description: 'Если зоны на карте не настроены', type: 'text' as const },
 
   { key: 'free_delivery_from', label: 'Бесплатная доставка от (₸)', icon: Truck, placeholder: '15000', description: 'При заказе от этой суммы доставка 0 ₸', type: 'text' as const },
+
+  { key: 'apartment_delivery_price', label: 'Подъём до квартиры (₸)', icon: Truck, placeholder: '300', description: 'Доплата за доставку до двери квартиры', type: 'text' as const },
+
+  { key: 'apartment_free_from', label: 'Бесплатно до квартиры от (₸)', icon: Truck, placeholder: '15000', description: 'Порог, после которого доставка и подъём до квартиры бесплатны', type: 'text' as const },
 
   { key: 'service_fee_rate', label: 'Сервисный сбор (%)', icon: DollarSign, placeholder: '10', description: 'Процент от суммы заказа (например 10 = 10%)', type: 'text' as const },
 
@@ -160,7 +174,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
   const [saving, setSaving] = useState(false);
 
-  const [settingsTab, setSettingsTab] = useState<SettingsTab>('general');
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>('delivery');
 
 
 
@@ -211,6 +225,8 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
       rows.forEach(r => { vals[r.setting_key] = r.setting_value || ''; });
 
       if (!vals.free_delivery_from) vals.free_delivery_from = '15000';
+      if (!vals.apartment_delivery_price) vals.apartment_delivery_price = '300';
+      if (!vals.apartment_free_from) vals.apartment_free_from = vals.free_delivery_from;
 
       if (!vals.delivery_time) vals.delivery_time = '35–45 мин';
 
@@ -220,11 +236,13 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
 
 
-      setDeliveryZones(parseDeliveryZones(vals.delivery_zones, storeLat, storeLng));
+      const loadedStoreLat = parseFloat(vals.store_lat || '') || DEFAULT_STORE[0];
+      const loadedStoreLng = parseFloat(vals.store_lng || '') || DEFAULT_STORE[1];
+      setDeliveryZones(parseDeliveryZones(vals.delivery_zones, loadedStoreLat, loadedStoreLng));
 
-      setStoreLat(parseFloat(vals.store_lat || '') || DEFAULT_STORE[0]);
+      setStoreLat(loadedStoreLat);
 
-      setStoreLng(parseFloat(vals.store_lng || '') || DEFAULT_STORE[1]);
+      setStoreLng(loadedStoreLng);
 
       setOutsideZoneMessage(vals.outside_zone_message || '');
 
@@ -273,6 +291,39 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
 
   async function saveSettings() {
+    const numericKeys = [
+      'min_order_amount',
+      'delivery_price',
+      'free_delivery_from',
+      'apartment_delivery_price',
+      'apartment_free_from',
+      'service_fee_rate',
+    ];
+    for (const key of numericKeys) {
+      const raw = values[key];
+      if (raw && (!Number.isFinite(Number(raw)) || Number(raw) < 0)) {
+        toast.error('Пороговые суммы и тарифы должны быть положительными числами');
+        return;
+      }
+    }
+    const normalizedCodes = promoCodes.map((promo) => promo.code.trim().toUpperCase()).filter(Boolean);
+    if (new Set(normalizedCodes).size !== normalizedCodes.length) {
+      toast.error('Промокоды не должны повторяться');
+      return;
+    }
+    const invalidPromo = promoCodes.find((promo) =>
+      !promo.code.trim() ||
+      promo.value < 0 ||
+      (promo.valid_from && promo.valid_until && promo.valid_from > promo.valid_until),
+    );
+    if (invalidPromo) {
+      toast.error('Проверьте код, размер скидки и даты действия промокодов');
+      return;
+    }
+    if (loyaltyEnabled && loyaltyGifts.some((gift) => !gift.title.trim() || gift.min_amount <= 0)) {
+      toast.error('У каждого подарка должны быть название и сумма от 1 ₸');
+      return;
+    }
 
     setSaving(true);
 
@@ -359,12 +410,17 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
 
   function loadDefaultPromoSlides() {
+    const freeFrom = Number(values.free_delivery_from || 15000).toLocaleString('ru-RU');
+    const giftFrom = Math.min(
+      ...loyaltyGifts.filter((gift) => gift.is_active).map((gift) => gift.min_amount),
+    );
+    const giftAmount = Number.isFinite(giftFrom) ? giftFrom.toLocaleString('ru-RU') : '5 000';
 
     setPromoSlides([
 
-      { title: 'Бесплатная доставка', lines: ['При заказе от 15 000 ₸', 'По всей Сортировке', 'Каждый день'] },
+      { title: 'Бесплатно до квартиры', lines: [`При заказе от ${freeFrom} ₸`, 'Доставка и подъём до двери', 'Порог задаётся в настройках'] },
 
-      { title: 'Подарки к заказу', lines: ['Салат от 5 000 ₸', 'Напиток от 10 000 ₸', 'Десерт от 15 000 ₸'] },
+      { title: `Подарок от ${giftAmount} ₸`, lines: ['Клиент выбирает один подарок', 'Подарок добавляется бесплатно', 'Виден в заказе администратора'] },
 
       { title: 'Новинки меню', lines: ['Попробуйте первыми', 'Свежие блюда', 'Каждую неделю'] },
 
@@ -378,11 +434,13 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
     setLoyaltyGifts([
 
-      { ...newLoyaltyGift(0), min_amount: 5000, title: 'Салат в подарок', description: 'Лёгкий салат к заказу', is_active: true },
+      { ...newLoyaltyGift(0), min_amount: 5000, title: 'Картофель фри', description: 'Один из подарков на выбор', is_active: true },
 
-      { ...newLoyaltyGift(1), min_amount: 10000, title: 'Напиток 0,5 л', description: 'На выбор из меню', is_active: true },
+      { ...newLoyaltyGift(1), min_amount: 5000, title: 'Напиток 0,5 л', description: 'Один из подарков на выбор', is_active: true },
 
-      { ...newLoyaltyGift(2), min_amount: 15000, title: 'Десерт', description: 'Сладкое завершение обеда', is_active: true },
+      { ...newLoyaltyGift(2), min_amount: 5000, title: 'Соус на выбор', description: 'Один из подарков на выбор', is_active: true },
+
+      { ...newLoyaltyGift(3), min_amount: 10000, title: 'Десерт дня', description: 'Следующий уровень подарка', is_active: true },
 
     ]);
 
@@ -468,15 +526,62 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
       <div className="flex flex-wrap gap-2">
 
-        {tabBtn('general', 'Основное', Sparkles)}
+        {tabBtn('delivery', 'Доставка', Truck)}
+
+        {tabBtn('promo', 'Промокоды', Megaphone)}
+
+        {tabBtn('gifts', 'Подарки', Gift)}
 
         {tabBtn('zones', 'Зоны на карте', MapPin)}
 
-        {tabBtn('gifts', 'Подарки', Gift)}
+        {tabBtn('general', 'Основное', Sparkles)}
 
       </div>
 
 
+
+      {settingsTab === 'delivery' && (
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-orange-100 bg-orange-50/70 p-4 text-sm text-orange-950">
+            <p className="font-semibold">Пороги, которые видит клиент</p>
+            <p className="mt-1 text-orange-900/80">
+              «Ещё 2 400 ₸ до бесплатной доставки» считается от суммы блюд. Подъём до квартиры
+              становится бесплатным от своего порога. Оба числа меняются здесь и сразу на витрине.
+            </p>
+          </div>
+          {SETTING_FIELDS.filter(field => DELIVERY_KEYS.includes(field.key)).map(field => {
+            const Icon = field.icon;
+            return (
+              <div key={field.key} className="bg-white rounded-xl border p-4">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Icon className="w-4 h-4 text-orange-500" />
+                  <label className="font-medium text-sm text-gray-800">{field.label}</label>
+                </div>
+                <p className="text-xs text-gray-400 mb-2">{field.description}</p>
+                <Input
+                  value={values[field.key] || ''}
+                  onChange={e => setValues(prev => ({ ...prev, [field.key]: e.target.value }))}
+                  placeholder={field.placeholder}
+                />
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {settingsTab === 'promo' && (
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-orange-100 bg-orange-50/70 p-4 text-sm text-orange-950">
+            <p className="font-semibold">Промокоды на витрине</p>
+            <p className="mt-1 text-orange-900/80">
+              Процент, фикс или бесплатная доставка. Клиент вводит код в корзине. Даты и мин. заказ необязательны.
+            </p>
+          </div>
+          <div className="rounded-xl border bg-white p-4">
+            <FoodPromoCodesEditor codes={promoCodes} onChange={setPromoCodes} />
+          </div>
+        </div>
+      )}
 
       {settingsTab === 'zones' && (
 
@@ -586,7 +691,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
           <div className="space-y-4">
 
-            {SETTING_FIELDS.map(field => {
+            {SETTING_FIELDS.filter(field => !DELIVERY_KEYS.includes(field.key)).map(field => {
 
               const Icon = field.icon;
 
@@ -619,14 +724,6 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
               );
 
             })}
-
-          </div>
-
-
-
-          <div className="rounded-xl border bg-white p-4">
-
-            <FoodPromoCodesEditor codes={promoCodes} onChange={setPromoCodes} />
 
           </div>
 

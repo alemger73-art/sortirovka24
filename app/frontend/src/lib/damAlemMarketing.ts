@@ -1,14 +1,13 @@
 import { getCategoryImage } from '@/lib/damAlemImages';
-import type { LoyaltyGift } from '@/lib/gastronomLoyalty';
+import { parseLoyaltyGifts, type LoyaltyGift } from '@/lib/gastronomLoyalty';
 import type { FoodPromoCode } from '@/lib/foodPromo';
 import { parsePromoCodes } from '@/lib/foodPromo';
 
 export const DEFAULT_PROMO_CODES: FoodPromoCode[] = [
-  { code: 'DAMALEM10', type: 'percent', value: 10, min_order: 2500, active: true, label: '−10% на заказ' },
-  { code: 'PIZZA500', type: 'fixed', value: 500, min_order: 3500, active: true, label: '−500 ₸ на пиццу' },
-  { code: 'OBED15', type: 'percent', value: 15, min_order: 2000, active: true, label: '−15% комплексный обед' },
+  { code: 'DAMALEM10', type: 'percent', value: 10, min_order: 2500, max_discount: 1000, active: true, label: '−10% на заказ' },
+  { code: 'PIZZA500', type: 'fixed', value: 500, min_order: 3500, active: true, label: '−500 ₸ на заказ' },
   { code: 'DOSTAVKA', type: 'free_delivery', value: 0, min_order: 8000, active: true, label: 'Бесплатная доставка' },
-  { code: 'SEMYA20', type: 'percent', value: 20, min_order: 12000, active: true, label: '−20% семейный заказ' },
+  { code: 'SEMYA20', type: 'percent', value: 20, min_order: 12000, max_discount: 3000, active: true, label: '−20% семейный заказ' },
 ];
 
 export const REFERRAL_SHARE_MESSAGE =
@@ -17,6 +16,51 @@ export const REFERRAL_SHARE_MESSAGE =
 export function resolvePromoCodes(raw?: string): FoodPromoCode[] {
   const parsed = parsePromoCodes(raw);
   return parsed.length > 0 ? parsed : DEFAULT_PROMO_CODES;
+}
+
+export const DEFAULT_LOYALTY_GIFTS: LoyaltyGift[] = [
+  {
+    id: 'dam-gift-fries',
+    min_amount: 5000,
+    title: 'Картофель фри 150 г',
+    description: 'Выберите один подарок бесплатно',
+    image_url: getCategoryImage('kombo-fastfud'),
+    is_active: true,
+    sort_order: 1,
+  },
+  {
+    id: 'dam-gift-lemonade',
+    min_amount: 5000,
+    title: 'Лимонад 0.5 л',
+    description: 'Выберите один подарок бесплатно',
+    image_url: getCategoryImage('napitki'),
+    is_active: true,
+    sort_order: 2,
+  },
+  {
+    id: 'dam-gift-sauce',
+    min_amount: 5000,
+    title: 'Соус на выбор',
+    description: 'Выберите один подарок бесплатно',
+    image_url: getCategoryImage('burgery'),
+    is_active: true,
+    sort_order: 3,
+  },
+  {
+    id: 'dam-gift-dessert',
+    min_amount: 10000,
+    title: 'Десерт дня',
+    description: 'Следующий уровень — десерт бесплатно',
+    image_url: getCategoryImage('kombo-fastfud'),
+    is_active: true,
+    sort_order: 4,
+  },
+];
+
+export function resolveLoyaltyGifts(raw?: string, enabled = true): LoyaltyGift[] {
+  if (!enabled) return [];
+  const parsed = parseLoyaltyGifts(raw);
+  return parsed.length > 0 ? parsed : DEFAULT_LOYALTY_GIFTS;
 }
 
 export interface PromoSlide {
