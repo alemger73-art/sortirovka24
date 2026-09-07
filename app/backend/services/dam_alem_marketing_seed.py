@@ -67,8 +67,8 @@ def _is_legacy_default_promos(raw: str) -> bool:
     if not isinstance(promos, list):
         return False
     codes = {str(promo.get("code") or "").strip().upper() for promo in promos if isinstance(promo, dict)}
-    return codes == {"DAMALEM10", "PIZZA500", "OBED15", "DOSTAVKA", "SEMYA20"} and all(
-        not promo.get("valid_from") and not promo.get("valid_until") and not promo.get("max_discount")
+    return codes <= {"DAMALEM10", "PIZZA500", "OBED15", "DOSTAVKA", "SEMYA20", "ALEM500", "WEEKEND"} and len(codes) >= 4 and all(
+        not promo.get("valid_from") and not promo.get("valid_until")
         for promo in promos
         if isinstance(promo, dict)
     )

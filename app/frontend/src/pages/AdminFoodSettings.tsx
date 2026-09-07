@@ -160,6 +160,16 @@ const EXTRA_KEYS = [
 
   'promo_codes',
 
+  'referral_enabled',
+
+  'referral_promo_code',
+
+  'referral_title',
+
+  'referral_subtitle',
+
+  'referral_share_text',
+
 ];
 
 
@@ -253,8 +263,14 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
       setLoyaltyEnabled(vals.loyalty_enabled !== '0' && vals.loyalty_enabled !== 'false');
 
       setPromoCodes(parsePromoCodes(vals.promo_codes));
-
-
+      if (!vals.referral_enabled) vals.referral_enabled = '1';
+      if (!vals.referral_promo_code) vals.referral_promo_code = 'DAMALEM10';
+      if (!vals.referral_title) vals.referral_title = 'Отправить другу — скидка 10%';
+      if (!vals.referral_subtitle) vals.referral_subtitle = 'Друг получает код DAMALEM10 на заказ от 2 500 ₸';
+      if (!vals.referral_share_text) {
+        vals.referral_share_text = 'Привет! Заказываю в Алем Фуд — доставка по Сортировке.\nПромокод DAMALEM10 — скидка 10% на заказ от 2 500 ₸';
+      }
+      setValues(vals);
 
       setShowRecommendations(vals.show_recommendations !== 'false');
 
@@ -572,13 +588,64 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
       {settingsTab === 'promo' && (
         <div className="space-y-4">
           <div className="rounded-2xl border border-orange-100 bg-orange-50/70 p-4 text-sm text-orange-950">
-            <p className="font-semibold">Промокоды на витрине</p>
+            <p className="font-semibold">Промокоды и «друг»</p>
             <p className="mt-1 text-orange-900/80">
-              Процент, фикс или бесплатная доставка. Клиент вводит код в корзине. Даты и мин. заказ необязательны.
+              Коды видны в корзине. Реферал — одна кнопка «отправить другу» с вашим текстом и кодом.
             </p>
           </div>
           <div className="rounded-xl border bg-white p-4">
             <FoodPromoCodesEditor codes={promoCodes} onChange={setPromoCodes} />
+          </div>
+          <div className="rounded-xl border bg-white p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h4 className="font-semibold text-gray-900">Отправить другу</h4>
+                <p className="text-xs text-gray-500 mt-0.5">Кнопка на витрине и в корзине</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setValues(prev => ({
+                  ...prev,
+                  referral_enabled: prev.referral_enabled === '0' ? '1' : '0',
+                }))}
+                className="text-sm font-semibold text-orange-600"
+              >
+                {values.referral_enabled === '0' ? 'Выкл' : 'Вкл'}
+              </button>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600">Код для друга</label>
+              <Input
+                value={values.referral_promo_code || 'DAMALEM10'}
+                onChange={e => setValues(prev => ({ ...prev, referral_promo_code: e.target.value.toUpperCase() }))}
+                placeholder="DAMALEM10"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600">Заголовок</label>
+              <Input
+                value={values.referral_title || ''}
+                onChange={e => setValues(prev => ({ ...prev, referral_title: e.target.value }))}
+                placeholder="Отправить другу — скидка 10%"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600">Подпись</label>
+              <Input
+                value={values.referral_subtitle || ''}
+                onChange={e => setValues(prev => ({ ...prev, referral_subtitle: e.target.value }))}
+                placeholder="Друг получает код DAMALEM10"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600">Текст сообщения</label>
+              <Textarea
+                value={values.referral_share_text || ''}
+                onChange={e => setValues(prev => ({ ...prev, referral_share_text: e.target.value }))}
+                rows={3}
+                placeholder="Привет! Заказываю в Алем Фуд…"
+              />
+            </div>
           </div>
         </div>
       )}

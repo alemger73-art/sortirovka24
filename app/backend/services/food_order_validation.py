@@ -288,6 +288,9 @@ def _resolve_promo(
 ) -> Tuple[float, bool]:
     """Return (discount, free_delivery) for a promo code."""
     promos = _parse_promo_codes(settings.get("promo_codes") or "[]")
+    if not promos:
+        from services.dam_alem_marketing_defaults import PROMO_CODES
+        promos = list(PROMO_CODES)
     matched = None
     for promo in promos:
         if not promo or not isinstance(promo, dict):

@@ -1,6 +1,6 @@
-import { ArrowLeft, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, Coins, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import DamAlemImage from '@/components/damalem/DamAlemImage';
-import DamAlemCheckoutButton from '@/components/damalem/DamAlemCheckoutButton';
+import DamAlemShareCard from '@/components/damalem/DamAlemShareCard';
 import LoyaltyGiftBanner from '@/components/gastronom/LoyaltyGiftBanner';
 import { nextLoyaltyGift, type LoyaltyGift } from '@/lib/gastronomLoyalty';
 
@@ -35,7 +35,18 @@ interface Props {
   selectedGiftId?: string | null;
   promoInput: string;
   promoLoading: boolean;
-  appliedPromo?: { code: string; label: string; free_delivery?: boolean } | null;
+  appliedPromo?: { code: string; label: string; free_delivery?: boolean; pending?: boolean } | null;
+  bonusBalance?: number;
+  useBonuses?: boolean;
+  bonusDiscount?: number;
+  maxBonusPoints?: number;
+  loggedIn?: boolean;
+  whatsappNumber?: string;
+  referralEnabled?: boolean;
+  referralTitle?: string;
+  referralSubtitle?: string;
+  referralShareText?: string;
+  referralPromoCode?: string;
   formatPrice: (price: number) => string;
   onBrowse: () => void;
   onUpdateQty: (index: number, delta: number) => void;
@@ -46,6 +57,7 @@ interface Props {
   onClearPromo: () => void;
   onCheckout: () => void;
   onSelectGift?: (gift: LoyaltyGift) => void;
+  onToggleBonuses?: (value: boolean) => void;
 }
 
 export default function DamAlemCartView({
@@ -64,6 +76,17 @@ export default function DamAlemCartView({
   promoInput,
   promoLoading,
   appliedPromo,
+  bonusBalance = 0,
+  useBonuses = false,
+  bonusDiscount = 0,
+  maxBonusPoints = 0,
+  loggedIn = false,
+  whatsappNumber,
+  referralEnabled = true,
+  referralTitle,
+  referralSubtitle,
+  referralShareText,
+  referralPromoCode,
   formatPrice,
   onBrowse,
   onUpdateQty,
@@ -74,14 +97,15 @@ export default function DamAlemCartView({
   onClearPromo,
   onCheckout,
   onSelectGift,
+  onToggleBonuses,
 }: Props) {
   if (lines.length === 0) {
     return (
-      <div className="dam-market-empty">
-        <span className="dam-market-empty__icon"><ShoppingBag className="h-8 w-8" /></span>
-        <h2>Корзина пока пустая</h2>
-        <p>Выберите блюда в меню — они появятся здесь с ценой и опциями.</p>
-        <button type="button" onClick={onBrowse} className="dam-market-primary">
+      <div className="dam-cart-empty">
+        <span className="dam-cart-empty__icon"><ShoppingBag className="h-8 w-8" /></span>
+        <h2>Корзина пуста</h2>
+        <p>Добавьте блюда из меню — здесь появятся цена, опции и промокод.</p>
+        <button type="button" onClick={onBrowse} className="dam-btn-primary">
           Перейти в меню
         </button>
       </div>
@@ -91,55 +115,43 @@ export default function DamAlemCartView({
   const nextGift = nextLoyaltyGift(subtotal, gifts);
   const goals = [
     minOrder > subtotal
-      ? { target: minOrder, remaining: minOrder - subtotal, label: `Добавьте ещё ${formatPrice(minOrder - subtotal)} до минимального заказа` }
+      ? { remaining: minOrder - subtotal, label: `Ещё ${formatPrice(minOrder - subtotal)} до минимального заказа` }
       : null,
     freeDeliveryFrom > subtotal
       ? {
-          target: freeDeliveryFrom,
           remaining: freeDeliveryFrom - subtotal,
           label: apartmentFreeFrom === freeDeliveryFrom
-            ? `Добавьте ещё ${formatPrice(freeDeliveryFrom - subtotal)} — доставка до квартиры будет бесплатной`
-            : `Добавьте ещё ${formatPrice(freeDeliveryFrom - subtotal)} до бесплатной доставки`,
-        }
-      : null,
-    apartmentFreeFrom > subtotal && apartmentFreeFrom !== freeDeliveryFrom
-      ? {
-          target: apartmentFreeFrom,
-          remaining: apartmentFreeFrom - subtotal,
-          label: `Добавьте ещё ${formatPrice(apartmentFreeFrom - subtotal)} — поднимем до квартиры бесплатно`,
+            ? `Ещё ${formatPrice(freeDeliveryFrom - subtotal)} — доставка до квартиры бесплатно`
+            : `Ещё ${formatPrice(freeDeliveryFrom - subtotal)} до бесплатной доставки`,
         }
       : null,
     nextGift
       ? {
-          target: nextGift.min_amount,
           remaining: nextGift.min_amount - subtotal,
-          label: `Добавьте ещё ${formatPrice(nextGift.min_amount - subtotal)} и выберите подарок`,
+          label: `Ещё ${formatPrice(nextGift.min_amount - subtotal)} — и подарок на выбор`,
         }
       : null,
   ].filter(Boolean).sort((a, b) => a!.remaining - b!.remaining);
   const goal = goals[0] ?? null;
-  const progress = goal ? Math.min(100, Math.round((subtotal / goal.target) * 100)) : 100;
   const itemCount = lines.reduce((sum, line) => sum + line.quantity, 0);
-  const itemCountLabel = itemCount % 10 === 1 && itemCount % 100 !== 11
-    ? 'позиция'
-    : [2, 3, 4].includes(itemCount % 10) && ![12, 13, 14].includes(itemCount % 100)
-      ? 'позиции'
-      : 'позиций';
+  const canCheckout = minOrder <= 0 || subtotal >= minOrder;
+  const showBonusBlock = loggedIn && bonusBalance > 0 && !appliedPromo;
+  const payTotal = Math.max(0, total - (useBonuses ? bonusDiscount : 0));
 
   return (
-    <section className="dam-market-cart" data-testid="dam-cart-sheet">
-      <div className="dam-market-cart__head">
-        <button type="button" onClick={onBrowse} className="dam-market-icon-btn" aria-label="Вернуться в меню">
+    <section className="dam-cart" data-testid="dam-cart-sheet">
+      <div className="dam-cart__head">
+        <button type="button" onClick={onBrowse} className="dam-cart__back" aria-label="В меню">
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>
-          <h2>Ваш заказ</h2>
-          <p>{itemCount} {itemCountLabel}</p>
+          <h2>Корзина</h2>
+          <p>{itemCount} {itemCount === 1 ? 'позиция' : itemCount < 5 ? 'позиции' : 'позиций'}</p>
         </div>
       </div>
 
-      <div className="dam-market-cart__layout">
-        <div className="min-w-0 space-y-5">
+      <div className="dam-cart__grid">
+        <div className="dam-cart__main">
           {gifts.length > 0 ? (
             <LoyaltyGiftBanner
               subtotal={subtotal}
@@ -150,28 +162,28 @@ export default function DamAlemCartView({
             />
           ) : null}
 
-          <div className="dam-market-cart__lines">
+          <div className="dam-cart__lines">
             {lines.map((line, index) => (
-              <article key={line.key} className="dam-market-cart-line">
-                <DamAlemImage src={line.image} alt="" className="dam-market-cart-line__image" />
-                <div className="dam-market-cart-line__content">
-                  <div className="flex items-start justify-between gap-2">
+              <article key={line.key} className="dam-cart-line">
+                <DamAlemImage src={line.image} alt="" className="dam-cart-line__img" />
+                <div className="dam-cart-line__body">
+                  <div className="dam-cart-line__top">
                     <div className="min-w-0">
                       <h3>{line.name}</h3>
                       {line.modifiers ? <p>{line.modifiers}</p> : null}
                     </div>
-                    <button type="button" onClick={() => onRemove(index)} className="dam-market-cart-line__remove" aria-label="Удалить">
+                    <button type="button" onClick={() => onRemove(index)} className="dam-cart-line__trash" aria-label="Удалить">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
-                  <div className="dam-market-cart-line__bottom">
+                  <div className="dam-cart-line__bottom">
                     <strong>{formatPrice(line.linePrice)}</strong>
-                    <div className="dam-market-qty">
-                      <button type="button" onClick={() => onUpdateQty(index, -1)} data-testid="dam-cart-qty-minus" aria-label="Уменьшить">
+                    <div className="dam-qty">
+                      <button type="button" onClick={() => onUpdateQty(index, -1)} data-testid="dam-cart-qty-minus" aria-label="Минус">
                         <Minus className="h-4 w-4" />
                       </button>
                       <span data-testid="dam-cart-qty-value">{line.quantity}</span>
-                      <button type="button" onClick={() => onUpdateQty(index, 1)} data-testid="dam-cart-qty-plus" aria-label="Увеличить">
+                      <button type="button" onClick={() => onUpdateQty(index, 1)} data-testid="dam-cart-qty-plus" aria-label="Плюс">
                         <Plus className="h-4 w-4" />
                       </button>
                     </div>
@@ -181,102 +193,137 @@ export default function DamAlemCartView({
             ))}
           </div>
 
-          <div className="dam-market-cart-mobile-promo">
-            <div>
-              <strong>{goal?.label || 'Доступна бесплатная доставка'}</strong>
-              <div className="dam-market-goal__track"><span style={{ width: `${progress}%` }} /></div>
-            </div>
-            <div className="dam-market-promo">
-              <input
-                value={promoInput}
-                onChange={event => onPromoInput(event.target.value.toUpperCase())}
-                placeholder="Промокод"
-                disabled={!!appliedPromo}
-              />
-              <button type="button" onClick={appliedPromo ? onClearPromo : onApplyPromo} disabled={!appliedPromo && (promoLoading || !promoInput.trim())}>
-                {appliedPromo ? 'Сбросить' : promoLoading ? '…' : 'Применить'}
-              </button>
-              {appliedPromo ? <p>Промокод {appliedPromo.code} применён</p> : null}
-            </div>
-          </div>
-
-          <div className="dam-market-cart-mobile-totals">
-            <div><span>Блюда</span><span>{formatPrice(subtotal)}</span></div>
-            <div><span>{serviceFeeLabel}</span><span>{formatPrice(serviceFee)}</span></div>
-            {discount > 0 ? <div className="text-emerald-700"><span>Скидка</span><span>−{formatPrice(discount)}</span></div> : null}
-            {discount <= 0 && appliedPromo?.free_delivery ? (
-              <div className="text-emerald-700"><span>Промокод {appliedPromo.code}</span><span>доставка 0 ₸</span></div>
-            ) : null}
-            <div><strong>К оплате</strong><strong>{formatPrice(total)}</strong></div>
-          </div>
-
-        </div>
-
-        <aside className="dam-market-cart-summary">
-          <h3>Итого</h3>
-          <div className="dam-market-goal">
-            <div className="dam-market-goal__track"><span style={{ width: `${progress}%` }} /></div>
-            <p>{goal?.label || 'Доступна бесплатная доставка'}</p>
-          </div>
-
-          <div className="dam-market-promo">
-            <input
-              value={promoInput}
-              onChange={event => onPromoInput(event.target.value.toUpperCase())}
-              placeholder="Промокод"
-              disabled={!!appliedPromo}
-            />
-            <button type="button" onClick={appliedPromo ? onClearPromo : onApplyPromo} disabled={!appliedPromo && (promoLoading || !promoInput.trim())}>
-              {appliedPromo ? 'Сбросить' : promoLoading ? '…' : 'Применить'}
-            </button>
-            {appliedPromo ? <p>Промокод {appliedPromo.code} применён</p> : null}
-          </div>
-
-          <div className="dam-market-totals">
-            <div><span>Блюда</span><span>{formatPrice(subtotal)}</span></div>
-            <div><span>{serviceFeeLabel}</span><span>{formatPrice(serviceFee)}</span></div>
-            {discount > 0 ? <div className="text-emerald-700"><span>Скидка</span><span>−{formatPrice(discount)}</span></div> : null}
-            {discount <= 0 && appliedPromo?.free_delivery ? (
-              <div className="text-emerald-700"><span>Промокод {appliedPromo.code}</span><span>доставка 0 ₸</span></div>
-            ) : null}
-            <div className="dam-market-totals__total"><span>К оплате</span><span>{formatPrice(total)}</span></div>
-          </div>
-
-          <DamAlemCheckoutButton
-            label="Перейти к оформлению"
-            sublabel={minOrder > subtotal ? `Минимальный заказ ${formatPrice(minOrder)}` : formatPrice(total)}
-            onClick={onCheckout}
-            testId="dam-cart-checkout"
-          />
-          <p className="text-xs leading-relaxed text-zinc-500">
-            Доставку посчитаем по адресу на следующем шаге. Самовывоз — бесплатно. Зоны и цена видны до оплаты.
-          </p>
-        </aside>
-
-        {suggestions.length > 0 ? (
-          <div className="dam-market-cart-suggestions">
-            <div className="dam-market-section-head">
-              <div>
-                <span>Можно добавить</span>
-                <h3>Дополните заказ</h3>
+          {suggestions.length > 0 ? (
+            <div className="dam-cart-upsell">
+              <h3>Добавить к заказу</h3>
+              <div className="dam-cart-upsell__row">
+                {suggestions.map(item => (
+                  <article key={item.id} className="dam-cart-upsell__card">
+                    <DamAlemImage src={item.image} alt="" className="dam-cart-upsell__img" />
+                    <div className="min-w-0 flex-1">
+                      <h4>{item.name}</h4>
+                      <strong>{formatPrice(item.price)}</strong>
+                    </div>
+                    <button type="button" onClick={() => onAddSuggestion(item.id)} aria-label={`Добавить ${item.name}`}>
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </article>
+                ))}
               </div>
             </div>
-            <div className="dam-market-upsell">
-              {suggestions.map(item => (
-                <article key={item.id} className="dam-market-upsell-card">
-                  <DamAlemImage src={item.image} alt="" className="dam-market-upsell-card__image" />
-                  <div className="min-w-0 flex-1">
-                    <h4>{item.name}</h4>
-                    <strong>{formatPrice(item.price)}</strong>
-                  </div>
-                  <button type="button" onClick={() => onAddSuggestion(item.id)} aria-label={`Добавить ${item.name}`}>
-                    <Plus className="h-4 w-4" />
-                  </button>
-                </article>
-              ))}
+          ) : null}
+
+          {referralEnabled ? (
+            <DamAlemShareCard
+              whatsappNumber={whatsappNumber}
+              title={referralTitle}
+              subtitle={referralSubtitle}
+              shareText={referralShareText}
+              promoCode={referralPromoCode}
+            />
+          ) : null}
+        </div>
+
+        <aside className="dam-cart-summary">
+          <h3>Итого</h3>
+
+          {goal ? (
+            <div className="dam-cart-goal">
+              <p>{goal.label}</p>
+            </div>
+          ) : (
+            <div className="dam-cart-goal dam-cart-goal--ok">
+              <p>Пороги достигнуты — можно оформлять</p>
+            </div>
+          )}
+
+          <div className="dam-cart-promo">
+            <label htmlFor="dam-cart-promo-input">Промокод</label>
+            <div className="dam-cart-promo__row">
+              <input
+                id="dam-cart-promo-input"
+                value={promoInput}
+                onChange={event => onPromoInput(event.target.value.toUpperCase())}
+                placeholder="Например DAMALEM10"
+                disabled={!!appliedPromo && !appliedPromo.pending}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' && !appliedPromo) onApplyPromo();
+                }}
+              />
+              <button
+                type="button"
+                className={appliedPromo ? 'dam-btn-ghost' : 'dam-btn-dark'}
+                onClick={appliedPromo ? onClearPromo : onApplyPromo}
+                disabled={!appliedPromo && (promoLoading || !promoInput.trim())}
+              >
+                {appliedPromo ? 'Сбросить' : promoLoading ? '…' : 'Применить'}
+              </button>
+            </div>
+            {appliedPromo ? (
+              <p className={appliedPromo.pending ? 'dam-cart-promo__pending' : 'dam-cart-promo__ok'}>
+                {appliedPromo.pending
+                  ? `Код ${appliedPromo.code} сохранён — скидка включится при нужной сумме`
+                  : (
+                    <>
+                      <Check className="inline h-3.5 w-3.5 mr-1" />
+                      {appliedPromo.code}: {appliedPromo.label}
+                    </>
+                  )}
+              </p>
+            ) : null}
+          </div>
+
+          {showBonusBlock ? (
+            <label className="dam-cart-bonus">
+              <input
+                type="checkbox"
+                checked={useBonuses && maxBonusPoints > 0}
+                disabled={maxBonusPoints <= 0}
+                onChange={e => onToggleBonuses?.(e.target.checked)}
+              />
+              <span>
+                <strong><Coins className="inline h-4 w-4 mr-1" />Списать бонусы</strong>
+                <small>
+                  Баланс {formatPrice(bonusBalance)}
+                  {useBonuses && bonusDiscount > 0 ? ` · −${formatPrice(bonusDiscount)}` : ''}
+                </small>
+              </span>
+            </label>
+          ) : null}
+
+          {loggedIn && bonusBalance > 0 && appliedPromo ? (
+            <p className="dam-cart-hint">Бонусы и промокод вместе не суммируются — выберите одно.</p>
+          ) : null}
+
+          <div className="dam-cart-totals">
+            <div><span>Блюда</span><span>{formatPrice(subtotal)}</span></div>
+            {serviceFee > 0 ? <div><span>{serviceFeeLabel}</span><span>{formatPrice(serviceFee)}</span></div> : null}
+            {discount > 0 ? (
+              <div className="dam-cart-totals__discount"><span>Скидка</span><span>−{formatPrice(discount)}</span></div>
+            ) : null}
+            {discount <= 0 && appliedPromo?.free_delivery ? (
+              <div className="dam-cart-totals__discount"><span>Промокод</span><span>доставка 0 ₸</span></div>
+            ) : null}
+            {useBonuses && bonusDiscount > 0 ? (
+              <div className="dam-cart-totals__discount"><span>Бонусы</span><span>−{formatPrice(bonusDiscount)}</span></div>
+            ) : null}
+            <div className="dam-cart-totals__pay">
+              <span>К оплате</span>
+              <strong>{formatPrice(payTotal)}</strong>
             </div>
           </div>
-        ) : null}
+
+          <button
+            type="button"
+            className="dam-btn-primary dam-btn-primary--xl"
+            data-testid="dam-cart-checkout"
+            disabled={!canCheckout}
+            onClick={onCheckout}
+          >
+            {canCheckout ? `Оформить · ${formatPrice(payTotal)}` : `Мин. заказ ${formatPrice(minOrder)}`}
+          </button>
+          <p className="dam-cart-footnote">Доставку посчитаем по адресу на следующем шаге.</p>
+        </aside>
       </div>
     </section>
   );

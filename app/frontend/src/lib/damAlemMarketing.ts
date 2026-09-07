@@ -4,14 +4,17 @@ import type { FoodPromoCode } from '@/lib/foodPromo';
 import { parsePromoCodes } from '@/lib/foodPromo';
 
 export const DEFAULT_PROMO_CODES: FoodPromoCode[] = [
-  { code: 'DAMALEM10', type: 'percent', value: 10, min_order: 2500, max_discount: 1000, active: true, label: '−10% на заказ' },
+  { code: 'DAMALEM10', type: 'percent', value: 10, min_order: 2500, max_discount: 1500, active: true, label: '−10% другу / себе' },
+  { code: 'ALEM500', type: 'fixed', value: 500, min_order: 3000, active: true, label: '−500 ₸ на заказ' },
   { code: 'PIZZA500', type: 'fixed', value: 500, min_order: 3500, active: true, label: '−500 ₸ на заказ' },
+  { code: 'OBED15', type: 'percent', value: 15, min_order: 4000, max_discount: 1200, active: true, label: '−15% на обед' },
   { code: 'DOSTAVKA', type: 'free_delivery', value: 0, min_order: 8000, active: true, label: 'Бесплатная доставка' },
   { code: 'SEMYA20', type: 'percent', value: 20, min_order: 12000, max_discount: 3000, active: true, label: '−20% семейный заказ' },
+  { code: 'WEEKEND', type: 'percent', value: 12, min_order: 5000, max_discount: 2000, active: true, label: '−12% выходные' },
 ];
 
 export const REFERRAL_SHARE_MESSAGE =
-  'Привет! Заказываю в Алем Фуд — вкусная доставка по Сортировке 🍕\nПромокод DAMALEM10 — скидка 10% на заказ от 2 500 ₸';
+  'Привет! Заказываю в Алем Фуд — доставка по Сортировке.\nПромокод DAMALEM10 — скидка 10% на заказ от 2 500 ₸';
 
 export function resolvePromoCodes(raw?: string): FoodPromoCode[] {
   const parsed = parsePromoCodes(raw);

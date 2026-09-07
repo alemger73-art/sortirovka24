@@ -53,14 +53,14 @@ import DamAlemStickyPills from '@/components/damalem/DamAlemStickyPills';
 import FoodOrderStatusBar from '@/components/damalem/FoodOrderStatusBar';
 import StoreProfileTab from '@/components/StoreProfileTab';
 import { foodCheckoutBlockReason, publicOrderErrorMessage } from '@/lib/foodCheckoutGuards';
-import { isPromoCurrent } from '@/lib/foodPromo';
+import { calcPromoDiscount, isPromoCurrent } from '@/lib/foodPromo';
 import DamAlemPageSkeleton from '@/components/damalem/DamAlemPageSkeleton';
 import LoadErrorState from '@/components/LoadErrorState';
 import DamAlemPromoBanners, { type FoodBanner } from '@/components/damalem/DamAlemPromoBanners';
 import DamAlemPromoStrip from '@/components/damalem/DamAlemPromoStrip';
 import DeliveryZonesPreview from '@/components/damalem/DeliveryZonesPreview';
-import AlemFoodCampaign from '@/components/damalem/AlemFoodCampaign';
 import AlemFoodGoalsDock from '@/components/damalem/AlemFoodGoalsDock';
+import DamAlemShareCard from '@/components/damalem/DamAlemShareCard';
 import { resolveLoyaltyGifts, resolvePromoCodes, type FoodBannerAction } from '@/lib/damAlemMarketing';
 import '@/styles/damAlem.css';
 
@@ -265,7 +265,13 @@ export default function Food() {
   const addressFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<number[]>(() => loadFavoriteIds());
   const [promoInput, setPromoInput] = useState('');
-  const [appliedPromo, setAppliedPromo] = useState<{ code: string; discount: number; free_delivery: boolean; label: string } | null>(null);
+  const [appliedPromo, setAppliedPromo] = useState<{
+    code: string;
+    discount: number;
+    free_delivery: boolean;
+    label: string;
+    pending?: boolean;
+  } | null>(null);
   const [promoLoading, setPromoLoading] = useState(false);
   const [bonusBalance, setBonusBalance] = useState(0);
   const [useBonuses, setUseBonuses] = useState(false);
@@ -297,7 +303,7 @@ export default function Food() {
   }, []);
 
   useEffect(() => {
-    if (!checkoutOpen || !getAccountToken()) {
+    if (!getAccountToken()) {
       setBonusBalance(0);
       setUseBonuses(false);
       return;
@@ -305,7 +311,7 @@ export default function Food() {
     accountApi.me()
       .then((me) => setBonusBalance(Number(me?.bonus_balance || 0)))
       .catch(() => setBonusBalance(0));
-  }, [checkoutOpen]);
+  }, [checkoutOpen, activeTab]);
 
   useEffect(() => {
     try {
@@ -604,6 +610,7 @@ export default function Food() {
     [settings.promo_codes],
   );
   const promoDeepLinkRef = useRef('');
+  const [promoDeepLinkCode, setPromoDeepLinkCode] = useState('');
   useEffect(() => {
     const hash = typeof window !== 'undefined'
       ? new URLSearchParams(window.location.hash.replace(/^#\??/, ''))
@@ -617,16 +624,8 @@ export default function Food() {
     ).trim().toUpperCase();
     if (!code || promoDeepLinkRef.current === code) return;
     promoDeepLinkRef.current = code;
-    setPromoInput(code);
-    const promo = configuredPromos.find((candidate) => candidate.code === code);
-    if (promo) {
-      toast.info(
-        promo.min_order && promo.min_order > 0
-          ? `Промокод ${code} готов. Соберите заказ от ${promo.min_order.toLocaleString('ru-RU')} ₸ и примените в корзине`
-          : `Промокод ${code} готов — примените его в корзине`,
-      );
-    }
-  }, [configuredPromos, searchParams]);
+    setPromoDeepLinkCode(code);
+  }, [searchParams]);
 
   const formatDamPrice = useCallback(
     (price: number) => price.toLocaleString('ru-RU') + ' ₸',
@@ -1095,7 +1094,8 @@ export default function Food() {
   }, [deliveryMethod, cartTotalWithService, activeDeliveryPrice, apartmentDeliveryFee, promoDiscountAmount]);
 
   const maxBonusPoints = useMemo(() => {
-    if (!getAccountToken() || bonusBalance <= 0 || appliedPromo) return 0;
+    if (!getAccountToken() || bonusBalance <= 0) return 0;
+    if (appliedPromo && !appliedPromo.pending) return 0;
     const capBySubtotal = Math.floor(cartTotal * (BONUS_MAX_PERCENT / 100));
     return Math.max(0, Math.min(bonusBalance, capBySubtotal, checkoutTotalBeforeBonus));
   }, [bonusBalance, cartTotal, checkoutTotalBeforeBonus, appliedPromo]);
@@ -1367,7 +1367,7 @@ export default function Food() {
             total_amount: total,
             delivery_fee: deliveryMethod === 'delivery' ? activeDeliveryPrice : 0,
             service_fee: serviceFeeAmount,
-            ...(appliedPromo?.code ? { promo_code: appliedPromo.code } : {}),
+            ...(appliedPromo?.code && !appliedPromo.pending ? { promo_code: appliedPromo.code } : {}),
             ...(loyaltyGift ? { selected_gift_id: loyaltyGift.id } : {}),
             ...(bonusDiscountAmount > 0 ? { bonus_points_to_use: bonusDiscountAmount } : {}),
             ...(deliveryMethod === 'delivery' && deliverToApartment
@@ -1510,10 +1510,11 @@ export default function Food() {
   }
 
   const applyPromoByCode = useCallback(async (raw: string) => {
-    const code = raw.trim();
+    const code = raw.trim().toUpperCase();
     if (!code) return;
     setPromoInput(code);
     setPromoLoading(true);
+    const local = configuredPromos.find((candidate) => candidate.code === code);
     try {
       const result = await validateFoodPromo({ code, cart_subtotal: cartTotal });
       setAppliedPromo({
@@ -1521,16 +1522,57 @@ export default function Food() {
         discount: result.discount,
         free_delivery: result.free_delivery,
         label: result.label,
+        pending: false,
       });
       setUseBonuses(false);
       toast.success(`Промокод ${result.code} применён`);
     } catch (e) {
+      const message = e instanceof Error ? e.message : 'Промокод недействителен';
+      const belowMin = /действует от|минимал|соберите|добавьте/i.test(message)
+        || (local?.min_order != null && cartTotal < (local.min_order || 0));
+      if (local && belowMin) {
+        const calc = calcPromoDiscount(Math.max(cartTotal, local.min_order || 0), local);
+        setAppliedPromo({
+          code: local.code,
+          discount: 0,
+          free_delivery: false,
+          label: calc.label || local.label || local.code,
+          pending: true,
+        });
+        toast.info(
+          local.min_order && local.min_order > cartTotal
+            ? `Код ${local.code} сохранён. Добавьте ещё ${(local.min_order - cartTotal).toLocaleString('ru-RU')} ₸`
+            : `Код ${local.code} сохранён`,
+        );
+        return;
+      }
+      if (local && cartTotal > 0) {
+        const calc = calcPromoDiscount(cartTotal, local);
+        if (calc.discount > 0 || calc.freeDelivery) {
+          setAppliedPromo({
+            code: local.code,
+            discount: calc.discount,
+            free_delivery: calc.freeDelivery,
+            label: calc.label || local.label || local.code,
+            pending: false,
+          });
+          setUseBonuses(false);
+          toast.success(`Промокод ${local.code} применён`);
+          return;
+        }
+      }
       setAppliedPromo(null);
-      toast.error(e instanceof Error ? e.message : 'Промокод недействителен');
+      toast.error(message);
     } finally {
       setPromoLoading(false);
     }
-  }, [cartTotal]);
+  }, [cartTotal, configuredPromos]);
+
+  useEffect(() => {
+    if (!promoDeepLinkCode) return;
+    void applyPromoByCode(promoDeepLinkCode);
+    setPromoDeepLinkCode('');
+  }, [promoDeepLinkCode, applyPromoByCode]);
 
   async function applyPromoCode() {
     await applyPromoByCode(promoInput);
@@ -1538,14 +1580,7 @@ export default function Food() {
 
   function handleBannerAction(action: FoodBannerAction) {
     if (action.type === 'promo') {
-      const promo = configuredPromos.find((candidate) => candidate.code === action.code);
-      const minimum = promo?.min_order || 0;
-      setPromoInput(action.code);
-      if (cartTotal >= minimum) {
-        void applyPromoByCode(action.code);
-      } else {
-        toast.info(`Промокод сохранён. Добавьте блюда ещё на ${formatPrice(minimum - cartTotal)}`);
-      }
+      void applyPromoByCode(action.code);
       if (action.categorySlug) {
         const cat = categories.find(c => categorySlugOf(c) === action.categorySlug);
         if (cat) openCatalog(cat.id);
@@ -1589,8 +1624,16 @@ export default function Food() {
     const code = appliedPromo?.code;
     if (!code) return;
     if (cartTotal <= 0) {
-      setAppliedPromo(null);
-      setPromoInput('');
+      const local = configuredPromos.find((candidate) => candidate.code === code);
+      if (local) {
+        setAppliedPromo({
+          code: local.code,
+          discount: 0,
+          free_delivery: false,
+          label: local.label || local.code,
+          pending: true,
+        });
+      }
       return;
     }
     let cancelled = false;
@@ -1604,11 +1647,23 @@ export default function Food() {
                 discount: result.discount,
                 free_delivery: result.free_delivery,
                 label: result.label,
+                pending: false,
               }
             : current);
         })
         .catch(() => {
           if (cancelled) return;
+          const local = configuredPromos.find((candidate) => candidate.code === code);
+          if (local && local.min_order && cartTotal < local.min_order) {
+            setAppliedPromo({
+              code: local.code,
+              discount: 0,
+              free_delivery: false,
+              label: local.label || local.code,
+              pending: true,
+            });
+            return;
+          }
           setAppliedPromo(null);
           setPromoInput('');
           toast.info('Промокод больше не подходит к текущей корзине');
@@ -1618,7 +1673,7 @@ export default function Food() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [cartTotal, appliedPromo?.code]);
+  }, [cartTotal, appliedPromo?.code, configuredPromos]);
 
   useEffect(() => {
     if (items.length === 0) return;
@@ -2006,27 +2061,23 @@ export default function Food() {
               </section>
 
               <div className="mt-4">
-                <AlemFoodCampaign
+                <DamAlemPromoStrip
+                  promos={configuredPromos}
                   freeDeliveryFrom={freeDeliveryFrom}
-                  apartmentPrice={apartmentDeliveryPrice}
-                  apartmentFreeFrom={apartmentFreeFrom}
-                  gifts={loyaltyGifts}
                   formatPrice={formatPrice}
-                  onOpenGifts={() => {
-                    if (cartCount > 0) setActiveTab('cart');
-                    else toast.info(`Соберите заказ от ${loyaltyGifts[0] ? loyaltyGifts[0].min_amount.toLocaleString('ru-RU') : '5 000'} ₸ — и выберите подарок в корзине`);
-                  }}
+                  appliedCode={appliedPromo?.code}
+                  onApply={code => void applyPromoByCode(code)}
                 />
               </div>
 
-              {(configuredPromos.length > 0 || freeDeliveryFrom > 0) ? (
-                <div className="mt-4">
-                  <DamAlemPromoStrip
-                    promos={configuredPromos}
-                    freeDeliveryFrom={freeDeliveryFrom}
-                    formatPrice={formatPrice}
-                    appliedCode={appliedPromo?.code}
-                    onApply={code => void applyPromoByCode(code)}
+              {(settings.referral_enabled !== '0' && settings.referral_enabled !== 'false') ? (
+                <div className="mt-3">
+                  <DamAlemShareCard
+                    whatsappNumber={settings.whatsapp_number}
+                    title={settings.referral_title || undefined}
+                    subtitle={settings.referral_subtitle || undefined}
+                    shareText={settings.referral_share_text || undefined}
+                    promoCode={settings.referral_promo_code || 'DAMALEM10'}
                   />
                 </div>
               ) : null}
@@ -2134,6 +2185,17 @@ export default function Food() {
               promoInput={promoInput}
               promoLoading={promoLoading}
               appliedPromo={appliedPromo}
+              bonusBalance={bonusBalance}
+              useBonuses={useBonuses}
+              bonusDiscount={bonusDiscountAmount}
+              maxBonusPoints={maxBonusPoints}
+              loggedIn={!!getAccountToken()}
+              whatsappNumber={settings.whatsapp_number}
+              referralEnabled={settings.referral_enabled !== '0' && settings.referral_enabled !== 'false'}
+              referralTitle={settings.referral_title}
+              referralSubtitle={settings.referral_subtitle}
+              referralShareText={settings.referral_share_text}
+              referralPromoCode={settings.referral_promo_code || 'DAMALEM10'}
               formatPrice={formatPrice}
               onBrowse={() => setActiveTab('menu')}
               onUpdateQty={updateQuantity}
@@ -2150,6 +2212,7 @@ export default function Food() {
               }}
               onCheckout={openCheckout}
               onSelectGift={(gift) => setSelectedGiftId(gift.id)}
+              onToggleBonuses={setUseBonuses}
             />
           </div>
         )}
@@ -2189,7 +2252,7 @@ export default function Food() {
           />
         )}
 
-        {activeTab !== 'cart' && (
+        {true && (
           <nav data-bottom-nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 safe-area-pb">
             <div className="flex max-w-7xl mx-auto">
               {DAM_NAV.map(({ id, icon, label }) => renderNavButton(id, icon, label, true))}
@@ -2728,10 +2791,10 @@ export default function Food() {
                         </span>
                       </div>
                     )}
-                    {getAccountToken() && bonusBalance > 0 && appliedPromo && (
+                    {getAccountToken() && bonusBalance > 0 && appliedPromo && !appliedPromo.pending && (
                       <p className="text-xs text-gray-500">Бонусы нельзя списать вместе с промокодом</p>
                     )}
-                    {getAccountToken() && bonusBalance > 0 && !appliedPromo && (
+                    {getAccountToken() && bonusBalance > 0 && (!appliedPromo || appliedPromo.pending) && (
                       <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3 space-y-2">
                         <label className="flex items-start gap-3 cursor-pointer">
                           <input

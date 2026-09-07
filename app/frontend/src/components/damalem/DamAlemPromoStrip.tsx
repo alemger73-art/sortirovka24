@@ -26,7 +26,7 @@ export default function DamAlemPromoStrip({
     <section className="dam-promo-strip dam-animate-in">
       <div className="flex items-center gap-2 mb-3 lg:mb-4">
         <Tag className="h-5 w-5 text-[#FF3B30]" />
-        <h2 className="dam-section-title text-zinc-900">Выгодно сегодня</h2>
+        <h2 className="dam-section-title text-zinc-900">Промокоды</h2>
       </div>
 
       <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-0.5 lg:gap-3">

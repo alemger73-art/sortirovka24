@@ -26,9 +26,17 @@ PROMO_CODES: List[Dict[str, Any]] = [
         "type": "percent",
         "value": 10,
         "min_order": 2500,
-        "max_discount": 1000,
+        "max_discount": 1500,
         "active": True,
-        "label": "−10% на заказ",
+        "label": "−10% другу / себе",
+    },
+    {
+        "code": "ALEM500",
+        "type": "fixed",
+        "value": 500,
+        "min_order": 3000,
+        "active": True,
+        "label": "−500 ₸ на заказ",
     },
     {
         "code": "PIZZA500",
@@ -37,6 +45,15 @@ PROMO_CODES: List[Dict[str, Any]] = [
         "min_order": 3500,
         "active": True,
         "label": "−500 ₸ на заказ",
+    },
+    {
+        "code": "OBED15",
+        "type": "percent",
+        "value": 15,
+        "min_order": 4000,
+        "max_discount": 1200,
+        "active": True,
+        "label": "−15% на обед",
     },
     {
         "code": "DOSTAVKA",
@@ -54,6 +71,15 @@ PROMO_CODES: List[Dict[str, Any]] = [
         "max_discount": 3000,
         "active": True,
         "label": "−20% семейный заказ",
+    },
+    {
+        "code": "WEEKEND",
+        "type": "percent",
+        "value": 12,
+        "min_order": 5000,
+        "max_discount": 2000,
+        "active": True,
+        "label": "−12% выходные",
     },
 ]
 
@@ -131,6 +157,11 @@ PROMO_SLIDES: List[Dict[str, Any]] = [
     },
 ]
 
+REFERRAL_SHARE_TEXT = (
+    "Привет! Заказываю в Алем Фуд — доставка по Сортировке.\n"
+    "Промокод DAMALEM10 — скидка 10% на заказ от 2 500 ₸"
+)
+
 MARKETING_SETTING_KEYS: Dict[str, str] = {
     "free_delivery_from": "15000",
     "apartment_delivery_price": "300",
@@ -142,6 +173,11 @@ MARKETING_SETTING_KEYS: Dict[str, str] = {
     "promo_codes": json.dumps(PROMO_CODES, ensure_ascii=False),
     "loyalty_gifts": json.dumps(LOYALTY_GIFTS, ensure_ascii=False),
     "promo_slides": json.dumps(PROMO_SLIDES, ensure_ascii=False),
+    "referral_enabled": "1",
+    "referral_promo_code": "DAMALEM10",
+    "referral_title": "Отправить другу — скидка 10%",
+    "referral_subtitle": "Друг получает код DAMALEM10 на заказ от 2 500 ₸",
+    "referral_share_text": REFERRAL_SHARE_TEXT,
 }
 
 # Keys replaced when empty or when force-seeding marketing
@@ -158,11 +194,11 @@ FOOD_BANNERS: List[Dict[str, Any]] = [
         "active": True,
     },
     {
-        "title": "Заказ выгоднее на 500 ₸",
-        "subtitle": "Промокод PIZZA500 — скидка на заказ от 3 500 ₸",
-        "image_url": _IMG["pizza"],
-        "button_text": "Пицца",
-        "button_url": "/food#promo=PIZZA500&category=pizza-30",
+        "title": "−500 ₸ с кодом ALEM500",
+        "subtitle": "На заказ от 3 000 ₸",
+        "image_url": _IMG["burger"],
+        "button_text": "Применить",
+        "button_url": "/food#promo=ALEM500",
         "banner_type": "food_delivery",
         "active": True,
     },
@@ -176,15 +212,6 @@ FOOD_BANNERS: List[Dict[str, Any]] = [
         "active": True,
     },
     {
-        "title": "Семейный набор −20%",
-        "subtitle": "SEMYA20 — закажите на компанию от 12 000 ₸ и экономьте",
-        "image_url": _IMG["family"],
-        "button_text": "Сеты",
-        "button_url": "/food#promo=SEMYA20&category=sety-na-kompaniyu",
-        "banner_type": "food_delivery",
-        "active": True,
-    },
-    {
         "title": "Подарок на выбор от 5 000 ₸",
         "subtitle": "Фри, лимонад или соус — выберите один бесплатно",
         "image_url": _IMG["gift"],
@@ -193,18 +220,4 @@ FOOD_BANNERS: List[Dict[str, Any]] = [
         "banner_type": "food_delivery",
         "active": True,
     },
-    {
-        "title": "Донер и шашлык — хиты",
-        "subtitle": "Самые заказываемые блюда Сортировки. Доставка 35–45 мин",
-        "image_url": _IMG["doner"],
-        "button_text": "Заказать",
-        "button_url": "/food#popular",
-        "banner_type": "food_delivery",
-        "active": True,
-    },
 ]
-
-REFERRAL_SHARE_TEXT = (
-    "Привет! Заказываю в Алем Фуд — вкусная доставка по Сортировке 🍕\n"
-    "Промокод DAMALEM10 — скидка 10% на заказ от 2 500 ₸"
-)
