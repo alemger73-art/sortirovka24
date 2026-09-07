@@ -340,6 +340,7 @@ function AdminPanelContent({
       case 'banners': return <AdminBanners />;
       case 'history': return <AdminHistory />;
       case 'dam-alem': return <AdminDamAlem />;
+      case 'partners-alem-food': return <AdminDamAlem />;
       case 'food': return <AdminDamAlem />;
       case 'food-orders': return <AdminDamAlem initialSection="orders" />;
       case 'food-settings': return <AdminDamAlem initialSection="settings" />;
@@ -408,7 +409,7 @@ function AdminPanelContent({
           )}
         </div>
 
-        <div className={`p-3 sm:p-4 md:p-6 ${activeTab === 'partners-gastronom' || activeTab === 'partners-volna' || activeTab === 'partners-prorab' || activeTab === 'partners-pharmacy' ? 'pb-24 md:pb-6' : ''}`}>
+        <div className={`p-3 sm:p-4 md:p-6 ${activeTab === 'partners-alem-food' || activeTab === 'partners-gastronom' || activeTab === 'partners-volna' || activeTab === 'partners-prorab' || activeTab === 'partners-pharmacy' ? 'pb-24 md:pb-6' : ''}`}>
           {renderContent()}
         </div>
 

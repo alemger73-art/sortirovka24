@@ -43,7 +43,7 @@ export default function More() {
         { path: '/transport', key: 'nav.transport', icon: Bus, accent: 'bg-emerald-600' },
         { path: '/directory', key: 'nav.directory', icon: BookOpen, accent: 'bg-violet-600' },
         { path: '/taxi', key: 'nav.taxi', icon: Car, accent: 'bg-amber-500', hidden: taxiEnabled === false },
-        { path: '/food/restaurants', key: 'more.foodRestaurants', icon: UtensilsCrossed, accent: 'bg-orange-500' },
+        { path: '/food', key: 'more.alemFood', icon: UtensilsCrossed, accent: 'bg-orange-500' },
         { path: '/gastronom', key: 'more.gastronom', icon: ShoppingBag, accent: 'bg-green-600' },
         { path: '/volna', key: 'more.volna', icon: Wine, accent: 'bg-violet-700' },
         { path: '/apteka', key: 'more.pharmacy', icon: Cross, accent: 'bg-teal-600' },

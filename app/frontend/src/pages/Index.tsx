@@ -229,11 +229,6 @@ export default function Index() {
 
   /* ─── Popular Categories config (filtered by enabled modules) ─── */
   const popularCategories = ([
-    { labelKey: 'categories.food', to: '/food', img: FOOD_IMG, module: 'food' },
-    { labelKey: 'categories.gastronom', to: '/gastronom', img: GASTRONOM_IMG, module: 'gastronom' },
-    { labelKey: 'categories.volna', to: '/volna', img: VOLNA_INDEX_IMAGE, module: 'volna' },
-    { labelKey: 'categories.construction', to: '/prorab', img: PRORAB_IMG, module: 'prorab' },
-    { labelKey: 'categories.pharmacy', to: '/apteka', img: PHARMACY_IMG, module: 'pharmacy' },
     { labelKey: 'categories.masters', to: '/masters', img: MASTERS_IMG, module: 'masters' },
     { labelKey: 'categories.salons', to: '/salons', img: SALONS_IMG, module: 'salons' },
     { labelKey: 'categories.realEstate', to: '/real-estate', img: REALESTATE_IMG, module: 'real_estate' },
@@ -253,6 +248,71 @@ export default function Index() {
 
       <div className="bg-[#f5f5f7] dark:bg-gray-950 transition-colors duration-300">
         <div className="max-w-6xl mx-auto px-4 py-10 space-y-12">
+
+          {/* ═══════════════════════════════════════════
+              1b. МАГАЗИНЫ РАЙОНА — Алем Фуд рядом с остальными
+          ═══════════════════════════════════════════ */}
+          {(isEnabled('food') || isEnabled('gastronom') || isEnabled('volna') || isEnabled('prorab') || isEnabled('pharmacy')) && (
+          <section>
+            <SectionHeader title={t('shops.title')} accentColor="from-orange-500 to-red-600" />
+            <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4">
+              {isEnabled('food') && (
+                <Link
+                  to="/food"
+                  className="group relative col-span-2 overflow-hidden rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 min-h-[168px] md:min-h-[200px] flex items-end"
+                >
+                  <img src={FOOD_IMG} alt={t('shops.alemFood')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
+                  <div className="relative z-10 p-4 md:p-5 w-full">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-orange-200 bg-orange-500/40 backdrop-blur-sm px-2.5 py-1 rounded-full">{t('shops.alemFoodTag')}</span>
+                    <h3 className="mt-2 text-xl md:text-2xl font-black text-white tracking-tight">{t('shops.alemFood')}</h3>
+                    <p className="mt-1 text-sm text-white/80">{t('shops.alemFoodDesc')}</p>
+                  </div>
+                </Link>
+              )}
+              {isEnabled('gastronom') && (
+                <Link to="/gastronom" className="group relative overflow-hidden rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 min-h-[168px] md:min-h-[200px] flex items-end">
+                  <img src={GASTRONOM_IMG} alt={t('categories.gastronom')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+                  <div className="relative z-10 p-4 w-full">
+                    <h3 className="font-bold text-white text-sm md:text-base">{t('categories.gastronom')}</h3>
+                    <p className="text-white/70 text-xs mt-0.5">{t('shops.gastronomDesc')}</p>
+                  </div>
+                </Link>
+              )}
+              {isEnabled('volna') && (
+                <Link to="/volna" className="group relative overflow-hidden rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 min-h-[168px] md:min-h-[200px] flex items-end">
+                  <VolnaImage src={VOLNA_INDEX_IMAGE} kind="category" alt={t('categories.volna')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+                  <div className="relative z-10 p-4 w-full">
+                    <h3 className="font-bold text-white text-sm md:text-base">{t('categories.volna')}</h3>
+                    <p className="text-white/70 text-xs mt-0.5">{t('shops.volnaDesc')}</p>
+                  </div>
+                </Link>
+              )}
+              {isEnabled('prorab') && (
+                <Link to="/prorab" className="group relative overflow-hidden rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 min-h-[168px] md:min-h-[200px] flex items-end">
+                  <img src={PRORAB_IMG} alt={t('categories.construction')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+                  <div className="relative z-10 p-4 w-full">
+                    <h3 className="font-bold text-white text-sm md:text-base">{t('categories.construction')}</h3>
+                    <p className="text-white/70 text-xs mt-0.5">{t('shops.prorabDesc')}</p>
+                  </div>
+                </Link>
+              )}
+              {isEnabled('pharmacy') && (
+                <Link to="/apteka" className="group relative overflow-hidden rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 min-h-[168px] md:min-h-[200px] flex items-end">
+                  <img src={PHARMACY_IMG} alt={t('categories.pharmacy')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+                  <div className="relative z-10 p-4 w-full">
+                    <h3 className="font-bold text-white text-sm md:text-base">{t('categories.pharmacy')}</h3>
+                    <p className="text-white/70 text-xs mt-0.5">{t('shops.pharmacyDesc')}</p>
+                  </div>
+                </Link>
+              )}
+            </div>
+          </section>
+          )}
 
           {/* ═══════════════════════════════════════════
               2. ПОПУЛЯРНЫЕ КАТЕГОРИИ (primary block — main visual entry)

@@ -86,6 +86,7 @@ const MENU_GROUPS: MenuGroup[] = [
     emoji: '🤝',
     items: [
       { id: 'partners-business', label: 'Заявки партнёров', icon: Handshake },
+      { id: 'partners-alem-food', label: DAM_ALEM_BRAND, icon: Utensils },
       { id: 'partners-gastronom', label: 'Гастроном', icon: Store },
       { id: 'partners-volna', label: 'VOLNA', icon: Wine },
       { id: 'partners-prorab', label: 'PRORAB', icon: HardHat },

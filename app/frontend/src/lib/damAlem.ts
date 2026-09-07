@@ -1,4 +1,4 @@
-export const DAM_ALEM_BRAND = 'DAM ALEM 2.0';
+export const DAM_ALEM_BRAND = 'Алем Фуд';
 
 export function normalizeDamAlemBrand(name: string): string {
   return name.toLowerCase().replace(/\s+/g, '').replace(/2\.0/g, '');
@@ -21,7 +21,13 @@ export const DAM_ALEM_COLORS = {
 
 export function isDamAlemName(name: string | null | undefined): boolean {
   const n = (name || '').toLowerCase().replace(/\s+/g, '');
-  return n.includes('damalem') || n.includes('дамалем');
+  return (
+    n.includes('damalem') ||
+    n.includes('дамалем') ||
+    n.includes('алемфуд') ||
+    n.includes('alemfood') ||
+    n.includes('алем-фуд')
+  );
 }
 
 export function findDamAlemRestaurantId(restaurants: { id: number; name: string }[]): number | null {

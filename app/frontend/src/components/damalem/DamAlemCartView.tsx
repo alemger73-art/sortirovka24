@@ -70,7 +70,7 @@ export default function DamAlemCartView({
       <div className="dam-market-empty">
         <span className="dam-market-empty__icon"><ShoppingBag className="h-8 w-8" /></span>
         <h2>Корзина пока пустая</h2>
-        <p>Выберите блюда — они появятся здесь.</p>
+        <p>Выберите блюда в меню — они появятся здесь с ценой и опциями.</p>
         <button type="button" onClick={onBrowse} className="dam-market-primary">
           Перейти в меню
         </button>
@@ -197,6 +197,9 @@ export default function DamAlemCartView({
             onClick={onCheckout}
             testId="dam-cart-checkout"
           />
+          <p className="text-xs leading-relaxed text-zinc-500">
+            Доставку посчитаем по адресу на следующем шаге. Самовывоз — бесплатно. Зоны и цена видны до оплаты.
+          </p>
         </aside>
 
         {suggestions.length > 0 ? (

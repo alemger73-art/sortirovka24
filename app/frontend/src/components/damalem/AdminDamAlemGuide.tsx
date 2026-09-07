@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, BookOpen, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { DAM_ALEM_BRAND } from '@/lib/damAlem';
 
 export default function AdminDamAlemGuide() {
   const [open, setOpen] = useState(false);
@@ -17,8 +18,8 @@ export default function AdminDamAlemGuide() {
             <BookOpen className="h-5 w-5" />
           </span>
           <div>
-            <p className="font-bold text-gray-900">Инструкция DAM ALEM 2.0</p>
-            <p className="text-xs text-gray-500">Для вас и для клиентов — коротко и по делу</p>
+            <p className="font-bold text-gray-900">Как работает интернет-магазин {DAM_ALEM_BRAND}</p>
+            <p className="text-xs text-gray-500">Витрина, корзина, зоны доставки и система учёта</p>
           </div>
         </div>
         {open ? <ChevronUp className="h-5 w-5 text-gray-400" /> : <ChevronDown className="h-5 w-5 text-gray-400" />}
@@ -29,32 +30,29 @@ export default function AdminDamAlemGuide() {
           <div>
             <p className="font-semibold text-gray-900 mb-2">Клиент заказывает так:</p>
             <ol className="list-decimal list-inside space-y-1 text-gray-600">
-              <li>Нажимает <strong>+</strong> у блюда (или карточку → опции → в корзину)</li>
-              <li>Открывает <strong>корзину</strong> внизу экрана</li>
-              <li><strong>Оформляет</strong>: имя, телефон, доставка/самовывоз, зона, оплата</li>
-              <li>Видит «Заказ принят №…» — статус в <Link to="/cabinet" className="text-[#FF3B30] underline" target="_blank">кабинете</Link></li>
+              <li>Открывает <strong>{DAM_ALEM_BRAND}</strong> на главной или в «Ещё»</li>
+              <li>Добавляет блюда в корзину, при необходимости выбирает опции</li>
+              <li>Оформляет: адрес, зона доставки, оплата</li>
+              <li>Видит «Заказ принят №…» — статус в личном кабинете</li>
             </ol>
           </div>
 
           <div>
             <p className="font-semibold text-gray-900 mb-2">Ваша админка:</p>
             <ul className="space-y-1 text-gray-600">
-              <li><strong>Заведение</strong> — описание видно на /food</li>
-              <li><strong>Блюда / Категории / Опции</strong> — меню без программиста</li>
-              <li><strong>Заказы</strong> — статусы, поиск, выручка за сегодня, автообновление</li>
-              <li><strong>Баннеры</strong> — карусель на /food, файл <strong>1200×720 px</strong> (5:3)</li>
-              <li><strong>Настройки</strong> — зоны доставки, мин. заказ, сервисный сбор %</li>
+              <li><strong>Заведение</strong> — название и фото на витрине</li>
+              <li><strong>Блюда / Категории / Опции</strong> — каталог без программиста</li>
+              <li><strong>Заказы</strong> — статусы и выручка</li>
+              <li><strong>Баннеры</strong> — акции на витрине</li>
+              <li><strong>Настройки</strong> — зоны доставки, мин. заказ, часы работы</li>
+              <li><strong>Учёт / API</strong> — ключи FrontPad для кассы</li>
             </ul>
           </div>
 
           <div className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900">
-            <p className="font-semibold mb-1">Зоны доставки</p>
-            <p>Настраиваются в «Настройки». Клиент выбирает зону при оформлении — цена доставки подставится автоматически. Названия зон должны быть понятными (например: «Центр Сортировки», «Мкр. Восточный»).</p>
+            <p className="font-semibold mb-1">Модуль можно выключить</p>
+            <p>Админ → Система → Модули → «Алем Фуд». Витрина, плитка на главной и API магазина пропадут у жителей.</p>
           </div>
-
-          <p className="text-xs text-gray-400">
-            Полный документ: <code className="bg-gray-100 px-1 rounded">app/frontend/docs/DAM_ALEM_ИНСТРУКЦИЯ.md</code>
-          </p>
 
           <Link
             to="/food"

@@ -16,13 +16,13 @@ export interface PartnerModuleConfig {
 export const PARTNER_MODULES: Record<PartnerType, PartnerModuleConfig> = {
   dam_alem: {
     type: 'dam_alem',
-    label: 'DAM ALEM 2.0',
-    defaultDisplayName: 'DAM ALEM 2.0',
+    label: 'Алем Фуд',
+    defaultDisplayName: 'Алем Фуд',
     route: '/partner/dam-alem',
     storefront: '/food',
     accentClass: 'text-[#FF3B30]',
     buttonClass: 'bg-[#FF3B30] hover:bg-[#e8352b]',
-    description: 'Меню, заказы, баннеры и настройки доставки',
+    description: 'Интернет-магазин доставки еды: меню, заказы, зоны и учёт',
   },
   gastronom: {
     type: 'gastronom',

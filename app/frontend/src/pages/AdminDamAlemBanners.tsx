@@ -46,7 +46,13 @@ const BANNER_TYPES: Record<string, string> = {
 function isFoodBanner(b: Banner) {
   const url = (b.button_url || b.link_url || '').toLowerCase();
   const title = (b.title || '').toLowerCase();
-  return url.includes('/food') || title.includes('dam alem') || title.includes('доставка еды') || b.banner_type === 'food_delivery';
+  return (
+    url.includes('/food') ||
+    title.includes('dam alem') ||
+    title.includes('алем фуд') ||
+    title.includes('доставка еды') ||
+    b.banner_type === 'food_delivery'
+  );
 }
 
 export default function AdminDamAlemBanners() {
@@ -153,7 +159,7 @@ export default function AdminDamAlemBanners() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-orange-100 bg-orange-50/60 p-4">
         <div>
-          <p className="text-sm font-semibold text-gray-900">Баннеры DAM ALEM 2.0</p>
+          <p className="text-sm font-semibold text-gray-900">Баннеры Алем Фуд</p>
           <p className="mt-1 text-xs text-gray-600">
             Карусель «Спецпредложения» на странице /food. По умолчанию — баннеры со ссылкой на /food.
           </p>
@@ -217,7 +223,7 @@ export default function AdminDamAlemBanners() {
           <div className="rounded-2xl border border-dashed p-10 text-center">
             <Image className="mx-auto h-10 w-10 text-gray-300" />
             <p className="mt-3 font-medium text-gray-800">Нет баннеров</p>
-            <p className="mt-1 text-sm text-gray-500">Создайте первый баннер для страницы DAM ALEM 2.0</p>
+            <p className="mt-1 text-sm text-gray-500">Создайте первый баннер для витрины Алем Фуд</p>
           </div>
         )}
       </div>

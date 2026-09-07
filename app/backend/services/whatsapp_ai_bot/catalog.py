@@ -53,11 +53,11 @@ async def resolve_dam_alem_restaurant_id(db: AsyncSession) -> tuple[Optional[int
     restaurants = result.get("items") or []
     for row in restaurants:
         if is_dam_alem_name(getattr(row, "name", None)):
-            return int(row.id), str(row.name or "DAM ALEM 2.0")
+            return int(row.id), str(row.name or "Алем Фуд")
     if restaurants:
         first = restaurants[0]
-        return int(first.id), str(first.name or "DAM ALEM 2.0")
-    return None, "DAM ALEM 2.0"
+        return int(first.id), str(first.name or "Алем Фуд")
+    return None, "Алем Фуд"
 
 
 async def load_catalog(db: AsyncSession, *, item_limit: int = 400) -> CatalogSnapshot:

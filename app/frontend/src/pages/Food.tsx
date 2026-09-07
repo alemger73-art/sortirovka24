@@ -57,6 +57,10 @@ import { foodCheckoutBlockReason, publicOrderErrorMessage } from '@/lib/foodChec
 import { parsePromoCodes } from '@/lib/foodPromo';
 import DamAlemPageSkeleton from '@/components/damalem/DamAlemPageSkeleton';
 import LoadErrorState from '@/components/LoadErrorState';
+import DamAlemPromoBanners, { type FoodBanner } from '@/components/damalem/DamAlemPromoBanners';
+import DamAlemPromoStrip from '@/components/damalem/DamAlemPromoStrip';
+import DeliveryZonesPreview from '@/components/damalem/DeliveryZonesPreview';
+import { type FoodBannerAction } from '@/lib/damAlemMarketing';
 import '@/styles/damAlem.css';
 
 /* ─── Types ─── */
@@ -235,6 +239,7 @@ export default function Food() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [brandProfile, setBrandProfile] = useState<BrandProfile | null>(null);
+  const [promoBanners, setPromoBanners] = useState<FoodBanner[]>([]);
   const [damAlemRestaurantId, setDamAlemRestaurantId] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(null);
   const [currentSelections, setCurrentSelections] = useState<CartItemSelection>({});
@@ -538,6 +543,23 @@ export default function Food() {
       });
       setSettings(prev => ({ ...prev, ...s }));
 
+      const rawBanners = extract(results[3]) as Array<FoodBanner & { link_url?: string; banner_type?: string; active?: boolean }>;
+      const mappedBanners: FoodBanner[] = rawBanners
+        .filter(b => b.active !== false)
+        .map(b => ({
+          id: b.id,
+          title: b.title,
+          subtitle: b.subtitle,
+          image_url: b.image_url,
+          button_text: b.button_text,
+          button_url: b.button_url || b.link_url,
+        }));
+      const foodOnly = mappedBanners.filter(b => {
+        const hay = `${b.button_url || ''} ${b.title || ''}`.toLowerCase();
+        return hay.includes('/food') || hay.includes('dam alem') || hay.includes('алем') || hay.includes('доставка');
+      });
+      setPromoBanners(foodOnly.length > 0 ? foodOnly : mappedBanners.slice(0, 8));
+
       void loadModifiers(true);
     } catch (e) {
       console.error('Error loading food data:', e);
@@ -605,6 +627,11 @@ export default function Food() {
     () => menuCategorySections.map(({ category }) => ({ id: String(category.id), label: category.name })),
     [menuCategorySections],
   );
+  const hitItems = useMemo(() => {
+    const hits = items.filter(i => i.is_popular || i.is_recommended);
+    if (hits.length >= 4) return hits.slice(0, 12);
+    return [...items].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)).slice(0, 8);
+  }, [items]);
 
   const patchSearch = useCallback((patch: (p: URLSearchParams) => void, replace = false) => {
     setSearchParams(prev => {
@@ -1386,6 +1413,34 @@ export default function Food() {
     await applyPromoByCode(promoInput);
   }
 
+  function handleBannerAction(action: FoodBannerAction) {
+    if (action.type === 'promo') {
+      void applyPromoByCode(action.code);
+      if (action.categorySlug) {
+        const cat = categories.find(c => categorySlugOf(c) === action.categorySlug);
+        if (cat) openCatalog(cat.id);
+        else setActiveTab('cart');
+      } else {
+        setActiveTab('cart');
+      }
+      return;
+    }
+    if (action.type === 'category') {
+      const cat = categories.find(c => categorySlugOf(c) === action.slug);
+      if (cat) openCatalog(cat.id);
+      return;
+    }
+    if (action.type === 'popular') {
+      document.getElementById('alem-hits')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    if (action.type === 'link') {
+      window.open(action.url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    document.getElementById('dam-market-categories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   useEffect(() => {
     const code = appliedPromo?.code;
     if (!code) return;
@@ -1695,7 +1750,7 @@ export default function Food() {
                 </button>
               ) : null}
             </div>
-            <nav className="dam-market-desktop-nav" aria-label="Разделы DAM ALEM">
+            <nav className="dam-market-desktop-nav" aria-label={`Разделы ${DAM_ALEM_BRAND}`}>
               <button type="button" onClick={() => setActiveTab('menu')} className={activeTab === 'menu' ? 'is-active' : ''}>
                 <LayoutGrid className="h-4 w-4" /> Меню
               </button>
@@ -1733,12 +1788,12 @@ export default function Food() {
                 <div className="dam-market-offer__glow" aria-hidden="true" />
                 <div className="dam-market-offer__icon"><Tag className="h-5 w-5" /></div>
                 <div className="dam-market-offer__content">
-                  <span>DAM ALEM · СОРТИРОВКА</span>
+                  <span>Алем Фуд · Сортировка 24</span>
                   <h1>{primaryOffer?.label || 'Горячая еда с доставкой по Сортировке'}</h1>
                   <p>
                     {primaryOffer
                       ? `Промокод ${primaryOffer.code}${primaryOffer.min_order ? ` · заказ от ${formatPrice(primaryOffer.min_order)}` : ''}`
-                      : 'Готовим после заказа и привозим горячим'}
+                      : 'Пицца, донеры, шашлыки и комбо — готовим после вашего заказа'}
                   </p>
                 </div>
                 <button
@@ -1756,7 +1811,7 @@ export default function Food() {
                 </button>
               </section>
 
-              <section className="dam-market-benefits" aria-label="Преимущества DAM ALEM">
+              <section className="dam-market-benefits" aria-label={`Преимущества ${DAM_ALEM_BRAND}`}>
                 <article>
                   <span><CheckCircle2 className="h-4 w-4" /></span>
                   <div><strong>Готовим после заказа</strong><p>Не держим блюда на витрине</p></div>
@@ -1773,6 +1828,53 @@ export default function Food() {
                   </div>
                 </article>
               </section>
+
+              {(configuredPromos.length > 0 || freeDeliveryFrom > 0) ? (
+                <div className="mt-4">
+                  <DamAlemPromoStrip
+                    promos={configuredPromos}
+                    freeDeliveryFrom={freeDeliveryFrom}
+                    formatPrice={formatPrice}
+                    appliedCode={appliedPromo?.code}
+                    onApply={code => void applyPromoByCode(code)}
+                  />
+                </div>
+              ) : null}
+
+              {promoBanners.length > 0 ? (
+                <div className="mt-4">
+                  <DamAlemPromoBanners banners={promoBanners} onAction={handleBannerAction} />
+                </div>
+              ) : null}
+
+              {hitItems.length > 0 && !searchQuery.trim() ? (
+                <section id="alem-hits" className="dam-market-hits">
+                  <div className="dam-market-section-head">
+                    <div>
+                      <span>Популярное</span>
+                      <h2>Хиты Алем Фуд</h2>
+                    </div>
+                  </div>
+                  <div className="dam-market-hits__row">
+                    {hitItems.map(item => (
+                      <div key={`hit-${item.id}`} className="dam-market-hits__card">
+                        <MenuDishRow item={item} variant="hero" />
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+
+              {hasDeliveryZones ? (
+                <div className="mt-4">
+                  <DeliveryZonesPreview
+                    zones={mapDeliveryZones}
+                    storeLat={storeLatNum}
+                    storeLng={storeLngNum}
+                    formatPrice={formatPrice}
+                  />
+                </div>
+              ) : null}
             </div>
 
             {!searchQuery.trim() && categoryPills.length > 0 ? (

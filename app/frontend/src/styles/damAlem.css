@@ -1969,3 +1969,32 @@ body.dam-sheet-open [data-bottom-nav] {
     font-weight: 750;
   }
 }
+
+.dam-market-hits {
+  margin-top: 1.35rem;
+}
+
+.dam-market-hits__row {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding: 0.1rem 0 0.4rem;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.dam-market-hits__row::-webkit-scrollbar {
+  display: none;
+}
+
+.dam-market-hits__card {
+  flex: 0 0 min(70vw, 15.5rem);
+  scroll-snap-align: start;
+}
+
+@media (min-width: 768px) {
+  .dam-market-hits__card {
+    flex-basis: 15.5rem;
+  }
+}
+

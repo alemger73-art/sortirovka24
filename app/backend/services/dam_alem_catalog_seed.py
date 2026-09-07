@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
-RESTAURANT_NAMES = ("dam alem", "дам алем", "damalem", "däm әлемі")
+RESTAURANT_NAMES = ("dam alem", "дам алем", "damalem", "däm әлемі", "алем фуд", "alem food")
 EXPECTED_ITEM_COUNT = len(build_items())
 EXPECTED_CATEGORY_COUNT = len(CATEGORIES)
 # Treat catalog as complete only when most of the full menu is present.
@@ -44,7 +44,7 @@ async def _ensure_restaurant(db: AsyncSession) -> Food_restaurants:
     if existing:
         return existing
     row = Food_restaurants(
-        name="DAM ALEM 2.0",
+        name="Алем Фуд",
         photo="https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-15/fe194ca1-0095-44bf-a906-e50cb844ad56.png",
         description="Доставка еды №1 в Сортировке.",
         whatsapp_phone="+77470304096",
