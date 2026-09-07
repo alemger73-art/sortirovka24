@@ -162,30 +162,6 @@ export default function DamAlemCartView({
             <div><strong>К оплате</strong><strong>{formatPrice(total)}</strong></div>
           </div>
 
-          {suggestions.length > 0 ? (
-            <div>
-              <div className="dam-market-section-head">
-                <div>
-                  <span>Можно добавить</span>
-                  <h3>Дополните заказ</h3>
-                </div>
-              </div>
-              <div className="dam-market-upsell">
-                {suggestions.map(item => (
-                  <article key={item.id} className="dam-market-upsell-card">
-                    <DamAlemImage src={item.image} alt="" className="dam-market-upsell-card__image" />
-                    <div className="min-w-0 flex-1">
-                      <h4>{item.name}</h4>
-                      <strong>{formatPrice(item.price)}</strong>
-                    </div>
-                    <button type="button" onClick={() => onAddSuggestion(item.id)} aria-label={`Добавить ${item.name}`}>
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </article>
-                ))}
-              </div>
-            </div>
-          ) : null}
         </div>
 
         <aside className="dam-market-cart-summary">
@@ -222,6 +198,31 @@ export default function DamAlemCartView({
             testId="dam-cart-checkout"
           />
         </aside>
+
+        {suggestions.length > 0 ? (
+          <div className="dam-market-cart-suggestions">
+            <div className="dam-market-section-head">
+              <div>
+                <span>Можно добавить</span>
+                <h3>Дополните заказ</h3>
+              </div>
+            </div>
+            <div className="dam-market-upsell">
+              {suggestions.map(item => (
+                <article key={item.id} className="dam-market-upsell-card">
+                  <DamAlemImage src={item.image} alt="" className="dam-market-upsell-card__image" />
+                  <div className="min-w-0 flex-1">
+                    <h4>{item.name}</h4>
+                    <strong>{formatPrice(item.price)}</strong>
+                  </div>
+                  <button type="button" onClick={() => onAddSuggestion(item.id)} aria-label={`Добавить ${item.name}`}>
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </article>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     </section>
   );

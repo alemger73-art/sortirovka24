@@ -15,7 +15,12 @@ export default function DamAlemPageSkeleton() {
           <div className="h-10 w-full dam-skeleton rounded-none opacity-60" />
         </div>
         <div className="px-4 sm:px-6 lg:px-8 py-4 space-y-5">
-          <div className="dam-skeleton h-20 w-full rounded-2xl" />
+          <div className="dam-skeleton h-28 w-full rounded-[22px]" />
+          <div className="flex sm:grid sm:grid-cols-3 gap-2 overflow-hidden">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="dam-skeleton h-16 min-w-[78%] sm:min-w-0 rounded-2xl" />
+            ))}
+          </div>
           <div className="flex gap-2 overflow-hidden">
             {[1, 2, 3, 4, 5].map(i => (
               <div key={i} className="dam-skeleton h-10 w-24 shrink-0 rounded-full" />

@@ -34,7 +34,7 @@ async function addItemToCart(page: Page) {
 
 async function openCheckoutWizard(page: Page) {
   await addItemToCart(page);
-  await page.getByTestId("dam-floating-cart").click();
+  await page.getByTestId("dam-cart-open").click();
   await expect(page.getByTestId("dam-cart-sheet")).toBeVisible();
   await expect(page).toHaveURL(/tab=cart/);
   await page.getByTestId("dam-cart-checkout").click();

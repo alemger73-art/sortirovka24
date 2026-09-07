@@ -43,9 +43,9 @@ test("cart tab: add item, change quantity, open checkout", async ({ page }) => {
   await waitForFoodMenu(page);
   await addItemToCart(page);
 
-  const floatingCart = page.getByTestId("dam-floating-cart");
-  await expect(floatingCart).toBeVisible({ timeout: 10_000 });
-  await floatingCart.click();
+  const cartButton = page.getByTestId("dam-cart-open");
+  await expect(cartButton).toBeVisible({ timeout: 10_000 });
+  await cartButton.click();
 
   const cartPage = page.getByTestId("dam-cart-sheet");
   await expect(cartPage).toBeVisible();
@@ -72,7 +72,7 @@ test("cart tab: add item, change quantity, open checkout", async ({ page }) => {
 test("cart tab: back to menu works", async ({ page }) => {
   await waitForFoodMenu(page);
   await addItemToCart(page);
-  await page.getByTestId("dam-floating-cart").click();
+  await page.getByTestId("dam-cart-open").click();
 
   await expect(page.getByTestId("dam-cart-sheet")).toBeVisible();
 

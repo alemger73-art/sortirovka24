@@ -44,7 +44,6 @@ import { type SavedAddress } from '@/lib/accountApi';
 import LoyaltyGiftBanner from '@/components/gastronom/LoyaltyGiftBanner';
 import OrderGoalsProgress from '@/components/damalem/OrderGoalsProgress';
 import DamAlemProductCard from '@/components/damalem/DamAlemProductCard';
-import DamAlemFloatingCart from '@/components/damalem/DamAlemFloatingCart';
 import DamAlemStatusStrip from '@/components/damalem/DamAlemStatusStrip';
 import { resolveDamAlemItemImage } from '@/lib/damAlemImages';
 import DamAlemImage from '@/components/damalem/DamAlemImage';
@@ -199,7 +198,7 @@ function parseDamTab(raw: string | null): DamTab {
 export default function Food() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { t, localized, lang } = useLanguage();
+  const { t, localized } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [categories, setCategories] = useState<FoodCategory[]>([]);
@@ -978,18 +977,6 @@ export default function Food() {
     [checkoutTotalBeforeBonus, bonusDiscountAmount],
   );
 
-  const cartBarLabel = useMemo(() => {
-    const n = cartCount;
-    if (lang === 'kz') {
-      return `${n} тауам`;
-    }
-    const mod10 = n % 10;
-    const mod100 = n % 100;
-    if (mod10 === 1 && mod100 !== 11) return `${n} товар`;
-    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${n} товара`;
-    return `${n} товаров`;
-  }, [cartCount, lang]);
-
   function getItemQuantityInCart(itemId: number) {
     return cart.filter(ci => ci.item.id === itemId).reduce((s, ci) => s + ci.quantity, 0);
   }
@@ -1055,40 +1042,6 @@ export default function Food() {
     scored.sort((a, b) => b.score - a.score);
     return scored.slice(0, 6).map(s => s.item);
   }, [cart, items, categories, cartTotal, freeDeliveryFrom, nextGift, minOrder]);
-
-  const floatingGoal = useMemo(() => {
-    type G = { label: string; remaining: number; target: number };
-    const goals: G[] = [];
-    if (minOrder > 0 && cartTotal < minOrder) {
-      goals.push({
-        label: `Ещё ${formatPrice(minOrder - cartTotal)} до минимального заказа`,
-        remaining: minOrder - cartTotal,
-        target: minOrder,
-      });
-    }
-    if (freeDeliveryFrom > 0 && cartTotal < freeDeliveryFrom) {
-      goals.push({
-        label: `Ещё ${formatPrice(freeDeliveryFrom - cartTotal)} до бесплатной доставки`,
-        remaining: freeDeliveryFrom - cartTotal,
-        target: freeDeliveryFrom,
-      });
-    }
-    if (nextGift && cartTotal < nextGift.min_amount) {
-      goals.push({
-        label: `Ещё ${formatPrice(nextGift.min_amount - cartTotal)} — ${nextGift.title}`,
-        remaining: nextGift.min_amount - cartTotal,
-        target: nextGift.min_amount,
-      });
-    }
-    const active = goals.sort((a, b) => a.remaining - b.remaining)[0];
-    if (!active) {
-      return { percent: 100, label: 'Все бонусы активны' as string | undefined };
-    }
-    return {
-      percent: Math.min(100, Math.round((cartTotal / active.target) * 100)),
-      label: active.label,
-    };
-  }, [cartTotal, minOrder, freeDeliveryFrom, nextGift]);
 
   function addToCart(item: FoodItem, selections: CartItemSelection = {}) {
     setCart(prev => {
@@ -1753,7 +1706,7 @@ export default function Food() {
                 <User className="h-4 w-4" /> Профиль
               </button>
             </nav>
-            <button type="button" className="dam-market-cart-button" onClick={() => setActiveTab('cart')}>
+            <button type="button" className="dam-market-cart-button" onClick={() => setActiveTab('cart')} data-testid="dam-cart-open">
               <ShoppingCart className="h-5 w-5" />
               <span className="hidden sm:inline">Корзина</span>
               {cartCount > 0 ? <b>{cartCount}</b> : null}
@@ -1777,21 +1730,48 @@ export default function Food() {
           <main className="dam-market-menu">
             <div className={PAGE_X}>
               <section className="dam-market-offer">
+                <div className="dam-market-offer__glow" aria-hidden="true" />
                 <div className="dam-market-offer__icon"><Tag className="h-5 w-5" /></div>
-                <div className="min-w-0 flex-1">
-                  <span>Предложение для соседей</span>
+                <div className="dam-market-offer__content">
+                  <span>DAM ALEM · СОРТИРОВКА</span>
                   <h1>{primaryOffer?.label || 'Горячая еда с доставкой по Сортировке'}</h1>
                   <p>
                     {primaryOffer
-                      ? `Промокод ${primaryOffer.code}${primaryOffer.min_order ? ` · от ${formatPrice(primaryOffer.min_order)}` : ''}`
-                      : `Готовим после заказа · ${deliveryTimeLabel}`}
+                      ? `Промокод ${primaryOffer.code}${primaryOffer.min_order ? ` · заказ от ${formatPrice(primaryOffer.min_order)}` : ''}`
+                      : 'Готовим после заказа и привозим горячим'}
                   </p>
                 </div>
-                {lastOrderPreview && cartCount === 0 ? (
-                  <button type="button" onClick={() => applyRepeatPayload(lastOrderPreview)}>
-                    <RotateCcw className="h-4 w-4" /> Повторить
-                  </button>
-                ) : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (lastOrderPreview && cartCount === 0) {
+                      applyRepeatPayload(lastOrderPreview);
+                      return;
+                    }
+                    document.getElementById('dam-market-categories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                >
+                  {lastOrderPreview && cartCount === 0 ? <RotateCcw className="h-4 w-4" /> : null}
+                  {lastOrderPreview && cartCount === 0 ? 'Повторить заказ' : 'Выбрать блюда'}
+                </button>
+              </section>
+
+              <section className="dam-market-benefits" aria-label="Преимущества DAM ALEM">
+                <article>
+                  <span><CheckCircle2 className="h-4 w-4" /></span>
+                  <div><strong>Готовим после заказа</strong><p>Не держим блюда на витрине</p></div>
+                </article>
+                <article>
+                  <span><Clock className="h-4 w-4" /></span>
+                  <div><strong>{deliveryTimeLabel}</strong><p>Покажем статус после оформления</p></div>
+                </article>
+                <article>
+                  <span><Truck className="h-4 w-4" /></span>
+                  <div>
+                    <strong>{freeDeliveryFrom > 0 ? `Бесплатно от ${formatPrice(freeDeliveryFrom)}` : 'Доставка по району'}</strong>
+                    <p>Стоимость видна до оплаты</p>
+                  </div>
+                </article>
               </section>
             </div>
 
@@ -1845,7 +1825,7 @@ export default function Food() {
         )}
 
         {activeTab === 'cart' && (
-          <div className={PAGE_X}>
+          <div className={`${PAGE_X} dam-market-cart-page`}>
             <DamAlemCartView
               lines={cartViewLines}
               suggestions={cartViewSuggestions}
@@ -1900,11 +1880,13 @@ export default function Food() {
           <StoreProfileTab accentBg="bg-[#FF3B30] hover:bg-[#e6352b]" accentText="text-[#FF3B30]" />
         )}
 
-        <nav data-bottom-nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 safe-area-pb">
-          <div className="flex max-w-7xl mx-auto">
-            {DAM_NAV.map(({ id, icon, label }) => renderNavButton(id, icon, label, true))}
-          </div>
-        </nav>
+        {activeTab !== 'cart' && (
+          <nav data-bottom-nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 safe-area-pb">
+            <div className="flex max-w-7xl mx-auto">
+              {DAM_NAV.map(({ id, icon, label }) => renderNavButton(id, icon, label, true))}
+            </div>
+          </nav>
+        )}
         </div>
 
         {/* ═══ PRODUCT POPUP MODAL ═══ */}
@@ -2036,18 +2018,6 @@ export default function Food() {
                 </div>
               </div>
           </DamAlemSheet>
-        )}
-
-        {/* ═══ FLOATING CART BUTTON ═══ */}
-        {cartCount > 0 && !checkoutOpen && !selectedItem && activeTab !== 'cart' && activeTab !== 'profile' && (
-          <DamAlemFloatingCart
-            itemLabel={cartBarLabel}
-            totalLabel={formatPrice(Math.max(0, cartTotalWithService - promoDiscountAmount))}
-            cartLabel={t('food.cart')}
-            onOpen={() => setActiveTab('cart')}
-            progressPercent={floatingGoal.percent}
-            progressLabel={floatingGoal.label}
-          />
         )}
 
         {/* ═══ CHECKOUT MODAL ═══ */}
