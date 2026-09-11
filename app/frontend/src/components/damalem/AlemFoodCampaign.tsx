@@ -26,7 +26,7 @@ export default function AlemFoodCampaign({
   const firstTier = activeGifts.filter(g => g.min_amount === giftFrom);
 
   return (
-    <section className="alem-campaign" aria-label="Акции Алем Фуд">
+    <section className="alem-campaign" aria-label="Акции DAM ALEM 2.0">
       <div className="alem-campaign__grid">
         {freeDeliveryFrom > 0 && (
           <article className="alem-campaign__card alem-campaign__card--delivery">

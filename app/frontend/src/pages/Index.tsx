@@ -250,7 +250,7 @@ export default function Index() {
         <div className="max-w-6xl mx-auto px-4 py-10 space-y-12">
 
           {/* ═══════════════════════════════════════════
-              1b. МАГАЗИНЫ РАЙОНА — Алем Фуд рядом с остальными
+              1b. МАГАЗИНЫ РАЙОНА — DAM ALEM 2.0 рядом с остальными
           ═══════════════════════════════════════════ */}
           {(isEnabled('food') || isEnabled('gastronom') || isEnabled('volna') || isEnabled('prorab') || isEnabled('pharmacy')) && (
           <section>

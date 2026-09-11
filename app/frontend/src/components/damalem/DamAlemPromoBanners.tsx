@@ -28,7 +28,7 @@ function BannerImage({ source }: { source: string }) {
 export function FoodBannerCard({ banner, onAction }: { banner: FoodBanner; onAction: (action: FoodBannerAction, banner: FoodBanner) => void }) {
   const action = resolveFoodBannerAction(banner);
   const label = foodBannerCtaLabel(action, banner.button_text);
-  const eyebrow = action.type === 'promo' ? `Промокод ${action.code}` : action.type === 'gifts' ? 'К вашему заказу' : action.type === 'category' ? 'Выберите своё' : 'Алем Фуд рекомендует';
+  const eyebrow = action.type === 'promo' ? `Промокод ${action.code}` : action.type === 'gifts' ? 'К вашему заказу' : action.type === 'category' ? 'Выберите своё' : 'DAM ALEM 2.0 рекомендует';
   return (
     <button type="button" className={`food-campaign food-campaign--${action.type}`} onClick={() => onAction(action, banner)} aria-label={`${banner.title}. ${label}`} data-testid={`food-banner-${banner.id}`}>
       {banner.image_url ? <BannerImage source={banner.image_url} /> : <span className="food-campaign__decoration" aria-hidden="true" />}
@@ -74,7 +74,7 @@ export default function DamAlemPromoBanners({ banners, onAction }: { banners: Fo
     element.scrollTo({ left: card.offsetLeft - first.offsetLeft, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
   };
   return (
-    <section className="food-campaigns" aria-label="Предложения Алем Фуд">
+    <section className="food-campaigns" aria-label="Предложения DAM ALEM 2.0">
       <div className="food-campaigns__heading">
         <div><p>К хорошему заказу</p><h2>Есть повод попробовать</h2></div>
         {banners.length > 1 && <div className="food-campaigns__controls">

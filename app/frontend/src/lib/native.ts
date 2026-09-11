@@ -34,6 +34,8 @@ async function clearLegacyWebCaches(): Promise<void> {
 export async function initNativeShell(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
 
+  document.documentElement.classList.add('native-app');
+
   // Old PWA service workers can serve broken JS after APK updates.
   void clearLegacyWebCaches();
 
@@ -43,7 +45,6 @@ export async function initNativeShell(): Promise<void> {
       import('@capacitor/app'),
     ]);
 
-    document.documentElement.classList.add('native-app');
 
     await StatusBar.setStyle({ style: Style.Dark }).catch(() => undefined);
 

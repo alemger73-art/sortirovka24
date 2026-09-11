@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
+import { FoodStoreHeader, FoodHeroPhoto } from '@/components/damalem/FoodStoreLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { client, withRetry } from '@/lib/api';
 import { fetchWithCache } from '@/lib/cache';
@@ -10,7 +11,6 @@ import {
   ArrowLeft, Check, CheckCircle2,
   AlertCircle, Smartphone, Banknote, Coins, RotateCcw,
   Search, ShoppingCart, Clock, LayoutGrid, Heart, User,
-  Tag,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +20,7 @@ import { getAccountPrefill, isLoggedIn, pushCabinetItem, requireAuthDialog } fro
 import { accountApi, getAccountToken } from '@/lib/accountApi';
 import { fetchFoodRestaurantsList } from '@/lib/foodAdminApi';
 import { apiUrl } from '@/lib/config';
-import { DAM_ALEM_BRAND, findDamAlemRestaurantId } from '@/lib/damAlem';
+import { DAM_ALEM_BRAND, DAM_ALEM_TAGLINE, findDamAlemRestaurantId } from '@/lib/damAlem';
 import {
   saveFoodCart,
   loadFoodCart,
@@ -63,6 +63,7 @@ import AlemFoodGoalsDock from '@/components/damalem/AlemFoodGoalsDock';
 import { resolveLoyaltyGifts, resolvePromoCodes, type FoodBannerAction } from '@/lib/damAlemMarketing';
 import { isFoodBanner } from '@/lib/foodBannerActions';
 import '@/styles/damAlem.css';
+import '@/styles/foodResponsive.css';
 
 /* ─── Types ─── */
 interface FoodCategory {
@@ -217,7 +218,7 @@ export default function Food() {
   const [settings, setSettings] = useState<Settings>({
     whatsapp_number: '+77470304096',
     hero_banner_title: DAM_ALEM_BRAND,
-    hero_banner_subtitle: 'Доставка еды №1 в Сортировке',
+    hero_banner_subtitle: DAM_ALEM_TAGLINE,
     hero_banner_image: '',
     min_order_amount: '2000',
     delivery_price: '500',
@@ -1918,7 +1919,7 @@ export default function Food() {
           </DamAlemSheet>
         )}
         <div className="max-w-7xl mx-auto relative">
-        <header className="dam-market-header">
+        <FoodStoreHeader>
           <div className={`dam-market-header__main ${PAGE_X}`}>
             <Link to="/" className="dam-market-icon-btn" aria-label="На главную Сортировка24">
               <ArrowLeft className="h-5 w-5" />
@@ -1974,20 +1975,20 @@ export default function Food() {
               deliveryTime={deliveryTimeLabel}
             />
           ) : null}
-        </header>
+        </FoodStoreHeader>
 
         {activeTab === 'menu' && (
           <main className="dam-market-menu">
             <div className={PAGE_X}>
               {!searchQuery.trim() && <>
               <section className="dam-market-offer">
-                <div className="dam-market-offer__glow" aria-hidden="true" />
-                <div className="dam-market-offer__icon"><Tag className="h-5 w-5" /></div>
+                <FoodHeroPhoto source={settings.hero_banner_image} />
+
                 <div className="dam-market-offer__content">
-                  <span>Алем Фуд · Сортировка 24</span>
+                  <span>{DAM_ALEM_BRAND}</span>
                   <h1>Любимые блюда. Хороший вечер.</h1>
                   <p>
-                    Пицца, донеры и комбо с доставкой по Сортировке.
+                    {DAM_ALEM_TAGLINE}
                   </p>
                 </div>
                 <button
@@ -2047,7 +2048,7 @@ export default function Food() {
                   <div className="dam-market-section-head">
                     <div>
                       <span>Популярное</span>
-                      <h2>Хиты Алем Фуд</h2>
+                      <h2>Хиты DAM ALEM 2.0</h2>
                     </div>
                   </div>
                   <div className="dam-market-hits__row">

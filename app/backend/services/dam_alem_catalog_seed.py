@@ -44,9 +44,9 @@ async def _ensure_restaurant(db: AsyncSession) -> Food_restaurants:
     if existing:
         return existing
     row = Food_restaurants(
-        name="Алем Фуд",
+        name="DAM ALEM 2.0",
         photo="https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-15/fe194ca1-0095-44bf-a906-e50cb844ad56.png",
-        description="Доставка еды №1 в Сортировке.",
+        description="Доставка еды по Сортировке №1.",
         whatsapp_phone="+77470304096",
         working_hours="10:00 – 22:00",
         min_order=2000,

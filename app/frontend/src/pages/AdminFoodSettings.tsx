@@ -108,9 +108,9 @@ const SETTING_FIELDS = [
 
   { key: 'whatsapp_number', label: 'Номер WhatsApp', icon: Phone, placeholder: '+77001234567', description: 'Номер для получения заказов в WhatsApp', type: 'text' as const },
 
-  { key: 'hero_banner_title', label: 'Заголовок баннера', icon: Image, placeholder: 'Алем Фуд', description: 'Бренд на странице доставки', type: 'text' as const },
+  { key: 'hero_banner_title', label: 'Заголовок баннера', icon: Image, placeholder: 'DAM ALEM 2.0', description: 'Бренд на странице доставки', type: 'text' as const },
 
-  { key: 'hero_banner_subtitle', label: 'Подзаголовок баннера', icon: Image, placeholder: 'Доставка еды №1 в Сортировке', description: 'Слоган под брендом', type: 'text' as const },
+  { key: 'hero_banner_subtitle', label: 'Подзаголовок баннера', icon: Image, placeholder: 'Доставка еды по Сортировке №1', description: 'Слоган под брендом', type: 'text' as const },
 
   { key: 'min_order_amount', label: 'Минимальная сумма заказа (₸)', icon: DollarSign, placeholder: '2000', description: 'Минимальная сумма для оформления заказа', type: 'text' as const },
 
@@ -268,7 +268,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
       if (!vals.referral_title) vals.referral_title = 'Отправить другу — скидка 10%';
       if (!vals.referral_subtitle) vals.referral_subtitle = 'Друг получает код DAMALEM10 на заказ от 2 500 ₸';
       if (!vals.referral_share_text) {
-        vals.referral_share_text = 'Привет! Заказываю в Алем Фуд — доставка по Сортировке.\nПромокод DAMALEM10 — скидка 10% на заказ от 2 500 ₸';
+        vals.referral_share_text = 'Привет! Заказываю в DAM ALEM 2.0 — доставка по Сортировке.\nПромокод DAMALEM10 — скидка 10% на заказ от 2 500 ₸';
       }
       setValues(vals);
 
@@ -528,7 +528,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
       <div className="flex flex-wrap items-center justify-between gap-3">
 
-        <h3 className="font-bold text-lg">{damAlemMode ? 'Настройки Алем Фуд' : 'Настройки доставки еды'}</h3>
+        <h3 className="font-bold text-lg">{damAlemMode ? 'Настройки DAM ALEM 2.0' : 'Настройки доставки еды'}</h3>
 
         <Button onClick={saveSettings} disabled={saving} className="bg-orange-500 hover:bg-orange-600">
 
@@ -643,7 +643,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
                 value={values.referral_share_text || ''}
                 onChange={e => setValues(prev => ({ ...prev, referral_share_text: e.target.value }))}
                 rows={3}
-                placeholder="Привет! Заказываю в Алем Фуд…"
+                placeholder="Привет! Заказываю в DAM ALEM 2.0…"
               />
             </div>
           </div>

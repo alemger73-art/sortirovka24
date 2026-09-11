@@ -6,7 +6,7 @@ async function mockCatalog(page: import('@playwright/test').Page) {
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
     let body: unknown = { items: [], total: 0 };
-    if (path.includes('food_restaurants')) body = { items: [{ id: 1, name: 'Алем Фуд' }] };
+    if (path.includes('food_restaurants')) body = { items: [{ id: 1, name: 'DAM ALEM 2.0' }] };
     if (path === '/api/categories') body = { categories: [{ id: 1, name: 'Пицца', slug: 'pizza' }, { id: 2, name: 'Напитки', slug: 'napitki' }] };
     if (path === '/api/products') body = { products: [
       { id: 1, category_id: 1, title: 'Маргарита', description: 'Томаты, моцарелла, базилик', image: '/food-hero-reference.png', price: 2500, available: true },

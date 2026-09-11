@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { DAM_ALEM_BRAND, isSameDamAlemBrand, findDamAlemRestaurantId } from '../src/lib/damAlem';
 import { foodBannerActionUrl, isFoodBanner, resolveFoodBannerAction, safeBannerLink } from '../src/lib/foodBannerActions';
 
 type Banner = { id: number; title: string; subtitle?: string; button_url: string; banner_type: string; active: boolean; image_url?: string; button_text?: string };
@@ -9,8 +10,8 @@ async function setup(page: Page, initial: Banner[] = []) {
   await page.route('**/api/**', async route => {
     const request = route.request(), url = new URL(request.url()), path = url.pathname;
     let body: unknown = { items: [], total: 0 };
-    if (path.includes('verify-session')) body = { valid: true, login: 'test', display_name: 'Алем Фуд' };
-    if (path.includes('food_restaurants')) body = { items: [{ id: 1, name: 'Алем Фуд' }] };
+    if (path.includes('verify-session')) body = { valid: true, login: 'test', display_name: 'DAM ALEM 2.0' };
+    if (path.includes('food_restaurants')) body = { items: [{ id: 1, name: 'DAM ALEM 2.0' }] };
     const categories = [{ id: 1, name: 'Пицца', slug: 'pizza', restaurant_id: 1 }, { id: 2, name: 'Напитки', slug: 'napitki', restaurant_id: 1 }];
     if (path === '/api/categories') body = { categories };
     if (path.includes('/entities/food_categories')) body = { items: categories };
@@ -37,6 +38,9 @@ async function setup(page: Page, initial: Banner[] = []) {
 }
 
 test('actions are explicit, query and hash agree, unsafe links are rejected', () => {
+  expect(DAM_ALEM_BRAND).toBe('DAM ALEM 2.0');
+  expect(isSameDamAlemBrand('Алем Фуд')).toBe(true);
+  expect(findDamAlemRestaurantId([{ id: 1, name: 'Другой ресторан' }, { id: 7, name: 'Алем Фуд' }])).toBe(7);
   expect(resolveFoodBannerAction({ title: 'Семейный сет со скидкой 10%' })).toEqual({ type: 'menu' });
   expect(resolveFoodBannerAction({ button_url: '/food?promo=test10&category=pizza' })).toEqual({ type: 'promo', code: 'TEST10', categorySlug: 'pizza' });
   expect(resolveFoodBannerAction({ link_url: '/food#category=pizza' })).toEqual({ type: 'category', slug: 'pizza' });
@@ -57,6 +61,8 @@ test('all banners are reachable, category and promo clicks work, search stays fo
     { id: 7, title: 'Аптека', button_url: '/apteka', banner_type: 'promo', active: true },
   ]);
   await page.goto('/food', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.dam-market-brand strong')).toHaveText('DAM ALEM 2.0');
+  await expect(page.locator('.dam-market-offer__content')).toContainText('Доставка еды по Сортировке №1');
   const track = page.getByTestId('food-banner-track');
   await expect(track.locator('.food-campaign')).toHaveCount(5);
   await expect(page.getByTestId('food-banner-6')).toHaveCount(0);
@@ -149,4 +155,47 @@ test('upload keeps edited text and saves a resolvable image key', async ({ page 
   const photo = page.getByTestId('food-banner-1').locator('img');
   await expect(photo).toHaveAttribute('src', image);
   await expect.poll(() => photo.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
+});
+
+test('responsive header, safe insets and configured hero fit all screen sizes', async ({ page }, info) => {
+  await setup(page);
+  await page.route('**/api/v1/entities/food_settings*', route => route.fulfill({ json: { items: [
+    { setting_key: 'hero_banner_image', setting_value: 'banners/hero.jpg' },
+    { setting_key: 'kitchen_open', setting_value: '00:00' },
+    { setting_key: 'kitchen_close', setting_value: '00:00' },
+  ] } }));
+  await page.goto('/food');
+  await expect(page.locator('.dam-market-offer__photo img')).toHaveAttribute('src', image);
+  await expect.poll(() => page.locator('.dam-market-offer__photo img').evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
+  for (const width of [320, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.evaluate((native) => {
+      document.documentElement.classList.toggle('native-app', native);
+      window.scrollTo(0, 0);
+    }, width < 1024);
+    const brand = page.locator('.dam-market-brand');
+    await expect(brand).toBeInViewport();
+    await expect.poll(async () => (await brand.boundingBox())!.y).toBeGreaterThanOrEqual(width < 1024 ? 32 : 0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    for (const selector of ['.dam-market-header__main', '.dam-market-search', '.dam-market-cart-button', '.dam-market-offer', '.dam-market-offer__photo', '.dam-market-offer > button']) {
+      const box = await page.locator(selector).boundingBox();
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(width + 1);
+    }
+    await page.screenshot({ path: info.outputPath(`responsive-${width}.png`), animations: 'disabled' });
+  }
+  // Header measurement must follow enlarged text as well as viewport changes.
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.evaluate(() => { document.documentElement.style.fontSize = '20px'; });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expect.poll(() => page.evaluate(() => {
+    const header = document.querySelector('.dam-market-header')!;
+    const stored = parseFloat((document.querySelector('.dam-page') as HTMLElement).style.getPropertyValue('--dam-header-height'));
+    return Math.abs(header.getBoundingClientRect().height - stored);
+  })).toBeLessThan(1);
+  // Failed photo still leaves readable copy and a light, intentional background.
+  await page.locator('.dam-market-offer__photo img').dispatchEvent('error');
+  await expect(page.locator('.dam-market-offer__photo img')).toHaveCount(0);
+  await expect(page.locator('.dam-market-offer h1')).toBeVisible();
+  await expect(page.locator('.dam-market-offer')).toHaveCSS('background-color', 'rgb(238, 233, 223)');
 });

@@ -30,7 +30,7 @@ interface Restaurant {
 
 const DEFAULT_RESTAURANT: Partial<Restaurant> = {
   name: DAM_ALEM_BRAND,
-  description: 'Доставка еды №1 в Сортировке — пицца, суши, бургеры и многое другое.',
+  description: 'Доставка еды по Сортировке №1 — пицца, суши, бургеры и многое другое.',
   whatsapp_phone: '+77470304096',
   working_hours: '10:00 – 23:00',
   delivery_time: '35–45 мин',
@@ -96,7 +96,7 @@ export default function AdminDamAlemBrand() {
         });
         setForm(prev => ({ ...prev, id: created.id }));
       }
-      toast.success('Профиль Алем Фуд сохранён');
+      toast.success('Профиль DAM ALEM 2.0 сохранён');
       invalidateAllCaches();
       await load();
     } catch (e) {
@@ -132,7 +132,7 @@ export default function AdminDamAlemBrand() {
 
       {!form.id && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          Запись Алем Фуд ещё не создана в базе. Заполните поля и нажмите «Сохранить» — заведение будет создано автоматически.
+          Запись DAM ALEM 2.0 ещё не создана в базе. Заполните поля и нажмите «Сохранить» — заведение будет создано автоматически.
         </div>
       )}
 

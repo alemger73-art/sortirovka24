@@ -1,7 +1,9 @@
-export const DAM_ALEM_BRAND = 'Алем Фуд';
+export const DAM_ALEM_BRAND = 'DAM ALEM 2.0';
+export const DAM_ALEM_TAGLINE = 'Доставка еды по Сортировке №1';
 
 export function normalizeDamAlemBrand(name: string): string {
-  return name.toLowerCase().replace(/\s+/g, '').replace(/2\.0/g, '');
+  const normalized = name.toLowerCase().replace(/[\s-]+/g, '').replace(/2\.0/g, '');
+  return ['damalem', 'дамалем', 'алемфуд', 'alemfood'].includes(normalized) ? 'damalem' : normalized;
 }
 
 export function isSameDamAlemBrand(name: string | null | undefined, brand = DAM_ALEM_BRAND): boolean {

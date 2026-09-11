@@ -106,7 +106,7 @@ export default function AdminDamAlem({ initialSection = 'menu', partnerMode = fa
             <div className="rounded-2xl border border-orange-100 bg-orange-50/70 p-4 text-sm text-orange-950">
               <p className="font-semibold">Система учёта</p>
               <p className="mt-1 text-orange-900/80">
-                API-ключи кассы (FrontPad) подключает администратор портала во вкладке «Учёт / API» интернет-магазина Алем Фуд.
+                API-ключи кассы (FrontPad) подключает администратор портала во вкладке «Учёт / API» интернет-магазина DAM ALEM 2.0.
               </p>
             </div>
           )}

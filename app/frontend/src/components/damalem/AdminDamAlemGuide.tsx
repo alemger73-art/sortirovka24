@@ -51,7 +51,7 @@ export default function AdminDamAlemGuide() {
 
           <div className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900">
             <p className="font-semibold mb-1">Модуль можно выключить</p>
-            <p>Админ → Система → Модули → «Алем Фуд». Витрина, плитка на главной и API магазина пропадут у жителей.</p>
+            <p>Админ → Система → Модули → «DAM ALEM 2.0». Витрина, плитка на главной и API магазина пропадут у жителей.</p>
           </div>
 
           <Link
