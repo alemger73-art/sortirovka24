@@ -17,6 +17,8 @@ export default function DamAlemPromoStrip({
   appliedCode,
   onApply,
 }: Props) {
+  if (promos.length === 0 && freeDeliveryFrom <= 0) return null;
+
   const copyAndApply = (code: string) => {
     void navigator.clipboard?.writeText(code).catch(() => {});
     onApply(code);
@@ -47,11 +49,13 @@ export default function DamAlemPromoStrip({
               key={p.code}
               type="button"
               onClick={() => copyAndApply(p.code)}
+              aria-pressed={active}
+              aria-label={`${active ? 'Выбран' : 'Применить'} промокод ${p.code}`}
               className={`dam-promo-chip dam-promo-chip--code shrink-0 ${active ? 'dam-promo-chip--active' : ''}`}
             >
               <span className="dam-promo-chip__code">{p.code}</span>
               <span className="text-xs font-semibold opacity-90 lg:text-sm">{promoChipHint(p, formatPrice)}</span>
-              <Copy className="h-3.5 w-3.5 opacity-60 ml-1" />
+              <Copy aria-hidden="true" className="h-3.5 w-3.5 opacity-60 ml-1" />
             </button>
           );
         })}

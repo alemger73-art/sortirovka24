@@ -34,10 +34,12 @@ const NAV_KEYS = [
 export default function Layout({
   children,
   hideHeader = false,
+  hideFooter = false,
   hideBottomNav = false,
 }: {
   children: React.ReactNode;
   hideHeader?: boolean;
+  hideFooter?: boolean;
   hideBottomNav?: boolean;
 }) {
   const { t } = useLanguage();
@@ -93,7 +95,7 @@ export default function Layout({
       />
 
       {/* Footer — compact on mobile when bottom tab bar is visible */}
-      <footer className={`bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 transition-colors duration-300 pb-[env(safe-area-inset-bottom)] ${showBottomNav ? 'hidden md:block mt-12' : 'mt-12'}`}>
+      {!hideFooter && <footer className={`bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 transition-colors duration-300 pb-[env(safe-area-inset-bottom)] ${showBottomNav ? 'hidden md:block mt-12' : 'mt-12'}`}>
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
@@ -166,7 +168,7 @@ export default function Layout({
             {t('footer.rights')}
           </div>
         </div>
-      </footer>
+      </footer>}
 
       {showBottomNav && <MobileBottomNav />}
       <InstallAppBanner />

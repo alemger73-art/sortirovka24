@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 interface Props {
@@ -22,12 +22,30 @@ export default function DamAlemSheet({
   bare = false,
   testId,
 }: Props) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
     if (!open) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const panel = panelRef.current;
+    panel?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); closeRef.current(); }
+      if (event.key !== 'Tab' || !panel) return;
+      const focusable = Array.from(panel.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex="0"]')).filter(el => el.getClientRects().length > 0);
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (!first) { event.preventDefault(); panel.focus(); return; }
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === panel)) { event.preventDefault(); last.focus(); }
+      if (!event.shiftKey && (document.activeElement === last || document.activeElement === panel)) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     document.body.classList.add('dam-sheet-open');
     return () => {
+      document.removeEventListener('keydown', onKey);
+      previousFocus?.focus();
       document.body.style.overflow = prevOverflow;
       document.body.classList.remove('dam-sheet-open');
     };
@@ -53,7 +71,7 @@ export default function DamAlemSheet({
         aria-label="Закрыть"
         tabIndex={-1}
       />
-      <div className={panelClass} data-testid={testId}>
+      <div ref={panelRef} tabIndex={-1} className={panelClass} data-testid={testId}>
         {children}
       </div>
     </div>,

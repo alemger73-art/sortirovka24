@@ -45,17 +45,20 @@ export function loadFoodCart<T extends MinimalFoodItem>(items: T[]): { item: T; 
     const lines = JSON.parse(raw) as StoredCartLine[];
     if (!Array.isArray(lines)) return [];
     const byId = new Map(items.map(i => [i.id, i]));
-    return lines
-      .map(line => {
-        const item = byId.get(line.itemId);
-        if (!item || item.is_active === false || item.available === false) return null;
-        return {
-          item,
-          quantity: Math.max(1, line.quantity || 1),
-          selections: line.selections || {},
-        };
-      })
-      .filter(Boolean) as { item: T; quantity: number; selections: CartItemSelection }[];
+    return lines.flatMap(line => {
+      if (!line || typeof line !== 'object') return [];
+      const item = byId.get(line.itemId);
+      if (!item || item.is_active === false || item.available === false) return [];
+      if (!Number.isSafeInteger(line.quantity) || line.quantity <= 0) return [];
+      const selections: CartItemSelection = {};
+      if (line.selections && typeof line.selections === 'object' && !Array.isArray(line.selections)) {
+        for (const [group, options] of Object.entries(line.selections)) {
+          if (!Number.isSafeInteger(Number(group)) || Number(group) <= 0 || !Array.isArray(options)) continue;
+          selections[Number(group)] = [...new Set(options.filter(id => Number.isSafeInteger(id) && id > 0))];
+        }
+      }
+      return [{ item, quantity: line.quantity, selections }];
+    });
   } catch {
     return [];
   }

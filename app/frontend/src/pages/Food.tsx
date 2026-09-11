@@ -60,7 +60,6 @@ import DamAlemPromoBanners, { type FoodBanner } from '@/components/damalem/DamAl
 import DamAlemPromoStrip from '@/components/damalem/DamAlemPromoStrip';
 import DeliveryZonesPreview from '@/components/damalem/DeliveryZonesPreview';
 import AlemFoodGoalsDock from '@/components/damalem/AlemFoodGoalsDock';
-import DamAlemShareCard from '@/components/damalem/DamAlemShareCard';
 import { resolveLoyaltyGifts, resolvePromoCodes, type FoodBannerAction } from '@/lib/damAlemMarketing';
 import '@/styles/damAlem.css';
 
@@ -160,7 +159,7 @@ function FoodBadge({ type }: { type: 'hit' | 'new' }) {
 
 function itemDisplayWeight(item: FoodItem): string {
   const w = (item.weight || '').trim();
-  if (!w) return '200 г';
+  if (!w) return '';
   if (/\d/.test(w) && (w.includes('г') || w.includes('кг') || w.includes('ml'))) return w;
   return `${w} г`;
 }
@@ -202,6 +201,7 @@ function parseDamTab(raw: string | null): DamTab {
 export default function Food() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = parseDamTab(searchParams.get('tab'));
   const { t, localized } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
@@ -634,7 +634,6 @@ export default function Food() {
 
   const showRecommendations = settings.show_recommendations !== 'false';
 
-  const activeTab = parseDamTab(searchParams.get('tab'));
   const menuCategorySections = useMemo(
     () =>
       categories
@@ -1158,7 +1157,7 @@ export default function Food() {
             : 0;
     const gap = goalTarget > cartTotal ? goalTarget - cartTotal : 0;
 
-    const candidates = items.filter(i => !cartItemIds.has(i.id) && i.is_active !== false);
+    const candidates = items.filter(i => !cartItemIds.has(i.id) && i.is_active !== false && i.available !== false);
     const scored = candidates.map(i => {
       let score = 0;
       if (i.is_recommended || i.is_popular) score += 3;
@@ -1174,28 +1173,17 @@ export default function Food() {
       return { item: i, score };
     });
     scored.sort((a, b) => b.score - a.score);
-    return scored.slice(0, 6).map(s => s.item);
+    return scored.slice(0, 3).map(s => s.item);
   }, [cart, items, categories, cartTotal, freeDeliveryFrom, nextGift, minOrder]);
 
   function addToCart(item: FoodItem, selections: CartItemSelection = {}) {
+    if (item.is_active === false || item.available === false) return;
     setCart(prev => {
       const key = selectionsKey(selections);
       const existing = prev.find(ci => ci.item.id === item.id && selectionsKey(ci.selections) === key);
       if (existing) return prev.map(ci => ci === existing ? { ...ci, quantity: ci.quantity + 1 } : ci);
       return [...prev, { item, quantity: 1, selections }];
     });
-    toast.success(
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-          <Check className="w-4 h-4 text-green-600" />
-        </div>
-        <div>
-          <p className="font-semibold text-sm">{localized(item, 'name') || item.name}</p>
-          <p className="text-xs text-gray-500">{t('food.addToCart')}</p>
-        </div>
-      </div>,
-      { duration: 1500 }
-    );
   }
 
   async function quickAdd(item: FoodItem) {
@@ -1245,6 +1233,7 @@ export default function Food() {
 
   function updateQuantity(index: number, delta: number) {
     setCart(prev => {
+      if (!prev[index]) return prev;
       const updated = [...prev];
       updated[index] = { ...updated[index], quantity: updated[index].quantity + delta };
       if (updated[index].quantity <= 0) updated.splice(index, 1);
@@ -1546,21 +1535,6 @@ export default function Food() {
         );
         return;
       }
-      if (local && cartTotal > 0) {
-        const calc = calcPromoDiscount(cartTotal, local);
-        if (calc.discount > 0 || calc.freeDelivery) {
-          setAppliedPromo({
-            code: local.code,
-            discount: calc.discount,
-            free_delivery: calc.freeDelivery,
-            label: calc.label || local.label || local.code,
-            pending: false,
-          });
-          setUseBonuses(false);
-          toast.success(`Промокод ${local.code} применён`);
-          return;
-        }
-      }
       setAppliedPromo(null);
       toast.error(message);
     } finally {
@@ -1768,7 +1742,7 @@ export default function Food() {
         hasOptions={hasGroups}
         optionsLabel={t('food.hasOptions')}
         isFavorite={favoriteIds.includes(item.id)}
-        weight={w !== '200 г' ? w : undefined}
+        weight={w || undefined}
         badge={badge}
         variant={variant}
         onOpen={() => void openItemModal(item)}
@@ -1782,7 +1756,7 @@ export default function Food() {
   /* ─── LOADING ─── */
   if (loading) {
     return (
-      <Layout hideHeader hideBottomNav>
+      <Layout hideHeader hideBottomNav hideFooter>
         <div className="dam-page min-h-screen bg-gray-50">
           <DamAlemPageSkeleton />
         </div>
@@ -1792,7 +1766,7 @@ export default function Food() {
 
   if (loadError) {
     return (
-      <Layout hideHeader hideBottomNav>
+      <Layout hideHeader hideBottomNav hideFooter>
         <LoadErrorState onRetry={() => loadData()} />
       </Layout>
     );
@@ -1816,7 +1790,6 @@ export default function Food() {
     image: getItemImage(item),
     price: item.price,
   }));
-  const primaryOffer = configuredPromos[0];
 
   const orderPaymentHint = orderSuccess
     ? orderSuccess.paymentMethod === 'cash'
@@ -1863,7 +1836,7 @@ export default function Food() {
   }
 
   return (
-    <Layout hideHeader hideBottomNav>
+    <Layout hideHeader hideBottomNav hideFooter>
       <div className={`dam-page min-h-screen bg-gray-50 ${cartCount > 0 && activeTab !== 'cart' ? 'pb-36 lg:pb-24' : 'pb-20 lg:pb-8'}`}>
         {orderSuccess && (
           <DamAlemSheet open bare overlayClassName="sm:items-center" onClose={() => setOrderSuccess(null)}>
@@ -2017,11 +1990,9 @@ export default function Food() {
                 <div className="dam-market-offer__icon"><Tag className="h-5 w-5" /></div>
                 <div className="dam-market-offer__content">
                   <span>Алем Фуд · Сортировка 24</span>
-                  <h1>{primaryOffer?.label || 'Горячая еда с доставкой по Сортировке'}</h1>
+                  <h1>Любимые блюда. Хороший вечер.</h1>
                   <p>
-                    {primaryOffer
-                      ? `Промокод ${primaryOffer.code}${primaryOffer.min_order ? ` · заказ от ${formatPrice(primaryOffer.min_order)}` : ''}`
-                      : 'Пицца, донеры, шашлыки и комбо — готовим после вашего заказа'}
+                    Пицца, донеры и комбо с доставкой по Сортировке.
                   </p>
                 </div>
                 <button
@@ -2062,29 +2033,17 @@ export default function Food() {
 
               <div className="mt-4">
                 <DamAlemPromoStrip
-                  promos={configuredPromos}
-                  freeDeliveryFrom={freeDeliveryFrom}
+                  promos={configuredPromos.slice(0, 3)}
+                  freeDeliveryFrom={0}
                   formatPrice={formatPrice}
                   appliedCode={appliedPromo?.code}
                   onApply={code => void applyPromoByCode(code)}
                 />
               </div>
 
-              {(settings.referral_enabled !== '0' && settings.referral_enabled !== 'false') ? (
-                <div className="mt-3">
-                  <DamAlemShareCard
-                    whatsappNumber={settings.whatsapp_number}
-                    title={settings.referral_title || undefined}
-                    subtitle={settings.referral_subtitle || undefined}
-                    shareText={settings.referral_share_text || undefined}
-                    promoCode={settings.referral_promo_code || 'DAMALEM10'}
-                  />
-                </div>
-              ) : null}
-
               {promoBanners.length > 0 ? (
                 <div className="mt-4">
-                  <DamAlemPromoBanners banners={promoBanners} onAction={handleBannerAction} />
+                  <DamAlemPromoBanners banners={promoBanners.slice(0, 3)} onAction={handleBannerAction} />
                 </div>
               ) : null}
 
@@ -2107,14 +2066,15 @@ export default function Food() {
               ) : null}
 
               {hasDeliveryZones ? (
-                <div className="mt-4">
+                <details className="dam-delivery-details">
+                  <summary>Условия и зона доставки</summary>
                   <DeliveryZonesPreview
                     zones={mapDeliveryZones}
                     storeLat={storeLatNum}
                     storeLng={storeLngNum}
                     formatPrice={formatPrice}
                   />
-                </div>
+                </details>
               ) : null}
             </div>
 
@@ -2191,7 +2151,7 @@ export default function Food() {
               maxBonusPoints={maxBonusPoints}
               loggedIn={!!getAccountToken()}
               whatsappNumber={settings.whatsapp_number}
-              referralEnabled={settings.referral_enabled !== '0' && settings.referral_enabled !== 'false'}
+              referralEnabled={false}
               referralTitle={settings.referral_title}
               referralSubtitle={settings.referral_subtitle}
               referralShareText={settings.referral_share_text}
@@ -2252,7 +2212,7 @@ export default function Food() {
           />
         )}
 
-        {true && (
+        {(
           <nav data-bottom-nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 safe-area-pb">
             <div className="flex max-w-7xl mx-auto">
               {DAM_NAV.map(({ id, icon, label }) => renderNavButton(id, icon, label, true))}

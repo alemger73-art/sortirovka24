@@ -18,7 +18,7 @@ export const REFERRAL_SHARE_MESSAGE =
 
 export function resolvePromoCodes(raw?: string): FoodPromoCode[] {
   const parsed = parsePromoCodes(raw);
-  return parsed.length > 0 ? parsed : DEFAULT_PROMO_CODES;
+  return parsed;
 }
 
 export const DEFAULT_LOYALTY_GIFTS: LoyaltyGift[] = [
@@ -63,7 +63,7 @@ export const DEFAULT_LOYALTY_GIFTS: LoyaltyGift[] = [
 export function resolveLoyaltyGifts(raw?: string, enabled = true): LoyaltyGift[] {
   if (!enabled) return [];
   const parsed = parseLoyaltyGifts(raw);
-  return parsed.length > 0 ? parsed : DEFAULT_LOYALTY_GIFTS;
+  return parsed;
 }
 
 export interface PromoSlide {

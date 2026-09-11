@@ -16,6 +16,7 @@
     "setup:play-keystore": "powershell -ExecutionPolicy Bypass -File scripts/setup-play-keystore.ps1",
     "lint": "eslint --quiet ./src",
     "test:e2e": "playwright test",
+    "test:food": "npm run typecheck && npm run build:mobile && playwright test --config playwright.food.config.ts",
     "preview": "vite preview",
     "capture:presentation": "node scripts/capture-presentation-screenshots.mjs",
     "cap:sync": "pnpm run build:mobile && pnpm exec cap sync",

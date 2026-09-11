@@ -2616,3 +2616,59 @@ body.dam-sheet-open [data-bottom-nav] {
 }
 
 
+
+/* Food storefront: calm surfaces and a clear ordering hierarchy. */
+.dam-page { --dam-bg: #f8f7f4; --dam-ink: #242320; }
+.dam-market-offer {
+  background: #262c27;
+  box-shadow: none;
+  border: 0;
+  padding: clamp(1.5rem, 4vw, 3.5rem);
+  min-height: 190px;
+}
+.dam-market-offer h1 { font-size: clamp(1.7rem, 4vw, 3rem); max-width: 16ch; font-weight: 700; letter-spacing: -.045em; }
+.dam-market-offer p { font-size: .875rem; margin-top: .75rem; max-width: 40ch; line-height: 1.6; }
+.dam-market-offer__icon, .dam-market-offer__glow { display: none; }
+.dam-market-offer > button { color: #262c27; min-height: 44px; box-shadow: none; }
+.dam-market-benefits article { background: transparent; border: 0; box-shadow: none; }
+.dam-market-benefits p { color: #6b6b65; }
+.dam-grid-card { border: 1px solid #eae8e2; box-shadow: none; border-radius: 20px; overflow: hidden; }
+.dam-grid-card__body { padding: 1rem; }
+.dam-grid-card__title { letter-spacing: -.02em; }
+.dam-grid-card__price { color: #242320; font-variant-numeric: tabular-nums; }
+.dam-grid-card__fav { background: #fff; min-width: 40px; min-height: 40px; }
+.dam-grid-card__fav svg:not(.fill-\[\#FF3B30\]) { color: #6b6b65; filter: none; }
+.dam-delivery-details { margin: 1.25rem 0; padding: 1rem 0; border-block: 1px solid #eae8e2; color: #5e625b; }
+.dam-delivery-details summary { cursor: pointer; font-size: .875rem; font-weight: 600; min-height: 28px; }
+.dam-cart-summary { border: 1px solid #eae8e2; background: #fff; border-radius: 22px; padding: 1.25rem; box-shadow: 0 8px 32px #262c2706; }
+.dam-cart-line { border-color: #eae8e2; }
+.dam-cart-totals__pay strong { color: #242320; font-variant-numeric: tabular-nums; }
+.dam-cart-goal { background: #f2f5ef; color: #3b563e; border: 0; }
+.dam-cart-progress { display: block; width: 100%; height: 5px; margin-top: .65rem; border: 0; border-radius: 9px; overflow: hidden; accent-color: #527a54; }
+.dam-cart-progress::-webkit-progress-bar { background: #dde6d9; }
+.dam-cart-progress::-webkit-progress-value { background: #527a54; border-radius: 9px; }
+.dam-cart-progress::-moz-progress-bar { background: #527a54; }
+.dam-cart-footnote { color: #71717a; }
+.dam-cart .dam-qty button, .dam-cart-line__trash { min-width: 44px; min-height: 44px; }
+.dam-page button:focus-visible, .dam-page input:focus-visible, .dam-page summary:focus-visible { outline: 2px solid #527a54; outline-offset: 3px; }
+@media (max-width: 639px) {
+  .dam-market-offer { align-items: flex-start; flex-direction: column; gap: 1.25rem; }
+  .dam-market-offer > button { width: auto; padding-inline: 1.25rem; }
+  .dam-grid-card__body { padding: .75rem; }
+  .dam-cart-summary { padding: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dam-page *, .dam-page *::before, .dam-page *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+.dam-page h1, .dam-page h2, .dam-page h3, .dam-page h4 { font-family: inherit; }
+.dam-page .dam-market-benefits { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
+.dam-page .dam-market-benefits article { min-width: 0; padding: .75rem .25rem; gap: .4rem; align-items: flex-start; }
+@media (max-width: 639px) {
+  .dam-page .dam-market-benefits article { flex-direction: column; }
+  .dam-page .dam-market-benefits strong { font-size: .7rem; }
+  .dam-page .dam-market-benefits p { display: none; }
+}
+
+.dam-image-placeholder { display: flex; align-items: center; justify-content: center; background: #eeede7; color: #a5aa9e; }
+.dam-image-placeholder svg { width: 28%; height: 28%; max-width: 48px; max-height: 48px; stroke-width: 1; }

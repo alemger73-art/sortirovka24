@@ -86,7 +86,6 @@ export default function DamAlemCartView({
   referralTitle,
   referralSubtitle,
   referralShareText,
-  referralPromoCode,
   formatPrice,
   onBrowse,
   onUpdateQty,
@@ -132,21 +131,22 @@ export default function DamAlemCartView({
         }
       : null,
   ].filter(Boolean).sort((a, b) => a!.remaining - b!.remaining);
-  const goal = goals[0] ?? null;
+  const goal = (minOrder > subtotal ? goals.find(g => g?.remaining === minOrder - subtotal) : goals[0]) ?? null;
   const itemCount = lines.reduce((sum, line) => sum + line.quantity, 0);
   const canCheckout = minOrder <= 0 || subtotal >= minOrder;
-  const showBonusBlock = loggedIn && bonusBalance > 0 && !appliedPromo;
+  const hasActivePromo = !!appliedPromo && !appliedPromo.pending;
+  const showBonusBlock = loggedIn && bonusBalance > 0 && !hasActivePromo;
   const payTotal = Math.max(0, total - (useBonuses ? bonusDiscount : 0));
 
   return (
     <section className="dam-cart" data-testid="dam-cart-sheet">
       <div className="dam-cart__head">
-        <button type="button" onClick={onBrowse} className="dam-cart__back" aria-label="В меню">
+        <button type="button" onClick={onBrowse} className="dam-cart__back" aria-label="Вернуться в меню">
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>
           <h2>Корзина</h2>
-          <p>{itemCount} {itemCount === 1 ? 'позиция' : itemCount < 5 ? 'позиции' : 'позиций'}</p>
+          <p>{itemCount} {itemCount % 10 === 1 && itemCount % 100 !== 11 ? 'позиция' : itemCount % 10 >= 2 && itemCount % 10 <= 4 && (itemCount % 100 < 12 || itemCount % 100 > 14) ? 'позиции' : 'позиций'}</p>
         </div>
       </div>
 
@@ -172,7 +172,7 @@ export default function DamAlemCartView({
                       <h3>{line.name}</h3>
                       {line.modifiers ? <p>{line.modifiers}</p> : null}
                     </div>
-                    <button type="button" onClick={() => onRemove(index)} className="dam-cart-line__trash" aria-label="Удалить">
+                    <button type="button" onClick={() => onRemove(index)} className="dam-cart-line__trash" aria-label={`Удалить ${line.name}`}>
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -219,21 +219,22 @@ export default function DamAlemCartView({
               title={referralTitle}
               subtitle={referralSubtitle}
               shareText={referralShareText}
-              promoCode={referralPromoCode}
+
             />
           ) : null}
         </div>
 
-        <aside className="dam-cart-summary">
+        <aside className="dam-cart-summary" aria-label="Сумма заказа">
           <h3>Итого</h3>
 
           {goal ? (
             <div className="dam-cart-goal">
               <p>{goal.label}</p>
+              <progress className="dam-cart-progress" value={subtotal} max={subtotal + goal.remaining} aria-label={goal.label} />
             </div>
           ) : (
             <div className="dam-cart-goal dam-cart-goal--ok">
-              <p>Пороги достигнуты — можно оформлять</p>
+              <p>Всё готово к оформлению</p>
             </div>
           )}
 
@@ -244,10 +245,12 @@ export default function DamAlemCartView({
                 id="dam-cart-promo-input"
                 value={promoInput}
                 onChange={event => onPromoInput(event.target.value.toUpperCase())}
-                placeholder="Например DAMALEM10"
+                placeholder="Введите промокод"
+                autoComplete="off"
+                spellCheck={false}
                 disabled={!!appliedPromo && !appliedPromo.pending}
                 onKeyDown={event => {
-                  if (event.key === 'Enter' && !appliedPromo) onApplyPromo();
+                  if (event.key === 'Enter' && !appliedPromo && !promoLoading && promoInput.trim()) { event.preventDefault(); onApplyPromo(); }
                 }}
               />
               <button
@@ -284,14 +287,14 @@ export default function DamAlemCartView({
               <span>
                 <strong><Coins className="inline h-4 w-4 mr-1" />Списать бонусы</strong>
                 <small>
-                  Баланс {formatPrice(bonusBalance)}
+                  Баланс {bonusBalance.toLocaleString('ru-RU')} бонусов
                   {useBonuses && bonusDiscount > 0 ? ` · −${formatPrice(bonusDiscount)}` : ''}
                 </small>
               </span>
             </label>
           ) : null}
 
-          {loggedIn && bonusBalance > 0 && appliedPromo ? (
+          {loggedIn && bonusBalance > 0 && hasActivePromo ? (
             <p className="dam-cart-hint">Бонусы и промокод вместе не суммируются — выберите одно.</p>
           ) : null}
 
@@ -301,14 +304,14 @@ export default function DamAlemCartView({
             {discount > 0 ? (
               <div className="dam-cart-totals__discount"><span>Скидка</span><span>−{formatPrice(discount)}</span></div>
             ) : null}
-            {discount <= 0 && appliedPromo?.free_delivery ? (
+            {discount <= 0 && hasActivePromo && appliedPromo?.free_delivery ? (
               <div className="dam-cart-totals__discount"><span>Промокод</span><span>доставка 0 ₸</span></div>
             ) : null}
             {useBonuses && bonusDiscount > 0 ? (
               <div className="dam-cart-totals__discount"><span>Бонусы</span><span>−{formatPrice(bonusDiscount)}</span></div>
             ) : null}
             <div className="dam-cart-totals__pay">
-              <span>К оплате</span>
+              <span>Без доставки</span>
               <strong>{formatPrice(payTotal)}</strong>
             </div>
           </div>
@@ -322,7 +325,7 @@ export default function DamAlemCartView({
           >
             {canCheckout ? `Оформить · ${formatPrice(payTotal)}` : `Мин. заказ ${formatPrice(minOrder)}`}
           </button>
-          <p className="dam-cart-footnote">Доставку посчитаем по адресу на следующем шаге.</p>
+          <p className="dam-cart-footnote">Стоимость доставки и окончательную сумму покажем до подтверждения заказа.</p>
         </aside>
       </div>
     </section>
