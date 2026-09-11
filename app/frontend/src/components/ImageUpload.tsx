@@ -22,6 +22,7 @@ export { resolveImageUrl } from '@/lib/storage';
 interface ImageUploadProps {
   value?: string;
   onChange: (objectKey: string) => void;
+  onUploadingChange?: (uploading: boolean) => void;
   folder?: string;
   className?: string;
   compact?: boolean;
@@ -29,7 +30,7 @@ interface ImageUploadProps {
   allowUrl?: boolean;
 }
 
-export default function ImageUpload({ value, onChange, folder = 'general', className = '', compact = false, allowUrl = true }: ImageUploadProps) {
+export default function ImageUpload({ value, onChange, onUploadingChange, folder = 'general', className = '', compact = false, allowUrl = true }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -93,6 +94,7 @@ export default function ImageUpload({ value, onChange, folder = 'general', class
     const localPreview = URL.createObjectURL(file);
     setPreviewUrl(localPreview);
     setUploading(true);
+    onUploadingChange?.(true);
     setUploadProgress(0);
     setUploadSuccess(false);
 
@@ -127,6 +129,7 @@ export default function ImageUpload({ value, onChange, folder = 'general', class
       }
     } finally {
       setUploading(false);
+      onUploadingChange?.(false);
       URL.revokeObjectURL(localPreview);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }

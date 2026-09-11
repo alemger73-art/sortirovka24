@@ -85,7 +85,7 @@ export default function DamAlemPromoBanners({ banners, onAction }: { banners: Fo
       <div ref={track} onScroll={sync} className="food-campaigns__track" tabIndex={0} aria-label="Листайте предложения" data-testid="food-banner-track">
         {banners.map(banner => <FoodBannerCard key={banner.id} banner={banner} onAction={onAction} />)}
       </div>
-      {banners.length > 1 && <p className="food-campaigns__hint">{banners.length} предложения · нажмите на карточку, чтобы открыть</p>}
+      {banners.length > 1 && <p className="food-campaigns__hint">Предложений: {banners.length} · нажмите на карточку, чтобы открыть</p>}
     </section>
   );
 }

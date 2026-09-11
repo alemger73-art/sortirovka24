@@ -119,3 +119,34 @@ test('admin creates a draft, edits, publishes, reloads storefront, hides and del
   await expect(page.getByTestId('admin-banner-1')).toHaveCount(0);
   expect(state.banners).toHaveLength(0);
 });
+
+test('upload keeps edited text and saves a resolvable image key', async ({ page }) => {
+  const state = await setup(page);
+  let release!: () => void;
+  const uploaded = new Promise<void>(resolve => { release = resolve; });
+  await page.route('**/api/v1/storage/public/upload-url', route => route.fulfill({ json: { upload_url: 'http://127.0.0.1:3174/api/test-upload', object_key: 'banners/test.png' } }));
+  await page.route('**/api/test-upload', async route => {
+    await uploaded;
+    await route.fulfill({ json: { object_key: 'banners/test.png', image_url: image } });
+  });
+  await page.addInitScript(() => localStorage.setItem('_partner_token_dam_alem', 'test-session'));
+  await page.goto('/partner/dam-alem');
+  await page.getByRole('button', { name: 'Баннеры', exact: true }).click();
+  await page.getByRole('button', { name: 'Создать баннер', exact: true }).click();
+  await page.getByLabel('Заголовок', { exact: true }).fill('Первый заголовок');
+  try {
+    await page.locator('input[type=file]').setInputFiles('public/food-hero-reference.png');
+    await expect(page.getByRole('button', { name: 'Загружаем фото…' })).toBeDisabled();
+    await page.getByLabel('Заголовок', { exact: true }).fill('Ужин готов');
+  } finally { release(); }
+  await expect(page.getByRole('button', { name: 'Сохранить черновик' })).toBeEnabled();
+  await expect(page.getByLabel('Заголовок', { exact: true })).toHaveValue('Ужин готов');
+  await page.getByLabel('Показывать на витрине').check();
+  await page.getByRole('button', { name: 'Сохранить и показать' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(state.banners[0]).toMatchObject({ title: 'Ужин готов', image_url: 'banners/test.png', active: true });
+  await page.goto('/food');
+  const photo = page.getByTestId('food-banner-1').locator('img');
+  await expect(photo).toHaveAttribute('src', image);
+  await expect.poll(() => photo.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
+});

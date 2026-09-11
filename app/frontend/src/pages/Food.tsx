@@ -644,8 +644,7 @@ export default function Food() {
   );
   const hitItems = useMemo(() => {
     const hits = items.filter(i => i.is_popular || i.is_recommended);
-    if (hits.length >= 4) return hits.slice(0, 12);
-    return [...items].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)).slice(0, 8);
+    return hits.slice(0, 12);
   }, [items]);
 
   const patchSearch = useCallback((patch: (p: URLSearchParams) => void, replace = false) => {
@@ -1469,7 +1468,6 @@ export default function Food() {
 
   function getBadgeType(item: FoodItem): 'hit' | 'new' | null {
     if (item.is_popular || item.is_recommended) return 'hit';
-    if ((item.sort_order ?? 99) <= 3) return 'new';
     return null;
   }
 
@@ -2030,7 +2028,7 @@ export default function Food() {
 
               <div className="mt-4">
                 <DamAlemPromoStrip
-                  promos={configuredPromos.slice(0, 3)}
+                  promos={configuredPromos}
                   freeDeliveryFrom={0}
                   formatPrice={formatPrice}
                   appliedCode={appliedPromo?.code}
@@ -2111,7 +2109,7 @@ export default function Food() {
                   <section key={category.id} id={`dam-category-${category.id}`} className="dam-market-category">
                     <div className="dam-market-section-head">
                       <div>
-                        <span>{sectionItems.length} позиций</span>
+                        <span>Блюд: {sectionItems.length}</span>
                         <h2>{category.name}</h2>
                       </div>
                     </div>

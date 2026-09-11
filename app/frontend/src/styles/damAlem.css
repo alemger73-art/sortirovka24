@@ -2672,3 +2672,24 @@ body.dam-sheet-open [data-bottom-nav] {
 
 .dam-image-placeholder { display: flex; align-items: center; justify-content: center; background: #eeede7; color: #a5aa9e; }
 .dam-image-placeholder svg { width: 28%; height: 28%; max-width: 48px; max-height: 48px; stroke-width: 1; }
+
+/* Keep price and action aligned even when dish names wrap. */
+.dam-grid-card__body { display: flex; flex: 1; flex-direction: column; align-items: flex-start; }
+.dam-grid-card__price { margin-top: auto; padding-top: .75rem; }
+.dam-market-category, #dam-menu { scroll-margin-top: 14.5rem; }
+.dam-market-offer { margin-top: 1rem; }
+@media (min-width: 1024px) {
+  .dam-market-category, #dam-menu { scroll-margin-top: 12rem; }
+  .dam-market-feed { gap: 2.5rem; }
+}
+
+.dam-promo-strip { margin: 1.25rem 0; }
+.dam-promo-strip h2 { margin: 0 0 .75rem; color: #46503f; font-size: .8rem; font-weight: 600; }
+.dam-promo-strip__track { display: flex; gap: .75rem; overflow-x: auto; padding: 3px 2px 8px; scrollbar-width: thin; scrollbar-color: #d0d6ca transparent; }
+.dam-promo-chip { display: flex; flex: 0 0 auto; align-items: center; gap: 1rem; max-width: 100%; min-height: 76px; padding: .8rem 1rem; border: 1px solid #dce2d5; border-radius: 16px; background: #fff; color: #344b3a; text-align: left; }
+.dam-promo-chip__body { display: grid; gap: .2rem; }
+.dam-promo-chip__body strong { font-size: .8rem; letter-spacing: .05em; }
+.dam-promo-chip__body > span { max-width: 30ch; color: #65715c; font-size: .75rem; white-space: normal; }
+.dam-promo-chip__action { display: flex; flex-shrink: 0; align-items: center; gap: .4rem; font-size: .72rem; font-weight: 650; }
+.dam-promo-chip svg { width: 16px; height: 16px; }
+.dam-promo-chip--active { background: #eff4e9; border-color: #758b62; }

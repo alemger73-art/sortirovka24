@@ -37,6 +37,7 @@ export default function AdminDamAlemBanners() {
   const [lookupWarning, setLookupWarning] = useState('');
   const [draft, setDraft] = useState<Partial<Banner> | null>(null);
   const [action, setAction] = useState<FoodBannerAction>({ type: 'menu' });
+  const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
   const [formError, setFormError] = useState('');
@@ -76,7 +77,7 @@ export default function AdminDamAlemBanners() {
     finally { busyRef.current = false; setBusy(false); }
   };
   const save = () => {
-    if (!draft) return;
+    if (!draft || uploading) return;
     let message = '';
     if (!draft.title?.trim()) message = 'Введите заголовок баннера.';
     else if (draft.title.trim().length > 70) message = 'Заголовок должен быть не длиннее 70 символов.';
@@ -100,6 +101,7 @@ export default function AdminDamAlemBanners() {
     setAction(type === 'category' ? { type, slug: '' } : type === 'promo' ? { type, code: '' } : type === 'link' ? { type, url: '' } : { type });
     setDraft(current => current ? { ...current, button_text: '' } : null);
   };
+  const describe = (value: FoodBannerAction) => value.type === 'category' ? `Откроется категория «${categories.find(c => categorySlug(c) === value.slug)?.name || value.slug}»` : foodBannerActionDescription(value);
   const preview = draft ? { id: draft.id || 0, title: draft.title || 'Здесь будет ваш заголовок', subtitle: draft.subtitle, image_url: draft.image_url, button_text: draft.button_text, button_url: foodBannerActionUrl(action) } : null;
 
   return (
@@ -109,15 +111,15 @@ export default function AdminDamAlemBanners() {
         <Button onClick={() => open()} className="bg-[#344b3a] hover:bg-[#253b2b]"><Plus className="mr-2 h-4 w-4" />Создать баннер</Button>
       </div>
       {lookupWarning && <p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{lookupWarning}</p>}
-      <div className="flex flex-wrap justify-between gap-2 text-sm text-gray-600"><span>{items.filter(i => i.active !== false).length} на витрине · {items.filter(i => i.active === false).length} черновиков</span><Link to="/food" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#344b3a] underline">Открыть витрину<ExternalLink className="h-4 w-4" /></Link></div>
+      <div className="flex flex-wrap justify-between gap-2 text-sm text-gray-600"><span>{items.filter(i => i.active === true).length} на витрине · {items.filter(i => i.active !== true).length} черновиков</span><Link to="/food" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#344b3a] underline">Открыть витрину<ExternalLink className="h-4 w-4" /></Link></div>
       {error ? <div role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-800">{error}<Button variant="outline" className="ml-3" onClick={() => void reload()}>Повторить загрузку</Button></div>
         : loading ? <div role="status" className="flex justify-center gap-2 py-8"><Loader2 className="animate-spin" />Загружаем баннеры…</div>
           : <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{items.map(item => <article key={item.id} className="min-w-0 rounded-2xl border bg-white p-3" data-testid={`admin-banner-${item.id}`}>
-            <FoodBannerCard banner={item} onAction={a => toast.info(foodBannerActionDescription(a))} />
-            <p className="mt-3 text-xs text-gray-600 break-words">{foodBannerActionDescription(resolveFoodBannerAction(item))}</p>
+            <FoodBannerCard banner={item} onAction={a => toast.info(describe(a))} />
+            <p className="mt-3 text-xs text-gray-600 break-words">{describe(resolveFoodBannerAction(item))}</p>
             <div className="mt-3 flex flex-wrap items-center gap-1 border-t pt-3">
-              <Button variant="ghost" size="sm" disabled={busy} aria-label={`${item.active === false ? 'Показать' : 'Скрыть'} баннер ${item.title}`} onClick={() => void mutate(() => updateBanner(item.id, { active: item.active === false }), item.active === false ? 'Баннер опубликован' : 'Баннер скрыт')}>
-                {item.active === false ? <EyeOff className="mr-1 h-4 w-4" /> : <Eye className="mr-1 h-4 w-4" />}{item.active === false ? 'Черновик' : 'На витрине'}
+              <Button variant="ghost" size="sm" disabled={busy} aria-label={`${item.active !== true ? 'Показать' : 'Скрыть'} баннер ${item.title}`} onClick={() => void mutate(() => updateBanner(item.id, { active: item.active !== true }), item.active !== true ? 'Баннер опубликован' : 'Баннер скрыт')}>
+                {item.active !== true ? <EyeOff className="mr-1 h-4 w-4" /> : <Eye className="mr-1 h-4 w-4" />}{item.active !== true ? 'Черновик' : 'На витрине'}
               </Button>
               <Button variant="ghost" size="icon" aria-label={`Редактировать ${item.title}`} onClick={() => open(item)}><Pencil className="h-4 w-4" /></Button>
               <Button variant="ghost" size="icon" aria-label={`Копировать ${item.title}`} onClick={() => open(item, true)}><Copy className="h-4 w-4" /></Button>
@@ -126,7 +128,7 @@ export default function AdminDamAlemBanners() {
           </article>)}</div>}
       {!loading && !error && !items.length && <div className="rounded-2xl border border-dashed p-8 text-center"><h3 className="font-semibold">Первое предложение начинается здесь</h3><p className="mt-2 text-sm text-gray-500">Добавьте заголовок, фото и действие. Проверьте предпросмотр и включите показ на витрине.</p></div>}
 
-      <Dialog open={!!draft} onOpenChange={open => { if (!open && !busy) setDraft(null); }}>
+      <Dialog open={!!draft} onOpenChange={open => { if (!open && !busy && !uploading) setDraft(null); }}>
         <DialogContent className="max-h-[92dvh] max-w-4xl overflow-y-auto">
           <DialogHeader><DialogTitle>{draft?.id ? 'Редактировать баннер' : 'Создать баннер'}</DialogTitle><DialogDescription>Сначала выберите действие, затем оформите предложение. Баннер не создаёт скидку: промокод настраивается отдельно.</DialogDescription></DialogHeader>
           {draft && preview && <form onSubmit={e => { e.preventDefault(); save(); }} className="grid gap-6 md:grid-cols-2">
@@ -138,13 +140,13 @@ export default function AdminDamAlemBanners() {
               <div><label htmlFor="banner-title" className="mb-1 block text-sm font-medium">Заголовок</label><Input id="banner-title" maxLength={70} value={draft.title || ''} onChange={e => setDraft({ ...draft, title: e.target.value })} placeholder="Например: Пицца для вашего вечера" /><p className="mt-1 text-xs text-gray-400">{draft.title?.length || 0}/70 · одна короткая мысль</p></div>
               <div><label htmlFor="banner-subtitle" className="mb-1 block text-sm font-medium">Подзаголовок и условия</label><Textarea id="banner-subtitle" rows={3} maxLength={160} value={draft.subtitle || ''} onChange={e => setDraft({ ...draft, subtitle: e.target.value })} placeholder="Что получает покупатель и при каких условиях" /></div>
               <div><label htmlFor="banner-cta" className="mb-1 block text-sm font-medium">Текст кнопки</label><Input id="banner-cta" maxLength={40} value={draft.button_text || ''} onChange={e => setDraft({ ...draft, button_text: e.target.value })} placeholder={foodBannerCtaLabel(action)} /><p className="mt-1 text-xs text-gray-500">Можно оставить пустым — текст подберётся по действию.</p></div>
-              <div><p className="mb-1 text-sm font-medium">Фото для баннера</p><p className="mb-2 text-xs text-gray-500">1200 × 900 px, JPG, PNG или WebP. Еда — вверху или справа, текст добавится автоматически. Без фото останется фирменный фон.</p><ImageUpload value={draft.image_url || ''} onChange={image_url => setDraft({ ...draft, image_url })} folder="banners" /></div>
+              <div><p className="mb-1 text-sm font-medium">Фото для баннера</p><p className="mb-2 text-xs text-gray-500">1200 × 900 px, JPG, PNG или WebP. Еда — вверху или справа, текст добавится автоматически. Без фото останется фирменный фон.</p><ImageUpload value={draft.image_url || ''} onUploadingChange={setUploading} onChange={image_url => setDraft(current => current ? { ...current, image_url } : null)} folder="banners" /></div>
             </fieldset>
-            <div className="min-w-0 space-y-4"><div className="md:sticky md:top-0"><p className="mb-3 text-sm font-semibold text-gray-600">Так увидит покупатель</p><FoodBannerCard banner={preview} onAction={() => toast.info(foodBannerActionDescription(action))} /><p className="mt-3 rounded-xl bg-gray-50 p-3 text-sm text-gray-600 break-words">{foodBannerActionDescription(action)}</p><p className="mt-2 text-xs text-gray-500">Нажмите на предпросмотр, чтобы проверить назначение.</p>
+            <div className="min-w-0 space-y-4"><div className="md:sticky md:top-0"><p className="mb-3 text-sm font-semibold text-gray-600">Так увидит покупатель</p><FoodBannerCard banner={preview} onAction={() => toast.info(describe(action))} /><p className="mt-3 rounded-xl bg-gray-50 p-3 text-sm text-gray-600 break-words">{describe(action)}</p><p className="mt-2 text-xs text-gray-500">Нажмите на предпросмотр, чтобы проверить назначение.</p>
               <label className="mt-5 flex items-start gap-3 rounded-xl border p-4"><input type="checkbox" className="mt-1 h-4 w-4 accent-emerald-800" checked={draft.active ?? false} disabled={busy} onChange={e => setDraft({ ...draft, active: e.target.checked })} /><span><strong className="text-sm">Показывать на витрине</strong><span className="mt-1 block text-xs text-gray-500">Выключено — сохранится черновик, видимый только в админке.</span></span></label>
             </div></div>
             {formError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-800 md:col-span-2">{formError}</p>}
-            <div className="flex justify-end gap-2 border-t pt-4 md:col-span-2"><Button type="button" variant="outline" disabled={busy} onClick={() => setDraft(null)}>Отмена</Button><Button type="submit" disabled={busy} className="bg-[#344b3a] hover:bg-[#253b2b]">{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{draft.active ? 'Сохранить и показать' : 'Сохранить черновик'}</Button></div>
+            <div className="sticky bottom-0 z-10 flex justify-end gap-2 border-t bg-white py-3 md:col-span-2"><Button type="button" variant="outline" disabled={busy || uploading} onClick={() => setDraft(null)}>Отмена</Button><Button type="submit" disabled={busy || uploading} className="bg-[#344b3a] hover:bg-[#253b2b]">{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{uploading ? 'Загружаем фото…' : draft.active ? 'Сохранить и показать' : 'Сохранить черновик'}</Button></div>
           </form>}
         </DialogContent>
       </Dialog>
