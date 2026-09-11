@@ -18,8 +18,8 @@ import {
   type CabinetSecuritySettings,
 } from "@/lib/cabinetPreferences";
 import { getBiometricSupport, type BiometricSupport } from "@/lib/biometricAuth";
-import { accountApi, getAccountToken, type SavedAddress, type UserNotificationItem } from "@/lib/accountApi";
-import { cacheAccountProfile, getCurrentUser, logoutLocalUser } from "@/lib/localAuth";
+import { accountApi, AccountApiError, getAccountToken, type SavedAddress, type UserNotificationItem } from "@/lib/accountApi";
+import { cacheAccountProfile, logoutLocalUser } from "@/lib/localAuth";
 import { humanizeApiError } from "@/lib/apiErrors";
 import { STATUS_LABELS, ANN_TYPES } from "@/lib/api";
 import { formatExpiryLabel, isAnnouncementExpired, isAnnouncementPromoted } from "@/lib/announcements";
@@ -40,16 +40,18 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import TaxiUnavailable from "@/components/taxi/TaxiUnavailable";
 import { cabinetOrderDetailPath, orderDetailId, type CabinetOrderRow } from "@/lib/orderRoutes";
 
+import '@/styles/cabinet.css';
+
 type TabId = CabinetTabId;
 
 const MASTER_REQUEST_STATUS: Record<string, { labelKey: string; color: string }> = {
-  new: { labelKey: "cabinet.master.statusNew", color: "bg-yellow-500/20 text-yellow-200" },
-  in_progress: { labelKey: "cabinet.master.statusInProgress", color: "bg-blue-500/20 text-blue-200" },
-  done: { labelKey: "cabinet.master.statusDone", color: "bg-green-500/20 text-green-200" },
+  new: { labelKey: "cabinet.master.statusNew", color: "bg-yellow-500/20 text-yellow-800 dark:text-yellow-200" },
+  in_progress: { labelKey: "cabinet.master.statusInProgress", color: "bg-blue-500/20 text-blue-800 dark:text-blue-200" },
+  done: { labelKey: "cabinet.master.statusDone", color: "bg-green-500/20 text-green-800 dark:text-green-200" },
 };
 
 function formatOrderDate(raw?: string | null) {
-  if (!raw) return "";
+  if (!raw || Number.isNaN(new Date(raw).getTime())) return "";
   try {
     return new Date(raw).toLocaleString("ru-RU", {
       day: "numeric",
@@ -110,6 +112,8 @@ export default function Cabinet() {
   const [cabinet, setCabinet] = useState<any>(null);
   const [profileForm, setProfileForm] = useState({ name: "", email: "", avatar: "", language: "ru" });
   const [error, setError] = useState("");
+  const contentMutation = useRef(false);
+  const [contentBusy, setContentBusy] = useState(false);
   const [success, setSuccess] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -137,7 +141,12 @@ export default function Cabinet() {
   const [orderFilter, setOrderFilter] = useState<"all" | "food" | "store">("all");
   const [notifications, setNotifications] = useState<UserNotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [notificationError, setNotificationError] = useState("");
+  const readingNotifications = useRef(new Set<number>());
+  const [readingAll, setReadingAll] = useState(false);
+  const [addressBusy, setAddressBusy] = useState(false);
+  const geoGeneration = useRef(0);
   const seenNotificationIds = useRef<Set<number>>(new Set());
   const [securitySettings, setSecuritySettings] = useState<CabinetSecuritySettings | null>(null);
   const [cabinetLocked, setCabinetLocked] = useState(false);
@@ -145,9 +154,7 @@ export default function Cabinet() {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (isCabinetTabId(tab)) {
-      setActiveTab(tab);
-    }
+    setActiveTab(isCabinetTabId(tab) ? tab : "profile");
   }, [searchParams]);
 
   const loadMasterNewRequests = async (role?: string) => {
@@ -165,8 +172,9 @@ export default function Cabinet() {
     }
   };
 
-  useEffect(() => {
-    (async () => {
+  const loadCabinet = async () => {
+    setLoading(true);
+    setError("");
       if (!getAccountToken()) {
         navigate("/account");
         return;
@@ -189,39 +197,21 @@ export default function Cabinet() {
         taxiApi.getDriverApplication().then(setDriverApplication).catch(() => {});
         loadMasterNewRequests(data?.profile?.role).catch(() => {});
       } catch (e: unknown) {
-        const cached = getCurrentUser();
-        if (cached) {
-          setCabinet({
-            profile: {
-              name: cached.name,
-              phone: cached.phone,
-              email: cached.email,
-              avatar: cached.avatar,
-              has_password: true,
-              bonus_balance: 0,
-            },
-            bonuses: [],
-            orders: [],
-            complaints: [],
-            announcements: [],
-            real_estate: [],
-          });
-          setProfileForm({
-            name: cached.name || "",
-            email: cached.email || "",
-            avatar: cached.avatar || "",
-            language: "ru",
-          });
-          setError(t("cabinet.errorOffline"));
+        if (e instanceof AccountApiError && e.status === 401) {
+          logoutLocalUser();
+          navigate('/account?redirect=/cabinet', { replace: true });
         } else {
           setError(humanizeApiError(e));
         }
       } finally {
         setLoading(false);
       }
-    })();
-  }, []);
+  };
+  useEffect(() => { void loadCabinet(); }, []);
   const saveProfile = async () => {
+    if (savingProfile || avatarUploading) return;
+    if (!profileForm.name.trim()) { setError(t("cabinet.nameRequired")); return; }
+    if (profileForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileForm.email.trim())) { setError(t("cabinet.emailInvalid")); return; }
     setSavingProfile(true);
     setError("");
     setSuccess("");
@@ -230,7 +220,7 @@ export default function Cabinet() {
         profileForm.avatar?.startsWith("blob:") ? undefined : profileForm.avatar?.trim() || undefined;
       const updated = await accountApi.updateMe({
         name: profileForm.name.trim(),
-        email: profileForm.email.trim() || undefined,
+        email: profileForm.email.trim(),
         avatar: avatarForSave,
         language: profileForm.language,
       });
@@ -241,7 +231,7 @@ export default function Cabinet() {
         email: updated.email,
         avatar: updated.avatar,
       });
-      const refreshed = await accountApi.cabinet();
+      const refreshed = { ...cabinet, profile: updated };
       setCabinet(refreshed);
       if (profileForm.language === "kz" || profileForm.language === "ru") {
         setLang(profileForm.language);
@@ -261,7 +251,7 @@ export default function Cabinet() {
   };
 
   const onAvatarUpload = async (file?: File) => {
-    if (!file) return;
+    if (!file || avatarUploading || savingProfile) return;
     if (!file.type.startsWith("image/")) {
       setError(t("cabinet.errorImageType"));
       return;
@@ -281,12 +271,7 @@ export default function Cabinet() {
       const result = await uploadAvatar(file);
       const url = result.thumbnailUrl || result.downloadUrl;
       if (!url) throw new Error(t("cabinet.errorUploadFailed"));
-      const updated = await accountApi.updateMe({
-        name: profileForm.name.trim(),
-        email: profileForm.email.trim() || undefined,
-        avatar: url,
-        language: profileForm.language,
-      });
+      const updated = await accountApi.updateMe({ avatar: url });
       setProfileForm((p) => ({
         ...p,
         avatar: updated.avatar || url,
@@ -317,6 +302,7 @@ export default function Cabinet() {
   };
 
   const changePassword = async () => {
+    if (changingPassword) return;
     setChangingPassword(true);
     setError("");
     setSuccess("");
@@ -352,6 +338,7 @@ export default function Cabinet() {
   };
 
   const startAddAddress = () => {
+    geoGeneration.current++;
     setError("");
     setSuccess("");
     setGeoError("");
@@ -359,6 +346,7 @@ export default function Cabinet() {
   };
 
   const startEditAddress = (a: SavedAddress) => {
+    geoGeneration.current++;
     setError("");
     setSuccess("");
     setGeoError("");
@@ -380,10 +368,13 @@ export default function Cabinet() {
       setGeoError(t("cabinet.addresses.addressRequired"));
       return;
     }
+    const generation = ++geoGeneration.current;
+    const requestedAddress = addressForm.address.trim();
     setGeocoding(true);
     setGeoError("");
     try {
-      const res = await accountApi.geocodeAddress(addressForm.address.trim());
+      const res = await accountApi.geocodeAddress(requestedAddress);
+      if (generation !== geoGeneration.current) return;
       if (!res.found || res.lat == null || res.lng == null) {
         setAddressForm((p) => (p ? { ...p, lat: null, lng: null, display: "" } : p));
         setGeoError(t("cabinet.addresses.geoNotFound"));
@@ -393,14 +384,14 @@ export default function Cabinet() {
         p ? { ...p, lat: res.lat ?? null, lng: res.lng ?? null, display: res.display_address || p.address } : p
       );
     } catch (e: unknown) {
-      setGeoError(humanizeApiError(e));
+      if (generation === geoGeneration.current) setGeoError(humanizeApiError(e));
     } finally {
       setGeocoding(false);
     }
   };
 
   const saveAddress = async () => {
-    if (!addressForm) return;
+    if (!addressForm || savingAddress || geocoding) return;
     if (addressForm.address.trim().length < 3) {
       setError(t("cabinet.addresses.addressRequired"));
       return;
@@ -417,12 +408,10 @@ export default function Cabinet() {
         lat: addressForm.lat,
         lng: addressForm.lng,
       };
-      if (addressForm.id == null) {
-        await accountApi.createAddress(payload);
-      } else {
-        await accountApi.updateAddress(addressForm.id, payload);
-      }
-      await refreshAddresses();
+      const saved = addressForm.id == null
+        ? await accountApi.createAddress(payload)
+        : await accountApi.updateAddress(addressForm.id, payload);
+      setAddresses(previous => [...previous.filter(a => a.id !== saved.id).map(a => saved.is_default ? { ...a, is_default: false } : a), saved]);
       setAddressForm(null);
       setSuccess(t("cabinet.addresses.saved"));
     } catch (e: unknown) {
@@ -433,27 +422,32 @@ export default function Cabinet() {
   };
 
   const makeDefaultAddress = async (id: number) => {
+    if (addressBusy) return;
+    setAddressBusy(true);
     setError("");
     setSuccess("");
     try {
       await accountApi.setDefaultAddress(id);
-      await refreshAddresses();
+      setAddresses(previous => previous.map(a => ({ ...a, is_default: a.id === id })));
     } catch (e: unknown) {
       setError(humanizeApiError(e));
-    }
+    } finally { setAddressBusy(false); }
   };
 
   const removeAddress = async (id: number) => {
     if (!window.confirm(t("cabinet.addresses.deleteConfirm"))) return;
+    if (addressBusy) return;
+    setAddressBusy(true);
     setError("");
     setSuccess("");
     try {
       await accountApi.deleteAddress(id);
+      setAddresses(previous => previous.filter(a => a.id !== id));
       await refreshAddresses();
       setSuccess(t("cabinet.addresses.deleted"));
     } catch (e: unknown) {
       setError(humanizeApiError(e));
-    }
+    } finally { setAddressBusy(false); }
   };
 
   const refreshCabinet = async () => {
@@ -466,94 +460,120 @@ export default function Cabinet() {
 
   const unpublishAnnouncement = async (id: number) => {
     if (!window.confirm(t("cabinet.announcements.unpublishConfirm"))) return;
+    if (contentMutation.current) return;
+    contentMutation.current = true;
+    setContentBusy(true);
     setError("");
     try {
       await accountApi.unpublishMyAnnouncement(id);
-      await refreshCabinet();
+      try { await refreshCabinet(); } catch { setError(t("cabinet.refreshAfterSave")); }
       toast.success(t("cabinet.announcements.unpublished"));
     } catch (e: unknown) {
       setError(humanizeApiError(e));
-    }
+    } finally { contentMutation.current = false; setContentBusy(false); }
   };
 
   const deleteAnnouncement = async (id: number) => {
     if (!window.confirm(t("cabinet.announcements.deleteConfirm"))) return;
+    if (contentMutation.current) return;
+    contentMutation.current = true;
+    setContentBusy(true);
     setError("");
     try {
       await accountApi.deleteMyAnnouncement(id);
-      await refreshCabinet();
+      setCabinet((prev: any) => ({ ...prev, announcements: (prev?.announcements || []).filter((item: { id: number }) => Number(item.id) !== id) }));
+      try { await refreshCabinet(); } catch { setError(t("cabinet.refreshAfterSave")); }
       toast.success(t("cabinet.announcements.deleted"));
     } catch (e: unknown) {
       setError(humanizeApiError(e));
-    }
+    } finally { contentMutation.current = false; setContentBusy(false); }
   };
 
   const extendAnnouncement = async (id: number) => {
+    if (contentMutation.current) return;
+    contentMutation.current = true;
+    setContentBusy(true);
     setError("");
     try {
       await accountApi.extendMyAnnouncement(id);
-      await refreshCabinet();
+      try { await refreshCabinet(); } catch { setError(t("cabinet.refreshAfterSave")); }
       toast.success(t("cabinet.announcements.extended"));
     } catch (e: unknown) {
       setError(humanizeApiError(e));
-    }
+    } finally { contentMutation.current = false; setContentBusy(false); }
   };
 
   const boostAnnouncement = async (id: number) => {
+    if (contentMutation.current) return;
+    contentMutation.current = true;
+    setContentBusy(true);
     setError("");
     try {
       await accountApi.boostMyAnnouncement(id);
-      await refreshCabinet();
+      try { await refreshCabinet(); } catch { setError(t("cabinet.refreshAfterSave")); }
       toast.success(t("cabinet.announcements.boosted"));
     } catch (e: unknown) {
       setError(humanizeApiError(e));
-    }
+    } finally { contentMutation.current = false; setContentBusy(false); }
   };
 
   const unpublishRealEstate = async (id: number) => {
     if (!window.confirm(t("cabinet.realEstate.unpublishConfirm"))) return;
+    if (contentMutation.current) return;
+    contentMutation.current = true;
+    setContentBusy(true);
     setError("");
     try {
       await accountApi.unpublishMyRealEstate(id);
-      await refreshCabinet();
+      try { await refreshCabinet(); } catch { setError(t("cabinet.refreshAfterSave")); }
       toast.success(t("cabinet.realEstate.unpublished"));
     } catch (e: unknown) {
       setError(humanizeApiError(e));
-    }
+    } finally { contentMutation.current = false; setContentBusy(false); }
   };
 
   const deleteRealEstate = async (id: number) => {
     if (!window.confirm(t("cabinet.realEstate.deleteConfirm"))) return;
+    if (contentMutation.current) return;
+    contentMutation.current = true;
+    setContentBusy(true);
     setError("");
     try {
       await accountApi.deleteMyRealEstate(id);
-      await refreshCabinet();
+      setCabinet((prev: any) => ({ ...prev, real_estate: (prev?.real_estate || []).filter((item: { id: number }) => Number(item.id) !== id) }));
+      try { await refreshCabinet(); } catch { setError(t("cabinet.refreshAfterSave")); }
       toast.success(t("cabinet.realEstate.deleted"));
     } catch (e: unknown) {
       setError(humanizeApiError(e));
-    }
+    } finally { contentMutation.current = false; setContentBusy(false); }
   };
 
   const extendRealEstate = async (id: number) => {
+    if (contentMutation.current) return;
+    contentMutation.current = true;
+    setContentBusy(true);
     setError("");
     try {
       await accountApi.extendMyRealEstate(id);
-      await refreshCabinet();
+      try { await refreshCabinet(); } catch { setError(t("cabinet.refreshAfterSave")); }
       toast.success(t("cabinet.realEstate.extended"));
     } catch (e: unknown) {
       setError(humanizeApiError(e));
-    }
+    } finally { contentMutation.current = false; setContentBusy(false); }
   };
 
   const boostRealEstate = async (id: number) => {
+    if (contentMutation.current) return;
+    contentMutation.current = true;
+    setContentBusy(true);
     setError("");
     try {
       await accountApi.boostMyRealEstate(id);
-      await refreshCabinet();
+      try { await refreshCabinet(); } catch { setError(t("cabinet.refreshAfterSave")); }
       toast.success(t("cabinet.realEstate.boosted"));
     } catch (e: unknown) {
       setError(humanizeApiError(e));
-    }
+    } finally { contentMutation.current = false; setContentBusy(false); }
   };
 
   const rows = useMemo(() => ({
@@ -652,7 +672,7 @@ export default function Cabinet() {
     const next = new URLSearchParams(searchParams);
     if (tab === "profile") next.delete("tab");
     else next.set("tab", tab);
-    navigate({ pathname: "/cabinet", search: next.toString() ? `?${next.toString()}` : "" }, { replace: true });
+    navigate({ pathname: "/cabinet", search: next.toString() ? `?${next.toString()}` : "" });
   };
 
   const refreshNotifications = async (silent = false) => {
@@ -661,6 +681,7 @@ export default function Cabinet() {
     try {
       const data = await accountApi.notifications();
       const prefs = await loadNotificationPrefs();
+      setNotificationError("");
       setNotifications(data.items || []);
       setUnreadCount(Number(data.unread_count || 0));
 
@@ -677,8 +698,8 @@ export default function Cabinet() {
           }
         }
       }
-    } catch {
-      /* ignore polling errors */
+    } catch (e) {
+      setNotificationError(humanizeApiError(e));
     } finally {
       if (!silent) setNotificationsLoading(false);
     }
@@ -708,32 +729,33 @@ export default function Cabinet() {
 
   useEffect(() => {
     if (!getAccountToken()) return;
-    void refreshNotifications(true);
-    if (typeof Notification !== "undefined" && Notification.permission === "default") {
-      void Notification.requestPermission();
-    }
+    void refreshNotifications();
     const id = window.setInterval(() => refreshNotifications(true), 30000);
     return () => window.clearInterval(id);
   }, []);
 
   const markNotificationRead = async (id: number) => {
+    if (readingNotifications.current.has(id) || !notifications.some(n => n.id === id && !n.is_read)) return;
+    readingNotifications.current.add(id);
     try {
       await accountApi.markNotificationRead(id);
-      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
-      setUnreadCount((c) => Math.max(0, c - 1));
-    } catch {
-      /* ignore */
-    }
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+      setUnreadCount(c => Math.max(0, c - 1));
+      setNotificationError("");
+    } catch (e) { setNotificationError(humanizeApiError(e)); }
+    finally { readingNotifications.current.delete(id); }
   };
 
   const markAllNotificationsRead = async () => {
+    if (readingAll) return;
+    setReadingAll(true);
     try {
       await accountApi.markAllNotificationsRead();
-      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
-    } catch {
-      /* ignore */
-    }
+      setNotificationError("");
+    } catch (e) { setNotificationError(humanizeApiError(e)); }
+    finally { setReadingAll(false); }
   };
 
   const tabsWithBadges = useMemo(
@@ -742,11 +764,11 @@ export default function Cabinet() {
   );
 
   useEffect(() => {
-    if (tabs.some((tab) => tab.id === activeTab)) return;
+    if (loading || tabs.some((tab) => tab.id === activeTab)) return;
     switchTab("profile");
-  }, [tabs, activeTab]);
+  }, [tabs, activeTab, loading]);
 
-  if (loading) return <Layout><div className="mx-auto max-w-6xl px-4 py-10 text-gray-500 dark:text-slate-300">{t("cabinet.loading")}</div></Layout>;
+  if (loading || !securitySettings) return <Layout><div className="mx-auto max-w-6xl px-4 py-10 text-gray-500 dark:text-slate-300">{t("cabinet.loading")}</div></Layout>;
 
   if (cabinetLocked && securitySettings) {
     return (
@@ -767,21 +789,24 @@ export default function Cabinet() {
     );
   }
 
+  if (!cabinet) return <Layout><div className="mx-auto max-w-xl px-4 py-12"><h1 className="text-2xl font-bold">{t('cabinet.loadFailed')}</h1><p role="alert" className="my-4">{error}</p><button type="button" className="rounded-xl bg-amber-400 px-5 py-3 font-semibold" onClick={() => void loadCabinet()}>{t('cabinet.retry')}</button></div></Layout>;
+
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 px-4 py-8 text-gray-900 dark:bg-[#0B0F19] dark:text-white">
+      <div className="cabinet-page min-h-screen bg-gray-50 px-4 py-8 text-gray-900 dark:bg-[#0B0F19] dark:text-white">
         <div className="mx-auto max-w-7xl">
           <div className="mb-6">
             <CabinetHeader
               profile={cabinet?.profile}
               ordersCount={(rows.orders || []).length}
-              ordersCountLabel={`${(rows.orders || []).length} ${t("cabinet.ordersCount")}`}
+              ordersCountLabel={`${t("cabinet.orderCountLabel")}: ${(rows.orders || []).length}`}
               courierAccess={courierAccess}
               driverApplication={driverApplication}
               masterApplicationPending={masterApplicationPending}
               masterNewRequests={masterNewRequests}
               logoutLabel={t("cabinet.logout")}
               bonusLabel={t("cabinet.bonusShort")}
+              notificationsLabel={t("cabinet.tab.notifications")}
               onLogout={() => {
                 logoutLocalUser();
                 navigate("/account");
@@ -800,20 +825,20 @@ export default function Cabinet() {
                 courierPending: t("cabinet.courierPending"),
                 driverPending: t("cabinet.driverPending"),
               }}
-              roleVisibility={roleVisibility}
+              roleVisibility={{ ...roleVisibility, becomeDriver: false, becomeCourier: false, becomeMaster: false }}
             />
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
             <CabinetNav tabs={tabsWithBadges} activeTab={activeTab} onTabChange={switchTab} />
 
-            <div className="space-y-4">
-              {error ? <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">{error}</p> : null}
-              {success ? <p className="rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300">{success}</p> : null}
+            <fieldset disabled={contentBusy} className="cabinet-content min-w-0 space-y-4" id="cabinet-panel">
+              {error ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">{error}</p> : null}
+              {success ? <p role="status" className="rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300">{success}</p> : null}
 
               {activeTab === "profile" && (
                 <>
-                  <CabinetRoleApplications
+                  <details className="cabinet-role-options"><summary>{t("cabinet.workOptions")}</summary><CabinetRoleApplications
                     profileRole={cabinet?.profile?.role}
                     becomeMasterRequests={rows.become_master_requests}
                     courierAccess={courierAccess}
@@ -832,7 +857,7 @@ export default function Cabinet() {
                       masterRequestsHint: t("cabinet.roles.masterRequestsHint"),
                     }}
                     showRoles={showRoles}
-                  />
+                  /></details>
                   {masterApplicationPending && (
                     <div className="rounded-2xl border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/80 dark:bg-indigo-950/20 px-4 py-4">
                       <p className="text-sm font-bold text-indigo-900 dark:text-indigo-200">{t("cabinet.masterPending")}</p>
@@ -841,8 +866,8 @@ export default function Cabinet() {
                   )}
                 <DarkCard>
                   <div className="mb-4 flex items-center justify-between"><h2 className={sectionTitleClass}>{t("cabinet.tab.profile")}</h2></div>
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr]">
-                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center dark:border-[#2a3347] dark:bg-[#0f172a]">
+                  <div className="cabinet-profile-layout grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr]">
+                    <div className="cabinet-avatar-panel rounded-xl border border-gray-200 bg-gray-50 p-4 text-center dark:border-[#2a3347] dark:bg-[#0f172a]">
                       {profileForm.avatar ? (
                         <img src={profileForm.avatar} alt="avatar" className="mx-auto h-28 w-28 rounded-full object-cover ring-2 ring-yellow-400/50" />
                       ) : (
@@ -850,16 +875,19 @@ export default function Cabinet() {
                       )}
                       <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-yellow-400 px-3 py-2 text-sm font-semibold text-[#0B0F19]">
                         <Camera className="h-4 w-4" /> {avatarUploading ? t("cabinet.uploadingPhoto") : t("cabinet.uploadPhoto")}
-                        <input type="file" accept="image/*" className="hidden" disabled={avatarUploading} onChange={(e) => onAvatarUpload(e.target.files?.[0])} />
+                        <input type="file" accept="image/*" className="hidden" disabled={avatarUploading || savingProfile} onChange={(e) => onAvatarUpload(e.target.files?.[0])} />
                       </label>
                       {profileForm.avatar ? (
                         <button
+                          disabled={avatarUploading || savingProfile}
                           onClick={async () => {
+                            setAvatarUploading(true);
                             setError("");
                             setSuccess("");
                             try {
                               const updated = await accountApi.updateMe({ avatar: "" });
                               setProfileForm((p) => ({ ...p, avatar: "" }));
+                              setCabinet((prev: any) => ({ ...prev, profile: { ...prev.profile, avatar: "" } }));
                               cacheAccountProfile({
                                 id: updated.id,
                                 name: updated.name,
@@ -870,7 +898,7 @@ export default function Cabinet() {
                               setSuccess(t("cabinet.avatarRemoved"));
                             } catch (e: unknown) {
                               setError(humanizeApiError(e));
-                            }
+                            } finally { setAvatarUploading(false); }
                           }}
                           className="mt-2 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-[#2a3347] dark:text-slate-200 dark:hover:bg-[#1a2336]"
                         >
@@ -879,13 +907,13 @@ export default function Cabinet() {
                       ) : null}
                     </div>
                     <div className="space-y-3">
-                      <input value={profileForm.name} onChange={(e) => setProfileForm((p) => ({ ...p, name: e.target.value }))} className={inputClass} placeholder={t("cabinet.placeholderName")} />
-                      <input disabled value={cabinet?.profile?.phone || ""} className={`${inputClass} opacity-80`} placeholder={t("cabinet.placeholderPhone")} />
-                      <input value={profileForm.email} onChange={(e) => setProfileForm((p) => ({ ...p, email: e.target.value }))} className={inputClass} placeholder="Email" />
-                      <select value={profileForm.language} onChange={e => setProfileForm(p => ({ ...p, language: e.target.value }))} className={inputClass}>
+                      <label className="block text-sm font-medium">{t("cabinet.placeholderName")}<input aria-label={t("cabinet.placeholderName")} maxLength={120} disabled={savingProfile} value={profileForm.name} onChange={(e) => setProfileForm((p) => ({ ...p, name: e.target.value }))} className={inputClass} placeholder={t("cabinet.placeholderName")} /></label>
+                      <label className="block text-sm font-medium">{t("cabinet.placeholderPhone")}<input aria-label={t("cabinet.placeholderPhone")} disabled value={cabinet?.profile?.phone || ""} className={`${inputClass} opacity-80`} placeholder={t("cabinet.placeholderPhone")} /></label>
+                      <label className="block text-sm font-medium">Email<input aria-label="Email" type="email" maxLength={254} disabled={savingProfile} value={profileForm.email} onChange={(e) => setProfileForm((p) => ({ ...p, email: e.target.value }))} className={inputClass} placeholder="Email" /></label>
+                      <label className="block text-sm font-medium">{t("cabinet.language")}<select aria-label={t("cabinet.language")} disabled={savingProfile} value={profileForm.language} onChange={e => setProfileForm(p => ({ ...p, language: e.target.value }))} className={inputClass}>
                         <option value="ru">Русский</option>
                         <option value="kz">Қазақша</option>
-                      </select>
+                      </select></label>
                       <button onClick={saveProfile} disabled={savingProfile || avatarUploading} className="inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-[#0B0F19] disabled:opacity-60">
                         <Save className="h-4 w-4" /> {savingProfile ? t("cabinet.saving") : t("cabinet.saveProfile")}
                       </button>
@@ -916,12 +944,12 @@ export default function Cabinet() {
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
                           {addressForm.id == null ? t("cabinet.addresses.add") : t("cabinet.addresses.edit")}
                         </h3>
-                        <button onClick={() => setAddressForm(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-slate-200">
+                        <button disabled={savingAddress || geocoding} aria-label={t("common.cancel")} onClick={() => { geoGeneration.current++; setAddressForm(null); }} className="text-gray-400 hover:text-gray-600 dark:hover:text-slate-200">
                           <X className="h-4 w-4" />
                         </button>
                       </div>
                       <input
-                        value={addressForm.label}
+                        disabled={savingAddress} aria-label={t("cabinet.addresses.labelField")} value={addressForm.label}
                         onChange={(e) => setAddressForm((p) => (p ? { ...p, label: e.target.value } : p))}
                         className={inputClass}
                         placeholder={t("cabinet.addresses.labelField")}
@@ -929,9 +957,9 @@ export default function Cabinet() {
                       <div className="space-y-2">
                         <div className="flex gap-2">
                           <input
-                            value={addressForm.address}
+                            disabled={savingAddress} aria-label={t("cabinet.addresses.addressField")} value={addressForm.address}
                             onChange={(e) =>
-                              setAddressForm((p) => (p ? { ...p, address: e.target.value, lat: null, lng: null, display: "" } : p))
+                              (geoGeneration.current++, setGeoError(""), setAddressForm((p) => (p ? { ...p, address: e.target.value, lat: null, lng: null, display: "" } : p)))
                             }
                             className={`${inputClass} flex-1`}
                             placeholder={t("cabinet.addresses.addressField")}
@@ -980,7 +1008,7 @@ export default function Cabinet() {
                         )}
                       </div>
                       <textarea
-                        value={addressForm.comment}
+                        disabled={savingAddress} aria-label={t("cabinet.addresses.commentField")} value={addressForm.comment}
                         onChange={(e) => setAddressForm((p) => (p ? { ...p, comment: e.target.value } : p))}
                         className={`${inputClass} min-h-[64px]`}
                         placeholder={t("cabinet.addresses.commentField")}
@@ -997,13 +1025,13 @@ export default function Cabinet() {
                       <div className="flex gap-2">
                         <button
                           onClick={saveAddress}
-                          disabled={savingAddress}
+                          disabled={savingAddress || geocoding}
                           className="inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-[#0B0F19] disabled:opacity-60"
                         >
                           <Save className="h-4 w-4" /> {savingAddress ? t("cabinet.saving") : t("common.save")}
                         </button>
                         <button
-                          onClick={() => setAddressForm(null)}
+                          disabled={savingAddress || geocoding} aria-label={t("common.cancel")} onClick={() => { geoGeneration.current++; setAddressForm(null); }}
                           className="rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 dark:border-[#2a3347] dark:text-slate-200 dark:hover:bg-[#1a2336]"
                         >
                           {t("common.cancel")}
@@ -1041,7 +1069,7 @@ export default function Cabinet() {
                           <div className="flex shrink-0 items-center gap-1">
                             {!a.is_default ? (
                               <button
-                                onClick={() => makeDefaultAddress(a.id)}
+                                disabled={addressBusy || savingAddress} onClick={() => makeDefaultAddress(a.id)}
                                 title={t("cabinet.addresses.setDefault")}
                                 className="rounded-lg p-2 text-gray-400 hover:bg-gray-200 hover:text-emerald-600 dark:hover:bg-[#1a2336]"
                               >
@@ -1049,14 +1077,14 @@ export default function Cabinet() {
                               </button>
                             ) : null}
                             <button
-                              onClick={() => startEditAddress(a)}
+                              disabled={addressBusy || savingAddress} onClick={() => startEditAddress(a)}
                               title={t("common.edit")}
                               className="rounded-lg p-2 text-gray-400 hover:bg-gray-200 hover:text-indigo-600 dark:hover:bg-[#1a2336]"
                             >
                               <Pencil className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={() => removeAddress(a.id)}
+                              disabled={addressBusy || savingAddress} onClick={() => removeAddress(a.id)}
                               title={t("common.delete")}
                               className="rounded-lg p-2 text-gray-400 hover:bg-gray-200 hover:text-red-600 dark:hover:bg-[#1a2336]"
                             >
@@ -1106,9 +1134,12 @@ export default function Cabinet() {
 
               {activeTab === "notifications" && (
                 <DarkCard>
+                  {notificationError && <p role="alert" className="mb-3 text-sm text-red-600">{notificationError} <button type="button" onClick={() => void refreshNotifications()}>{t("cabinet.retry")}</button></p>}
                   <CabinetNotifications
                     items={notifications}
                     loading={notificationsLoading}
+                    failed={!!notificationError}
+                    busy={readingAll}
                     unreadCount={unreadCount}
                     onMarkRead={markNotificationRead}
                     onMarkAllRead={markAllNotificationsRead}
@@ -1132,7 +1163,7 @@ export default function Cabinet() {
                         <button
                           key={key}
                           type="button"
-                          onClick={() => setOrderFilter(key)}
+                          aria-pressed={orderFilter === key} onClick={() => setOrderFilter(key)}
                           className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
                             orderFilter === key
                               ? "bg-amber-400 text-[#0B0F19]"
@@ -1484,7 +1515,7 @@ export default function Cabinet() {
                     {hasPassword ? (
                       <input
                         type="password"
-                        value={passwordForm.current}
+                        aria-label={t("cabinet.placeholderCurrentPassword")} maxLength={128} disabled={changingPassword} value={passwordForm.current}
                         onChange={(e) => setPasswordForm((p) => ({ ...p, current: e.target.value }))}
                         className={inputClass}
                         placeholder={t("cabinet.placeholderCurrentPassword")}
@@ -1493,7 +1524,7 @@ export default function Cabinet() {
                     ) : null}
                     <input
                       type="password"
-                      value={passwordForm.next}
+                      aria-label={t("cabinet.placeholderNewPassword")} maxLength={128} disabled={changingPassword} value={passwordForm.next}
                       onChange={(e) => setPasswordForm((p) => ({ ...p, next: e.target.value }))}
                       className={inputClass}
                       placeholder={t("cabinet.placeholderNewPassword")}
@@ -1501,7 +1532,7 @@ export default function Cabinet() {
                     />
                     <input
                       type="password"
-                      value={passwordForm.confirm}
+                      aria-label={t("cabinet.placeholderConfirmPassword")} maxLength={128} disabled={changingPassword} value={passwordForm.confirm}
                       onChange={(e) => setPasswordForm((p) => ({ ...p, confirm: e.target.value }))}
                       className={inputClass}
                       placeholder={t("cabinet.placeholderConfirmPassword")}
@@ -1527,7 +1558,7 @@ export default function Cabinet() {
                   </button>
                 </DarkCard>
               )}
-            </div>
+            </fieldset>
           </div>
         </div>
       </div>

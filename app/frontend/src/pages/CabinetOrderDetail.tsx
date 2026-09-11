@@ -8,6 +8,8 @@ import {
   ORDER_SOURCE_LABELS,
   ORDER_SOURCE_PATHS,
   parseOrderItems,
+  orderLineQuantity,
+  orderLineTotal,
   saveStoreRepeatOrder,
   type OrderSource,
 } from '@/lib/orderRoutes';
@@ -31,7 +33,7 @@ const STORE_STATUS: Record<string, { key: string; color: string }> = {
 };
 
 function formatOrderDate(raw?: string | null) {
-  if (!raw) return '';
+  if (!raw || Number.isNaN(new Date(raw).getTime())) return '';
   try {
     return new Date(raw).toLocaleString('ru-RU', {
       day: 'numeric',
@@ -61,24 +63,27 @@ export default function CabinetOrderDetail() {
 
   useEffect(() => {
     if (!source || !orderId) return;
+    let alive = true;
     (async () => {
       setLoading(true);
       setError('');
       try {
-        setOrder(await accountApi.orderDetail(source, orderId));
+        const result = await accountApi.orderDetail(source, orderId);
+        if (alive) setOrder(result);
       } catch (e) {
-        setError(humanizeApiError(e));
+        if (alive) setError(humanizeApiError(e));
       } finally {
-        setLoading(false);
+        if (alive) setLoading(false);
       }
     })();
+    return () => { alive = false; };
   }, [source, orderId]);
 
   const items = parseOrderItems(order?.order_items);
   const type = String(order?.type || source);
   const isFood = type === 'food';
   const st = STORE_STATUS[order?.status || ''] || STORE_STATUS.new;
-  const storePath = order?.store_path || ORDER_SOURCE_PATHS[type as OrderSource] || '/';
+  const storePath = ORDER_SOURCE_PATHS[type as OrderSource] || '/';
   const storeLabel = order?.store_label || ORDER_SOURCE_LABELS[type as OrderSource] || type;
   const address = order?.customer_address || order?.delivery_address;
   const payKey = order?.payment_method ? PAYMENT_LABELS[order.payment_method] : null;
@@ -91,7 +96,7 @@ export default function CabinetOrderDetail() {
           delivery_address: order.delivery_address,
           delivery_method: order.delivery_method,
         }));
-      } catch { /* ignore */ }
+      } catch { setError(t('cabinet.repeatFailed')); return; }
       navigate('/food');
       return;
     }
@@ -103,7 +108,7 @@ export default function CabinetOrderDetail() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-2xl px-4 py-8">
+      <div className="mx-auto min-w-0 max-w-2xl break-words px-4 py-8">
         <Link to="/cabinet?tab=orders" className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white mb-6">
           <ArrowLeft className="h-4 w-4" /> {t('cabinet.tab.orders')}
         </Link>
@@ -117,7 +122,7 @@ export default function CabinetOrderDetail() {
         ) : order ? (
           <div className="space-y-4">
             <div className="rounded-2xl border bg-white p-6 shadow-sm dark:bg-gray-900 dark:border-gray-800">
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <StoreIcon type={type} />
                   <div>
@@ -160,7 +165,7 @@ export default function CabinetOrderDetail() {
                 >
                   <Store className="h-4 w-4" /> В магазин
                 </Link>
-                {order.order_items ? (
+                {items.length > 0 && ['food', 'volna', 'gastronom', 'pharmacy', 'prorab'].includes(type) ? (
                   <button
                     type="button"
                     onClick={repeatOrder}
@@ -186,8 +191,8 @@ export default function CabinetOrderDetail() {
                 <ul className="space-y-2">
                   {items.map((item, idx) => {
                     const name = String(item.name || item.title || 'Позиция');
-                    const qty = Number(item.qty ?? item.quantity ?? 1);
-                    const price = Number(item.price ?? item.total ?? 0);
+                    const qty = orderLineQuantity(item);
+                    const price = orderLineTotal(item);
                     return (
                       <li key={idx} className="flex justify-between gap-3 text-sm border-b border-gray-100 dark:border-gray-800 pb-2 last:border-0">
                         <span className="text-gray-800 dark:text-slate-200">{name} × {qty}</span>

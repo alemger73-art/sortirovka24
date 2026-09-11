@@ -41,7 +41,7 @@ export default function MobileBottomNav() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur-md dark:border-gray-800 dark:bg-gray-950/95 pb-[env(safe-area-inset-bottom)]"
+      className="site-bottom-nav md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur-md dark:border-gray-800 dark:bg-gray-950/95 pb-[env(safe-area-inset-bottom)]"
       aria-label={t('nav.bottomBar')}
       data-bottom-nav
     >

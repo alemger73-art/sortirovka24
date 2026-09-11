@@ -55,8 +55,10 @@ async function readJson<T>(key: string, fallback: T): Promise<T> {
 
 async function writeJson(key: string, value: unknown): Promise<void> {
   const raw = JSON.stringify(value);
+  let saved = false;
   try {
     localStorage.setItem(key, raw);
+    saved = true;
   } catch {
     /* ignore */
   }
@@ -64,10 +66,12 @@ async function writeJson(key: string, value: unknown): Promise<void> {
     try {
       const { Preferences } = await import('@capacitor/preferences');
       await Preferences.set({ key, value: raw });
+      saved = true;
     } catch {
       /* ignore */
     }
   }
+  if (!saved) throw new Error('Не удалось сохранить настройки на устройстве');
 }
 
 function randomSalt(): string {
@@ -172,6 +176,7 @@ const CATEGORY_MAP: Record<string, keyof CabinetNotificationPrefs> = {
   taxi: 'taxi',
   bonus: 'bonuses',
   master: 'master',
+  marketing: 'marketing',
 };
 
 export function isNotificationCategoryEnabled(

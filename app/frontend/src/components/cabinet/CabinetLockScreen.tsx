@@ -67,12 +67,13 @@ export default function CabinetLockScreen({
         <p className="text-center text-xs font-semibold uppercase tracking-wide text-gray-400">{pinLabel}</p>
         <div className="flex justify-center">
           <InputOTP
+            aria-label={pinLabel}
             maxLength={6}
             value={pin}
             onChange={(v) => {
               setPin(v.replace(/\D/g, '').slice(0, 6));
               setError('');
-              if (v.replace(/\D/g, '').length >= 4) void tryPin(v.replace(/\D/g, '').slice(0, 6));
+
             }}
             disabled={checking}
           >
@@ -86,7 +87,8 @@ export default function CabinetLockScreen({
             </InputOTPGroup>
           </InputOTP>
         </div>
-        {error ? <p className="text-center text-sm text-red-600">{error}</p> : null}
+        <button type="button" disabled={checking || pin.length < 4} onClick={() => void tryPin(pin)} className="w-full rounded-xl bg-amber-400 px-4 py-3 font-semibold text-gray-900 disabled:opacity-50">{pinLabel}</button>
+        {error ? <p role="alert" className="text-center text-sm text-red-600">{error}</p> : null}
         {checking ? (
           <div className="flex justify-center text-gray-400">
             <Loader2 className="h-5 w-5 animate-spin" />

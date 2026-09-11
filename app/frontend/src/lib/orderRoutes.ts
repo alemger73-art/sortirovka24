@@ -24,14 +24,24 @@ export function cabinetOrderDetailPath(source: string, orderNumber: number | str
   return `/cabinet/orders/${source}/${orderNumber}`;
 }
 
-export function parseOrderItems(raw?: string | null): Array<Record<string, unknown>> {
-  if (!raw?.trim()) return [];
+export function parseOrderItems(raw?: unknown): Array<Record<string, unknown>> {
   try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return Array.isArray(parsed) ? parsed.filter(item => item && typeof item === 'object' && !Array.isArray(item)) : [];
+  } catch { return []; }
+}
+
+export function orderLineQuantity(item: Record<string, unknown>): number {
+  const value = Number(item.qty ?? item.quantity ?? 1);
+  return Number.isFinite(value) && value > 0 ? value : 1;
+}
+
+export function orderLineTotal(item: Record<string, unknown>): number {
+  const explicit = item.line_total ?? item.total;
+  if (explicit != null && Number.isFinite(Number(explicit))) return Math.max(0, Number(explicit));
+  const extras = item.modTotal ?? (Array.isArray(item.modifiers) ? item.modifiers.reduce((sum, mod) => sum + (Number(mod?.price) || 0), 0) : 0);
+  const total = (Number(item.price ?? 0) + Number(extras)) * orderLineQuantity(item);
+  return Number.isFinite(total) ? Math.max(0, total) : 0;
 }
 
 const STORE_REPEAT_KEYS: Partial<Record<OrderSource, string>> = {

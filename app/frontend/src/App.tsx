@@ -1,3 +1,4 @@
+import CabinetPrivacyGate from '@/components/cabinet/CabinetPrivacyGate';
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
@@ -124,7 +125,7 @@ function Protected({ children }: { children: JSX.Element }) {
   }, [authed, navigate]);
 
   if (!authed) return <AuthGateLoader />;
-  return children;
+  return <CabinetPrivacyGate>{children}</CabinetPrivacyGate>;
 }
 
 function App() {

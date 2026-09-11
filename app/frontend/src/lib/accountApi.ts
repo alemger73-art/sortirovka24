@@ -69,6 +69,10 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+export class AccountApiError extends Error {
+  constructor(message: string, public readonly status: number) { super(message); this.name = "AccountApiError"; }
+}
+
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   let resp: Response;
   try {
@@ -93,7 +97,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     } catch {
       // keep raw text
     }
-    throw new Error(message);
+    throw new AccountApiError(message, resp.status);
   }
   return (await resp.json()) as T;
 }

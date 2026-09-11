@@ -62,6 +62,7 @@ from schemas.account_v2 import (
 from schemas.storage import FileUpDownRequest, FileUpDownResponse
 from services.account_profile import AvatarValidationError, normalize_avatar_url
 from services.gastronom_delivery import geocode_address, reverse_geocode
+from services.cabinet_history import owns_content, list_owned_history, legacy_food_id
 from services.account_session import resolve_account_user
 from services.auth import AuthService
 from services.google_oauth import (
@@ -197,9 +198,7 @@ def _request_visible_to_master(request: Master_requests, listing: Masters) -> bo
 
 
 def _owns_user_content(user: User, record_user_id: str | None, record_phone: str | None) -> bool:
-    if record_user_id and str(record_user_id) == str(user.id):
-        return True
-    return _matches_user_phone(record_phone, user.phone)
+    return owns_content(user, record_user_id, record_phone)
 
 
 def _owns_become_master_request(user: User, row: Become_master_requests) -> bool:
@@ -1349,52 +1348,19 @@ async def cabinet(
     order_rows = (
         await db.execute(select(Order).where(Order.user_id == str(user.id)).order_by(desc(Order.id)).limit(100))
     ).scalars().all()
-    food_rows = (
-        await db.execute(select(Food_orders).order_by(desc(Food_orders.id)).limit(500))
-    ).scalars().all()
-    food_rows = [
-        f for f in food_rows
-        if _owns_user_content(
-            user,
-            str(f.user_id) if getattr(f, "user_id", None) else None,
-            f.customer_phone,
-        )
-    ]
-    complaint_rows = (
-        await db.execute(select(Complaints).order_by(desc(Complaints.id)).limit(500))
-    ).scalars().all()
-    complaint_rows = [c for c in complaint_rows if _owns_user_content(user, c.user_id, c.phone)]
-    announcement_rows = (
-        await db.execute(select(Announcements).order_by(desc(Announcements.id)).limit(500))
-    ).scalars().all()
-    announcement_rows = [a for a in announcement_rows if _owns_user_content(user, a.user_id, a.phone)]
-    real_estate_rows = (
-        await db.execute(select(Real_estate).order_by(desc(Real_estate.id)).limit(500))
-    ).scalars().all()
-    real_estate_rows = [r for r in real_estate_rows if _owns_user_content(user, r.user_id, r.phone)]
-    master_request_rows = (
-        await db.execute(select(Master_requests).order_by(desc(Master_requests.id)).limit(500))
-    ).scalars().all()
-    master_request_rows = [r for r in master_request_rows if _matches_user_phone(r.phone, user.phone)]
+    food_rows = await list_owned_history(db, Food_orders, user, phone_field='customer_phone')
+    complaint_rows = await list_owned_history(db, Complaints, user)
+    announcement_rows = await list_owned_history(db, Announcements, user)
+    real_estate_rows = await list_owned_history(db, Real_estate, user)
+    master_request_rows = await list_owned_history(db, Master_requests, user, limit=50)
     address_rows = await _list_user_addresses(db, str(user.id))
-    become_rows = (
-        await db.execute(
-            select(Become_master_requests).order_by(desc(Become_master_requests.id)).limit(100)
-        )
-    ).scalars().all()
-    become_rows = [b for b in become_rows if _owns_become_master_request(user, b)]
+    become_rows = await list_owned_history(db, Become_master_requests, user, limit=10)
+    detailed_food_ids = {f.id for f in food_rows}
 
     merged_orders = [
         {"id": o.id, "type": o.order_type, "status": o.status, "amount": o.amount, "details": o.details, "created_at": o.created_at.isoformat() if o.created_at else None}
-        for o in order_rows
+        for o in order_rows if legacy_food_id(o) not in detailed_food_ids
     ]
-    linked_food_ids = {
-        part
-        for o in order_rows
-        if o.order_type == "food" and o.details
-        for part in str(o.details).split("#")
-        if part.strip().isdigit()
-    }
     merged_orders.extend(
         {
             "id": f"food_{f.id}",
@@ -1416,23 +1382,13 @@ async def cabinet(
             "created_at": f.created_at,
         }
         for f in food_rows[:100]
-        if str(f.id) not in linked_food_ids
     )
 
     # Store orders (gastronom / pharmacy / prorab / food-park) belong to the
     # SAME personal cabinet — matched to the account by customer phone so every
     # purchase across the app shows up in one place.
     for type_key, label, store_path, model in STORE_ORDER_SOURCES:
-        try:
-            rows = (
-                await db.execute(select(model).order_by(desc(model.id)).limit(500))
-            ).scalars().all()
-        except Exception:
-            continue
-        rows = [
-            r for r in rows
-            if _owns_user_content(user, getattr(r, "user_id", None), getattr(r, "customer_phone", None))
-        ]
+        rows = await list_owned_history(db, model, user, phone_field='customer_phone')
         merged_orders.extend(
             _store_order_summary(type_key, label, store_path, r)
             for r in rows[:100]

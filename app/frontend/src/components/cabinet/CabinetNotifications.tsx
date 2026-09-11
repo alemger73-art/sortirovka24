@@ -23,7 +23,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 function formatWhen(raw?: string | null) {
-  if (!raw) return "";
+  if (!raw || Number.isNaN(new Date(raw).getTime())) return "";
   try {
     return new Date(raw).toLocaleString("ru-RU", {
       day: "numeric",
@@ -39,6 +39,8 @@ function formatWhen(raw?: string | null) {
 interface Props {
   items: UserNotificationItem[];
   loading: boolean;
+  failed?: boolean;
+  busy?: boolean;
   unreadCount: number;
   onMarkRead: (id: number) => void;
   onMarkAllRead: () => void;
@@ -50,6 +52,8 @@ interface Props {
 export default function CabinetNotifications({
   items,
   loading,
+  failed,
+  busy,
   unreadCount,
   onMarkRead,
   onMarkAllRead,
@@ -71,7 +75,7 @@ export default function CabinetNotifications({
         {unreadCount > 0 ? (
           <button
             type="button"
-            onClick={onMarkAllRead}
+            disabled={busy} onClick={onMarkAllRead}
             className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-[#2a3347] dark:text-slate-200 dark:hover:bg-[#1a2336]"
           >
             <CheckCheck className="h-4 w-4" />
@@ -84,7 +88,7 @@ export default function CabinetNotifications({
         <div className="flex items-center justify-center py-12 text-gray-400">
           <Loader2 className="h-6 w-6 animate-spin" />
         </div>
-      ) : items.length === 0 ? (
+      ) : failed && items.length === 0 ? null : items.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-6 py-12 text-center dark:border-[#26324a] dark:bg-[#0f172a]">
           <Bell className="mx-auto h-10 w-10 text-gray-300 dark:text-slate-600" />
           <p className="mt-3 text-sm text-gray-500 dark:text-slate-400">{emptyLabel}</p>
@@ -120,7 +124,7 @@ export default function CabinetNotifications({
               </div>
             );
 
-            if (n.path) {
+            if (n.path && n.path.startsWith('/') && !n.path.startsWith('//') && !/[\\\s]/.test(n.path)) {
               return (
                 <Link
                   key={n.id}

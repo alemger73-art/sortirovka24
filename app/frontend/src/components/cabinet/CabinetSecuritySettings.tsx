@@ -1,3 +1,4 @@
+import { humanizeApiError } from '@/lib/apiErrors';
 import { useEffect, useState } from 'react';
 import { Bell, Fingerprint, Lock, Shield, Trash2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -37,7 +38,7 @@ function PrefRow({
         <p className="text-sm font-semibold text-gray-900 dark:text-white">{label}</p>
         {hint ? <p className="mt-0.5 text-xs text-gray-500 dark:text-slate-400">{hint}</p> : null}
       </div>
-      <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
+      <Switch aria-label={label} checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
     </div>
   );
 }
@@ -50,6 +51,7 @@ export default function CabinetSecuritySettings({ t, onSettingsChange }: Props) 
   const [pinConfirm, setPinConfirm] = useState('');
   const [pinError, setPinError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [permission, setPermission] = useState(typeof Notification === "undefined" ? "unsupported" : Notification.permission);
 
   useEffect(() => {
     void (async () => {
@@ -65,14 +67,24 @@ export default function CabinetSecuritySettings({ t, onSettingsChange }: Props) 
   }, []);
 
   async function persistSecurity(next: CabinetSecuritySettings) {
-    setSecurity(next);
-    await saveSecuritySettings(next);
-    onSettingsChange?.(next);
+    if (saving) return;
+    setSaving(true);
+    setPinError('');
+    try {
+      await saveSecuritySettings(next);
+      setSecurity(next);
+      onSettingsChange?.(next);
+    } catch (e) { setPinError(humanizeApiError(e)); }
+    finally { setSaving(false); }
   }
 
   async function persistNotify(next: CabinetNotificationPrefs) {
-    setNotify(next);
-    await saveNotificationPrefs(next);
+    if (saving) return;
+    setSaving(true);
+    setPinError('');
+    try { await saveNotificationPrefs(next); setNotify(next); }
+    catch (e) { setPinError(humanizeApiError(e)); }
+    finally { setSaving(false); }
   }
 
   async function savePin() {
@@ -92,16 +104,20 @@ export default function CabinetSecuritySettings({ t, onSettingsChange }: Props) 
       onSettingsChange?.(next);
       setPinSetup('');
       setPinConfirm('');
-    } finally {
+    } catch (e) { setPinError(humanizeApiError(e)); } finally {
       setSaving(false);
     }
   }
 
   async function removePin() {
     if (!window.confirm(t('cabinet.security.removePinConfirm'))) return;
-    const next = await clearCabinetPin();
-    setSecurity(next);
-    onSettingsChange?.(next);
+    setSaving(true);
+    try {
+      const next = await clearCabinetPin();
+      setSecurity(next);
+      onSettingsChange?.(next);
+    } catch (e) { setPinError(humanizeApiError(e)); }
+    finally { setSaving(false); }
   }
 
   if (!security || !notify) {
@@ -109,7 +125,8 @@ export default function CabinetSecuritySettings({ t, onSettingsChange }: Props) 
   }
 
   return (
-    <div className="space-y-6">
+    <fieldset disabled={saving} className="min-w-0 space-y-6">
+      {pinError && <p role="alert" className="text-sm text-red-600">{pinError}</p>}
       <section className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-[#2a3347] dark:bg-[#0f172a]">
         <div className="mb-3 flex items-center gap-2">
           <Shield className="h-5 w-5 text-amber-600" />
@@ -147,6 +164,7 @@ export default function CabinetSecuritySettings({ t, onSettingsChange }: Props) 
           ) : (
             <div className="space-y-2">
               <input
+                type="password"
                 inputMode="numeric"
                 pattern="\d*"
                 maxLength={6}
@@ -156,6 +174,7 @@ export default function CabinetSecuritySettings({ t, onSettingsChange }: Props) 
                 placeholder={t('cabinet.security.pinPlaceholder')}
               />
               <input
+                type="password"
                 inputMode="numeric"
                 pattern="\d*"
                 maxLength={6}
@@ -203,6 +222,8 @@ export default function CabinetSecuritySettings({ t, onSettingsChange }: Props) 
           <Bell className="h-5 w-5 text-sky-600" />
           <h3 className="text-sm font-bold text-gray-900 dark:text-white">{t('cabinet.permissions.title')}</h3>
         </div>
+        {permission === 'default' && <button type="button" className="mb-3 rounded-xl bg-sky-100 px-4 py-3 text-sm font-semibold text-sky-800" onClick={() => { void Notification.requestPermission().then(setPermission); }}>{t('cabinet.enableNotifications')}</button>}
+        {permission === 'denied' && <p className="mb-3 text-xs">{t('cabinet.notificationsDenied')}</p>}
         <p className="mb-2 text-xs text-gray-500 dark:text-slate-400">{t('cabinet.permissions.hint')}</p>
 
         <PrefRow
@@ -231,6 +252,6 @@ export default function CabinetSecuritySettings({ t, onSettingsChange }: Props) 
           onCheckedChange={(v) => void persistNotify({ ...notify, master: v })}
         />
       </section>
-    </div>
+    </fieldset>
   );
 }

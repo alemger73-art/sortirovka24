@@ -3,7 +3,7 @@ import {
   ChevronRight, MapPin, RotateCcw, Store, Truck, UtensilsCrossed, Wine,
 } from "lucide-react";
 import FoodOrderStatusBar from "@/components/damalem/FoodOrderStatusBar";
-import { parseOrderItems, type CabinetOrderRow } from "@/lib/orderRoutes";
+import { parseOrderItems, orderLineQuantity, type CabinetOrderRow } from "@/lib/orderRoutes";
 import { DAM_ALEM_BRAND } from "@/lib/damAlem";
 
 const STORE_ORDER_LABELS: Record<string, string> = {
@@ -49,7 +49,7 @@ const PAYMENT_LABELS: Record<string, string> = {
 const REPEAT_ORDER_KEY = "damalem_repeat_order";
 
 function formatOrderDate(raw?: string | null) {
-  if (!raw) return "";
+  if (!raw || Number.isNaN(new Date(raw).getTime())) return "";
   try {
     return new Date(raw).toLocaleString("ru-RU", {
       day: "numeric",
@@ -96,7 +96,7 @@ function orderTitle(o: CabinetOrderRow, t: (key: string) => string) {
 function orderSubtitle(o: CabinetOrderRow) {
   const items = parseOrderItems(o.order_items);
   if (items.length > 0) {
-    const qty = items.reduce((s, it) => s + Number(it.quantity || 1), 0);
+    const qty = items.reduce((s, it) => s + orderLineQuantity(it), 0);
     return `${qty} ${qty === 1 ? "позиция" : qty < 5 ? "позиции" : "позиций"}`;
   }
   return o.details || "";

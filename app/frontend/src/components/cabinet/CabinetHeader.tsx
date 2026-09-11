@@ -22,6 +22,7 @@ interface Props {
   masterNewRequests?: number;
   logoutLabel: string;
   bonusLabel: string;
+  notificationsLabel?: string;
   onLogout: () => void;
   onOpenBonuses: () => void;
   onOpenNotifications: () => void;
@@ -58,6 +59,7 @@ export default function CabinetHeader({
   masterNewRequests = 0,
   logoutLabel,
   bonusLabel,
+  notificationsLabel = "Уведомления",
   onLogout,
   onOpenBonuses,
   onOpenNotifications,
@@ -106,14 +108,14 @@ export default function CabinetHeader({
             </div>
           )}
           <div className="min-w-0">
-            <h1 className="truncate text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
+            <h1 className="break-words text-xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-2xl">
               {profile?.name || "—"}
             </h1>
             <p className="truncate text-sm text-gray-500 dark:text-slate-300">{profile?.phone}</p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={onOpenNotifications}
+                aria-label={notificationsLabel} onClick={onOpenNotifications}
                 className="relative inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-bold text-gray-700 transition hover:bg-gray-50 dark:border-[#2a3347] dark:bg-[#0f172a] dark:text-slate-200 dark:hover:bg-[#1a2336]"
               >
                 <Bell className="h-3.5 w-3.5" />
