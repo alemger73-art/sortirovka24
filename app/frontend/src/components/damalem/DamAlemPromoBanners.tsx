@@ -1,91 +1,91 @@
-import PromoBannerMedia from '@/components/PromoBannerMedia';
-import { ChevronRight, Sparkles } from 'lucide-react';
-import {
-  foodBannerCtaLabel,
-  resolveFoodBannerAction,
-  type FoodBannerAction,
-} from '@/lib/damAlemMarketing';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight, ExternalLink } from 'lucide-react';
+import { resolveImageUrl } from '@/lib/storage';
+import { foodBannerCtaLabel, resolveFoodBannerAction, type FoodBannerAction } from '@/lib/foodBannerActions';
+import '@/styles/foodBanners.css';
 
 export interface FoodBanner {
   id: number;
   title: string;
   subtitle?: string;
+  banner_text?: string;
   image_url?: string;
   button_text?: string;
   button_url?: string;
 }
 
-interface DamAlemPromoBannersProps {
-  banners: FoodBanner[];
-  onAction: (action: FoodBannerAction, banner: FoodBanner) => void;
+function BannerImage({ source }: { source: string }) {
+  const [url, setUrl] = useState('');
+  useEffect(() => {
+    let alive = true;
+    setUrl('');
+    resolveImageUrl(source).then(value => { if (alive) setUrl(value || ''); }).catch(() => {});
+    return () => { alive = false; };
+  }, [source]);
+  return url ? <img src={url} alt="" loading="lazy" className="food-campaign__image" onError={() => setUrl('')} /> : null;
 }
 
-const FALLBACK_GRADIENTS = [
-  'linear-gradient(135deg, #FF3B30 0%, #C41E14 100%)',
-  'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
-  'linear-gradient(135deg, #059669 0%, #10B981 100%)',
-];
-
-export default function DamAlemPromoBanners({ banners, onAction }: DamAlemPromoBannersProps) {
-  if (banners.length === 0) return null;
-
+export function FoodBannerCard({ banner, onAction }: { banner: FoodBanner; onAction: (action: FoodBannerAction, banner: FoodBanner) => void }) {
+  const action = resolveFoodBannerAction(banner);
+  const label = foodBannerCtaLabel(action, banner.button_text);
+  const eyebrow = action.type === 'promo' ? `Промокод ${action.code}` : action.type === 'gifts' ? 'К вашему заказу' : action.type === 'category' ? 'Выберите своё' : 'Алем Фуд рекомендует';
   return (
-    <section className="space-y-3 dam-animate-in">
-      <div className="flex items-center justify-between">
-        <h2 className="dam-section-title flex items-center gap-2 text-zinc-900">
-          <Sparkles className="h-5 w-5 text-[#FF3B30]" />
-          Спецпредложения
-        </h2>
-      </div>
-      <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 scrollbar-hide snap-x snap-mandatory lg:gap-4">
-        {banners.map((b, idx) => {
-          const action = resolveFoodBannerAction(b);
-          const ctaLabel = foodBannerCtaLabel(action, b.button_text);
+    <button type="button" className={`food-campaign food-campaign--${action.type}`} onClick={() => onAction(action, banner)} aria-label={`${banner.title}. ${label}`} data-testid={`food-banner-${banner.id}`}>
+      {banner.image_url ? <BannerImage source={banner.image_url} /> : <span className="food-campaign__decoration" aria-hidden="true" />}
+      <span className="food-campaign__shade" />
+      <span className="food-campaign__content">
+        <span className="food-campaign__eyebrow">{eyebrow}</span>
+        <span className="food-campaign__title">{banner.title}</span>
+        {(banner.subtitle || banner.banner_text) && <span className="food-campaign__subtitle">{banner.subtitle || banner.banner_text}</span>}
+        <span className="food-campaign__cta">{label}{action.type === 'link' ? <ExternalLink aria-hidden="true" /> : <ArrowRight aria-hidden="true" />}</span>
+      </span>
+    </button>
+  );
+}
 
-          return (
-            <button
-              key={b.id}
-              type="button"
-              onClick={() => onAction(action, b)}
-              className="dam-promo-banner group shrink-0 snap-start text-left"
-            >
-              {b.image_url ? (
-                <PromoBannerMedia
-                  imageUrl={b.image_url}
-                  title={b.title}
-                  alt={b.title}
-                  className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-110"
-                />
-              ) : (
-                <div
-                  className="absolute inset-0"
-                  style={{ background: FALLBACK_GRADIENTS[idx % FALLBACK_GRADIENTS.length] }}
-                />
-              )}
-              <div className="dam-promo-banner__overlay" />
-              <div className="relative z-10 flex h-full flex-col justify-end p-5 lg:p-6">
-                {b.button_text && action.type !== 'promo' ? (
-                  <span className="mb-2 inline-flex w-fit rounded-full bg-white/95 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[#FF3B30] shadow-sm lg:text-xs">
-                    {b.button_text}
-                  </span>
-                ) : null}
-                {action.type === 'promo' ? (
-                  <span className="mb-2 inline-flex w-fit rounded-full bg-white/95 px-3 py-1 font-mono text-[11px] font-bold tracking-wide text-[#FF3B30] shadow-sm lg:text-xs">
-                    {action.code}
-                  </span>
-                ) : null}
-                <h3 className="line-clamp-2 text-lg font-black leading-snug text-white drop-shadow-sm lg:text-xl">{b.title}</h3>
-                {b.subtitle && (
-                  <p className="mt-1.5 line-clamp-2 text-sm text-white/85 lg:text-base">{b.subtitle}</p>
-                )}
-                <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm w-fit transition group-hover:bg-white/25 lg:text-sm">
-                  {ctaLabel} <ChevronRight className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-                </span>
-              </div>
-            </button>
-          );
-        })}
+export default function DamAlemPromoBanners({ banners, onAction }: { banners: FoodBanner[]; onAction: (action: FoodBannerAction, banner: FoodBanner) => void }) {
+  const track = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState(0);
+  const [atEnd, setAtEnd] = useState(false);
+  const sync = () => {
+    const element = track.current;
+    if (!element) return;
+    const children = Array.from(element.children) as HTMLElement[];
+    let nearest = 0, distance = Infinity;
+    children.forEach((child, index) => {
+      const delta = Math.abs(child.offsetLeft - (children[0]?.offsetLeft || 0) - element.scrollLeft);
+      if (delta < distance) { nearest = index; distance = delta; }
+    });
+    setPosition(nearest);
+    setAtEnd(element.scrollLeft + element.clientWidth >= element.scrollWidth - 4);
+  };
+  useEffect(() => {
+    sync();
+    const observer = new ResizeObserver(sync);
+    if (track.current) observer.observe(track.current);
+    return () => observer.disconnect();
+  }, [banners.length]);
+  if (!banners.length) return null;
+  const move = (delta: number) => {
+    const element = track.current;
+    if (!element) return;
+    const card = element.children[Math.min(banners.length - 1, Math.max(0, position + delta))] as HTMLElement;
+    const first = element.children[0] as HTMLElement;
+    element.scrollTo({ left: card.offsetLeft - first.offsetLeft, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+  };
+  return (
+    <section className="food-campaigns" aria-label="Предложения Алем Фуд">
+      <div className="food-campaigns__heading">
+        <div><p>К хорошему заказу</p><h2>Есть повод попробовать</h2></div>
+        {banners.length > 1 && <div className="food-campaigns__controls">
+          <button type="button" aria-label="Предыдущие предложения" disabled={position === 0} onClick={() => move(-1)}><ArrowLeft /></button>
+          <button type="button" aria-label="Следующие предложения" disabled={atEnd} onClick={() => move(1)}><ArrowRight /></button>
+        </div>}
       </div>
+      <div ref={track} onScroll={sync} className="food-campaigns__track" tabIndex={0} aria-label="Листайте предложения" data-testid="food-banner-track">
+        {banners.map(banner => <FoodBannerCard key={banner.id} banner={banner} onAction={onAction} />)}
+      </div>
+      {banners.length > 1 && <p className="food-campaigns__hint">{banners.length} предложения · нажмите на карточку, чтобы открыть</p>}
     </section>
   );
 }

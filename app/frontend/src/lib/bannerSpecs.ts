@@ -3,14 +3,14 @@
 export const DAM_ALEM_PROMO_BANNER_SPEC = {
   /** Горизонтальная карусель «Спецпредложения» на /food (.dam-promo-banner) */
   placement: 'Карусель «Спецпредложения» на странице /food',
-  displayMobile: { width: 288, height: 176, label: '288×176 px' },
-  displayDesktop: { width: 320, height: 192, label: '320×192 px' },
-  aspectRatio: '5:3',
-  recommended: { width: 1200, height: 720, label: '1200×720 px' },
+  displayMobile: { width: 288, height: 280, label: '≈288×280 px' },
+  displayDesktop: { width: 320, height: 290, label: '≈320×290 px' },
+  aspectRatio: '4:3 (фото кадрируется под карточку)',
+  recommended: { width: 1200, height: 900, label: '1200×900 px' },
   formats: 'JPG, PNG или WebP',
   maxSizeMb: 20,
   safeZone:
-    'Главное (еда, акция) — в нижней половине кадра: сверху накладывается тёмный градиент под заголовок.',
+    'Еда — вверху или справа. Нижняя часть затемняется для текста и кнопки. Текст на само фото добавлять не нужно.',
 } as const;
 
 export const DAM_ALEM_HERO_BANNER_SPEC = {

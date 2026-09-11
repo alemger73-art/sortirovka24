@@ -61,6 +61,7 @@ import DamAlemPromoStrip from '@/components/damalem/DamAlemPromoStrip';
 import DeliveryZonesPreview from '@/components/damalem/DeliveryZonesPreview';
 import AlemFoodGoalsDock from '@/components/damalem/AlemFoodGoalsDock';
 import { resolveLoyaltyGifts, resolvePromoCodes, type FoodBannerAction } from '@/lib/damAlemMarketing';
+import { isFoodBanner } from '@/lib/foodBannerActions';
 import '@/styles/damAlem.css';
 
 /* ─── Types ─── */
@@ -509,7 +510,7 @@ export default function Food() {
           ? Promise.resolve({ data: { items: [] as FoodItem[] } })
           : cq('items', () => client.entities.food_items.query({ sort: 'sort_order', limit: 500 })),
         cq('settings', () => client.entities.food_settings.query({ limit: 50 })),
-        cq('banners', () => client.entities.banners.query({ query: { active: true }, limit: 12 })),
+        cq('banners', () => client.entities.banners.query({ query: { active: true }, sort: '-id', limit: 2000 })),
       ]);
       const extract = (r: PromiseSettledResult<any>) => (r.status === 'fulfilled' ? (r.value?.data?.items || []) : []);
 
@@ -551,21 +552,12 @@ export default function Food() {
       setSettings(prev => ({ ...prev, ...s }));
 
       const rawBanners = extract(results[3]) as Array<FoodBanner & { link_url?: string; banner_type?: string; active?: boolean }>;
-      const mappedBanners: FoodBanner[] = rawBanners
-        .filter(b => b.active !== false)
+      setPromoBanners(rawBanners
+        .filter(b => b.active !== false && isFoodBanner(b))
         .map(b => ({
-          id: b.id,
-          title: b.title,
-          subtitle: b.subtitle,
-          image_url: b.image_url,
-          button_text: b.button_text,
-          button_url: b.button_url || b.link_url,
-        }));
-      const foodOnly = mappedBanners.filter(b => {
-        const hay = `${b.button_url || ''} ${b.title || ''}`.toLowerCase();
-        return hay.includes('/food') || hay.includes('dam alem') || hay.includes('алем') || hay.includes('доставка');
-      });
-      setPromoBanners(foodOnly.length > 0 ? foodOnly : mappedBanners.slice(0, 8));
+          id: b.id, title: b.title, subtitle: b.subtitle, banner_text: b.banner_text,
+          image_url: b.image_url, button_text: b.button_text, button_url: b.button_url || b.link_url,
+        })));
 
       void loadModifiers(true);
     } catch (e) {
@@ -851,7 +843,7 @@ export default function Food() {
     sectionDeepLinkRef.current = action;
     if (action === 'popular') {
       requestAnimationFrame(() => {
-        document.getElementById('alem-hits')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        (document.getElementById('alem-hits') || document.getElementById('dam-menu'))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
       return;
     }
@@ -861,7 +853,7 @@ export default function Food() {
     } else if (firstGift) {
       toast.info(`Соберите заказ от ${firstGift.min_amount.toLocaleString('ru-RU')} ₸ и выберите подарок`);
       requestAnimationFrame(() => {
-        document.getElementById('dam-market-categories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        (document.getElementById('dam-market-categories') || document.getElementById('dam-menu'))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     }
   }, [items.length, loyaltyGifts, cartCount, setActiveTab]);
@@ -1553,6 +1545,7 @@ export default function Food() {
   }
 
   function handleBannerAction(action: FoodBannerAction) {
+    setSearchQuery('');
     if (action.type === 'promo') {
       void applyPromoByCode(action.code);
       if (action.categorySlug) {
@@ -1564,16 +1557,18 @@ export default function Food() {
     if (action.type === 'category') {
       const cat = categories.find(c => categorySlugOf(c) === action.slug);
       if (cat) openCatalog(cat.id);
+      else { toast.info('Категория сейчас недоступна — выберите блюдо в меню'); document.getElementById('dam-menu')?.scrollIntoView({ behavior: 'smooth' }); }
       return;
     }
     if (action.type === 'popular') {
-      document.getElementById('alem-hits')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      (document.getElementById('alem-hits') || document.getElementById('dam-menu'))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
     if (action.type === 'gifts') {
       const firstGift = loyaltyGifts
         .filter((gift) => gift.is_active)
         .sort((a, b) => a.min_amount - b.min_amount)[0];
+      if (!firstGift) { toast.info('Сейчас подарков к заказу нет. Посмотрите другие предложения.'); return; }
       if (firstGift) {
         toast.info(
           cartTotal >= firstGift.min_amount
@@ -1583,15 +1578,16 @@ export default function Food() {
       }
       setActiveTab(cartCount > 0 ? 'cart' : 'menu');
       if (cartCount === 0) {
-        document.getElementById('dam-market-categories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        (document.getElementById('dam-market-categories') || document.getElementById('dam-menu'))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
       return;
     }
     if (action.type === 'link') {
-      window.open(action.url, '_blank', 'noopener,noreferrer');
+      if (action.url.startsWith('/')) navigate(action.url);
+      else window.open(action.url, '_blank', 'noopener,noreferrer');
       return;
     }
-    document.getElementById('dam-market-categories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    (document.getElementById('dam-market-categories') || document.getElementById('dam-menu'))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   useEffect(() => {
@@ -1985,6 +1981,7 @@ export default function Food() {
         {activeTab === 'menu' && (
           <main className="dam-market-menu">
             <div className={PAGE_X}>
+              {!searchQuery.trim() && <>
               <section className="dam-market-offer">
                 <div className="dam-market-offer__glow" aria-hidden="true" />
                 <div className="dam-market-offer__icon"><Tag className="h-5 w-5" /></div>
@@ -2005,7 +2002,7 @@ export default function Food() {
                       })();
                       return;
                     }
-                    document.getElementById('dam-market-categories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    (document.getElementById('dam-market-categories') || document.getElementById('dam-menu'))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }}
                 >
                   {lastOrderPreview && cartCount === 0 ? <RotateCcw className="h-4 w-4" /> : null}
@@ -2043,7 +2040,7 @@ export default function Food() {
 
               {promoBanners.length > 0 ? (
                 <div className="mt-4">
-                  <DamAlemPromoBanners banners={promoBanners.slice(0, 3)} onAction={handleBannerAction} />
+                  <DamAlemPromoBanners banners={promoBanners} onAction={handleBannerAction} />
                 </div>
               ) : null}
 
@@ -2076,6 +2073,7 @@ export default function Food() {
                   />
                 </details>
               ) : null}
+              </>}
             </div>
 
             {!searchQuery.trim() && categoryPills.length > 0 ? (
@@ -2087,7 +2085,7 @@ export default function Food() {
               />
             ) : null}
 
-            <div className={`${PAGE_X} dam-market-feed`}>
+            <div id="dam-menu" className={`${PAGE_X} dam-market-feed`}>
               {searchQuery.trim() ? (
                 <section>
                   <div className="dam-market-section-head">

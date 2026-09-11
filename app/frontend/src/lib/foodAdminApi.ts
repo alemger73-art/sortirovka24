@@ -80,7 +80,7 @@ export async function createBanner(data: BannerPayload): Promise<any> {
   return res.json();
 }
 
-export async function updateBanner(id: number | string, data: BannerPayload): Promise<any> {
+export async function updateBanner(id: number | string, data: Partial<BannerPayload>): Promise<any> {
   const res = await fetch(`${apiBase()}/api/v1/entities/banners/${id}`, {
     method: 'PUT',
     headers: adminHeaders(),

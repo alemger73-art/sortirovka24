@@ -1,305 +1,154 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { withRetry } from '@/lib/api';
-import {
-  createBanner,
-  deleteBanner,
-  fetchBannersList,
-  updateBanner,
-  type BannerPayload,
-} from '@/lib/foodAdminApi';
+import { client } from '@/lib/api';
+import { createBanner, deleteBanner, fetchBannersList, fetchFoodRestaurantsList, updateBanner, type BannerPayload } from '@/lib/foodAdminApi';
+import { findDamAlemRestaurantId } from '@/lib/damAlem';
 import { humanizeApiError } from '@/lib/apiErrors';
 import { invalidateAllCaches } from '@/lib/cache';
+import { bumpFoodMenuVersion } from '@/lib/foodCartStorage';
+import { parsePromoCodes, isPromoCurrent } from '@/lib/foodPromo';
+import { foodBannerActionDescription, foodBannerActionUrl, foodBannerCtaLabel, isFoodBanner, resolveFoodBannerAction, safeBannerLink, type FoodBannerAction } from '@/lib/foodBannerActions';
+import { FoodBannerCard } from '@/components/damalem/DamAlemPromoBanners';
+import ImageUpload from '@/components/ImageUpload';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Switch } from '@/components/ui/switch';
-import { Plus, Pencil, Trash2, Loader2, ExternalLink, Image } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Plus, Pencil, Trash2, Copy, Loader2, ExternalLink, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
-import ImageUpload, { StorageImage } from '@/components/ImageUpload';
-import { damAlemPromoBannerSizeHint, DAM_ALEM_PROMO_BANNER_SPEC } from '@/lib/bannerSpecs';
+import '@/styles/foodBanners.css';
 
-interface Banner {
-  id: number;
-  title: string;
-  banner_text?: string;
-  subtitle?: string;
-  image_url?: string;
-  link_url?: string;
-  button_text?: string;
-  button_url?: string;
-  banner_type?: string;
-  active?: boolean;
-}
-
-const BANNER_TYPES: Record<string, string> = {
-  food_delivery: 'Доставка еды',
-  promo: 'Промо',
-  hero: 'Главный',
-  other: 'Другое',
-};
-
-function isFoodBanner(b: Banner) {
-  const url = (b.button_url || b.link_url || '').toLowerCase();
-  const title = (b.title || '').toLowerCase();
-  return (
-    url.includes('/food') ||
-    title.includes('dam alem') ||
-    title.includes('алем фуд') ||
-    title.includes('доставка еды') ||
-    b.banner_type === 'food_delivery'
-  );
-}
+interface Banner extends BannerPayload { id: number }
+interface Category { id: number; name: string; slug?: string; restaurant_id?: number; is_active?: boolean }
+const actions: { type: FoodBannerAction['type']; label: string }[] = [
+  { type: 'menu', label: 'Открыть меню' }, { type: 'category', label: 'Открыть категорию блюд' },
+  { type: 'promo', label: 'Применить промокод' }, { type: 'popular', label: 'Показать хиты меню' },
+  { type: 'gifts', label: 'Показать подарки' }, { type: 'link', label: 'Открыть ссылку' },
+];
+const categorySlug = (c: Category) => c.slug?.trim() || c.name.toLowerCase().replace(/[^\w\u0400-\u04FF\s-]+/g, '').trim().replace(/\s+/g, '-');
+const selectClass = 'w-full min-h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-700';
 
 export default function AdminDamAlemBanners() {
   const [items, setItems] = useState<Banner[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [promos, setPromos] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editItem, setEditItem] = useState<Partial<Banner> | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [showAll, setShowAll] = useState(false);
+  const [error, setError] = useState('');
+  const [lookupWarning, setLookupWarning] = useState('');
+  const [draft, setDraft] = useState<Partial<Banner> | null>(null);
+  const [action, setAction] = useState<FoodBannerAction>({ type: 'menu' });
+  const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+  const [formError, setFormError] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<Banner | null>(null);
 
-  const fetchItems = async () => {
-    setLoading(true);
-    try {
-      const rows: Banner[] = await withRetry(() => fetchBannersList({ sort: '-created_at', limit: 100 }));
-      setItems(showAll ? rows : rows.filter(isFoodBanner));
-    } catch (err) {
-      toast.error(humanizeApiError(err) || 'Ошибка загрузки');
-    } finally {
-      setLoading(false);
-    }
+  const reload = async () => {
+    setLoading(true); setError('');
+    try { setItems((await fetchBannersList({ limit: 2000, sort: '-id' })).filter(isFoodBanner)); }
+    catch (e) { setError(humanizeApiError(e) || 'Не удалось загрузить баннеры'); }
+    finally { setLoading(false); }
   };
+  useEffect(() => {
+    void reload();
+    let alive = true;
+    Promise.all([fetchFoodRestaurantsList(), client.entities.food_categories.query({ limit: 500 }), client.entities.food_settings.query({ limit: 200 })])
+      .then(([restaurants, cats, settings]) => {
+        if (!alive) return;
+        const id = findDamAlemRestaurantId(restaurants);
+        setCategories((cats.data.items as Category[]).filter(c => c.is_active !== false && (id == null || c.restaurant_id == null || c.restaurant_id === id)));
+        const raw = settings.data.items.find((s: { setting_key: string }) => s.setting_key === 'promo_codes')?.setting_value;
+        setPromos(parsePromoCodes(raw).filter(p => isPromoCurrent(p)).map(p => p.code));
+      }).catch(() => { if (alive) setLookupWarning('Категории и промокоды не загрузились. Обновите страницу, чтобы выбрать их из списка.'); });
+    return () => { alive = false; };
+  }, []);
 
-  useEffect(() => { fetchItems(); }, [showAll]);
-
-  const openCreate = () => {
-    setEditItem({
-      title: '',
-      banner_text: '',
-      subtitle: '',
-      image_url: '',
-      link_url: '/food',
-      button_text: 'Заказать',
-      button_url: '/food',
-      banner_type: 'food_delivery',
-      active: true,
-    });
-    setDialogOpen(true);
+  const open = (banner?: Banner, duplicate = false) => {
+    setFormError('');
+    setDraft(banner ? { ...banner, subtitle: banner.subtitle || banner.banner_text || '', id: duplicate ? undefined : banner.id, title: duplicate ? `${banner.title} — копия` : banner.title, active: duplicate ? false : banner.active } : { title: '', subtitle: '', image_url: '', button_text: '', active: false });
+    setAction(banner ? resolveFoodBannerAction(banner) : { type: 'menu' });
   };
-
-  const openEdit = (item: Banner) => {
-    setEditItem({ ...item });
-    setDialogOpen(true);
+  const refreshStorefront = () => { invalidateAllCaches(); bumpFoodMenuVersion(); };
+  const mutate = async (operation: () => Promise<unknown>, message: string, done?: () => void) => {
+    if (busyRef.current) return;
+    busyRef.current = true; setBusy(true);
+    try { await operation(); refreshStorefront(); toast.success(message); done?.(); await reload(); }
+    catch (e) { const message = humanizeApiError(e) || 'Не удалось сохранить'; setFormError(message); toast.error(message); }
+    finally { busyRef.current = false; setBusy(false); }
   };
-
-  const handleSave = async () => {
-    if (!editItem?.title?.trim()) {
-      toast.error('Заполните заголовок');
-      return;
-    }
-    setSaving(true);
-    try {
-      const data: BannerPayload = {
-        title: editItem.title.trim(),
-        banner_text: editItem.banner_text || '',
-        subtitle: editItem.subtitle || '',
-        image_url: editItem.image_url || '',
-        link_url: editItem.link_url || '/food',
-        button_text: editItem.button_text || 'Заказать',
-        button_url: editItem.button_url || '/food',
-        banner_type: editItem.banner_type || 'food_delivery',
-        active: editItem.active ?? true,
-      };
-      if (editItem.id) {
-        await withRetry(() => updateBanner(editItem.id!, data));
-        toast.success('Баннер обновлён');
-      } else {
-        await withRetry(() => createBanner({
-          ...data,
-          created_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
-        }));
-        toast.success('Баннер создан');
-      }
-      invalidateAllCaches();
-      setDialogOpen(false);
-      fetchItems();
-    } catch (err) {
-      toast.error(humanizeApiError(err) || 'Ошибка сохранения');
-    } finally {
-      setSaving(false);
-    }
+  const save = () => {
+    if (!draft) return;
+    let message = '';
+    if (!draft.title?.trim()) message = 'Введите заголовок баннера.';
+    else if (draft.title.trim().length > 70) message = 'Заголовок должен быть не длиннее 70 символов.';
+    else if ((draft.subtitle || '').length > 160) message = 'Подзаголовок должен быть не длиннее 160 символов.';
+    else if ((draft.button_text || '').length > 40) message = 'Текст кнопки должен быть не длиннее 40 символов.';
+    else if (action.type === 'category' && !categories.some(c => categorySlug(c) === action.slug)) message = 'Выберите доступную категорию.';
+    else if (action.type === 'promo' && !action.code.trim()) message = 'Выберите или введите промокод.';
+    else if (action.type === 'promo' && !/^[A-ZА-ЯЁ0-9_-]{1,40}$/i.test(action.code.trim())) message = 'Промокод: до 40 букв, цифр, дефисов или подчёркиваний.';
+    else if (action.type === 'link' && !safeBannerLink(action.url.trim())) message = 'Укажите ссылку https://… или путь внутри сайта, например /food.';
+    if (message) { setFormError(message); return; }
+    setFormError('');
+    const url = foodBannerActionUrl(action);
+    const payload: BannerPayload = {
+      title: draft.title!.trim(), subtitle: draft.subtitle?.trim() || '', banner_text: draft.subtitle?.trim() || '',
+      image_url: draft.image_url || '', button_text: draft.button_text?.trim() || '', button_url: url, link_url: url,
+      banner_type: 'food_delivery', active: draft.active ?? false,
+    };
+    void mutate(() => draft.id ? updateBanner(draft.id, payload) : createBanner({ ...payload, created_at: new Date().toISOString() }), draft.active ? 'Баннер сохранён и показывается на витрине' : 'Черновик сохранён', () => setDraft(null));
   };
-
-  const handleDelete = async (id: number) => {
-    if (!confirm('Удалить баннер?')) return;
-    try {
-      await withRetry(() => deleteBanner(id));
-      invalidateAllCaches();
-      toast.success('Удалено');
-      fetchItems();
-    } catch (err) {
-      toast.error(humanizeApiError(err) || 'Ошибка удаления');
-    }
+  const chooseAction = (type: FoodBannerAction['type']) => {
+    setAction(type === 'category' ? { type, slug: '' } : type === 'promo' ? { type, code: '' } : type === 'link' ? { type, url: '' } : { type });
+    setDraft(current => current ? { ...current, button_text: '' } : null);
   };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-[#FF3B30]" />
-      </div>
-    );
-  }
+  const preview = draft ? { id: draft.id || 0, title: draft.title || 'Здесь будет ваш заголовок', subtitle: draft.subtitle, image_url: draft.image_url, button_text: draft.button_text, button_url: foodBannerActionUrl(action) } : null;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-orange-100 bg-orange-50/60 p-4">
-        <div>
-          <p className="text-sm font-semibold text-gray-900">Баннеры Алем Фуд</p>
-          <p className="mt-1 text-xs text-gray-600">
-            Карусель «Спецпредложения» на странице /food. По умолчанию — баннеры со ссылкой на /food.
-          </p>
-          <p className="mt-2 text-xs text-orange-800/90">
-            <span className="font-medium">Размер изображения:</span>{' '}
-            {damAlemPromoBannerSizeHint(true)} · соотношение {DAM_ALEM_PROMO_BANNER_SPEC.aspectRatio}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={() => setShowAll(v => !v)}>
-            {showAll ? 'Только еда' : 'Показать все'}
-          </Button>
-          <Button size="sm" className="bg-[#FF3B30] hover:bg-[#e8352b]" onClick={openCreate}>
-            <Plus className="mr-1 h-4 w-4" /> Добавить
-          </Button>
-        </div>
+    <div className="space-y-6" data-testid="food-banner-admin">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#eef2e9] p-5">
+        <div><h3 className="text-xl font-bold text-[#29392b]">Предложения на витрине</h3><p className="mt-1 max-w-xl text-sm text-gray-600">Один баннер — одно понятное действие. Новые предложения появляются первыми.</p></div>
+        <Button onClick={() => open()} className="bg-[#344b3a] hover:bg-[#253b2b]"><Plus className="mr-2 h-4 w-4" />Создать баннер</Button>
       </div>
-
-      <div className="space-y-2">
-        {items.map(item => (
-          <Card key={item.id} className="overflow-hidden">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-start gap-3">
-                {item.image_url ? (
-                  <StorageImage objectKey={item.image_url} alt="" className="h-14 w-20 flex-shrink-0 rounded-lg object-cover" />
-                ) : (
-                  <div className="flex h-14 w-20 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#FF3B30] to-[#c41e14]">
-                    <Image className="h-6 w-6 text-white/50" />
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="mb-1 flex flex-wrap items-center gap-2">
-                    <Badge variant="outline" className="text-xs">
-                      {BANNER_TYPES[item.banner_type || 'other'] || item.banner_type}
-                    </Badge>
-                    {item.active === false ? (
-                      <Badge variant="destructive" className="text-xs">Неактивен</Badge>
-                    ) : (
-                      <Badge className="bg-green-100 text-xs text-green-800">Активен</Badge>
-                    )}
-                  </div>
-                  <p className="truncate text-sm font-medium text-gray-900">{item.title}</p>
-                  {item.subtitle && <p className="truncate text-xs text-gray-500">{item.subtitle}</p>}
-                  <p className="mt-0.5 text-xs text-gray-400">
-                    {item.button_text || '—'} → {item.button_url || item.link_url || '—'}
-                  </p>
-                </div>
-                <div className="flex flex-shrink-0 items-center gap-1">
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(item)}>
-                    <Pencil className="h-4 w-4 text-[#FF3B30]" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleDelete(item.id)}>
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        {items.length === 0 && (
-          <div className="rounded-2xl border border-dashed p-10 text-center">
-            <Image className="mx-auto h-10 w-10 text-gray-300" />
-            <p className="mt-3 font-medium text-gray-800">Нет баннеров</p>
-            <p className="mt-1 text-sm text-gray-500">Создайте первый баннер для витрины Алем Фуд</p>
-          </div>
-        )}
-      </div>
-
-      <p className="text-center text-xs text-gray-400">
-        <Link to="/food" target="_blank" className="inline-flex items-center gap-1 text-[#FF3B30] hover:underline">
-          Посмотреть на витрине <ExternalLink className="h-3 w-3" />
-        </Link>
-      </p>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editItem?.id ? 'Редактировать баннер' : 'Новый баннер'}</DialogTitle>
-          </DialogHeader>
-          {editItem && (
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm font-medium text-gray-700">Тип</label>
-                <Select value={editItem.banner_type || 'food_delivery'} onValueChange={v => setEditItem({ ...editItem, banner_type: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(BANNER_TYPES).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Заголовок *</label>
-                <Input value={editItem.title || ''} onChange={e => setEditItem({ ...editItem, title: e.target.value })} />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Подзаголовок</label>
-                <Input value={editItem.subtitle || ''} onChange={e => setEditItem({ ...editItem, subtitle: e.target.value })} />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Описание</label>
-                <Textarea value={editItem.banner_text || ''} onChange={e => setEditItem({ ...editItem, banner_text: e.target.value })} rows={2} />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Изображение</label>
-                <p className="mt-0.5 text-xs text-gray-500">{damAlemPromoBannerSizeHint()}</p>
-                <div className="mt-2">
-                  <ImageUpload value={editItem.image_url || ''} onChange={key => setEditItem({ ...editItem, image_url: key })} folder="banners" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Текст кнопки</label>
-                  <Input value={editItem.button_text || ''} onChange={e => setEditItem({ ...editItem, button_text: e.target.value })} placeholder="Заказать" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700">URL кнопки</label>
-                  <Input value={editItem.button_url || ''} onChange={e => setEditItem({ ...editItem, button_url: e.target.value })} placeholder="/food" />
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Ссылка (основная)</label>
-                <Input value={editItem.link_url || ''} onChange={e => setEditItem({ ...editItem, link_url: e.target.value })} placeholder="/food" />
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch checked={editItem.active ?? true} onCheckedChange={v => setEditItem({ ...editItem, active: v })} />
-                <label className="text-sm text-gray-700">Активен</label>
-              </div>
-              <div className="flex gap-2 pt-2">
-                <Button onClick={() => setDialogOpen(false)} variant="outline" className="flex-1">Отмена</Button>
-                <Button onClick={handleSave} disabled={saving} className="flex-1 bg-[#FF3B30] hover:bg-[#e8352b]">
-                  {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-                  {editItem.id ? 'Сохранить' : 'Создать'}
-                </Button>
-              </div>
+      {lookupWarning && <p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{lookupWarning}</p>}
+      <div className="flex flex-wrap justify-between gap-2 text-sm text-gray-600"><span>{items.filter(i => i.active !== false).length} на витрине · {items.filter(i => i.active === false).length} черновиков</span><Link to="/food" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#344b3a] underline">Открыть витрину<ExternalLink className="h-4 w-4" /></Link></div>
+      {error ? <div role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-800">{error}<Button variant="outline" className="ml-3" onClick={() => void reload()}>Повторить загрузку</Button></div>
+        : loading ? <div role="status" className="flex justify-center gap-2 py-8"><Loader2 className="animate-spin" />Загружаем баннеры…</div>
+          : <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{items.map(item => <article key={item.id} className="min-w-0 rounded-2xl border bg-white p-3" data-testid={`admin-banner-${item.id}`}>
+            <FoodBannerCard banner={item} onAction={a => toast.info(foodBannerActionDescription(a))} />
+            <p className="mt-3 text-xs text-gray-600 break-words">{foodBannerActionDescription(resolveFoodBannerAction(item))}</p>
+            <div className="mt-3 flex flex-wrap items-center gap-1 border-t pt-3">
+              <Button variant="ghost" size="sm" disabled={busy} aria-label={`${item.active === false ? 'Показать' : 'Скрыть'} баннер ${item.title}`} onClick={() => void mutate(() => updateBanner(item.id, { active: item.active === false }), item.active === false ? 'Баннер опубликован' : 'Баннер скрыт')}>
+                {item.active === false ? <EyeOff className="mr-1 h-4 w-4" /> : <Eye className="mr-1 h-4 w-4" />}{item.active === false ? 'Черновик' : 'На витрине'}
+              </Button>
+              <Button variant="ghost" size="icon" aria-label={`Редактировать ${item.title}`} onClick={() => open(item)}><Pencil className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" aria-label={`Копировать ${item.title}`} onClick={() => open(item, true)}><Copy className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" aria-label={`Удалить ${item.title}`} disabled={busy} onClick={() => setDeleteTarget(item)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
             </div>
-          )}
+          </article>)}</div>}
+      {!loading && !error && !items.length && <div className="rounded-2xl border border-dashed p-8 text-center"><h3 className="font-semibold">Первое предложение начинается здесь</h3><p className="mt-2 text-sm text-gray-500">Добавьте заголовок, фото и действие. Проверьте предпросмотр и включите показ на витрине.</p></div>}
+
+      <Dialog open={!!draft} onOpenChange={open => { if (!open && !busy) setDraft(null); }}>
+        <DialogContent className="max-h-[92dvh] max-w-4xl overflow-y-auto">
+          <DialogHeader><DialogTitle>{draft?.id ? 'Редактировать баннер' : 'Создать баннер'}</DialogTitle><DialogDescription>Сначала выберите действие, затем оформите предложение. Баннер не создаёт скидку: промокод настраивается отдельно.</DialogDescription></DialogHeader>
+          {draft && preview && <form onSubmit={e => { e.preventDefault(); save(); }} className="grid gap-6 md:grid-cols-2">
+            <fieldset disabled={busy} className="min-w-0 space-y-4">
+              <div><label htmlFor="banner-action" className="mb-1 block text-sm font-medium">Что произойдёт при нажатии</label><select id="banner-action" className={selectClass} value={action.type} onChange={e => chooseAction(e.target.value as FoodBannerAction['type'])}>{actions.map(a => <option key={a.type} value={a.type}>{a.label}</option>)}</select></div>
+              {action.type === 'category' && <div><label htmlFor="banner-category" className="mb-1 block text-sm font-medium">Категория</label><select id="banner-category" className={selectClass} value={action.slug} onChange={e => setAction({ type: 'category', slug: e.target.value })}><option value="">Выберите категорию</option>{action.slug && !categories.some(c => categorySlug(c) === action.slug) && <option value={action.slug}>{action.slug} — недоступна</option>}{categories.map(c => <option key={c.id} value={categorySlug(c)}>{c.name}</option>)}</select></div>}
+              {action.type === 'promo' && <div><label htmlFor="banner-code" className="mb-1 block text-sm font-medium">Промокод</label><Input id="banner-code" list="banner-known-promos" maxLength={40} value={action.code} onChange={e => setAction({ type: 'promo', code: e.target.value.toUpperCase() })} placeholder="Выберите или введите код" /><datalist id="banner-known-promos">{promos.map(code => <option key={code} value={code} />)}</datalist><p className="mt-1 text-xs text-gray-500">Код должен быть включён в настройках Алем Фуд. Сумма и срок действия проверяются сервером.</p></div>}
+              {action.type === 'link' && <div><label htmlFor="banner-url" className="mb-1 block text-sm font-medium">Ссылка</label><Input id="banner-url" value={action.url} onChange={e => setAction({ type: 'link', url: e.target.value })} placeholder="https://… или /food" /><p className="mt-1 text-xs text-gray-500">Внешний сайт откроется в новой вкладке.</p></div>}
+              <div><label htmlFor="banner-title" className="mb-1 block text-sm font-medium">Заголовок</label><Input id="banner-title" maxLength={70} value={draft.title || ''} onChange={e => setDraft({ ...draft, title: e.target.value })} placeholder="Например: Пицца для вашего вечера" /><p className="mt-1 text-xs text-gray-400">{draft.title?.length || 0}/70 · одна короткая мысль</p></div>
+              <div><label htmlFor="banner-subtitle" className="mb-1 block text-sm font-medium">Подзаголовок и условия</label><Textarea id="banner-subtitle" rows={3} maxLength={160} value={draft.subtitle || ''} onChange={e => setDraft({ ...draft, subtitle: e.target.value })} placeholder="Что получает покупатель и при каких условиях" /></div>
+              <div><label htmlFor="banner-cta" className="mb-1 block text-sm font-medium">Текст кнопки</label><Input id="banner-cta" maxLength={40} value={draft.button_text || ''} onChange={e => setDraft({ ...draft, button_text: e.target.value })} placeholder={foodBannerCtaLabel(action)} /><p className="mt-1 text-xs text-gray-500">Можно оставить пустым — текст подберётся по действию.</p></div>
+              <div><p className="mb-1 text-sm font-medium">Фото для баннера</p><p className="mb-2 text-xs text-gray-500">1200 × 900 px, JPG, PNG или WebP. Еда — вверху или справа, текст добавится автоматически. Без фото останется фирменный фон.</p><ImageUpload value={draft.image_url || ''} onChange={image_url => setDraft({ ...draft, image_url })} folder="banners" /></div>
+            </fieldset>
+            <div className="min-w-0 space-y-4"><div className="md:sticky md:top-0"><p className="mb-3 text-sm font-semibold text-gray-600">Так увидит покупатель</p><FoodBannerCard banner={preview} onAction={() => toast.info(foodBannerActionDescription(action))} /><p className="mt-3 rounded-xl bg-gray-50 p-3 text-sm text-gray-600 break-words">{foodBannerActionDescription(action)}</p><p className="mt-2 text-xs text-gray-500">Нажмите на предпросмотр, чтобы проверить назначение.</p>
+              <label className="mt-5 flex items-start gap-3 rounded-xl border p-4"><input type="checkbox" className="mt-1 h-4 w-4 accent-emerald-800" checked={draft.active ?? false} disabled={busy} onChange={e => setDraft({ ...draft, active: e.target.checked })} /><span><strong className="text-sm">Показывать на витрине</strong><span className="mt-1 block text-xs text-gray-500">Выключено — сохранится черновик, видимый только в админке.</span></span></label>
+            </div></div>
+            {formError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-800 md:col-span-2">{formError}</p>}
+            <div className="flex justify-end gap-2 border-t pt-4 md:col-span-2"><Button type="button" variant="outline" disabled={busy} onClick={() => setDraft(null)}>Отмена</Button><Button type="submit" disabled={busy} className="bg-[#344b3a] hover:bg-[#253b2b]">{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{draft.active ? 'Сохранить и показать' : 'Сохранить черновик'}</Button></div>
+          </form>}
         </DialogContent>
       </Dialog>
+      <Dialog open={!!deleteTarget} onOpenChange={open => { if (!open && !busy) setDeleteTarget(null); }}><DialogContent><DialogHeader><DialogTitle>Удалить баннер?</DialogTitle><DialogDescription>«{deleteTarget?.title}» будет удалён. Если планируете использовать его снова, скройте его с витрины вместо удаления.</DialogDescription></DialogHeader><div className="flex justify-end gap-2"><Button variant="outline" disabled={busy} onClick={() => setDeleteTarget(null)}>Отмена</Button><Button variant="destructive" disabled={busy} onClick={() => deleteTarget && void mutate(() => deleteBanner(deleteTarget.id), 'Баннер удалён', () => setDeleteTarget(null))}>Удалить баннер</Button></div></DialogContent></Dialog>
     </div>
   );
 }
