@@ -72,13 +72,13 @@ function SectionHeader({ title, accentColor = 'from-blue-500 to-indigo-600', lin
   title: string; accentColor?: string; linkTo?: string; linkText?: string;
 }) {
   return (
-    <div className="flex items-center justify-between mb-6">
-      <div className="flex items-center gap-3">
-        <div className={`w-1.5 h-8 bg-gradient-to-b ${accentColor} rounded-full`} />
+    <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <div className="flex min-w-0 items-center gap-3">
+        <div className={`w-1.5 h-8 shrink-0 bg-gradient-to-b ${accentColor} rounded-full`} />
         <h2 className="text-xl md:text-2xl font-extrabold text-gray-900 dark:text-white">{title}</h2>
       </div>
       {linkTo && (
-        <Link to={linkTo} className="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm font-semibold flex items-center gap-1">
+        <Link to={linkTo} className="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm font-semibold flex min-h-[44px] items-center gap-1">
           {linkText} <ChevronRight className="w-4 h-4" />
         </Link>
       )}
@@ -377,7 +377,7 @@ export default function Index() {
             <SectionHeader title={t('specials.title')} accentColor="from-amber-500 to-orange-500" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Dynamic banners from database (admin-managed) */}
-              {banners.length > 0 ? (
+              {banners.length > 0 && (
                 banners.map((b, idx) => {
                   const accentColors = [
                     { tag: 'bg-orange-500/30 text-orange-300', border: '' },
@@ -386,11 +386,12 @@ export default function Index() {
                     { tag: 'bg-purple-500/30 text-purple-300', border: '' },
                   ];
                   const accent = accentColors[idx % accentColors.length];
-                  const linkTo = b.button_url || '#';
-                  const isInternal = linkTo.startsWith('/');
+                  const linkTo = String(b.button_url || '').trim();
+                  const isInternal = linkTo.startsWith('/') && !linkTo.startsWith('//') && !linkTo.includes('\\');
+                  const isExternal = /^https?:\/\//i.test(linkTo);
 
                   const bannerContent = (
-                    <div className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end ring-1 ring-black/5">
+                    <div className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 min-h-44 md:min-h-52 flex items-end ring-1 ring-black/5">
                       <PromoBannerMedia
                         imageUrl={b.image_url}
                         title={b.title}
@@ -411,41 +412,15 @@ export default function Index() {
 
                   return isInternal ? (
                     <Link key={b.id} to={linkTo}>{bannerContent}</Link>
-                  ) : (
+                  ) : isExternal ? (
                     <a key={b.id} href={linkTo} target="_blank" rel="noopener noreferrer">{bannerContent}</a>
-                  );
+                  ) : <div key={b.id}>{bannerContent}</div>;
                 })
-              ) : (
-                <>
-                  {/* Fallback static banners when no DB banners loaded */}
-                  {isEnabled('food') && (
-                  <Link to="/food" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end">
-                    <img src={FOOD_IMG} alt={t('banner.foodDelivery')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                    <div className="relative z-10 p-5">
-                      <span className="text-xs font-bold text-orange-300 bg-orange-500/30 backdrop-blur-sm px-3 py-1 rounded-full">{t('banner.promo')}</span>
-                      <h3 className="text-lg font-extrabold text-white mt-2">{t('banner.foodDelivery')}</h3>
-                      <p className="text-white/70 text-sm mt-1">{t('banner.foodDeliveryDesc')}</p>
-                    </div>
-                  </Link>
-                  )}
-                  {isEnabled('masters') && (
-                  <Link to="/masters" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end">
-                    <img src={MASTERS_IMG} alt={t('banner.findMaster')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                    <div className="relative z-10 p-5">
-                      <span className="text-xs font-bold text-blue-300 bg-blue-500/30 backdrop-blur-sm px-3 py-1 rounded-full">🛠 {t('nav.masters')}</span>
-                      <h3 className="text-lg font-extrabold text-white mt-2">{t('banner.findMaster')}</h3>
-                      <p className="text-white/70 text-sm mt-1">{t('banner.findMasterDesc')}</p>
-                    </div>
-                  </Link>
-                  )}
-                </>
               )}
 
               {/* Static navigation banners */}
               {isEnabled('directory') && (
-              <Link to="/directory" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end ring-1 ring-black/5">
+              <Link to="/directory" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 min-h-44 md:min-h-52 flex items-end ring-1 ring-black/5">
                 <img src={DIRECTORY_BANNER_IMG} alt={t('banner.openDirectory')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                 <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/90 via-emerald-900/45 to-emerald-800/20" />
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.1),transparent_50%)]" />
@@ -461,7 +436,7 @@ export default function Index() {
               )}
 
               {isEnabled('inspectors') && (
-              <Link to="/inspectors" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end ring-1 ring-black/5">
+              <Link to="/inspectors" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 min-h-44 md:min-h-52 flex items-end ring-1 ring-black/5">
                 <img src={INSPECTOR_BANNER_IMG} alt={t('banner.findInspector')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                 <div className="absolute inset-0 bg-gradient-to-t from-blue-950/90 via-indigo-900/50 to-blue-800/20" />
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.1),transparent_50%)]" />
@@ -477,7 +452,7 @@ export default function Index() {
               )}
 
               {isEnabled('business') && (
-              <Link to="/business" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 h-44 md:h-52 flex items-end ring-1 ring-black/5">
+              <Link to="/business" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 min-h-44 md:min-h-52 flex items-end ring-1 ring-black/5">
                 <img src={BUSINESS_BANNER_IMG} alt={t('banner.getClients')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/10" />
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.12),transparent_55%)]" />
@@ -501,12 +476,14 @@ export default function Index() {
               <div className="relative">
                 {/* Scroll buttons */}
                 <button
+                  aria-label={lang === 'kz' ? 'Алдыңғы жаңалықтар' : 'Предыдущие новости'}
                   onClick={() => scrollNews('left')}
                   className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 bg-white dark:bg-gray-800 shadow-lg rounded-full w-9 h-9 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors hidden md:flex"
                 >
                   <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                 </button>
                 <button
+                  aria-label={lang === 'kz' ? 'Келесі жаңалықтар' : 'Следующие новости'}
                   onClick={() => scrollNews('right')}
                   className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 bg-white dark:bg-gray-800 shadow-lg rounded-full w-9 h-9 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors hidden md:flex"
                 >
@@ -547,7 +524,7 @@ export default function Index() {
             ) : (
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 text-center border border-gray-100 dark:border-gray-800">
                 <FileText className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                <p className="text-gray-400 dark:text-gray-500 text-sm">Новости загружаются...</p>
+                <p className="text-gray-400 dark:text-gray-500 text-sm">{loading ? (lang === 'kz' ? 'Жаңалықтар жүктелуде…' : 'Новости загружаются…') : error || isStale ? (lang === 'kz' ? 'Жаңалықтарды жүктеу мүмкін болмады' : 'Не удалось загрузить новости') : (lang === 'kz' ? 'Жаңа жаңалықтар әзірге жоқ' : 'Новых новостей пока нет')}</p>
               </div>
             )}
           </section>
@@ -576,10 +553,7 @@ export default function Index() {
                   );
                 })}
               </div>
-              <div className="flex gap-3 mt-5">
-                <Link to="/complaints" className="text-sm font-semibold text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 px-5 py-2.5 rounded-xl transition-colors shadow-sm border border-gray-200 dark:border-gray-700 min-h-[44px] flex items-center">
-                  {t('complaints.all')}
-                </Link>
+              <div className="flex flex-wrap gap-3 mt-5">
                 <Link to="/complaints/new" className="text-sm font-semibold text-white bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 px-5 py-2.5 rounded-xl transition-colors shadow-sm min-h-[44px] flex items-center">
                   {t('complaints.file')}
                 </Link>
@@ -682,7 +656,7 @@ export default function Index() {
         href={whatsappUrl()}
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 bg-green-500 hover:bg-green-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-all duration-300 group"
+        className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 md:bottom-6 md:right-6 z-40 bg-green-500 hover:bg-green-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-all duration-300 group"
         title={t('common.whatsapp')}
       >
         <Send className="w-6 h-6 group-hover:rotate-12 transition-transform" />

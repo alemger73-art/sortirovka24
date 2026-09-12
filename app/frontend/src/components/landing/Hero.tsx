@@ -10,7 +10,7 @@ const HERO_BG =
   "https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/ad8caa55-9593-448b-8f7a-39be84ed5053.png";
 
 const glassBtn =
-  "group rounded-2xl border border-white/45 bg-black/35 px-5 py-4 text-white shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-[1.03] hover:shadow-white/15 hover:shadow-2xl";
+  "group min-w-0 rounded-2xl border border-white/45 bg-black/35 px-3 py-3 sm:px-5 sm:py-4 text-white shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-[1.03] hover:shadow-white/15 hover:shadow-2xl";
 
 const COUNTER_ICONS: Record<HeroStatItem["labelKey"], typeof Users> = {
   "hero.mastersShort": Users,
@@ -47,7 +47,7 @@ export default function Hero() {
 
       <div className="relative z-10">
         <div className="mx-auto flex min-h-[450px] max-w-7xl items-end px-4 pb-8 pt-6 md:min-h-[560px] md:px-8 md:pb-14">
-          <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="min-w-0 w-full max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80 backdrop-blur-sm">
                 {t("hero.todayIn")}
@@ -70,11 +70,11 @@ export default function Hero() {
               {showTaxi && (
                 <Link
                   to="/taxi"
-                  className="group rounded-2xl bg-yellow-400 px-5 py-4 text-gray-900 shadow-xl transition-all duration-200 hover:scale-[1.03] hover:shadow-yellow-300/30 hover:shadow-2xl"
+                  className="group rounded-2xl bg-yellow-400 px-3 py-3 sm:px-5 sm:py-4 text-gray-900 shadow-xl transition-all duration-200 hover:scale-[1.03] hover:shadow-yellow-300/30 hover:shadow-2xl"
                 >
                   <div className="flex items-center gap-2">
                     <Car className="h-5 w-5" />
-                    <p className="text-base font-bold">{t("hero.taxi")}</p>
+                    <p className="text-sm sm:text-base font-bold break-words">{t("hero.taxi")}</p>
                   </div>
                   <p className="mt-1 text-sm font-medium text-gray-800">{t("hero.taxiDesc")}</p>
                 </Link>
@@ -83,7 +83,7 @@ export default function Hero() {
                 <Link to="/food" className={glassBtn}>
                   <div className="flex items-center gap-2">
                     <Utensils className="h-5 w-5 shrink-0" />
-                    <p className="text-base font-bold">{t("hero.food")}</p>
+                    <p className="text-sm sm:text-base font-bold break-words">{t("hero.food")}</p>
                   </div>
                   <p className="mt-1 text-sm leading-snug text-white/75">{t("hero.foodDesc")}</p>
                 </Link>
@@ -92,7 +92,7 @@ export default function Hero() {
                 <Link to="/gastronom" className={`${glassBtn} border-emerald-400/35`}>
                   <div className="flex items-center gap-2">
                     <ShoppingBag className="h-5 w-5 shrink-0 text-emerald-300" />
-                    <p className="text-base font-bold">{t("hero.gastronom")}</p>
+                    <p className="text-sm sm:text-base font-bold break-words">{t("hero.gastronom")}</p>
                   </div>
                   <p className="mt-1 text-sm leading-snug text-white/75">{t("hero.gastronomDesc")}</p>
                 </Link>
@@ -101,7 +101,7 @@ export default function Hero() {
                 <Link to="/masters" className={glassBtn}>
                   <div className="flex items-center gap-2">
                     <Wrench className="h-5 w-5 shrink-0" />
-                    <p className="text-base font-bold">{t("hero.mastersBtn")}</p>
+                    <p className="text-sm sm:text-base font-bold break-words">{t("hero.mastersBtn")}</p>
                   </div>
                   <p className="mt-1 text-sm leading-snug text-white/75">{t("hero.mastersDesc")}</p>
                 </Link>
@@ -110,7 +110,7 @@ export default function Hero() {
                 <Link to="/inspectors" className={glassBtn}>
                   <div className="flex items-center gap-2">
                     <Shield className="h-5 w-5 shrink-0" />
-                    <p className="text-base font-bold">{t("hero.inspector")}</p>
+                    <p className="text-sm sm:text-base font-bold break-words">{t("hero.inspector")}</p>
                   </div>
                   <p className="mt-1 text-sm leading-snug text-white/75">{t("hero.inspectorDesc")}</p>
                 </Link>
@@ -119,7 +119,7 @@ export default function Hero() {
                 <Link to="/directory" className={glassBtn}>
                   <div className="flex items-center gap-2">
                     <BookOpen className="h-5 w-5 shrink-0" />
-                    <p className="text-base font-bold">{t("hero.directory")}</p>
+                    <p className="text-sm sm:text-base font-bold break-words">{t("hero.directory")}</p>
                   </div>
                   <p className="mt-1 text-sm leading-snug text-white/75">{t("hero.directoryDesc")}</p>
                 </Link>
