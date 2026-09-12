@@ -278,7 +278,7 @@ _cors_env = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
 if _cors_env:
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[o.strip() for o in _cors_env.split(",") if o.strip()],
+        allow_origins=list(dict.fromkeys(["https://localhost", "capacitor://localhost"] + [o.strip() for o in _cors_env.split(",") if o.strip()])),
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

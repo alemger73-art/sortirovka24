@@ -1,68 +1,25 @@
 #!/usr/bin/env bash
-# Build a signed Sortirovka24 IPA for the App Store / TestFlight.
-# Run on macOS with Xcode + CocoaPods installed.
-#
-# Usage:
-#   APPLE_TEAM_ID=XXXXXXXXXX ./scripts/build-ios.sh
-#
-# Optional env:
-#   API_BASE_URL   backend URL (default: Railway production)
-#   BUILD_NUMBER   CFBundleVersion (default: timestamp)
-#   UPLOAD=1       also upload to TestFlight (needs ASC API key env, see below)
-#     ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_PATH (path to AuthKey_XXXX.p8)
+# macOS + Xcode 26+, Apple Development Team and distribution signing required.
+# Builds locally; no uploads are performed.
 set -euo pipefail
-
-cd "$(dirname "$0")/.."  # app/frontend
-
-API_BASE_URL="${API_BASE_URL:-https://sortirovka24-production-8788.up.railway.app}"
-BUILD_NUMBER="${BUILD_NUMBER:-$(date +%s)}"
-: "${APPLE_TEAM_ID:?Set APPLE_TEAM_ID to your 10-char Apple Developer Team ID}"
-
-EXPORT_DIR="$(pwd)/releases/ios"
-ARCHIVE_PATH="$EXPORT_DIR/App.xcarchive"
+cd "$(dirname "$0")/.."
+[[ "$(uname -s)" == Darwin ]] || { echo 'iOS archive requires macOS / Xcode; use the iOS Release GitHub workflow.'; exit 1; }
+: "${APPLE_TEAM_ID:?Set APPLE_TEAM_ID after registering with Apple Developer}"
+: "${BUILD_NUMBER:?Set BUILD_NUMBER to an unused positive integer}"
+[[ "$BUILD_NUMBER" =~ ^[1-9][0-9]{0,8}$ ]] || { echo 'Invalid BUILD_NUMBER'; exit 1; }
+XCODE_MAJOR=$(xcodebuild -version | awk '/Xcode/{split($2,v,".");print v[1]}')
+[[ "$XCODE_MAJOR" -ge 26 ]] || { echo 'App Store requires Xcode 26 or later.'; exit 1; }
+node scripts/build-store-web.mjs ios
+EXPORT_DIR="$PWD/releases/ios/$BUILD_NUMBER"
 mkdir -p "$EXPORT_DIR"
-
-echo "==> Building bundled web assets (App Store mode)"
-printf 'VITE_API_BASE_URL=%s\n' "$API_BASE_URL" > .env.mobile
-if command -v pnpm >/dev/null 2>&1; then
-  pnpm run build:mobile
-  pnpm exec cap sync ios
-else
-  npm run build:mobile
-  npx cap sync ios
-fi
-
-echo "==> Installing CocoaPods"
-( cd ios/App && pod install )
-
-echo "==> Setting team in ExportOptions.plist"
-/usr/libexec/PlistBuddy -c "Set :teamID $APPLE_TEAM_ID" ios/ExportOptions.plist 2>/dev/null || \
-  /usr/libexec/PlistBuddy -c "Add :teamID string $APPLE_TEAM_ID" ios/ExportOptions.plist
-
-AUTH_ARGS=()
-if [ "${UPLOAD:-0}" = "1" ]; then
-  : "${ASC_KEY_ID:?Set ASC_KEY_ID}" "${ASC_ISSUER_ID:?Set ASC_ISSUER_ID}" "${ASC_KEY_PATH:?Set ASC_KEY_PATH}"
-  AUTH_ARGS=(-authenticationKeyPath "$ASC_KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
-fi
-
-echo "==> Archiving (build $BUILD_NUMBER)"
-( cd ios/App && xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
-    -archivePath "$ARCHIVE_PATH" -destination 'generic/platform=iOS' \
-    -allowProvisioningUpdates \
-    CURRENT_PROJECT_VERSION="$BUILD_NUMBER" DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-    "${AUTH_ARGS[@]}" clean archive )
-
-echo "==> Exporting IPA"
-EXPORT_PLIST="$(pwd)/ios/ExportOptions.plist"
-( cd ios/App && xcodebuild -exportArchive -archivePath "$ARCHIVE_PATH" \
-    -exportOptionsPlist "$EXPORT_PLIST" \
-    -exportPath "$EXPORT_DIR" -allowProvisioningUpdates "${AUTH_ARGS[@]}" )
-
-IPA=$(ls "$EXPORT_DIR"/*.ipa | head -n1)
-echo "==> IPA ready: $IPA"
-
-if [ "${UPLOAD:-0}" = "1" ]; then
-  echo "==> Uploading to TestFlight"
-  xcrun altool --upload-app -f "$IPA" -t ios --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
-  echo "==> Uploaded. Check App Store Connect → TestFlight in a few minutes."
-fi
+ARCHIVE_PATH="$EXPORT_DIR/App.xcarchive"
+EXPORT_PLIST="$EXPORT_DIR/ExportOptions.plist"
+cp ios/ExportOptions.plist "$EXPORT_PLIST"
+/usr/libexec/PlistBuddy -c "Set :teamID $APPLE_TEAM_ID" "$EXPORT_PLIST"
+xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release \
+  -archivePath "$ARCHIVE_PATH" -destination 'generic/platform=iOS' \
+  CURRENT_PROJECT_VERSION="$BUILD_NUMBER" DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+  -allowProvisioningUpdates archive
+xcodebuild -exportArchive -archivePath "$ARCHIVE_PATH" \
+  -exportOptionsPlist "$EXPORT_PLIST" -exportPath "$EXPORT_DIR" -allowProvisioningUpdates
+echo "IPA export directory: $EXPORT_DIR"

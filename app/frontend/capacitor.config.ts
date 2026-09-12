@@ -24,9 +24,9 @@ const mobileEnv = loadMobileEnv();
  * Deploy frontend to Railway → all installed apps get updates on next launch.
  * Set CAPACITOR_SERVER_URL in .env.mobile (or leave empty for offline bundled mode).
  */
-const liveServerUrl = (
-  process.env.CAPACITOR_SERVER_URL ||
-  mobileEnv.CAPACITOR_SERVER_URL ||
+const liveServerUrl = process.env.CAPACITOR_BUILD_MODE === 'store' ? '' : (
+  process.env.CAPACITOR_SERVER_URL ??
+  mobileEnv.CAPACITOR_SERVER_URL ??
   ''
 ).replace(/\/+$/, '');
 
@@ -41,7 +41,7 @@ const config: CapacitorConfig = {
         cleartext: false,
         allowNavigation: [
           'sortirovka24-production-8788.up.railway.app',
-          '*.up.railway.app',
+          // Keep native navigation restricted to the configured application host.
         ],
       }
     : {

@@ -10,6 +10,9 @@ name: Android Release (Google Play AAB)
 # Generate base64 (PowerShell):
 #   [Convert]::ToBase64String([IO.File]::ReadAllBytes("app/frontend/android/sortirovka24-release.jks"))
 
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
 
@@ -43,7 +46,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -66,9 +69,7 @@ jobs:
       - name: Build web (bundled — no live URL for store review)
         run: |
           pnpm install --frozen-lockfile
-          printf 'VITE_API_BASE_URL=%s\n' "$API_BASE_URL" > .env.mobile
-          pnpm run build:mobile
-          pnpm exec cap sync android
+          node scripts/build-store-web.mjs android
 
       - name: Gradle bundleRelease
         run: |

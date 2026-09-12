@@ -1,141 +1,123 @@
-name: iOS Release (App Store / TestFlight)
-
-# Builds a signed IPA on a cloud macOS runner and uploads it to TestFlight.
-# Lets you ship to the App Store WITHOUT owning a Mac.
-#
-# Required GitHub repository secrets (Settings → Secrets and variables → Actions):
-#   APP_STORE_CONNECT_KEY_ID      — Key ID of the App Store Connect API key
-#   APP_STORE_CONNECT_ISSUER_ID   — Issuer ID (App Store Connect → Users and Access → Integrations → App Store Connect API)
-#   APP_STORE_CONNECT_API_KEY     — Full contents of the AuthKey_XXXX.p8 file (paste as-is, multi-line)
-#   APPLE_TEAM_ID                 — 10-character Apple Developer Team ID
-# Optional:
-#   IOS_API_BASE_URL              — backend URL (defaults to the Railway production URL)
-#
-# Signing uses Xcode "automatic" cloud signing via the API key, so there is no
-# need to export/import .p12 certificates or provisioning profiles by hand.
+name: iOS build (simulator or signed App Store IPA)
 
 on:
   workflow_dispatch:
     inputs:
+      signed:
+        description: 'Export signed IPA (requires Apple Developer signing secrets)'
+        type: boolean
+        default: false
       build_number:
-        description: 'Build number (CFBundleVersion). Leave empty to use the run number.'
-        required: false
-        default: ''
+        description: 'Unused positive build number'
+        required: true
+        default: '27'
+
+permissions:
+  contents: read
 
 concurrency:
   group: ios-release
   cancel-in-progress: false
 
 jobs:
-  testflight:
-    name: Build & upload to TestFlight
-    runs-on: macos-15
+  build:
+    runs-on: macos-26
     defaults:
       run:
         working-directory: app/frontend
     env:
-      API_BASE_URL: ${{ secrets.IOS_API_BASE_URL || 'https://sortirovka24-production-8788.up.railway.app' }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      API_BASE_URL: ${{ vars.MOBILE_API_BASE_URL || 'https://sortirovka24-production-8788.up.railway.app' }}
+      BUILD_NUMBER: ${{ inputs.build_number }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Select latest Xcode
-        run: sudo xcode-select -switch /Applications/Xcode.app
-
       - uses: pnpm/action-setup@v4
         with:
           version: 8
-
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: '22'
+          cache: pnpm
           cache-dependency-path: app/frontend/pnpm-lock.yaml
-
-      - name: Install dependencies & build web (bundled mode)
+      - name: Validate build tools and input
+        run: |
+          [[ "$BUILD_NUMBER" =~ ^[1-9][0-9]{0,8}$ ]] || { echo 'Invalid build number'; exit 1; }
+          xcodebuild -version
+          MAJOR=$(xcodebuild -version | awk '/Xcode/{split($2,v,".");print v[1]}')
+          [[ "$MAJOR" -ge 26 ]] || exit 1
+      - name: Install and build bundled assets
         run: |
           pnpm install --frozen-lockfile
-          # App Store build = BUNDLED web assets (works without network on review),
-          # API calls still go to the production backend.
-          printf 'VITE_API_BASE_URL=%s\n' "$API_BASE_URL" > .env.mobile
-          pnpm run build:mobile
-          pnpm exec cap sync ios
-
-      - name: Install CocoaPods
+          node scripts/build-store-web.mjs ios
+      - name: Build simulator app without Apple signing
+        if: ${{ !inputs.signed }}
         run: |
-          cd ios/App
-          pod install
-
-      - name: Write App Store Connect API key
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/ios-build" CODE_SIGNING_ALLOWED=NO \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" build
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$RUNNER_TEMP/ios-build/Build/Products/Release-iphonesimulator/App.app" \
+            "$RUNNER_TEMP/Sortirovka24-simulator.zip"
+      - name: Import distribution identity
+        if: ${{ inputs.signed }}
         env:
-          API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
-          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          CERTIFICATE: ${{ secrets.IOS_DISTRIBUTION_P12_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_P12_PASSWORD }}
+          PROFILE: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          mkdir -p ~/private_keys ~/.appstoreconnect/private_keys
-          echo "$API_KEY" > ~/private_keys/AuthKey_${KEY_ID}.p8
-          cp ~/private_keys/AuthKey_${KEY_ID}.p8 ~/.appstoreconnect/private_keys/
-
-      - name: Resolve build number
-        id: bn
-        run: |
-          if [ -n "${{ github.event.inputs.build_number }}" ]; then
-            echo "value=${{ github.event.inputs.build_number }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "value=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Archive (automatic cloud signing)
+          test -n "$CERTIFICATE" && test -n "$PROFILE" && test -n "$APPLE_TEAM_ID" || { echo 'Apple signing secrets are missing'; exit 1; }
+          umask 077
+          printf '%s' "$CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/distribution.p12"
+          printf '%s' "$PROFILE" | base64 --decode > "$RUNNER_TEMP/profile.mobileprovision"
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 24)
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/signing.keychain-db"
+          security set-keychain-settings -lut 21600 "$RUNNER_TEMP/signing.keychain-db"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/signing.keychain-db"
+          security import "$RUNNER_TEMP/distribution.p12" -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$RUNNER_TEMP/signing.keychain-db"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/signing.keychain-db"
+          security list-keychains -d user -s "$RUNNER_TEMP/signing.keychain-db" login.keychain-db
+          security cms -D -i "$RUNNER_TEMP/profile.mobileprovision" > "$RUNNER_TEMP/profile.plist"
+          UUID=$(/usr/libexec/PlistBuddy -c 'Print UUID' "$RUNNER_TEMP/profile.plist")
+          PROFILE_TEAM=$(/usr/libexec/PlistBuddy -c 'Print TeamIdentifier:0' "$RUNNER_TEMP/profile.plist")
+          APP_ID=$(/usr/libexec/PlistBuddy -c 'Print Entitlements:application-identifier' "$RUNNER_TEMP/profile.plist")
+          [[ "$PROFILE_TEAM" == "$APPLE_TEAM_ID" && "$APP_ID" == "$APPLE_TEAM_ID.kz.sortirovka24.app" ]] || { echo 'Signing profile does not match app/team'; exit 1; }
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$RUNNER_TEMP/profile.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/$UUID.mobileprovision"
+          echo "PROFILE_UUID=$UUID" >> "$GITHUB_ENV"
+      - name: Archive and export signed IPA
+        if: ${{ inputs.signed }}
         env:
-          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          cd ios/App
-          xcodebuild -workspace App.xcworkspace \
-            -scheme App \
-            -configuration Release \
-            -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            -destination 'generic/platform=iOS' \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/private_keys/AuthKey_${KEY_ID}.p8 \
-            -authenticationKeyID "$KEY_ID" \
-            -authenticationKeyIssuerID "$ISSUER_ID" \
-            CURRENT_PROJECT_VERSION=${{ steps.bn.outputs.value }} \
-            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            clean archive
-
-      - name: Export IPA
-        env:
-          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-        run: |
-          EXPORT_PLIST="$PWD/ios/ExportOptions.plist"
-          /usr/libexec/PlistBuddy -c "Set :teamID $APPLE_TEAM_ID" "$EXPORT_PLIST" || \
-            /usr/libexec/PlistBuddy -c "Add :teamID string $APPLE_TEAM_ID" "$EXPORT_PLIST"
-          cd ios/App
-          xcodebuild -exportArchive \
-            -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            -exportOptionsPlist "$EXPORT_PLIST" \
-            -exportPath "$RUNNER_TEMP/export" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/private_keys/AuthKey_${KEY_ID}.p8 \
-            -authenticationKeyID "$KEY_ID" \
-            -authenticationKeyIssuerID "$ISSUER_ID"
-
-      - name: Upload to TestFlight
-        env:
-          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-        run: |
-          IPA=$(ls "$RUNNER_TEMP"/export/*.ipa | head -n1)
-          echo "Uploading $IPA"
-          xcrun altool --upload-app -f "$IPA" -t ios \
-            --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"
-
-      - name: Upload IPA artifact
-        if: always()
-        uses: actions/upload-artifact@v4
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" -destination 'generic/platform=iOS' \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Distribution' \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" archive
+          python3 - <<'PY'
+          import os, plistlib
+          settings = dict(method='app-store-connect', destination='export', signingStyle='manual',
+              teamID=os.environ['APPLE_TEAM_ID'], signingCertificate='Apple Distribution',
+              provisioningProfiles={'kz.sortirovka24.app': os.environ['PROFILE_UUID']},
+              manageAppVersionAndBuildNumber=False, uploadSymbols=True)
+          with open(os.environ['RUNNER_TEMP']+'/ExportOptions.plist','wb') as out:
+              plistlib.dump(settings,out)
+          PY
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export"
+      - uses: actions/upload-artifact@v4
         with:
-          name: Sortirovka24-ios-ipa
-          path: ${{ runner.temp }}/export/*.ipa
-          retention-days: 30
-          if-no-files-found: ignore
+          name: Sortirovka24-ios-${{ inputs.build_number }}
+          path: |
+            ${{ runner.temp }}/export/*.ipa
+            ${{ runner.temp }}/Sortirovka24-simulator.zip
+          if-no-files-found: error
+          retention-days: 14
+      - name: Remove temporary signing identity
+        if: ${{ always() && inputs.signed }}
+        run: |
+          if [ -f "$RUNNER_TEMP/signing.keychain-db" ]; then
+            security delete-keychain "$RUNNER_TEMP/signing.keychain-db"
+          fi
+          # The ephemeral runner is destroyed after this job.

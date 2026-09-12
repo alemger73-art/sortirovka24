@@ -51,6 +51,8 @@
 	<false/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Геолокация используется для определения вашего адреса при оформлении доставки и для заказа такси.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Face ID используется для разблокировки вашего личного кабинета.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Доступ к камере нужен, чтобы сфотографировать товар, объявление или документ прямо в приложении.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

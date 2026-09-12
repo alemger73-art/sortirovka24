@@ -30,7 +30,8 @@
     "prepare:store-screenshots": "node scripts/prepare-store-screenshots.mjs",
     "export:play-keystore": "powershell -ExecutionPolicy Bypass -File scripts/export-play-keystore-base64.ps1",
     "build:admin": "vite build --config vite.admin.config.ts --mode mobile && node -e \"require('fs').copyFileSync('dist-admin/admin.html','dist-admin/index.html')\"",
-    "dev:admin": "vite --config vite.admin.config.ts"
+    "dev:admin": "vite --config vite.admin.config.ts",
+    "build:store": "node scripts/build-store-web.mjs"
   },
   "dependencies": {
     "@aparajita/capacitor-biometric-auth": "^9.0.0",

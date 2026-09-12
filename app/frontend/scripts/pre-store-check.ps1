@@ -37,7 +37,7 @@ if (Test-Path $pbx) {
 # --- Signing (Android) ---
 $keystoreProps = Join-Path $FrontendRoot "android\keystore.properties"
 $keystoreJks = Join-Path $FrontendRoot "android\sortirovka24-release.jks"
-if (Test-Path $keystoreProps -and (Test-Path $keystoreJks)) {
+if ((Test-Path $keystoreProps) -and (Test-Path $keystoreJks)) {
     Ok "Android release keystore configured"
 } else {
     Warn "Android keystore missing — run: npm run setup:play-keystore"
