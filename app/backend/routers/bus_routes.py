@@ -3,8 +3,10 @@ import logging
 from typing import List, Optional
 
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
+from core.transport_validation import TransportValidation
+from core.admin_guard import require_panel_admin
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
@@ -23,10 +25,10 @@ router = APIRouter(
 
 
 # ---------- Pydantic Schemas ----------
-class Bus_routesData(BaseModel):
+class Bus_routesData(TransportValidation):
     """Entity data schema (for create/update)"""
-    route_number: str = None
-    route_name: str = None
+    route_number: str
+    route_name: str
     description: str = None
     color: str = None
     first_departure_weekday: str = None
@@ -38,9 +40,14 @@ class Bus_routesData(BaseModel):
     is_active: bool = None
     sort_order: int = None
     created_at: str = None
+    journey_json: Optional[str] = None
+    source_url: Optional[str] = None
+    verified_at: Optional[str] = None
+    map_url: Optional[str] = None
 
 
-class Bus_routesUpdateData(BaseModel):
+
+class Bus_routesUpdateData(TransportValidation):
     """Update entity data (partial updates allowed)"""
     route_number: Optional[str] = None
     route_name: Optional[str] = None
@@ -55,6 +62,11 @@ class Bus_routesUpdateData(BaseModel):
     is_active: Optional[bool] = None
     sort_order: Optional[int] = None
     created_at: Optional[str] = None
+    journey_json: Optional[str] = None
+    source_url: Optional[str] = None
+    verified_at: Optional[str] = None
+    map_url: Optional[str] = None
+
 
 
 class Bus_routesResponse(BaseModel):
@@ -73,6 +85,11 @@ class Bus_routesResponse(BaseModel):
     is_active: Optional[bool] = None
     sort_order: Optional[int] = None
     created_at: Optional[str] = None
+    journey_json: Optional[str] = None
+    source_url: Optional[str] = None
+    verified_at: Optional[str] = None
+    map_url: Optional[str] = None
+
 
     class Config:
         from_attributes = True
@@ -107,6 +124,14 @@ class Bus_routesBatchDeleteRequest(BaseModel):
     ids: List[int]
 
 
+def transport_admin(request: Request) -> bool:
+    try:
+        require_panel_admin(request)
+        return True
+    except HTTPException:
+        return False
+
+
 # ---------- Routes ----------
 @router.get("", response_model=Bus_routesListResponse)
 async def query_bus_routess(
@@ -116,11 +141,12 @@ async def query_bus_routess(
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
+    admin: bool = Depends(transport_admin),
 ):
     """Query bus_routess with filtering, sorting, and pagination"""
     logger.debug(f"Querying bus_routess: query={query}, sort={sort}, skip={skip}, limit={limit}, fields={fields}")
     
-    service = Bus_routesService(db)
+    service = Bus_routesService(db, include_drafts=admin)
     try:
         # Parse query JSON if provided
         query_dict = None
@@ -153,11 +179,12 @@ async def query_bus_routess_all(
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
+    admin: bool = Depends(transport_admin),
 ):
     # Query bus_routess with filtering, sorting, and pagination without user limitation
     logger.debug(f"Querying bus_routess: query={query}, sort={sort}, skip={skip}, limit={limit}, fields={fields}")
 
-    service = Bus_routesService(db)
+    service = Bus_routesService(db, include_drafts=admin)
     try:
         # Parse query JSON if provided
         query_dict = None
@@ -187,11 +214,12 @@ async def get_bus_routes(
     id: int,
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
+    admin: bool = Depends(transport_admin),
 ):
     """Get a single bus_routes by ID"""
     logger.debug(f"Fetching bus_routes with id: {id}, fields={fields}")
     
-    service = Bus_routesService(db)
+    service = Bus_routesService(db, include_drafts=admin)
     try:
         result = await service.get_by_id(id)
         if not result:
@@ -206,7 +234,7 @@ async def get_bus_routes(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.post("", response_model=Bus_routesResponse, status_code=201)
+@router.post("", response_model=Bus_routesResponse, status_code=201, dependencies=[Depends(require_panel_admin)])
 async def create_bus_routes(
     data: Bus_routesData,
     db: AsyncSession = Depends(get_db),
@@ -230,7 +258,7 @@ async def create_bus_routes(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.post("/batch", response_model=List[Bus_routesResponse], status_code=201)
+@router.post("/batch", response_model=List[Bus_routesResponse], status_code=201, dependencies=[Depends(require_panel_admin)])
 async def create_bus_routess_batch(
     request: Bus_routesBatchCreateRequest,
     db: AsyncSession = Depends(get_db),
@@ -249,13 +277,15 @@ async def create_bus_routess_batch(
         
         logger.info(f"Batch created {len(results)} bus_routess successfully")
         return results
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         logger.error(f"Error in batch create: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Batch create failed: {str(e)}")
 
 
-@router.put("/batch", response_model=List[Bus_routesResponse])
+@router.put("/batch", response_model=List[Bus_routesResponse], dependencies=[Depends(require_panel_admin)])
 async def update_bus_routess_batch(
     request: Bus_routesBatchUpdateRequest,
     db: AsyncSession = Depends(get_db),
@@ -276,13 +306,15 @@ async def update_bus_routess_batch(
         
         logger.info(f"Batch updated {len(results)} bus_routess successfully")
         return results
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         logger.error(f"Error in batch update: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Batch update failed: {str(e)}")
 
 
-@router.put("/{id}", response_model=Bus_routesResponse)
+@router.put("/{id}", response_model=Bus_routesResponse, dependencies=[Depends(require_panel_admin)])
 async def update_bus_routes(
     id: int,
     data: Bus_routesUpdateData,
@@ -312,7 +344,7 @@ async def update_bus_routes(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.delete("/batch")
+@router.delete("/batch", dependencies=[Depends(require_panel_admin)])
 async def delete_bus_routess_batch(
     request: Bus_routesBatchDeleteRequest,
     db: AsyncSession = Depends(get_db),
@@ -331,13 +363,15 @@ async def delete_bus_routess_batch(
         
         logger.info(f"Batch deleted {deleted_count} bus_routess successfully")
         return {"message": f"Successfully deleted {deleted_count} bus_routess", "deleted_count": deleted_count}
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         logger.error(f"Error in batch delete: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Batch delete failed: {str(e)}")
 
 
-@router.delete("/{id}")
+@router.delete("/{id}", dependencies=[Depends(require_panel_admin)])
 async def delete_bus_routes(
     id: int,
     db: AsyncSession = Depends(get_db),

@@ -57,6 +57,22 @@
         "created_at": {
             "type": "string",
             "description": "Creation timestamp"
+        },
+        "journey_json": {
+            "type": "string",
+            "description": "journey_json"
+        },
+        "source_url": {
+            "type": "string",
+            "description": "source_url"
+        },
+        "verified_at": {
+            "type": "string",
+            "description": "verified_at"
+        },
+        "map_url": {
+            "type": "string",
+            "description": "map_url"
         }
     },
     "required": [

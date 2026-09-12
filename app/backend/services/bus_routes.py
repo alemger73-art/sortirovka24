@@ -1,7 +1,8 @@
 import logging
 from typing import Optional, Dict, Any, List
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, and_
+from core.transport_validation import validate_public_route
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.bus_routes import Bus_routes
@@ -13,12 +14,15 @@ logger = logging.getLogger(__name__)
 class Bus_routesService:
     """Service layer for Bus_routes operations"""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession, include_drafts: bool = True):
         self.db = db
+        self.include_drafts = include_drafts
 
     async def create(self, data: Dict[str, Any]) -> Optional[Bus_routes]:
         """Create a new bus_routes"""
         try:
+            data = {**data, 'is_active': data.get('is_active') is True}
+            validate_public_route(data)
             _allowed = set(Bus_routes.__table__.columns.keys())
             obj = Bus_routes(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
@@ -35,6 +39,8 @@ class Bus_routesService:
         """Get bus_routes by ID"""
         try:
             query = select(Bus_routes).where(Bus_routes.id == obj_id)
+            if not self.include_drafts:
+                query = query.where(and_(Bus_routes.is_active.is_(True), Bus_routes.source_url.is_not(None), Bus_routes.source_url != '', Bus_routes.verified_at.is_not(None), Bus_routes.verified_at != '', Bus_routes.journey_json.is_not(None), Bus_routes.journey_json != ''))
             result = await self.db.execute(query)
             return result.scalar_one_or_none()
         except Exception as e:
@@ -53,6 +59,10 @@ class Bus_routesService:
             query = select(Bus_routes)
             count_query = select(func.count(Bus_routes.id))
             
+            if not self.include_drafts:
+                published = and_(Bus_routes.is_active.is_(True), Bus_routes.source_url.is_not(None), Bus_routes.source_url != '', Bus_routes.verified_at.is_not(None), Bus_routes.verified_at != '', Bus_routes.journey_json.is_not(None), Bus_routes.journey_json != '')
+                query = query.where(published)
+                count_query = count_query.where(published)
             if query_dict:
                 for field, value in query_dict.items():
                     if hasattr(Bus_routes, field):
@@ -93,6 +103,9 @@ class Bus_routesService:
             if not obj:
                 logger.warning(f"Bus_routes {obj_id} not found for update")
                 return None
+            merged = {column.name: getattr(obj, column.name) for column in Bus_routes.__table__.columns}
+            merged.update(update_data)
+            validate_public_route(merged)
             for key, value in update_data.items():
                 if hasattr(obj, key):
                     setattr(obj, key, value)

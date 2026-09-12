@@ -10,7 +10,7 @@
         "first_departure_weekend": "06:30",
         "last_departure_weekend": "21:30",
         "interval_weekend": "15-20 мин",
-        "is_active": true,
+        "is_active": false,
         "sort_order": 1,
         "created_at": "2026-03-31 10:00:00"
     },
@@ -25,7 +25,7 @@
         "first_departure_weekend": "07:00",
         "last_departure_weekend": "21:00",
         "interval_weekend": "18-25 мин",
-        "is_active": true,
+        "is_active": false,
         "sort_order": 2,
         "created_at": "2026-03-31 10:00:00"
     },
@@ -40,7 +40,7 @@
         "first_departure_weekend": "07:00",
         "last_departure_weekend": "20:30",
         "interval_weekend": "20-30 мин",
-        "is_active": true,
+        "is_active": false,
         "sort_order": 3,
         "created_at": "2026-03-31 10:00:00"
     },
@@ -55,7 +55,7 @@
         "first_departure_weekend": "06:00",
         "last_departure_weekend": "22:30",
         "interval_weekend": "25-35 мин",
-        "is_active": true,
+        "is_active": false,
         "sort_order": 4,
         "created_at": "2026-03-31 10:00:00"
     }

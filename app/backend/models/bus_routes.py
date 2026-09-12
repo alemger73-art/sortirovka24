@@ -1,5 +1,5 @@
 from core.database import Base
-from sqlalchemy import Boolean, Column, Integer, String
+from sqlalchemy import Boolean, Column, Integer, String, Text
 
 
 class Bus_routes(Base):
@@ -20,3 +20,7 @@ class Bus_routes(Base):
     is_active = Column(Boolean, nullable=True)
     sort_order = Column(Integer, nullable=True)
     created_at = Column(String, nullable=True)
+    journey_json = Column(Text, nullable=True)
+    source_url = Column(String, nullable=True)
+    verified_at = Column(String, nullable=True)
+    map_url = Column(String, nullable=True)

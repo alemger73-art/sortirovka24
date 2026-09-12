@@ -1,490 +1,56 @@
-import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Bus, Search, ArrowRight, ArrowLeftRight, Clock } from 'lucide-react';
 import Layout from '@/components/Layout';
-import { client, withRetry, timeAgo } from '@/lib/api';
-import { fetchWithCache } from '@/lib/cache';
-import { ChevronLeft, ChevronRight, Clock, MapPin, Bus, AlertTriangle, Info, Navigation } from 'lucide-react';
-import LoadErrorState from '@/components/LoadErrorState';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { client, withRetry } from '@/lib/api';
+import { httpsLink } from '@/lib/directoryContent';
+import { cityDay, departureTimes, readJourney, verifiedRoute, routeMatches, officialTransportUrl, type BusRoute, type BusNotice, type DayKey, type DirectionKey } from '@/lib/transportSchedule';
+import '@/styles/transport.css';
 
-/* ─── Types ─── */
-interface BusRoute {
-  id: number;
-  route_number: string;
-  route_name: string;
-  description: string;
-  color: string;
-  first_departure_weekday: string;
-  last_departure_weekday: string;
-  interval_weekday: string;
-  first_departure_weekend: string;
-  last_departure_weekend: string;
-  interval_weekend: string;
-  is_active: boolean;
-  sort_order: number;
-}
-
-interface BusStop {
-  id: number;
-  route_id: number;
-  stop_name: string;
-  lat: number;
-  lng: number;
-  stop_order: number;
-}
-
-interface BusNotification {
-  id: number;
-  route_id: number | null;
-  message: string;
-  is_active: boolean;
-  created_at: string;
-}
-
-/* ─── Helpers ─── */
-function isWeekend(): boolean {
-  const day = new Date().getDay();
-  return day === 0 || day === 6;
-}
-
-function isRouteRunning(route: BusRoute): boolean {
-  const now = new Date();
-  const hours = now.getHours();
-  const minutes = now.getMinutes();
-  const currentTime = hours * 60 + minutes;
-
-  const weekend = isWeekend();
-  const firstStr = weekend ? route.first_departure_weekend : route.first_departure_weekday;
-  const lastStr = weekend ? route.last_departure_weekend : route.last_departure_weekday;
-
-  if (!firstStr || !lastStr) return false;
-
-  const [fh, fm] = firstStr.split(':').map(Number);
-  const [lh, lm] = lastStr.split(':').map(Number);
-  const firstMin = fh * 60 + fm;
-  const lastMin = lh * 60 + lm;
-
-  return currentTime >= firstMin && currentTime <= lastMin;
-}
-
-/* ─── Leaflet Map Component ─── */
-function RouteMap({ stops, color }: { stops: BusStop[]; color: string }) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (!mapRef.current || stops.length === 0) return;
-
-    let cancelled = false;
-
-    (async () => {
-      const L = await import('leaflet');
-      await import('leaflet/dist/leaflet.css');
-
-      if (cancelled || !mapRef.current) return;
-
-      // Clean up previous map
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-
-      const map = L.map(mapRef.current, {
-        scrollWheelZoom: false,
-        zoomControl: true,
-        attributionControl: false,
-      });
-
-      mapInstanceRef.current = map;
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-      }).addTo(map);
-
-      const points: [number, number][] = stops
-        .sort((a, b) => a.stop_order - b.stop_order)
-        .map(s => [s.lat, s.lng]);
-
-      // Draw route line
-      if (points.length > 1) {
-        L.polyline(points, {
-          color: color || '#3B82F6',
-          weight: 4,
-          opacity: 0.8,
-        }).addTo(map);
-      }
-
-      // Add markers
-      stops.sort((a, b) => a.stop_order - b.stop_order).forEach((stop, idx) => {
-        const isFirst = idx === 0;
-        const isLast = idx === stops.length - 1;
-
-        const icon = L.divIcon({
-          className: 'custom-marker',
-          html: `<div style="
-            width: ${isFirst || isLast ? 28 : 20}px;
-            height: ${isFirst || isLast ? 28 : 20}px;
-            border-radius: 50%;
-            background: ${isFirst || isLast ? color || '#3B82F6' : '#fff'};
-            border: 3px solid ${color || '#3B82F6'};
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            font-weight: bold;
-            color: ${isFirst || isLast ? '#fff' : color || '#3B82F6'};
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-          ">${stop.stop_order}</div>`,
-          iconSize: [isFirst || isLast ? 28 : 20, isFirst || isLast ? 28 : 20],
-          iconAnchor: [isFirst || isLast ? 14 : 10, isFirst || isLast ? 14 : 10],
-        });
-
-        L.marker([stop.lat, stop.lng], { icon })
-          .bindPopup(`<b>${stop.stop_name}</b><br/>Остановка №${stop.stop_order}`)
-          .addTo(map);
-      });
-
-      // Fit bounds
-      if (points.length > 0) {
-        const bounds = L.latLngBounds(points);
-        map.fitBounds(bounds, { padding: [30, 30] });
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, [stops, color]);
-
-  return <div ref={mapRef} className="w-full h-full rounded-xl" />;
-}
-
-/* ─── Route Card ─── */
-function RouteCard({
-  route,
-  stops,
-  notifications,
-  isExpanded,
-  onToggle,
-}: {
-  route: BusRoute;
-  stops: BusStop[];
-  notifications: BusNotification[];
-  isExpanded: boolean;
-  onToggle: () => void;
-}) {
-  const running = isRouteRunning(route);
-  const weekend = isWeekend();
-  const routeStops = stops.filter(s => s.route_id === route.id).sort((a, b) => a.stop_order - b.stop_order);
-  const routeNotifs = notifications.filter(n => n.route_id === route.id || n.route_id === null);
-
-  return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm overflow-hidden border border-gray-100 dark:border-gray-800 transition-all hover:shadow-md">
-      {/* Header */}
-      <button
-        onClick={onToggle}
-        className="w-full text-left p-5 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-      >
-        {/* Route number badge */}
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg bg-blue-500">
-          <span className="text-white font-extrabold text-xl">{route.route_number}</span>
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-bold text-gray-900 dark:text-white text-lg truncate">{route.route_name}</h3>
-          </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">{route.description}</p>
-          <div className="flex items-center gap-3 mt-2">
-            <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${
-              running
-                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
-            }`}>
-              <span className={`w-2 h-2 rounded-full ${running ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
-              {running ? 'На линии' : 'Не работает'}
-            </span>
-            <span className="text-xs text-gray-400 dark:text-gray-500">
-              <Clock className="w-3.5 h-3.5 inline mr-1" />
-              {weekend ? route.interval_weekend : route.interval_weekday}
-            </span>
-          </div>
-        </div>
-
-        <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`} />
-      </button>
-
-      {/* Expanded content */}
-      {isExpanded && (
-        <div className="border-t border-gray-100 dark:border-gray-800 animate-in slide-in-from-top-2 duration-200">
-          {/* Notifications */}
-          {routeNotifs.length > 0 && (
-            <div className="px-5 pt-4">
-              {routeNotifs.map(n => (
-                <div key={n.id} className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg mb-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm text-amber-800 dark:text-amber-300">{n.message}</p>
-                    <p className="text-xs text-amber-500 mt-1">{timeAgo(n.created_at)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Schedule */}
-          <div className="px-5 pt-4 pb-2">
-            <h4 className="font-semibold text-gray-900 dark:text-white text-sm mb-3 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-blue-500" /> Расписание
-            </h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div className={`p-3 rounded-xl ${!weekend ? 'bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-200 dark:ring-blue-800' : 'bg-gray-50 dark:bg-gray-800'}`}>
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Будни</p>
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500 dark:text-gray-400">Первый рейс</span>
-                    <span className="font-bold text-gray-900 dark:text-white">{route.first_departure_weekday || '—'}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500 dark:text-gray-400">Последний рейс</span>
-                    <span className="font-bold text-gray-900 dark:text-white">{route.last_departure_weekday || '—'}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500 dark:text-gray-400">Интервал</span>
-                    <span className="font-bold text-blue-600 dark:text-blue-400">{route.interval_weekday || '—'}</span>
-                  </div>
-                </div>
-              </div>
-              <div className={`p-3 rounded-xl ${weekend ? 'bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-200 dark:ring-blue-800' : 'bg-gray-50 dark:bg-gray-800'}`}>
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Выходные</p>
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500 dark:text-gray-400">Первый рейс</span>
-                    <span className="font-bold text-gray-900 dark:text-white">{route.first_departure_weekend || '—'}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500 dark:text-gray-400">Последний рейс</span>
-                    <span className="font-bold text-gray-900 dark:text-white">{route.last_departure_weekend || '—'}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500 dark:text-gray-400">Интервал</span>
-                    <span className="font-bold text-blue-600 dark:text-blue-400">{route.interval_weekend || '—'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Stops list */}
-          <div className="px-5 pt-3 pb-2">
-            <h4 className="font-semibold text-gray-900 dark:text-white text-sm mb-3 flex items-center gap-2">
-              <Navigation className="w-4 h-4 text-blue-500" /> Остановки маршрута ({routeStops.length})
-            </h4>
-            <div className="relative pl-6">
-              {/* Vertical line */}
-              <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-blue-500" />
-              <div className="space-y-0">
-                {routeStops.map((stop, idx) => {
-                  const isFirst = idx === 0;
-                  const isLast = idx === routeStops.length - 1;
-                  return (
-                    <div key={stop.id} className="relative flex items-center gap-3 py-2">
-                      {/* Dot */}
-                      <div className={`absolute -left-6 w-[22px] h-[22px] rounded-full border-[3px] border-blue-500 flex items-center justify-center z-10 ${isFirst || isLast ? 'bg-blue-500' : 'bg-white dark:bg-gray-900'}`}>
-                        {(isFirst || isLast) && (
-                          <span className="text-[8px] font-bold text-white">{isFirst ? 'A' : 'B'}</span>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p className={`text-sm ${isFirst || isLast ? 'font-bold text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>
-                          {stop.stop_name}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Map */}
-          {routeStops.length > 0 && (
-            <div className="px-5 pt-3 pb-5">
-              <h4 className="font-semibold text-gray-900 dark:text-white text-sm mb-3 flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-blue-500" /> Карта маршрута
-              </h4>
-              <div className="h-64 md:h-80 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
-                <RouteMap stops={routeStops} color={route.color} />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ─── Main Transport Page ─── */
-export default function TransportPage() {
-  const [routes, setRoutes] = useState<BusRoute[]>([]);
-  const [stops, setStops] = useState<BusStop[]>([]);
-  const [notifications, setNotifications] = useState<BusNotification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-  const [expandedRoute, setExpandedRoute] = useState<number | null>(null);
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  async function loadData() {
-    setLoading(true);
-    setLoadError(false);
-    try {
-      const [routesRes, stopsRes, notifsRes] = await Promise.allSettled([
-        fetchWithCache('bus_routes', () => withRetry(() => client.entities.bus_routes.query({ sort: 'sort_order', limit: 50 })), 10 * 60 * 1000),
-        fetchWithCache('bus_stops', () => withRetry(() => client.entities.bus_stops.query({ sort: 'stop_order', limit: 200 })), 10 * 60 * 1000),
-        fetchWithCache('bus_notifications', () => withRetry(() => client.entities.bus_notifications.query({ query: { is_active: true }, sort: '-created_at', limit: 20 })), 5 * 60 * 1000),
-      ]);
-
-      if (routesRes.status === 'fulfilled') {
-        setRoutes((routesRes.value.data?.items || []).filter((r: BusRoute) => r.is_active));
-      }
-      if (stopsRes.status === 'fulfilled') {
-        setStops(stopsRes.value.data?.items || []);
-      }
-      if (notifsRes.status === 'fulfilled') {
-        setNotifications((notifsRes.value.data?.items || []).filter((n: BusNotification) => n.is_active));
-      }
-      if (routesRes.status === 'rejected' && stopsRes.status === 'rejected') {
-        setLoadError(true);
-      }
-    } catch (e) {
-      console.error(e);
-      setLoadError(true);
-    } finally {
-      setLoading(false);
-    }
+export default function Transport() {
+  const { lang } = useLanguage(); const kz = lang === 'kz'; const say = (ru: string, kk: string) => kz ? kk : ru;
+  const [params,setParams] = useSearchParams(); const query = params.get('q') || '';
+  const [routes,setRoutes] = useState<BusRoute[]>([]); const [notices,setNotices] = useState<BusNotice[]>([]);
+  const [loading,setLoading] = useState(true); const [error,setError] = useState(false); const [noticeError,setNoticeError] = useState(false); const generation=useRef(0);
+  async function load() {
+    const version=++generation.current; setLoading(true);setError(false);setNoticeError(false);
+    const results=await Promise.allSettled([
+      (async()=>{const all:BusRoute[]=[];for(let skip=0;;skip+=200){const r=await withRetry(()=>client.entities.bus_routes.query({sort:'id',skip,limit:200}));const page=r.data?.items||[];all.push(...page);if(page.length<200||all.length>=(r.data?.total??Infinity))break;}return all;})(),
+      withRetry(()=>client.entities.bus_notifications.query({query:{is_active:true},sort:'-created_at',limit:200})),
+    ]);
+    if(version!==generation.current)return;
+    if(results[0].status==='fulfilled')setRoutes(results[0].value.filter(verifiedRoute).sort((a,b)=>(a.sort_order??999)-(b.sort_order??999)||a.route_number.localeCompare(b.route_number,'ru',{numeric:true})));else setError(true);
+    if(results[1].status==='fulfilled')setNotices((results[1].value.data?.items||[]).filter((n:BusNotice)=>n.is_active));else{setNotices([]);setNoticeError(true);}setLoading(false);
   }
-
-  const activeRoutes = routes.filter(r => isRouteRunning(r));
-
-  return (
-    <Layout>
-      <div className="bg-[#f8f9fa] dark:bg-gray-950 min-h-screen">
-        {/* Hero */}
-        <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800">
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute inset-0" style={{
-              backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(255,255,255,0.1) 40px, rgba(255,255,255,0.1) 41px)',
-            }} />
-          </div>
-          <div className="relative max-w-7xl mx-auto px-4 py-10 md:py-16">
-            <div className="flex items-center gap-2 mb-3">
-              <Link to="/directory" className="text-blue-200 hover:text-white text-sm flex items-center gap-1 transition-colors">
-                <ChevronLeft className="w-4 h-4" /> Справочник
-              </Link>
-            </div>
-            <div className="flex items-start gap-4">
-              <div className="w-16 h-16 bg-white/15 backdrop-blur rounded-2xl flex items-center justify-center flex-shrink-0">
-                <Bus className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl md:text-4xl font-extrabold text-white leading-tight">
-                  Автобусы Сортировки
-                </h1>
-                <p className="text-blue-200 text-base md:text-lg mt-2">
-                  Маршруты, расписание и остановки общественного транспорта
-                </p>
-              </div>
-            </div>
-
-            {/* Quick stats */}
-            <div className="grid grid-cols-3 gap-3 mt-6">
-              <div className="bg-white/10 backdrop-blur rounded-xl p-3 text-center">
-                <p className="text-2xl font-extrabold text-white">{routes.length}</p>
-                <p className="text-xs text-blue-200 mt-0.5">Маршрутов</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur rounded-xl p-3 text-center">
-                <p className="text-2xl font-extrabold text-white">{activeRoutes.length}</p>
-                <p className="text-xs text-blue-200 mt-0.5">Сейчас на линии</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur rounded-xl p-3 text-center">
-                <p className="text-2xl font-extrabold text-white">{isWeekend() ? 'Выходной' : 'Будний'}</p>
-                <p className="text-xs text-blue-200 mt-0.5">Тип дня</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* General notifications */}
-        {notifications.filter(n => !n.route_id).length > 0 && (
-          <div className="max-w-7xl mx-auto px-4 -mt-4 relative z-10">
-            {notifications.filter(n => !n.route_id).map(n => (
-              <div key={n.id} className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl mb-3 shadow-sm">
-                <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300">{n.message}</p>
-                  <p className="text-xs text-amber-500 mt-1">{timeAgo(n.created_at)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Routes list */}
-        <div className="max-w-7xl mx-auto px-4 py-6 pb-16">
-          {/* Info card */}
-          <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl mb-6">
-            <Info className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-sm text-blue-800 dark:text-blue-300">
-                Нажмите на маршрут, чтобы увидеть подробное расписание, список остановок и карту маршрута.
-                Зелёный индикатор означает, что автобус сейчас ходит.
-              </p>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="text-center">
-                <div className="relative w-14 h-14 mx-auto mb-3">
-                  <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
-                  <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 rounded-full animate-spin" />
-                  <Bus className="absolute inset-0 m-auto w-5 h-5 text-blue-400" />
-                </div>
-                <p className="text-gray-500 font-medium text-sm">Загружаем маршруты...</p>
-              </div>
-            </div>
-          ) : loadError ? (
-            <LoadErrorState onRetry={loadData} />
-          ) : routes.length > 0 ? (
-            <div className="space-y-3">
-              {routes.map(route => (
-                <RouteCard
-                  key={route.id}
-                  route={route}
-                  stops={stops}
-                  notifications={notifications}
-                  isExpanded={expandedRoute === route.id}
-                  onToggle={() => setExpandedRoute(expandedRoute === route.id ? null : route.id)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm p-12 text-center">
-              <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Bus className="w-8 h-8 text-blue-300" />
-              </div>
-              <p className="text-gray-500 font-medium">Маршруты пока не добавлены</p>
-              <p className="text-gray-400 text-sm mt-1">Информация о маршрутах скоро появится</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </Layout>
-  );
+  useEffect(()=>{void load();return()=>{generation.current++;};},[]);
+  const shown=routes.filter(r=>routeMatches(r,query)); const selected=shown.find(r=>String(r.id)===params.get('route'));
+  const detailRef=useRef<HTMLDivElement>(null);
+  useEffect(()=>{if(selected?.id&&window.innerWidth<=800)detailRef.current?.scrollIntoView({block:'start',behavior:'auto'});},[selected?.id]);
+  function change(key:string,value:string){const next=new URLSearchParams(params);if(value)next.set(key,value);else next.delete(key);if(key==='route'){next.delete('direction');next.delete('stop');}if(key==='direction')next.delete('stop');setParams(next,{replace:key==='q'});}
+  return <Layout><div className="transport-page"><header className="transport-hero"><div className="transport-width"><Link to="/directory">← {say('Справочник','Анықтамалық')}</Link><h1><Bus aria-hidden="true" />{say('Автобусы Сортировки','Сортировка автобустары')}</h1><p>{say('Найдите автобус. Выберите направление. Посмотрите остановки и расписание.','Автобусты табыңыз. Бағытты таңдаңыз. Аялдамалар мен кестені қараңыз.')}</p></div></header>
+    <div className="transport-width transport-body">
+      {notices.filter(n=>!n.route_id).map(n=><p key={n.id} className="transport-notice">{n.message}</p>)}
+      <label className="transport-search"><Search size={20}/><input aria-label={say('Номер автобуса или остановка','Автобус нөмірі немесе аялдама')} placeholder={say('Номер автобуса или остановка','Автобус нөмірі немесе аялдама')} value={query} onChange={e=>change('q',e.target.value)}/>{query&&<button onClick={()=>change('q','')}>{say('Очистить','Тазалау')}</button>}</label>
+      {loading?<p role="status" className="transport-empty">{say('Загружаем маршруты…','Бағыттар жүктелуде…')}</p>:error?<div role="alert" className="transport-empty"><h2>{say('Не удалось загрузить маршруты','Бағыттарды жүктеу мүмкін болмады')}</h2><button onClick={()=>void load()}>{say('Повторить','Қайталау')}</button></div>:!shown.length?<div className="transport-empty"><Bus size={32}/><h2>{routes.length?say('Автобус или остановка не найдены','Автобус немесе аялдама табылмады'):say('Расписания проходят проверку','Кестелер тексерілуде')}</h2><p>{routes.length?say('Попробуйте другой номер или название остановки.','Басқа нөмірді немесе аялдама атауын енгізіңіз.'):say('Готовим актуальные остановки и время отправления. Пока информацию можно уточнить в ONAY! Караганда.','Бағыттар аялдамалар мен кестелер дереккөзбен тексерілген соң жарияланады.')}</p>{query&&<button onClick={()=>change('q','')}>{say('Сбросить поиск','Іздеуді тазалау')}</button>}</div>:<div className="transport-columns"><nav aria-label={say('Автобусные маршруты','Автобус бағыттары')} className="transport-route-list"><p>{say('Выберите автобус','Автобусты таңдаңыз')} · {shown.length}</p>{shown.map(r=><button key={r.id} aria-pressed={selected?.id===r.id} onClick={()=>change('route',String(r.id))}><strong className="transport-number">{r.route_number}</strong><span>{r.route_name}</span><ArrowRight size={18}/></button>)}</nav><div ref={detailRef} className="transport-detail">{selected?<RouteDetails key={selected.id} route={selected} params={params} change={change} notices={notices.filter(n=>n.route_id===selected.id)} kz={kz}/>:<div className="transport-empty"><Bus size={36}/><h2>{say('Какой автобус вам нужен?','Сізге қай автобус керек?')}</h2><p>{say('Выберите номер — здесь появятся оба направления, остановки и время отправления.','Нөмірді таңдаңыз — бағыттар, аялдамалар және жөнелту уақыты көрсетіледі.')}</p></div>}</div></div>}
+      {noticeError&&<p className="transport-note">{say('Сообщения об изменениях сейчас недоступны. Уточните информацию у перевозчика.','Өзгерістер туралы хабарламалар қазір қолжетімсіз. Ақпаратты тасымалдаушыдан нақтылаңыз.')}</p>}
+      <aside className="transport-official"><div><h2>{say('Информация перевозчиков','Тасымалдаушылар ақпараты')}</h2><p>{say('На этой странице — справочное расписание, а не отслеживание автобусов. Прибытие зависит от дорожной ситуации. В праздники график может отличаться.','Бұл бетте автобустардың қозғалысын бақылау емес, анықтамалық кесте берілген. Келу уақыты жол жағдайына байланысты. Мереке күндері кесте өзгеруі мүмкін.')}</p></div><a href={officialTransportUrl} target="_blank" rel="noopener noreferrer">ONAY! {say('Караганда','Қарағанды')} ↗</a></aside>
+    </div></div></Layout>;
+}
+function RouteDetails({route,params,change,notices,kz}:{route:BusRoute;params:URLSearchParams;change:(k:string,v:string)=>void;notices:BusNotice[];kz:boolean}){
+  const say=(ru:string,kk:string)=>kz?kk:ru;const journey=readJourney(route.journey_json);
+  const direction:DirectionKey=params.get('direction')==='inbound'?'inbound':params.get('direction')==='outbound'?'outbound':journey.outbound.stops.length?'outbound':'inbound';
+  const fallbackDay=cityDay();const day=(['weekday','saturday','sunday'].includes(params.get('day')||'')?params.get('day'):fallbackDay) as DayKey;
+  const current=journey[direction];const schedule=current[day];const times=departureTimes(schedule.times)||[];
+  const index=Number(params.get('stop')??-1);const selectedStop=Number.isInteger(index)&&index>=0?current.stops[index]:undefined;
+  return <article className="transport-route"><div className="transport-detail-heading"><span className="transport-number">{route.route_number}</span><div><h2>{route.route_name}</h2><p>{say('Проверено редакцией','Редакция тексерген')}: {route.verified_at}</p></div></div>
+    {notices.map(n=><p className="transport-notice" key={n.id}>{n.message}</p>)}
+    <div className="transport-directions" aria-label={say('Направление','Бағыт')}>{(['outbound','inbound']as const).map(d=><button key={d} aria-pressed={direction===d} onClick={()=>{change('direction',d);}}><ArrowLeftRight size={16}/><span>{d==='outbound'?say('Прямое направление','Тура бағыт'):say('Обратное направление','Кері бағыт')}<small>{journey[d].stops.length>=2?`${journey[d].stops[0]} → ${journey[d].stops.at(-1)}`:say('Остановки уточняются','Аялдамалар нақтылануда')}</small></span></button>)}</div>
+    <section className="transport-stop-section"><h3>{say('Остановки по порядку','Аялдамалар ретімен')} · {current.stops.length}</h3><p className="transport-note">{say('Выберите свою остановку в списке.','Тізімнен өз аялдамаңызды таңдаңыз.')}</p>{current.stops.length?<ol className="transport-stops">{current.stops.map((stop,i)=><li key={i}><button aria-pressed={selectedStop!==undefined&&i===index} onClick={()=>change('stop',String(i))}><span>{i+1}</span><strong>{stop}</strong>{(i===0||i===current.stops.length-1)&&<small>{i===0?say('Отправление','Жөнелту'):say('Конечная','Соңғы аялдама')}</small>}</button></li>)}</ol>:<p className="transport-empty">{say('Это направление ещё не заполнено. Обратный путь может отличаться от прямого.','Бұл бағыт әлі толтырылмаған. Кері жол тура бағыттан өзгеше болуы мүмкін.')}</p>}</section>
+    <section className="transport-schedule"><h3><Clock size={18}/>{say('Расписание отправлений','Жөнелту кестесі')}</h3><div className="transport-days">{([['weekday','Пн–Пт','Дс–Жм'],['saturday','Суббота','Сенбі'],['sunday','Воскресенье','Жексенбі']]as const).map(([value,ru,kk])=><button key={value} aria-pressed={day===value} onClick={()=>change('day',value)}>{say(ru,kk)}</button>)}</div>
+      {current.stops.length>0&&<p className="transport-origin">{say('От остановки','Аялдамадан')}: <strong>{current.stops[0]}</strong></p>}
+      {selectedStop&&index>0&&<p className="transport-notice">{say('Ваша остановка','Сіздің аялдамаңыз')}: <strong>{selectedStop}</strong>. {say('Время ниже относится к отправлению от первой остановки. Прибытие сюда не рассчитано.','Төмендегі уақыт бірінші аялдамадан жөнелтуге қатысты. Мұнда келу уақыты есептелмеген.')}</p>}
+      {schedule.not_running?<p className="transport-empty">{say('В этот день рейсов нет','Бұл күні рейстер жоқ')}</p>:times.length?<><p className="transport-note">{say('По расписанию · время Караганды','Кесте бойынша · Қарағанды уақыты')}</p><div className="transport-times">{times.map(time=><time key={time}>{time}</time>)}</div></>:schedule.first&&schedule.last?<><dl className="transport-frequency"><div><dt>{say('Первый рейс','Алғашқы рейс')}</dt><dd>{schedule.first}</dd></div><div><dt>{say('Последний рейс','Соңғы рейс')}</dt><dd>{schedule.last}</dd></div><div><dt>{say('Интервал','Аралық')}</dt><dd>{schedule.interval||say('Не указан','Көрсетілмеген')}</dd></div></dl><p className="transport-note">{say('Время Караганды. Интервал не является точным временем прибытия.','Қарағанды уақыты. Аралық нақты келу уақытын білдірмейді.')}{schedule.last<schedule.first&&' '+say('Последний рейс — после полуночи.','Соңғы рейс — түн ортасынан кейін.')}</p></>:<p className="transport-empty">{say('Расписание на этот день уточняется','Бұл күннің кестесі нақтылануда')}</p>}
+    </section>{route.description&&<p className="transport-note">{route.description}</p>}<div className="transport-source"><a href={httpsLink(route.source_url)} target="_blank" rel="noopener noreferrer">{say('Источник расписания','Кесте дереккөзі')} ↗</a>{httpsLink(route.map_url)&&<a href={httpsLink(route.map_url)} target="_blank" rel="noopener noreferrer">{say('Маршрут на карте','Картадағы бағыт')} ↗</a>}<Link to="/report-problem">{say('Сообщить об ошибке','Қате туралы хабарлау')}</Link></div>
+  </article>;
 }
