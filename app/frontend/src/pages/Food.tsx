@@ -1338,7 +1338,7 @@ export default function Food() {
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      const created = await withRetry(() =>
+      const created = await (
         client.entities.food_orders.create({
           data: {
             restaurant_id: damAlemRestaurantId ?? 1,

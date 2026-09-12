@@ -185,7 +185,7 @@ export default function CabinetOrderCard({ order: o, detailPath, t }: Props) {
           </div>
 
           {isFood && o.status !== "cancelled" && o.status !== "done" ? (
-            <FoodOrderStatusBar status={o.status || "new"} />
+            <FoodOrderStatusBar status={o.status || "new"} deliveryMethod={o.delivery_method} />
           ) : null}
 
           {isFood && o.order_number ? (

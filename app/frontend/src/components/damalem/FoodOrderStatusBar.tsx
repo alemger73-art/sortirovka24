@@ -1,17 +1,19 @@
 import { CheckCircle2, Circle } from 'lucide-react';
 
 const STEPS = [
-  { key: 'new', label: 'Принят' },
+  { key: 'new', label: 'Оформлен' },
   { key: 'in_progress', label: 'Готовится' },
   { key: 'ready', label: 'Готов' },
-  { key: 'done', label: 'Доставлен' },
+  { key: 'in_delivery', label: 'Доставка' },
+  { key: 'done', label: 'Завершён' },
 ] as const;
 
 function stepIndex(status: string): number {
   if (status === 'cancelled') return -1;
-  if (status === 'done' || status === 'delivered' || status === 'completed') return 3;
+  if (status === 'done' || status === 'delivered' || status === 'completed') return 4;
   if (status === 'ready') return 2;
-  if (status === 'in_progress' || status === 'cooking') return 1;
+  if (status === 'in_progress') return 3;
+  if (status === 'preparing' || status === 'cooking') return 1;
   if (status === 'confirmed') return 1;
   return 0;
 }
@@ -19,9 +21,10 @@ function stepIndex(status: string): number {
 interface Props {
   status: string;
   compact?: boolean;
+  deliveryMethod?: string;
 }
 
-export default function FoodOrderStatusBar({ status, compact = false }: Props) {
+export default function FoodOrderStatusBar({ status, compact = false, deliveryMethod }: Props) {
   if (status === 'cancelled') {
     return <p className="text-xs text-red-400 font-medium">Заказ отменён</p>;
   }
@@ -36,6 +39,7 @@ export default function FoodOrderStatusBar({ status, compact = false }: Props) {
   return (
     <div className="flex items-center gap-1 mt-2">
       {STEPS.map((step, idx) => {
+        if (deliveryMethod === 'pickup' && step.key === 'in_delivery') return null;
         const done = idx <= current;
         return (
           <div key={step.key} className="flex items-center gap-1 flex-1 min-w-0">

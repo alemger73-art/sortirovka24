@@ -25,3 +25,6 @@ class Food_orders(Base):
     bonus_points_used = Column(Float, nullable=True)
     bonus_discount_amount = Column(Float, nullable=True)
     created_at = Column(String, nullable=True)
+    version = Column(Integer, nullable=True)
+    operator_note = Column(String, nullable=True)
+    cancellation_reason = Column(String, nullable=True)

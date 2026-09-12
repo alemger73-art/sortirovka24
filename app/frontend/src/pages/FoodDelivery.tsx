@@ -299,7 +299,7 @@ export default function FoodDelivery() {
       created_at: new Date().toISOString(),
     };
     try {
-      await withRetry(() => client.entities.food_orders.create({ data: orderPayload as any }));
+      await client.entities.food_orders.create({ data: orderPayload as any });
     } catch (e) {
       console.error(e);
       toast.error('Не удалось оформить заказ');

@@ -223,6 +223,8 @@ async def lifespan(app: FastAPI):
     # Start heavy initialization in the background so the server begins serving
     # immediately. This ensures health checks (e.g. on /health) succeed even when
     # the database is doing a cold start, is slow, or is temporarily unreachable.
+    from services.food_operations import notification_worker
+    app.state._food_notifications_task = asyncio.create_task(notification_worker())
     app.state._startup_task = asyncio.create_task(_run_startup_initialization())
     app.state._taxi_dispatch_task = asyncio.create_task(_run_dispatch_loop())
     app.state._admin_summary_task = asyncio.create_task(_run_admin_summary_watch())
@@ -230,6 +232,13 @@ async def lifespan(app: FastAPI):
     logger.info("=== Application startup completed (initialization running in background) ===")
     yield
 
+    food_task = getattr(app.state, "_food_notifications_task", None)
+    if food_task:
+        food_task.cancel()
+        try:
+            await food_task
+        except asyncio.CancelledError:
+            pass
     # MODULE_SHUTDOWN_START
     dispatch_task = getattr(app.state, "_taxi_dispatch_task", None)
     if dispatch_task is not None and not dispatch_task.done():

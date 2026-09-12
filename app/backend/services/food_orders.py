@@ -1,12 +1,14 @@
 import logging
 from typing import Optional, Dict, Any, List
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, update as sql_update
+from fastapi import HTTPException
+from services.food_operations import add_event, is_dam_order, LABELS
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.food_orders import Food_orders
 from services.bonus_rewards import link_food_order_to_user
-from services.telegram import notify_food_order_status
+from services.telegram import notify_food_order_status as notify_telegram_order_status
 from services.frontpad_order_push import push_food_order_to_frontpad
 
 logger = logging.getLogger(__name__)
@@ -40,6 +42,10 @@ class Food_ordersService:
                     discount=bonus_discount,
                 )
 
+            obj.version = 0
+            dam_order = await is_dam_order(self.db, obj)
+            if dam_order:
+                add_event(self.db, obj, "Заказ создан")
             await self.db.commit()
             await self.db.refresh(obj)
             try:
@@ -56,7 +62,8 @@ class Food_ordersService:
             try:
                 from services.food_telegram_flow import notify_operator_new_order
 
-                await notify_operator_new_order(obj)
+                if not dam_order:
+                    await notify_operator_new_order(obj)
             except Exception as tg_err:
                 logger.warning("[Telegram] Food order notification skipped: %s", tg_err)
             try:
@@ -141,7 +148,7 @@ class Food_ordersService:
             logger.error(f"Error fetching food_orders list: {str(e)}")
             raise
 
-    async def update(self, obj_id: int, update_data: Dict[str, Any]) -> Optional[Food_orders]:
+    async def update(self, obj_id: int, update_data: Dict[str, Any], *, expected_version=None, actor="Система") -> Optional[Food_orders]:
         """Update food_orders"""
         try:
             obj = await self.get_by_id(obj_id)
@@ -149,6 +156,35 @@ class Food_ordersService:
                 logger.warning(f"Food_orders {obj_id} not found for update")
                 return None
             old_status = obj.status
+            dam_order = await is_dam_order(self.db, obj)
+            if dam_order:
+                version = obj.version or 0
+                if expected_version is not None and version != expected_version:
+                    raise HTTPException(409, "Заказ уже изменён другим оператором. Обновите карточку.")
+                if old_status in ('done', 'cancelled') and any(k != 'operator_note' for k in update_data):
+                    raise HTTPException(409, "Закрытый заказ нельзя изменять")
+                target = update_data.get('status', old_status)
+                transitions = {'new': {'confirmed', 'cancelled'}, 'confirmed': {'preparing', 'ready', 'in_progress', 'done', 'cancelled'}, 'preparing': {'ready', 'cancelled'}, 'ready': {'in_progress', 'done', 'cancelled'}, 'in_progress': {'done', 'cancelled'}}
+                if target != old_status and target not in transitions.get(old_status, set()):
+                    raise HTTPException(409, "Недопустимый переход статуса")
+                if target == 'in_progress' and obj.delivery_method == 'pickup':
+                    raise HTTPException(422, "Самовывоз не передаётся в доставку")
+                if target == 'cancelled' and not (update_data.get('cancellation_reason') or '').strip():
+                    raise HTTPException(422, "Укажите причину отмены")
+                if update_data.get('delivery_address') is not None and obj.delivery_method != 'pickup' and not update_data['delivery_address'].strip():
+                    raise HTTPException(422, "Адрес доставки не может быть пустым")
+                if any(k in update_data for k in ('total_amount', 'order_items', 'user_id', 'restaurant_id', 'restaurant_name', 'created_at')):
+                    raise HTTPException(422, "Состав и сумма принятого заказа зафиксированы. Для замены оформите новый заказ.")
+                claimed = await self.db.execute(sql_update(Food_orders).where(Food_orders.id == obj_id, func.coalesce(Food_orders.version, 0) == version).values(version=version + 1).execution_options(synchronize_session=False))
+                if not claimed.rowcount:
+                    raise HTTPException(409, "Заказ изменён другим оператором. Обновите карточку.")
+                obj.version = version + 1
+                message = f"Статус: {LABELS.get(old_status, old_status)} → {LABELS.get(target, target)}" if target != old_status else 'Данные заказа обновлены'
+                if target == 'cancelled':
+                    message += ': ' + update_data['cancellation_reason'].strip()
+                if 'payment_status' in update_data:
+                    message += ' · Оплата: ' + ('получена' if update_data['payment_status'] == 'paid' else 'ожидается')
+                add_event(self.db, obj, message, actor, notify=target != old_status)
             for key, value in update_data.items():
                 if hasattr(obj, key):
                     setattr(obj, key, value)
@@ -157,7 +193,8 @@ class Food_ordersService:
             await self.db.refresh(obj)
             if "status" in update_data and update_data["status"] != old_status:
                 try:
-                    await notify_food_order_status({
+                    if not dam_order:
+                        await notify_telegram_order_status({
                         "order_id": obj.id,
                         "restaurant_name": obj.restaurant_name,
                         "customer_name": obj.customer_name,
@@ -188,7 +225,7 @@ class Food_ordersService:
                     await notify_food_order_status(self.db, obj, old_status, obj.status)
                 except Exception as notify_err:
                     logger.warning("[Notify] Food order status notify skipped: %s", notify_err)
-                if update_data["status"] == "in_progress" and old_status != "in_progress":
+                if update_data["status"] == "in_progress" and old_status != "in_progress" and obj.delivery_method != "pickup" and not dam_order:
                     try:
                         from services.food_telegram_flow import dispatch_order_to_couriers
 

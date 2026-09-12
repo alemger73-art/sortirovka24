@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Utensils, ShoppingBag, Settings, Image, ExternalLink, ChefHat,
   Store, SlidersHorizontal, Plug,
 } from 'lucide-react';
 import { DAM_ALEM_BRAND } from '@/lib/damAlem';
 import AdminFood from './AdminFood';
-import AdminFoodOrders from './AdminFoodOrders';
+import DamAlemOrders from './DamAlemOrders';
+import DamAlemTelegram from './DamAlemTelegram';
 import AdminFoodSettings from './AdminFoodSettings';
 import AdminDamAlemBanners from './AdminDamAlemBanners';
 import AdminDamAlemBrand from './AdminDamAlemBrand';
@@ -15,7 +16,7 @@ import AdminFrontpad from './AdminFrontpad';
 import AdminDamAlemGuide from '@/components/damalem/AdminDamAlemGuide';
 import AdminPartnerAccess from '@/components/partner/AdminPartnerAccess';
 
-type Section = 'brand' | 'menu' | 'categories' | 'modifiers' | 'orders' | 'settings' | 'banners' | 'pos';
+type Section = 'brand' | 'menu' | 'categories' | 'modifiers' | 'orders' | 'settings' | 'banners' | 'pos' | 'telegram';
 
 interface AdminDamAlemProps {
   initialSection?: Section;
@@ -24,23 +25,26 @@ interface AdminDamAlemProps {
 }
 
 const TABS: { id: Section; label: string; icon: typeof Utensils }[] = [
+  { id: 'orders', label: 'Заказы', icon: ShoppingBag },
+  { id: 'telegram', label: 'Telegram', icon: Plug },
   { id: 'brand', label: 'Заведение', icon: Store },
   { id: 'menu', label: 'Блюда', icon: ChefHat },
   { id: 'categories', label: 'Категории', icon: Utensils },
   { id: 'modifiers', label: 'Опции', icon: SlidersHorizontal },
-  { id: 'orders', label: 'Заказы', icon: ShoppingBag },
   { id: 'banners', label: 'Баннеры', icon: Image },
   { id: 'settings', label: 'Настройки', icon: Settings },
   { id: 'pos', label: 'Учёт / API', icon: Plug },
 ];
 
-export default function AdminDamAlem({ initialSection = 'menu', partnerMode = false }: AdminDamAlemProps) {
-  const [section, setSection] = useState<Section>(initialSection);
+export default function AdminDamAlem({ initialSection = 'orders', partnerMode = false }: AdminDamAlemProps) {
+  const [params, setParams] = useSearchParams();
+  const requested = params.get('section') as Section;
+  const [section, setSection] = useState<Section>(TABS.some(t => t.id === requested) ? requested : initialSection);
   const tabs = partnerMode ? TABS.filter(tab => tab.id !== 'pos') : TABS;
 
   useEffect(() => {
-    setSection(initialSection === 'pos' && partnerMode ? 'settings' : initialSection);
-  }, [initialSection, partnerMode]);
+    setSection(TABS.some(t => t.id === requested && (!partnerMode || t.id !== 'pos')) ? requested : initialSection === 'pos' && partnerMode ? 'settings' : initialSection);
+  }, [initialSection, partnerMode, requested]);
 
   return (
     <div className="space-y-6">
@@ -50,8 +54,8 @@ export default function AdminDamAlem({ initialSection = 'menu', partnerMode = fa
             <p className="text-xs font-semibold uppercase tracking-widest text-white/70">Интернет-магазин</p>
             <h2 className="mt-1 text-2xl font-black tracking-tight md:text-3xl">{DAM_ALEM_BRAND}</h2>
             <p className="mt-2 max-w-lg text-sm text-white/85">
-              Витрина, меню, корзина, зоны доставки и подключение системы учёта по API-ключам.
-              Модуль можно выключить в «Система → Модули».
+              Принимайте заказы, управляйте приготовлением и доставкой.
+              Настройки меню, витрины и уведомлений — в одном кабинете.
             </p>
           </div>
           <Link
@@ -64,7 +68,7 @@ export default function AdminDamAlem({ initialSection = 'menu', partnerMode = fa
         </div>
       </div>
 
-      <AdminDamAlemGuide />
+      {section !== 'orders' && section !== 'telegram' && <AdminDamAlemGuide />}
 
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {tabs.map(tab => {
@@ -74,7 +78,7 @@ export default function AdminDamAlem({ initialSection = 'menu', partnerMode = fa
             <button
               key={tab.id}
               type="button"
-              onClick={() => setSection(tab.id)}
+              onClick={() => { const p = new URLSearchParams(params); p.set('section', tab.id); setParams(p); }}
               className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
                 active
                   ? 'bg-[#FF3B30] text-white shadow-md shadow-[#FF3B30]/25'
@@ -96,8 +100,9 @@ export default function AdminDamAlem({ initialSection = 'menu', partnerMode = fa
           initialSection={section === 'categories' ? 'categories' : 'items'}
         />
       )}
+      {section === 'telegram' && <DamAlemTelegram />}
       {section === 'modifiers' && <AdminDamAlemModifiers />}
-      {section === 'orders' && <AdminFoodOrders damAlemMode />}
+      {section === 'orders' && <DamAlemOrders />}
       {section === 'settings' && (
         <>
           <AdminFoodSettings damAlemMode />

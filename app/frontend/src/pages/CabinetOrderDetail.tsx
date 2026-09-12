@@ -131,13 +131,13 @@ export default function CabinetOrderDetail() {
                   </div>
                 </div>
                 <span className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${st.color}`}>
-                  {t(st.key)}
+                  {isFood ? ({ new: 'Новый', confirmed: 'Принят', preparing: 'Готовится', ready: 'Готов к выдаче', in_progress: 'В доставке', done: 'Завершён', cancelled: 'Отменён' } as Record<string, string>)[order.status] || t(st.key) : t(st.key)}
                 </span>
               </div>
 
               {isFood && order.status !== 'cancelled' && order.status !== 'done' ? (
                 <div className="mt-4">
-                  <FoodOrderStatusBar status={order.status || 'new'} />
+                  <FoodOrderStatusBar status={order.status || 'new'} deliveryMethod={order.delivery_method} />
                 </div>
               ) : null}
 

@@ -199,6 +199,12 @@ async def handle_food_callback(db: AsyncSession, data: str) -> Optional[str]:
 
     svc = Food_ordersService(db)
 
+    if action.startswith("fo_"):
+        from services.food_operations import is_dam_order
+        order = await svc.get_by_id(oid)
+        if order and await is_dam_order(db, order):
+            return "Откройте заказ в кабинете DAM ALEM: там доступны статусы, причина отмены и история."
+
     if action == "fo_confirm":
         order = await svc.update(oid, {"status": "confirmed"})
         if not order:

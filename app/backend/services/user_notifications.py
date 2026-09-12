@@ -167,8 +167,11 @@ async def notify_user_by_id(
 # ── Food (DAM ALEM) ──────────────────────────────────────────────────────────
 
 FOOD_STATUS_MESSAGES: dict[str, tuple[str, str]] = {
-    "confirmed": ("Заказ подтверждён", "Кухня приняла заказ и начала готовить"),
-    "done": ("Заказ готов", "Можно забирать в ресторане"),
+    "confirmed": ("Заказ подтверждён", "Оператор принял заказ"),
+    "preparing": ("Заказ готовится", "Кухня приступила к приготовлению"),
+    "ready": ("Заказ готов", "Заказ готов к выдаче"),
+    "in_progress": ("Заказ в доставке", "Заказ передан в доставку"),
+    "done": ("Заказ завершён", "Спасибо за заказ!"),
     "cancelled": ("Заказ отменён", "Если списали бонусы — они вернутся на баланс"),
 }
 
@@ -198,8 +201,6 @@ async def notify_food_order_status(db: AsyncSession, order: Any, old_status: str
     if not tpl:
         return
     order_id = int(order.id)
-    if new_status == "done" and getattr(order, "delivery_method", "delivery") != "pickup":
-        return
     title, body = tpl
     name = (getattr(order, "restaurant_name", None) or "DAM ALEM 2.0").strip()
     await notify_user_by_phone(
@@ -209,7 +210,7 @@ async def notify_food_order_status(db: AsyncSession, order: Any, old_status: str
         event_key=f"food:status:{order_id}:{new_status}",
         title=title,
         body=f"{name} · №{order_id}. {body}",
-        path=f"/delivery/food/{order_id}" if new_status not in ("done", "cancelled") else f"/cabinet/orders/food/{order_id}",
+        path=f"/cabinet/orders/food/{order_id}",
         entity_type="food_orders",
         entity_id=str(order_id),
     )

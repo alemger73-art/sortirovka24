@@ -117,6 +117,8 @@ class EntityWriteGuardMiddleware(BaseHTTPMiddleware):
 
         if path.startswith(_ENTITIES_PREFIX) and _protection_enabled():
             entity = _entity_name(path)
+            if entity == "food_orders" and method != "OPTIONS" and not (method == "POST" and path.rstrip("/").endswith("food_orders")) and not _is_admin(request) and can_access_partner_entity(request, entity):
+                return JSONResponse(status_code=403, content={"detail": "Откройте заказы в кабинете DAM ALEM."})
 
             # Block public reads of sensitive entities (e.g. food order PII).
             if method in ("GET", "HEAD") and entity in ADMIN_READ_ENTITIES and not _has_entity_access(request, entity):

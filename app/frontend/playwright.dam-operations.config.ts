@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'./e2e',testMatch:'dam-operations.spec.ts',timeout:30000,workers:1,reporter:'list',use:{baseURL:'http://127.0.0.1:3179',channel:'chrome'},projects:[390,768,1440].map(width=>({name:`width-${width}`,use:{viewport:{width,height:900}}})),webServer:{command:`node node_modules/vite/bin/vite.js preview --config vite.food-test.config.ts --outDir "${process.env.DAM_OPS_BUILD_DIR||'dist'}" --host 127.0.0.1 --port 3179 --strictPort`,url:'http://127.0.0.1:3179',reuseExistingServer:false}});
