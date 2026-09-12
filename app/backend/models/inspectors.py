@@ -1,5 +1,5 @@
 from core.database import Base
-from sqlalchemy import Boolean, Column, Float, Integer, String
+from sqlalchemy import Boolean, Column, Float, Integer, String, Text
 
 
 class Inspectors(Base):
@@ -17,6 +17,7 @@ class Inspectors(Base):
     phone = Column(String, nullable=True)
     whatsapp = Column(String, nullable=True)
     streets = Column(String, nullable=True)
+    coverage = Column(Text, nullable=True)
     description = Column(String, nullable=True)
     lat = Column(Float, nullable=True)
     lng = Column(Float, nullable=True)

@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import AdminInspectorDirectory from '@/components/AdminInspectorDirectory';
+import InspectorCoverageEditor from '@/components/InspectorCoverageEditor';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { client, withRetry } from '@/lib/api';
 import { invalidateAllCaches } from '@/lib/cache';
 import { apiUrl } from '@/lib/config';
@@ -34,6 +36,7 @@ interface Inspector {
   phone: string;
   whatsapp?: string;
   streets: string;
+  coverage?: string;
   description?: string;
   lat?: number;
   lng?: number;
@@ -43,51 +46,7 @@ interface Inspector {
   created_at?: string;
 }
 
-const DEFAULT_CENTER: [number, number] = [51.1605, 71.4704];
-
-function StreetsTagInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [input, setInput] = useState('');
-  const tags = value.split(',').map(s => s.trim()).filter(Boolean);
-
-  function addTag(raw: string) {
-    const tag = raw.trim();
-    if (!tag) return;
-    const exists = tags.some(t => t.toLowerCase() === tag.toLowerCase());
-    if (exists) return;
-    onChange([...tags, tag].join(', '));
-    setInput('');
-  }
-
-  function removeTag(idx: number) {
-    onChange(tags.filter((_, i) => i !== idx).join(', '));
-  }
-
-  return (
-    <div className="mt-1 space-y-2">
-      <div className="flex flex-wrap gap-1.5 min-h-[32px]">
-        {tags.map((tag, i) => (
-          <span key={i} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-100">
-            {tag}
-            <button type="button" onClick={() => removeTag(i)} className="hover:text-red-500"><X className="w-3 h-3" /></button>
-          </span>
-        ))}
-      </div>
-      <Input
-        value={input}
-        onChange={e => setInput(e.target.value)}
-        onKeyDown={e => {
-          if (e.key === 'Enter' || e.key === ',') {
-            e.preventDefault();
-            addTag(input);
-          }
-        }}
-        onBlur={() => addTag(input)}
-        placeholder="Введите улицу и нажмите Enter"
-      />
-      <p className="text-xs text-gray-400">Добавляйте улицы по одной. Можно вставить список через запятую в поле выше.</p>
-    </div>
-  );
-}
+const DEFAULT_CENTER: [number, number] = [48, 67];
 
 function ClickableMap({ onSetCenter, onAddBoundaryPoint }: {
   onSetCenter: (lat: number, lng: number) => void;
@@ -160,10 +119,10 @@ function InspectorAdminCard({ item, onEdit, onDelete }: {
             </p>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => onEdit(item)}>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={`Редактировать ${item.full_name}`} onClick={() => onEdit(item)}>
               <Pencil className="h-4 w-4 text-blue-600" />
             </Button>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => onDelete(item.id)}>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={`Удалить ${item.full_name}`} onClick={() => onDelete(item.id)}>
               <Trash2 className="h-4 w-4 text-red-500" />
             </Button>
           </div>
@@ -176,20 +135,25 @@ function InspectorAdminCard({ item, onEdit, onDelete }: {
 export default function AdminInspectors() {
   const [items, setItems] = useState<Inspector[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const savingRef = useRef(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Partial<Inspector> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [reloading, setReloading] = useState(false);
   const [showMapEditor, setShowMapEditor] = useState(false);
   const [boundaryPoints, setBoundaryPoints] = useState<[number, number][]>([]);
 
   const fetchItems = async () => {
     setLoading(true);
+    setLoadError(false);
     try {
-      const res = await withRetry(() => client.entities.inspectors.query({ sort: 'precinct_number', limit: 200 }));
+      const res = await withRetry(() => client.entities.inspectors.query({ sort: 'precinct_number', limit: 2000 }));
       setItems(res.data?.items || []);
-    } catch { toast.error('Ошибка загрузки'); }
-    finally { setLoading(false); }
+    } catch { setLoadError(true); toast.error('Ошибка загрузки'); }
+    finally { setLoading(false); setLoaded(true); }
   };
 
   useEffect(() => { fetchItems(); }, []);
@@ -219,10 +183,12 @@ export default function AdminInspectors() {
   };
 
   const handleSave = async () => {
-    if (!editItem?.full_name || !editItem?.streets) {
-      toast.error('Заполните обязательные поля: ФИО, Улицы');
+    if (savingRef.current || photoUploading) return;
+    if (!editItem?.full_name?.trim() || !editItem.photo_url || (!editItem.is_leadership && !editItem.streets?.trim())) {
+      toast.error('Укажите ФИО, фотографию и закреплённые улицы. Для руководства улицы не обязательны.');
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     try {
       const data: Record<string, any> = {
@@ -235,7 +201,8 @@ export default function AdminInspectors() {
         schedule: editItem.schedule || '',
         phone: editItem.phone || '',
         whatsapp: editItem.whatsapp || '',
-        streets: editItem.streets,
+        streets: editItem.streets || '',
+        coverage: editItem.coverage || '',
         description: editItem.description || '',
         lat: editItem.lat || null,
         lng: editItem.lng || null,
@@ -244,19 +211,19 @@ export default function AdminInspectors() {
         leadership_order: editItem.leadership_order || 0,
       };
       if (editItem.id) {
-        await withRetry(() => client.entities.inspectors.update({ id: String(editItem.id), data }));
+        await client.entities.inspectors.update({ id: String(editItem.id), data });
         toast.success('Участковый обновлён');
       } else {
-        await withRetry(() => client.entities.inspectors.create({
+        await client.entities.inspectors.create({
           data: { ...data, created_at: new Date().toISOString().replace('T', ' ').slice(0, 19) }
-        }));
+        });
         toast.success('Участковый создан');
       }
       invalidateAllCaches();
       setDialogOpen(false);
       fetchItems();
     } catch { toast.error('Ошибка сохранения'); }
-    finally { setSaving(false); }
+    finally { savingRef.current = false; setSaving(false); }
   };
 
   const handleDelete = async (id: number) => {
@@ -318,10 +285,12 @@ export default function AdminInspectors() {
   const regularItems = items.filter(i => !i.is_leadership);
   const missingMapCount = regularItems.filter(i => !i.lat || !i.lng).length;
 
-  if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
+  if (loading && !loaded) return <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
 
   return (
     <div className="space-y-4">
+      <AdminInspectorDirectory />
+      {loadError && <div role="alert" className="rounded-xl bg-red-50 p-4 text-red-700">Не удалось загрузить сотрудников. <button className="underline min-h-11" onClick={() => void fetchItems()}>Повторить загрузку</button></div>}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <p className="text-sm text-gray-500">{items.length} участковых ({leadershipItems.length} руководство)</p>
@@ -367,13 +336,13 @@ export default function AdminInspectors() {
         {items.length === 0 && <p className="text-center text-gray-400 py-8">Нет участковых</p>}
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={open => { if (!saving && !photoUploading) setDialogOpen(open); }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editItem?.id ? 'Редактировать участкового' : 'Новый участковый'}</DialogTitle>
           </DialogHeader>
           {editItem && (
-            <div className="space-y-3">
+            <fieldset disabled={saving} className="space-y-3">
               <div>
                 <label className="text-sm font-medium text-gray-700">ФИО *</label>
                 <Input value={editItem.full_name || ''} onChange={e => setEditItem({ ...editItem, full_name: e.target.value })} placeholder="Иванов Иван Иванович" />
@@ -383,8 +352,8 @@ export default function AdminInspectors() {
                 <Input value={editItem.position || ''} onChange={e => setEditItem({ ...editItem, position: e.target.value })} placeholder="Участковый инспектор полиции" />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Фото</label>
-                <ImageUpload value={editItem.photo_url || ''} onChange={v => setEditItem({ ...editItem, photo_url: v })} folder="inspectors" compact />
+                <label className="text-sm font-medium text-gray-700">Фото *</label>
+                <ImageUpload value={editItem.photo_url || ''} onChange={v => setEditItem(current => current ? { ...current, photo_url: v } : current)} onUploadingChange={setPhotoUploading} folder="inspectors" compact />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -415,13 +384,6 @@ export default function AdminInspectors() {
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Список улиц *</label>
-                <StreetsTagInput
-                  value={editItem.streets || ''}
-                  onChange={streets => setEditItem({ ...editItem, streets })}
-                />
-              </div>
-              <div>
                 <label className="text-sm font-medium text-gray-700">Описание</label>
                 <Textarea value={editItem.description || ''} onChange={e => setEditItem({ ...editItem, description: e.target.value })} rows={2} placeholder="Дополнительная информация" />
               </div>
@@ -435,6 +397,7 @@ export default function AdminInspectors() {
                   </div>
                   <button
                     type="button"
+                    aria-label="Руководство" role="switch" aria-checked={Boolean(editItem.is_leadership)}
                     onClick={() => setEditItem({ ...editItem, is_leadership: !editItem.is_leadership })}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${editItem.is_leadership ? 'bg-amber-500' : 'bg-gray-300'}`}
                   >
@@ -454,6 +417,11 @@ export default function AdminInspectors() {
                   </div>
                 )}
               </div>
+
+              {!editItem.is_leadership && <InspectorCoverageEditor value={editItem.coverage} legacy={editItem.streets} onChange={coverage => {
+                const rows = JSON.parse(coverage) as {street:string;houses:string}[];
+                setEditItem({...editItem,coverage,streets:rows.map(r=>r.street.trim()).filter(Boolean).join(', ')});
+              }}/>}
 
               {/* Map section */}
               <div className="border-t border-gray-200 pt-3">
@@ -504,7 +472,7 @@ export default function AdminInspectors() {
                     <div className="h-[300px] rounded-xl overflow-hidden border border-gray-200 relative z-0">
                       <MapContainer
                         center={editItem.lat && editItem.lng ? [editItem.lat, editItem.lng] : DEFAULT_CENTER}
-                        zoom={15}
+                        zoom={editItem.lat && editItem.lng ? 15 : 5}
                         scrollWheelZoom={true}
                         doubleClickZoom={false}
                         className="h-full w-full"
@@ -563,13 +531,13 @@ export default function AdminInspectors() {
               </div>
 
               <div className="flex gap-2 pt-2">
-                <Button onClick={() => setDialogOpen(false)} variant="outline" className="flex-1">Отмена</Button>
-                <Button onClick={handleSave} disabled={saving} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                <Button onClick={() => setDialogOpen(false)} disabled={photoUploading} variant="outline" className="flex-1">Отмена</Button>
+                <Button onClick={handleSave} disabled={saving || photoUploading} className="flex-1 bg-blue-600 hover:bg-blue-700">
                   {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
                   {editItem.id ? 'Сохранить' : 'Создать'}
                 </Button>
               </div>
-            </div>
+            </fieldset>
           )}
         </DialogContent>
       </Dialog>

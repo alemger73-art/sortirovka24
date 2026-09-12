@@ -4,7 +4,7 @@ from typing import List, Optional
 
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.admin_guard import require_panel_admin
@@ -25,17 +25,44 @@ router = APIRouter(
 
 
 # ---------- Pydantic Schemas ----------
-class InspectorsData(BaseModel):
+class CoverageRule(BaseModel):
+    street: str = Field(min_length=1, max_length=200)
+    houses: str = Field(default='', max_length=1000)
+
+class InspectorFields(BaseModel):
+    @field_validator('coverage', check_fields=False)
+    @classmethod
+    def validate_coverage(cls, value):
+        if not value:
+            return value
+        try:
+            rows = json.loads(value)
+            if not isinstance(rows, list) or len(rows) > 200:
+                raise ValueError('Не более 200 улиц в карточке')
+            validated = [CoverageRule.model_validate(row).model_dump() for row in rows]
+            return json.dumps(validated, ensure_ascii=False)
+        except (ValueError, TypeError) as exc:
+            raise ValueError('Проверьте список улиц и домов') from exc
+
+    @field_validator('photo_url', check_fields=False)
+    @classmethod
+    def required_photo(cls, value):
+        if not value or not value.strip():
+            raise ValueError('Добавьте фотографию сотрудника')
+        return value.strip()
+
+class InspectorsData(InspectorFields):
     """Entity data schema (for create/update)"""
     full_name: str = None
     position: str = None
-    photo_url: str = None
+    photo_url: str = Field(min_length=1, max_length=2000)
     precinct_number: str = None
     district: str = None
     address: str = None
     schedule: str = None
     phone: str = None
     whatsapp: str = None
+    coverage: Optional[str] = None
     streets: str = None
     description: str = None
     lat: float = None
@@ -46,7 +73,7 @@ class InspectorsData(BaseModel):
     created_at: str = None
 
 
-class InspectorsUpdateData(BaseModel):
+class InspectorsUpdateData(InspectorFields):
     """Update entity data (partial updates allowed)"""
     full_name: Optional[str] = None
     position: Optional[str] = None
@@ -57,6 +84,7 @@ class InspectorsUpdateData(BaseModel):
     schedule: Optional[str] = None
     phone: Optional[str] = None
     whatsapp: Optional[str] = None
+    coverage: Optional[str] = None
     streets: Optional[str] = None
     description: Optional[str] = None
     lat: Optional[float] = None
@@ -79,6 +107,7 @@ class InspectorsResponse(BaseModel):
     schedule: Optional[str] = None
     phone: Optional[str] = None
     whatsapp: Optional[str] = None
+    coverage: Optional[str] = None
     streets: Optional[str] = None
     description: Optional[str] = None
     lat: Optional[float] = None

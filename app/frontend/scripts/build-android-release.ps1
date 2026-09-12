@@ -21,7 +21,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Web build / Capacitor sync failed.' }
     Push-Location $AndroidRoot
     try {
-        $gradleArgs = @('bundleRelease', 'assembleRelease', '--no-daemon')
+        $gradleArgs = @('bundleRelease', 'assembleRelease', '--no-daemon', '--max-workers=2')
         if ($VersionCode -gt 0) { $gradleArgs += "-PstoreVersionCode=$VersionCode" }
         & .\gradlew.bat @gradleArgs
         if ($LASTEXITCODE -ne 0) { throw 'Gradle release failed.' }
