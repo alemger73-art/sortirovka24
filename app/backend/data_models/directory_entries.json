@@ -33,6 +33,34 @@
         "created_at": {
             "type": "string",
             "description": "Creation timestamp"
+        },
+        "opening_hours": {
+            "type": "string",
+            "description": "opening hours"
+        },
+        "website": {
+            "type": "string",
+            "description": "website"
+        },
+        "map_url": {
+            "type": "string",
+            "description": "map url"
+        },
+        "whatsapp": {
+            "type": "string",
+            "description": "whatsapp"
+        },
+        "source_url": {
+            "type": "string",
+            "description": "source url"
+        },
+        "verified_at": {
+            "type": "string",
+            "description": "verified at"
+        },
+        "is_published": {
+            "type": "boolean",
+            "description": "False hides drafts; public entries also require a name, source and verification date."
         }
     },
     "required": [

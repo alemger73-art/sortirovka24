@@ -423,6 +423,7 @@ export function sortDirectoryEntries<T extends { category?: string; sort_order?:
 
 export const EMERGENCY_NUMBERS = [
   { number: '112', labelKey: 'emergency.112' },
+  { number: '101', labelKey: 'emergency.101' },
   { number: '102', labelKey: 'emergency.102' },
   { number: '103', labelKey: 'emergency.103' },
   { number: '104', labelKey: 'emergency.104' },

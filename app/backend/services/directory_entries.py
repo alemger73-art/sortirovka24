@@ -1,7 +1,10 @@
 import logging
 from typing import Optional, Dict, Any, List
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_, and_
+from fastapi import HTTPException
+from datetime import date
+from urllib.parse import urlsplit
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.directory_entries import Directory_entries
@@ -10,15 +13,32 @@ logger = logging.getLogger(__name__)
 
 
 # ------------------ Service Layer ------------------
+def validate_publication(data):
+    if data.get('is_published') is False:
+        return
+    source = data.get('source_url') or ''
+    url = urlsplit(source)
+    checked = data.get('verified_at')
+    try:
+        valid_date = bool(checked) and date.fromisoformat(checked) <= date.today()
+    except ValueError:
+        valid_date = False
+    if not (data.get('entry_name') or '').strip() or not (data.get('category') or '').strip() or url.scheme != 'https' or not url.hostname or url.username or url.password or not valid_date or not (data.get('phone') or data.get('website')):
+        raise HTTPException(status_code=422, detail='Для публикации нужны источник, дата проверки и телефон или сайт. Сохраните черновик, если данные не готовы.')
+
+
 class Directory_entriesService:
     """Service layer for Directory_entries operations"""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession, include_drafts: bool = True):
         self.db = db
+        self.include_drafts = include_drafts
 
     async def create(self, data: Dict[str, Any]) -> Optional[Directory_entries]:
         """Create a new directory_entries"""
         try:
+            data = {**data, 'is_published': data.get('is_published') is True}
+            validate_publication(data)
             _allowed = set(Directory_entries.__table__.columns.keys())
             obj = Directory_entries(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
@@ -35,6 +55,8 @@ class Directory_entriesService:
         """Get directory_entries by ID"""
         try:
             query = select(Directory_entries).where(Directory_entries.id == obj_id)
+            if not self.include_drafts:
+                query = query.where(and_(or_(Directory_entries.is_published.is_(None), Directory_entries.is_published.is_(True)), Directory_entries.source_url.is_not(None), Directory_entries.source_url != '', Directory_entries.verified_at.is_not(None), Directory_entries.verified_at != '', Directory_entries.entry_name.is_not(None), Directory_entries.entry_name != ''))
             result = await self.db.execute(query)
             return result.scalar_one_or_none()
         except Exception as e:
@@ -53,6 +75,10 @@ class Directory_entriesService:
             query = select(Directory_entries)
             count_query = select(func.count(Directory_entries.id))
             
+            if not self.include_drafts:
+                published = and_(or_(Directory_entries.is_published.is_(None), Directory_entries.is_published.is_(True)), Directory_entries.source_url.is_not(None), Directory_entries.source_url != '', Directory_entries.verified_at.is_not(None), Directory_entries.verified_at != '', Directory_entries.entry_name.is_not(None), Directory_entries.entry_name != '')
+                query = query.where(published)
+                count_query = count_query.where(published)
             if query_dict:
                 for field, value in query_dict.items():
                     if hasattr(Directory_entries, field):
@@ -93,6 +119,9 @@ class Directory_entriesService:
             if not obj:
                 logger.warning(f"Directory_entries {obj_id} not found for update")
                 return None
+            merged = {column.name: getattr(obj, column.name) for column in Directory_entries.__table__.columns}
+            merged.update(update_data)
+            validate_publication(merged)
             for key, value in update_data.items():
                 if hasattr(obj, key):
                     setattr(obj, key, value)

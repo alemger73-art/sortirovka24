@@ -1,5 +1,5 @@
 from core.database import Base
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Boolean
 
 
 class Directory_entries(Base):
@@ -14,3 +14,10 @@ class Directory_entries(Base):
     description = Column(String, nullable=True)
     sort_order = Column(Integer, nullable=True)
     created_at = Column(String, nullable=True)
+    opening_hours = Column(String, nullable=True)
+    website = Column(String, nullable=True)
+    map_url = Column(String, nullable=True)
+    whatsapp = Column(String, nullable=True)
+    source_url = Column(String, nullable=True)
+    verified_at = Column(String, nullable=True)
+    is_published = Column(Boolean, nullable=True)

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Wrench, Newspaper, AlertTriangle, BookOpen, Megaphone, Briefcase, HelpCircle, Phone, Utensils, Bus, Car, Heart, Bug, Shield } from 'lucide-react';
+import { Home, Wrench, Newspaper, AlertTriangle, BookOpen, Megaphone, Briefcase, HelpCircle, Utensils, Bus, Car, Heart, Bug, Shield } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { prefetchPage, routeToPage } from '@/lib/prefetch';
 import Header from '@/components/layout/Header';
@@ -155,10 +155,6 @@ export default function Layout({
             <div>
               <h4 className="font-semibold text-gray-900 dark:text-white mb-3">{t('footer.contacts')}</h4>
               <div className="space-y-2 text-sm text-gray-500 dark:text-gray-400">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
-                  <span>+7 (7212) 00-00-00</span>
-                </div>
                 <p>{t('footer.address')}</p>
                 <p>sortirovka.portal@mail.ru</p>
               </div>

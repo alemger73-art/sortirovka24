@@ -3,8 +3,12 @@ import logging
 from typing import List, Optional
 
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
+from pydantic import BaseModel, field_validator
+from datetime import date
+from urllib.parse import urlsplit
+import re
+from core.admin_guard import require_panel_admin
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
@@ -23,18 +27,74 @@ router = APIRouter(
 
 
 # ---------- Pydantic Schemas ----------
-class Directory_entriesData(BaseModel):
+class DirectoryValidation(BaseModel):
+    @field_validator('website', 'map_url', 'source_url', check_fields=False)
+    @classmethod
+    def valid_url(cls, value):
+        if not value: return value
+        url = urlsplit(value)
+        if url.scheme != 'https' or not url.hostname or url.username or url.password or len(value) > 2000:
+            raise ValueError('Укажите полную HTTPS-ссылку без логина и пароля')
+        return value
+
+    @field_validator('verified_at', check_fields=False)
+    @classmethod
+    def valid_date(cls, value):
+        if value and date.fromisoformat(value) > date.today():
+            raise ValueError('Дата проверки не может быть в будущем')
+        return value
+
+    @field_validator('phone', 'whatsapp', check_fields=False)
+    @classmethod
+    def valid_phone(cls, value):
+        if not value: return value
+        digits = re.sub(r'\D', '', value)
+        if not re.fullmatch(r'[+\d\s()–-]+', value) or not 3 <= len(digits) <= 15:
+            raise ValueError('Укажите один номер телефона без комментариев')
+        return value.strip()
+
+    @field_validator('entry_name', 'category', check_fields=False)
+    @classmethod
+    def required_text(cls, value):
+        if not value or not value.strip() or len(value) > 200:
+            raise ValueError('Заполните название и категорию (до 200 символов)')
+        return value.strip()
+
+    @field_validator('description', 'opening_hours', 'address', check_fields=False)
+    @classmethod
+    def bounded_text(cls, value):
+        if value and len(value) > 4000: raise ValueError('Максимум 4000 символов')
+        return value
+
+
+def directory_admin(request: Request) -> bool:
+    try:
+        require_panel_admin(request)
+        return True
+    except HTTPException:
+        return False
+
+
+class Directory_entriesData(DirectoryValidation):
     """Entity data schema (for create/update)"""
-    entry_name: str = None
-    category: str = None
+    entry_name: str
+    category: str
     address: str = None
     phone: str = None
     description: str = None
     sort_order: int = None
     created_at: str = None
+    opening_hours: Optional[str] = None
+    website: Optional[str] = None
+    map_url: Optional[str] = None
+    whatsapp: Optional[str] = None
+    source_url: Optional[str] = None
+    verified_at: Optional[str] = None
+    is_published: Optional[bool] = None
 
 
-class Directory_entriesUpdateData(BaseModel):
+
+class Directory_entriesUpdateData(DirectoryValidation):
     """Update entity data (partial updates allowed)"""
     entry_name: Optional[str] = None
     category: Optional[str] = None
@@ -43,6 +103,14 @@ class Directory_entriesUpdateData(BaseModel):
     description: Optional[str] = None
     sort_order: Optional[int] = None
     created_at: Optional[str] = None
+    opening_hours: Optional[str] = None
+    website: Optional[str] = None
+    map_url: Optional[str] = None
+    whatsapp: Optional[str] = None
+    source_url: Optional[str] = None
+    verified_at: Optional[str] = None
+    is_published: Optional[bool] = None
+
 
 
 class Directory_entriesResponse(BaseModel):
@@ -55,6 +123,14 @@ class Directory_entriesResponse(BaseModel):
     description: Optional[str] = None
     sort_order: Optional[int] = None
     created_at: Optional[str] = None
+    opening_hours: Optional[str] = None
+    website: Optional[str] = None
+    map_url: Optional[str] = None
+    whatsapp: Optional[str] = None
+    source_url: Optional[str] = None
+    verified_at: Optional[str] = None
+    is_published: Optional[bool] = None
+
 
     class Config:
         from_attributes = True
@@ -98,11 +174,12 @@ async def query_directory_entriess(
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
+    admin: bool = Depends(directory_admin),
 ):
     """Query directory_entriess with filtering, sorting, and pagination"""
     logger.debug(f"Querying directory_entriess: query={query}, sort={sort}, skip={skip}, limit={limit}, fields={fields}")
     
-    service = Directory_entriesService(db)
+    service = Directory_entriesService(db, include_drafts=admin)
     try:
         # Parse query JSON if provided
         query_dict = None
@@ -135,11 +212,12 @@ async def query_directory_entriess_all(
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
+    admin: bool = Depends(directory_admin),
 ):
     # Query directory_entriess with filtering, sorting, and pagination without user limitation
     logger.debug(f"Querying directory_entriess: query={query}, sort={sort}, skip={skip}, limit={limit}, fields={fields}")
 
-    service = Directory_entriesService(db)
+    service = Directory_entriesService(db, include_drafts=admin)
     try:
         # Parse query JSON if provided
         query_dict = None
@@ -169,11 +247,12 @@ async def get_directory_entries(
     id: int,
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
+    admin: bool = Depends(directory_admin),
 ):
     """Get a single directory_entries by ID"""
     logger.debug(f"Fetching directory_entries with id: {id}, fields={fields}")
     
-    service = Directory_entriesService(db)
+    service = Directory_entriesService(db, include_drafts=admin)
     try:
         result = await service.get_by_id(id)
         if not result:
@@ -188,7 +267,7 @@ async def get_directory_entries(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.post("", response_model=Directory_entriesResponse, status_code=201)
+@router.post("", response_model=Directory_entriesResponse, status_code=201, dependencies=[Depends(require_panel_admin)])
 async def create_directory_entries(
     data: Directory_entriesData,
     db: AsyncSession = Depends(get_db),
@@ -204,6 +283,8 @@ async def create_directory_entries(
         
         logger.info(f"Directory_entries created successfully with id: {result.id}")
         return result
+    except HTTPException:
+        raise
     except ValueError as e:
         logger.error(f"Validation error creating directory_entries: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
@@ -212,7 +293,7 @@ async def create_directory_entries(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.post("/batch", response_model=List[Directory_entriesResponse], status_code=201)
+@router.post("/batch", response_model=List[Directory_entriesResponse], status_code=201, dependencies=[Depends(require_panel_admin)])
 async def create_directory_entriess_batch(
     request: Directory_entriesBatchCreateRequest,
     db: AsyncSession = Depends(get_db),
@@ -231,13 +312,15 @@ async def create_directory_entriess_batch(
         
         logger.info(f"Batch created {len(results)} directory_entriess successfully")
         return results
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         logger.error(f"Error in batch create: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Batch create failed: {str(e)}")
 
 
-@router.put("/batch", response_model=List[Directory_entriesResponse])
+@router.put("/batch", response_model=List[Directory_entriesResponse], dependencies=[Depends(require_panel_admin)])
 async def update_directory_entriess_batch(
     request: Directory_entriesBatchUpdateRequest,
     db: AsyncSession = Depends(get_db),
@@ -258,13 +341,15 @@ async def update_directory_entriess_batch(
         
         logger.info(f"Batch updated {len(results)} directory_entriess successfully")
         return results
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         logger.error(f"Error in batch update: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Batch update failed: {str(e)}")
 
 
-@router.put("/{id}", response_model=Directory_entriesResponse)
+@router.put("/{id}", response_model=Directory_entriesResponse, dependencies=[Depends(require_panel_admin)])
 async def update_directory_entries(
     id: int,
     data: Directory_entriesUpdateData,
@@ -294,7 +379,7 @@ async def update_directory_entries(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.delete("/batch")
+@router.delete("/batch", dependencies=[Depends(require_panel_admin)])
 async def delete_directory_entriess_batch(
     request: Directory_entriesBatchDeleteRequest,
     db: AsyncSession = Depends(get_db),
@@ -313,13 +398,15 @@ async def delete_directory_entriess_batch(
         
         logger.info(f"Batch deleted {deleted_count} directory_entriess successfully")
         return {"message": f"Successfully deleted {deleted_count} directory_entriess", "deleted_count": deleted_count}
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         logger.error(f"Error in batch delete: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Batch delete failed: {str(e)}")
 
 
-@router.delete("/{id}")
+@router.delete("/{id}", dependencies=[Depends(require_panel_admin)])
 async def delete_directory_entries(
     id: int,
     db: AsyncSession = Depends(get_db),

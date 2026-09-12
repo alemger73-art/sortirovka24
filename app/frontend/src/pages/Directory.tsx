@@ -1,346 +1,82 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import Layout from '@/components/Layout';
-import { client, withRetry, DIRECTORY_CATEGORIES, DIRECTORY_CATEGORY_ICONS, EMERGENCY_NUMBERS, getDirectoryCategoryLabel, sortDirectoryEntries } from '@/lib/api';
-import { fetchWithCache } from '@/lib/cache';
-import { useLanguage } from '@/contexts/LanguageContext';
-import {
-  Search, Phone, MapPin, BookOpen, BadgeCheck, Bus, ChevronLeft,
-  Copy, AlertTriangle
-} from 'lucide-react';
-import LoadErrorState from '@/components/LoadErrorState';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Search, Phone, MapPin, Clock, ArrowUpRight, Copy, X, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
+import Layout from '@/components/Layout';
+import { client, withRetry, sortDirectoryEntries, getDirectoryCategoryLabel } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useModules } from '@/hooks/useModules';
+import { emergencyContacts, emergencySource, phoneLink, httpsLink, whatsappLink, readyForDirectory, matchesEntry, type DirectoryEntry } from '@/lib/directoryContent';
+import '@/styles/directory.css';
 
-interface DirectoryEntry {
-  id: number;
-  entry_name: string;
-  category: string;
-  address?: string;
-  phone: string;
-  description?: string;
-  sort_order?: number | null;
-}
-
-const QUICK_SECTIONS = [
-  {
-    to: '/inspectors',
-    icon: BadgeCheck,
-    titleKey: 'directory.inspectorsTitle',
-    descKey: 'directory.inspectorsDesc',
-    gradient: 'from-blue-600 to-indigo-700',
-  },
-  {
-    to: '/transport',
-    icon: Bus,
-    titleKey: 'directory.transportTitle',
-    descKey: 'directory.transportDesc',
-    gradient: 'from-emerald-600 to-teal-700',
-  },
-] as const;
-
-async function copyPhone(phone: string, t: (key: string) => string) {
-  try {
-    await navigator.clipboard.writeText(phone);
-    toast.success(t('common.copied'));
-  } catch {
-    toast.error(t('common.error'));
-  }
-}
-
-export default function DirectoryPage() {
-  const { t } = useLanguage();
+export default function Directory() {
+  const { lang, t } = useLanguage(); const kz = lang === 'kz';
+  const say = (ru: string, kk: string) => kz ? kk : ru;
+  const { isEnabled } = useModules();
+  const [params, setParams] = useSearchParams();
+  const query = params.get('q') || ''; const category = params.get('category') || '';
   const [entries, setEntries] = useState<DirectoryEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-  const [category, setCategory] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-
-  useEffect(() => { loadData(); }, []);
-
-  async function loadData() {
-    setLoading(true);
-    setLoadError(false);
+  const [loading, setLoading] = useState(true); const [error, setError] = useState(false);
+  const generation = useRef(0);
+  async function load() {
+    const version = ++generation.current; setLoading(true); setError(false);
     try {
-      const res = await fetchWithCache(
-        'directory_entries_v2',
-        () => withRetry(() => client.entities.directory_entries.query({ sort: 'sort_order', limit: 200 })),
-        10 * 60 * 1000
-      );
-      setEntries(sortDirectoryEntries(res.data?.items || []));
-    } catch (e) {
-      console.error(e);
-      setLoadError(true);
-    } finally {
-      setLoading(false);
-    }
+      const all: DirectoryEntry[] = [];
+      for (let skip = 0; ; skip += 200) {
+        const result = await withRetry(() => client.entities.directory_entries.query({ sort: 'id', skip, limit: 200 }));
+        const page = result.data?.items || []; all.push(...page);
+        if (page.length < 200 || all.length >= (result.data?.total ?? Infinity)) break;
+      }
+      if (version === generation.current) setEntries(sortDirectoryEntries(all.filter(readyForDirectory)));
+    } catch { if (version === generation.current) setError(true); }
+    finally { if (version === generation.current) setLoading(false); }
   }
-
-  const normalizeQuery = searchQuery.trim().toLowerCase();
-
-  const filtered = useMemo(() => {
-    let list = entries;
-    if (category) list = list.filter(e => e.category === category);
-    if (normalizeQuery) {
-      list = list.filter(e => {
-        const hay = `${e.entry_name} ${e.phone} ${e.description || ''} ${e.address || ''} ${e.category}`.toLowerCase();
-        const words = normalizeQuery.split(/\s+/).filter(w => w.length > 1);
-        return words.some(w => hay.includes(w)) || hay.includes(normalizeQuery);
-      });
-    }
-    return sortDirectoryEntries(list);
-  }, [entries, category, normalizeQuery]);
-
-  const grouped = useMemo(() => {
-    const acc: Record<string, DirectoryEntry[]> = {};
-    for (const e of filtered) {
-      const cat = e.category || 'Прочее';
-      if (!acc[cat]) acc[cat] = [];
-      acc[cat].push(e);
-    }
-    const order = [...DIRECTORY_CATEGORIES, 'Прочее'];
-    return order
-      .filter(cat => acc[cat]?.length)
-      .map(cat => [cat, acc[cat]] as [string, DirectoryEntry[]]);
-  }, [filtered]);
-
-  const hasSearch = normalizeQuery.length > 0;
-
-  return (
-    <Layout>
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-teal-600 via-emerald-700 to-green-800">
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-32 -right-32 w-80 h-80 bg-teal-400/15 rounded-full blur-[100px]" />
-          <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-emerald-300/10 rounded-full blur-[80px]" />
-        </div>
-
-        <div className="relative z-10 max-w-4xl mx-auto px-4 pt-10 pb-12 md:pt-14 md:pb-16">
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-xl rounded-full px-4 py-1.5 border border-white/15 mb-5">
-            <BookOpen className="w-4 h-4 text-teal-200" />
-            <span className="text-white/80 text-sm font-medium">{t('nav.directory')}</span>
-          </div>
-
-          <h1 className="text-3xl md:text-4xl font-black text-white mb-3 leading-tight">
-            {t('directory.title')}
-          </h1>
-          <p className="text-base md:text-lg text-white/50 mb-8 max-w-lg leading-relaxed">
-            {t('directory.subtitle')}
-          </p>
-
-          <div className="max-w-xl">
-            <div className="flex items-center bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/15 overflow-hidden ring-1 ring-white/20">
-              <Search className="w-5 h-5 text-teal-600 ml-5 flex-shrink-0" />
-              <input
-                type="text"
-                placeholder={t('directory.searchPlaceholder')}
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="flex-1 px-4 py-4 text-gray-800 placeholder:text-gray-400 bg-transparent outline-none text-base font-medium"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2 mt-5">
-            <div className="bg-white/10 backdrop-blur-md rounded-xl px-3 py-1.5 border border-white/10 flex items-center gap-1.5">
-              <BookOpen className="w-3.5 h-3.5 text-teal-200" />
-              <span className="text-white/70 text-xs">{entries.length} {t('directory.entriesCount')}</span>
-            </div>
-            <div className="bg-white/10 backdrop-blur-md rounded-xl px-3 py-1.5 border border-white/10 flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-amber-300" />
-              <span className="text-white/70 text-xs">{t('inspectors.district')}</span>
-            </div>
-          </div>
-        </div>
+  useEffect(() => { void load(); return () => { generation.current++; }; }, []);
+  function filter(key: string, value: string) { const next = new URLSearchParams(params); if (value) next.set(key, value); else next.delete(key); setParams(next, { replace: true }); }
+  const categories = useMemo(() => [...new Set(entries.map(e => e.category || 'Прочее'))], [entries]);
+  const filtered = entries.filter(e => (!category || (e.category || 'Прочее') === category) && matchesEntry(e, query, getDirectoryCategoryLabel(e.category, t)));
+  const groups = [...new Set(filtered.map(e => e.category || 'Прочее'))];
+  return <Layout><div className="useful-directory">
+    <header className="directory-hero"><div className="directory-width">
+      <span className="directory-eyebrow"><BookOpen size={16} />{say('Сортировка · нужные контакты', 'Сортировка · қажетті байланыстар')}</span>
+      <h1>{say('Полезный справочник', 'Пайдалы анықтамалық')}</h1>
+      <p>{say('Куда позвонить, куда обратиться и как найти нужную службу.', 'Қайда қоңырау шалу, қайда жүгіну және қажетті қызметті табу.')}</p>
+      <a href="#directory-search" className="directory-hero-link">{say('Найти организацию', 'Ұйымды табу')} ↓</a>
+    </div></header>
+    <div className="directory-width directory-body">
+      <section className="directory-emergency" aria-labelledby="emergency-heading">
+        <div className="directory-section-heading"><div><h2 id="emergency-heading">{say('Если нужна срочная помощь', 'Шұғыл көмек қажет болса')}</h2><p>{say('При угрозе жизни или безопасности звоните сразу.', 'Өмірге немесе қауіпсіздікке қауіп төнсе, дереу қоңырау шалыңыз.')}</p></div></div>
+        <div className="directory-emergency-grid">{emergencyContacts.map(e => <a key={e.number} href={`tel:${e.number}`}><strong>{e.number}</strong><span>{kz ? e.kz : e.ru}</span></a>)}</div>
+        <div className="directory-source"><span>{say('Сообщите адрес и что произошло. Отвечайте на вопросы диспетчера.', 'Мекенжайды және не болғанын айтыңыз. Диспетчердің сұрақтарына жауап беріңіз.')}</span><a href={emergencySource} target="_blank" rel="noopener noreferrer">{say('Источник: gov.kz', 'Дереккөз: gov.kz')} ↗</a></div>
       </section>
-
-      <div className="bg-gray-50 dark:bg-gray-950 min-h-[50vh]">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-
-          {/* Emergency bar */}
-          <div className="mb-6 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30 rounded-2xl p-4 border border-red-100 dark:border-red-900/30">
-            <div className="flex items-start gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/40 flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-0.5">{t('directory.emergencyTitle')}</h3>
-                <p className="text-xs text-gray-600 dark:text-gray-400">{t('directory.emergencyHint')}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {EMERGENCY_NUMBERS.map(em => (
-                <a
-                  key={em.number}
-                  href={`tel:${em.number}`}
-                  className="flex flex-col items-center justify-center bg-white dark:bg-gray-900 rounded-xl p-3 border border-red-100 dark:border-red-900/30 hover:shadow-md hover:border-red-200 transition-all group"
-                >
-                  <span className="text-xl font-black text-red-600 dark:text-red-400 group-hover:scale-105 transition-transform">{em.number}</span>
-                  <span className="text-[10px] text-gray-500 dark:text-gray-400 text-center mt-0.5 leading-tight">{t(em.labelKey)}</span>
-                </a>
-              ))}
-            </div>
-          </div>
-
-          {/* Quick sections */}
-          <section className="mb-8">
-            <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-              {t('directory.quickSections')}
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {QUICK_SECTIONS.map(section => (
-                <Link
-                  key={section.to}
-                  to={section.to}
-                  className={`group relative overflow-hidden rounded-2xl p-5 bg-gradient-to-r ${section.gradient} hover:shadow-lg transition-all hover:-translate-y-0.5`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white/15 backdrop-blur rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-white/25 transition-colors">
-                      <section.icon className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-bold text-base">{t(section.titleKey)}</h3>
-                      <p className="text-white/60 text-sm truncate">{t(section.descKey)}</p>
-                    </div>
-                    <ChevronLeft className="w-5 h-5 text-white/40 rotate-180 group-hover:translate-x-1 transition-transform flex-shrink-0" />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
-
-          {/* Category filter */}
-          <div className="flex flex-wrap gap-2 mb-6">
-            <button
-              onClick={() => setCategory('')}
-              className={`px-3.5 py-2 rounded-full text-sm font-medium transition-colors ${
-                !category
-                  ? 'bg-teal-600 text-white shadow-sm'
-                  : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
-              }`}
-            >
-              {t('common.all')}
-            </button>
-            {DIRECTORY_CATEGORIES.map(c => (
-              <button
-                key={c}
-                onClick={() => setCategory(category === c ? '' : c)}
-                className={`px-3.5 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 ${
-                  category === c
-                    ? 'bg-teal-600 text-white shadow-sm'
-                    : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
-                }`}
-              >
-                <span>{DIRECTORY_CATEGORY_ICONS[c]}</span>
-                {getDirectoryCategoryLabel(c, t)}
-              </button>
-            ))}
-          </div>
-
-          {/* Results header */}
-          {hasSearch && !loading && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              {filtered.length > 0
-                ? <>{t('directory.found')} <span className="font-bold text-gray-900 dark:text-white">{filtered.length}</span></>
-                : t('directory.emptySearch')
-              }
-            </p>
-          )}
-
-          {loading ? (
-            <div className="text-center py-16">
-              <div className="inline-block w-10 h-10 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin" />
-              <p className="text-gray-400 mt-4 text-sm">{t('common.loading')}</p>
-            </div>
-          ) : loadError ? (
-            <LoadErrorState onRetry={loadData} />
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search className="w-8 h-8 text-gray-300 dark:text-gray-600" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-                {hasSearch || category ? t('directory.emptySearch') : t('directory.emptyCategory')}
-              </h3>
-              {(hasSearch || category) && (
-                <button
-                  onClick={() => { setSearchQuery(''); setCategory(''); }}
-                  className="text-teal-600 hover:text-teal-700 dark:text-teal-400 font-semibold text-sm mt-2"
-                >
-                  {t('common.showAll')}
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-8">
-              {grouped.map(([cat, items]) => (
-                <div key={cat}>
-                  <h2 className="text-lg font-extrabold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                    <span className="text-xl">{DIRECTORY_CATEGORY_ICONS[cat] || '📋'}</span>
-                    {getDirectoryCategoryLabel(cat, t)}
-                    <span className="text-sm font-medium text-gray-400">({items.length})</span>
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {items.map(d => (
-                      <DirectoryCard key={d.id} entry={d} onCopy={copyPhone} t={t} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </Layout>
-  );
+      <nav className="directory-shortcuts" aria-label={say('Смежные разделы', 'Қатысты бөлімдер')}>
+        {isEnabled('inspectors') && <Link to="/inspectors"><span><strong>{say('Мой участковый', 'Менің учаскелік инспекторым')}</strong><small>{say('Найти по улице и дому', 'Көше және үй бойынша табу')}</small></span><ArrowUpRight /></Link>}
+        {isEnabled('transport') && <Link to="/transport"><span><strong>{say('Транспорт района', 'Аудан көлігі')}</strong><small>{say('Маршруты и остановки', 'Бағыттар мен аялдамалар')}</small></span><ArrowUpRight /></Link>}
+      </nav>
+      <section id="directory-search" className="directory-catalog" aria-labelledby="catalog-heading">
+        <h2 id="catalog-heading">{say('Организации и службы', 'Ұйымдар мен қызметтер')}</h2>
+        <label className="directory-search"><Search size={20} /><input aria-label={say('Поиск по справочнику', 'Анықтамалықтан іздеу')} placeholder={say('Название, адрес или телефон', 'Атауы, мекенжайы немесе телефоны')} value={query} onChange={e => filter('q', e.target.value)} />{query && <button aria-label={say('Очистить поиск', 'Іздеуді тазалау')} onClick={() => filter('q', '')}><X size={18} /></button>}</label>
+        {!!categories.length && <div className="directory-filters" aria-label={say('Категории', 'Санаттар')}><button aria-pressed={!category} onClick={() => filter('category', '')}>{say('Все', 'Барлығы')} · {entries.length}</button>{categories.map(c => <button key={c} aria-pressed={category === c} onClick={() => filter('category', c)}>{getDirectoryCategoryLabel(c, t)} · {entries.filter(e => (e.category || 'Прочее') === c).length}</button>)}</div>}
+        <div aria-live="polite">{loading ? <p className="directory-state">{t('common.loading')}</p> : error ? <div className="directory-state"><h3>{say('Не удалось загрузить контакты', 'Байланыстарды жүктеу мүмкін болмады')}</h3><p>{say('Экстренные номера выше доступны без загрузки справочника.', 'Жоғарыдағы шұғыл нөмірлер анықтамалықсыз да қолжетімді.')}</p><button onClick={() => void load()}>{say('Попробовать снова', 'Қайталап көру')}</button></div> : !filtered.length ? <div className="directory-state"><h3>{entries.length ? say('Ничего не найдено', 'Ештеңе табылмады') : say('Местные контакты готовятся', 'Жергілікті байланыстар дайындалуда')}</h3><p>{entries.length ? say('Попробуйте другое название или уберите категорию.', 'Басқа атауды қолданып көріңіз немесе санатты алып тастаңыз.') : say('Здесь появятся адреса и телефоны организаций района. Экстренные службы уже доступны выше.', 'Мұнда аудан ұйымдарының мекенжайлары мен телефондары пайда болады. Шұғыл қызметтер жоғарыда қолжетімді.')}</p>{(query || category) && <button onClick={() => setParams({})}>{say('Сбросить фильтры', 'Сүзгілерді тазалау')}</button>}</div> : <>
+          <p className="directory-result-count">{say('Найдено контактов', 'Табылған байланыстар')}: {filtered.length}</p>
+          {groups.map(c => <section key={c} className="directory-group"><h3>{getDirectoryCategoryLabel(c, t)}</h3><div className="directory-card-grid">{filtered.filter(e => (e.category || 'Прочее') === c).map(entry => <DirectoryCard key={entry.id} entry={entry} kz={kz} />)}</div></section>)}
+        </>}</div>
+      </section>
+      <aside className="directory-footer-note"><p>{say('Перед визитом уточните часы приёма. Дата проверки и источник указаны в карточке, если редакция их добавила.', 'Барар алдында қабылдау уақытын нақтылаңыз. Редакция қосқан болса, тексеру күні мен дереккөз карточкада көрсетіледі.')}</p><Link to="/report-problem">{say('Сообщить об ошибке в контактах', 'Байланыстардағы қате туралы хабарлау')} →</Link></aside>
+    </div>
+  </div></Layout>;
 }
 
-function DirectoryCard({
-  entry,
-  onCopy,
-  t,
-}: {
-  entry: DirectoryEntry;
-  onCopy: (phone: string, t: (key: string) => string) => void;
-  t: (key: string) => string;
-}) {
-  const isEmergency = entry.category === 'Экстренные службы';
-
-  return (
-    <div className={`bg-white dark:bg-gray-900 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 border overflow-hidden ${
-      isEmergency ? 'border-red-100 dark:border-red-900/30' : 'border-gray-100 dark:border-gray-800'
-    }`}>
-      <div className="p-4 md:p-5">
-        <h3 className="font-bold text-gray-900 dark:text-white text-base mb-1">{entry.entry_name}</h3>
-        {entry.description && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">{entry.description}</p>
-        )}
-        {entry.address && (
-          <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
-            <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>{entry.address}</span>
-          </div>
-        )}
-        <div className="flex items-center gap-2 pt-3 border-t border-gray-100 dark:border-gray-800">
-          <a
-            href={`tel:${entry.phone}`}
-            className={`flex-1 inline-flex items-center justify-center gap-2 font-bold px-3 py-2.5 rounded-xl transition-all text-sm ${
-              isEmergency
-                ? 'bg-red-600 hover:bg-red-700 text-white'
-                : 'bg-teal-600 hover:bg-teal-700 text-white'
-            }`}
-          >
-            <Phone className="w-4 h-4" />
-            {entry.phone}
-          </a>
-          <button
-            onClick={() => onCopy(entry.phone, t)}
-            className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors"
-            title={t('common.copy')}
-          >
-            <Copy className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+function DirectoryCard({ entry: e, kz }: { entry: DirectoryEntry; kz: boolean }) {
+  const say = (ru: string, kk: string) => kz ? kk : ru;
+  const phone = phoneLink(e.phone); const wa = whatsappLink(e.whatsapp);
+  const source = httpsLink(e.source_url); const map = httpsLink(e.map_url); const website = httpsLink(e.website);
+  return <article className="directory-card">
+    <h4>{e.entry_name}</h4>
+    {e.description && <p className="directory-description">{e.description}</p>}
+    <dl>{e.address && <div><dt><MapPin size={17} /><span className="sr-only">{say('Адрес', 'Мекенжай')}</span></dt><dd>{e.address}</dd></div>}{e.opening_hours && <div><dt><Clock size={17} /><span className="sr-only">{say('Часы работы', 'Жұмыс уақыты')}</span></dt><dd>{e.opening_hours}</dd></div>}</dl>
+    {(map || website) && <div className="directory-text-links">{map && <a href={map} target="_blank" rel="noopener noreferrer">{say('На карте', 'Картада')} ↗</a>}{website && <a href={website} target="_blank" rel="noopener noreferrer">{say('Сайт организации', 'Ұйымның сайты')} ↗</a>}</div>}
+    <div className="directory-contact-actions">{phone ? <><a className="directory-call" href={phone}><Phone size={17} /><span>{e.phone}</span></a><button aria-label={`${say('Скопировать телефон', 'Телефонды көшіру')} ${e.entry_name}`} onClick={async () => { try { await navigator.clipboard.writeText(e.phone!); toast.success(say('Номер скопирован', 'Нөмір көшірілді')); } catch { toast.error(say('Не удалось скопировать номер', 'Нөмірді көшіру мүмкін болмады')); } }}><Copy size={18} /></button></> : <span>{say('Телефон уточняется', 'Телефон нақтылануда')}</span>}{wa && <a className="directory-whatsapp" href={wa} target="_blank" rel="noopener noreferrer">WhatsApp ↗</a>}</div>
+    <div className="directory-card-source">{source ? <a href={source} target="_blank" rel="noopener noreferrer">{say('Источник сведений', 'Мәлімет дереккөзі')} ↗</a> : <span>{say('Источник пока не указан', 'Дереккөз әзірге көрсетілмеген')}</span>}{e.verified_at && source && <span>{say('Проверено редакцией', 'Редакция тексерген')}: {e.verified_at}</span>}</div>
+  </article>;
 }

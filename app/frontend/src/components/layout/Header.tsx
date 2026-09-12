@@ -52,7 +52,7 @@ export default function Header() {
 
   return (
     <header className="site-header relative z-50 border-b border-gray-200 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] transition-colors dark:border-[#1A2233] dark:bg-[#0B0F19] dark:shadow-[0_4px_20px_rgba(0,0,0,0.25)] pt-[env(safe-area-inset-top)]">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
+      <div className="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-2">
         <Link to="/" className="flex items-center">
           <AppLogo size="sm" showText />
         </Link>
@@ -78,7 +78,7 @@ export default function Header() {
           })}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex max-w-full flex-wrap items-center gap-2">
           <PlatformCartButton onClick={() => setCartOpen(true)} />
           {user ? (
             <>
