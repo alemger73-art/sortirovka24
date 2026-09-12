@@ -825,6 +825,7 @@ async def validate_food_order(
         })
     sanitized["order_items"] = json.dumps(validated_items, ensure_ascii=False)
     sanitized["total_amount"] = expected_total
+    sanitized["promo_discount_amount"] = promo_discount
     if bonus_points_used > 0:
         sanitized["bonus_points_used"] = bonus_points_used
         sanitized["bonus_discount_amount"] = bonus_discount

@@ -13,10 +13,11 @@ import AdminDamAlemBanners from './AdminDamAlemBanners';
 import AdminDamAlemBrand from './AdminDamAlemBrand';
 import AdminDamAlemModifiers from './AdminDamAlemModifiers';
 import AdminFrontpad from './AdminFrontpad';
-import AdminDamAlemGuide from '@/components/damalem/AdminDamAlemGuide';
+import { foodBusiness as business } from '@/lib/foodOperations';
+import { DamToday, DamFinance, DamStaff, DamAvailability } from './DamAlemBusiness';
 import AdminPartnerAccess from '@/components/partner/AdminPartnerAccess';
 
-type Section = 'brand' | 'menu' | 'categories' | 'modifiers' | 'orders' | 'settings' | 'banners' | 'pos' | 'telegram';
+type Section = 'brand' | 'menu' | 'categories' | 'modifiers' | 'orders' | 'settings' | 'banners' | 'pos' | 'telegram' | 'today' | 'sales' | 'staff' | 'availability';
 
 interface AdminDamAlemProps {
   initialSection?: Section;
@@ -25,6 +26,10 @@ interface AdminDamAlemProps {
 }
 
 const TABS: { id: Section; label: string; icon: typeof Utensils }[] = [
+  { id: 'today', label: 'Сегодня', icon: Store },
+  { id: 'sales', label: 'Продажи и расходы', icon: ShoppingBag },
+  { id: 'staff', label: 'Сотрудники', icon: Store },
+  { id: 'availability', label: 'Есть / Закончилось', icon: ChefHat },
   { id: 'orders', label: 'Заказы', icon: ShoppingBag },
   { id: 'telegram', label: 'Telegram', icon: Plug },
   { id: 'brand', label: 'Заведение', icon: Store },
@@ -36,16 +41,26 @@ const TABS: { id: Section; label: string; icon: typeof Utensils }[] = [
   { id: 'pos', label: 'Учёт / API', icon: Plug },
 ];
 
-export default function AdminDamAlem({ initialSection = 'orders', partnerMode = false }: AdminDamAlemProps) {
+export default function AdminDamAlem({ initialSection = 'today', partnerMode = false }: AdminDamAlemProps) {
   const [params, setParams] = useSearchParams();
   const requested = params.get('section') as Section;
   const [section, setSection] = useState<Section>(TABS.some(t => t.id === requested) ? requested : initialSection);
-  const tabs = partnerMode ? TABS.filter(tab => tab.id !== 'pos') : TABS;
+  const [access, setAccess] = useState<'owner' | 'operator' | null>(null);
+  const [accessError, setAccessError] = useState('');
+  useEffect(() => { let alive = true; business<{role: 'owner' | 'operator'}>('/me').then(v => { if (alive && ['owner', 'operator'].includes(v.role)) setAccess(v.role); else if (alive) setAccessError('Не удалось определить права доступа'); }).catch(e => { if (alive) setAccessError(e.message); }); return () => { alive = false; }; }, []);
+  const tabs = TABS.filter(tab => (!partnerMode || tab.id !== 'pos') && (access === 'owner' || ['today', 'orders', 'availability'].includes(tab.id)));
+  const groupOf = (id: string) => ['today', 'orders', 'sales'].includes(id) ? id : ['menu', 'categories', 'modifiers', 'banners', 'availability'].includes(id) ? 'menu' : 'settings';
+  const group = groupOf(section);
+  const groups = [{id:'today',label:'Сегодня'}, {id:'orders',label:'Заказы'}, ...(access === 'owner' ? [{id:'sales',label:'Продажи и расходы'}] : []), {id:'menu',label:access === 'owner' ? 'Меню и акции' : 'Доступность блюд'}, ...(access === 'owner' ? [{id:'settings',label:'Настройки'}] : [])];
+  const navigate = (id: string, order?: number, status?: string) => { const p = new URLSearchParams(params); p.set('section', id); if (status) p.set('status', status); else p.delete('status'); if (order) p.set('order', String(order)); else if (id !== 'orders') p.delete('order'); setParams(p); };
 
   useEffect(() => {
-    setSection(TABS.some(t => t.id === requested && (!partnerMode || t.id !== 'pos')) ? requested : initialSection === 'pos' && partnerMode ? 'settings' : initialSection);
-  }, [initialSection, partnerMode, requested]);
+    const allowed = (id: string) => (access === 'owner' || ['today', 'orders', 'availability'].includes(id)) && (!partnerMode || id !== 'pos');
+    setSection(TABS.some(t => t.id === requested) && allowed(requested) ? requested : allowed(initialSection) ? initialSection : 'today');
+  }, [initialSection, partnerMode, requested, access]);
 
+  if (!access) return <p role={accessError ? 'alert' : 'status'}>{accessError || 'Проверяем доступ к кабинету…'}</p>;
+  if (access === 'operator' && !['today', 'orders', 'availability'].includes(section)) return <p>Открываем рабочий кабинет…</p>;
   return (
     <div className="space-y-6">
       <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#FF3B30] via-[#e8352b] to-[#9f1e18] p-5 text-white shadow-lg md:p-6">
@@ -68,10 +83,10 @@ export default function AdminDamAlem({ initialSection = 'orders', partnerMode = 
         </div>
       </div>
 
-      {section !== 'orders' && section !== 'telegram' && <AdminDamAlemGuide />}
+      <nav aria-label="Разделы кабинета" className="flex flex-wrap gap-2">{groups.map(g => <button key={g.id} onClick={() => navigate(g.id === 'menu' && access === 'operator' ? 'availability' : g.id)} className={`rounded-xl px-4 py-3 text-sm font-semibold ${group === g.id ? 'bg-[#FF3B30] text-white' : 'bg-white border text-gray-700'}`}>{g.label}</button>)}</nav>
 
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-        {tabs.map(tab => {
+        {tabs.filter(tab => ['menu', 'settings'].includes(group) && groupOf(tab.id) === group).map(tab => {
           const Icon = tab.icon;
           const active = section === tab.id;
           return (
@@ -92,6 +107,10 @@ export default function AdminDamAlem({ initialSection = 'orders', partnerMode = 
         })}
       </div>
 
+      {section === 'today' && <DamToday owner={access === 'owner'} navigate={navigate} />}
+      {section === 'sales' && access === 'owner' && <DamFinance />}
+      {section === 'staff' && access === 'owner' && <DamStaff />}
+      {section === 'availability' && <DamAvailability />}
       {section === 'brand' && <AdminDamAlemBrand />}
       {(section === 'menu' || section === 'categories') && (
         <AdminFood

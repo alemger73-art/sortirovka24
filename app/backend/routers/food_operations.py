@@ -5,13 +5,13 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select, func, or_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
-from core.partner_guard import require_food_panel_access
+from core.food_staff_guard import food_staff, food_owner
 from models.food_orders import Food_orders
 from models.food_operations import FoodOperationsSettings, FoodOrderEvent
 from services.food_operations import scope, cipher, now, check_connection, telegram_call
 from services.food_orders import Food_ordersService
 
-router = APIRouter(prefix='/api/v1/dam-alem/operations', tags=['DAM ALEM operations'], dependencies=[Depends(require_food_panel_access)])
+router = APIRouter(prefix='/api/v1/dam-alem/operations', tags=['DAM ALEM operations'], dependencies=[Depends(food_staff)])
 
 def serialize(row):
     return {c.name: getattr(row, c.name) for c in row.__table__.columns}
@@ -56,10 +56,10 @@ class OrderChange(BaseModel):
 @router.patch('/orders/{order_id}')
 async def change(order_id: int, body: OrderChange, request: Request, db: AsyncSession = Depends(get_db)):
     await order_for_panel(db, order_id)
-    actor = require_food_panel_access(request)
+    actor = await food_staff(request, db)
     values = body.model_dump(exclude_none=True)
     version = values.pop('expected_version')
-    result = await Food_ordersService(db).update(order_id, values, expected_version=version, actor=str(actor.get('username') or actor.get('sub') or actor.get('partner_type') or 'Оператор'))
+    result = await Food_ordersService(db).update(order_id, values, expected_version=version, actor=str(actor.get('display_name') or actor.get('username') or actor.get('sub') or actor.get('partner_type') or 'Оператор'))
     return serialize(result)
 
 @router.post('/orders/{order_id}/notifications/{event_id}/retry')
@@ -74,7 +74,7 @@ async def retry(order_id: int, event_id: int, db: AsyncSession = Depends(get_db)
 def config_view(cfg):
     return {'enabled': bool(cfg and cfg.enabled), 'chat_id': cfg.chat_id if cfg else '', 'has_token': bool(cfg and cfg.token_cipher), 'status_updates': cfg.status_updates if cfg else True}
 
-@router.get('/telegram')
+@router.get('/telegram', dependencies=[Depends(food_owner)])
 async def get_settings(db: AsyncSession = Depends(get_db)):
     return config_view(await db.get(FoodOperationsSettings, 1))
 
@@ -84,7 +84,7 @@ class TelegramSettings(BaseModel):
     enabled: bool
     status_updates: bool = True
 
-@router.put('/telegram')
+@router.put('/telegram', dependencies=[Depends(food_owner)])
 async def save_settings(body: TelegramSettings, db: AsyncSession = Depends(get_db)):
     cfg = await db.get(FoodOperationsSettings, 1)
     if cfg is None:
@@ -110,7 +110,7 @@ async def save_settings(body: TelegramSettings, db: AsyncSession = Depends(get_d
     await db.commit()
     return config_view(cfg)
 
-@router.post('/telegram/test')
+@router.post('/telegram/test', dependencies=[Depends(food_owner)])
 async def test_message(db: AsyncSession = Depends(get_db)):
     cfg = await db.get(FoodOperationsSettings, 1)
     if not cfg or not cfg.token_cipher or not cfg.chat_id:

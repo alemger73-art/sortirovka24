@@ -1,11 +1,11 @@
 import { getAPIBaseURL } from './config';
 import { getPartnerToken } from './partnerAuthApi';
 
-export async function foodOperations<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
+export async function foodOperations<T>(path: string, method = 'GET', body?: unknown, area: 'operations' | 'business' = 'operations'): Promise<T> {
   const partner = getPartnerToken('dam_alem');
   const admin = localStorage.getItem('_sp924_token') || localStorage.getItem('token');
   const token = location.pathname.startsWith('/partner/') ? partner : admin || partner;
-  const response = await fetch(`${getAPIBaseURL()}/api/v1/dam-alem/operations${path}`, {
+  const response = await fetch(`${getAPIBaseURL()}/api/v1/dam-alem/${area}${path}`, {
     method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
@@ -23,3 +23,5 @@ export interface OperatorOrder {
 export interface OrderEvent { id: number; actor: string; message: string; created_at: string; notification: string; error: string | null }
 export interface OrderDetail { order: OperatorOrder; events: OrderEvent[] }
 export const orderLabels: Record<string, string> = { new: 'Новый', confirmed: 'Принят', preparing: 'Готовится', ready: 'Готов к выдаче', in_progress: 'В доставке', done: 'Завершён', cancelled: 'Отменён' };
+
+export const foodBusiness = <T,>(path: string, method = 'GET', body?: unknown) => foodOperations<T>(path, method, body, 'business');

@@ -3,7 +3,7 @@ from typing import Optional, Dict, Any, List
 
 from sqlalchemy import select, func, update as sql_update
 from fastapi import HTTPException
-from services.food_operations import add_event, is_dam_order, LABELS
+from services.food_operations import add_event, is_dam_order, LABELS, now
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.food_orders import Food_orders
@@ -161,8 +161,10 @@ class Food_ordersService:
                 version = obj.version or 0
                 if expected_version is not None and version != expected_version:
                     raise HTTPException(409, "Заказ уже изменён другим оператором. Обновите карточку.")
-                if old_status in ('done', 'cancelled') and any(k != 'operator_note' for k in update_data):
+                if old_status in ('done', 'cancelled') and any(k not in ({'operator_note', 'payment_status'} if old_status == 'done' else {'operator_note'}) for k in update_data):
                     raise HTTPException(409, "Закрытый заказ нельзя изменять")
+                if obj.payment_status == 'paid' and update_data.get('payment_status', 'paid') != 'paid':
+                    raise HTTPException(422, 'Полученную оплату нельзя стереть. Возврат отмечается владельцем отдельно.')
                 target = update_data.get('status', old_status)
                 transitions = {'new': {'confirmed', 'cancelled'}, 'confirmed': {'preparing', 'ready', 'in_progress', 'done', 'cancelled'}, 'preparing': {'ready', 'cancelled'}, 'ready': {'in_progress', 'done', 'cancelled'}, 'in_progress': {'done', 'cancelled'}}
                 if target != old_status and target not in transitions.get(old_status, set()):
@@ -179,6 +181,12 @@ class Food_ordersService:
                 if not claimed.rowcount:
                     raise HTTPException(409, "Заказ изменён другим оператором. Обновите карточку.")
                 obj.version = version + 1
+                if update_data.get('payment_status') == 'paid' and obj.payment_status != 'paid':
+                    obj.paid_at = now()
+                if target == 'done' and old_status != 'done':
+                    obj.completed_at = now()
+                if target == 'cancelled' and old_status != 'cancelled':
+                    obj.cancelled_at = now()
                 message = f"Статус: {LABELS.get(old_status, old_status)} → {LABELS.get(target, target)}" if target != old_status else 'Данные заказа обновлены'
                 if target == 'cancelled':
                     message += ': ' + update_data['cancellation_reason'].strip()

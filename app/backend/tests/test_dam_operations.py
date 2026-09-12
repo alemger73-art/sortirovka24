@@ -8,6 +8,7 @@ from sqlalchemy import select
 from core.database import Base, get_db
 from core.auth import create_access_token
 from models.food_orders import Food_orders
+from models.partner_auth import PartnerCredentials
 from models.food_restaurants import Food_restaurants
 from models.food_operations import FoodOperationsSettings, FoodOrderEvent
 from routers.food_operations import router
@@ -18,9 +19,10 @@ from services import food_operations as ops
 async def setup(monkeypatch):
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     async with engine.begin() as conn:
-        await conn.run_sync(lambda c: Base.metadata.create_all(c, tables=[Food_orders.__table__, Food_restaurants.__table__, FoodOperationsSettings.__table__, FoodOrderEvent.__table__]))
+        await conn.run_sync(lambda c: Base.metadata.create_all(c, tables=[PartnerCredentials.__table__, Food_orders.__table__, Food_restaurants.__table__, FoodOperationsSettings.__table__, FoodOrderEvent.__table__]))
     maker = async_sessionmaker(engine, expire_on_commit=False)
     async with maker() as db:
+        db.add(PartnerCredentials(id=10,partner_type='dam_alem',email='owner@example.test',password_hash='unused',display_name='test-operator',is_active=True,access_role='owner'))
         db.add_all([Food_restaurants(id=1, name='DAM ALEM 2.0'), Food_restaurants(id=2, name='Другой ресторан')])
         db.add_all([Food_orders(id=1, restaurant_id=1, status='new', version=0, delivery_method='pickup', customer_name='Тест', customer_phone='+77000000000', total_amount=1000, order_items='[]'), Food_orders(id=2, restaurant_id=2, restaurant_name='DAM ALEM 2.0', status='new', version=0)])
         await db.commit()
@@ -32,7 +34,7 @@ async def setup(monkeypatch):
     monkeypatch.setattr('services.food_orders.notify_telegram_order_status', AsyncMock())
     monkeypatch.setattr('services.bonus_rewards.handle_food_order_status_bonus', AsyncMock())
     monkeypatch.setattr('services.user_notifications.notify_food_order_status', AsyncMock())
-    token = create_access_token({'role': 'partner', 'type': 'partner_session', 'partner_type': 'dam_alem', 'sub': 'test-operator'})
+    token = create_access_token({'role': 'partner', 'type': 'partner_session', 'partner_type': 'dam_alem', 'partner_id':10, 'sub': 'test-operator'})
     async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client:
         yield client, maker, {'Authorization': f'Bearer {token}'}
     await engine.dispose()

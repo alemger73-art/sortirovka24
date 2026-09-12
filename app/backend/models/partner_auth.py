@@ -13,6 +13,7 @@ class PartnerCredentials(Base):
     partner_type = Column(String(50), nullable=False, index=True, default="dam_alem")
     email = Column(String(255), unique=True, nullable=True, index=True)
     phone = Column(String(32), unique=True, nullable=True, index=True)
+    access_role = Column(String(20), nullable=True)
     password_hash = Column(String(255), nullable=False)
     display_name = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)

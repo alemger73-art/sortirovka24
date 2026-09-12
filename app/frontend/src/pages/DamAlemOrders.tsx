@@ -19,8 +19,9 @@ function Items({ raw }: { raw: string }) {
 export default function DamAlemOrders() {
   const [params, setParams] = useSearchParams();
   const selected = Number(params.get('order')) || null;
+  const requestedStatus = params.get('status') ?? 'active';
   const [rows, setRows] = useState<OperatorOrder[]>([]), [total, setTotal] = useState(0);
-  const [status, setStatus] = useState('active'), [search, setSearch] = useState(''), [page, setPage] = useState(0);
+  const [status, setStatus] = useState(requestedStatus), [search, setSearch] = useState(''), [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true), [error, setError] = useState(''), [lastLoaded, setLastLoaded] = useState('');
   const [detail, setDetail] = useState<OrderDetail | null>(null), [detailError, setDetailError] = useState('');
   const [busy, setBusy] = useState(false), [note, setNote] = useState(''), [address, setAddress] = useState(''), [reason, setReason] = useState('');
@@ -28,6 +29,7 @@ export default function DamAlemOrders() {
   const lock = useRef(false), generation = useRef(0);
   const latestInteraction = useRef({ selected, editing, cancelOpen, busy });
   latestInteraction.current = { selected, editing, cancelOpen, busy };
+  useEffect(() => { setStatus(requestedStatus); setPage(0); }, [requestedStatus]);
   const load = useCallback(async () => {
     const gen = ++generation.current;
     try {
@@ -79,7 +81,7 @@ export default function DamAlemOrders() {
     <div className="flex flex-wrap justify-between gap-3"><div><h3 className="text-xl font-bold">Заказы DAM ALEM</h3><p className="text-sm text-gray-500">Обновление каждые 15 секунд · {lastLoaded ? `Проверено в ${lastLoaded}` : 'Загрузка'}</p></div><Button variant="outline" onClick={() => void load()}>Обновить список</Button></div>
     <p className="rounded-xl bg-blue-50 p-3 text-sm text-blue-900">Все заказы сохраняются здесь. Telegram — дополнительное уведомление. Оплату отмечайте после проверки поступления денег.</p>
     {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-red-800">{error} Показанные данные могут быть устаревшими.</p>}
-    <div className="flex flex-wrap gap-3"><Input aria-label="Поиск заказов" className="min-w-0 flex-1 basis-64" placeholder="Номер заказа, имя, телефон или адрес" value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} /><select aria-label="Статус заказов" className="rounded-lg border p-2 max-w-full" value={status} onChange={e => { setStatus(e.target.value); setPage(0); }}><option value="active">В работе</option><option value="">Все заказы</option>{Object.entries(orderLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></div>
+    <div className="flex flex-wrap gap-3"><Input aria-label="Поиск заказов" className="min-w-0 flex-1 basis-64" placeholder="Номер заказа, имя, телефон или адрес" value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} /><select aria-label="Статус заказов" className="rounded-lg border p-2 max-w-full" value={status} onChange={e => { setStatus(e.target.value); setPage(0); const p = new URLSearchParams(params); p.set('status', e.target.value); setParams(p); }}><option value="active">В работе</option><option value="">Все заказы</option>{Object.entries(orderLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></div>
     <div className="grid gap-5 xl:grid-cols-[minmax(260px,1fr)_minmax(0,1.6fr)]">
       <section className="min-w-0 space-y-2" aria-label="Список заказов">
         {loading && <p role="status">Загружаем заказы…</p>}
@@ -96,6 +98,7 @@ export default function DamAlemOrders() {
           <div className="space-y-2 break-words"><p>{order.customer_name}</p><a className="text-blue-700 underline block" href={`tel:${(order.customer_phone || '').replace(/[^+\d]/g, '')}`}>{order.customer_phone}</a>{order.delivery_method !== 'pickup' && <p>{order.delivery_address}</p>}{order.comment && <p className="rounded-xl bg-amber-50 p-3">Комментарий клиента: {order.comment}</p>}</div>
           <Items raw={order.order_items} /><p className="text-lg font-bold">Итого {money(order.total_amount)}</p><p>Оплата: {({ cash: 'Наличные', kaspi_qr: 'Kaspi QR', halyk_qr: 'Halyk QR' } as Record<string, string>)[order.payment_method] || order.payment_method || 'Не указана'} · {order.payment_status === 'paid' ? 'Получена' : 'Ожидается'}</p>
           {!closed && <div className="flex flex-wrap gap-2">{target && <Button disabled={busy} onClick={() => void change({ status: target })}>{target === 'done' ? order.delivery_method === 'pickup' ? 'Выдан клиенту' : 'Доставлен клиенту' : orderLabels[target]}</Button>}{order.payment_status !== 'paid' && <Button variant="outline" disabled={busy} onClick={() => void change({ payment_status: 'paid' })}>Подтвердить получение оплаты</Button>}<Button variant="outline" disabled={busy} onClick={() => setCancelOpen(!cancelOpen)}>Отменить заказ</Button></div>}
+          {order.status === 'done' && order.payment_status !== 'paid' && <Button disabled={busy} onClick={() => void change({ payment_status: 'paid' })}>Подтвердить получение оплаты</Button>}
           {cancelOpen && <div className="rounded-xl bg-red-50 p-3 space-y-2"><label className="block">Причина отмены<Input aria-label="Причина отмены" maxLength={500} value={reason} onChange={e => setReason(e.target.value)} /></label><p className="text-sm">При полученной оплате возврат нужно оформить отдельно. Эта кнопка не возвращает деньги.</p><Button disabled={busy || !reason.trim()} onClick={() => void change({ status: 'cancelled', cancellation_reason: reason.trim() })}>Подтвердить отмену</Button></div>}
           {order.cancellation_reason && <p className="text-red-700">Причина отмены: {order.cancellation_reason}</p>}
           {order.operator_note && !editing && <p className="rounded-xl bg-gray-50 p-3 break-words">Заметка оператора: {order.operator_note}</p>}

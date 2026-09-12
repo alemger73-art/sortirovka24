@@ -115,6 +115,26 @@ class EntityWriteGuardMiddleware(BaseHTTPMiddleware):
         method = request.method.upper()
         path = request.url.path
 
+        if path.startswith('/api/v1/') and not path.endswith('/login'):
+            from core.partner_guard import _decode_bearer, is_dam_alem_partner_payload
+            claims = _decode_bearer(request)
+            if is_dam_alem_partner_payload(claims):
+                from core.food_staff_guard import food_staff
+                from core.database import get_db
+                try:
+                    from contextlib import aclosing
+                    async with aclosing(get_db()) as staff_sessions:
+                        async for staff_db in staff_sessions:
+                            staff = await food_staff(request, staff_db)
+                            break
+                    if staff['access_role'] == 'operator':
+                        allowed = path.startswith('/api/v1/dam-alem/') or path.startswith('/api/v1/partner-auth/dam_alem/')
+                        public_menu = method in ('GET', 'HEAD') and path.startswith(_ENTITIES_PREFIX) and _entity_name(path) in {'food_items', 'food_categories', 'food_restaurants', 'food_modifiers', 'item_modifier_groups', 'food_item_modifiers'}
+                        if not (allowed or public_menu):
+                            return JSONResponse(status_code=403, content={'detail': 'Оператору доступны заказы и доступность блюд.'})
+                except HTTPException as exc:
+                    return JSONResponse(status_code=exc.status_code, content={'detail': exc.detail})
+
         if path.startswith(_ENTITIES_PREFIX) and _protection_enabled():
             entity = _entity_name(path)
             if entity == "food_orders" and method != "OPTIONS" and not (method == "POST" and path.rstrip("/").endswith("food_orders")) and not _is_admin(request) and can_access_partner_entity(request, entity):
