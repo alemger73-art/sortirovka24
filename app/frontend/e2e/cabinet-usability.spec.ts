@@ -149,25 +149,27 @@ test('notification failures offer retry and reading is not duplicated', async ({
   await expect(page.getByRole('button', { name: 'Прочитать все' })).toHaveCount(0);
 });
 
-test('six digit PIN unlocks cabinet and direct order detail', async ({ page }) => {
+test('legacy PIN no longer blocks profile or orders and migration preserves account data', async ({ page }) => {
   await setup(page);
+  await page.addInitScript(() => {
+    localStorage.setItem('cabinet_security_v1', JSON.stringify({ lockEnabled:true,pinEnabled:true,pinHash:'unknown',pinSalt:'old',biometricEnabled:true }));
+    localStorage.setItem('cabinet_notify_prefs_v1', JSON.stringify({ orders:false,bonuses:false }));
+    localStorage.setItem('saved_cart_test', 'keep');
+  });
   await page.goto('/cabinet?tab=settings');
-  await page.getByPlaceholder('Придумайте PIN').fill('123456');
-  await page.getByPlaceholder('Повторите PIN').fill('123456');
-  await page.getByRole('button', { name: 'Сохранить PIN', exact: true }).click();
-  await expect(page.getByText('PIN установлен', { exact: true })).toBeVisible();
-  await page.reload();
-  await page.getByRole('textbox', { name: 'PIN-код' }).fill('123456');
-  await page.getByRole('button', { name: 'PIN-код', exact: true }).click();
-  await expect(page.getByText('PIN установлен', { exact: true })).toBeVisible();
-  await page.evaluate(() => sessionStorage.removeItem('cabinet_unlocked_session'));
+  await expect(page.getByRole('switch', {name:'Заказы (еда, магазины)',exact:true})).not.toBeChecked();
+  await expect(page.getByPlaceholder('Придумайте PIN')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('cabinet_security_v1'))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem('account_token'))).toBe('cabinet-test-token');
+  expect(await page.evaluate(() => localStorage.getItem('saved_cart_test'))).toBe('keep');
   await page.goto('/cabinet/orders/food/42');
-  await expect(page.getByRole('textbox', { name: 'PIN-код' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'DAM ALEM 2.0' })).toHaveCount(0);
-  await page.getByRole('textbox', { name: 'PIN-код' }).fill('123456');
-  await page.getByRole('button', { name: 'PIN-код', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'DAM ALEM 2.0' })).toBeVisible();
-  await expect(page.locator('li').filter({ hasText: 'Пицца × 2' })).toContainText(/5\s*600/);
+  await expect(page.getByRole('heading', { name:'DAM ALEM 2.0' })).toBeVisible();
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect(page.getByRole('textbox', {name:'PIN-код'})).toHaveCount(0);
+});
+
+test('removing the local PIN does not bypass account login',async({page})=>{
+  await page.goto('/cabinet');await expect(page).toHaveURL(/\/account/);
 });
 
 test('password validation prevents invalid requests and clears successful form', async ({ page }) => {
@@ -220,15 +222,12 @@ test('device preference save errors are visible and logout clears session', asyn
   await page.evaluate(() => {
     const original = Storage.prototype.setItem;
     Storage.prototype.setItem = function(key, value) {
-      if (key === 'cabinet_security_v1') throw new DOMException('full', 'QuotaExceededError');
+      if (key === 'cabinet_notify_prefs_v1') throw new DOMException('full', 'QuotaExceededError');
       return original.call(this, key, value);
     };
   });
-  await page.getByPlaceholder('Придумайте PIN').fill('123456');
-  await page.getByPlaceholder('Повторите PIN').fill('123456');
-  await page.getByRole('button', { name: 'Сохранить PIN', exact: true }).click();
+  await page.getByRole('switch',{name:'Заказы (еда, магазины)',exact:true}).click();
   await expect(page.getByRole('alert').first()).toContainText('Не удалось сохранить');
-  await expect(page.getByText('PIN установлен', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Выход', exact: true }).click();
   await expect(page).toHaveURL(/\/account/);
   expect(await page.evaluate(() => localStorage.getItem('account_token') || localStorage.getItem('s24_account_token_v1') || sessionStorage.getItem('s24_account_token_v1'))).toBeNull();
@@ -243,7 +242,7 @@ test('narrow native screen fits profile and settings with enlarged text', async 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect((await page.locator('.site-header > div').boundingBox())!.y).toBeGreaterThanOrEqual(32);
   await page.getByLabel('Раздел кабинета').selectOption('settings');
-  await expect(page.getByPlaceholder('Придумайте PIN')).toBeVisible();
+  await expect(page.getByRole('switch',{name:'Заказы (еда, магазины)',exact:true})).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: info.outputPath('cabinet-native-320.png'), fullPage: true });
 });

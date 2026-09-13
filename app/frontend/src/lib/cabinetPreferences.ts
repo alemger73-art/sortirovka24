@@ -6,14 +6,6 @@ const SECURITY_KEY = 'cabinet_security_v1';
 const NOTIFY_KEY = 'cabinet_notify_prefs_v1';
 const UNLOCK_SESSION_KEY = 'cabinet_unlocked_session';
 
-export interface CabinetSecuritySettings {
-  lockEnabled: boolean;
-  pinEnabled: boolean;
-  pinHash?: string;
-  pinSalt?: string;
-  biometricEnabled: boolean;
-}
-
 export interface CabinetNotificationPrefs {
   orders: boolean;
   taxi: boolean;
@@ -22,12 +14,6 @@ export interface CabinetNotificationPrefs {
   master: boolean;
   marketing: boolean;
 }
-
-const DEFAULT_SECURITY: CabinetSecuritySettings = {
-  lockEnabled: false,
-  pinEnabled: false,
-  biometricEnabled: false,
-};
 
 const DEFAULT_NOTIFY: CabinetNotificationPrefs = {
   orders: true,
@@ -74,91 +60,16 @@ async function writeJson(key: string, value: unknown): Promise<void> {
   if (!saved) throw new Error('Не удалось сохранить настройки на устройстве');
 }
 
-function randomSalt(): string {
-  const arr = new Uint8Array(16);
-  crypto.getRandomValues(arr);
-  return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('');
-}
-
-async function hashPin(pin: string, salt: string): Promise<string> {
-  const data = new TextEncoder().encode(`${salt}:${pin}`);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
-}
-
-export async function loadSecuritySettings(): Promise<CabinetSecuritySettings> {
-  return readJson(SECURITY_KEY, DEFAULT_SECURITY);
-}
-
-export async function saveSecuritySettings(settings: CabinetSecuritySettings): Promise<void> {
-  await writeJson(SECURITY_KEY, settings);
-}
-
-export async function setCabinetPin(pin: string): Promise<CabinetSecuritySettings> {
-  const salt = randomSalt();
-  const pinHash = await hashPin(pin, salt);
-  const current = await loadSecuritySettings();
-  const next: CabinetSecuritySettings = {
-    ...current,
-    pinEnabled: true,
-    pinHash,
-    pinSalt: salt,
-    lockEnabled: true,
-  };
-  await saveSecuritySettings(next);
-  return next;
-}
-
-export async function verifyCabinetPin(pin: string, settings?: CabinetSecuritySettings): Promise<boolean> {
-  const cfg = settings || (await loadSecuritySettings());
-  if (!cfg.pinHash || !cfg.pinSalt) return false;
-  const hash = await hashPin(pin, cfg.pinSalt);
-  return hash === cfg.pinHash;
-}
-
-export async function clearCabinetPin(): Promise<CabinetSecuritySettings> {
-  const current = await loadSecuritySettings();
-  const next: CabinetSecuritySettings = {
-    ...current,
-    pinEnabled: false,
-    pinHash: undefined,
-    pinSalt: undefined,
-    biometricEnabled: false,
-    lockEnabled: false,
-  };
-  await saveSecuritySettings(next);
-  clearCabinetUnlock();
-  return next;
-}
-
-export function isCabinetUnlocked(): boolean {
-  try {
-    return sessionStorage.getItem(UNLOCK_SESSION_KEY) === '1';
-  } catch {
-    return false;
+/** Retire only the old device lock. Never clear account credentials or other preferences. */
+export async function retireCabinetDeviceLock(): Promise<void> {
+  try { localStorage.removeItem(SECURITY_KEY); } catch { /* Restricted storage must not block access. */ }
+  try { sessionStorage.removeItem(UNLOCK_SESSION_KEY); } catch { /* Same for session storage. */ }
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const { Preferences } = await import('@capacitor/preferences');
+      await Preferences.remove({ key: SECURITY_KEY });
+    } catch { /* The removed lock is not consulted, even if cleanup fails. */ }
   }
-}
-
-export function markCabinetUnlocked(): void {
-  try {
-    sessionStorage.setItem(UNLOCK_SESSION_KEY, '1');
-  } catch {
-    /* ignore */
-  }
-}
-
-export function clearCabinetUnlock(): void {
-  try {
-    sessionStorage.removeItem(UNLOCK_SESSION_KEY);
-  } catch {
-    /* ignore */
-  }
-}
-
-export function shouldLockCabinet(settings: CabinetSecuritySettings): boolean {
-  if (!settings.lockEnabled) return false;
-  if (!settings.pinEnabled && !settings.biometricEnabled) return false;
-  return !isCabinetUnlocked();
 }
 
 export async function loadNotificationPrefs(): Promise<CabinetNotificationPrefs> {

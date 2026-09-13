@@ -1,4 +1,4 @@
-import CabinetPrivacyGate from '@/components/cabinet/CabinetPrivacyGate';
+import CabinetPreferencesMigration from '@/components/cabinet/CabinetPreferencesMigration';
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
@@ -125,7 +125,7 @@ function Protected({ children }: { children: JSX.Element }) {
   }, [authed, navigate]);
 
   if (!authed) return <AuthGateLoader />;
-  return <CabinetPrivacyGate>{children}</CabinetPrivacyGate>;
+  return <CabinetPreferencesMigration>{children}</CabinetPreferencesMigration>;
 }
 
 function App() {
