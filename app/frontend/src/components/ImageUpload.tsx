@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +32,7 @@ interface ImageUploadProps {
 }
 
 export default function ImageUpload({ value, onChange, onUploadingChange, folder = 'general', className = '', compact = false, allowUrl = true }: ImageUploadProps) {
+  const { t: publicT } = useLanguage();
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -83,7 +85,7 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
 
   const processFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
-      toast.error('Выберите изображение (JPG, PNG, WebP)');
+      toast.error(publicT("cabinet.errorImageType"));
       return;
     }
     if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
@@ -115,12 +117,12 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
       // Prefer stable object key; display layer resolves it to a CDN URL.
       onChange(result.objectKey || result.downloadUrl || '');
       setUploadSuccess(true);
-      toast.success('Изображение загружено');
+      toast.success(publicT("public.ImageUpload.text313"));
 
       setTimeout(() => setUploadSuccess(false), 2000);
     } catch (err) {
       console.error('Upload failed:', err);
-      toast.error('Ошибка загрузки файла. Попробуйте вставить URL-ссылку на изображение.');
+      toast.error(publicT("public.ImageUpload.text314"));
       setPreviewUrl(null);
       clearInterval(progressInterval);
       // Auto-switch to URL mode on upload failure
@@ -143,11 +145,11 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
   const handleUrlSubmit = () => {
     const trimmed = urlInput.trim();
     if (!trimmed) {
-      toast.error('Введите URL изображения');
+      toast.error(publicT("public.ImageUpload.text315"));
       return;
     }
     if (!isDirectUrl(trimmed)) {
-      toast.error('URL должен начинаться с http:// или https://');
+      toast.error(publicT("public.ImageUpload.text316"));
       return;
     }
     // Test if the URL is a valid image by trying to load it
@@ -156,7 +158,7 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
       onChange(trimmed);
       setDownloadUrl(trimmed);
       setPreviewUrl(null);
-      toast.success('Изображение добавлено по ссылке');
+      toast.success(publicT("public.ImageUpload.text317"));
       setMode('upload');
     };
     img.onerror = () => {
@@ -232,8 +234,7 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
             onClick={() => setMode('upload')}
             className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
           >
-            <ArrowLeft className="h-3 w-3" /> Загрузить файл
-          </button>
+            <ArrowLeft className="h-3 w-3" /> {publicT("public.ImageUpload.text318")} </button>
         </div>
         <div className="flex gap-2">
           <Input
@@ -244,10 +245,9 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleUrlSubmit(); } }}
           />
           <Button type="button" size="sm" onClick={handleUrlSubmit} className="bg-blue-600 hover:bg-blue-700 shrink-0">
-            <Link2 className="h-4 w-4 mr-1" /> Вставить
-          </Button>
+            <Link2 className="h-4 w-4 mr-1" /> {publicT("public.ImageUpload.text319")} </Button>
         </div>
-        <p className="text-xs text-gray-400">Вставьте прямую ссылку на изображение (JPG, PNG, WebP)</p>
+        <p className="text-xs text-gray-400">{publicT("public.ImageUpload.text320")}</p>
       </div>
     );
   }
@@ -260,7 +260,7 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
           <div className="relative inline-block group animate-in fade-in zoom-in-95 duration-300">
             <img
               src={displayUrl}
-              alt="Превью"
+              alt={publicT("public.ImageUpload.text321")}
               className="w-full max-w-xs h-32 object-cover rounded-xl border border-gray-200 shadow-sm transition-transform duration-300 group-hover:scale-[1.02]"
             />
             {uploading && (
@@ -306,7 +306,7 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
           <div className="w-full max-w-xs h-32 rounded-xl border border-dashed border-gray-300 flex items-center justify-center bg-gray-50/50">
             <div className="flex flex-col items-center gap-2">
               <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
-              <span className="text-xs text-gray-400">Загрузка...</span>
+              <span className="text-xs text-gray-400">{publicT("common.retrying")}</span>
             </div>
           </div>
         ) : (
@@ -331,7 +331,7 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
                 <>
                   <CloudUpload className={`h-6 w-6 transition-transform duration-300 ${isDragOver ? 'scale-110 -translate-y-0.5' : ''}`} />
                   <span className="text-xs font-medium">
-                    {isDragOver ? 'Отпустите для загрузки' : 'Перетащите или нажмите'}
+                    {isDragOver ? publicT("public.ImageUpload.text322") : publicT("public.ImageUpload.text323")}
                   </span>
                 </>
               )}
@@ -342,8 +342,7 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
                 onClick={() => setMode('url')}
                 className="text-xs text-blue-500 hover:text-blue-600 flex items-center gap-1"
               >
-                <Link2 className="h-3 w-3" /> Или вставьте URL-ссылку
-              </button>
+                <Link2 className="h-3 w-3" /> {publicT("public.ImageUpload.text324")} </button>
             )}
           </div>
         )}
@@ -358,7 +357,7 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
         <div className="relative group animate-in fade-in zoom-in-95 duration-300">
           <img
             src={displayUrl}
-            alt="Превью"
+            alt={publicT("public.ImageUpload.text321")}
             className="w-full rounded-xl max-h-52 object-cover border border-gray-200 shadow-sm transition-all duration-300 group-hover:shadow-md"
           />
           {/* Hover overlay with actions */}
@@ -371,8 +370,7 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
             >
-              <Upload className="h-4 w-4 mr-1.5" /> Заменить
-            </Button>
+              <Upload className="h-4 w-4 mr-1.5" /> {publicT("public.ImageUpload.text325")} </Button>
             {allowUrl && (
               <Button
                 type="button"
@@ -393,8 +391,7 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
               onClick={handleRemove}
               disabled={uploading}
             >
-              <X className="h-4 w-4 mr-1.5" /> Удалить
-            </Button>
+              <X className="h-4 w-4 mr-1.5" /> {publicT("common.delete")} </Button>
           </div>
           {/* Upload progress overlay */}
           {uploading && (
@@ -411,7 +408,7 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
-              <span className="text-xs text-gray-500 font-medium">Загрузка изображения...</span>
+              <span className="text-xs text-gray-500 font-medium">{publicT("public.ImageUpload.text326")}</span>
             </div>
           )}
           {/* Success flash */}
@@ -427,7 +424,7 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
         <div className="w-full h-44 rounded-xl border border-dashed border-gray-300 flex items-center justify-center bg-gray-50/50">
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-            <span className="text-sm text-gray-400">Загрузка превью...</span>
+            <span className="text-sm text-gray-400">{publicT("public.ImageUpload.text327")}</span>
           </div>
         </div>
       ) : (
@@ -460,7 +457,7 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
             {uploading ? (
               <>
                 <Loader2 className="h-8 w-8 animate-spin" />
-                <span className="text-sm font-medium">Загрузка...</span>
+                <span className="text-sm font-medium">{publicT("common.retrying")}</span>
               </>
             ) : (
               <div className="flex flex-col items-center gap-2 relative z-10">
@@ -475,12 +472,11 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
                 </div>
                 <div className="text-center">
                   <span className="text-sm font-semibold block">
-                    {isDragOver ? 'Отпустите для загрузки' : 'Перетащите изображение сюда'}
+                    {isDragOver ? publicT("public.ImageUpload.text322") : publicT("public.ImageUpload.text328")}
                   </span>
                   {!isDragOver && (
                     <span className="text-xs text-gray-400 mt-0.5 block">
-                      или <span className="text-blue-500 underline underline-offset-2">выберите файл</span> · JPG, PNG, WebP до 5 МБ
-                    </span>
+                      {publicT("inspectors.emergencyOr")} <span className="text-blue-500 underline underline-offset-2">{publicT("public.ImageUpload.text329")}</span> {publicT("public.ImageUpload.text330")} </span>
                   )}
                 </div>
               </div>
@@ -492,8 +488,7 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
               onClick={() => setMode('url')}
               className="w-full text-xs text-blue-500 hover:text-blue-600 flex items-center justify-center gap-1 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
             >
-              <Link2 className="h-3.5 w-3.5" /> Или вставьте URL-ссылку на изображение
-            </button>
+              <Link2 className="h-3.5 w-3.5" /> {publicT("public.ImageUpload.text331")} </button>
           )}
         </div>
       )}
@@ -506,6 +501,7 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
  * Supports direct URLs (http/https) and storage object keys.
  */
 export function StorageImage({ objectKey, alt = '', className = '' }: { objectKey?: string | null; alt?: string; className?: string }) {
+  const { t: publicT } = useLanguage();
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -612,10 +608,10 @@ export function StorageImage({ objectKey, alt = '', className = '' }: { objectKe
           type="button"
           onClick={handleRetry}
           className="flex flex-col items-center gap-1 text-gray-400 hover:text-blue-500 transition-colors p-2"
-          title="Нажмите для повторной загрузки"
+          title={publicT("public.ImageUpload.text332")}
         >
           <RefreshCw className="h-5 w-5" />
-          <span className="text-[10px] font-medium">Повторить</span>
+          <span className="text-[10px] font-medium">{publicT("public.ImageUpload.text333")}</span>
         </button>
       </div>
     );

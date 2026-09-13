@@ -87,6 +87,7 @@ function SectionHeader({ title, accentColor = 'from-blue-500 to-indigo-600', lin
 }
 
 export default function Index() {
+  const { t: publicT } = useLanguage();
   const { t, lang } = useLanguage();
   const { promoEnabled: supportPromoEnabled } = useSupportSettings();
   const { isEnabled } = useModules();
@@ -635,9 +636,9 @@ export default function Index() {
               <div className="bg-gradient-to-r from-indigo-900 via-blue-800 to-indigo-900 p-6 md:p-8">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-bold text-indigo-300 bg-indigo-500/30 backdrop-blur-sm px-3 py-1 rounded-full">📜 Хроника</span>
-                    <h3 className="text-lg md:text-xl font-extrabold text-white mt-3">История Сортировки</h3>
-                    <p className="text-white/60 text-sm mt-1">Узнайте об истории нашего района — от основания до наших дней</p>
+                    <span className="text-xs font-bold text-indigo-300 bg-indigo-500/30 backdrop-blur-sm px-3 py-1 rounded-full">{publicT("public.Index.text202")}</span>
+                    <h3 className="text-lg md:text-xl font-extrabold text-white mt-3">{publicT("public.Index.text203")}</h3>
+                    <p className="text-white/60 text-sm mt-1">{publicT("public.Index.text204")}</p>
                   </div>
                   <ChevronRight className="w-8 h-8 text-white/40 group-hover:text-white group-hover:translate-x-1 transition-all flex-shrink-0" />
                 </div>

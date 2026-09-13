@@ -54,6 +54,7 @@ function StoreIcon({ type }: { type: string }) {
 }
 
 export default function CabinetOrderDetail() {
+  const { t: publicT } = useLanguage();
   const { source = '', orderId = '' } = useParams();
   const navigate = useNavigate();
   const { t } = useLanguage();
@@ -131,7 +132,7 @@ export default function CabinetOrderDetail() {
                   </div>
                 </div>
                 <span className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${st.color}`}>
-                  {isFood ? ({ new: 'Новый', confirmed: 'Принят', preparing: 'Готовится', ready: 'Готов к выдаче', in_progress: 'В доставке', done: 'Завершён', cancelled: 'Отменён' } as Record<string, string>)[order.status] || t(st.key) : t(st.key)}
+                  {isFood ? ({ new: publicT("cabinet.orderStatus.new"), confirmed: publicT("public.CabinetOrderDetail.text41"), preparing: publicT("logistics.status.pending"), ready: publicT("public.CabinetOrderDetail.text42"), in_progress: publicT("public.CabinetOrderDetail.text43"), done: publicT("public.CabinetOrderDetail.text44"), cancelled: publicT("cabinet.orderStatus.cancelled") } as Record<string, string>)[order.status] || t(st.key) : t(st.key)}
                 </span>
               </div>
 
@@ -163,24 +164,21 @@ export default function CabinetOrderDetail() {
                   to={storePath}
                   className="inline-flex items-center gap-1.5 rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
-                  <Store className="h-4 w-4" /> В магазин
-                </Link>
+                  <Store className="h-4 w-4" /> {publicT("public.CabinetOrderDetail.text45")} </Link>
                 {items.length > 0 && ['food', 'volna', 'gastronom', 'pharmacy', 'prorab'].includes(type) ? (
                   <button
                     type="button"
                     onClick={repeatOrder}
                     className="inline-flex items-center gap-1.5 rounded-xl bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700"
                   >
-                    <RotateCcw className="h-4 w-4" /> Заказать снова
-                  </button>
+                    <RotateCcw className="h-4 w-4" /> {publicT("public.CabinetOrderDetail.text46")} </button>
                 ) : null}
                 {isFood && order.delivery_method === 'delivery' && !['done', 'cancelled', 'delivered'].includes(String(order.status)) && (
                   <Link
                     to={`/delivery/food/${order.order_number}`}
                     className="inline-flex items-center gap-1.5 rounded-xl bg-orange-600/90 px-4 py-2 text-sm font-semibold text-white"
                   >
-                    <MapPin className="h-4 w-4" /> Отследить
-                  </Link>
+                    <MapPin className="h-4 w-4" /> {publicT("public.CabinetOrderDetail.text47")} </Link>
                 )}
               </div>
             </div>
@@ -190,7 +188,7 @@ export default function CabinetOrderDetail() {
                 <h2 className="font-bold text-gray-900 dark:text-white mb-3">Состав заказа</h2>
                 <ul className="space-y-2">
                   {items.map((item, idx) => {
-                    const name = String(item.name || item.title || 'Позиция');
+                    const name = String(item.name || item.title || publicT("public.CabinetOrderDetail.text48"));
                     const qty = orderLineQuantity(item);
                     const price = orderLineTotal(item);
                     return (

@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 function pad(v: number) {
   return v.toFixed(5);
 }
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export default function TaxiMap({ from, to, centerLat = 49.9774, centerLng = 73.2137, height = '280px' }: Props) {
+  const { t: publicT } = useLanguage();
   const markers: string[] = [];
   if (from) markers.push(`${from.lat},${from.lng}`);
   if (to) markers.push(`${to.lat},${to.lng}`);
@@ -41,7 +43,7 @@ export default function TaxiMap({ from, to, centerLat = 49.9774, centerLng = 73.
 
   return (
     <iframe
-      title="Карта маршрута"
+      title={publicT("public.TaxiMap.text357")}
       src={src}
       className="w-full rounded-2xl border border-gray-200 shadow-inner"
       style={{ height }}

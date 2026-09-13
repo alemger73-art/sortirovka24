@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useCallback, useEffect, useState } from 'react';
 
 import { Link, useNavigate } from 'react-router-dom';
@@ -69,6 +70,7 @@ type PointKind = 'from' | 'to';
 
 
 export default function Taxi() {
+  const { t: publicT } = useLanguage();
 
   const navigate = useNavigate();
 
@@ -143,7 +145,7 @@ export default function Taxi() {
       const coords = await requestCurrentPosition({ timeout: 12000 });
       const loc = await taxiApi.geocode({ lat: coords.lat, lng: coords.lng });
       if (!loc?.lat || !loc?.lng) {
-        toast.error('Не удалось определить координаты');
+        toast.error(publicT("public.Taxi.text226"));
         return;
       }
       if (kind === 'from') {
@@ -156,9 +158,9 @@ export default function Taxi() {
       setQuote(null);
     } catch (err) {
       if (err instanceof GeolocationError && err.code === 'denied') {
-        toast.error('Разрешите доступ к геолокации в настройках телефона');
+        toast.error(publicT("public.Taxi.text227"));
       } else {
-        toast.error('Не удалось определить адрес по GPS');
+        toast.error(publicT("public.Taxi.text228"));
       }
     } finally {
       setLoadingPoint(null);
@@ -189,11 +191,11 @@ export default function Taxi() {
 
       setQuote(q);
 
-      if (!q.available) toast.error(q.message || 'Маршрут недоступен');
+      if (!q.available) toast.error(q.message || publicT("public.Taxi.text229"));
 
     } catch (e: any) {
 
-      toast.error(String(e?.message || 'Ошибка расчёта'));
+      toast.error(String(e?.message || publicT("public.Taxi.text230")));
 
     } finally {
 
@@ -227,7 +229,7 @@ export default function Taxi() {
 
     if (!passengerName.trim() || passengerPhone.trim().length < 10) {
 
-      toast.error('Укажите имя и телефон');
+      toast.error(publicT("public.Taxi.text231"));
 
       return;
 
@@ -265,13 +267,13 @@ export default function Taxi() {
 
       });
 
-      toast.success('Заказ создан! Ищем водителя…');
+      toast.success(publicT("public.Taxi.text232"));
 
       navigate(`/taxi/ride/${ride.id}`);
 
     } catch (e: any) {
 
-      toast.error(String(e?.message || 'Не удалось создать заказ'));
+      toast.error(String(e?.message || publicT("public.Taxi.text233")));
 
     } finally {
 
@@ -288,7 +290,7 @@ export default function Taxi() {
       <Layout>
         <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800 flex flex-col items-center justify-center gap-3 text-white/70">
           <Loader2 className="h-8 w-8 animate-spin text-yellow-400" />
-          <p className="text-sm">Загрузка такси…</p>
+          <p className="text-sm">{publicT("public.Taxi.text234")}</p>
         </div>
       </Layout>
     );
@@ -306,7 +308,7 @@ export default function Taxi() {
 
             <Car className="mx-auto h-12 w-12 text-gray-900 mb-4" />
 
-            <h1 className="text-2xl font-bold text-gray-900">У вас активная поездка</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{publicT("public.Taxi.text235")}</h1>
 
             <p className="mt-2 text-gray-800">{activeRide.from_address} → {activeRide.to_address}</p>
 
@@ -318,9 +320,7 @@ export default function Taxi() {
 
             >
 
-              Открыть поездку
-
-            </Button>
+              {publicT("public.Taxi.text236")} </Button>
 
           </div>
 
@@ -378,7 +378,7 @@ export default function Taxi() {
 
                 <h1 className="text-3xl font-black text-white tracking-tight">Сортировка Такси</h1>
 
-                <p className="text-yellow-400/90 text-sm font-medium">Быстро по району · честная цена</p>
+                <p className="text-yellow-400/90 text-sm font-medium">{publicT("public.Taxi.text237")}</p>
 
               </div>
 
@@ -388,7 +388,7 @@ export default function Taxi() {
 
               <p className="text-white/60 text-sm mt-3">
 
-                Зона: {settings.service_area} · от {formatTenge(settings.min_fare)}
+                {publicT("public.Taxi.text238")} {settings.service_area} {publicT("public.Taxi.text239")} {formatTenge(settings.min_fare)}
 
               </p>
 
@@ -418,7 +418,7 @@ export default function Taxi() {
 
               <TaxiAddressInput
 
-                label="Откуда"
+                label={publicT("public.DeliveryTrack.text183")}
 
                 value={fromAddress}
 
@@ -454,7 +454,7 @@ export default function Taxi() {
 
               <TaxiAddressInput
 
-                label="Куда"
+                label={publicT("public.DeliveryTrack.text184")}
 
                 value={toAddress}
 
@@ -480,9 +480,7 @@ export default function Taxi() {
 
                   <Loader2 className="h-5 w-5 animate-spin" />
 
-                  Рассчитываем маршрут…
-
-                </div>
+                  {publicT("public.Taxi.text240")} </div>
 
               )}
 
@@ -502,25 +500,25 @@ export default function Taxi() {
 
                   <div className="flex gap-4 text-sm text-gray-600">
 
-                    <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {quote.distance_km} км</span>
+                    <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {quote.distance_km} {publicT("driver.km")}</span>
 
-                    <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> ~{quote.eta_minutes} мин</span>
+                    <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> ~{quote.eta_minutes} {publicT("public.Taxi.text241")}</span>
 
-                    {quote.route_type === 'road' && <span className="text-green-700 text-xs">по дорогам</span>}
+                    {quote.route_type === 'road' && <span className="text-green-700 text-xs">{publicT("public.Taxi.text242")}</span>}
 
                   </div>
 
                   {(quote.surge_multiplier ?? 1) > 1 && (
                     <p className="text-sm text-amber-800 font-medium">
-                      Повышенный спрос ×{quote.surge_multiplier?.toFixed(1)}
+                      {publicT("public.Taxi.text243")}{quote.surge_multiplier?.toFixed(1)}
                     </p>
                   )}
 
                   {quote.price_breakdown && (
                     <div className="text-xs text-gray-600 space-y-1 pt-1 border-t border-yellow-200/80">
-                      <div className="flex justify-between"><span>Подача</span><span>{formatTenge(quote.price_breakdown.base_fare)}</span></div>
-                      <div className="flex justify-between"><span>Километраж ({quote.price_breakdown.distance_km} км)</span><span>{formatTenge(quote.price_breakdown.distance_part)}</span></div>
-                      <div className="flex justify-between"><span>Время ({quote.price_breakdown.duration_min} мин)</span><span>{formatTenge(quote.price_breakdown.time_part)}</span></div>
+                      <div className="flex justify-between"><span>{publicT("public.Taxi.text244")}</span><span>{formatTenge(quote.price_breakdown.base_fare)}</span></div>
+                      <div className="flex justify-between"><span>{publicT("public.Taxi.text245")}{quote.price_breakdown.distance_km} {publicT("public.Taxi.text246")}</span><span>{formatTenge(quote.price_breakdown.distance_part)}</span></div>
+                      <div className="flex justify-between"><span>{publicT("public.Taxi.text247")}{quote.price_breakdown.duration_min} {publicT("public.Taxi.text248")}</span><span>{formatTenge(quote.price_breakdown.time_part)}</span></div>
                       {(quote.price_breakdown.surge_part ?? 0) > 0 && (
                         <div className="flex justify-between text-amber-800"><span>Спрос</span><span>+{formatTenge(quote.price_breakdown.surge_part)}</span></div>
                       )}
@@ -549,9 +547,7 @@ export default function Taxi() {
 
                     >
 
-                      Заказать такси
-
-                    </Button>
+                      {publicT("public.Taxi.text249")} </Button>
 
                   ) : (
 
@@ -563,7 +559,7 @@ export default function Taxi() {
 
                         onChange={(e) => setPassengerName(e.target.value)}
 
-                        placeholder="Ваше имя"
+                        placeholder={publicT("realestate.form.author")}
 
                         className="rounded-xl h-11"
 
@@ -575,7 +571,7 @@ export default function Taxi() {
 
                         onChange={(e) => setPassengerPhone(e.target.value)}
 
-                        placeholder="Телефон +7..."
+                        placeholder={publicT("public.Taxi.text250")}
 
                         className="rounded-xl h-11"
 
@@ -605,7 +601,7 @@ export default function Taxi() {
 
                           >
 
-                            {m === 'cash' ? '💵 Наличные' : '💳 Карта'}
+                            {m === 'cash' ? publicT("public.Taxi.text251") : publicT("public.Taxi.text252")}
 
                           </button>
 
@@ -619,7 +615,7 @@ export default function Taxi() {
 
                         onChange={(e) => setComment(e.target.value)}
 
-                        placeholder="Комментарий (необязательно)"
+                        placeholder={publicT("public.CourierHub.text169")}
 
                         className="rounded-xl h-11"
 
@@ -637,7 +633,7 @@ export default function Taxi() {
 
                         {ordering ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <CheckCircle2 className="h-5 w-5 mr-2" />}
 
-                        Подтвердить заказ · {formatTenge(quote.price!)}
+                        {publicT("public.Taxi.text253")} {formatTenge(quote.price!)}
 
                       </Button>
 
@@ -673,11 +669,11 @@ export default function Taxi() {
 
             {[
 
-              { icon: Star, title: 'Местные водители', desc: 'Знают каждый двор' },
+              { icon: Star, title: publicT("public.Taxi.text254"), desc: publicT("public.Taxi.text255") },
 
-              { icon: Phone, title: 'Прямая связь', desc: 'Звонок водителю в приложении' },
+              { icon: Phone, title: publicT("public.Taxi.text256"), desc: publicT("public.Taxi.text257") },
 
-              { icon: CheckCircle2, title: 'Фиксированная цена', desc: 'Видите до заказа' },
+              { icon: CheckCircle2, title: publicT("public.Taxi.text258"), desc: publicT("public.Taxi.text259") },
 
             ].map(({ icon: Icon, title, desc }) => (
 
@@ -699,11 +695,11 @@ export default function Taxi() {
 
           <p className="text-center text-white/40 text-xs mt-6">
 
-            Водителям — <Link to="/taxi/driver" className="underline hover:text-yellow-400">подключиться к сервису</Link>
+            {publicT("public.CourierHub.text172")} <Link to="/taxi/driver" className="underline hover:text-yellow-400">{publicT("public.Taxi.text260")}</Link>
 
             {' · '}
 
-            Автобусы — <Link to="/transport" className="underline hover:text-yellow-400">расписание</Link>
+            {publicT("public.Taxi.text261")} <Link to="/transport" className="underline hover:text-yellow-400">{publicT("public.Taxi.text262")}</Link>
 
           </p>
 

@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { getCurrentUserTheme, onAuthChanged, setCurrentUserTheme } from '@/lib/localAuth';
 
@@ -18,7 +19,7 @@ export function ThemeProvider({
   forcedTheme,
 }: {
   children: ReactNode;
-  /** When set, always use this theme (admin panel uses light). */
+  /** When set, always use this theme (for embedded previews). */
   forcedTheme?: Theme;
 }) {
   const [theme, setThemeState] = useState<Theme>(() => {
@@ -42,12 +43,25 @@ export function ThemeProvider({
       const root = document.documentElement;
       root.classList.remove('dark', 'light');
       root.classList.add(active);
+      root.style.colorScheme = active;
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', active === 'dark' ? '#0e1520' : '#ffffff');
       if (!forcedTheme) {
         localStorage.setItem(STORAGE_KEY, active);
       }
     } catch {
       // Ignore DOM/localStorage errors
     }
+  }, [theme, forcedTheme]);
+
+  // Match the phone status bar to the selected app theme as well.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let cancelled = false;
+    void import('@capacitor/status-bar').then(({ StatusBar, Style }) => {
+      if (cancelled) return;
+      return StatusBar.setStyle({ style: (forcedTheme ?? theme) === 'dark' ? Style.Dark : Style.Light });
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
   }, [theme, forcedTheme]);
 
   // Keep theme in sync with auth profile changes.

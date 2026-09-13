@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 
 
 function CopyButton({ value, label }: { value: string; label: string }) {
+  const { t: publicT } = useLanguage();
 
   const [copied, setCopied] = useState(false);
 
@@ -44,7 +45,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
 
     } catch {
 
-      toast.error('Не удалось скопировать');
+      toast.error(publicT("public.History.text192"));
 
     }
 
@@ -70,7 +71,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
 
       {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
 
-      {copied ? 'Скопировано' : 'Копировать'}
+      {copied ? 'Скопировано' : publicT("public.Support.text224")}
 
     </button>
 
@@ -81,6 +82,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
 
 
 export default function SupportPage() {
+  const { t: publicT } = useLanguage();
 
   const { t } = useLanguage();
 
@@ -114,7 +116,7 @@ export default function SupportPage() {
 
     { label: 'IBAN', value: settings.iban },
 
-    { label: 'БИН / ИИН', value: settings.bin },
+    { label: publicT("public.Support.text225"), value: settings.bin },
 
     { label: 'Kaspi', value: settings.kaspi_phone },
 

@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useState } from 'react';
 import { hideNativeSplash } from '@/lib/native';
 
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export default function AppWelcomeSplash({ onHidden }: Props) {
+  const { t: publicT } = useLanguage();
   const [exiting, setExiting] = useState(false);
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export default function AppWelcomeSplash({ onHidden }: Props) {
       className={`app-welcome-splash${exiting ? ' app-welcome-splash--exit' : ''}`}
       role="status"
       aria-live="polite"
-      aria-label="Загрузка Sortirovka24"
+      aria-label={publicT("public.AppWelcomeSplash.text308")}
     >
       <div className="app-welcome-splash__orb app-welcome-splash__orb--a" aria-hidden />
       <div className="app-welcome-splash__orb app-welcome-splash__orb--b" aria-hidden />
@@ -68,12 +70,12 @@ export default function AppWelcomeSplash({ onHidden }: Props) {
         </div>
 
         <h1 className="app-welcome-splash__title">Сортировка 24</h1>
-        <p className="app-welcome-splash__tagline">Ваш район — в одном приложении</p>
+        <p className="app-welcome-splash__tagline">{publicT("public.AppWelcomeSplash.text309")}</p>
 
         <div className="app-welcome-splash__loader" aria-hidden>
           <span className="app-welcome-splash__bar" />
         </div>
-        <p className="app-welcome-splash__hint">Загружаем сервисы…</p>
+        <p className="app-welcome-splash__hint">{publicT("public.AppWelcomeSplash.text310")}</p>
       </div>
     </div>
   );

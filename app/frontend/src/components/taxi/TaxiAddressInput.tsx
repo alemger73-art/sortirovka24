@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,7 @@ export default function TaxiAddressInput({
   accent,
   showGps = true,
 }: Props) {
+  const { t: publicT } = useLanguage();
   const ring = accent === 'yellow' ? 'focus-visible:ring-yellow-400' : 'focus-visible:ring-gray-400';
   const [suggestions, setSuggestions] = useState<TaxiAddressSuggestion[]>([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
@@ -146,7 +148,7 @@ export default function TaxiAddressInput({
             }}
             onFocus={() => suggestions.length > 0 && setOpen(true)}
             onKeyDown={onKeyDown}
-            placeholder="Улица, дом — начните вводить"
+            placeholder={publicT("public.TaxiAddressInput.text354")}
             className={`rounded-xl h-12 flex-1 ${ring}`}
             autoComplete="off"
           />
@@ -157,7 +159,7 @@ export default function TaxiAddressInput({
               onClick={onGps}
               disabled={loading}
               className="h-12 w-12 shrink-0 rounded-xl p-0"
-              title="Моё местоположение"
+              title={publicT("public.TaxiAddressInput.text355")}
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Navigation className="h-4 w-4" />}
             </Button>
@@ -167,7 +169,7 @@ export default function TaxiAddressInput({
             onClick={searchByText}
             disabled={busy || value.trim().length < 2}
             className={`h-12 w-12 shrink-0 rounded-xl p-0 ${accent === 'yellow' ? 'bg-yellow-400 hover:bg-yellow-500 text-gray-900' : ''}`}
-            title="Найти"
+            title={publicT("hero.searchBtn")}
           >
             {busy && !loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
           </Button>

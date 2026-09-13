@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useState } from 'react';
 import { Download, X } from 'lucide-react';
 import { isNativeApp } from '@/lib/native';
@@ -10,6 +11,7 @@ type BeforeInstallPromptEvent = Event & {
 const DISMISS_KEY = 's24_install_banner_dismissed';
 
 export default function InstallAppBanner() {
+  const { t: publicT } = useLanguage();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
 
@@ -40,10 +42,9 @@ export default function InstallAppBanner() {
           <Download className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-gray-900 dark:text-white">Установить Sortirovka24</p>
+          <p className="font-semibold text-gray-900 dark:text-white">{publicT("public.InstallAppBanner.text334")}</p>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-            Добавьте на главный экран — быстрый доступ к новостям, еде и кабинету.
-          </p>
+            {publicT("public.InstallAppBanner.text335")} </p>
           <button
             type="button"
             className="mt-3 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
@@ -53,12 +54,11 @@ export default function InstallAppBanner() {
               setDeferredPrompt(null);
             }}
           >
-            Установить
-          </button>
+            {publicT("public.InstallAppBanner.text336")} </button>
         </div>
         <button
           type="button"
-          aria-label="Закрыть"
+          aria-label={publicT("common.close")}
           className="text-gray-400 hover:text-gray-600"
           onClick={() => {
             localStorage.setItem(DISMISS_KEY, '1');

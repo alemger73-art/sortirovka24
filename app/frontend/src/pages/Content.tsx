@@ -187,6 +187,7 @@ export function NewsDetail() {
 
 /* ============ COMPLAINTS LIST ============ */
 export function ComplaintsList() {
+  const { t: publicT } = useLanguage();
   const { t } = useLanguage();
   const [complaints, setComplaints] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -226,7 +227,7 @@ export function ComplaintsList() {
                   <p className="text-gray-700">{c.description}</p>
                   {c.photo_url && (
                     <div className="mt-3">
-                      <StorageImg objectKey={c.photo_url} alt="Фото проблемы" className="w-full h-40 object-cover rounded-lg" />
+                      <StorageImg objectKey={c.photo_url} alt={publicT("public.Content.text49")} className="w-full h-40 object-cover rounded-lg" />
                     </div>
                   )}
                   {c.gallery_images && (
@@ -256,6 +257,7 @@ export function ComplaintsList() {
 
 /* ============ NEW COMPLAINT FORM ============ */
 export function NewComplaintForm() {
+  const { t: publicT } = useLanguage();
   const navigate = useNavigate();
   const [form, setForm] = useState({ category: '', address: '', description: '', author_name: '', phone: '' });
   const [photoKey, setPhotoKey] = useState('');
@@ -298,7 +300,7 @@ export function NewComplaintForm() {
       }));
       setSuccess(true);
       pushCabinetItem('complaints', {
-        title: form.category || 'Жалоба',
+        title: form.category || publicT("cabinet.complaintDefault"),
         subtitle: form.address || form.description.slice(0, 60),
         status: 'Отправлена',
       });
@@ -319,7 +321,7 @@ export function NewComplaintForm() {
       }).catch((err: unknown) => console.warn('Telegram notification skipped:', err));
     } catch (e) {
       console.error(e);
-      toast.error('Ошибка отправки жалобы. Попробуйте ещё раз.');
+      toast.error(publicT("public.Content.text51"));
       setSubmitted(false);
     } finally {
       setSubmitting(false);
@@ -329,56 +331,56 @@ export function NewComplaintForm() {
   if (success) return (
     <Layout><div className="max-w-lg mx-auto px-4 py-16 text-center">
       <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><CheckCircle className="w-8 h-8 text-green-600" /></div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Жалоба отправлена!</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">{publicT("public.Content.text52")}</h2>
       <p className="text-gray-500 mb-6">Спасибо за обращение. Мы передадим информацию в соответствующие службы.</p>
-      <Link to="/complaints" className="text-blue-600 hover:text-blue-700 font-medium">Все жалобы</Link>
+      <Link to="/complaints" className="text-blue-600 hover:text-blue-700 font-medium">{publicT("complaints.all")}</Link>
     </div></Layout>
   );
 
   return (
     <Layout>
       <div className="max-w-lg mx-auto px-4 py-8">
-        <Link to="/complaints" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> Назад</Link>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Подать жалobу</h1>
+        <Link to="/complaints" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> {publicT("common.back")}</Link>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">{publicT("public.Content.text53")}</h1>
         <p className="text-gray-500 mb-6">Сообщите о проблеме в районе</p>
         <SafetyAlert variant="complaint_form" />
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4 mt-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Категория *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text54")}</label>
             <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-              <option value="">Выберите категорию</option>
+              <option value="">{publicT("masters.selectCategory")}</option>
               {COMPLAINT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Адрес *</label>
-            <input type="text" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Укажите точный адрес проблемы" required />
+            <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text55")}</label>
+            <input type="text" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder={publicT("public.Content.text56")} required />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Описание проблемы *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text57")}</label>
             <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={4} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" required />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Ваше имя</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("realestate.form.author")}</label>
             <input type="text" value={form.author_name} onChange={e => setForm({ ...form, author_name: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("realestate.form.phone")}</label>
             <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Фото (до 5 штук)</label>
-            <p className="text-xs text-gray-400 mb-1.5">Загрузите фото проблемы. Перетаскивайте для изменения порядка.</p>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text58")}</label>
+            <p className="text-xs text-gray-400 mb-1.5">{publicT("public.Content.text59")}</p>
             <MultiImageUpload value={galleryKeys} onChange={setGalleryKeys} folder="complaints" maxImages={5} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Видео (до 50 МБ)</label>
-            <p className="text-xs text-gray-400 mb-1.5">MP4, MOV или WebM. Снимите видео проблемы.</p>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text60")}</label>
+            <p className="text-xs text-gray-400 mb-1.5">{publicT("public.Content.text61")}</p>
             <VideoUpload value={videoKey} onChange={setVideoKey} folder="complaints" />
           </div>
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-sm text-blue-800 mb-2">📹 Большое видео? Отправьте через Telegram:</p>
+            <p className="text-sm text-blue-800 mb-2">{publicT("public.Content.text62")}</p>
             <a
               href="https://t.me/sortировка_portal"
               target="_blank"
@@ -386,16 +388,14 @@ export function NewComplaintForm() {
               className="inline-flex items-center gap-2 bg-[#0088cc] text-white font-medium px-4 py-2 rounded-lg hover:bg-[#0077b5] transition-colors text-sm"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-              Отправить видео через Telegram
-            </a>
+              {publicT("public.Content.text63")} </a>
           </div>
 
           <button type="submit" disabled={submitting || submitted} className="w-full bg-red-600 text-white font-medium py-3 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50">
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" /> Отправка...
-              </span>
-            ) : 'Отправить жалобу'}
+                <Loader2 className="w-4 h-4 animate-spin" /> {publicT("realestate.form.submitting")} </span>
+            ) : publicT("public.Content.text64")}
           </button>
         </form>
 
@@ -405,10 +405,9 @@ export function NewComplaintForm() {
               <Shield className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <h3 className="font-semibold text-green-900 text-sm">Ваша жалоба будет рассмотрена</h3>
+              <h3 className="font-semibold text-green-900 text-sm">{publicT("public.Content.text65")}</h3>
               <p className="text-sm text-green-700 mt-1">
-                Портал курирует <strong>Кошакаев А.А.</strong> — все обращения передаются в соответствующие службы района Сортировка. Мы следим за решением каждой проблемы.
-              </p>
+                {publicT("public.Content.text66")} <strong>Кошакаев А.А.</strong> {publicT("public.Content.text67")} </p>
             </div>
           </div>
         </div>
@@ -455,38 +454,39 @@ function AnnouncementFormFields({
   setGalleryKeys: (value: string) => void;
   categories: AnnCategory[];
 }) {
+  const { t: publicT } = useLanguage();
   return (
     <>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Категория *</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text54")}</label>
         <select value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-          <option value="">Выберите категорию</option>
+          <option value="">{publicT("masters.selectCategory")}</option>
           {(categories.length ? categories : fallbackAnnouncementCategories()).map((cat) => (
             <option key={cat.id} value={String(cat.id)}>{cat.icon ? `${cat.icon} ` : ''}{cat.name}</option>
           ))}
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Заголовок *</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text68")}</label>
         <input type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Описание *</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text69")}</label>
         <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={4} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" required />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Цена</label>
-          <input type="text" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Например: 50 000 ₸" />
+          <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("realestate.form.price")}</label>
+          <input type="text" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder={publicT("public.Content.text70")} />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Адрес / район</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text71")}</label>
           <input type="text" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Телефон *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text72")}</label>
           <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required />
         </div>
         <div>
@@ -495,12 +495,12 @@ function AnnouncementFormFields({
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Ваше имя</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("realestate.form.author")}</label>
         <input type="text" value={form.author_name} onChange={e => setForm({ ...form, author_name: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Фотографии (до 5 штук)</label>
-        <p className="text-xs text-gray-400 mb-1.5">Загрузите фото. Перетаскивайте для изменения порядка.</p>
+        <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text73")}</label>
+        <p className="text-xs text-gray-400 mb-1.5">{publicT("public.Content.text74")}</p>
         <MultiImageUpload value={galleryKeys} onChange={setGalleryKeys} folder="announcements" maxImages={5} />
       </div>
     </>
@@ -509,6 +509,7 @@ function AnnouncementFormFields({
 
 /* ============ ANNOUNCEMENTS LIST ============ */
 export function AnnouncementsList() {
+  const { t: publicT } = useLanguage();
   const [items, setItems] = useState<any[]>([]);
   const [categories, setCategories] = useState<AnnCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -565,12 +566,11 @@ export function AnnouncementsList() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Объявления</h1>
-            <p className="text-gray-500 mt-1">Доска объявлений района Сортировка</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{publicT("categories.announcements")}</h1>
+            <p className="text-gray-500 mt-1">{publicT("public.Content.text75")}</p>
           </div>
           <Link to="/announcements/new" className="inline-flex items-center gap-2 bg-amber-500 text-white font-medium px-4 py-2.5 rounded-lg hover:bg-amber-600 text-sm">
-            <Megaphone className="w-4 h-4" /> Разместить
-          </Link>
+            <Megaphone className="w-4 h-4" /> {publicT("realestate.publish")} </Link>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -580,7 +580,7 @@ export function AnnouncementsList() {
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Поиск по заголовку, описанию, адресу..."
+              placeholder={publicT("public.Content.text76")}
               className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400"
             />
           </div>
@@ -590,13 +590,13 @@ export function AnnouncementsList() {
             className="rounded-xl border border-gray-200 px-3 py-2.5 text-sm bg-white"
           >
             <option value="new">Сначала новые</option>
-            <option value="price_asc">Дешевле</option>
-            <option value="price_desc">Дороже</option>
+            <option value="price_asc">{publicT("realestate.sort.priceAsc")}</option>
+            <option value="price_desc">{publicT("realestate.sort.priceDesc")}</option>
           </select>
         </div>
 
         <div className="flex flex-wrap gap-2 mb-4">
-          <button onClick={() => setCategoryFilter('')} className={`px-3 py-1.5 rounded-full text-sm font-medium ${!categoryFilter ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Все</button>
+          <button onClick={() => setCategoryFilter('')} className={`px-3 py-1.5 rounded-full text-sm font-medium ${!categoryFilter ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{publicT("common.all")}</button>
           {filterCategories.map((cat) => (
             <button
               key={cat.id}
@@ -610,14 +610,14 @@ export function AnnouncementsList() {
             onClick={() => setShowFavoritesOnly((v) => !v)}
             className={`px-3 py-1.5 rounded-full text-sm font-medium ${showFavoritesOnly ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
           >
-            ❤️ Избранное{favorites.length > 0 ? ` (${favorites.length})` : ''}
+            {publicT("public.Content.text77")}{favorites.length > 0 ? ` (${favorites.length})` : ''}
           </button>
         </div>
 
-        {loading ? <div className="text-center py-12 text-gray-400">Загрузка...</div> : filteredItems.length === 0 ? (
+        {loading ? <div className="text-center py-12 text-gray-400">{publicT("common.retrying")}</div> : filteredItems.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <Megaphone className="w-12 h-12 mx-auto mb-3 opacity-40" />
-            <p>Объявлений не найдено</p>
+            <p>{publicT("public.Content.text78")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -631,7 +631,7 @@ export function AnnouncementsList() {
                   type="button"
                   onClick={(e) => handleToggleFavorite(e, ann.id)}
                   className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/90 shadow flex items-center justify-center"
-                  aria-label="Избранное"
+                  aria-label={publicT("realestate.favorites")}
                 >
                   <Heart className={`w-4 h-4 ${isFav ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
                 </button>
@@ -646,7 +646,7 @@ export function AnnouncementsList() {
                         <span className="text-xs font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">VIP</span>
                       )}
                       {promoted && ann.promotion_tier === 'boost' && (
-                        <span className="text-xs font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">Топ</span>
+                        <span className="text-xs font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">{publicT("public.Cabinet.text40")}</span>
                       )}
                     </div>
                     <span className="text-xs text-gray-400 shrink-0">{timeAgo(ann.created_at)}</span>
@@ -671,6 +671,7 @@ export function AnnouncementsList() {
 
 /* ============ NEW ANNOUNCEMENT FORM ============ */
 export function NewAnnouncementForm() {
+  const { t: publicT } = useLanguage();
   const navigate = useNavigate();
   const [categories, setCategories] = useState<AnnCategory[]>([]);
   const [form, setForm] = useState<AnnouncementFormState>({ category_id: '', title: '', description: '', price: '', address: '', phone: '', whatsapp: '', author_name: '' });
@@ -742,7 +743,7 @@ export function NewAnnouncementForm() {
       }).catch((err: unknown) => console.warn('Telegram notification skipped:', err));
     } catch (e) {
       console.error(e);
-      toast.error('Ошибка отправки. Попробуйте ещё раз.');
+      toast.error(publicT("realestate.form.error"));
       setSubmitted(false);
     } finally {
       setSubmitting(false);
@@ -752,11 +753,11 @@ export function NewAnnouncementForm() {
   if (success) return (
     <Layout><div className="max-w-lg mx-auto px-4 py-16 text-center">
       <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4"><Clock className="w-8 h-8 text-amber-600" /></div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Ваше объявление отправлено на модерацию!</h2>
-      <p className="text-gray-500 mb-6">Объявление будет опубликовано после проверки администратором.</p>
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">{publicT("public.Content.text80")}</h2>
+      <p className="text-gray-500 mb-6">{publicT("public.Content.text81")}</p>
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
-        <Link to="/cabinet?tab=announcements" className="text-blue-600 hover:text-blue-700 font-medium">Мои объявления</Link>
-        <Link to="/announcements" className="text-blue-600 hover:text-blue-700 font-medium">Все объявления</Link>
+        <Link to="/cabinet?tab=announcements" className="text-blue-600 hover:text-blue-700 font-medium">{publicT("realestate.myListings")}</Link>
+        <Link to="/announcements" className="text-blue-600 hover:text-blue-700 font-medium">{publicT("realestate.allListings")}</Link>
       </div>
     </div></Layout>
   );
@@ -764,17 +765,16 @@ export function NewAnnouncementForm() {
   return (
     <Layout>
       <div className="max-w-lg mx-auto px-4 py-8">
-        <Link to="/announcements" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> Назад</Link>
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Разместить объявление</h1>
+        <Link to="/announcements" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> {publicT("common.back")}</Link>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">{publicT("quick.postAd")}</h1>
         <SafetyAlert variant="announcement_form" />
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4 mt-4">
           <AnnouncementFormFields form={form} setForm={setForm} galleryKeys={galleryKeys} setGalleryKeys={setGalleryKeys} categories={categories} />
           <button type="submit" disabled={submitting || submitted} className="w-full bg-amber-500 text-white font-medium py-3 rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-50">
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" /> Отправка...
-              </span>
-            ) : 'Разместить объявление'}
+                <Loader2 className="w-4 h-4 animate-spin" /> {publicT("realestate.form.submitting")} </span>
+            ) : publicT("quick.postAd")}
           </button>
         </form>
       </div>
@@ -784,6 +784,7 @@ export function NewAnnouncementForm() {
 
 /* ============ EDIT ANNOUNCEMENT FORM ============ */
 export function EditAnnouncementForm() {
+  const { t: publicT } = useLanguage();
   const { id } = useParams();
   const navigate = useNavigate();
   const [categories, setCategories] = useState<AnnCategory[]>([]);
@@ -818,7 +819,7 @@ export function EditAnnouncementForm() {
       })
       .catch((err) => {
         console.error(err);
-        toast.error('Не удалось загрузить объявление');
+        toast.error(publicT("realestate.form.loadError"));
         navigate('/cabinet?tab=announcements');
       })
       .finally(() => setLoading(false));
@@ -837,32 +838,32 @@ export function EditAnnouncementForm() {
         ann_type: annTypeForCategory(cat, categoryId),
         gallery_images: galleryKeys,
       });
-      toast.success('Изменения сохранены. Объявление отправлено на модерацию.');
+      toast.success(publicT("realestate.form.saved"));
       navigate('/cabinet?tab=announcements');
     } catch (err) {
       console.error(err);
-      toast.error('Не удалось сохранить изменения');
+      toast.error(publicT("realestate.form.saveError"));
     } finally {
       setSubmitting(false);
     }
   }
 
   if (loading) {
-    return <Layout><div className="max-w-lg mx-auto px-4 py-12 text-center text-gray-400">Загрузка...</div></Layout>;
+    return <Layout><div className="max-w-lg mx-auto px-4 py-12 text-center text-gray-400">{publicT("common.retrying")}</div></Layout>;
   }
 
   return (
     <Layout>
       <div className="max-w-lg mx-auto px-4 py-8">
-        <Link to="/cabinet?tab=announcements" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> Мои объявления</Link>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Редактировать объявление</h1>
+        <Link to="/cabinet?tab=announcements" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> {publicT("realestate.myListings")}</Link>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">{publicT("realestate.form.editTitle")}</h1>
         {status && (
           <p className="text-sm text-gray-500 mb-2">
             Статус: <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_LABELS[status]?.color || 'bg-gray-100 text-gray-800'}`}>{STATUS_LABELS[status]?.label || status}</span>
           </p>
         )}
         {expiresAt && (
-          <p className="text-sm text-gray-500 mb-4">Активно до: {formatExpiryLabel(expiresAt)}</p>
+          <p className="text-sm text-gray-500 mb-4">{publicT("realestate.form.activeUntil")} {formatExpiryLabel(expiresAt)}</p>
         )}
         <SafetyAlert variant="announcement_form" />
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4 mt-4">
@@ -882,6 +883,7 @@ export function EditAnnouncementForm() {
 
 /* ============ ANNOUNCEMENT DETAIL ============ */
 export function AnnouncementDetail() {
+  const { t: publicT } = useLanguage();
   const { id } = useParams();
   const navigate = useNavigate();
   const [item, setItem] = useState<any>(null);
@@ -921,44 +923,43 @@ export function AnnouncementDetail() {
     setActionLoading(true);
     try {
       await accountApi.unpublishMyAnnouncement(Number(item.id));
-      toast.success('Объявление снято с публикации');
+      toast.success(publicT("cabinet.realEstate.unpublished"));
       navigate('/cabinet?tab=announcements');
     } catch (err) {
       console.error(err);
-      toast.error('Не удалось снять объявление');
+      toast.error(publicT("public.Content.text82"));
     } finally {
       setActionLoading(false);
     }
   }
 
   async function handleDelete() {
-    if (!item?.id || !window.confirm('Удалить объявление без возможности восстановления?')) return;
+    if (!item?.id || !window.confirm(publicT("cabinet.realEstate.deleteConfirm"))) return;
     setActionLoading(true);
     try {
       await accountApi.deleteMyAnnouncement(Number(item.id));
-      toast.success('Объявление удалено');
+      toast.success(publicT("cabinet.realEstate.deleted"));
       navigate('/cabinet?tab=announcements');
     } catch (err) {
       console.error(err);
-      toast.error('Не удалось удалить объявление');
+      toast.error(publicT("public.Content.text83"));
     } finally {
       setActionLoading(false);
     }
   }
 
-  if (loading) return <Layout><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400">Загрузка...</div></Layout>;
-  if (!item || (!isPublic && !isOwner)) return <Layout><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400">Объявление не найдено</div></Layout>;
+  if (loading) return <Layout><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400">{publicT("common.retrying")}</div></Layout>;
+  if (!item || (!isPublic && !isOwner)) return <Layout><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400">{publicT("realestate.notFound")}</div></Layout>;
 
   return (
     <Layout>
       <div className="max-w-3xl mx-auto px-4 py-8">
         <Link to="/announcements" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6">
-          <ChevronLeft className="w-4 h-4" /> Все объявления
-        </Link>
+          <ChevronLeft className="w-4 h-4" /> {publicT("realestate.allListings")} </Link>
 
         {isOwner && !isPublic && (
           <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Это ваше объявление. Статус: {STATUS_LABELS[item.status]?.label || item.status}
+            {publicT("public.Content.text84")} {STATUS_LABELS[item.status]?.label || item.status}
             {item.expires_at ? ` · активно до ${formatExpiryLabel(item.expires_at)}` : ''}
           </div>
         )}
@@ -968,7 +969,7 @@ export function AnnouncementDetail() {
             type="button"
             onClick={toggleFavorite}
             className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/90 shadow flex items-center justify-center"
-            aria-label="Избранное"
+            aria-label={publicT("realestate.favorites")}
           >
             <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
           </button>
@@ -984,11 +985,11 @@ export function AnnouncementDetail() {
                 <span className="text-xs font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">VIP</span>
               )}
               {promoted && item.promotion_tier === 'boost' && (
-                <span className="text-xs font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">Топ</span>
+                <span className="text-xs font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">{publicT("public.Cabinet.text40")}</span>
               )}
               <span className="text-xs text-gray-400">{item.created_at ? formatDate(item.created_at) : ''}</span>
               {item.views_count != null && (
-                <span className="text-xs text-gray-400">· {item.views_count} просмотров</span>
+                <span className="text-xs text-gray-400">· {item.views_count} {publicT("public.Content.text85")}</span>
               )}
             </div>
 
@@ -1006,7 +1007,7 @@ export function AnnouncementDetail() {
 
             {item.gallery_images && (
               <div className="mb-6">
-                <p className="text-sm font-medium text-gray-500 mb-2">Фотографии:</p>
+                <p className="text-sm font-medium text-gray-500 mb-2">{publicT("public.Content.text86")}</p>
                 <StorageGallery keys={item.gallery_images} />
               </div>
             )}
@@ -1034,7 +1035,7 @@ export function AnnouncementDetail() {
                 </div>
               )}
               {item.author_name && (
-                <p className="text-sm text-gray-500">Автор: {item.author_name}</p>
+                <p className="text-sm text-gray-500">{publicT("public.Content.text87")} {item.author_name}</p>
               )}
             </div>
 
@@ -1044,8 +1045,7 @@ export function AnnouncementDetail() {
                   to={`/announcements/${item.id}/edit`}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600"
                 >
-                  <Pencil className="w-4 h-4" /> Редактировать
-                </Link>
+                  <Pencil className="w-4 h-4" /> {publicT("common.edit")} </Link>
                 {isPublic && (
                   <button
                     type="button"
@@ -1062,8 +1062,7 @@ export function AnnouncementDetail() {
                   onClick={handleDelete}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
                 >
-                  <Trash2 className="w-4 h-4" /> Удалить
-                </button>
+                  <Trash2 className="w-4 h-4" /> {publicT("common.delete")} </button>
               </div>
             )}
           </div>
@@ -1075,6 +1074,7 @@ export function AnnouncementDetail() {
 
 /* ============ JOBS LIST ============ */
 export function JobsList() {
+  const { t: publicT } = useLanguage();
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -1097,24 +1097,23 @@ export function JobsList() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Работа / Вакансии</h1>
-            <p className="text-gray-500 mt-1">Актуальные вакансии в районе Сортировка</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{publicT("public.Content.text88")}</h1>
+            <p className="text-gray-500 mt-1">{publicT("public.Content.text89")}</p>
           </div>
           <Link to="/jobs/new" className="inline-flex items-center gap-2 bg-blue-600 text-white font-medium px-4 py-2.5 rounded-lg hover:bg-blue-700 text-sm">
-            <Plus className="w-4 h-4" /> Разместить вакансию
-          </Link>
+            <Plus className="w-4 h-4" /> {publicT("public.Content.text90")} </Link>
         </div>
 
         <div className="flex flex-wrap gap-2 mb-6">
-          <button onClick={() => setCategoryFilter('')} className={`px-3 py-1.5 rounded-full text-sm font-medium ${!categoryFilter ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Все</button>
+          <button onClick={() => setCategoryFilter('')} className={`px-3 py-1.5 rounded-full text-sm font-medium ${!categoryFilter ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{publicT("common.all")}</button>
           {JOB_CATEGORIES.map(c => (
             <button key={c} onClick={() => setCategoryFilter(c === categoryFilter ? '' : c)} className={`px-3 py-1.5 rounded-full text-sm font-medium ${categoryFilter === c ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{c}</button>
           ))}
         </div>
 
-        {loading ? <div className="text-center py-12 text-gray-400">Загрузка...</div> : (
+        {loading ? <div className="text-center py-12 text-gray-400">{publicT("common.retrying")}</div> : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {jobs.length === 0 && <p className="text-gray-400 col-span-2 text-center py-12">Пока нет вакансий</p>}
+            {jobs.length === 0 && <p className="text-gray-400 col-span-2 text-center py-12">{publicT("public.Content.text91")}</p>}
             {jobs.map(job => (
               <div key={job.id} className="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-all">
                 <div className="flex items-start gap-4">
@@ -1129,7 +1128,7 @@ export function JobsList() {
                     <div className="flex items-center gap-2 mb-1">
                       {job.category && <span className="text-xs font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">{job.category}</span>}
                     </div>
-                    <h3 className="font-semibold text-gray-900 text-lg">{job.job_title || job.category || 'Вакансия'}</h3>
+                    <h3 className="font-semibold text-gray-900 text-lg">{job.job_title || job.category || publicT("popular.vacancy")}</h3>
                     {job.employer && <p className="text-sm text-gray-500">{job.employer}</p>}
                     {job.salary && <p className="text-blue-600 font-bold mt-1">{job.salary}</p>}
                     <p className="text-sm text-gray-600 mt-2 line-clamp-3">{job.description}</p>
@@ -1154,6 +1153,7 @@ export function JobsList() {
 
 /* ============ NEW JOB FORM ============ */
 export function NewJobForm() {
+  const { t: publicT } = useLanguage();
   const [form, setForm] = useState({
     job_title: '', employer: '', category: '', salary: '', schedule: '',
     district: '', description: '', phone: '', whatsapp: '',
@@ -1198,7 +1198,7 @@ export function NewJobForm() {
       }).catch((err: unknown) => console.warn('Telegram notification skipped:', err));
     } catch (e) {
       console.error(e);
-      toast.error('Ошибка отправки. Попробуйте ещё раз.');
+      toast.error(publicT("realestate.form.error"));
       setSubmitted(false);
     } finally {
       setSubmitting(false);
@@ -1208,56 +1208,56 @@ export function NewJobForm() {
   if (success) return (
     <Layout><div className="max-w-lg mx-auto px-4 py-16 text-center">
       <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4"><Clock className="w-8 h-8 text-blue-600" /></div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Ваша вакансия отправлена на модерацию!</h2>
-      <p className="text-gray-500 mb-6">Вакансия будет опубликована после проверки администратором.</p>
-      <Link to="/jobs" className="text-blue-600 hover:text-blue-700 font-medium">Все вакансии</Link>
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">{publicT("public.Content.text92")}</h2>
+      <p className="text-gray-500 mb-6">{publicT("public.Content.text93")}</p>
+      <Link to="/jobs" className="text-blue-600 hover:text-blue-700 font-medium">{publicT("public.Content.text94")}</Link>
     </div></Layout>
   );
 
   return (
     <Layout>
       <div className="max-w-lg mx-auto px-4 py-8">
-        <Link to="/jobs" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> Назад</Link>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Разместить вакансию</h1>
-        <p className="text-gray-500 mb-6">Заполните форму — вакансия появится на сайте после модерации</p>
+        <Link to="/jobs" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> {publicT("common.back")}</Link>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">{publicT("public.Content.text90")}</h1>
+        <p className="text-gray-500 mb-6">{publicT("public.Content.text95")}</p>
         <SafetyAlert variant="job_form" />
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4 mt-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Название вакансии *</label>
-            <input type="text" value={form.job_title} onChange={e => setForm({ ...form, job_title: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Например: Продавец-консультант" required />
+            <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text96")}</label>
+            <input type="text" value={form.job_title} onChange={e => setForm({ ...form, job_title: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder={publicT("public.Content.text97")} required />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Работодатель / организация</label>
-            <input type="text" value={form.employer} onChange={e => setForm({ ...form, employer: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Название компании или ваше имя" />
+            <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text98")}</label>
+            <input type="text" value={form.employer} onChange={e => setForm({ ...form, employer: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder={publicT("public.Content.text99")} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Категория вакансии *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text100")}</label>
             <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-              <option value="">Выберите категорию</option>
+              <option value="">{publicT("masters.selectCategory")}</option>
               {JOB_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Зарплата</label>
-              <input type="text" value={form.salary} onChange={e => setForm({ ...form, salary: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="от 150 000 ₸" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text101")}</label>
+              <input type="text" value={form.salary} onChange={e => setForm({ ...form, salary: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder={publicT("public.Content.text102")} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">График работы</label>
-              <input type="text" value={form.schedule} onChange={e => setForm({ ...form, schedule: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="5/2, сменный..." />
+              <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text103")}</label>
+              <input type="text" value={form.schedule} onChange={e => setForm({ ...form, schedule: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder={publicT("public.Content.text104")} />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Адрес / район</label>
-            <input type="text" value={form.district} onChange={e => setForm({ ...form, district: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Район Сортировка, ул. ..." />
+            <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text71")}</label>
+            <input type="text" value={form.district} onChange={e => setForm({ ...form, district: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder={publicT("public.Content.text105")} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Описание вакансии *</label>
-            <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={4} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="Обязанности, требования, условия..." required />
+            <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text106")}</label>
+            <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={4} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder={publicT("public.Content.text107")} required />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Телефон *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text72")}</label>
               <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required />
             </div>
             <div>
@@ -1266,15 +1266,14 @@ export function NewJobForm() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Фото / логотип</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text108")}</label>
             <ImageUpload value={imageKey} onChange={setImageKey} folder="jobs" compact />
           </div>
           <button type="submit" disabled={submitting || submitted} className="w-full bg-blue-600 text-white font-medium py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" /> Отправка...
-              </span>
-            ) : 'Разместить вакансию'}
+                <Loader2 className="w-4 h-4 animate-spin" /> {publicT("realestate.form.submitting")} </span>
+            ) : publicT("public.Content.text90")}
           </button>
         </form>
       </div>
@@ -1284,6 +1283,7 @@ export function NewJobForm() {
 
 /* ============ QUESTIONS LIST ============ */
 export function QuestionsList() {
+  const { t: publicT } = useLanguage();
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -1301,14 +1301,13 @@ export function QuestionsList() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Вопросы жителей</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{publicT("public.Content.text109")}</h1>
             <p className="text-gray-500 mt-1">Спрашивайте и отвечайте — помогайте соседям</p>
           </div>
           <Link to="/questions/new" className="inline-flex items-center gap-2 bg-purple-600 text-white font-medium px-4 py-2.5 rounded-lg hover:bg-purple-700 text-sm">
-            <HelpCircle className="w-4 h-4" /> Задать вопрос
-          </Link>
+            <HelpCircle className="w-4 h-4" /> {publicT("public.Content.text110")} </Link>
         </div>
-        {loading ? <div className="text-center py-12 text-gray-400">Загрузка...</div> : (
+        {loading ? <div className="text-center py-12 text-gray-400">{publicT("common.retrying")}</div> : (
           <div className="space-y-3">
             {questions.map(q => (
               <Link key={q.id} to={`/questions/${q.id}`} className="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-all flex items-center justify-between block">
@@ -1319,7 +1318,7 @@ export function QuestionsList() {
                     <p className="text-xs text-gray-400 mt-1">{q.author_name && `${q.author_name} • `}{timeAgo(q.created_at)}</p>
                   </div>
                 </div>
-                <span className="text-sm text-gray-400 whitespace-nowrap ml-4">{q.answers_count || 0} ответов</span>
+                <span className="text-sm text-gray-400 whitespace-nowrap ml-4">{q.answers_count || 0} {publicT("public.Content.text111")}</span>
               </Link>
             ))}
           </div>
@@ -1331,6 +1330,7 @@ export function QuestionsList() {
 
 /* ============ QUESTION DETAIL ============ */
 export function QuestionDetail() {
+  const { t: publicT } = useLanguage();
   const { id } = useParams();
   const [question, setQuestion] = useState<any>(null);
   const [answers, setAnswers] = useState<any[]>([]);
@@ -1366,22 +1366,22 @@ export function QuestionDetail() {
     } catch (e) { console.error(e); } finally { setSubmitting(false); }
   }
 
-  if (loading) return <Layout><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400">Загрузка...</div></Layout>;
-  if (!question) return <Layout><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400">Вопрос не найден</div></Layout>;
+  if (loading) return <Layout><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400">{publicT("common.retrying")}</div></Layout>;
+  if (!question) return <Layout><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400">{publicT("public.Content.text112")}</div></Layout>;
 
   return (
     <Layout>
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <Link to="/questions" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> Все вопросы</Link>
+        <Link to="/questions" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> {publicT("public.Content.text113")}</Link>
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
           <h1 className="text-xl font-bold text-gray-900">{question.question_text}</h1>
           <p className="text-sm text-gray-400 mt-2">{question.author_name && `${question.author_name} • `}{formatDate(question.created_at)}</p>
         </div>
 
-        <h3 className="font-semibold text-gray-900 mb-3">Ответы ({answers.length})</h3>
+        <h3 className="font-semibold text-gray-900 mb-3">{publicT("public.Content.text114")}{answers.length})</h3>
         <div className="space-y-3 mb-6">
           {answers.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">Пока нет ответов. Будьте первым!</div>
+            <div className="text-center py-8 text-gray-400">{publicT("public.Content.text115")}</div>
           ) : answers.map(a => (
             <div key={a.id} className="bg-white rounded-xl shadow-sm p-5">
               <p className="text-gray-700">{a.answer_text}</p>
@@ -1391,11 +1391,11 @@ export function QuestionDetail() {
         </div>
 
         <form onSubmit={submitAnswer} className="bg-white rounded-xl shadow-sm p-6">
-          <h3 className="font-semibold text-gray-900 mb-3">Ваш ответ</h3>
-          <textarea value={answerText} onChange={e => setAnswerText(e.target.value)} rows={3} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none mb-3" placeholder="Напишите ваш ответ..." required />
-          <input type="text" value={authorName} onChange={e => setAuthorName(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 mb-3" placeholder="Ваше имя (необязательно)" />
+          <h3 className="font-semibold text-gray-900 mb-3">{publicT("public.Content.text116")}</h3>
+          <textarea value={answerText} onChange={e => setAnswerText(e.target.value)} rows={3} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none mb-3" placeholder={publicT("public.Content.text117")} required />
+          <input type="text" value={authorName} onChange={e => setAuthorName(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 mb-3" placeholder={publicT("public.Content.text118")} />
           <button type="submit" disabled={submitting} className="inline-flex items-center gap-2 bg-purple-600 text-white font-medium px-5 py-2.5 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50">
-            <Send className="w-4 h-4" /> {submitting ? 'Отправка...' : 'Ответить'}
+            <Send className="w-4 h-4" /> {submitting ? publicT("realestate.form.submitting") : publicT("public.Content.text119")}
           </button>
         </form>
       </div>
@@ -1405,6 +1405,7 @@ export function QuestionDetail() {
 
 /* ============ NEW QUESTION FORM ============ */
 export function NewQuestionForm() {
+  const { t: publicT } = useLanguage();
   const navigate = useNavigate();
   const [form, setForm] = useState({ question_text: '', author_name: '' });
   const [submitting, setSubmitting] = useState(false);
@@ -1419,33 +1420,33 @@ export function NewQuestionForm() {
         data: { ...form, author_name: form.author_name || 'Аноним', answers_count: 0, created_at: new Date().toISOString() }
       }));
       setSuccess(true);
-    } catch (e) { console.error(e); toast.error('Ошибка'); } finally { setSubmitting(false); }
+    } catch (e) { console.error(e); toast.error(publicT("courier.genericError")); } finally { setSubmitting(false); }
   }
 
   if (success) return (
     <Layout><div className="max-w-lg mx-auto px-4 py-16 text-center">
       <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><CheckCircle className="w-8 h-8 text-green-600" /></div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Вопрос опубликован!</h2>
-      <Link to="/questions" className="text-blue-600 hover:text-blue-700 font-medium">Все вопросы</Link>
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">{publicT("public.Content.text120")}</h2>
+      <Link to="/questions" className="text-blue-600 hover:text-blue-700 font-medium">{publicT("public.Content.text113")}</Link>
     </div></Layout>
   );
 
   return (
     <Layout>
       <div className="max-w-lg mx-auto px-4 py-8">
-        <Link to="/questions" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> Назад</Link>
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Задать вопрос</h1>
+        <Link to="/questions" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> {publicT("common.back")}</Link>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">{publicT("public.Content.text110")}</h1>
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Ваш вопрос *</label>
-            <textarea value={form.question_text} onChange={e => setForm({ ...form, question_text: e.target.value })} rows={4} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" placeholder="Задайте вопрос жителям района..." required />
+            <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text121")}</label>
+            <textarea value={form.question_text} onChange={e => setForm({ ...form, question_text: e.target.value })} rows={4} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" placeholder={publicT("public.Content.text122")} required />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Ваше имя</label>
-            <input type="text" value={form.author_name} onChange={e => setForm({ ...form, author_name: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Необязательно" />
+            <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("realestate.form.author")}</label>
+            <input type="text" value={form.author_name} onChange={e => setForm({ ...form, author_name: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder={publicT("public.Content.text123")} />
           </div>
           <button type="submit" disabled={submitting} className="w-full bg-purple-600 text-white font-medium py-3 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50">
-            {submitting ? 'Отправка...' : 'Опубликовать вопрос'}
+            {submitting ? publicT("realestate.form.submitting") : publicT("public.Content.text124")}
           </button>
         </form>
       </div>
@@ -1479,6 +1480,7 @@ const RE_DEAL_TYPES = [
 const RE_ROOM_OPTIONS = ['', '1', '2', '3', '4+'];
 
 export function RealEstateList() {
+  const { t: publicT } = useLanguage();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState('');
@@ -1565,14 +1567,12 @@ export function RealEstateList() {
           <div className="relative max-w-7xl mx-auto px-4 py-12 md:py-20">
             <div className="max-w-xl">
               <div className="flex items-center gap-2 mb-3">
-                <span className="bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full">🏠 Недвижимость</span>
+                <span className="bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full">{publicT("public.Content.text125")}</span>
               </div>
               <h1 className="text-3xl md:text-5xl font-extrabold text-white leading-tight">
-                Квартиры, дома и аренда
-              </h1>
+                {publicT("realestate.heroTitle")} </h1>
               <p className="text-white/70 text-base md:text-lg mt-3">
-                Найдите идеальное жильё в вашем районе
-              </p>
+                {publicT("realestate.heroSubtitle")} </p>
             </div>
           </div>
         </section>
@@ -1587,7 +1587,7 @@ export function RealEstateList() {
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Поиск по району, улице, описанию..."
+                  placeholder={publicT("realestate.searchPlaceholder")}
                   className="w-full pl-11 pr-4 py-3 bg-gray-50 rounded-xl border-0 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-shadow"
                 />
                 {searchQuery && (
@@ -1605,8 +1605,7 @@ export function RealEstateList() {
                 }`}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
-                Фильтры
-                {activeFilterCount > 0 && (
+                {publicT("realestate.filters")} {activeFilterCount > 0 && (
                   <span className="w-5 h-5 bg-emerald-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{activeFilterCount}</span>
                 )}
               </button>
@@ -1614,32 +1613,31 @@ export function RealEstateList() {
                 to="/real-estate/new"
                 className="hidden sm:flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl text-sm font-semibold transition-all shadow-md shadow-emerald-200/50"
               >
-                <Home className="w-4 h-4" /> Разместить
-              </Link>
+                <Home className="w-4 h-4" /> {publicT("realestate.publish")} </Link>
             </div>
 
             {/* Expanded filters */}
             {showFilters && (
               <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-3 animate-in slide-in-from-top-2 duration-200">
                 <div>
-                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Тип сделки</label>
+                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{publicT("realestate.dealType")}</label>
                   <select value={dealFilter} onChange={e => setDealFilter(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 rounded-xl border-0 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30">
                     {RE_DEAL_TYPES.map(d => <option key={d.key} value={d.key}>{d.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Комнат</label>
+                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{publicT("public.Content.text126")}</label>
                   <select value={roomFilter} onChange={e => setRoomFilter(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 rounded-xl border-0 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30">
-                    <option value="">Любое</option>
-                    {RE_ROOM_OPTIONS.filter(Boolean).map(r => <option key={r} value={r}>{r} {r === '4+' ? 'и более' : 'комн.'}</option>)}
+                    <option value="">{publicT("realestate.any")}</option>
+                    {RE_ROOM_OPTIONS.filter(Boolean).map(r => <option key={r} value={r}>{r} {r === '4+' ? publicT("public.Content.text127") : publicT("realestate.form.roomsShort")}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Цена от (₸)</label>
+                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{publicT("realestate.priceFrom")}</label>
                   <input type="number" value={priceFrom} onChange={e => setPriceFrom(e.target.value)} placeholder="0" className="w-full px-3 py-2.5 bg-gray-50 rounded-xl border-0 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Цена до (₸)</label>
+                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{publicT("realestate.priceTo")}</label>
                   <input type="number" value={priceTo} onChange={e => setPriceTo(e.target.value)} placeholder="∞" className="w-full px-3 py-2.5 bg-gray-50 rounded-xl border-0 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
                 </div>
                 {activeFilterCount > 0 && (
@@ -1647,8 +1645,7 @@ export function RealEstateList() {
                     onClick={() => { setDealFilter(''); setRoomFilter(''); setPriceFrom(''); setPriceTo(''); setTypeFilter(''); }}
                     className="col-span-2 sm:col-span-4 text-sm text-emerald-600 hover:text-emerald-700 font-medium py-1"
                   >
-                    ✕ Сбросить все фильтры
-                  </button>
+                    {publicT("public.Content.text128")} </button>
                 )}
               </div>
             )}
@@ -1679,7 +1676,7 @@ export function RealEstateList() {
                   : 'bg-white text-gray-600 hover:bg-gray-50 shadow-sm'
               }`}
             >
-              ❤️ Избранное {favorites.length > 0 && `(${favorites.length})`}
+              {publicT("public.Content.text77")} {favorites.length > 0 && `(${favorites.length})`}
             </button>
           </div>
 
@@ -1688,16 +1685,15 @@ export function RealEstateList() {
             to="/real-estate/new"
             className="sm:hidden flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white w-full py-3 rounded-xl text-sm font-semibold mb-5 shadow-md shadow-emerald-200/50"
           >
-            <Home className="w-4 h-4" /> Разместить объявление
-          </Link>
+            <Home className="w-4 h-4" /> {publicT("quick.postAd")} </Link>
 
           {/* ═══ RESULTS HEADER ═══ */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-bold text-gray-900">
-                {showFavoritesOnly ? 'Избранное' : typeFilter ? (REAL_ESTATE_TYPES[typeFilter] || 'Результаты') : 'Все объявления'}
+                {showFavoritesOnly ? publicT("realestate.favorites") : typeFilter ? (REAL_ESTATE_TYPES[typeFilter] || publicT("public.Content.text129")) : publicT("realestate.allListings")}
               </h2>
-              <span className="text-sm text-gray-400">{filteredItems.length} объявлений</span>
+              <span className="text-sm text-gray-400">{filteredItems.length} {publicT("realestate.listingsCount")}</span>
             </div>
           </div>
 
@@ -1710,7 +1706,7 @@ export function RealEstateList() {
                   <div className="absolute inset-0 border-4 border-transparent border-t-emerald-500 rounded-full animate-spin" />
                   <Home className="absolute inset-0 m-auto w-5 h-5 text-emerald-400" />
                 </div>
-                <p className="text-gray-500 font-medium text-sm">Загружаем объявления...</p>
+                <p className="text-gray-500 font-medium text-sm">{publicT("public.Content.text130")}</p>
               </div>
             </div>
           ) : filteredItems.length > 0 ? (
@@ -1762,8 +1758,7 @@ export function RealEstateList() {
                       {/* Photo count */}
                       {item.gallery_images && (
                         <span className="absolute bottom-3 right-3 bg-black/50 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1">
-                          📷 {item.gallery_images.split(',').filter((k: string) => k.trim()).length} фото
-                        </span>
+                          📷 {item.gallery_images.split(',').filter((k: string) => k.trim()).length} {publicT("public.Content.text131")} </span>
                       )}
 
                       {/* Price overlay */}
@@ -1792,18 +1787,15 @@ export function RealEstateList() {
                       <div className="flex flex-wrap gap-1.5 mt-3">
                         {item.rooms && (
                           <span className="bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-lg">
-                            {item.rooms} комн.
-                          </span>
+                            {item.rooms} {publicT("realestate.form.roomsShort")} </span>
                         )}
                         {item.area && (
                           <span className="bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-lg">
-                            {item.area} м²
-                          </span>
+                            {item.area} {publicT("realestate.sqm")} </span>
                         )}
                         {item.floor_info && (
                           <span className="bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-lg">
-                            {item.floor_info} этаж
-                          </span>
+                            {item.floor_info} {publicT("public.Content.text132")} </span>
                         )}
                       </div>
 
@@ -1816,8 +1808,7 @@ export function RealEstateList() {
                           onClick={e => e.stopPropagation()}
                           className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-100 transition-colors"
                         >
-                          <Phone className="w-3.5 h-3.5" /> Позвонить
-                        </a>
+                          <Phone className="w-3.5 h-3.5" /> {publicT("realestate.call")} </a>
                         {item.whatsapp && (
                           <a
                             href={`https://wa.me/${item.whatsapp.replace(/\D/g, '')}`}
@@ -1842,10 +1833,10 @@ export function RealEstateList() {
                 <Home className="w-8 h-8 text-emerald-300" />
               </div>
               <p className="text-gray-500 font-medium">
-                {showFavoritesOnly ? 'Нет избранных объявлений' : 'Объявлений не найдено'}
+                {showFavoritesOnly ? publicT("public.Content.text133") : publicT("public.Content.text78")}
               </p>
               <p className="text-gray-400 text-sm mt-1">
-                {showFavoritesOnly ? 'Нажмите ❤️ на карточке, чтобы добавить в избранное' : 'Попробуйте изменить параметры поиска'}
+                {showFavoritesOnly ? publicT("public.Content.text134") : publicT("public.Content.text135")}
               </p>
               {(activeFilterCount > 0 || searchQuery) && (
                 <button
@@ -1865,6 +1856,7 @@ export function RealEstateList() {
 
 /* ============ REAL ESTATE DETAIL (Modern Premium Design) ============ */
 export function RealEstateDetail() {
+  const { t: publicT } = useLanguage();
   const { id } = useParams();
   const navigate = useNavigate();
   const [item, setItem] = useState<any>(null);
@@ -1912,7 +1904,7 @@ export function RealEstateDetail() {
             <div className="absolute inset-0 border-4 border-emerald-100 rounded-full" />
             <div className="absolute inset-0 border-4 border-transparent border-t-emerald-500 rounded-full animate-spin" />
           </div>
-          <p className="text-gray-500 text-sm">Загрузка...</p>
+          <p className="text-gray-500 text-sm">{publicT("common.retrying")}</p>
         </div>
       </div>
     </Layout>
@@ -1924,8 +1916,8 @@ export function RealEstateDetail() {
         <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <Home className="w-8 h-8 text-gray-300" />
         </div>
-        <p className="text-gray-500 font-medium">Объявление не найдено</p>
-        <Link to="/real-estate" className="text-emerald-600 hover:text-emerald-700 font-medium text-sm mt-3 inline-block">← Все объявления</Link>
+        <p className="text-gray-500 font-medium">{publicT("realestate.notFound")}</p>
+        <Link to="/real-estate" className="text-emerald-600 hover:text-emerald-700 font-medium text-sm mt-3 inline-block">{publicT("public.Content.text136")}</Link>
       </div>
     </Layout>
   );
@@ -1941,8 +1933,7 @@ export function RealEstateDetail() {
         {/* Back nav */}
         <div className="max-w-4xl mx-auto px-4 pt-4 pb-2">
           <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 font-medium transition-colors">
-            <ChevronLeft className="w-4 h-4" /> Назад
-          </button>
+            <ChevronLeft className="w-4 h-4" /> {publicT("common.back")} </button>
         </div>
 
         {/* ═══ PHOTO GALLERY ═══ */}
@@ -2045,27 +2036,27 @@ export function RealEstateDetail() {
           {/* Characteristics */}
           {(item.rooms || item.area || item.floor_info) && (
             <div className="bg-white rounded-2xl shadow-sm p-5 md:p-6">
-              <h2 className="font-bold text-gray-900 mb-4">Характеристики</h2>
+              <h2 className="font-bold text-gray-900 mb-4">{publicT("realestate.characteristics")}</h2>
               <div className="grid grid-cols-3 gap-4">
                 {item.rooms && (
                   <div className="text-center bg-gray-50 rounded-xl p-4">
                     <div className="text-2xl mb-1">🛏</div>
                     <p className="text-lg font-bold text-gray-900">{item.rooms}</p>
-                    <p className="text-xs text-gray-400">Комнат</p>
+                    <p className="text-xs text-gray-400">{publicT("public.Content.text126")}</p>
                   </div>
                 )}
                 {item.area && (
                   <div className="text-center bg-gray-50 rounded-xl p-4">
                     <div className="text-2xl mb-1">📐</div>
-                    <p className="text-lg font-bold text-gray-900">{item.area} м²</p>
-                    <p className="text-xs text-gray-400">Площадь</p>
+                    <p className="text-lg font-bold text-gray-900">{item.area} {publicT("realestate.sqm")}</p>
+                    <p className="text-xs text-gray-400">{publicT("realestate.area")}</p>
                   </div>
                 )}
                 {item.floor_info && (
                   <div className="text-center bg-gray-50 rounded-xl p-4">
                     <div className="text-2xl mb-1">🏢</div>
                     <p className="text-lg font-bold text-gray-900">{item.floor_info}</p>
-                    <p className="text-xs text-gray-400">Этаж</p>
+                    <p className="text-xs text-gray-400">{publicT("realestate.form.floor")}</p>
                   </div>
                 )}
               </div>
@@ -2074,9 +2065,9 @@ export function RealEstateDetail() {
 
           {/* Description */}
           <div className="bg-white rounded-2xl shadow-sm p-5 md:p-6">
-            <h2 className="font-bold text-gray-900 mb-3">Описание</h2>
+            <h2 className="font-bold text-gray-900 mb-3">{publicT("realestate.description")}</h2>
             <div className="prose prose-gray max-w-none">
-              {(item.description || 'Описание не указано').split('\n').map((p: string, i: number) => (
+              {(item.description || publicT("realestate.noDescription")).split('\n').map((p: string, i: number) => (
                 <p key={i} className="text-gray-600 leading-relaxed mb-3 text-sm">{p}</p>
               ))}
             </div>
@@ -2085,14 +2076,14 @@ export function RealEstateDetail() {
           {/* Author */}
           {item.author_name && (
             <div className="bg-white rounded-2xl shadow-sm p-5 md:p-6">
-              <h2 className="font-bold text-gray-900 mb-3">Контактное лицо</h2>
+              <h2 className="font-bold text-gray-900 mb-3">{publicT("realestate.contactPerson")}</h2>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
                   <span className="text-lg font-bold text-emerald-600">{item.author_name.charAt(0).toUpperCase()}</span>
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900">{item.author_name}</p>
-                  <p className="text-xs text-gray-400">Автор объявления</p>
+                  <p className="text-xs text-gray-400">{publicT("public.Content.text137")}</p>
                 </div>
               </div>
             </div>
@@ -2106,7 +2097,7 @@ export function RealEstateDetail() {
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
             {item.price && (
               <div className="hidden sm:block mr-auto">
-                <p className="text-xs text-gray-400">Цена</p>
+                <p className="text-xs text-gray-400">{publicT("realestate.form.price")}</p>
                 <p className="text-lg font-extrabold text-emerald-600">{item.price}</p>
               </div>
             )}
@@ -2114,8 +2105,7 @@ export function RealEstateDetail() {
               href={`tel:${item.phone}`}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-200/50 active:scale-[0.98]"
             >
-              <Phone className="w-4 h-4" /> Позвонить
-            </a>
+              <Phone className="w-4 h-4" /> {publicT("realestate.call")} </a>
             {item.whatsapp && (
               <a
                 href={`https://wa.me/${item.whatsapp.replace(/\D/g, '')}`}
@@ -2145,6 +2135,7 @@ export function RealEstateDetail() {
 
 /* ============ NEW REAL ESTATE FORM ============ */
 export function NewRealEstateForm() {
+  const { t: publicT } = useLanguage();
   const [form, setForm] = useState({
     re_type: '', title: '', description: '', price: '', rooms: '', area: '',
     floor_info: '', address: '', phone: '', whatsapp: '', telegram: '', author_name: ''
@@ -2167,7 +2158,7 @@ export function NewRealEstateForm() {
       setSuccess(true);
     } catch (e) {
       console.error(e);
-      toast.error('Ошибка отправки. Попробуйте ещё раз.');
+      toast.error(publicT("realestate.form.error"));
       setSubmitted(false);
     } finally {
       setSubmitting(false);
@@ -2177,62 +2168,62 @@ export function NewRealEstateForm() {
   if (success) return (
     <Layout><div className="max-w-lg mx-auto px-4 py-16 text-center">
       <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4"><Clock className="w-8 h-8 text-emerald-600" /></div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Объявление отправлено на модерацию!</h2>
-      <p className="text-gray-500 mb-6">Оно будет опубликовано после проверки администратором.</p>
-      <Link to="/real-estate" className="text-blue-600 hover:text-blue-700 font-medium">Вся недвижимость</Link>
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">{publicT("realestate.form.successTitle")}</h2>
+      <p className="text-gray-500 mb-6">{publicT("realestate.form.successDesc")}</p>
+      <Link to="/real-estate" className="text-blue-600 hover:text-blue-700 font-medium">{publicT("realestate.backToList")}</Link>
     </div></Layout>
   );
 
   return (
     <Layout>
       <div className="max-w-lg mx-auto px-4 py-8">
-        <Link to="/real-estate" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> Назад</Link>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Разместить объявление о недвижимости</h1>
-        <p className="text-gray-500 mb-6">Заполните форму — объявление появится после модерации</p>
+        <Link to="/real-estate" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> {publicT("common.back")}</Link>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">{publicT("realestate.form.createTitle")}</h1>
+        <p className="text-gray-500 mb-6">{publicT("realestate.form.createDesc")}</p>
         <SafetyAlert variant="real_estate_form" />
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4 mt-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Тип объявления *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text138")}</label>
             <select value={form.re_type} onChange={e => setForm({ ...form, re_type: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" required>
-              <option value="">Выберите тип</option>
+              <option value="">{publicT("realestate.form.selectType")}</option>
               {Object.entries(REAL_ESTATE_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Заголовок *</label>
-            <input type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Например: 2-комн. квартира, 55 м²" required />
+            <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text68")}</label>
+            <input type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder={publicT("realestate.form.titlePlaceholder")} required />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Описание *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text69")}</label>
             <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={4} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none" required />
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Цена</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("realestate.form.price")}</label>
               <input type="text" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="15 000 000 ₸" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Комнат</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text126")}</label>
               <input type="text" value={form.rooms} onChange={e => setForm({ ...form, rooms: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="2" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Площадь (м²)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text139")}</label>
               <input type="text" value={form.area} onChange={e => setForm({ ...form, area: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="55" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Этаж</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("realestate.form.floor")}</label>
               <input type="text" value={form.floor_info} onChange={e => setForm({ ...form, floor_info: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="3/9" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Адрес</label>
-              <input type="text" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="ул. Ленина 5" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("masters.fieldAddress")}</label>
+              <input type="text" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder={publicT("realestate.form.addressPlaceholder")} />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Телефон *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text72")}</label>
               <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" required />
             </div>
             <div>
@@ -2245,19 +2236,18 @@ export function NewRealEstateForm() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Ваше имя</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("realestate.form.author")}</label>
             <input type="text" value={form.author_name} onChange={e => setForm({ ...form, author_name: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Фотографии (до 10 штук)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text140")}</label>
             <MultiImageUpload value={galleryKeys} onChange={setGalleryKeys} folder="real-estate" maxImages={10} />
           </div>
           <button type="submit" disabled={submitting || submitted} className="w-full bg-emerald-600 text-white font-medium py-3 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50">
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" /> Отправка...
-              </span>
-            ) : 'Разместить объявление'}
+                <Loader2 className="w-4 h-4 animate-spin" /> {publicT("realestate.form.submitting")} </span>
+            ) : publicT("quick.postAd")}
           </button>
         </form>
       </div>

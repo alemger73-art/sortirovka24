@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useState } from 'react';
 import { FileText, ExternalLink } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
@@ -15,6 +16,7 @@ interface DocFilePreviewProps {
  * are shown as a clickable card that opens the document in a new tab.
  */
 export default function DocFilePreview({ value, alt = '', className = '' }: DocFilePreviewProps) {
+  const { t: publicT } = useLanguage();
   const pdf = isPdf(value);
   const [pdfUrl, setPdfUrl] = useState<string | null>(
     isDirectUrl(value) ? value : null
@@ -52,7 +54,7 @@ export default function DocFilePreview({ value, alt = '', className = '' }: DocF
         e.stopPropagation();
       }}
       className={`flex flex-col items-center justify-center gap-1 bg-red-50 text-red-600 hover:bg-red-100 transition-colors ${className}`}
-      title={alt || 'Открыть PDF'}
+      title={alt || publicT("public.DocFilePreview.text312")}
     >
       <FileText className="h-7 w-7" />
       <span className="text-[10px] font-semibold inline-flex items-center gap-0.5">

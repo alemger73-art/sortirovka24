@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Loader2, Video, CloudUpload, CheckCircle2 } from 'lucide-react';
@@ -16,6 +17,7 @@ interface VideoUploadProps {
 }
 
 export default function VideoUpload({ value, onChange, folder = 'general', className = '' }: VideoUploadProps) {
+  const { t: publicT } = useLanguage();
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -25,11 +27,11 @@ export default function VideoUpload({ value, onChange, folder = 'general', class
 
   const handleUpload = useCallback(async (file: File) => {
     if (!ACCEPTED_MIME.includes(file.type)) {
-      toast.error('Поддерживаются только MP4, MOV, WebM');
+      toast.error(publicT("public.VideoUpload.text363"));
       return;
     }
     if (file.size > MAX_VIDEO_SIZE) {
-      toast.error('Максимальный размер видео — 50 МБ');
+      toast.error(publicT("public.VideoUpload.text364"));
       return;
     }
 
@@ -50,11 +52,11 @@ export default function VideoUpload({ value, onChange, folder = 'general', class
 
       onChange(result.objectKey);
       setUploadSuccess(true);
-      toast.success('Видео загружено');
+      toast.success(publicT("public.VideoUpload.text365"));
       setTimeout(() => setUploadSuccess(false), 2000);
     } catch (err) {
       console.error('Video upload error:', err);
-      toast.error('Ошибка загрузки видео');
+      toast.error(publicT("public.VideoUpload.text366"));
       clearInterval(progressInterval);
     } finally {
       setUploading(false);
@@ -97,7 +99,7 @@ export default function VideoUpload({ value, onChange, folder = 'general', class
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-700 truncate">{value.split('/').pop()}</p>
-            <p className="text-xs text-green-600">Видео загружено ✓</p>
+            <p className="text-xs text-green-600">{publicT("public.VideoUpload.text367")}</p>
           </div>
           <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={handleRemove}>
             <X className="h-4 w-4 text-gray-400" />
@@ -119,7 +121,7 @@ export default function VideoUpload({ value, onChange, folder = 'general', class
           {uploading ? (
             <div className="space-y-2">
               <Loader2 className="h-6 w-6 animate-spin text-blue-500 mx-auto" />
-              <p className="text-sm text-gray-500">Загрузка видео... {uploadProgress}%</p>
+              <p className="text-sm text-gray-500">{publicT("public.VideoUpload.text368")} {uploadProgress}%</p>
               <div className="w-full bg-gray-200 rounded-full h-1.5">
                 <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
               </div>
@@ -127,13 +129,13 @@ export default function VideoUpload({ value, onChange, folder = 'general', class
           ) : uploadSuccess ? (
             <div className="space-y-1">
               <CheckCircle2 className="h-6 w-6 text-green-500 mx-auto" />
-              <p className="text-sm text-green-600 font-medium">Загружено!</p>
+              <p className="text-sm text-green-600 font-medium">{publicT("public.VideoUpload.text369")}</p>
             </div>
           ) : (
             <div className="space-y-1">
               <CloudUpload className="h-6 w-6 text-gray-400 mx-auto" />
-              <p className="text-sm text-gray-500">Нажмите или перетащите видео</p>
-              <p className="text-xs text-gray-400">MP4, MOV, WebM до 50 МБ</p>
+              <p className="text-sm text-gray-500">{publicT("public.VideoUpload.text370")}</p>
+              <p className="text-xs text-gray-400">{publicT("public.VideoUpload.text371")}</p>
             </div>
           )}
         </div>

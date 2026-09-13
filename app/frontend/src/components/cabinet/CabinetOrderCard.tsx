@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Link, useNavigate } from "react-router-dom";
 import {
   ChevronRight, MapPin, RotateCcw, Store, Truck, UtensilsCrossed, Wine,
@@ -109,6 +110,7 @@ interface Props {
 }
 
 export default function CabinetOrderCard({ order: o, detailPath, t }: Props) {
+  const { t: publicT } = useLanguage();
   const navigate = useNavigate();
   const isFood = o.type === "food";
   const isStore = o.type in STORE_ORDER_LABELS;
@@ -195,8 +197,7 @@ export default function CabinetOrderCard({ order: o, detailPath, t }: Props) {
                   to={`/delivery/food/${o.order_number}`}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-orange-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-orange-700"
                 >
-                  <MapPin className="h-3 w-3" /> Отследить
-                </Link>
+                  <MapPin className="h-3 w-3" /> {publicT("public.CabinetOrderDetail.text47")} </Link>
               ) : null}
               {o.order_items ? (
                 <button
@@ -204,8 +205,7 @@ export default function CabinetOrderCard({ order: o, detailPath, t }: Props) {
                   onClick={() => repeatFoodOrder(o, navigate)}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-orange-300 bg-orange-50 px-3 py-1.5 text-[11px] font-semibold text-orange-700 hover:bg-orange-100 dark:border-orange-500/40 dark:bg-orange-500/10 dark:text-orange-200 dark:hover:bg-orange-500/20"
                 >
-                  <RotateCcw className="h-3 w-3" /> Заказать снова
-                </button>
+                  <RotateCcw className="h-3 w-3" /> {publicT("public.CabinetOrderDetail.text46")} </button>
               ) : null}
             </div>
           ) : null}

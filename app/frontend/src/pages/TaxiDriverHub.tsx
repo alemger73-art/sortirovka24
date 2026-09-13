@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -12,6 +13,7 @@ import { Car, CheckCircle2, Clock, Loader2, LogIn, Shield, Wallet } from 'lucide
 import { toast } from 'sonner';
 
 export default function TaxiDriverHub() {
+  const { t: publicT } = useLanguage();
   const navigate = useNavigate();
   const taxiEnabled = useTaxiEnabled();
   const [loading, setLoading] = useState(true);
@@ -69,20 +71,20 @@ export default function TaxiDriverHub() {
       return;
     }
     if (!form.full_name.trim() || !form.car_number.trim()) {
-      toast.error('Заполните имя и госномер');
+      toast.error(publicT("public.TaxiDriverHub.text263"));
       return;
     }
     if (!form.photo_url || !form.license_photo_url || !form.tech_passport_photo_url || !form.car_photo_url) {
-      toast.error('Загрузите все документы: фото, права, техпаспорт и фото автомобиля');
+      toast.error(publicT("public.TaxiDriverHub.text264"));
       return;
     }
     setSubmitting(true);
     try {
       const app = await taxiApi.submitDriverApplication(form);
       setApplication(app);
-      toast.success('Заявка отправлена! Ожидайте проверки администратором.');
+      toast.success(publicT("public.CourierHub.text146"));
     } catch (e: any) {
-      toast.error(String(e?.message || 'Ошибка'));
+      toast.error(String(e?.message || publicT("courier.genericError")));
     } finally {
       setSubmitting(false);
     }
@@ -108,17 +110,17 @@ export default function TaxiDriverHub() {
             <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-900 mb-4">
               <Car className="h-8 w-8 text-yellow-400" />
             </div>
-            <h1 className="text-3xl md:text-4xl font-black text-gray-900">Водителям Сортировки</h1>
-            <p className="mt-2 text-gray-800 font-medium">Работайте в районе · свой кабинет · заказы через Sortirovka24</p>
+            <h1 className="text-3xl md:text-4xl font-black text-gray-900">{publicT("public.TaxiDriverHub.text265")}</h1>
+            <p className="mt-2 text-gray-800 font-medium">{publicT("public.TaxiDriverHub.text266")}</p>
           </div>
         </div>
 
         <div className="mx-auto max-w-3xl px-4 py-8 space-y-6 -mt-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
-              { icon: Wallet, title: 'Честный заработок', desc: 'Видите цену каждой поездки' },
-              { icon: Shield, title: 'Проверенный сервис', desc: 'Официальная платформа района' },
-              { icon: Clock, title: 'Гибкий график', desc: 'Вы сами выходите на линию' },
+              { icon: Wallet, title: publicT("public.TaxiDriverHub.text267"), desc: publicT("public.TaxiDriverHub.text268") },
+              { icon: Shield, title: publicT("public.TaxiDriverHub.text269"), desc: publicT("public.TaxiDriverHub.text270") },
+              { icon: Clock, title: publicT("public.TaxiDriverHub.text271"), desc: publicT("public.TaxiDriverHub.text272") },
             ].map(({ icon: Icon, title, desc }) => (
               <div key={title} className="rounded-2xl bg-white/10 border border-white/10 p-4 backdrop-blur-sm">
                 <Icon className="h-5 w-5 text-yellow-400 mb-2" />
@@ -135,24 +137,23 @@ export default function TaxiDriverHub() {
           ) : isDriver ? (
             <div className="rounded-3xl bg-white p-8 text-center shadow-xl">
               <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <h2 className="text-xl font-bold text-gray-900">Вы — водитель Сортировка Такси</h2>
-              <p className="text-gray-500 mt-2 mb-6">Откройте рабочий кабинет, выйдите на линию и принимайте заказы</p>
+              <h2 className="text-xl font-bold text-gray-900">{publicT("public.TaxiDriverHub.text273")}</h2>
+              <p className="text-gray-500 mt-2 mb-6">{publicT("public.TaxiDriverHub.text274")}</p>
               <Button className="h-12 px-8 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-bold" onClick={() => navigate('/cabinet/driver')}>
-                Открыть кабинет водителя
-              </Button>
+                {publicT("public.TaxiDriverHub.text275")} </Button>
             </div>
           ) : application?.status === 'pending' ? (
             <div className="rounded-3xl bg-white p-8 text-center shadow-xl">
               <Clock className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-              <h2 className="text-xl font-bold text-gray-900">Заявка на рассмотрении</h2>
-              <p className="text-gray-500 mt-2">Администратор проверит документы. После модерации откроется кабинет водителя</p>
+              <h2 className="text-xl font-bold text-gray-900">{publicT("public.CourierHub.text158")}</h2>
+              <p className="text-gray-500 mt-2">{publicT("public.TaxiDriverHub.text276")}</p>
               <p className="text-sm text-gray-400 mt-4">{form.car_make} {form.car_model} · {form.car_number}</p>
             </div>
           ) : application?.status === 'rejected' ? (
             <div className="rounded-3xl bg-white p-8 shadow-xl space-y-4">
-              <h2 className="text-xl font-bold text-gray-900">Заявка отклонена</h2>
+              <h2 className="text-xl font-bold text-gray-900">{publicT("public.CourierHub.text160")}</h2>
               {application.admin_note && <p className="text-sm text-red-600">{application.admin_note}</p>}
-              <p className="text-gray-500 text-sm">Исправьте данные и отправьте заявку снова</p>
+              <p className="text-gray-500 text-sm">{publicT("public.CourierHub.text161")}</p>
               {/* show form below */}
             </div>
           ) : null}
@@ -160,28 +161,27 @@ export default function TaxiDriverHub() {
           {!isDriver && application?.status !== 'pending' && (
             <div className="rounded-3xl bg-white p-6 md:p-8 shadow-xl space-y-4">
               <h2 className="text-xl font-bold text-gray-900">
-                {getAccountToken() ? 'Заявка на подключение' : 'Войдите, чтобы подать заявку'}
+                {getAccountToken() ? publicT("public.CourierHub.text162") : publicT("public.CourierHub.text163")}
               </h2>
               {!getAccountToken() ? (
                 <div className="text-center py-6">
-                  <p className="text-gray-500 mb-4">Нужен аккаунт Sortirovka24 (SMS-вход)</p>
+                  <p className="text-gray-500 mb-4">{publicT("public.CourierHub.text164")}</p>
                   <Button className="rounded-xl bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold" onClick={() => navigate('/account?redirect=/taxi/driver')}>
-                    <LogIn className="h-4 w-4 mr-2" /> Войти / регистрация
-                  </Button>
+                    <LogIn className="h-4 w-4 mr-2" /> {publicT("public.CourierHub.text165")} </Button>
                 </div>
               ) : (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Input placeholder="ФИО" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} className="rounded-xl h-11" />
-                    <Input placeholder="Телефон" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="rounded-xl h-11" />
-                    <Input placeholder="Марка (Toyota)" value={form.car_make} onChange={(e) => setForm({ ...form, car_make: e.target.value })} className="rounded-xl h-11" />
-                    <Input placeholder="Модель (Camry)" value={form.car_model} onChange={(e) => setForm({ ...form, car_model: e.target.value })} className="rounded-xl h-11" />
-                    <Input placeholder="Госномер" value={form.car_number} onChange={(e) => setForm({ ...form, car_number: e.target.value })} className="rounded-xl h-11" />
-                    <Input placeholder="Цвет" value={form.car_color} onChange={(e) => setForm({ ...form, car_color: e.target.value })} className="rounded-xl h-11" />
+                    <Input placeholder={publicT("public.CourierHub.text166")} value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} className="rounded-xl h-11" />
+                    <Input placeholder={publicT("realestate.form.phone")} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="rounded-xl h-11" />
+                    <Input placeholder={publicT("driver.carMake")} value={form.car_make} onChange={(e) => setForm({ ...form, car_make: e.target.value })} className="rounded-xl h-11" />
+                    <Input placeholder={publicT("driver.carModel")} value={form.car_model} onChange={(e) => setForm({ ...form, car_model: e.target.value })} className="rounded-xl h-11" />
+                    <Input placeholder={publicT("driver.carNumber")} value={form.car_number} onChange={(e) => setForm({ ...form, car_number: e.target.value })} className="rounded-xl h-11" />
+                    <Input placeholder={publicT("driver.carColor")} value={form.car_color} onChange={(e) => setForm({ ...form, car_color: e.target.value })} className="rounded-xl h-11" />
                   </div>
-                  <Input placeholder="Комментарий (необязательно)" value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} className="rounded-xl h-11" />
+                  <Input placeholder={publicT("public.CourierHub.text169")} value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} className="rounded-xl h-11" />
                   <div>
-                    <p className="text-sm font-semibold text-gray-800 mb-2">Документы для верификации</p>
+                    <p className="text-sm font-semibold text-gray-800 mb-2">{publicT("public.TaxiDriverHub.text277")}</p>
                     <DriverDocUpload
                       photoUrl={form.photo_url}
                       licenseUrl={form.license_photo_url}
@@ -192,15 +192,14 @@ export default function TaxiDriverHub() {
                   </div>
                   <Button className="w-full h-12 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-bold" disabled={submitting} onClick={submit}>
                     {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    Отправить заявку
-                  </Button>
+                    {publicT("masters.submitApplication")} </Button>
                 </>
               )}
             </div>
           )}
 
           <p className="text-center text-white/40 text-sm">
-            Заказать такси — <Link to="/taxi" className="text-yellow-400 underline">для пассажиров</Link>
+            {publicT("public.TaxiDriverHub.text278")} <Link to="/taxi" className="text-yellow-400 underline">{publicT("public.TaxiDriverHub.text279")}</Link>
           </p>
         </div>
       </div>

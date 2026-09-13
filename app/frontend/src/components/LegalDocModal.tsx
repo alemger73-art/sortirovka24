@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 
@@ -22,6 +23,7 @@ export default function LegalDocModal({
   onAccept,
   acceptLabel = "Я прочитал(а) и согласен(на)",
 }: Props) {
+  const { t: publicT } = useLanguage();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrolledToEnd, setScrolledToEnd] = useState(false);
 
@@ -49,13 +51,13 @@ export default function LegalDocModal({
         <div className="flex items-start justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
           <div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Обновлено: {updated}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{publicT("public.LegalPage.text207")} {updated}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="rounded-lg p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-            aria-label="Закрыть"
+            aria-label={publicT("common.close")}
           >
             <X className="h-5 w-5" />
           </button>
@@ -73,8 +75,7 @@ export default function LegalDocModal({
         <div className="border-t border-gray-200 px-5 py-4 dark:border-gray-800">
           {!scrolledToEnd ? (
             <p className="mb-3 text-center text-xs text-amber-600 dark:text-amber-400">
-              Прокрутите текст до конца, чтобы принять
-            </p>
+              {publicT("public.LegalDocModal.text337")} </p>
           ) : null}
           <button
             type="button"

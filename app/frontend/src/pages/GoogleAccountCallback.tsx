@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -23,8 +24,9 @@ function getCabinetRouteByRole(role?: string): string {
 }
 
 export default function GoogleAccountCallback() {
+  const { t: publicT } = useLanguage();
   const navigate = useNavigate();
-  const [message, setMessage] = useState("Завершаем вход через Google...");
+  const [message, setMessage] = useState(publicT("public.GoogleAccountCallback.text187"));
 
   useEffect(() => {
     let cancelled = false;
@@ -46,7 +48,7 @@ export default function GoogleAccountCallback() {
       const token = hash.get("token");
       const role = hash.get("role") || "user";
       if (!token) {
-        setMessage("Не удалось получить токен Google. Попробуйте войти снова.");
+        setMessage(publicT("public.GoogleAccountCallback.text188"));
         return;
       }
 
@@ -65,7 +67,7 @@ export default function GoogleAccountCallback() {
         navigate(redirectTo || getCabinetRouteByRole(role), { replace: true });
       } catch (e: any) {
         if (cancelled) return;
-        setMessage(String(e?.message || "Ошибка входа через Google"));
+        setMessage(String(e?.message || publicT("public.GoogleAccountCallback.text189")));
       }
     }
 

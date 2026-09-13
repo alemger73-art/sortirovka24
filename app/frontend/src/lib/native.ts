@@ -40,13 +40,7 @@ export async function initNativeShell(): Promise<void> {
   void clearLegacyWebCaches();
 
   try {
-    const [{ StatusBar, Style }, { App }] = await Promise.all([
-      import('@capacitor/status-bar'),
-      import('@capacitor/app'),
-    ]);
-
-
-    await StatusBar.setStyle({ style: Style.Dark }).catch(() => undefined);
+    const { App } = await import('@capacitor/app');
 
     App.addListener('backButton', ({ canGoBack }) => {
       if (canGoBack) {

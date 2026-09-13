@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 export default function BusinessPage() {
+  const { t: publicT } = useLanguage();
   const { t } = useLanguage();
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -38,7 +39,7 @@ export default function BusinessPage() {
       });
       setSubmitted(true);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Не удалось отправить заявку');
+      toast.error(err instanceof Error ? err.message : publicT("public.Business.text38"));
     } finally {
       setSubmitting(false);
     }
@@ -238,7 +239,7 @@ export default function BusinessPage() {
                     className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 text-sm min-h-[48px]"
                   >
                     <Send className="w-4 h-4" />
-                    {submitting ? 'Отправка…' : t('business.submit')}
+                    {submitting ? publicT("report.submitting") : t('business.submit')}
                   </button>
                 </form>
               )}

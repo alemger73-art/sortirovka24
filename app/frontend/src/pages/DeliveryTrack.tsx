@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -34,6 +35,7 @@ function notifyCustomer(title: string, body: string) {
 }
 
 export default function DeliveryTrack() {
+  const { t: publicT } = useLanguage();
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const foodOrderId = parseInt(orderId || '0', 10);
@@ -73,13 +75,13 @@ export default function DeliveryTrack() {
     const prev = prevStatus.current;
     if (prev && prev !== task.status) {
       if (task.status === 'assigned') {
-        notifyCustomer('Курьер назначен', 'Курьер едет за вашим заказом');
+        notifyCustomer(publicT("logistics.status.assigned"), publicT("public.DeliveryTrack.text174"));
       } else if (task.status === 'picked_up') {
-        notifyCustomer('Заказ забран', 'Курьер везёт ваш заказ');
+        notifyCustomer(publicT("public.DeliveryTrack.text175"), publicT("public.DeliveryTrack.text176"));
       } else if (task.status === 'on_the_way') {
-        notifyCustomer('Курьер в пути', 'Скоро будем у вас');
+        notifyCustomer(publicT("public.DeliveryTrack.text177"), 'Скоро будем у вас');
       } else if (task.status === 'delivered') {
-        notifyCustomer('Доставлено!', 'Приятного аппетита!');
+        notifyCustomer(publicT("public.DeliveryTrack.text178"), publicT("public.DeliveryTrack.text179"));
       }
     }
     prevStatus.current = task.status;
@@ -99,8 +101,8 @@ export default function DeliveryTrack() {
     return (
       <Layout>
         <div className="mx-auto max-w-lg px-4 py-16 text-center">
-          <p className="text-gray-600">Отслеживание доставки пока недоступно</p>
-          <Button className="mt-4" onClick={() => navigate('/food')}>К меню</Button>
+          <p className="text-gray-600">{publicT("public.DeliveryTrack.text180")}</p>
+          <Button className="mt-4" onClick={() => navigate('/food')}>{publicT("public.DeliveryTrack.text181")}</Button>
         </div>
       </Layout>
     );
@@ -122,7 +124,7 @@ export default function DeliveryTrack() {
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div>
-              <h1 className="font-bold text-gray-900">Доставка #{foodOrderId}</h1>
+              <h1 className="font-bold text-gray-900">{publicT("public.DeliveryTrack.text182")}{foodOrderId}</h1>
               <p className="text-sm text-gray-500">{task.merchant_name || DAM_ALEM_BRAND}</p>
             </div>
             <button onClick={load} className="ml-auto p-2 rounded-xl hover:bg-gray-100">
@@ -166,14 +168,14 @@ export default function DeliveryTrack() {
             <div className="flex gap-2 text-sm">
               <MapPin className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-gray-500 text-xs">Откуда</p>
+                <p className="text-gray-500 text-xs">{publicT("public.DeliveryTrack.text183")}</p>
                 <p className="font-medium">{task.pickup_address}</p>
               </div>
             </div>
             <div className="flex gap-2 text-sm">
               <MapPin className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-gray-500 text-xs">Куда</p>
+                <p className="text-gray-500 text-xs">{publicT("public.DeliveryTrack.text184")}</p>
                 <p className="font-medium">{task.dropoff_address}</p>
               </div>
             </div>
@@ -208,8 +210,7 @@ export default function DeliveryTrack() {
               to="/food"
               className="flex h-12 w-full items-center justify-center rounded-2xl bg-orange-600 text-white font-bold"
             >
-              Заказать ещё
-            </Link>
+              {publicT("public.DeliveryTrack.text185")} </Link>
           )}
         </div>
       </div>

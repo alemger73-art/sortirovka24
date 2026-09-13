@@ -93,6 +93,7 @@ function isCabinetTabId(value: string | null): value is TabId {
 }
 
 export default function Cabinet() {
+  const { t: publicT } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { t, setLang } = useLanguage();
@@ -861,7 +862,7 @@ export default function Cabinet() {
                       <label className="block text-sm font-medium">{t("cabinet.placeholderPhone")}<input aria-label={t("cabinet.placeholderPhone")} disabled value={cabinet?.profile?.phone || ""} className={`${inputClass} opacity-80`} placeholder={t("cabinet.placeholderPhone")} /></label>
                       <label className="block text-sm font-medium">Email<input aria-label="Email" type="email" maxLength={254} disabled={savingProfile} value={profileForm.email} onChange={(e) => setProfileForm((p) => ({ ...p, email: e.target.value }))} className={inputClass} placeholder="Email" /></label>
                       <label className="block text-sm font-medium">{t("cabinet.language")}<select aria-label={t("cabinet.language")} disabled={savingProfile} value={profileForm.language} onChange={e => setProfileForm(p => ({ ...p, language: e.target.value }))} className={inputClass}>
-                        <option value="ru">Русский</option>
+                        <option value="ru">{publicT("lang.ru")}</option>
                         <option value="kz">Қазақша</option>
                       </select></label>
                       <button onClick={saveProfile} disabled={savingProfile || avatarUploading} className="inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-[#0B0F19] disabled:opacity-60">
@@ -945,7 +946,7 @@ export default function Cabinet() {
                               <p className="text-xs text-emerald-700 break-words">{addressForm.display}</p>
                             ) : null}
                             <iframe
-                              title="Карта адреса"
+                              title={publicT("public.Cabinet.text39")}
                               src={`https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(
                                 `${addressForm.lng - 0.008},${addressForm.lat - 0.008},${addressForm.lng + 0.008},${addressForm.lat + 0.008}`
                               )}&layer=mapnik&marker=${addressForm.lat}%2C${addressForm.lng}`}
@@ -1269,7 +1270,7 @@ export default function Cabinet() {
                               ) : null}
                               {isAnnouncementPromoted(a) ? (
                                 <p className="mt-1 text-xs text-blue-600 dark:text-blue-300">
-                                  {a.promotion_tier === 'vip' ? 'VIP' : 'Топ'} {t("cabinet.announcements.until")} {formatExpiryLabel(a.promoted_until)}
+                                  {a.promotion_tier === 'vip' ? 'VIP' : publicT("public.Cabinet.text40")} {t("cabinet.announcements.until")} {formatExpiryLabel(a.promoted_until)}
                                 </p>
                               ) : null}
                             </div>
@@ -1379,7 +1380,7 @@ export default function Cabinet() {
                               ) : null}
                               {isRealEstatePromoted(r) && r.promoted_until ? (
                                 <p className="mt-1 text-xs text-blue-600 dark:text-blue-300">
-                                  {r.promotion_tier === "vip" ? "VIP" : "Топ"} {t("cabinet.realEstate.until")} {formatExpiryLabel(r.promoted_until)}
+                                  {r.promotion_tier === "vip" ? "VIP" : publicT("public.Cabinet.text40")} {t("cabinet.realEstate.until")} {formatExpiryLabel(r.promoted_until)}
                                 </p>
                               ) : null}
                             </div>

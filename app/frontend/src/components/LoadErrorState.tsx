@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -9,6 +10,7 @@ export default function LoadErrorState({
   message?: string;
   onRetry?: () => void;
 }) {
+  const { t: publicT } = useLanguage();
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-16 px-6 text-center">
       <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center">
@@ -18,8 +20,7 @@ export default function LoadErrorState({
       {onRetry && (
         <Button type="button" variant="outline" onClick={onRetry} className="gap-2">
           <RefreshCw className="w-4 h-4" />
-          Повторить
-        </Button>
+          {publicT("public.ImageUpload.text333")} </Button>
       )}
     </div>
   );

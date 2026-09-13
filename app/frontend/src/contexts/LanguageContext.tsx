@@ -13,11 +13,17 @@ const LanguageContext = createContext<LanguageContextType | null>(null);
 
 function detectLanguage(): Lang {
   // 1. Check localStorage
-  const stored = localStorage.getItem('app_lang');
-  if (stored === 'ru' || stored === 'kz') return stored;
+  try {
+    const stored = localStorage.getItem('app_lang');
+    if (stored === 'ru' || stored === 'kz') return stored;
+  } catch {
+    // Storage can be unavailable in restricted browsers and webviews.
+  }
 
   // 2. Check browser language
-  const browserLang = navigator.language || (navigator as any).userLanguage || '';
+  const browserLang = typeof navigator === 'undefined'
+    ? ''
+    : (navigator.language || (navigator as any).userLanguage || '').toLowerCase();
   if (browserLang.startsWith('kk') || browserLang.startsWith('kz')) return 'kz';
 
   // 3. Default to Russian
@@ -29,7 +35,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const setLang = useCallback((newLang: Lang) => {
     setLangState(newLang);
-    localStorage.setItem('app_lang', newLang);
+    try {
+      localStorage.setItem('app_lang', newLang);
+    } catch {
+      // The selected language still applies for the current session.
+    }
     document.documentElement.lang = newLang === 'kz' ? 'kk' : 'ru';
   }, []);
 
@@ -38,12 +48,15 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, [lang]);
 
   const t = useCallback((key: string): string => {
-    const entry = translations[key];
+    const entry = Object.prototype.hasOwnProperty.call(translations, key)
+      ? translations[key]
+      : undefined;
     if (!entry) {
       console.warn(`[i18n] Missing translation key: "${key}"`);
       return key;
     }
-    return entry[lang] || entry.ru || key;
+    // Empty strings are intentional for optional UI fragments.
+    return entry[lang] ?? entry.ru ?? key;
   }, [lang]);
 
   /** Get localized field from DB entity. E.g. localized(item, 'name') returns item.name_kz or item.name_ru */

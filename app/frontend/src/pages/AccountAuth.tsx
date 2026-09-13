@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Check, Eye, EyeOff } from "lucide-react";
@@ -45,7 +46,8 @@ function getCabinetRouteByRole(role?: string): string {
 }
 
 function StepIndicator({ step }: { step: RegStep }) {
-  const labels = ["Данные", "SMS-код", "Пароль"];
+  const { t: publicT } = useLanguage();
+  const labels = [publicT("public.AccountAuth.text0"), publicT("public.AccountAuth.text1"), publicT("public.AccountAuth.text2")];
   return (
     <div className="mb-5 flex items-center justify-between gap-1">
       {labels.map((label, i) => {
@@ -76,6 +78,7 @@ function StepIndicator({ step }: { step: RegStep }) {
 }
 
 export default function AccountAuth() {
+  const { t: publicT } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo = useMemo(() => {
@@ -105,7 +108,7 @@ export default function AccountAuth() {
     password: "",
     language: "ru",
   });
-  const title = useMemo(() => (isLogin ? "Вход" : "Регистрация"), [isLogin]);
+  const title = useMemo(() => (isLogin ? publicT("public.AccountAuth.text3") : publicT("public.AccountAuth.text4")), [isLogin]);
   const agreementsOk = termsAccepted && privacyAccepted;
 
   useEffect(() => {
@@ -115,7 +118,7 @@ export default function AccountAuth() {
   function startGoogleAuth() {
     setError("");
     if (!isLogin && !agreementsOk) {
-      setError("Примите пользовательское соглашение и политику конфиденциальности");
+      setError(publicT("public.AccountAuth.text5"));
       return;
     }
     window.location.href = accountApi.googleStartUrl(form.language);
@@ -142,9 +145,9 @@ export default function AccountAuth() {
     setError("");
     setSmsInfo("");
     try {
-      if (!form.name.trim() || form.name.trim().length < 2) throw new Error("Введите имя (минимум 2 символа)");
-      if (!form.phone.trim()) throw new Error("Введите номер телефона");
-      if (!agreementsOk) throw new Error("Примите пользовательское соглашение и политику конфиденциальности");
+      if (!form.name.trim() || form.name.trim().length < 2) throw new Error(publicT("public.AccountAuth.text6"));
+      if (!form.phone.trim()) throw new Error(publicT("public.AccountAuth.text7"));
+      if (!agreementsOk) throw new Error(publicT("public.AccountAuth.text5"));
       const res = await accountApi.requestSmsCode({ phone: form.phone });
       setRegStep(2);
       if (res.on_screen_code_hint) {
@@ -162,7 +165,7 @@ export default function AccountAuth() {
         }
       } else if (res.sms_pending_moderation) {
         setSmsInfo(
-          "SMS проходит модерацию Mobizon (1–15 мин). Если код не появился на экране — подождите и запросите код повторно.",
+          publicT("public.AccountAuth.text8"),
         );
       }
     } catch (e: any) {
@@ -178,7 +181,7 @@ export default function AccountAuth() {
   function goToPasswordStep() {
     setError("");
     if (!smsCode.trim() || smsCode.trim().length < 4) {
-      setError("Введите код из SMS (4 цифры)");
+      setError(publicT("public.AccountAuth.text9"));
       return;
     }
     setRegStep(3);
@@ -188,8 +191,8 @@ export default function AccountAuth() {
     setLoading(true);
     setError("");
     try {
-      if (!form.phone.trim()) throw new Error("Введите номер телефона");
-      if (!form.password.trim()) throw new Error("Введите пароль");
+      if (!form.phone.trim()) throw new Error(publicT("public.AccountAuth.text7"));
+      if (!form.password.trim()) throw new Error(publicT("public.AccountAuth.text10"));
       const res = await accountApi.login({ phone: form.phone, password: form.password });
       setAccountToken(res.token);
       void linkPushTokenToAccount();
@@ -207,8 +210,8 @@ export default function AccountAuth() {
     setLoading(true);
     setError("");
     try {
-      if (form.password.trim().length < 8) throw new Error("Пароль должен быть не короче 8 символов");
-      if (form.password !== password2) throw new Error("Пароли не совпадают");
+      if (form.password.trim().length < 8) throw new Error(publicT("public.AccountAuth.text11"));
+      if (form.password !== password2) throw new Error(publicT("cabinet.errorPasswordMismatch"));
       const res = await accountApi.confirmRegistration({
         name: form.name.trim(),
         phone: form.phone,
@@ -239,14 +242,14 @@ export default function AccountAuth() {
 
   const primaryLabel = isLogin
     ? loading
-      ? "Загрузка..."
-      : "Войти"
+      ? publicT("common.retrying")
+      : publicT("auth.login")
     : loading
-      ? "Загрузка..."
+      ? publicT("common.retrying")
       : regStep === 1
-        ? "Получить SMS-код"
+        ? publicT("public.AccountAuth.text12")
         : regStep === 2
-          ? "Подтвердить код"
+          ? publicT("public.AccountAuth.text13")
           : "Создать аккаунт";
 
   return (
@@ -273,8 +276,8 @@ export default function AccountAuth() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {isLogin
-              ? "Вход по телефону, Google или паролю"
-              : "Регистрация через Google или в 3 шага: телефон → SMS → пароль"}
+              ? publicT("public.AccountAuth.text14")
+              : publicT("public.AccountAuth.text15")}
           </p>
 
           {googleEnabled ? (
@@ -291,11 +294,11 @@ export default function AccountAuth() {
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                 </svg>
-                {isLogin ? "Войти через Google" : "Зарегистрироваться через Google"}
+                {isLogin ? publicT("public.AccountAuth.text16") : publicT("public.AccountAuth.text17")}
               </button>
               <div className="my-4 flex items-center gap-3">
                 <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
-                <span className="text-xs text-gray-400">или</span>
+                <span className="text-xs text-gray-400">{publicT("inspectors.emergencyOr")}</span>
                 <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
               </div>
             </>
@@ -318,7 +321,7 @@ export default function AccountAuth() {
                   <input
                     type={showPassword ? "text" : "password"}
                     className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 pr-11 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
-                    placeholder="Пароль"
+                    placeholder={publicT("public.AccountAuth.text2")}
                     value={form.password}
                     onChange={(e) => setForm({ ...form, password: e.target.value })}
                   />
@@ -326,7 +329,7 @@ export default function AccountAuth() {
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-                    aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+                    aria-label={showPassword ? "Скрыть пароль" : publicT("public.AccountAuth.text18")}
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -339,7 +342,7 @@ export default function AccountAuth() {
               <>
                 <input
                   className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
-                  placeholder="Ваше имя"
+                  placeholder={publicT("realestate.form.author")}
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />
@@ -355,38 +358,35 @@ export default function AccountAuth() {
                   value={form.language}
                   onChange={(e) => setForm({ ...form, language: e.target.value })}
                 >
-                  <option value="ru">Русский</option>
+                  <option value="ru">{publicT("lang.ru")}</option>
                   <option value="kz">Қазақша</option>
                 </select>
 
                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-950">
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Перед регистрацией прочитайте:</p>
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{publicT("public.AccountAuth.text20")}</p>
                   <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                     <button
                       type="button"
                       onClick={() => setShowTermsModal(true)}
                       className="flex-1 rounded-lg border border-blue-200 bg-white px-3 py-2 text-left text-sm text-blue-700 hover:bg-blue-50 dark:border-blue-900 dark:bg-gray-900 dark:text-blue-300"
                     >
-                      {termsAccepted ? "✓ " : ""}Пользовательское соглашение
-                    </button>
+                      {termsAccepted ? "✓ " : ""}{publicT("public.AccountAuth.text21")} </button>
                     <button
                       type="button"
                       onClick={() => setShowPrivacyModal(true)}
                       className="flex-1 rounded-lg border border-blue-200 bg-white px-3 py-2 text-left text-sm text-blue-700 hover:bg-blue-50 dark:border-blue-900 dark:bg-gray-900 dark:text-blue-300"
                     >
-                      {privacyAccepted ? "✓ " : ""}Политика конфиденциальности
-                    </button>
+                      {privacyAccepted ? "✓ " : ""}{publicT("public.AccountAuth.text22")} </button>
                   </div>
                   <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    Откройте каждый документ, прокрутите до конца и нажмите «Согласен».{" "}
+                    {publicT("public.AccountAuth.text23")}{" "}
                     <Link to="/legal/terms" className="text-blue-600 hover:underline" target="_blank">
-                      Открыть на странице
-                    </Link>
+                      {publicT("public.AccountAuth.text24")} </Link>
                   </p>
                   {agreementsOk ? (
-                    <p className="mt-2 text-xs font-medium text-green-600 dark:text-green-400">Оба документа приняты</p>
+                    <p className="mt-2 text-xs font-medium text-green-600 dark:text-green-400">{publicT("public.AccountAuth.text25")}</p>
                   ) : (
-                    <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">Примите оба документа, чтобы продолжить</p>
+                    <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">{publicT("public.AccountAuth.text26")}</p>
                   )}
                 </div>
               </>
@@ -396,19 +396,18 @@ export default function AccountAuth() {
             {!isLogin && regStep === 2 ? (
               <>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Код отправлен на <strong>{form.phone}</strong>
+                  {publicT("public.AccountAuth.text27")} <strong>{form.phone}</strong>
                 </p>
                 {onScreenCode ? (
                   <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4 text-center dark:border-amber-700 dark:bg-amber-950/40">
-                    <p className="text-sm font-medium text-amber-900 dark:text-amber-100">Код для регистрации</p>
+                    <p className="text-sm font-medium text-amber-900 dark:text-amber-100">{publicT("public.AccountAuth.text28")}</p>
                     <p className="mt-2 text-3xl font-black tracking-[0.3em] text-amber-700 dark:text-amber-300">{onScreenCode}</p>
                     <button
                       type="button"
                       onClick={() => setSmsCode(onScreenCode)}
                       className="mt-3 text-sm font-semibold text-blue-600 hover:underline"
                     >
-                      Подставить код в поле
-                    </button>
+                      {publicT("public.AccountAuth.text29")} </button>
                   </div>
                 ) : null}
                 <input
@@ -425,27 +424,25 @@ export default function AccountAuth() {
                   onClick={requestSmsCode}
                   className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
                 >
-                  Отправить код повторно
-                </button>
+                  {publicT("public.AccountAuth.text30")} </button>
                 <button
                   type="button"
                   onClick={() => setRegStep(1)}
                   className="w-full text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                 >
-                  ← Изменить номер
-                </button>
+                  {publicT("public.AccountAuth.text31")} </button>
               </>
             ) : null}
 
             {/* ── REG STEP 3: пароль ── */}
             {!isLogin && regStep === 3 ? (
               <>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Придумайте пароль для входа в личный кабинет</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">{publicT("public.AccountAuth.text32")}</p>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
                     className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 pr-11 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
-                    placeholder="Пароль (мин. 8 символов)"
+                    placeholder={publicT("public.AccountAuth.text33")}
                     value={form.password}
                     onChange={(e) => setForm({ ...form, password: e.target.value })}
                   />
@@ -461,7 +458,7 @@ export default function AccountAuth() {
                   <input
                     type={showPassword2 ? "text" : "password"}
                     className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 pr-11 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
-                    placeholder="Повторите пароль"
+                    placeholder={publicT("public.AccountAuth.text34")}
                     value={password2}
                     onChange={(e) => setPassword2(e.target.value)}
                   />
@@ -478,8 +475,7 @@ export default function AccountAuth() {
                   onClick={() => setRegStep(2)}
                   className="w-full text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                 >
-                  ← Назад к коду
-                </button>
+                  {publicT("public.AccountAuth.text35")} </button>
               </>
             ) : null}
           </div>
@@ -499,11 +495,10 @@ export default function AccountAuth() {
               onClick={() => switchMode(!isLogin)}
               className="text-blue-600 hover:text-blue-700"
             >
-              {isLogin ? "Нужен аккаунт? Регистрация" : "Уже есть аккаунт? Войти"}
+              {isLogin ? publicT("public.AccountAuth.text36") : publicT("public.AccountAuth.text37")}
             </button>
             <Link to="/" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-              На главную
-            </Link>
+              {publicT("masters.backHome")} </Link>
           </div>
         </div>
       </div>

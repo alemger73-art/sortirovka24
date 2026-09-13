@@ -34,6 +34,7 @@ interface Props {
 }
 
 export default function CabinetNav({ tabs, activeTab, onTabChange }: Props) {
+  const { t: publicT } = useLanguage();
   const { t } = useLanguage();
   const navRef = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -45,7 +46,7 @@ export default function CabinetNav({ tabs, activeTab, onTabChange }: Props) {
     }
   }, [activeTab]);
   return (
-    <nav ref={navRef} aria-label="Разделы личного кабинета" className="cabinet-nav lg:sticky lg:top-6">
+    <nav ref={navRef} aria-label={publicT("public.CabinetNav.text311")} className="cabinet-nav lg:sticky lg:top-6">
       <div className="rounded-2xl border border-gray-200/80 bg-white p-2 shadow-sm dark:border-[#1f2a3f] dark:bg-[#111827]">
         <label className="block p-1 lg:hidden"><span className="mb-2 block text-xs font-semibold text-gray-500">{t('cabinet.section')}</span><select className="w-full rounded-xl border border-gray-200 bg-white p-3 text-sm font-semibold dark:border-gray-700 dark:bg-gray-900" value={activeTab} onChange={event => onTabChange(event.target.value as CabinetTabId)}>{tabs.map(tab => <option key={tab.id} value={tab.id}>{tab.label}</option>)}</select></label>
         <ul className="hidden space-y-1 lg:block">

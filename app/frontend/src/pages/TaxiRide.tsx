@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -39,6 +40,7 @@ function notifyPassenger(title: string, body: string) {
 }
 
 export default function TaxiRide() {
+  const { t: publicT } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const rideId = parseInt(id || '0', 10);
@@ -56,7 +58,7 @@ export default function TaxiRide() {
       const data = await taxiApi.getRide(rideId);
       setRide(data);
     } catch (e: unknown) {
-      toast.error(String((e as Error)?.message || 'Поездка не найдена'));
+      toast.error(String((e as Error)?.message || publicT("public.TaxiRide.text280")));
     } finally {
       setLoading(false);
     }
@@ -80,13 +82,13 @@ export default function TaxiRide() {
     const prev = prevStatus.current;
     if (prev && prev !== ride.status) {
       if (ride.status === 'accepted') {
-        notifyPassenger('Водитель назначен', 'Машина уже едет к вам');
+        notifyPassenger(publicT("public.TaxiRide.text281"), publicT("public.TaxiRide.text282"));
       } else if (ride.status === 'driver_arrived') {
-        notifyPassenger('Водитель подъехал!', 'Выходите — машина на месте');
+        notifyPassenger(publicT("public.TaxiRide.text283"), publicT("public.TaxiRide.text284"));
       } else if (ride.status === 'in_progress') {
-        notifyPassenger('Поездка началась', 'Приятной дороги!');
+        notifyPassenger(publicT("public.TaxiRide.text285"), publicT("public.TaxiRide.text286"));
       } else if (ride.status === 'completed') {
-        notifyPassenger('Поездка завершена', 'Оцените водителя');
+        notifyPassenger(publicT("public.TaxiRide.text287"), publicT("public.TaxiRide.text288"));
       }
     }
     prevStatus.current = ride.status;
@@ -97,10 +99,10 @@ export default function TaxiRide() {
     setCancelling(true);
     try {
       await taxiApi.cancelRide(ride.id, 'Отменено пассажиром');
-      toast.success('Поездка отменена');
+      toast.success(publicT("public.TaxiRide.text289"));
       await load();
     } catch (e: unknown) {
-      toast.error(String((e as Error)?.message || 'Не удалось отменить'));
+      toast.error(String((e as Error)?.message || publicT("public.TaxiRide.text290")));
     } finally {
       setCancelling(false);
     }
@@ -114,7 +116,7 @@ export default function TaxiRide() {
       toast.success('Спасибо за оценку!');
       await load();
     } catch (e: unknown) {
-      toast.error(String((e as Error)?.message || 'Ошибка'));
+      toast.error(String((e as Error)?.message || publicT("courier.genericError")));
     } finally {
       setSubmittingRating(false);
     }
@@ -134,8 +136,8 @@ export default function TaxiRide() {
     return (
       <Layout>
         <div className="mx-auto max-w-lg px-4 py-16 text-center">
-          <p className="text-gray-600">Поездка не найдена</p>
-          <Button className="mt-4" onClick={() => navigate('/taxi')}>Заказать такси</Button>
+          <p className="text-gray-600">{publicT("public.TaxiRide.text280")}</p>
+          <Button className="mt-4" onClick={() => navigate('/taxi')}>{publicT("public.Taxi.text249")}</Button>
         </div>
       </Layout>
     );
@@ -158,7 +160,7 @@ export default function TaxiRide() {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="flex-1">
-            <p className="text-white font-bold">Поездка #{ride.id}</p>
+            <p className="text-white font-bold">{publicT("public.TaxiRide.text291")}{ride.id}</p>
             <p className="text-white/50 text-xs">{statusInfo.emoji} {statusInfo.label}</p>
           </div>
           <button type="button" onClick={load} className="text-white/70 hover:text-white p-2">
@@ -172,8 +174,8 @@ export default function TaxiRide() {
               <div className="flex items-center gap-3">
                 <Bell className="h-8 w-8 shrink-0" />
                 <div>
-                  <p className="text-lg font-bold">Водитель на месте!</p>
-                  <p className="text-green-100 text-sm">Выходите — машина ждёт вас</p>
+                  <p className="text-lg font-bold">{publicT("public.TaxiRide.text292")}</p>
+                  <p className="text-green-100 text-sm">{publicT("public.TaxiRide.text293")}</p>
                 </div>
               </div>
             </div>
@@ -184,7 +186,7 @@ export default function TaxiRide() {
               <div className="flex items-center gap-3">
                 <Clock className="h-6 w-6 text-gray-900" />
                 <div>
-                  <p className="text-xs font-medium text-gray-800 uppercase tracking-wide">Прибытие</p>
+                  <p className="text-xs font-medium text-gray-800 uppercase tracking-wide">{publicT("public.TaxiRide.text294")}</p>
                   <p className="text-xl font-black text-gray-900">{ride.tracking.eta_label}</p>
                 </div>
               </div>
@@ -209,11 +211,11 @@ export default function TaxiRide() {
               </div>
               <div className="flex-1 space-y-4">
                 <div>
-                  <p className="text-xs text-gray-400 uppercase">Откуда</p>
+                  <p className="text-xs text-gray-400 uppercase">{publicT("public.DeliveryTrack.text183")}</p>
                   <p className="font-medium text-gray-900">{ride.from_address}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 uppercase">Куда</p>
+                  <p className="text-xs text-gray-400 uppercase">{publicT("public.DeliveryTrack.text184")}</p>
                   <p className="font-medium text-gray-900">{ride.to_address}</p>
                 </div>
               </div>
@@ -225,8 +227,7 @@ export default function TaxiRide() {
               </div>
               {ride.distance_km != null && (
                 <p className="text-sm text-gray-500 flex items-center gap-1">
-                  <MapPin className="h-3.5 w-3.5" /> {ride.distance_km} км
-                </p>
+                  <MapPin className="h-3.5 w-3.5" /> {ride.distance_km} {publicT("driver.km")} </p>
               )}
             </div>
           </div>
@@ -257,7 +258,7 @@ export default function TaxiRide() {
                       {ride.driver.rating?.toFixed(1) ?? '5.0'}
                     </span>
                     {ride.driver.rides_count != null && (
-                      <span className="text-gray-400">{ride.driver.rides_count} поездок</span>
+                      <span className="text-gray-400">{ride.driver.rides_count} {publicT("driver.ridesCount")}</span>
                     )}
                   </div>
                 </div>
@@ -276,8 +277,8 @@ export default function TaxiRide() {
           {ride.status === 'pending' && (
             <div className="rounded-2xl bg-blue-50 border border-blue-100 p-5 text-center">
               <Loader2 className="h-7 w-7 animate-spin text-blue-600 mx-auto mb-2" />
-              <p className="text-blue-900 font-semibold">Ищем водителя…</p>
-              <p className="text-blue-700/70 text-sm mt-1">Обычно 2–5 минут</p>
+              <p className="text-blue-900 font-semibold">{publicT("public.TaxiRide.text295")}</p>
+              <p className="text-blue-700/70 text-sm mt-1">{publicT("public.TaxiRide.text296")}</p>
             </div>
           )}
 
@@ -289,15 +290,14 @@ export default function TaxiRide() {
               onClick={handleCancel}
             >
               {cancelling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <X className="h-4 w-4 mr-2" />}
-              Отменить поездку
-            </Button>
+              {publicT("public.TaxiRide.text297")} </Button>
           )}
 
           {ride.status === 'completed' && ride.rating == null && (
             <div className="rounded-2xl bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-300 p-6 space-y-4 shadow-lg">
               <div className="text-center">
-                <p className="text-2xl font-black text-gray-900">Как прошла поездка?</p>
-                <p className="text-gray-500 text-sm mt-1">Ваша оценка помогает району</p>
+                <p className="text-2xl font-black text-gray-900">{publicT("public.TaxiRide.text298")}</p>
+                <p className="text-gray-500 text-sm mt-1">{publicT("public.TaxiRide.text299")}</p>
               </div>
               <div className="flex gap-2 justify-center">
                 {[1, 2, 3, 4, 5].map((n) => (
@@ -317,7 +317,7 @@ export default function TaxiRide() {
               <Input
                 value={ratingComment}
                 onChange={(e) => setRatingComment(e.target.value)}
-                placeholder="Комментарий (необязательно)"
+                placeholder={publicT("public.CourierHub.text169")}
                 className="rounded-xl bg-white"
               />
               <Button
@@ -325,7 +325,7 @@ export default function TaxiRide() {
                 disabled={rating < 1 || submittingRating}
                 onClick={handleRate}
               >
-                {submittingRating ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Отправить оценку'}
+                {submittingRating ? <Loader2 className="h-5 w-5 animate-spin" /> : publicT("public.TaxiRide.text300")}
               </Button>
             </div>
           )}
@@ -341,13 +341,11 @@ export default function TaxiRide() {
               className="w-full h-12 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-bold"
               onClick={() => navigate('/taxi')}
             >
-              Заказать новую поездку
-            </Button>
+              {publicT("public.TaxiRide.text301")} </Button>
           )}
 
           <p className="text-center text-xs text-gray-400 pb-6">
-            <Link to="/cabinet" className="underline hover:text-gray-600">История поездок</Link> в личном кабинете
-          </p>
+            <Link to="/cabinet" className="underline hover:text-gray-600">{publicT("public.TaxiRide.text302")}</Link> {publicT("public.TaxiRide.text303")} </p>
         </div>
       </div>
     </Layout>

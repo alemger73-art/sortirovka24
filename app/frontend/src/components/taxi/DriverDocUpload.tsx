@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useRef, useState } from 'react';
 import { Camera, Car, CheckCircle2, FileText, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
@@ -42,6 +43,7 @@ export default function DriverDocUpload({
   onChange,
   readOnly,
 }: Props) {
+  const { t: publicT } = useLanguage();
   const [uploading, setUploading] = useState<DocKind | null>(null);
   const photoRef = useRef<HTMLInputElement>(null);
   const licenseRef = useRef<HTMLInputElement>(null);
@@ -71,7 +73,7 @@ export default function DriverDocUpload({
   async function handleFile(kind: DocKind, file: File) {
     const isPdfFile = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
     if (!file.type.startsWith('image/') && !isPdfFile) {
-      toast.error('Загрузите изображение или PDF-файл');
+      toast.error(publicT("public.CourierDocUpload.text338"));
       return;
     }
     if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
@@ -83,7 +85,7 @@ export default function DriverDocUpload({
       const { objectKey, downloadUrl } = await uploadFile(file, 'taxi-documents');
       onChange(fieldMap[kind], downloadUrl || objectKey);
     } catch {
-      toast.error('Не удалось загрузить файл. Попробуйте ещё раз.');
+      toast.error(publicT("public.CourierDocUpload.text339"));
     } finally {
       setUploading(null);
     }
@@ -128,7 +130,7 @@ export default function DriverDocUpload({
                   onClick={() => refs[kind].current?.click()}
                   className="w-full py-2 rounded-xl text-xs font-semibold bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-60"
                 >
-                  {uploading === kind ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : val ? 'Заменить' : 'Загрузить'}
+                  {uploading === kind ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : val ? publicT("public.ImageUpload.text325") : publicT("cabinet.uploadPhoto")}
                 </button>
               </>
             )}

@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
 type AppLogoProps = {
@@ -14,6 +15,7 @@ const sizes = {
 
 /** Brand mark: blue pin with "24" — matches launcher icon. */
 export default function AppLogo({ className, size = 'md', showText = false }: AppLogoProps) {
+  const { t: publicT } = useLanguage();
   return (
     <div className={cn('flex items-center gap-2.5', className)}>
       <img
@@ -24,7 +26,7 @@ export default function AppLogo({ className, size = 'md', showText = false }: Ap
       {showText && (
         <div className="leading-tight">
           <p className="text-base font-bold text-gray-900 dark:text-white">Сортировка 24</p>
-          <p className="text-xs text-gray-500 dark:text-white/60">портал района</p>
+          <p className="text-xs text-gray-500 dark:text-white/60">{publicT("header.portalDesc")}</p>
         </div>
       )}
     </div>

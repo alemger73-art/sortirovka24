@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { withRetry, formatDate } from '@/lib/api';
@@ -47,6 +48,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 function BeforeAfterSlider({ beforeKey, afterKey }: { beforeKey: string; afterKey: string }) {
+  const { t: publicT } = useLanguage();
   const [position, setPosition] = useState(50);
 
   const beforeUrl = resolveImageSrc(beforeKey);
@@ -66,9 +68,9 @@ function BeforeAfterSlider({ beforeKey, afterKey }: { beforeKey: string; afterKe
         setPosition(((touch.clientX - rect.left) / rect.width) * 100);
       }}
     >
-      <img src={afterUrl} alt="После" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+      <img src={afterUrl} alt={publicT("public.History.text190")} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
       <div className="absolute inset-0 overflow-hidden" style={{ width: `${position}%` }}>
-        <img src={beforeUrl} alt="До" className="absolute inset-0 w-full h-full object-cover" style={{ minWidth: '100%' }} loading="lazy" />
+        <img src={beforeUrl} alt={publicT("public.History.text191")} className="absolute inset-0 w-full h-full object-cover" style={{ minWidth: '100%' }} loading="lazy" />
       </div>
       <div className="absolute top-0 bottom-0" style={{ left: `${position}%` }}>
         <div className="absolute top-0 bottom-0 w-0.5 bg-white shadow-lg -translate-x-1/2" />
@@ -76,13 +78,14 @@ function BeforeAfterSlider({ beforeKey, afterKey }: { beforeKey: string; afterKe
           <span className="text-gray-600 text-xs font-bold">⇔</span>
         </div>
       </div>
-      <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">До</div>
-      <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">После</div>
+      <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">{publicT("public.History.text191")}</div>
+      <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">{publicT("public.History.text190")}</div>
     </div>
   );
 }
 
 function ShareButtons({ event }: { event: HistoryEvent }) {
+  const { t: publicT } = useLanguage();
   const [copied, setCopied] = useState(false);
 
   const shareText = `📜 ${event.year} — ${event.title}\n\n${event.description.slice(0, 200)}...\n\nИстория Сортировки`;
@@ -99,7 +102,7 @@ function ShareButtons({ event }: { event: HistoryEvent }) {
       toast.success('Ссылка скопирована');
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Не удалось скопировать');
+      toast.error(publicT("public.History.text192"));
     }
   };
 
@@ -117,6 +120,7 @@ function ShareButtons({ event }: { event: HistoryEvent }) {
 }
 
 function TimelineCard({ event, index }: { event: HistoryEvent; index: number }) {
+  const { t: publicT } = useLanguage();
   const [expanded, setExpanded] = useState(false);
   const isLong = event.description.length > 200;
   const dotColor = CATEGORY_COLORS[event.category] || 'bg-gray-500';
@@ -181,7 +185,7 @@ function TimelineCard({ event, index }: { event: HistoryEvent; index: number }) 
                 onClick={() => setExpanded(!expanded)}
                 className="text-blue-600 text-xs mt-1 flex items-center gap-1 hover:underline"
               >
-                {expanded ? <><ChevronUp className="h-3 w-3" /> Свернуть</> : <><ChevronDown className="h-3 w-3" /> Читать далее</>}
+                {expanded ? <><ChevronUp className="h-3 w-3" /> Свернуть</> : <><ChevronDown className="h-3 w-3" /> {publicT("public.History.text193")}</>}
               </button>
             )}
 
@@ -194,6 +198,7 @@ function TimelineCard({ event, index }: { event: HistoryEvent; index: number }) 
 }
 
 export default function HistoryPage() {
+  const { t: publicT } = useLanguage();
   const [events, setEvents] = useState<HistoryEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -210,7 +215,7 @@ export default function HistoryPage() {
         const items = (res.data?.items || []) as HistoryEvent[];
         setEvents(items.filter(e => e.is_published));
       } catch {
-        toast.error('Ошибка загрузки истории');
+        toast.error(publicT("public.History.text194"));
       } finally {
         setLoading(false);
       }
@@ -247,12 +252,10 @@ export default function HistoryPage() {
       <div className="bg-gradient-to-r from-indigo-900 via-blue-900 to-indigo-800 text-white">
         <div className="max-w-5xl mx-auto px-4 py-8 md:py-12">
           <Link to="/" className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm mb-4 transition-colors">
-            <ArrowLeft className="h-4 w-4" /> На главную
-          </Link>
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">📜 История Сортировки</h1>
+            <ArrowLeft className="h-4 w-4" /> {publicT("masters.backHome")} </Link>
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">{publicT("public.History.text195")}</h1>
           <p className="text-white/70 text-sm md:text-base">
-            Хроника событий района {yearRange && `• ${yearRange}`} • {events.length} событий
-          </p>
+            {publicT("public.History.text196")} {yearRange && `• ${yearRange}`} • {events.length} {publicT("public.History.text197")} </p>
         </div>
       </div>
 
@@ -264,7 +267,7 @@ export default function HistoryPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Поиск по году, названию или описанию..."
+                  placeholder={publicT("public.History.text198")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -325,15 +328,15 @@ export default function HistoryPage() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-3" />
-            <p className="text-gray-500 text-sm">Загрузка истории...</p>
+            <p className="text-gray-500 text-sm">{publicT("public.History.text199")}</p>
           </div>
         ) : filteredEvents.length === 0 ? (
           <div className="text-center py-20">
             <div className="text-4xl mb-3">📭</div>
             <p className="text-gray-500">
               {searchQuery || activeCategory !== 'all'
-                ? 'Ничего не найдено. Попробуйте изменить фильтры.'
-                : 'Пока нет событий в истории.'}
+                ? publicT("public.History.text200")
+                : publicT("public.History.text201")}
             </p>
           </div>
         ) : (

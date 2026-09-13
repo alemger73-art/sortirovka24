@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -59,6 +60,7 @@ export default function TaxiLiveMap({
   centerLat = 49.9774,
   centerLng = 73.2137,
 }: Props) {
+  const { t: publicT } = useLanguage();
   const [routeLine, setRouteLine] = useState<[number, number][]>([]);
 
   const routeFrom = useMemo(() => {
@@ -116,17 +118,17 @@ export default function TaxiLiveMap({
         <FitBounds points={routeLine.length >= 2 ? routeLine : points} />
         {from && (
           <Marker position={[from.lat, from.lng]} icon={fromIcon}>
-            <Popup>Откуда</Popup>
+            <Popup>{publicT("public.DeliveryTrack.text183")}</Popup>
           </Marker>
         )}
         {to && (
           <Marker position={[to.lat, to.lng]} icon={toIcon}>
-            <Popup>Куда</Popup>
+            <Popup>{publicT("public.DeliveryTrack.text184")}</Popup>
           </Marker>
         )}
         {driver && (
           <Marker position={[driver.lat, driver.lng]} icon={driverIcon}>
-            <Popup>Водитель</Popup>
+            <Popup>{publicT("public.TaxiLiveMap.text356")}</Popup>
           </Marker>
         )}
         {fallbackLine.length >= 2 && (

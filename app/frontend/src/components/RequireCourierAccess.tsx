@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { getAccountToken } from '@/lib/accountApi';
@@ -9,6 +10,7 @@ type Props = {
 
 /** Redirects to courier application hub if user is not an approved courier. */
 export default function RequireCourierAccess({ children }: Props) {
+  const { t: publicT } = useLanguage();
   const [status, setStatus] = useState<'loading' | 'ok' | 'denied'>('loading');
 
   useEffect(() => {
@@ -30,8 +32,7 @@ export default function RequireCourierAccess({ children }: Props) {
   if (status === 'loading') {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center text-gray-500">
-        Проверка доступа...
-      </div>
+        {publicT("public.RequireCabinetRole.text350")} </div>
     );
   }
   if (status === 'denied') return <Navigate to="/delivery/courier" replace />;

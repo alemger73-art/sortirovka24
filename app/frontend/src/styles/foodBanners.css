@@ -1,9 +1,9 @@
-.food-campaigns { margin: 1.75rem 0; color: #252b25; }
+.food-campaigns { margin: 1.75rem 0; color: var(--app-ink, #252b25); }
 .food-campaigns__heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
-.food-campaigns__heading p { margin: 0 0 .25rem; color: #74796f; font-size: .7rem; letter-spacing: .09em; text-transform: uppercase; }
+.food-campaigns__heading p { margin: 0 0 .25rem; color: var(--app-muted, #74796f); font-size: .7rem; letter-spacing: .09em; text-transform: uppercase; }
 .food-campaigns__heading h2 { margin: 0; font: 700 clamp(1.25rem, 2.5vw, 1.65rem)/1.2 ui-sans-serif, system-ui, sans-serif; letter-spacing: -.035em; }
 .food-campaigns__controls { display: flex; gap: .4rem; }
-.food-campaigns__controls button { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid #dfE3d9; border-radius: 50%; background: #fff; color: #303c30; }
+.food-campaigns__controls button { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--app-border, #dfE3d9); border-radius: 50%; background: var(--app-surface, #fff); color: var(--app-ink, #303c30); }
 .food-campaigns__controls button:disabled { opacity: .3; cursor: default; }
 .food-campaigns__controls svg { width: 18px; height: 18px; }
 .food-campaigns__track { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 2rem) / 3); gap: 1rem; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px 2px 12px; scrollbar-width: thin; scrollbar-color: #c7cebf transparent; }
@@ -20,7 +20,7 @@
 .food-campaign__subtitle { margin-top: .65rem; font-size: .85rem; line-height: 1.5; color: #ffffffd9; overflow-wrap: anywhere; }
 .food-campaign__cta { display: inline-flex; align-items: center; gap: .75rem; margin-top: auto; padding-top: 1.25rem; font-size: .8rem; font-weight: 650; }
 .food-campaign__cta svg { width: 18px; height: 18px; flex: 0 0 auto; }
-.food-campaigns__hint { margin: .25rem 0 0; color: #74796f; font-size: .72rem; }
+.food-campaigns__hint { margin: .25rem 0 0; color: var(--app-muted, #74796f); font-size: .72rem; }
 .food-campaign:focus-visible, .food-campaigns button:focus-visible, .food-campaigns__track:focus-visible { outline: 3px solid #9baa80; outline-offset: 3px; }
 @media (hover: hover) { .food-campaign:hover { transform: translateY(-3px); box-shadow: 0 12px 22px #17241718; } }
 @media (max-width: 1023px) { .food-campaigns__track { grid-auto-columns: calc((100% - 1rem) / 2); } }

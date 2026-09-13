@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useParams, Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -62,6 +63,7 @@ function parseServices(services?: string, limit = 99): string[] {
 
 /* ============ SALON CARD ============ */
 function SalonCard({ salon }: { salon: Salon }) {
+  const { t: publicT } = useLanguage();
   const gradient = salonCategoryGradient(salon.category);
   const rating = Number(salon.rating) || 0;
   const wa = waLink(salon.whatsapp);
@@ -80,18 +82,16 @@ function SalonCard({ salon }: { salon: Salon }) {
         <div className="absolute top-2 left-2 flex flex-wrap gap-1.5">
           {salon.featured && (
             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-pink-600/90 backdrop-blur px-2 py-1 rounded-full shadow">
-              <Sparkles className="w-3 h-3" /> Рекомендуем
-            </span>
+              <Sparkles className="w-3 h-3" /> {publicT("food.recommended")} </span>
           )}
           {salon.verified && (
             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-blue-600/90 backdrop-blur px-2 py-1 rounded-full shadow">
-              <BadgeCheck className="w-3 h-3" /> Проверен
-            </span>
+              <BadgeCheck className="w-3 h-3" /> {publicT("masters.verified")} </span>
           )}
         </div>
         {salon.price_from && (
           <span className="absolute bottom-2 right-2 text-[11px] font-bold text-gray-900 bg-white/90 backdrop-blur px-2.5 py-1 rounded-full shadow">
-            от {salon.price_from}
+            {publicT("common.from")} {salon.price_from}
           </span>
         )}
       </Link>
@@ -135,8 +135,7 @@ function SalonCard({ salon }: { salon: Salon }) {
         <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
           {salon.phone && (
             <a href={`tel:${salon.phone}`} className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-xl transition-colors">
-              <Phone className="w-3.5 h-3.5" /> Позвонить
-            </a>
+              <Phone className="w-3.5 h-3.5" /> {publicT("realestate.call")} </a>
           )}
           {wa && (
             <a href={wa} target="_blank" rel="noopener noreferrer" className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-green-600 hover:bg-green-700 px-3 py-2 rounded-xl transition-colors">
@@ -154,6 +153,7 @@ function SalonCard({ salon }: { salon: Salon }) {
 
 /* ============ SALONS CATALOG ============ */
 export function SalonsCatalog() {
+  const { t: publicT } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const [salons, setSalons] = useState<Salon[]>([]);
   const [listTotal, setListTotal] = useState(0);
@@ -233,17 +233,15 @@ export function SalonsCatalog() {
             <span className="text-white/90 text-sm font-medium">Салоны красоты</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-black text-white mb-2 leading-tight">
-            Красота рядом с домом
-          </h1>
+            {publicT("public.Salons.text209")} </h1>
           <p className="text-base text-white/70 mb-7 max-w-lg">
-            Парикмахерские, барбершопы, маникюр, косметология и СПА. Выбирайте салон и записывайтесь напрямую — по телефону или в WhatsApp.
-          </p>
+            {publicT("public.Salons.text210")} </p>
           <div className="max-w-xl">
             <div className="flex items-center bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/15 overflow-hidden ring-1 ring-white/20">
               <Search className="w-5 h-5 text-pink-600 ml-5 flex-shrink-0" />
               <input
                 type="text"
-                placeholder="Поиск: салон, услуга, район…"
+                placeholder={publicT("public.Salons.text211")}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') scrollToGrid(); }}
@@ -259,7 +257,7 @@ export function SalonsCatalog() {
           {/* Category chips */}
           <section className="mb-6">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-sm font-bold text-gray-900 dark:text-white">Категории</h2>
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white">{publicT("food.categories")}</h2>
               {selectedCategory && (
                 <button type="button" onClick={() => setCategory('')} className="text-xs text-pink-600 dark:text-pink-400 font-semibold hover:underline">
                   Сбросить
@@ -276,8 +274,7 @@ export function SalonsCatalog() {
                     : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-pink-300'
                 }`}
               >
-                ✨ Все салоны
-              </button>
+                {publicT("public.Salons.text212")} </button>
               {SALON_CATEGORIES.map(cat => (
                 <button
                   key={cat}
@@ -300,7 +297,7 @@ export function SalonsCatalog() {
             {loading ? (
               <div className="text-center py-16">
                 <div className="inline-block w-10 h-10 border-[3px] border-pink-200 border-t-pink-600 rounded-full animate-spin" />
-                <p className="text-gray-400 mt-4 text-sm">Загружаем салоны…</p>
+                <p className="text-gray-400 mt-4 text-sm">{publicT("public.Salons.text213")}</p>
               </div>
             ) : salons.length === 0 ? (
               <div className="text-center py-16 px-4 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
@@ -308,18 +305,17 @@ export function SalonsCatalog() {
                   <Scissors className="w-7 h-7 text-pink-400" />
                 </div>
                 <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">Салоны не найдены</h3>
-                <p className="text-xs text-gray-500 mb-4 max-w-sm mx-auto">Попробуйте изменить категорию или поисковый запрос.</p>
+                <p className="text-xs text-gray-500 mb-4 max-w-sm mx-auto">{publicT("public.Salons.text214")}</p>
                 {(selectedCategory || debouncedQ) && (
                   <button onClick={() => { setCategory(''); setSearchQuery(''); }} className="text-xs font-bold text-pink-600 hover:underline">
-                    Показать все
-                  </button>
+                    {publicT("common.showAll")} </button>
                 )}
               </div>
             ) : (
               <>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-sm font-bold text-gray-900 dark:text-white">
-                    {selectedCategory || 'Все салоны'}
+                    {selectedCategory || publicT("public.Salons.text215")}
                     <span className="ml-1.5 font-normal text-gray-400">({listTotal})</span>
                   </h2>
                 </div>
@@ -334,7 +330,7 @@ export function SalonsCatalog() {
                       disabled={loadingMore}
                       className="text-sm font-semibold text-pink-600 hover:text-pink-700 disabled:opacity-50"
                     >
-                      {loadingMore ? 'Загрузка…' : 'Показать ещё'}
+                      {loadingMore ? publicT("public.Salons.text216") : publicT("masters.loadMore")}
                     </button>
                   </div>
                 )}
@@ -349,6 +345,7 @@ export function SalonsCatalog() {
 
 /* ============ SALON DETAIL ============ */
 export function SalonDetail() {
+  const { t: publicT } = useLanguage();
   const { id } = useParams();
   const [salon, setSalon] = useState<Salon | null>(null);
   const [loading, setLoading] = useState(true);
@@ -373,7 +370,7 @@ export function SalonDetail() {
     <Layout>
       <div className="max-w-3xl mx-auto px-4 py-24 text-center">
         <div className="inline-block w-12 h-12 border-4 border-pink-200 dark:border-pink-800 border-t-pink-600 rounded-full animate-spin" />
-        <p className="text-gray-400 mt-5 text-sm font-medium">Загружаем салон…</p>
+        <p className="text-gray-400 mt-5 text-sm font-medium">{publicT("public.Salons.text217")}</p>
       </div>
     </Layout>
   );
@@ -385,7 +382,7 @@ export function SalonDetail() {
           <Scissors className="w-8 h-8 text-gray-300 dark:text-gray-600" />
         </div>
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2">Салон не найден</h2>
-        <Link to="/salons" className="text-pink-600 dark:text-pink-400 hover:text-pink-700 font-semibold text-sm">← Все салоны</Link>
+        <Link to="/salons" className="text-pink-600 dark:text-pink-400 hover:text-pink-700 font-semibold text-sm">{publicT("public.Salons.text218")}</Link>
       </div>
     </Layout>
   );
@@ -400,8 +397,7 @@ export function SalonDetail() {
     <Layout>
       <div className="max-w-2xl mx-auto px-4 py-4 pb-28 md:pb-8">
         <Link to="/salons" className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 mb-4">
-          <ChevronLeft className="w-4 h-4" /> Все салоны
-        </Link>
+          <ChevronLeft className="w-4 h-4" /> {publicT("public.Salons.text215")} </Link>
 
         {/* Cover */}
         <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm">
@@ -416,13 +412,11 @@ export function SalonDetail() {
             <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
               {salon.featured && (
                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-pink-600/90 backdrop-blur px-2.5 py-1 rounded-full shadow">
-                  <Sparkles className="w-3 h-3" /> Рекомендуем
-                </span>
+                  <Sparkles className="w-3 h-3" /> {publicT("food.recommended")} </span>
               )}
               {salon.verified && (
                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-blue-600/90 backdrop-blur px-2.5 py-1 rounded-full shadow">
-                  <BadgeCheck className="w-3 h-3" /> Проверен
-                </span>
+                  <BadgeCheck className="w-3 h-3" /> {publicT("masters.verified")} </span>
               )}
             </div>
           </div>
@@ -435,7 +429,7 @@ export function SalonDetail() {
               <div className="flex items-center gap-2 mt-2">
                 <StarRating rating={rating} size="sm" />
                 <span className="text-sm font-bold text-gray-900 dark:text-white">{rating.toFixed(1)}</span>
-                {salon.reviews_count ? <span className="text-xs text-gray-400">({salon.reviews_count} отзывов)</span> : null}
+                {salon.reviews_count ? <span className="text-xs text-gray-400">({salon.reviews_count} {publicT("public.Salons.text219")}</span> : null}
               </div>
             )}
 
@@ -453,7 +447,7 @@ export function SalonDetail() {
               )}
               {salon.price_from && (
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-pink-700 dark:text-pink-300 bg-pink-50 dark:bg-pink-950/40 px-2.5 py-1 rounded-full">
-                  от {salon.price_from}
+                  {publicT("common.from")} {salon.price_from}
                 </span>
               )}
             </div>
@@ -462,8 +456,7 @@ export function SalonDetail() {
             <div className="hidden md:flex flex-wrap gap-2 mt-4">
               {salon.phone && (
                 <a href={`tel:${salon.phone}`} className="inline-flex items-center gap-1.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 px-4 py-2.5 rounded-xl">
-                  <Phone className="w-4 h-4" /> Позвонить
-                </a>
+                  <Phone className="w-4 h-4" /> {publicT("realestate.call")} </a>
               )}
               {wa && (
                 <a href={wa} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm font-bold text-white bg-green-600 hover:bg-green-700 px-4 py-2.5 rounded-xl">
@@ -483,14 +476,14 @@ export function SalonDetail() {
         <div className="mt-4 space-y-4">
           {salon.description && (
             <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
-              <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-2">О салоне</h2>
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-2">{publicT("public.Salons.text220")}</h2>
               <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">{salon.description}</p>
             </section>
           )}
 
           {services.length > 0 && (
             <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
-              <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Услуги и цены</h2>
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-2">{publicT("public.Salons.text221")}</h2>
               <ul className="divide-y divide-gray-100 dark:divide-gray-800">
                 {services.map((s, i) => (
                   <li key={i} className="py-2 text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2">
@@ -504,14 +497,14 @@ export function SalonDetail() {
 
           {salon.gallery_images && (
             <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
-              <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Галерея</h2>
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-3">{publicT("public.Salons.text222")}</h2>
               <StorageGallery keys={salon.gallery_images} className="grid grid-cols-2 sm:grid-cols-3 gap-2" />
             </section>
           )}
 
           {(salon.address || maps) && (
             <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
-              <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Адрес</h2>
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-2">{publicT("masters.fieldAddress")}</h2>
               {salon.address && (
                 <p className="text-sm text-gray-600 dark:text-gray-300 flex items-start gap-2">
                   <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5 text-pink-500" /> {salon.address}
@@ -519,8 +512,7 @@ export function SalonDetail() {
               )}
               {maps && (
                 <a href={maps} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 mt-3 text-sm font-bold text-pink-600 dark:text-pink-400 hover:underline">
-                  <Navigation className="w-4 h-4" /> Открыть на карте
-                </a>
+                  <Navigation className="w-4 h-4" /> {publicT("public.Salons.text223")} </a>
               )}
             </section>
           )}
@@ -532,8 +524,7 @@ export function SalonDetail() {
         <div className="flex gap-2 max-w-2xl mx-auto">
           {salon.phone && (
             <a href={`tel:${salon.phone}`} className="flex-1 inline-flex items-center justify-center gap-1.5 text-sm font-bold text-white bg-blue-600 py-3 rounded-xl">
-              <Phone className="w-4 h-4" /> Позвонить
-            </a>
+              <Phone className="w-4 h-4" /> {publicT("realestate.call")} </a>
           )}
           {wa && (
             <a href={wa} target="_blank" rel="noopener noreferrer" className="flex-1 inline-flex items-center justify-center gap-1.5 text-sm font-bold text-white bg-green-600 py-3 rounded-xl">
@@ -541,7 +532,7 @@ export function SalonDetail() {
             </a>
           )}
           {maps && (
-            <a href={maps} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-12 bg-gray-100 dark:bg-gray-800 rounded-xl" title="На карте">
+            <a href={maps} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-12 bg-gray-100 dark:bg-gray-800 rounded-xl" title={publicT("inspectors.showOnMap")}>
               <Navigation className="w-4 h-4 text-gray-600 dark:text-gray-300" />
             </a>
           )}

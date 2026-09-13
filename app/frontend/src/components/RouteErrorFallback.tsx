@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -7,6 +8,7 @@ type Props = {
 };
 
 export default function RouteErrorFallback({ error, onRetry }: Props) {
+  const { t: publicT } = useLanguage();
   const retry = onRetry ?? (() => window.location.reload());
 
   return (
@@ -18,7 +20,7 @@ export default function RouteErrorFallback({ error, onRetry }: Props) {
         height={72}
         className="mb-5 rounded-2xl shadow-lg shadow-blue-500/30"
       />
-      <h1 className="text-xl font-bold">Что-то пошло не так</h1>
+      <h1 className="text-xl font-bold">{publicT("public.RouteErrorFallback.text351")}</h1>
       <p className="mt-2 max-w-sm text-sm text-white/70">
         Страница не загрузилась. Проверьте интернет и попробуйте снова.
       </p>
@@ -30,8 +32,7 @@ export default function RouteErrorFallback({ error, onRetry }: Props) {
         onClick={retry}
       >
         <RefreshCw className="mr-2 h-4 w-4" />
-        Обновить
-      </Button>
+        {publicT("common.refresh")} </Button>
     </div>
   );
 }

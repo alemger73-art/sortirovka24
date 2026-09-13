@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { MapPin, Sun, User } from "lucide-react";
@@ -13,6 +14,7 @@ const NAV_ITEMS = [
 ];
 
 export default function Header() {
+  const { t: publicT } = useLanguage();
   const [temp, setTemp] = useState<number | null>(null);
 
   useEffect(() => {
@@ -51,7 +53,7 @@ export default function Header() {
           </div>
           <div className="leading-tight">
             <p className="text-base font-bold text-white">Сортировка 24</p>
-            <p className="text-xs text-white/60">портал района</p>
+            <p className="text-xs text-white/60">{publicT("header.portalDesc")}</p>
           </div>
         </Link>
 
@@ -86,8 +88,7 @@ export default function Header() {
             className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-gray-900 transition-all hover:bg-gray-100"
           >
             <User className="h-4 w-4" />
-            Войти
-          </Link>
+            {publicT("auth.login")} </Link>
         </div>
       </div>
     </header>

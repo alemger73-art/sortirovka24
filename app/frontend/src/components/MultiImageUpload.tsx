@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +45,7 @@ export default function MultiImageUpload({
   maxImages = MAX_IMAGES,
   allowUrl = true,
 }: MultiImageUploadProps) {
+  const { t: publicT } = useLanguage();
   const [images, setImages] = useState<ImageItem[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -180,7 +182,7 @@ export default function MultiImageUpload({
     const successCount = results.filter(r => r.result).length;
     const failCount = results.length - successCount;
     if (successCount > 0) {
-      toast.success(`Загружено ${successCount} ${successCount === 1 ? 'изображение' : 'изображений'}`);
+      toast.success(`Загружено ${successCount} ${successCount === 1 ? publicT("public.MultiImageUpload.text341") : publicT("public.MultiImageUpload.text342")}`);
     }
     if (failCount > 0 && allowUrl) {
       setShowUrlInput(true);
@@ -190,11 +192,11 @@ export default function MultiImageUpload({
   const handleAddUrl = () => {
     const trimmed = urlInput.trim();
     if (!trimmed) {
-      toast.error('Введите URL изображения');
+      toast.error(publicT("public.ImageUpload.text315"));
       return;
     }
     if (!isDirectUrl(trimmed)) {
-      toast.error('URL должен начинаться с http:// или https://');
+      toast.error(publicT("public.ImageUpload.text316"));
       return;
     }
 
@@ -212,7 +214,7 @@ export default function MultiImageUpload({
       return updated;
     });
     setUrlInput('');
-    toast.success('Изображение добавлено по ссылке');
+    toast.success(publicT("public.ImageUpload.text317"));
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -366,8 +368,7 @@ export default function MultiImageUpload({
                   </button>
                   {index === 0 && (
                     <div className="absolute bottom-1 left-1 bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm">
-                      Обложка
-                    </div>
+                      {publicT("public.MultiImageUpload.text343")} </div>
                   )}
                 </>
               )}
@@ -381,7 +382,7 @@ export default function MultiImageUpload({
               className="aspect-square rounded-xl border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50/50 transition-all duration-200 flex flex-col items-center justify-center gap-1 text-gray-400 hover:text-blue-500 cursor-pointer"
             >
               <Plus className="h-5 w-5" />
-              <span className="text-[10px] font-medium">Добавить</span>
+              <span className="text-[10px] font-medium">{publicT("common.add")}</span>
             </button>
           )}
         </div>
@@ -418,12 +419,11 @@ export default function MultiImageUpload({
             </div>
             <div className="text-center">
               <span className="text-sm font-semibold block">
-                {isDragOver ? 'Отпустите для загрузки' : 'Перетащите изображения сюда'}
+                {isDragOver ? publicT("public.ImageUpload.text322") : publicT("public.MultiImageUpload.text344")}
               </span>
               {!isDragOver && (
                 <span className="text-xs text-gray-400 mt-0.5 block">
-                  или <span className="text-blue-500 underline underline-offset-2">выберите файлы</span> · до {maxImages} фото, JPG/PNG/WebP до {formatMaxImageSizeMb()} МБ
-                </span>
+                  {publicT("inspectors.emergencyOr")} <span className="text-blue-500 underline underline-offset-2">{publicT("public.MultiImageUpload.text345")}</span> {publicT("public.MultiImageUpload.text346")} {maxImages} {publicT("public.MultiImageUpload.text347")} {formatMaxImageSizeMb()} {publicT("public.MultiImageUpload.text348")} </span>
               )}
             </div>
           </div>
@@ -443,8 +443,7 @@ export default function MultiImageUpload({
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddUrl(); } }}
               />
               <Button type="button" size="sm" onClick={handleAddUrl} className="bg-blue-600 hover:bg-blue-700 shrink-0">
-                <Link2 className="h-4 w-4 mr-1" /> Добавить
-              </Button>
+                <Link2 className="h-4 w-4 mr-1" /> {publicT("common.add")} </Button>
               <Button type="button" size="sm" variant="ghost" onClick={() => { setShowUrlInput(false); setUrlInput(''); }}>
                 <X className="h-4 w-4" />
               </Button>
@@ -455,8 +454,7 @@ export default function MultiImageUpload({
               onClick={() => setShowUrlInput(true)}
               className="w-full text-xs text-blue-500 hover:text-blue-600 flex items-center justify-center gap-1 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
             >
-              <Link2 className="h-3.5 w-3.5" /> Добавить по URL-ссылке
-            </button>
+              <Link2 className="h-3.5 w-3.5" /> {publicT("public.MultiImageUpload.text349")} </button>
           )}
         </div>
       )}
@@ -477,7 +475,7 @@ export default function MultiImageUpload({
         >
           <CloudUpload className={`h-4 w-4 ${isDragOver ? 'animate-bounce' : ''}`} />
           <span className="text-xs font-medium">
-            {isDragOver ? 'Отпустите для загрузки' : `Перетащите ещё фото (${nonUploadingImages.length}/${maxImages})`}
+            {isDragOver ? publicT("public.ImageUpload.text322") : `Перетащите ещё фото (${nonUploadingImages.length}/${maxImages})`}
           </span>
         </div>
       )}

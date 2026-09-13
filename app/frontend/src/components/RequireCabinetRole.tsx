@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { accountApi, getAccountToken } from "@/lib/accountApi";
@@ -9,6 +10,7 @@ type Props = {
 
 /** Redirects to /cabinet if the logged-in user lacks a role-specific cabinet role. */
 export default function RequireCabinetRole({ allowedRoles, children }: Props) {
+  const { t: publicT } = useLanguage();
   const navigate = useNavigate();
   const [status, setStatus] = useState<"loading" | "ok" | "denied">("loading");
 
@@ -36,8 +38,7 @@ export default function RequireCabinetRole({ allowedRoles, children }: Props) {
   if (status === "loading") {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center text-gray-500 dark:text-slate-300">
-        Проверка доступа...
-      </div>
+        {publicT("public.RequireCabinetRole.text350")} </div>
     );
   }
   if (status === "denied") return <Navigate to="/cabinet" replace />;

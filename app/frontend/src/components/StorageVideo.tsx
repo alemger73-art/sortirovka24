@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useEffect } from 'react';
 import { Video, Loader2 } from 'lucide-react';
 import { resolveImageUrl, isDirectUrl } from '@/lib/storage';
@@ -8,6 +9,7 @@ interface StorageVideoProps {
 }
 
 export default function StorageVideo({ objectKey, className = '' }: StorageVideoProps) {
+  const { t: publicT } = useLanguage();
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -48,8 +50,7 @@ export default function StorageVideo({ objectKey, className = '' }: StorageVideo
   if (error || !url) {
     return (
       <div className={`flex items-center gap-2 bg-gray-100 rounded-lg p-3 text-sm text-gray-500 ${className}`}>
-        <Video className="h-4 w-4" /> Видео недоступно
-      </div>
+        <Video className="h-4 w-4" /> {publicT("public.StorageVideo.text352")} </div>
     );
   }
 
@@ -60,7 +61,6 @@ export default function StorageVideo({ objectKey, className = '' }: StorageVideo
       preload="metadata"
       className={`w-full rounded-lg max-h-64 ${className}`}
     >
-      Ваш браузер не поддерживает воспроизведение видео.
-    </video>
+      {publicT("public.StorageVideo.text353")} </video>
   );
 }
