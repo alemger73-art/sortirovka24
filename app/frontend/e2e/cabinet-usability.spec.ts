@@ -274,3 +274,27 @@ test('own listings handle failed writes and can be hidden and deleted', async ({
     expect(writes).toBe(3);
   }
 });
+
+for (const failCleanup of [false,true]) test(`Android Preferences migration keeps access (cleanup failure: ${failCleanup})`,async({page})=>{
+  await setup(page);
+  await page.addInitScript(fail=>{
+    const w=window as any;
+    sessionStorage.setItem('s24_welcome_done','1');
+    const values:Record<string,string>={cabinet_security_v1:JSON.stringify({pinEnabled:true,lockEnabled:true,pinHash:'unknown'}),cabinet_notify_prefs_v1:JSON.stringify({orders:false}),unrelated:'keep'};
+    w.nativePrefs=values;w.removedPrefs=[];
+    w.androidBridge={};
+    w.Capacitor={PluginHeaders:[{name:'Preferences',methods:['get','set','remove'].map(name=>({name,rtype:'promise'}))}],nativePromise:async(plugin:string,method:string,args:any)=>{
+      if(plugin!=='Preferences')throw new Error('Unavailable plugin');
+      if(method==='get')return {value:values[args.key]??null};
+      if(method==='set'){values[args.key]=args.value;return {};}
+      if(method==='remove'){w.removedPrefs.push(args.key);if(fail)throw new Error('Storage unavailable');delete values[args.key];return {};}
+    }};
+  },failCleanup);
+  await page.goto('/cabinet?tab=settings');
+  await expect(page.getByRole('switch',{name:'Заказы (еда, магазины)',exact:true})).not.toBeChecked();
+  await expect.poll(()=>page.evaluate(()=>(window as any).removedPrefs)).toEqual(['cabinet_security_v1']);
+  expect(await page.evaluate(()=>(window as any).nativePrefs.unrelated)).toBe('keep');
+  if(!failCleanup)expect(await page.evaluate(()=>(window as any).nativePrefs.cabinet_security_v1)).toBeUndefined();
+  await expect(page.getByRole('textbox',{name:'PIN-код'})).toHaveCount(0);
+  expect(await page.evaluate(()=>localStorage.getItem('account_token'))).toBe('cabinet-test-token');
+});
