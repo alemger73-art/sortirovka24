@@ -130,7 +130,7 @@ export default function AdminSalons() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="text-sm text-gray-500">{items.length} салонов</p>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Select value={filterCategory || 'all'} onValueChange={v => setFilterCategory(v === 'all' ? '' : v)}>
             <SelectTrigger className="w-[190px] h-9 text-sm">
               <SelectValue placeholder="Все категории" />
@@ -280,11 +280,11 @@ export default function AdminSalons() {
                 </div>
               </div>
               <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Switch checked={editItem.featured ?? false} onCheckedChange={v => setEditItem({ ...editItem, featured: v })} />
                   <label className="text-sm text-gray-700">Рекомендуем (топ)</label>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Switch checked={editItem.verified ?? false} onCheckedChange={v => setEditItem({ ...editItem, verified: v })} />
                   <label className="text-sm text-gray-700">Проверен</label>
                 </div>

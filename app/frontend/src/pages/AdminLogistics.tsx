@@ -25,10 +25,12 @@ export default function AdminLogistics() {
   const [tasks, setTasks] = useState<LogisticsTask[]>([]);
   const [couriers, setCouriers] = useState<Array<{ user_id: string; name?: string; phone?: string; verified: boolean; online: boolean; deliveries_count: number }>>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [acting, setActing] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const [apps, t, c] = await Promise.all([
         logisticsApi.adminApplications('pending'),
@@ -39,6 +41,7 @@ export default function AdminLogistics() {
       setTasks(t);
       setCouriers(c);
     } catch (e: unknown) {
+      setLoadError(true);
       toast.error(String((e as Error)?.message || 'Ошибка загрузки'));
     } finally {
       setLoading(false);
@@ -99,6 +102,8 @@ export default function AdminLogistics() {
       </div>
     );
   }
+
+  if (loadError) return <div role="alert" className="rounded-xl border bg-white p-5 space-y-3"><p>Не удалось загрузить данные раздела. Повторите загрузку перед внесением изменений.</p><Button onClick={() => void load()}>Повторить загрузку</Button></div>;
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -174,7 +179,7 @@ export default function AdminLogistics() {
 
       {tab === 'couriers' && (
         <section>
-          <div className="bg-white rounded-xl border overflow-hidden">
+          <div className="bg-white rounded-xl border overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left">
                 <tr>
@@ -208,9 +213,9 @@ export default function AdminLogistics() {
             const st = LOGISTICS_STATUS_LABELS[t.status] || { label: t.status, color: 'bg-gray-100' };
             return (
               <div key={t.id} className="bg-white rounded-xl border p-4 flex flex-wrap items-center justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <p className="font-semibold">#{t.id} · заказ еды #{t.source_id}</p>
-                  <p className="text-sm text-gray-500 truncate max-w-md">{t.pickup_address} → {t.dropoff_address}</p>
+                  <p className="text-sm text-gray-500 break-words max-w-md">{t.pickup_address} → {t.dropoff_address}</p>
                   {t.total_amount != null && <p className="text-sm font-medium mt-1">{formatTenge(t.total_amount)}</p>}
                 </div>
                 <div className="flex items-center gap-2">

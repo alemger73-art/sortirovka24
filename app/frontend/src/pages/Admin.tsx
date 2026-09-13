@@ -1,12 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { Component, type ReactNode, useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Shield, Lock, Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { client, withRetry } from '@/lib/api';
 import { apiUrl } from '@/lib/config';
-import { DesktopSidebar, MobileDrawer, MobileHeader, getTabLabel } from '@/components/AdminSidebar';
+import { DesktopSidebar, MobileDrawer, MobileHeader, getTabLabel, resolveAdminTab } from '@/components/AdminSidebar';
 import AdminNews from './AdminNews';
 import AdminComplaints from './AdminComplaints';
 import AdminAnnouncements from './AdminAnnouncements';
@@ -21,7 +20,6 @@ import AdminDamAlem from './AdminDamAlem';
 import AdminInspectors from './AdminInspectors';
 import AdminStats from './AdminStats';
 import AdminHistory from './AdminHistory';
-import AdminFrontpad from './AdminFrontpad';
 import AdminTransport from './AdminTransport';
 import AdminTaxi from './AdminTaxi';
 import AdminLogistics from './AdminLogistics';
@@ -199,11 +197,24 @@ export default function AdminPanel() {
   const [isAuth, setIsAuth] = useState(false);
   const [sessionToken, setSessionToken] = useState('');
   const [verifying, setVerifying] = useState(true);
+  const [sessionError, setSessionError] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const activeTab = searchParams.get('tab') || 'dashboard';
+  const requestedTab = searchParams.get('tab') || (searchParams.get('section') === 'food-orders' ? 'food-orders' : 'dashboard');
+  const activeTab = resolveAdminTab(requestedTab).tab;
+  useEffect(() => {
+    const target = resolveAdminTab(requestedTab);
+    if (requestedTab !== target.tab) {
+      const next = new URLSearchParams(searchParams);
+      next.set('tab', target.tab);
+      if (target.section) next.set('section', target.section);
+      setSearchParams(next, { replace: true });
+    }
+  }, [requestedTab, searchParams, setSearchParams]);
 
   const verifySession = useCallback(async () => {
+    setVerifying(true);
+    setSessionError(false);
     const token = localStorage.getItem(SESSION_KEY);
     if (!token) {
       setVerifying(false);
@@ -219,10 +230,11 @@ export default function AdminPanel() {
           'App-Host': globalThis?.window?.location?.origin ?? '',
         },
       });
+      if (!resp.ok && resp.status !== 401 && resp.status !== 403) throw new Error('Session check failed');
       const result: { valid: boolean; username: string; jwt_token?: string } = await resp.json();
       if (result.valid) {
         setIsAuth(true);
-        setSessionToken(token);
+        setSessionToken(result.jwt_token || token);
         if (result.jwt_token) {
           localStorage.setItem(SESSION_KEY, result.jwt_token);
           localStorage.setItem('token', result.jwt_token);
@@ -232,8 +244,7 @@ export default function AdminPanel() {
         localStorage.removeItem('token');
       }
     } catch {
-      localStorage.removeItem(SESSION_KEY);
-      localStorage.removeItem('token');
+      setSessionError(true);
     } finally {
       setVerifying(false);
     }
@@ -246,7 +257,6 @@ export default function AdminPanel() {
   const handleLogin = (token: string) => {
     setSessionToken(token);
     setIsAuth(true);
-    setTimeout(() => { void initAdminPushNotifications(); }, 500);
   };
 
   const handleLogout = async () => {
@@ -270,7 +280,8 @@ export default function AdminPanel() {
   };
 
   const setTab = (tab: string) => {
-    setSearchParams({ tab });
+    const target = resolveAdminTab(tab);
+    setSearchParams(target.section ? { tab: target.tab, section: target.section } : { tab: target.tab });
   };
 
   if (verifying) {
@@ -283,6 +294,8 @@ export default function AdminPanel() {
       </div>
     );
   }
+
+  if (sessionError) return <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4"><div role="alert" className="max-w-sm rounded-xl border bg-white p-6 space-y-4"><p>Не удалось проверить вход. Проверьте соединение и попробуйте снова.</p><Button onClick={() => void verifySession()}>Повторить проверку</Button></div></div>;
 
   if (!isAuth) {
     return <AdminLogin onLogin={handleLogin} />;
@@ -314,7 +327,7 @@ function AdminPanelContent({
   setMobileMenuOpen: (open: boolean) => void;
   handleLogout: () => void;
 }) {
-  const { summary, live } = useAdminSummary();
+  const { summary } = useAdminSummary();
 
   useEffect(() => {
     void initAdminPushNotifications();
@@ -340,16 +353,11 @@ function AdminPanelContent({
       case 'banners': return <AdminBanners />;
       case 'history': return <AdminHistory />;
       case 'dam-alem': return <AdminDamAlem />;
-      case 'partners-alem-food': return <AdminDamAlem />;
-      case 'food': return <AdminDamAlem />;
-      case 'food-orders': return <AdminDamAlem initialSection="orders" />;
-      case 'food-settings': return <AdminDamAlem initialSection="settings" />;
       case 'park-points': return <AdminParkPoints />;
       case 'park-orders': return <AdminParkOrders />;
       case 'transport': return <AdminTransport />;
       case 'taxi': return <AdminTaxi />;
       case 'logistics': return <AdminLogistics />;
-      case 'pos-integration': return <AdminFrontpad />;
       case 'account-settings': return <AdminAccountSettings />;
       case 'partners-gastronom': return <AdminGastronom />;
       case 'partners-business': return <AdminBusinessPartners />;
@@ -393,14 +401,9 @@ function AdminPanelContent({
         />
 
         {/* Desktop Header */}
-        <div className="hidden md:flex px-6 py-4 border-b border-gray-200 bg-white items-center justify-between">
+        <div className="hidden md:flex px-6 py-4 border-b border-gray-200 bg-white items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-gray-900">{getTabLabel(activeTab)}</h1>
-            {live && (
-              <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                Live
-              </span>
-            )}
           </div>
           {(summary?.total_pending ?? 0) > 0 && (
             <span className="text-sm text-red-600 font-medium">
@@ -410,7 +413,7 @@ function AdminPanelContent({
         </div>
 
         <div className={`p-3 sm:p-4 md:p-6 ${activeTab === 'partners-alem-food' || activeTab === 'partners-gastronom' || activeTab === 'partners-volna' || activeTab === 'partners-prorab' || activeTab === 'partners-pharmacy' ? 'pb-24 md:pb-6' : ''}`}>
-          {renderContent()}
+          <AdminSectionBoundary key={activeTab}>{renderContent()}</AdminSectionBoundary>
         </div>
 
         {/* Admin Footer — desktop only */}
@@ -420,4 +423,13 @@ function AdminPanelContent({
       </main>
     </div>
   );
+}
+
+class AdminSectionBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() {
+    if (this.state.failed) return <div role="alert" className="rounded-xl border bg-white p-5 space-y-3"><p>Не удалось открыть раздел. Попробуйте обновить страницу или выберите другой пункт меню.</p><Button onClick={() => window.location.reload()}>Обновить страницу</Button></div>;
+    return this.props.children;
+  }
 }

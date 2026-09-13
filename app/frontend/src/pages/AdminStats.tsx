@@ -27,6 +27,7 @@ interface AutoCounts {
 export default function AdminStats() {
   const [stats, setStats] = useState<HomepageStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [autoLoading, setAutoLoading] = useState(false);
   const [autoCounts, setAutoCounts] = useState<AutoCounts>({ masters: 0, cafes: 0 });
@@ -46,6 +47,7 @@ export default function AdminStats() {
 
   const loadStats = async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const res = await withRetry(() => client.entities.homepage_stats.query({ limit: 1 }));
       const items = res?.data?.items || [];
@@ -54,11 +56,12 @@ export default function AdminStats() {
         setStats(s);
         setMastersCount(s.masters_count || 0);
         setCafesCount(s.cafes_count || 0);
-        setResidentsCount(s.residents_count || 1000);
+        setResidentsCount(s.residents_count ?? 1000);
         setIsAuto(s.is_auto === true || (s.is_auto as any) === 'true');
         setIsVisible(s.is_visible === true || (s.is_visible as any) === 'true');
       }
     } catch (err) {
+      setLoadError(true);
       console.error('Failed to load stats:', err);
       setMessage({ type: 'error', text: 'Ошибка загрузки статистики' });
     } finally {
@@ -135,6 +138,8 @@ export default function AdminStats() {
       </div>
     );
   }
+
+  if (loadError) return <div role="alert" className="rounded-xl border bg-white p-5 space-y-3"><p>Не удалось загрузить данные раздела. Повторите загрузку перед внесением изменений.</p><Button onClick={() => void loadStats()}>Повторить загрузку</Button></div>;
 
   return (
     <div className="space-y-6 max-w-3xl">

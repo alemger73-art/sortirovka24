@@ -76,12 +76,12 @@ export default function AdminParkPoints() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap gap-3 items-center justify-between">
         <div>
           <h3 className="font-bold text-lg">Точки доставки в парке</h3>
           <p className="text-xs text-gray-500 mt-0.5">Управление точками на карте парка Железнодорожников</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             size="sm"
             variant={showPreview ? 'default' : 'outline'}
@@ -121,7 +121,7 @@ export default function AdminParkPoints() {
             <Input type="number" step="0.0001" placeholder="Долгота (lng)" value={editing.lng || ''} onChange={e => setEditing({ ...editing, lng: parseFloat(e.target.value) || 0 })} />
           </div>
           <p className="text-[10px] text-green-600">💡 Координаты парка: lat ≈ 54.921–54.924, lng ≈ 73.366–73.372</p>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={savePoint} className="bg-green-500 hover:bg-green-600"><Save className="w-4 h-4 mr-1" /> Сохранить</Button>
             <Button size="sm" variant="outline" onClick={() => setEditing(null)}><X className="w-4 h-4 mr-1" /> Отмена</Button>
           </div>

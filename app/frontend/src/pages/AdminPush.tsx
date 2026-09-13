@@ -22,6 +22,7 @@ const PATH_PRESETS = [
 export default function AdminPush() {
   const [stats, setStats] = useState<PushStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [sending, setSending] = useState(false);
   const [title, setTitle] = useState('Sortirovka24');
   const [body, setBody] = useState('');
@@ -30,10 +31,12 @@ export default function AdminPush() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const data = await pushApiClient.adminStats();
       setStats(data);
     } catch (e: unknown) {
+      setLoadError(true);
       toast.error(String((e as Error)?.message || 'Ошибка загрузки статистики push'));
     } finally {
       setLoading(false);
@@ -83,22 +86,21 @@ export default function AdminPush() {
     );
   }
 
+  if (loadError) return <div role="alert" className="rounded-xl border bg-white p-5 space-y-3"><p>Не удалось проверить готовность рассылки.</p><Button onClick={load}>Повторить загрузку</Button></div>;
+
   const fcmOn = stats?.enabled ?? false;
 
   return (
     <div className="max-w-2xl space-y-6">
       <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-        <div className="flex items-start justify-between gap-4 mb-4">
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Bell className="w-5 h-5 text-blue-600" />
-              <h2 className="text-lg font-bold text-gray-900">Push-уведомления</h2>
+              <h2 className="text-lg font-bold text-gray-900">Рассылка уведомлений</h2>
             </div>
             <p className="text-sm text-gray-500">
-              Исходящая рассылка жителям с установленным приложением. При публикации новости push уходит автоматически.
-            </p>
-            <p className="text-xs text-amber-600 mt-1.5">
-              Входящие алерты: «Центр управления» (toast), Telegram-бот и push на admin APK.
+              Отправляйте новости и важные объявления жителям с установленным приложением.
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
@@ -109,7 +111,7 @@ export default function AdminPush() {
 
         <div className="flex flex-wrap gap-2 mb-4">
           <Badge variant={fcmOn ? 'default' : 'destructive'}>
-            FCM на сервере: {fcmOn ? 'включён' : 'выключен'}
+            {fcmOn ? 'Рассылка подключена' : 'Рассылка не подключена'}
           </Badge>
           <Badge variant="secondary">
             <Smartphone className="w-3 h-3 mr-1 inline" />
@@ -124,14 +126,15 @@ export default function AdminPush() {
 
         {!fcmOn && (
           <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-900 space-y-2">
-            <p className="font-medium">Чтобы push заработал:</p>
+            <p>Для отправки уведомлений необходимо подключить сервис рассылки.</p>
+            <details><summary className="cursor-pointer font-medium">Технические настройки</summary>
             <ol className="list-decimal list-inside space-y-1 text-amber-800">
               <li>Firebase Console → проект → Cloud Messaging → Server key (legacy)</li>
               <li>Railway → Variables → <code className="bg-amber-100 px-1 rounded">FCM_SERVER_KEY</code></li>
               <li>Скачать <code className="bg-amber-100 px-1 rounded">google-services.json</code> → <code className="bg-amber-100 px-1 rounded">android/app/</code></li>
               <li>В <code className="bg-amber-100 px-1 rounded">.env.mobile</code>: <code className="bg-amber-100 px-1 rounded">VITE_ENABLE_NATIVE_PUSH=true</code></li>
               <li>Пересобрать APK и установить на телефон</li>
-            </ol>
+            </ol></details>
           </div>
         )}
       </div>
@@ -186,7 +189,7 @@ export default function AdminPush() {
 
         <Button
           onClick={handleSend}
-          disabled={sending || !body.trim()}
+          disabled={sending || loading || !fcmOn || !body.trim()}
           className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
         >
           {sending ? (

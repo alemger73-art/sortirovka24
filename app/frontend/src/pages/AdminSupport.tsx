@@ -19,14 +19,17 @@ const FIELDS: { key: string; label: string; placeholder?: string; multiline?: bo
 export default function AdminSupport() {
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const data = await supportApi.adminSettings();
       setSettings(data);
     } catch (e: any) {
+      setLoadError(true);
       toast.error(String(e?.message || 'Ошибка загрузки'));
     } finally {
       setLoading(false);
@@ -61,14 +64,16 @@ export default function AdminSupport() {
     );
   }
 
+  if (loadError) return <div role="alert" className="rounded-xl border bg-white p-5 space-y-3"><p>Не удалось загрузить данные раздела. Повторите загрузку перед внесением изменений.</p><Button onClick={() => void load()}>Повторить загрузку</Button></div>;
+
   return (
     <div className="max-w-2xl space-y-6">
       <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Heart className="w-5 h-5 text-rose-500" />
-              <h2 className="text-lg font-bold text-gray-900">Поддержка проекта</h2>
+              <h2 className="text-lg font-bold text-gray-900">Реквизиты поддержки</h2>
             </div>
             <p className="text-sm text-gray-500">
               Реквизиты на странице <code className="text-xs bg-gray-100 px-1 rounded">/support</code>.

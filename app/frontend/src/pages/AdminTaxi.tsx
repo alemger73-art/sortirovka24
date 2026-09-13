@@ -36,11 +36,13 @@ export default function AdminTaxi() {
   const [applications, setApplications] = useState<DriverApplication[]>([]);
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [rideFilter, setRideFilter] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const [s, r, d, apps, cfg] = await Promise.all([
         taxiApi.adminStats(),
@@ -55,6 +57,7 @@ export default function AdminTaxi() {
       setApplications(apps);
       setSettings(cfg);
     } catch (e: any) {
+      setLoadError(true);
       toast.error(String(e?.message || 'Ошибка загрузки'));
     } finally {
       setLoading(false);
@@ -122,6 +125,8 @@ export default function AdminTaxi() {
     { id: 'drivers', label: 'Водители', icon: Users },
     { id: 'settings', label: 'Тарифы', icon: Settings },
   ];
+
+  if (loadError) return <div role="alert" className="rounded-xl border bg-white p-5 space-y-3"><p>Не удалось загрузить данные раздела. Повторите загрузку перед внесением изменений.</p><Button onClick={() => void load()}>Повторить загрузку</Button></div>;
 
   return (
     <div className="space-y-4">

@@ -38,6 +38,7 @@ interface AdminSummaryContextValue {
   summary: AdminSummary | null;
   loading: boolean;
   live: boolean;
+  error: string | null;
   refresh: () => Promise<void>;
   lastUpdated: Date | null;
 }
@@ -47,12 +48,17 @@ const AdminSummaryContext = createContext<AdminSummaryContextValue | null>(null)
 export function AdminSummaryProvider({ children }: { children: ReactNode }) {
   const [summary, setSummary] = useState<AdminSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const requestRef = useRef(false);
+  const revisionRef = useRef(0);
   const [live, setLive] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const prevCountsRef = useRef<Partial<Record<AdminBadgeKey, number>> | null>(null);
   const initialLoadRef = useRef(true);
 
   const applySummary = useCallback((data: AdminSummary) => {
+    revisionRef.current += 1;
+    setError(null);
     setSummary(data);
     setLastUpdated(new Date());
 
@@ -69,7 +75,7 @@ export function AdminSummaryProvider({ children }: { children: ReactNode }) {
               ? {
                   label: 'Открыть',
                   onClick: () => {
-                    globalThis?.window?.location?.assign(`/admin?tab=${tab}`);
+                    globalThis?.window?.location?.assign(`/admin?tab=${tab}${tab === 'dam-alem' ? '&section=orders' : ''}`);
                   },
                 }
               : undefined,
@@ -89,12 +95,17 @@ export function AdminSummaryProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refresh = useCallback(async () => {
+    if (requestRef.current) return;
+    requestRef.current = true;
+    setLoading(true);
+    const revision = revisionRef.current;
     try {
       const data = await fetchAdminSummary();
-      applySummary(data);
+      if (revision === revisionRef.current) applySummary(data);
     } catch {
-      // Silent on transient failures
+      if (revision === revisionRef.current) setError('Не удалось обновить сводку. Проверьте соединение и повторите попытку.');
     } finally {
+      requestRef.current = false;
       setLoading(false);
     }
   }, [applySummary]);
@@ -142,7 +153,7 @@ export function AdminSummaryProvider({ children }: { children: ReactNode }) {
 
   return createElement(
     AdminSummaryContext.Provider,
-    { value: { summary, loading, live, refresh, lastUpdated } },
+    { value: { summary, loading, live, error, refresh, lastUpdated } },
     children,
   );
 }

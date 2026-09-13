@@ -9,15 +9,17 @@ import { invalidateModulesCache } from '@/hooks/useModules';
 export default function AdminModules() {
   const [modules, setModules] = useState<ModulesMap>(DEFAULT_MODULES);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const data = await modulesApi.adminGet();
       setModules(data);
     } catch (e: any) {
-      toast.error(String(e?.message || 'Ошибка загрузки'));
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -61,12 +63,14 @@ export default function AdminModules() {
     );
   }
 
+  if (loadError) return <div role="alert" className="space-y-3 rounded-xl border bg-white p-5"><p>Не удалось загрузить видимость разделов. Изменения недоступны, пока настройки не загружены.</p><Button onClick={load}>Повторить загрузку</Button></div>;
+
   return (
     <div className="max-w-2xl space-y-6">
       <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-        <h2 className="text-lg font-bold text-gray-900">Модули и партнёры</h2>
+        <h2 className="text-lg font-bold text-gray-900">Видимость разделов</h2>
         <p className="text-sm text-gray-500 mt-1">
-          Выключенный раздел мгновенно пропадает по всему приложению — с главной,
+          После сохранения выключенный раздел пропадает по всему приложению — с главной,
           из меню, из навигации, страницы «Ещё» и личного кабинета, а прямой
           переход по ссылке перенаправляет на главную. Изменения применяются у
           пользователей в течение минуты.
@@ -93,11 +97,12 @@ export default function AdminModules() {
               key={def.key}
               type="button"
               onClick={() => toggle(def.key)}
+              role="switch"
+              aria-checked={on}
               className="w-full flex items-center justify-between gap-4 px-5 py-3.5 text-left hover:bg-gray-50 transition-colors"
             >
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-gray-900">{def.label}</p>
-                <p className="text-xs text-gray-400 truncate">{def.paths.join(', ')}</p>
               </div>
               <span className={`flex items-center gap-2 text-sm font-medium shrink-0 ${on ? 'text-emerald-600' : 'text-gray-400'}`}>
                 {on ? 'Вкл' : 'Выкл'}

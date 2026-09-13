@@ -1,10 +1,9 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import {
   AlertTriangle, Bell, Bike, Briefcase, Building2, Car, ClipboardList,
   Loader2, Megaphone, RefreshCw, TreePine, UserPlus, Utensils, Wrench, Handshake,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAdminSummary } from '@/hooks/useAdminSummary';
 import { formatDate } from '@/lib/api';
@@ -70,7 +69,7 @@ const CARDS: DashboardCard[] = [
   },
   {
     key: 'food_orders_new',
-    tab: 'dam-alem',
+    tab: 'food-orders',
     label: 'Заказы DAM ALEM 2.0',
     description: 'Новые заказы',
     icon: Utensils,
@@ -124,7 +123,9 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
-  const { summary, loading, refresh, lastUpdated, live } = useAdminSummary();
+  const { summary, loading, refresh, lastUpdated, error } = useAdminSummary();
+
+  const [showAll, setShowAll] = useState(false);
 
   const handleRefresh = useCallback(async () => {
     await refresh();
@@ -140,23 +141,23 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
 
   const total = summary?.total_pending ?? 0;
   const pendingCards = CARDS.filter((c) => (summary?.[c.key] ?? 0) > 0);
-  const allClear = total === 0;
+  const allClear = !!summary && !error && total === 0;
 
   return (
     <div className="space-y-6 max-w-5xl">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">Операционный центр</h2>
+          <h2 className="text-lg font-bold text-gray-900">Требует внимания</h2>
           <p className="text-sm text-gray-500 mt-0.5">
             {allClear
-              ? 'Все заявки обработаны — отличная работа!'
-              : `${total} ${total === 1 ? 'задача требует' : 'задач требуют'} внимания`}
+              ? 'Новых задач нет'
+              : error ? 'Сводка требует обновления' : !summary ? 'Сводка недоступна' : `${total} ${total === 1 ? 'задача требует' : 'задач требуют'} внимания`}
           </p>
           {lastUpdated && (
             <p className="text-xs text-gray-400 mt-1">
               Обновлено: {lastUpdated.toLocaleTimeString('ru-RU')}
-              {live ? ' · live WebSocket' : ' · резервный режим (HTTP)'}
+              {error ? ' · данные могут быть устаревшими' : ''}
             </p>
           )}
         </div>
@@ -166,8 +167,9 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
         </Button>
       </div>
 
+      {error && <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{error}{summary && ' Ниже показаны последние загруженные данные.'}</div>}
       {/* Alert banner */}
-      {!allClear && (
+      {summary && total > 0 && (
         <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
           <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
             <Bell className="w-5 h-5 text-amber-600" />
@@ -177,7 +179,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
               {total} необработанных {total === 1 ? 'элемент' : total < 5 ? 'элемента' : 'элементов'}
             </p>
             <p className="text-xs text-amber-700 mt-0.5">
-              При появлении новых заявок вы получите уведомление. Telegram-бот также отправляет алерты.
+              Откройте нужный раздел ниже, чтобы обработать заявки.
             </p>
           </div>
           <Badge className="bg-amber-500 text-white text-base px-3 py-1 shrink-0">{total}</Badge>
@@ -195,7 +197,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
 
       {/* Pending cards grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {CARDS.map((card) => {
+        {(showAll ? CARDS : pendingCards).map((card) => {
           const count = summary?.[card.key] ?? 0;
           const Icon = card.icon;
           const isPending = count > 0;
@@ -223,18 +225,20 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
         })}
       </div>
 
+      {summary && <Button variant="outline" className="h-auto whitespace-normal" onClick={() => setShowAll(!showAll)} aria-expanded={showAll}>{showAll ? 'Скрыть разделы без новых задач' : 'Показать все разделы сводки'}</Button>}
       {/* Recent activity feed */}
       {summary && summary.recent.length > 0 && (
         <div>
           <h3 className="text-sm font-semibold text-gray-700 mb-3">Последние необработанные</h3>
           <div className="space-y-2">
             {summary.recent.map((item) => (
-              <Card
+              <button
+                type="button"
                 key={`${item.type}-${item.id}`}
-                className="cursor-pointer hover:shadow-sm transition-shadow"
-                onClick={() => onNavigate(item.tab)}
+                className="w-full text-left rounded-xl border bg-white hover:shadow-sm transition-shadow"
+                onClick={() => onNavigate(item.type === 'food_order' ? 'food-orders' : item.tab)}
               >
-                <CardContent className="p-3 flex items-center gap-3">
+                <div className="p-3 flex flex-wrap items-center gap-3">
                   <Badge variant="outline" className="text-[10px] shrink-0">
                     {RECENT_TYPE_LABELS[item.type] || item.type}
                   </Badge>
@@ -247,19 +251,13 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                   {item.created_at && (
                     <span className="text-[10px] text-gray-400 shrink-0">{formatDate(item.created_at)}</span>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Quick stats when all clear but show zero cards summary */}
-      {pendingCards.length === 0 && summary && (
-        <p className="text-center text-sm text-gray-400 py-4">
-          Мониторинг активен — новые заявки появятся здесь автоматически
-        </p>
-      )}
     </div>
   );
 }
