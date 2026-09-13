@@ -27,7 +27,7 @@ export default function OrderReceiptEditor({order, onClose, onSaved}: {order?: O
   const invalidate = () => {setQuote(null); setError('');};
   const modify = (next: Line[]) => {setLines(next); invalidate();};
   const body = () => ({items: lines.map(x => ({line_index: x.line_index, id: typeof x.id === 'number' ? x.id : undefined, quantity: x.quantity, modifiers: x.modifiers || []})),
-    ...(order ? {expected_version: order.version || 0, reason} : {request_key: requestKey, customer_name: name, customer_phone: phone, delivery_address: address, delivery_method: method, payment_method: payment, comment}), quoted_total: quote?.total_amount});
+    ...(order ? {expected_version: order.version || 0, reason} : {request_key: requestKey, customer_name: name.trim() || (method === 'dine_in' ? t('workflow.guest') : ''), customer_phone: phone, delivery_address: address, delivery_method: method, payment_method: payment, comment}), quoted_total: quote?.total_amount});
   async function submit(save: boolean) {
     if (lock.current) return;
     lock.current = true; setBusy(true); setError('');
@@ -44,8 +44,8 @@ export default function OrderReceiptEditor({order, onClose, onSaved}: {order?: O
     <fieldset disabled={busy} className="space-y-4 min-w-0">
       {!order && <div className="grid sm:grid-cols-2 gap-3">
         <label>{t('workflow.name')}<Input value={name} maxLength={150} onChange={e => {setName(e.target.value); invalidate();}} /></label>
-        <label>{t('workflow.phone')}<Input type="tel" value={phone} maxLength={32} onChange={e => {setPhone(e.target.value); invalidate();}} /></label>
-        <label>{t('workflow.method')}<select className="w-full border rounded-lg p-2 bg-background" value={method} onChange={e => {setMethod(e.target.value); invalidate();}}><option value="delivery">{t('workflow.delivery')}</option><option value="pickup">{t('workflow.pickup')}</option></select></label>
+        <label>{t(method === 'dine_in' ? 'workflow.optionalPhone' : 'workflow.phone')}<Input type="tel" value={phone} maxLength={32} onChange={e => {setPhone(e.target.value); invalidate();}} /></label>
+        <label>{t('workflow.method')}<select className="w-full border rounded-lg p-2 bg-background" value={method} onChange={e => {setMethod(e.target.value); invalidate();}}><option value="delivery">{t('workflow.delivery')}</option><option value="pickup">{t('workflow.pickup')}</option><option value="dine_in">{t('workflow.onsite')}</option></select></label>
         <label>{t('workflow.payment')}<select className="w-full border rounded-lg p-2 bg-background" value={payment} onChange={e => {setPayment(e.target.value); invalidate();}}><option value="cash">{t('workflow.cash')}</option><option value="kaspi_qr">Kaspi QR</option><option value="halyk_qr">Halyk QR</option></select></label>
         {method === 'delivery' && <label className="sm:col-span-2">{t('workflow.address')}<Input value={address} maxLength={1000} onChange={e => {setAddress(e.target.value); invalidate();}} /></label>}
         <label className="sm:col-span-2">{t('workflow.comment')}<Input value={comment} maxLength={1000} onChange={e => {setComment(e.target.value); invalidate();}} /></label>

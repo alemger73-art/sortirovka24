@@ -55,3 +55,40 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
 }
+
+
+class ReceiptBridgeViewController: CAPBridgeViewController {
+    override func capacitorDidLoad() {
+        bridge?.registerPluginInstance(ReceiptPrinterPlugin())
+    }
+}
+
+@objc(ReceiptPrinterPlugin)
+public class ReceiptPrinterPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "ReceiptPrinterPlugin"
+    public let jsName = "ReceiptPrinter"
+    public let pluginMethods: [CAPPluginMethod] = [CAPPluginMethod(name: "print", returnType: CAPPluginReturnPromise)]
+    private var printing = false
+    @objc func print(_ call: CAPPluginCall) {
+        guard let html = call.getString("html"), html.utf8.count <= 1_000_000 else { call.reject("Invalid receipt"); return }
+        DispatchQueue.main.async {
+            guard !self.printing, let view = self.bridge?.viewController?.view else { call.reject("Printing unavailable"); return }
+            self.printing = true
+            let controller = UIPrintInteractionController.shared
+            let info = UIPrintInfo(dictionary: nil)
+            info.jobName = call.getString("title") ?? "Receipt"
+            info.outputType = .general
+            controller.printInfo = info
+            controller.printFormatter = UIMarkupTextPrintFormatter(markupText: html)
+            let completion: UIPrintInteractionController.CompletionHandler = { _, _, error in
+                self.printing = false
+                if let error = error { call.reject(error.localizedDescription) } else { call.resolve() }
+            }
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                controller.present(from: view.bounds, in: view, animated: true, completionHandler: completion)
+            } else {
+                controller.present(animated: true, completionHandler: completion)
+            }
+        }
+    }
+}

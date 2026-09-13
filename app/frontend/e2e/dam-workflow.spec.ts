@@ -39,7 +39,7 @@ test('operator adds a dish only after quote and customer reason',async({page},in
 });
 
 test('operator can create a phone order with server quote',async({page})=>{
- const s=await setup(page);await page.goto('/partner/dam-alem?section=orders');await page.getByRole('button',{name:'Заказ по телефону',exact:true}).click();
+ const s=await setup(page);await page.goto('/partner/dam-alem?section=orders');await page.getByRole('button',{name:'Новый заказ',exact:true}).click();
  const modal=page.getByRole('dialog');await modal.getByLabel('Имя клиента').fill('Клиент');await modal.getByLabel('Телефон клиента').fill('+77000000000');await modal.getByLabel('Получение').selectOption('pickup');await modal.getByRole('button',{name:/Напиток/}).click();
  await modal.getByRole('button',{name:'Рассчитать и проверить'}).click();await expect(modal.getByText('Итого: 300 ₸',{exact:true})).toBeVisible();
  await modal.getByRole('button',{name:'Подтвердить и сохранить'}).click();await expect(modal).toHaveCount(0);expect(s.writes).toBe(1);
@@ -55,3 +55,35 @@ test('customer sees refreshed receipt and status instead of map',async({page},in
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  await page.screenshot({path:info.outputPath('customer-receipt.png')});
 });
+
+test('onsite order needs no phone and receipt printing escapes customer text',async({page})=>{
+ const s=await setup(page);await page.goto('/partner/dam-alem?section=orders&order=71');
+ await page.getByRole('button',{name:'Новый заказ',exact:true}).click();const modal=page.getByRole('dialog');
+ await modal.getByLabel('Получение').selectOption('dine_in');await modal.getByRole('button',{name:/Напиток/}).click();
+ await modal.getByRole('button',{name:'Рассчитать и проверить'}).click();await modal.getByRole('button',{name:'Подтвердить и сохранить'}).click();
+ await expect(modal).toHaveCount(0);expect(s.writes).toBe(1);
+});
+
+test('owner configures daily payroll and records payment',async({page})=>{
+ await setup(page);
+ const employee={id:1,name:'Повар',position:'Повар',daily_base:5000,percent:10,basis:'kitchen',active:true};
+ const report:any={day:'2026-09-14',version:0,fingerprint:'test',closed:false,rows:[],sales:{kitchen:10000,bar:2000,unassigned:0},total:0,pending_orders:0,unassigned:0,new_sales_after_close:0,payments:[]};
+ await page.route('**/api/v1/dam-alem/business/me',r=>r.fulfill({json:{role:'owner',name:'Владелец'}}));
+ await page.route('**/api/v1/dam-alem/payroll/**',async r=>{
+  const path=new URL(r.request().url()).pathname;let json:any=report;
+  if(path.endsWith('/employees'))json=[employee];
+  else if(path.endsWith('/departments'))json=[];
+  else if(path.includes('/work/')){report.rows=[{...employee,employee_id:1,sales:10000,commission:1000,total:6000,paid:0,remaining:6000}];report.total=6000;report.version++;}
+  else if(path.endsWith('/close')){expect(r.request().postDataJSON().fingerprint).toBe('test');report.closed=true;report.version++;}
+  else if(path.endsWith('/payments')){const p=r.request().postDataJSON();expect(p.amount).toBe(6000);expect(p.id).toBeTruthy();report.rows[0].paid=6000;report.rows[0].remaining=0;report.payments=[{...p,created_at:new Date().toISOString()}];report.version++;}
+  await r.fulfill({json});
+ });
+ await page.goto('/partner/dam-alem?section=payroll');
+ await page.getByRole('button',{name:'Отметить выход: Повар',exact:true}).click();
+ await expect(page.getByText('Начислено: 6000 ₸',{exact:true}).first()).toBeVisible();
+ await page.getByRole('button',{name:'Подтвердить и закрыть день',exact:true}).click();
+ await page.getByRole('button',{name:'Отметить выплату',exact:true}).click();
+ await expect(page.getByText('Осталось выплатить: 0 ₸',{exact:true})).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+});
+

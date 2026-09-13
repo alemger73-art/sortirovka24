@@ -3,7 +3,7 @@ import { getPublicLanguage } from '@/i18n/publicLocale';
 import { getAPIBaseURL } from './config';
 import { getPartnerToken } from './partnerAuthApi';
 
-export async function foodOperations<T>(path: string, method = 'GET', body?: unknown, area: 'operations' | 'business' = 'operations'): Promise<T> {
+export async function foodOperations<T>(path: string, method = 'GET', body?: unknown, area: 'operations' | 'business' | 'payroll' = 'operations'): Promise<T> {
   const partner = getPartnerToken('dam_alem');
   const admin = localStorage.getItem('_sp924_token') || localStorage.getItem('token');
   const token = location.pathname.startsWith('/partner/') ? partner : admin || partner;

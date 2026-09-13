@@ -491,7 +491,7 @@ async def validate_food_order(
 
     if not customer_name:
         raise HTTPException(status_code=400, detail="Укажите имя")
-    if len(_normalize_phone(customer_phone)) < 10:
+    if not (staff_quote and delivery_method == 'dine_in' and not customer_phone) and len(_normalize_phone(customer_phone)) < 10:
         raise HTTPException(status_code=400, detail="Некорректный номер телефона")
     if delivery_method == "delivery" and not delivery_address:
         raise HTTPException(status_code=400, detail="Укажите адрес доставки")
@@ -671,6 +671,7 @@ async def validate_food_order(
         subtotal += line_sum
         validated_items.append({
             "id": product.id,
+            "department": getattr(product, "sales_department", None),
             "name": product.name,
             "price": base_price,
             "quantity": qty_int,
@@ -682,7 +683,7 @@ async def validate_food_order(
     subtotal = round(subtotal, 2)
     if catalog_only and staff_quote:
         return {}, validated_items, subtotal
-    if min_order > 0 and subtotal < min_order:
+    if not (staff_quote and delivery_method in ("pickup", "dine_in")) and min_order > 0 and subtotal < min_order:
         raise HTTPException(status_code=400, detail=f"Минимальный заказ {int(min_order)} ₸")
     selected_gift = None if staff_quote else _resolve_selected_gift(
         str(data.get("selected_gift_id") or "").strip(),
@@ -707,6 +708,8 @@ async def validate_food_order(
     else:
         expected_service = 0
 
+    if staff_quote and delivery_method == "dine_in":
+        expected_service = 0
     client_lat = _parse_coord(data.get("delivery_lat"))
     client_lng = _parse_coord(data.get("delivery_lng"))
     lat, lng = client_lat, client_lng

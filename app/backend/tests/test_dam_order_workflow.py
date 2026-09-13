@@ -16,6 +16,7 @@ from models.food_operations import FoodOrderEvent, FoodOrderRequest
 from models.partner_auth import PartnerCredentials
 from models.logistics import LogisticsTask, CourierProfile
 from routers.food_operations import router
+from routers.food_payroll import router as payroll_router
 from services.food_orders import Food_ordersService
 from services.logistics_service import accept_task, advance_task_status
 
@@ -30,6 +31,7 @@ async def env(monkeypatch, tmp_path):
     maker=async_sessionmaker(engine, expire_on_commit=False)
     async with maker() as db:
         db.add(PartnerCredentials(id=1,partner_type='dam_alem',email='operator@test.local',password_hash='unused',display_name='Operator',is_active=True,access_role='operator'))
+        db.add(PartnerCredentials(id=2,partner_type='dam_alem',email='owner@test.local',password_hash='unused',display_name='Owner',is_active=True,access_role='owner'))
         db.add(Food_restaurants(id=1,name='DAM ALEM 2.0',min_order=0))
         db.add_all([Food_items(id=1,restaurant_id=1,name='Pizza',price=1500,is_active=True,available=True),Food_items(id=2,restaurant_id=1,name='Drink',price=300,is_active=True,available=True),Food_items(id=3,restaurant_id=9,name='Other',price=1,is_active=True)])
         db.add(Food_settings(setting_key='loyalty_enabled',setting_value='0'))
@@ -43,7 +45,7 @@ async def env(monkeypatch, tmp_path):
     async def courier_profile(db,user):
         return await db.scalar(select(CourierProfile).where(CourierProfile.user_id==user.id))
     monkeypatch.setattr('services.logistics_service.get_or_create_courier_profile',courier_profile)
-    app=FastAPI();app.include_router(router);app.include_router(account_v2.router)
+    app=FastAPI();app.include_router(router);app.include_router(account_v2.router);app.include_router(payroll_router)
     async def dependency():
         async with maker() as db: yield db
     app.dependency_overrides[get_db]=dependency
@@ -194,3 +196,75 @@ async def test_additive_schema_repair_preserves_existing_order(tmp_path):
         assert row[0]==1200 and row[1] is None and row[2] is None
     await engine.dispose()
 
+
+def owner_headers():
+    token=create_access_token({'role':'partner','type':'partner_session','partner_type':'dam_alem','partner_id':2,'sub':'owner'})
+    return {'Authorization':f'Bearer {token}'}
+
+@pytest.mark.asyncio
+async def test_onsite_order_can_omit_phone_and_avoids_delivery(env):
+    client,maker,headers,_=env
+    body={'request_key':'11111111-1234-1234-1234-123456789012','customer_name':'Гость','delivery_method':'dine_in','items':[{'id':2,'quantity':1}]}
+    quote=await client.post(BASE+'/manual/quote',headers=headers,json=body)
+    assert quote.status_code==200,quote.text
+    body['quoted_total']=300
+    response=await client.post(BASE+'/manual',headers=headers,json=body)
+    assert response.status_code==201,response.text
+    oid=response.json()['id']
+    for version,status in enumerate(['confirmed','preparing','ready','done']):
+        response=await client.patch(BASE+f'/orders/{oid}',headers=headers,json={'expected_version':version,'status':status})
+        assert response.status_code==200,response.text
+    async with maker() as db:
+        assert await db.scalar(select(func.count()).select_from(LogisticsTask))==0
+
+@pytest.mark.asyncio
+async def test_daily_salary_net_departments_freeze_and_payment_idempotency(env):
+    from models.food_payroll import FoodPayrollPayment
+    from models.food_business import FoodExpense
+    client,maker,operator,_=env;headers=owner_headers();base='/api/v1/dam-alem/payroll'
+    assert (await client.get(base+'/employees',headers=operator)).status_code==403
+    async with maker() as db:
+        order=await db.get(Food_orders,1)
+        order.status='done';order.payment_status='paid';order.created_at='2026-09-13T09:00:00Z';order.completed_at='2026-09-13T10:00:00Z';order.paid_at='2026-09-13T10:00:00Z'
+        order.total_amount=2300;order.promo_discount_amount=200
+        order.order_items=json.dumps([{'id':1,'name':'Kitchen','price':1000,'quantity':1,'department':'kitchen'},{'id':2,'name':'Bar','price':1000,'quantity':1,'department':'bar'}])
+        await db.commit()
+    staff=[]
+    for name,base_pay,percent,basis in [('Cook',1000,10,'kitchen'),('Operator',500,5,'bar')]:
+        response=await client.post(base+'/employees',headers=headers,json={'name':name,'position':name,'daily_base':base_pay,'percent':percent,'basis':basis})
+        assert response.status_code==200,response.text
+        staff.append(response.json())
+    for version,employee in enumerate(staff):
+        r=await client.put(base+f'/days/2026-09-13/work/{employee["id"]}',headers=headers,json={**employee,'expected_version':version})
+        assert r.status_code==200,r.text
+    report=(await client.get(base+'/days/2026-09-13',headers=headers)).json()
+    assert report['sales']['kitchen']==900 and report['sales']['bar']==900
+    assert [r['total'] for r in report['rows']]==[1090,545]
+    closed=await client.post(base+'/days/2026-09-13/close',headers=headers,json={'expected_version':report['version'],'fingerprint':report['fingerprint']})
+    assert closed.status_code==200,closed.text
+    report=closed.json();assert report['closed']
+    employee=staff[0];employee['daily_base']=9999
+    await client.put(base+f'/employees/{employee["id"]}',headers=headers,json=employee)
+    assert (await client.get(base+'/days/2026-09-13',headers=headers)).json()['rows'][0]['total']==1090
+    body={'id':'33333333-1234-1234-1234-123456789012','employee_id':employee['id'],'amount':1000,'note':'Cash paid','expected_version':report['version']}
+    paid=await client.post(base+'/days/2026-09-13/payments',headers=headers,json=body)
+    assert paid.status_code==200,paid.text
+    assert paid.json()['rows'][0]['remaining']==90
+    assert (await client.post(base+'/days/2026-09-13/payments',headers=headers,json=body)).status_code==200
+    async with maker() as db:
+        assert await db.scalar(select(func.count()).select_from(FoodPayrollPayment))==1
+        assert await db.scalar(select(func.count()).select_from(FoodExpense))==1
+    body['id']='44444444-1234-1234-1234-123456789012';body['expected_version']=paid.json()['version'];body['amount']=100
+    assert (await client.post(base+'/days/2026-09-13/payments',headers=headers,json=body)).status_code==422
+
+@pytest.mark.asyncio
+async def test_payroll_blocks_unfinished_orders_and_changed_preview(env):
+    client,maker,_,_=env;headers=owner_headers();base='/api/v1/dam-alem/payroll'
+    async with maker() as db:
+        order=await db.get(Food_orders,1);order.created_at='2026-09-13T10:00:00Z';await db.commit()
+    employee=(await client.post(base+'/employees',headers=headers,json={'name':'Cook','position':'Cook','daily_base':1000,'percent':5,'basis':'all'})).json()
+    report=(await client.put(base+f'/days/2026-09-13/work/{employee["id"]}',headers=headers,json={**employee,'expected_version':0})).json()
+    assert report['pending_orders']==1
+    close=await client.post(base+'/days/2026-09-13/close',headers=headers,json={'expected_version':report['version'],'fingerprint':report['fingerprint']})
+    assert close.status_code==409
+    assert not (await client.get(base+'/days/2026-09-13',headers=headers)).json()['closed']

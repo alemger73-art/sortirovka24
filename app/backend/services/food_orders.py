@@ -173,9 +173,9 @@ class Food_ordersService:
                 transitions = {'new': {'confirmed', 'cancelled'}, 'confirmed': {'preparing', 'ready', 'in_progress', 'done', 'cancelled'}, 'preparing': {'ready', 'cancelled'}, 'ready': {'in_progress', 'done', 'cancelled'}, 'in_progress': {'done', 'cancelled'}}
                 if target != old_status and target not in transitions.get(old_status, set()):
                     raise HTTPException(409, "Недопустимый переход статуса")
-                if target == 'in_progress' and obj.delivery_method == 'pickup':
+                if target == 'in_progress' and obj.delivery_method in ('pickup', 'dine_in'):
                     raise HTTPException(422, "Самовывоз не передаётся в доставку")
-                if target != old_status and obj.delivery_method != 'pickup' and target in ('in_progress', 'done') and actor != 'Курьер':
+                if target != old_status and obj.delivery_method in ('delivery', 'доставка') and target in ('in_progress', 'done') and actor != 'Курьер':
                     raise HTTPException(409, 'Передачу и доставку отмечает курьер в своём кабинете')
                 if target == 'cancelled' and not (update_data.get('cancellation_reason') or '').strip():
                     raise HTTPException(422, "Укажите причину отмены")

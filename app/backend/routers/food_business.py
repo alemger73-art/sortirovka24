@@ -125,6 +125,16 @@ class Reason(BaseModel):
 @router.post('/expenses/{expense_id}/void')
 async def void_expense(expense_id:UUID,body:Reason,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
     if len(body.reason.strip())<3: raise HTTPException(422,'Укажите причину исправления')
+    expense=await db.get(FoodExpense,str(expense_id))
+    if expense and expense.category=='salary' and expense.note.startswith('Зарплата: '):
+        from models.food_payroll import FoodPayrollPayment, FoodPayrollDay
+        from routers.food_payroll import lock_day
+        payment=await db.get(FoodPayrollPayment,str(expense_id))
+        if payment:
+            period=await db.get(FoodPayrollDay,payment.day)
+            await lock_day(db,payment.day,period.version if period else 0)
+            payment.voided=True
+            payment.void_reason=f'{actor(claims)}: {body.reason.strip()}'
     result=await db.execute(update(FoodExpense).where(FoodExpense.id==str(expense_id),FoodExpense.voided==False).values(voided=True,void_reason=f'{actor(claims)}: {body.reason.strip()}'))
     await db.commit()
     if not result.rowcount: raise HTTPException(409,'Расход уже исключён или не найден')

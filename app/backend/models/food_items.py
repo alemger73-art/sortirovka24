@@ -9,6 +9,7 @@ class Food_items(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True, nullable=False)
     restaurant_id = Column(Integer, nullable=True)
     category_id = Column(Integer, nullable=True)
+    sales_department = Column(String, nullable=True)
     name = Column(String, nullable=True)
     description = Column(String, nullable=True)
     price = Column(Float, nullable=True)

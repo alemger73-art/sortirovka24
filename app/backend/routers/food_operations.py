@@ -139,9 +139,9 @@ class ReceiptChange(BaseModel):
 class ManualOrder(BaseModel):
     request_key: str = Field(min_length=16, max_length=64, pattern=r'^[a-zA-Z0-9-]+$')
     customer_name: str = Field(min_length=1, max_length=150)
-    customer_phone: str = Field(min_length=10, max_length=32)
+    customer_phone: str = Field('', max_length=32)
     delivery_address: str = Field('', max_length=1000)
-    delivery_method: Literal['pickup', 'delivery'] = 'delivery'
+    delivery_method: Literal['pickup', 'delivery', 'dine_in'] = 'delivery'
     payment_method: Literal['cash', 'kaspi_qr', 'halyk_qr'] = 'cash'
     comment: str = Field('', max_length=1000)
     items: list[ReceiptLine] = Field(min_length=1, max_length=100)

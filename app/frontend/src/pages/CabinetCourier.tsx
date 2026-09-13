@@ -1,3 +1,4 @@
+import PrintReceiptButton from '@/components/PrintReceiptButton';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -323,7 +324,8 @@ export default function CabinetCourier() {
                 <p className="font-bold text-xl">{formatTenge(active_task.delivery_fee)}</p>
               )}
               {active_task.source_type === 'food_orders' && <div className="rounded-xl bg-muted/40 p-3 space-y-1"><p>{t('workflow.total')}: {formatTenge(active_task.total_amount)}</p><p>{t('workflow.received')}: {formatTenge(active_task.paid_amount)}</p><p className="font-bold">{t('workflow.due')}: {formatTenge(active_task.amount_due)}</p></div>}
-              {active_task.order_items && <div className="text-sm space-y-1">{parseOrderItems(active_task.order_items).map((item,i) => <p key={i}>{item.name || item.title} × {orderLineQuantity(item)}</p>)}</div>}
+              {active_task.order_items && <div className="text-sm space-y-1">{parseOrderItems(active_task.order_items).map((item,i) => <p key={i}>{String(item.name || item.title || '')} × {orderLineQuantity(item)}</p>)}</div>}
+              <PrintReceiptButton order={{...active_task, order_number: active_task.source_id}} />
               {active_task.customer_phone && (
                 <a href={`tel:${active_task.customer_phone}`} className="flex items-center gap-2 text-sm text-blue-600">
                   <Phone className="h-4 w-4" /> {active_task.customer_name} · {active_task.customer_phone}

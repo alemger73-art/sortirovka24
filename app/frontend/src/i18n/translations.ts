@@ -1148,4 +1148,6 @@ const translations: Translations = {
 
 import { workflowTranslations } from './workflowTranslations';
 
-export default { ...workflowTranslations, ...translations, ...publicTranslations, ...adminTranslations } satisfies Translations;
+import { payrollTranslations } from './payrollTranslations';
+
+export default { ...payrollTranslations, ...workflowTranslations, ...translations, ...publicTranslations, ...adminTranslations } satisfies Translations;
