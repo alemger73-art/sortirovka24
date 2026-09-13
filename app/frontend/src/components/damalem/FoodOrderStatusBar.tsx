@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { CheckCircle2, Circle } from 'lucide-react';
 
 const STEPS = [
@@ -25,15 +26,17 @@ interface Props {
 }
 
 export default function FoodOrderStatusBar({ status, compact = false, deliveryMethod }: Props) {
+  const st = useStoreTranslations();
+
   if (status === 'cancelled') {
-    return <p className="text-xs text-red-400 font-medium">Заказ отменён</p>;
+    return <p className="text-xs text-red-400 font-medium">{st("Заказ отменён")}</p>;
   }
 
   const current = stepIndex(status);
 
   if (compact) {
-    const label = STEPS[Math.min(current, STEPS.length - 1)]?.label ?? 'Принят';
-    return <p className="text-[11px] text-gray-400">{label}</p>;
+    const label = STEPS[Math.min(current, STEPS.length - 1)]?.label ?? st("Принят");
+    return <p className="text-[11px] text-gray-400">{st(label)}</p>;
   }
 
   return (
@@ -49,7 +52,7 @@ export default function FoodOrderStatusBar({ status, compact = false, deliveryMe
               <Circle className="h-3.5 w-3.5 shrink-0 text-gray-300 dark:text-gray-600" />
             )}
             <span className={`text-[10px] truncate ${done ? 'text-orange-600 font-semibold dark:text-orange-300' : 'text-gray-400 dark:text-gray-500'}`}>
-              {step.label}
+              {st(step.label)}
             </span>
             {idx < STEPS.length - 1 && (
               <div className={`h-px flex-1 mx-0.5 ${idx < current ? 'bg-orange-400/60 dark:bg-orange-400/50' : 'bg-gray-200 dark:bg-gray-700'}`} />

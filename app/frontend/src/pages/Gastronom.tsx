@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -55,7 +56,7 @@ function parseTab(raw: string | null): Tab {
   return TAB_IDS.includes(raw as Tab) ? (raw as Tab) : 'home';
 }
 
-const NAV_ITEMS: { id: Tab; icon: typeof Home; label: string }[] = [
+const NAV_ITEMS_RU: { id: Tab; icon: typeof Home; label: string }[] = [
   { id: 'home', icon: Home, label: 'Витрина' },
   { id: 'catalog', icon: LayoutGrid, label: 'Каталог' },
   { id: 'cart', icon: ShoppingCart, label: 'Корзина' },
@@ -147,17 +148,21 @@ function formatMoney(n: number) {
 }
 
 export default function Gastronom() {
+  const st = useStoreTranslations();
+  const NAV_ITEMS = NAV_ITEMS_RU.map(item => ({ ...item, label: st(item.label) }));
+
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<GastronomCategory[]>([]);
   const [products, setProducts] = useState<GastronomProduct[]>([]);
   const [settings, setSettings] = useState<GastronomSettings>({
     default_address: 'ул. Жекибаева 129',
-    delivery_time: 'Доставка 30-60 мин',
+    delivery_time: '',
     min_order: '2000',
-    hero_title: 'ДОСТАВКА ПРОДУКТОВ ПИТАНИЯ ПО СОРТИРОВКЕ',
+    hero_title: '',
     store_name: 'ГАСТРОНОМ',
-    store_tagline: 'доставка продуктов питания',
+    store_tagline: '',
   });
   const [cartQty, setCartQty] = useState<Record<number, number>>(loadCartQty);
   const [favorites, setFavorites] = useState<number[]>(loadFavorites);
@@ -296,11 +301,11 @@ export default function Gastronom() {
       applyCatalog(data);
     } catch (e) {
       console.error(e);
-      if (!cached) toast.error('Не удалось загрузить каталог');
+      if (!cached) toast.error(st("Не удалось загрузить каталог"));
     } finally {
       setLoading(false);
     }
-  }, [applyCatalog]);
+  }, [st, applyCatalog]);
 
   useEffect(() => {
     void loadCatalog();
@@ -378,13 +383,13 @@ export default function Gastronom() {
   useEffect(() => {
     if (deliveryReady && !prevDeliveryReady.current && hasDeliveryZones) {
       setAddressFormCollapsed(true);
-      toast.success('Адрес подтверждён! Нажмите «Оформить заказ»', { duration: 4000 });
+      toast.success(st("Адрес подтверждён! Нажмите «Оформить заказ»"), { duration: 4000 });
     }
     if (!deliveryReady) {
       setAddressFormCollapsed(false);
     }
     prevDeliveryReady.current = deliveryReady;
-  }, [deliveryReady, hasDeliveryZones]);
+  }, [st, deliveryReady, hasDeliveryZones]);
 
   const focusAddressPicker = useCallback(() => {
     setAddressFormCollapsed(false);
@@ -422,20 +427,20 @@ export default function Gastronom() {
         setDeliveryQuoteError(quote.location_warning);
         if (options?.notify) toast.warning(quote.location_warning);
       } else if (!quote.available) {
-        const msg = quote.message || 'Доставка по этому адресу недоступна';
+        const msg = quote.message || st("Доставка по этому адресу недоступна");
         setDeliveryQuoteError(msg);
         if (options?.notify) toast.error(msg);
       }
     } catch (e) {
       if (reqId !== quoteRequestId.current) return;
       setDeliveryQuote(null);
-      const msg = e instanceof Error ? e.message : 'Не удалось рассчитать доставку';
+      const msg = e instanceof Error ? e.message : st("Не удалось рассчитать доставку");
       setDeliveryQuoteError(msg);
       if (options?.notify) toast.error(msg);
     } finally {
       if (reqId === quoteRequestId.current) setDeliveryQuoteLoading(false);
     }
-  }, []);
+  }, [st]);
 
   const applySavedAddress = useCallback((saved: SavedAddress, opts?: { auto?: boolean }) => {
     setAddress(saved.address);
@@ -451,13 +456,13 @@ export default function Gastronom() {
   const findByAddress = useCallback((addr?: string) => {
     const target = (addr ?? effectiveAddress).trim();
     if (target.length < 5) {
-      toast.info('Введите улицу и номер дома, например: пер. Урановый 10');
+      toast.info(st("Введите улицу и номер дома, например: пер. Урановый 10"));
       setAddressEditing(true);
       return;
     }
     if (addr) setAddress(addr);
     void runDeliveryQuote({ address: target }, { notify: true });
-  }, [effectiveAddress, runDeliveryQuote]);
+  }, [st, effectiveAddress, runDeliveryQuote]);
 
   const requestGeolocation = useCallback(async () => {
     setDeliveryQuoteLoading(true);
@@ -471,17 +476,17 @@ export default function Gastronom() {
       setDeliveryQuoteLoading(false);
       if (err instanceof GeolocationError) {
         if (err.code === 'denied') {
-          toast.error('Разрешите доступ к геолокации в настройках телефона');
+          toast.error(st("Разрешите доступ к геолокации в настройках телефона"));
         } else if (err.code === 'unsupported') {
-          toast.error('Геолокация не поддерживается на этом устройстве');
+          toast.error(st("Геолокация не поддерживается на этом устройстве"));
         } else {
-          toast.error('Не удалось получить GPS. Введите адрес вручную.');
+          toast.error(st("Не удалось получить GPS. Введите адрес вручную."));
         }
         return;
       }
-      toast.error('Не удалось получить GPS. Введите адрес вручную.');
+      toast.error(st("Не удалось получить GPS. Введите адрес вручную."));
     }
-  }, [runDeliveryQuote]);
+  }, [st, runDeliveryQuote]);
 
   // Ask for location permission as soon as the store opens (system dialog).
   useEffect(() => {
@@ -563,7 +568,7 @@ export default function Gastronom() {
   function rejectAge() {
     setAgeGateOpen(false);
     pendingAgeAction.current = null;
-    toast.error('Раздел доступен только для лиц старше 21 года');
+    toast.error(st("Раздел доступен только для лиц старше 21 года"));
   }
 
   function selectCategory(catId: number | null, isAlcohol = false) {
@@ -578,10 +583,10 @@ export default function Gastronom() {
   function openCheckout() {
     if (hasDeliveryZones && !deliveryReady) {
       if (deliveryQuoteLoading) {
-        toast.info('Подождите, проверяем адрес на карте...');
+        toast.info(st("Подождите, проверяем адрес на карте..."));
         return;
       }
-      toast.info('Сначала проверьте адрес — нажмите «Найти на карте» или GPS');
+      toast.info(st("Сначала проверьте адрес — нажмите «Найти на карте» или GPS"));
       focusAddressPicker();
       return;
     }
@@ -595,11 +600,11 @@ export default function Gastronom() {
   function proceedToCheckout() {
     if (hasDeliveryZones && !deliveryReady) {
       focusAddressPicker();
-      toast.info('Сначала проверьте адрес на карте');
+      toast.info(st("Сначала проверьте адрес на карте"));
       return;
     }
     if (subtotal < minOrder) {
-      toast.error(`Минимальный заказ ${formatMoney(minOrder)}`);
+      toast.error(st("Минимальный заказ {0}", [formatMoney(minOrder)]));
       return;
     }
     setAddressFormCollapsed(true);
@@ -611,7 +616,7 @@ export default function Gastronom() {
       selectCategory(alcoholCategory.id, true);
     } else {
       setActiveTab('catalog');
-      toast.info('Алкогольная категория скоро появится');
+      toast.info(st("Алкогольная категория скоро появится"));
     }
   }
 
@@ -621,7 +626,7 @@ export default function Gastronom() {
         ...prev,
         [product.id]: (prev[product.id] || 0) + 1,
       }));
-      toast.success(`${product.name} добавлен в корзину`);
+      toast.success(st("{0} добавлен в корзину", [product.name]));
     };
     if (isProductAlcohol(product)) requireAge(putInCart);
     else putInCart();
@@ -687,10 +692,10 @@ export default function Gastronom() {
         storeName: settings.store_name || 'ГАСТРОНОМ',
         giftTitle: loyaltyGift?.title,
       });
-      toast.success('Заказ оформлен! Мы свяжемся с вами.');
+      toast.success(st("Заказ оформлен! Мы свяжемся с вами."));
     } catch (e) {
       console.error(e);
-      toast.error(e instanceof Error ? e.message : 'Не удалось оформить заказ');
+      toast.error(e instanceof Error ? e.message : st("Не удалось оформить заказ"));
     } finally {
       setSubmitting(false);
     }
@@ -698,27 +703,27 @@ export default function Gastronom() {
 
   async function checkout() {
     if (!name.trim() || !phone.trim() || !effectiveAddress) {
-      toast.error('Заполните имя, телефон и адрес');
+      toast.error(st("Заполните имя, телефон и адрес"));
       return;
     }
     if (!normalizePhone(phone)) {
-      toast.error('Введите корректный номер телефона');
+      toast.error(st("Введите корректный номер телефона"));
       return;
     }
     if (cart.length === 0) {
-      toast.error('Корзина пуста');
+      toast.error(st("Корзина пуста"));
       return;
     }
     if (subtotal < minOrder) {
-      toast.error(`Минимальный заказ ${formatMoney(minOrder)}`);
+      toast.error(st("Минимальный заказ {0}", [formatMoney(minOrder)]));
       return;
     }
     if (hasDeliveryZones && !deliveryQuote?.available) {
-      toast.error('Укажите адрес в зоне доставки или используйте геолокацию');
+      toast.error(st("Укажите адрес в зоне доставки или используйте геолокацию"));
       return;
     }
     if (hasDeliveryZones && deliveryQuoteLoading) {
-      toast.error('Подождите, рассчитываем доставку...');
+      toast.error(st("Подождите, рассчитываем доставку..."));
       return;
     }
     if (hasAlcoholInCart && !ageConfirmed) {
@@ -729,6 +734,8 @@ export default function Gastronom() {
   }
 
   function ProductCard({ product }: { product: GastronomProduct }) {
+  const st = useStoreTranslations();
+
     const inCart = cartQty[product.id] ?? 0;
     const isFav = favorites.includes(product.id);
     const alcohol = isProductAlcohol(product);
@@ -758,7 +765,7 @@ export default function Gastronom() {
             type="button"
             onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
             className="absolute top-2 left-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow"
-            aria-label="Избранное"
+            aria-label={st("Избранное")}
           >
             <Heart className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
           </button>
@@ -828,12 +835,12 @@ export default function Gastronom() {
     const storePhone = settings.store_phone?.replace(/\D/g, '');
     const paymentHint =
       confirmedOrder.payment === 'Наличные'
-        ? 'Оплатите курьеру наличными при получении заказа.'
+        ? st("Оплатите курьеру наличными при получении заказа.")
         : confirmedOrder.payment === 'Kaspi QR'
-          ? 'Курьер привезёт QR для оплаты в приложении Kaspi. Сканируйте его в Kaspi, когда получите заказ.'
+          ? st("Курьер привезёт QR для оплаты в приложении Kaspi. Сканируйте его в Kaspi, когда получите заказ.")
           : confirmedOrder.payment === 'Halyk QR'
-            ? 'Курьер привезёт QR для оплаты в приложении Halyk. Сканируйте его в Halyk, когда получите заказ.'
-            : 'Оплатите курьеру при получении заказа.';
+            ? st("Курьер привезёт QR для оплаты в приложении Halyk. Сканируйте его в Halyk, когда получите заказ.")
+            : st("Оплатите курьеру при получении заказа.");
     return (
       <Layout hideHeader hideBottomNav>
         <GastronomPortalBar />
@@ -841,15 +848,14 @@ export default function Gastronom() {
           <div className="max-w-lg mx-auto space-y-6">
             <div className="text-center">
               <CheckCircle2 className="h-16 w-16 text-emerald-500 mx-auto mb-4" />
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">Заказ принят!</h1>
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">{st("Заказ принят!")}</h1>
               <p className="text-emerald-700 font-semibold text-lg">№ {confirmedOrder.id}</p>
               <p className="text-gray-500 text-sm mt-2">
-                Мы свяжемся с вами для подтверждения. Сохраните номер заказа.
-              </p>
+                 {st("Мы свяжемся с вами для подтверждения. Сохраните номер заказа.")} </p>
             </div>
 
             <div className="bg-white rounded-3xl border border-gray-100 p-5 md:p-6 shadow-sm space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Магазин</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{st("Магазин")}</p>
               <p className="text-lg font-bold text-gray-900">{confirmedOrder.storeName}</p>
               <div className="border-t border-gray-100 pt-3 space-y-2 text-sm">
                 <p><span className="font-medium">{confirmedOrder.name}</span> · {confirmedOrder.phone}</p>
@@ -857,10 +863,10 @@ export default function Gastronom() {
                   <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
                   {confirmedOrder.address}
                 </p>
-                <p>Оплата: {confirmedOrder.payment}</p>
+                <p>{st("Оплата:")} {st(confirmedOrder.payment)}</p>
                 {confirmedOrder.giftTitle && (
                   <p className="text-amber-800 bg-amber-50 rounded-xl px-3 py-2 mt-2">
-                    🎁 Подарок к заказу: <span className="font-semibold">{confirmedOrder.giftTitle}</span>
+                     {st("🎁 Подарок к заказу:")} <span className="font-semibold">{confirmedOrder.giftTitle}</span>
                   </p>
                 )}
                 <p className="text-xl font-bold text-emerald-700">{formatMoney(confirmedOrder.total)}</p>
@@ -868,7 +874,7 @@ export default function Gastronom() {
             </div>
 
             <div className="bg-emerald-50 rounded-3xl border border-emerald-100 p-5 md:p-6 shadow-sm">
-              <p className="text-sm font-semibold text-emerald-900 mb-1">Как оплатить</p>
+              <p className="text-sm font-semibold text-emerald-900 mb-1">{st("Как оплатить")}</p>
               <p className="text-sm text-emerald-800 leading-relaxed">{paymentHint}</p>
             </div>
 
@@ -877,7 +883,7 @@ export default function Gastronom() {
                 href={`tel:+${storePhone}`}
                 className="block text-center text-sm text-emerald-600 hover:underline"
               >
-                Позвонить в магазин: {settings.store_phone}
+                 {st("Позвонить в магазин:")} {settings.store_phone}
               </a>
             )}
 
@@ -885,8 +891,7 @@ export default function Gastronom() {
               className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 rounded-xl"
               onClick={() => { setConfirmedOrder(null); setActiveTab('home'); }}
             >
-              Вернуться на главную
-            </Button>
+               {st("Вернуться на главную")} </Button>
           </div>
         </div>
       </Layout>
@@ -919,7 +924,7 @@ export default function Gastronom() {
             <button
               type="button"
               className="p-2 -ml-2 text-gray-600 hover:text-emerald-600 transition-colors shrink-0"
-              aria-label="Меню"
+              aria-label={st("Меню")}
               onClick={openMenu}
             >
               <Menu className="h-5 w-5 md:h-6 md:w-6" />
@@ -940,14 +945,14 @@ export default function Gastronom() {
                 </div>
               )}
               <p className="text-[10px] md:text-xs text-gray-400 uppercase tracking-widest mt-0.5 md:mt-1">
-                {settings.store_tagline || 'доставка продуктов питания'}
+                {(settings.store_tagline || st("доставка продуктов питания"))}
               </p>
             </div>
             <div className="flex items-center gap-1 md:gap-2 shrink-0">
               <button
                 type="button"
                 className="p-2 text-gray-600 hover:text-emerald-600 md:hidden"
-                aria-label="Поиск"
+                aria-label={st("Поиск")}
                 onClick={openSearch}
               >
                 <Search className="h-5 w-5" />
@@ -958,8 +963,7 @@ export default function Gastronom() {
                 onClick={() => setActiveTab('cart')}
               >
                 <ShoppingCart className="h-4 w-4" />
-                Корзина
-                {cartCount > 0 && (
+                 {st("Корзина")} {cartCount > 0 && (
                   <span className="flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-white text-emerald-700 text-xs font-bold">
                     {cartCount}
                   </span>
@@ -969,7 +973,7 @@ export default function Gastronom() {
                 type="button"
                 className="relative p-2 text-gray-600 md:hidden"
                 onClick={() => setActiveTab('cart')}
-                aria-label="Корзина"
+                aria-label={st("Корзина")}
               >
                 <ShoppingCart className="h-5 w-5" />
                 {cartCount > 0 && (
@@ -986,7 +990,7 @@ export default function Gastronom() {
             <button
               type="button"
               className="p-2 -ml-2 text-gray-600 hover:text-emerald-600 transition-colors shrink-0"
-              aria-label="Меню"
+              aria-label={st("Меню")}
               onClick={openMenu}
             >
               <Menu className="h-6 w-6" />
@@ -1007,14 +1011,14 @@ export default function Gastronom() {
                     </h1>
                   </div>
                   <p className="text-xs text-gray-400 uppercase tracking-widest mt-0.5">
-                    {settings.store_tagline || 'доставка продуктов питания'}
+                    {(settings.store_tagline || st("доставка продуктов питания"))}
                   </p>
                 </div>
               )}
             </div>
             <div className="flex-1 max-w-md xl:max-w-lg">
               <Input
-                placeholder="Поиск товаров..."
+                placeholder={st("Поиск товаров...")}
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -1032,8 +1036,7 @@ export default function Gastronom() {
               onClick={() => setActiveTab('cart')}
             >
               <ShoppingCart className="h-4 w-4" />
-              Корзина
-              {cartCount > 0 && (
+               {st("Корзина")} {cartCount > 0 && (
                 <span className="flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-white text-emerald-700 text-xs font-bold">
                   {cartCount}
                 </span>
@@ -1044,7 +1047,7 @@ export default function Gastronom() {
           {/* Tablet: search + nav below logo row */}
           <div className={`hidden md:block lg:hidden ${PAGE_X} pb-3 space-y-3`}>
             <Input
-              placeholder="Поиск товаров..."
+              placeholder={st("Поиск товаров...")}
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -1086,14 +1089,14 @@ export default function Gastronom() {
               {!hasDeliveryZones && <MapPin className="h-4 w-4 text-emerald-600 shrink-0" />}
               <span className="truncate font-medium">
                 {deliveryReady && deliveryQuote?.zone_name
-                  ? `${effectiveAddress || 'Адрес'} · ${deliveryQuote.zone_name}`
-                  : effectiveAddress || (hasDeliveryZones ? 'Укажите адрес доставки' : 'Укажите адрес')}
+                  ? `${effectiveAddress || st("Адрес")} · ${deliveryQuote.zone_name}`
+                  : effectiveAddress || (hasDeliveryZones ? st("Укажите адрес доставки") : st("Укажите адрес"))}
               </span>
               <ChevronDown className="h-3.5 w-3.5 text-gray-400 shrink-0" />
             </div>
             <div className="flex items-center gap-1 text-gray-500 shrink-0 ml-2">
               <Clock className="h-3.5 w-3.5" />
-              <span className="text-xs">{settings.delivery_time}</span>
+              <span className="text-xs">{(settings.delivery_time || st("Доставка 30-60 мин"))}</span>
             </div>
           </button>
 
@@ -1101,7 +1104,7 @@ export default function Gastronom() {
             <div className={`md:hidden ${PAGE_X} pb-3 bg-gray-50`}>
               <Input
                 autoFocus={searchOpen}
-                placeholder="Поиск товаров..."
+                placeholder={st("Поиск товаров...")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="rounded-xl bg-white"
@@ -1124,7 +1127,7 @@ export default function Gastronom() {
               />
               {hasDeliveryZones && deliveryReady && deliveryQuote?.zone_name && (
                 <p className="text-xs text-emerald-700 font-medium px-1">
-                  ✓ {deliveryQuote.zone_name} · доставка {formatMoney(deliveryQuote.delivery_fee)}
+                  ✓ {deliveryQuote.zone_name}  {st("· доставка")} {formatMoney(deliveryQuote.delivery_fee)}
                 </p>
               )}
             </div>
@@ -1141,10 +1144,9 @@ export default function Gastronom() {
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-16 md:py-24 px-4">
-            <p className="text-gray-500 mb-4">Каталог пока пуст</p>
+            <p className="text-gray-500 mb-4">{st("Каталог пока пуст")}</p>
             <Button onClick={() => void loadCatalog()} className="bg-emerald-600 hover:bg-emerald-700">
-              Обновить
-            </Button>
+               {st("Обновить")} </Button>
           </div>
         ) : (
           <>
@@ -1158,13 +1160,13 @@ export default function Gastronom() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                   <div className="absolute inset-0 p-5 md:p-8 lg:p-10 flex flex-col justify-end max-w-3xl">
                     <h2 className="text-white font-bold text-lg md:text-2xl lg:text-3xl leading-tight mb-3 md:mb-4">
-                      {settings.hero_title}
+                      {(settings.hero_title || st("ДОСТАВКА ПРОДУКТОВ ПИТАНИЯ ПО СОРТИРОВКЕ"))}
                     </h2>
                     <div className="flex gap-4 md:gap-8 mb-4 md:mb-6">
                       {[
-                        { icon: Leaf, label: 'Свежие продукты' },
-                        { icon: Zap, label: 'Быстрая доставка' },
-                        { icon: ShieldCheck, label: 'Гарантия качества' },
+                        { icon: Leaf, label: st("Свежие продукты") },
+                        { icon: Zap, label: st("Быстрая доставка") },
+                        { icon: ShieldCheck, label: st("Гарантия качества") },
                       ].map(({ icon: Icon, label }) => (
                         <div key={label} className="flex flex-col items-center md:items-start gap-1">
                           <Icon className="h-4 w-4 md:h-5 md:w-5 text-emerald-300" />
@@ -1177,8 +1179,7 @@ export default function Gastronom() {
                       onClick={() => setActiveTab('catalog')}
                       className="w-full md:w-auto md:px-10 py-2.5 md:py-3 rounded-full bg-emerald-500 text-white font-semibold text-sm md:text-base hover:bg-emerald-600 transition-colors"
                     >
-                      Сделать заказ
-                    </button>
+                       {st("Сделать заказ")} </button>
                   </div>
                 </div>
                 </div>
@@ -1186,8 +1187,8 @@ export default function Gastronom() {
                 {/* Categories — home showcase */}
                 <div className={PAGE_X}>
                   <div className="flex items-end justify-between gap-2 mb-3 md:mb-4">
-                    <h2 className="font-bold text-gray-900 text-base md:text-lg">Категории</h2>
-                    <span className="md:hidden text-[11px] font-medium text-emerald-700">Листайте →</span>
+                    <h2 className="font-bold text-gray-900 text-base md:text-lg">{st("Категории")}</h2>
+                    <span className="md:hidden text-[11px] font-medium text-emerald-700">{st("Листайте →")}</span>
                   </div>
                   <div className="relative md:static">
                     <div
@@ -1222,14 +1223,13 @@ export default function Gastronom() {
                 {/* Popular products */}
                 <div className={PAGE_X}>
                   <div className="flex items-center justify-between mb-3 md:mb-5">
-                    <h2 className="font-bold text-gray-900 text-base md:text-xl">Популярные товары</h2>
+                    <h2 className="font-bold text-gray-900 text-base md:text-xl">{st("Популярные товары")}</h2>
                     <button
                       type="button"
                       onClick={() => setActiveTab('catalog')}
                       className="text-emerald-600 text-sm md:text-base font-medium flex items-center gap-0.5 hover:underline"
                     >
-                      Смотреть все →
-                    </button>
+                       {st("Смотреть все →")} </button>
                   </div>
                   <div className={PRODUCT_GRID}>
                     {(popularProducts.length > 0 ? popularProducts : products.slice(0, 4)).map((p) => (
@@ -1244,15 +1244,14 @@ export default function Gastronom() {
                   <img src={imgSrc(alcoholBannerImage)} alt="" className="absolute right-0 top-0 h-full w-1/2 md:w-2/5 object-cover opacity-60" />
                   <div className="relative p-5 md:p-8 max-w-full md:max-w-[55%]">
                     <p className="text-white/60 text-xs md:text-sm mb-1">21+</p>
-                    <h3 className="text-white font-bold text-sm md:text-xl mb-1">Алкогольная продукция (21+)</h3>
-                    <p className="text-white/70 text-xs md:text-base mb-3 md:mb-5">Широкий выбор напитков с доставкой на дом</p>
+                    <h3 className="text-white font-bold text-sm md:text-xl mb-1">{st("Алкогольная продукция (21+)")}</h3>
+                    <p className="text-white/70 text-xs md:text-base mb-3 md:mb-5">{st("Широкий выбор напитков с доставкой на дом")}</p>
                     <button
                       type="button"
                       onClick={openAlcoholCatalog}
                       className="px-4 md:px-6 py-1.5 md:py-2.5 rounded-full border border-white/40 text-white text-xs md:text-sm hover:bg-white/10 transition-colors"
                     >
-                      Смотреть каталог
-                    </button>
+                       {st("Смотреть каталог")} </button>
                   </div>
                 </div>
                 </div>
@@ -1260,9 +1259,9 @@ export default function Gastronom() {
                 {/* Features */}
                 <div className={`${PAGE_X} grid grid-cols-3 md:grid-cols-3 gap-2 md:gap-8 py-3 md:py-6 border-t border-gray-100`}>
                   {[
-                    { icon: Truck, title: 'Быстрая доставка', desc: 'от 30 минут' },
-                    { icon: ShieldCheck, title: 'Гарантия качества', desc: 'только свежие продукты' },
-                    { icon: CreditCard, title: 'Удобная оплата', desc: 'онлайн и при получении' },
+                    { icon: Truck, title: st("Быстрая доставка"), desc: st("от 30 минут") },
+                    { icon: ShieldCheck, title: st("Гарантия качества"), desc: st("только свежие продукты") },
+                    { icon: CreditCard, title: st("Удобная оплата"), desc: st("онлайн и при получении") },
                   ].map(({ icon: Icon, title, desc }) => (
                     <div key={title} className="text-center px-1 md:px-4 md:bg-white md:rounded-2xl md:py-5 md:shadow-sm">
                       <Icon className="h-5 w-5 md:h-7 md:w-7 text-emerald-600 mx-auto mb-1 md:mb-2" />
@@ -1277,10 +1276,10 @@ export default function Gastronom() {
             {/* CATALOG tab */}
             {activeTab === 'catalog' && (
               <div className={`${PAGE_X} py-4 md:py-6`}>
-                <h2 className="hidden md:block font-bold text-gray-900 text-xl lg:text-2xl mb-4 md:mb-6">Каталог</h2>
+                <h2 className="hidden md:block font-bold text-gray-900 text-xl lg:text-2xl mb-4 md:mb-6">{st("Каталог")}</h2>
                 <div className="lg:grid lg:grid-cols-[minmax(200px,240px)_1fr] lg:gap-8 lg:items-start">
                   <aside className={CATALOG_SIDEBAR}>
-                    <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Категории</p>
+                    <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{st("Категории")}</p>
                     <button
                       type="button"
                       onClick={() => setSelectedCategory(null)}
@@ -1288,8 +1287,7 @@ export default function Gastronom() {
                         !selectedCategory ? 'bg-emerald-600 text-white' : 'text-gray-600 hover:bg-gray-50'
                       }`}
                     >
-                      Все товары
-                    </button>
+                       {st("Все товары")} </button>
                     {visibleCategories.map((cat) => (
                       <button
                         key={cat.id}
@@ -1306,7 +1304,7 @@ export default function Gastronom() {
 
                   <div className="space-y-4 md:space-y-6 min-w-0">
                     <Input
-                      placeholder="Поиск товаров..."
+                      placeholder={st("Поиск товаров...")}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="rounded-xl lg:hidden"
@@ -1323,7 +1321,7 @@ export default function Gastronom() {
                       ))}
                     </div>
                     {filteredProducts.length === 0 && (
-                      <p className="text-center text-gray-400 py-8">Товары не найдены</p>
+                      <p className="text-center text-gray-400 py-8">{st("Товары не найдены")}</p>
                     )}
                   </div>
                 </div>
@@ -1333,7 +1331,7 @@ export default function Gastronom() {
             {/* CART tab */}
             {activeTab === 'cart' && (
               <div className={`${PAGE_X} py-4 md:py-6 ${cart.length > 0 ? 'pb-36 md:pb-6' : ''}`}>
-                <h2 className="hidden md:block font-bold text-gray-900 text-xl lg:text-2xl mb-4 md:mb-6">Корзина</h2>
+                <h2 className="hidden md:block font-bold text-gray-900 text-xl lg:text-2xl mb-4 md:mb-6">{st("Корзина")}</h2>
                 {cart.length > 0 && hasDeliveryZones && (
                   <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-white border border-gray-100 shadow-sm">
                     <div className={`flex items-center gap-2 flex-1 ${deliveryReady ? 'opacity-70' : ''}`}>
@@ -1342,27 +1340,26 @@ export default function Gastronom() {
                       }`}>
                         {deliveryReady ? '✓' : '1'}
                       </span>
-                      <span className="text-sm font-medium text-gray-900">Адрес</span>
+                      <span className="text-sm font-medium text-gray-900">{st("Адрес")}</span>
                     </div>
                     <span className="text-gray-300 text-lg">→</span>
                     <div className={`flex items-center gap-2 flex-1 ${!deliveryReady ? 'opacity-40' : ''}`}>
                       <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
                         deliveryReady ? 'bg-emerald-600 text-white ring-2 ring-emerald-300' : 'bg-gray-200 text-gray-600'
                       }`}>2</span>
-                      <span className="text-sm font-medium text-gray-900">Оформление</span>
+                      <span className="text-sm font-medium text-gray-900">{st("Оформление")}</span>
                     </div>
                   </div>
                 )}
                 {cart.length === 0 ? (
                   <div className="text-center py-16 md:py-24">
                     <ShoppingCart className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500">Корзина пуста</p>
+                    <p className="text-gray-500">{st("Корзина пуста")}</p>
                     <Button
                       className="mt-4 bg-emerald-600 hover:bg-emerald-700"
                       onClick={() => setActiveTab('catalog')}
                     >
-                      Перейти в каталог
-                    </Button>
+                       {st("Перейти в каталог")} </Button>
                   </div>
                 ) : (
                   <div className="lg:grid lg:grid-cols-3 lg:gap-8 lg:items-start">
@@ -1428,34 +1425,34 @@ export default function Gastronom() {
                       {deliveryReady && hasDeliveryZones && (
                         <div className="flex items-center gap-2 pb-2 border-b border-gray-100 md:hidden">
                           <span className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">2</span>
-                          <span className="text-sm font-semibold text-gray-900">Оформление заказа</span>
+                          <span className="text-sm font-semibold text-gray-900">{st("Оформление заказа")}</span>
                         </div>
                       )}
-                      <h3 className="font-bold text-gray-900 text-lg hidden lg:block">Итого</h3>
+                      <h3 className="font-bold text-gray-900 text-lg hidden lg:block">{st("Итого")}</h3>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Товары</span>
+                        <span className="text-gray-500">{st("Товары")}</span>
                         <span>{formatMoney(subtotal)}</span>
                       </div>
                       {deliveryFee > 0 && deliveryQuote?.zone_name && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Доставка · {deliveryQuote.zone_name}</span>
+                          <span className="text-gray-500">{st("Доставка ·")} {deliveryQuote.zone_name}</span>
                           <span>{formatMoney(deliveryFee)}</span>
                         </div>
                       )}
                       {deliveryFee > 0 && !deliveryQuote?.zone_name && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Доставка</span>
+                          <span className="text-gray-500">{st("Доставка")}</span>
                           <span>{formatMoney(deliveryFee)}</span>
                         </div>
                       )}
                       {loyaltyGift && (
                         <div className="flex justify-between text-sm text-amber-800 bg-amber-50 rounded-lg px-2 py-1.5">
-                          <span>🎁 Подарок</span>
+                          <span>{st("🎁 Подарок")}</span>
                           <span className="font-medium truncate ml-2">{loyaltyGift.title}</span>
                         </div>
                       )}
                       <div className="flex justify-between text-sm md:text-base pt-2 border-t">
-                        <span className="text-gray-700 font-medium">К оплате</span>
+                        <span className="text-gray-700 font-medium">{st("К оплате")}</span>
                         <span className="font-bold text-xl md:text-2xl text-emerald-700">{formatMoney(orderTotal)}</span>
                       </div>
                       {hasDeliveryZones && !deliveryReady && (
@@ -1463,7 +1460,7 @@ export default function Gastronom() {
                           <p className="text-xs leading-relaxed">
                             {deliveryQuoteError
                               || deliveryQuote?.message
-                              || 'Укажите адрес и нажмите «Найти на карте»'}
+                              || st("Укажите адрес и нажмите «Найти на карте»")}
                           </p>
                           <div className="flex flex-wrap gap-2">
                             <button
@@ -1471,16 +1468,14 @@ export default function Gastronom() {
                               onClick={focusAddressPicker}
                               className="text-xs font-semibold px-3 py-2.5 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 active:scale-[0.98] transition-transform cursor-pointer min-h-[40px]"
                             >
-                              Изменить адрес
-                            </button>
+                               {st("Изменить адрес")} </button>
                             <button
                               type="button"
                               onClick={() => findByAddress()}
                               disabled={deliveryQuoteLoading}
                               className="text-xs font-semibold px-3 py-2.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] transition-transform cursor-pointer min-h-[40px] disabled:opacity-50"
                             >
-                              Повторить
-                            </button>
+                               {st("Повторить")} </button>
                             <button
                               type="button"
                               onClick={requestGeolocation}
@@ -1494,7 +1489,7 @@ export default function Gastronom() {
                       )}
                       {minOrder > 0 && subtotal < minOrder && (
                         <p className="text-xs md:text-sm text-amber-600">
-                          Минимальный заказ: {formatMoney(minOrder)}
+                           {st("Минимальный заказ:")} {formatMoney(minOrder)}
                         </p>
                       )}
                       <Button
@@ -1514,12 +1509,11 @@ export default function Gastronom() {
                       >
                         {deliveryQuoteLoading ? (
                           <span className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin" /> Проверяем адрес...
-                          </span>
+                            <Loader2 className="h-4 w-4 animate-spin" />  {st("Проверяем адрес...")} </span>
                         ) : hasDeliveryZones && !deliveryReady ? (
-                          'Шаг 1: Проверить адрес'
+                          st("Шаг 1: Проверить адрес")
                         ) : (
-                          'Шаг 2: Оформить заказ →'
+                          st("Шаг 2: Оформить заказ →")
                         )}
                       </Button>
                     </div>
@@ -1530,11 +1524,11 @@ export default function Gastronom() {
 
             {activeTab === 'favorites' && (
               <div className={`${PAGE_X} py-4 md:py-6`}>
-                <h2 className="hidden md:block font-bold text-gray-900 text-xl lg:text-2xl mb-4 md:mb-6">Избранное</h2>
+                <h2 className="hidden md:block font-bold text-gray-900 text-xl lg:text-2xl mb-4 md:mb-6">{st("Избранное")}</h2>
                 {favoriteProducts.length === 0 ? (
                   <div className="text-center py-16 md:py-24">
                     <Heart className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500 text-sm">Нажмите ♥ на товаре, чтобы добавить в избранное</p>
+                    <p className="text-gray-500 text-sm">{st("Нажмите ♥ на товаре, чтобы добавить в избранное")}</p>
                   </div>
                 ) : (
                   <div className={PRODUCT_GRID}>
@@ -1607,8 +1601,7 @@ export default function Gastronom() {
                       className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-12 rounded-xl"
                       onClick={() => { addProduct(selectedProduct); closeProduct(); }}
                     >
-                      Добавить в корзину
-                    </Button>
+                       {st("Добавить в корзину")} </Button>
                   )}
                   <button
                     type="button"
@@ -1628,7 +1621,7 @@ export default function Gastronom() {
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
             <div className="bg-white w-full sm:max-w-lg md:max-w-xl lg:max-w-2xl rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between p-4 md:p-6 border-b">
-                <h2 className="font-bold text-lg md:text-xl">Оформление заказа</h2>
+                <h2 className="font-bold text-lg md:text-xl">{st("Оформление заказа")}</h2>
                 <button type="button" onClick={closeCheckoutModal}>
                   <X className="h-5 w-5 text-gray-400" />
                 </button>
@@ -1637,11 +1630,11 @@ export default function Gastronom() {
                 <div className="md:grid md:grid-cols-2 md:gap-6 md:space-y-0">
                 <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">Имя</label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ваше имя" />
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">{st("Имя")}</label>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={st("Ваше имя")} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">Телефон</label>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">{st("Телефон")}</label>
                   <Input
                     type="tel"
                     inputMode="tel"
@@ -1652,7 +1645,7 @@ export default function Gastronom() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">Адрес доставки</label>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">{st("Адрес доставки")}</label>
                   {hasDeliveryZones ? (
                     <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 space-y-2">
                       {deliveryReady && deliveryQuote?.available ? (
@@ -1660,13 +1653,12 @@ export default function Gastronom() {
                           <p className="text-sm font-medium text-gray-900">{effectiveAddress}</p>
                           <p className="text-xs text-emerald-700 flex items-center gap-1">
                             <CheckCircle2 className="h-3.5 w-3.5" />
-                            {deliveryQuote.zone_name} · доставка {formatMoney(deliveryQuote.delivery_fee)}
+                            {deliveryQuote.zone_name}  {st("· доставка")} {formatMoney(deliveryQuote.delivery_fee)}
                           </p>
                         </>
                       ) : (
                         <p className="text-sm text-amber-800">
-                          Адрес не проверен. Закройте окно и нажмите «Найти на карте» в корзине.
-                        </p>
+                           {st("Адрес не проверен. Закройте окно и нажмите «Найти на карте» в корзине.")} </p>
                       )}
                       <button
                         type="button"
@@ -1676,22 +1668,21 @@ export default function Gastronom() {
                         }}
                         className="text-xs text-emerald-600 font-medium underline py-1 cursor-pointer"
                       >
-                        Изменить адрес
-                      </button>
+                         {st("Изменить адрес")} </button>
                     </div>
                   ) : (
-                    <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Улица, дом, квартира" />
+                    <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder={st("Улица, дом, квартира")} />
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">Комментарий</label>
-                  <Textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Пожелания к заказу" rows={2} />
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">{st("Комментарий")}</label>
+                  <Textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder={st("Пожелания к заказу")} rows={2} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Способ оплаты</label>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">{st("Способ оплаты")}</label>
                   <div className="grid grid-cols-3 gap-2">
                     {([
-                      ['cash', 'Наличные'],
+                      ['cash', st("Наличные")],
                       ['kaspi_qr', 'Kaspi QR'],
                       ['halyk_qr', 'Halyk QR'],
                     ] as const).map(([val, label]) => (
@@ -1721,19 +1712,18 @@ export default function Gastronom() {
                   ))}
                   {deliveryFee > 0 && (
                     <div className="flex justify-between text-gray-500">
-                      <span>Доставка</span>
+                      <span>{st("Доставка")}</span>
                       <span>{formatMoney(deliveryFee)}</span>
                     </div>
                   )}
                   <div className="flex justify-between font-bold pt-2 border-t">
-                    <span>Итого</span>
+                    <span>{st("Итого")}</span>
                     <span className="text-emerald-700">{formatMoney(orderTotal)}</span>
                   </div>
                 </div>
                 {hasAlcoholInCart && (
                   <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
-                    В заказе есть алкоголь (21+). При получении потребуется документ.
-                  </p>
+                     {st("В заказе есть алкоголь (21+). При получении потребуется документ.")} </p>
                 )}
                 </div>
                 </div>
@@ -1742,7 +1732,7 @@ export default function Gastronom() {
                   onClick={checkout}
                   disabled={submitting || (hasDeliveryZones && !deliveryReady)}
                 >
-                  {submitting ? 'Отправка...' : 'Подтвердить заказ'}
+                  {submitting ? st("Отправка...") : st("Подтвердить заказ")}
                 </Button>
               </div>
             </div>
@@ -1754,17 +1744,14 @@ export default function Gastronom() {
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
             <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl text-center">
               <p className="text-3xl font-bold text-emerald-700 mb-2">21+</p>
-              <h2 className="text-lg font-bold text-gray-900 mb-2">Подтвердите возраст</h2>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">{st("Подтвердите возраст")}</h2>
               <p className="text-sm text-gray-500 mb-6">
-                Раздел алкогольной продукции доступен только лицам старше 21 года.
-              </p>
+                 {st("Раздел алкогольной продукции доступен только лицам старше 21 года.")} </p>
               <div className="flex flex-col gap-2">
                 <Button className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={confirmAge}>
-                  Мне есть 21 год
-                </Button>
+                   {st("Мне есть 21 год")} </Button>
                 <Button variant="outline" className="w-full" onClick={rejectAge}>
-                  Мне нет 21 года
-                </Button>
+                   {st("Мне нет 21 года")} </Button>
               </div>
             </div>
           </div>
@@ -1776,7 +1763,7 @@ export default function Gastronom() {
             <div className="flex items-center gap-3 max-w-lg mx-auto">
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] text-gray-500 uppercase tracking-wide">
-                  {deliveryReady || !hasDeliveryZones ? 'Шаг 2' : 'Шаг 1'}
+                  {deliveryReady || !hasDeliveryZones ? st("Шаг 2") : st("Шаг 1")}
                 </p>
                 <p className="font-bold text-emerald-700 text-lg leading-tight">{formatMoney(orderTotal)}</p>
               </div>
@@ -1799,9 +1786,9 @@ export default function Gastronom() {
                 {deliveryQuoteLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : hasDeliveryZones && !deliveryReady ? (
-                  'Проверить адрес'
+                  st("Проверить адрес")
                 ) : (
-                  'Оформить →'
+                  st("Оформить →")
                 )}
               </Button>
             </div>

@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useEffect } from 'react';
 
 import { client, withRetry } from '@/lib/api';
@@ -104,37 +105,40 @@ const DELIVERY_KEYS = [
 
 
 
-const SETTING_FIELDS = [
+function getSETTING_FIELDS(adminT: (key: string) => string) {
+  const SETTING_FIELDS = [
 
-  { key: 'whatsapp_number', label: 'Номер WhatsApp', icon: Phone, placeholder: '+77001234567', description: 'Номер для получения заказов в WhatsApp', type: 'text' as const },
+  { key: 'whatsapp_number', label: adminT("admin.ui.0548"), icon: Phone, placeholder: '+77001234567', description: adminT("admin.ui.0549"), type: 'text' as const },
 
-  { key: 'hero_banner_title', label: 'Заголовок баннера', icon: Image, placeholder: 'DAM ALEM 2.0', description: 'Бренд на странице доставки', type: 'text' as const },
+  { key: 'hero_banner_title', label: adminT("admin.ui.0119"), icon: Image, placeholder: 'DAM ALEM 2.0', description: adminT("admin.ui.0550"), type: 'text' as const },
 
-  { key: 'hero_banner_subtitle', label: 'Подзаголовок баннера', icon: Image, placeholder: 'Доставка еды по Сортировке №1', description: 'Слоган под брендом', type: 'text' as const },
+  { key: 'hero_banner_subtitle', label: adminT("admin.ui.0551"), icon: Image, placeholder: adminT("admin.ui.0552"), description: adminT("admin.ui.0553"), type: 'text' as const },
 
-  { key: 'min_order_amount', label: 'Минимальная сумма заказа (₸)', icon: DollarSign, placeholder: '2000', description: 'Минимальная сумма для оформления заказа', type: 'text' as const },
+  { key: 'min_order_amount', label: adminT("admin.ui.0554"), icon: DollarSign, placeholder: '2000', description: adminT("admin.ui.0555"), type: 'text' as const },
 
-  { key: 'delivery_price', label: 'Базовая стоимость доставки (₸)', icon: Truck, placeholder: '500', description: 'Если зоны на карте не настроены', type: 'text' as const },
+  { key: 'delivery_price', label: adminT("admin.ui.0556"), icon: Truck, placeholder: '500', description: adminT("admin.ui.0557"), type: 'text' as const },
 
-  { key: 'free_delivery_from', label: 'Бесплатная доставка от (₸)', icon: Truck, placeholder: '15000', description: 'При заказе от этой суммы доставка 0 ₸', type: 'text' as const },
+  { key: 'free_delivery_from', label: adminT("admin.ui.0558"), icon: Truck, placeholder: '15000', description: adminT("admin.ui.0559"), type: 'text' as const },
 
-  { key: 'apartment_delivery_price', label: 'Подъём до квартиры (₸)', icon: Truck, placeholder: '300', description: 'Доплата за доставку до двери квартиры', type: 'text' as const },
+  { key: 'apartment_delivery_price', label: adminT("admin.ui.0560"), icon: Truck, placeholder: '300', description: adminT("admin.ui.0561"), type: 'text' as const },
 
-  { key: 'apartment_free_from', label: 'Бесплатно до квартиры от (₸)', icon: Truck, placeholder: '15000', description: 'Порог, после которого доставка и подъём до квартиры бесплатны', type: 'text' as const },
+  { key: 'apartment_free_from', label: adminT("admin.ui.0562"), icon: Truck, placeholder: '15000', description: adminT("admin.ui.0563"), type: 'text' as const },
 
-  { key: 'service_fee_rate', label: 'Сервисный сбор (%)', icon: DollarSign, placeholder: '10', description: 'Процент от суммы заказа (например 10 = 10%)', type: 'text' as const },
+  { key: 'service_fee_rate', label: adminT("admin.ui.0564"), icon: DollarSign, placeholder: '10', description: adminT("admin.ui.0565"), type: 'text' as const },
 
-  { key: 'default_address', label: 'Адрес по умолчанию', icon: MapPin, placeholder: 'ул. Жекибаева 129', description: 'Подставляется в форму заказа', type: 'text' as const },
+  { key: 'default_address', label: adminT("admin.ui.0566"), icon: MapPin, placeholder: adminT("admin.ui.0567"), description: adminT("admin.ui.0568"), type: 'text' as const },
 
-  { key: 'delivery_city', label: 'Город доставки', icon: MapPin, placeholder: 'Караганда', description: 'Для поиска адреса на карте', type: 'text' as const },
+  { key: 'delivery_city', label: adminT("admin.ui.0569"), icon: MapPin, placeholder: adminT("admin.ui.0570"), description: adminT("admin.ui.0571"), type: 'text' as const },
 
-  { key: 'delivery_area', label: 'Район доставки', icon: MapPin, placeholder: 'Сортировка, Караганда', description: 'Показывается клиенту в подсказках', type: 'text' as const },
+  { key: 'delivery_area', label: adminT("admin.ui.0572"), icon: MapPin, placeholder: adminT("admin.ui.0573"), description: adminT("admin.ui.0574"), type: 'text' as const },
 
-  { key: 'delivery_time', label: 'Время доставки', icon: Truck, placeholder: '35–45 мин', description: 'Показывается клиенту в шапке', type: 'text' as const },
+  { key: 'delivery_time', label: adminT("admin.ui.0575"), icon: Truck, placeholder: adminT("admin.ui.0321"), description: adminT("admin.ui.0576"), type: 'text' as const },
 
-  { key: 'working_hours', label: 'Часы работы', icon: Truck, placeholder: '10:00-22:00', description: 'Формат: открытие-закрытие. Вне часов — приём заказов закрыт', type: 'text' as const },
+  { key: 'working_hours', label: adminT("admin.ui.0464"), icon: Truck, placeholder: '10:00-22:00', description: adminT("admin.ui.0577"), type: 'text' as const },
 
 ];
+  return SETTING_FIELDS;
+}
 
 
 
@@ -175,6 +179,10 @@ const EXTRA_KEYS = [
 
 
 export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSettingsProps) {
+  const { t: adminT, lang } = useLanguage();
+  const adminLocale = lang === 'kz' ? 'kk-KZ' : 'ru-RU';
+  const SETTING_FIELDS = getSETTING_FIELDS(adminT);
+
 
   const [settingsRows, setSettingsRows] = useState<SettingRow[]>([]);
 
@@ -238,7 +246,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
       if (!vals.apartment_delivery_price) vals.apartment_delivery_price = '300';
       if (!vals.apartment_free_from) vals.apartment_free_from = vals.free_delivery_from;
 
-      if (!vals.delivery_time) vals.delivery_time = '35–45 мин';
+      if (!vals.delivery_time) vals.delivery_time = adminT("admin.ui.0321");
 
       if (!vals.working_hours) vals.working_hours = '10:00-22:00';
 
@@ -294,7 +302,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
       console.error(e);
 
-      toast.error('Ошибка загрузки настроек');
+      toast.error(adminT("admin.ui.0581"));
 
     } finally {
 
@@ -318,13 +326,13 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
     for (const key of numericKeys) {
       const raw = values[key];
       if (raw && (!Number.isFinite(Number(raw)) || Number(raw) < 0)) {
-        toast.error('Пороговые суммы и тарифы должны быть положительными числами');
+        toast.error(adminT("admin.ui.0582"));
         return;
       }
     }
     const normalizedCodes = promoCodes.map((promo) => promo.code.trim().toUpperCase()).filter(Boolean);
     if (new Set(normalizedCodes).size !== normalizedCodes.length) {
-      toast.error('Промокоды не должны повторяться');
+      toast.error(adminT("admin.ui.0583"));
       return;
     }
     const invalidPromo = promoCodes.find((promo) =>
@@ -333,11 +341,11 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
       (promo.valid_from && promo.valid_until && promo.valid_from > promo.valid_until),
     );
     if (invalidPromo) {
-      toast.error('Проверьте код, размер скидки и даты действия промокодов');
+      toast.error(adminT("admin.ui.0584"));
       return;
     }
     if (loyaltyEnabled && loyaltyGifts.some((gift) => !gift.title.trim() || gift.min_amount <= 0)) {
-      toast.error('У каждого подарка должны быть название и сумма от 1 ₸');
+      toast.error(adminT("admin.ui.0585"));
       return;
     }
 
@@ -403,7 +411,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
       }
 
-      toast.success('Настройки сохранены');
+      toast.success(adminT("admin.ui.0586"));
 
       invalidateAllCaches();
 
@@ -413,7 +421,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
       console.error(e);
 
-      toast.error('Ошибка сохранения');
+      toast.error(adminT("admin.ui.0055"));
 
     } finally {
 
@@ -426,11 +434,11 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
 
   function loadDefaultPromoSlides() {
-    const freeFrom = Number(values.free_delivery_from || 15000).toLocaleString('ru-RU');
+    const freeFrom = Number(values.free_delivery_from || 15000).toLocaleString(adminLocale);
     const giftFrom = Math.min(
       ...loyaltyGifts.filter((gift) => gift.is_active).map((gift) => gift.min_amount),
     );
-    const giftAmount = Number.isFinite(giftFrom) ? giftFrom.toLocaleString('ru-RU') : '5 000';
+    const giftAmount = Number.isFinite(giftFrom) ? giftFrom.toLocaleString(adminLocale) : '5 000';
 
     setPromoSlides([
 
@@ -528,11 +536,11 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
       <div className="flex flex-wrap items-center justify-between gap-3">
 
-        <h3 className="font-bold text-lg">{damAlemMode ? 'Настройки DAM ALEM 2.0' : 'Настройки доставки еды'}</h3>
+        <h3 className="font-bold text-lg">{damAlemMode ? adminT("admin.ui.0603") : adminT("admin.ui.0604")}</h3>
 
-        <Button onClick={saveSettings} disabled={saving} className="bg-orange-500 hover:bg-orange-600">
+        <Button onClick={saveSettings} disabled={saving} className="bg-orange-500 hover:bg-orange-600 text-white">
 
-          <Save className="w-4 h-4 mr-1" /> {saving ? 'Сохранение...' : 'Сохранить всё'}
+          <Save className="w-4 h-4 mr-1" /> {saving ? adminT("admin.ui.0328") : adminT("admin.ui.0605")}
 
         </Button>
 
@@ -542,15 +550,15 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
       <div className="flex flex-wrap gap-2">
 
-        {tabBtn('delivery', 'Доставка', Truck)}
+        {tabBtn('delivery', adminT("admin.ui.0606"), Truck)}
 
-        {tabBtn('promo', 'Промокоды', Megaphone)}
+        {tabBtn('promo', adminT("admin.ui.0607"), Megaphone)}
 
-        {tabBtn('gifts', 'Подарки', Gift)}
+        {tabBtn('gifts', adminT("admin.ui.0608"), Gift)}
 
-        {tabBtn('zones', 'Зоны на карте', MapPin)}
+        {tabBtn('zones', adminT("admin.ui.0609"), MapPin)}
 
-        {tabBtn('general', 'Основное', Sparkles)}
+        {tabBtn('general', adminT("admin.ui.0610"), Sparkles)}
 
       </div>
 
@@ -559,11 +567,9 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
       {settingsTab === 'delivery' && (
         <div className="space-y-4">
           <div className="rounded-2xl border border-orange-100 bg-orange-50/70 p-4 text-sm text-orange-950">
-            <p className="font-semibold">Пороги, которые видит клиент</p>
+            <p className="font-semibold">{adminT("admin.ui.0611")}</p>
             <p className="mt-1 text-orange-900/80">
-              «Ещё 2 400 ₸ до бесплатной доставки» считается от суммы блюд. Подъём до квартиры
-              становится бесплатным от своего порога. Оба числа меняются здесь и сразу на витрине.
-            </p>
+              {adminT("admin.ui.0612")} </p>
           </div>
           {SETTING_FIELDS.filter(field => DELIVERY_KEYS.includes(field.key)).map(field => {
             const Icon = field.icon;
@@ -588,10 +594,9 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
       {settingsTab === 'promo' && (
         <div className="space-y-4">
           <div className="rounded-2xl border border-orange-100 bg-orange-50/70 p-4 text-sm text-orange-950">
-            <p className="font-semibold">Промокоды и «друг»</p>
+            <p className="font-semibold">{adminT("admin.ui.0613")}</p>
             <p className="mt-1 text-orange-900/80">
-              Коды видны в корзине. Реферал — одна кнопка «отправить другу» с вашим текстом и кодом.
-            </p>
+              {adminT("admin.ui.0614")} </p>
           </div>
           <div className="rounded-xl border bg-white p-4">
             <FoodPromoCodesEditor codes={promoCodes} onChange={setPromoCodes} />
@@ -599,8 +604,8 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
           <div className="rounded-xl border bg-white p-4 space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h4 className="font-semibold text-gray-900">Отправить другу</h4>
-                <p className="text-xs text-gray-500 mt-0.5">Кнопка на витрине и в корзине</p>
+                <h4 className="font-semibold text-gray-900">{adminT("admin.ui.0615")}</h4>
+                <p className="text-xs text-gray-500 mt-0.5">{adminT("admin.ui.0616")}</p>
               </div>
               <button
                 type="button"
@@ -610,11 +615,11 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
                 }))}
                 className="text-sm font-semibold text-orange-600"
               >
-                {values.referral_enabled === '0' ? 'Выкл' : 'Вкл'}
+                {values.referral_enabled === '0' ? adminT("admin.ui.0617") : adminT("admin.ui.0618")}
               </button>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600">Код для друга</label>
+              <label className="text-xs font-medium text-gray-600">{adminT("admin.ui.0619")}</label>
               <Input
                 value={values.referral_promo_code || 'DAMALEM10'}
                 onChange={e => setValues(prev => ({ ...prev, referral_promo_code: e.target.value.toUpperCase() }))}
@@ -622,28 +627,28 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600">Заголовок</label>
+              <label className="text-xs font-medium text-gray-600">{adminT("admin.ui.0302")}</label>
               <Input
                 value={values.referral_title || ''}
                 onChange={e => setValues(prev => ({ ...prev, referral_title: e.target.value }))}
-                placeholder="Отправить другу — скидка 10%"
+                placeholder={adminT("admin.ui.0578")}
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600">Подпись</label>
+              <label className="text-xs font-medium text-gray-600">{adminT("admin.ui.0620")}</label>
               <Input
                 value={values.referral_subtitle || ''}
                 onChange={e => setValues(prev => ({ ...prev, referral_subtitle: e.target.value }))}
-                placeholder="Друг получает код DAMALEM10"
+                placeholder={adminT("admin.ui.0621")}
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600">Текст сообщения</label>
+              <label className="text-xs font-medium text-gray-600">{adminT("admin.ui.0622")}</label>
               <Textarea
                 value={values.referral_share_text || ''}
                 onChange={e => setValues(prev => ({ ...prev, referral_share_text: e.target.value }))}
                 rows={3}
-                placeholder="Привет! Заказываю в DAM ALEM 2.0…"
+                placeholder={adminT("admin.ui.0623")}
               />
             </div>
           </div>
@@ -656,15 +661,11 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
           <div className="rounded-xl border bg-white p-4">
 
-            <h4 className="font-semibold text-gray-900 mb-1">Зоны доставки на карте</h4>
+            <h4 className="font-semibold text-gray-900 mb-1">{adminT("admin.ui.0624")}</h4>
 
             <p className="text-xs text-gray-500 mb-4">
 
-              Нарисуйте полигоны на карте — стоимость доставки определится автоматически по адресу клиента.
-
-              Клик — точка границы, двойной клик — переместить точку магазина.
-
-            </p>
+              {adminT("admin.ui.0625")} </p>
 
             <DeliveryZoneEditor
 
@@ -684,7 +685,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
           <div className="rounded-xl border bg-white p-4">
 
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Сообщение вне зоны доставки</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">{adminT("admin.ui.0626")}</label>
 
             <Textarea
 
@@ -694,7 +695,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
               rows={2}
 
-              placeholder="Доставка по этому адресу недоступна..."
+              placeholder={adminT("admin.ui.0627")}
 
             />
 
@@ -712,9 +713,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
           <Button type="button" variant="outline" size="sm" onClick={loadDefaultGifts}>
 
-            Загрузить шаблон подарков
-
-          </Button>
+            {adminT("admin.ui.0628")} </Button>
 
           <LoyaltyGiftsEditor
 
@@ -744,7 +743,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
               <Image className="h-4 w-4 text-orange-500" />
 
-              <label className="text-sm font-medium text-gray-800">Фоновое изображение баннера</label>
+              <label className="text-sm font-medium text-gray-800">{adminT("admin.ui.0629")}</label>
 
             </div>
 
@@ -804,7 +803,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
                 <Megaphone className="h-4 w-4 text-orange-500" />
 
-                <label className="text-sm font-medium text-gray-800">Промо-слайды в шапке</label>
+                <label className="text-sm font-medium text-gray-800">{adminT("admin.ui.0630")}</label>
 
               </div>
 
@@ -812,15 +811,13 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
                 {promoSlides.length === 0 && (
 
-                  <Button size="sm" variant="outline" onClick={loadDefaultPromoSlides} className="text-xs h-8">Шаблон</Button>
+                  <Button size="sm" variant="outline" onClick={loadDefaultPromoSlides} className="text-xs h-8">{adminT("admin.ui.0631")}</Button>
 
                 )}
 
                 <Button size="sm" variant="outline" onClick={addPromoSlide} className="text-xs h-8">
 
-                  <Plus className="mr-1 h-3 w-3" /> Слайд
-
-                </Button>
+                  <Plus className="mr-1 h-3 w-3" /> {adminT("admin.ui.0632")} </Button>
 
               </div>
 
@@ -828,7 +825,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
             {promoSlides.length === 0 ? (
 
-              <p className="text-center py-4 text-sm text-gray-400">Слайды не настроены</p>
+              <p className="text-center py-4 text-sm text-gray-400">{adminT("admin.ui.0633")}</p>
 
             ) : (
 
@@ -840,7 +837,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
                     <div className="flex gap-2">
 
-                      <Input placeholder="Заголовок" value={slide.title} onChange={e => updatePromoSlide(idx, 'title', e.target.value)} className="flex-1" />
+                      <Input placeholder={adminT("admin.ui.0302")} value={slide.title} onChange={e => updatePromoSlide(idx, 'title', e.target.value)} className="flex-1" />
 
                       <Button size="sm" variant="ghost" className="text-red-500" onClick={() => removePromoSlide(idx)}><Trash2 className="h-4 w-4" /></Button>
 
@@ -852,7 +849,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
                         key={lineIdx}
 
-                        placeholder={`Строка ${lineIdx + 1}`}
+                        placeholder={adminT("admin.extra.1281").replace('{number}', () => String(lineIdx + 1))}
 
                         value={line}
 
@@ -892,9 +889,9 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
                 <div>
 
-                  <label className="font-medium text-sm text-gray-800">Рекомендации</label>
+                  <label className="font-medium text-sm text-gray-800">{adminT("admin.ui.0634")}</label>
 
-                  <p className="text-xs text-gray-400 mt-0.5">Блок «Рекомендуем» и «Дополнить заказ»</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{adminT("admin.ui.0635")}</p>
 
                 </div>
 

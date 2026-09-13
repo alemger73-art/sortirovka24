@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import AdminInspectorDirectory from '@/components/AdminInspectorDirectory';
 import InspectorCoverageEditor from '@/components/InspectorCoverageEditor';
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -69,6 +70,8 @@ function InspectorAdminCard({ item, onEdit, onDelete }: {
   onEdit: (item: Inspector) => void;
   onDelete: (id: number) => void;
 }) {
+  const { t: adminT } = useLanguage();
+
   return (
     <Card>
       <CardContent className="p-3 sm:p-4">
@@ -77,12 +80,11 @@ function InspectorAdminCard({ item, onEdit, onDelete }: {
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               {item.is_leadership && (
                 <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
-                  <Star className="h-3 w-3 mr-0.5" /> Руководство
-                </Badge>
+                  <Star className="h-3 w-3 mr-0.5" /> {adminT("admin.ui.0805")} </Badge>
               )}
               {item.precinct_number && (
                 <Badge variant="outline" className="text-xs">
-                  <Hash className="h-3 w-3 mr-0.5" /> Участок {item.precinct_number}
+                  <Hash className="h-3 w-3 mr-0.5" /> {adminT("admin.ui.0806")} {item.precinct_number}
                 </Badge>
               )}
               {item.district && (
@@ -92,8 +94,7 @@ function InspectorAdminCard({ item, onEdit, onDelete }: {
               )}
               {item.lat && item.lng && (
                 <Badge variant="secondary" className="text-xs bg-green-50 text-green-700">
-                  <MapIcon className="h-3 w-3 mr-0.5" /> На карте
-                </Badge>
+                  <MapIcon className="h-3 w-3 mr-0.5" /> {adminT("admin.ui.0807")} </Badge>
               )}
             </div>
             <p className="font-semibold text-sm text-gray-900">{item.full_name}</p>
@@ -115,14 +116,14 @@ function InspectorAdminCard({ item, onEdit, onDelete }: {
               </p>
             )}
             <p className="text-xs text-gray-400 mt-1 line-clamp-1">
-              Улицы: {item.streets}
+              {adminT("admin.ui.0808")} {item.streets}
             </p>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={`Редактировать ${item.full_name}`} onClick={() => onEdit(item)}>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={adminT("admin.extra.1289").replace('{0}', () => String(item.full_name))} onClick={() => onEdit(item)}>
               <Pencil className="h-4 w-4 text-blue-600" />
             </Button>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={`Удалить ${item.full_name}`} onClick={() => onDelete(item.id)}>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={adminT("admin.extra.1290").replace('{0}', () => String(item.full_name))} onClick={() => onDelete(item.id)}>
               <Trash2 className="h-4 w-4 text-red-500" />
             </Button>
           </div>
@@ -133,6 +134,8 @@ function InspectorAdminCard({ item, onEdit, onDelete }: {
 }
 
 export default function AdminInspectors() {
+  const { t: adminT } = useLanguage();
+
   const [items, setItems] = useState<Inspector[]>([]);
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
@@ -152,7 +155,7 @@ export default function AdminInspectors() {
     try {
       const res = await withRetry(() => client.entities.inspectors.query({ sort: 'precinct_number', limit: 2000 }));
       setItems(res.data?.items || []);
-    } catch { setLoadError(true); toast.error('Ошибка загрузки'); }
+    } catch { setLoadError(true); toast.error(adminT("admin.ui.0044")); }
     finally { setLoading(false); setLoaded(true); }
   };
 
@@ -185,7 +188,7 @@ export default function AdminInspectors() {
   const handleSave = async () => {
     if (savingRef.current || photoUploading) return;
     if (!editItem?.full_name?.trim() || !editItem.photo_url || (!editItem.is_leadership && !editItem.streets?.trim())) {
-      toast.error('Укажите ФИО, фотографию и закреплённые улицы. Для руководства улицы не обязательны.');
+      toast.error(adminT("admin.ui.0810"));
       return;
     }
     savingRef.current = true;
@@ -212,34 +215,34 @@ export default function AdminInspectors() {
       };
       if (editItem.id) {
         await client.entities.inspectors.update({ id: String(editItem.id), data });
-        toast.success('Участковый обновлён');
+        toast.success(adminT("admin.ui.0811"));
       } else {
         await client.entities.inspectors.create({
           data: { ...data, created_at: new Date().toISOString().replace('T', ' ').slice(0, 19) }
         });
-        toast.success('Участковый создан');
+        toast.success(adminT("admin.ui.0812"));
       }
       invalidateAllCaches();
       setDialogOpen(false);
       fetchItems();
-    } catch { toast.error('Ошибка сохранения'); }
+    } catch { toast.error(adminT("admin.ui.0055")); }
     finally { savingRef.current = false; setSaving(false); }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Удалить участкового?')) return;
+    if (!confirm(adminT("admin.ui.0813"))) return;
     try {
       await withRetry(() => client.entities.inspectors.delete({ id: String(id) }));
       invalidateAllCaches();
-      toast.success('Удалено');
+      toast.success(adminT("admin.ui.0050"));
       fetchItems();
-    } catch { toast.error('Ошибка удаления'); }
+    } catch { toast.error(adminT("admin.ui.0051")); }
   };
 
   const handleReloadFromFile = async () => {
     if (!confirm(
-      'Перезагрузить всех участковых из файла?\n\n' +
-      'Текущие записи в базе будут удалены и заменены актуальным списком сотрудников (13 человек).'
+      adminT("admin.ui.0814") +
+      adminT("admin.ui.0815")
     )) return;
 
     setReloading(true);
@@ -263,11 +266,11 @@ export default function AdminInspectors() {
       }
       const data = JSON.parse(bodyText) as { message?: string; count?: number };
       invalidateAllCaches();
-      toast.success(data.message || `Загружено ${data.count ?? 0} участковых`);
+      toast.success(data.message || adminT("admin.extra.1291").replace('{0}', () => String(data.count ?? 0)));
       fetchItems();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Ошибка перезагрузки из файла';
-      toast.error(message.length > 120 ? 'Ошибка перезагрузки из файла' : message);
+      const message = err instanceof Error ? err.message : adminT("admin.ui.0816");
+      toast.error(message.length > 120 ? adminT("admin.ui.0816") : message);
     } finally {
       setReloading(false);
     }
@@ -290,12 +293,12 @@ export default function AdminInspectors() {
   return (
     <div className="space-y-4">
       <AdminInspectorDirectory />
-      {loadError && <div role="alert" className="rounded-xl bg-red-50 p-4 text-red-700">Не удалось загрузить сотрудников. <button className="underline min-h-11" onClick={() => void fetchItems()}>Повторить загрузку</button></div>}
+      {loadError && <div role="alert" className="rounded-xl bg-red-50 p-4 text-red-700">{adminT("admin.ui.0817")} <button className="underline min-h-11" onClick={() => void fetchItems()}>{adminT("admin.ui.0285")}</button></div>}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <p className="text-sm text-gray-500">{items.length} участковых ({leadershipItems.length} руководство)</p>
+          <p className="text-sm text-gray-500">{items.length} {adminT("admin.ui.0818")}{leadershipItems.length} {adminT("admin.ui.0819")}</p>
           {missingMapCount > 0 && (
-            <p className="text-xs text-amber-600 mt-0.5">{missingMapCount} без координат на карте</p>
+            <p className="text-xs text-amber-600 mt-0.5">{missingMapCount} {adminT("admin.ui.0820")}</p>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -307,19 +310,16 @@ export default function AdminInspectors() {
             className="border-amber-200 text-amber-700 hover:bg-amber-50"
           >
             {reloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-1" />}
-            Из файла
-          </Button>
-          <Button onClick={openCreate} size="sm" className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="h-4 w-4 mr-1" /> Добавить
-          </Button>
+            {adminT("admin.ui.0821")} </Button>
+          <Button onClick={openCreate} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Plus className="h-4 w-4 mr-1" /> {adminT("admin.ui.0062")} </Button>
         </div>
       </div>
 
       {leadershipItems.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs font-bold text-amber-600 uppercase tracking-wide flex items-center gap-1.5">
-            <Star className="w-3.5 h-3.5" /> Руководство
-          </p>
+            <Star className="w-3.5 h-3.5" /> {adminT("admin.ui.0805")} </p>
           {leadershipItems.map(item => (
             <InspectorAdminCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} />
           ))}
@@ -328,54 +328,54 @@ export default function AdminInspectors() {
 
       <div className="space-y-2">
         {leadershipItems.length > 0 && (
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mt-4">Участковые инспекторы</p>
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mt-4">{adminT("admin.ui.0822")}</p>
         )}
         {regularItems.map(item => (
           <InspectorAdminCard key={item.id} item={item} onEdit={openEdit} onDelete={handleDelete} />
         ))}
-        {items.length === 0 && <p className="text-center text-gray-400 py-8">Нет участковых</p>}
+        {items.length === 0 && <p className="text-center text-gray-400 py-8">{adminT("admin.ui.0823")}</p>}
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={open => { if (!saving && !photoUploading) setDialogOpen(open); }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editItem?.id ? 'Редактировать участкового' : 'Новый участковый'}</DialogTitle>
+            <DialogTitle>{editItem?.id ? adminT("admin.ui.0824") : adminT("admin.ui.0825")}</DialogTitle>
           </DialogHeader>
           {editItem && (
             <fieldset disabled={saving} className="space-y-3">
               <div>
-                <label className="text-sm font-medium text-gray-700">ФИО *</label>
-                <Input value={editItem.full_name || ''} onChange={e => setEditItem({ ...editItem, full_name: e.target.value })} placeholder="Иванов Иван Иванович" />
+                <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0826")}</label>
+                <Input value={editItem.full_name || ''} onChange={e => setEditItem({ ...editItem, full_name: e.target.value })} placeholder={adminT("admin.ui.0827")} />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Должность</label>
-                <Input value={editItem.position || ''} onChange={e => setEditItem({ ...editItem, position: e.target.value })} placeholder="Участковый инспектор полиции" />
+                <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0828")}</label>
+                <Input value={editItem.position || ''} onChange={e => setEditItem({ ...editItem, position: e.target.value })} placeholder={adminT("admin.ui.0829")} />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Фото *</label>
+                <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0830")}</label>
                 <ImageUpload value={editItem.photo_url || ''} onChange={v => setEditItem(current => current ? { ...current, photo_url: v } : current)} onUploadingChange={setPhotoUploading} folder="inspectors" compact />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Номер участка</label>
+                  <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0831")}</label>
                   <Input value={editItem.precinct_number || ''} onChange={e => setEditItem({ ...editItem, precinct_number: e.target.value })} placeholder="1" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Район</label>
-                  <Input value={editItem.district || ''} onChange={e => setEditItem({ ...editItem, district: e.target.value })} placeholder="Сортировка" />
+                  <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0832")}</label>
+                  <Input value={editItem.district || ''} onChange={e => setEditItem({ ...editItem, district: e.target.value })} placeholder={adminT("admin.ui.0809")} />
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Адрес приёма</label>
-                <Input value={editItem.address || ''} onChange={e => setEditItem({ ...editItem, address: e.target.value })} placeholder="ул. Абая 10, каб. 5" />
+                <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0833")}</label>
+                <Input value={editItem.address || ''} onChange={e => setEditItem({ ...editItem, address: e.target.value })} placeholder={adminT("admin.ui.0834")} />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">График приёма</label>
-                <Input value={editItem.schedule || ''} onChange={e => setEditItem({ ...editItem, schedule: e.target.value })} placeholder="Пн-Пт 09:00-18:00, Сб 10:00-14:00" />
+                <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0835")}</label>
+                <Input value={editItem.schedule || ''} onChange={e => setEditItem({ ...editItem, schedule: e.target.value })} placeholder={adminT("admin.ui.0836")} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Телефон *</label>
+                  <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0084")}</label>
                   <Input value={editItem.phone || ''} onChange={e => setEditItem({ ...editItem, phone: e.target.value })} placeholder="+7..." />
                 </div>
                 <div>
@@ -384,8 +384,8 @@ export default function AdminInspectors() {
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Описание</label>
-                <Textarea value={editItem.description || ''} onChange={e => setEditItem({ ...editItem, description: e.target.value })} rows={2} placeholder="Дополнительная информация" />
+                <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0079")}</label>
+                <Textarea value={editItem.description || ''} onChange={e => setEditItem({ ...editItem, description: e.target.value })} rows={2} placeholder={adminT("admin.ui.0837")} />
               </div>
 
               {/* Leadership toggle */}
@@ -393,11 +393,11 @@ export default function AdminInspectors() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Star className="w-4 h-4 text-amber-500" />
-                    <label className="text-sm font-medium text-gray-700">Руководство</label>
+                    <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0805")}</label>
                   </div>
                   <button
                     type="button"
-                    aria-label="Руководство" role="switch" aria-checked={Boolean(editItem.is_leadership)}
+                    aria-label={adminT("admin.ui.0805")} role="switch" aria-checked={Boolean(editItem.is_leadership)}
                     onClick={() => setEditItem({ ...editItem, is_leadership: !editItem.is_leadership })}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${editItem.is_leadership ? 'bg-amber-500' : 'bg-gray-300'}`}
                   >
@@ -406,7 +406,7 @@ export default function AdminInspectors() {
                 </div>
                 {editItem.is_leadership && (
                   <div>
-                    <label className="text-xs text-gray-500">Порядок отображения</label>
+                    <label className="text-xs text-gray-500">{adminT("admin.ui.0838")}</label>
                     <Input
                       type="number"
                       value={editItem.leadership_order ?? 0}
@@ -427,8 +427,7 @@ export default function AdminInspectors() {
               <div className="border-t border-gray-200 pt-3">
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
-                    <MapIcon className="w-4 h-4 text-blue-600" /> Карта участка
-                  </label>
+                    <MapIcon className="w-4 h-4 text-blue-600" /> {adminT("admin.ui.0839")} </label>
                   <Button
                     type="button"
                     variant="outline"
@@ -436,13 +435,13 @@ export default function AdminInspectors() {
                     onClick={() => setShowMapEditor(!showMapEditor)}
                     className="text-xs"
                   >
-                    {showMapEditor ? 'Скрыть карту' : 'Показать карту'}
+                    {showMapEditor ? adminT("admin.ui.0840") : adminT("admin.ui.0841")}
                   </Button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-2">
                   <div>
-                    <label className="text-xs text-gray-500">Широта (lat)</label>
+                    <label className="text-xs text-gray-500">{adminT("admin.ui.0842")}</label>
                     <Input
                       type="number"
                       step="any"
@@ -452,7 +451,7 @@ export default function AdminInspectors() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500">Долгота (lng)</label>
+                    <label className="text-xs text-gray-500">{adminT("admin.ui.0843")}</label>
                     <Input
                       type="number"
                       step="any"
@@ -466,9 +465,8 @@ export default function AdminInspectors() {
                 {showMapEditor && (
                   <div className="space-y-2">
                     <p className="text-xs text-gray-400">
-                      <strong>Двойной клик</strong> — установить центр участка (маркер).{' '}
-                      <strong>Одинарный клик</strong> — добавить точку границы (полигон).
-                    </p>
+                      <strong>{adminT("admin.ui.0844")}</strong> {adminT("admin.ui.0845")}{' '}
+                      <strong>{adminT("admin.ui.0846")}</strong> {adminT("admin.ui.0847")} </p>
                     <div className="h-[300px] rounded-xl overflow-hidden border border-gray-200 relative z-0">
                       <MapContainer
                         center={editItem.lat && editItem.lng ? [editItem.lat, editItem.lng] : DEFAULT_CENTER}
@@ -499,7 +497,7 @@ export default function AdminInspectors() {
 
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-gray-400">
-                        Точек границы: {boundaryPoints.length} {boundaryPoints.length < 3 && '(мин. 3)'}
+                        {adminT("admin.ui.0848")} {boundaryPoints.length} {boundaryPoints.length < 3 && adminT("admin.ui.0849")}
                       </p>
                       <div className="flex gap-2">
                         {boundaryPoints.length > 0 && (
@@ -510,8 +508,7 @@ export default function AdminInspectors() {
                             className="text-xs"
                             onClick={() => setBoundaryPoints(prev => prev.slice(0, -1))}
                           >
-                            Убрать последнюю
-                          </Button>
+                            {adminT("admin.ui.0850")} </Button>
                         )}
                         {boundaryPoints.length > 0 && (
                           <Button
@@ -521,8 +518,7 @@ export default function AdminInspectors() {
                             className="text-xs text-red-600"
                             onClick={() => setBoundaryPoints([])}
                           >
-                            Очистить
-                          </Button>
+                            {adminT("admin.ui.0851")} </Button>
                         )}
                       </div>
                     </div>
@@ -531,10 +527,10 @@ export default function AdminInspectors() {
               </div>
 
               <div className="flex gap-2 pt-2">
-                <Button onClick={() => setDialogOpen(false)} disabled={photoUploading} variant="outline" className="flex-1">Отмена</Button>
-                <Button onClick={handleSave} disabled={saving || photoUploading} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                <Button onClick={() => setDialogOpen(false)} disabled={photoUploading} variant="outline" className="flex-1">{adminT("admin.ui.0095")}</Button>
+                <Button onClick={handleSave} disabled={saving || photoUploading} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
                   {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-                  {editItem.id ? 'Сохранить' : 'Создать'}
+                  {editItem.id ? adminT("admin.ui.0096") : adminT("admin.ui.0097")}
                 </Button>
               </div>
             </fieldset>

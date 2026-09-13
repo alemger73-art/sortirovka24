@@ -1,3 +1,5 @@
+import adminTranslations from '@/i18n/adminTranslations';
+import { getPublicLanguage } from '@/i18n/publicLocale';
 import { getAPIBaseURL } from './config';
 import { getPartnerToken } from './partnerAuthApi';
 
@@ -10,7 +12,7 @@ export async function foodOperations<T>(path: string, method = 'GET', body?: unk
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Не удалось выполнить действие. Обновите данные и попробуйте снова.');
+  if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : adminTranslations['admin.dam.operationError'][getPublicLanguage()]);
   return data;
 }
 

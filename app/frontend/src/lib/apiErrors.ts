@@ -1,5 +1,8 @@
-/** Map low-level fetch/network errors to user-friendly Russian messages. */
+import { getPublicLanguage } from '@/i18n/publicLocale';
+
+/** Localize system errors without changing arbitrary server messages. */
 export function humanizeApiError(err: unknown): string {
+  const kz = getPublicLanguage() === 'kz';
   const raw = String((err as Error)?.message || err || '').trim();
   const lower = raw.toLowerCase();
 
@@ -14,17 +17,17 @@ export function humanizeApiError(err: unknown): string {
     lower.includes('timeout') ||
     lower.includes('aborted')
   ) {
-    return 'Нет связи с сервером. Проверьте интернет и попробуйте снова.';
+    return (kz ? "Сервермен байланыс жоқ. Интернетті тексеріп, қайталап көріңіз." : "Нет связи с сервером. Проверьте интернет и попробуйте снова.");
   }
   if (lower.includes('http 401') || lower.includes('session expired') || lower.includes('unauthorized')) {
-    return 'Сессия истекла. Войдите снова.';
+    return (kz ? "Сеанс аяқталды. Қайта кіріңіз." : "Сессия истекла. Войдите снова.");
   }
   if (lower.includes('http 413')) {
-    return 'Файл слишком большой. Выберите фото до 20 МБ.';
+    return (kz ? "Файл тым үлкен. 20 МБ-тан аспайтын суретті таңдаңыз." : "Файл слишком большой. Выберите фото до 20 МБ.");
   }
   if (lower.includes('http 503') || lower.includes('http 502')) {
-    return 'Сервер временно недоступен. Попробуйте через минуту.';
+    return (kz ? "Сервер уақытша қолжетімсіз. Бір минуттан кейін қайталап көріңіз." : "Сервер временно недоступен. Попробуйте через минуту.");
   }
 
-  return raw || 'Произошла ошибка. Попробуйте ещё раз.';
+  return raw || (kz ? "Қате пайда болды. Қайталап көріңіз." : "Произошла ошибка. Попробуйте ещё раз.");
 }

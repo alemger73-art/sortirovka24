@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { humanizeApiError } from '@/lib/apiErrors';
 import { useEffect, useRef, useState } from 'react';
 import { invalidateAllCaches } from '@/lib/cache';
@@ -43,6 +44,8 @@ const DEFAULT_RESTAURANT: Partial<Restaurant> = {
 };
 
 export default function AdminDamAlemBrand() {
+  const { t: adminT } = useLanguage();
+
   const [form, setForm] = useState<Partial<Restaurant>>(DEFAULT_RESTAURANT);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -78,11 +81,11 @@ export default function AdminDamAlemBrand() {
   async function save() {
     if (!loaded || savingRef.current || photoUploading) return;
     if (!form.name?.trim()) {
-      toast.error('Введите название заведения');
+      toast.error(adminT("admin.ui.0322"));
       return;
     }
     if (!Number.isFinite(Number(form.min_order)) || Number(form.min_order) < 0 || !Number.isFinite(Number(form.rating)) || Number(form.rating) < 0 || Number(form.rating) > 5) {
-      setError('Минимальный заказ должен быть не меньше нуля, рейтинг — от 0 до 5.');
+      setError(adminT("admin.ui.0323"));
       return;
     }
     savingRef.current = true;
@@ -112,7 +115,7 @@ export default function AdminDamAlemBrand() {
         });
         setForm(prev => ({ ...prev, id: created.id }));
       }
-      toast.success('Профиль DAM ALEM 2.0 сохранён');
+      toast.success(adminT("admin.ui.0324"));
       invalidateAllCaches();
 
     } catch (e) {
@@ -134,35 +137,33 @@ export default function AdminDamAlemBrand() {
     );
   }
 
-  if (!loaded) return <div role="alert" className="space-y-3 rounded-xl border bg-white p-4"><p>Не удалось загрузить профиль заведения. {error}</p><Button onClick={() => void load()}>Повторить загрузку</Button></div>;
+  if (!loaded) return <div role="alert" className="space-y-3 rounded-xl border bg-white p-4"><p>{adminT("admin.ui.0325")} {error}</p><Button onClick={() => void load()}>{adminT("admin.ui.0285")}</Button></div>;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg font-bold text-gray-900">Профиль заведения</h3>
+          <h3 className="text-lg font-bold text-gray-900">{adminT("admin.ui.0326")}</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Название, фото и описание видны клиентам. Условия оформления заказа настраиваются во вкладке «Настройки».
-          </p>
+            {adminT("admin.ui.0327")} </p>
         </div>
-        <Button onClick={save} disabled={saving || photoUploading} className="bg-[#FF3B30] hover:bg-[#e8352b]">
+        <Button onClick={save} disabled={saving || photoUploading} className="bg-[#FF3B30] hover:bg-[#e8352b] text-white">
           <Save className="mr-1 h-4 w-4" />
-          {saving ? 'Сохранение...' : 'Сохранить'}
+          {saving ? adminT("admin.ui.0328") : adminT("admin.ui.0096")}
         </Button>
       </div>
 
-      {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-800">{error} Введённые изменения сохранены в форме.</p>}
+      {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-800">{error} {adminT("admin.ui.0329")}</p>}
 
       {!form.id && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          Запись DAM ALEM 2.0 ещё не создана в базе. Заполните поля и нажмите «Сохранить» — заведение будет создано автоматически.
-        </div>
+          {adminT("admin.ui.0330")} </div>
       )}
 
       <fieldset disabled={saving} className="grid min-w-0 gap-6 lg:grid-cols-[280px_1fr]">
         <div className="space-y-4">
           <div className="overflow-hidden rounded-2xl border bg-white p-4">
-            <p className="mb-3 text-sm font-medium text-gray-700">Фото / логотип</p>
+            <p className="mb-3 text-sm font-medium text-gray-700">{adminT("admin.ui.0331")}</p>
             <ImageUpload
               value={form.photo || ''}
               onChange={key => setForm(prev => ({ ...prev, photo: key }))}
@@ -176,23 +177,22 @@ export default function AdminDamAlemBrand() {
               checked={form.is_active !== false}
               onChange={e => setForm(prev => ({ ...prev, is_active: e.target.checked }))}
             />
-            Заведение активно (видно клиентам)
-          </label>
+            {adminT("admin.ui.0332")} </label>
         </div>
 
         <div className="space-y-4">
           <div className="rounded-xl border bg-white p-4">
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Название *</label>
-            <Input aria-label="Название" value={form.name || ''} onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))} />
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">{adminT("admin.ui.0077")}</label>
+            <Input aria-label={adminT("admin.ui.0213")} value={form.name || ''} onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))} />
           </div>
 
           <div className="rounded-xl border bg-white p-4">
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Описание</label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">{adminT("admin.ui.0079")}</label>
             <Textarea
               rows={3}
-              aria-label="Описание" value={form.description || ''}
+              aria-label={adminT("admin.ui.0079")} value={form.description || ''}
               onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Краткое описание для клиентов"
+              placeholder={adminT("admin.ui.0333")}
             />
           </div>
 
@@ -209,55 +209,51 @@ export default function AdminDamAlemBrand() {
             </div>
             <div className="rounded-xl border bg-white p-4">
               <div className="mb-1.5 flex items-center gap-2 text-sm font-medium text-gray-700">
-                <Clock className="h-4 w-4 text-[#FF3B30]" /> Время работы
-              </div>
+                <Clock className="h-4 w-4 text-[#FF3B30]" /> {adminT("admin.ui.0334")} </div>
               <Input
-                aria-label="Время работы" value={form.working_hours || ''}
+                aria-label={adminT("admin.ui.0334")} value={form.working_hours || ''}
                 onChange={e => setForm(prev => ({ ...prev, working_hours: e.target.value }))}
                 placeholder="10:00 – 23:00"
               />
             </div>
             <div className="rounded-xl border bg-white p-4">
               <div className="mb-1.5 flex items-center gap-2 text-sm font-medium text-gray-700">
-                <Truck className="h-4 w-4 text-[#FF3B30]" /> Срок доставки
-              </div>
+                <Truck className="h-4 w-4 text-[#FF3B30]" /> {adminT("admin.ui.0335")} </div>
               <Input
-                aria-label="Срок доставки" value={form.delivery_time || ''}
+                aria-label={adminT("admin.ui.0335")} value={form.delivery_time || ''}
                 onChange={e => setForm(prev => ({ ...prev, delivery_time: e.target.value }))}
-                placeholder="35–45 мин"
+                placeholder={adminT("admin.ui.0321")}
               />
             </div>
             <div className="rounded-xl border bg-white p-4">
               <div className="mb-1.5 flex items-center gap-2 text-sm font-medium text-gray-700">
-                <DollarSign className="h-4 w-4 text-[#FF3B30]" /> Мин. заказ (₸)
-              </div>
+                <DollarSign className="h-4 w-4 text-[#FF3B30]" /> {adminT("admin.ui.0336")} </div>
               <Input
                 type="number"
-                aria-label="Минимальный заказ" value={form.min_order ?? ''}
+                aria-label={adminT("admin.ui.0337")} value={form.min_order ?? ''}
                 onChange={e => setForm(prev => ({ ...prev, min_order: Number(e.target.value) || 0 }))}
               />
             </div>
             <div className="rounded-xl border bg-white p-4">
               <div className="mb-1.5 flex items-center gap-2 text-sm font-medium text-gray-700">
-                <Star className="h-4 w-4 text-[#FF3B30]" /> Рейтинг
-              </div>
+                <Star className="h-4 w-4 text-[#FF3B30]" /> {adminT("admin.ui.0338")} </div>
               <Input
                 type="number"
                 step="0.1"
                 min={0}
                 max={5}
-                aria-label="Рейтинг" value={form.rating ?? ''}
+                aria-label={adminT("admin.ui.0338")} value={form.rating ?? ''}
                 onChange={e => setForm(prev => ({ ...prev, rating: Number(e.target.value) || 0 }))}
               />
             </div>
             <div className="rounded-xl border bg-white p-4">
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Типы кухни</label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">{adminT("admin.ui.0339")}</label>
               <Input
-                aria-label="Типы кухни" value={form.cuisine_type || ''}
+                aria-label={adminT("admin.ui.0339")} value={form.cuisine_type || ''}
                 onChange={e => setForm(prev => ({ ...prev, cuisine_type: e.target.value }))}
                 placeholder="pizza,sushi,burgers"
               />
-              <p className="mt-1 text-xs text-gray-400">Через запятую, для фильтров</p>
+              <p className="mt-1 text-xs text-gray-400">{adminT("admin.ui.0340")}</p>
             </div>
           </div>
         </div>

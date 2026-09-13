@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { MapPin, Navigation, Loader2, CheckCircle2, AlertCircle, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -46,12 +47,14 @@ function formatMoney(n: number) {
 }
 
 function MiniMap({ lat, lng }: { lat: number; lng: number }) {
+  const st = useStoreTranslations();
+
   const pad = 0.008;
   const bbox = `${lng - pad},${lat - pad},${lng + pad},${lat + pad}`;
   const src = `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(bbox)}&layer=mapnik&marker=${lat}%2C${lng}`;
   return (
     <iframe
-      title="Карта адреса"
+      title={st("Карта адреса")}
       src={src}
       className="w-full h-36 rounded-xl border border-gray-200"
       loading="lazy"
@@ -92,6 +95,8 @@ export default function DeliveryAddressPicker({
   variant = 'full',
   accent = 'emerald',
 }: Props) {
+  const st = useStoreTranslations();
+
   const s = ACCENTS[accent];
   const trimmed = address.trim();
   const hasLocationWarning = !!deliveryQuote?.location_warning;
@@ -113,8 +118,7 @@ export default function DeliveryAddressPicker({
           </div>
           {onEdit && (
             <button type="button" onClick={onEdit} className={`text-[11px] font-medium underline shrink-0 ${s.textMuted}`}>
-              Изменить
-            </button>
+               {st("Изменить")} </button>
           )}
         </div>
       );
@@ -124,7 +128,7 @@ export default function DeliveryAddressPicker({
         <Input
           value={address}
           onChange={(e) => onAddressChange(e.target.value)}
-          placeholder="Куда доставить? Улица, дом"
+          placeholder={st("Куда доставить? Улица, дом")}
           className="rounded-xl bg-white flex-1 h-10"
           onKeyDown={(e) => e.key === 'Enter' && onFindByAddress()}
         />
@@ -145,23 +149,20 @@ export default function DeliveryAddressPicker({
           <span className={`w-8 h-8 rounded-full ${s.badge} text-white flex items-center justify-center shrink-0 text-sm font-bold`}>1</span>
           <div className="flex-1 min-w-0">
             <p className={`text-sm font-semibold ${s.text} flex items-center gap-1.5`}>
-              <CheckCircle2 className="h-4 w-4" /> Адрес подтверждён
-            </p>
+              <CheckCircle2 className="h-4 w-4" />  {st("Адрес подтверждён")} </p>
             <p className="text-sm text-gray-800 mt-0.5 break-words">{deliveryQuote.display_address || trimmed}</p>
             <p className={`text-xs ${s.textMuted} mt-1`}>
-              {deliveryQuote.zone_name} · доставка {formatMoney(deliveryQuote.delivery_fee)}
+              {deliveryQuote.zone_name}  {st("· доставка")} {formatMoney(deliveryQuote.delivery_fee)}
             </p>
           </div>
           {onEdit && (
             <button type="button" onClick={onEdit} className={`text-xs ${s.textMuted} font-medium underline shrink-0 py-1`}>
-              Изменить
-            </button>
+               {st("Изменить")} </button>
           )}
         </div>
         {onContinueCheckout && (
           <Button type="button" onClick={onContinueCheckout} className={`w-full h-12 ${s.btn} rounded-xl text-base font-semibold`}>
-            Шаг 2: Оформить заказ →
-          </Button>
+             {st("Шаг 2: Оформить заказ →")} </Button>
         )}
       </div>
     );
@@ -172,13 +173,12 @@ export default function DeliveryAddressPicker({
       <div>
         <div className="flex items-center gap-2 mb-2">
           <span className={`w-7 h-7 rounded-full ${s.badge} text-white flex items-center justify-center text-xs font-bold shrink-0`}>1</span>
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Шаг 1 из 2</span>
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{st("Шаг 1 из 2")}</span>
         </div>
         <p className="font-bold text-gray-900 flex items-center gap-2">
           <MapPin className={`h-5 w-5 ${s.icon}`} />
-          Куда доставить?
-        </p>
-        <p className="text-xs text-gray-500 mt-1">Проверьте адрес — затем перейдите к оформлению заказа</p>
+           {st("Куда доставить?")} </p>
+        <p className="text-xs text-gray-500 mt-1">{st("Проверьте адрес — затем перейдите к оформлению заказа")}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -192,8 +192,8 @@ export default function DeliveryAddressPicker({
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Navigation className="h-5 w-5" />}
           </span>
           <span>
-            <span className={`block text-sm font-semibold ${s.text}`}>Я здесь сейчас</span>
-            <span className={`block text-xs ${s.textMuted}/80`}>Определить по GPS</span>
+            <span className={`block text-sm font-semibold ${s.text}`}>{st("Я здесь сейчас")}</span>
+            <span className={`block text-xs ${s.textMuted}/80`}>{st("Определить по GPS")}</span>
           </span>
         </button>
         <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50/50 text-left">
@@ -201,8 +201,8 @@ export default function DeliveryAddressPicker({
             <MapPin className="h-5 w-5 text-gray-500" />
           </span>
           <span>
-            <span className="block text-sm font-semibold text-gray-900">Знаю адрес</span>
-            <span className="block text-xs text-gray-500">Введите ниже</span>
+            <span className="block text-sm font-semibold text-gray-900">{st("Знаю адрес")}</span>
+            <span className="block text-xs text-gray-500">{st("Введите ниже")}</span>
           </span>
         </div>
       </div>
@@ -211,14 +211,14 @@ export default function DeliveryAddressPicker({
         <Input
           value={address}
           onChange={(e) => onAddressChange(e.target.value)}
-          placeholder="Например: пер. Урановый 10"
+          placeholder={st("Например: пер. Урановый 10")}
           className="rounded-xl h-11 text-base"
           onKeyDown={(e) => e.key === 'Enter' && trimmed.length >= 5 && onFindByAddress()}
         />
         <div className="flex flex-wrap gap-1.5">
           {ADDRESS_EXAMPLES.map((ex) => (
             <button
-              key={ex}
+              key={st(ex)}
               type="button"
               onClick={() => (onSelectExample ? onSelectExample(ex) : onAddressChange(ex))}
               className={`text-[11px] px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 ${s.chipHover} transition-colors`}
@@ -229,9 +229,9 @@ export default function DeliveryAddressPicker({
         </div>
         <Button type="button" onClick={onFindByAddress} disabled={loading || trimmed.length < 5} className={`w-full h-11 ${s.btn} rounded-xl`}>
           {loading ? (
-            <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Ищем на карте...</span>
+            <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />  {st("Ищем на карте...")}</span>
           ) : (
-            <span className="flex items-center gap-2"><Search className="h-4 w-4" /> Найти на карте</span>
+            <span className="flex items-center gap-2"><Search className="h-4 w-4" />  {st("Найти на карте")}</span>
           )}
         </Button>
       </div>
@@ -239,7 +239,7 @@ export default function DeliveryAddressPicker({
       {loading && (
         <div className="rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-600 flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-          Проверяем «{trimmed || 'ваше местоположение'}»...
+           {st("Проверяем «")}{trimmed || st("ваше местоположение")}»...
         </div>
       )}
 
@@ -248,22 +248,21 @@ export default function DeliveryAddressPicker({
           <div className={`rounded-xl ${s.bgSolid} border ${s.border} px-4 py-3 flex gap-3`}>
             <CheckCircle2 className={`h-5 w-5 ${s.icon} shrink-0 mt-0.5`} />
             <div className="min-w-0 flex-1">
-              <p className={`text-sm font-semibold ${s.text}`}>Шаг 1 готов — доставим сюда!</p>
+              <p className={`text-sm font-semibold ${s.text}`}>{st("Шаг 1 готов — доставим сюда!")}</p>
               {deliveryQuote.display_address && (
                 <p className={`text-xs ${s.textMuted}/90 mt-0.5 break-words`}>{deliveryQuote.display_address}</p>
               )}
               <p className={`text-sm ${s.textMuted} mt-1`}>
-                {deliveryQuote.zone_name} · доставка {formatMoney(deliveryQuote.delivery_fee)}
+                {deliveryQuote.zone_name}  {st("· доставка")} {formatMoney(deliveryQuote.delivery_fee)}
               </p>
             </div>
           </div>
           {onContinueCheckout && (
             <Button type="button" onClick={onContinueCheckout} className={`w-full h-12 ${s.btn} rounded-xl text-base font-semibold shadow-md`}>
-              Шаг 2: Оформить заказ →
-            </Button>
+               {st("Шаг 2: Оформить заказ →")} </Button>
           )}
           <details className="text-xs text-gray-500">
-            <summary className="cursor-pointer py-1">Показать на карте</summary>
+            <summary className="cursor-pointer py-1">{st("Показать на карте")}</summary>
             {deliveryQuote.lat && deliveryQuote.lng && (
               <div className="mt-2"><MiniMap lat={deliveryQuote.lat} lng={deliveryQuote.lng} /></div>
             )}
@@ -277,10 +276,10 @@ export default function DeliveryAddressPicker({
             <AlertCircle className={`h-5 w-5 shrink-0 mt-0.5 ${hasLocationWarning ? 'text-amber-600' : 'text-red-500'}`} />
             <div>
               <p className={`text-sm font-semibold ${hasLocationWarning ? 'text-amber-900' : 'text-red-900'}`}>
-                {hasLocationWarning ? 'GPS показал другое место' : 'Адрес не подходит для доставки'}
+                {hasLocationWarning ? st("GPS показал другое место") : st("Адрес не подходит для доставки")}
               </p>
               <p className={`text-xs mt-1 ${hasLocationWarning ? 'text-amber-800' : 'text-red-700'}`}>
-                {deliveryQuote?.location_warning || error || deliveryQuote?.message || 'Попробуйте GPS или уточните адрес'}
+                {deliveryQuote?.location_warning || error || deliveryQuote?.message || st("Попробуйте GPS или уточните адрес")}
               </p>
             </div>
           </div>
@@ -289,7 +288,7 @@ export default function DeliveryAddressPicker({
               <Navigation className="h-3.5 w-3.5 mr-1" /> GPS
             </Button>
             <Button type="button" size="sm" onClick={onFindByAddress} disabled={trimmed.length < 5} className={`h-9 ${s.btn}`}>
-              {hasLocationWarning ? 'Ввести адрес' : 'Повторить'}
+              {hasLocationWarning ? st("Ввести адрес") : st("Повторить")}
             </Button>
           </div>
         </div>
@@ -297,8 +296,7 @@ export default function DeliveryAddressPicker({
 
       {!loading && !confirmed && !failed && trimmed.length >= 5 && (
         <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-900">
-          Нажмите «Найти на карте» или «Я здесь сейчас», чтобы проверить доставку
-        </div>
+           {st("Нажмите «Найти на карте» или «Я здесь сейчас», чтобы проверить доставку")} </div>
       )}
     </div>
   );

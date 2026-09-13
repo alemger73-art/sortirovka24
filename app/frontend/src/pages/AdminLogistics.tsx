@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,13 +14,19 @@ import { toast } from 'sonner';
 
 type Tab = 'applications' | 'couriers' | 'tasks';
 
-const VEHICLE_LABELS: Record<string, string> = {
-  bike: 'Велосипед',
-  car: 'Авто',
-  foot: 'Пешком',
+function getVEHICLE_LABELS(adminT: (key: string) => string) {
+  const VEHICLE_LABELS: Record<string, string> = {
+  bike: adminT("admin.ui.0872"),
+  car: adminT("admin.ui.0701"),
+  foot: adminT("admin.ui.0873"),
 };
+  return VEHICLE_LABELS;
+}
 
 export default function AdminLogistics() {
+  const { t: adminT } = useLanguage();
+  const VEHICLE_LABELS = getVEHICLE_LABELS(adminT);
+
   const [tab, setTab] = useState<Tab>('applications');
   const [applications, setApplications] = useState<CourierApplication[]>([]);
   const [tasks, setTasks] = useState<LogisticsTask[]>([]);
@@ -42,11 +49,11 @@ export default function AdminLogistics() {
       setCouriers(c);
     } catch (e: unknown) {
       setLoadError(true);
-      toast.error(String((e as Error)?.message || 'Ошибка загрузки'));
+      toast.error(String((e as Error)?.message || adminT("admin.ui.0044")));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [adminT]);
 
   useEffect(() => {
     load();
@@ -56,24 +63,24 @@ export default function AdminLogistics() {
     setActing(userId);
     try {
       await logisticsApi.adminApproveApplication(userId);
-      toast.success('Курьер одобрен — кабинет открыт');
+      toast.success(adminT("admin.ui.0874"));
       await load();
     } catch (e: unknown) {
-      toast.error(String((e as Error)?.message || 'Ошибка'));
+      toast.error(String((e as Error)?.message || adminT("admin.ui.0486")));
     } finally {
       setActing(null);
     }
   }
 
   async function rejectApp(userId: string) {
-    const note = window.prompt('Причина отклонения (необязательно)') || '';
+    const note = window.prompt(adminT("admin.ui.0875")) || '';
     setActing(userId);
     try {
       await logisticsApi.adminRejectApplication(userId, note);
-      toast.success('Заявка отклонена');
+      toast.success(adminT("admin.ui.0876"));
       await load();
     } catch (e: unknown) {
-      toast.error(String((e as Error)?.message || 'Ошибка'));
+      toast.error(String((e as Error)?.message || adminT("admin.ui.0486")));
     } finally {
       setActing(null);
     }
@@ -82,17 +89,17 @@ export default function AdminLogistics() {
   async function markReady(taskId: number) {
     try {
       await logisticsApi.adminMarkReady(taskId);
-      toast.success('Заказ готов к выдаче');
+      toast.success(adminT("admin.ui.0877"));
       await load();
     } catch (e: unknown) {
-      toast.error(String((e as Error)?.message || 'Ошибка'));
+      toast.error(String((e as Error)?.message || adminT("admin.ui.0486")));
     }
   }
 
   const tabs: { id: Tab; label: string; icon: typeof Users }[] = [
-    { id: 'applications', label: `Заявки (${applications.length})`, icon: ClipboardList },
-    { id: 'couriers', label: 'Курьеры', icon: Users },
-    { id: 'tasks', label: 'Доставки', icon: ClipboardList },
+    { id: 'applications', label: adminT("admin.extra.1292").replace('{0}', () => String(applications.length)), icon: ClipboardList },
+    { id: 'couriers', label: adminT("admin.ui.0392"), icon: Users },
+    { id: 'tasks', label: adminT("admin.ui.0878"), icon: ClipboardList },
   ];
 
   if (loading) {
@@ -103,15 +110,14 @@ export default function AdminLogistics() {
     );
   }
 
-  if (loadError) return <div role="alert" className="rounded-xl border bg-white p-5 space-y-3"><p>Не удалось загрузить данные раздела. Повторите загрузку перед внесением изменений.</p><Button onClick={() => void load()}>Повторить загрузку</Button></div>;
+  if (loadError) return <div role="alert" className="rounded-xl border bg-white p-5 space-y-3"><p>{adminT("admin.ui.0879")}</p><Button onClick={() => void load()}>{adminT("admin.ui.0285")}</Button></div>;
 
   return (
     <div className="space-y-6 p-4 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">Логистика / Курьеры</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{adminT("admin.ui.0880")}</h1>
         <Button variant="outline" size="sm" onClick={load}>
-          <RefreshCw className="h-4 w-4 mr-2" /> Обновить
-        </Button>
+          <RefreshCw className="h-4 w-4 mr-2" /> {adminT("admin.ui.0408")} </Button>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -138,7 +144,7 @@ export default function AdminLogistics() {
                 <div>
                   <p className="font-bold text-gray-900">{app.full_name}</p>
                   <p className="text-sm text-gray-500">{app.phone} · {VEHICLE_LABELS[app.vehicle_type || 'bike']}</p>
-                  {app.vehicle_plate && <p className="text-sm text-gray-500">Номер: {app.vehicle_plate}</p>}
+                  {app.vehicle_plate && <p className="text-sm text-gray-500">{adminT("admin.ui.0881")} {app.vehicle_plate}</p>}
                 </div>
                 <div className="flex gap-2">
                   <Button size="sm" disabled={acting === app.user_id} onClick={() => app.user_id && approveApp(app.user_id)}>
@@ -152,27 +158,27 @@ export default function AdminLogistics() {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {app.photo_url && (
                   <div>
-                    <p className="text-xs text-gray-400 mb-1">Фото</p>
-                    <DocFilePreview value={app.photo_url} alt="Фото" className="h-24 w-full object-cover rounded-lg" />
+                    <p className="text-xs text-gray-400 mb-1">{adminT("admin.ui.0882")}</p>
+                    <DocFilePreview value={app.photo_url} alt={adminT("admin.ui.0882")} className="h-24 w-full object-cover rounded-lg" />
                   </div>
                 )}
                 {app.id_photo_url && (
                   <div>
-                    <p className="text-xs text-gray-400 mb-1">Удостоверение</p>
-                    <DocFilePreview value={app.id_photo_url} alt="Удостоверение" className="h-24 w-full object-cover rounded-lg" />
+                    <p className="text-xs text-gray-400 mb-1">{adminT("admin.ui.0883")}</p>
+                    <DocFilePreview value={app.id_photo_url} alt={adminT("admin.ui.0883")} className="h-24 w-full object-cover rounded-lg" />
                   </div>
                 )}
                 {app.vehicle_photo_url && (
                   <div>
-                    <p className="text-xs text-gray-400 mb-1">Транспорт</p>
-                    <DocFilePreview value={app.vehicle_photo_url} alt="Транспорт" className="h-24 w-full object-cover rounded-lg" />
+                    <p className="text-xs text-gray-400 mb-1">{adminT("admin.ui.0778")}</p>
+                    <DocFilePreview value={app.vehicle_photo_url} alt={adminT("admin.ui.0778")} className="h-24 w-full object-cover rounded-lg" />
                   </div>
                 )}
               </div>
             </div>
           ))}
           {applications.length === 0 && (
-            <p className="text-center text-gray-400 py-12 bg-white rounded-xl border">Новых заявок нет</p>
+            <p className="text-center text-gray-400 py-12 bg-white rounded-xl border">{adminT("admin.ui.0884")}</p>
           )}
         </section>
       )}
@@ -183,10 +189,10 @@ export default function AdminLogistics() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left">
                 <tr>
-                  <th className="p-3">Имя</th>
-                  <th className="p-3">Телефон</th>
-                  <th className="p-3">Статус</th>
-                  <th className="p-3">Доставок</th>
+                  <th className="p-3">{adminT("admin.ui.0885")}</th>
+                  <th className="p-3">{adminT("admin.ui.0466")}</th>
+                  <th className="p-3">{adminT("admin.ui.0089")}</th>
+                  <th className="p-3">{adminT("admin.ui.0886")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -194,12 +200,12 @@ export default function AdminLogistics() {
                   <tr key={c.user_id} className="border-t">
                     <td className="p-3 font-medium">{c.name || c.user_id}</td>
                     <td className="p-3">{c.phone || '—'}</td>
-                    <td className="p-3">{c.online ? '🟢 На линии' : '✓ Одобрен'}</td>
+                    <td className="p-3">{c.online ? adminT("admin.ui.0887") : adminT("admin.ui.0888")}</td>
                     <td className="p-3">{c.deliveries_count}</td>
                   </tr>
                 ))}
                 {couriers.length === 0 && (
-                  <tr><td colSpan={4} className="p-6 text-center text-gray-400">Курьеров пока нет</td></tr>
+                  <tr><td colSpan={4} className="p-6 text-center text-gray-400">{adminT("admin.ui.0889")}</td></tr>
                 )}
               </tbody>
             </table>
@@ -214,7 +220,7 @@ export default function AdminLogistics() {
             return (
               <div key={t.id} className="bg-white rounded-xl border p-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-semibold">#{t.id} · заказ еды #{t.source_id}</p>
+                  <p className="font-semibold">#{t.id} {adminT("admin.ui.0890")}{t.source_id}</p>
                   <p className="text-sm text-gray-500 break-words max-w-md">{t.pickup_address} → {t.dropoff_address}</p>
                   {t.total_amount != null && <p className="text-sm font-medium mt-1">{formatTenge(t.total_amount)}</p>}
                 </div>
@@ -222,14 +228,13 @@ export default function AdminLogistics() {
                   <span className={`text-xs px-2 py-1 rounded-full ${st.color}`}>{st.label}</span>
                   {t.status === 'pending' && (
                     <Button size="sm" variant="outline" onClick={() => markReady(t.id)}>
-                      Готов
-                    </Button>
+                      {adminT("admin.ui.0891")} </Button>
                   )}
                 </div>
               </div>
             );
           })}
-          {tasks.length === 0 && <p className="text-center text-gray-400 py-8">Задач пока нет</p>}
+          {tasks.length === 0 && <p className="text-center text-gray-400 py-8">{adminT("admin.ui.0892")}</p>}
         </section>
       )}
     </div>

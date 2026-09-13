@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useEffect, useMemo } from 'react';
 import { client, withRetry } from '@/lib/api';
 import { invalidateAllCaches } from '@/lib/cache';
@@ -24,13 +25,16 @@ interface Category {
   created_at: string;
 }
 
-const CAT_TYPES = [
-  { value: 'services', label: 'Услуги' },
-  { value: 'real_estate', label: 'Недвижимость' },
-  { value: 'announcements', label: 'Объявления' },
-  { value: 'jobs', label: 'Работа' },
-  { value: 'food', label: 'Еда' },
+function getCAT_TYPES(adminT: (key: string) => string) {
+  const CAT_TYPES = [
+  { value: 'services', label: adminT("admin.ui.0103") },
+  { value: 'real_estate', label: adminT("admin.ui.0140") },
+  { value: 'announcements', label: adminT("admin.ui.0141") },
+  { value: 'jobs', label: adminT("admin.ui.0142") },
+  { value: 'food', label: adminT("admin.ui.0143") },
 ];
+  return CAT_TYPES;
+}
 
 const EMOJI_SUGGESTIONS = ['🔧','⚡','🔥','🪑','🔌','📦','🏠','🪟','✨','🛠️','💇','🧖','🚗','🚿','🏨','🌸','🏢','🔑','🏡','🏘️','🏬','🌿','📢','💰','🛒','🎁','💼','🏪','👨‍🍳','🍽️','🍲','🍖','🥟','🥐','🥤','🚪','💵'];
 
@@ -56,6 +60,9 @@ function CategoryForm({
   onSave: (data: Partial<Category>) => void;
   onCancel: () => void;
 }) {
+  const { t: adminT } = useLanguage();
+  const CAT_TYPES = getCAT_TYPES(adminT);
+
   const [form, setForm] = useState<Partial<Category>>({
     name: '', slug: '', cat_type: 'services', icon: '🔧',
     description: '', parent_id: null, sort_order: 0,
@@ -76,13 +83,13 @@ function CategoryForm({
   return (
     <Card className="border-blue-200 bg-blue-50/30">
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg">{category?.id ? 'Редактировать категорию' : 'Новая категория'}</CardTitle>
+        <CardTitle className="text-lg">{category?.id ? adminT("admin.ui.0177") : adminT("admin.ui.0178")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Название *</label>
-            <Input value={form.name || ''} onChange={e => handleNameChange(e.target.value)} placeholder="Название категории" />
+            <label className="text-sm font-medium text-gray-700 mb-1 block">{adminT("admin.ui.0077")}</label>
+            <Input value={form.name || ''} onChange={e => handleNameChange(e.target.value)} placeholder={adminT("admin.ui.0179")} />
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700 mb-1 block">Slug *</label>
@@ -91,7 +98,7 @@ function CategoryForm({
             </div>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Тип *</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">{adminT("admin.ui.0076")}</label>
             <select
               value={form.cat_type || 'services'}
               onChange={e => setForm(p => ({ ...p, cat_type: e.target.value }))}
@@ -101,18 +108,18 @@ function CategoryForm({
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Родительская категория</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">{adminT("admin.ui.0180")}</label>
             <select
               value={form.parent_id ?? ''}
               onChange={e => setForm(p => ({ ...p, parent_id: e.target.value ? Number(e.target.value) : null }))}
               className="w-full h-10 px-3 rounded-md border border-gray-200 bg-white text-sm"
             >
-              <option value="">— Корневая категория —</option>
+              <option value="">{adminT("admin.ui.0181")}</option>
               {rootCategories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Иконка</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">{adminT("admin.ui.0182")}</label>
             <div className="flex gap-2 items-center">
               <Input value={form.icon || ''} onChange={e => setForm(p => ({ ...p, icon: e.target.value }))} className="w-20 text-center text-xl" />
               <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
@@ -124,33 +131,31 @@ function CategoryForm({
             </div>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Порядок сортировки</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">{adminT("admin.ui.0183")}</label>
             <Input type="number" value={form.sort_order ?? 0} onChange={e => setForm(p => ({ ...p, sort_order: Number(e.target.value) }))} />
           </div>
         </div>
         <div>
-          <label className="text-sm font-medium text-gray-700 mb-1 block">Описание</label>
-          <Input value={form.description || ''} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Описание категории" />
+          <label className="text-sm font-medium text-gray-700 mb-1 block">{adminT("admin.ui.0079")}</label>
+          <Input value={form.description || ''} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder={adminT("admin.ui.0184")} />
         </div>
         <div className="flex gap-4">
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={form.is_active ?? true} onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))}
               className="w-4 h-4 rounded border-gray-300" />
-            <span className="text-sm">Активна</span>
+            <span className="text-sm">{adminT("admin.ui.0185")}</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={form.show_on_main ?? false} onChange={e => setForm(p => ({ ...p, show_on_main: e.target.checked }))}
               className="w-4 h-4 rounded border-gray-300" />
-            <span className="text-sm">Показывать на главной</span>
+            <span className="text-sm">{adminT("admin.ui.0186")}</span>
           </label>
         </div>
         <div className="flex gap-2 pt-2">
-          <Button onClick={() => onSave(form)} className="bg-blue-600 hover:bg-blue-700">
-            <Save className="w-4 h-4 mr-1" /> Сохранить
-          </Button>
+          <Button onClick={() => onSave(form)} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Save className="w-4 h-4 mr-1" /> {adminT("admin.ui.0096")} </Button>
           <Button variant="outline" onClick={onCancel}>
-            <X className="w-4 h-4 mr-1" /> Отмена
-          </Button>
+            <X className="w-4 h-4 mr-1" /> {adminT("admin.ui.0095")} </Button>
         </div>
       </CardContent>
     </Card>
@@ -174,6 +179,9 @@ function TreeNode({
   onToggleMain: (c: Category) => void;
   level?: number;
 }) {
+  const { t: adminT } = useLanguage();
+  const CAT_TYPES = getCAT_TYPES(adminT);
+
   const [expanded, setExpanded] = useState(true);
   const hasChildren = children.length > 0;
 
@@ -200,19 +208,19 @@ function TreeNode({
           {CAT_TYPES.find(t => t.value === category.cat_type)?.label || category.cat_type}
         </span>
         {category.show_on_main && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Главная</span>
+          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">{adminT("admin.ui.0187")}</span>
         )}
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => onToggleMain(category)} className="p-1 hover:bg-gray-200 rounded" title={category.show_on_main ? 'Убрать с главной' : 'На главную'}>
+          <button onClick={() => onToggleMain(category)} className="p-1 hover:bg-gray-200 rounded" title={category.show_on_main ? adminT("admin.ui.0188") : adminT("admin.ui.0189")}>
             {category.show_on_main ? <StarOff className="w-3.5 h-3.5 text-amber-500" /> : <Star className="w-3.5 h-3.5 text-gray-400" />}
           </button>
-          <button onClick={() => onToggleActive(category)} className="p-1 hover:bg-gray-200 rounded" title={category.is_active ? 'Скрыть' : 'Показать'}>
+          <button onClick={() => onToggleActive(category)} className="p-1 hover:bg-gray-200 rounded" title={category.is_active ? adminT("admin.ui.0064") : adminT("admin.ui.0065")}>
             {category.is_active ? <EyeOff className="w-3.5 h-3.5 text-gray-400" /> : <Eye className="w-3.5 h-3.5 text-green-500" />}
           </button>
-          <button onClick={() => onEdit(category)} className="p-1 hover:bg-blue-100 rounded" title="Редактировать">
+          <button onClick={() => onEdit(category)} className="p-1 hover:bg-blue-100 rounded" title={adminT("admin.ui.0073")}>
             <Edit2 className="w-3.5 h-3.5 text-blue-500" />
           </button>
-          <button onClick={() => onDelete(category.id)} className="p-1 hover:bg-red-100 rounded" title="Удалить">
+          <button onClick={() => onDelete(category.id)} className="p-1 hover:bg-red-100 rounded" title={adminT("admin.ui.0190")}>
             <Trash2 className="w-3.5 h-3.5 text-red-500" />
           </button>
         </div>
@@ -238,6 +246,9 @@ function TreeNode({
 }
 
 export default function AdminCategories() {
+  const { t: adminT } = useLanguage();
+  const CAT_TYPES = getCAT_TYPES(adminT);
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'tree' | 'list'>('tree');
@@ -255,7 +266,7 @@ export default function AdminCategories() {
       setCategories(res?.data?.items || []);
     } catch (e) {
       console.error('Error loading categories:', e);
-      toast.error('Ошибка загрузки категорий');
+      toast.error(adminT("admin.ui.0191"));
     } finally {
       setLoading(false);
     }
@@ -287,7 +298,7 @@ export default function AdminCategories() {
 
   async function handleSave(data: Partial<Category>) {
     if (!data.name || !data.slug || !data.cat_type) {
-      toast.error('Заполните обязательные поля: название, slug, тип');
+      toast.error(adminT("admin.ui.0192"));
       return;
     }
     // Remove null values that the backend doesn't accept (parent_id must be int or omitted)
@@ -304,7 +315,7 @@ export default function AdminCategories() {
       if (data.id) {
         const { id, created_at, ...updateData } = data;
         await withRetry(() => client.entities.categories.update({ id: String(id), data: cleanData(updateData) }));
-        toast.success('Категория обновлена');
+        toast.success(adminT("admin.ui.0193"));
       } else {
         const { id, ...createData } = data;
         await withRetry(() => client.entities.categories.create({
@@ -313,54 +324,54 @@ export default function AdminCategories() {
             created_at: new Date().toISOString()
           })
         }));
-        toast.success('Категория создана');
+        toast.success(adminT("admin.ui.0194"));
       }
       setShowForm(false);
       setEditingCategory(null);
       loadCategories();
     } catch (e) {
       console.error('Error saving category:', e);
-      toast.error('Ошибка сохранения');
+      toast.error(adminT("admin.ui.0055"));
     }
   }
 
   async function handleDelete(id: number) {
     const children = categories.filter(c => c.parent_id === id);
     if (children.length > 0) {
-      toast.error('Сначала удалите подкатегории');
+      toast.error(adminT("admin.ui.0195"));
       return;
     }
-    if (!confirm('Удалить категорию?')) return;
+    if (!confirm(adminT("admin.ui.0196"))) return;
     try {
       await withRetry(() => client.entities.categories.delete({ id: String(id) }));
-      toast.success('Категория удалена');
+      toast.success(adminT("admin.ui.0197"));
       invalidateAllCaches();
       loadCategories();
     } catch (e) {
       console.error('Error deleting category:', e);
-      toast.error('Ошибка удаления');
+      toast.error(adminT("admin.ui.0051"));
     }
   }
 
   async function handleToggleActive(cat: Category) {
     try {
       await withRetry(() => client.entities.categories.update({ id: String(cat.id), data: { is_active: !cat.is_active } }));
-      toast.success(cat.is_active ? 'Категория скрыта' : 'Категория активирована');
+      toast.success(cat.is_active ? adminT("admin.ui.0198") : adminT("admin.ui.0199"));
       invalidateAllCaches();
       loadCategories();
     } catch (e) {
-      toast.error('Ошибка обновления');
+      toast.error(adminT("admin.ui.0048"));
     }
   }
 
   async function handleToggleMain(cat: Category) {
     try {
       await withRetry(() => client.entities.categories.update({ id: String(cat.id), data: { show_on_main: !cat.show_on_main } }));
-      toast.success(cat.show_on_main ? 'Убрано с главной' : 'Добавлено на главную');
+      toast.success(cat.show_on_main ? adminT("admin.ui.0200") : adminT("admin.ui.0201"));
       invalidateAllCaches();
       loadCategories();
     } catch (e) {
-      toast.error('Ошибка обновления');
+      toast.error(adminT("admin.ui.0048"));
     }
   }
 
@@ -406,34 +417,31 @@ export default function AdminCategories() {
     <div className="space-y-4">
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <Card className="p-3"><div className="text-2xl font-bold text-blue-600">{stats.total}</div><div className="text-xs text-gray-500">Всего</div></Card>
-        <Card className="p-3"><div className="text-2xl font-bold text-indigo-600">{stats.roots}</div><div className="text-xs text-gray-500">Корневых</div></Card>
-        <Card className="p-3"><div className="text-2xl font-bold text-purple-600">{stats.subs}</div><div className="text-xs text-gray-500">Подкатегорий</div></Card>
-        <Card className="p-3"><div className="text-2xl font-bold text-green-600">{stats.active}</div><div className="text-xs text-gray-500">Активных</div></Card>
-        <Card className="p-3"><div className="text-2xl font-bold text-amber-600">{stats.onMain}</div><div className="text-xs text-gray-500">На главной</div></Card>
+        <Card className="p-3"><div className="text-2xl font-bold text-blue-600">{stats.total}</div><div className="text-xs text-gray-500">{adminT("admin.ui.0202")}</div></Card>
+        <Card className="p-3"><div className="text-2xl font-bold text-indigo-600">{stats.roots}</div><div className="text-xs text-gray-500">{adminT("admin.ui.0203")}</div></Card>
+        <Card className="p-3"><div className="text-2xl font-bold text-purple-600">{stats.subs}</div><div className="text-xs text-gray-500">{adminT("admin.ui.0204")}</div></Card>
+        <Card className="p-3"><div className="text-2xl font-bold text-green-600">{stats.active}</div><div className="text-xs text-gray-500">{adminT("admin.ui.0205")}</div></Card>
+        <Card className="p-3"><div className="text-2xl font-bold text-amber-600">{stats.onMain}</div><div className="text-xs text-gray-500">{adminT("admin.ui.0206")}</div></Card>
       </div>
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3">
-        <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="w-4 h-4 mr-1" /> Новая категория
-        </Button>
+        <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Plus className="w-4 h-4 mr-1" /> {adminT("admin.ui.0178")} </Button>
         <div className="flex bg-gray-100 rounded-lg p-0.5">
           <button onClick={() => setViewMode('tree')}
             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === 'tree' ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}>
-            <FolderTree className="w-4 h-4 inline mr-1" /> Дерево
-          </button>
+            <FolderTree className="w-4 h-4 inline mr-1" /> {adminT("admin.ui.0207")} </button>
           <button onClick={() => setViewMode('list')}
             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === 'list' ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}>
-            <List className="w-4 h-4 inline mr-1" /> Список
-          </button>
+            <List className="w-4 h-4 inline mr-1" /> {adminT("admin.ui.0208")} </button>
         </div>
         <select value={filterType} onChange={e => setFilterType(e.target.value)}
           className="h-9 px-3 rounded-md border border-gray-200 bg-white text-sm">
-          <option value="">Все типы</option>
+          <option value="">{adminT("admin.ui.0209")}</option>
           {CAT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
-        <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск..." className="w-48" />
+        <Input value={search} onChange={e => setSearch(e.target.value)} placeholder={adminT("admin.ui.0210")} className="w-48" />
       </div>
 
       {/* Form */}
@@ -469,8 +477,7 @@ export default function AdminCategories() {
                       onClick={() => handleAddChild(root.id)}
                       className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 py-1 px-2 rounded hover:bg-blue-50 transition-colors"
                     >
-                      <Plus className="w-3 h-3" /> Добавить подкатегорию
-                    </button>
+                      <Plus className="w-3 h-3" /> {adminT("admin.ui.0211")} </button>
                   </div>
                 </div>
               );
@@ -478,7 +485,7 @@ export default function AdminCategories() {
             {categories.length === 0 && (
               <div className="text-center py-8 text-gray-400">
                 <FolderTree className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>Категории не найдены</p>
+                <p>{adminT("admin.ui.0212")}</p>
               </div>
             )}
           </CardContent>
@@ -493,14 +500,14 @@ export default function AdminCategories() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Иконка</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Название</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-500">{adminT("admin.ui.0182")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-500">{adminT("admin.ui.0213")}</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-500">Slug</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Тип</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Родитель</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Порядок</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Статус</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Действия</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-500">{adminT("admin.ui.0214")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-500">{adminT("admin.ui.0215")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-500">{adminT("admin.ui.0216")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-500">{adminT("admin.ui.0089")}</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-500">{adminT("admin.ui.0217")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -518,14 +525,14 @@ export default function AdminCategories() {
                         <td className="px-4 py-3 text-center">{cat.sort_order}</td>
                         <td className="px-4 py-3">
                           <div className="flex gap-1">
-                            {cat.is_active && <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Активна</span>}
-                            {!cat.is_active && <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">Скрыта</span>}
-                            {cat.show_on_main && <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Главная</span>}
+                            {cat.is_active && <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">{adminT("admin.ui.0185")}</span>}
+                            {!cat.is_active && <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">{adminT("admin.ui.0218")}</span>}
+                            {cat.show_on_main && <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">{adminT("admin.ui.0187")}</span>}
                           </div>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-1">
-                            <button onClick={() => handleToggleActive(cat)} className="p-1.5 hover:bg-gray-100 rounded" title={cat.is_active ? 'Скрыть' : 'Показать'}>
+                            <button onClick={() => handleToggleActive(cat)} className="p-1.5 hover:bg-gray-100 rounded" title={cat.is_active ? adminT("admin.ui.0064") : adminT("admin.ui.0065")}>
                               {cat.is_active ? <EyeOff className="w-4 h-4 text-gray-400" /> : <Eye className="w-4 h-4 text-green-500" />}
                             </button>
                             <button onClick={() => handleEdit(cat)} className="p-1.5 hover:bg-blue-50 rounded">

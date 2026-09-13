@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import * as React from 'react';
 import { Slot } from '@radix-ui/react-slot';
 import { ChevronRight, MoreHorizontal } from 'lucide-react';
@@ -9,7 +10,10 @@ const Breadcrumb = React.forwardRef<
   React.ComponentPropsWithoutRef<'nav'> & {
     separator?: React.ReactNode;
   }
->(({ ...props }, ref) => <nav ref={ref} aria-label="breadcrumb" {...props} />);
+>(({ ...props }, ref) => {
+  const { t: coverageT } = useLanguage();
+  return (<nav ref={ref} aria-label={coverageT("public.coverage.breadcrumb")} {...props} />);
+});
 Breadcrumb.displayName = 'Breadcrumb';
 
 const BreadcrumbList = React.forwardRef<
@@ -91,7 +95,9 @@ BreadcrumbSeparator.displayName = 'BreadcrumbSeparator';
 const BreadcrumbEllipsis = ({
   className,
   ...props
-}: React.ComponentProps<'span'>) => (
+}: React.ComponentProps<'span'>) => {
+  const { t: coverageT } = useLanguage();
+  return ((
   <span
     role="presentation"
     aria-hidden="true"
@@ -99,9 +105,10 @@ const BreadcrumbEllipsis = ({
     {...props}
   >
     <MoreHorizontal className="h-4 w-4" />
-    <span className="sr-only">More</span>
+    <span className="sr-only">{coverageT("public.coverage.more")}</span>
   </span>
-);
+));
+};
 BreadcrumbEllipsis.displayName = 'BreadcrumbElipssis';
 
 export {

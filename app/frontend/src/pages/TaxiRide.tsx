@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const RATING_LABELS = ['', 'Плохо', 'Так себе', 'Нормально', 'Хорошо', 'Отлично!'];
+const RATING_LABELS = ['', "public.rating.bad", "public.rating.poor", "public.rating.normal", "public.rating.good", "public.rating.great"];
 
 function notifyPassenger(title: string, body: string) {
   toast.success(title, { description: body, duration: 8000 });
@@ -62,7 +62,7 @@ export default function TaxiRide() {
     } finally {
       setLoading(false);
     }
-  }, [rideId]);
+  }, [rideId, publicT]);
 
   useEffect(() => {
     load();
@@ -113,7 +113,7 @@ export default function TaxiRide() {
     setSubmittingRating(true);
     try {
       await taxiApi.rateRide(ride.id, rating, ratingComment);
-      toast.success('Спасибо за оценку!');
+      toast.success(publicT("public.extra.23"));
       await load();
     } catch (e: unknown) {
       toast.error(String((e as Error)?.message || publicT("courier.genericError")));
@@ -161,7 +161,7 @@ export default function TaxiRide() {
           </button>
           <div className="flex-1">
             <p className="text-white font-bold">{publicT("public.TaxiRide.text291")}{ride.id}</p>
-            <p className="text-white/50 text-xs">{statusInfo.emoji} {statusInfo.label}</p>
+            <p className="text-white/50 text-xs">{statusInfo.emoji} {TAXI_STATUS_LABELS[ride.status]?.labelKey ? publicT(TAXI_STATUS_LABELS[ride.status].labelKey) : ride.status}</p>
           </div>
           <button type="button" onClick={load} className="text-white/70 hover:text-white p-2">
             <RefreshCw className="h-4 w-4" />
@@ -222,7 +222,7 @@ export default function TaxiRide() {
             </div>
             <div className="flex justify-between items-center pt-3 border-t border-gray-100">
               <div>
-                <p className="text-xs text-gray-400">Стоимость</p>
+                <p className="text-xs text-gray-400">{publicT("public.extra.24")}</p>
                 <p className="text-2xl font-black text-gray-900">{formatTenge(ride.final_price ?? ride.estimated_price)}</p>
               </div>
               {ride.distance_km != null && (
@@ -312,7 +312,7 @@ export default function TaxiRide() {
                 ))}
               </div>
               {rating > 0 && (
-                <p className="text-center font-semibold text-yellow-800">{RATING_LABELS[rating]}</p>
+                <p className="text-center font-semibold text-yellow-800">{publicT(RATING_LABELS[rating])}</p>
               )}
               <Input
                 value={ratingComment}
@@ -332,7 +332,7 @@ export default function TaxiRide() {
 
           {ride.status === 'completed' && ride.rating != null && (
             <div className="rounded-2xl bg-green-50 border border-green-200 p-4 text-center text-green-800">
-              Спасибо! Вы оценили поездку на {ride.rating} ★
+              {publicT("public.extra.25")} {ride.rating} ★
             </div>
           )}
 

@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Polygon } from 'react-leaflet';
 import L from 'leaflet';
@@ -20,6 +21,8 @@ interface Props {
 }
 
 export default function DeliveryZonesPreview({ zones, storeLat, storeLng, formatPrice }: Props) {
+  const st = useStoreTranslations();
+
   const [expanded, setExpanded] = useState(false);
 
   const center = useMemo((): [number, number] => {
@@ -38,7 +41,7 @@ export default function DeliveryZonesPreview({ zones, storeLat, storeLng, format
       >
         <div className="flex items-center gap-2">
           <MapPin className="h-4 w-4 text-[#FF3B30]" />
-          <span className="text-sm font-bold text-[#111111]">Зоны доставки на карте</span>
+          <span className="text-sm font-bold text-[#111111]">{st("Зоны доставки на карте")}</span>
         </div>
         {expanded ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
       </button>

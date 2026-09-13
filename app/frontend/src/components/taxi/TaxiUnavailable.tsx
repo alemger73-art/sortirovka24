@@ -12,8 +12,7 @@ export default function TaxiUnavailable({ compact = false }: Props) {
   if (compact) {
     return (
       <p className="text-sm text-gray-500">
-        Сервис такси временно недоступен.
-      </p>
+        {publicT("public.extra.35")} </p>
     );
   }
 
@@ -25,8 +24,7 @@ export default function TaxiUnavailable({ compact = false }: Props) {
         </div>
         <h1 className="text-2xl font-bold text-gray-900">{publicT("public.TaxiUnavailable.text358")}</h1>
         <p className="mt-3 text-gray-600 leading-relaxed">
-          Сервис такси Сортировка готовится к запуску. Следите за новостями — скоро можно будет заказать поездку по району.
-        </p>
+          {publicT("public.extra.36")} </p>
         <Button asChild className="mt-6 w-full h-12 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-bold">
           <Link to="/">{publicT("masters.backHome")}</Link>
         </Button>

@@ -1,3 +1,4 @@
+import { getPublicCategoryLabel } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useParams, Link } from 'react-router-dom';
@@ -104,7 +105,7 @@ function SalonCard({ salon }: { salon: Salon }) {
               <h3 className="font-bold text-gray-900 dark:text-white text-sm truncate">{salon.name}</h3>
             </Link>
             <p className="text-xs text-pink-600 dark:text-pink-400 font-medium mt-0.5">
-              {salonCategoryIcon(salon.category)} {salon.category}
+              {salonCategoryIcon(salon.category)} {getPublicCategoryLabel(salon.category, publicT)}
             </p>
           </div>
           {rating > 0 && (
@@ -230,7 +231,7 @@ export function SalonsCatalog() {
         <div className="relative z-10 max-w-5xl mx-auto px-4 pt-10 pb-12 md:pt-14 md:pb-14">
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-xl rounded-full px-4 py-1.5 border border-white/15 mb-4">
             <Scissors className="w-4 h-4 text-pink-100" />
-            <span className="text-white/90 text-sm font-medium">Салоны красоты</span>
+            <span className="text-white/90 text-sm font-medium">{publicT("categories.salons")}</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-black text-white mb-2 leading-tight">
             {publicT("public.Salons.text209")} </h1>
@@ -260,8 +261,7 @@ export function SalonsCatalog() {
               <h2 className="text-sm font-bold text-gray-900 dark:text-white">{publicT("food.categories")}</h2>
               {selectedCategory && (
                 <button type="button" onClick={() => setCategory('')} className="text-xs text-pink-600 dark:text-pink-400 font-semibold hover:underline">
-                  Сбросить
-                </button>
+                  {publicT("public.extra.18")} </button>
               )}
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin -mx-1 px-1">
@@ -286,7 +286,7 @@ export function SalonsCatalog() {
                       : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-pink-300'
                   }`}
                 >
-                  <span>{salonCategoryIcon(cat)}</span> {cat}
+                  <span>{salonCategoryIcon(cat)}</span> {getPublicCategoryLabel(cat, publicT)}
                 </button>
               ))}
             </div>
@@ -304,7 +304,7 @@ export function SalonsCatalog() {
                 <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-pink-50 dark:bg-pink-950/40 flex items-center justify-center">
                   <Scissors className="w-7 h-7 text-pink-400" />
                 </div>
-                <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">Салоны не найдены</h3>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">{publicT("public.extra.19")}</h3>
                 <p className="text-xs text-gray-500 mb-4 max-w-sm mx-auto">{publicT("public.Salons.text214")}</p>
                 {(selectedCategory || debouncedQ) && (
                   <button onClick={() => { setCategory(''); setSearchQuery(''); }} className="text-xs font-bold text-pink-600 hover:underline">
@@ -315,7 +315,7 @@ export function SalonsCatalog() {
               <>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-sm font-bold text-gray-900 dark:text-white">
-                    {selectedCategory || publicT("public.Salons.text215")}
+                    {getPublicCategoryLabel(selectedCategory, publicT) || publicT("public.Salons.text215")}
                     <span className="ml-1.5 font-normal text-gray-400">({listTotal})</span>
                   </h2>
                 </div>
@@ -381,7 +381,7 @@ export function SalonDetail() {
         <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-5">
           <Scissors className="w-8 h-8 text-gray-300 dark:text-gray-600" />
         </div>
-        <h2 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2">Салон не найден</h2>
+        <h2 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2">{publicT("public.extra.20")}</h2>
         <Link to="/salons" className="text-pink-600 dark:text-pink-400 hover:text-pink-700 font-semibold text-sm">{publicT("public.Salons.text218")}</Link>
       </div>
     </Layout>
@@ -423,7 +423,7 @@ export function SalonDetail() {
           <div className="bg-white dark:bg-gray-900 px-5 py-4">
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">{salon.name}</h1>
             <p className="text-sm text-pink-600 dark:text-pink-400 font-medium mt-0.5">
-              {salonCategoryIcon(salon.category)} {salon.category}
+              {salonCategoryIcon(salon.category)} {getPublicCategoryLabel(salon.category, publicT)}
             </p>
             {rating > 0 && (
               <div className="flex items-center gap-2 mt-2">

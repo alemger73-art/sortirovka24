@@ -9,7 +9,7 @@ export default function NotFound() {
     <Layout>
       <div className="max-w-lg mx-auto px-4 py-24 text-center">
         <div className="text-6xl font-bold text-gray-200 mb-4">404</div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Страница не найдена</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">{publicT("public.extra.17")}</h1>
         <p className="text-gray-500 mb-8">
           {publicT("public.NotFound.text208")} </p>
         <Link

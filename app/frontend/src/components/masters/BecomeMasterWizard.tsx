@@ -1,3 +1,4 @@
+import { getPublicCategoryLabel } from '@/lib/api';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -147,13 +148,13 @@ export default function BecomeMasterWizard() {
               <div className="space-y-5 animate-in fade-in duration-300">
                 <p className="text-sm text-gray-500 dark:text-gray-400 -mt-1">{t('masters.stepContactDesc')}</p>
                 <Field label={t('masters.fieldName')} required>
-                  <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={inputClass} placeholder="Иван Иванов" required />
+                  <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={inputClass} placeholder={t("report.namePlaceholder")} required />
                 </Field>
                 <Field label={t('masters.fieldCategory')} required>
                   <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className={inputClass} required>
                     <option value="">{t('masters.selectCategory')}</option>
                     {MASTER_CATEGORIES.map(c => (
-                      <option key={c} value={c}>{CATEGORY_ICONS[c]} {c}</option>
+                      <option key={c} value={c}>{CATEGORY_ICONS[c]} {getPublicCategoryLabel(c, t)}</option>
                     ))}
                   </select>
                 </Field>

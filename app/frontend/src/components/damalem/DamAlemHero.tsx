@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { Clock, ShoppingBag, Star, Truck } from 'lucide-react';
 import { DAM_ALEM_BRAND, isSameDamAlemBrand } from '@/lib/damAlem';
 import DamAlemImage from '@/components/damalem/DamAlemImage';
@@ -33,7 +34,7 @@ export default function DamAlemHero({
   heroImage,
   brandPhoto,
   rating = 4.9,
-  deliveryTime = '35–45 мин',
+  deliveryTime: providedDeliveryTime,
   minOrder,
   deliveryFrom,
   promoSlide,
@@ -43,12 +44,16 @@ export default function DamAlemHero({
   cartCount = 0,
   onOpenCart,
   onMenuCta,
-  menuCtaLabel = 'Смотреть меню',
+  menuCtaLabel: providedMenuCtaLabel,
 }: DamAlemHeroProps) {
+  const st = useStoreTranslations();
+  const deliveryTime = providedDeliveryTime ?? st("35–45 мин");
+  const menuCtaLabel = providedMenuCtaLabel ?? st("Смотреть меню");
+
   const bg = resolveDamAlemHeroImage(heroImage, brandPhoto);
   const slide = promoSlides[promoSlide] ?? promoSlides[0];
   const brandLabel = title || DAM_ALEM_BRAND;
-  const headline = subtitle || 'Горячая еда с доставкой по Сортировке';
+  const headline = subtitle || st("Горячая еда с доставкой по Сортировке");
   const showTagline = !isSameDamAlemBrand(brandLabel);
 
   return (
@@ -81,7 +86,7 @@ export default function DamAlemHero({
                   type="button"
                   onClick={onOpenCart}
                   className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-zinc-900 shadow-lg active:scale-95 transition lg:h-14 lg:w-14"
-                  aria-label={`Корзина: ${cartCount}`}
+                  aria-label={st("Корзина: {0}", [cartCount])}
                 >
                   <ShoppingBag className="h-5 w-5 lg:h-6 lg:w-6" />
                   <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#FF3B30] px-1 text-[10px] font-bold text-white lg:h-6 lg:min-w-[1.5rem] lg:text-xs">
@@ -95,7 +100,7 @@ export default function DamAlemHero({
           <div className="mt-auto space-y-4 lg:space-y-5">
             <div className="space-y-2">
               <h1 className="dam-hero-headline">{headline}</h1>
-              <p className="dam-hero-support">Пицца · донеры · шашлыки · комбо — готовим после вашего заказа</p>
+              <p className="dam-hero-support">{st("Пицца · донеры · шашлыки · комбо — готовим после вашего заказа")}</p>
             </div>
 
             <div className="flex flex-wrap gap-2 lg:gap-2.5">
@@ -105,10 +110,10 @@ export default function DamAlemHero({
               </span>
               <span className="dam-hero-chip">
                 <Truck className="h-4 w-4 shrink-0 lg:h-[1.125rem] lg:w-[1.125rem]" />
-                от {formatPrice(deliveryFrom)}
+                 {st("от")} {formatPrice(deliveryFrom)}
               </span>
               <span className="dam-hero-chip">
-                мин. {formatPrice(minOrder)}
+                 {st("мин.")} {formatPrice(minOrder)}
               </span>
             </div>
 
@@ -125,7 +130,7 @@ export default function DamAlemHero({
                         <button
                           key={i}
                           type="button"
-                          aria-label={`Слайд ${i + 1}`}
+                          aria-label={st("Слайд {0}", [i + 1])}
                           onClick={() => onPromoSlideChange(i)}
                           className={`h-1.5 rounded-full transition-all ${i === promoSlide ? 'w-7 bg-white' : 'w-1.5 bg-white/40'}`}
                         />

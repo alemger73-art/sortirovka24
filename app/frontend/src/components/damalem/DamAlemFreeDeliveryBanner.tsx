@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { Truck } from 'lucide-react';
 
 interface Props {
@@ -7,7 +8,10 @@ interface Props {
   deliveryTime?: string;
 }
 
-export default function DamAlemFreeDeliveryBanner({ freeDeliveryFrom, minOrder, formatPrice, deliveryTime = '35–45 мин' }: Props) {
+export default function DamAlemFreeDeliveryBanner({ freeDeliveryFrom, minOrder, formatPrice, deliveryTime: providedDeliveryTime }: Props) {
+  const st = useStoreTranslations();
+  const deliveryTime = providedDeliveryTime ?? st("35–45 мин");
+
   if (freeDeliveryFrom <= 0) return null;
 
   return (
@@ -19,12 +23,12 @@ export default function DamAlemFreeDeliveryBanner({ freeDeliveryFrom, minOrder, 
         </span>
         <div className="min-w-0 flex-1">
           <p className="dam-free-banner__title">
-            Бесплатная доставка от {formatPrice(freeDeliveryFrom)}
+             {st("Бесплатная доставка от")} {formatPrice(freeDeliveryFrom)}
           </p>
           <p className="dam-free-banner__sub">
             {minOrder > 0
-              ? `Мин. заказ ${formatPrice(minOrder)} · ${deliveryTime} · Сортировка`
-              : 'Доставим горячим прямо к подъезду'}
+              ? st("Мин. заказ {0} · {1} · Сортировка", [formatPrice(minOrder), deliveryTime])
+              : st("Доставим горячим прямо к подъезду")}
           </p>
         </div>
       </div>

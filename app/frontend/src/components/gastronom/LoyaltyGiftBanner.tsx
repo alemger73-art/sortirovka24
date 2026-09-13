@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { Gift, Sparkles } from 'lucide-react';
 import DamAlemImage from '@/components/damalem/DamAlemImage';
 import type { LoyaltyGift } from '@/lib/gastronomLoyalty';
@@ -22,6 +23,8 @@ export default function LoyaltyGiftBanner({
   selectedGiftId,
   onSelectGift,
 }: Props) {
+  const st = useStoreTranslations();
+
   const active = gifts.filter((g) => g.is_active);
   if (active.length === 0) return null;
 
@@ -45,15 +48,15 @@ export default function LoyaltyGiftBanner({
             <Gift className="h-4 w-4" />
           </span>
           <div>
-            <p className="text-sm font-extrabold text-gray-900 tracking-tight">Подарки к заказу</p>
-            <p className="text-[11px] text-gray-500">Бесплатно при достижении суммы</p>
+            <p className="text-sm font-extrabold text-gray-900 tracking-tight">{st("Подарки к заказу")}</p>
+            <p className="text-[11px] text-gray-500">{st("Бесплатно при достижении суммы")}</p>
           </div>
         </div>
 
         {choices.length > 0 ? (
           <div className="space-y-2">
             <p className="text-xs font-semibold text-emerald-800">
-              {choices.length > 1 ? 'Выберите один подарок бесплатно' : 'Ваш подарок добавлен бесплатно'}
+              {choices.length > 1 ? st("Выберите один подарок бесплатно") : st("Ваш подарок добавлен бесплатно")}
             </p>
             <div className={`grid gap-2 ${choices.length > 1 ? 'sm:grid-cols-2' : ''}`}>
               {choices.map((gift) => {
@@ -80,13 +83,13 @@ export default function LoyaltyGiftBanner({
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-                        {selected ? 'Выбран' : 'Выбрать'}
+                        {selected ? st("Выбран") : st("Выбрать")}
                       </p>
                       <p className="text-sm font-bold text-gray-900">{gift.title}</p>
                       {gift.description && (
                         <p className="mt-0.5 text-xs text-gray-600">{gift.description}</p>
                       )}
-                      <p className="mt-1 text-[11px] text-amber-700">от {formatMoney(gift.min_amount)}</p>
+                      <p className="mt-1 text-[11px] text-amber-700">{st("от")} {formatMoney(gift.min_amount)}</p>
                     </div>
                   </button>
                 );
@@ -95,10 +98,10 @@ export default function LoyaltyGiftBanner({
           </div>
         ) : next ? (
           <p className="text-sm text-gray-600">
-            Добавьте товаров ещё на{' '}
+             {st("Добавьте товаров ещё на")}{' '}
             <span className="font-bold text-emerald-700">{formatMoney(remaining)}</span>
-            {' '}— и <span className="font-semibold">
-              {nextChoiceCount > 1 ? `выберите подарок из ${nextChoiceCount} вариантов` : `получите ${next.title}`}
+            {' '}{st("— и")} <span className="font-semibold">
+              {nextChoiceCount > 1 ? st("выберите подарок из {0} вариантов", [nextChoiceCount]) : st("получите {0}", [next.title])}
             </span>
           </p>
         ) : null}
@@ -107,16 +110,16 @@ export default function LoyaltyGiftBanner({
           <p className="text-xs text-gray-600 flex items-start gap-1.5">
             <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
             <span>
-              Ещё <span className="font-semibold text-emerald-700">{formatMoney(remaining)}</span>
-              {' '}до {nextChoiceCount > 1 ? `выбора подарка (${nextChoiceCount} варианта)` : `подарка «${next.title}»`}
-              {' '}(от {formatMoney(next.min_amount)})
+               {st("Ещё")} <span className="font-semibold text-emerald-700">{formatMoney(remaining)}</span>
+              {' '}{st("до")} {nextChoiceCount > 1 ? st("выбора подарка ({0} варианта)", [nextChoiceCount]) : st("подарка «{0}»", [next.title])}
+              {' '}{st("(от")} {formatMoney(next.min_amount)})
             </span>
           </p>
         )}
 
         {!compact && active.length > 0 && (
           <div className="pt-1 space-y-1.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Все уровни</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{st("Все уровни")}</p>
             {active.map((g) => {
               const reached = subtotal >= g.min_amount;
               return (
@@ -127,7 +130,7 @@ export default function LoyaltyGiftBanner({
                   }`}
                 >
                   <span className="truncate pr-2">{g.title}</span>
-                  <span className="shrink-0 font-medium">от {formatMoney(g.min_amount)}</span>
+                  <span className="shrink-0 font-medium">{st("от")} {formatMoney(g.min_amount)}</span>
                 </div>
               );
             })}

@@ -5,6 +5,8 @@ import { PRIVACY_POLICY, USER_AGREEMENT } from "@/content/legal";
 
 export default function LegalPage() {
   const { t: publicT } = useLanguage();
+  const USER_AGREEMENT = { title: publicT('public.legal.USER_AGREEMENT.title'), updated: publicT('public.legal.USER_AGREEMENT.updated'), sections: Array.from({ length: 7 }, (_, i) => ({ heading: publicT(`public.legal.USER_AGREEMENT.${i}.heading`), body: publicT(`public.legal.USER_AGREEMENT.${i}.body`) })) };
+  const PRIVACY_POLICY = { title: publicT('public.legal.PRIVACY_POLICY.title'), updated: publicT('public.legal.PRIVACY_POLICY.updated'), sections: Array.from({ length: 8 }, (_, i) => ({ heading: publicT(`public.legal.PRIVACY_POLICY.${i}.heading`), body: publicT(`public.legal.PRIVACY_POLICY.${i}.body`) })) };
   const { doc } = useParams<{ doc: string }>();
   const content = doc === "privacy" ? PRIVACY_POLICY : USER_AGREEMENT;
 

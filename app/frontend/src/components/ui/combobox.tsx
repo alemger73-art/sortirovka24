@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import * as React from 'react';
 import { Check, ChevronsUpDown } from 'lucide-react';
 
@@ -32,12 +33,13 @@ export function Combobox({
   options,
   value,
   onValueChange,
-  placeholder = 'Select option...',
-  searchPlaceholder = 'Search...',
-  emptyText = 'No options found',
+  placeholder,
+  searchPlaceholder,
+  emptyText,
   disabled = false,
   className,
 }: ComboboxProps) {
+  const { t: coverageT } = useLanguage();
   const [open, setOpen] = React.useState(false);
 
   return (
@@ -52,15 +54,15 @@ export function Combobox({
         >
           {value
             ? options.find(option => option.value === value)?.label
-            : placeholder}
+            : (placeholder ?? coverageT('public.coverage.selectOption'))}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0">
         <Command>
-          <CommandInput placeholder={searchPlaceholder} />
+          <CommandInput placeholder={searchPlaceholder ?? coverageT('public.coverage.search')} />
           <CommandList>
-            <CommandEmpty>{emptyText}</CommandEmpty>
+            <CommandEmpty>{emptyText ?? coverageT('public.coverage.noOptions')}</CommandEmpty>
             <CommandGroup>
               {options.map(option => (
                 <CommandItem

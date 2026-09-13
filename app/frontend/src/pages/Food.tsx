@@ -1,3 +1,4 @@
+import { useStoreTranslations, storeCheckoutBlockReason } from '@/i18n/storeTranslations';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -52,7 +53,7 @@ import DamAlemCartView from '@/components/damalem/DamAlemCartView';
 import DamAlemStickyPills from '@/components/damalem/DamAlemStickyPills';
 import FoodOrderStatusBar from '@/components/damalem/FoodOrderStatusBar';
 import StoreProfileTab from '@/components/StoreProfileTab';
-import { foodCheckoutBlockReason, publicOrderErrorMessage } from '@/lib/foodCheckoutGuards';
+import { publicOrderErrorMessage } from '@/lib/foodCheckoutGuards';
 import { calcPromoDiscount, isPromoCurrent } from '@/lib/foodPromo';
 import DamAlemPageSkeleton from '@/components/damalem/DamAlemPageSkeleton';
 import LoadErrorState from '@/components/LoadErrorState';
@@ -187,7 +188,7 @@ function categorySlugOf(cat: FoodCategory): string {
 
 type DamTab = 'menu' | 'cart' | 'favorites' | 'profile';
 const DAM_TABS: DamTab[] = ['menu', 'cart', 'favorites', 'profile'];
-const DAM_NAV: { id: DamTab; icon: typeof LayoutGrid; label: string }[] = [
+const DAM_NAV_RU: { id: DamTab; icon: typeof LayoutGrid; label: string }[] = [
   { id: 'menu', icon: LayoutGrid, label: 'Меню' },
   { id: 'cart', icon: ShoppingCart, label: 'Корзина' },
   { id: 'favorites', icon: Heart, label: 'Избранное' },
@@ -201,6 +202,11 @@ function parseDamTab(raw: string | null): DamTab {
 }
 
 export default function Food() {
+  const st = useStoreTranslations();
+  const DAM_NAV = DAM_NAV_RU.map(item => ({ ...item, label: st(item.label) }));
+
+
+
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = parseDamTab(searchParams.get('tab'));
@@ -294,7 +300,7 @@ export default function Food() {
       };
       if (!parsed.order_items) return;
       setLastOrderPreview({
-        label: parsed.label || 'Как в прошлый раз',
+        label: parsed.label || st("Как в прошлый раз"),
         order_items: parsed.order_items,
         delivery_address: parsed.delivery_address,
         delivery_method: parsed.delivery_method,
@@ -302,7 +308,7 @@ export default function Food() {
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [st]);
 
   useEffect(() => {
     if (!getAccountToken()) {
@@ -746,10 +752,10 @@ export default function Food() {
       }
       if (group.type === 'checkbox') {
         if (group.min_select > 0 && selected.length < group.min_select) {
-          errors.push(`Мин. ${group.min_select} — "${localized(group, 'name') || group.name}"`);
+          errors.push(st("Мин. {0} — \"{1}\"", [group.min_select, localized(group, 'name') || group.name]));
         }
         if (group.max_select > 0 && selected.length > group.max_select) {
-          errors.push(`Макс. ${group.max_select} — "${localized(group, 'name') || group.name}"`);
+          errors.push(st("Макс. {0} — \"{1}\"", [group.max_select, localized(group, 'name') || group.name]));
         }
       }
     }
@@ -851,15 +857,18 @@ export default function Food() {
     if (cartCount > 0) {
       setActiveTab('cart');
     } else if (firstGift) {
-      toast.info(`Соберите заказ от ${firstGift.min_amount.toLocaleString('ru-RU')} ₸ и выберите подарок`);
+      toast.info(st("Соберите заказ от {0} ₸ и выберите подарок", [firstGift.min_amount.toLocaleString('ru-RU')]));
       requestAnimationFrame(() => {
         (document.getElementById('dam-market-categories') || document.getElementById('dam-menu'))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     }
-  }, [items.length, loyaltyGifts, cartCount, setActiveTab]);
+  }, [st, items.length, loyaltyGifts, cartCount, setActiveTab]);
 
-  const kitchenStatus = useMemo(() => isKitchenOpen(settings), [settings]);
-  const deliveryTimeLabel = settings.delivery_time || brandProfile?.delivery_time || '35–45 мин';
+  const kitchenStatus = useMemo(() => {
+    const status = isKitchenOpen(settings);
+    return { ...status, message: status.open ? undefined : st('Приём заказов с {0} до {1}', [status.opensAt, status.closesAt]) };
+  }, [settings, st]);
+  const deliveryTimeLabel = settings.delivery_time || brandProfile?.delivery_time || st("35–45 мин");
 
   const promoDiscountAmount = appliedPromo?.discount ?? 0;
   const promoFreeDelivery = appliedPromo?.free_delivery ?? false;
@@ -887,30 +896,30 @@ export default function Food() {
         setDeliveryQuoteError(quote.location_warning);
         if (options?.notify) toast.warning(quote.location_warning);
       } else if (!quote.available) {
-        const msg = quote.message || 'Доставка по этому адресу недоступна';
+        const msg = quote.message || st("Доставка по этому адресу недоступна");
         setDeliveryQuoteError(msg);
         if (options?.notify) toast.error(msg);
       }
     } catch (e) {
       if (reqId !== quoteRequestId.current) return;
       setDeliveryQuote(null);
-      const msg = e instanceof Error ? e.message : 'Не удалось рассчитать доставку';
+      const msg = e instanceof Error ? e.message : st("Не удалось рассчитать доставку");
       setDeliveryQuoteError(msg);
       if (options?.notify) toast.error(msg);
     } finally {
       if (reqId === quoteRequestId.current) setDeliveryQuoteLoading(false);
     }
-  }, [cartTotal]);
+  }, [st, cartTotal]);
 
   const findByAddress = useCallback((addr?: string) => {
     const target = (addr ?? effectiveAddress).trim();
     if (target.length < 5) {
-      toast.info('Введите улицу и номер дома, например: пер. Урановый 10');
+      toast.info(st("Введите улицу и номер дома, например: пер. Урановый 10"));
       return;
     }
     if (addr) setDeliveryAddress(addr);
     void runDeliveryQuote({ address: target }, { notify: true });
-  }, [effectiveAddress, runDeliveryQuote]);
+  }, [st, effectiveAddress, runDeliveryQuote]);
 
   const requestGeolocation = useCallback(async () => {
     setDeliveryQuoteLoading(true);
@@ -924,15 +933,15 @@ export default function Food() {
       setDeliveryQuoteLoading(false);
       if (err instanceof GeolocationError) {
         if (err.code === 'denied') {
-          toast.error('Разрешите доступ к геолокации в настройках телефона');
+          toast.error(st("Разрешите доступ к геолокации в настройках телефона"));
         } else {
-          toast.error('Не удалось получить GPS. Введите адрес вручную.');
+          toast.error(st("Не удалось получить GPS. Введите адрес вручную."));
         }
         return;
       }
-      toast.error('Не удалось получить GPS. Введите адрес вручную.');
+      toast.error(st("Не удалось получить GPS. Введите адрес вручную."));
     }
-  }, [runDeliveryQuote]);
+  }, [st, runDeliveryQuote]);
 
   const applySavedAddress = useCallback((saved: SavedAddress, opts?: { auto?: boolean }) => {
     setDeliveryAddress(saved.address);
@@ -1010,13 +1019,13 @@ export default function Food() {
     if (deliveryMethod !== 'delivery' || deliveryQuoteLoading) return null;
     if (deliveryQuote?.location_warning) return deliveryQuote.location_warning;
     if (deliveryQuote && deliveryQuote.available === false) {
-      return deliveryQuote.message || settings.outside_zone_message || 'Адрес вне зоны доставки';
+      return deliveryQuote.message || settings.outside_zone_message || st("Адрес вне зоны доставки");
     }
     return null;
-  }, [deliveryMethod, deliveryQuoteLoading, deliveryQuote, settings.outside_zone_message]);
+  }, [st, deliveryMethod, deliveryQuoteLoading, deliveryQuote, settings.outside_zone_message]);
 
   const checkoutBlockReason = useMemo(() => {
-    return foodCheckoutBlockReason({
+    return storeCheckoutBlockReason({
       kitchenOpen: kitchenStatus.open,
       kitchenMessage: kitchenStatus.message,
       cartTotal,
@@ -1032,20 +1041,20 @@ export default function Food() {
       customerName,
       customerPhone,
       loggedIn: isLoggedIn(),
-    });
-  }, [
+    }, st);
+  }, [st,
     kitchenStatus, cartTotal, minOrder, deliveryMethod, deliveryReady, deliveryQuoteLoading,
     deliveryQuote, effectiveAddress, deliveryQuoteError, deliveryUnavailableMessage,
     deliverToApartment, apartment, customerName, customerPhone, getAccountToken(),
   ]);
   const giftSelectionRequired = availableGiftChoices.length > 1 && !loyaltyGift;
   const checkoutFinalBlockReason = giftSelectionRequired
-    ? 'Выберите один бесплатный подарок'
+    ? st("Выберите один бесплатный подарок")
     : checkoutBlockReason;
 
   const openCheckout = useCallback(() => {
     if (minOrder > 0 && cartTotal < minOrder) {
-      toast.error(`Минимальная сумма заказа — ${minOrder.toLocaleString('ru-RU')} ₸`);
+      toast.error(st("Минимальная сумма заказа — {0} ₸", [minOrder.toLocaleString('ru-RU')]));
       return;
     }
     setCheckoutStep(1);
@@ -1055,7 +1064,7 @@ export default function Food() {
     if (deliveryMethod === 'delivery' && addr.length >= 5 && !deliveryQuote && !deliveryQuoteLoading) {
       void runDeliveryQuote({ address: addr });
     }
-  }, [deliveryReady, effectiveAddress, deliveryMethod, deliveryQuote, deliveryQuoteLoading, runDeliveryQuote, minOrder, cartTotal]);
+  }, [st, deliveryReady, effectiveAddress, deliveryMethod, deliveryQuote, deliveryQuoteLoading, runDeliveryQuote, minOrder, cartTotal]);
 
   const apartmentDeliveryFee = useMemo(
     () => (
@@ -1248,7 +1257,7 @@ export default function Food() {
         return { ...prev, [groupId]: current.filter(id => id !== optionId) };
       }
       if (maxSelect > 0 && current.length >= maxSelect) {
-        toast.error(`Максимум ${maxSelect} выбора`);
+        toast.error(st("Максимум {0} выбора", [maxSelect]));
         return prev;
       }
       return { ...prev, [groupId]: [...current, optionId] };
@@ -1271,11 +1280,11 @@ export default function Food() {
   async function submitOrder() {
     if (submittingRef.current) return;
     if (giftSelectionRequired) {
-      toast.error('Выберите один бесплатный подарок');
+      toast.error(st("Выберите один бесплатный подарок"));
       setCheckoutStep(2);
       return;
     }
-    const block = foodCheckoutBlockReason({
+    const block = storeCheckoutBlockReason({
       kitchenOpen: kitchenStatus.open,
       kitchenMessage: kitchenStatus.message,
       cartTotal,
@@ -1291,7 +1300,7 @@ export default function Food() {
       customerName,
       customerPhone,
       loggedIn: isLoggedIn(),
-    });
+    }, st);
     if (block) {
       toast.error(block);
       if (!isLoggedIn()) requireAuthDialog(navigate);
@@ -1428,7 +1437,7 @@ export default function Food() {
       setPayment('cash');
     } catch (e) {
       console.error('Error creating order:', e);
-      toast.error(publicOrderErrorMessage(e));
+      toast.error(publicOrderErrorMessage(e, st));
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -1505,9 +1514,9 @@ export default function Food() {
         pending: false,
       });
       setUseBonuses(false);
-      toast.success(`Промокод ${result.code} применён`);
+      toast.success(st("Промокод {0} применён", [result.code]));
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Промокод недействителен';
+      const message = e instanceof Error ? e.message : st("Промокод недействителен");
       const belowMin = /действует от|минимал|соберите|добавьте/i.test(message)
         || (local?.min_order != null && cartTotal < (local.min_order || 0));
       if (local && belowMin) {
@@ -1521,8 +1530,8 @@ export default function Food() {
         });
         toast.info(
           local.min_order && local.min_order > cartTotal
-            ? `Код ${local.code} сохранён. Добавьте ещё ${(local.min_order - cartTotal).toLocaleString('ru-RU')} ₸`
-            : `Код ${local.code} сохранён`,
+            ? st("Код {0} сохранён. Добавьте ещё {1} ₸", [local.code, (local.min_order - cartTotal).toLocaleString('ru-RU')])
+            : st("Код {0} сохранён", [local.code]),
         );
         return;
       }
@@ -1531,7 +1540,7 @@ export default function Food() {
     } finally {
       setPromoLoading(false);
     }
-  }, [cartTotal, configuredPromos]);
+  }, [st, cartTotal, configuredPromos]);
 
   useEffect(() => {
     if (!promoDeepLinkCode) return;
@@ -1556,7 +1565,7 @@ export default function Food() {
     if (action.type === 'category') {
       const cat = categories.find(c => categorySlugOf(c) === action.slug);
       if (cat) openCatalog(cat.id);
-      else { toast.info('Категория сейчас недоступна — выберите блюдо в меню'); document.getElementById('dam-menu')?.scrollIntoView({ behavior: 'smooth' }); }
+      else { toast.info(st("Категория сейчас недоступна — выберите блюдо в меню")); document.getElementById('dam-menu')?.scrollIntoView({ behavior: 'smooth' }); }
       return;
     }
     if (action.type === 'popular') {
@@ -1567,12 +1576,12 @@ export default function Food() {
       const firstGift = loyaltyGifts
         .filter((gift) => gift.is_active)
         .sort((a, b) => a.min_amount - b.min_amount)[0];
-      if (!firstGift) { toast.info('Сейчас подарков к заказу нет. Посмотрите другие предложения.'); return; }
+      if (!firstGift) { toast.info(st("Сейчас подарков к заказу нет. Посмотрите другие предложения.")); return; }
       if (firstGift) {
         toast.info(
           cartTotal >= firstGift.min_amount
-            ? 'Подарок уже доступен — выберите его в корзине'
-            : `Добавьте блюда ещё на ${formatPrice(firstGift.min_amount - cartTotal)} и выберите подарок`,
+            ? st("Подарок уже доступен — выберите его в корзине")
+            : st("Добавьте блюда ещё на {0} и выберите подарок", [formatPrice(firstGift.min_amount - cartTotal)]),
         );
       }
       setActiveTab(cartCount > 0 ? 'cart' : 'menu');
@@ -1635,14 +1644,14 @@ export default function Food() {
           }
           setAppliedPromo(null);
           setPromoInput('');
-          toast.info('Промокод больше не подходит к текущей корзине');
+          toast.info(st("Промокод больше не подходит к текущей корзине"));
         });
     }, 250);
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [cartTotal, appliedPromo?.code, configuredPromos]);
+  }, [st, cartTotal, appliedPromo?.code, configuredPromos]);
 
   useEffect(() => {
     if (items.length === 0) return;
@@ -1708,7 +1717,7 @@ export default function Food() {
     }
     if (lines.length > 0) {
       setCart(lines);
-      toast.success('Заказ добавлен в корзину — можно оформить снова');
+      toast.success(st("Заказ добавлен в корзину — можно оформить снова"));
       setActiveTab('cart');
     }
     if (payload.delivery_address) setDeliveryAddress(payload.delivery_address);
@@ -1840,12 +1849,12 @@ export default function Food() {
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/30">
                   <CheckCircle2 className="h-8 w-8" />
                 </div>
-                <h2 className="dam-section-title text-zinc-900">Заказ принят!</h2>
+                <h2 className="dam-section-title text-zinc-900">{st("Заказ принят!")}</h2>
                 {orderSuccess.id > 0 && (
                   <p className="mt-1 text-sm font-semibold text-[#FF3B30]">№ {orderSuccess.id}</p>
                 )}
                 <p className="mt-2 max-w-sm text-sm text-gray-500">
-                  Готовим после подтверждения · ориентир {deliveryTimeLabel}
+                   {st("Готовим после подтверждения · ориентир")} {deliveryTimeLabel}
                 </p>
               </div>
               <div className="mt-4 dam-card p-4">
@@ -1853,27 +1862,27 @@ export default function Food() {
               </div>
               <div className="mt-4 space-y-2 dam-card p-4 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Сумма</span>
+                  <span className="text-gray-500">{st("Сумма")}</span>
                   <span className="font-bold">{formatPrice(orderSuccess.total)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Оплата</span>
-                  <span className="font-semibold">{orderSuccess.paymentLabel}</span>
+                  <span className="text-gray-500">{st("Оплата")}</span>
+                  <span className="font-semibold">{st(PAYMENT_LABELS[orderSuccess.paymentMethod])}</span>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <span className="text-gray-500 shrink-0">Адрес</span>
-                  <span className="text-right font-medium">{orderSuccess.address}</span>
+                  <span className="text-gray-500 shrink-0">{st("Адрес")}</span>
+                  <span className="text-right font-medium">{orderSuccess.deliveryMethod === 'pickup' ? st('Самовывоз') : orderSuccess.address}</span>
                 </div>
               </div>
               {orderSuccess.paymentMethod !== 'cash' && (
                 <div className="mt-4 rounded-2xl border border-gray-100 p-4 text-center">
-                  <p className="text-sm font-semibold text-gray-800">{orderSuccess.paymentLabel}</p>
+                  <p className="text-sm font-semibold text-gray-800">{st(PAYMENT_LABELS[orderSuccess.paymentMethod])}</p>
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`DAMALEM:${orderSuccess.id};TOTAL:${orderSuccess.total};PAY:${orderSuccess.paymentMethod}`)}`}
-                    alt="QR оплаты"
+                    alt={st("QR оплаты")}
                     className="mx-auto mt-3 h-48 w-48 rounded-xl ring-1 ring-gray-100"
                   />
-                  <p className="mt-2 text-xs text-gray-400">Покажите QR при получении заказа</p>
+                  <p className="mt-2 text-xs text-gray-400">{st("Покажите QR при получении заказа")}</p>
                 </div>
               )}
               {orderPaymentHint && (
@@ -1889,31 +1898,27 @@ export default function Food() {
                     className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#FF3B30] text-sm font-bold text-white"
                     onClick={() => setOrderSuccess(null)}
                   >
-                    Отследить заказ
-                  </Link>
+                     {st("Отследить заказ")} </Link>
                 )}
                 <Link
                   to="/cabinet"
                   className="dam-btn-primary text-sm"
                   onClick={() => setOrderSuccess(null)}
                 >
-                  Мои заказы
-                </Link>
+                   {st("Мои заказы")} </Link>
                 <button
                   type="button"
                   onClick={() => openWhatsAppForOrder(orderSuccess)}
                   className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-green-200 bg-green-50 text-sm font-semibold text-green-700"
                 >
                   <MessageSquare className="h-4 w-4" />
-                  Написать в WhatsApp
-                </button>
+                   {st("Написать в WhatsApp")} </button>
                 <button
                   type="button"
                   onClick={() => setOrderSuccess(null)}
                   className="h-10 w-full text-sm font-medium text-gray-500"
                 >
-                  Вернуться в меню
-                </button>
+                   {st("Вернуться в меню")} </button>
               </div>
             </div>
           </DamAlemSheet>
@@ -1921,12 +1926,12 @@ export default function Food() {
         <div className="max-w-7xl mx-auto relative">
         <FoodStoreHeader>
           <div className={`dam-market-header__main ${PAGE_X}`}>
-            <Link to="/" className="dam-market-icon-btn" aria-label="На главную Сортировка24">
+            <Link to="/" className="dam-market-icon-btn" aria-label={st("На главную Сортировка24")}>
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <button type="button" className="dam-market-brand" onClick={() => setActiveTab('menu')}>
               <strong>{DAM_ALEM_BRAND}</strong>
-              <span>{kitchenStatus.open ? 'Открыто · готовим сейчас' : 'Сейчас закрыто'}</span>
+              <span>{kitchenStatus.open ? st("Открыто · готовим сейчас") : st("Сейчас закрыто")}</span>
             </button>
             <div className="dam-market-search">
               <Search className="h-4 w-4" />
@@ -1937,36 +1942,33 @@ export default function Food() {
                   setSearchQuery(event.target.value);
                   setActiveTab('menu');
                 }}
-                placeholder="Найти блюдо"
-                aria-label="Найти блюдо"
+                placeholder={st("Найти блюдо")}
+                aria-label={st("Найти блюдо")}
               />
               {searchQuery ? (
-                <button type="button" onClick={() => setSearchQuery('')} aria-label="Очистить поиск">
+                <button type="button" onClick={() => setSearchQuery('')} aria-label={st("Очистить поиск")}>
                   <X className="h-4 w-4" />
                 </button>
               ) : null}
             </div>
-            <nav className="dam-market-desktop-nav" aria-label={`Разделы ${DAM_ALEM_BRAND}`}>
+            <nav className="dam-market-desktop-nav" aria-label={st("Разделы {0}", [DAM_ALEM_BRAND])}>
               <button type="button" onClick={() => setActiveTab('menu')} className={activeTab === 'menu' ? 'is-active' : ''}>
-                <LayoutGrid className="h-4 w-4" /> Меню
-              </button>
+                <LayoutGrid className="h-4 w-4" />  {st("Меню")} </button>
               <button type="button" onClick={() => setActiveTab('favorites')} className={activeTab === 'favorites' ? 'is-active' : ''}>
-                <Heart className="h-4 w-4" /> Избранное
-              </button>
+                <Heart className="h-4 w-4" />  {st("Избранное")} </button>
               <button type="button" onClick={() => setActiveTab('profile')} className={activeTab === 'profile' ? 'is-active' : ''}>
-                <User className="h-4 w-4" /> Профиль
-              </button>
+                <User className="h-4 w-4" />  {st("Профиль")} </button>
             </nav>
             <button type="button" className="dam-market-cart-button" onClick={() => setActiveTab('cart')} data-testid="dam-cart-open">
               <ShoppingCart className="h-5 w-5" />
-              <span className="hidden sm:inline">Корзина</span>
+              <span className="hidden sm:inline">{st("Корзина")}</span>
               {cartCount > 0 ? <b>{cartCount}</b> : null}
             </button>
           </div>
           <div className={`dam-market-header__meta ${PAGE_X}`}>
-            <span><MapPin className="h-4 w-4" />{effectiveAddress || 'Укажите адрес при оформлении'}</span>
+            <span><MapPin className="h-4 w-4" />{effectiveAddress || st("Укажите адрес при оформлении")}</span>
             <span><Clock className="h-4 w-4" />{deliveryTimeLabel}</span>
-            {freeDeliveryFrom > 0 ? <span className="hidden sm:flex"><Truck className="h-4 w-4" />Бесплатно от {formatPrice(freeDeliveryFrom)}</span> : null}
+            {freeDeliveryFrom > 0 ? <span className="hidden sm:flex"><Truck className="h-4 w-4" />{st("Бесплатно от")} {formatPrice(freeDeliveryFrom)}</span> : null}
           </div>
           {!kitchenStatus.open ? (
             <DamAlemStatusStrip
@@ -1986,9 +1988,9 @@ export default function Food() {
 
                 <div className="dam-market-offer__content">
                   <span>{DAM_ALEM_BRAND}</span>
-                  <h1>Любимые блюда. Хороший вечер.</h1>
+                  <h1>{st("Любимые блюда. Хороший вечер.")}</h1>
                   <p>
-                    {DAM_ALEM_TAGLINE}
+                    {st(DAM_ALEM_TAGLINE)}
                   </p>
                 </div>
                 <button
@@ -2005,24 +2007,24 @@ export default function Food() {
                   }}
                 >
                   {lastOrderPreview && cartCount === 0 ? <RotateCcw className="h-4 w-4" /> : null}
-                  {lastOrderPreview && cartCount === 0 ? 'Повторить заказ' : 'Выбрать блюда'}
+                  {lastOrderPreview && cartCount === 0 ? st("Повторить заказ") : st("Выбрать блюда")}
                 </button>
               </section>
 
-              <section className="dam-market-benefits" aria-label={`Преимущества ${DAM_ALEM_BRAND}`}>
+              <section className="dam-market-benefits" aria-label={st("Преимущества {0}", [DAM_ALEM_BRAND])}>
                 <article>
                   <span><CheckCircle2 className="h-4 w-4" /></span>
-                  <div><strong>Готовим после заказа</strong><p>Не держим блюда на витрине</p></div>
+                  <div><strong>{st("Готовим после заказа")}</strong><p>{st("Не держим блюда на витрине")}</p></div>
                 </article>
                 <article>
                   <span><Clock className="h-4 w-4" /></span>
-                  <div><strong>{deliveryTimeLabel}</strong><p>Покажем статус после оформления</p></div>
+                  <div><strong>{deliveryTimeLabel}</strong><p>{st("Покажем статус после оформления")}</p></div>
                 </article>
                 <article>
                   <span><Truck className="h-4 w-4" /></span>
                   <div>
-                    <strong>{freeDeliveryFrom > 0 ? `Бесплатно от ${formatPrice(freeDeliveryFrom)}` : 'Доставка по району'}</strong>
-                    <p>Стоимость видна до оплаты</p>
+                    <strong>{freeDeliveryFrom > 0 ? st("Бесплатно от {0}", [formatPrice(freeDeliveryFrom)]) : st("Доставка по району")}</strong>
+                    <p>{st("Стоимость видна до оплаты")}</p>
                   </div>
                 </article>
               </section>
@@ -2047,8 +2049,8 @@ export default function Food() {
                 <section id="alem-hits" className="dam-market-hits">
                   <div className="dam-market-section-head">
                     <div>
-                      <span>Популярное</span>
-                      <h2>Хиты DAM ALEM 2.0</h2>
+                      <span>{st("Популярное")}</span>
+                      <h2>{st("Хиты DAM ALEM 2.0")}</h2>
                     </div>
                   </div>
                   <div className="dam-market-hits__row">
@@ -2063,7 +2065,7 @@ export default function Food() {
 
               {hasDeliveryZones ? (
                 <details className="dam-delivery-details">
-                  <summary>Условия и зона доставки</summary>
+                  <summary>{st("Условия и зона доставки")}</summary>
                   <DeliveryZonesPreview
                     zones={mapDeliveryZones}
                     storeLat={storeLatNum}
@@ -2089,10 +2091,10 @@ export default function Food() {
                 <section>
                   <div className="dam-market-section-head">
                     <div>
-                      <span>Результаты поиска</span>
-                      <h2>{poolItems.length > 0 ? `Найдено: ${poolItems.length}` : 'Ничего не найдено'}</h2>
+                      <span>{st("Результаты поиска")}</span>
+                      <h2>{poolItems.length > 0 ? st("Найдено: {0}", [poolItems.length]) : st("Ничего не найдено")}</h2>
                     </div>
-                    <button type="button" onClick={() => setSearchQuery('')}>Сбросить</button>
+                    <button type="button" onClick={() => setSearchQuery('')}>{st("Сбросить")}</button>
                   </div>
                   {poolItems.length > 0 ? (
                     <div className="dam-product-grid">
@@ -2101,7 +2103,7 @@ export default function Food() {
                   ) : (
                     <div className="dam-market-empty dam-market-empty--compact">
                       <Search className="h-8 w-8" />
-                      <p>Попробуйте другое название блюда.</p>
+                      <p>{st("Попробуйте другое название блюда.")}</p>
                     </div>
                   )}
                 </section>
@@ -2110,7 +2112,7 @@ export default function Food() {
                   <section key={category.id} id={`dam-category-${category.id}`} className="dam-market-category">
                     <div className="dam-market-section-head">
                       <div>
-                        <span>Блюд: {sectionItems.length}</span>
+                        <span>{st("Блюд:")} {sectionItems.length}</span>
                         <h2>{category.name}</h2>
                       </div>
                     </div>
@@ -2176,11 +2178,11 @@ export default function Food() {
 
         {activeTab === 'favorites' && (
           <div className={`${PAGE_X} py-4 md:py-6`}>
-            <h2 className="hidden md:block font-bold text-gray-900 text-xl mb-4">Избранное</h2>
+            <h2 className="hidden md:block font-bold text-gray-900 text-xl mb-4">{st("Избранное")}</h2>
             {favoriteItems.length === 0 ? (
               <div className="text-center py-16">
                 <Heart className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 text-sm">Нажмите ♥ на блюде, чтобы добавить в избранное</p>
+                <p className="text-gray-500 text-sm">{st("Нажмите ♥ на блюде, чтобы добавить в избранное")}</p>
               </div>
             ) : (
               <div className="dam-product-grid">
@@ -2263,10 +2265,10 @@ export default function Food() {
                       </div>
                       {group.type === 'checkbox' && (group.min_select > 0 || group.max_select < 10) && (
                         <p className="mb-2 -mt-1 text-[11px] text-[#777777]">
-                          {group.min_select > 0 && `Мин: ${group.min_select}`}
+                          {group.min_select > 0 && st("Мин: {0}", [group.min_select])}
                           {group.min_select > 0 && group.max_select < 10 && ' • '}
-                          {group.max_select < 10 && `Макс: ${group.max_select}`}
-                          {' • '}Выбрано: {selectedOpts.length}
+                          {group.max_select < 10 && st("Макс: {0}", [group.max_select])}
+                          {' • '}{st("Выбрано:")} {selectedOpts.length}
                         </p>
                       )}
                       {group.type === 'radio' ? (
@@ -2314,7 +2316,7 @@ export default function Food() {
                                   <span className="text-sm font-medium text-[#111111]">{opt.name}</span>
                                 </div>
                                 <span className="text-sm font-bold text-[#FF3B30]">
-                                  {opt.price > 0 ? `+${formatPrice(opt.price)}` : 'бесплатно'}
+                                  {opt.price > 0 ? `+${formatPrice(opt.price)}` : st("бесплатно")}
                                 </span>
                               </button>
                             );
@@ -2361,7 +2363,7 @@ export default function Food() {
                 <div className="flex items-center gap-3 min-w-0">
                   <button
                     type="button"
-                    aria-label={checkoutStep > 1 ? 'Назад' : 'Вернуться в корзину'}
+                    aria-label={checkoutStep > 1 ? st("Назад") : st("Вернуться в корзину")}
                     onClick={() => {
                       if (checkoutStep > 1) {
                         setCheckoutStep(s => (s === 3 ? 2 : 1));
@@ -2377,13 +2379,13 @@ export default function Food() {
                   <div className="min-w-0">
                     <h2 className="truncate">
                       {checkoutStep === 1
-                        ? 'Получение'
+                        ? st("Получение")
                         : checkoutStep === 2
-                          ? 'Контакты и оплата'
-                          : 'Подтверждение'}
+                          ? st("Контакты и оплата")
+                          : st("Подтверждение")}
                     </h2>
-                    <div className="dam-market-checkout-progress" aria-label={`Шаг ${checkoutStep} из 3`}>
-                      {['Получение', 'Оплата', 'Проверка'].map((label, index) => (
+                    <div className="dam-market-checkout-progress" aria-label={st("Шаг {0} из 3", [checkoutStep])}>
+                      {[st("Получение"), st("Оплата"), st("Проверка")].map((label, index) => (
                         <span key={label} className={checkoutStep >= index + 1 ? 'is-active' : ''}>
                           {index + 1}. {label}
                         </span>
@@ -2393,7 +2395,7 @@ export default function Food() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="dam-checkout-total-chip">{formatPrice(checkoutGrandTotal)}</span>
-                  <button type="button" aria-label="Закрыть оформление" onClick={() => setCheckoutOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 hover:bg-zinc-200 transition-colors">
+                  <button type="button" aria-label={st("Закрыть оформление")} onClick={() => setCheckoutOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 hover:bg-zinc-200 transition-colors">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
@@ -2405,7 +2407,7 @@ export default function Food() {
                 {checkoutStep === 1 ? (
                 <>
                 <div className="dam-checkout-section">
-                  <div className="dam-checkout-section__title">Способ получения</div>
+                  <div className="dam-checkout-section__title">{st("Способ получения")}</div>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
@@ -2418,7 +2420,7 @@ export default function Food() {
                         {cartTotal >= freeDeliveryFrom && freeDeliveryFrom > 0
                           ? t('food.free')
                           : mapDeliveryZones.length > 0
-                            ? `от ${formatPrice(deliveryFromPrice)}`
+                            ? st("от {0}", [formatPrice(deliveryFromPrice)])
                             : formatPrice(parseInt(settings.delivery_price) || 0)}
                       </span>
                     </button>
@@ -2449,8 +2451,7 @@ export default function Food() {
                     <div className="dam-checkout-section">
                       <div className="dam-checkout-section__title">
                         <MapPin className="h-4 w-4 text-[#FF3B30]" />
-                        Адрес доставки
-                      </div>
+                         {st("Адрес доставки")} </div>
                       <SavedAddressBar
                         currentAddress={deliveryAddress}
                         onSelect={applySavedAddress}
@@ -2477,7 +2478,7 @@ export default function Food() {
                       </div>
                       {deliveryReady && deliveryQuote?.zone_name && (
                         <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-[#FF3B30] ring-1 ring-red-100">
-                          Зона: {deliveryQuote.zone_name} · {activeDeliveryPrice === 0 ? 'бесплатно' : formatPrice(activeDeliveryPrice)}
+                           {st("Зона:")} {deliveryQuote.zone_name} · {activeDeliveryPrice === 0 ? st("бесплатно") : formatPrice(activeDeliveryPrice)}
                         </div>
                       )}
                       {!deliveryReady && !deliveryQuoteLoading && (
@@ -2487,14 +2488,14 @@ export default function Food() {
                             : deliveryUnavailableMessage
                               ? deliveryUnavailableMessage
                               : (deliveryQuote?.display_address || effectiveAddress).trim().length < 5
-                                ? 'Укажите адрес доставки'
-                                : 'Нажмите «Я здесь сейчас» или введите адрес и «Найти на карте»'}
+                                ? st("Укажите адрес доставки")
+                                : st("Нажмите «Я здесь сейчас» или введите адрес и «Найти на карте»")}
                         </p>
                       )}
                     </div>
 
                     <div className="dam-checkout-section">
-                      <div className="dam-checkout-section__title">Куда занести заказ?</div>
+                      <div className="dam-checkout-section__title">{st("Куда занести заказ?")}</div>
                       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         <button
                           type="button"
@@ -2506,9 +2507,8 @@ export default function Food() {
                           }`}
                         >
                           <span className={`text-sm font-bold block ${!deliverToApartment ? 'text-[#FF3B30]' : 'text-gray-800'}`}>
-                            До подъезда
-                          </span>
-                          <span className="text-xs text-gray-500 mt-0.5 block">Курьер отдаст у входа · бесплатно</span>
+                             {st("До подъезда")} </span>
+                          <span className="text-xs text-gray-500 mt-0.5 block">{st("Курьер отдаст у входа · бесплатно")}</span>
                         </button>
                         <button
                           type="button"
@@ -2520,27 +2520,25 @@ export default function Food() {
                           }`}
                         >
                           <span className={`text-sm font-bold block ${deliverToApartment ? 'text-[#FF3B30]' : 'text-gray-800'}`}>
-                            До квартиры
-                            <span className={`ml-1 ${apartmentDeliveryFee === 0 ? 'text-emerald-600' : ''}`}>
-                              {apartmentDeliveryFee === 0 ? 'бесплатно' : `+${formatPrice(apartmentDeliveryFee)}`}
+                             {st("До квартиры")} <span className={`ml-1 ${apartmentDeliveryFee === 0 ? 'text-emerald-600' : ''}`}>
+                              {apartmentDeliveryFee === 0 ? st("бесплатно") : `+${formatPrice(apartmentDeliveryFee)}`}
                             </span>
                           </span>
                           <span className="text-xs text-gray-500 mt-0.5 block">
                             {apartmentFreeFrom > 0 && cartTotal < apartmentFreeFrom
-                              ? `Поднимем до двери · бесплатно от ${formatPrice(apartmentFreeFrom)}`
-                              : 'Поднимем до двери · нужен № квартиры'}
+                              ? st("Поднимем до двери · бесплатно от {0}", [formatPrice(apartmentFreeFrom)])
+                              : st("Поднимем до двери · нужен № квартиры")}
                           </span>
                         </button>
                       </div>
                       {deliverToApartment && (
                         <div>
                           <label className="text-xs font-semibold text-gray-500 mb-1 block">
-                            Номер квартиры, этаж, домофон *
-                          </label>
+                             {st("Номер квартиры, этаж, домофон *")} </label>
                           <Input
                             value={apartment}
                             onChange={e => setApartment(e.target.value)}
-                            placeholder="Например: кв. 42, 3 этаж"
+                            placeholder={st("Например: кв. 42, 3 этаж")}
                             className={`rounded-xl h-11 border-gray-200 focus:border-[#FF3B30] ${!apartmentValid ? 'border-amber-400 ring-1 ring-amber-200' : ''}`}
                             autoFocus
                           />
@@ -2556,13 +2554,13 @@ export default function Food() {
                 <>
                 {/* Contact info */}
                 <div className="dam-checkout-section">
-                  <div className="dam-checkout-section__title">Контактные данные</div>
+                  <div className="dam-checkout-section__title">{st("Контактные данные")}</div>
                   <div className="dam-field-grid dam-field-grid--2">
                   <div className="dam-field">
                     <label className="mb-1.5 block">
                       {t('food.yourName')} *
                     </label>
-                    <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Введите имя" className="dam-input" />
+                    <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder={st("Введите имя")} className="dam-input" />
                   </div>
                   <div className="dam-field">
                     <label className="mb-1.5 block">{t('food.phone')} *</label>
@@ -2580,7 +2578,7 @@ export default function Food() {
 
                   <div className="dam-field mt-3">
                     <label className="mb-1.5 block">{t('food.comment')}</label>
-                    <Textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Пожелания к заказу..." className="dam-input dam-textarea" rows={2} />
+                    <Textarea value={comment} onChange={e => setComment(e.target.value)} placeholder={st("Пожелания к заказу...")} className="dam-input dam-textarea" rows={2} />
                   </div>
                 </div>
 
@@ -2595,12 +2593,12 @@ export default function Food() {
                 )}
 
                 <div className="dam-checkout-section space-y-2">
-                  <div className="dam-checkout-section__title !mb-2">Промокод</div>
+                  <div className="dam-checkout-section__title !mb-2">{st("Промокод")}</div>
                   <div className="flex gap-2">
                     <Input
                       value={promoInput}
                       onChange={e => setPromoInput(e.target.value.toUpperCase())}
-                      placeholder="Введите код"
+                      placeholder={st("Введите код")}
                       className="rounded-xl h-11 uppercase font-mono"
                       disabled={!!appliedPromo}
                     />
@@ -2611,8 +2609,7 @@ export default function Food() {
                         className="h-11 shrink-0"
                         onClick={() => { setAppliedPromo(null); setPromoInput(''); }}
                       >
-                        Сбросить
-                      </Button>
+                         {st("Сбросить")} </Button>
                     ) : (
                       <Button
                         type="button"
@@ -2620,7 +2617,7 @@ export default function Food() {
                         disabled={promoLoading || !promoInput.trim()}
                         onClick={() => void applyPromoCode()}
                       >
-                        {promoLoading ? '…' : 'Применить'}
+                        {promoLoading ? '…' : st("Применить")}
                       </Button>
                     )}
                   </div>
@@ -2630,12 +2627,12 @@ export default function Food() {
                 </div>
 
                 <div className="dam-checkout-section">
-                  <div className="dam-checkout-section__title">Способ оплаты</div>
+                  <div className="dam-checkout-section__title">{st("Способ оплаты")}</div>
                   <p className="text-xs text-gray-500 mb-3 leading-relaxed -mt-2">{t('food.guide.paymentNote')}</p>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     {(
                       [
-                        { id: 'cash' as const, label: 'Наличные', Icon: Banknote },
+                        { id: 'cash' as const, label: st("Наличные"), Icon: Banknote },
                         { id: 'kaspi_qr' as const, label: 'Kaspi QR', Icon: Smartphone },
                         { id: 'halyk_qr' as const, label: 'Halyk QR', Icon: Smartphone },
                       ] as const
@@ -2661,18 +2658,18 @@ export default function Food() {
 
                 {checkoutStep === 3 ? (
                   <div className="dam-checkout-section space-y-3 lg:hidden">
-                    <div className="dam-checkout-section__title">Проверьте заказ</div>
+                    <div className="dam-checkout-section__title">{st("Проверьте заказ")}</div>
                     <p className="text-sm text-zinc-600">
-                      {deliveryMethod === 'delivery' ? 'Доставка' : 'Самовывоз'}
+                      {deliveryMethod === 'delivery' ? st("Доставка") : st('Самовывоз')}
                       {deliveryMethod === 'delivery' && effectiveAddress
                         ? ` · ${effectiveAddress}`
                         : ''}
                     </p>
                     <p className="text-sm text-zinc-600">
-                      {customerName} · {customerPhone} · {PAYMENT_LABELS[payment]}
+                      {customerName} · {customerPhone} · {st(PAYMENT_LABELS[payment])}
                     </p>
                     <p className="text-sm font-semibold text-zinc-800">
-                      Примерное время: {deliveryTimeLabel}
+                       {st("Примерное время:")} {deliveryTimeLabel}
                     </p>
                   </div>
                 ) : null}
@@ -2715,9 +2712,9 @@ export default function Food() {
                     </div>
                     {deliveryMethod === 'delivery' && deliverToApartment && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">До квартиры</span>
+                        <span className="text-gray-500">{st("До квартиры")}</span>
                         <span className={`font-semibold ${apartmentDeliveryFee === 0 ? 'text-emerald-600' : 'text-[#FF3B30]'}`}>
-                          {apartmentDeliveryFee === 0 ? 'Бесплатно' : `+${formatPrice(apartmentDeliveryFee)}`}
+                          {apartmentDeliveryFee === 0 ? st("Бесплатно") : `+${formatPrice(apartmentDeliveryFee)}`}
                         </span>
                       </div>
                     )}
@@ -2731,7 +2728,7 @@ export default function Food() {
                         </span>
                         <span className={`font-semibold ${deliveryFeeKnown && activeDeliveryPrice === 0 ? 'text-emerald-600' : 'text-[#FF3B30]'}`}>
                           {!deliveryFeeKnown
-                            ? 'по адресу'
+                            ? st("по адресу")
                             : activeDeliveryPrice === 0
                               ? t('food.free')
                               : `+${formatPrice(activeDeliveryPrice)}`}
@@ -2740,16 +2737,16 @@ export default function Food() {
                     )}
                     {appliedPromo && (promoDiscountAmount > 0 || promoFreeDelivery) && (
                       <div className="flex justify-between text-sm text-emerald-700">
-                        <span>Промокод {appliedPromo.code}</span>
+                        <span>{st("Промокод")} {appliedPromo.code}</span>
                         <span className="font-semibold">
                           {promoDiscountAmount > 0
                             ? `−${formatPrice(promoDiscountAmount)}`
-                            : 'доставка бесплатно'}
+                            : st("доставка бесплатно")}
                         </span>
                       </div>
                     )}
                     {getAccountToken() && bonusBalance > 0 && appliedPromo && !appliedPromo.pending && (
-                      <p className="text-xs text-gray-500">Бонусы нельзя списать вместе с промокодом</p>
+                      <p className="text-xs text-gray-500">{st("Бонусы нельзя списать вместе с промокодом")}</p>
                     )}
                     {getAccountToken() && bonusBalance > 0 && (!appliedPromo || appliedPromo.pending) && (
                       <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3 space-y-2">
@@ -2764,11 +2761,9 @@ export default function Food() {
                           <span className="flex-1 min-w-0">
                             <span className="flex items-center gap-1.5 text-sm font-semibold text-amber-900">
                               <Coins className="h-4 w-4" />
-                              Списать бонусы
-                            </span>
+                               {st("Списать бонусы")} </span>
                             <span className="block text-xs text-amber-800/80 mt-0.5">
-                              Баланс: {formatPrice(bonusBalance)} · до {BONUS_MAX_PERCENT}% от блюд
-                              {useBonuses && bonusDiscountAmount > 0 ? ` · −${formatPrice(bonusDiscountAmount)}` : ''}
+                               {st("Баланс:")} {formatPrice(bonusBalance)}  {st("· до")} {BONUS_MAX_PERCENT}{st("% от блюд")} {useBonuses && bonusDiscountAmount > 0 ? ` · −${formatPrice(bonusDiscountAmount)}` : ''}
                             </span>
                           </span>
                         </label>
@@ -2776,13 +2771,13 @@ export default function Food() {
                     )}
                     {bonusDiscountAmount > 0 && (
                       <div className="flex justify-between text-sm text-amber-700">
-                        <span>Бонусы Sortirovka24</span>
+                        <span>{st("Бонусы Sortirovka24")}</span>
                         <span className="font-semibold">−{formatPrice(bonusDiscountAmount)}</span>
                       </div>
                     )}
                     {loyaltyGift && (
                       <div className="flex justify-between text-sm text-emerald-700">
-                        <span>🎁 Подарок</span>
+                        <span>{st("🎁 Подарок")}</span>
                         <span className="font-medium truncate ml-2">{loyaltyGift.title}</span>
                       </div>
                     )}
@@ -2808,7 +2803,7 @@ export default function Food() {
                 ) : null}
                 {checkoutStep < 3 ? (
                   <DamAlemCheckoutButton
-                    label={checkoutStep === 1 ? 'Далее: контакты' : 'Далее: подтверждение'}
+                    label={checkoutStep === 1 ? st("Далее: контакты") : st("Далее: подтверждение")}
                     sublabel={formatPrice(checkoutGrandTotal)}
                     onClick={() => {
                       if (checkoutStep === 1) {
@@ -2816,23 +2811,23 @@ export default function Food() {
                           toast.error(
                             deliveryQuoteError ||
                               deliveryUnavailableMessage ||
-                              'Укажите адрес доставки',
+                              st("Укажите адрес доставки"),
                           );
                           return;
                         }
                         if (deliveryMethod === 'delivery' && deliverToApartment && !apartment.trim()) {
-                          toast.error('Укажите номер квартиры');
+                          toast.error(st("Укажите номер квартиры"));
                           return;
                         }
                         setCheckoutStep(2);
                         return;
                       }
                       if (!customerName.trim() || !customerPhone.trim()) {
-                        toast.error('Укажите имя и телефон');
+                        toast.error(st("Укажите имя и телефон"));
                         return;
                       }
                       if (giftSelectionRequired) {
-                        toast.error('Выберите один бесплатный подарок');
+                        toast.error(st("Выберите один бесплатный подарок"));
                         return;
                       }
                       setCheckoutStep(3);
@@ -2842,7 +2837,7 @@ export default function Food() {
                 ) : (
                   <>
                     <DamAlemCheckoutButton
-                      label={submitting ? 'Отправляем заказ…' : 'Оформить заказ'}
+                      label={submitting ? st("Отправляем заказ…") : st("Оформить заказ")}
                       sublabel={
                         checkoutFinalBlockReason && !submitting
                           ? checkoutFinalBlockReason
@@ -2854,8 +2849,7 @@ export default function Food() {
                       testId="dam-checkout-submit"
                     />
                     <p className="mt-2.5 text-center text-[11px] text-gray-400">
-                      Заказ сохранится в системе. WhatsApp — по желанию после оформления.
-                    </p>
+                       {st("Заказ сохранится в системе. WhatsApp — по желанию после оформления.")} </p>
                   </>
                 )}
               </div>

@@ -18,7 +18,7 @@ type Props = {
   onResolved: (point: TaxiResolvedPoint | null) => void;
   onGps?: () => void;
   loading?: boolean;
-  examples: string[];
+  examples: Array<string | { value: string; labelKey: string }>;
   accent: 'yellow' | 'gray';
   showGps?: boolean;
 };
@@ -200,15 +200,15 @@ export default function TaxiAddressInput({
       <div className="flex flex-wrap gap-1.5">
         {examples.map((ex) => (
           <button
-            key={ex}
+            key={typeof ex === 'string' ? ex : ex.value}
             type="button"
             onClick={() => {
-              onChange(ex);
+              onChange(typeof ex === 'string' ? ex : ex.value);
               onResolved(null);
             }}
             className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 hover:bg-yellow-100 hover:text-gray-900 transition-colors"
           >
-            {ex}
+            {typeof ex === 'string' ? ex : publicT(ex.labelKey)}
           </button>
         ))}
       </div>

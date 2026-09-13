@@ -1,3 +1,4 @@
+import { formatPublicText } from '@/i18n/publicLocale';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
@@ -102,23 +103,23 @@ export default function MultiImageUpload({
     const currentCount = images.filter(i => !i.uploading).length;
     const available = maxImages - currentCount;
     if (available <= 0) {
-      toast.error(`Максимум ${maxImages} изображений`);
+      toast.error(formatPublicText(publicT, "public.upload.maxImages", { v0: maxImages }));
       return;
     }
 
     const filesToUpload = files.slice(0, available);
     if (files.length > available) {
-      toast.warning(`Загружено только ${available} из ${files.length} файлов (лимит: ${maxImages})`);
+      toast.warning(formatPublicText(publicT, "public.upload.partial", { v0: available, v1: files.length, v2: maxImages }));
     }
 
     // Validate files
     const validFiles = filesToUpload.filter(file => {
       if (!file.type.startsWith('image/')) {
-        toast.error(`${file.name}: не является изображением`);
+        toast.error(formatPublicText(publicT, "public.upload.notImage", { v0: file.name }));
         return false;
       }
       if (file.size > MAX_FILE_SIZE) {
-        toast.error(`${file.name}: превышает ${formatMaxImageSizeMb()} МБ`);
+        toast.error(formatPublicText(publicT, "public.upload.tooLarge", { v0: file.name, v1: formatMaxImageSizeMb() }));
         return false;
       }
       return true;
@@ -157,7 +158,7 @@ export default function MultiImageUpload({
           result = { key: savedKey, url: uploadResult.downloadUrl };
         } catch (err) {
           console.error('Upload failed:', err);
-          toast.error(`Ошибка загрузки ${file.name}. Попробуйте вставить URL.`);
+          toast.error(formatPublicText(publicT, "public.upload.failedFile", { v0: file.name }));
         }
 
         clearInterval(progressInterval);
@@ -182,7 +183,7 @@ export default function MultiImageUpload({
     const successCount = results.filter(r => r.result).length;
     const failCount = results.length - successCount;
     if (successCount > 0) {
-      toast.success(`Загружено ${successCount} ${successCount === 1 ? publicT("public.MultiImageUpload.text341") : publicT("public.MultiImageUpload.text342")}`);
+      toast.success(formatPublicText(publicT, "public.upload.successCount", { v0: successCount, v1: successCount === 1 ? publicT("public.MultiImageUpload.text341") : publicT("public.MultiImageUpload.text342") }));
     }
     if (failCount > 0 && allowUrl) {
       setShowUrlInput(true);
@@ -202,7 +203,7 @@ export default function MultiImageUpload({
 
     const currentCount = images.filter(i => !i.uploading).length;
     if (currentCount >= maxImages) {
-      toast.error(`Максимум ${maxImages} изображений`);
+      toast.error(formatPublicText(publicT, "public.upload.maxImages", { v0: maxImages }));
       return;
     }
 
@@ -475,7 +476,7 @@ export default function MultiImageUpload({
         >
           <CloudUpload className={`h-4 w-4 ${isDragOver ? 'animate-bounce' : ''}`} />
           <span className="text-xs font-medium">
-            {isDragOver ? publicT("public.ImageUpload.text322") : `Перетащите ещё фото (${nonUploadingImages.length}/${maxImages})`}
+            {isDragOver ? publicT("public.ImageUpload.text322") : formatPublicText(publicT, "public.upload.more", { v0: nonUploadingImages.length, v1: maxImages })}
           </span>
         </div>
       )}

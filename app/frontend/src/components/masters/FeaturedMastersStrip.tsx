@@ -1,3 +1,4 @@
+import { getPublicCategoryLabel } from '@/lib/api';
 import { Link } from 'react-router-dom';
 import { Star, ChevronRight } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
@@ -37,7 +38,7 @@ export default function FeaturedMastersStrip({ masters }: { masters: MasterCardD
                   )}
                 </div>
                 <p className="font-bold text-sm text-gray-900 dark:text-white truncate text-center">{master.name}</p>
-                <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold text-center truncate mt-0.5">{master.category}</p>
+                <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold text-center truncate mt-0.5">{getPublicCategoryLabel(master.category, t)}</p>
                 <div className="flex items-center justify-center gap-1 mt-1.5">
                   <Star className="w-3 h-3 text-amber-500 fill-amber-400" />
                   <span className="text-xs font-bold">{rating > 0 ? rating.toFixed(1) : '—'}</span>

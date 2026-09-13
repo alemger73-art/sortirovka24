@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { Clock, Sparkles, Truck, UtensilsCrossed } from 'lucide-react';
 
 interface Props {
@@ -15,13 +16,15 @@ export default function DamAlemTrustBar({
   kitchenOpen,
   kitchenMessage,
 }: Props) {
+  const st = useStoreTranslations();
+
   if (!kitchenOpen) {
     return (
       <div className="dam-card flex items-start gap-3 border-amber-200 bg-amber-50 p-4">
         <UtensilsCrossed className="h-5 w-5 shrink-0 text-amber-700 mt-0.5" />
         <div>
-          <p className="text-sm font-bold text-amber-900">Кухня закрыта</p>
-          <p className="mt-0.5 text-xs text-amber-800">{kitchenMessage || 'Приём заказов временно недоступен'}</p>
+          <p className="text-sm font-bold text-amber-900">{st("Кухня закрыта")}</p>
+          <p className="mt-0.5 text-xs text-amber-800">{kitchenMessage || st("Приём заказов временно недоступен")}</p>
         </div>
       </div>
     );

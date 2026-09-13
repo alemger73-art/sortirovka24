@@ -14,233 +14,233 @@ html.dark { color-scheme: dark;
   --app-red-soft: #422b2c;
   --app-glass: rgba(25,35,50,.96);
 }
-:where(html.dark) [class~="bg-white"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]) { background-color: var(--app-surface); }
-:where(html.dark) [class~="bg-white/50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-white/60"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-white/70"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-white/80"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-white/90"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-white/95"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]) { background-color: var(--app-glass); }
-:where(html.dark) [class~="bg-slate-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-gray-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-zinc-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-neutral-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-stone-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]) { background-color: #121c29; }
-:where(html.dark) [class~="hover:bg-slate-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]):hover,
-:where(html.dark) [class~="bg-slate-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="hover:bg-slate-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]):hover,
-:where(html.dark) [class~="bg-slate-200"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="hover:bg-slate-200"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]):hover,
-:where(html.dark) [class~="hover:bg-gray-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]):hover,
-:where(html.dark) [class~="bg-gray-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="hover:bg-gray-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]):hover,
-:where(html.dark) [class~="bg-gray-200"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="hover:bg-gray-200"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]):hover,
-:where(html.dark) [class~="hover:bg-zinc-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]):hover,
-:where(html.dark) [class~="bg-zinc-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="hover:bg-zinc-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]):hover,
-:where(html.dark) [class~="bg-zinc-200"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="hover:bg-zinc-200"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]):hover,
-:where(html.dark) [class~="hover:bg-neutral-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]):hover,
-:where(html.dark) [class~="bg-neutral-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="hover:bg-neutral-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]):hover,
-:where(html.dark) [class~="bg-neutral-200"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="hover:bg-neutral-200"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]):hover,
-:where(html.dark) [class~="hover:bg-stone-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]):hover,
-:where(html.dark) [class~="bg-stone-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="hover:bg-stone-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]):hover,
-:where(html.dark) [class~="bg-stone-200"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="hover:bg-stone-200"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]):hover { background-color: var(--app-raised); }
-:where(html.dark) [class~="border-slate-50"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="divide-slate-50"]:not([class*="dark:divide-"]):not([class*="dark:hover:divide-"]) > :not([hidden]) ~ :not([hidden]),
-:where(html.dark) [class~="border-slate-100"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="divide-slate-100"]:not([class*="dark:divide-"]):not([class*="dark:hover:divide-"]) > :not([hidden]) ~ :not([hidden]),
-:where(html.dark) [class~="border-slate-200"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="divide-slate-200"]:not([class*="dark:divide-"]):not([class*="dark:hover:divide-"]) > :not([hidden]) ~ :not([hidden]),
-:where(html.dark) [class~="border-slate-300"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-gray-50"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="divide-gray-50"]:not([class*="dark:divide-"]):not([class*="dark:hover:divide-"]) > :not([hidden]) ~ :not([hidden]),
-:where(html.dark) [class~="border-gray-100"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="divide-gray-100"]:not([class*="dark:divide-"]):not([class*="dark:hover:divide-"]) > :not([hidden]) ~ :not([hidden]),
-:where(html.dark) [class~="border-gray-200"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="divide-gray-200"]:not([class*="dark:divide-"]):not([class*="dark:hover:divide-"]) > :not([hidden]) ~ :not([hidden]),
-:where(html.dark) [class~="border-gray-300"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-zinc-50"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="divide-zinc-50"]:not([class*="dark:divide-"]):not([class*="dark:hover:divide-"]) > :not([hidden]) ~ :not([hidden]),
-:where(html.dark) [class~="border-zinc-100"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="divide-zinc-100"]:not([class*="dark:divide-"]):not([class*="dark:hover:divide-"]) > :not([hidden]) ~ :not([hidden]),
-:where(html.dark) [class~="border-zinc-200"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="divide-zinc-200"]:not([class*="dark:divide-"]):not([class*="dark:hover:divide-"]) > :not([hidden]) ~ :not([hidden]),
-:where(html.dark) [class~="border-zinc-300"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-neutral-50"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="divide-neutral-50"]:not([class*="dark:divide-"]):not([class*="dark:hover:divide-"]) > :not([hidden]) ~ :not([hidden]),
-:where(html.dark) [class~="border-neutral-100"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="divide-neutral-100"]:not([class*="dark:divide-"]):not([class*="dark:hover:divide-"]) > :not([hidden]) ~ :not([hidden]),
-:where(html.dark) [class~="border-neutral-200"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="divide-neutral-200"]:not([class*="dark:divide-"]):not([class*="dark:hover:divide-"]) > :not([hidden]) ~ :not([hidden]),
-:where(html.dark) [class~="border-neutral-300"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-stone-50"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="divide-stone-50"]:not([class*="dark:divide-"]):not([class*="dark:hover:divide-"]) > :not([hidden]) ~ :not([hidden]),
-:where(html.dark) [class~="border-stone-100"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="divide-stone-100"]:not([class*="dark:divide-"]):not([class*="dark:hover:divide-"]) > :not([hidden]) ~ :not([hidden]),
-:where(html.dark) [class~="border-stone-200"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="divide-stone-200"]:not([class*="dark:divide-"]):not([class*="dark:hover:divide-"]) > :not([hidden]) ~ :not([hidden]),
-:where(html.dark) [class~="border-stone-300"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]) { border-color: var(--app-border); }
-:where(html.dark) [class~="text-slate-500"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-slate-600"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="placeholder:text-slate-400"]:not([class*="dark:placeholder-"]):not([class*="dark:hover:placeholder-"])::placeholder,
-:where(html.dark) [class~="text-gray-500"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-gray-600"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="placeholder:text-gray-400"]:not([class*="dark:placeholder-"]):not([class*="dark:hover:placeholder-"])::placeholder,
-:where(html.dark) [class~="text-zinc-500"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-zinc-600"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="placeholder:text-zinc-400"]:not([class*="dark:placeholder-"]):not([class*="dark:hover:placeholder-"])::placeholder,
-:where(html.dark) [class~="text-neutral-500"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-neutral-600"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="placeholder:text-neutral-400"]:not([class*="dark:placeholder-"]):not([class*="dark:hover:placeholder-"])::placeholder,
-:where(html.dark) [class~="text-stone-500"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-stone-600"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="placeholder:text-stone-400"]:not([class*="dark:placeholder-"]):not([class*="dark:hover:placeholder-"])::placeholder { color: var(--app-muted); }
-:where(html.dark) [class~="text-slate-700"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-slate-800"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-slate-900"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-slate-950"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-gray-700"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-gray-800"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-gray-900"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-gray-950"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-zinc-700"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-zinc-800"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-zinc-900"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-zinc-950"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-neutral-700"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-neutral-800"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-neutral-900"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-neutral-950"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-stone-700"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-stone-800"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-stone-900"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-stone-950"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]) { color: var(--app-ink); }
-:where(html.dark) [class~="bg-red-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-red-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]) { background-color: #422b2c; }
-:where(html.dark) [class~="text-red-600"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-red-700"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-red-800"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-red-900"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]) { color: #ffb0a7; }
-:where(html.dark) [class~="border-red-100"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-red-200"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]) { border-color: #422b2c; }
-:where(html.dark) [class~="bg-rose-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-rose-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-pink-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-pink-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]) { background-color: #402736; }
-:where(html.dark) [class~="text-rose-600"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-rose-700"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-rose-800"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-rose-900"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-pink-600"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-pink-700"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-pink-800"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-pink-900"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]) { color: #ffb4ce; }
-:where(html.dark) [class~="border-rose-100"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-rose-200"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-pink-100"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-pink-200"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]) { border-color: #402736; }
-:where(html.dark) [class~="bg-orange-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-orange-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-amber-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-amber-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]) { background-color: #3b3023; }
-:where(html.dark) [class~="text-orange-600"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-orange-700"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-orange-800"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-orange-900"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]) { color: #fdc48d; }
-:where(html.dark) [class~="border-orange-100"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-orange-200"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-amber-100"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-amber-200"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]) { border-color: #3b3023; }
-:where(html.dark) [class~="text-amber-600"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-amber-700"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-amber-800"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-amber-900"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]) { color: #f5d18d; }
-:where(html.dark) [class~="bg-yellow-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-yellow-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]) { background-color: #393323; }
-:where(html.dark) [class~="text-yellow-600"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-yellow-700"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-yellow-800"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-yellow-900"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]) { color: #f7df94; }
-:where(html.dark) [class~="border-yellow-100"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-yellow-200"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]) { border-color: #393323; }
-:where(html.dark) [class~="bg-green-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-green-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-emerald-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-emerald-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]) { background-color: #203a30; }
-:where(html.dark) [class~="text-green-600"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-green-700"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-green-800"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-green-900"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-emerald-600"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-emerald-700"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-emerald-800"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-emerald-900"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]) { color: #a6dfba; }
-:where(html.dark) [class~="border-green-100"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-green-200"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-emerald-100"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-emerald-200"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]) { border-color: #203a30; }
-:where(html.dark) [class~="bg-teal-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-teal-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]) { background-color: #1c393c; }
-:where(html.dark) [class~="text-teal-600"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-teal-700"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-teal-800"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-teal-900"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]) { color: #93dbd5; }
-:where(html.dark) [class~="border-teal-100"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-teal-200"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]) { border-color: #1c393c; }
-:where(html.dark) [class~="bg-cyan-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-cyan-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]) { background-color: #1c3444; }
-:where(html.dark) [class~="text-cyan-600"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-cyan-700"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-cyan-800"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-cyan-900"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]) { color: #98dced; }
-:where(html.dark) [class~="border-cyan-100"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-cyan-200"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]) { border-color: #1c3444; }
-:where(html.dark) [class~="bg-sky-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-sky-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]) { background-color: #21344c; }
-:where(html.dark) [class~="text-sky-600"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-sky-700"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-sky-800"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-sky-900"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]) { color: #a5d5ff; }
-:where(html.dark) [class~="border-sky-100"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-sky-200"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]) { border-color: #21344c; }
-:where(html.dark) [class~="bg-blue-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-blue-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]) { background-color: #22324c; }
-:where(html.dark) [class~="text-blue-600"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-blue-700"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-blue-800"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-blue-900"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]) { color: #accbff; }
-:where(html.dark) [class~="border-blue-100"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-blue-200"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]) { border-color: #22324c; }
-:where(html.dark) [class~="bg-indigo-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-indigo-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]) { background-color: #2b2e4c; }
-:where(html.dark) [class~="text-indigo-600"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-indigo-700"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-indigo-800"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-indigo-900"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]) { color: #bec4ff; }
-:where(html.dark) [class~="border-indigo-100"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-indigo-200"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]) { border-color: #2b2e4c; }
-:where(html.dark) [class~="bg-violet-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-violet-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-purple-50"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]),
-:where(html.dark) [class~="bg-purple-100"]:not([class*="dark:bg-"]):not([class*="dark:hover:bg-"]) { background-color: #322b48; }
-:where(html.dark) [class~="text-violet-600"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-violet-700"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-violet-800"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-violet-900"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-purple-600"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-purple-700"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-purple-800"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]),
-:where(html.dark) [class~="text-purple-900"]:not([class*="dark:text-"]):not([class*="dark:hover:text-"]) { color: #d5baff; }
-:where(html.dark) [class~="border-violet-100"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-violet-200"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-purple-100"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]),
-:where(html.dark) [class~="border-purple-200"]:not([class*="dark:border-"]):not([class*="dark:hover:border-"]) { border-color: #322b48; }
+:where(html.dark) [class~="bg-white"]:not([class*="dark:bg-"]) { background-color: var(--app-surface); }
+:where(html.dark) [class~="bg-white/50"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-white/60"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-white/70"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-white/80"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-white/90"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-white/95"]:not([class*="dark:bg-"]) { background-color: var(--app-glass); }
+:where(html.dark) [class~="bg-slate-50"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-gray-50"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-zinc-50"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-neutral-50"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-stone-50"]:not([class*="dark:bg-"]) { background-color: #121c29; }
+:where(html.dark) [class~="hover:bg-slate-50"]:not([class*="dark:hover:bg-"]):hover,
+:where(html.dark) [class~="bg-slate-100"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="hover:bg-slate-100"]:not([class*="dark:hover:bg-"]):hover,
+:where(html.dark) [class~="bg-slate-200"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="hover:bg-slate-200"]:not([class*="dark:hover:bg-"]):hover,
+:where(html.dark) [class~="hover:bg-gray-50"]:not([class*="dark:hover:bg-"]):hover,
+:where(html.dark) [class~="bg-gray-100"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="hover:bg-gray-100"]:not([class*="dark:hover:bg-"]):hover,
+:where(html.dark) [class~="bg-gray-200"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="hover:bg-gray-200"]:not([class*="dark:hover:bg-"]):hover,
+:where(html.dark) [class~="hover:bg-zinc-50"]:not([class*="dark:hover:bg-"]):hover,
+:where(html.dark) [class~="bg-zinc-100"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="hover:bg-zinc-100"]:not([class*="dark:hover:bg-"]):hover,
+:where(html.dark) [class~="bg-zinc-200"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="hover:bg-zinc-200"]:not([class*="dark:hover:bg-"]):hover,
+:where(html.dark) [class~="hover:bg-neutral-50"]:not([class*="dark:hover:bg-"]):hover,
+:where(html.dark) [class~="bg-neutral-100"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="hover:bg-neutral-100"]:not([class*="dark:hover:bg-"]):hover,
+:where(html.dark) [class~="bg-neutral-200"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="hover:bg-neutral-200"]:not([class*="dark:hover:bg-"]):hover,
+:where(html.dark) [class~="hover:bg-stone-50"]:not([class*="dark:hover:bg-"]):hover,
+:where(html.dark) [class~="bg-stone-100"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="hover:bg-stone-100"]:not([class*="dark:hover:bg-"]):hover,
+:where(html.dark) [class~="bg-stone-200"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="hover:bg-stone-200"]:not([class*="dark:hover:bg-"]):hover { background-color: var(--app-raised); }
+:where(html.dark) [class~="border-slate-50"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="divide-slate-50"]:not([class*="dark:divide-"]) > :not([hidden]) ~ :not([hidden]),
+:where(html.dark) [class~="border-slate-100"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="divide-slate-100"]:not([class*="dark:divide-"]) > :not([hidden]) ~ :not([hidden]),
+:where(html.dark) [class~="border-slate-200"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="divide-slate-200"]:not([class*="dark:divide-"]) > :not([hidden]) ~ :not([hidden]),
+:where(html.dark) [class~="border-slate-300"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-gray-50"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="divide-gray-50"]:not([class*="dark:divide-"]) > :not([hidden]) ~ :not([hidden]),
+:where(html.dark) [class~="border-gray-100"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="divide-gray-100"]:not([class*="dark:divide-"]) > :not([hidden]) ~ :not([hidden]),
+:where(html.dark) [class~="border-gray-200"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="divide-gray-200"]:not([class*="dark:divide-"]) > :not([hidden]) ~ :not([hidden]),
+:where(html.dark) [class~="border-gray-300"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-zinc-50"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="divide-zinc-50"]:not([class*="dark:divide-"]) > :not([hidden]) ~ :not([hidden]),
+:where(html.dark) [class~="border-zinc-100"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="divide-zinc-100"]:not([class*="dark:divide-"]) > :not([hidden]) ~ :not([hidden]),
+:where(html.dark) [class~="border-zinc-200"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="divide-zinc-200"]:not([class*="dark:divide-"]) > :not([hidden]) ~ :not([hidden]),
+:where(html.dark) [class~="border-zinc-300"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-neutral-50"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="divide-neutral-50"]:not([class*="dark:divide-"]) > :not([hidden]) ~ :not([hidden]),
+:where(html.dark) [class~="border-neutral-100"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="divide-neutral-100"]:not([class*="dark:divide-"]) > :not([hidden]) ~ :not([hidden]),
+:where(html.dark) [class~="border-neutral-200"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="divide-neutral-200"]:not([class*="dark:divide-"]) > :not([hidden]) ~ :not([hidden]),
+:where(html.dark) [class~="border-neutral-300"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-stone-50"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="divide-stone-50"]:not([class*="dark:divide-"]) > :not([hidden]) ~ :not([hidden]),
+:where(html.dark) [class~="border-stone-100"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="divide-stone-100"]:not([class*="dark:divide-"]) > :not([hidden]) ~ :not([hidden]),
+:where(html.dark) [class~="border-stone-200"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="divide-stone-200"]:not([class*="dark:divide-"]) > :not([hidden]) ~ :not([hidden]),
+:where(html.dark) [class~="border-stone-300"]:not([class*="dark:border-"]) { border-color: var(--app-border); }
+:where(html.dark) [class~="text-slate-500"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-slate-600"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="placeholder:text-slate-400"]:not([class*="dark:placeholder-"])::placeholder,
+:where(html.dark) [class~="text-gray-500"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-gray-600"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="placeholder:text-gray-400"]:not([class*="dark:placeholder-"])::placeholder,
+:where(html.dark) [class~="text-zinc-500"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-zinc-600"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="placeholder:text-zinc-400"]:not([class*="dark:placeholder-"])::placeholder,
+:where(html.dark) [class~="text-neutral-500"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-neutral-600"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="placeholder:text-neutral-400"]:not([class*="dark:placeholder-"])::placeholder,
+:where(html.dark) [class~="text-stone-500"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-stone-600"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="placeholder:text-stone-400"]:not([class*="dark:placeholder-"])::placeholder { color: var(--app-muted); }
+:where(html.dark) [class~="text-slate-700"]:not([class~="bg-yellow-400"]):not([class~="bg-yellow-500"]):not([class~="bg-amber-400"]):not([class~="bg-lime-400"]):not([class*="dark:text-"]),
+:where(html.dark) [class~="text-slate-800"]:not([class~="bg-yellow-400"]):not([class~="bg-yellow-500"]):not([class~="bg-amber-400"]):not([class~="bg-lime-400"]):not([class*="dark:text-"]),
+:where(html.dark) [class~="text-slate-900"]:not([class~="bg-yellow-400"]):not([class~="bg-yellow-500"]):not([class~="bg-amber-400"]):not([class~="bg-lime-400"]):not([class*="dark:text-"]),
+:where(html.dark) [class~="text-slate-950"]:not([class~="bg-yellow-400"]):not([class~="bg-yellow-500"]):not([class~="bg-amber-400"]):not([class~="bg-lime-400"]):not([class*="dark:text-"]),
+:where(html.dark) [class~="text-gray-700"]:not([class~="bg-yellow-400"]):not([class~="bg-yellow-500"]):not([class~="bg-amber-400"]):not([class~="bg-lime-400"]):not([class*="dark:text-"]),
+:where(html.dark) [class~="text-gray-800"]:not([class~="bg-yellow-400"]):not([class~="bg-yellow-500"]):not([class~="bg-amber-400"]):not([class~="bg-lime-400"]):not([class*="dark:text-"]),
+:where(html.dark) [class~="text-gray-900"]:not([class~="bg-yellow-400"]):not([class~="bg-yellow-500"]):not([class~="bg-amber-400"]):not([class~="bg-lime-400"]):not([class*="dark:text-"]),
+:where(html.dark) [class~="text-gray-950"]:not([class~="bg-yellow-400"]):not([class~="bg-yellow-500"]):not([class~="bg-amber-400"]):not([class~="bg-lime-400"]):not([class*="dark:text-"]),
+:where(html.dark) [class~="text-zinc-700"]:not([class~="bg-yellow-400"]):not([class~="bg-yellow-500"]):not([class~="bg-amber-400"]):not([class~="bg-lime-400"]):not([class*="dark:text-"]),
+:where(html.dark) [class~="text-zinc-800"]:not([class~="bg-yellow-400"]):not([class~="bg-yellow-500"]):not([class~="bg-amber-400"]):not([class~="bg-lime-400"]):not([class*="dark:text-"]),
+:where(html.dark) [class~="text-zinc-900"]:not([class~="bg-yellow-400"]):not([class~="bg-yellow-500"]):not([class~="bg-amber-400"]):not([class~="bg-lime-400"]):not([class*="dark:text-"]),
+:where(html.dark) [class~="text-zinc-950"]:not([class~="bg-yellow-400"]):not([class~="bg-yellow-500"]):not([class~="bg-amber-400"]):not([class~="bg-lime-400"]):not([class*="dark:text-"]),
+:where(html.dark) [class~="text-neutral-700"]:not([class~="bg-yellow-400"]):not([class~="bg-yellow-500"]):not([class~="bg-amber-400"]):not([class~="bg-lime-400"]):not([class*="dark:text-"]),
+:where(html.dark) [class~="text-neutral-800"]:not([class~="bg-yellow-400"]):not([class~="bg-yellow-500"]):not([class~="bg-amber-400"]):not([class~="bg-lime-400"]):not([class*="dark:text-"]),
+:where(html.dark) [class~="text-neutral-900"]:not([class~="bg-yellow-400"]):not([class~="bg-yellow-500"]):not([class~="bg-amber-400"]):not([class~="bg-lime-400"]):not([class*="dark:text-"]),
+:where(html.dark) [class~="text-neutral-950"]:not([class~="bg-yellow-400"]):not([class~="bg-yellow-500"]):not([class~="bg-amber-400"]):not([class~="bg-lime-400"]):not([class*="dark:text-"]),
+:where(html.dark) [class~="text-stone-700"]:not([class~="bg-yellow-400"]):not([class~="bg-yellow-500"]):not([class~="bg-amber-400"]):not([class~="bg-lime-400"]):not([class*="dark:text-"]),
+:where(html.dark) [class~="text-stone-800"]:not([class~="bg-yellow-400"]):not([class~="bg-yellow-500"]):not([class~="bg-amber-400"]):not([class~="bg-lime-400"]):not([class*="dark:text-"]),
+:where(html.dark) [class~="text-stone-900"]:not([class~="bg-yellow-400"]):not([class~="bg-yellow-500"]):not([class~="bg-amber-400"]):not([class~="bg-lime-400"]):not([class*="dark:text-"]),
+:where(html.dark) [class~="text-stone-950"]:not([class~="bg-yellow-400"]):not([class~="bg-yellow-500"]):not([class~="bg-amber-400"]):not([class~="bg-lime-400"]):not([class*="dark:text-"]) { color: var(--app-ink); }
+:where(html.dark) [class~="bg-red-50"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-red-100"]:not([class*="dark:bg-"]) { background-color: #422b2c; }
+:where(html.dark) [class~="text-red-600"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-red-700"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-red-800"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-red-900"]:not([class*="dark:text-"]) { color: #ffb0a7; }
+:where(html.dark) [class~="border-red-100"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-red-200"]:not([class*="dark:border-"]) { border-color: #422b2c; }
+:where(html.dark) [class~="bg-rose-50"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-rose-100"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-pink-50"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-pink-100"]:not([class*="dark:bg-"]) { background-color: #402736; }
+:where(html.dark) [class~="text-rose-600"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-rose-700"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-rose-800"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-rose-900"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-pink-600"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-pink-700"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-pink-800"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-pink-900"]:not([class*="dark:text-"]) { color: #ffb4ce; }
+:where(html.dark) [class~="border-rose-100"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-rose-200"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-pink-100"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-pink-200"]:not([class*="dark:border-"]) { border-color: #402736; }
+:where(html.dark) [class~="bg-orange-50"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-orange-100"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-amber-50"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-amber-100"]:not([class*="dark:bg-"]) { background-color: #3b3023; }
+:where(html.dark) [class~="text-orange-600"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-orange-700"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-orange-800"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-orange-900"]:not([class*="dark:text-"]) { color: #fdc48d; }
+:where(html.dark) [class~="border-orange-100"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-orange-200"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-amber-100"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-amber-200"]:not([class*="dark:border-"]) { border-color: #3b3023; }
+:where(html.dark) [class~="text-amber-600"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-amber-700"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-amber-800"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-amber-900"]:not([class*="dark:text-"]) { color: #f5d18d; }
+:where(html.dark) [class~="bg-yellow-50"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-yellow-100"]:not([class*="dark:bg-"]) { background-color: #393323; }
+:where(html.dark) [class~="text-yellow-600"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-yellow-700"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-yellow-800"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-yellow-900"]:not([class*="dark:text-"]) { color: #f7df94; }
+:where(html.dark) [class~="border-yellow-100"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-yellow-200"]:not([class*="dark:border-"]) { border-color: #393323; }
+:where(html.dark) [class~="bg-green-50"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-green-100"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-emerald-50"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-emerald-100"]:not([class*="dark:bg-"]) { background-color: #203a30; }
+:where(html.dark) [class~="text-green-600"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-green-700"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-green-800"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-green-900"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-emerald-600"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-emerald-700"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-emerald-800"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-emerald-900"]:not([class*="dark:text-"]) { color: #a6dfba; }
+:where(html.dark) [class~="border-green-100"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-green-200"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-emerald-100"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-emerald-200"]:not([class*="dark:border-"]) { border-color: #203a30; }
+:where(html.dark) [class~="bg-teal-50"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-teal-100"]:not([class*="dark:bg-"]) { background-color: #1c393c; }
+:where(html.dark) [class~="text-teal-600"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-teal-700"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-teal-800"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-teal-900"]:not([class*="dark:text-"]) { color: #93dbd5; }
+:where(html.dark) [class~="border-teal-100"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-teal-200"]:not([class*="dark:border-"]) { border-color: #1c393c; }
+:where(html.dark) [class~="bg-cyan-50"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-cyan-100"]:not([class*="dark:bg-"]) { background-color: #1c3444; }
+:where(html.dark) [class~="text-cyan-600"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-cyan-700"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-cyan-800"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-cyan-900"]:not([class*="dark:text-"]) { color: #98dced; }
+:where(html.dark) [class~="border-cyan-100"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-cyan-200"]:not([class*="dark:border-"]) { border-color: #1c3444; }
+:where(html.dark) [class~="bg-sky-50"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-sky-100"]:not([class*="dark:bg-"]) { background-color: #21344c; }
+:where(html.dark) [class~="text-sky-600"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-sky-700"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-sky-800"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-sky-900"]:not([class*="dark:text-"]) { color: #a5d5ff; }
+:where(html.dark) [class~="border-sky-100"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-sky-200"]:not([class*="dark:border-"]) { border-color: #21344c; }
+:where(html.dark) [class~="bg-blue-50"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-blue-100"]:not([class*="dark:bg-"]) { background-color: #22324c; }
+:where(html.dark) [class~="text-blue-600"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-blue-700"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-blue-800"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-blue-900"]:not([class*="dark:text-"]) { color: #accbff; }
+:where(html.dark) [class~="border-blue-100"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-blue-200"]:not([class*="dark:border-"]) { border-color: #22324c; }
+:where(html.dark) [class~="bg-indigo-50"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-indigo-100"]:not([class*="dark:bg-"]) { background-color: #2b2e4c; }
+:where(html.dark) [class~="text-indigo-600"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-indigo-700"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-indigo-800"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-indigo-900"]:not([class*="dark:text-"]) { color: #bec4ff; }
+:where(html.dark) [class~="border-indigo-100"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-indigo-200"]:not([class*="dark:border-"]) { border-color: #2b2e4c; }
+:where(html.dark) [class~="bg-violet-50"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-violet-100"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-purple-50"]:not([class*="dark:bg-"]),
+:where(html.dark) [class~="bg-purple-100"]:not([class*="dark:bg-"]) { background-color: #322b48; }
+:where(html.dark) [class~="text-violet-600"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-violet-700"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-violet-800"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-violet-900"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-purple-600"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-purple-700"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-purple-800"]:not([class*="dark:text-"]),
+:where(html.dark) [class~="text-purple-900"]:not([class*="dark:text-"]) { color: #d5baff; }
+:where(html.dark) [class~="border-violet-100"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-violet-200"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-purple-100"]:not([class*="dark:border-"]),
+:where(html.dark) [class~="border-purple-200"]:not([class*="dark:border-"]) { border-color: #322b48; }
 
 .dark .dam-page { --dam-bg: #111c24; --dam-surface: #192332; --dam-ink: #edf2f7; --dam-muted: #b6c2d0; --dam-accent-soft: #422b2c; }
 .dark .dam-page .dam-market-offer { background: #25372f; }
@@ -250,3 +250,118 @@ html.dark { color-scheme: dark;
 .dark .police-search-fields input { color: #e3eaf1; }
 .dark .transport-search button, .dark .transport-empty button { color: #afcff1; }
 .dark .transport-stops small { color: #aec3d7; }
+
+/* Opaque portal bars and legacy literal surfaces. */
+.dark [class~="bg-slate-100/95"] { background-color: var(--app-surface); }
+.dark [class~="bg-[#f8f9fa]"], .dark [class~="bg-[#eef2e9]"] { background-color: #121c29; }
+.dark [class~="bg-amber-500"][class~="text-white"], .dark [class~="bg-orange-500"][class~="text-white"] { background-color: #92400e; }
+.dark [class~="bg-emerald-500"][class~="text-white"], .dark [class~="bg-green-500"][class~="text-white"] { background-color: #047857; }
+.dark [class~="text-primary-foreground"]:is([class*="bg-slate-"], [class*="bg-blue-"], [class*="bg-emerald-"], [class*="bg-green-"], [class*="bg-red-"], [class*="bg-[#"]) { color: #fff; }
+
+/* Translucent surfaces and gradient stops need the same palette as solid cards. */
+:where(html.dark) [class~="border-gray-200/80"]:not([class*="dark:border-"]) { border-color: #394b60; }
+:where(html.dark) [class~="bg-amber-50/60"]:not([class*="dark:bg-"]) { background-color: #3b3023; }
+:where(html.dark) [class~="bg-orange-50/50"]:not([class*="dark:bg-"]) { background-color: #3b3023; }
+:where(html.dark) [class~="bg-violet-50/50"]:not([class*="dark:bg-"]) { background-color: #322b48; }
+:where(html.dark) [class~="bg-emerald-50/50"]:not([class*="dark:bg-"]) { background-color: #203a30; }
+:where(html.dark) [class~="bg-sky-50/50"]:not([class*="dark:bg-"]) { background-color: #21344c; }
+:where(html.dark) [class~="bg-amber-50/50"]:not([class*="dark:bg-"]) { background-color: #3b3023; }
+:where(html.dark) [class~="bg-white/80"]:not([class*="dark:bg-"]) { background-color: #192332; }
+:where(html.dark) [class~="bg-red-50/60"]:not([class*="dark:bg-"]) { background-color: #422b2c; }
+:where(html.dark) [class~="bg-emerald-50/80"]:not([class*="dark:bg-"]) { background-color: #203a30; }
+:where(html.dark) [class~="bg-white/95"]:not([class*="dark:bg-"]) { background-color: #192332; }
+:where(html.dark) [class~="bg-gray-50/50"]:not([class*="dark:bg-"]) { background-color: #243244; }
+:where(html.dark) [class~="from-emerald-50"]:not([class*="dark:from-"]) { --tw-gradient-from: #203a30 var(--tw-gradient-from-position); }
+:where(html.dark) [class~="to-green-50"]:not([class*="dark:to-"]) { --tw-gradient-to: #203a30 var(--tw-gradient-to-position); }
+:where(html.dark) [class~="from-red-50"]:not([class*="dark:from-"]) { --tw-gradient-from: #422b2c var(--tw-gradient-from-position); }
+:where(html.dark) [class~="to-orange-50"]:not([class*="dark:to-"]) { --tw-gradient-to: #3b3023 var(--tw-gradient-to-position); }
+:where(html.dark) [class~="border-gray-100/80"]:not([class*="dark:border-"]) { border-color: #394b60; }
+:where(html.dark) [class~="to-orange-100"]:not([class*="dark:to-"]) { --tw-gradient-to: #3b3023 var(--tw-gradient-to-position); }
+:where(html.dark) [class~="from-gray-50"]:not([class*="dark:from-"]) { --tw-gradient-from: #243244 var(--tw-gradient-from-position); }
+:where(html.dark) [class~="via-gray-50/80"]:not([class*="dark:via-"]) { --tw-gradient-stops: var(--tw-gradient-from), #243244 var(--tw-gradient-via-position), var(--tw-gradient-to); }
+:where(html.dark) [class~="hover:bg-emerald-50/80"]:not([class*="dark:hover:bg-"]):hover { background-color: #203a30; }
+:where(html.dark) [class~="bg-emerald-50/40"]:not([class*="dark:bg-"]) { background-color: #203a30; }
+:where(html.dark) [class~="bg-emerald-50/60"]:not([class*="dark:bg-"]) { background-color: #203a30; }
+:where(html.dark) [class~="bg-orange-50/40"]:not([class*="dark:bg-"]) { background-color: #3b3023; }
+:where(html.dark) [class~="bg-orange-50/60"]:not([class*="dark:bg-"]) { background-color: #3b3023; }
+:where(html.dark) [class~="bg-slate-100/95"]:not([class*="dark:bg-"]) { background-color: #243244; }
+:where(html.dark) [class~="border-slate-200/80"]:not([class*="dark:border-"]) { border-color: #394b60; }
+:where(html.dark) [class~="border-amber-100/80"]:not([class*="dark:border-"]) { border-color: #394b60; }
+:where(html.dark) [class~="bg-white/90"]:not([class*="dark:bg-"]) { background-color: #192332; }
+:where(html.dark) [class~="bg-white/70"]:not([class*="dark:bg-"]) { background-color: #192332; }
+:where(html.dark) [class~="hover:bg-blue-50/50"]:not([class*="dark:hover:bg-"]):hover { background-color: #22324c; }
+:where(html.dark) [class~="bg-blue-50/80"]:not([class*="dark:bg-"]) { background-color: #22324c; }
+:where(html.dark) [class~="hover:from-blue-50/50"]:not([class*="dark:hover:from-"]):hover { --tw-gradient-from: #22324c var(--tw-gradient-from-position); }
+:where(html.dark) [class~="bg-blue-50/40"]:not([class*="dark:bg-"]) { background-color: #22324c; }
+:where(html.dark) [class~="from-indigo-50"]:not([class*="dark:from-"]) { --tw-gradient-from: #2b2e4c var(--tw-gradient-from-position); }
+:where(html.dark) [class~="to-gray-50"]:not([class*="dark:to-"]) { --tw-gradient-to: #243244 var(--tw-gradient-to-position); }
+:where(html.dark) [class~="bg-indigo-50/50"]:not([class*="dark:bg-"]) { background-color: #2b2e4c; }
+:where(html.dark) [class~="border-gray-200/70"]:not([class*="dark:border-"]) { border-color: #394b60; }
+:where(html.dark) [class~="hover:border-indigo-200/80"]:not([class*="dark:hover:border-"]):hover { border-color: #394b60; }
+:where(html.dark) [class~="border-indigo-100/80"]:not([class*="dark:border-"]) { border-color: #394b60; }
+:where(html.dark) [class~="from-gray-50/90"]:not([class*="dark:from-"]) { --tw-gradient-from: #243244 var(--tw-gradient-from-position); }
+:where(html.dark) [class~="to-white"]:not([class*="dark:to-"]) { --tw-gradient-to: #192332 var(--tw-gradient-to-position); }
+:where(html.dark) [class~="bg-white/60"]:not([class*="dark:bg-"]) { background-color: #192332; }
+:where(html.dark) [class~="hover:bg-red-50/80"]:not([class*="dark:hover:bg-"]):hover { background-color: #422b2c; }
+:where(html.dark) [class~="hover:bg-teal-50/80"]:not([class*="dark:hover:bg-"]):hover { background-color: #1c393c; }
+:where(html.dark) [class~="bg-teal-50/40"]:not([class*="dark:bg-"]) { background-color: #1c393c; }
+:where(html.dark) [class~="bg-teal-50/60"]:not([class*="dark:bg-"]) { background-color: #1c393c; }
+:where(html.dark) [class~="to-blue-50"]:not([class*="dark:to-"]) { --tw-gradient-to: #22324c var(--tw-gradient-to-position); }
+:where(html.dark) [class~="hover:bg-emerald-50/50"]:not([class*="dark:hover:bg-"]):hover { background-color: #203a30; }
+:where(html.dark) [class~="hover:bg-teal-50/50"]:not([class*="dark:hover:bg-"]):hover { background-color: #1c393c; }
+:where(html.dark) [class~="hover:bg-amber-50/50"]:not([class*="dark:hover:bg-"]):hover { background-color: #3b3023; }
+:where(html.dark) [class~="hover:bg-orange-50/50"]:not([class*="dark:hover:bg-"]):hover { background-color: #3b3023; }
+:where(html.dark) [class~="hover:bg-violet-50/50"]:not([class*="dark:hover:bg-"]):hover { background-color: #322b48; }
+:where(html.dark) [class~="from-orange-50"]:not([class*="dark:from-"]) { --tw-gradient-from: #3b3023 var(--tw-gradient-from-position); }
+:where(html.dark) [class~="to-amber-50"]:not([class*="dark:to-"]) { --tw-gradient-to: #3b3023 var(--tw-gradient-to-position); }
+:where(html.dark) [class~="bg-blue-50/30"]:not([class*="dark:bg-"]) { background-color: #22324c; }
+:where(html.dark) [class~="bg-orange-50/70"]:not([class*="dark:bg-"]) { background-color: #3b3023; }
+:where(html.dark) [class~="from-white"]:not([class*="dark:from-"]) { --tw-gradient-from: #192332 var(--tw-gradient-from-position); }
+:where(html.dark) [class~="via-white"]:not([class*="dark:via-"]) { --tw-gradient-stops: var(--tw-gradient-from), #192332 var(--tw-gradient-via-position), var(--tw-gradient-to); }
+:where(html.dark) [class~="bg-blue-50/50"]:not([class*="dark:bg-"]) { background-color: #22324c; }
+:where(html.dark) [class~="bg-indigo-50/80"]:not([class*="dark:bg-"]) { background-color: #2b2e4c; }
+:where(html.dark) [class~="from-amber-50"]:not([class*="dark:from-"]) { --tw-gradient-from: #3b3023 var(--tw-gradient-from-position); }
+:where(html.dark) [class~="via-yellow-50"]:not([class*="dark:via-"]) { --tw-gradient-stops: var(--tw-gradient-from), #393323 var(--tw-gradient-via-position), var(--tw-gradient-to); }
+:where(html.dark) [class~="from-indigo-50/80"]:not([class*="dark:from-"]) { --tw-gradient-from: #2b2e4c var(--tw-gradient-from-position); }
+:where(html.dark) [class~="bg-amber-50/80"]:not([class*="dark:bg-"]) { background-color: #3b3023; }
+:where(html.dark) [class~="from-blue-100"]:not([class*="dark:from-"]) { --tw-gradient-from: #22324c var(--tw-gradient-from-position); }
+:where(html.dark) [class~="bg-red-50/50"]:not([class*="dark:bg-"]) { background-color: #422b2c; }
+:where(html.dark) [class~="from-green-50"]:not([class*="dark:from-"]) { --tw-gradient-from: #203a30 var(--tw-gradient-from-position); }
+:where(html.dark) [class~="to-emerald-50"]:not([class*="dark:to-"]) { --tw-gradient-to: #203a30 var(--tw-gradient-to-position); }
+:where(html.dark) [class~="border-emerald-200/80"]:not([class*="dark:border-"]) { border-color: #394b60; }
+:where(html.dark) [class~="from-stone-50"]:not([class*="dark:from-"]) { --tw-gradient-from: #243244 var(--tw-gradient-from-position); }
+:where(html.dark) [class~="to-slate-100/90"]:not([class*="dark:to-"]) { --tw-gradient-to: #243244 var(--tw-gradient-to-position); }
+:where(html.dark) [class~="from-emerald-50/80"]:not([class*="dark:from-"]) { --tw-gradient-from: #203a30 var(--tw-gradient-from-position); }
+:where(html.dark) [class~="via-stone-50"]:not([class*="dark:via-"]) { --tw-gradient-stops: var(--tw-gradient-from), #243244 var(--tw-gradient-via-position), var(--tw-gradient-to); }
+:where(html.dark) [class~="border-stone-200/80"]:not([class*="dark:border-"]) { border-color: #394b60; }
+:where(html.dark) [class~="to-stone-100/90"]:not([class*="dark:to-"]) { --tw-gradient-to: #243244 var(--tw-gradient-to-position); }
+:where(html.dark) [class~="bg-stone-50/80"]:not([class*="dark:bg-"]) { background-color: #243244; }
+:where(html.dark) [class~="from-slate-50"]:not([class*="dark:from-"]) { --tw-gradient-from: #243244 var(--tw-gradient-from-position); }
+:where(html.dark) [class~="from-blue-200"]:not([class*="dark:from-"]) { --tw-gradient-from: #22324c var(--tw-gradient-from-position); }
+:where(html.dark) [class~="via-purple-200"]:not([class*="dark:via-"]) { --tw-gradient-stops: var(--tw-gradient-from), #322b48 var(--tw-gradient-via-position), var(--tw-gradient-to); }
+:where(html.dark) [class~="to-emerald-200"]:not([class*="dark:to-"]) { --tw-gradient-to: #203a30 var(--tw-gradient-to-position); }
+:where(html.dark) [class~="from-blue-50"]:not([class*="dark:from-"]) { --tw-gradient-from: #22324c var(--tw-gradient-from-position); }
+:where(html.dark) [class~="to-indigo-100"]:not([class*="dark:to-"]) { --tw-gradient-to: #2b2e4c var(--tw-gradient-to-position); }
+:where(html.dark) [class~="from-rose-50"]:not([class*="dark:from-"]) { --tw-gradient-from: #402736 var(--tw-gradient-from-position); }
+:where(html.dark) [class~="border-amber-200/80"]:not([class*="dark:border-"]) { border-color: #394b60; }
+:where(html.dark) [class~="hover:bg-teal-50/60"]:not([class*="dark:hover:bg-"]):hover { background-color: #1c393c; }
+:where(html.dark) [class~="to-indigo-50"]:not([class*="dark:to-"]) { --tw-gradient-to: #2b2e4c var(--tw-gradient-to-position); }
+:where(html.dark) [class~="from-yellow-50"]:not([class*="dark:from-"]) { --tw-gradient-from: #393323 var(--tw-gradient-from-position); }
+:where(html.dark) [class~="border-yellow-200/80"]:not([class*="dark:border-"]) { border-color: #394b60; }
+:where(html.dark) [class~="border-violet-100/80"]:not([class*="dark:border-"]) { border-color: #394b60; }
+:where(html.dark) [class~="bg-violet-50/30"]:not([class*="dark:bg-"]) { background-color: #322b48; }
+:where(html.dark) [class~="from-violet-50/40"]:not([class*="dark:from-"]) { --tw-gradient-from: #322b48 var(--tw-gradient-from-position); }
+:where(html.dark) [class~="bg-violet-50/80"]:not([class*="dark:bg-"]) { background-color: #322b48; }
+.dark [class~="text-[#111111]"] { color: var(--app-ink); }
+.dark [class~="text-[#18181b]"] { color: var(--app-ink); }
+.dark [class~="text-[#444444]"] { color: var(--app-ink); }
+.dark [class~="text-[#29392b]"] { color: var(--app-ink); }
+.dark [class~="text-[#344b3a]"] { color: var(--app-ink); }
+.dark [class~="text-[#555555]"] { color: var(--app-muted); }
+.dark [class~="text-[#666666]"] { color: var(--app-muted); }
+.dark [class~="text-[#777777]"] { color: var(--app-muted); }
+.dark [class~="text-[#71717a]"] { color: var(--app-muted); }
+.dark [class~="text-[#999999]"] { color: var(--app-muted); }
+.dark [class~="text-[#C41E14]"] { color: #ffb0a7; }
+
+.dark [class~="text-primary-foreground"]:is([class*="bg-orange-"], [class*="bg-amber-"], [class*="bg-violet-"], [class*="bg-purple-"], [class*="bg-teal-"], [class*="bg-cyan-"], [class*="bg-indigo-"]) { color: #fff; }

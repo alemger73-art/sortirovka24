@@ -1,14 +1,16 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
 
 export default function AuthErrorPage() {
+  const { t: coverageT } = useLanguage();
   const [searchParams] = useSearchParams();
   const [countdown, setCountdown] = useState(3);
   const errorMessage =
     searchParams.get('msg') ||
-    'Sorry, your authentication information is invalid or has expired';
+    coverageT('public.coverage.authExpired');
 
   useEffect(() => {
     // Countdown logic
@@ -49,8 +51,7 @@ export default function AuthErrorPage() {
 
           {/* Error title */}
           <h1 className="text-2xl font-bold text-gray-800">
-            Authentication Error
-          </h1>
+            {coverageT("public.coverage.authError")}</h1>
 
           {/* Error description */}
           <p className="text-base text-muted-foreground">{errorMessage}</p>
@@ -60,14 +61,13 @@ export default function AuthErrorPage() {
             <p className="text-sm text-gray-500">
               {countdown > 0 ? (
                 <>
-                  Will automatically return to the home page in{' '}
+                  {coverageT("public.coverage.returnCountdown")}{' '}
                   <span className="text-blue-600 font-semibold text-base">
                     {countdown}
                   </span>{' '}
-                  seconds
-                </>
+                  {coverageT("public.coverage.seconds")}</>
               ) : (
-                'Redirecting...'
+                coverageT('public.coverage.redirect')
               )}
             </p>
           </div>
@@ -76,8 +76,7 @@ export default function AuthErrorPage() {
         {/* Return to home button */}
         <div className="flex justify-center pt-2">
           <Button onClick={handleReturnHome} className="px-6">
-            Return to Home
-          </Button>
+            {coverageT("public.coverage.home")}</Button>
         </div>
       </div>
     </div>

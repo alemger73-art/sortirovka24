@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useCallback, useState } from 'react';
 import {
   AlertTriangle, Bell, Bike, Briefcase, Building2, Car, ClipboardList,
@@ -18,111 +19,122 @@ interface DashboardCard {
   color: string;
 }
 
-const CARDS: DashboardCard[] = [
+function getCARDS(adminT: (key: string) => string) {
+  const CARDS: DashboardCard[] = [
   {
     key: 'master_requests_new',
     tab: 'master-requests',
-    label: 'Заявки на мастера',
-    description: 'Новые, не взятые в работу',
+    label: adminT("admin.ui.0379"),
+    description: adminT("admin.ui.0380"),
     icon: ClipboardList,
     color: 'bg-yellow-50 border-yellow-200 text-yellow-800',
   },
   {
     key: 'become_master_pending',
     tab: 'become-master',
-    label: 'Стать мастером',
-    description: 'Ожидают одобрения',
+    label: adminT("admin.ui.0381"),
+    description: adminT("admin.ui.0382"),
     icon: UserPlus,
     color: 'bg-orange-50 border-orange-200 text-orange-800',
   },
   {
     key: 'announcements_pending',
     tab: 'announcements',
-    label: 'Объявления',
-    description: 'На модерации',
+    label: adminT("admin.ui.0141"),
+    description: adminT("admin.ui.0039"),
     icon: Megaphone,
     color: 'bg-amber-50 border-amber-200 text-amber-800',
   },
   {
     key: 'complaints_new',
     tab: 'complaints',
-    label: 'Жалобы',
-    description: 'Новые, не обработаны',
+    label: adminT("admin.ui.0383"),
+    description: adminT("admin.ui.0384"),
     icon: AlertTriangle,
     color: 'bg-red-50 border-red-200 text-red-800',
   },
   {
     key: 'real_estate_pending',
     tab: 'real-estate',
-    label: 'Недвижимость',
-    description: 'На модерации',
+    label: adminT("admin.ui.0140"),
+    description: adminT("admin.ui.0039"),
     icon: Building2,
     color: 'bg-blue-50 border-blue-200 text-blue-800',
   },
   {
     key: 'jobs_pending',
     tab: 'jobs',
-    label: 'Вакансии',
-    description: 'На модерации',
+    label: adminT("admin.ui.0385"),
+    description: adminT("admin.ui.0039"),
     icon: Briefcase,
     color: 'bg-indigo-50 border-indigo-200 text-indigo-800',
   },
   {
     key: 'food_orders_new',
     tab: 'food-orders',
-    label: 'Заказы DAM ALEM 2.0',
-    description: 'Новые заказы',
+    label: adminT("admin.ui.0386"),
+    description: adminT("admin.ui.0387"),
     icon: Utensils,
     color: 'bg-green-50 border-green-200 text-green-800',
   },
   {
     key: 'park_orders_active',
     tab: 'park-orders',
-    label: 'Заказы в парк',
-    description: 'Активные доставки',
+    label: adminT("admin.ui.0388"),
+    description: adminT("admin.ui.0389"),
     icon: TreePine,
     color: 'bg-emerald-50 border-emerald-200 text-emerald-800',
   },
   {
     key: 'taxi_applications_pending',
     tab: 'taxi',
-    label: 'Водители такси',
-    description: 'Заявки на подключение',
+    label: adminT("admin.ui.0390"),
+    description: adminT("admin.ui.0391"),
     icon: Car,
     color: 'bg-sky-50 border-sky-200 text-sky-800',
   },
   {
     key: 'courier_applications_pending',
     tab: 'logistics',
-    label: 'Курьеры',
-    description: 'Заявки на подключение',
+    label: adminT("admin.ui.0392"),
+    description: adminT("admin.ui.0391"),
     icon: Bike,
     color: 'bg-violet-50 border-violet-200 text-violet-800',
   },
   {
     key: 'business_partner_new',
     tab: 'partners-business',
-    label: 'Заявки партнёров',
-    description: 'Новые заявки на сотрудничество',
+    label: adminT("admin.ui.0393"),
+    description: adminT("admin.ui.0394"),
     icon: Handshake,
     color: 'bg-pink-50 border-pink-200 text-pink-800',
   },
 ];
+  return CARDS;
+}
 
-const RECENT_TYPE_LABELS: Record<string, string> = {
-  master_request: 'Заявка на мастера',
-  become_master: 'Стать мастером',
-  announcement: 'Объявление',
-  complaint: 'Жалоба',
-  food_order: 'Заказ еды',
-  business_partner: 'Заявка партнёра',
+function getRECENT_TYPE_LABELS(adminT: (key: string) => string) {
+  const RECENT_TYPE_LABELS: Record<string, string> = {
+  master_request: adminT("admin.ui.0395"),
+  become_master: adminT("admin.ui.0381"),
+  announcement: adminT("admin.ui.0396"),
+  complaint: adminT("admin.ui.0397"),
+  food_order: adminT("admin.ui.0398"),
+  business_partner: adminT("admin.ui.0399"),
 };
+  return RECENT_TYPE_LABELS;
+}
 
 interface AdminDashboardProps {
   onNavigate: (tab: string) => void;
 }
 
 export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
+  const { t: adminT, lang } = useLanguage();
+  const adminLocale = lang === 'kz' ? 'kk-KZ' : 'ru-RU';
+  const CARDS = getCARDS(adminT);
+  const RECENT_TYPE_LABELS = getRECENT_TYPE_LABELS(adminT);
+
   const { summary, loading, refresh, lastUpdated, error } = useAdminSummary();
 
   const [showAll, setShowAll] = useState(false);
@@ -148,26 +160,25 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">Требует внимания</h2>
+          <h2 className="text-lg font-bold text-gray-900">{adminT("admin.ui.0400")}</h2>
           <p className="text-sm text-gray-500 mt-0.5">
             {allClear
-              ? 'Новых задач нет'
-              : error ? 'Сводка требует обновления' : !summary ? 'Сводка недоступна' : `${total} ${total === 1 ? 'задача требует' : 'задач требуют'} внимания`}
+              ? adminT("admin.ui.0401")
+              : error ? adminT("admin.ui.0402") : !summary ? adminT("admin.ui.0403") : adminT(total === 1 ? 'admin.dashboard.pendingOne' : 'admin.extra.1275').replace('{count}', () => String(total))}
           </p>
           {lastUpdated && (
             <p className="text-xs text-gray-400 mt-1">
-              Обновлено: {lastUpdated.toLocaleTimeString('ru-RU')}
-              {error ? ' · данные могут быть устаревшими' : ''}
+              {adminT("admin.ui.0406")} {lastUpdated.toLocaleTimeString(adminLocale)}
+              {error ? adminT("admin.ui.0407") : ''}
             </p>
           )}
         </div>
         <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
           <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
-          Обновить
-        </Button>
+          {adminT("admin.ui.0408")} </Button>
       </div>
 
-      {error && <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{error}{summary && ' Ниже показаны последние загруженные данные.'}</div>}
+      {error && <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{error}{summary && adminT("admin.ui.0409")}</div>}
       {/* Alert banner */}
       {summary && total > 0 && (
         <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
@@ -176,11 +187,10 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-amber-900 text-sm">
-              {total} необработанных {total === 1 ? 'элемент' : total < 5 ? 'элемента' : 'элементов'}
+              {total} {adminT("admin.ui.0015")} {total === 1 ? adminT("admin.ui.0410") : total < 5 ? adminT("admin.ui.0411") : adminT("admin.ui.0412")}
             </p>
             <p className="text-xs text-amber-700 mt-0.5">
-              Откройте нужный раздел ниже, чтобы обработать заявки.
-            </p>
+              {adminT("admin.ui.0413")} </p>
           </div>
           <Badge className="bg-amber-500 text-white text-base px-3 py-1 shrink-0">{total}</Badge>
         </div>
@@ -191,7 +201,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
           <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
             <Wrench className="w-5 h-5 text-green-600" />
           </div>
-          <p className="text-sm text-green-800 font-medium">Нет необработанных заявок и модерации</p>
+          <p className="text-sm text-green-800 font-medium">{adminT("admin.ui.0414")}</p>
         </div>
       )}
 
@@ -225,11 +235,11 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
         })}
       </div>
 
-      {summary && <Button variant="outline" className="h-auto whitespace-normal" onClick={() => setShowAll(!showAll)} aria-expanded={showAll}>{showAll ? 'Скрыть разделы без новых задач' : 'Показать все разделы сводки'}</Button>}
+      {summary && <Button variant="outline" className="h-auto whitespace-normal" onClick={() => setShowAll(!showAll)} aria-expanded={showAll}>{showAll ? adminT("admin.ui.0415") : adminT("admin.ui.0416")}</Button>}
       {/* Recent activity feed */}
       {summary && summary.recent.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Последние необработанные</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">{adminT("admin.ui.0417")}</h3>
           <div className="space-y-2">
             {summary.recent.map((item) => (
               <button
@@ -249,7 +259,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                     )}
                   </div>
                   {item.created_at && (
-                    <span className="text-[10px] text-gray-400 shrink-0">{formatDate(item.created_at)}</span>
+                    <span className="text-[10px] text-gray-400 shrink-0">{formatDate(item.created_at, lang)}</span>
                   )}
                 </div>
               </button>

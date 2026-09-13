@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { ChevronRight, Minus, Plus, ShoppingBag, X } from 'lucide-react';
 import DamAlemImage from '@/components/damalem/DamAlemImage';
 import DamAlemCheckoutButton from '@/components/damalem/DamAlemCheckoutButton';
@@ -47,6 +48,8 @@ export default function DamAlemCartSidebar({
   onUpdateQty,
   onRemoveLine,
 }: Props) {
+  const st = useStoreTranslations();
+
   const belowMin = minOrder > 0 && subtotal < minOrder;
 
   return (
@@ -58,8 +61,8 @@ export default function DamAlemCartSidebar({
               <ShoppingBag className="h-4 w-4" />
             </span>
             <div>
-              <p className="dam-cart-sidebar__title">Ваш заказ</p>
-              <p className="dam-cart-sidebar__meta">{itemCount} {itemCount === 1 ? 'позиция' : itemCount < 5 ? 'позиции' : 'позиций'}</p>
+              <p className="dam-cart-sidebar__title">{st("Ваш заказ")}</p>
+              <p className="dam-cart-sidebar__meta">{itemCount} {itemCount === 1 ? st("позиция") : itemCount < 5 ? st("позиции") : st("позиций")}</p>
             </div>
           </div>
           <button
@@ -67,8 +70,7 @@ export default function DamAlemCartSidebar({
             onClick={onOpenCart}
             className="text-xs font-bold text-[#FF3B30] hover:underline"
           >
-            Открыть
-          </button>
+             {st("Открыть")} </button>
         </div>
 
         <div className="dam-cart-sidebar__lines">
@@ -85,7 +87,7 @@ export default function DamAlemCartSidebar({
                       type="button"
                       onClick={() => onRemoveLine(idx)}
                       className="shrink-0 rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
-                      aria-label="Удалить"
+                      aria-label={st("Удалить")}
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -127,7 +129,7 @@ export default function DamAlemCartSidebar({
 
         <div className="dam-order-totals">
           <div className="dam-order-totals__row">
-            <span>Товары</span>
+            <span>{st("Товары")}</span>
             <span>{formatPrice(subtotal)}</span>
           </div>
           <div className="dam-order-totals__row">
@@ -135,7 +137,7 @@ export default function DamAlemCartSidebar({
             <span>{formatPrice(serviceFeeAmount)}</span>
           </div>
           <div className="dam-order-totals__total">
-            <span>Итого</span>
+            <span>{st("Итого")}</span>
             <span>{formatPrice(totalWithService)}</span>
           </div>
         </div>
@@ -144,7 +146,7 @@ export default function DamAlemCartSidebar({
           label={checkoutLabel}
           sublabel={
             belowMin
-              ? `Минимальная сумма заказа — ${minOrder.toLocaleString('ru-RU')} ₸`
+              ? st("Минимальная сумма заказа — {0} ₸", [minOrder.toLocaleString('ru-RU')])
               : formatPrice(totalWithService)
           }
           onClick={onCheckout}
@@ -156,8 +158,7 @@ export default function DamAlemCartSidebar({
           onClick={onOpenCart}
           className="mt-2 flex w-full items-center justify-center gap-1 text-xs font-semibold text-zinc-500 hover:text-zinc-800"
         >
-          Подробнее в корзине
-          <ChevronRight className="h-3.5 w-3.5" />
+           {st("Подробнее в корзине")} <ChevronRight className="h-3.5 w-3.5" />
         </button>
       </div>
     </aside>

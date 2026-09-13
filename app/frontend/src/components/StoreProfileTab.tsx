@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { UserCircle2, LayoutDashboard, LogOut } from 'lucide-react';
@@ -22,6 +23,9 @@ export default function StoreProfileTab({
   accentBg?: string;
   accentText?: string;
 }) {
+  const st = useStoreTranslations();
+
+
   const [user, setUser] = useState<LocalUser | null>(() => getCurrentUser());
   const [logged, setLogged] = useState<boolean>(() => isLoggedIn());
 
@@ -50,52 +54,45 @@ export default function StoreProfileTab({
             )}
             <div>
               <h2 className="font-bold text-gray-900 text-lg md:text-xl dark:text-white">
-                {user.name || 'Профиль'}
+                {user.name || st("Профиль")}
               </h2>
               {user.phone ? (
                 <p className="text-gray-500 text-sm dark:text-slate-400">{user.phone}</p>
               ) : null}
             </div>
             <p className="text-xs text-gray-400">
-              Один аккаунт для всех сервисов Сортировка24
-            </p>
+               {st("Один аккаунт для всех сервисов Сортировка24")} </p>
             <Link to="/cabinet" className="block">
               <button
                 className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white ${accentBg}`}
               >
-                <LayoutDashboard className="h-4 w-4" /> Личный кабинет
-              </button>
+                <LayoutDashboard className="h-4 w-4" />  {st("Личный кабинет")} </button>
             </Link>
             <button
               onClick={() => logoutLocalUser()}
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-[#2a3347] dark:text-slate-200 dark:hover:bg-[#1a2336]"
             >
-              <LogOut className="h-4 w-4" /> Выйти
-            </button>
+              <LogOut className="h-4 w-4" />  {st("Выйти")} </button>
           </>
         ) : (
           <>
             <UserCircle2 className="mx-auto h-20 w-20 text-gray-300" />
-            <h2 className="font-bold text-gray-900 text-lg md:text-xl dark:text-white">Профиль</h2>
+            <h2 className="font-bold text-gray-900 text-lg md:text-xl dark:text-white">{st("Профиль")}</h2>
             <p className="text-gray-500 text-sm md:text-base dark:text-slate-400">
-              Войдите в единый аккаунт Сортировка24 — один личный кабинет для всех сервисов
-            </p>
+               {st("Войдите в единый аккаунт Сортировка24 — один личный кабинет для всех сервисов")} </p>
             <Link to="/account" className="block">
               <button
                 className={`inline-flex w-full items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold text-white ${accentBg}`}
               >
-                Войти
-              </button>
+                 {st("Войти")} </button>
             </Link>
             <Link to="/register" className={`block text-sm font-semibold ${accentText} hover:underline`}>
-              Создать аккаунт
-            </Link>
+               {st("Создать аккаунт")} </Link>
           </>
         )}
         <div>
           <Link to="/" className="text-sm text-gray-400 hover:underline">
-            ← На главную Сортировка24
-          </Link>
+             {st("← На главную Сортировка24")} </Link>
         </div>
       </div>
     </div>

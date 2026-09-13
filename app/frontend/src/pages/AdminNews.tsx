@@ -1,3 +1,5 @@
+import { adminMetadataLabel } from '@/i18n/adminTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useEffect } from 'react';
 import { client, withRetry, NEWS_CATEGORIES, formatDate } from '@/lib/api';
 import { invalidateAllCaches } from '@/lib/cache';
@@ -33,6 +35,8 @@ function getYoutubeEmbedUrl(url: string): string | null {
 }
 
 export default function AdminNews() {
+  const { t: adminT, lang } = useLanguage();
+
   const [items, setItems] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -45,7 +49,7 @@ export default function AdminNews() {
     try {
       const res = await withRetry(() => client.entities.news.query({ sort: '-created_at', limit: 100 }));
       setItems(res.data?.items || []);
-    } catch { toast.error('Ошибка загрузки новостей'); }
+    } catch { toast.error(adminT("admin.ui.0958")); }
     finally { setLoading(false); }
   };
 
@@ -63,7 +67,7 @@ export default function AdminNews() {
 
   const handleSave = async () => {
     if (!editItem?.title || !editItem?.content || !editItem?.category) {
-      toast.error('Заполните обязательные поля');
+      toast.error(adminT("admin.ui.0921"));
       return;
     }
     setSaving(true);
@@ -80,27 +84,27 @@ export default function AdminNews() {
       };
       if (editItem.id) {
         await withRetry(() => client.entities.news.update({ id: String(editItem.id), data }));
-        toast.success('Новость обновлена');
+        toast.success(adminT("admin.ui.0959"));
       } else {
         await withRetry(() => client.entities.news.create({ data: { ...data, created_at: new Date().toISOString().replace('T', ' ').slice(0, 19) } }));
-        toast.success('Новость создана');
+        toast.success(adminT("admin.ui.0960"));
       }
       invalidateAllCaches();
       setDialogOpen(false);
       setEditItem(null);
       fetchItems();
-    } catch { toast.error('Ошибка сохранения'); }
+    } catch { toast.error(adminT("admin.ui.0055")); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Удалить новость?')) return;
+    if (!confirm(adminT("admin.ui.0961"))) return;
     try {
       await withRetry(() => client.entities.news.delete({ id: String(id) }));
       invalidateAllCaches();
-      toast.success('Удалено');
+      toast.success(adminT("admin.ui.0050"));
       fetchItems();
-    } catch { toast.error('Ошибка удаления'); }
+    } catch { toast.error(adminT("admin.ui.0051")); }
   };
 
   const getGalleryCount = (item: NewsItem) => {
@@ -113,10 +117,9 @@ export default function AdminNews() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">{items.length} новостей</p>
-        <Button onClick={openCreate} size="sm" className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-1" /> Добавить
-        </Button>
+        <p className="text-sm text-gray-500">{items.length} {adminT("admin.ui.0962")}</p>
+        <Button onClick={openCreate} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Plus className="h-4 w-4 mr-1" /> {adminT("admin.ui.0062")} </Button>
       </div>
 
       <div className="space-y-2">
@@ -130,13 +133,13 @@ export default function AdminNews() {
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <Badge variant="outline" className="text-xs">{item.category}</Badge>
-                      {item.youtube_url && <Badge variant="secondary" className="text-xs"><Youtube className="h-3 w-3 mr-1" />Видео</Badge>}
-                      {getGalleryCount(item) > 0 && <Badge variant="secondary" className="text-xs"><Images className="h-3 w-3 mr-1" />{getGalleryCount(item)} фото</Badge>}
-                      {item.published === false && <Badge variant="destructive" className="text-xs">Черновик</Badge>}
+                      <Badge variant="outline" className="text-xs">{adminMetadataLabel(item.category, adminT)}</Badge>
+                      {item.youtube_url && <Badge variant="secondary" className="text-xs"><Youtube className="h-3 w-3 mr-1" />{adminT("admin.ui.0963")}</Badge>}
+                      {getGalleryCount(item) > 0 && <Badge variant="secondary" className="text-xs"><Images className="h-3 w-3 mr-1" />{getGalleryCount(item)} {adminT("admin.ui.0224")}</Badge>}
+                      {item.published === false && <Badge variant="destructive" className="text-xs">{adminT("admin.ui.0289")}</Badge>}
                     </div>
                     <h3 className="font-medium text-gray-900 text-sm truncate">{item.title}</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">{item.created_at ? formatDate(item.created_at) : ''}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{item.created_at ? formatDate(item.created_at, lang) : ''}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
@@ -154,40 +157,40 @@ export default function AdminNews() {
             </CardContent>
           </Card>
         ))}
-        {items.length === 0 && <p className="text-center text-gray-400 py-8">Нет новостей</p>}
+        {items.length === 0 && <p className="text-center text-gray-400 py-8">{adminT("admin.ui.0964")}</p>}
       </div>
 
       {/* Edit/Create Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editItem?.id ? 'Редактировать новость' : 'Новая новость'}</DialogTitle>
+            <DialogTitle>{editItem?.id ? adminT("admin.ui.0965") : adminT("admin.ui.0966")}</DialogTitle>
           </DialogHeader>
           {editItem && (
             <div className="space-y-3">
               <div>
-                <label className="text-sm font-medium text-gray-700">Заголовок *</label>
-                <Input value={editItem.title || ''} onChange={e => setEditItem({ ...editItem, title: e.target.value })} placeholder="Заголовок новости" />
+                <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0118")}</label>
+                <Input value={editItem.title || ''} onChange={e => setEditItem({ ...editItem, title: e.target.value })} placeholder={adminT("admin.ui.0967")} />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Категория *</label>
+                <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0459")}</label>
                 <Select value={editItem.category || ''} onValueChange={v => setEditItem({ ...editItem, category: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {NEWS_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {NEWS_CATEGORIES.map(c => <SelectItem key={c} value={c}>{adminMetadataLabel(c, adminT)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Краткое описание</label>
-                <Textarea value={editItem.short_description || ''} onChange={e => setEditItem({ ...editItem, short_description: e.target.value })} rows={2} placeholder="Краткое описание для превью" />
+                <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0968")}</label>
+                <Textarea value={editItem.short_description || ''} onChange={e => setEditItem({ ...editItem, short_description: e.target.value })} rows={2} placeholder={adminT("admin.ui.0969")} />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Полный текст *</label>
-                <Textarea value={editItem.content || ''} onChange={e => setEditItem({ ...editItem, content: e.target.value })} rows={6} placeholder="Полный текст новости" />
+                <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0970")}</label>
+                <Textarea value={editItem.content || ''} onChange={e => setEditItem({ ...editItem, content: e.target.value })} rows={6} placeholder={adminT("admin.ui.0971")} />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Обложка</label>
+                <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0972")}</label>
                 <ImageUpload
                   value={editItem.image_url || ''}
                   onChange={(key) => setEditItem({ ...editItem, image_url: key })}
@@ -195,8 +198,8 @@ export default function AdminNews() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Галерея фото</label>
-                <p className="text-xs text-gray-400 mb-1">Загрузите несколько фото. Перетаскивайте для изменения порядка.</p>
+                <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0973")}</label>
+                <p className="text-xs text-gray-400 mb-1">{adminT("admin.ui.0234")}</p>
                 <MultiImageUpload
                   value={editItem.gallery_images || ''}
                   onChange={(keys) => setEditItem({ ...editItem, gallery_images: keys })}
@@ -205,7 +208,7 @@ export default function AdminNews() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">YouTube ссылка</label>
+                <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0974")}</label>
                 <Input value={editItem.youtube_url || ''} onChange={e => setEditItem({ ...editItem, youtube_url: e.target.value })} placeholder="https://youtube.com/watch?v=..." />
                 {editItem.youtube_url && getYoutubeEmbedUrl(editItem.youtube_url) && (
                   <div className="mt-2 rounded-lg overflow-hidden aspect-video">
@@ -215,13 +218,13 @@ export default function AdminNews() {
               </div>
               <div className="flex items-center gap-2">
                 <input type="checkbox" id="published" checked={editItem.published ?? true} onChange={e => setEditItem({ ...editItem, published: e.target.checked })} className="rounded" />
-                <label htmlFor="published" className="text-sm text-gray-700">Опубликовано</label>
+                <label htmlFor="published" className="text-sm text-gray-700">{adminT("admin.ui.0041")}</label>
               </div>
               <div className="flex gap-2 pt-2">
-                <Button onClick={() => setDialogOpen(false)} variant="outline" className="flex-1">Отмена</Button>
-                <Button onClick={handleSave} disabled={saving} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                <Button onClick={() => setDialogOpen(false)} variant="outline" className="flex-1">{adminT("admin.ui.0095")}</Button>
+                <Button onClick={handleSave} disabled={saving} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
                   {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-                  {editItem.id ? 'Сохранить' : 'Создать'}
+                  {editItem.id ? adminT("admin.ui.0096") : adminT("admin.ui.0097")}
                 </Button>
               </div>
             </div>
@@ -238,15 +241,15 @@ export default function AdminNews() {
           {previewItem && (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <Badge variant="outline">{previewItem.category}</Badge>
-                {previewItem.created_at && <span className="text-xs text-gray-500">{formatDate(previewItem.created_at)}</span>}
+                <Badge variant="outline">{adminMetadataLabel(previewItem.category, adminT)}</Badge>
+                {previewItem.created_at && <span className="text-xs text-gray-500">{formatDate(previewItem.created_at, lang)}</span>}
               </div>
               {previewItem.image_url && (
                 <StorageImage objectKey={previewItem.image_url} alt="" className="w-full rounded-lg max-h-48 object-cover" />
               )}
               {previewItem.gallery_images && (
                 <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1.5">Галерея:</p>
+                  <p className="text-xs font-medium text-gray-500 mb-1.5">{adminT("admin.ui.0069")}</p>
                   <StorageGallery keys={previewItem.gallery_images} />
                 </div>
               )}

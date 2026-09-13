@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -38,7 +39,7 @@ function parseTab(raw: string | null): Tab {
   return TAB_IDS.includes(raw as Tab) ? (raw as Tab) : 'home';
 }
 
-const NAV_ITEMS: { id: Tab; icon: typeof Home; label: string }[] = [
+const NAV_ITEMS_RU: { id: Tab; icon: typeof Home; label: string }[] = [
   { id: 'home', icon: Home, label: 'Витрина' },
   { id: 'catalog', icon: LayoutGrid, label: 'Каталог' },
   { id: 'cart', icon: ShoppingCart, label: 'Корзина' },
@@ -84,18 +85,22 @@ function loadFavorites(): number[] {
 }
 
 export default function Prorab() {
+  const st = useStoreTranslations();
+  const NAV_ITEMS = NAV_ITEMS_RU.map(item => ({ ...item, label: st(item.label) }));
+
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<ProrabCategory[]>([]);
   const [products, setProducts] = useState<ProrabProduct[]>([]);
   const [settings, setSettings] = useState<ProrabSettings>({
     default_address: 'ул. Жекибаева 129',
-    delivery_time: 'Доставка в день заказа',
+    delivery_time: '',
     min_order: '0',
     free_delivery_from: '50000',
-    hero_title: 'ДОСТАВКА СТРОИТЕЛЬНЫХ МАТЕРИАЛОВ ПО СОРТИРОВКЕ',
+    hero_title: '',
     store_name: 'PRORAB',
-    store_tagline: 'магазин строительных материалов',
+    store_tagline: '',
   });
   const [cartQty, setCartQty] = useState<Record<number, number>>(loadCartQty);
   const [favorites, setFavorites] = useState<number[]>(loadFavorites);
@@ -142,9 +147,9 @@ export default function Prorab() {
         setProducts(data.products);
         setSettings(data.settings);
       })
-      .catch(() => toast.error('Не удалось загрузить каталог'))
+      .catch(() => toast.error(st("Не удалось загрузить каталог")))
       .finally(() => setLoading(false));
-  }, []);
+  }, [st]);
 
   useEffect(() => {
     localStorage.setItem(CART_KEY, JSON.stringify(cartQty));
@@ -236,29 +241,29 @@ export default function Prorab() {
         localStorage.setItem(ADDR_KEY, quote.display_address);
       }
       if (!quote.available) {
-        const msg = quote.message || 'Доставка по этому адресу недоступна';
+        const msg = quote.message || st("Доставка по этому адресу недоступна");
         setDeliveryQuoteError(msg);
         if (options?.notify) toast.error(msg);
       }
     } catch (e) {
       if (reqId !== quoteRequestId.current) return;
       setDeliveryQuote(null);
-      const msg = e instanceof Error ? e.message : 'Не удалось рассчитать доставку';
+      const msg = e instanceof Error ? e.message : st("Не удалось рассчитать доставку");
       setDeliveryQuoteError(msg);
       if (options?.notify) toast.error(msg);
     } finally {
       if (reqId === quoteRequestId.current) setDeliveryQuoteLoading(false);
     }
-  }, [subtotal]);
+  }, [st, subtotal]);
 
   const findByAddress = useCallback(() => {
     const target = address.trim();
     if (target.length < 5) {
-      toast.info('Введите улицу и номер дома');
+      toast.info(st("Введите улицу и номер дома"));
       return;
     }
     void runDeliveryQuote({ address: target }, { notify: true });
-  }, [address, runDeliveryQuote]);
+  }, [st, address, runDeliveryQuote]);
 
   const findByGps = useCallback(async () => {
     setDeliveryQuoteLoading(true);
@@ -268,12 +273,12 @@ export default function Prorab() {
     } catch (err) {
       setDeliveryQuoteLoading(false);
       if (err instanceof GeolocationError && err.code === 'denied') {
-        toast.error('Разрешите доступ к геолокации');
+        toast.error(st("Разрешите доступ к геолокации"));
       } else {
-        toast.error('Не удалось получить GPS. Введите адрес вручную.');
+        toast.error(st("Не удалось получить GPS. Введите адрес вручную."));
       }
     }
-  }, [runDeliveryQuote]);
+  }, [st, runDeliveryQuote]);
 
   const applySavedAddress = useCallback((saved: SavedAddress, opts?: { auto?: boolean }) => {
     setAddress(saved.address);
@@ -292,12 +297,12 @@ export default function Prorab() {
   }, [subtotal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function submitOrder() {
-    if (!name.trim()) { toast.error('Укажите имя'); return; }
-    if (phone.replace(/\D/g, '').length < 10) { toast.error('Укажите корректный телефон'); return; }
-    if (!address.trim()) { toast.error('Укажите адрес доставки'); return; }
-    if (cart.length === 0) { toast.error('Корзина пуста'); return; }
+    if (!name.trim()) { toast.error(st("Укажите имя")); return; }
+    if (phone.replace(/\D/g, '').length < 10) { toast.error(st("Укажите корректный телефон")); return; }
+    if (!address.trim()) { toast.error(st("Укажите адрес доставки")); return; }
+    if (cart.length === 0) { toast.error(st("Корзина пуста")); return; }
     if (hasDeliveryZones && (!deliveryQuote || !deliveryQuote.available)) {
-      toast.error('Подтвердите адрес доставки');
+      toast.error(st("Подтвердите адрес доставки"));
       return;
     }
 
@@ -328,15 +333,17 @@ export default function Prorab() {
       setCartQty({});
       setCheckoutOpen(false);
       setActiveTab('home');
-      toast.success('Заказ оформлен! Оператор перезвонит вам.');
+      toast.success(st("Заказ оформлен! Оператор перезвонит вам."));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Ошибка оформления заказа');
+      toast.error(e instanceof Error ? e.message : st("Ошибка оформления заказа"));
     } finally {
       setSubmitting(false);
     }
   }
 
   function ProductCard({ product, compact }: { product: ProrabProduct; compact?: boolean }) {
+  const st = useStoreTranslations();
+
     const qty = cartQty[product.id] || 0;
     const fav = favorites.includes(product.id);
     return (
@@ -355,7 +362,7 @@ export default function Prorab() {
             <Heart className={`h-4 w-4 ${fav ? 'fill-current' : ''}`} />
           </button>
           {product.is_popular && (
-            <span className="absolute top-2 left-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">ХИТ</span>
+            <span className="absolute top-2 left-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{st("ХИТ")}</span>
           )}
         </div>
         <div className="p-3 flex flex-col flex-1 gap-1">
@@ -370,8 +377,7 @@ export default function Prorab() {
             </div>
           ) : (
             <Button size="sm" className="mt-2 w-full bg-amber-600 hover:bg-amber-700" onClick={() => setQty(product.id, 1)}>
-              В корзину
-            </Button>
+               {st("В корзину")} </Button>
           )}
         </div>
       </div>
@@ -395,18 +401,17 @@ export default function Prorab() {
           <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
             <CheckCircle2 className="h-10 w-10 text-green-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Заказ №{confirmedOrder.id} принят!</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{st("Заказ №")}{confirmedOrder.id}  {st("принят!")}</h1>
           <p className="text-gray-600">
-            Сумма: <strong>{formatMoney(confirmedOrder.total)}</strong>
+             {st("Сумма:")} <strong>{formatMoney(confirmedOrder.total)}</strong>
           </p>
           <p className="text-gray-500 text-sm">
-            {settings.operator_note || 'Оператор перезвонит вам для уточнения деталей и согласования доставки.'}
+            {settings.operator_note || st("Оператор перезвонит вам для уточнения деталей и согласования доставки.")}
           </p>
           <div className="flex flex-col gap-3">
             <Button className="bg-amber-600 hover:bg-amber-700" onClick={() => setConfirmedOrder(null)}>
-              Продолжить покупки
-            </Button>
-            <Link to="/" className="text-sm text-gray-500 hover:text-gray-700">На главную</Link>
+               {st("Продолжить покупки")} </Button>
+            <Link to="/" className="text-sm text-gray-500 hover:text-gray-700">{st("На главную")}</Link>
           </div>
         </div>
       </Layout>
@@ -426,7 +431,7 @@ export default function Prorab() {
               </div>
               <div className="min-w-0">
                 <p className="font-bold text-gray-900 leading-tight truncate">{settings.store_name || 'PRORAB'}</p>
-                <p className="text-[11px] text-gray-500 truncate">{settings.store_tagline}</p>
+                <p className="text-[11px] text-gray-500 truncate">{(settings.store_tagline || st("магазин строительных материалов"))}</p>
               </div>
             </div>
             <button type="button" onClick={() => setActiveTab('cart')} className="relative p-2 text-amber-700">
@@ -445,7 +450,7 @@ export default function Prorab() {
           <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center">
             <div className="bg-white w-full sm:max-w-lg sm:rounded-2xl max-h-[92vh] overflow-y-auto">
               <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between">
-                <h2 className="font-bold text-lg">Оформление заказа</h2>
+                <h2 className="font-bold text-lg">{st("Оформление заказа")}</h2>
                 <button type="button" onClick={() => setCheckoutOpen(false)}><X className="h-5 w-5" /></button>
               </div>
               <div className="p-4 space-y-4">
@@ -462,12 +467,12 @@ export default function Prorab() {
                   variant="full"
                 />
                 <div className="space-y-3">
-                  <Input placeholder="Ваше имя *" value={name} onChange={(e) => setName(e.target.value)} />
-                  <Input placeholder="Телефон *" value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" />
-                  <Textarea placeholder="Комментарий к заказу" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} />
+                  <Input placeholder={st("Ваше имя *")} value={name} onChange={(e) => setName(e.target.value)} />
+                  <Input placeholder={st("Телефон *")} value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" />
+                  <Textarea placeholder={st("Комментарий к заказу")} value={comment} onChange={(e) => setComment(e.target.value)} rows={2} />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold mb-2">Способ оплаты</p>
+                  <p className="text-sm font-semibold mb-2">{st("Способ оплаты")}</p>
                   <div className="grid grid-cols-3 gap-2">
                     {(['cash', 'kaspi_qr', 'halyk_qr'] as const).map((m) => (
                       <button
@@ -478,24 +483,24 @@ export default function Prorab() {
                           payment === m ? 'border-amber-600 bg-amber-50 text-amber-800' : 'border-gray-200 text-gray-600'
                         }`}
                       >
-                        {PAYMENT_LABELS[m]}
+                        {st(PAYMENT_LABELS[m])}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
-                  <div className="flex justify-between"><span>Товары</span><span>{formatMoney(subtotal)}</span></div>
+                  <div className="flex justify-between"><span>{st("Товары")}</span><span>{formatMoney(subtotal)}</span></div>
                   <div className="flex justify-between">
-                    <span>Доставка</span>
+                    <span>{st("Доставка")}</span>
                     <span className={deliveryFee === 0 ? 'text-green-600 font-semibold' : ''}>
-                      {deliveryFee === 0 ? 'Бесплатно' : formatMoney(deliveryFee)}
+                      {deliveryFee === 0 ? st("Бесплатно") : formatMoney(deliveryFee)}
                     </span>
                   </div>
                   {amountToFree > 0 && (
-                    <p className="text-xs text-amber-700">Ещё {formatMoney(amountToFree)} до бесплатной доставки</p>
+                    <p className="text-xs text-amber-700">{st("Ещё")} {formatMoney(amountToFree)}  {st("до бесплатной доставки")}</p>
                   )}
                   <div className="flex justify-between font-bold text-base pt-2 border-t">
-                    <span>Итого</span><span>{formatMoney(total)}</span>
+                    <span>{st("Итого")}</span><span>{formatMoney(total)}</span>
                   </div>
                 </div>
                 <Button
@@ -503,11 +508,10 @@ export default function Prorab() {
                   disabled={submitting}
                   onClick={() => void submitOrder()}
                 >
-                  {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Подтвердить заказ'}
+                  {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : st("Подтвердить заказ")}
                 </Button>
                 <p className="text-xs text-center text-gray-500">
-                  После заказа оператор перезвонит для уточнения
-                </p>
+                   {st("После заказа оператор перезвонит для уточнения")} </p>
               </div>
             </div>
           </div>
@@ -528,21 +532,20 @@ export default function Prorab() {
                   <HardHat className="h-6 w-6 text-amber-400" />
                   <span className="text-amber-400 font-bold tracking-wider text-sm">{settings.store_name}</span>
                 </div>
-                <h1 className="text-xl sm:text-2xl font-bold leading-tight mb-2">{settings.hero_title}</h1>
-                <p className="text-white/80 text-sm mb-4">{settings.store_tagline}</p>
+                <h1 className="text-xl sm:text-2xl font-bold leading-tight mb-2">{(settings.hero_title || st("ДОСТАВКА СТРОИТЕЛЬНЫХ МАТЕРИАЛОВ ПО СОРТИРОВКЕ"))}</h1>
+                <p className="text-white/80 text-sm mb-4">{(settings.store_tagline || st("магазин строительных материалов"))}</p>
                 <div className="flex flex-wrap gap-2">
                   <span className="inline-flex items-center gap-1.5 bg-amber-500/90 text-white text-xs font-semibold px-3 py-1.5 rounded-full">
                     <Truck className="h-3.5 w-3.5" />
-                    Бесплатная доставка от {formatMoney(freeFrom)}
+                     {st("Бесплатная доставка от")} {formatMoney(freeFrom)}
                   </span>
                   <span className="inline-flex items-center gap-1.5 bg-white/20 text-white text-xs px-3 py-1.5 rounded-full">
                     <Clock className="h-3.5 w-3.5" />
-                    {settings.delivery_time}
+                    {(settings.delivery_time || st("Доставка в день заказа"))}
                   </span>
                   <span className="inline-flex items-center gap-1.5 bg-white/20 text-white text-xs px-3 py-1.5 rounded-full">
                     <MapPin className="h-3.5 w-3.5" />
-                    Сортировка, Караганда
-                  </span>
+                     {st("Сортировка, Караганда")} </span>
                 </div>
               </div>
             </section>
@@ -553,11 +556,11 @@ export default function Prorab() {
             <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl p-4 flex items-center gap-3">
               <Truck className="h-8 w-8 shrink-0 opacity-90" />
               <div>
-                <p className="font-bold">Доставка стройматериалов по Сортировке</p>
+                <p className="font-bold">{st("Доставка стройматериалов по Сортировке")}</p>
                 <p className="text-sm text-white/90">
                   {amountToFree > 0 && cartCount > 0
-                    ? `Добавьте ещё ${formatMoney(amountToFree)} — и доставка бесплатно!`
-                    : `Бесплатная доставка при заказе от ${formatMoney(freeFrom)}`}
+                    ? st("Добавьте ещё {0} — и доставка бесплатно!", [formatMoney(amountToFree)])
+                    : st("Бесплатная доставка при заказе от {0}", [formatMoney(freeFrom)])}
                 </p>
               </div>
             </div>
@@ -568,7 +571,7 @@ export default function Prorab() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Поиск: цемент, кирпич, доска..."
+                placeholder={st("Поиск: цемент, кирпич, доска...")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 rounded-xl border-gray-200"
@@ -581,7 +584,7 @@ export default function Prorab() {
             <>
               {categories.length > 0 && (
                 <section>
-                  <h2 className="font-bold text-gray-900 mb-3">Категории</h2>
+                  <h2 className="font-bold text-gray-900 mb-3">{st("Категории")}</h2>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {categories.map((cat) => (
                       <button
@@ -601,10 +604,9 @@ export default function Prorab() {
               {popularProducts.length > 0 && (
                 <section>
                   <div className="flex items-center justify-between mb-3">
-                    <h2 className="font-bold text-gray-900">Популярные товары</h2>
+                    <h2 className="font-bold text-gray-900">{st("Популярные товары")}</h2>
                     <button type="button" className="text-amber-600 text-sm font-medium" onClick={() => setActiveTab('catalog')}>
-                      Весь каталог →
-                    </button>
+                       {st("Весь каталог →")} </button>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {popularProducts.map((p) => <ProductCard key={p.id} product={p} />)}
@@ -617,7 +619,7 @@ export default function Prorab() {
                     <Phone className="h-5 w-5 text-amber-700" />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">Позвонить в магазин</p>
+                    <p className="font-semibold text-gray-900">{st("Позвонить в магазин")}</p>
                     <p className="text-amber-700 font-medium">{settings.store_phone}</p>
                   </div>
                 </a>
@@ -640,8 +642,7 @@ export default function Prorab() {
                   onClick={() => setSelectedCategory(null)}
                   className={`px-4 py-2 rounded-xl text-sm font-medium ${selectedCategory === null ? 'bg-amber-600 text-white' : 'bg-white border text-gray-700'}`}
                 >
-                  Все
-                </button>
+                   {st("Все")} </button>
                 {categories.map((cat) => (
                   <button
                     key={cat.id}
@@ -657,7 +658,7 @@ export default function Prorab() {
                 {filteredProducts.map((p) => <ProductCard key={p.id} product={p} />)}
               </div>
               {filteredProducts.length === 0 && (
-                <p className="text-center text-gray-500 py-12">Товары не найдены</p>
+                <p className="text-center text-gray-500 py-12">{st("Товары не найдены")}</p>
               )}
             </section>
           )}
@@ -668,10 +669,9 @@ export default function Prorab() {
               {cart.length === 0 ? (
                 <div className="text-center py-16 space-y-4">
                   <ShoppingCart className="h-16 w-16 text-gray-300 mx-auto" />
-                  <p className="text-gray-500">Корзина пуста</p>
+                  <p className="text-gray-500">{st("Корзина пуста")}</p>
                   <Button className="bg-amber-600 hover:bg-amber-700" onClick={() => setActiveTab('catalog')}>
-                    Перейти в каталог
-                  </Button>
+                     {st("Перейти в каталог")} </Button>
                 </div>
               ) : (
                 <>
@@ -691,20 +691,19 @@ export default function Prorab() {
                     </div>
                   ))}
                   <div className="bg-white rounded-2xl p-4 border border-gray-100 space-y-2">
-                    <div className="flex justify-between text-sm"><span>Товары</span><span>{formatMoney(subtotal)}</span></div>
+                    <div className="flex justify-between text-sm"><span>{st("Товары")}</span><span>{formatMoney(subtotal)}</span></div>
                     <div className="flex justify-between text-sm">
-                      <span>Доставка</span>
+                      <span>{st("Доставка")}</span>
                       <span className={deliveryFee === 0 && subtotal >= freeFrom ? 'text-green-600' : ''}>
-                        {subtotal >= freeFrom ? 'Бесплатно' : hasDeliveryZones ? 'по адресу' : formatMoney(Number(settings.delivery_fee || 0))}
+                        {subtotal >= freeFrom ? st("Бесплатно") : hasDeliveryZones ? st("по адресу") : formatMoney(Number(settings.delivery_fee || 0))}
                       </span>
                     </div>
                     <div className="flex justify-between font-bold text-lg pt-2 border-t">
-                      <span>Итого</span><span>{formatMoney(total)}</span>
+                      <span>{st("Итого")}</span><span>{formatMoney(total)}</span>
                     </div>
                   </div>
                   <Button className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-base font-semibold" onClick={() => setCheckoutOpen(true)}>
-                    Оформить заказ
-                  </Button>
+                     {st("Оформить заказ")} </Button>
                 </>
               )}
             </section>
@@ -714,7 +713,7 @@ export default function Prorab() {
           {activeTab === 'favorites' && (
             <section>
               {favoriteProducts.length === 0 ? (
-                <p className="text-center text-gray-500 py-16">Нет избранных товаров</p>
+                <p className="text-center text-gray-500 py-16">{st("Нет избранных товаров")}</p>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {favoriteProducts.map((p) => <ProductCard key={p.id} product={p} />)}

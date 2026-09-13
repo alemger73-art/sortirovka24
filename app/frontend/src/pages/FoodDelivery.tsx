@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { useEffect, useMemo, useState } from 'react';
 import Layout from '@/components/Layout';
 import SavedAddressBar from '@/components/SavedAddressBar';
@@ -134,6 +135,8 @@ function formatMoney(n: number) {
 }
 
 export default function FoodDelivery() {
+  const st = useStoreTranslations();
+
   const [loading, setLoading] = useState(true);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [categories, setCategories] = useState<FoodCategory[]>([]);
@@ -208,7 +211,7 @@ export default function FoodDelivery() {
       }
     } catch (e) {
       console.error(e);
-      toast.error('Не удалось загрузить каталог');
+      toast.error(st("Не удалось загрузить каталог"));
     } finally {
       setLoading(false);
     }
@@ -269,9 +272,9 @@ export default function FoodDelivery() {
 
   async function checkout() {
     if (!activeRestaurant) return;
-    if (!name.trim() || !phone.trim() || !address.trim()) return toast.error('Заполните имя, телефон и адрес');
+    if (!name.trim() || !phone.trim() || !address.trim()) return toast.error(st("Заполните имя, телефон и адрес"));
     if (subtotal < Number(activeRestaurant.min_order || 0))
-      return toast.error(`Минимальный заказ ${activeRestaurant.min_order} ₸`);
+      return toast.error(st("Минимальный заказ {0} ₸", [activeRestaurant.min_order]));
     const paymentLabel = payment === 'cash' ? 'Наличные' : payment === 'kaspi_qr' ? 'Kaspi QR' : 'Halyk QR';
     const items = cart.map(c => ({
       id: c.dish.id,
@@ -302,7 +305,7 @@ export default function FoodDelivery() {
       await client.entities.food_orders.create({ data: orderPayload as any });
     } catch (e) {
       console.error(e);
-      toast.error('Не удалось оформить заказ');
+      toast.error(st("Не удалось оформить заказ"));
       return;
     }
     const waPhone = String(activeRestaurant.whatsapp_phone || '').replace(/\D/g, '');
@@ -313,7 +316,7 @@ export default function FoodDelivery() {
     text += `\nИтого: ${total} ₸\nКлиент: ${name}\nТел: ${phone}\nАдрес: ${address}\nОплата: ${paymentLabel}`;
     if (comment.trim()) text += `\nКомментарий: ${comment}`;
     if (waPhone) window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(text)}`, '_blank');
-    else toast.info('WhatsApp ресторана не указан — заказ сохранён в системе');
+    else toast.info(st("WhatsApp ресторана не указан — заказ сохранён в системе"));
     setConfirmedOrder({
       restaurant: activeRestaurant,
       items,
@@ -377,15 +380,13 @@ export default function FoodDelivery() {
                 <CheckCircle2 className="h-8 w-8" strokeWidth={2.2} />
               </div>
               <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-                Заказ принят
-              </h1>
+                 {st("Заказ принят")} </h1>
               <p className="mt-2 max-w-sm text-sm text-slate-600 dark:text-slate-400">
-                Ресторан получит заявку. При оплате по QR покажите код курьеру или в заведении.
-              </p>
+                 {st("Ресторан получит заявку. При оплате по QR покажите код курьеру или в заведении.")} </p>
             </div>
 
             <div className="rounded-3xl border border-stone-200/80 bg-white p-5 shadow-xl shadow-stone-200/40 dark:border-gray-800 dark:bg-gray-900 dark:shadow-none">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Ресторан</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{st("Ресторан")}</p>
               <p className="mt-1 text-lg font-bold text-slate-900 dark:text-white">{confirmedOrder.restaurant.name}</p>
               <div className="mt-4 space-y-2 border-t border-stone-100 pt-4 text-sm dark:border-gray-800">
                 <p className="text-slate-700 dark:text-slate-300">
@@ -397,7 +398,7 @@ export default function FoodDelivery() {
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 opacity-60" />
                   {confirmedOrder.address}
                 </p>
-                <p className="font-medium text-slate-800 dark:text-slate-200">Оплата: {confirmedOrder.payment}</p>
+                <p className="font-medium text-slate-800 dark:text-slate-200">{st("Оплата:")} {st(confirmedOrder.payment)}</p>
                 <p className="text-xl font-extrabold text-slate-900 dark:text-white">
                   {formatMoney(confirmedOrder.total)}
                 </p>
@@ -406,9 +407,9 @@ export default function FoodDelivery() {
 
             {confirmedOrder.payment !== 'Наличные' && (
               <div className="rounded-3xl border border-stone-200/80 bg-white p-6 text-center shadow-lg dark:border-gray-800 dark:bg-gray-900">
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{confirmedOrder.payment}</p>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{st(confirmedOrder.payment)}</p>
                 <img src={qrUrl} alt="QR" className="mx-auto mt-4 h-52 w-52 rounded-2xl ring-1 ring-stone-100 dark:ring-gray-700" />
-                <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">Сохраните или покажите этот QR</p>
+                <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">{st("Сохраните или покажите этот QR")}</p>
               </div>
             )}
 
@@ -419,8 +420,7 @@ export default function FoodDelivery() {
                 setActiveRestaurant(restaurants.length === 1 ? restaurants[0] : null);
               }}
             >
-              Заказать ещё
-            </Button>
+               {st("Заказать ещё")} </Button>
           </div>
         </div>
       </Layout>
@@ -437,23 +437,19 @@ export default function FoodDelivery() {
           {restaurants.length === 0 ? (
             <div className="mt-8 rounded-3xl border border-dashed border-stone-300 bg-white/80 p-10 text-center dark:border-gray-700 dark:bg-gray-900/80">
               <Sparkles className="mx-auto h-10 w-10 text-emerald-500 opacity-80" />
-              <p className="mt-4 font-semibold text-slate-900 dark:text-white">Меню скоро появится</p>
+              <p className="mt-4 font-semibold text-slate-900 dark:text-white">{st("Меню скоро появится")}</p>
               <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                Добавьте рестораны и блюда в админ-панели в разделе «Еда».
-              </p>
+                 {st("Добавьте рестораны и блюда в админ-панели в разделе «Еда».")} </p>
             </div>
           ) : !activeRestaurant ? (
             <>
               <header className="pt-4 pb-2">
                 <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-                  Доставка
-                </p>
+                   {st("Доставка")} </p>
                 <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-                  DAM ALEM 2.0 и рестораны
-                </h1>
+                   {st("DAM ALEM 2.0 и рестораны")} </h1>
                 <p className="mt-2 max-w-md text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                  DAM ALEM 2.0 — доставка еды по Сортировке №1. Также доступны партнёрские заведения.
-                </p>
+                   {st("DAM ALEM 2.0 — доставка еды по Сортировке №1. Также доступны партнёрские заведения.")} </p>
               </header>
 
               <div className="-mx-4 mt-5 px-4">
@@ -470,7 +466,7 @@ export default function FoodDelivery() {
                           : 'border border-stone-200 bg-white text-slate-700 shadow-sm hover:border-stone-300 dark:border-gray-700 dark:bg-gray-900 dark:text-slate-200'
                       )}
                     >
-                      {c === 'all' ? 'Все кухни' : c}
+                      {c === 'all' ? st("Все кухни") : restaurants.length === 1 && restaurants[0].id === LEGACY_RESTAURANT_ID ? st('разное') : c}
                     </button>
                   ))}
                 </div>
@@ -495,8 +491,7 @@ export default function FoodDelivery() {
                         <div className="absolute right-3 top-3 flex flex-col items-end gap-1.5">
                           {isDamAlemRestaurant(r) && (
                             <span className="rounded-full bg-[#FF3B30] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
-                              ТОП
-                            </span>
+                               {st("ТОП")} </span>
                           )}
                           <div className="flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-slate-900 shadow-sm backdrop-blur-sm dark:bg-gray-900/90 dark:text-white">
                             <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
@@ -508,7 +503,7 @@ export default function FoodDelivery() {
                             {r.name}
                           </h2>
                           {r.cuisine_type ? (
-                            <p className="mt-0.5 text-sm font-medium text-white/90">{r.cuisine_type}</p>
+                            <p className="mt-0.5 text-sm font-medium text-white/90">{r.id === LEGACY_RESTAURANT_ID ? st('разное') : r.cuisine_type}</p>
                           ) : null}
                         </div>
                       </div>
@@ -520,7 +515,7 @@ export default function FoodDelivery() {
                           </span>
                         ) : null}
                         <span className="inline-flex items-center rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-gray-800 dark:text-slate-300">
-                          от {formatMoney(Number(r.min_order || 0))}
+                           {st("от")} {formatMoney(Number(r.min_order || 0))}
                         </span>
                       </div>
                     </article>
@@ -545,7 +540,7 @@ export default function FoodDelivery() {
                     type="button"
                     onClick={() => setActiveRestaurant(null)}
                     className="absolute left-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-slate-900 shadow-lg backdrop-blur-sm transition hover:bg-white dark:bg-gray-900/95 dark:text-white"
-                    aria-label="Назад"
+                    aria-label={st("Назад")}
                   >
                     <ChevronLeft className="h-6 w-6" />
                   </button>
@@ -559,7 +554,7 @@ export default function FoodDelivery() {
                 </h1>
                 {activeRestaurant.description ? (
                   <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                    {activeRestaurant.description}
+                    {activeRestaurant.id === LEGACY_RESTAURANT_ID ? st('Доставка еды по Сортировке №1') : activeRestaurant.description}
                   </p>
                 ) : null}
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -570,7 +565,7 @@ export default function FoodDelivery() {
                     </span>
                   ) : null}
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-gray-700 dark:bg-gray-800 dark:text-slate-300">
-                    Мин. заказ {formatMoney(Number(activeRestaurant.min_order || 0))}
+                     {st("Мин. заказ")} {formatMoney(Number(activeRestaurant.min_order || 0))}
                   </span>
                   {activeRestaurant.working_hours ? (
                     <span className="inline-flex items-center rounded-full border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-gray-700 dark:bg-gray-800 dark:text-slate-300">
@@ -581,7 +576,7 @@ export default function FoodDelivery() {
               </div>
 
               {groupedMenu.length === 0 ? (
-                <p className="mt-10 text-center text-slate-500 dark:text-slate-400">В этом ресторане пока нет блюд.</p>
+                <p className="mt-10 text-center text-slate-500 dark:text-slate-400">{st("В этом ресторане пока нет блюд.")}</p>
               ) : (
                 <div className="mt-8 space-y-10">
                   {groupedMenu.map(g => (
@@ -628,7 +623,7 @@ export default function FoodDelivery() {
                                         'absolute -bottom-1 -right-1 flex h-10 w-10 items-center justify-center rounded-full text-white shadow-lg transition active:scale-95',
                                         ACCENT.solid
                                       )}
-                                      aria-label="Добавить"
+                                      aria-label={st("Добавить")}
                                     >
                                       <Plus className="h-5 w-5" strokeWidth={2.5} />
                                     </button>
@@ -642,7 +637,7 @@ export default function FoodDelivery() {
                                         type="button"
                                         className="flex h-8 w-8 items-center justify-center rounded-full text-slate-700 hover:bg-stone-100 dark:text-slate-200 dark:hover:bg-gray-700"
                                         onClick={() => changeQty(d.id, -1)}
-                                        aria-label="Меньше"
+                                        aria-label={st("Меньше")}
                                       >
                                         <Minus className="h-4 w-4" />
                                       </button>
@@ -656,7 +651,7 @@ export default function FoodDelivery() {
                                           ACCENT.solid
                                         )}
                                         onClick={() => addDish(d)}
-                                        aria-label="Больше"
+                                        aria-label={st("Больше")}
                                       >
                                         <Plus className="h-4 w-4" />
                                       </button>
@@ -688,8 +683,8 @@ export default function FoodDelivery() {
                   <ShoppingBag className="h-5 w-5" />
                 </span>
                 <span>
-                  <span className="block text-sm font-medium text-white/80 dark:text-slate-600">Корзина</span>
-                  <span className="text-base font-bold">{cartCount} позиций</span>
+                  <span className="block text-sm font-medium text-white/80 dark:text-slate-600">{st("Корзина")}</span>
+                  <span className="text-base font-bold">{cartCount}  {st("позиций")}</span>
                 </span>
               </span>
               <span className="shrink-0 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-white dark:bg-emerald-600">
@@ -713,14 +708,14 @@ export default function FoodDelivery() {
             >
               <div className="flex shrink-0 items-center justify-between border-b border-stone-100 px-5 py-4 dark:border-gray-800">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Ваш заказ</p>
-                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">Корзина</h3>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{st("Ваш заказ")}</p>
+                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">{st("Корзина")}</h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => setCartOpen(false)}
                   className="flex h-10 w-10 items-center justify-center rounded-full bg-stone-100 text-slate-700 hover:bg-stone-200 dark:bg-gray-800 dark:text-slate-200"
-                  aria-label="Закрыть"
+                  aria-label={st("Закрыть")}
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -767,15 +762,15 @@ export default function FoodDelivery() {
                 </ul>
 
                 <div className="mt-6 space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Доставка</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{st("Доставка")}</p>
                   <Input
-                    placeholder="Имя"
+                    placeholder={st("Имя")}
                     value={name}
                     onChange={e => setName(e.target.value)}
                     className="h-12 rounded-xl border-stone-200 bg-white dark:border-gray-700 dark:bg-gray-900"
                   />
                   <Input
-                    placeholder="Телефон"
+                    placeholder={st("Телефон")}
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
                     className="h-12 rounded-xl border-stone-200 bg-white dark:border-gray-700 dark:bg-gray-900"
@@ -788,14 +783,14 @@ export default function FoodDelivery() {
                   <div className="relative">
                     <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <Input
-                      placeholder="Адрес доставки"
+                      placeholder={st("Адрес доставки")}
                       value={address}
                       onChange={e => setAddress(e.target.value)}
                       className="h-12 rounded-xl border-stone-200 bg-white pl-10 dark:border-gray-700 dark:bg-gray-900"
                     />
                   </div>
                   <Textarea
-                    placeholder="Комментарий к заказу"
+                    placeholder={st("Комментарий к заказу")}
                     value={comment}
                     onChange={e => setComment(e.target.value)}
                     className="min-h-[80px] rounded-xl border-stone-200 dark:border-gray-700 dark:bg-gray-900"
@@ -803,11 +798,11 @@ export default function FoodDelivery() {
                 </div>
 
                 <div className="mt-6">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Оплата</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{st("Оплата")}</p>
                   <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
                     {(
                       [
-                        { id: 'cash' as const, label: 'Наличные', Icon: Banknote },
+                        { id: 'cash' as const, label: st("Наличные"), Icon: Banknote },
                         { id: 'kaspi_qr' as const, label: 'Kaspi QR', Icon: Smartphone },
                         { id: 'halyk_qr' as const, label: 'Halyk QR', Icon: Smartphone },
                       ] as const
@@ -833,7 +828,7 @@ export default function FoodDelivery() {
 
               <div className="shrink-0 space-y-3 border-t border-stone-100 bg-white px-5 py-5 dark:border-gray-800 dark:bg-gray-900">
                 <div className="flex items-center justify-between text-slate-900 dark:text-white">
-                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">К оплате</span>
+                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">{st("К оплате")}</span>
                   <span className="text-xl font-extrabold">{formatMoney(subtotal)}</span>
                 </div>
                 <Button
@@ -842,8 +837,7 @@ export default function FoodDelivery() {
                   onClick={checkout}
                 >
                   <Store className="mr-2 h-5 w-5 opacity-90" />
-                  Оформить заказ
-                </Button>
+                   {st("Оформить заказ")} </Button>
               </div>
             </div>
           </div>

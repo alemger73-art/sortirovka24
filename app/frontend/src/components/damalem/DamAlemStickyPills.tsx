@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { useEffect, useRef } from 'react';
 
 export interface StickyPill {
@@ -28,11 +29,14 @@ export default function DamAlemStickyPills({
   searchValue = '',
   onSearchChange,
   onToggleSearch,
-  searchPlaceholder = 'Поиск…',
+  searchPlaceholder: providedSearchPlaceholder,
   cartCount = 0,
   onOpenCart,
   id,
 }: Props) {
+  const st = useStoreTranslations();
+  const searchPlaceholder = providedSearchPlaceholder ?? st("Поиск…");
+
   const scrollerRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
 
@@ -58,8 +62,7 @@ export default function DamAlemStickyPills({
             onClick={onToggleSearch}
             className="shrink-0 rounded-xl px-3 py-2.5 text-sm font-semibold text-zinc-600"
           >
-            Готово
-          </button>
+             {st("Готово")} </button>
         </div>
       ) : (
         <div className="flex items-center gap-2">
@@ -84,7 +87,7 @@ export default function DamAlemStickyPills({
               type="button"
               onClick={onToggleSearch}
               className="dam-sticky-pills__icon-btn"
-              aria-label="Поиск"
+              aria-label={st("Поиск")}
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
@@ -96,7 +99,7 @@ export default function DamAlemStickyPills({
               type="button"
               onClick={onOpenCart}
               className={`dam-sticky-pills__icon-btn relative ${cartCount > 0 ? 'dam-sticky-pills__icon-btn--accent' : ''}`}
-              aria-label="Корзина"
+              aria-label={st("Корзина")}
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l3-8H6.4M7 13L5.4 5M7 13l-2 9h14M10 21a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z" />

@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { Clock, Truck, UtensilsCrossed } from 'lucide-react';
 
 interface Props {
@@ -16,12 +17,14 @@ export default function DamAlemStatusStrip({
   freeDeliveryLabel,
   offerLabel,
 }: Props) {
+  const st = useStoreTranslations();
+
   if (!kitchenOpen) {
     return (
       <div className="dam-status-strip dam-status-strip--closed" role="status">
         <UtensilsCrossed className="h-4 w-4 shrink-0" />
         <p className="min-w-0 truncate text-sm font-semibold">
-          {kitchenMessage || 'Кухня закрыта · приём заказов недоступен'}
+          {kitchenMessage || st("Кухня закрыта · приём заказов недоступен")}
         </p>
       </div>
     );

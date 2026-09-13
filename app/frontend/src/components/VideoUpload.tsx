@@ -61,7 +61,7 @@ export default function VideoUpload({ value, onChange, folder = 'general', class
     } finally {
       setUploading(false);
     }
-  }, [folder, onChange]);
+  }, [folder, onChange, publicT]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

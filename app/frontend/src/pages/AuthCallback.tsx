@@ -1,8 +1,10 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect } from 'react';
 import { client } from '../lib/api';
 import Layout from '@/components/Layout';
 
 export default function AuthCallback() {
+  const { t: coverageT } = useLanguage();
   useEffect(() => {
     client.auth.login();
   }, []);
@@ -12,7 +14,7 @@ export default function AuthCallback() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Processing authentication...</p>
+          <p className="text-gray-600">{coverageT("public.coverage.authProcessing")}</p>
         </div>
       </div>
     </Layout>

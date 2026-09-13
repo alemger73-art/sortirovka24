@@ -1,3 +1,4 @@
+import { getPublicLocale } from '@/i18n/publicLocale';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -35,7 +36,7 @@ const STORE_STATUS: Record<string, { key: string; color: string }> = {
 function formatOrderDate(raw?: string | null) {
   if (!raw || Number.isNaN(new Date(raw).getTime())) return '';
   try {
-    return new Date(raw).toLocaleString('ru-RU', {
+    return new Date(raw).toLocaleString(getPublicLocale(), {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
@@ -156,7 +157,7 @@ export default function CabinetOrderDetail() {
               </div>
 
               <p className="mt-4 text-2xl font-bold text-amber-600 dark:text-yellow-300">
-                {Number(order.amount || 0).toLocaleString('ru-RU')} ₸
+                {Number(order.amount || 0).toLocaleString(getPublicLocale())} ₸
               </p>
 
               <div className="mt-5 flex flex-wrap gap-2">
@@ -185,7 +186,7 @@ export default function CabinetOrderDetail() {
 
             {items.length > 0 && (
               <div className="rounded-2xl border bg-white p-6 shadow-sm dark:bg-gray-900 dark:border-gray-800">
-                <h2 className="font-bold text-gray-900 dark:text-white mb-3">Состав заказа</h2>
+                <h2 className="font-bold text-gray-900 dark:text-white mb-3">{publicT("public.extra.4")}</h2>
                 <ul className="space-y-2">
                   {items.map((item, idx) => {
                     const name = String(item.name || item.title || publicT("public.CabinetOrderDetail.text48"));
@@ -195,7 +196,7 @@ export default function CabinetOrderDetail() {
                       <li key={idx} className="flex justify-between gap-3 text-sm border-b border-gray-100 dark:border-gray-800 pb-2 last:border-0">
                         <span className="text-gray-800 dark:text-slate-200">{name} × {qty}</span>
                         {price > 0 ? (
-                          <span className="font-semibold shrink-0">{price.toLocaleString('ru-RU')} ₸</span>
+                          <span className="font-semibold shrink-0">{price.toLocaleString(getPublicLocale())} ₸</span>
                         ) : null}
                       </li>
                     );

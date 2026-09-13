@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { Plus, Trash2, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +10,8 @@ interface Props {
 }
 
 export default function FoodPromoCodesEditor({ codes, onChange }: Props) {
+  const st = useStoreTranslations();
+
   function update(idx: number, patch: Partial<FoodPromoCode>) {
     onChange(codes.map((c, i) => (i === idx ? { ...c, ...patch } : c)));
   }
@@ -17,14 +20,12 @@ export default function FoodPromoCodesEditor({ codes, onChange }: Props) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold flex items-center gap-2">
-          <Tag className="h-4 w-4" /> Промокоды
-        </p>
+          <Tag className="h-4 w-4" />  {st("Промокоды")} </p>
         <Button type="button" size="sm" variant="outline" onClick={() => onChange([...codes, newPromoCode()])}>
-          <Plus className="h-4 w-4 mr-1" /> Добавить
-        </Button>
+          <Plus className="h-4 w-4 mr-1" />  {st("Добавить")} </Button>
       </div>
       {codes.length === 0 ? (
-        <p className="text-xs text-gray-500">Нет промокодов. Клиент вводит код при оформлении заказа.</p>
+        <p className="text-xs text-gray-500">{st("Нет промокодов. Клиент вводит код при оформлении заказа.")}</p>
       ) : (
         codes.map((code, idx) => (
           <div key={idx} className="rounded-xl border border-gray-200 p-3 space-y-2 bg-gray-50/50">
@@ -32,7 +33,7 @@ export default function FoodPromoCodesEditor({ codes, onChange }: Props) {
               <Input
                 value={code.code}
                 onChange={(e) => update(idx, { code: e.target.value.toUpperCase() })}
-                placeholder="Код (DAMALEM10)"
+                placeholder={st("Код (DAMALEM10)")}
                 className="h-9 font-mono uppercase"
               />
               <select
@@ -40,9 +41,9 @@ export default function FoodPromoCodesEditor({ codes, onChange }: Props) {
                 onChange={(e) => update(idx, { type: e.target.value as FoodPromoCode['type'] })}
                 className="h-9 rounded-md border border-input bg-background px-2 text-sm"
               >
-                <option value="percent">Процент %</option>
-                <option value="fixed">Фикс. сумма ₸</option>
-                <option value="free_delivery">Бесплатная доставка</option>
+                <option value="percent">{st("Процент %")}</option>
+                <option value="fixed">{st("Фикс. сумма ₸")}</option>
+                <option value="free_delivery">{st("Бесплатная доставка")}</option>
               </select>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -59,7 +60,7 @@ export default function FoodPromoCodesEditor({ codes, onChange }: Props) {
                 type="number"
                 value={code.min_order ?? ''}
                 onChange={(e) => update(idx, { min_order: Number(e.target.value) || 0 })}
-                placeholder="Мин. заказ ₸"
+                placeholder={st("Мин. заказ ₸")}
                 className="h-9"
               />
             </div>
@@ -69,14 +70,13 @@ export default function FoodPromoCodesEditor({ codes, onChange }: Props) {
                 min={0}
                 value={code.max_discount ?? ''}
                 onChange={(e) => update(idx, { max_discount: Number(e.target.value) || undefined })}
-                placeholder="Максимальная скидка, ₸ (без лимита)"
+                placeholder={st("Максимальная скидка, ₸ (без лимита)")}
                 className="h-9"
               />
             )}
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <label className="text-[11px] text-gray-500">
-                Действует с
-                <Input
+                 {st("Действует с")} <Input
                   type="date"
                   value={code.valid_from || ''}
                   onChange={(e) => update(idx, { valid_from: e.target.value || undefined })}
@@ -84,8 +84,7 @@ export default function FoodPromoCodesEditor({ codes, onChange }: Props) {
                 />
               </label>
               <label className="text-[11px] text-gray-500">
-                Действует до
-                <Input
+                 {st("Действует до")} <Input
                   type="date"
                   value={code.valid_until || ''}
                   onChange={(e) => update(idx, { valid_until: e.target.value || undefined })}
@@ -96,7 +95,7 @@ export default function FoodPromoCodesEditor({ codes, onChange }: Props) {
             <Input
               value={code.label || ''}
               onChange={(e) => update(idx, { label: e.target.value })}
-              placeholder="Подпись для клиента (необяз.)"
+              placeholder={st("Подпись для клиента (необяз.)")}
               className="h-9"
             />
             <div className="flex items-center justify-between">
@@ -106,8 +105,7 @@ export default function FoodPromoCodesEditor({ codes, onChange }: Props) {
                   checked={code.active !== false}
                   onChange={(e) => update(idx, { active: e.target.checked })}
                 />
-                Активен
-              </label>
+                 {st("Активен")} </label>
               <Button type="button" size="sm" variant="ghost" className="text-red-600 h-8" onClick={() => onChange(codes.filter((_, i) => i !== idx))}>
                 <Trash2 className="h-4 w-4" />
               </Button>

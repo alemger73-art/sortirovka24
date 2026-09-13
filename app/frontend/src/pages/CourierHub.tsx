@@ -1,3 +1,4 @@
+import { getPublicCategoryLabel } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -162,7 +163,7 @@ export default function CourierHub() {
               <p className="text-gray-500 mt-2">
                 {publicT("public.CourierHub.text159")} </p>
               <p className="text-sm text-gray-400 mt-4">
-                {form.full_name} · {VEHICLE_OPTIONS.find((v) => v.id === form.vehicle_type)?.label}
+                {form.full_name} · {getPublicCategoryLabel(VEHICLE_OPTIONS.find((v) => v.id === form.vehicle_type)?.label, publicT)}
               </p>
             </div>
           ) : application?.status === 'rejected' ? (
@@ -219,7 +220,7 @@ export default function CourierHub() {
                           }`}
                         >
                           <Icon className="h-5 w-5 mx-auto mb-1" />
-                          {label}
+                          {getPublicCategoryLabel(label, publicT)}
                         </button>
                       ))}
                     </div>

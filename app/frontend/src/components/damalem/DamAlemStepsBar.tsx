@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { MapPin, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 
 interface Props {
@@ -12,6 +13,7 @@ const STEPS = [
 ];
 
 export default function DamAlemStepsBar({ step, cartCount = 0 }: Props) {
+  const st = useStoreTranslations();
   return (
     <div className="dam-steps">
       {STEPS.map(({ n, label, Icon }, i) => {
@@ -26,7 +28,7 @@ export default function DamAlemStepsBar({ step, cartCount = 0 }: Props) {
                 <span className="dam-steps__badge">{cartCount > 9 ? '9+' : cartCount}</span>
               ) : null}
             </div>
-            <span className={`dam-steps__label ${active ? 'dam-steps__label--active' : ''}`}>{label}</span>
+            <span className={`dam-steps__label ${active ? 'dam-steps__label--active' : ''}`}>{st(label)}</span>
           </div>
         );
       })}

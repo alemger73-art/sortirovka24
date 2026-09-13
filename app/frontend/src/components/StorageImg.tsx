@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 /**
  * Optimized image component for public-facing pages.
  *
@@ -39,6 +40,7 @@ const StorageImg = memo(function StorageImg({
   showBrokenIndicator = false,
   priority = false,
 }: StorageImgProps) {
+  const { t: publicT } = useLanguage();
   // Both `src` and `objectKey` may contain either a direct URL or a storage
   // object key. Resolve them uniformly so an object key passed via `src`
   // (common in admin/cabinet code) still renders instead of breaking.
@@ -135,7 +137,7 @@ const StorageImg = memo(function StorageImg({
         {showBrokenIndicator ? (
           <div className="flex flex-col items-center gap-1 text-gray-300">
             <ImageOff className="h-5 w-5" />
-            <span className="text-[9px] font-medium">Фото недоступно</span>
+            <span className="text-[9px] font-medium">{publicT("public.image.unavailable")}</span>
           </div>
         ) : (
           <ImageIcon className="h-6 w-6 text-gray-300" />

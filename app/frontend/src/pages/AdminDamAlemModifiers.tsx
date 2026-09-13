@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useMemo, useState } from 'react';
 import { client, withRetry } from '@/lib/api';
 import { invalidateAllCaches } from '@/lib/cache';
@@ -44,13 +45,19 @@ interface FoodItem {
   restaurant_id?: number | null;
 }
 
-const GROUP_TYPES = [
-  { value: 'single', label: 'Один вариант' },
-  { value: 'multiple', label: 'Несколько' },
-  { value: 'quantity', label: 'Количество' },
+function getGROUP_TYPES(adminT: (key: string) => string) {
+  const GROUP_TYPES = [
+  { value: 'single', label: adminT("admin.ui.0341") },
+  { value: 'multiple', label: adminT("admin.ui.0342") },
+  { value: 'quantity', label: adminT("admin.ui.0343") },
 ];
+  return GROUP_TYPES;
+}
 
 export default function AdminDamAlemModifiers() {
+  const { t: adminT } = useLanguage();
+  const GROUP_TYPES = getGROUP_TYPES(adminT);
+
   const [groups, setGroups] = useState<ModifierGroup[]>([]);
   const [options, setOptions] = useState<ModifierOption[]>([]);
   const [links, setLinks] = useState<ItemLink[]>([]);
@@ -87,7 +94,7 @@ export default function AdminDamAlemModifiers() {
       );
     } catch (e) {
       console.error(e);
-      toast.error('Ошибка загрузки модификаторов');
+      toast.error(adminT("admin.ui.0344"));
     } finally {
       setLoading(false);
     }
@@ -119,7 +126,7 @@ export default function AdminDamAlemModifiers() {
 
   async function saveGroup() {
     if (!groupDialog?.name?.trim()) {
-      toast.error('Введите название группы');
+      toast.error(adminT("admin.ui.0345"));
       return;
     }
     setSaving(true);
@@ -140,19 +147,19 @@ export default function AdminDamAlemModifiers() {
           data: { ...data, created_at: new Date().toISOString() },
         }));
       }
-      toast.success('Группа сохранена');
+      toast.success(adminT("admin.ui.0346"));
       invalidateAllCaches();
       setGroupDialog(null);
       await load();
     } catch {
-      toast.error('Ошибка сохранения');
+      toast.error(adminT("admin.ui.0055"));
     } finally {
       setSaving(false);
     }
   }
 
   async function deleteGroup(id: number) {
-    if (!confirm('Удалить группу и все её опции?')) return;
+    if (!confirm(adminT("admin.ui.0347"))) return;
     try {
       const groupOptions = options.filter(o => o.group_id === id);
       for (const o of groupOptions) {
@@ -163,17 +170,17 @@ export default function AdminDamAlemModifiers() {
         await withRetry(() => client.entities.item_modifier_groups.delete({ id: String(l.id) }));
       }
       await withRetry(() => client.entities.modifier_groups.delete({ id: String(id) }));
-      toast.success('Удалено');
+      toast.success(adminT("admin.ui.0050"));
       invalidateAllCaches();
       await load();
     } catch {
-      toast.error('Ошибка удаления');
+      toast.error(adminT("admin.ui.0051"));
     }
   }
 
   async function saveOption() {
     if (!optionDialog?.data.name?.trim()) {
-      toast.error('Введите название опции');
+      toast.error(adminT("admin.ui.0348"));
       return;
     }
     setSaving(true);
@@ -193,37 +200,37 @@ export default function AdminDamAlemModifiers() {
           data: { ...payload, created_at: new Date().toISOString() },
         }));
       }
-      toast.success('Опция сохранена');
+      toast.success(adminT("admin.ui.0349"));
       invalidateAllCaches();
       setOptionDialog(null);
       await load();
     } catch {
-      toast.error('Ошибка сохранения');
+      toast.error(adminT("admin.ui.0055"));
     } finally {
       setSaving(false);
     }
   }
 
   async function deleteOption(id: number) {
-    if (!confirm('Удалить опцию?')) return;
+    if (!confirm(adminT("admin.ui.0350"))) return;
     try {
       await withRetry(() => client.entities.modifier_options.delete({ id: String(id) }));
-      toast.success('Удалено');
+      toast.success(adminT("admin.ui.0050"));
       invalidateAllCaches();
       await load();
     } catch {
-      toast.error('Ошибка удаления');
+      toast.error(adminT("admin.ui.0051"));
     }
   }
 
   async function addLink() {
     if (!linkDialog?.itemId) {
-      toast.error('Выберите блюдо');
+      toast.error(adminT("admin.ui.0351"));
       return;
     }
     const foodItemId = parseInt(linkDialog.itemId, 10);
     if (links.some(l => l.modifier_group_id === linkDialog.groupId && l.food_item_id === foodItemId)) {
-      toast.error('Эта группа уже привязана к блюду');
+      toast.error(adminT("admin.ui.0352"));
       return;
     }
     setSaving(true);
@@ -236,12 +243,12 @@ export default function AdminDamAlemModifiers() {
           created_at: new Date().toISOString(),
         },
       }));
-      toast.success('Привязка добавлена');
+      toast.success(adminT("admin.ui.0353"));
       invalidateAllCaches();
       setLinkDialog(null);
       await load();
     } catch {
-      toast.error('Ошибка привязки');
+      toast.error(adminT("admin.ui.0354"));
     } finally {
       setSaving(false);
     }
@@ -253,7 +260,7 @@ export default function AdminDamAlemModifiers() {
       invalidateAllCaches();
       await load();
     } catch {
-      toast.error('Ошибка удаления привязки');
+      toast.error(adminT("admin.ui.0355"));
     }
   }
 
@@ -269,24 +276,21 @@ export default function AdminDamAlemModifiers() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg font-bold text-gray-900">Модификаторы блюд</h3>
+          <h3 className="text-lg font-bold text-gray-900">{adminT("admin.ui.0356")}</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Группы опций (размер, добавки) и привязка к блюдам DAM ALEM 2.0
-          </p>
+            {adminT("admin.ui.0357")} </p>
         </div>
         <Button
           size="sm"
-          className="bg-[#FF3B30] hover:bg-[#e8352b]"
+          className="bg-[#FF3B30] hover:bg-[#e8352b] text-white"
           onClick={() => setGroupDialog({ name: '', type: 'single', is_required: false, min_select: 0, max_select: 1, is_active: true })}
         >
-          <Plus className="mr-1 h-4 w-4" /> Группа
-        </Button>
+          <Plus className="mr-1 h-4 w-4" /> {adminT("admin.ui.0358")} </Button>
       </div>
 
       {groups.length === 0 ? (
         <div className="rounded-2xl border border-dashed p-10 text-center text-gray-500">
-          Нет групп модификаторов. Создайте первую — например «Размер пиццы» или «Добавки».
-        </div>
+          {adminT("admin.ui.0359")} </div>
       ) : (
         <div className="space-y-3">
           {groups.map(group => {
@@ -302,13 +306,12 @@ export default function AdminDamAlemModifiers() {
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-gray-900">{group.name}</span>
-                      {group.is_active === false && <Badge variant="destructive" className="text-xs">Неактивна</Badge>}
-                      {group.is_required && <Badge className="bg-orange-100 text-orange-800 text-xs">Обязательная</Badge>}
+                      {group.is_active === false && <Badge variant="destructive" className="text-xs">{adminT("admin.ui.0360")}</Badge>}
+                      {group.is_required && <Badge className="bg-orange-100 text-orange-800 text-xs">{adminT("admin.ui.0361")}</Badge>}
                       <Badge variant="outline" className="text-xs">{GROUP_TYPES.find(t => t.value === group.type)?.label || group.type}</Badge>
                     </div>
                     <p className="mt-0.5 text-xs text-gray-400">
-                      {groupOptions.length} опций · {groupLinks.length} блюд
-                    </p>
+                      {groupOptions.length} {adminT("admin.ui.0362")} {groupLinks.length} {adminT("admin.ui.0363")} </p>
                   </div>
                   <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                     <Button size="sm" variant="ghost" onClick={() => setGroupDialog({ ...group })}>
@@ -325,17 +328,16 @@ export default function AdminDamAlemModifiers() {
                   <div className="border-t bg-gray-50/50 p-4 space-y-4">
                     <div>
                       <div className="mb-2 flex items-center justify-between">
-                        <span className="text-sm font-semibold text-gray-700">Опции</span>
+                        <span className="text-sm font-semibold text-gray-700">{adminT("admin.ui.0243")}</span>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => setOptionDialog({ groupId: group.id, data: { name: '', price: 0, is_active: true } })}
                         >
-                          <Plus className="mr-1 h-3 w-3" /> Опция
-                        </Button>
+                          <Plus className="mr-1 h-3 w-3" /> {adminT("admin.ui.0364")} </Button>
                       </div>
                       {groupOptions.length === 0 ? (
-                        <p className="text-xs text-gray-400">Нет опций</p>
+                        <p className="text-xs text-gray-400">{adminT("admin.ui.0365")}</p>
                       ) : (
                         <div className="space-y-1.5">
                           {groupOptions.map(opt => (
@@ -361,14 +363,12 @@ export default function AdminDamAlemModifiers() {
                     <div>
                       <div className="mb-2 flex items-center justify-between">
                         <span className="text-sm font-semibold text-gray-700 flex items-center gap-1">
-                          <Link2 className="h-3.5 w-3.5" /> Привязка к блюдам
-                        </span>
+                          <Link2 className="h-3.5 w-3.5" /> {adminT("admin.ui.0366")} </span>
                         <Button size="sm" variant="outline" onClick={() => setLinkDialog({ groupId: group.id, itemId: '' })}>
-                          <Plus className="mr-1 h-3 w-3" /> Блюдо
-                        </Button>
+                          <Plus className="mr-1 h-3 w-3" /> {adminT("admin.ui.0367")} </Button>
                       </div>
                       {groupLinks.length === 0 ? (
-                        <p className="text-xs text-gray-400">Не привязано ни к одному блюду</p>
+                        <p className="text-xs text-gray-400">{adminT("admin.ui.0368")}</p>
                       ) : (
                         <div className="flex flex-wrap gap-2">
                           {groupLinks.map(link => (
@@ -391,10 +391,10 @@ export default function AdminDamAlemModifiers() {
       {/* Group dialog */}
       <Dialog open={!!groupDialog} onOpenChange={open => !open && setGroupDialog(null)}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{groupDialog?.id ? 'Редактировать группу' : 'Новая группа'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{groupDialog?.id ? adminT("admin.ui.0369") : adminT("admin.ui.0370")}</DialogTitle></DialogHeader>
           {groupDialog && (
             <div className="space-y-3">
-              <Input placeholder="Название *" value={groupDialog.name || ''} onChange={e => setGroupDialog({ ...groupDialog, name: e.target.value })} />
+              <Input placeholder={adminT("admin.ui.0077")} value={groupDialog.name || ''} onChange={e => setGroupDialog({ ...groupDialog, name: e.target.value })} />
               <Select value={groupDialog.type || 'single'} onValueChange={v => setGroupDialog({ ...groupDialog, type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -402,23 +402,20 @@ export default function AdminDamAlemModifiers() {
                 </SelectContent>
               </Select>
               <div className="grid grid-cols-2 gap-2">
-                <Input type="number" placeholder="Мин. выбор" value={groupDialog.min_select ?? ''} onChange={e => setGroupDialog({ ...groupDialog, min_select: parseInt(e.target.value) || 0 })} />
-                <Input type="number" placeholder="Макс. выбор" value={groupDialog.max_select ?? ''} onChange={e => setGroupDialog({ ...groupDialog, max_select: parseInt(e.target.value) || 1 })} />
+                <Input type="number" placeholder={adminT("admin.ui.0371")} value={groupDialog.min_select ?? ''} onChange={e => setGroupDialog({ ...groupDialog, min_select: parseInt(e.target.value) || 0 })} />
+                <Input type="number" placeholder={adminT("admin.ui.0372")} value={groupDialog.max_select ?? ''} onChange={e => setGroupDialog({ ...groupDialog, max_select: parseInt(e.target.value) || 1 })} />
               </div>
-              <Input type="number" placeholder="Порядок" value={groupDialog.sort_order ?? ''} onChange={e => setGroupDialog({ ...groupDialog, sort_order: parseInt(e.target.value) || 0 })} />
+              <Input type="number" placeholder={adminT("admin.ui.0216")} value={groupDialog.sort_order ?? ''} onChange={e => setGroupDialog({ ...groupDialog, sort_order: parseInt(e.target.value) || 0 })} />
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={groupDialog.is_required ?? false} onChange={e => setGroupDialog({ ...groupDialog, is_required: e.target.checked })} />
-                Обязательный выбор
-              </label>
+                {adminT("admin.ui.0373")} </label>
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={groupDialog.is_active !== false} onChange={e => setGroupDialog({ ...groupDialog, is_active: e.target.checked })} />
-                Активна
-              </label>
+                {adminT("admin.ui.0185")} </label>
               <div className="flex gap-2 pt-2">
-                <Button variant="outline" className="flex-1" onClick={() => setGroupDialog(null)}>Отмена</Button>
-                <Button className="flex-1 bg-[#FF3B30] hover:bg-[#e8352b]" disabled={saving} onClick={saveGroup}>
-                  {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} Сохранить
-                </Button>
+                <Button variant="outline" className="flex-1" onClick={() => setGroupDialog(null)}>{adminT("admin.ui.0095")}</Button>
+                <Button className="flex-1 bg-[#FF3B30] hover:bg-[#e8352b] text-white" disabled={saving} onClick={saveGroup}>
+                  {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} {adminT("admin.ui.0096")} </Button>
               </div>
             </div>
           )}
@@ -428,18 +425,17 @@ export default function AdminDamAlemModifiers() {
       {/* Option dialog */}
       <Dialog open={!!optionDialog} onOpenChange={open => !open && setOptionDialog(null)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>{optionDialog?.data.id ? 'Редактировать опцию' : 'Новая опция'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{optionDialog?.data.id ? adminT("admin.ui.0374") : adminT("admin.ui.0375")}</DialogTitle></DialogHeader>
           {optionDialog && (
             <div className="space-y-3">
-              <Input placeholder="Название *" value={optionDialog.data.name || ''} onChange={e => setOptionDialog({ ...optionDialog, data: { ...optionDialog.data, name: e.target.value } })} />
-              <Input type="number" placeholder="Доп. цена (₸)" value={optionDialog.data.price ?? ''} onChange={e => setOptionDialog({ ...optionDialog, data: { ...optionDialog.data, price: parseFloat(e.target.value) || 0 } })} />
+              <Input placeholder={adminT("admin.ui.0077")} value={optionDialog.data.name || ''} onChange={e => setOptionDialog({ ...optionDialog, data: { ...optionDialog.data, name: e.target.value } })} />
+              <Input type="number" placeholder={adminT("admin.ui.0376")} value={optionDialog.data.price ?? ''} onChange={e => setOptionDialog({ ...optionDialog, data: { ...optionDialog.data, price: parseFloat(e.target.value) || 0 } })} />
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={optionDialog.data.is_active !== false} onChange={e => setOptionDialog({ ...optionDialog, data: { ...optionDialog.data, is_active: e.target.checked } })} />
-                Активна
-              </label>
+                {adminT("admin.ui.0185")} </label>
               <div className="flex gap-2 pt-2">
-                <Button variant="outline" className="flex-1" onClick={() => setOptionDialog(null)}>Отмена</Button>
-                <Button className="flex-1 bg-[#FF3B30] hover:bg-[#e8352b]" disabled={saving} onClick={saveOption}>Сохранить</Button>
+                <Button variant="outline" className="flex-1" onClick={() => setOptionDialog(null)}>{adminT("admin.ui.0095")}</Button>
+                <Button className="flex-1 bg-[#FF3B30] hover:bg-[#e8352b] text-white" disabled={saving} onClick={saveOption}>{adminT("admin.ui.0096")}</Button>
               </div>
             </div>
           )}
@@ -449,11 +445,11 @@ export default function AdminDamAlemModifiers() {
       {/* Link dialog */}
       <Dialog open={!!linkDialog} onOpenChange={open => !open && setLinkDialog(null)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Привязать к блюду</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{adminT("admin.ui.0377")}</DialogTitle></DialogHeader>
           {linkDialog && (
             <div className="space-y-3">
               <Select value={linkDialog.itemId} onValueChange={v => setLinkDialog({ ...linkDialog, itemId: v })}>
-                <SelectTrigger><SelectValue placeholder="Выберите блюдо" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={adminT("admin.ui.0351")} /></SelectTrigger>
                 <SelectContent>
                   {items.map(item => (
                     <SelectItem key={item.id} value={String(item.id)}>{item.name}</SelectItem>
@@ -461,8 +457,8 @@ export default function AdminDamAlemModifiers() {
                 </SelectContent>
               </Select>
               <div className="flex gap-2 pt-2">
-                <Button variant="outline" className="flex-1" onClick={() => setLinkDialog(null)}>Отмена</Button>
-                <Button className="flex-1 bg-[#FF3B30] hover:bg-[#e8352b]" disabled={saving} onClick={addLink}>Привязать</Button>
+                <Button variant="outline" className="flex-1" onClick={() => setLinkDialog(null)}>{adminT("admin.ui.0095")}</Button>
+                <Button className="flex-1 bg-[#FF3B30] hover:bg-[#e8352b] text-white" disabled={saving} onClick={addLink}>{adminT("admin.ui.0378")}</Button>
               </div>
             </div>
           )}

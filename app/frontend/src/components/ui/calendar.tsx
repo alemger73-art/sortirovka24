@@ -1,3 +1,5 @@
+import { useLanguage } from '@/contexts/LanguageContext';
+import { kk, ru } from 'date-fns/locale';
 import * as React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { DayPicker } from 'react-day-picker';
@@ -11,11 +13,23 @@ function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  locale,
+  labels,
   ...props
 }: CalendarProps) {
+  const { lang, t } = useLanguage();
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
+      locale={locale ?? (lang === 'kz' ? kk : ru)}
+      labels={{
+        labelPrevious: () => t('public.calendar.previousMonth'),
+        labelNext: () => t('public.calendar.nextMonth'),
+        labelMonthDropdown: () => t('public.calendar.month'),
+        labelYearDropdown: () => t('public.calendar.year'),
+        labelWeekNumber: (week) => t('public.calendar.week').replace('{week}', String(week)),
+        ...labels,
+      }}
       className={cn('p-3', className)}
       classNames={{
         months: 'flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0',

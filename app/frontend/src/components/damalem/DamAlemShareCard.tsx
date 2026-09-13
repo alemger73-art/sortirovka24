@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { MessageCircle, Share2 } from 'lucide-react';
 import { DAM_ALEM_BRAND } from '@/lib/damAlem';
 import { REFERRAL_SHARE_MESSAGE } from '@/lib/damAlemMarketing';
@@ -13,10 +14,14 @@ interface Props {
 export default function DamAlemShareCard({
   whatsappNumber,
   brandName = DAM_ALEM_BRAND,
-  title = 'Отправить другу — скидка 10%',
-  subtitle = 'Друг получает код DAMALEM10 на заказ',
+  title: providedTitle,
+  subtitle: providedSubtitle,
   shareText,
 }: Props) {
+  const st = useStoreTranslations();
+  const title = providedTitle ?? st("Отправить другу — скидка 10%");
+  const subtitle = providedSubtitle ?? st("Друг получает код DAMALEM10 на заказ");
+
   const pageUrl = typeof window !== 'undefined' ? `${window.location.origin}/food?promo=DAMALEM10` : '';
   const body = (shareText || REFERRAL_SHARE_MESSAGE).trim();
   const sharePayload = `${body}\n${pageUrl}`;

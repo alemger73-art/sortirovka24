@@ -11,6 +11,7 @@ async function setup(page: Page, initial: Banner[] = []) {
     const request = route.request(), url = new URL(request.url()), path = url.pathname;
     let body: unknown = { items: [], total: 0 };
     if (path.includes('verify-session')) body = { valid: true, login: 'test', display_name: 'DAM ALEM 2.0' };
+    if (path.endsWith('/business/me')) body = { role: 'owner', name: 'Test owner' };
     if (path.includes('food_restaurants')) body = { items: [{ id: 1, name: 'DAM ALEM 2.0' }] };
     const categories = [{ id: 1, name: 'Пицца', slug: 'pizza', restaurant_id: 1 }, { id: 2, name: 'Напитки', slug: 'napitki', restaurant_id: 1 }];
     if (path === '/api/categories') body = { categories };
@@ -85,7 +86,7 @@ test('all banners are reachable, category and promo clicks work, search stays fo
 test('admin creates a draft, edits, publishes, reloads storefront, hides and deletes', async ({ page }, info) => {
   const state = await setup(page);
   await page.addInitScript(() => localStorage.setItem('_partner_token_dam_alem', 'test-session'));
-  await page.goto('/partner/dam-alem', { waitUntil: 'domcontentloaded' });
+  await page.goto('/partner/dam-alem?section=banners', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'Баннеры', exact: true }).click();
   await page.getByRole('button', { name: 'Создать баннер', exact: true }).click();
   await page.getByLabel('Что произойдёт при нажатии').selectOption('category');
@@ -112,7 +113,7 @@ test('admin creates a draft, edits, publishes, reloads storefront, hides and del
   await expect(page.getByTestId('food-banner-1')).toContainText('Пицца на двоих');
   await page.getByTestId('food-banner-1').click();
   await expect(page.locator('#dam-category-1 h2')).toBeInViewport();
-  await page.goto('/partner/dam-alem', { waitUntil: 'domcontentloaded' });
+  await page.goto('/partner/dam-alem?section=banners', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'Баннеры', exact: true }).click();
   await page.getByRole('button', { name: 'Скрыть баннер Пицца на двоих' }).click();
   await expect(page.getByRole('button', { name: 'Показать баннер Пицца на двоих' })).toBeVisible();
@@ -136,7 +137,7 @@ test('upload keeps edited text and saves a resolvable image key', async ({ page 
     await route.fulfill({ json: { object_key: 'banners/test.png', image_url: image } });
   });
   await page.addInitScript(() => localStorage.setItem('_partner_token_dam_alem', 'test-session'));
-  await page.goto('/partner/dam-alem');
+  await page.goto('/partner/dam-alem?section=banners');
   await page.getByRole('button', { name: 'Баннеры', exact: true }).click();
   await page.getByRole('button', { name: 'Создать баннер', exact: true }).click();
   await page.getByLabel('Заголовок', { exact: true }).fill('Первый заголовок');

@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
@@ -56,6 +57,9 @@ interface Props {
  * Self-loads the list for authenticated users and renders nothing otherwise.
  */
 export default function SavedAddressBar({ currentAddress, onSelect, accent = 'emerald', autoApplyDefault = true }: Props) {
+  const st = useStoreTranslations();
+
+
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
   const autoApplied = useRef(false);
   const c = ACCENTS[accent];
@@ -87,9 +91,8 @@ export default function SavedAddressBar({ currentAddress, onSelect, accent = 'em
     <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
       <p className="flex items-center gap-2 text-sm font-semibold text-gray-900">
         <MapPin className={`h-4 w-4 ${c.icon}`} />
-        Мои адреса
-      </p>
-      <p className="mt-0.5 text-xs text-gray-500">Выберите, куда доставить</p>
+         {st("Мои адреса")} </p>
+      <p className="mt-0.5 text-xs text-gray-500">{st("Выберите, куда доставить")}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {addresses.map((sa) => {
           const isActive = currentAddress.trim() === sa.address.trim();
@@ -103,7 +106,7 @@ export default function SavedAddressBar({ currentAddress, onSelect, accent = 'em
               <span className="flex items-center gap-1.5">
                 {sa.label ? <span className="font-semibold">{sa.label}</span> : null}
                 {sa.is_default ? (
-                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${c.badge}`}>по умолчанию</span>
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${c.badge}`}>{st("по умолчанию")}</span>
                 ) : null}
               </span>
               <span className="block truncate text-xs text-gray-500">{sa.address}</span>
@@ -112,8 +115,7 @@ export default function SavedAddressBar({ currentAddress, onSelect, accent = 'em
         })}
       </div>
       <Link to="/cabinet?tab=addresses" className={`mt-3 inline-block text-xs font-semibold ${c.link}`}>
-        Управлять адресами →
-      </Link>
+         {st("Управлять адресами →")} </Link>
     </div>
   );
 }

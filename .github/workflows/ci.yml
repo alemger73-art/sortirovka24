@@ -45,6 +45,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm exec tsc -p tsconfig.app.json --noEmit
+      - run: pnpm run check:i18n
       - run: pnpm build
 
   e2e:

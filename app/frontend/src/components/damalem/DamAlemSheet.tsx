@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -22,6 +23,8 @@ export default function DamAlemSheet({
   bare = false,
   testId,
 }: Props) {
+  const st = useStoreTranslations();
+
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -68,7 +71,7 @@ export default function DamAlemSheet({
         type="button"
         className="dam-sheet-backdrop"
         onClick={onClose}
-        aria-label="Закрыть"
+        aria-label={st("Закрыть")}
         tabIndex={-1}
       />
       <div ref={panelRef} tabIndex={-1} className={panelClass} data-testid={testId}>

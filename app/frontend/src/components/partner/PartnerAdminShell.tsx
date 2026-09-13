@@ -1,3 +1,5 @@
+import AppearanceControls from '@/components/AppearanceControls';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Lock, Loader2, Eye, EyeOff, AlertCircle, LogOut, KeyRound, Store } from 'lucide-react';
@@ -28,6 +30,8 @@ function PartnerLoginForm({
   partnerType: PartnerType;
   onLogin: (displayName: string) => void;
 }) {
+  const { t: adminT } = useLanguage();
+
   const cfg = PARTNER_MODULES[partnerType];
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
@@ -38,7 +42,7 @@ function PartnerLoginForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!login.trim() || !password.trim()) {
-      setError('Введите email или телефон и пароль');
+      setError(adminT("admin.ui.1326"));
       return;
     }
     setLoading(true);
@@ -49,10 +53,10 @@ function PartnerLoginForm({
         setPartnerToken(partnerType, result.token);
         onLogin(result.display_name || cfg.defaultDisplayName);
       } else {
-        setError(result.message || 'Неверный email/телефон или пароль');
+        setError(result.message || adminT("admin.ui.1327"));
       }
     } catch (err: any) {
-      setError(err?.message || 'Ошибка подключения к серверу');
+      setError(err?.message || adminT("admin.ui.0002"));
     } finally {
       setLoading(false);
     }
@@ -62,19 +66,20 @@ function PartnerLoginForm({
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F19] via-[#141B2D] to-[#060912] flex items-center justify-center p-4">
       <Card className="w-full max-w-md border-0 shadow-2xl">
         <CardHeader className="text-center pb-2">
+          <div className="flex justify-end"><AppearanceControls /></div>
           <div className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg ${cfg.buttonClass}`}>
             <Store className="h-8 w-8 text-white" />
           </div>
-          <CardTitle className="text-2xl font-black tracking-tight">{cfg.label}</CardTitle>
-          <p className="text-sm text-gray-500 mt-2">Партнёрская админка — {cfg.description}</p>
+          <CardTitle className="text-2xl font-black tracking-tight">{partnerType === 'pharmacy' ? adminT('admin.partner.pharmacy.label') : cfg.label}</CardTitle>
+          <p className="text-sm text-gray-500 mt-2">{adminT("admin.ui.1328")} {adminT(`admin.partner.${partnerType}.description`)}</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Email или телефон</label>
+              <label className="text-sm font-medium text-gray-700 mb-1.5 block">{adminT("admin.ui.1329")}</label>
               <Input
                 type="text"
-                placeholder="+7 777 123 45 67 или partner@mail.kz"
+                placeholder={adminT("admin.ui.1330")}
                 value={login}
                 onChange={(e) => { setLogin(e.target.value); setError(''); }}
                 autoComplete="username"
@@ -82,12 +87,12 @@ function PartnerLoginForm({
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Пароль</label>
+              <label className="text-sm font-medium text-gray-700 mb-1.5 block">{adminT("admin.ui.0007")}</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Введите пароль"
+                  placeholder={adminT("admin.ui.0008")}
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setError(''); }}
                   className="pl-10 pr-10"
@@ -110,15 +115,14 @@ function PartnerLoginForm({
               </div>
             )}
             <Button type="submit" className={`w-full text-white font-bold ${cfg.buttonClass}`} disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Войти в админку'}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : adminT("admin.ui.1331")}
             </Button>
           </form>
           <p className="mt-6 text-center text-xs text-gray-400">
-            Нет доступа? Обратитесь к оператору Sortirovka24.
-          </p>
+            {adminT("admin.ui.1332")} </p>
           <p className="mt-2 text-center">
             <Link to={cfg.storefront} className={`text-xs font-semibold hover:underline ${cfg.accentClass}`}>
-              ← Вернуться на витрину {cfg.label}
+              {adminT("admin.ui.1333")} {partnerType === 'pharmacy' ? adminT('admin.partner.pharmacy.label') : cfg.label}
             </Link>
           </p>
         </CardContent>
@@ -128,6 +132,8 @@ function PartnerLoginForm({
 }
 
 function ChangePasswordDialog({ partnerType, onClose }: { partnerType: PartnerType; onClose: () => void }) {
+  const { t: adminT } = useLanguage();
+
   const cfg = PARTNER_MODULES[partnerType];
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
@@ -154,15 +160,15 @@ function ChangePasswordDialog({ partnerType, onClose }: { partnerType: PartnerTy
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <Card className="w-full max-w-sm">
-        <CardHeader><CardTitle className="text-lg">Сменить пароль</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-lg">{adminT("admin.ui.1334")}</CardTitle></CardHeader>
         <CardContent>
           <form onSubmit={submit} className="space-y-3">
-            <Input type="password" placeholder="Текущий пароль" value={current} onChange={(e) => setCurrent(e.target.value)} />
-            <Input type="password" placeholder="Новый пароль (мин. 6 символов)" value={next} onChange={(e) => setNext(e.target.value)} />
+            <Input type="password" placeholder={adminT("admin.ui.0027")} value={current} onChange={(e) => setCurrent(e.target.value)} />
+            <Input type="password" placeholder={adminT("admin.ui.1335")} value={next} onChange={(e) => setNext(e.target.value)} />
             <div className="flex gap-2">
-              <Button type="button" variant="outline" className="flex-1" onClick={onClose}>Отмена</Button>
+              <Button type="button" variant="outline" className="flex-1" onClick={onClose}>{adminT("admin.ui.0095")}</Button>
               <Button type="submit" className={`flex-1 text-white ${cfg.buttonClass}`} disabled={loading}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Сохранить'}
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : adminT("admin.ui.0096")}
               </Button>
             </div>
           </form>
@@ -173,6 +179,8 @@ function ChangePasswordDialog({ partnerType, onClose }: { partnerType: PartnerTy
 }
 
 export default function PartnerAdminShell({ partnerType, children }: PartnerAdminShellProps) {
+  const { t: adminT } = useLanguage();
+
   const cfg = PARTNER_MODULES[partnerType];
   const [authenticated, setAuthenticated] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -227,16 +235,15 @@ export default function PartnerAdminShell({ partnerType, children }: PartnerAdmi
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0 flex-1 basis-40 break-words">
-            <p className={`text-xs font-semibold uppercase tracking-widest ${cfg.accentClass}`}>Партнёрская админка</p>
+            <p className={`text-xs font-semibold uppercase tracking-widest ${cfg.accentClass}`}>{adminT("admin.ui.1336")}</p>
             <p className="font-bold text-gray-900">{displayName || cfg.label}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <AppearanceControls />
             <Button variant="outline" size="sm" onClick={() => setShowPasswordDialog(true)} className="gap-1.5">
-              <KeyRound className="h-4 w-4" /> Пароль
-            </Button>
+              <KeyRound className="h-4 w-4" /> {adminT("admin.ui.0007")} </Button>
             <Button variant="outline" size="sm" onClick={() => { clearPartnerToken(partnerType); setAuthenticated(false); }} className="gap-1.5">
-              <LogOut className="h-4 w-4" /> Выйти
-            </Button>
+              <LogOut className="h-4 w-4" /> {adminT("admin.ui.1273")} </Button>
           </div>
         </div>
       </header>

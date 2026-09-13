@@ -1,3 +1,5 @@
+import { adminMetadataLabel } from '@/i18n/adminTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Save, ToggleLeft, ToggleRight, Power, PowerOff } from 'lucide-react';
@@ -7,6 +9,8 @@ import { modulesApi, type ModulesMap } from '@/lib/modulesApi';
 import { invalidateModulesCache } from '@/hooks/useModules';
 
 export default function AdminModules() {
+  const { t: adminT } = useLanguage();
+
   const [modules, setModules] = useState<ModulesMap>(DEFAULT_MODULES);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -45,9 +49,9 @@ export default function AdminModules() {
       const updated = await modulesApi.adminUpdate(modules);
       setModules(updated);
       invalidateModulesCache();
-      toast.success('Модули сохранены');
+      toast.success(adminT("admin.ui.0951"));
     } catch (e: any) {
-      toast.error(String(e?.message || 'Ошибка сохранения'));
+      toast.error(String(e?.message || adminT("admin.ui.0055")));
     } finally {
       setSaving(false);
     }
@@ -63,29 +67,23 @@ export default function AdminModules() {
     );
   }
 
-  if (loadError) return <div role="alert" className="space-y-3 rounded-xl border bg-white p-5"><p>Не удалось загрузить видимость разделов. Изменения недоступны, пока настройки не загружены.</p><Button onClick={load}>Повторить загрузку</Button></div>;
+  if (loadError) return <div role="alert" className="space-y-3 rounded-xl border bg-white p-5"><p>{adminT("admin.ui.0952")}</p><Button onClick={load}>{adminT("admin.ui.0285")}</Button></div>;
 
   return (
     <div className="max-w-2xl space-y-6">
       <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-        <h2 className="text-lg font-bold text-gray-900">Видимость разделов</h2>
+        <h2 className="text-lg font-bold text-gray-900">{adminT("admin.ui.0953")}</h2>
         <p className="text-sm text-gray-500 mt-1">
-          После сохранения выключенный раздел пропадает по всему приложению — с главной,
-          из меню, из навигации, страницы «Ещё» и личного кабинета, а прямой
-          переход по ссылке перенаправляет на главную. Изменения применяются у
-          пользователей в течение минуты.
-        </p>
+          {adminT("admin.ui.0954")} </p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <span className="text-sm text-gray-600">
-            Включено: <b>{enabledCount}</b> из {MODULE_KEYS.length}
+            {adminT("admin.ui.0955")} <b>{enabledCount}</b> {adminT("admin.ui.0447")} {MODULE_KEYS.length}
           </span>
           <span className="flex-1" />
           <Button type="button" variant="outline" size="sm" onClick={() => setAll(true)} className="gap-1.5">
-            <Power className="w-4 h-4" /> Включить все
-          </Button>
+            <Power className="w-4 h-4" /> {adminT("admin.ui.0956")} </Button>
           <Button type="button" variant="outline" size="sm" onClick={() => setAll(false)} className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50">
-            <PowerOff className="w-4 h-4" /> Отключить все
-          </Button>
+            <PowerOff className="w-4 h-4" /> {adminT("admin.ui.0957")} </Button>
         </div>
       </div>
 
@@ -102,10 +100,10 @@ export default function AdminModules() {
               className="w-full flex items-center justify-between gap-4 px-5 py-3.5 text-left hover:bg-gray-50 transition-colors"
             >
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-gray-900">{def.label}</p>
+                <p className="text-sm font-semibold text-gray-900">{adminMetadataLabel(def.label, adminT)}</p>
               </div>
               <span className={`flex items-center gap-2 text-sm font-medium shrink-0 ${on ? 'text-emerald-600' : 'text-gray-400'}`}>
-                {on ? 'Вкл' : 'Выкл'}
+                {on ? adminT("admin.ui.0618") : adminT("admin.ui.0617")}
                 {on ? <ToggleRight className="w-9 h-9 text-emerald-500" /> : <ToggleLeft className="w-9 h-9 text-gray-300" />}
               </span>
             </button>
@@ -116,8 +114,7 @@ export default function AdminModules() {
       <div className="sticky bottom-0 bg-gradient-to-t from-white via-white to-transparent pt-4 pb-2">
         <Button onClick={save} disabled={saving} className="w-full gap-2">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          Сохранить изменения
-        </Button>
+          {adminT("admin.ui.0038")} </Button>
       </div>
     </div>
   );

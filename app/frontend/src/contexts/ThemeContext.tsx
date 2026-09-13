@@ -77,14 +77,14 @@ export function ThemeProvider({
   const setTheme = useCallback((newTheme: Theme) => {
     if (forcedTheme) return;
     setThemeState(newTheme);
-    setCurrentUserTheme(newTheme);
+    try { setCurrentUserTheme(newTheme); } catch { /* Apply for this session when storage is unavailable. */ }
   }, [forcedTheme]);
 
   const toggleTheme = useCallback(() => {
     if (forcedTheme) return;
     setThemeState((prev) => {
       const next = prev === 'light' ? 'dark' : 'light';
-      setCurrentUserTheme(next);
+      try { setCurrentUserTheme(next); } catch { /* Apply for this session when storage is unavailable. */ }
       return next;
     });
   }, [forcedTheme]);

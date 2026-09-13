@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { Gift, Home, Truck } from 'lucide-react';
 import type { LoyaltyGift } from '@/lib/gastronomLoyalty';
 import DamAlemImage from '@/components/damalem/DamAlemImage';
@@ -19,6 +20,8 @@ export default function AlemFoodCampaign({
   formatPrice,
   onOpenGifts,
 }: Props) {
+  const st = useStoreTranslations();
+
   const activeGifts = gifts.filter(g => g.is_active);
   const giftFrom = activeGifts.length > 0
     ? Math.min(...activeGifts.map(g => g.min_amount))
@@ -26,14 +29,14 @@ export default function AlemFoodCampaign({
   const firstTier = activeGifts.filter(g => g.min_amount === giftFrom);
 
   return (
-    <section className="alem-campaign" aria-label="Акции DAM ALEM 2.0">
+    <section className="alem-campaign" aria-label={st("Акции DAM ALEM 2.0")}>
       <div className="alem-campaign__grid">
         {freeDeliveryFrom > 0 && (
           <article className="alem-campaign__card alem-campaign__card--delivery">
             <span className="alem-campaign__icon"><Truck className="h-5 w-5" /></span>
             <div>
-              <strong>Бесплатная доставка</strong>
-              <p>От {formatPrice(freeDeliveryFrom)} по Сортировке. Порог задаёте в админке.</p>
+              <strong>{st("Бесплатная доставка")}</strong>
+              <p>{st("От")} {formatPrice(freeDeliveryFrom)}  {st("по Сортировке. Порог задаёте в админке.")}</p>
             </div>
           </article>
         )}
@@ -41,11 +44,11 @@ export default function AlemFoodCampaign({
           <article className="alem-campaign__card alem-campaign__card--home">
             <span className="alem-campaign__icon"><Home className="h-5 w-5" /></span>
             <div>
-              <strong>До квартиры +{formatPrice(apartmentPrice)}</strong>
+              <strong>{st("До квартиры +")}{formatPrice(apartmentPrice)}</strong>
               <p>
                 {apartmentFreeFrom > 0
-                  ? `Поднимем до двери. Бесплатно от ${formatPrice(apartmentFreeFrom)}`
-                  : 'Курьер поднимет заказ до двери'}
+                  ? st("Поднимем до двери. Бесплатно от {0}", [formatPrice(apartmentFreeFrom)])
+                  : st("Курьер поднимет заказ до двери")}
               </p>
             </div>
           </article>
@@ -54,11 +57,11 @@ export default function AlemFoodCampaign({
           <article className="alem-campaign__card alem-campaign__card--gift">
             <span className="alem-campaign__icon"><Gift className="h-5 w-5" /></span>
             <div>
-              <strong>Подарок от {formatPrice(giftFrom)}</strong>
+              <strong>{st("Подарок от")} {formatPrice(giftFrom)}</strong>
               <p>
                 {firstTier.length > 1
-                  ? `Выберите один из ${firstTier.length}: ${firstTier.map(g => g.title).join(', ')}`
-                  : firstTier[0]?.title || 'Бесплатный подарок к заказу'}
+                  ? st("Выберите один из {0}: {1}", [firstTier.length, firstTier.map(g => g.title).join(', ')])
+                  : firstTier[0]?.title || st("Бесплатный подарок к заказу")}
               </p>
             </div>
           </article>
@@ -69,8 +72,8 @@ export default function AlemFoodCampaign({
         <div id="alem-gifts" className="alem-campaign__gifts">
           <div className="dam-market-section-head">
             <div>
-              <span>От {formatPrice(giftFrom)}</span>
-              <h2>Выберите подарок</h2>
+              <span>{st("От")} {formatPrice(giftFrom)}</span>
+              <h2>{st("Выберите подарок")}</h2>
             </div>
           </div>
           <div className="alem-campaign__gifts-row">
@@ -87,7 +90,7 @@ export default function AlemFoodCampaign({
                     : <span aria-hidden>🎁</span>}
                 </div>
                 <strong>{gift.title}</strong>
-                <span>Бесплатно к заказу</span>
+                <span>{st("Бесплатно к заказу")}</span>
               </button>
             ))}
           </div>

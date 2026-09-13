@@ -1,7 +1,9 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import React, { useEffect } from 'react';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const LogoutCallbackPage: React.FC = () => {
+  const { t: coverageT } = useLanguage();
   useEffect(() => {
     // The OIDC provider has logged out the user and redirected here
     // We can redirect to the home page or show a logout success message
@@ -27,12 +29,10 @@ const LogoutCallbackPage: React.FC = () => {
           </svg>
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Logout Successful
-        </h2>
+          {coverageT("public.coverage.logoutTitle")}</h2>
         <p className="text-gray-600 mb-4">
-          You have been successfully logged out.
-        </p>
-        <p className="text-sm text-gray-500">Redirecting to home page...</p>
+          {coverageT("public.coverage.logoutBody")}</p>
+        <p className="text-sm text-gray-500">{coverageT("public.coverage.redirectHome")}</p>
       </div>
     </div>
   );

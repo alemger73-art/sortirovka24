@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { useState, useEffect, useCallback } from 'react';
 import { client, withRetry } from '@/lib/api';
 import { apiUrl } from '@/lib/config';
@@ -37,6 +38,8 @@ const STATUS_LABELS: Record<string, { label: string; color: string; emoji: strin
 };
 
 export default function FoodCourier() {
+  const st = useStoreTranslations();
+
   const [courier, setCourier] = useState<Courier | null>(null);
   const [pinCode, setPinCode] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
@@ -83,7 +86,7 @@ export default function FoodCourier() {
 
   async function handleLogin() {
     if (!pinCode.trim() || pinCode.length < 4) {
-      toast.error('Введите 4-значный PIN-код');
+      toast.error(st("Введите 4-значный PIN-код"));
       return;
     }
     setLoginLoading(true);
@@ -94,17 +97,17 @@ export default function FoodCourier() {
         body: JSON.stringify({ pin_code: pinCode.trim() }),
       });
       if (!res.ok) {
-        toast.error('Неверный PIN-код');
+        toast.error(st("Неверный PIN-код"));
         return;
       }
       const found: Courier = await res.json();
       setCourier(found);
       sessionStorage.setItem('courier_session', JSON.stringify(found));
       sessionStorage.setItem('courier_pin', pinCode.trim());
-      toast.success(`Добро пожаловать, ${found.name}!`);
+      toast.success(st("Добро пожаловать, {0}!", [found.name]));
     } catch (e) {
       console.error('Login error:', e);
-      toast.error('Ошибка подключения');
+      toast.error(st("Ошибка подключения"));
     } finally {
       setLoginLoading(false);
     }
@@ -139,7 +142,7 @@ export default function FoodCourier() {
   async function updateOrderStatus(orderId: number, newStatus: string) {
     const storedPin = sessionStorage.getItem('courier_pin') || pinCode.trim();
     if (!storedPin) {
-      toast.error('Сессия истекла — войдите снова');
+      toast.error(st("Сессия истекла — войдите снова"));
       handleLogout();
       return;
     }
@@ -154,11 +157,11 @@ export default function FoodCourier() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || 'Update failed');
       }
-      toast.success(newStatus === 'delivered' ? '🎉 Заказ доставлен!' : 'Статус обновлён');
+      toast.success(newStatus === 'delivered' ? st("🎉 Заказ доставлен!") : st("Статус обновлён"));
       loadOrders();
     } catch (e) {
       console.error('Error updating order:', e);
-      toast.error('Ошибка обновления');
+      toast.error(st("Ошибка обновления"));
     } finally {
       setUpdatingOrder(null);
     }
@@ -171,9 +174,9 @@ export default function FoodCourier() {
   function timeAgo(dateStr: string): string {
     const diffMs = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diffMs / 60000);
-    if (mins < 1) return 'только что';
-    if (mins < 60) return `${mins} мин назад`;
-    return `${Math.floor(mins / 60)} ч назад`;
+    if (mins < 1) return st("только что");
+    if (mins < 60) return st("{0} мин назад", [mins]);
+    return st("{0} ч назад", [Math.floor(mins / 60)]);
   }
 
   /* ─── LOGIN SCREEN ─── */
@@ -185,18 +188,18 @@ export default function FoodCourier() {
             <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <Bike className="w-8 h-8 text-green-600" />
             </div>
-            <h1 className="text-2xl font-extrabold text-gray-900">Панель курьера</h1>
-            <p className="text-sm text-gray-500 mt-1">Доставка в парк 🌳</p>
+            <h1 className="text-2xl font-extrabold text-gray-900">{st("Панель курьера")}</h1>
+            <p className="text-sm text-gray-500 mt-1">{st("Доставка в парк 🌳")}</p>
           </div>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-semibold text-gray-600 mb-1.5 block">PIN-код</label>
+              <label className="text-sm font-semibold text-gray-600 mb-1.5 block">{st("PIN-код")}</label>
               <Input
                 type="password"
                 maxLength={4}
                 value={pinCode}
                 onChange={e => setPinCode(e.target.value.replace(/\D/g, ''))}
-                placeholder="Введите 4-значный PIN"
+                placeholder={st("Введите 4-значный PIN")}
                 className="rounded-xl h-12 text-center text-2xl tracking-widest"
                 onKeyDown={e => e.key === 'Enter' && handleLogin()}
               />
@@ -207,8 +210,7 @@ export default function FoodCourier() {
               className="w-full bg-green-600 hover:bg-green-700 text-white h-12 rounded-xl font-bold text-base"
             >
               {loginLoading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <LogIn className="w-5 h-5 mr-2" />}
-              Войти
-            </Button>
+               {st("Войти")} </Button>
           </div>
         </div>
       </div>
@@ -229,7 +231,7 @@ export default function FoodCourier() {
           </div>
           <div>
             <p className="font-bold text-sm">{courier.name}</p>
-            <p className="text-white/70 text-xs">Курьер</p>
+            <p className="text-white/70 text-xs">{st("Курьер")}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -247,11 +249,11 @@ export default function FoodCourier() {
         <div className="bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-2xl font-extrabold text-gray-900">{activeOrders.length}</p>
-            <p className="text-xs text-gray-500">Активных заказов</p>
+            <p className="text-xs text-gray-500">{st("Активных заказов")}</p>
           </div>
           <div className="text-right">
             <p className="text-lg font-bold text-green-600">{completedOrders.length}</p>
-            <p className="text-xs text-gray-500">Доставлено сегодня</p>
+            <p className="text-xs text-gray-500">{st("Доставлено сегодня")}</p>
           </div>
         </div>
 
@@ -259,8 +261,8 @@ export default function FoodCourier() {
         {activeOrders.length === 0 && (
           <div className="bg-white rounded-2xl p-8 text-center shadow-sm">
             <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="font-medium text-gray-500">Нет активных заказов</p>
-            <p className="text-xs text-gray-400 mt-1">Ожидайте назначения от оператора</p>
+            <p className="font-medium text-gray-500">{st("Нет активных заказов")}</p>
+            <p className="text-xs text-gray-400 mt-1">{st("Ожидайте назначения от оператора")}</p>
           </div>
         )}
 
@@ -284,10 +286,10 @@ export default function FoodCourier() {
                     <span className="text-lg">{STATUS_LABELS[order.status]?.emoji || '📦'}</span>
                   </div>
                   <div>
-                    <p className="font-bold text-sm text-gray-900">Заказ #{order.id}</p>
+                    <p className="font-bold text-sm text-gray-900">{st("Заказ #")}{order.id}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${STATUS_LABELS[order.status]?.color}`}>
-                        {STATUS_LABELS[order.status]?.label}
+                        {st(STATUS_LABELS[order.status]?.label || order.status)}
                       </span>
                       <span className="text-[10px] text-gray-400">{timeAgo(order.created_at)}</span>
                     </div>
@@ -341,8 +343,7 @@ export default function FoodCourier() {
                       href={`tel:${order.customer_phone}`}
                       className="flex-1 flex items-center justify-center gap-2 bg-blue-50 text-blue-700 font-bold text-sm py-3 rounded-xl hover:bg-blue-100 transition-colors"
                     >
-                      <Phone className="w-4 h-4" /> Позвонить
-                    </a>
+                      <Phone className="w-4 h-4" />  {st("Позвонить")} </a>
                     <a
                       href={`https://wa.me/${order.customer_phone.replace(/[^0-9]/g, '')}`}
                       target="_blank"
@@ -365,7 +366,7 @@ export default function FoodCourier() {
                       ) : (
                         <ArrowRight className="w-5 h-5 mr-2" />
                       )}
-                      {flow.label}
+                      {st(flow.label)}
                     </Button>
                   )}
                 </div>
@@ -377,7 +378,7 @@ export default function FoodCourier() {
         {/* Completed orders */}
         {completedOrders.length > 0 && (
           <div>
-            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-2">Доставленные</h3>
+            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-2">{st("Доставленные")}</h3>
             <div className="space-y-2">
               {completedOrders.slice(0, 5).map(order => (
                 <div key={order.id} className="bg-white rounded-xl p-3 shadow-sm flex items-center justify-between opacity-70">

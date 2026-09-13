@@ -21,7 +21,7 @@ export default function LegalDocModal({
   sections,
   onClose,
   onAccept,
-  acceptLabel = "Я прочитал(а) и согласен(на)",
+  acceptLabel,
 }: Props) {
   const { t: publicT } = useLanguage();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -86,7 +86,7 @@ export default function LegalDocModal({
             }}
             className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {acceptLabel}
+            {acceptLabel ?? publicT("public.legal.accept")}
           </button>
         </div>
       </div>

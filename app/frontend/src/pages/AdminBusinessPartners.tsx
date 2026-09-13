@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useEffect, useCallback } from 'react';
 import { businessPartnerApi, type BusinessPartnerRequest } from '@/lib/businessPartnerApi';
 import { invalidateAllCaches } from '@/lib/cache';
@@ -9,14 +10,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Eye, Loader2, Phone, MessageCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  new: { label: 'Новая', color: 'bg-yellow-100 text-yellow-800' },
-  in_progress: { label: 'В работе', color: 'bg-blue-100 text-blue-800' },
-  done: { label: 'Обработана', color: 'bg-green-100 text-green-800' },
-  rejected: { label: 'Отклонена', color: 'bg-red-100 text-red-800' },
+function getSTATUS_MAP(adminT: (key: string) => string) {
+  const STATUS_MAP: Record<string, { label: string; color: string }> = {
+  new: { label: adminT("admin.ui.0127"), color: 'bg-yellow-100 text-yellow-800' },
+  in_progress: { label: adminT("admin.ui.0128"), color: 'bg-blue-100 text-blue-800' },
+  done: { label: adminT("admin.ui.0129"), color: 'bg-green-100 text-green-800' },
+  rejected: { label: adminT("admin.ui.0130"), color: 'bg-red-100 text-red-800' },
 };
+  return STATUS_MAP;
+}
 
 export default function AdminBusinessPartners() {
+  const { t: adminT, lang } = useLanguage();
+  const STATUS_MAP = getSTATUS_MAP(adminT);
+
   const [items, setItems] = useState<BusinessPartnerRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('new');
@@ -28,11 +35,11 @@ export default function AdminBusinessPartners() {
       const res = await businessPartnerApi.list(filterStatus);
       setItems(res.items || []);
     } catch {
-      toast.error('Ошибка загрузки заявок');
+      toast.error(adminT("admin.ui.0131"));
     } finally {
       setLoading(false);
     }
-  }, [filterStatus]);
+  }, [filterStatus, adminT]);
 
   useEffect(() => {
     fetchItems();
@@ -43,12 +50,12 @@ export default function AdminBusinessPartners() {
   const changeStatus = async (id: number, status: string) => {
     try {
       await businessPartnerApi.updateStatus(id, status);
-      toast.success('Статус обновлён');
+      toast.success(adminT("admin.ui.0047"));
       invalidateAllCaches();
       fetchItems();
       if (viewItem?.id === id) setViewItem({ ...viewItem, status });
     } catch {
-      toast.error('Ошибка обновления');
+      toast.error(adminT("admin.ui.0048"));
     }
   };
 
@@ -70,7 +77,7 @@ export default function AdminBusinessPartners() {
             variant={filterStatus === s ? 'default' : 'outline'}
             onClick={() => setFilterStatus(s)}
           >
-            {s === 'all' ? 'Все' : (STATUS_MAP[s]?.label || s)}
+            {s === 'all' ? adminT("admin.ui.0132") : (STATUS_MAP[s]?.label || s)}
           </Button>
         ))}
         <Button size="sm" variant="ghost" onClick={fetchItems} disabled={loading}>
@@ -78,7 +85,7 @@ export default function AdminBusinessPartners() {
         </Button>
       </div>
 
-      <p className="text-sm text-gray-500">{items.length} заявок на партнёрство</p>
+      <p className="text-sm text-gray-500">{items.length} {adminT("admin.ui.0133")}</p>
 
       <div className="space-y-2">
         {items.map((item) => {
@@ -98,7 +105,7 @@ export default function AdminBusinessPartners() {
                     )}
                     <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
                       <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{item.phone}</span>
-                      {item.created_at && <span>{formatDate(item.created_at)}</span>}
+                      {item.created_at && <span>{formatDate(item.created_at, lang)}</span>}
                     </div>
                   </div>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setViewItem(item)}>
@@ -110,36 +117,36 @@ export default function AdminBusinessPartners() {
           );
         })}
         {items.length === 0 && (
-          <p className="text-center text-gray-400 py-8">Нет заявок</p>
+          <p className="text-center text-gray-400 py-8">{adminT("admin.ui.0134")}</p>
         )}
       </div>
 
       <Dialog open={!!viewItem} onOpenChange={() => setViewItem(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Заявка партнёра #{viewItem?.id}</DialogTitle>
+            <DialogTitle>{adminT("admin.ui.0135")}{viewItem?.id}</DialogTitle>
           </DialogHeader>
           {viewItem && (
             <div className="space-y-3 text-sm">
-              <p><strong>Имя:</strong> {viewItem.name}</p>
-              <p><strong>Деятельность:</strong> {viewItem.activity}</p>
+              <p><strong>{adminT("admin.ui.0136")}</strong> {viewItem.name}</p>
+              <p><strong>{adminT("admin.ui.0137")}</strong> {viewItem.activity}</p>
               <p className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> {viewItem.phone}</p>
               {viewItem.whatsapp && (
                 <p className="flex items-center gap-1">
                   <MessageCircle className="h-3.5 w-3.5" /> WhatsApp: {viewItem.whatsapp}
                 </p>
               )}
-              {viewItem.description && <p><strong>Описание:</strong> {viewItem.description}</p>}
-              {viewItem.created_at && <p className="text-gray-400 text-xs">{formatDate(viewItem.created_at)}</p>}
+              {viewItem.description && <p><strong>{adminT("admin.ui.0138")}</strong> {viewItem.description}</p>}
+              {viewItem.created_at && <p className="text-gray-400 text-xs">{formatDate(viewItem.created_at, lang)}</p>}
               <div className="flex flex-wrap gap-2 pt-2">
                 {viewItem.status !== 'in_progress' && (
-                  <Button size="sm" onClick={() => changeStatus(viewItem.id, 'in_progress')}>В работу</Button>
+                  <Button size="sm" onClick={() => changeStatus(viewItem.id, 'in_progress')}>{adminT("admin.ui.0139")}</Button>
                 )}
                 {viewItem.status !== 'done' && (
-                  <Button size="sm" variant="outline" onClick={() => changeStatus(viewItem.id, 'done')}>Обработана</Button>
+                  <Button size="sm" variant="outline" onClick={() => changeStatus(viewItem.id, 'done')}>{adminT("admin.ui.0129")}</Button>
                 )}
                 {viewItem.status !== 'rejected' && (
-                  <Button size="sm" variant="destructive" onClick={() => changeStatus(viewItem.id, 'rejected')}>Отклонить</Button>
+                  <Button size="sm" variant="destructive" onClick={() => changeStatus(viewItem.id, 'rejected')}>{adminT("admin.ui.0072")}</Button>
                 )}
               </div>
             </div>

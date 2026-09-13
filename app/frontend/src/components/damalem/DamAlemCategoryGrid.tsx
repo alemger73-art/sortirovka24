@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { ChevronRight } from 'lucide-react';
 import { getCategoryVisual } from '@/lib/damAlemImages';
 import DamAlemImage from '@/components/damalem/DamAlemImage';
@@ -15,18 +16,22 @@ interface Props {
   subtitle?: string;
 }
 
-function countLabel(n: number): string {
-  if (n === 1) return '1 блюдо';
-  if (n < 5) return `${n} блюда`;
-  return `${n} блюд`;
+function countLabel(n: number, st: ReturnType<typeof useStoreTranslations>): string {
+  if (n === 1) return st("1 блюдо");
+  if (n < 5) return st("{0} блюда", [n]);
+  return st("{0} блюд", [n]);
 }
 
 export default function DamAlemCategoryGrid({
   categories,
   onSelect,
-  title = 'Что закажем?',
-  subtitle = 'Выберите категорию — откроется меню с фото и ценами',
+  title: providedTitle,
+  subtitle: providedSubtitle,
 }: Props) {
+  const st = useStoreTranslations();
+  const title = providedTitle ?? st("Что закажем?");
+  const subtitle = providedSubtitle ?? st("Выберите категорию — откроется меню с фото и ценами");
+
   if (categories.length === 0) return null;
 
   return (
@@ -63,7 +68,7 @@ export default function DamAlemCategoryGrid({
                   <span className="dam-cat-tile__name">{cat.name}</span>
                 </div>
                 <div className="dam-cat-tile__meta">
-                  <span className="dam-cat-tile__count">{countLabel(cat.itemCount)}</span>
+                  <span className="dam-cat-tile__count">{countLabel(cat.itemCount, st)}</span>
                   <ChevronRight className="dam-cat-tile__chevron h-3.5 w-3.5 shrink-0" aria-hidden />
                 </div>
               </div>

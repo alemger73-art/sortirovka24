@@ -1,3 +1,5 @@
+import { adminMetadataLabel } from '@/i18n/adminTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useEffect } from 'react';
 import { client, withRetry, COMPLAINT_CATEGORIES, formatDate } from '@/lib/api';
 import { invalidateAllCaches } from '@/lib/cache';
@@ -28,15 +30,21 @@ interface Complaint {
   created_at?: string;
 }
 
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  new: { label: 'Новая', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-  in_progress: { label: 'В работе', color: 'bg-blue-100 text-blue-800 border-blue-200' },
-  resolved: { label: 'Решено', color: 'bg-green-100 text-green-800 border-green-200' },
-  rejected: { label: 'Отклонено', color: 'bg-red-100 text-red-800 border-red-200' },
-  hidden: { label: 'Скрыта', color: 'bg-gray-100 text-gray-600 border-gray-200' },
+function getSTATUS_MAP(adminT: (key: string) => string) {
+  const STATUS_MAP: Record<string, { label: string; color: string }> = {
+  new: { label: adminT("admin.ui.0127"), color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+  in_progress: { label: adminT("admin.ui.0128"), color: 'bg-blue-100 text-blue-800 border-blue-200' },
+  resolved: { label: adminT("admin.ui.0219"), color: 'bg-green-100 text-green-800 border-green-200' },
+  rejected: { label: adminT("admin.ui.0042"), color: 'bg-red-100 text-red-800 border-red-200' },
+  hidden: { label: adminT("admin.ui.0218"), color: 'bg-gray-100 text-gray-600 border-gray-200' },
 };
+  return STATUS_MAP;
+}
 
 export default function AdminComplaints() {
+  const { t: adminT, lang } = useLanguage();
+  const STATUS_MAP = getSTATUS_MAP(adminT);
+
   const [items, setItems] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('new');
@@ -52,7 +60,7 @@ export default function AdminComplaints() {
       if (filterStatus !== 'all') query.status = filterStatus;
       const res = await withRetry(() => client.entities.complaints.query({ query, sort: '-created_at', limit: 200 }));
       setItems(res.data?.items || []);
-    } catch { toast.error('Ошибка загрузки'); }
+    } catch { toast.error(adminT("admin.ui.0044")); }
     finally { setLoading(false); }
   };
 
@@ -65,11 +73,11 @@ export default function AdminComplaints() {
   const changeStatus = async (id: number, status: string) => {
     try {
       await withRetry(() => client.entities.complaints.update({ id: String(id), data: { status } }));
-      toast.success('Статус обновлён');
+      toast.success(adminT("admin.ui.0047"));
       invalidateAllCaches();
       fetchItems();
       if (viewItem?.id === id) setViewItem({ ...viewItem!, status });
-    } catch { toast.error('Ошибка обновления'); }
+    } catch { toast.error(adminT("admin.ui.0048")); }
   };
 
   const openEdit = (item: Complaint) => {
@@ -94,22 +102,22 @@ export default function AdminComplaints() {
           phone: editItem.phone || '',
         }
       }));
-      toast.success('Жалоба обновлена');
+      toast.success(adminT("admin.ui.0220"));
       invalidateAllCaches();
       setEditOpen(false);
       fetchItems();
-    } catch { toast.error('Ошибка сохранения'); }
+    } catch { toast.error(adminT("admin.ui.0055")); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Удалить жалобу?')) return;
+    if (!confirm(adminT("admin.ui.0221"))) return;
     try {
       await withRetry(() => client.entities.complaints.delete({ id: String(id) }));
-      toast.success('Удалено');
+      toast.success(adminT("admin.ui.0050"));
       invalidateAllCaches();
       fetchItems();
-    } catch { toast.error('Ошибка удаления'); }
+    } catch { toast.error(adminT("admin.ui.0051")); }
   };
 
   const getGalleryCount = (item: Complaint) => {
@@ -122,16 +130,16 @@ export default function AdminComplaints() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <p className="text-sm text-gray-500">{items.length} жалоб</p>
+        <p className="text-sm text-gray-500">{items.length} {adminT("admin.ui.0222")}</p>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все статусы</SelectItem>
-            <SelectItem value="new">Новые</SelectItem>
-            <SelectItem value="in_progress">В работе</SelectItem>
-            <SelectItem value="resolved">Решено</SelectItem>
-            <SelectItem value="rejected">Отклонено</SelectItem>
-            <SelectItem value="hidden">Скрытые</SelectItem>
+            <SelectItem value="all">{adminT("admin.ui.0057")}</SelectItem>
+            <SelectItem value="new">{adminT("admin.ui.0223")}</SelectItem>
+            <SelectItem value="in_progress">{adminT("admin.ui.0128")}</SelectItem>
+            <SelectItem value="resolved">{adminT("admin.ui.0219")}</SelectItem>
+            <SelectItem value="rejected">{adminT("admin.ui.0042")}</SelectItem>
+            <SelectItem value="hidden">{adminT("admin.ui.0061")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -149,14 +157,14 @@ export default function AdminComplaints() {
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <Badge variant="outline" className="text-xs">{item.category}</Badge>
+                        <Badge variant="outline" className="text-xs">{adminMetadataLabel(item.category, adminT)}</Badge>
                         <Badge className={`text-xs border ${st.color}`}>{st.label}</Badge>
-                        {getGalleryCount(item) > 0 && <Badge variant="secondary" className="text-xs"><Images className="h-3 w-3 mr-1" />{getGalleryCount(item)} фото</Badge>}
+                        {getGalleryCount(item) > 0 && <Badge variant="secondary" className="text-xs"><Images className="h-3 w-3 mr-1" />{getGalleryCount(item)} {adminT("admin.ui.0224")}</Badge>}
                       </div>
                       <p className="text-sm text-gray-900 line-clamp-2">{item.description}</p>
                       <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
                         <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{item.address}</span>
-                        {item.created_at && <span>{formatDate(item.created_at)}</span>}
+                        {item.created_at && <span>{formatDate(item.created_at, lang)}</span>}
                       </div>
                     </div>
                   </div>
@@ -176,17 +184,17 @@ export default function AdminComplaints() {
             </Card>
           );
         })}
-        {items.length === 0 && <p className="text-center text-gray-400 py-8">Нет жалоб</p>}
+        {items.length === 0 && <p className="text-center text-gray-400 py-8">{adminT("admin.ui.0225")}</p>}
       </div>
 
       {/* View Dialog */}
       <Dialog open={!!viewItem} onOpenChange={() => setViewItem(null)}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Жалоба #{viewItem?.id}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{adminT("admin.ui.0226")}{viewItem?.id}</DialogTitle></DialogHeader>
           {viewItem && (
             <div className="space-y-3">
               <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="outline">{viewItem.category}</Badge>
+                <Badge variant="outline">{adminMetadataLabel(viewItem.category, adminT)}</Badge>
                 <Badge className={`border ${(STATUS_MAP[viewItem.status] || STATUS_MAP.new).color}`}>
                   {(STATUS_MAP[viewItem.status] || STATUS_MAP.new).label}
                 </Badge>
@@ -202,25 +210,25 @@ export default function AdminComplaints() {
               )}
               {viewItem.gallery_images && (
                 <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1.5">Дополнительные фото:</p>
+                  <p className="text-xs font-medium text-gray-500 mb-1.5">{adminT("admin.ui.0227")}</p>
                   <StorageGallery keys={viewItem.gallery_images} />
                 </div>
               )}
               {viewItem.complaint_video && (
                 <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1.5">Видео:</p>
+                  <p className="text-xs font-medium text-gray-500 mb-1.5">{adminT("admin.ui.0228")}</p>
                   <StorageVideo objectKey={viewItem.complaint_video} />
                 </div>
               )}
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Изменить статус:</label>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">{adminT("admin.ui.0229")}</label>
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(STATUS_MAP).map(([key, val]) => (
                     <Button
                       key={key}
                       size="sm"
                       variant={viewItem.status === key ? 'default' : 'outline'}
-                      className={viewItem.status === key ? 'bg-blue-600' : ''}
+                      className={viewItem.status === key ? "bg-blue-600 text-white" : ''}
                       onClick={() => changeStatus(viewItem.id, key)}
                     >
                       {val.label}
@@ -236,28 +244,28 @@ export default function AdminComplaints() {
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Редактировать жалобу</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{adminT("admin.ui.0230")}</DialogTitle></DialogHeader>
           {editItem && (
             <div className="space-y-3">
               <div>
-                <label className="text-sm font-medium text-gray-700">Категория</label>
+                <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0231")}</label>
                 <Select value={editItem.category || ''} onValueChange={v => setEditItem({ ...editItem, category: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {COMPLAINT_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {COMPLAINT_CATEGORIES.map(c => <SelectItem key={c} value={c}>{adminMetadataLabel(c, adminT)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Адрес</label>
+                <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0082")}</label>
                 <Input value={editItem.address || ''} onChange={e => setEditItem({ ...editItem, address: e.target.value })} />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Описание</label>
+                <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0079")}</label>
                 <Textarea value={editItem.description || ''} onChange={e => setEditItem({ ...editItem, description: e.target.value })} rows={4} />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Основное фото</label>
+                <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0232")}</label>
                 <ImageUpload
                   value={editItem.photo_url || ''}
                   onChange={(key) => setEditItem({ ...editItem, photo_url: key })}
@@ -265,8 +273,8 @@ export default function AdminComplaints() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Дополнительные фото</label>
-                <p className="text-xs text-gray-400 mb-1">Загрузите несколько фото. Перетаскивайте для изменения порядка.</p>
+                <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0233")}</label>
+                <p className="text-xs text-gray-400 mb-1">{adminT("admin.ui.0234")}</p>
                 <MultiImageUpload
                   value={editItem.gallery_images || ''}
                   onChange={(keys) => setEditItem({ ...editItem, gallery_images: keys })}
@@ -275,7 +283,7 @@ export default function AdminComplaints() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Статус</label>
+                <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0089")}</label>
                 <Select value={editItem.status || 'new'} onValueChange={v => setEditItem({ ...editItem, status: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -284,10 +292,9 @@ export default function AdminComplaints() {
                 </Select>
               </div>
               <div className="flex gap-2 pt-2">
-                <Button onClick={() => setEditOpen(false)} variant="outline" className="flex-1">Отмена</Button>
-                <Button onClick={handleSaveEdit} disabled={saving} className="flex-1 bg-blue-600 hover:bg-blue-700">
-                  {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Сохранить
-                </Button>
+                <Button onClick={() => setEditOpen(false)} variant="outline" className="flex-1">{adminT("admin.ui.0095")}</Button>
+                <Button onClick={handleSaveEdit} disabled={saving} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
+                  {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />} {adminT("admin.ui.0096")} </Button>
               </div>
             </div>
           )}

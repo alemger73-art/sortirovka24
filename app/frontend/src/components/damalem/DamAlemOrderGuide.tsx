@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { useState } from 'react';
 import {
   ChevronDown, ChevronUp, Plus, ShoppingCart, ClipboardList,
@@ -20,6 +21,8 @@ export default function DamAlemOrderGuide({
   freeDeliveryFrom = 0,
   formatPrice = (n) => `${n.toLocaleString('ru-RU')} ₸`,
 }: DamAlemOrderGuideProps) {
+  const st = useStoreTranslations();
+
   const { t } = useLanguage();
   const [hidden, setHidden] = useState(() => {
     try {
@@ -76,7 +79,7 @@ export default function DamAlemOrderGuide({
             type="button"
             onClick={() => setExpanded(v => !v)}
             className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 text-gray-600"
-            aria-label={expanded ? 'Свернуть' : 'Развернуть'}
+            aria-label={expanded ? st("Свернуть") : st("Развернуть")}
           >
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
@@ -84,7 +87,7 @@ export default function DamAlemOrderGuide({
             type="button"
             onClick={dismiss}
             className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 text-gray-500"
-            aria-label="Скрыть подсказку"
+            aria-label={st("Скрыть подсказку")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -142,7 +145,7 @@ export default function DamAlemOrderGuide({
 
           {freeDeliveryFrom > 0 && (
             <p className="rounded-xl bg-emerald-50/80 px-3 py-2 text-center text-[11px] text-emerald-800 ring-1 ring-emerald-100">
-              Бесплатная доставка от{' '}
+               {st("Бесплатная доставка от")}{' '}
               <span className="font-bold">{formatPrice(freeDeliveryFrom)}</span>
             </p>
           )}

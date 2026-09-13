@@ -1,3 +1,5 @@
+import { adminTranslations } from './adminTranslations';
+import { publicTranslations } from './publicTranslations';
 export type Lang = 'ru' | 'kz';
 
 export interface Translations {
@@ -1144,4 +1146,4 @@ const translations: Translations = {
   'admin.inactive': { ru: 'Неактивный', kz: 'Белсенді емес' },
 };
 
-export default translations;
+export default { ...translations, ...publicTranslations, ...adminTranslations } satisfies Translations;

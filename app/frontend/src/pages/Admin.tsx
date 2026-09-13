@@ -1,3 +1,5 @@
+import AppearanceControls from '@/components/AppearanceControls';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Component, type ReactNode, useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Shield, Lock, Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
@@ -50,6 +52,8 @@ interface LoginResponse {
 }
 
 function AdminLogin({ onLogin }: { onLogin: (token: string) => void }) {
+  const { t: adminT } = useLanguage();
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -61,7 +65,7 @@ function AdminLogin({ onLogin }: { onLogin: (token: string) => void }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) {
-      setError('Введите логин и пароль');
+      setError(adminT("admin.ui.0000"));
       return;
     }
 
@@ -88,7 +92,7 @@ function AdminLogin({ onLogin }: { onLogin: (token: string) => void }) {
         localStorage.setItem('token', result.token);
         onLogin(result.token);
       } else {
-        setError(result.message || 'Неверный логин или пароль');
+        setError(result.message || adminT("admin.ui.0001"));
         setRemainingAttempts(result.remaining_attempts);
         if (result.remaining_attempts === 0) {
           setIsLocked(true);
@@ -96,7 +100,7 @@ function AdminLogin({ onLogin }: { onLogin: (token: string) => void }) {
       }
     } catch (err: any) {
       console.error('[Admin Login] Error:', err);
-      setError(err?.message || 'Ошибка подключения к серверу');
+      setError(err?.message || adminT("admin.ui.0002"));
     } finally {
       setLoading(false);
     }
@@ -106,19 +110,20 @@ function AdminLogin({ onLogin }: { onLogin: (token: string) => void }) {
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F19] flex items-center justify-center p-4 transition-colors">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
+          <div className="flex justify-end"><AppearanceControls /></div>
           <div className="mx-auto w-14 h-14 bg-slate-800 rounded-xl flex items-center justify-center mb-3">
             <Shield className="h-7 w-7 text-white" />
           </div>
-          <CardTitle className="text-xl">Авторизация</CardTitle>
-          <p className="text-sm text-gray-500 mt-1">Системный портал</p>
+          <CardTitle className="text-xl">{adminT("admin.ui.0003")}</CardTitle>
+          <p className="text-sm text-gray-500 mt-1">{adminT("admin.ui.0004")}</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Логин</label>
+              <label className="text-sm font-medium text-gray-700 mb-1.5 block">{adminT("admin.ui.0005")}</label>
               <Input
                 type="text"
-                placeholder="Введите логин"
+                placeholder={adminT("admin.ui.0006")}
                 value={username}
                 onChange={(e) => { setUsername(e.target.value); setError(''); }}
                 autoComplete="username"
@@ -128,12 +133,12 @@ function AdminLogin({ onLogin }: { onLogin: (token: string) => void }) {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Пароль</label>
+              <label className="text-sm font-medium text-gray-700 mb-1.5 block">{adminT("admin.ui.0007")}</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Введите пароль"
+                  placeholder={adminT("admin.ui.0008")}
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setError(''); }}
                   className="pl-10 pr-10"
@@ -158,7 +163,7 @@ function AdminLogin({ onLogin }: { onLogin: (token: string) => void }) {
                   <p className="text-red-700 text-sm">{error}</p>
                   {remainingAttempts !== null && remainingAttempts > 0 && (
                     <p className="text-red-500 text-xs mt-1">
-                      Осталось попыток: {remainingAttempts}
+                      {adminT("admin.ui.0009")} {remainingAttempts}
                     </p>
                   )}
                 </div>
@@ -169,14 +174,13 @@ function AdminLogin({ onLogin }: { onLogin: (token: string) => void }) {
               <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                 <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
                 <p className="text-amber-700 text-sm">
-                  Аккаунт временно заблокирован. Повторите через 15 минут.
-                </p>
+                  {adminT("admin.ui.0010")} </p>
               </div>
             )}
 
             <Button
               type="submit"
-              className="w-full bg-slate-800 hover:bg-slate-900"
+              className="w-full bg-slate-800 hover:bg-slate-900 text-white"
               disabled={loading || isLocked}
             >
               {loading ? (
@@ -184,8 +188,7 @@ function AdminLogin({ onLogin }: { onLogin: (token: string) => void }) {
               ) : (
                 <Lock className="w-4 h-4 mr-2" />
               )}
-              Войти
-            </Button>
+              {adminT("admin.ui.0011")} </Button>
           </form>
         </CardContent>
       </Card>
@@ -194,6 +197,8 @@ function AdminLogin({ onLogin }: { onLogin: (token: string) => void }) {
 }
 
 export default function AdminPanel() {
+  const { t: adminT } = useLanguage();
+
   const [isAuth, setIsAuth] = useState(false);
   const [sessionToken, setSessionToken] = useState('');
   const [verifying, setVerifying] = useState(true);
@@ -289,13 +294,13 @@ export default function AdminPanel() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-slate-500 mx-auto mb-3" />
-          <p className="text-sm text-gray-500">Проверка сессии...</p>
+          <p className="text-sm text-gray-500">{adminT("admin.ui.0012")}</p>
         </div>
       </div>
     );
   }
 
-  if (sessionError) return <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4"><div role="alert" className="max-w-sm rounded-xl border bg-white p-6 space-y-4"><p>Не удалось проверить вход. Проверьте соединение и попробуйте снова.</p><Button onClick={() => void verifySession()}>Повторить проверку</Button></div></div>;
+  if (sessionError) return <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4"><div role="alert" className="max-w-sm rounded-xl border bg-white p-6 space-y-4"><p>{adminT("admin.ui.0013")}</p><Button onClick={() => void verifySession()}>{adminT("admin.ui.0014")}</Button></div></div>;
 
   if (!isAuth) {
     return <AdminLogin onLogin={handleLogin} />;
@@ -327,6 +332,8 @@ function AdminPanelContent({
   setMobileMenuOpen: (open: boolean) => void;
   handleLogout: () => void;
 }) {
+  const { t: adminT } = useLanguage();
+
   const { summary } = useAdminSummary();
 
   useEffect(() => {
@@ -403,12 +410,11 @@ function AdminPanelContent({
         {/* Desktop Header */}
         <div className="hidden md:flex px-6 py-4 border-b border-gray-200 bg-white items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-gray-900">{getTabLabel(activeTab)}</h1>
+            <h1 className="text-xl font-bold text-gray-900">{getTabLabel(activeTab, adminT)}</h1>
           </div>
           {(summary?.total_pending ?? 0) > 0 && (
             <span className="text-sm text-red-600 font-medium">
-              {summary!.total_pending} необработанных
-            </span>
+              {summary!.total_pending} {adminT("admin.ui.0015")} </span>
           )}
         </div>
 
@@ -418,7 +424,7 @@ function AdminPanelContent({
 
         {/* Admin Footer — desktop only */}
         <div className="hidden md:block bg-white border-t border-gray-100 py-3 text-center">
-          <p className="text-[11px] text-gray-500 dark:text-gray-400">Системный портал · SORTIROVKA 24</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">{adminT("admin.ui.0016")}</p>
         </div>
       </main>
     </div>
@@ -429,7 +435,12 @@ class AdminSectionBoundary extends Component<{ children: ReactNode }, { failed: 
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
   render() {
-    if (this.state.failed) return <div role="alert" className="rounded-xl border bg-white p-5 space-y-3"><p>Не удалось открыть раздел. Попробуйте обновить страницу или выберите другой пункт меню.</p><Button onClick={() => window.location.reload()}>Обновить страницу</Button></div>;
+    if (this.state.failed) return <AdminSectionError />;
     return this.props.children;
   }
+}
+
+function AdminSectionError() {
+  const { t: adminT } = useLanguage();
+  return <div role="alert" className="rounded-xl border bg-white p-5 space-y-3"><p>{adminT("admin.ui.0017")}</p><Button onClick={() => window.location.reload()}>{adminT("admin.ui.0018")}</Button></div>;
 }

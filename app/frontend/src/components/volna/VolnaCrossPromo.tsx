@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { Link } from 'react-router-dom';
 import { ChevronRight, UtensilsCrossed } from 'lucide-react';
 import { buildVolnaCrossPromos } from '@/lib/volnaMarketing';
@@ -9,7 +10,12 @@ interface Props {
 }
 
 export default function VolnaCrossPromo({ variant = 'home' }: Props) {
-  const promos = buildVolnaCrossPromos();
+  const st = useStoreTranslations();
+
+  const promos = buildVolnaCrossPromos().map(promo => ({
+    ...promo, title: st(promo.title), subtitle: st(promo.subtitle), cta: st(promo.cta),
+    badge: promo.badge ? st(promo.badge) : undefined,
+  }));
   const primary = promos[0];
   const secondary = promos[1];
 
@@ -46,7 +52,7 @@ export default function VolnaCrossPromo({ variant = 'home' }: Props) {
         <div className="min-w-0 flex-1 py-0.5">
           <div className="flex items-center gap-1.5 text-orange-600">
             <UtensilsCrossed className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-bold uppercase tracking-wide">Рекомендуем</span>
+            <span className="text-[10px] font-bold uppercase tracking-wide">{st("Рекомендуем")}</span>
           </div>
           <p className="font-bold text-sm text-gray-900 mt-0.5">{primary.title}</p>
           <p className="text-xs text-gray-500 line-clamp-2">{primary.subtitle}</p>
@@ -59,7 +65,7 @@ export default function VolnaCrossPromo({ variant = 'home' }: Props) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="font-bold text-gray-900">К заказу из VOLNA</h2>
+        <h2 className="font-bold text-gray-900">{st("К заказу из VOLNA")}</h2>
         <span className="text-[10px] font-semibold uppercase tracking-wide text-orange-600">DAM ALEM 2.0</span>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

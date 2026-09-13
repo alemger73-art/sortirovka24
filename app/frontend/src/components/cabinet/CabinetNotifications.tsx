@@ -1,3 +1,4 @@
+import { getPublicLocale } from '@/i18n/publicLocale';
 import { Link } from "react-router-dom";
 import {
   Bell, Bike, Car, Coins, Package, UtensilsCrossed, Wrench, CheckCheck, Loader2,
@@ -25,7 +26,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 function formatWhen(raw?: string | null) {
   if (!raw || Number.isNaN(new Date(raw).getTime())) return "";
   try {
-    return new Date(raw).toLocaleString("ru-RU", {
+    return new Date(raw).toLocaleString(getPublicLocale(), {
       day: "numeric",
       month: "short",
       hour: "2-digit",

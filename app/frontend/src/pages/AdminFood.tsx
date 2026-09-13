@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useMemo, useState } from 'react';
 import { client, withRetry } from '@/lib/api';
 import { invalidateAllCaches } from '@/lib/cache';
@@ -67,6 +68,8 @@ interface AdminFoodProps {
 }
 
 export default function AdminFood({ damAlemMode = false, initialSection, hideSubTabs = false }: AdminFoodProps) {
+  const { t: adminT } = useLanguage();
+
   const [section, setSection] = useState<Section>(initialSection || (damAlemMode ? 'items' : 'items'));
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [categories, setCategories] = useState<FoodCategory[]>([]);
@@ -130,10 +133,10 @@ export default function AdminFood({ damAlemMode = false, initialSection, hideSub
       });
 
       const failedCount = results.filter((r, i) => i > 0 && r.status === 'rejected').length;
-      if (failedCount > 0) toast.error('Категории или блюда не загрузились — проверьте API');
+      if (failedCount > 0) toast.error(adminT("admin.ui.0478"));
     } catch (e) {
       console.error(e);
-      toast.error('Ошибка загрузки');
+      toast.error(adminT("admin.ui.0044"));
     } finally {
       setLoading(false);
     }
@@ -162,7 +165,7 @@ export default function AdminFood({ damAlemMode = false, initialSection, hideSub
   }, [items, selectedRestaurantId, itemSearch]);
 
   async function saveRestaurant() {
-    if (!editingRestaurant?.name) return toast.error('Введите название ресторана');
+    if (!editingRestaurant?.name) return toast.error(adminT("admin.ui.0479"));
     try {
       const payload = {
         ...editingRestaurant,
@@ -176,21 +179,21 @@ export default function AdminFood({ damAlemMode = false, initialSection, hideSub
       } else {
         await createFoodRestaurant({ ...payload, created_at: new Date().toISOString() });
       }
-      toast.success('Ресторан сохранен');
+      toast.success(adminT("admin.ui.0480"));
       setEditingRestaurant(null);
       invalidateAllCaches();
       loadAll(false);
-    } catch { toast.error('Ошибка сохранения'); }
+    } catch { toast.error(adminT("admin.ui.0055")); }
   }
 
   async function deleteRestaurant(id: number) {
-    if (!confirm('Удалить ресторан?')) return;
+    if (!confirm(adminT("admin.ui.0481"))) return;
     try {
       await deleteFoodRestaurant(id);
-      toast.success('Удалено');
+      toast.success(adminT("admin.ui.0050"));
       invalidateAllCaches();
       loadAll(false);
-    } catch { toast.error('Ошибка удаления'); }
+    } catch { toast.error(adminT("admin.ui.0051")); }
   }
 
   async function saveCat() {
@@ -210,27 +213,27 @@ export default function AdminFood({ damAlemMode = false, initialSection, hideSub
           }
         }));
       }
-      toast.success('Категория сохранена');
+      toast.success(adminT("admin.ui.0482"));
       invalidateAllCaches();
       setEditingCat(null);
       loadAll();
-    } catch { toast.error('Ошибка сохранения'); }
+    } catch { toast.error(adminT("admin.ui.0055")); }
   }
 
   async function deleteCat(id: number) {
-    if (!confirm('Удалить категорию?')) return;
+    if (!confirm(adminT("admin.ui.0196"))) return;
     try {
       await withRetry(() => client.entities.food_categories.delete({ id: String(id) }));
-      toast.success('Удалено');
+      toast.success(adminT("admin.ui.0050"));
       invalidateAllCaches();
       loadAll();
-    } catch { toast.error('Ошибка удаления'); }
+    } catch { toast.error(adminT("admin.ui.0051")); }
   }
 
   // ─── Items CRUD ───
   async function saveItem() {
     if (!editingItem?.name || !editingItem?.price || !editingItem?.category_id) {
-      toast.error('Заполните название, цену и категорию');
+      toast.error(adminT("admin.ui.0483"));
       return;
     }
     try {
@@ -251,28 +254,28 @@ export default function AdminFood({ damAlemMode = false, initialSection, hideSub
           })
         );
       }
-      toast.success('Блюдо сохранено');
+      toast.success(adminT("admin.ui.0484"));
       invalidateAllCaches();
       setEditingItem(null);
       loadAll();
-    } catch { toast.error('Ошибка сохранения'); }
+    } catch { toast.error(adminT("admin.ui.0055")); }
   }
 
   async function deleteItem(id: number) {
-    if (!confirm('Удалить блюдо?')) return;
+    if (!confirm(adminT("admin.ui.0485"))) return;
     try {
       await withRetry(() => client.entities.food_items.delete({ id: String(id) }));
-      toast.success('Удалено');
+      toast.success(adminT("admin.ui.0050"));
       invalidateAllCaches();
       loadAll();
-    } catch { toast.error('Ошибка удаления'); }
+    } catch { toast.error(adminT("admin.ui.0051")); }
   }
 
   async function toggleItemAvailable(item: FoodItem) {
     try {
       await withRetry(() => client.entities.food_items.update({ id: String(item.id), data: { available: !(item.available !== false) } }));
       loadAll();
-    } catch { toast.error('Ошибка'); }
+    } catch { toast.error(adminT("admin.ui.0486")); }
   }
 
   if (loading) {
@@ -284,9 +287,9 @@ export default function AdminFood({ damAlemMode = false, initialSection, hideSub
       {/* Sub-tabs */}
       {!hideSubTabs && <div className="flex gap-2 flex-wrap items-center">
         {([
-          ...(!damAlemMode ? [{ id: 'restaurants' as Section, label: 'Рестораны' }] : []),
-          { id: 'categories' as Section, label: 'Категории меню' },
-          { id: 'items' as Section, label: 'Блюда' },
+          ...(!damAlemMode ? [{ id: 'restaurants' as Section, label: adminT("admin.ui.0487") }] : []),
+          { id: 'categories' as Section, label: adminT("admin.ui.0488") },
+          { id: 'items' as Section, label: adminT("admin.ui.0241") },
         ]).map(t => (
           <button
             key={t.id}
@@ -307,7 +310,7 @@ export default function AdminFood({ damAlemMode = false, initialSection, hideSub
           }}
           className="border rounded-lg px-3 py-2 text-sm bg-white"
         >
-          <option value="">Без ресторана (старое меню)</option>
+          <option value="">{adminT("admin.ui.0489")}</option>
           {restaurants.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
         </select>
         )}
@@ -321,27 +324,26 @@ export default function AdminFood({ damAlemMode = false, initialSection, hideSub
       {section === 'restaurants' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-lg">Рестораны</h3>
-            <Button size="sm" className="bg-orange-500 hover:bg-orange-600" onClick={() => setEditingRestaurant({ name: '', rating: 4.5, min_order: 0, is_active: true })}>
-              <Plus className="w-4 h-4 mr-1" /> Добавить
-            </Button>
+            <h3 className="font-bold text-lg">{adminT("admin.ui.0487")}</h3>
+            <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => setEditingRestaurant({ name: '', rating: 4.5, min_order: 0, is_active: true })}>
+              <Plus className="w-4 h-4 mr-1" /> {adminT("admin.ui.0062")} </Button>
           </div>
           {editingRestaurant && (
             <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-3">
-              <Input placeholder="Название" value={editingRestaurant.name || ''} onChange={e => setEditingRestaurant({ ...editingRestaurant, name: e.target.value })} />
-              <Textarea placeholder="Описание" value={editingRestaurant.description || ''} onChange={e => setEditingRestaurant({ ...editingRestaurant, description: e.target.value })} />
+              <Input placeholder={adminT("admin.ui.0213")} value={editingRestaurant.name || ''} onChange={e => setEditingRestaurant({ ...editingRestaurant, name: e.target.value })} />
+              <Textarea placeholder={adminT("admin.ui.0079")} value={editingRestaurant.description || ''} onChange={e => setEditingRestaurant({ ...editingRestaurant, description: e.target.value })} />
               <div className="grid grid-cols-2 gap-3">
-                <Input placeholder="WhatsApp телефон" value={editingRestaurant.whatsapp_phone || ''} onChange={e => setEditingRestaurant({ ...editingRestaurant, whatsapp_phone: e.target.value })} />
-                <Input placeholder="Время работы" value={editingRestaurant.working_hours || ''} onChange={e => setEditingRestaurant({ ...editingRestaurant, working_hours: e.target.value })} />
-                <Input placeholder="Срок доставки (35-45 мин)" value={editingRestaurant.delivery_time || ''} onChange={e => setEditingRestaurant({ ...editingRestaurant, delivery_time: e.target.value })} />
-                <Input placeholder="Кухня (pizza,sushi)" value={editingRestaurant.cuisine_type || ''} onChange={e => setEditingRestaurant({ ...editingRestaurant, cuisine_type: e.target.value })} />
-                <Input type="number" placeholder="Мин. заказ" value={editingRestaurant.min_order || 0} onChange={e => setEditingRestaurant({ ...editingRestaurant, min_order: Number(e.target.value) })} />
-                <Input type="number" step="0.1" placeholder="Рейтинг" value={editingRestaurant.rating || 4.5} onChange={e => setEditingRestaurant({ ...editingRestaurant, rating: Number(e.target.value) })} />
+                <Input placeholder={adminT("admin.ui.0490")} value={editingRestaurant.whatsapp_phone || ''} onChange={e => setEditingRestaurant({ ...editingRestaurant, whatsapp_phone: e.target.value })} />
+                <Input placeholder={adminT("admin.ui.0334")} value={editingRestaurant.working_hours || ''} onChange={e => setEditingRestaurant({ ...editingRestaurant, working_hours: e.target.value })} />
+                <Input placeholder={adminT("admin.ui.0491")} value={editingRestaurant.delivery_time || ''} onChange={e => setEditingRestaurant({ ...editingRestaurant, delivery_time: e.target.value })} />
+                <Input placeholder={adminT("admin.ui.0492")} value={editingRestaurant.cuisine_type || ''} onChange={e => setEditingRestaurant({ ...editingRestaurant, cuisine_type: e.target.value })} />
+                <Input type="number" placeholder={adminT("admin.ui.0493")} value={editingRestaurant.min_order || 0} onChange={e => setEditingRestaurant({ ...editingRestaurant, min_order: Number(e.target.value) })} />
+                <Input type="number" step="0.1" placeholder={adminT("admin.ui.0338")} value={editingRestaurant.rating || 4.5} onChange={e => setEditingRestaurant({ ...editingRestaurant, rating: Number(e.target.value) })} />
               </div>
               <ImageUpload value={editingRestaurant.photo || ''} onChange={key => setEditingRestaurant({ ...editingRestaurant, photo: key })} folder="food" compact />
               <div className="flex gap-2">
-                <Button size="sm" className="bg-orange-500 hover:bg-orange-600" onClick={saveRestaurant}><Save className="w-4 h-4 mr-1" />Сохранить</Button>
-                <Button size="sm" variant="outline" onClick={() => setEditingRestaurant(null)}><X className="w-4 h-4 mr-1" />Отмена</Button>
+                <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={saveRestaurant}><Save className="w-4 h-4 mr-1" />{adminT("admin.ui.0096")}</Button>
+                <Button size="sm" variant="outline" onClick={() => setEditingRestaurant(null)}><X className="w-4 h-4 mr-1" />{adminT("admin.ui.0095")}</Button>
               </div>
             </div>
           )}
@@ -352,7 +354,7 @@ export default function AdminFood({ damAlemMode = false, initialSection, hideSub
                   {r.photo ? <StorageImage objectKey={r.photo} alt={r.name} className="w-12 h-12 rounded-lg" /> : <div className="w-12 h-12 rounded-lg bg-orange-100" />}
                   <div>
                     <div className="font-semibold">{r.name}</div>
-                    <div className="text-xs text-gray-500">{r.cuisine_type} • {r.delivery_time} • мин. {r.min_order} ₸</div>
+                    <div className="text-xs text-gray-500">{r.cuisine_type} • {r.delivery_time} {adminT("admin.ui.0494")} {r.min_order} ₸</div>
                   </div>
                 </div>
                 <div className="flex gap-1">
@@ -368,27 +370,26 @@ export default function AdminFood({ damAlemMode = false, initialSection, hideSub
       {section === 'categories' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-lg">Категории еды</h3>
+            <h3 className="font-bold text-lg">{adminT("admin.ui.0495")}</h3>
             <Button
               size="sm"
               onClick={() =>
                 setEditingCat({ name: '', icon: '🍽', restaurant_id: selectedRestaurantId || undefined, sort_order: categories.length + 1 })
               }
-              className="bg-orange-500 hover:bg-orange-600"
+              className="bg-orange-500 hover:bg-orange-600 text-white"
             >
-              <Plus className="w-4 h-4 mr-1" /> Добавить
-            </Button>
+              <Plus className="w-4 h-4 mr-1" /> {adminT("admin.ui.0062")} </Button>
           </div>
 
           {editingCat && (
             <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Input placeholder="Иконка (emoji)" value={editingCat.icon || ''} onChange={e => setEditingCat({ ...editingCat, icon: e.target.value })} />
-                <Input placeholder="Название *" value={editingCat.name || ''} onChange={e => setEditingCat({ ...editingCat, name: e.target.value })} className="sm:col-span-2" />
+                <Input placeholder={adminT("admin.ui.0496")} value={editingCat.icon || ''} onChange={e => setEditingCat({ ...editingCat, icon: e.target.value })} />
+                <Input placeholder={adminT("admin.ui.0077")} value={editingCat.name || ''} onChange={e => setEditingCat({ ...editingCat, name: e.target.value })} className="sm:col-span-2" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input placeholder="Slug (url)" value={editingCat.slug || ''} onChange={e => setEditingCat({ ...editingCat, slug: e.target.value })} />
-                <Input placeholder="Тип (menu, combo…)" value={editingCat.category_type || ''} onChange={e => setEditingCat({ ...editingCat, category_type: e.target.value })} />
+                <Input placeholder={adminT("admin.ui.0497")} value={editingCat.category_type || ''} onChange={e => setEditingCat({ ...editingCat, category_type: e.target.value })} />
               </div>
               {!damAlemMode && (
                 <Input placeholder="Restaurant ID" value={editingCat.restaurant_id || selectedRestaurantId || ''} onChange={e => setEditingCat({ ...editingCat, restaurant_id: Number(e.target.value) })} />
@@ -399,14 +400,13 @@ export default function AdminFood({ damAlemMode = false, initialSection, hideSub
                 folder="food"
                 compact
               />
-              <Input type="number" placeholder="Порядок" value={editingCat.sort_order || ''} onChange={e => setEditingCat({ ...editingCat, sort_order: parseInt(e.target.value) || 0 })} className="w-32" />
+              <Input type="number" placeholder={adminT("admin.ui.0216")} value={editingCat.sort_order || ''} onChange={e => setEditingCat({ ...editingCat, sort_order: parseInt(e.target.value) || 0 })} className="w-32" />
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={editingCat.is_active !== false} onChange={e => setEditingCat({ ...editingCat, is_active: e.target.checked })} />
-                Активная категория
-              </label>
+                {adminT("admin.ui.0498")} </label>
               <div className="flex gap-2">
-                <Button size="sm" onClick={saveCat} className="bg-orange-500 hover:bg-orange-600"><Save className="w-4 h-4 mr-1" /> Сохранить</Button>
-                <Button size="sm" variant="outline" onClick={() => setEditingCat(null)}><X className="w-4 h-4 mr-1" /> Отмена</Button>
+                <Button size="sm" onClick={saveCat} className="bg-orange-500 hover:bg-orange-600 text-white"><Save className="w-4 h-4 mr-1" /> {adminT("admin.ui.0096")}</Button>
+                <Button size="sm" variant="outline" onClick={() => setEditingCat(null)}><X className="w-4 h-4 mr-1" /> {adminT("admin.ui.0095")}</Button>
               </div>
             </div>
           )}
@@ -440,10 +440,10 @@ export default function AdminFood({ damAlemMode = false, initialSection, hideSub
       {section === 'items' && (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="font-bold text-lg">Блюда</h3>
+            <h3 className="font-bold text-lg">{adminT("admin.ui.0241")}</h3>
             <div className="flex flex-wrap items-center gap-2">
               <Input
-                placeholder="Поиск..."
+                placeholder={adminT("admin.ui.0210")}
                 value={itemSearch}
                 onChange={e => setItemSearch(e.target.value)}
                 className="h-9 w-40"
@@ -461,17 +461,16 @@ export default function AdminFood({ damAlemMode = false, initialSection, hideSub
                     is_active: true,
                   })
                 }
-                className="bg-orange-500 hover:bg-orange-600"
+                className="bg-orange-500 hover:bg-orange-600 text-white"
               >
-                <Plus className="w-4 h-4 mr-1" /> Добавить
-              </Button>
+                <Plus className="w-4 h-4 mr-1" /> {adminT("admin.ui.0062")} </Button>
             </div>
           </div>
 
           {editingItem && (
             <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Input placeholder="Название *" value={editingItem.name || ''} onChange={e => setEditingItem({ ...editingItem, name: e.target.value })} />
+                <Input placeholder={adminT("admin.ui.0077")} value={editingItem.name || ''} onChange={e => setEditingItem({ ...editingItem, name: e.target.value })} />
                 {!damAlemMode && (
                   <Input type="number" placeholder="Restaurant ID *" value={editingItem.restaurant_id || selectedRestaurantId || ''} onChange={e => setEditingItem({ ...editingItem, restaurant_id: Number(e.target.value) })} />
                 )}
@@ -480,15 +479,15 @@ export default function AdminFood({ damAlemMode = false, initialSection, hideSub
                   onChange={e => setEditingItem({ ...editingItem, category_id: parseInt(e.target.value) })}
                   className="border rounded-lg px-3 py-2 text-sm sm:col-span-2"
                 >
-                  <option value="">Категория *</option>
+                  <option value="">{adminT("admin.ui.0459")}</option>
                   {filteredCategories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
                 </select>
               </div>
-              <Textarea placeholder="Описание" value={editingItem.description || ''} onChange={e => setEditingItem({ ...editingItem, description: e.target.value })} rows={2} />
+              <Textarea placeholder={adminT("admin.ui.0079")} value={editingItem.description || ''} onChange={e => setEditingItem({ ...editingItem, description: e.target.value })} rows={2} />
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <Input type="number" placeholder="Цена *" value={editingItem.price || ''} onChange={e => setEditingItem({ ...editingItem, price: parseInt(e.target.value) || 0 })} />
-                <Input placeholder="Вес (350 г)" value={editingItem.weight || ''} onChange={e => setEditingItem({ ...editingItem, weight: e.target.value })} />
-                <Input type="number" placeholder="Порядок" value={editingItem.sort_order || ''} onChange={e => setEditingItem({ ...editingItem, sort_order: parseInt(e.target.value) || 0 })} />
+                <Input type="number" placeholder={adminT("admin.ui.0499")} value={editingItem.price || ''} onChange={e => setEditingItem({ ...editingItem, price: parseInt(e.target.value) || 0 })} />
+                <Input placeholder={adminT("admin.ui.0500")} value={editingItem.weight || ''} onChange={e => setEditingItem({ ...editingItem, weight: e.target.value })} />
+                <Input type="number" placeholder={adminT("admin.ui.0216")} value={editingItem.sort_order || ''} onChange={e => setEditingItem({ ...editingItem, sort_order: parseInt(e.target.value) || 0 })} />
               </div>
               <ImageUpload
                 value={editingItem.image_url || ''}
@@ -499,28 +498,23 @@ export default function AdminFood({ damAlemMode = false, initialSection, hideSub
               <div className="flex gap-4 flex-wrap">
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={editingItem.is_active !== false} onChange={e => setEditingItem({ ...editingItem, is_active: e.target.checked })} />
-                  Активное
-                </label>
+                  {adminT("admin.ui.0501")} </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={editingItem.available !== false} onChange={e => setEditingItem({ ...editingItem, available: e.target.checked })} />
-                  Доступно
-                </label>
+                  {adminT("admin.ui.0502")} </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={!!editingItem.is_popular} onChange={e => setEditingItem({ ...editingItem, is_popular: e.target.checked })} />
-                  Популярное
-                </label>
+                  {adminT("admin.ui.0503")} </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={!!editingItem.is_combo} onChange={e => setEditingItem({ ...editingItem, is_combo: e.target.checked })} />
-                  Комбо
-                </label>
+                  {adminT("admin.ui.0504")} </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={!!editingItem.is_recommended} onChange={e => setEditingItem({ ...editingItem, is_recommended: e.target.checked })} />
-                  Рекомендуем
-                </label>
+                  {adminT("admin.ui.0505")} </label>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" onClick={saveItem} className="bg-orange-500 hover:bg-orange-600"><Save className="w-4 h-4 mr-1" /> Сохранить</Button>
-                <Button size="sm" variant="outline" onClick={() => setEditingItem(null)}><X className="w-4 h-4 mr-1" /> Отмена</Button>
+                <Button size="sm" onClick={saveItem} className="bg-orange-500 hover:bg-orange-600 text-white"><Save className="w-4 h-4 mr-1" /> {adminT("admin.ui.0096")}</Button>
+                <Button size="sm" variant="outline" onClick={() => setEditingItem(null)}><X className="w-4 h-4 mr-1" /> {adminT("admin.ui.0095")}</Button>
               </div>
             </div>
           )}
@@ -541,10 +535,10 @@ export default function AdminFood({ damAlemMode = false, initialSection, hideSub
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-sm truncate">{item.name}</span>
-                        {item.is_popular && <Badge className="bg-orange-100 text-orange-700 border-0 text-[10px]">Хит</Badge>}
-                        {item.is_combo && <Badge className="bg-purple-100 text-purple-700 border-0 text-[10px]">Комбо</Badge>}
+                        {item.is_popular && <Badge className="bg-orange-100 text-orange-700 border-0 text-[10px]">{adminT("admin.ui.0506")}</Badge>}
+                        {item.is_combo && <Badge className="bg-purple-100 text-purple-700 border-0 text-[10px]">{adminT("admin.ui.0504")}</Badge>}
                         {item.is_recommended && <Badge className="bg-blue-100 text-blue-700 border-0 text-[10px]">★</Badge>}
-                        {item.available !== false ? <Badge className="bg-green-100 text-green-700 border-0 text-[10px]">Доступно</Badge> : <Badge className="bg-gray-100 text-gray-700 border-0 text-[10px]">Недоступно</Badge>}
+                        {item.available !== false ? <Badge className="bg-green-100 text-green-700 border-0 text-[10px]">{adminT("admin.ui.0502")}</Badge> : <Badge className="bg-gray-100 text-gray-700 border-0 text-[10px]">{adminT("admin.ui.0507")}</Badge>}
                       </div>
                       <div className="flex items-center gap-2 text-xs text-gray-400">
                         <span>{cat?.name}</span>

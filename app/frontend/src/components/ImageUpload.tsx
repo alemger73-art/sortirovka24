@@ -1,3 +1,4 @@
+import { formatPublicText } from '@/i18n/publicLocale';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -89,7 +90,7 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
       return;
     }
     if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
-      toast.error(`Максимальный размер файла — ${formatMaxImageSizeMb()} МБ`);
+      toast.error(formatPublicText(publicT, "public.upload.maxSize", { v0: formatMaxImageSizeMb() }));
       return;
     }
 
@@ -166,7 +167,7 @@ export default function ImageUpload({ value, onChange, onUploadingChange, folder
       onChange(trimmed);
       setDownloadUrl(trimmed);
       setPreviewUrl(null);
-      toast.success('Ссылка сохранена');
+      toast.success(publicT("public.common.linkSaved"));
       setMode('upload');
     };
     img.src = trimmed;

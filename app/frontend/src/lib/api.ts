@@ -1,3 +1,5 @@
+import publicTranslations from '@/i18n/publicTranslations';
+import { getPublicLocale, getPublicLanguage } from '@/i18n/publicLocale';
 import { getRequestSessionToken } from './requestSession';
 import { createClient } from '@metagptx/web-sdk';
 import { Capacitor } from '@capacitor/core';
@@ -386,7 +388,7 @@ export const DIRECTORY_CATEGORY_KEYS: Record<string, string> = {
 
 export function getDirectoryCategoryLabel(category: string, t: (key: string) => string): string {
   const key = DIRECTORY_CATEGORY_KEYS[category];
-  return key ? t(key) : category;
+  return key ? t(key) : getPublicCategoryLabel(category, t);
 }
 
 export function sortDirectoryEntries<T extends { category?: string; sort_order?: number | null; entry_name?: string }>(items: T[]): T[] {
@@ -419,24 +421,133 @@ export const CATEGORY_ICONS: Record<string, string> = {
   'Окна и двери': '🪟', 'Кровельщик': '🏗️', 'Натяжные потолки': '✨', 'Разнорабочие': '🛠️'
 };
 
-export function timeAgo(dateStr: string): string {
-  const now = new Date();
+export function timeAgo(dateStr: string, lang = getPublicLanguage()): string {
   const date = new Date(dateStr);
-  const diffMs = now.getTime() - date.getTime();
+  if (!dateStr || Number.isNaN(date.getTime())) return '';
+  const diffMs = Math.max(0, Date.now() - date.getTime());
   const diffMin = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMin < 1) return 'только что';
-  if (diffMin < 60) return `${diffMin} мин. назад`;
-  if (diffHours < 24) return `${diffHours} ч. назад`;
-  if (diffDays === 1) return 'вчера';
-  if (diffDays < 7) return `${diffDays} дн. назад`;
-  return date.toLocaleDateString('ru-RU');
+  const message = (key: string, count = 0) => publicTranslations[`public.time.${key}`][lang].replace('{count}', String(count));
+  if (diffMin < 1) return message('now');
+  if (diffMin < 60) return message('minutes', diffMin);
+  if (diffHours < 24) return message('hours', diffHours);
+  if (diffDays === 1) return message('yesterday');
+  if (diffDays < 7) return message('days', diffDays);
+  return date.toLocaleDateString(getPublicLocale(lang));
 }
 
-export function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('ru-RU', {
-    day: 'numeric', month: 'long', year: 'numeric'
-  });
+export function formatDate(dateStr: string, lang = getPublicLanguage()): string {
+  const date = new Date(dateStr);
+  if (!dateStr || Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString(getPublicLocale(lang), { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+const PUBLIC_CATEGORY_KEYS: Record<string, string> = {
+  "Сантехник": "public.category.0",
+  "Электрик": "public.category.1",
+  "Сварщик": "public.category.2",
+  "Мебельщик": "public.category.3",
+  "Ремонт техники": "public.category.4",
+  "Грузчики": "public.category.5",
+  "Ремонт квартир": "public.category.6",
+  "Окна и двери": "public.category.7",
+  "Кровельщик": "public.category.8",
+  "Натяжные потолки": "public.category.9",
+  "Разнорабочие": "public.category.10",
+  "Парикмахерская": "public.category.11",
+  "Барбершоп": "public.category.12",
+  "Ногтевой сервис": "public.category.13",
+  "Брови и ресницы": "public.category.14",
+  "Косметология": "public.category.15",
+  "СПА и массаж": "public.category.16",
+  "Макияж": "public.category.17",
+  "Эпиляция": "public.category.18",
+  "Тату и пирсинг": "public.category.19",
+  "Солярий": "public.category.20",
+  "Ямы на дорогах": "public.category.21",
+  "Мусор": "public.category.22",
+  "Не работает освещение": "public.category.23",
+  "Проблемы ЖКХ": "public.category.24",
+  "Сломанные остановки": "public.category.25",
+  "Незаконная свалка": "public.category.26",
+  "Вода": "public.category.27",
+  "Электричество": "public.category.28",
+  "Другое": "public.category.29",
+  "Прочее": "public.category.30",
+  "Происшествия": "public.category.31",
+  "События района": "public.category.32",
+  "ЖКХ": "public.category.33",
+  "Дороги": "public.category.34",
+  "Инфраструктура": "public.category.35",
+  "Объявления": "public.category.36",
+  "Важная информация": "public.category.37",
+  "Продам": "public.category.38",
+  "Куплю": "public.category.39",
+  "Сдам": "public.category.40",
+  "Услуги": "public.category.41",
+  "Отдам бесплатно": "public.category.42",
+  "Продам квартиру": "public.category.43",
+  "Сдам квартиру": "public.category.44",
+  "Сниму квартиру": "public.category.45",
+  "Продам дом": "public.category.46",
+  "Сдам дом": "public.category.47",
+  "Коммерческая недвижимость": "public.category.48",
+  "Участки": "public.category.49",
+  "Продавец": "public.category.50",
+  "Грузчик": "public.category.51",
+  "Водитель": "public.category.52",
+  "Кассир": "public.category.53",
+  "Повар": "public.category.54",
+  "Уборщица": "public.category.55",
+  "Разнорабочий": "public.category.56",
+  "Строительство": "public.category.57",
+  "Кровельные работы": "public.category.58",
+  "Доставка": "public.category.59",
+  "Все": "public.category.60",
+  "Квартиры": "public.category.61",
+  "Дома": "public.category.62",
+  "Аренда": "public.category.63",
+  "Коммерция": "public.category.64",
+  "Все сделки": "public.category.65",
+  "Продажа": "public.category.66",
+  "Ищу": "public.category.67",
+  "Культура": "public.category.68",
+  "Люди": "public.category.69",
+  "Транспорт": "public.category.70",
+  "Велосипед": "public.category.71",
+  "Автомобиль": "public.category.72",
+  "Пешком": "public.category.73"
+};
+const PUBLIC_STATUS_KEYS: Record<string, string> = {
+  "new": "public.status.new",
+  "Новая": "public.status.new",
+  "in_progress": "public.status.in_progress",
+  "В работе": "public.status.in_progress",
+  "resolved": "public.status.resolved",
+  "Решено": "public.status.resolved",
+  "done": "public.status.done",
+  "Выполнено": "public.status.done",
+  "pending": "public.status.pending",
+  "На модерации": "public.status.pending",
+  "approved": "public.status.approved",
+  "Одобрено": "public.status.approved",
+  "published": "public.status.published",
+  "Опубликовано": "public.status.published",
+  "rejected": "public.status.rejected",
+  "Отклонено": "public.status.rejected",
+  "hidden": "public.status.hidden",
+  "Снято с публикации": "public.status.hidden",
+  "Отправлена": "public.status.new",
+  "На рассмотрении": "public.status.pending",
+  "Решена": "public.status.resolved"
+};
+
+/** Translate only known system labels; preserve user-defined categories. */
+export function getPublicCategoryLabel(value: string | undefined, t: (key: string) => string): string {
+  return value ? PUBLIC_CATEGORY_KEYS[value] ? t(PUBLIC_CATEGORY_KEYS[value]) : value : '';
+}
+
+export function getStatusLabel(status: string | undefined, t: (key: string) => string): string {
+  return status ? PUBLIC_STATUS_KEYS[status] ? t(PUBLIC_STATUS_KEYS[status]) : status : '';
 }

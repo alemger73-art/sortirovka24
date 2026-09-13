@@ -1,3 +1,5 @@
+import { formatPublicText } from '@/i18n/publicLocale';
+import { getPublicCategoryLabel } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
@@ -88,7 +90,7 @@ function ShareButtons({ event }: { event: HistoryEvent }) {
   const { t: publicT } = useLanguage();
   const [copied, setCopied] = useState(false);
 
-  const shareText = `📜 ${event.year} — ${event.title}\n\n${event.description.slice(0, 200)}...\n\nИстория Сортировки`;
+  const shareText = formatPublicText(publicT, "public.history.share", { v0: event.year, v1: event.title, v2: event.description.slice(0, 200) });
   const shareUrl = `${window.location.origin}/history?event=${event.id}`;
 
   const shareWhatsApp = () => {
@@ -99,10 +101,10 @@ function ShareButtons({ event }: { event: HistoryEvent }) {
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
-      toast.success('Ссылка скопирована');
+      toast.success(publicT("realestate.linkCopied"));
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error(publicT("public.History.text192"));
+      toast.error(publicT("public.common.copyFailed"));
     }
   };
 
@@ -113,7 +115,7 @@ function ShareButtons({ event }: { event: HistoryEvent }) {
       </Button>
       <Button variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={copyLink}>
         {copied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3" />}
-        {copied ? 'Скопировано' : 'Ссылка'}
+        {copied ? publicT("common.copied") : publicT("public.common.link")}
       </Button>
     </div>
   );
@@ -170,7 +172,7 @@ function TimelineCard({ event, index }: { event: HistoryEvent; index: number }) 
                 event.category === 'People' ? 'border-amber-300 text-amber-700 bg-amber-50' :
                 'border-emerald-300 text-emerald-700 bg-emerald-50'
               }`}>
-                {CATEGORY_LABELS[event.category] || event.category}
+                {getPublicCategoryLabel(CATEGORY_LABELS[event.category], publicT) || event.category}
               </Badge>
             </div>
 
@@ -185,7 +187,7 @@ function TimelineCard({ event, index }: { event: HistoryEvent; index: number }) 
                 onClick={() => setExpanded(!expanded)}
                 className="text-blue-600 text-xs mt-1 flex items-center gap-1 hover:underline"
               >
-                {expanded ? <><ChevronUp className="h-3 w-3" /> Свернуть</> : <><ChevronDown className="h-3 w-3" /> {publicT("public.History.text193")}</>}
+                {expanded ? <><ChevronUp className="h-3 w-3" /> {publicT("inspectors.collapse")}</> : <><ChevronDown className="h-3 w-3" /> {publicT("public.History.text193")}</>}
               </button>
             )}
 
@@ -310,7 +312,7 @@ export default function HistoryPage() {
                   } : undefined}
                 >
                   <span>{cat.icon}</span>
-                  <span>{cat.label}</span>
+                  <span>{getPublicCategoryLabel(cat.label, publicT)}</span>
                   {activeCategory === cat.id && cat.id !== 'all' && (
                     <span className="ml-1 bg-white/30 rounded-full px-1.5 text-[10px]">
                       {events.filter(e => e.category === cat.id).length}

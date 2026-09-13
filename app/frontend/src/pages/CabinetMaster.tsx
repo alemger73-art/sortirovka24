@@ -1,3 +1,4 @@
+import { getPublicCategoryLabel } from '@/lib/api';
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -182,7 +183,7 @@ export default function CabinetMaster() {
               <div className={`rounded-2xl border p-5 ${becomeStatus(latestBecome.status).bg}`}>
                 <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">{t("cabinet.master.becomeSection")}</p>
                 <p className={`text-sm font-semibold ${becomeStatus(latestBecome.status).color}`}>
-                  {latestBecome.category}: {becomeStatus(latestBecome.status).label}
+                  {getPublicCategoryLabel(latestBecome.category, t)}: {becomeStatus(latestBecome.status).label}
                 </p>
                 {latestBecome.status === "pending" && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t("cabinet.master.becomePendingHint")}</p>
@@ -331,7 +332,7 @@ export default function CabinetMaster() {
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2 mb-1.5">
-                          <p className="font-bold text-gray-900 dark:text-white">{r.title || r.category}</p>
+                          <p className="font-bold text-gray-900 dark:text-white">{r.title || getPublicCategoryLabel(r.category, t)}</p>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${statusClass}`}>
                             {requestStatusLabel(r.status)}
                           </span>

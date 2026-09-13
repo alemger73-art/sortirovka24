@@ -22,8 +22,7 @@ export default function RouteErrorFallback({ error, onRetry }: Props) {
       />
       <h1 className="text-xl font-bold">{publicT("public.RouteErrorFallback.text351")}</h1>
       <p className="mt-2 max-w-sm text-sm text-white/70">
-        Страница не загрузилась. Проверьте интернет и попробуйте снова.
-      </p>
+        {publicT("public.extra.34")} </p>
       {error?.message && (
         <p className="mt-3 max-w-sm truncate text-xs text-white/40">{error.message}</p>
       )}

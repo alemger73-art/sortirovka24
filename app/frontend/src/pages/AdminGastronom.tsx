@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,40 +47,55 @@ interface AdminGastronomProps {
 
 type Section = 'products' | 'categories' | 'orders' | 'delivery' | 'gifts' | 'settings';
 
-const ORDER_STATUS: Record<string, string> = {
-  new: 'Новый',
-  processing: 'В работе',
-  delivered: 'Доставлен',
-  cancelled: 'Отменён',
+function getORDER_STATUS(adminT: (key: string) => string) {
+  const ORDER_STATUS: Record<string, string> = {
+  new: adminT("admin.ui.0508"),
+  processing: adminT("admin.ui.0128"),
+  delivered: adminT("admin.ui.0513"),
+  cancelled: adminT("admin.ui.0514"),
 };
+  return ORDER_STATUS;
+}
 
-const ORDER_FILTERS = [
-  { id: 'all', label: 'Все' },
-  { id: 'new', label: 'Новые' },
-  { id: 'processing', label: 'В работе' },
-  { id: 'delivered', label: 'Доставлены' },
-  { id: 'cancelled', label: 'Отменены' },
+function getORDER_FILTERS(adminT: (key: string) => string) {
+  const ORDER_FILTERS = [
+  { id: 'all', label: adminT("admin.ui.0132") },
+  { id: 'new', label: adminT("admin.ui.0223") },
+  { id: 'processing', label: adminT("admin.ui.0128") },
+  { id: 'delivered', label: adminT("admin.ui.0715") },
+  { id: 'cancelled', label: adminT("admin.ui.0716") },
 ] as const;
+  return ORDER_FILTERS;
+}
 
-function formatOrderDate(raw: string) {
+function formatOrderDate(raw: string, locale: string) {
   if (!raw) return '—';
   try {
-    return new Date(raw).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return new Date(raw).toLocaleString(locale, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   } catch {
     return raw;
   }
 }
 
-const PAYMENT_LABELS: Record<string, string> = {
-  cash: 'Наличные',
+function getPAYMENT_LABELS(adminT: (key: string) => string) {
+  const PAYMENT_LABELS: Record<string, string> = {
+  cash: adminT("admin.ui.0515"),
   kaspi_qr: 'Kaspi QR',
   halyk_qr: 'Halyk QR',
 };
+  return PAYMENT_LABELS;
+}
 
 const MOBILE_DIALOG =
   'max-h-[90vh] overflow-y-auto max-sm:fixed max-sm:inset-0 max-sm:left-0 max-sm:top-0 max-sm:max-w-none max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:border-0 max-sm:p-4';
 
 export default function AdminGastronom({ partnerMode = false }: AdminGastronomProps) {
+  const { t: adminT, lang } = useLanguage();
+  const adminLocale = lang === 'kz' ? 'kk-KZ' : 'ru-RU';
+  const ORDER_STATUS = getORDER_STATUS(adminT);
+  const ORDER_FILTERS = getORDER_FILTERS(adminT);
+  const PAYMENT_LABELS = getPAYMENT_LABELS(adminT);
+
   const [section, setSection] = useState<Section>('products');
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<GastronomCategory[]>([]);
@@ -117,7 +133,7 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
       setLoyaltyEnabled(isLoyaltyEnabled(sets));
     } catch (e) {
       console.error(e);
-      toast.error('Ошибка загрузки данных ГАСТРОНОМ');
+      toast.error(adminT("admin.ui.0717"));
     } finally {
       if (fullScreenLoader) setLoading(false);
     }
@@ -168,7 +184,7 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
   const newOrdersCount = useMemo(() => orders.filter((o) => o.status === 'new').length, [orders]);
 
   async function handleSaveCategory() {
-    if (!editingCat?.name?.trim()) return toast.error('Введите название категории');
+    if (!editingCat?.name?.trim()) return toast.error(adminT("admin.ui.0718"));
     try {
       await saveGastronomCategory({
         ...editingCat,
@@ -177,28 +193,28 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
         is_alcohol: !!editingCat.is_alcohol,
         sort_order: Number(editingCat.sort_order || categories.length + 1),
       } as GastronomCategory & { name: string });
-      toast.success('Категория сохранена');
+      toast.success(adminT("admin.ui.0482"));
       closeCategoryDialog();
       await loadAll();
     } catch {
-      toast.error('Ошибка сохранения');
+      toast.error(adminT("admin.ui.0055"));
     }
   }
 
   async function handleDeleteCategory(id: number) {
-    if (!confirm('Удалить категорию?')) return;
+    if (!confirm(adminT("admin.ui.0196"))) return;
     try {
       await deleteGastronomCategory(id);
-      toast.success('Удалено');
+      toast.success(adminT("admin.ui.0050"));
       await loadAll();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Ошибка удаления');
+      toast.error(e instanceof Error ? e.message : adminT("admin.ui.0051"));
     }
   }
 
   async function handleSaveProduct() {
     if (!editingProduct?.name?.trim() || editingProduct.price == null) {
-      return toast.error('Заполните название и цену');
+      return toast.error(adminT("admin.ui.0719"));
     }
     try {
       await saveGastronomProduct({
@@ -210,22 +226,22 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
         is_popular: !!editingProduct.is_popular,
         sort_order: Number(editingProduct.sort_order || products.length + 1),
       } as GastronomProduct & { name: string; price: number });
-      toast.success('Товар сохранён');
+      toast.success(adminT("admin.ui.0720"));
       closeProductDialog();
       await loadAll();
     } catch {
-      toast.error('Ошибка сохранения');
+      toast.error(adminT("admin.ui.0055"));
     }
   }
 
   async function handleDeleteProduct(id: number) {
-    if (!confirm('Удалить товар?')) return;
+    if (!confirm(adminT("admin.ui.0721"))) return;
     try {
       await deleteGastronomProduct(id);
-      toast.success('Удалено');
+      toast.success(adminT("admin.ui.0050"));
       await loadAll();
     } catch {
-      toast.error('Ошибка удаления');
+      toast.error(adminT("admin.ui.0051"));
     }
   }
 
@@ -239,9 +255,9 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
       } as Record<string, string>;
       const saved = await saveGastronomSettings(payload);
       setSettings(saved);
-      toast.success('Настройки сохранены');
+      toast.success(adminT("admin.ui.0586"));
     } catch {
-      toast.error('Ошибка сохранения настроек');
+      toast.error(adminT("admin.ui.0722"));
     }
   }
 
@@ -255,16 +271,16 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
       } as Record<string, string>;
       const saved = await saveGastronomSettings(payload);
       setSettings(saved);
-      toast.success('Зоны доставки сохранены');
+      toast.success(adminT("admin.ui.0723"));
     } catch {
-      toast.error('Ошибка сохранения зон');
+      toast.error(adminT("admin.ui.0724"));
     }
   }
 
   async function handleSaveLoyaltyGifts() {
     const invalid = loyaltyGifts.find((g) => !g.title.trim() || g.min_amount <= 0);
     if (invalid) {
-      toast.error('У каждого подарка должны быть сумма и название');
+      toast.error(adminT("admin.ui.0725"));
       return;
     }
     try {
@@ -277,33 +293,33 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
       setSettings(saved);
       setLoyaltyGifts(parseLoyaltyGifts(saved.loyalty_gifts));
       setLoyaltyEnabled(isLoyaltyEnabled(saved));
-      toast.success('Подарки сохранены');
+      toast.success(adminT("admin.ui.0726"));
     } catch {
-      toast.error('Ошибка сохранения подарков');
+      toast.error(adminT("admin.ui.0727"));
     }
   }
 
   async function handleOrderStatus(orderId: number, status: string) {
     try {
       await updateGastronomOrderStatus(orderId, status);
-      toast.success('Статус обновлён');
+      toast.success(adminT("admin.ui.0047"));
       await loadAll();
     } catch {
-      toast.error('Ошибка обновления статуса');
+      toast.error(adminT("admin.ui.0728"));
     }
   }
 
   const tabs: { id: Section; label: string; icon: typeof Package }[] = [
-    { id: 'products', label: 'Товары', icon: Package },
-    { id: 'categories', label: 'Категории', icon: FolderTree },
-    { id: 'orders', label: 'Заказы', icon: ShoppingBag },
-    { id: 'delivery', label: 'Зоны доставки', icon: Map },
-    { id: 'gifts', label: 'Подарки', icon: Gift },
-    { id: 'settings', label: 'Настройки', icon: Settings },
+    { id: 'products', label: adminT("admin.ui.0698"), icon: Package },
+    { id: 'categories', label: adminT("admin.ui.0242"), icon: FolderTree },
+    { id: 'orders', label: adminT("admin.ui.0239"), icon: ShoppingBag },
+    { id: 'delivery', label: adminT("admin.ui.0729"), icon: Map },
+    { id: 'gifts', label: adminT("admin.ui.0608"), icon: Gift },
+    { id: 'settings', label: adminT("admin.ui.0245"), icon: Settings },
   ];
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-400">Загрузка ГАСТРОНОМ...</div>;
+    return <div className="p-8 text-center text-gray-400">{adminT("admin.ui.0730")}</div>;
   }
 
   return (
@@ -312,7 +328,7 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
       <div className="hidden md:flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-bold text-gray-900">ГАСТРОНОМ</h1>
-          <p className="text-sm text-gray-500">Партнёр · доставка продуктов питания</p>
+          <p className="text-sm text-gray-500">{adminT("admin.ui.0732")}</p>
         </div>
         <a
           href="/gastronom"
@@ -320,20 +336,18 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
           rel="noopener noreferrer"
           className="text-sm text-emerald-600 hover:underline"
         >
-          Открыть витрину →
-        </a>
+          {adminT("admin.ui.0733")} </a>
       </div>
 
       <div className="md:hidden flex items-center justify-between gap-2">
-        <p className="text-xs text-gray-500 truncate">Доставка продуктов</p>
+        <p className="text-xs text-gray-500 truncate">{adminT("admin.ui.0734")}</p>
         <a
           href="/gastronom"
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs text-emerald-600 font-medium shrink-0 py-2 px-3 rounded-lg bg-emerald-50"
         >
-          Витрина
-        </a>
+          {adminT("admin.ui.0735")} </a>
       </div>
 
       {/* Desktop tabs */}
@@ -361,10 +375,9 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
       {section === 'products' && (
         <div className="space-y-4">
           <div className="flex justify-between items-center gap-2">
-            <p className="text-sm text-gray-500">{products.length} товаров</p>
+            <p className="text-sm text-gray-500">{products.length} {adminT("admin.ui.0736")}</p>
             <Button type="button" size="sm" onClick={openCreateProduct} className="h-10 md:h-9">
-              <Plus className="h-4 w-4 mr-1" /> Добавить товар
-            </Button>
+              <Plus className="h-4 w-4 mr-1" /> {adminT("admin.ui.0737")} </Button>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
@@ -372,12 +385,12 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
               <div key={p.id} className="bg-white border rounded-xl overflow-hidden shadow-sm">
                 <div className="aspect-[4/3] sm:aspect-video bg-gray-50 relative">
                   {p.image_url && <img src={resolveImageSrc(p.image_url) || p.image_url} alt="" className="w-full h-full object-cover" />}
-                  {p.is_popular && <Badge className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 bg-amber-500 text-[10px] sm:text-xs">Популярный</Badge>}
-                  {p.is_active === false && <Badge className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 bg-gray-500 text-[10px] sm:text-xs">Скрыт</Badge>}
+                  {p.is_popular && <Badge className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 bg-amber-500 text-[10px] sm:text-xs">{adminT("admin.ui.0738")}</Badge>}
+                  {p.is_active === false && <Badge className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 bg-gray-500 text-[10px] sm:text-xs">{adminT("admin.ui.0739")}</Badge>}
                 </div>
                 <div className="p-2 sm:p-3">
                   <p className="font-semibold text-xs sm:text-sm line-clamp-2">{p.name}</p>
-                  <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5">{p.weight} · {Math.round(p.price).toLocaleString('ru-RU')} ₸</p>
+                  <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5">{p.weight} · {Math.round(p.price).toLocaleString(adminLocale)} ₸</p>
                   <div className="flex gap-1.5 mt-2">
                     <Button type="button" size="sm" variant="outline" className="h-9 w-9 p-0 sm:h-8 sm:w-auto sm:px-3" onClick={() => openEditProduct(p)}>
                       <Pencil className="h-4 w-4" />
@@ -398,8 +411,7 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
         <div className="space-y-4">
           <div className="flex justify-end">
             <Button type="button" size="sm" onClick={openCreateCategory} className="h-10 md:h-9">
-              <Plus className="h-4 w-4 mr-1" /> Добавить категорию
-            </Button>
+              <Plus className="h-4 w-4 mr-1" /> {adminT("admin.ui.0740")} </Button>
           </div>
           <div className="space-y-2">
             {categories.map(c => (
@@ -410,7 +422,7 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{c.name}</p>
                   <p className="text-xs text-gray-400">
-                    #{c.sort_order}{c.is_alcohol ? ' · 21+' : ''}{c.is_active === false ? ' · скрыта' : ''}
+                    #{c.sort_order}{c.is_alcohol ? ' · 21+' : ''}{c.is_active === false ? adminT("admin.ui.0741") : ''}
                   </p>
                 </div>
                 <Button type="button" size="sm" variant="outline" className="h-9 w-9 p-0 shrink-0" onClick={() => openEditCategory(c)}>
@@ -448,11 +460,10 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
               ))}
             </div>
             <Button size="sm" variant="outline" onClick={() => void loadAll()} className="h-10 shrink-0 w-full sm:w-auto">
-              <RefreshCw className="h-4 w-4 mr-1" /> Обновить
-            </Button>
+              <RefreshCw className="h-4 w-4 mr-1" /> {adminT("admin.ui.0408")} </Button>
           </div>
 
-          {filteredOrders.length === 0 && <p className="text-gray-400 text-sm">Заказов пока нет</p>}
+          {filteredOrders.length === 0 && <p className="text-gray-400 text-sm">{adminT("admin.ui.0742")}</p>}
           {filteredOrders.map(o => {
             let items: { name: string; qty: number; sum: number; is_gift?: boolean }[] = [];
             try { items = JSON.parse(o.order_items || '[]'); } catch { /* ignore */ }
@@ -462,7 +473,7 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
               <div key={o.id} className="bg-white border rounded-xl p-3 sm:p-4 space-y-2">
                 <div className="flex justify-between items-start gap-2">
                   <div className="min-w-0">
-                    <p className="font-bold">Заказ #{o.id}</p>
+                    <p className="font-bold">{adminT("admin.ui.0743")}{o.id}</p>
                     <p className="text-sm text-gray-600">{o.customer_name}</p>
                     <a href={`tel:${o.customer_phone}`} className="text-sm text-emerald-600 font-medium block py-0.5">
                       {o.customer_phone}
@@ -474,11 +485,11 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
                   </Badge>
                 </div>
                 <p className="text-xs text-gray-500">
-                  Оплата: {PAYMENT_LABELS[o.payment_method] || o.payment_method}
+                  {adminT("admin.ui.0536")} {PAYMENT_LABELS[o.payment_method] || o.payment_method}
                 </p>
                 {o.comment && (
                   <p className="text-xs text-gray-600 bg-gray-50 rounded-lg px-3 py-2 break-words">
-                    <span className="font-medium">Комментарий:</span> {o.comment}
+                    <span className="font-medium">{adminT("admin.ui.0744")}</span> {o.comment}
                   </p>
                 )}
                 <div className="text-sm space-y-0.5">
@@ -491,14 +502,14 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
                   {giftItems.map((it, i) => (
                     <div key={`gift-${i}`} className="flex justify-between gap-2 text-amber-700 bg-amber-50 rounded-lg px-2 py-1">
                       <span className="min-w-0 truncate font-medium">{it.name}</span>
-                      <span className="shrink-0 text-xs">бесплатно</span>
+                      <span className="shrink-0 text-xs">{adminT("admin.ui.0745")}</span>
                     </div>
                   ))}
                 </div>
                 <div className="pt-2 border-t space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="font-bold text-emerald-700">{Math.round(o.total_amount).toLocaleString('ru-RU')} ₸</span>
-                    <p className="text-xs text-gray-400">{formatOrderDate(o.created_at)}</p>
+                    <span className="font-bold text-emerald-700">{Math.round(o.total_amount).toLocaleString(adminLocale)} ₸</span>
+                    <p className="text-xs text-gray-400">{formatOrderDate(o.created_at, adminLocale)}</p>
                   </div>
                   <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-1.5">
                     {(['new', 'processing', 'delivered', 'cancelled'] as const).map((s) => (
@@ -524,13 +535,12 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
         <div className="space-y-4">
           <div className="flex items-start justify-between flex-wrap gap-3">
             <div>
-              <h3 className="font-bold text-gray-900">Зоны доставки на карте</h3>
-              <p className="text-sm text-gray-500 hidden sm:block">Нарисуйте полигоны — цена доставки определится автоматически по адресу клиента</p>
-              <p className="text-xs text-gray-500 sm:hidden">Клик — точка границы, двойной клик — магазин</p>
+              <h3 className="font-bold text-gray-900">{adminT("admin.ui.0624")}</h3>
+              <p className="text-sm text-gray-500 hidden sm:block">{adminT("admin.ui.0746")}</p>
+              <p className="text-xs text-gray-500 sm:hidden">{adminT("admin.ui.0747")}</p>
             </div>
-            <Button type="button" onClick={() => void handleSaveDeliveryZones()} className="hidden sm:inline-flex bg-emerald-600 hover:bg-emerald-700 h-10">
-              <Save className="h-4 w-4 mr-1" /> Сохранить зоны
-            </Button>
+            <Button type="button" onClick={() => void handleSaveDeliveryZones()} className="hidden sm:inline-flex bg-emerald-600 hover:bg-emerald-700 h-10 text-white">
+              <Save className="h-4 w-4 mr-1" /> {adminT("admin.ui.0748")} </Button>
           </div>
           <DeliveryZoneEditor
             zones={deliveryZones}
@@ -540,21 +550,19 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
             onStoreChange={(lat, lng) => { setStoreLat(lat); setStoreLng(lng); }}
           />
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Сообщение вне зоны доставки</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">{adminT("admin.ui.0626")}</label>
             <Textarea
               value={settings.outside_zone_message || ''}
               onChange={(e) => setSettings((s) => ({ ...s, outside_zone_message: e.target.value }))}
               rows={2}
-              placeholder="Доставка по этому адресу недоступна..."
+              placeholder={adminT("admin.ui.0627")}
             />
           </div>
           <p className="text-xs text-gray-400 pb-16 sm:pb-0">
-            Если зоны не настроены, используется фиксированная стоимость из вкладки «Настройки» (delivery_fee).
-          </p>
+            {adminT("admin.ui.0749")} </p>
           <div className="sm:hidden fixed bottom-[4.5rem] left-0 right-0 z-10 px-3 safe-area-pb">
-            <Button type="button" onClick={() => void handleSaveDeliveryZones()} className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 shadow-lg">
-              <Save className="h-4 w-4 mr-2" /> Сохранить зоны
-            </Button>
+            <Button type="button" onClick={() => void handleSaveDeliveryZones()} className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 shadow-lg text-white">
+              <Save className="h-4 w-4 mr-2" /> {adminT("admin.ui.0748")} </Button>
           </div>
         </div>
       )}
@@ -568,13 +576,11 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
             onEnabledChange={setLoyaltyEnabled}
           />
           <div className="sm:hidden fixed bottom-[4.5rem] left-0 right-0 z-10 px-3 safe-area-pb">
-            <Button type="button" onClick={() => void handleSaveLoyaltyGifts()} className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 shadow-lg">
-              <Save className="h-4 w-4 mr-2" /> Сохранить подарки
-            </Button>
+            <Button type="button" onClick={() => void handleSaveLoyaltyGifts()} className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 shadow-lg text-white">
+              <Save className="h-4 w-4 mr-2" /> {adminT("admin.ui.0750")} </Button>
           </div>
-          <Button type="button" onClick={() => void handleSaveLoyaltyGifts()} className="hidden sm:inline-flex bg-emerald-600 hover:bg-emerald-700 h-11">
-            <Save className="h-4 w-4 mr-2" /> Сохранить подарки
-          </Button>
+          <Button type="button" onClick={() => void handleSaveLoyaltyGifts()} className="hidden sm:inline-flex bg-emerald-600 hover:bg-emerald-700 h-11 text-white">
+            <Save className="h-4 w-4 mr-2" /> {adminT("admin.ui.0750")} </Button>
         </div>
       )}
 
@@ -583,37 +589,37 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
         <div className="space-y-6">
         <div className="bg-white border rounded-xl p-3 sm:p-4 space-y-4 max-w-lg">
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Логотип магазина</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">{adminT("admin.ui.0751")}</label>
             <ImageUpload
               value={settings.logo_url || ''}
               onChange={(url) => setSettings(s => ({ ...s, logo_url: url }))}
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Фото главного баннера</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">{adminT("admin.ui.0752")}</label>
             <ImageUpload
               value={settings.hero_image_url || ''}
               onChange={(url) => setSettings(s => ({ ...s, hero_image_url: url }))}
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Фото баннера алкоголя (21+)</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">{adminT("admin.ui.0753")}</label>
             <ImageUpload
               value={settings.alcohol_banner_image || ''}
               onChange={(url) => setSettings(s => ({ ...s, alcohol_banner_image: url }))}
             />
           </div>
           {[
-            ['store_name', 'Название магазина'],
-            ['store_tagline', 'Подзаголовок'],
-            ['hero_title', 'Заголовок баннера'],
-            ['default_address', 'Адрес по умолчанию'],
-            ['delivery_city', 'Город доставки (для поиска адреса)'],
-            ['delivery_area', 'Район доставки (для подсказок клиенту)'],
-            ['delivery_time', 'Время доставки'],
-            ['min_order', 'Минимальный заказ (₸)'],
-            ['delivery_fee', 'Стоимость доставки (₸, если зоны не настроены)'],
-            ['store_phone', 'Телефон магазина'],
+            ['store_name', adminT("admin.ui.0754")],
+            ['store_tagline', adminT("admin.ui.0120")],
+            ['hero_title', adminT("admin.ui.0119")],
+            ['default_address', adminT("admin.ui.0566")],
+            ['delivery_city', adminT("admin.ui.0755")],
+            ['delivery_area', adminT("admin.ui.0756")],
+            ['delivery_time', adminT("admin.ui.0575")],
+            ['min_order', adminT("admin.ui.0757")],
+            ['delivery_fee', adminT("admin.ui.0758")],
+            ['store_phone', adminT("admin.ui.0759")],
           ].map(([key, label]) => (
             <div key={key}>
               <label className="text-sm font-medium text-gray-700 mb-1 block">{label}</label>
@@ -623,13 +629,10 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
               />
             </div>
           ))}
-          <Button onClick={handleSaveSettings} className="w-full sm:w-auto h-11 bg-emerald-600 hover:bg-emerald-700">
-            <Save className="h-4 w-4 mr-1" /> Сохранить настройки
-          </Button>
+          <Button onClick={handleSaveSettings} className="w-full sm:w-auto h-11 bg-emerald-600 hover:bg-emerald-700 text-white">
+            <Save className="h-4 w-4 mr-1" /> {adminT("admin.ui.0760")} </Button>
           <p className="text-xs text-gray-400">
-            Заказы отправляются в Telegram. Настройте TELEGRAM_BOT_TOKEN_GASTRONOM и TELEGRAM_CHAT_ID_GASTRONOM
-            (или общие TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID).
-          </p>
+            {adminT("admin.ui.0761")} </p>
         </div>
         {!partnerMode && <AdminPartnerAccess partnerType="gastronom" />}
         </div>
@@ -641,9 +644,9 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
         <div className="grid grid-cols-6">
           {tabs.map(({ id, label, icon: Icon }) => {
             const shortLabel =
-              id === 'delivery' ? 'Зоны'
-              : id === 'gifts' ? 'Подарки'
-              : id === 'categories' ? 'Кат.'
+              id === 'delivery' ? adminT("admin.ui.0762")
+              : id === 'gifts' ? adminT("admin.ui.0608")
+              : id === 'categories' ? adminT("admin.ui.0763")
               : label;
             const isActive = section === id;
             return (
@@ -681,47 +684,44 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
       >
         <DialogContent className={`max-w-2xl ${MOBILE_DIALOG}`}>
           <DialogHeader>
-            <DialogTitle>{editingProduct?.id ? 'Редактировать товар' : 'Новый товар'}</DialogTitle>
+            <DialogTitle>{editingProduct?.id ? adminT("admin.ui.0764") : adminT("admin.ui.0765")}</DialogTitle>
           </DialogHeader>
           {editingProduct && (
             <div className="space-y-3">
               <div className="grid sm:grid-cols-2 gap-3">
-                <Input placeholder="Название" value={editingProduct.name || ''} onChange={(e) => setEditingProduct(p => p ? ({ ...p, name: e.target.value }) : p)} />
-                <Input type="number" placeholder="Цена (₸)" value={editingProduct.price ?? ''} onChange={(e) => setEditingProduct(p => p ? ({ ...p, price: Number(e.target.value) }) : p)} />
-                <Input placeholder="Вес/объём (1 кг, 1 л...)" value={editingProduct.weight || ''} onChange={(e) => setEditingProduct(p => p ? ({ ...p, weight: e.target.value }) : p)} />
+                <Input placeholder={adminT("admin.ui.0213")} value={editingProduct.name || ''} onChange={(e) => setEditingProduct(p => p ? ({ ...p, name: e.target.value }) : p)} />
+                <Input type="number" placeholder={adminT("admin.ui.0766")} value={editingProduct.price ?? ''} onChange={(e) => setEditingProduct(p => p ? ({ ...p, price: Number(e.target.value) }) : p)} />
+                <Input placeholder={adminT("admin.ui.0767")} value={editingProduct.weight || ''} onChange={(e) => setEditingProduct(p => p ? ({ ...p, weight: e.target.value }) : p)} />
                 <select
                   className="border rounded-md px-3 py-2 text-sm"
                   value={editingProduct.category_id ?? ''}
                   onChange={(e) => setEditingProduct(p => p ? ({ ...p, category_id: Number(e.target.value) }) : p)}
                 >
-                  <option value="">Категория</option>
+                  <option value="">{adminT("admin.ui.0231")}</option>
                   {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
-                <Input type="number" placeholder="Порядок сортировки" value={editingProduct.sort_order ?? ''} onChange={(e) => setEditingProduct(p => p ? ({ ...p, sort_order: Number(e.target.value) }) : p)} />
+                <Input type="number" placeholder={adminT("admin.ui.0183")} value={editingProduct.sort_order ?? ''} onChange={(e) => setEditingProduct(p => p ? ({ ...p, sort_order: Number(e.target.value) }) : p)} />
                 <div className="flex gap-4 items-center">
                   <label className="flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={!!editingProduct.is_popular} onChange={(e) => setEditingProduct(p => p ? ({ ...p, is_popular: e.target.checked }) : p)} />
-                    Популярный
-                  </label>
+                    {adminT("admin.ui.0738")} </label>
                   <label className="flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={editingProduct.is_active !== false} onChange={(e) => setEditingProduct(p => p ? ({ ...p, is_active: e.target.checked }) : p)} />
-                    Активен
-                  </label>
+                    {adminT("admin.ui.0112")} </label>
                 </div>
               </div>
-              <Textarea placeholder="Описание" value={editingProduct.description || ''} onChange={(e) => setEditingProduct(p => p ? ({ ...p, description: e.target.value }) : p)} rows={3} />
+              <Textarea placeholder={adminT("admin.ui.0079")} value={editingProduct.description || ''} onChange={(e) => setEditingProduct(p => p ? ({ ...p, description: e.target.value }) : p)} rows={3} />
               <div>
-                <p className="text-sm font-medium mb-1">Фото товара</p>
+                <p className="text-sm font-medium mb-1">{adminT("admin.ui.0768")}</p>
                 <ImageUpload
                   value={editingProduct.image_url || ''}
                   onChange={(url) => setEditingProduct(p => p ? ({ ...p, image_url: url }) : p)}
                 />
               </div>
               <div className="flex flex-col sm:flex-row gap-2 pt-2 sticky bottom-0 bg-background pb-2 sm:static sm:pb-0">
-                <Button type="button" onClick={() => void handleSaveProduct()} className="bg-emerald-600 hover:bg-emerald-700 h-11 sm:h-10 flex-1 sm:flex-none">
-                  <Save className="h-4 w-4 mr-1" /> Сохранить
-                </Button>
-                <Button type="button" variant="outline" onClick={closeProductDialog} className="h-11 sm:h-10">Отмена</Button>
+                <Button type="button" onClick={() => void handleSaveProduct()} className="bg-emerald-600 hover:bg-emerald-700 h-11 sm:h-10 flex-1 sm:flex-none text-white">
+                  <Save className="h-4 w-4 mr-1" /> {adminT("admin.ui.0096")} </Button>
+                <Button type="button" variant="outline" onClick={closeProductDialog} className="h-11 sm:h-10">{adminT("admin.ui.0095")}</Button>
               </div>
             </div>
           )}
@@ -737,26 +737,23 @@ export default function AdminGastronom({ partnerMode = false }: AdminGastronomPr
       >
         <DialogContent className={`max-w-lg ${MOBILE_DIALOG}`}>
           <DialogHeader>
-            <DialogTitle>{editingCat?.id ? 'Редактировать категорию' : 'Новая категория'}</DialogTitle>
+            <DialogTitle>{editingCat?.id ? adminT("admin.ui.0177") : adminT("admin.ui.0178")}</DialogTitle>
           </DialogHeader>
           {editingCat && (
             <div className="space-y-3">
-              <Input placeholder="Название категории" value={editingCat.name || ''} onChange={(e) => setEditingCat(c => c ? ({ ...c, name: e.target.value }) : c)} />
-              <Input type="number" placeholder="Порядок" value={editingCat.sort_order ?? ''} onChange={(e) => setEditingCat(c => c ? ({ ...c, sort_order: Number(e.target.value) }) : c)} />
+              <Input placeholder={adminT("admin.ui.0179")} value={editingCat.name || ''} onChange={(e) => setEditingCat(c => c ? ({ ...c, name: e.target.value }) : c)} />
+              <Input type="number" placeholder={adminT("admin.ui.0216")} value={editingCat.sort_order ?? ''} onChange={(e) => setEditingCat(c => c ? ({ ...c, sort_order: Number(e.target.value) }) : c)} />
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={!!editingCat.is_alcohol} onChange={(e) => setEditingCat(c => c ? ({ ...c, is_alcohol: e.target.checked }) : c)} />
-                Алкогольная категория (21+)
-              </label>
+                {adminT("admin.ui.0769")} </label>
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={editingCat.is_active !== false} onChange={(e) => setEditingCat(c => c ? ({ ...c, is_active: e.target.checked }) : c)} />
-                Активна (видна в каталоге)
-              </label>
+                {adminT("admin.ui.0770")} </label>
               <ImageUpload value={editingCat.image_url || ''} onChange={(url) => setEditingCat(c => c ? ({ ...c, image_url: url }) : c)} />
               <div className="flex flex-col sm:flex-row gap-2 pt-2 sticky bottom-0 bg-background pb-2 sm:static sm:pb-0">
-                <Button type="button" onClick={() => void handleSaveCategory()} className="bg-emerald-600 hover:bg-emerald-700 h-11 sm:h-10 flex-1 sm:flex-none">
-                  <Save className="h-4 w-4 mr-1" /> Сохранить
-                </Button>
-                <Button type="button" variant="outline" onClick={closeCategoryDialog} className="h-11 sm:h-10">Отмена</Button>
+                <Button type="button" onClick={() => void handleSaveCategory()} className="bg-emerald-600 hover:bg-emerald-700 h-11 sm:h-10 flex-1 sm:flex-none text-white">
+                  <Save className="h-4 w-4 mr-1" /> {adminT("admin.ui.0096")} </Button>
+                <Button type="button" variant="outline" onClick={closeCategoryDialog} className="h-11 sm:h-10">{adminT("admin.ui.0095")}</Button>
               </div>
             </div>
           )}

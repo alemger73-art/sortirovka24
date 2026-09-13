@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +30,8 @@ import { toast } from 'sonner';
 type Tab = 'stats' | 'rides' | 'applications' | 'drivers' | 'settings';
 
 export default function AdminTaxi() {
+  const { t: adminT } = useLanguage();
+
   const [tab, setTab] = useState<Tab>('stats');
   const [stats, setStats] = useState<TaxiAdminStats | null>(null);
   const [rides, setRides] = useState<TaxiRide[]>([]);
@@ -58,11 +61,11 @@ export default function AdminTaxi() {
       setSettings(cfg);
     } catch (e: any) {
       setLoadError(true);
-      toast.error(String(e?.message || 'Ошибка загрузки'));
+      toast.error(String(e?.message || adminT("admin.ui.0044")));
     } finally {
       setLoading(false);
     }
-  }, [rideFilter]);
+  }, [rideFilter, adminT]);
 
   useEffect(() => {
     load();
@@ -74,9 +77,9 @@ export default function AdminTaxi() {
       const updated = await taxiApi.adminUpdateSettings(settings);
       setSettings(updated);
       invalidateTaxiEnabledCache();
-      toast.success('Настройки сохранены');
+      toast.success(adminT("admin.ui.0586"));
     } catch (e: any) {
-      toast.error(String(e?.message || 'Ошибка'));
+      toast.error(String(e?.message || adminT("admin.ui.0486")));
     } finally {
       setSavingSettings(false);
     }
@@ -89,9 +92,9 @@ export default function AdminTaxi() {
       const updated = await taxiApi.adminUpdateSettings({ enabled: next });
       setSettings(updated);
       invalidateTaxiEnabledCache();
-      toast.success(next === 'true' ? 'Такси включено — видно на сайте' : 'Такси отключено — скрыто с сайта');
+      toast.success(next === 'true' ? adminT("admin.ui.1146") : adminT("admin.ui.1147"));
     } catch (e: any) {
-      toast.error(String(e?.message || 'Ошибка'));
+      toast.error(String(e?.message || adminT("admin.ui.0486")));
       await load();
     }
   }
@@ -101,32 +104,32 @@ export default function AdminTaxi() {
   async function approveApp(userId: string) {
     try {
       await taxiApi.adminApproveApplication(userId);
-      toast.success('Водитель одобрен — роль назначена автоматически');
+      toast.success(adminT("admin.ui.1148"));
       await load();
     } catch (e: any) {
-      toast.error(String(e?.message || 'Ошибка'));
+      toast.error(String(e?.message || adminT("admin.ui.0486")));
     }
   }
 
   async function rejectApp(userId: string) {
     try {
-      await taxiApi.adminRejectApplication(userId, 'Не прошёл проверку');
-      toast.success('Заявка отклонена');
+      await taxiApi.adminRejectApplication(userId, adminT("admin.ui.1149"));
+      toast.success(adminT("admin.ui.0876"));
       await load();
     } catch (e: any) {
-      toast.error(String(e?.message || 'Ошибка'));
+      toast.error(String(e?.message || adminT("admin.ui.0486")));
     }
   }
 
   const tabs: { id: Tab; label: string; icon: typeof Car; badge?: number }[] = [
-    { id: 'stats', label: 'Статистика', icon: Car },
-    { id: 'rides', label: 'Поездки', icon: RefreshCw },
-    { id: 'applications', label: 'Заявки', icon: ClipboardList, badge: stats?.pending_applications },
-    { id: 'drivers', label: 'Водители', icon: Users },
-    { id: 'settings', label: 'Тарифы', icon: Settings },
+    { id: 'stats', label: adminT("admin.ui.1150"), icon: Car },
+    { id: 'rides', label: adminT("admin.ui.1151"), icon: RefreshCw },
+    { id: 'applications', label: adminT("admin.ui.1152"), icon: ClipboardList, badge: stats?.pending_applications },
+    { id: 'drivers', label: adminT("admin.ui.1153"), icon: Users },
+    { id: 'settings', label: adminT("admin.ui.1154"), icon: Settings },
   ];
 
-  if (loadError) return <div role="alert" className="rounded-xl border bg-white p-5 space-y-3"><p>Не удалось загрузить данные раздела. Повторите загрузку перед внесением изменений.</p><Button onClick={() => void load()}>Повторить загрузку</Button></div>;
+  if (loadError) return <div role="alert" className="rounded-xl border bg-white p-5 space-y-3"><p>{adminT("admin.ui.0879")}</p><Button onClick={() => void load()}>{adminT("admin.ui.0285")}</Button></div>;
 
   return (
     <div className="space-y-4">
@@ -134,25 +137,23 @@ export default function AdminTaxi() {
         <div>
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <Car className="h-5 w-5 text-yellow-500" />
-            Такси Сортировка
-          </h2>
-          <p className="text-sm text-gray-500">Управление районным сервисом · интеграция Sortirovka24</p>
+            {adminT("admin.ui.1155")} </h2>
+          <p className="text-sm text-gray-500">{adminT("admin.ui.1156")}</p>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
           <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-          Обновить
-        </Button>
+          {adminT("admin.ui.0408")} </Button>
       </div>
 
       <div className={`rounded-2xl border px-4 py-4 flex flex-wrap items-center justify-between gap-3 ${serviceOn ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
         <div>
           <p className={`font-bold ${serviceOn ? 'text-green-900' : 'text-amber-900'}`}>
-            {serviceOn ? 'Сервис включён' : 'Сервис отключён'}
+            {serviceOn ? adminT("admin.ui.1157") : adminT("admin.ui.1158")}
           </p>
           <p className={`text-sm mt-0.5 ${serviceOn ? 'text-green-700' : 'text-amber-800'}`}>
             {serviceOn
-              ? 'Пользователи видят такси на главной, в меню и могут заказывать поездки.'
-              : 'Такси скрыто с сайта. Заказы, заявки водителей и расчёт маршрута недоступны.'}
+              ? adminT("admin.ui.1159")
+              : adminT("admin.ui.1160")}
           </p>
         </div>
         <button
@@ -160,7 +161,7 @@ export default function AdminTaxi() {
           onClick={toggleServiceEnabled}
           disabled={loading || !Object.keys(settings).length}
           className={`relative h-8 w-14 shrink-0 rounded-full transition-colors ${serviceOn ? 'bg-green-500' : 'bg-gray-300'}`}
-          title={serviceOn ? 'Отключить такси' : 'Включить такси'}
+          title={serviceOn ? adminT("admin.ui.1161") : adminT("admin.ui.1162")}
         >
           <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-transform ${serviceOn ? 'left-7' : 'left-1'}`} />
         </button>
@@ -195,13 +196,13 @@ export default function AdminTaxi() {
           {tab === 'stats' && stats && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                { label: 'Всего поездок', value: stats.total_rides },
-                { label: 'Завершено', value: stats.completed_rides },
-                { label: 'Ожидают водителя', value: stats.pending_rides },
-                { label: 'В пути сейчас', value: stats.active_rides },
-                { label: 'Оборот', value: formatTenge(stats.revenue) },
-                { label: 'Online водителей', value: stats.online_drivers },
-                { label: 'Заявок водителей', value: stats.pending_applications ?? 0 },
+                { label: adminT("admin.ui.1163"), value: stats.total_rides },
+                { label: adminT("admin.ui.1164"), value: stats.completed_rides },
+                { label: adminT("admin.ui.1165"), value: stats.pending_rides },
+                { label: adminT("admin.ui.1166"), value: stats.active_rides },
+                { label: adminT("admin.ui.1167"), value: formatTenge(stats.revenue) },
+                { label: adminT("admin.ui.1168"), value: stats.online_drivers },
+                { label: adminT("admin.ui.1169"), value: stats.pending_applications ?? 0 },
               ].map(({ label, value }) => (
                 <div key={label} className="rounded-2xl bg-white border border-gray-100 p-4 shadow-sm">
                   <p className="text-xs text-gray-500">{label}</p>
@@ -214,7 +215,7 @@ export default function AdminTaxi() {
           {tab === 'applications' && (
             <div className="space-y-3">
               {applications.length === 0 ? (
-                <p className="text-center py-10 text-gray-400 rounded-2xl bg-white border">Нет новых заявок</p>
+                <p className="text-center py-10 text-gray-400 rounded-2xl bg-white border">{adminT("admin.ui.1170")}</p>
               ) : (
                 applications.map((app) => (
                   <div key={app.user_id} className="rounded-2xl bg-white border border-yellow-200 p-5 shadow-sm">
@@ -229,10 +230,10 @@ export default function AdminTaxi() {
                         {(app.photo_url || app.license_photo_url || app.tech_passport_photo_url || app.car_photo_url) && (
                           <div className="flex flex-wrap gap-2 mt-3">
                             {[
-                              { label: 'Фото', url: app.photo_url },
-                              { label: 'Права', url: app.license_photo_url },
-                              { label: 'Техпаспорт', url: app.tech_passport_photo_url },
-                              { label: 'Авто', url: app.car_photo_url },
+                              { label: adminT("admin.ui.0882"), url: app.photo_url },
+                              { label: adminT("admin.ui.1171"), url: app.license_photo_url },
+                              { label: adminT("admin.ui.1172"), url: app.tech_passport_photo_url },
+                              { label: adminT("admin.ui.0701"), url: app.car_photo_url },
                             ].filter((d) => d.url).map((d) => (
                               isPdf(d.url) ? (
                                 <div
@@ -258,15 +259,12 @@ export default function AdminTaxi() {
                       </div>
                       <div className="flex flex-col gap-2 items-end">
                         <p className="text-xs text-gray-400 max-w-[200px] text-right">
-                          Одобрение ≠ допуск на линию. После одобрения верифицируйте в разделе «Водители».
-                        </p>
+                          {adminT("admin.ui.1173")} </p>
                         <div className="flex gap-2">
                         <Button size="sm" className="bg-yellow-400 hover:bg-yellow-500 text-gray-900" onClick={() => approveApp(app.user_id)}>
-                          <Check className="h-3.5 w-3.5 mr-1" /> Принять заявку
-                        </Button>
+                          <Check className="h-3.5 w-3.5 mr-1" /> {adminT("admin.ui.1174")} </Button>
                         <Button size="sm" variant="outline" onClick={() => rejectApp(app.user_id)}>
-                          <X className="h-3.5 w-3.5 mr-1" /> Отклонить
-                        </Button>
+                          <X className="h-3.5 w-3.5 mr-1" /> {adminT("admin.ui.0072")} </Button>
                         </div>
                       </div>
                     </div>
@@ -287,7 +285,7 @@ export default function AdminTaxi() {
                       rideFilter === s ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'
                     }`}
                   >
-                    {s ? TAXI_STATUS_LABELS[s]?.label || s : 'Все'}
+                    {s ? TAXI_STATUS_LABELS[s]?.label || s : adminT("admin.ui.0132")}
                   </button>
                 ))}
               </div>
@@ -296,10 +294,10 @@ export default function AdminTaxi() {
                   <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
                     <tr>
                       <th className="px-4 py-3 text-left">ID</th>
-                      <th className="px-4 py-3 text-left">Маршрут</th>
-                      <th className="px-4 py-3 text-left">Телефон</th>
-                      <th className="px-4 py-3 text-left">Цена</th>
-                      <th className="px-4 py-3 text-left">Статус</th>
+                      <th className="px-4 py-3 text-left">{adminT("admin.ui.1175")}</th>
+                      <th className="px-4 py-3 text-left">{adminT("admin.ui.0466")}</th>
+                      <th className="px-4 py-3 text-left">{adminT("admin.ui.0081")}</th>
+                      <th className="px-4 py-3 text-left">{adminT("admin.ui.0089")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -321,7 +319,7 @@ export default function AdminTaxi() {
                     ))}
                   </tbody>
                 </table>
-                {rides.length === 0 && <p className="text-center py-8 text-gray-400">Поездок нет</p>}
+                {rides.length === 0 && <p className="text-center py-8 text-gray-400">{adminT("admin.ui.1176")}</p>}
               </div>
             </div>
           )}
@@ -329,16 +327,16 @@ export default function AdminTaxi() {
           {tab === 'drivers' && (
             <div className="space-y-3">
               {drivers.length === 0 ? (
-                <p className="text-center py-8 text-gray-400 rounded-2xl bg-white border">Водителей пока нет</p>
+                <p className="text-center py-8 text-gray-400 rounded-2xl bg-white border">{adminT("admin.ui.1177")}</p>
               ) : (
                 drivers.map((d) => (
                   <div key={d.user_id} className="rounded-2xl bg-white border p-4 flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="font-semibold">{d.name || 'Без имени'}</p>
+                      <p className="font-semibold">{d.name || adminT("admin.ui.1178")}</p>
                       <p className="text-sm text-gray-500">{d.phone} · {[d.car_make, d.car_model, d.car_number].filter(Boolean).join(' ')}</p>
                       <p className="text-xs mt-1">
-                        {d.is_online ? '🟢 Online' : '⚫ Offline'} · {d.rides_count} поездок · ⭐ {d.rating?.toFixed(1)} ·{' '}
-                        {d.is_verified ? '✅ верифицирован' : `📋 ${d.documents_status || 'ожидает'}`}
+                        {d.is_online ? '🟢 Online' : '⚫ Offline'} · {d.rides_count} {adminT("admin.ui.1179")} {d.rating?.toFixed(1)} ·{' '}
+                        {d.is_verified ? adminT("admin.ui.1180") : `📋 ${d.documents_status || adminT("admin.ui.1181")}`}
                       </p>
                     </div>
                     <Button
@@ -348,14 +346,14 @@ export default function AdminTaxi() {
                       onClick={async () => {
                         try {
                           await taxiApi.adminVerifyDriver(d.user_id, !d.is_verified);
-                          toast.success('Обновлено');
+                          toast.success(adminT("admin.ui.1182"));
                           load();
                         } catch (e: any) {
                           toast.error(String(e?.message));
                         }
                       }}
                     >
-                      {d.is_verified ? 'Снять верификацию' : 'Верифицировать (допуск на линию)'}
+                      {d.is_verified ? adminT("admin.ui.1183") : adminT("admin.ui.1184")}
                     </Button>
                   </div>
                 ))
@@ -366,13 +364,13 @@ export default function AdminTaxi() {
           {tab === 'settings' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="rounded-2xl bg-white border p-5 space-y-4">
-                <h3 className="font-bold text-gray-900">Тарифы</h3>
+                <h3 className="font-bold text-gray-900">{adminT("admin.ui.1154")}</h3>
                 {[
-                  { key: 'base_fare', label: 'Посадка (₸)' },
-                  { key: 'per_km', label: 'За километр (₸)' },
-                  { key: 'per_minute', label: 'За минуту в пути (₸)' },
-                  { key: 'min_fare', label: 'Минимальная поездка (₸)' },
-                  { key: 'eta_minutes_per_km', label: 'Минут на км (расчёт ETA)' },
+                  { key: 'base_fare', label: adminT("admin.ui.1185") },
+                  { key: 'per_km', label: adminT("admin.ui.1186") },
+                  { key: 'per_minute', label: adminT("admin.ui.1187") },
+                  { key: 'min_fare', label: adminT("admin.ui.1188") },
+                  { key: 'eta_minutes_per_km', label: adminT("admin.ui.1189") },
                 ].map(({ key, label }) => (
                   <div key={key}>
                     <label className="text-xs text-gray-500 block mb-1">{label}</label>
@@ -381,19 +379,19 @@ export default function AdminTaxi() {
                 ))}
               </div>
               <div className="rounded-2xl bg-white border p-5 space-y-4">
-                <h3 className="font-bold text-gray-900">Зона и сервис</h3>
+                <h3 className="font-bold text-gray-900">{adminT("admin.ui.1190")}</h3>
                 <div>
-                  <label className="text-xs text-gray-500 block mb-1">Название зоны</label>
+                  <label className="text-xs text-gray-500 block mb-1">{adminT("admin.ui.1191")}</label>
                   <Input value={settings.service_area || ''} onChange={(e) => setSettings({ ...settings, service_area: e.target.value })} className="rounded-xl" />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500 block mb-1">Радиус обслуживания (км)</label>
+                  <label className="text-xs text-gray-500 block mb-1">{adminT("admin.ui.1192")}</label>
                   <Input value={settings.max_radius_km || ''} onChange={(e) => setSettings({ ...settings, max_radius_km: e.target.value })} className="rounded-xl" />
                 </div>
                 <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
                   <div>
-                    <span className="text-sm font-medium block">Сервис включён</span>
-                    <span className="text-xs text-gray-500">Сохраняется сразу при переключении</span>
+                    <span className="text-sm font-medium block">{adminT("admin.ui.1157")}</span>
+                    <span className="text-xs text-gray-500">{adminT("admin.ui.1193")}</span>
                   </div>
                   <button
                     type="button"
@@ -405,8 +403,7 @@ export default function AdminTaxi() {
                 </div>
                 <Button className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold rounded-xl" disabled={savingSettings} onClick={saveSettings}>
                   {savingSettings ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                  Сохранить настройки
-                </Button>
+                  {adminT("admin.ui.0760")} </Button>
               </div>
             </div>
           )}

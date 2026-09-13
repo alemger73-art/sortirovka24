@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
@@ -10,6 +11,8 @@ interface Props {
 }
 
 export default function DamAlemStories({ stories, onCta }: Props) {
+  const st = useStoreTranslations();
+
   const [openId, setOpenId] = useState<string | null>(null);
   const openStory = stories.find(s => s.id === openId) ?? null;
   const openIndex = openStory ? stories.findIndex(s => s.id === openId) : -1;
@@ -75,20 +78,20 @@ export default function DamAlemStories({ stories, onCta }: Props) {
               type="button"
               className="dam-story-viewer__tap-zone dam-story-viewer__tap-zone--prev"
               onClick={goPrev}
-              aria-label="Предыдущая"
+              aria-label={st("Предыдущая")}
             />
             <button
               type="button"
               className="dam-story-viewer__tap-zone dam-story-viewer__tap-zone--next"
               onClick={goNext}
-              aria-label="Следующая"
+              aria-label={st("Следующая")}
             />
 
             <button
               type="button"
               className="dam-story-viewer__close"
               onClick={close}
-              aria-label="Закрыть"
+              aria-label={st("Закрыть")}
             >
               <X className="h-5 w-5" />
             </button>
@@ -120,7 +123,7 @@ export default function DamAlemStories({ stories, onCta }: Props) {
   return (
     <>
       <section className="dam-animate-in">
-        <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-zinc-400 lg:mb-4 lg:text-sm">Акции и новости</p>
+        <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-zinc-400 lg:mb-4 lg:text-sm">{st("Акции и новости")}</p>
         <div className="-mx-1 flex gap-4 overflow-x-auto px-1 pb-1 scrollbar-hide lg:gap-5">
           {stories.map((s, i) => (
             <button

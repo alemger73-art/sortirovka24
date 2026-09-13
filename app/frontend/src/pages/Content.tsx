@@ -1,3 +1,5 @@
+import { formatPublicText } from '@/i18n/publicLocale';
+import { getStatusLabel, getPublicCategoryLabel } from '@/lib/api';
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -21,7 +23,6 @@ import {
   fallbackAnnouncementCategories,
   fetchAnnouncementCategories,
   filterPublicAnnouncements,
-  formatExpiryLabel,
   getAnnouncementCover,
   isAnnouncementExpired,
   isAnnouncementPromoted,
@@ -95,7 +96,7 @@ export function NewsList() {
         <div className="flex flex-wrap gap-2 mb-6">
           <button onClick={() => setCategory('')} className={`px-3 py-1.5 rounded-full text-sm font-medium ${!category ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{t('common.all')}</button>
           {NEWS_CATEGORIES.map(c => (
-            <button key={c} onClick={() => setCategory(c === category ? '' : c)} className={`px-3 py-1.5 rounded-full text-sm font-medium ${category === c ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{c}</button>
+            <button key={c} onClick={() => setCategory(c === category ? '' : c)} className={`px-3 py-1.5 rounded-full text-sm font-medium ${category === c ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{getPublicCategoryLabel(c, t)}</button>
           ))}
         </div>
 
@@ -109,7 +110,7 @@ export function NewsList() {
                   <div className="h-48 bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center"><span className="text-5xl">📰</span></div>
                 )}
                 <div className="p-5">
-                  <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{item.category}</span>
+                  <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{getPublicCategoryLabel(item.category, t)}</span>
                   <h3 className="font-semibold text-gray-900 mt-2 line-clamp-2">{localized(item, 'title')}</h3>
                   <p className="text-sm text-gray-500 mt-2 line-clamp-2">{localized(item, 'short_description')}</p>
                   <p className="text-xs text-gray-400 mt-3">{formatDate(item.created_at)}</p>
@@ -125,6 +126,7 @@ export function NewsList() {
 
 /* ============ NEWS DETAIL ============ */
 export function NewsDetail() {
+  const { t: coverageT } = useLanguage();
   const { t, localized } = useLanguage();
   const { id } = useParams();
   const [item, setItem] = useState<any>(null);
@@ -154,7 +156,7 @@ export function NewsDetail() {
             <StorageGallery keys={item.gallery_images} />
           </div>
         )}
-        <span className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">{item.category}</span>
+        <span className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">{getPublicCategoryLabel(item.category, t)}</span>
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mt-3 mb-2">{localized(item, 'title')}</h1>
         <p className="text-sm text-gray-400 mb-6">{formatDate(item.created_at)}</p>
         <div className="prose prose-gray max-w-none">
@@ -167,7 +169,7 @@ export function NewsDetail() {
                 src={youtubeEmbedUrl}
                 className="w-full h-64 md:h-96 rounded-xl"
                 allowFullScreen
-                title="YouTube video"
+                title={coverageT("public.coverage.youtube")}
               />
             ) : null}
             <a
@@ -205,12 +207,12 @@ export function ComplaintsList() {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{t('complaints.title')}</h1>
             <p className="text-gray-500 mt-1">{t('complaints.subtitle')}</p>
           </div>
-          <Link to="/complaints/new" className="inline-flex items-center gap-2 bg-red-600 text-white font-medium px-4 py-2.5 rounded-lg hover:bg-red-700 text-sm">
+          <Link to="/complaints/new" className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 bg-red-600 text-white font-medium px-4 py-2.5 rounded-lg hover:bg-red-700 text-sm">
             <AlertTriangle className="w-4 h-4" /> {t('complaints.file')}
           </Link>
         </div>
@@ -221,8 +223,8 @@ export function ComplaintsList() {
               return (
                 <div key={c.id} className="bg-white rounded-xl shadow-sm p-5">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-medium text-red-700 bg-red-50 px-2 py-0.5 rounded-full">{c.category}</span>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${st.color}`}>{st.label}</span>
+                    <span className="text-xs font-medium text-red-700 bg-red-50 px-2 py-0.5 rounded-full">{getPublicCategoryLabel(c.category, publicT)}</span>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${st.color}`}>{getStatusLabel(c.status, publicT)}</span>
                   </div>
                   <p className="text-gray-700">{c.description}</p>
                   {c.photo_url && (
@@ -300,7 +302,7 @@ export function NewComplaintForm() {
       }));
       setSuccess(true);
       pushCabinetItem('complaints', {
-        title: form.category || publicT("cabinet.complaintDefault"),
+        title: form.category || 'Жалоба',
         subtitle: form.address || form.description.slice(0, 60),
         status: 'Отправлена',
       });
@@ -332,7 +334,7 @@ export function NewComplaintForm() {
     <Layout><div className="max-w-lg mx-auto px-4 py-16 text-center">
       <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><CheckCircle className="w-8 h-8 text-green-600" /></div>
       <h2 className="text-2xl font-bold text-gray-900 mb-2">{publicT("public.Content.text52")}</h2>
-      <p className="text-gray-500 mb-6">Спасибо за обращение. Мы передадим информацию в соответствующие службы.</p>
+      <p className="text-gray-500 mb-6">{publicT("public.extra.6")}</p>
       <Link to="/complaints" className="text-blue-600 hover:text-blue-700 font-medium">{publicT("complaints.all")}</Link>
     </div></Layout>
   );
@@ -342,14 +344,14 @@ export function NewComplaintForm() {
       <div className="max-w-lg mx-auto px-4 py-8">
         <Link to="/complaints" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> {publicT("common.back")}</Link>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">{publicT("public.Content.text53")}</h1>
-        <p className="text-gray-500 mb-6">Сообщите о проблеме в районе</p>
+        <p className="text-gray-500 mb-6">{publicT("public.extra.7")}</p>
         <SafetyAlert variant="complaint_form" />
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4 mt-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text54")}</label>
             <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
               <option value="">{publicT("masters.selectCategory")}</option>
-              {COMPLAINT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              {COMPLAINT_CATEGORIES.map(c => <option key={c} value={c}>{getPublicCategoryLabel(c, publicT)}</option>)}
             </select>
           </div>
           <div>
@@ -385,7 +387,7 @@ export function NewComplaintForm() {
               href="https://t.me/sortировка_portal"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-[#0088cc] text-white font-medium px-4 py-2 rounded-lg hover:bg-[#0077b5] transition-colors text-sm"
+              className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 bg-[#0088cc] text-white font-medium px-4 py-2 rounded-lg hover:bg-[#0077b5] transition-colors text-sm"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
               {publicT("public.Content.text63")} </a>
@@ -462,7 +464,7 @@ function AnnouncementFormFields({
         <select value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
           <option value="">{publicT("masters.selectCategory")}</option>
           {(categories.length ? categories : fallbackAnnouncementCategories()).map((cat) => (
-            <option key={cat.id} value={String(cat.id)}>{cat.icon ? `${cat.icon} ` : ''}{cat.name}</option>
+            <option key={cat.id} value={String(cat.id)}>{cat.icon ? `${cat.icon} ` : ''}{getPublicCategoryLabel(cat.name, publicT)}</option>
           ))}
         </select>
       </div>
@@ -564,12 +566,12 @@ export function AnnouncementsList() {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{publicT("categories.announcements")}</h1>
             <p className="text-gray-500 mt-1">{publicT("public.Content.text75")}</p>
           </div>
-          <Link to="/announcements/new" className="inline-flex items-center gap-2 bg-amber-500 text-white font-medium px-4 py-2.5 rounded-lg hover:bg-amber-600 text-sm">
+          <Link to="/announcements/new" className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 bg-amber-500 text-white font-medium px-4 py-2.5 rounded-lg hover:bg-amber-600 text-sm">
             <Megaphone className="w-4 h-4" /> {publicT("realestate.publish")} </Link>
         </div>
 
@@ -589,7 +591,7 @@ export function AnnouncementsList() {
             onChange={(e) => setSortBy(e.target.value as AnnouncementSort)}
             className="rounded-xl border border-gray-200 px-3 py-2.5 text-sm bg-white"
           >
-            <option value="new">Сначала новые</option>
+            <option value="new">{publicT("realestate.sort.new")}</option>
             <option value="price_asc">{publicT("realestate.sort.priceAsc")}</option>
             <option value="price_desc">{publicT("realestate.sort.priceDesc")}</option>
           </select>
@@ -603,7 +605,7 @@ export function AnnouncementsList() {
               onClick={() => setCategoryFilter(String(cat.id) === categoryFilter ? '' : String(cat.id))}
               className={`px-3 py-1.5 rounded-full text-sm font-medium ${categoryFilter === String(cat.id) ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
-              {cat.icon ? `${cat.icon} ` : ''}{cat.name}
+              {cat.icon ? `${cat.icon} ` : ''}{getPublicCategoryLabel(cat.name, publicT)}
             </button>
           ))}
           <button
@@ -641,7 +643,7 @@ export function AnnouncementsList() {
                 <div className="p-5">
                   <div className="flex items-center justify-between mb-2 gap-2">
                     <div className="flex flex-wrap gap-1">
-                      <span className="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">{resolveCategoryLabel(ann, categories)}</span>
+                      <span className="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">{getPublicCategoryLabel(resolveCategoryLabel(ann, categories), publicT)}</span>
                       {promoted && ann.promotion_tier === 'vip' && (
                         <span className="text-xs font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">VIP</span>
                       )}
@@ -859,11 +861,11 @@ export function EditAnnouncementForm() {
         <h1 className="text-2xl font-bold text-gray-900 mb-2">{publicT("realestate.form.editTitle")}</h1>
         {status && (
           <p className="text-sm text-gray-500 mb-2">
-            Статус: <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_LABELS[status]?.color || 'bg-gray-100 text-gray-800'}`}>{STATUS_LABELS[status]?.label || status}</span>
+            {publicT("public.extra.9")} <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_LABELS[status]?.color || 'bg-gray-100 text-gray-800'}`}>{getStatusLabel(status, publicT)}</span>
           </p>
         )}
         {expiresAt && (
-          <p className="text-sm text-gray-500 mb-4">{publicT("realestate.form.activeUntil")} {formatExpiryLabel(expiresAt)}</p>
+          <p className="text-sm text-gray-500 mb-4">{publicT("realestate.form.activeUntil")} {formatDate(expiresAt || "")}</p>
         )}
         <SafetyAlert variant="announcement_form" />
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4 mt-4">
@@ -871,9 +873,8 @@ export function EditAnnouncementForm() {
           <button type="submit" disabled={submitting} className="w-full bg-amber-500 text-white font-medium py-3 rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-50">
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" /> Сохранение...
-              </span>
-            ) : 'Сохранить изменения'}
+                <Loader2 className="w-4 h-4 animate-spin" /> {publicT("realestate.form.saving")} </span>
+            ) : publicT("realestate.form.save")}
           </button>
         </form>
       </div>
@@ -919,7 +920,7 @@ export function AnnouncementDetail() {
   }
 
   async function handleUnpublish() {
-    if (!item?.id || !window.confirm('Снять объявление с публикации?')) return;
+    if (!item?.id || !window.confirm(publicT("cabinet.realEstate.unpublishConfirm"))) return;
     setActionLoading(true);
     try {
       await accountApi.unpublishMyAnnouncement(Number(item.id));
@@ -959,8 +960,8 @@ export function AnnouncementDetail() {
 
         {isOwner && !isPublic && (
           <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            {publicT("public.Content.text84")} {STATUS_LABELS[item.status]?.label || item.status}
-            {item.expires_at ? ` · активно до ${formatExpiryLabel(item.expires_at)}` : ''}
+            {publicT("public.Content.text84")} {getStatusLabel(item.status, publicT)}
+            {item.expires_at ? formatPublicText(publicT, "public.announcement.activeUntil", { v0: formatDate(item.expires_at || "") }) : ''}
           </div>
         )}
 
@@ -979,7 +980,7 @@ export function AnnouncementDetail() {
           <div className="p-6">
             <div className="flex flex-wrap items-center gap-2 mb-3">
               <span className="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
-                {resolveCategoryLabel(item, categories)}
+                {getPublicCategoryLabel(resolveCategoryLabel(item, categories), publicT)}
               </span>
               {promoted && item.promotion_tier === 'vip' && (
                 <span className="text-xs font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">VIP</span>
@@ -1053,8 +1054,7 @@ export function AnnouncementDetail() {
                     onClick={handleUnpublish}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                   >
-                    <EyeOff className="w-4 h-4" /> Снять с публикации
-                  </button>
+                    <EyeOff className="w-4 h-4" /> {publicT("public.extra.10")} </button>
                 )}
                 <button
                   type="button"
@@ -1095,25 +1095,25 @@ export function JobsList() {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{publicT("public.Content.text88")}</h1>
             <p className="text-gray-500 mt-1">{publicT("public.Content.text89")}</p>
           </div>
-          <Link to="/jobs/new" className="inline-flex items-center gap-2 bg-blue-600 text-white font-medium px-4 py-2.5 rounded-lg hover:bg-blue-700 text-sm">
+          <Link to="/jobs/new" className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 bg-blue-600 text-white font-medium px-4 py-2.5 rounded-lg hover:bg-blue-700 text-sm">
             <Plus className="w-4 h-4" /> {publicT("public.Content.text90")} </Link>
         </div>
 
         <div className="flex flex-wrap gap-2 mb-6">
           <button onClick={() => setCategoryFilter('')} className={`px-3 py-1.5 rounded-full text-sm font-medium ${!categoryFilter ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{publicT("common.all")}</button>
           {JOB_CATEGORIES.map(c => (
-            <button key={c} onClick={() => setCategoryFilter(c === categoryFilter ? '' : c)} className={`px-3 py-1.5 rounded-full text-sm font-medium ${categoryFilter === c ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{c}</button>
+            <button key={c} onClick={() => setCategoryFilter(c === categoryFilter ? '' : c)} className={`px-3 py-1.5 rounded-full text-sm font-medium ${categoryFilter === c ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{getPublicCategoryLabel(c, publicT)}</button>
           ))}
         </div>
 
         {loading ? <div className="text-center py-12 text-gray-400">{publicT("common.retrying")}</div> : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {jobs.length === 0 && <p className="text-gray-400 col-span-2 text-center py-12">{publicT("public.Content.text91")}</p>}
+            {jobs.length === 0 && <p className="text-gray-400 col-span-1 md:col-span-2 text-center py-12">{publicT("public.Content.text91")}</p>}
             {jobs.map(job => (
               <div key={job.id} className="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-all">
                 <div className="flex items-start gap-4">
@@ -1126,7 +1126,7 @@ export function JobsList() {
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      {job.category && <span className="text-xs font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">{job.category}</span>}
+                      {job.category && <span className="text-xs font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">{getPublicCategoryLabel(job.category, publicT)}</span>}
                     </div>
                     <h3 className="font-semibold text-gray-900 text-lg">{job.job_title || job.category || publicT("popular.vacancy")}</h3>
                     {job.employer && <p className="text-sm text-gray-500">{job.employer}</p>}
@@ -1234,7 +1234,7 @@ export function NewJobForm() {
             <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text100")}</label>
             <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
               <option value="">{publicT("masters.selectCategory")}</option>
-              {JOB_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              {JOB_CATEGORIES.map(c => <option key={c} value={c}>{getPublicCategoryLabel(c, publicT)}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -1299,18 +1299,18 @@ export function QuestionsList() {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{publicT("public.Content.text109")}</h1>
-            <p className="text-gray-500 mt-1">Спрашивайте и отвечайте — помогайте соседям</p>
+            <p className="text-gray-500 mt-1">{publicT("public.extra.11")}</p>
           </div>
-          <Link to="/questions/new" className="inline-flex items-center gap-2 bg-purple-600 text-white font-medium px-4 py-2.5 rounded-lg hover:bg-purple-700 text-sm">
+          <Link to="/questions/new" className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 bg-purple-600 text-white font-medium px-4 py-2.5 rounded-lg hover:bg-purple-700 text-sm">
             <HelpCircle className="w-4 h-4" /> {publicT("public.Content.text110")} </Link>
         </div>
         {loading ? <div className="text-center py-12 text-gray-400">{publicT("common.retrying")}</div> : (
           <div className="space-y-3">
             {questions.map(q => (
-              <Link key={q.id} to={`/questions/${q.id}`} className="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-all flex items-center justify-between block">
+              <Link key={q.id} to={`/questions/${q.id}`} className="min-w-0 bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-all flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <HelpCircle className="w-5 h-5 text-purple-500 flex-shrink-0" />
                   <div>
@@ -1394,7 +1394,7 @@ export function QuestionDetail() {
           <h3 className="font-semibold text-gray-900 mb-3">{publicT("public.Content.text116")}</h3>
           <textarea value={answerText} onChange={e => setAnswerText(e.target.value)} rows={3} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none mb-3" placeholder={publicT("public.Content.text117")} required />
           <input type="text" value={authorName} onChange={e => setAuthorName(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 mb-3" placeholder={publicT("public.Content.text118")} />
-          <button type="submit" disabled={submitting} className="inline-flex items-center gap-2 bg-purple-600 text-white font-medium px-5 py-2.5 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50">
+          <button type="submit" disabled={submitting} className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 bg-purple-600 text-white font-medium px-5 py-2.5 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50">
             <Send className="w-4 h-4" /> {submitting ? publicT("realestate.form.submitting") : publicT("public.Content.text119")}
           </button>
         </form>
@@ -1622,7 +1622,7 @@ export function RealEstateList() {
                 <div>
                   <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{publicT("realestate.dealType")}</label>
                   <select value={dealFilter} onChange={e => setDealFilter(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 rounded-xl border-0 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30">
-                    {RE_DEAL_TYPES.map(d => <option key={d.key} value={d.key}>{d.label}</option>)}
+                    {RE_DEAL_TYPES.map(d => <option key={d.key} value={d.key}>{getPublicCategoryLabel(d.label, publicT)}</option>)}
                   </select>
                 </div>
                 <div>
@@ -1665,7 +1665,7 @@ export function RealEstateList() {
                     : 'bg-white text-gray-600 hover:bg-gray-50 shadow-sm'
                 }`}
               >
-                {f.icon} {f.label}
+                {f.icon} {getPublicCategoryLabel(f.label, publicT)}
               </button>
             ))}
             <button
@@ -1691,7 +1691,7 @@ export function RealEstateList() {
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-bold text-gray-900">
-                {showFavoritesOnly ? publicT("realestate.favorites") : typeFilter ? (REAL_ESTATE_TYPES[typeFilter] || publicT("public.Content.text129")) : publicT("realestate.allListings")}
+                {showFavoritesOnly ? publicT("realestate.favorites") : typeFilter ? (getPublicCategoryLabel(REAL_ESTATE_TYPES[typeFilter], publicT) || publicT("public.Content.text129")) : publicT("realestate.allListings")}
               </h2>
               <span className="text-sm text-gray-400">{filteredItems.length} {publicT("realestate.listingsCount")}</span>
             </div>
@@ -1739,7 +1739,7 @@ export function RealEstateList() {
                         <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg ${
                           isSale ? 'bg-emerald-500 text-white' : isRent ? 'bg-blue-500 text-white' : 'bg-amber-500 text-white'
                         }`}>
-                          {REAL_ESTATE_TYPES[item.re_type] || item.re_type}
+                          {getPublicCategoryLabel(REAL_ESTATE_TYPES[item.re_type], publicT) || item.re_type}
                         </span>
                       </div>
 
@@ -1843,8 +1843,7 @@ export function RealEstateList() {
                   onClick={() => { setTypeFilter(''); setDealFilter(''); setRoomFilter(''); setPriceFrom(''); setPriceTo(''); setSearchQuery(''); setShowFavoritesOnly(false); }}
                   className="mt-4 text-sm text-emerald-600 hover:text-emerald-700 font-semibold"
                 >
-                  Сбросить все фильтры
-                </button>
+                  {publicT("public.extra.12")} </button>
               )}
             </div>
           )}
@@ -1993,7 +1992,7 @@ export function RealEstateDetail() {
               <span className={`text-xs font-bold px-3 py-1.5 rounded-full shadow-lg ${
                 isSale ? 'bg-emerald-500 text-white' : isRent ? 'bg-blue-500 text-white' : 'bg-amber-500 text-white'
               }`}>
-                {REAL_ESTATE_TYPES[item.re_type] || item.re_type}
+                {getPublicCategoryLabel(REAL_ESTATE_TYPES[item.re_type], publicT) || item.re_type}
               </span>
             </div>
           </div>
@@ -2186,7 +2185,7 @@ export function NewRealEstateForm() {
             <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text138")}</label>
             <select value={form.re_type} onChange={e => setForm({ ...form, re_type: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" required>
               <option value="">{publicT("realestate.form.selectType")}</option>
-              {Object.entries(REAL_ESTATE_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              {Object.entries(REAL_ESTATE_TYPES).map(([k, v]) => <option key={k} value={k}>{getPublicCategoryLabel(v, publicT)}</option>)}
             </select>
           </div>
           <div>

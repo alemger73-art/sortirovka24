@@ -1,3 +1,4 @@
+import { formatPublicText } from '@/i18n/publicLocale';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useRef, useState } from 'react';
 import { Bike, Camera, Car, CheckCircle2, FileText, Footprints, Loader2, Upload } from 'lucide-react';
@@ -14,9 +15,9 @@ type DocKind = 'photo' | 'id' | 'vehicle';
 const ACCEPT = 'image/*,application/pdf';
 
 const LABELS: Record<DocKind, { title: string; hint: string; icon: typeof Camera }> = {
-  photo: { title: 'Ваше фото', hint: 'Лицо хорошо видно', icon: Camera },
-  id: { title: 'Удостоверение личности', hint: 'Фото или PDF, лицевая сторона УД / паспорт', icon: FileText },
-  vehicle: { title: 'Фото транспорта', hint: 'Велосипед или авто с номером', icon: Bike },
+  photo: { title: "public.document.0", hint: "public.document.1", icon: Camera },
+  id: { title: "public.document.2", hint: "public.document.3", icon: FileText },
+  vehicle: { title: "public.document.4", hint: "public.document.5", icon: Bike },
 };
 
 export type CourierDocField = 'photo_url' | 'id_photo_url' | 'vehicle_photo_url';
@@ -70,7 +71,7 @@ export default function CourierDocUpload({
       return;
     }
     if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
-      toast.error(`Максимальный размер файла — ${formatMaxImageSizeMb()} МБ`);
+      toast.error(formatPublicText(publicT, "public.upload.maxSize", { v0: formatMaxImageSizeMb() }));
       return;
     }
     setUploading(kind);
@@ -87,7 +88,9 @@ export default function CourierDocUpload({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {kinds.map((kind) => {
-        const { title, hint, icon: Icon } = LABELS[kind];
+        const { title: titleKey, hint: hintKey, icon: Icon } = LABELS[kind];
+        const title = publicT(titleKey);
+        const hint = publicT(hintKey);
         const val = values[kind];
         const VehicleIcon = vehicleType === 'car' ? Car : vehicleType === 'foot' ? Footprints : Bike;
         const DisplayIcon = kind === 'vehicle' ? VehicleIcon : Icon;

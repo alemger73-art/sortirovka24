@@ -1,3 +1,5 @@
+import { formatDate, getStatusLabel } from '@/lib/api';
+import { getPublicLocale } from '@/i18n/publicLocale';
 import { useEffect, useMemo, useState, useRef } from "react";
 import Layout from "@/components/Layout";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -16,7 +18,7 @@ import { accountApi, AccountApiError, getAccountToken, type SavedAddress, type U
 import { cacheAccountProfile, logoutLocalUser } from "@/lib/localAuth";
 import { humanizeApiError } from "@/lib/apiErrors";
 import { STATUS_LABELS, ANN_TYPES } from "@/lib/api";
-import { formatExpiryLabel, isAnnouncementExpired, isAnnouncementPromoted } from "@/lib/announcements";
+import { isAnnouncementExpired, isAnnouncementPromoted } from "@/lib/announcements";
 import { isRealEstateExpired, isRealEstatePromoted, resolveReTypeLabel } from "@/lib/realEstate";
 import { toast } from "sonner";
 import { uploadAvatar, assertImageFileSize } from "@/lib/storage";
@@ -47,7 +49,7 @@ const MASTER_REQUEST_STATUS: Record<string, { labelKey: string; color: string }>
 function formatOrderDate(raw?: string | null) {
   if (!raw || Number.isNaN(new Date(raw).getTime())) return "";
   try {
-    return new Date(raw).toLocaleString("ru-RU", {
+    return new Date(raw).toLocaleString(getPublicLocale(), {
       day: "numeric",
       month: "short",
       hour: "2-digit",
@@ -93,6 +95,7 @@ function isCabinetTabId(value: string | null): value is TabId {
 }
 
 export default function Cabinet() {
+  const { t: coverageT } = useLanguage();
   const { t: publicT } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -820,7 +823,7 @@ export default function Cabinet() {
                   <div className="cabinet-profile-layout grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr]">
                     <div className="cabinet-avatar-panel rounded-xl border border-gray-200 bg-gray-50 p-4 text-center dark:border-[#2a3347] dark:bg-[#0f172a]">
                       {profileForm.avatar ? (
-                        <img src={profileForm.avatar} alt="avatar" className="mx-auto h-28 w-28 rounded-full object-cover ring-2 ring-yellow-400/50" />
+                        <img src={profileForm.avatar} alt={coverageT("public.coverage.avatar")} className="mx-auto h-28 w-28 rounded-full object-cover ring-2 ring-yellow-400/50" />
                       ) : (
                         <UserCircle2 className="mx-auto h-28 w-28 text-gray-400 dark:text-slate-400" />
                       )}
@@ -860,7 +863,7 @@ export default function Cabinet() {
                     <div className="space-y-3">
                       <label className="block text-sm font-medium">{t("cabinet.placeholderName")}<input aria-label={t("cabinet.placeholderName")} maxLength={120} disabled={savingProfile} value={profileForm.name} onChange={(e) => setProfileForm((p) => ({ ...p, name: e.target.value }))} className={inputClass} placeholder={t("cabinet.placeholderName")} /></label>
                       <label className="block text-sm font-medium">{t("cabinet.placeholderPhone")}<input aria-label={t("cabinet.placeholderPhone")} disabled value={cabinet?.profile?.phone || ""} className={`${inputClass} opacity-80`} placeholder={t("cabinet.placeholderPhone")} /></label>
-                      <label className="block text-sm font-medium">Email<input aria-label="Email" type="email" maxLength={254} disabled={savingProfile} value={profileForm.email} onChange={(e) => setProfileForm((p) => ({ ...p, email: e.target.value }))} className={inputClass} placeholder="Email" /></label>
+                      <label className="block text-sm font-medium">{coverageT("public.coverage.email")}<input aria-label={coverageT("public.coverage.email")} type="email" maxLength={254} disabled={savingProfile} value={profileForm.email} onChange={(e) => setProfileForm((p) => ({ ...p, email: e.target.value }))} className={inputClass} placeholder={coverageT("public.coverage.email")} /></label>
                       <label className="block text-sm font-medium">{t("cabinet.language")}<select aria-label={t("cabinet.language")} disabled={savingProfile} value={profileForm.language} onChange={e => setProfileForm(p => ({ ...p, language: e.target.value }))} className={inputClass}>
                         <option value="ru">{publicT("lang.ru")}</option>
                         <option value="kz">Қазақша</option>
@@ -1056,7 +1059,7 @@ export default function Cabinet() {
                     <p className="text-sm text-amber-800/80 dark:text-yellow-100/80">{t("cabinet.bonusBalance")}</p>
                     <div className="mt-2 flex items-center gap-2">
                       <Coins className="h-7 w-7 text-amber-600 dark:text-yellow-300" />
-                      <p className="text-4xl font-black text-amber-700 dark:text-yellow-300">{Number(cabinet?.profile?.bonus_balance || 0).toLocaleString("ru-RU")}</p>
+                      <p className="text-4xl font-black text-amber-700 dark:text-yellow-300">{Number(cabinet?.profile?.bonus_balance || 0).toLocaleString(getPublicLocale())}</p>
                     </div>
                     <p className="mt-1 text-sm text-amber-900/70 dark:text-yellow-100/70">{t("cabinet.bonusHint")}</p>
                     <Link
@@ -1255,7 +1258,7 @@ export default function Cabinet() {
                               <p className="font-semibold text-gray-900 dark:text-white">{a.title || t("cabinet.announcementDefault")}</p>
                               <div className="mt-1 flex flex-wrap items-center gap-2">
                                 <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusMeta.color}`}>
-                                  {statusMeta.label}
+                                  {getStatusLabel(a.status, t)}
                                 </span>
                                 {a.ann_type ? (
                                   <span className="text-xs text-amber-600 dark:text-yellow-300">{ANN_TYPES[a.ann_type] || a.ann_type}</span>
@@ -1265,12 +1268,12 @@ export default function Cabinet() {
                               {a.address ? <p className="mt-1 text-xs text-gray-500 dark:text-slate-500">{a.address}</p> : null}
                               {a.expires_at ? (
                                 <p className={`mt-1 text-xs ${isAnnouncementExpired(a) ? 'text-red-500' : 'text-gray-500 dark:text-slate-500'}`}>
-                                  {isAnnouncementExpired(a) ? t("cabinet.announcements.expired") : `${t("cabinet.announcements.activeUntil")} ${formatExpiryLabel(a.expires_at)}`}
+                                  {isAnnouncementExpired(a) ? t("cabinet.announcements.expired") : `${t("cabinet.announcements.activeUntil")} ${formatDate(a.expires_at || "")}`}
                                 </p>
                               ) : null}
                               {isAnnouncementPromoted(a) ? (
                                 <p className="mt-1 text-xs text-blue-600 dark:text-blue-300">
-                                  {a.promotion_tier === 'vip' ? 'VIP' : publicT("public.Cabinet.text40")} {t("cabinet.announcements.until")} {formatExpiryLabel(a.promoted_until)}
+                                  {a.promotion_tier === 'vip' ? 'VIP' : publicT("public.Cabinet.text40")} {t("cabinet.announcements.until")} {formatDate(a.promoted_until || "")}
                                 </p>
                               ) : null}
                             </div>
@@ -1364,7 +1367,7 @@ export default function Cabinet() {
                               <p className="font-semibold text-gray-900 dark:text-white">{r.title || t("cabinet.realEstate.default")}</p>
                               <div className="mt-1 flex flex-wrap items-center gap-2">
                                 <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusMeta.color}`}>
-                                  {statusMeta.label}
+                                  {getStatusLabel(r.status, t)}
                                 </span>
                                 {typeLabel ? (
                                   <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
@@ -1375,12 +1378,12 @@ export default function Cabinet() {
                               </div>
                               {r.expires_at ? (
                                 <p className={`mt-1 text-xs ${isRealEstateExpired(r) ? "text-red-500" : "text-gray-500 dark:text-slate-500"}`}>
-                                  {isRealEstateExpired(r) ? t("cabinet.realEstate.expired") : `${t("cabinet.realEstate.activeUntil")} ${formatExpiryLabel(r.expires_at)}`}
+                                  {isRealEstateExpired(r) ? t("cabinet.realEstate.expired") : `${t("cabinet.realEstate.activeUntil")} ${formatDate(r.expires_at || "")}`}
                                 </p>
                               ) : null}
                               {isRealEstatePromoted(r) && r.promoted_until ? (
                                 <p className="mt-1 text-xs text-blue-600 dark:text-blue-300">
-                                  {r.promotion_tier === "vip" ? "VIP" : publicT("public.Cabinet.text40")} {t("cabinet.realEstate.until")} {formatExpiryLabel(r.promoted_until)}
+                                  {r.promotion_tier === "vip" ? "VIP" : publicT("public.Cabinet.text40")} {t("cabinet.realEstate.until")} {formatDate(r.promoted_until || "")}
                                 </p>
                               ) : null}
                             </div>

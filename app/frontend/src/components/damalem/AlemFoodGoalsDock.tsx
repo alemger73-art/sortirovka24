@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { Gift, ShoppingBag, Truck } from 'lucide-react';
 import type { LoyaltyGift } from '@/lib/gastronomLoyalty';
 
@@ -19,13 +20,13 @@ function pickGoal(opts: {
   apartmentFreeFrom: number;
   nextGift: LoyaltyGift | null;
   formatPrice: (n: number) => string;
-}) {
+}, st: ReturnType<typeof useStoreTranslations>) {
   const goals: { remaining: number; target: number; label: string; icon: typeof Truck }[] = [];
   if (opts.minOrder > 0 && opts.subtotal < opts.minOrder) {
     goals.push({
       remaining: opts.minOrder - opts.subtotal,
       target: opts.minOrder,
-      label: `Ещё ${opts.formatPrice(opts.minOrder - opts.subtotal)} до минимального заказа`,
+      label: st("Ещё {0} до минимального заказа", [opts.formatPrice(opts.minOrder - opts.subtotal)]),
       icon: ShoppingBag,
     });
   }
@@ -34,8 +35,8 @@ function pickGoal(opts: {
       remaining: opts.freeDeliveryFrom - opts.subtotal,
       target: opts.freeDeliveryFrom,
       label: opts.apartmentFreeFrom === opts.freeDeliveryFrom
-        ? `Ещё ${opts.formatPrice(opts.freeDeliveryFrom - opts.subtotal)} — и доставка до квартиры бесплатная`
-        : `Ещё ${opts.formatPrice(opts.freeDeliveryFrom - opts.subtotal)} до бесплатной доставки`,
+        ? st("Ещё {0} — и доставка до квартиры бесплатная", [opts.formatPrice(opts.freeDeliveryFrom - opts.subtotal)])
+        : st("Ещё {0} до бесплатной доставки", [opts.formatPrice(opts.freeDeliveryFrom - opts.subtotal)]),
       icon: Truck,
     });
   }
@@ -47,7 +48,7 @@ function pickGoal(opts: {
     goals.push({
       remaining: opts.apartmentFreeFrom - opts.subtotal,
       target: opts.apartmentFreeFrom,
-      label: `Ещё ${opts.formatPrice(opts.apartmentFreeFrom - opts.subtotal)} — поднимем до квартиры бесплатно`,
+      label: st("Ещё {0} — поднимем до квартиры бесплатно", [opts.formatPrice(opts.apartmentFreeFrom - opts.subtotal)]),
       icon: Truck,
     });
   }
@@ -55,7 +56,7 @@ function pickGoal(opts: {
     goals.push({
       remaining: opts.nextGift.min_amount - opts.subtotal,
       target: opts.nextGift.min_amount,
-      label: `Ещё ${opts.formatPrice(opts.nextGift.min_amount - opts.subtotal)} — и подарок на выбор`,
+      label: st("Ещё {0} — и подарок на выбор", [opts.formatPrice(opts.nextGift.min_amount - opts.subtotal)]),
       icon: Gift,
     });
   }
@@ -72,6 +73,8 @@ export default function AlemFoodGoalsDock({
   formatPrice,
   onOpenCart,
 }: Props) {
+  const st = useStoreTranslations();
+
   if (cartCount <= 0) return null;
   const goal = pickGoal({
     subtotal,
@@ -80,7 +83,7 @@ export default function AlemFoodGoalsDock({
     apartmentFreeFrom,
     nextGift,
     formatPrice,
-  });
+  }, st);
   const progress = goal ? Math.min(100, Math.round((subtotal / goal.target) * 100)) : 100;
   const Icon = goal?.icon || Truck;
 
@@ -92,10 +95,10 @@ export default function AlemFoodGoalsDock({
       <div className="alem-goals-dock__row">
         <span className="alem-goals-dock__icon"><Icon className="h-4 w-4" /></span>
         <span className="alem-goals-dock__text">
-          {goal ? goal.label : 'Все бонусы активны — оформите заказ'}
+          {goal ? goal.label : st("Все бонусы активны — оформите заказ")}
         </span>
         <span className="alem-goals-dock__cta">
-          Корзина · {formatPrice(subtotal)}
+           {st("Корзина ·")} {formatPrice(subtotal)}
         </span>
       </div>
     </button>

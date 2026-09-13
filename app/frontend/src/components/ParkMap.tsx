@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 /**
  * ParkMap — Interactive SVG park scheme for Парк Железнодорожников.
  *
@@ -98,6 +99,7 @@ export default function ParkMap({
   highlightId,
   className = '',
 }: ParkMapProps) {
+  const { t: coverageT } = useLanguage();
   // Map points to SVG coordinates
   const mappedPoints = useMemo(
     () =>
@@ -257,25 +259,24 @@ export default function ParkMap({
         {/* Main entrance (bottom-center) */}
         <g>
           <rect x="370" y="540" width="60" height="22" rx="6" fill="#fff" stroke="#43a047" strokeWidth="2" />
-          <text x="400" y="555" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#2e7d32">ВХОД</text>
+          <text x="400" y="555" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#2e7d32">{coverageT("public.coverage.parkEntrance")}</text>
         </g>
         {/* Side exit (bottom-left) */}
         <g>
           <rect x="50" y="460" width="50" height="18" rx="5" fill="#fff" stroke="#66bb6a" strokeWidth="1.5" />
-          <text x="75" y="473" textAnchor="middle" fontSize="7" fontWeight="bold" fill="#388e3c">ВЫХОД</text>
+          <text x="75" y="473" textAnchor="middle" fontSize="7" fontWeight="bold" fill="#388e3c">{coverageT("public.coverage.parkExit")}</text>
         </g>
 
         {/* ═══ LABELS ═══ */}
-        <text x="400" y="265" textAnchor="middle" fontSize="9" fontWeight="600" fill="#00897b" opacity="0.7">Фонтан</text>
-        <text x="210" y="155" textAnchor="middle" fontSize="8" fontWeight="600" fill="#f9a825" opacity="0.7">Детская площадка</text>
-        <text x="595" y="135" textAnchor="middle" fontSize="8" fontWeight="600" fill="#0288d1" opacity="0.7">Спортзона</text>
-        <text x="580" y="370" textAnchor="middle" fontSize="8" fontWeight="600" fill="#0277bd" opacity="0.6">Пруд</text>
-        <text x="630" y="425" textAnchor="middle" fontSize="8" fontWeight="600" fill="#ef6c00" opacity="0.6">Сцена</text>
+        <text x="400" y="265" textAnchor="middle" fontSize="9" fontWeight="600" fill="#00897b" opacity="0.7">{coverageT("public.coverage.parkFountain")}</text>
+        <text x="210" y="155" textAnchor="middle" fontSize="8" fontWeight="600" fill="#f9a825" opacity="0.7">{coverageT("public.coverage.parkPlayground")}</text>
+        <text x="595" y="135" textAnchor="middle" fontSize="8" fontWeight="600" fill="#0288d1" opacity="0.7">{coverageT("public.coverage.parkSport")}</text>
+        <text x="580" y="370" textAnchor="middle" fontSize="8" fontWeight="600" fill="#0277bd" opacity="0.6">{coverageT("public.coverage.parkPond")}</text>
+        <text x="630" y="425" textAnchor="middle" fontSize="8" fontWeight="600" fill="#ef6c00" opacity="0.6">{coverageT("public.coverage.parkStage")}</text>
 
         {/* ═══ PARK TITLE ═══ */}
         <text x="400" y="42" textAnchor="middle" fontSize="13" fontWeight="800" fill="#2e7d32" opacity="0.5">
-          🌳 Парк Железнодорожников
-        </text>
+          {coverageT("public.coverage.parkTitle")}</text>
 
         {/* ═══ DELIVERY POINTS ═══ */}
         {mappedPoints.map((p) => {
@@ -385,17 +386,14 @@ export default function ParkMap({
         <div className="flex items-center justify-center gap-4 mt-2 text-[10px] text-gray-500">
           <span className="flex items-center gap-1">
             <span className="w-3 h-3 rounded-full bg-white border-2 border-green-600 inline-block" />
-            Точка доставки
-          </span>
+            {coverageT("public.coverage.parkDelivery")}</span>
           <span className="flex items-center gap-1">
             <span className="w-3 h-3 rounded-full bg-green-700 inline-block" />
-            Выбрано
-          </span>
+            {coverageT("public.coverage.parkSelected")}</span>
           {userSvg && (
             <span className="flex items-center gap-1">
               <span className="w-3 h-3 rounded-full bg-blue-600 inline-block" />
-              Вы здесь
-            </span>
+              {coverageT("public.coverage.parkHere")}</span>
           )}
         </div>
       )}

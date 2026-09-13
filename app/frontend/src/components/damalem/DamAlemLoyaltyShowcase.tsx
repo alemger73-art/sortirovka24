@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { Gift, Sparkles } from 'lucide-react';
 import { resolveImageSrc } from '@/lib/storage';
 import type { LoyaltyGift } from '@/lib/gastronomLoyalty';
@@ -10,6 +11,8 @@ interface Props {
 }
 
 export default function DamAlemLoyaltyShowcase({ gifts, formatPrice = formatMoney }: Props) {
+  const st = useStoreTranslations();
+
   const active = gifts.filter(g => g.is_active).sort((a, b) => a.min_amount - b.min_amount);
   if (active.length === 0) return null;
 
@@ -22,8 +25,8 @@ export default function DamAlemLoyaltyShowcase({ gifts, formatPrice = formatMone
             <Gift className="h-5 w-5 text-white" />
           </span>
           <div>
-            <h2 className="text-base font-extrabold text-white">Подарки к заказу</h2>
-            <p className="text-xs text-white/75">Чем больше сумма — тем приятнее бонус</p>
+            <h2 className="text-base font-extrabold text-white">{st("Подарки к заказу")}</h2>
+            <p className="text-xs text-white/75">{st("Чем больше сумма — тем приятнее бонус")}</p>
           </div>
         </div>
 
@@ -40,15 +43,14 @@ export default function DamAlemLoyaltyShowcase({ gifts, formatPrice = formatMone
                 <span className="dam-loyalty-tier__emoji">🎁</span>
               )}
               <p className="dam-loyalty-tier__title">{g.title}</p>
-              <p className="dam-loyalty-tier__from">от {formatPrice(g.min_amount)}</p>
+              <p className="dam-loyalty-tier__from">{st("от")} {formatPrice(g.min_amount)}</p>
             </article>
           ))}
         </div>
 
         <p className="mt-3 flex items-center gap-1.5 text-[11px] font-medium text-white/80">
           <Sparkles className="h-3.5 w-3.5" />
-          Подарок добавится автоматически при оформлении
-        </p>
+           {st("Подарок добавится автоматически при оформлении")} </p>
       </div>
     </section>
   );

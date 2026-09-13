@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useState } from 'react';
 import { Eye, EyeOff, Save, Loader2, CheckCircle2, AlertCircle, KeyRound, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,8 @@ async function callApi<T = any>(url: string, method: string = 'GET', data?: any,
 }
 
 export default function AdminAccountSettings() {
+  const { t: adminT } = useLanguage();
+
   const [currentPassword, setCurrentPassword] = useState('');
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -51,27 +54,27 @@ export default function AdminAccountSettings() {
     setResult(null);
 
     if (!currentPassword.trim()) {
-      setResult({ success: false, message: 'Введите текущий пароль для подтверждения.' });
+      setResult({ success: false, message: adminT("admin.ui.0019") });
       return;
     }
 
     if (!newUsername.trim() && !newPassword.trim()) {
-      setResult({ success: false, message: 'Введите новый логин или новый пароль.' });
+      setResult({ success: false, message: adminT("admin.ui.0020") });
       return;
     }
 
     if (newPassword && newPassword !== confirmPassword) {
-      setResult({ success: false, message: 'Новый пароль и подтверждение не совпадают.' });
+      setResult({ success: false, message: adminT("admin.ui.0021") });
       return;
     }
 
     if (newPassword && newPassword.length < 8) {
-      setResult({ success: false, message: 'Новый пароль должен содержать минимум 8 символов.' });
+      setResult({ success: false, message: adminT("admin.ui.0022") });
       return;
     }
 
     if (newUsername && newUsername.trim().length < 3) {
-      setResult({ success: false, message: 'Логин должен содержать минимум 3 символа.' });
+      setResult({ success: false, message: adminT("admin.ui.0023") });
       return;
     }
 
@@ -95,7 +98,7 @@ export default function AdminAccountSettings() {
         setConfirmPassword('');
       }
     } catch (err: any) {
-      setResult({ success: false, message: err?.message || 'Ошибка подключения к серверу.' });
+      setResult({ success: false, message: err?.message || adminT("admin.ui.0024") });
     } finally {
       setLoading(false);
     }
@@ -107,23 +110,21 @@ export default function AdminAccountSettings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <KeyRound className="h-5 w-5" />
-            Настройки аккаунта
-          </CardTitle>
+            {adminT("admin.ui.0025")} </CardTitle>
           <CardDescription>
-            Смените логин и/или пароль для входа в панель управления
-          </CardDescription>
+            {adminT("admin.ui.0026")} </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Current Password (required for confirmation) */}
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-                Текущий пароль <span className="text-red-500">*</span>
+                {adminT("admin.ui.0027")} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <Input
                   type={showCurrentPassword ? 'text' : 'password'}
-                  placeholder="Введите текущий пароль"
+                  placeholder={adminT("admin.ui.0028")}
                   value={currentPassword}
                   onChange={(e) => { setCurrentPassword(e.target.value); setResult(null); }}
                   className="pr-10"
@@ -138,23 +139,22 @@ export default function AdminAccountSettings() {
                   {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">Обязательно для подтверждения изменений</p>
+              <p className="text-xs text-gray-500 mt-1">{adminT("admin.ui.0029")}</p>
             </div>
 
             {/* Divider */}
             <div className="border-t border-gray-200 pt-4">
-              <p className="text-sm font-medium text-gray-600 mb-3">Новые данные (заполните одно или оба поля)</p>
+              <p className="text-sm font-medium text-gray-600 mb-3">{adminT("admin.ui.0030")}</p>
             </div>
 
             {/* New Username */}
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1.5 block">
                 <User className="inline h-3.5 w-3.5 mr-1" />
-                Новый логин
-              </label>
+                {adminT("admin.ui.0031")} </label>
               <Input
                 type="text"
-                placeholder="Введите новый логин (мин. 3 символа)"
+                placeholder={adminT("admin.ui.0032")}
                 value={newUsername}
                 onChange={(e) => { setNewUsername(e.target.value); setResult(null); }}
                 autoComplete="username"
@@ -165,12 +165,11 @@ export default function AdminAccountSettings() {
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1.5 block">
                 <KeyRound className="inline h-3.5 w-3.5 mr-1" />
-                Новый пароль
-              </label>
+                {adminT("admin.ui.0033")} </label>
               <div className="relative">
                 <Input
                   type={showNewPassword ? 'text' : 'password'}
-                  placeholder="Введите новый пароль (мин. 8 символов)"
+                  placeholder={adminT("admin.ui.0034")}
                   value={newPassword}
                   onChange={(e) => { setNewPassword(e.target.value); setResult(null); }}
                   className="pr-10"
@@ -191,17 +190,16 @@ export default function AdminAccountSettings() {
             {newPassword && (
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-                  Подтвердите новый пароль
-                </label>
+                  {adminT("admin.ui.0035")} </label>
                 <Input
                   type="password"
-                  placeholder="Повторите новый пароль"
+                  placeholder={adminT("admin.ui.0036")}
                   value={confirmPassword}
                   onChange={(e) => { setConfirmPassword(e.target.value); setResult(null); }}
                   autoComplete="new-password"
                 />
                 {confirmPassword && newPassword !== confirmPassword && (
-                  <p className="text-xs text-red-500 mt-1">Пароли не совпадают</p>
+                  <p className="text-xs text-red-500 mt-1">{adminT("admin.ui.0037")}</p>
                 )}
               </div>
             )}
@@ -226,7 +224,7 @@ export default function AdminAccountSettings() {
 
             <Button
               type="submit"
-              className="w-full bg-slate-800 hover:bg-slate-900"
+              className="w-full bg-slate-800 hover:bg-slate-900 text-white"
               disabled={loading || !currentPassword.trim()}
             >
               {loading ? (
@@ -234,8 +232,7 @@ export default function AdminAccountSettings() {
               ) : (
                 <Save className="w-4 h-4 mr-2" />
               )}
-              Сохранить изменения
-            </Button>
+              {adminT("admin.ui.0038")} </Button>
           </form>
         </CardContent>
       </Card>

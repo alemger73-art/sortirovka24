@@ -57,7 +57,7 @@ export function foodCheckoutBlockReason(ctx: FoodCheckoutContext): string | null
   return null;
 }
 
-export function publicOrderErrorMessage(error: unknown): string {
+export function publicOrderErrorMessage(error: unknown, translate: (source: string) => string = source => source): string {
   const err = error as {
     message?: string;
     response?: { data?: { detail?: unknown }; status?: number };
@@ -65,7 +65,7 @@ export function publicOrderErrorMessage(error: unknown): string {
   const detail = err.response?.data?.detail;
   if (typeof detail === 'string' && detail.trim() && detail.length < 280) {
     if (/internal server error|traceback|sqlalchemy|exception/i.test(detail)) {
-      return 'Не удалось оформить заказ. Попробуйте ещё раз.';
+      return translate('Не удалось оформить заказ. Попробуйте ещё раз.');
     }
     return detail;
   }
@@ -74,7 +74,7 @@ export function publicOrderErrorMessage(error: unknown): string {
   }
   const msg = err.message || '';
   if (msg && !/internal server error|network error|failed to fetch/i.test(msg)) {
-    return msg.length < 280 ? msg : 'Не удалось оформить заказ. Попробуйте ещё раз.';
+    return msg.length < 280 ? msg : translate('Не удалось оформить заказ. Попробуйте ещё раз.');
   }
-  return 'Не удалось оформить заказ. Проверьте данные и попробуйте ещё раз.';
+  return translate('Не удалось оформить заказ. Проверьте данные и попробуйте ещё раз.');
 }

@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, ExternalLink } from 'lucide-react';
 import { resolveImageUrl } from '@/lib/storage';
@@ -26,9 +27,12 @@ function BannerImage({ source }: { source: string }) {
 }
 
 export function FoodBannerCard({ banner, onAction }: { banner: FoodBanner; onAction: (action: FoodBannerAction, banner: FoodBanner) => void }) {
+  const st = useStoreTranslations();
+
   const action = resolveFoodBannerAction(banner);
-  const label = foodBannerCtaLabel(action, banner.button_text);
-  const eyebrow = action.type === 'promo' ? `Промокод ${action.code}` : action.type === 'gifts' ? 'К вашему заказу' : action.type === 'category' ? 'Выберите своё' : 'DAM ALEM 2.0 рекомендует';
+  const label = banner.button_text?.trim() || (action.type === 'promo'
+    ? st('Применить {0}', [action.code]) : st(foodBannerCtaLabel(action)));
+  const eyebrow = action.type === 'promo' ? st("Промокод {0}", [action.code]) : action.type === 'gifts' ? st("К вашему заказу") : action.type === 'category' ? st("Выберите своё") : st("DAM ALEM 2.0 рекомендует");
   return (
     <button type="button" className={`food-campaign food-campaign--${action.type}`} onClick={() => onAction(action, banner)} aria-label={`${banner.title}. ${label}`} data-testid={`food-banner-${banner.id}`}>
       {banner.image_url ? <BannerImage source={banner.image_url} /> : <span className="food-campaign__decoration" aria-hidden="true" />}
@@ -44,6 +48,8 @@ export function FoodBannerCard({ banner, onAction }: { banner: FoodBanner; onAct
 }
 
 export default function DamAlemPromoBanners({ banners, onAction }: { banners: FoodBanner[]; onAction: (action: FoodBannerAction, banner: FoodBanner) => void }) {
+  const st = useStoreTranslations();
+
   const track = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState(0);
   const [atEnd, setAtEnd] = useState(false);
@@ -74,18 +80,18 @@ export default function DamAlemPromoBanners({ banners, onAction }: { banners: Fo
     element.scrollTo({ left: card.offsetLeft - first.offsetLeft, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
   };
   return (
-    <section className="food-campaigns" aria-label="Предложения DAM ALEM 2.0">
+    <section className="food-campaigns" aria-label={st("Предложения DAM ALEM 2.0")}>
       <div className="food-campaigns__heading">
-        <div><p>К хорошему заказу</p><h2>Есть повод попробовать</h2></div>
+        <div><p>{st("К хорошему заказу")}</p><h2>{st("Есть повод попробовать")}</h2></div>
         {banners.length > 1 && <div className="food-campaigns__controls">
-          <button type="button" aria-label="Предыдущие предложения" disabled={position === 0} onClick={() => move(-1)}><ArrowLeft /></button>
-          <button type="button" aria-label="Следующие предложения" disabled={atEnd} onClick={() => move(1)}><ArrowRight /></button>
+          <button type="button" aria-label={st("Предыдущие предложения")} disabled={position === 0} onClick={() => move(-1)}><ArrowLeft /></button>
+          <button type="button" aria-label={st("Следующие предложения")} disabled={atEnd} onClick={() => move(1)}><ArrowRight /></button>
         </div>}
       </div>
-      <div ref={track} onScroll={sync} className="food-campaigns__track" tabIndex={0} aria-label="Листайте предложения" data-testid="food-banner-track">
+      <div ref={track} onScroll={sync} className="food-campaigns__track" tabIndex={0} aria-label={st("Листайте предложения")} data-testid="food-banner-track">
         {banners.map(banner => <FoodBannerCard key={banner.id} banner={banner} onAction={onAction} />)}
       </div>
-      {banners.length > 1 && <p className="food-campaigns__hint">Предложений: {banners.length} · нажмите на карточку, чтобы открыть</p>}
+      {banners.length > 1 && <p className="food-campaigns__hint">{st("Предложений:")} {banners.length}  {st("· нажмите на карточку, чтобы открыть")}</p>}
     </section>
   );
 }

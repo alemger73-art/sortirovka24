@@ -79,7 +79,7 @@ export default function DeliveryTrack() {
       } else if (task.status === 'picked_up') {
         notifyCustomer(publicT("public.DeliveryTrack.text175"), publicT("public.DeliveryTrack.text176"));
       } else if (task.status === 'on_the_way') {
-        notifyCustomer(publicT("public.DeliveryTrack.text177"), 'Скоро будем у вас');
+        notifyCustomer(publicT("public.DeliveryTrack.text177"), publicT("public.extra.13"));
       } else if (task.status === 'delivered') {
         notifyCustomer(publicT("public.DeliveryTrack.text178"), publicT("public.DeliveryTrack.text179"));
       }
@@ -136,7 +136,7 @@ export default function DeliveryTrack() {
         <div className="mx-auto max-w-lg px-4 py-6 space-y-4">
           <div className={`rounded-2xl p-4 text-center ${statusInfo.color}`}>
             <span className="text-3xl">{statusInfo.emoji}</span>
-            <p className="mt-2 font-bold text-lg">{statusInfo.label}</p>
+            <p className="mt-2 font-bold text-lg">{LOGISTICS_STATUS_LABELS[task.status]?.labelKey ? publicT(LOGISTICS_STATUS_LABELS[task.status].labelKey) : task.status}</p>
             {task.tracking?.eta_label && !isDone && (
               <p className="text-sm mt-1 flex items-center justify-center gap-1">
                 <Clock className="h-4 w-4" /> {task.tracking.eta_label}

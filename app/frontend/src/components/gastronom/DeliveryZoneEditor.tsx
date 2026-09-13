@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Polygon, CircleMarker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -55,6 +56,8 @@ export default function DeliveryZoneEditor({
   onZonesChange,
   onStoreChange,
 }: Props) {
+  const st = useStoreTranslations();
+
   const [activeZoneId, setActiveZoneId] = useState<string | null>(zones[0]?.id ?? null);
 
   const center = useMemo((): [number, number] => {
@@ -101,12 +104,11 @@ export default function DeliveryZoneEditor({
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:items-center sm:justify-between">
         <p className="text-xs text-gray-500 order-2 sm:order-1">
-          <span className="hidden sm:inline"><strong>Клик</strong> — точка границы выбранной зоны. <strong>Двойной клик</strong> — переместить магазин.</span>
-          <span className="sm:hidden">Выберите зону ниже, затем тапайте по карте</span>
+          <span className="hidden sm:inline"><strong>{st("Клик")}</strong>  {st("— точка границы выбранной зоны.")} <strong>{st("Двойной клик")}</strong>  {st("— переместить магазин.")}</span>
+          <span className="sm:hidden">{st("Выберите зону ниже, затем тапайте по карте")}</span>
         </p>
         <Button type="button" size="sm" variant="outline" onClick={addZone} className="order-1 sm:order-2 h-10 w-full sm:w-auto">
-          <Plus className="h-4 w-4 mr-1" /> Добавить зону
-        </Button>
+          <Plus className="h-4 w-4 mr-1" />  {st("Добавить зону")} </Button>
       </div>
 
       <div className="h-[min(50vh,420px)] min-h-[260px] md:h-[420px] rounded-xl overflow-hidden border border-gray-200 relative z-0 touch-pan-y">
@@ -141,7 +143,7 @@ export default function DeliveryZoneEditor({
 
       <div className="space-y-2">
         {zones.length === 0 && (
-          <p className="text-sm text-gray-400 text-center py-4">Добавьте зону доставки и нарисуйте границу на карте</p>
+          <p className="text-sm text-gray-400 text-center py-4">{st("Добавьте зону доставки и нарисуйте границу на карте")}</p>
         )}
         {zones.map((zone) => (
           <div
@@ -156,14 +158,14 @@ export default function DeliveryZoneEditor({
                 onClick={() => setActiveZoneId(zone.id)}
                 className="w-8 h-8 sm:w-4 sm:h-4 rounded-full shrink-0 border-2 border-white shadow self-start sm:self-center"
                 style={{ backgroundColor: zone.color }}
-                title="Выбрать для редактирования"
-                aria-label="Выбрать зону"
+                title={st("Выбрать для редактирования")}
+                aria-label={st("Выбрать зону")}
               />
               <Input
                 value={zone.name}
                 onChange={(e) => updateZone(zone.id, { name: e.target.value })}
                 className="h-10 sm:h-9 flex-1 min-w-0"
-                placeholder="Название зоны"
+                placeholder={st("Название зоны")}
               />
               <div className="flex gap-2 items-center">
                 <Input
@@ -171,9 +173,9 @@ export default function DeliveryZoneEditor({
                   value={zone.price}
                   onChange={(e) => updateZone(zone.id, { price: Number(e.target.value) })}
                   className="h-10 sm:h-9 flex-1 sm:w-28 sm:flex-none"
-                  placeholder="Цена ₸"
+                  placeholder={st("Цена ₸")}
                 />
-                <span className="text-xs text-gray-400 whitespace-nowrap">{zone.polygon.length} тч.</span>
+                <span className="text-xs text-gray-400 whitespace-nowrap">{zone.polygon.length}  {st("тч.")}</span>
                 <Button type="button" size="sm" variant="outline" className="h-10 w-10 p-0 text-red-600 shrink-0" onClick={() => removeZone(zone.id)}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -182,11 +184,9 @@ export default function DeliveryZoneEditor({
             {zone.id === activeZoneId && (
               <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                 <Button type="button" size="sm" variant="outline" onClick={undoPoint} disabled={!zone.polygon.length} className="h-10">
-                  Убрать точку
-                </Button>
+                   {st("Убрать точку")} </Button>
                 <Button type="button" size="sm" variant="outline" onClick={clearPolygon} disabled={!zone.polygon.length} className="h-10">
-                  Очистить
-                </Button>
+                   {st("Очистить")} </Button>
               </div>
             )}
           </div>
@@ -196,8 +196,7 @@ export default function DeliveryZoneEditor({
       <div className="grid sm:grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-gray-500 flex items-center gap-1 mb-1">
-            <MapPin className="h-3.5 w-3.5" /> Широта магазина
-          </label>
+            <MapPin className="h-3.5 w-3.5" />  {st("Широта магазина")} </label>
           <Input
             type="number"
             step="any"
@@ -206,7 +205,7 @@ export default function DeliveryZoneEditor({
           />
         </div>
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">Долгота магазина</label>
+          <label className="text-xs text-gray-500 mb-1 block">{st("Долгота магазина")}</label>
           <Input
             type="number"
             step="any"

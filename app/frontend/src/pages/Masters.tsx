@@ -1,3 +1,4 @@
+import { getPublicCategoryLabel } from '@/lib/api';
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -240,7 +241,7 @@ export function MastersCatalog() {
                       : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-indigo-300'
                   }`}
                 >
-                  <span>{CATEGORY_ICONS[cat]}</span> {cat}
+                  <span>{CATEGORY_ICONS[cat]}</span> {getPublicCategoryLabel(cat, t)}
                 </button>
               ))}
             </div>
@@ -271,7 +272,7 @@ export function MastersCatalog() {
               <>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-sm font-bold text-gray-900 dark:text-white">
-                    {selectedCategory || t('masters.allMasters')}
+                    {getPublicCategoryLabel(selectedCategory, t) || t('masters.allMasters')}
                     <span className="ml-1.5 font-normal text-gray-400">({listTotal})</span>
                   </h2>
                 </div>
@@ -397,7 +398,7 @@ export function MasterDetail() {
                   )}
                 </div>
                 <span className={`inline-flex items-center gap-1.5 mt-2 text-xs font-bold px-3 py-1 rounded-full ${bgTint}`}>
-                  {categoryIcon(master.category)} {master.category}
+                  {categoryIcon(master.category)} {getPublicCategoryLabel(master.category, t)}
                 </span>
                 <div className="flex items-center gap-2 mt-2">
                   <StarRating rating={rating} size="md" />
@@ -622,7 +623,7 @@ export function MasterRequestForm() {
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{t('masters.fieldCategory')} *</label>
               <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className={inputClass} required>
                 <option value="">{t('masters.selectCategory')}</option>
-                {MASTER_CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_ICONS[c]} {c}</option>)}
+                {MASTER_CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_ICONS[c]} {getPublicCategoryLabel(c, t)}</option>)}
               </select>
             </div>
             <div>

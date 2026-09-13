@@ -1,3 +1,4 @@
+import { formatPublicText } from '@/i18n/publicLocale';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useRef, useState } from 'react';
 import { Camera, Car, CheckCircle2, FileText, Loader2, Upload } from 'lucide-react';
@@ -14,10 +15,10 @@ type DocKind = 'photo' | 'license' | 'tech_passport' | 'car';
 const ACCEPT = 'image/*,application/pdf';
 
 const LABELS: Record<DocKind, { title: string; hint: string; icon: typeof Camera }> = {
-  photo: { title: 'Ваше фото', hint: 'Лицо хорошо видно', icon: Camera },
-  license: { title: 'Водительские права', hint: 'Фото или PDF, обе стороны', icon: FileText },
-  tech_passport: { title: 'Техпаспорт авто', hint: 'СТС / техпаспорт, фото или PDF', icon: FileText },
-  car: { title: 'Фото автомобиля', hint: 'Машина с номером', icon: Car },
+  photo: { title: "public.document.0", hint: "public.document.1", icon: Camera },
+  license: { title: "public.document.6", hint: "public.document.7", icon: FileText },
+  tech_passport: { title: "public.document.8", hint: "public.document.9", icon: FileText },
+  car: { title: "public.document.10", hint: "public.document.11", icon: Car },
 };
 
 export type DriverDocField =
@@ -77,7 +78,7 @@ export default function DriverDocUpload({
       return;
     }
     if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
-      toast.error(`Максимальный размер файла — ${formatMaxImageSizeMb()} МБ`);
+      toast.error(formatPublicText(publicT, "public.upload.maxSize", { v0: formatMaxImageSizeMb() }));
       return;
     }
     setUploading(kind);
@@ -94,7 +95,9 @@ export default function DriverDocUpload({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {(Object.keys(LABELS) as DocKind[]).map((kind) => {
-        const { title, hint, icon: Icon } = LABELS[kind];
+        const { title: titleKey, hint: hintKey, icon: Icon } = LABELS[kind];
+        const title = publicT(titleKey);
+        const hint = publicT(hintKey);
         const val = values[kind];
         return (
           <div key={kind} className="rounded-2xl border border-gray-200 bg-gray-50 p-3 space-y-2">

@@ -1,3 +1,4 @@
+import { formatPublicText } from '@/i18n/publicLocale';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -79,6 +80,8 @@ function StepIndicator({ step }: { step: RegStep }) {
 
 export default function AccountAuth() {
   const { t: publicT } = useLanguage();
+  const USER_AGREEMENT = { title: publicT('public.legal.USER_AGREEMENT.title'), updated: publicT('public.legal.USER_AGREEMENT.updated'), sections: Array.from({ length: 7 }, (_, i) => ({ heading: publicT(`public.legal.USER_AGREEMENT.${i}.heading`), body: publicT(`public.legal.USER_AGREEMENT.${i}.body`) })) };
+  const PRIVACY_POLICY = { title: publicT('public.legal.PRIVACY_POLICY.title'), updated: publicT('public.legal.PRIVACY_POLICY.updated'), sections: Array.from({ length: 8 }, (_, i) => ({ heading: publicT(`public.legal.PRIVACY_POLICY.${i}.heading`), body: publicT(`public.legal.PRIVACY_POLICY.${i}.body`) })) };
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo = useMemo(() => {
@@ -108,7 +111,7 @@ export default function AccountAuth() {
     password: "",
     language: "ru",
   });
-  const title = useMemo(() => (isLogin ? publicT("public.AccountAuth.text3") : publicT("public.AccountAuth.text4")), [isLogin]);
+  const title = useMemo(() => (isLogin ? publicT("public.AccountAuth.text3") : publicT("public.AccountAuth.text4")), [isLogin, publicT]);
   const agreementsOk = termsAccepted && privacyAccepted;
 
   useEffect(() => {
@@ -154,14 +157,14 @@ export default function AccountAuth() {
         setSmsInfo(res.on_screen_code_hint);
       } else {
         setSmsInfo(
-          `Код отправлен на ${form.phone}. Действителен ${Math.floor(res.ttl_seconds / 60)} мин.`,
+          formatPublicText(publicT, "public.auth.codeSent", { v0: form.phone, v1: Math.floor(res.ttl_seconds / 60) }),
         );
       }
       if (res.debug_code) {
         setOnScreenCode(res.debug_code);
         setSmsCode(res.debug_code);
         if (!res.sms_pending_moderation) {
-          setSmsInfo((prev) => `${prev} Код: ${res.debug_code}`);
+          setSmsInfo((prev) => formatPublicText(publicT, "public.auth.debugCode", { v0: prev, v1: res.debug_code }));
         }
       } else if (res.sms_pending_moderation) {
         setSmsInfo(
@@ -171,7 +174,7 @@ export default function AccountAuth() {
     } catch (e: any) {
       const raw = String(e?.message || e);
       if (/too many sms requests/i.test(raw)) {
-        setError("Слишком много запросов SMS. Подождите 10–15 минут и нажмите снова — код появится на экране.");
+        setError(publicT("public.extra.0"));
       } else {
         setError(raw);
       }
@@ -250,7 +253,7 @@ export default function AccountAuth() {
         ? publicT("public.AccountAuth.text12")
         : regStep === 2
           ? publicT("public.AccountAuth.text13")
-          : "Создать аккаунт";
+          : publicT("public.extra.1");
 
   return (
     <Layout>
@@ -329,7 +332,7 @@ export default function AccountAuth() {
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-                    aria-label={showPassword ? "Скрыть пароль" : publicT("public.AccountAuth.text18")}
+                    aria-label={showPassword ? publicT("public.extra.2") : publicT("public.AccountAuth.text18")}
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>

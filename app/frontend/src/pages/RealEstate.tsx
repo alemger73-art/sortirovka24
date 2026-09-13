@@ -1,3 +1,4 @@
+import { getStatusLabel, getPublicCategoryLabel } from '@/lib/api';
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -23,7 +24,6 @@ import {
   dealTypeForReType,
   fetchRealEstateCategories,
   filterPublicRealEstate,
-  formatExpiryLabel,
   getRealEstateCover,
   isRealEstatePromoted,
   loadReFavorites,
@@ -79,7 +79,7 @@ function ReFormFields({
           <option value="">{t('realestate.form.selectType')}</option>
           {categories.map((cat) => (
             <option key={cat.id} value={cat.id}>
-              {cat.icon ? `${cat.icon} ` : ''}{cat.name}
+              {cat.icon ? `${cat.icon} ` : ''}{getPublicCategoryLabel(cat.name, t)}
             </option>
           ))}
         </select>
@@ -174,7 +174,7 @@ function ReListingCard({
   const hasStorageImg = Boolean(imgKey);
   const deal = dealTypeForReType(item.re_type);
   const promoted = isRealEstatePromoted(item);
-  const typeLabel = resolveReTypeLabel(item, categories);
+  const typeLabel = getPublicCategoryLabel(resolveReTypeLabel(item, categories), t);
 
   return (
     <Link
@@ -553,7 +553,7 @@ export function RealEstateDetail() {
   const galleryKeys = getGalleryKeys();
   const deal = dealTypeForReType(item.re_type);
   const fallbackSrc = RE_FALLBACK_IMAGES[(item.id || 0) % RE_FALLBACK_IMAGES.length];
-  const typeLabel = resolveReTypeLabel(item, categories);
+  const typeLabel = getPublicCategoryLabel(resolveReTypeLabel(item, categories), t);
 
   return (
     <Layout>
@@ -831,10 +831,10 @@ export function EditRealEstateForm() {
         <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('realestate.form.editTitle')}</h1>
         {status ? (
           <p className="text-sm text-gray-500 mb-2">
-            {t('realestate.form.status')}: <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_LABELS[status]?.color || 'bg-gray-100 text-gray-800'}`}>{STATUS_LABELS[status]?.label || status}</span>
+            {t('realestate.form.status')}: <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_LABELS[status]?.color || 'bg-gray-100 text-gray-800'}`}>{getStatusLabel(status, t)}</span>
           </p>
         ) : null}
-        {expiresAt ? <p className="text-sm text-gray-500 mb-4">{t('realestate.form.activeUntil')} {formatExpiryLabel(expiresAt)}</p> : null}
+        {expiresAt ? <p className="text-sm text-gray-500 mb-4">{t('realestate.form.activeUntil')} {formatDate(expiresAt || "")}</p> : null}
         <SafetyAlert variant="real_estate_form" />
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4 mt-4">
           <ReFormFields form={form} setForm={setForm} galleryKeys={galleryKeys} setGalleryKeys={setGalleryKeys} categories={categories} t={t} />

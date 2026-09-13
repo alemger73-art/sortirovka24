@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { Gift, ShoppingBag, Truck } from 'lucide-react';
 import type { LoyaltyGift } from '@/lib/gastronomLoyalty';
 
@@ -33,13 +34,15 @@ export default function OrderGoalsProgress({
   nextGift,
   compact = false,
 }: Props) {
+  const st = useStoreTranslations();
+
   const goals: Goal[] = [];
 
   if (minOrder > 0 && subtotal < minOrder) {
     goals.push({
       id: 'min',
       icon: ShoppingBag,
-      label: `Ещё ${formatMoney(minOrder - subtotal)} до минимального заказа`,
+      label: st("Ещё {0} до минимального заказа", [formatMoney(minOrder - subtotal)]),
       remaining: minOrder - subtotal,
       target: minOrder,
       reached: false,
@@ -53,8 +56,8 @@ export default function OrderGoalsProgress({
       icon: Truck,
       label:
         apartmentFreeFrom === freeDeliveryFrom
-          ? `Ещё ${formatMoney(freeDeliveryFrom - subtotal)} — и доставка до квартиры бесплатная`
-          : `Ещё ${formatMoney(freeDeliveryFrom - subtotal)} до бесплатной доставки`,
+          ? st("Ещё {0} — и доставка до квартиры бесплатная", [formatMoney(freeDeliveryFrom - subtotal)])
+          : st("Ещё {0} до бесплатной доставки", [formatMoney(freeDeliveryFrom - subtotal)]),
       remaining: freeDeliveryFrom - subtotal,
       target: freeDeliveryFrom,
       reached: false,
@@ -70,7 +73,7 @@ export default function OrderGoalsProgress({
     goals.push({
       id: 'apartment',
       icon: Truck,
-      label: `Ещё ${formatMoney(apartmentFreeFrom - subtotal)} — и поднимем до квартиры бесплатно`,
+      label: st("Ещё {0} — и поднимем до квартиры бесплатно", [formatMoney(apartmentFreeFrom - subtotal)]),
       remaining: apartmentFreeFrom - subtotal,
       target: apartmentFreeFrom,
       reached: false,
@@ -82,7 +85,7 @@ export default function OrderGoalsProgress({
     goals.push({
       id: 'gift',
       icon: Gift,
-      label: `Ещё ${formatMoney(nextGift.min_amount - subtotal)} — и подарок на выбор бесплатно`,
+      label: st("Ещё {0} — и подарок на выбор бесплатно", [formatMoney(nextGift.min_amount - subtotal)]),
       remaining: nextGift.min_amount - subtotal,
       target: nextGift.min_amount,
       reached: false,
@@ -95,8 +98,7 @@ export default function OrderGoalsProgress({
     if (compact) return null;
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-        Все бонусы активны — оформляйте заказ!
-      </div>
+         {st("Все бонусы активны — оформляйте заказ!")} </div>
     );
   }
 
@@ -120,7 +122,7 @@ export default function OrderGoalsProgress({
           <p className="text-sm font-extrabold tracking-tight text-[#18181b]">{active.label}</p>
           {!compact && (
             <p className="text-xs text-[#71717a] mt-0.5 tabular-nums">
-              {formatMoney(subtotal)} из {formatMoney(active.target)}
+              {formatMoney(subtotal)}  {st("из")} {formatMoney(active.target)}
             </p>
           )}
         </div>

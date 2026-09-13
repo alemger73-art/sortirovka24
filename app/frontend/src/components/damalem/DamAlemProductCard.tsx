@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { Heart, Minus, Plus } from 'lucide-react';
 import DamAlemImage from '@/components/damalem/DamAlemImage';
 
@@ -27,7 +28,7 @@ export default function DamAlemProductCard({
   imageUrl,
   qtyInCart,
   hasOptions,
-  optionsLabel = 'Выбор',
+  optionsLabel: providedOptionsLabel,
   isFavorite,
   weight,
   badge,
@@ -37,6 +38,9 @@ export default function DamAlemProductCard({
   onRemove,
   onToggleFavorite,
 }: DamAlemProductCardProps) {
+  const st = useStoreTranslations();
+  const optionsLabel = providedOptionsLabel ?? st("Выбор");
+
   if (variant === 'row') {
     return (
       <article className="dam-product-card dam-animate-in">
@@ -50,7 +54,7 @@ export default function DamAlemProductCard({
               type="button"
               onClick={e => { e.stopPropagation(); onToggleFavorite(); }}
               className="absolute right-1.5 top-1.5 z-[2] flex h-7 w-7 items-center justify-center rounded-full bg-white/95 shadow-sm"
-              aria-label={isFavorite ? 'Убрать из избранного' : 'В избранное'}
+              aria-label={isFavorite ? st("Убрать из избранного") : st("В избранное")}
             >
               <Heart className={`h-3.5 w-3.5 ${isFavorite ? 'fill-[#FF3B30] text-[#FF3B30]' : 'text-gray-400'}`} />
             </button>
@@ -72,7 +76,7 @@ export default function DamAlemProductCard({
 
   const isHero = variant === 'hero';
   const badgeLabel =
-    badge === 'hit' ? 'Хит' : badge === 'new' ? 'New' : badge === 'combo' ? 'Комбо' : null;
+    badge === 'hit' ? st("Хит") : badge === 'new' ? st('New') : badge === 'combo' ? st("Комбо") : null;
   const badgeClass =
     badge === 'hit'
       ? 'dam-grid-card__badge--hit'
@@ -93,7 +97,7 @@ export default function DamAlemProductCard({
             type="button"
             onClick={e => { e.stopPropagation(); onToggleFavorite(); }}
             className="dam-grid-card__fav"
-            aria-label={isFavorite ? 'Убрать из избранного' : 'В избранное'}
+            aria-label={isFavorite ? st("Убрать из избранного") : st("В избранное")}
           >
             <Heart className={`h-4 w-4 ${isFavorite ? 'fill-[#FF3B30] text-[#FF3B30]' : 'text-white drop-shadow'}`} />
           </button>
@@ -102,9 +106,9 @@ export default function DamAlemProductCard({
           {qtyInCart > 0 ? (
             <QtyControl qty={qtyInCart} onAdd={onAdd} onRemove={onRemove} floating />
           ) : (
-            <button type="button" onClick={e => { e.stopPropagation(); onAdd(); }} className="dam-grid-card__add" aria-label="В корзину">
+            <button type="button" onClick={e => { e.stopPropagation(); onAdd(); }} className="dam-grid-card__add" aria-label={st("В корзину")}>
               <Plus className="h-5 w-5 lg:h-6 lg:w-6" />
-              <span>Добавить</span>
+              <span>{st("Добавить")}</span>
             </button>
           )}
         </div>
@@ -133,14 +137,16 @@ function QtyControl({
   onRemove: () => void;
   floating?: boolean;
 }) {
+  const st = useStoreTranslations();
+
   const cls = floating ? 'dam-grid-qty' : 'dam-qty-pill';
   return (
     <div className={cls} onClick={e => e.stopPropagation()}>
-      <button type="button" onClick={onRemove} className="flex h-8 w-8 items-center justify-center rounded-full active:scale-90" aria-label="Убрать">
+      <button type="button" onClick={onRemove} className="flex h-8 w-8 items-center justify-center rounded-full active:scale-90" aria-label={st("Убрать")}>
         <Minus className="h-4 w-4" />
       </button>
       <span className="min-w-[1.25rem] flex-1 text-center text-sm font-bold tabular-nums">{qty}</span>
-      <button type="button" onClick={onAdd} className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FF3B30] text-white active:scale-90" aria-label="Добавить">
+      <button type="button" onClick={onAdd} className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FF3B30] text-white active:scale-90" aria-label={st("Добавить")}>
         <Plus className="h-4 w-4" />
       </button>
     </div>

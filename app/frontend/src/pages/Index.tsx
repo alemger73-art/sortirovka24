@@ -1,3 +1,5 @@
+import { formatPublicText } from '@/i18n/publicLocale';
+import { getStatusLabel, getPublicCategoryLabel } from '@/lib/api';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
@@ -179,7 +181,7 @@ export default function Index() {
         if (autoRetryCountRef.current < 3) {
           autoRetryCountRef.current++;
           const delay = 3000 + 2000 * autoRetryCountRef.current;
-          setError(`${t('common.error')} (попытка ${autoRetryCountRef.current}/3...)`);
+          setError(formatPublicText(publicT, "public.common.retryAttempt", { v0: t('common.error'), v1: autoRetryCountRef.current }));
           setLoading(false);
           setRetrying(false);
           autoRetryTimerRef.current = setTimeout(() => loadData(), delay);
@@ -196,7 +198,7 @@ export default function Index() {
       if (autoRetryCountRef.current < 3) {
         autoRetryCountRef.current++;
         const delay = 3000 + 2000 * autoRetryCountRef.current;
-        setError(`${t('common.loadError')} (попытка ${autoRetryCountRef.current}/3...)`);
+        setError(formatPublicText(publicT, "public.common.retryAttempt", { v0: t('common.loadError'), v1: autoRetryCountRef.current }));
         setLoading(false);
         setRetrying(false);
         autoRetryTimerRef.current = setTimeout(() => loadData(), delay);
@@ -208,7 +210,7 @@ export default function Index() {
       setRetrying(false);
       prefetchFromIndex();
     }
-  }, [t]);
+  }, [t, publicT]);
 
   const dateLocale = lang === 'kz' ? 'kk-KZ' : 'ru-RU';
 
@@ -544,7 +546,7 @@ export default function Index() {
                     <div key={c.id} className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm p-5 hover:shadow-lg transition-all duration-300 border border-gray-100 dark:border-gray-800">
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-xs font-bold text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 px-3 py-1 rounded-full">{c.category}</span>
-                        <span className={`text-xs font-bold px-3 py-1 rounded-full ${st.color}`}>{st.label}</span>
+                        <span className={`text-xs font-bold px-3 py-1 rounded-full ${st.color}`}>{getStatusLabel(c.status, t)}</span>
                       </div>
                       <p className="text-sm text-gray-800 dark:text-gray-200 line-clamp-2 font-medium">{c.description}</p>
                       <div className="flex items-center gap-1 mt-3 text-xs text-gray-400 dark:text-gray-500">

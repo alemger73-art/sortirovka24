@@ -4,13 +4,13 @@ import { Link } from "react-router-dom";
 import { MapPin, Sun, User } from "lucide-react";
 
 const NAV_ITEMS = [
-  { label: "Главная", to: "/" },
-  { label: "Мастера", to: "/masters" },
-  { label: "Объявления", to: "/announcements" },
-  { label: "Новости", to: "/news" },
-  { label: "Работа", to: "/jobs" },
-  { label: "Жалобы", to: "/complaints" },
-  { label: "Ещё", to: "/directory" },
+  { label: 'nav.home', to: "/" },
+  { label: 'nav.masters', to: "/masters" },
+  { label: 'nav.announcements', to: "/announcements" },
+  { label: 'nav.news', to: "/news" },
+  { label: 'nav.jobs', to: "/jobs" },
+  { label: 'nav.complaints', to: "/complaints" },
+  { label: 'nav.more', to: "/directory" },
 ];
 
 export default function Header() {
@@ -68,7 +68,7 @@ export default function Header() {
                   : "text-white/80 hover:text-white"
               }`}
             >
-              {item.label}
+              {publicT(item.label)}
             </Link>
           ))}
         </nav>

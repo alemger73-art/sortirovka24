@@ -1,22 +1,50 @@
+import { useLanguage } from '@/contexts/LanguageContext';
+import { getPublicLocale } from '@/i18n/publicLocale';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { foodOperations, orderLabels, type OperatorOrder, type OrderDetail } from '@/lib/foodOperations';
+import { foodOperations, type OperatorOrder, type OrderDetail } from '@/lib/foodOperations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
-const date = (value: string) => value ? new Date(value).toLocaleString('ru-RU', { timeZone: 'Asia/Almaty', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
-const money = (value: number) => `${Number(value || 0).toLocaleString('ru-RU')} ₸`;
-const notifyLabels: Record<string, string> = { pending: 'В очереди Telegram', sending: 'Отправляется', sent: 'Доставлено в Telegram', failed: 'Ошибка Telegram', unknown: 'Отправка не подтверждена', none: 'Запись в журнале' };
+
+
+function getNotifyLabels(adminT: (key: string) => string) {
+const notifyLabels: Record<string, string> = { pending: adminT('admin.dam.final.128'), sending: adminT('admin.dam.final.129'), sent: adminT('admin.dam.final.130'), failed: adminT('admin.dam.final.131'), unknown: adminT('admin.dam.final.132'), none: adminT('admin.dam.final.133') };
+return notifyLabels;
+}
 const next: Record<string, string> = { new: 'confirmed', confirmed: 'preparing', preparing: 'ready', ready: 'in_progress', in_progress: 'done' };
 
 function Items({ raw }: { raw: string }) {
+  const money = (value: number) => `${Number(value || 0).toLocaleString(locale)} ₸`;
+
+  const { t: adminT, lang } = useLanguage();
+  const locale = getPublicLocale(lang);
+
   let items: { name?: string; quantity?: number; price?: number; modTotal?: number; modifiers?: { name?: string }[] }[] = [];
   try { const parsed = JSON.parse(raw); if (Array.isArray(parsed)) items = parsed.filter(x => x && typeof x === 'object'); } catch { /* legacy malformed order */ }
-  return <div className="divide-y">{items.length ? items.map((item, i) => <div key={i} className="flex justify-between gap-3 py-3 text-sm"><span className="break-words">{item.name || 'Блюдо'} × {item.quantity || 1}{Array.isArray(item.modifiers) && item.modifiers.length > 0 && <small className="block text-gray-500">{item.modifiers.map(m => m?.name).filter(Boolean).join(', ')}</small>}</span><strong className="shrink-0">{money(((item.price || 0) + (item.modTotal || 0)) * (item.quantity || 1))}</strong></div>) : <p>Состав не удалось прочитать. Уточните заказ у клиента.</p>}</div>;
+  return <div className="divide-y">{items.length ? items.map((item, i) => <div key={i} className="flex justify-between gap-3 py-3 text-sm"><span className="break-words">{item.name || adminT('admin.dam.final.049')} × {Number(item.quantity || 1).toLocaleString(locale)}{Array.isArray(item.modifiers) && item.modifiers.length > 0 && <small className="block text-gray-500">{item.modifiers.map(m => m?.name).filter(Boolean).join(', ')}</small>}</span><strong className="shrink-0">{money(((item.price || 0) + (item.modTotal || 0)) * (item.quantity || 1))}</strong></div>) : <p>{adminT('admin.dam.final.134')}</p>}</div>;
 }
 
 export default function DamAlemOrders() {
+  const money = (value: number) => `${Number(value || 0).toLocaleString(locale)} ₸`;
+
+  const date = (value: string) => value ? new Date(value).toLocaleString(locale, { timeZone: 'Asia/Almaty', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+
+  const { t: adminT, lang } = useLanguage();
+  const locale = getPublicLocale(lang);
+  const notifyLabels = getNotifyLabels(adminT);
+  const orderLabels: Record<string, string> = {
+    new: adminT('admin.dam.orderStatus.new'),
+    confirmed: adminT('admin.dam.orderStatus.confirmed'),
+    preparing: adminT('admin.dam.orderStatus.preparing'),
+    ready: adminT('admin.dam.orderStatus.ready'),
+    in_progress: adminT('admin.dam.orderStatus.in_progress'),
+    done: adminT('admin.dam.orderStatus.done'),
+    cancelled: adminT('admin.dam.orderStatus.cancelled'),
+  };
+
+
   const [params, setParams] = useSearchParams();
   const selected = Number(params.get('order')) || null;
   const requestedStatus = params.get('status') ?? 'active';
@@ -35,7 +63,7 @@ export default function DamAlemOrders() {
     try {
       const data = await foodOperations<{ items: OperatorOrder[]; total: number }>(`/orders?status=${status}&q=${encodeURIComponent(search)}&skip=${page * 30}`);
       if (gen !== generation.current) return;
-      setRows(data.items); setTotal(data.total); setError(''); setLastLoaded(new Date().toLocaleTimeString('ru-RU')); 
+      setRows(data.items); setTotal(data.total); setError(''); setLastLoaded(new Date().toISOString());
     } catch (e) { if (gen === generation.current) setError((e as Error).message); }
     finally { if (gen === generation.current) setLoading(false); }
   }, [status, search, page]);
@@ -63,48 +91,48 @@ export default function DamAlemOrders() {
     lock.current = true; setBusy(true);
     try {
       await foodOperations(`/orders/${detail.order.id}`, 'PATCH', { expected_version: detail.order.version || 0, ...values });
-      await refreshDetail(); await load(); setEditing(false); setCancelOpen(false); toast.success('Заказ обновлён');
+      await refreshDetail(); await load(); setEditing(false); setCancelOpen(false); toast.success(adminT('admin.dam.final.135'));
     } catch (e) { toast.error((e as Error).message); }
     finally { lock.current = false; setBusy(false); }
   }
   async function retry(eventId: number, unknown: boolean) {
     if (lock.current) return;
-    if (unknown && !window.confirm('Проверьте канал: сообщение могло уже прийти. Повторная отправка может создать копию. Отправить ещё раз?')) return;
+    if (unknown && !window.confirm(adminT('admin.dam.final.136'))) return;
     lock.current = true; setBusy(true);
-    try { await foodOperations(`/orders/${selected}/notifications/${eventId}/retry`, 'POST'); await refreshDetail(); toast.success('Уведомление поставлено в очередь'); }
+    try { await foodOperations(`/orders/${selected}/notifications/${eventId}/retry`, 'POST'); await refreshDetail(); toast.success(adminT('admin.dam.final.137')); }
     catch (e) { toast.error((e as Error).message); } finally { lock.current = false; setBusy(false); }
   }
   const order = detail?.order;
   const closed = order && ['done', 'cancelled'].includes(order.status);
   const target = order?.status === 'ready' && order.delivery_method === 'pickup' ? 'done' : next[order?.status || ''];
   return <div className="space-y-5 min-w-0">
-    <div className="flex flex-wrap justify-between gap-3"><div><h3 className="text-xl font-bold">Заказы DAM ALEM</h3><p className="text-sm text-gray-500">Обновление каждые 15 секунд · {lastLoaded ? `Проверено в ${lastLoaded}` : 'Загрузка'}</p></div><Button variant="outline" onClick={() => void load()}>Обновить список</Button></div>
-    <p className="rounded-xl bg-blue-50 p-3 text-sm text-blue-900">Все заказы сохраняются здесь. Telegram — дополнительное уведомление. Оплату отмечайте после проверки поступления денег.</p>
-    {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-red-800">{error} Показанные данные могут быть устаревшими.</p>}
-    <div className="flex flex-wrap gap-3"><Input aria-label="Поиск заказов" className="min-w-0 flex-1 basis-64" placeholder="Номер заказа, имя, телефон или адрес" value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} /><select aria-label="Статус заказов" className="rounded-lg border p-2 max-w-full" value={status} onChange={e => { setStatus(e.target.value); setPage(0); const p = new URLSearchParams(params); p.set('status', e.target.value); setParams(p); }}><option value="active">В работе</option><option value="">Все заказы</option>{Object.entries(orderLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></div>
+    <div className="flex flex-wrap justify-between gap-3"><div><h3 className="text-xl font-bold">{adminT('admin.dam.final.138')}</h3><p className="text-sm text-gray-500">{adminT('admin.dam.final.139')} {lastLoaded ? adminT('admin.dam.final.140').replace('{0}', () => String(new Date(lastLoaded).toLocaleTimeString(locale))) : adminT('admin.dam.final.141')}</p></div><Button variant="outline" onClick={() => void load()}>{adminT('admin.dam.final.142')}</Button></div>
+    <p className="rounded-xl bg-blue-50 p-3 text-sm text-blue-900">{adminT('admin.dam.final.143')}</p>
+    {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-red-800">{error}  {adminT('admin.dam.final.144')}</p>}
+    <div className="flex flex-wrap gap-3"><Input aria-label={adminT('admin.dam.final.145')} className="min-w-0 flex-1 basis-64" placeholder={adminT('admin.dam.final.146')} value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} /><select aria-label={adminT('admin.dam.final.147')} className="rounded-lg border p-2 max-w-full" value={status} onChange={e => { setStatus(e.target.value); setPage(0); const p = new URLSearchParams(params); p.set('status', e.target.value); setParams(p); }}><option value="active">{adminT('admin.dam.final.148')}</option><option value="">{adminT('admin.dam.final.149')}</option>{Object.entries(orderLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></div>
     <div className="grid gap-5 xl:grid-cols-[minmax(260px,1fr)_minmax(0,1.6fr)]">
-      <section className="min-w-0 space-y-2" aria-label="Список заказов">
-        {loading && <p role="status">Загружаем заказы…</p>}
-        {!loading && !error && !rows.length && <p className="rounded-xl border p-6">По выбранному фильтру заказов нет.</p>}
-        {rows.map(o => <button key={o.id} disabled={busy} onClick={() => { const p = new URLSearchParams(params); p.set('section', 'orders'); p.set('order', String(o.id)); setParams(p); }} className={`w-full rounded-xl border p-4 text-left ${selected === o.id ? 'border-red-400 bg-red-50' : 'bg-white hover:bg-gray-50'}`}><span className="flex flex-wrap justify-between gap-2"><strong>№{o.id} · {money(o.total_amount)}</strong><span className="text-xs rounded-full bg-gray-100 px-2 py-1">{orderLabels[o.status] || o.status}</span></span><span className="block mt-2 break-words">{o.customer_name || 'Клиент'} · {o.delivery_method === 'pickup' ? 'Самовывоз' : 'Доставка'}</span><span className="text-xs text-gray-500">{date(o.created_at)}</span></button>)}
-        <div className="flex flex-wrap gap-2 items-center pt-3"><Button variant="outline" disabled={!page || loading} onClick={() => setPage(p => p - 1)}>Назад</Button><span className="text-sm">{total ? page * 30 + 1 : 0}–{Math.min((page + 1) * 30, total)} из {total}</span><Button variant="outline" disabled={(page + 1) * 30 >= total || loading} onClick={() => setPage(p => p + 1)}>Далее</Button></div>
+      <section className="min-w-0 space-y-2" aria-label={adminT('admin.dam.final.150')}>
+        {loading && <p role="status">{adminT('admin.dam.final.151')}</p>}
+        {!loading && !error && !rows.length && <p className="rounded-xl border p-6">{adminT('admin.dam.final.152')}</p>}
+        {rows.map(o => <button key={o.id} disabled={busy} onClick={() => { const p = new URLSearchParams(params); p.set('section', 'orders'); p.set('order', String(o.id)); setParams(p); }} className={`w-full rounded-xl border p-4 text-left ${selected === o.id ? 'border-red-400 bg-red-50' : 'bg-white hover:bg-gray-50'}`}><span className="flex flex-wrap justify-between gap-2"><strong>№{o.id} · {money(o.total_amount)}</strong><span className="text-xs rounded-full bg-gray-100 px-2 py-1">{orderLabels[o.status] || o.status}</span></span><span className="block mt-2 break-words">{o.customer_name || adminT('admin.dam.final.024')} · {o.delivery_method === 'pickup' ? adminT('admin.dam.final.025') : adminT('admin.dam.final.026')}</span><span className="text-xs text-gray-500">{date(o.created_at)}</span></button>)}
+        <div className="flex flex-wrap gap-2 items-center pt-3"><Button variant="outline" disabled={!page || loading} onClick={() => setPage(p => p - 1)}>{adminT('admin.dam.final.153')}</Button><span className="text-sm">{(total ? page * 30 + 1 : 0).toLocaleString(locale)}–{Math.min((page + 1) * 30, total).toLocaleString(locale)}  {adminT('admin.dam.final.154')} {total.toLocaleString(locale)}</span><Button variant="outline" disabled={(page + 1) * 30 >= total || loading} onClick={() => setPage(p => p + 1)}>{adminT('admin.dam.final.155')}</Button></div>
       </section>
-      <section className="min-w-0 rounded-2xl border bg-white p-4 sm:p-6 space-y-4" aria-label="Карточка заказа">
-        {!selected && <p className="text-gray-500">Выберите заказ, чтобы посмотреть состав и начать обработку.</p>}
-        {selected && !detail && !detailError && <p>Загружаем карточку…</p>}
+      <section className="min-w-0 rounded-2xl border bg-white p-4 sm:p-6 space-y-4" aria-label={adminT('admin.dam.final.156')}>
+        {!selected && <p className="text-gray-500">{adminT('admin.dam.final.157')}</p>}
+        {selected && !detail && !detailError && <p>{adminT('admin.dam.final.158')}</p>}
         {detailError && <p role="alert">{detailError}</p>}
-        {order && <><div className="flex flex-wrap gap-3 justify-between"><h3 className="font-bold text-xl">Заказ №{order.id}</h3><Button variant="outline" disabled={busy || editing || cancelOpen} onClick={() => { void refreshDetail().catch(e => toast.error(e.message)); }}>Обновить карточку</Button></div>
-          <p className="font-semibold">{orderLabels[order.status] || order.status} · {order.delivery_method === 'pickup' ? 'Самовывоз' : 'Доставка'}</p>
-          <div className="space-y-2 break-words"><p>{order.customer_name}</p><a className="text-blue-700 underline block" href={`tel:${(order.customer_phone || '').replace(/[^+\d]/g, '')}`}>{order.customer_phone}</a>{order.delivery_method !== 'pickup' && <p>{order.delivery_address}</p>}{order.comment && <p className="rounded-xl bg-amber-50 p-3">Комментарий клиента: {order.comment}</p>}</div>
-          <Items raw={order.order_items} /><p className="text-lg font-bold">Итого {money(order.total_amount)}</p><p>Оплата: {({ cash: 'Наличные', kaspi_qr: 'Kaspi QR', halyk_qr: 'Halyk QR' } as Record<string, string>)[order.payment_method] || order.payment_method || 'Не указана'} · {order.payment_status === 'paid' ? 'Получена' : 'Ожидается'}</p>
-          {!closed && <div className="flex flex-wrap gap-2">{target && <Button disabled={busy} onClick={() => void change({ status: target })}>{target === 'done' ? order.delivery_method === 'pickup' ? 'Выдан клиенту' : 'Доставлен клиенту' : orderLabels[target]}</Button>}{order.payment_status !== 'paid' && <Button variant="outline" disabled={busy} onClick={() => void change({ payment_status: 'paid' })}>Подтвердить получение оплаты</Button>}<Button variant="outline" disabled={busy} onClick={() => setCancelOpen(!cancelOpen)}>Отменить заказ</Button></div>}
-          {order.status === 'done' && order.payment_status !== 'paid' && <Button disabled={busy} onClick={() => void change({ payment_status: 'paid' })}>Подтвердить получение оплаты</Button>}
-          {cancelOpen && <div className="rounded-xl bg-red-50 p-3 space-y-2"><label className="block">Причина отмены<Input aria-label="Причина отмены" maxLength={500} value={reason} onChange={e => setReason(e.target.value)} /></label><p className="text-sm">При полученной оплате возврат нужно оформить отдельно. Эта кнопка не возвращает деньги.</p><Button disabled={busy || !reason.trim()} onClick={() => void change({ status: 'cancelled', cancellation_reason: reason.trim() })}>Подтвердить отмену</Button></div>}
-          {order.cancellation_reason && <p className="text-red-700">Причина отмены: {order.cancellation_reason}</p>}
-          {order.operator_note && !editing && <p className="rounded-xl bg-gray-50 p-3 break-words">Заметка оператора: {order.operator_note}</p>}
-          <Button variant="outline" disabled={busy} onClick={() => { setEditing(!editing); setNote(order.operator_note || ''); setAddress(order.delivery_address || ''); }}>Заметка{!closed && order.delivery_method !== 'pickup' ? ' и адрес' : ''}</Button>
-          {editing && <fieldset disabled={busy} className="space-y-3"><label className="block">Заметка для сотрудников<textarea aria-label="Заметка для сотрудников" maxLength={2000} className="w-full rounded-lg border p-3" value={note} onChange={e => setNote(e.target.value)} /></label>{!closed && order.delivery_method !== 'pickup' && <label className="block">Адрес доставки<Input value={address} maxLength={1000} onChange={e => setAddress(e.target.value)} /></label>}<Button onClick={() => void change({ operator_note: note, ...(!closed && order.delivery_method !== 'pickup' ? { delivery_address: address } : {}) })}>Сохранить изменения</Button></fieldset>}
-          <div className="border-t pt-4"><h4 className="font-semibold mb-3">История заказа</h4>{!detail?.events.length && <p className="text-sm text-gray-500">Для старых заказов история начнётся с первого изменения.</p>}{detail?.events.map(event => <div key={event.id} className="py-3 border-b text-sm space-y-1 break-words"><p>{event.message}</p><p className="text-gray-500">{date(event.created_at)} · {event.actor}</p><p>{notifyLabels[event.notification] || event.notification}</p>{event.error && <p className="text-red-700">{event.error}</p>}{['failed', 'unknown', 'pending'].includes(event.notification) && <Button variant="outline" size="sm" disabled={busy} onClick={() => void retry(event.id, event.notification === 'unknown')}>Повторить уведомление</Button>}</div>)}</div>
+        {order && <><div className="flex flex-wrap gap-3 justify-between"><h3 className="font-bold text-xl">{adminT('admin.dam.final.159')}{order.id}</h3><Button variant="outline" disabled={busy || editing || cancelOpen} onClick={() => { void refreshDetail().catch(e => toast.error(e.message)); }}>{adminT('admin.dam.final.160')}</Button></div>
+          <p className="font-semibold">{orderLabels[order.status] || order.status} · {order.delivery_method === 'pickup' ? adminT('admin.dam.final.025') : adminT('admin.dam.final.026')}</p>
+          <div className="space-y-2 break-words"><p>{order.customer_name}</p><a className="text-blue-700 underline block" href={`tel:${(order.customer_phone || '').replace(/[^+\d]/g, '')}`}>{order.customer_phone}</a>{order.delivery_method !== 'pickup' && <p>{order.delivery_address}</p>}{order.comment && <p className="rounded-xl bg-amber-50 p-3">{adminT('admin.dam.final.161')} {order.comment}</p>}</div>
+          <Items raw={order.order_items} /><p className="text-lg font-bold">{adminT('admin.dam.final.162')} {money(order.total_amount)}</p><p>{adminT('admin.dam.final.163')} {({ cash: adminT('admin.dam.final.006'), kaspi_qr: 'Kaspi QR', halyk_qr: 'Halyk QR' } as Record<string, string>)[order.payment_method] || order.payment_method || adminT('admin.dam.final.164')} · {order.payment_status === 'paid' ? adminT('admin.dam.final.165') : adminT('admin.dam.final.166')}</p>
+          {!closed && <div className="flex flex-wrap gap-2">{target && <Button disabled={busy} onClick={() => void change({ status: target })}>{target === 'done' ? order.delivery_method === 'pickup' ? adminT('admin.dam.final.167') : adminT('admin.dam.final.168') : orderLabels[target]}</Button>}{order.payment_status !== 'paid' && <Button variant="outline" disabled={busy} onClick={() => void change({ payment_status: 'paid' })}>{adminT('admin.dam.final.169')}</Button>}<Button variant="outline" disabled={busy} onClick={() => setCancelOpen(!cancelOpen)}>{adminT('admin.dam.final.170')}</Button></div>}
+          {order.status === 'done' && order.payment_status !== 'paid' && <Button disabled={busy} onClick={() => void change({ payment_status: 'paid' })}>{adminT('admin.dam.final.169')}</Button>}
+          {cancelOpen && <div className="rounded-xl bg-red-50 p-3 space-y-2"><label className="block">{adminT('admin.dam.final.171')}<Input aria-label={adminT('admin.dam.final.171')} maxLength={500} value={reason} onChange={e => setReason(e.target.value)} /></label><p className="text-sm">{adminT('admin.dam.final.172')}</p><Button disabled={busy || !reason.trim()} onClick={() => void change({ status: 'cancelled', cancellation_reason: reason.trim() })}>{adminT('admin.dam.final.173')}</Button></div>}
+          {order.cancellation_reason && <p className="text-red-700">{adminT('admin.dam.final.174')} {order.cancellation_reason}</p>}
+          {order.operator_note && !editing && <p className="rounded-xl bg-gray-50 p-3 break-words">{adminT('admin.dam.final.175')} {order.operator_note}</p>}
+          <Button variant="outline" disabled={busy} onClick={() => { setEditing(!editing); setNote(order.operator_note || ''); setAddress(order.delivery_address || ''); }}>{adminT('admin.dam.final.176')}{!closed && order.delivery_method !== 'pickup' ? adminT('admin.dam.final.177') : ''}</Button>
+          {editing && <fieldset disabled={busy} className="space-y-3"><label className="block">{adminT('admin.dam.final.178')}<textarea aria-label={adminT('admin.dam.final.178')} maxLength={2000} className="w-full rounded-lg border p-3" value={note} onChange={e => setNote(e.target.value)} /></label>{!closed && order.delivery_method !== 'pickup' && <label className="block">{adminT('admin.dam.final.179')}<Input value={address} maxLength={1000} onChange={e => setAddress(e.target.value)} /></label>}<Button onClick={() => void change({ operator_note: note, ...(!closed && order.delivery_method !== 'pickup' ? { delivery_address: address } : {}) })}>{adminT('admin.dam.final.180')}</Button></fieldset>}
+          <div className="border-t pt-4"><h4 className="font-semibold mb-3">{adminT('admin.dam.final.181')}</h4>{!detail?.events.length && <p className="text-sm text-gray-500">{adminT('admin.dam.final.182')}</p>}{detail?.events.map(event => <div key={event.id} className="py-3 border-b text-sm space-y-1 break-words"><p>{event.message}</p><p className="text-gray-500">{date(event.created_at)} · {event.actor}</p><p>{notifyLabels[event.notification] || event.notification}</p>{event.error && <p className="text-red-700">{event.error}</p>}{['failed', 'unknown', 'pending'].includes(event.notification) && <Button variant="outline" size="sm" disabled={busy} onClick={() => void retry(event.id, event.notification === 'unknown')}>{adminT('admin.dam.final.183')}</Button>}</div>)}</div>
         </>}
       </section>
     </div>

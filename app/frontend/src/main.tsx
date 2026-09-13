@@ -1,3 +1,4 @@
+import { getPublicLanguage } from '@/i18n/publicLocale';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
@@ -103,10 +104,13 @@ function bootApp() {
     } catch (err) {
       console.error('[boot] render failed:', err);
       removeBootSplash();
+      const message = getPublicLanguage() === 'kz'
+        ? 'Қолданбаны іске қосу мүмкін болмады. Оны жауып, қайта ашыңыз немесе жаңартуды орнатыңыз.'
+        : 'Не удалось запустить приложение. Закройте его и откройте снова или установите обновление.';
       rootElement.innerHTML =
         '<div style="padding:24px;font-family:sans-serif;text-align:center">' +
         '<h2 style="color:#2563EB">Sortirovka24</h2>' +
-        '<p>Не удалось запустить приложение. Удалите и установите APK заново.</p></div>';
+        `<p>${message}</p></div>`;
     }
   }
 }

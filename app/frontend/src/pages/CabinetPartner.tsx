@@ -1,3 +1,4 @@
+import { getPublicLocale } from '@/i18n/publicLocale';
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -7,6 +8,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function CabinetPartner() {
   const { t } = useLanguage();
+  const statusKeys: Record<string, string> = { new: 'cabinet.orderStatus.new', confirmed: 'public.CabinetOrderDetail.text41', preparing: 'cabinet.orderStatus.cooking', ready: 'public.CabinetOrderDetail.text42', in_progress: 'public.CabinetOrderDetail.text43', done: 'cabinet.orderStatus.done', cancelled: 'cabinet.orderStatus.cancelled' };
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState("");
 
@@ -42,7 +44,7 @@ export default function CabinetPartner() {
             <p className="text-sm text-gray-600 dark:text-slate-300">{t("cabinetPartner.activeCount")}: {data?.analytics?.products_total || 0}</p>
             <div className="mt-2 space-y-1">
               {(data?.products || []).slice(0, 5).map((p: any) => (
-                <p key={p.id} className="text-sm text-gray-600 dark:text-slate-300">{p.title} — {Number(p.price || 0).toLocaleString("ru-RU")} ₸</p>
+                <p key={p.id} className="text-sm text-gray-600 dark:text-slate-300">{p.title} — {Number(p.price || 0).toLocaleString(getPublicLocale())} ₸</p>
               ))}
             </div>
           </CabinetCard>
@@ -51,14 +53,14 @@ export default function CabinetPartner() {
             <div className="mt-2 space-y-2">
               {(data?.orders || []).slice(0, 5).map((o: any) => (
                 <div key={o.id} className="rounded-lg border border-gray-100 px-3 py-2 text-sm text-gray-900 dark:border-gray-800 dark:text-white">
-                  <p className="font-medium">#{o.id} · {o.status}</p>
-                  <p className="text-gray-500 dark:text-slate-400">{Number(o.total || 0).toLocaleString("ru-RU")} ₸</p>
+                  <p className="font-medium">#{o.id} · {statusKeys[o.status] ? t(statusKeys[o.status]) : o.status}</p>
+                  <p className="text-gray-500 dark:text-slate-400">{Number(o.total || 0).toLocaleString(getPublicLocale())} ₸</p>
                 </div>
               ))}
             </div>
           </CabinetCard>
           <CabinetCard title={t("cabinetPartner.analytics")}>
-            <p className="text-sm text-gray-600 dark:text-slate-300">{t("cabinetPartner.revenue")}: {Number(data?.analytics?.revenue || 0).toLocaleString("ru-RU")} ₸</p>
+            <p className="text-sm text-gray-600 dark:text-slate-300">{t("cabinetPartner.revenue")}: {Number(data?.analytics?.revenue || 0).toLocaleString(getPublicLocale())} ₸</p>
             <p className="text-sm text-gray-600 dark:text-slate-300">{t("cabinetPartner.gastronomOrders")}: {data?.analytics?.gastronom_orders_total || 0}</p>
           </CabinetCard>
         </div>

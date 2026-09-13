@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -50,7 +51,7 @@ function parseTab(raw: string | null): Tab {
   return TAB_IDS.includes(raw as Tab) ? (raw as Tab) : 'home';
 }
 
-const NAV_ITEMS: { id: Tab; icon: typeof Home; label: string }[] = [
+const NAV_ITEMS_RU: { id: Tab; icon: typeof Home; label: string }[] = [
   { id: 'home', icon: Home, label: 'Витрина' },
   { id: 'catalog', icon: LayoutGrid, label: 'Каталог' },
   { id: 'cart', icon: ShoppingCart, label: 'Корзина' },
@@ -115,17 +116,21 @@ function formatMoney(n: number) {
 }
 
 export default function Volna() {
+  const st = useStoreTranslations();
+  const NAV_ITEMS = NAV_ITEMS_RU.map(item => ({ ...item, label: st(item.label) }));
+
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<VolnaCategory[]>([]);
   const [products, setProducts] = useState<VolnaProduct[]>([]);
   const [settings, setSettings] = useState<VolnaSettings>({
     default_address: 'ул. Жекибаева 129',
-    delivery_time: 'Доставка 30–60 мин',
+    delivery_time: '',
     min_order: '3000',
-    hero_title: 'VOLNA — алкоголь с доставкой по Сортировке',
+    hero_title: '',
     store_name: 'VOLNA',
-    store_tagline: 'магазин алкогольных напитков · 21+',
+    store_tagline: '',
   });
   const [cartQty, setCartQty] = useState<Record<number, number>>(loadCartQty);
   const [favorites, setFavorites] = useState<number[]>(loadFavorites);
@@ -220,11 +225,11 @@ export default function Volna() {
       applyCatalog(data);
     } catch (e) {
       console.error(e);
-      if (!cached) toast.error('Не удалось загрузить каталог VOLNA');
+      if (!cached) toast.error(st("Не удалось загрузить каталог VOLNA"));
     } finally {
       setLoading(false);
     }
-  }, [applyCatalog]);
+  }, [st, applyCatalog]);
 
   useEffect(() => { void loadCatalog(); }, [loadCatalog]);
   useEffect(() => { localStorage.setItem(CART_KEY, JSON.stringify(cartQty)); }, [cartQty]);
@@ -305,31 +310,31 @@ export default function Volna() {
         setDeliveryQuoteError(quote.location_warning);
         if (options?.notify) toast.warning(quote.location_warning);
       } else if (!quote.available) {
-        const msg = quote.message || 'Доставка по этому адресу недоступна';
+        const msg = quote.message || st("Доставка по этому адресу недоступна");
         setDeliveryQuoteError(msg);
         if (options?.notify) toast.error(msg);
       }
     } catch (e) {
       if (reqId !== quoteRequestId.current) return;
       setDeliveryQuote(null);
-      const msg = e instanceof Error ? e.message : 'Не удалось рассчитать доставку';
+      const msg = e instanceof Error ? e.message : st("Не удалось рассчитать доставку");
       setDeliveryQuoteError(msg);
       if (options?.notify) toast.error(msg);
     } finally {
       if (reqId === quoteRequestId.current) setDeliveryQuoteLoading(false);
     }
-  }, []);
+  }, [st]);
 
   const findByAddress = useCallback((addr?: string) => {
     const target = (addr ?? effectiveAddress).trim();
     if (target.length < 5) {
-      toast.info('Введите улицу и номер дома');
+      toast.info(st("Введите улицу и номер дома"));
       setAddressEditing(true);
       return;
     }
     if (addr) setAddress(addr);
     void runDeliveryQuote({ address: target }, { notify: true });
-  }, [effectiveAddress, runDeliveryQuote]);
+  }, [st, effectiveAddress, runDeliveryQuote]);
 
   const requestGeolocation = useCallback(async () => {
     setDeliveryQuoteLoading(true);
@@ -337,10 +342,10 @@ export default function Volna() {
       const coords = await requestCurrentPosition();
       await runDeliveryQuote({ lat: coords.lat, lng: coords.lng }, { notify: true, fillAddress: true });
     } catch {
-      toast.error('Не удалось получить GPS. Введите адрес вручную.');
+      toast.error(st("Не удалось получить GPS. Введите адрес вручную."));
       setDeliveryQuoteLoading(false);
     }
-  }, [runDeliveryQuote]);
+  }, [st, runDeliveryQuote]);
 
   useEffect(() => {
     if (geoPromptStarted.current || !ageConfirmed) return;
@@ -361,12 +366,12 @@ export default function Volna() {
 
   function rejectAge() {
     setAgeGateOpen(false);
-    toast.error('VOLNA доступен только лицам старше 21 года');
+    toast.error(st("VOLNA доступен только лицам старше 21 года"));
   }
 
   function addProduct(product: VolnaProduct) {
     setCartQty((prev) => ({ ...prev, [product.id]: (prev[product.id] || 0) + 1 }));
-    toast.success(`${product.name} в корзине`);
+    toast.success(st("{0} в корзине", [product.name]));
   }
 
   function changeQty(productId: number, delta: number) {
@@ -424,9 +429,9 @@ export default function Volna() {
         storeName: settings.store_name || 'VOLNA',
         giftTitle: loyaltyGift?.title,
       });
-      toast.success('Заказ принят! Мы свяжемся с вами.');
+      toast.success(st("Заказ принят! Мы свяжемся с вами."));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Не удалось оформить заказ');
+      toast.error(e instanceof Error ? e.message : st("Не удалось оформить заказ"));
     } finally {
       setSubmitting(false);
     }
@@ -486,23 +491,19 @@ export default function Volna() {
             </div>
             <div>
               <p className="text-5xl font-black tracking-tight text-white mb-1">VOLNA</p>
-              <p className="text-violet-300/80 text-sm uppercase tracking-[0.2em]">алкоголь · 21+</p>
+              <p className="text-violet-300/80 text-sm uppercase tracking-[0.2em]">{st("алкоголь · 21+")}</p>
             </div>
             <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-6 md:p-8 space-y-4">
               <p className="text-4xl font-bold text-amber-400">21+</p>
-              <h1 className="text-xl font-bold text-white">Подтвердите возраст</h1>
+              <h1 className="text-xl font-bold text-white">{st("Подтвердите возраст")}</h1>
               <p className="text-sm text-violet-200/70 leading-relaxed">
-                Магазин алкогольных напитков VOLNA доступен только совершеннолетним.
-                Продолжая, вы подтверждаете, что вам исполнилось 21 год.
-              </p>
+                 {st("Магазин алкогольных напитков VOLNA доступен только совершеннолетним. Продолжая, вы подтверждаете, что вам исполнилось 21 год.")} </p>
               <Button className="w-full h-12 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-semibold" onClick={confirmAge}>
-                Мне есть 21 год — войти
-              </Button>
+                 {st("Мне есть 21 год — войти")} </Button>
               <Button variant="outline" className="w-full border-white/20 text-violet-200 hover:bg-white/5 rounded-xl" onClick={rejectAge}>
-                Мне нет 21 года
-              </Button>
+                 {st("Мне нет 21 года")} </Button>
             </div>
-            <p className="text-xs text-violet-400/50">Чрезмерное употребление алкоголя вредит вашему здоровью</p>
+            <p className="text-xs text-violet-400/50">{st("Чрезмерное употребление алкоголя вредит вашему здоровью")}</p>
           </div>
         </div>
       </Layout>
@@ -513,7 +514,7 @@ export default function Volna() {
     return (
       <Layout hideHeader hideBottomNav>
         <div className="min-h-screen bg-violet-950 flex items-center justify-center p-4">
-          <Button onClick={() => setAgeGateOpen(true)} className="bg-violet-600">Вернуться к подтверждению возраста</Button>
+          <Button onClick={() => setAgeGateOpen(true)} className="bg-violet-600">{st("Вернуться к подтверждению возраста")}</Button>
         </div>
       </Layout>
     );
@@ -526,7 +527,7 @@ export default function Volna() {
         <div className="min-h-screen bg-violet-50/30 px-4 py-8 pb-24">
           <div className="max-w-lg mx-auto space-y-6 text-center">
             <CheckCircle2 className="h-16 w-16 text-violet-500 mx-auto" />
-            <h1 className="text-2xl font-bold">Заказ принят!</h1>
+            <h1 className="text-2xl font-bold">{st("Заказ принят!")}</h1>
             <p className="text-violet-700 font-semibold text-lg">№ {confirmedOrder.id}</p>
             <div className="bg-white rounded-3xl p-6 shadow-sm text-left space-y-2 text-sm">
               <p className="font-bold text-lg">{confirmedOrder.storeName}</p>
@@ -535,8 +536,7 @@ export default function Volna() {
               <p className="text-xl font-bold text-violet-700">{formatMoney(confirmedOrder.total)}</p>
             </div>
             <Button className="w-full bg-violet-600 hover:bg-violet-700 h-12 rounded-xl" onClick={() => { setConfirmedOrder(null); setActiveTab('home'); }}>
-              Вернуться в VOLNA
-            </Button>
+               {st("Вернуться в VOLNA")} </Button>
             <VolnaCrossPromo variant="success" />
           </div>
         </div>
@@ -568,7 +568,7 @@ export default function Volna() {
                   <Wine className="h-5 w-5 text-violet-600" />
                   <h1 className="text-xl md:text-2xl font-black tracking-wide text-violet-800">{settings.store_name || 'VOLNA'}</h1>
                 </div>
-                <p className="text-[10px] text-violet-400 uppercase tracking-widest">{settings.store_tagline}</p>
+                <p className="text-[10px] text-violet-400 uppercase tracking-widest">{(settings.store_tagline || st("магазин алкогольных напитков · 21+"))}</p>
               </div>
               <button type="button" className="relative p-2" onClick={() => setActiveTab('cart')}>
                 <ShoppingCart className="h-5 w-5 text-gray-600" />
@@ -584,11 +584,11 @@ export default function Volna() {
             >
               <div className="flex items-center gap-1.5 min-w-0">
                 <MapPin className="h-4 w-4 text-violet-600 shrink-0" />
-                <span className="truncate">{effectiveAddress || 'Укажите адрес доставки'}</span>
+                <span className="truncate">{effectiveAddress || st("Укажите адрес доставки")}</span>
               </div>
               <div className="flex items-center gap-1 text-gray-500 shrink-0">
                 <Clock className="h-3.5 w-3.5" />
-                <span className="text-xs">{settings.delivery_time}</span>
+                <span className="text-xs">{(settings.delivery_time || st("Доставка 30–60 мин"))}</span>
               </div>
             </button>
             {addressEditing && (
@@ -622,12 +622,12 @@ export default function Volna() {
                       <VolnaImage src={heroImage} kind="hero" alt="" className="w-full h-52 md:h-72 object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-violet-950/90 via-violet-900/40 to-transparent" />
                       <div className="absolute inset-0 p-6 flex flex-col justify-end">
-                        <span className="text-amber-400 text-xs font-semibold uppercase tracking-wider mb-2">Сортировка · Караганда</span>
-                        <h2 className="text-white font-black text-2xl md:text-3xl leading-tight mb-3">{settings.hero_title}</h2>
+                        <span className="text-amber-400 text-xs font-semibold uppercase tracking-wider mb-2">{st("Сортировка · Караганда")}</span>
+                        <h2 className="text-white font-black text-2xl md:text-3xl leading-tight mb-3">{(settings.hero_title || st("VOLNA — алкоголь с доставкой по Сортировке"))}</h2>
                         <div className="flex gap-6 mb-4">
                           {[
-                            { icon: Sparkles, label: 'Премиум' },
-                            { icon: Zap, label: '30–60 мин' },
+                            { icon: Sparkles, label: st("Премиум") },
+                            { icon: Zap, label: st("30–60 мин") },
                             { icon: ShieldCheck, label: '21+' },
                           ].map(({ icon: Icon, label }) => (
                             <div key={label} className="flex flex-col items-center gap-1">
@@ -637,8 +637,7 @@ export default function Volna() {
                           ))}
                         </div>
                         <button type="button" onClick={() => setActiveTab('catalog')} className="w-full md:w-auto md:px-10 py-3 rounded-full bg-amber-400 text-violet-950 font-bold text-sm hover:bg-amber-300 transition-colors">
-                          Выбрать напитки
-                        </button>
+                           {st("Выбрать напитки")} </button>
                       </div>
                     </div>
                   </div>
@@ -648,19 +647,19 @@ export default function Volna() {
                     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-700 to-indigo-800 p-5 min-h-[120px]">
                       <VolnaImage src={promoImage} kind="promo" alt="" className="absolute right-0 top-0 h-full w-2/5 object-cover opacity-40 rounded-l-2xl" />
                       <Gift className="h-5 w-5 text-amber-300 mb-2" />
-                      <p className="text-white font-bold text-base relative z-10">{settings.promo_title || 'Волна выходного'}</p>
-                      <p className="text-violet-200 text-sm mt-1 relative z-10">{settings.promo_subtitle || '−10% на игристое в пт–сб'}</p>
+                      <p className="text-white font-bold text-base relative z-10">{settings.promo_title || st("Волна выходного")}</p>
+                      <p className="text-violet-200 text-sm mt-1 relative z-10">{settings.promo_subtitle || st("−10% на игристое в пт–сб")}</p>
                     </div>
                     <div className="rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 p-5 min-h-[120px]">
                       <Truck className="h-5 w-5 text-white/90 mb-2" />
-                      <p className="text-white font-bold text-base">{settings.promo2_title || 'Бесплатная доставка'}</p>
-                      <p className="text-amber-100 text-sm mt-1">{settings.promo2_subtitle || 'При заказе от 15 000 ₸'}</p>
+                      <p className="text-white font-bold text-base">{settings.promo2_title || st("Бесплатная доставка")}</p>
+                      <p className="text-amber-100 text-sm mt-1">{settings.promo2_subtitle || st("При заказе от 15 000 ₸")}</p>
                     </div>
                   </div>
 
                   {/* Categories */}
                   <div className={PAGE_X}>
-                    <h2 className="font-bold text-gray-900 mb-3">Категории</h2>
+                    <h2 className="font-bold text-gray-900 mb-3">{st("Категории")}</h2>
                     <div className="flex gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-6 md:overflow-visible [scrollbar-width:none]">
                       {categories.map((cat) => (
                         <button key={cat.id} type="button" onClick={() => selectCategory(cat.id)} className="flex flex-col items-center shrink-0 w-20 md:w-auto group">
@@ -680,8 +679,8 @@ export default function Volna() {
                   {/* Popular */}
                   <div className={PAGE_X}>
                     <div className="flex justify-between items-center mb-3">
-                      <h2 className="font-bold text-gray-900">Хиты продаж</h2>
-                      <button type="button" onClick={() => setActiveTab('catalog')} className="text-violet-600 text-sm font-medium">Все →</button>
+                      <h2 className="font-bold text-gray-900">{st("Хиты продаж")}</h2>
+                      <button type="button" onClick={() => setActiveTab('catalog')} className="text-violet-600 text-sm font-medium">{st("Все →")}</button>
                     </div>
                     <div className={PRODUCT_GRID}>
                       {(popularProducts.length ? popularProducts : products.slice(0, 4)).map((p) => (
@@ -698,9 +697,9 @@ export default function Volna() {
                   {/* Trust strip */}
                   <div className={`${PAGE_X} grid grid-cols-3 gap-2 py-4 border-t border-violet-100`}>
                     {[
-                      { icon: Truck, title: 'Быстро', desc: 'от 30 мин' },
-                      { icon: CreditCard, title: 'Kaspi / Halyk', desc: 'QR или наличные' },
-                      { icon: Gift, title: 'Подарки', desc: 'от суммы заказа' },
+                      { icon: Truck, title: st("Быстро"), desc: st("от 30 мин") },
+                      { icon: CreditCard, title: 'Kaspi / Halyk', desc: st("QR или наличные") },
+                      { icon: Gift, title: st("Подарки"), desc: st("от суммы заказа") },
                     ].map(({ icon: Icon, title, desc }) => (
                       <div key={title} className="text-center p-2">
                         <Icon className="h-5 w-5 text-violet-600 mx-auto mb-1" />
@@ -714,7 +713,7 @@ export default function Volna() {
 
               {activeTab === 'catalog' && (
                 <div className={`${PAGE_X} py-4`}>
-                  <Input placeholder="Поиск напитков..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="rounded-xl mb-4" />
+                  <Input placeholder={st("Поиск напитков...")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="rounded-xl mb-4" />
                   <CatalogCategoryStrip
                     categories={categories}
                     selectedId={selectedCategory}
@@ -724,7 +723,7 @@ export default function Volna() {
                   <div className={PRODUCT_GRID}>
                     {filteredProducts.map((p) => <ProductCard key={p.id} product={p} />)}
                   </div>
-                  {filteredProducts.length === 0 && <p className="text-center text-gray-400 py-8">Ничего не найдено</p>}
+                  {filteredProducts.length === 0 && <p className="text-center text-gray-400 py-8">{st("Ничего не найдено")}</p>}
                 </div>
               )}
 
@@ -733,8 +732,8 @@ export default function Volna() {
                   {cart.length === 0 ? (
                     <div className="text-center py-16">
                       <ShoppingCart className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500 mb-4">Корзина пуста</p>
-                      <Button className="bg-violet-600 hover:bg-violet-700" onClick={() => setActiveTab('catalog')}>В каталог</Button>
+                      <p className="text-gray-500 mb-4">{st("Корзина пуста")}</p>
+                      <Button className="bg-violet-600 hover:bg-violet-700" onClick={() => setActiveTab('catalog')}>{st("В каталог")}</Button>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -774,19 +773,18 @@ export default function Volna() {
                       {loyaltyGifts.length > 0 && <LoyaltyGiftBanner subtotal={subtotal} gifts={loyaltyGifts} />}
                       <div className="bg-white rounded-2xl border p-4 space-y-2 sticky bottom-24 md:static">
                         <div className="flex justify-between font-bold text-lg">
-                          <span>Итого</span>
+                          <span>{st("Итого")}</span>
                           <span className="text-violet-700">{formatMoney(orderTotal)}</span>
                         </div>
                         {minOrder > 0 && subtotal < minOrder && (
-                          <p className="text-xs text-amber-600">Минимальный заказ: {formatMoney(minOrder)}</p>
+                          <p className="text-xs text-amber-600">{st("Минимальный заказ:")} {formatMoney(minOrder)}</p>
                         )}
                         <Button
                           className="w-full h-12 bg-violet-600 hover:bg-violet-700 rounded-xl"
                           disabled={subtotal < minOrder || (hasDeliveryZones && !deliveryReady)}
                           onClick={() => patchSearch((p) => p.set('checkout', '1'))}
                         >
-                          Оформить заказ
-                        </Button>
+                           {st("Оформить заказ")} </Button>
                       </div>
                     </div>
                   )}
@@ -796,7 +794,7 @@ export default function Volna() {
               {activeTab === 'favorites' && (
                 <div className={`${PAGE_X} py-4`}>
                   {favoriteProducts.length === 0 ? (
-                    <p className="text-center text-gray-400 py-16">Добавьте напитки в избранное через ♥</p>
+                    <p className="text-center text-gray-400 py-16">{st("Добавьте напитки в избранное через ♥")}</p>
                   ) : (
                     <div className={PRODUCT_GRID}>{favoriteProducts.map((p) => <ProductCard key={p.id} product={p} />)}</div>
                   )}
@@ -822,8 +820,7 @@ export default function Volna() {
                   <h2 className="text-xl font-bold">{selectedProduct.name}</h2>
                   <p className="text-2xl font-bold text-violet-700">{formatMoney(selectedProduct.price)}</p>
                   <Button className="w-full bg-violet-600 hover:bg-violet-700 h-12 rounded-xl" onClick={() => { addProduct(selectedProduct); patchSearch((p) => p.delete('product'), true); }}>
-                    В корзину
-                  </Button>
+                     {st("В корзину")} </Button>
                 </div>
               </div>
             </div>
@@ -834,22 +831,22 @@ export default function Volna() {
             <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
               <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto p-5 space-y-4">
                 <div className="flex justify-between items-center">
-                  <h2 className="font-bold text-lg">Оформление · VOLNA</h2>
+                  <h2 className="font-bold text-lg">{st("Оформление · VOLNA")}</h2>
                   <button type="button" onClick={() => patchSearch((p) => p.delete('checkout'), true)}><X className="h-5 w-5 text-gray-400" /></button>
                 </div>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Имя" />
-                <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Телефон" />
-                <Textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Комментарий" rows={2} />
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={st("Имя")} />
+                <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={st("Телефон")} />
+                <Textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder={st("Комментарий")} rows={2} />
                 <div className="grid grid-cols-3 gap-2">
                   {(['cash', 'kaspi_qr', 'halyk_qr'] as const).map((val) => (
                     <button key={val} type="button" onClick={() => setPayment(val)} className={`py-2 rounded-xl text-xs font-medium border ${payment === val ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-gray-200'}`}>
-                      {PAYMENT_LABELS[val]}
+                      {st(PAYMENT_LABELS[val])}
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">При получении алкоголя (21+) потребуется документ.</p>
+                <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">{st("При получении алкоголя (21+) потребуется документ.")}</p>
                 <Button className="w-full h-12 bg-violet-600 hover:bg-violet-700 rounded-xl" onClick={() => void submitOrder()} disabled={submitting || !name.trim() || !phone.trim()}>
-                  {submitting ? 'Отправка...' : `Подтвердить · ${formatMoney(orderTotal)}`}
+                  {submitting ? st("Отправка...") : st("Подтвердить · {0}", [formatMoney(orderTotal)])}
                 </Button>
               </div>
             </div>

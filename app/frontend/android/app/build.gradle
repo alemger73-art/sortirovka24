@@ -14,8 +14,8 @@ android {
         applicationId "kz.sortirovka24.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode = (project.findProperty("storeVersionCode") ?: "28").toInteger()
-        versionName "1.0.28"
+        versionCode = (project.findProperty("storeVersionCode") ?: "29").toInteger()
+        versionName "1.0.29"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

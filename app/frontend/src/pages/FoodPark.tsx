@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -41,6 +42,8 @@ const ORDER_STATUSES: Record<string, { label: string; color: string; emoji: stri
 type ViewState = 'menu' | 'map' | 'cart' | 'checkout' | 'tracking';
 
 export default function FoodPark() {
+  const st = useStoreTranslations();
+
   const navigate = useNavigate();
   const [parkPoints, setParkPoints] = useState<ParkPoint[]>([]);
   const [categories, setCategories] = useState<FoodCategory[]>([]);
@@ -116,7 +119,7 @@ export default function FoodPark() {
         <div className="w-7 h-7 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
           <Check className="w-3.5 h-3.5 text-green-600" />
         </div>
-        <span className="text-sm font-medium">{item.name} добавлен</span>
+        <span className="text-sm font-medium">{item.name}  {st("добавлен")}</span>
       </div>,
       { duration: 1200 }
     );
@@ -159,16 +162,16 @@ export default function FoodPark() {
           if (d < minDist) { minDist = d; nearest = p; }
         }
         setSelectedPoint(nearest);
-        toast.success(`📍 Ближайшая точка: ${nearest.name}`);
+        toast.success(st("📍 Ближайшая точка: {0}", [nearest.name]));
       } else {
-        toast.success('📍 Местоположение определено!');
+        toast.success(st("📍 Местоположение определено!"));
       }
     } catch (err) {
       setGeoStatus('denied');
       if (err instanceof GeolocationError && err.code === 'denied') {
-        toast.error('Разрешите доступ к геолокации в настройках телефона');
+        toast.error(st("Разрешите доступ к геолокации в настройках телефона"));
       } else {
-        toast.info('Выберите точку доставки на карте парка');
+        toast.info(st("Выберите точку доставки на карте парка"));
       }
     }
   }
@@ -179,10 +182,10 @@ export default function FoodPark() {
 
   async function submitOrder() {
     if (!requireAuthDialog(navigate)) return;
-    if (!selectedPoint) { toast.error('Выберите точку доставки на карте'); return; }
-    if (!customerPhone.trim()) { toast.error('Укажите номер телефона'); return; }
-    if (!parkNote.trim()) { toast.error('Укажите ориентир — как вас найти'); return; }
-    if (cart.length === 0) { toast.error('Корзина пуста'); return; }
+    if (!selectedPoint) { toast.error(st("Выберите точку доставки на карте")); return; }
+    if (!customerPhone.trim()) { toast.error(st("Укажите номер телефона")); return; }
+    if (!parkNote.trim()) { toast.error(st("Укажите ориентир — как вас найти")); return; }
+    if (cart.length === 0) { toast.error(st("Корзина пуста")); return; }
 
     setSubmitting(true);
     try {
@@ -215,7 +218,7 @@ export default function FoodPark() {
       });
 
       const orderId = result?.data?.id;
-      toast.success(`Заказ #${orderId || ''} оформлен!`);
+      toast.success(st("Заказ #{0} оформлен!", [orderId || '']));
       setTrackingOrderId(orderId || null);
       setTrackingOrder({
         id: orderId,
@@ -234,7 +237,7 @@ export default function FoodPark() {
       setView('tracking');
     } catch (e) {
       console.error('Error creating park order:', e);
-      toast.error('Ошибка при оформлении заказа');
+      toast.error(st("Ошибка при оформлении заказа"));
     } finally {
       setSubmitting(false);
     }
@@ -264,7 +267,7 @@ export default function FoodPark() {
               <div className="absolute inset-0 border-4 border-transparent border-t-green-500 rounded-full animate-spin" />
               <TreePine className="absolute inset-0 m-auto w-6 h-6 text-green-500" />
             </div>
-            <p className="text-gray-500 font-medium">Загрузка парка...</p>
+            <p className="text-gray-500 font-medium">{st("Загрузка парка...")}</p>
           </div>
         </div>
       </Layout>
@@ -284,18 +287,14 @@ export default function FoodPark() {
           <div className="relative max-w-7xl mx-auto px-4 py-8 md:py-12">
             <div className="flex items-center gap-2 mb-3">
               <span className="bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                <TreePine className="w-3 h-3" /> Парк Железнодорожников
-              </span>
+                <TreePine className="w-3 h-3" />  {st("Парк Железнодорожников")} </span>
               <span className="bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                <Clock className="w-3 h-3" /> 20-40 мин
-              </span>
+                <Clock className="w-3 h-3" />  {st("20-40 мин")} </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-extrabold text-white leading-tight">
-              Доставка в парк 🌳
-            </h1>
+               {st("Доставка в парк 🌳")} </h1>
             <p className="text-white/80 text-base mt-2">
-              Закажите еду прямо к вашей скамейке! Выберите точку на карте парка.
-            </p>
+               {st("Закажите еду прямо к вашей скамейке! Выберите точку на карте парка.")} </p>
           </div>
         </section>
 
@@ -304,9 +303,9 @@ export default function FoodPark() {
           <div className="bg-white rounded-2xl shadow-lg p-4">
             <div className="flex items-center justify-between text-xs font-medium">
               {[
-                { step: 1, label: 'Меню', view: 'menu' as ViewState, icon: '🍽' },
-                { step: 2, label: 'Точка', view: 'map' as ViewState, icon: '📍' },
-                { step: 3, label: 'Заказ', view: 'checkout' as ViewState, icon: '📝' },
+                { step: 1, label: st("Меню"), view: 'menu' as ViewState, icon: '🍽' },
+                { step: 2, label: st("Точка"), view: 'map' as ViewState, icon: '📍' },
+                { step: 3, label: st("Заказ"), view: 'checkout' as ViewState, icon: '📝' },
               ].map((s, i) => {
                 const isActive = view === s.view || (view === 'cart' && s.view === 'menu');
                 const isDone = (s.view === 'menu' && cart.length > 0 && (view === 'map' || view === 'checkout' || view === 'tracking'))
@@ -342,7 +341,7 @@ export default function FoodPark() {
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Поиск блюд..."
+                  placeholder={st("Поиск блюд...")}
                   className="w-full pl-12 pr-4 py-3 bg-white rounded-2xl border-0 shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30"
                 />
                 {searchQuery && (
@@ -360,8 +359,7 @@ export default function FoodPark() {
                     activeCategory === null ? 'bg-green-600 text-white shadow-lg' : 'bg-white text-gray-600 shadow-sm'
                   }`}
                 >
-                  🍽 Все
-                </button>
+                   {st("🍽 Все")} </button>
                 {categories.map(cat => (
                   <button
                     key={cat.id}
@@ -386,8 +384,7 @@ export default function FoodPark() {
                           <img src={getItemImage(item)} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                           {item.is_recommended && (
                             <span className="absolute top-2 left-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                              <Flame className="w-2.5 h-2.5" /> Хит
-                            </span>
+                              <Flame className="w-2.5 h-2.5" />  {st("Хит")} </span>
                           )}
                         </div>
                         <div className="p-3">
@@ -419,7 +416,7 @@ export default function FoodPark() {
               ) : (
                 <div className="bg-white rounded-2xl p-8 text-center">
                   <Utensils className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500 font-medium">Блюда не найдены</p>
+                  <p className="text-gray-500 font-medium">{st("Блюда не найдены")}</p>
                 </div>
               )}
             </>
@@ -429,18 +426,16 @@ export default function FoodPark() {
           {view === 'map' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-gray-900">📍 Выберите точку доставки</h2>
+                <h2 className="text-lg font-bold text-gray-900">{st("📍 Выберите точку доставки")}</h2>
                 <button
                   onClick={() => setView('menu')}
                   className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
                 >
-                  <ArrowLeft className="w-4 h-4" /> Назад
-                </button>
+                  <ArrowLeft className="w-4 h-4" />  {st("Назад")} </button>
               </div>
 
               <p className="text-sm text-gray-500">
-                Нажмите на точку на карте парка, куда доставить заказ
-              </p>
+                 {st("Нажмите на точку на карте парка, куда доставить заказ")} </p>
 
               {/* ═══ INTERACTIVE PARK MAP ═══ */}
               <div className="bg-white rounded-2xl shadow-lg p-3 border-2 border-green-100">
@@ -463,8 +458,8 @@ export default function FoodPark() {
                       <Navigation className="w-4 h-4 text-blue-600" />
                     </div>
                     <div>
-                      <p className="font-semibold text-sm text-gray-800">Определить моё местоположение</p>
-                      <p className="text-[11px] text-gray-400">Подскажем ближайшую точку доставки</p>
+                      <p className="font-semibold text-sm text-gray-800">{st("Определить моё местоположение")}</p>
+                      <p className="text-[11px] text-gray-400">{st("Подскажем ближайшую точку доставки")}</p>
                     </div>
                   </button>
                 )}
@@ -473,7 +468,7 @@ export default function FoodPark() {
                     <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
                       <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
                     </div>
-                    <p className="text-sm text-blue-700 font-medium">Определяем местоположение...</p>
+                    <p className="text-sm text-blue-700 font-medium">{st("Определяем местоположение...")}</p>
                   </div>
                 )}
                 {geoStatus === 'granted' && userLocation && (
@@ -482,12 +477,11 @@ export default function FoodPark() {
                       <Check className="w-4 h-4 text-green-600" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-green-700 font-medium">📍 Местоположение определено</p>
-                      <p className="text-[11px] text-green-500">Ваша точка показана на карте</p>
+                      <p className="text-sm text-green-700 font-medium">{st("📍 Местоположение определено")}</p>
+                      <p className="text-[11px] text-green-500">{st("Ваша точка показана на карте")}</p>
                     </div>
                     <button onClick={requestGeolocation} className="text-green-600 text-xs font-medium hover:underline">
-                      Обновить
-                    </button>
+                       {st("Обновить")} </button>
                   </div>
                 )}
                 {(geoStatus === 'denied' || geoStatus === 'unavailable') && (
@@ -496,18 +490,17 @@ export default function FoodPark() {
                       <AlertCircle className="w-4 h-4 text-amber-600" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-amber-700 font-medium">Выберите точку на карте вручную</p>
+                      <p className="text-sm text-amber-700 font-medium">{st("Выберите точку на карте вручную")}</p>
                     </div>
                     <button onClick={requestGeolocation} className="text-amber-600 text-xs font-medium hover:underline">
-                      Повторить
-                    </button>
+                       {st("Повторить")} </button>
                   </div>
                 )}
               </div>
 
               {/* Points list (quick select) */}
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Точки доставки</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{st("Точки доставки")}</p>
                 {parkPoints.map(point => (
                   <button
                     key={point.id}
@@ -541,8 +534,7 @@ export default function FoodPark() {
                   onClick={() => setView('checkout')}
                   className="w-full bg-green-600 hover:bg-green-700 text-white h-13 text-base font-bold rounded-2xl shadow-lg"
                 >
-                  Далее — оформить заказ
-                </Button>
+                   {st("Далее — оформить заказ")} </Button>
               )}
             </div>
           )}
@@ -551,8 +543,7 @@ export default function FoodPark() {
           {view === 'checkout' && (
             <div className="space-y-4">
               <button onClick={() => setView('map')} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700">
-                <ArrowLeft className="w-4 h-4" /> Назад к карте
-              </button>
+                <ArrowLeft className="w-4 h-4" />  {st("Назад к карте")} </button>
 
               {/* Selected point */}
               {selectedPoint && (
@@ -564,38 +555,36 @@ export default function FoodPark() {
                     <p className="font-bold text-green-800 text-sm">{selectedPoint.name}</p>
                     <p className="text-xs text-green-600">{selectedPoint.description}</p>
                   </div>
-                  <button onClick={() => setView('map')} className="ml-auto text-green-600 text-xs font-medium hover:underline">Изменить</button>
+                  <button onClick={() => setView('map')} className="ml-auto text-green-600 text-xs font-medium hover:underline">{st("Изменить")}</button>
                 </div>
               )}
 
               {/* Contact & note */}
               <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
-                <h3 className="font-bold text-gray-800 text-sm">Контактные данные</h3>
+                <h3 className="font-bold text-gray-800 text-sm">{st("Контактные данные")}</h3>
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 mb-1 block">Телефон *</label>
+                  <label className="text-xs font-semibold text-gray-500 mb-1 block">{st("Телефон *")}</label>
                   <Input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="+7 (___) ___-__-__" className="rounded-xl h-11" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 mb-1 block flex items-center gap-1">
-                    <MessageSquare className="w-3.5 h-3.5" /> Как вас найти? *
-                  </label>
+                    <MessageSquare className="w-3.5 h-3.5" />  {st("Как вас найти? *")} </label>
                   <Textarea
                     value={parkNote}
                     onChange={e => setParkNote(e.target.value)}
-                    placeholder="Например: у второй лавочки справа, рядом с фонтаном, в белой кепке"
+                    placeholder={st("Например: у второй лавочки справа, рядом с фонтаном, в белой кепке")}
                     className="rounded-xl resize-none"
                     rows={3}
                   />
                   <p className="text-[10px] text-gray-400 mt-1">
-                    Обязательно опишите, где именно вы находитесь — курьер найдёт вас по этому ориентиру
-                  </p>
+                     {st("Обязательно опишите, где именно вы находитесь — курьер найдёт вас по этому ориентиру")} </p>
                 </div>
               </div>
 
               {/* Mini park map preview */}
               {selectedPoint && (
                 <div className="bg-white rounded-2xl p-3 shadow-sm">
-                  <p className="text-xs font-semibold text-gray-500 mb-2">Точка на карте</p>
+                  <p className="text-xs font-semibold text-gray-500 mb-2">{st("Точка на карте")}</p>
                   <ParkMap
                     points={parkPoints}
                     selectedId={selectedPoint.id}
@@ -607,7 +596,7 @@ export default function FoodPark() {
 
               {/* Order summary */}
               <div className="bg-white rounded-2xl p-4 shadow-sm">
-                <h3 className="font-bold text-gray-800 text-sm mb-3">Ваш заказ</h3>
+                <h3 className="font-bold text-gray-800 text-sm mb-3">{st("Ваш заказ")}</h3>
                 <div className="space-y-2">
                   {cart.map(ci => (
                     <div key={ci.item.id} className="flex justify-between items-center">
@@ -620,7 +609,7 @@ export default function FoodPark() {
                   ))}
                 </div>
                 <div className="border-t border-gray-100 pt-3 mt-3 flex justify-between">
-                  <span className="font-extrabold text-gray-900">Итого</span>
+                  <span className="font-extrabold text-gray-900">{st("Итого")}</span>
                   <span className="font-extrabold text-green-600 text-lg">{formatPrice(cartTotal)}</span>
                 </div>
               </div>
@@ -631,9 +620,9 @@ export default function FoodPark() {
                 className="w-full bg-green-600 hover:bg-green-700 text-white h-14 text-base font-bold rounded-2xl shadow-lg disabled:opacity-50"
               >
                 {submitting ? (
-                  <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Оформление...</>
+                  <><Loader2 className="w-5 h-5 mr-2 animate-spin" />  {st("Оформление...")}</>
                 ) : (
-                  <>Оформить заказ — {formatPrice(cartTotal)}</>
+                  <>{st("Оформить заказ —")} {formatPrice(cartTotal)}</>
                 )}
               </Button>
             </div>
@@ -646,31 +635,30 @@ export default function FoodPark() {
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
                   <Check className="w-8 h-8 text-green-600" />
                 </div>
-                <h2 className="text-xl font-extrabold text-gray-900">Заказ оформлен!</h2>
-                <p className="text-gray-500 text-sm mt-1">Заказ #{trackingOrder.id}</p>
+                <h2 className="text-xl font-extrabold text-gray-900">{st("Заказ оформлен!")}</h2>
+                <p className="text-gray-500 text-sm mt-1">{st("Заказ #")}{trackingOrder.id}</p>
               </div>
 
               <div className="bg-white rounded-2xl p-4 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-bold text-gray-800 text-sm">Статус заказа</h3>
+                  <h3 className="font-bold text-gray-800 text-sm">{st("Статус заказа")}</h3>
                   <button onClick={refreshTracking} disabled={trackingLoading} className="text-xs text-green-600 font-medium hover:underline flex items-center gap-1">
                     {trackingLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-                    Обновить
-                  </button>
+                     {st("Обновить")} </button>
                 </div>
                 <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold ${ORDER_STATUSES[trackingOrder.status]?.color || 'bg-gray-100 text-gray-800'}`}>
                   <span>{ORDER_STATUSES[trackingOrder.status]?.emoji || '📦'}</span>
-                  <span>{ORDER_STATUSES[trackingOrder.status]?.label || trackingOrder.status}</span>
+                  <span>{st(ORDER_STATUSES[trackingOrder.status]?.label || trackingOrder.status)}</span>
                 </div>
                 {trackingOrder.courier_name && (
-                  <p className="text-sm text-gray-600 mt-2">🏃 Курьер: <span className="font-medium">{trackingOrder.courier_name}</span></p>
+                  <p className="text-sm text-gray-600 mt-2">{st("🏃 Курьер:")} <span className="font-medium">{trackingOrder.courier_name}</span></p>
                 )}
               </div>
 
               {/* Tracking map */}
               {trackingOrder.park_point_id && (
                 <div className="bg-white rounded-2xl p-3 shadow-sm">
-                  <p className="text-xs font-semibold text-gray-500 mb-2">Точка доставки</p>
+                  <p className="text-xs font-semibold text-gray-500 mb-2">{st("Точка доставки")}</p>
                   <ParkMap
                     points={parkPoints}
                     highlightId={trackingOrder.park_point_id}
@@ -693,7 +681,7 @@ export default function FoodPark() {
                   <span className="text-gray-600">{trackingOrder.customer_phone}</span>
                 </div>
                 <div className="border-t border-gray-100 pt-2 mt-2 flex justify-between">
-                  <span className="font-bold text-gray-900">Итого</span>
+                  <span className="font-bold text-gray-900">{st("Итого")}</span>
                   <span className="font-bold text-green-600">{formatPrice(trackingOrder.total_amount)}</span>
                 </div>
               </div>
@@ -703,8 +691,7 @@ export default function FoodPark() {
                 variant="outline"
                 className="w-full h-12 rounded-2xl font-bold"
               >
-                Новый заказ
-              </Button>
+                 {st("Новый заказ")} </Button>
             </div>
           )}
         </div>
@@ -727,12 +714,12 @@ export default function FoodPark() {
                 </div>
                 <div className="text-left">
                   <span className="font-bold text-base block">{formatPrice(cartTotal)}</span>
-                  <span className="text-white/60 text-xs">{cartCount} товар(ов)</span>
+                  <span className="text-white/60 text-xs">{cartCount}  {st("товар(ов)")}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2 bg-white/20 rounded-xl px-4 py-2">
                 <MapPin className="w-4 h-4" />
-                <span className="font-semibold text-sm">Выбрать точку</span>
+                <span className="font-semibold text-sm">{st("Выбрать точку")}</span>
               </div>
             </button>
           </div>

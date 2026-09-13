@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { ChevronRight, LayoutGrid } from 'lucide-react';
 
 export interface PharmacyCategoryItem {
@@ -21,8 +22,11 @@ export default function PharmacyCategoryStrip({
   onSelectAll,
   onSelectCategory,
   accent = 'teal',
-  title = 'Каталог',
+  title: providedTitle,
 }: Props) {
+  const st = useStoreTranslations();
+  const title = providedTitle ?? st("Каталог");
+
   const rose = accent === 'rose';
   const iconWrap = rose ? 'bg-red-100 text-[#C41E14]' : 'bg-teal-100 text-teal-700';
   const hint = rose ? 'text-[#C41E14]/90' : 'text-teal-700/90';
@@ -43,12 +47,11 @@ export default function PharmacyCategoryStrip({
           </span>
           <div className="min-w-0">
             <p className="text-sm font-bold text-gray-900 leading-tight">{title}</p>
-            <p className={`text-[11px] leading-tight ${hint}`}>Листайте категории влево →</p>
+            <p className={`text-[11px] leading-tight ${hint}`}>{st("Листайте категории влево →")}</p>
           </div>
         </div>
         <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-gray-400 pb-0.5">
-          Свайп
-        </span>
+           {st("Свайп")} </span>
       </div>
 
       <div className="relative -mx-1">
@@ -59,7 +62,7 @@ export default function PharmacyCategoryStrip({
         <div
           className="flex gap-2.5 overflow-x-auto pb-1 pt-0.5 px-0.5 snap-x snap-mandatory scroll-smooth touch-pan-x [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
           role="tablist"
-          aria-label="Категории каталога"
+          aria-label={st("Категории каталога")}
         >
           <button
             type="button"
@@ -70,8 +73,7 @@ export default function PharmacyCategoryStrip({
               selectedId === null ? activeBtn : idleBtn
             }`}
           >
-            Все
-          </button>
+             {st("Все")} </button>
           {categories.map((cat) => {
             const active = selectedId === cat.id;
             return (

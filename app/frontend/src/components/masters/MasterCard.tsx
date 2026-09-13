@@ -1,3 +1,4 @@
+import { getPublicCategoryLabel } from '@/lib/api';
 import { Link } from 'react-router-dom';
 import { Phone, MessageCircle, MapPin, CheckCircle, ChevronRight, Star, Award } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
@@ -69,7 +70,7 @@ export default function MasterCard({ master }: { master: MasterCardData }) {
                   )}
                 </Link>
                 <span className={`inline-flex items-center gap-1 mt-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${bgTint} text-gray-700 dark:text-gray-200`}>
-                  {categoryIcon(master.category)} {master.category}
+                  {categoryIcon(master.category)} {getPublicCategoryLabel(master.category, t)}
                 </span>
               </div>
               <div className="flex flex-col items-end flex-shrink-0 rounded-xl bg-amber-50 dark:bg-amber-950/30 px-2 py-1">

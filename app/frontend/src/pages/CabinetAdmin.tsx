@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import CabinetCard from "@/components/cabinet/CabinetCard";
@@ -15,6 +16,9 @@ type AdminTab =
   | "settings";
 
 export default function CabinetAdmin() {
+  const { t: coverageT } = useLanguage();
+  const roleKeys: Record<string, string> = {"user":"public.coverage.role.user","admin":"public.coverage.role.admin","superadmin":"public.coverage.role.superadmin","moderator":"public.coverage.role.moderator","master":"public.coverage.role.master","driver":"public.coverage.role.driver","courier":"public.coverage.role.courier","seller":"public.coverage.role.seller"};
+  const tabKeys: Record<AdminTab, string> = {"dashboard":"public.coverage.tab.dashboard","users":"public.coverage.tab.users","registrations":"public.coverage.registrations","bonuses":"public.coverage.bonuses","orders":"public.coverage.orders","complaints":"public.coverage.complaints","announcements":"public.coverage.announcements","logs":"public.coverage.logs","settings":"public.coverage.settings"};
   const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
   const [dashboard, setDashboard] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
@@ -60,7 +64,7 @@ export default function CabinetAdmin() {
     <Layout>
       <div className="min-h-screen bg-[#0B0F19] text-white">
       <div className="mx-auto max-w-7xl px-4 py-8">
-        <h1 className="mb-5 text-2xl font-bold">Admin Dashboard</h1>
+        <h1 className="mb-5 text-2xl font-bold">{coverageT("public.coverage.adminTitle")}</h1>
         {error ? <p className="mb-4 text-red-600">{error}</p> : null}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[230px_minmax(0,1fr)]">
           <div className="rounded-2xl border border-[#1f2a3f] bg-[#111827] p-4">
@@ -72,29 +76,29 @@ export default function CabinetAdmin() {
                   activeTab === tab ? "bg-yellow-400 text-black" : "bg-[#0f172a] text-slate-200 hover:bg-[#1a2336]"
                 }`}
               >
-                {tab}
+                {coverageT(tabKeys[tab])}
               </button>
             ))}
           </div>
           <div className="space-y-4">
             {activeTab === "dashboard" && (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <CabinetCard title="total users"><p className="text-2xl font-bold text-gray-900">{dashboard?.total_users || 0}</p></CabinetCard>
-                <CabinetCard title="new users today"><p className="text-2xl font-bold text-gray-900">{dashboard?.new_users_today || 0}</p></CabinetCard>
-                <CabinetCard title="active users"><p className="text-2xl font-bold text-gray-900">{dashboard?.active_users || 0}</p></CabinetCard>
-                <CabinetCard title="total bonuses"><p className="text-2xl font-bold text-gray-900">{dashboard?.total_bonuses || 0}</p></CabinetCard>
-                <CabinetCard title="total complaints"><p className="text-2xl font-bold text-gray-900">{dashboard?.total_complaints || 0}</p></CabinetCard>
-                <CabinetCard title="total orders"><p className="text-2xl font-bold text-gray-900">{dashboard?.total_orders || 0}</p></CabinetCard>
+                <CabinetCard title={coverageT("public.coverage.totalUsers")}><p className="text-2xl font-bold text-gray-900">{dashboard?.total_users || 0}</p></CabinetCard>
+                <CabinetCard title={coverageT("public.coverage.newUsers")}><p className="text-2xl font-bold text-gray-900">{dashboard?.new_users_today || 0}</p></CabinetCard>
+                <CabinetCard title={coverageT("public.coverage.activeUsers")}><p className="text-2xl font-bold text-gray-900">{dashboard?.active_users || 0}</p></CabinetCard>
+                <CabinetCard title={coverageT("public.coverage.totalBonuses")}><p className="text-2xl font-bold text-gray-900">{dashboard?.total_bonuses || 0}</p></CabinetCard>
+                <CabinetCard title={coverageT("public.coverage.totalComplaints")}><p className="text-2xl font-bold text-gray-900">{dashboard?.total_complaints || 0}</p></CabinetCard>
+                <CabinetCard title={coverageT("public.coverage.totalOrders")}><p className="text-2xl font-bold text-gray-900">{dashboard?.total_orders || 0}</p></CabinetCard>
               </div>
             )}
 
             {activeTab === "users" && (
-              <CabinetCard title="Users management" subtitle="avatar / name / phone / email / role / status / created_at / bonus_balance">
+              <CabinetCard title={coverageT("public.coverage.usersManagement")} subtitle={coverageT("public.coverage.userFields")}>
                 <div className="overflow-auto">
                   <table className="min-w-full text-sm text-gray-700">
                     <thead>
                       <tr className="text-left text-gray-500">
-                        <th className="py-2">name</th><th>phone</th><th>email</th><th>role</th><th>status</th><th>bonus</th><th>actions</th>
+                        <th className="py-2">{coverageT("public.coverage.name")}</th><th>{coverageT("public.coverage.phone")}</th><th>{coverageT("public.coverage.emailField")}</th><th>{coverageT("public.coverage.role")}</th><th>{coverageT("public.coverage.status")}</th><th>{coverageT("public.coverage.bonus")}</th><th>{coverageT("public.coverage.actions")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -103,19 +107,17 @@ export default function CabinetAdmin() {
                           <td className="py-2">{u.name}</td>
                           <td>{u.phone}</td>
                           <td>{u.email}</td>
-                          <td>{u.role}</td>
-                          <td>{u.status}</td>
+                          <td>{roleKeys[u.role] ? coverageT(roleKeys[u.role]) : u.role}</td>
+                          <td>{u.status === 'blocked' ? coverageT('public.coverage.blocked') : u.status === 'active' ? coverageT('public.coverage.active') : u.status}</td>
                           <td>{u.bonus_balance}</td>
                           <td className="space-x-2">
                             <button className="rounded bg-blue-600 px-2 py-1 text-xs text-white" onClick={async () => { await accountApi.adminUpdateUser(u.id, { status: u.status === "blocked" ? "active" : "blocked" }); setUsers(await accountApi.adminUsers()); }}>
-                              {u.status === "blocked" ? "unblock" : "block"}
+                              {u.status === "blocked" ? coverageT('public.coverage.unblock') : coverageT('public.coverage.block')}
                             </button>
                             <button className="rounded bg-amber-500 px-2 py-1 text-xs text-black" onClick={async () => { await accountApi.adminUpdateUser(u.id, { bonus_delta: 100 }); setUsers(await accountApi.adminUsers()); }}>
-                              +bonus
-                            </button>
+                              {coverageT("public.coverage.addBonus")}</button>
                             <button className="rounded bg-red-600 px-2 py-1 text-xs text-white" onClick={async () => { await accountApi.adminDeleteUser(u.id); setUsers(await accountApi.adminUsers()); }}>
-                              delete
-                            </button>
+                              {coverageT("public.coverage.delete")}</button>
                           </td>
                         </tr>
                       ))}
@@ -125,13 +127,13 @@ export default function CabinetAdmin() {
               </CabinetCard>
             )}
 
-            {activeTab === "registrations" && <CabinetCard title="Recent registrations"><pre className="max-h-96 overflow-auto text-xs text-gray-700">{JSON.stringify(registrations.slice(0, 30), null, 2)}</pre></CabinetCard>}
-            {activeTab === "bonuses" && <CabinetCard title="Bonuses"><pre className="max-h-96 overflow-auto text-xs text-gray-700">{JSON.stringify(bonuses.slice(0, 30), null, 2)}</pre></CabinetCard>}
-            {activeTab === "orders" && <CabinetCard title="Orders"><pre className="max-h-96 overflow-auto text-xs text-gray-700">{JSON.stringify(orders.slice(0, 30), null, 2)}</pre></CabinetCard>}
-            {activeTab === "complaints" && <CabinetCard title="Complaints"><pre className="max-h-96 overflow-auto text-xs text-gray-700">{JSON.stringify(complaints.slice(0, 30), null, 2)}</pre></CabinetCard>}
-            {activeTab === "announcements" && <CabinetCard title="Announcements"><pre className="max-h-96 overflow-auto text-xs text-gray-700">{JSON.stringify(announcements.slice(0, 30), null, 2)}</pre></CabinetCard>}
-            {activeTab === "logs" && <CabinetCard title="Logs"><pre className="max-h-96 overflow-auto text-xs text-gray-700">{JSON.stringify(logs.slice(0, 50), null, 2)}</pre></CabinetCard>}
-            {activeTab === "settings" && <CabinetCard title="Settings"><pre className="max-h-96 overflow-auto text-xs text-gray-700">{JSON.stringify(settings || {}, null, 2)}</pre></CabinetCard>}
+            {activeTab === "registrations" && <CabinetCard title={coverageT("public.coverage.registrations")}><pre className="max-h-96 overflow-auto text-xs text-gray-700">{JSON.stringify(registrations.slice(0, 30), null, 2)}</pre></CabinetCard>}
+            {activeTab === "bonuses" && <CabinetCard title={coverageT("public.coverage.bonuses")}><pre className="max-h-96 overflow-auto text-xs text-gray-700">{JSON.stringify(bonuses.slice(0, 30), null, 2)}</pre></CabinetCard>}
+            {activeTab === "orders" && <CabinetCard title={coverageT("public.coverage.orders")}><pre className="max-h-96 overflow-auto text-xs text-gray-700">{JSON.stringify(orders.slice(0, 30), null, 2)}</pre></CabinetCard>}
+            {activeTab === "complaints" && <CabinetCard title={coverageT("public.coverage.complaints")}><pre className="max-h-96 overflow-auto text-xs text-gray-700">{JSON.stringify(complaints.slice(0, 30), null, 2)}</pre></CabinetCard>}
+            {activeTab === "announcements" && <CabinetCard title={coverageT("public.coverage.announcements")}><pre className="max-h-96 overflow-auto text-xs text-gray-700">{JSON.stringify(announcements.slice(0, 30), null, 2)}</pre></CabinetCard>}
+            {activeTab === "logs" && <CabinetCard title={coverageT("public.coverage.logs")}><pre className="max-h-96 overflow-auto text-xs text-gray-700">{JSON.stringify(logs.slice(0, 50), null, 2)}</pre></CabinetCard>}
+            {activeTab === "settings" && <CabinetCard title={coverageT("public.coverage.settings")}><pre className="max-h-96 overflow-auto text-xs text-gray-700">{JSON.stringify(settings || {}, null, 2)}</pre></CabinetCard>}
           </div>
         </div>
       </div>

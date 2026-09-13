@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { Star } from 'lucide-react';
 import { DAM_ALEM_BRAND } from '@/lib/damAlem';
 import DamAlemImage from '@/components/damalem/DamAlemImage';
@@ -20,12 +21,15 @@ export default function DamAlemBrandHeader({
   heroImage,
   brandPhoto,
   rating = 4.9,
-  primaryCtaLabel = 'К комбо',
+  primaryCtaLabel: providedPrimaryCtaLabel,
   onPrimaryCta,
 }: Props) {
+  const st = useStoreTranslations();
+  const primaryCtaLabel = providedPrimaryCtaLabel ?? st("К комбо");
+
   const bg = resolveDamAlemHeroImage(heroImage, brandPhoto);
   const brandLabel = title?.trim() || DAM_ALEM_BRAND;
-  const tagline = subtitle?.trim() || 'Горячая еда с доставкой по Сортировке';
+  const tagline = subtitle?.trim() || st("Горячая еда с доставкой по Сортировке");
 
   return (
     <header className="dam-brand-header" aria-label={brandLabel}>

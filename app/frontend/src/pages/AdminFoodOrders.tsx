@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { client, withRetry } from '@/lib/api';
 import { invalidateAllCaches } from '@/lib/cache';
@@ -33,25 +34,36 @@ interface FoodOrder {
   created_at: string;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; next?: string; nextLabel?: string }> = {
-  new: { label: 'Новый', color: 'bg-yellow-100 text-yellow-800', next: 'confirmed', nextLabel: 'Подтвердить' },
-  confirmed: { label: 'Подтверждён', color: 'bg-emerald-100 text-emerald-800', next: 'in_progress', nextLabel: 'Курьеру' },
-  in_progress: { label: 'У курьера', color: 'bg-blue-100 text-blue-800', next: 'done', nextLabel: 'Доставлен' },
-  done: { label: 'Доставлен', color: 'bg-green-100 text-green-800' },
-  cancelled: { label: 'Отменён', color: 'bg-red-100 text-red-800' },
+function getSTATUS_CONFIG(adminT: (key: string) => string) {
+  const STATUS_CONFIG: Record<string, { label: string; color: string; next?: string; nextLabel?: string }> = {
+  new: { label: adminT("admin.ui.0508"), color: 'bg-yellow-100 text-yellow-800', next: 'confirmed', nextLabel: adminT("admin.ui.0509") },
+  confirmed: { label: adminT("admin.ui.0510"), color: 'bg-emerald-100 text-emerald-800', next: 'in_progress', nextLabel: adminT("admin.ui.0511") },
+  in_progress: { label: adminT("admin.ui.0512"), color: 'bg-blue-100 text-blue-800', next: 'done', nextLabel: adminT("admin.ui.0513") },
+  done: { label: adminT("admin.ui.0513"), color: 'bg-green-100 text-green-800' },
+  cancelled: { label: adminT("admin.ui.0514"), color: 'bg-red-100 text-red-800' },
 };
+  return STATUS_CONFIG;
+}
 
-const PAYMENT_LABELS: Record<string, string> = {
-  cash: 'Наличные',
+function getPAYMENT_LABELS(adminT: (key: string) => string) {
+  const PAYMENT_LABELS: Record<string, string> = {
+  cash: adminT("admin.ui.0515"),
   kaspi_qr: 'Kaspi QR',
   halyk_qr: 'Halyk QR',
 };
+  return PAYMENT_LABELS;
+}
 
 interface AdminFoodOrdersProps {
   damAlemMode?: boolean;
 }
 
 export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrdersProps) {
+  const { t: adminT, lang } = useLanguage();
+  const adminLocale = lang === 'kz' ? 'kk-KZ' : 'ru-RU';
+  const STATUS_CONFIG = getSTATUS_CONFIG(adminT);
+  const PAYMENT_LABELS = getPAYMENT_LABELS(adminT);
+
   const [orders, setOrders] = useState<FoodOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -77,11 +89,11 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
       setOrders(res?.data?.items || []);
     } catch (e) {
       console.error(e);
-      if (!silent) toast.error('Ошибка загрузки заказов');
+      if (!silent) toast.error(adminT("admin.ui.0516"));
     } finally {
       if (!silent) setLoading(false);
     }
-  }, []);
+  }, [adminT]);
 
   useEffect(() => { loadOrders(); }, [loadOrders]);
 
@@ -94,11 +106,11 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
   async function updateStatus(orderId: number, newStatus: string) {
     try {
       await withRetry(() => client.entities.food_orders.update({ id: String(orderId), data: { status: newStatus } }));
-      toast.success(newStatus === 'in_progress' ? 'Заказ отправлен курьерам в Telegram' : 'Статус обновлён');
+      toast.success(newStatus === 'in_progress' ? adminT("admin.ui.0517") : adminT("admin.ui.0047"));
       invalidateAllCaches();
       loadOrders(true);
     } catch {
-      toast.error('Ошибка обновления');
+      toast.error(adminT("admin.ui.0048"));
     }
   }
 
@@ -117,12 +129,12 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
     try {
       JSON.parse(itemsJson);
     } catch {
-      toast.error('Неверный JSON состава заказа');
+      toast.error(adminT("admin.ui.0518"));
       return;
     }
     const total = parseFloat(editForm.total_amount.replace(',', '.'));
     if (!Number.isFinite(total) || total <= 0) {
-      toast.error('Укажите корректную сумму');
+      toast.error(adminT("admin.ui.0519"));
       return;
     }
     setSavingEdit(true);
@@ -136,12 +148,12 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
           order_items: itemsJson,
         },
       }));
-      toast.success('Заказ сохранён');
+      toast.success(adminT("admin.ui.0520"));
       setEditingId(null);
       invalidateAllCaches();
       loadOrders(true);
     } catch {
-      toast.error('Ошибка сохранения');
+      toast.error(adminT("admin.ui.0055"));
     } finally {
       setSavingEdit(false);
     }
@@ -156,7 +168,7 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
   }
 
   function formatDate(dateStr: string) {
-    return new Date(dateStr).toLocaleString('ru-RU', {
+    return new Date(dateStr).toLocaleString(adminLocale, {
       day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
     });
   }
@@ -210,10 +222,10 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-wrap">
-          <h3 className="font-bold text-lg">{damAlemMode ? 'Заказы DAM ALEM 2.0' : 'Заказы еды'}</h3>
-          {newCount > 0 && <Badge className="bg-yellow-100 text-yellow-800 border-0">{newCount} новых</Badge>}
-          {confirmedCount > 0 && <Badge className="bg-emerald-100 text-emerald-800 border-0">{confirmedCount} подтвержд.</Badge>}
-          {inProgressCount > 0 && <Badge className="bg-blue-100 text-blue-800 border-0">{inProgressCount} у курьера</Badge>}
+          <h3 className="font-bold text-lg">{damAlemMode ? adminT("admin.ui.0386") : adminT("admin.ui.0521")}</h3>
+          {newCount > 0 && <Badge className="bg-yellow-100 text-yellow-800 border-0">{newCount} {adminT("admin.ui.0522")}</Badge>}
+          {confirmedCount > 0 && <Badge className="bg-emerald-100 text-emerald-800 border-0">{confirmedCount} {adminT("admin.ui.0523")}</Badge>}
+          {inProgressCount > 0 && <Badge className="bg-blue-100 text-blue-800 border-0">{inProgressCount} {adminT("admin.ui.0524")}</Badge>}
         </div>
         <div className="flex items-center gap-2">
           <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
@@ -223,25 +235,23 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
               onChange={e => setAutoRefresh(e.target.checked)}
               className="rounded"
             />
-            Авто 30с
-          </label>
+            {adminT("admin.ui.0525")} </label>
           <Button size="sm" variant="outline" onClick={() => loadOrders()}>
-            <RefreshCw className="w-4 h-4 mr-1" /> Обновить
-          </Button>
+            <RefreshCw className="w-4 h-4 mr-1" /> {adminT("admin.ui.0408")} </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="rounded-xl border bg-white p-3">
-          <p className="text-xs text-gray-500">Сегодня заказов</p>
+          <p className="text-xs text-gray-500">{adminT("admin.ui.0526")}</p>
           <p className="text-xl font-bold">{todayOrders.length}</p>
         </div>
         <div className="rounded-xl border bg-white p-3">
-          <p className="text-xs text-gray-500 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Выручка сегодня</p>
-          <p className="text-xl font-bold text-orange-600">{todayRevenue.toLocaleString('ru-RU')} ₸</p>
+          <p className="text-xs text-gray-500 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> {adminT("admin.ui.0527")}</p>
+          <p className="text-xl font-bold text-orange-600">{todayRevenue.toLocaleString(adminLocale)} ₸</p>
         </div>
         <div className="rounded-xl border bg-white p-3 col-span-2 sm:col-span-1">
-          <p className="text-xs text-gray-500">Всего в списке</p>
+          <p className="text-xs text-gray-500">{adminT("admin.ui.0528")}</p>
           <p className="text-xl font-bold">{scopedOrders.length}</p>
         </div>
       </div>
@@ -251,19 +261,19 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
         <Input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Поиск: №, имя, телефон, адрес…"
+          placeholder={adminT("admin.ui.0529")}
           className="pl-9 h-10 rounded-xl"
         />
       </div>
 
       <div className="flex gap-2 flex-wrap">
         {[
-          { id: 'all', label: 'Все' },
-          { id: 'new', label: 'Новые' },
-          { id: 'confirmed', label: 'Подтверждённые' },
-          { id: 'in_progress', label: 'У курьера' },
-          { id: 'done', label: 'Доставленные' },
-          { id: 'cancelled', label: 'Отменённые' },
+          { id: 'all', label: adminT("admin.ui.0132") },
+          { id: 'new', label: adminT("admin.ui.0223") },
+          { id: 'confirmed', label: adminT("admin.ui.0530") },
+          { id: 'in_progress', label: adminT("admin.ui.0512") },
+          { id: 'done', label: adminT("admin.ui.0531") },
+          { id: 'cancelled', label: adminT("admin.ui.0532") },
         ].map(f => (
           <button
             key={f.id}
@@ -279,8 +289,7 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
 
       {filteredOrders.length === 0 ? (
         <div className="bg-white rounded-xl border p-8 text-center text-gray-400">
-          Заказов нет
-        </div>
+          {adminT("admin.ui.0533")} </div>
       ) : (
         <div className="space-y-3">
           {filteredOrders.map(order => {
@@ -301,7 +310,7 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
                         <span className="font-bold text-sm">#{order.id}</span>
                         <Badge className={`${st.color} border-0 text-[10px]`}>{st.label}</Badge>
                         <Badge className="bg-gray-100 text-gray-600 border-0 text-[10px]">
-                          {order.delivery_method === 'delivery' ? '🚗 Доставка' : '🏪 Самовывоз'}
+                          {order.delivery_method === 'delivery' ? adminT("admin.ui.0534") : adminT("admin.ui.0535")}
                         </Badge>
                         {payLabel && (
                           <Badge className="bg-emerald-50 text-emerald-700 border-0 text-[10px]">{payLabel}</Badge>
@@ -315,7 +324,7 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
                       <div className="flex items-center gap-3 text-xs text-gray-500 mt-1 flex-wrap">
                         {order.restaurant_name && <span className="font-semibold">{order.restaurant_name}</span>}
                         <span>{order.customer_name}</span>
-                        <span className="font-semibold text-gray-700">{order.total_amount.toLocaleString()} ₸</span>
+                        <span className="font-semibold text-gray-700">{order.total_amount.toLocaleString(adminLocale)} ₸</span>
                         <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatDate(order.created_at)}</span>
                       </div>
                     </div>
@@ -338,7 +347,7 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
                       )}
                       {order.payment_method && (
                         <div className="text-gray-600">
-                          Оплата: <span className="font-semibold">{payLabel}</span>
+                          {adminT("admin.ui.0536")} <span className="font-semibold">{payLabel}</span>
                           {order.payment_status ? ` (${order.payment_status})` : ''}
                         </div>
                       )}
@@ -353,8 +362,8 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
 
                     {(order.bonus_points_used || 0) > 0 && (
                       <div className="text-sm text-amber-800 bg-amber-50 rounded-lg px-3 py-2">
-                        Бонусы: −{(order.bonus_discount_amount ?? order.bonus_points_used).toLocaleString()} ₸
-                        {order.bonus_points_used ? ` (${order.bonus_points_used} баллов)` : ''}
+                        {adminT("admin.ui.0537")}{(order.bonus_discount_amount ?? order.bonus_points_used).toLocaleString(adminLocale)} ₸
+                        {order.bonus_points_used ? adminT("admin.extra.1279").replace('{0}', () => String(order.bonus_points_used)) : ''}
                       </div>
                     )}
 
@@ -363,7 +372,7 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
                         <div key={idx} className="flex justify-between text-sm">
                           <div>
                             <span className={oi.is_gift ? 'font-semibold text-emerald-700' : 'text-gray-800'}>
-                              {oi.is_gift ? '🎁 Подарок: ' : ''}{oi.name} × {oi.quantity}
+                              {oi.is_gift ? adminT("admin.ui.0538") : ''}{oi.name} × {oi.quantity}
                             </span>
                             {oi.modifiers?.length > 0 && (
                               <span className="text-xs text-orange-500 block">+ {oi.modifiers.map((m: any) => m.name).join(', ')}</span>
@@ -371,8 +380,8 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
                           </div>
                           <span className="font-medium text-gray-700">
                             {oi.is_gift
-                              ? 'Бесплатно'
-                              : `${(oi.sum ?? ((oi.price + (oi.modTotal ?? oi.mod_total ?? (oi.modifiers?.reduce((s: number, m: any) => s + (m.price || 0), 0) || 0))) * (oi.quantity ?? oi.qty ?? 1))).toLocaleString()} ₸`}
+                              ? adminT("admin.ui.0539")
+                              : `${(oi.sum ?? ((oi.price + (oi.modTotal ?? oi.mod_total ?? (oi.modifiers?.reduce((s: number, m: any) => s + (m.price || 0), 0) || 0))) * (oi.quantity ?? oi.qty ?? 1))).toLocaleString(adminLocale)} ₸`}
                           </span>
                         </div>
                       ))}
@@ -380,23 +389,23 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
 
                     {editingId === order.id ? (
                       <div className="space-y-2 rounded-lg border border-orange-200 bg-orange-50/50 p-3">
-                        <p className="text-xs font-semibold text-orange-800">Редактирование после звонка клиенту</p>
+                        <p className="text-xs font-semibold text-orange-800">{adminT("admin.ui.0540")}</p>
                         <Input
                           value={editForm.delivery_address}
                           onChange={e => setEditForm(f => ({ ...f, delivery_address: e.target.value }))}
-                          placeholder="Адрес доставки"
+                          placeholder={adminT("admin.ui.0541")}
                           className="h-9 text-sm"
                         />
                         <Input
                           value={editForm.comment}
                           onChange={e => setEditForm(f => ({ ...f, comment: e.target.value }))}
-                          placeholder="Комментарий"
+                          placeholder={adminT("admin.ui.0542")}
                           className="h-9 text-sm"
                         />
                         <Input
                           value={editForm.total_amount}
                           onChange={e => setEditForm(f => ({ ...f, total_amount: e.target.value }))}
-                          placeholder="Итого, ₸"
+                          placeholder={adminT("admin.ui.0543")}
                           className="h-9 text-sm"
                         />
                         <textarea
@@ -404,38 +413,34 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
                           onChange={e => setEditForm(f => ({ ...f, order_items: e.target.value }))}
                           rows={4}
                           className="w-full rounded-md border border-gray-200 bg-white p-2 text-xs font-mono"
-                          placeholder="JSON состава заказа"
+                          placeholder={adminT("admin.ui.0544")}
                         />
                         <div className="flex gap-2 flex-wrap">
-                          <Button size="sm" disabled={savingEdit} onClick={() => saveEdit(order.id)} className="bg-orange-500 hover:bg-orange-600">
-                            Сохранить
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>Отмена</Button>
+                          <Button size="sm" disabled={savingEdit} onClick={() => saveEdit(order.id)} className="bg-orange-500 hover:bg-orange-600 text-white">
+                            {adminT("admin.ui.0096")} </Button>
+                          <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>{adminT("admin.ui.0095")}</Button>
                         </div>
                       </div>
                     ) : (
                       order.status !== 'done' && order.status !== 'cancelled' && (
                         <Button size="sm" variant="outline" onClick={() => startEdit(order)} className="text-orange-700 border-orange-200">
-                          ✏️ Изменить заказ
-                        </Button>
+                          {adminT("admin.ui.0545")} </Button>
                       )
                     )}
 
                     <div className="flex gap-2 flex-wrap">
                       {st.next && (
-                        <Button size="sm" onClick={() => updateStatus(order.id, st.next!)} className="bg-orange-500 hover:bg-orange-600">
+                        <Button size="sm" onClick={() => updateStatus(order.id, st.next!)} className="bg-orange-500 hover:bg-orange-600 text-white">
                           {st.nextLabel}
                         </Button>
                       )}
                       {order.status !== 'cancelled' && order.status !== 'done' && (
                         <Button size="sm" variant="outline" onClick={() => updateStatus(order.id, 'cancelled')} className="text-red-600 border-red-200">
-                          Отменить
-                        </Button>
+                          {adminT("admin.ui.0546")} </Button>
                       )}
                       {order.restaurant_phone && (
                         <a href={`tel:${order.restaurant_phone}`} className="inline-flex items-center gap-1 text-sm text-blue-600 px-3 py-1.5">
-                          <Phone className="w-3.5 h-3.5" /> Позвонить
-                        </a>
+                          <Phone className="w-3.5 h-3.5" /> {adminT("admin.ui.0547")} </a>
                       )}
                     </div>
                   </div>

@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Toaster as Sonner, toast } from 'sonner';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -5,9 +6,11 @@ type ToasterProps = React.ComponentProps<typeof Sonner>;
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme } = useTheme();
+  const { t } = useLanguage();
 
   return (
     <Sonner
+      containerAriaLabel={t('cabinet.tab.notifications')}
       theme={theme as ToasterProps['theme']}
       className="toaster group"
       toastOptions={{

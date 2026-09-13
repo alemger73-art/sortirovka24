@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { ChevronRight, LayoutGrid } from 'lucide-react';
 
 export interface CatalogCategoryItem {
@@ -19,6 +20,8 @@ export default function CatalogCategoryStrip({
   onSelectAll,
   onSelectCategory,
 }: Props) {
+  const st = useStoreTranslations();
+
   return (
     <div className="lg:hidden space-y-2.5">
       <div className="flex items-end justify-between gap-3">
@@ -27,13 +30,12 @@ export default function CatalogCategoryStrip({
             <LayoutGrid className="h-4 w-4" />
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-gray-900 leading-tight">Каталог</p>
-            <p className="text-[11px] text-emerald-700/90 leading-tight">Листайте категории влево →</p>
+            <p className="text-sm font-bold text-gray-900 leading-tight">{st("Каталог")}</p>
+            <p className="text-[11px] text-emerald-700/90 leading-tight">{st("Листайте категории влево →")}</p>
           </div>
         </div>
         <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-gray-400 pb-0.5">
-          Свайп
-        </span>
+           {st("Свайп")} </span>
       </div>
 
       <div className="relative -mx-1">
@@ -44,7 +46,7 @@ export default function CatalogCategoryStrip({
         <div
           className="flex gap-2.5 overflow-x-auto pb-1 pt-0.5 px-0.5 snap-x snap-mandatory scroll-smooth touch-pan-x [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
           role="tablist"
-          aria-label="Категории каталога"
+          aria-label={st("Категории каталога")}
         >
           <button
             type="button"
@@ -57,8 +59,7 @@ export default function CatalogCategoryStrip({
                 : 'bg-white text-emerald-800 border-2 border-emerald-200 shadow-sm hover:border-emerald-300 hover:bg-emerald-50/80'
             }`}
           >
-            Все
-          </button>
+             {st("Все")} </button>
           {categories.map((cat) => {
             const active = selectedId === cat.id;
             const alcohol = !!cat.is_alcohol;

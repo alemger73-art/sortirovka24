@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useEffect } from 'react';
 import { client, withRetry } from '@/lib/api';
 import { invalidateAllCaches } from '@/lib/cache';
@@ -19,15 +20,18 @@ interface ParkOrder {
 
 interface Courier { id: number; name: string; phone: string; is_active: boolean; }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; emoji: string }> = {
-  new: { label: 'Новый', color: 'bg-yellow-100 text-yellow-800 border-yellow-200', emoji: '🆕' },
-  confirmed: { label: 'Подтверждён', color: 'bg-blue-100 text-blue-800 border-blue-200', emoji: '✅' },
-  preparing: { label: 'Готовится', color: 'bg-orange-100 text-orange-800 border-orange-200', emoji: '👨‍🍳' },
-  courier_assigned: { label: 'Курьер назначен', color: 'bg-purple-100 text-purple-800 border-purple-200', emoji: '🏃' },
-  on_the_way: { label: 'В пути', color: 'bg-indigo-100 text-indigo-800 border-indigo-200', emoji: '🚴' },
-  delivered: { label: 'Доставлен', color: 'bg-green-100 text-green-800 border-green-200', emoji: '🎉' },
-  cancelled: { label: 'Отменён', color: 'bg-red-100 text-red-800 border-red-200', emoji: '❌' },
+function getSTATUS_CONFIG(adminT: (key: string) => string) {
+  const STATUS_CONFIG: Record<string, { label: string; color: string; emoji: string }> = {
+  new: { label: adminT("admin.ui.0508"), color: 'bg-yellow-100 text-yellow-800 border-yellow-200', emoji: '🆕' },
+  confirmed: { label: adminT("admin.ui.0510"), color: 'bg-blue-100 text-blue-800 border-blue-200', emoji: '✅' },
+  preparing: { label: adminT("admin.ui.0975"), color: 'bg-orange-100 text-orange-800 border-orange-200', emoji: '👨‍🍳' },
+  courier_assigned: { label: adminT("admin.ui.0976"), color: 'bg-purple-100 text-purple-800 border-purple-200', emoji: '🏃' },
+  on_the_way: { label: adminT("admin.ui.0977"), color: 'bg-indigo-100 text-indigo-800 border-indigo-200', emoji: '🚴' },
+  delivered: { label: adminT("admin.ui.0513"), color: 'bg-green-100 text-green-800 border-green-200', emoji: '🎉' },
+  cancelled: { label: adminT("admin.ui.0514"), color: 'bg-red-100 text-red-800 border-red-200', emoji: '❌' },
 };
+  return STATUS_CONFIG;
+}
 
 const STATUS_FLOW: Record<string, string[]> = {
   new: ['confirmed', 'cancelled'],
@@ -38,6 +42,10 @@ const STATUS_FLOW: Record<string, string[]> = {
 };
 
 export default function AdminParkOrders() {
+  const { t: adminT, lang } = useLanguage();
+  const adminLocale = lang === 'kz' ? 'kk-KZ' : 'ru-RU';
+  const STATUS_CONFIG = getSTATUS_CONFIG(adminT);
+
   const [orders, setOrders] = useState<ParkOrder[]>([]);
   const [couriers, setCouriers] = useState<Courier[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +71,7 @@ export default function AdminParkOrders() {
       setCouriers((couriersRes?.data?.items || []).filter((c: Courier) => c.is_active));
     } catch (e) {
       console.error('Error loading:', e);
-      toast.error('Ошибка загрузки');
+      toast.error(adminT("admin.ui.0044"));
     } finally {
       setLoading(false);
     }
@@ -75,10 +83,10 @@ export default function AdminParkOrders() {
         id: String(orderId),
         data: { status: newStatus, updated_at: new Date().toISOString() }
       }));
-      toast.success(`Статус → ${STATUS_CONFIG[newStatus]?.label || newStatus}`);
+      toast.success(adminT("admin.extra.1293").replace('{0}', () => String(STATUS_CONFIG[newStatus]?.label || newStatus)));
       invalidateAllCaches();
       loadAll();
-    } catch { toast.error('Ошибка обновления'); }
+    } catch { toast.error(adminT("admin.ui.0048")); }
   }
 
   async function assignCourier(orderId: number, courier: Courier) {
@@ -92,11 +100,11 @@ export default function AdminParkOrders() {
           updated_at: new Date().toISOString(),
         }
       }));
-      toast.success(`Курьер ${courier.name} назначен`);
+      toast.success(adminT("admin.extra.1294").replace('{0}', () => String(courier.name)));
       invalidateAllCaches();
       setAssigningCourier(null);
       loadAll();
-    } catch { toast.error('Ошибка назначения'); }
+    } catch { toast.error(adminT("admin.ui.0978")); }
   }
 
   function parseItems(json: string): { name: string; price: number; quantity: number }[] {
@@ -106,9 +114,9 @@ export default function AdminParkOrders() {
   function timeAgo(dateStr: string): string {
     const diffMs = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diffMs / 60000);
-    if (mins < 1) return 'только что';
-    if (mins < 60) return `${mins} мин`;
-    return `${Math.floor(mins / 60)} ч ${mins % 60} мин`;
+    if (mins < 1) return adminT("admin.ui.0979");
+    if (mins < 60) return adminT("admin.extra.1295").replace('{0}', () => String(mins));
+    return adminT("admin.extra.1296").replace('{0}', () => String(Math.floor(mins / 60))).replace('{1}', () => String(mins % 60));
   }
 
   const filteredOrders = orders.filter(o => {
@@ -127,21 +135,20 @@ export default function AdminParkOrders() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-bold text-lg">Заказы в парк 🌳</h3>
-          <p className="text-xs text-gray-500">Всего: {orders.length} | Активных: {orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length}</p>
+          <h3 className="font-bold text-lg">{adminT("admin.ui.0980")}</h3>
+          <p className="text-xs text-gray-500">{adminT("admin.ui.0981")} {orders.length} {adminT("admin.ui.0982")} {orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length}</p>
         </div>
         <Button size="sm" variant="outline" onClick={loadAll}>
-          <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} /> Обновить
-        </Button>
+          <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} /> {adminT("admin.ui.0408")} </Button>
       </div>
 
       {/* Filters */}
       <div className="flex gap-2 flex-wrap">
         {[
-          { id: 'active', label: 'Активные', count: orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length },
-          { id: 'completed', label: 'Доставлены', count: orders.filter(o => o.status === 'delivered').length },
-          { id: 'cancelled', label: 'Отменены', count: orders.filter(o => o.status === 'cancelled').length },
-          { id: 'all', label: 'Все', count: orders.length },
+          { id: 'active', label: adminT("admin.ui.0983"), count: orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length },
+          { id: 'completed', label: adminT("admin.ui.0715"), count: orders.filter(o => o.status === 'delivered').length },
+          { id: 'cancelled', label: adminT("admin.ui.0716"), count: orders.filter(o => o.status === 'cancelled').length },
+          { id: 'all', label: adminT("admin.ui.0132"), count: orders.length },
         ].map(f => (
           <button
             key={f.id}
@@ -159,7 +166,7 @@ export default function AdminParkOrders() {
       {filteredOrders.length === 0 ? (
         <div className="bg-white rounded-xl border p-8 text-center">
           <Package className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-          <p className="text-sm text-gray-500">Нет заказов</p>
+          <p className="text-sm text-gray-500">{adminT("admin.ui.0984")}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -197,7 +204,7 @@ export default function AdminParkOrders() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="font-bold text-sm">{order.total_amount.toLocaleString()} ₸</span>
+                    <span className="font-bold text-sm">{order.total_amount.toLocaleString(adminLocale)} ₸</span>
                     {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                   </div>
                 </button>
@@ -223,22 +230,22 @@ export default function AdminParkOrders() {
 
                     {/* Note */}
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2.5">
-                      <p className="text-xs font-bold text-yellow-700 mb-0.5">📍 Ориентир:</p>
-                      <p className="text-sm text-yellow-800">{order.park_note || 'Не указан'}</p>
+                      <p className="text-xs font-bold text-yellow-700 mb-0.5">{adminT("admin.ui.0985")}</p>
+                      <p className="text-sm text-yellow-800">{order.park_note || adminT("admin.ui.0986")}</p>
                     </div>
 
                     {/* Items */}
                     <div className="space-y-1">
-                      <p className="text-xs font-bold text-gray-500 uppercase">Позиции:</p>
+                      <p className="text-xs font-bold text-gray-500 uppercase">{adminT("admin.ui.0987")}</p>
                       {items.map((item, i) => (
                         <div key={i} className="flex justify-between text-sm">
                           <span className="text-gray-700">{item.name} ×{item.quantity}</span>
-                          <span className="font-medium">{(item.price * item.quantity).toLocaleString()} ₸</span>
+                          <span className="font-medium">{(item.price * item.quantity).toLocaleString(adminLocale)} ₸</span>
                         </div>
                       ))}
                       <div className="border-t pt-1 flex justify-between font-bold text-sm">
-                        <span>Итого</span>
-                        <span>{order.total_amount.toLocaleString()} ₸</span>
+                        <span>{adminT("admin.ui.0988")}</span>
+                        <span>{order.total_amount.toLocaleString(adminLocale)} ₸</span>
                       </div>
                     </div>
 
@@ -246,7 +253,7 @@ export default function AdminParkOrders() {
                     {order.courier_name && (
                       <div className="bg-purple-50 rounded-lg p-2.5 flex items-center gap-2">
                         <Bike className="w-4 h-4 text-purple-600" />
-                        <span className="text-sm font-medium text-purple-800">Курьер: {order.courier_name}</span>
+                        <span className="text-sm font-medium text-purple-800">{adminT("admin.ui.0989")} {order.courier_name}</span>
                       </div>
                     )}
 
@@ -254,8 +261,7 @@ export default function AdminParkOrders() {
                     {order.status === 'preparing' && (
                       <div>
                         <Button size="sm" variant="outline" onClick={() => setAssigningCourier(isAssigning ? null : order.id)} className="w-full">
-                          <Bike className="w-4 h-4 mr-1" /> Назначить курьера
-                        </Button>
+                          <Bike className="w-4 h-4 mr-1" /> {adminT("admin.ui.0990")} </Button>
                         {isAssigning && (
                           <div className="mt-2 space-y-1.5">
                             {couriers.map(c => (

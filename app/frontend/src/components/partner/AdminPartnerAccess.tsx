@@ -1,3 +1,4 @@
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useMemo, useState } from 'react';
 import { ExternalLink, Copy, KeyRound, Plus, RefreshCw, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -15,6 +16,8 @@ import {
 } from '@/lib/partnerAuthApi';
 
 export default function AdminPartnerAccess({ partnerType }: { partnerType: PartnerType }) {
+  const { t: adminT } = useLanguage();
+
   const cfg = PARTNER_MODULES[partnerType];
   const [rows, setRows] = useState<PartnerCredential[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,9 +35,9 @@ export default function AdminPartnerAccess({ partnerType }: { partnerType: Partn
   async function copyPartnerLink() {
     try {
       await navigator.clipboard.writeText(partnerAdminUrl);
-      toast.success('Ссылка скопирована');
+      toast.success(adminT("admin.ui.1306"));
     } catch {
-      toast.error('Не удалось скопировать — выделите ссылку вручную');
+      toast.error(adminT("admin.ui.1307"));
     }
   }
 
@@ -54,11 +57,11 @@ export default function AdminPartnerAccess({ partnerType }: { partnerType: Partn
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim() && !phone.trim()) {
-      toast.error('Укажите email или телефон');
+      toast.error(adminT("admin.ui.1308"));
       return;
     }
     if (password.length < 6) {
-      toast.error('Пароль — минимум 6 символов');
+      toast.error(adminT("admin.ui.1309"));
       return;
     }
     setSaving(true);
@@ -69,7 +72,7 @@ export default function AdminPartnerAccess({ partnerType }: { partnerType: Partn
         password,
         display_name: displayName.trim() || cfg.defaultDisplayName,
       });
-      toast.success('Доступ партнёра создан');
+      toast.success(adminT("admin.ui.1310"));
       setEmail('');
       setPhone('');
       setPassword('');
@@ -96,26 +99,22 @@ export default function AdminPartnerAccess({ partnerType }: { partnerType: Partn
         <div>
           <div className="flex items-center gap-2">
             <Shield className={`h-5 w-5 ${cfg.accentClass}`} />
-            <h3 className="text-lg font-bold text-gray-900">Доступ партнёра {cfg.label}</h3>
+            <h3 className="text-lg font-bold text-gray-900">{adminT("admin.ui.1311")} {partnerType === 'pharmacy' ? adminT('admin.partner.pharmacy.label') : cfg.label}</h3>
           </div>
           <p className="mt-1 text-sm text-gray-500">
-            Отдельная админка — вход по email или телефону и паролю (не системная /admin).
-          </p>
+            {adminT("admin.ui.1312")} </p>
           <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-gray-50 p-3 ring-1 ring-gray-200">
             <code className="flex-1 break-all text-sm font-semibold text-gray-800">{partnerAdminUrl}</code>
             <Button type="button" variant="outline" size="sm" onClick={copyPartnerLink} className="gap-1.5 shrink-0">
-              <Copy className="h-4 w-4" /> Копировать
-            </Button>
+              <Copy className="h-4 w-4" /> {adminT("admin.ui.1313")} </Button>
             <Button type="button" size="sm" asChild className={`gap-1.5 shrink-0 text-white ${cfg.buttonClass}`}>
               <Link to={cfg.route} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4" /> Открыть
-              </Link>
+                <ExternalLink className="h-4 w-4" /> {adminT("admin.ui.1314")} </Link>
             </Button>
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-1.5">
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Обновить
-        </Button>
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> {adminT("admin.ui.0408")} </Button>
       </div>
 
       {rows.length > 0 && (
@@ -128,10 +127,10 @@ export default function AdminPartnerAccess({ partnerType }: { partnerType: Partn
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant={row.is_active ? 'default' : 'secondary'}>
-                  {row.is_active ? 'Активен' : 'Отключён'}
+                  {row.is_active ? adminT("admin.ui.0112") : adminT("admin.ui.1315")}
                 </Badge>
                 <Button variant="outline" size="sm" onClick={() => toggleActive(row)}>
-                  {row.is_active ? 'Отключить' : 'Включить'}
+                  {row.is_active ? adminT("admin.ui.1316") : adminT("admin.ui.1317")}
                 </Button>
               </div>
             </div>
@@ -141,20 +140,18 @@ export default function AdminPartnerAccess({ partnerType }: { partnerType: Partn
 
       <form onSubmit={handleCreate} className="rounded-xl border border-dashed border-gray-200 p-4 space-y-3">
         <p className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-          <KeyRound className={`h-4 w-4 ${cfg.accentClass}`} /> Создать доступ
-        </p>
+          <KeyRound className={`h-4 w-4 ${cfg.accentClass}`} /> {adminT("admin.ui.1318")} </p>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Input placeholder="Email партнёра" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <Input placeholder="Телефон (+7…)" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          <Input placeholder="Имя в админке" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-          <Input type="password" placeholder="Пароль (мин. 6 символов)" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Input placeholder={adminT("admin.ui.1319")} value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Input placeholder={adminT("admin.ui.1320")} value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <Input placeholder={adminT("admin.ui.1321")} value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+          <Input type="password" placeholder={adminT("admin.ui.1322")} value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
         <Button type="submit" disabled={saving} className={`gap-1.5 text-white ${cfg.buttonClass}`}>
-          <Plus className="h-4 w-4" /> {saving ? 'Сохранение…' : 'Выдать доступ'}
+          <Plus className="h-4 w-4" /> {saving ? adminT("admin.ui.0476") : adminT("admin.ui.1323")}
         </Button>
         <p className="text-xs text-gray-400">
-          Передайте партнёру ссылку и пароль. {cfg.description} — без доступа к системной админке.
-        </p>
+          {adminT("admin.ui.1324")} {adminT(`admin.partner.${partnerType}.description`)} {adminT("admin.ui.1325")} </p>
       </form>
     </div>
   );

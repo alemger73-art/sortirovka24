@@ -1,3 +1,4 @@
+import { getPublicLocale } from '@/i18n/publicLocale';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -52,7 +53,7 @@ const REPEAT_ORDER_KEY = "damalem_repeat_order";
 function formatOrderDate(raw?: string | null) {
   if (!raw || Number.isNaN(new Date(raw).getTime())) return "";
   try {
-    return new Date(raw).toLocaleString("ru-RU", {
+    return new Date(raw).toLocaleString(getPublicLocale(), {
       day: "numeric",
       month: "short",
       hour: "2-digit",
@@ -94,11 +95,11 @@ function orderTitle(o: CabinetOrderRow, t: (key: string) => string) {
   return o.type || "order";
 }
 
-function orderSubtitle(o: CabinetOrderRow) {
+function orderSubtitle(o: CabinetOrderRow, t: (key: string) => string) {
   const items = parseOrderItems(o.order_items);
   if (items.length > 0) {
     const qty = items.reduce((s, it) => s + orderLineQuantity(it), 0);
-    return `${qty} ${qty === 1 ? "позиция" : qty < 5 ? "позиции" : "позиций"}`;
+    return `${qty} ${t("public.order.items")}`;
   }
   return o.details || "";
 }
@@ -146,11 +147,11 @@ export default function CabinetOrderCard({ order: o, detailPath, t }: Props) {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="truncate font-bold text-gray-900 dark:text-white">{orderTitle(o, t)}</p>
-              <p className="mt-0.5 line-clamp-2 text-sm text-gray-500 dark:text-slate-400">{orderSubtitle(o)}</p>
+              <p className="mt-0.5 line-clamp-2 text-sm text-gray-500 dark:text-slate-400">{orderSubtitle(o, t)}</p>
             </div>
             <div className="shrink-0 text-right">
               <p className="text-lg font-extrabold tabular-nums text-amber-600 dark:text-yellow-300">
-                {Number(o.amount || 0).toLocaleString("ru-RU")} ₸
+                {Number(o.amount || 0).toLocaleString(getPublicLocale())} ₸
               </p>
               {st ? (
                 <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${st.badge}`}>

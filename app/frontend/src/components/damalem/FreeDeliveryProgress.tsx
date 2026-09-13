@@ -1,3 +1,4 @@
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { Truck, Sparkles } from 'lucide-react';
 
 function formatMoney(n: number) {
@@ -12,6 +13,8 @@ interface Props {
 
 /** Progress bar: «осталось X ₸ до бесплатной доставки». */
 export default function FreeDeliveryProgress({ subtotal, freeFrom, compact = false }: Props) {
+  const st = useStoreTranslations();
+
   if (!freeFrom || freeFrom <= 0) return null;
 
   const reached = subtotal >= freeFrom;
@@ -22,8 +25,7 @@ export default function FreeDeliveryProgress({ subtotal, freeFrom, compact = fal
     return (
       <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200">
         <Sparkles className="h-4 w-4 shrink-0" />
-        Бесплатная доставка активна!
-      </div>
+         {st("Бесплатная доставка активна!")} </div>
     );
   }
 
@@ -45,15 +47,14 @@ export default function FreeDeliveryProgress({ subtotal, freeFrom, compact = fal
           <div className="min-w-0 flex-1">
             {reached ? (
               <>
-                <p className="text-sm font-bold text-emerald-900">Бесплатная доставка!</p>
-                <p className="text-xs text-emerald-700">Заказ от {formatMoney(freeFrom)} — доставим без доплаты</p>
+                <p className="text-sm font-bold text-emerald-900">{st("Бесплатная доставка!")}</p>
+                <p className="text-xs text-emerald-700">{st("Заказ от")} {formatMoney(freeFrom)}  {st("— доставим без доплаты")}</p>
               </>
             ) : (
               <>
                 <p className="text-sm font-bold text-[#111111]">
-                  Ещё <span className="text-[#FF3B30]">{formatMoney(remaining)}</span> до бесплатной доставки
-                </p>
-                <p className="text-xs text-[#777777]">При заказе от {formatMoney(freeFrom)}</p>
+                   {st("Ещё")} <span className="text-[#FF3B30]">{formatMoney(remaining)}</span>  {st("до бесплатной доставки")} </p>
+                <p className="text-xs text-[#777777]">{st("При заказе от")} {formatMoney(freeFrom)}</p>
               </>
             )}
           </div>
@@ -68,7 +69,7 @@ export default function FreeDeliveryProgress({ subtotal, freeFrom, compact = fal
         </div>
         {!reached && !compact && (
           <p className="text-center text-[11px] text-[#999999]">
-            {formatMoney(subtotal)} из {formatMoney(freeFrom)}
+            {formatMoney(subtotal)}  {st("из")} {formatMoney(freeFrom)}
           </p>
         )}
       </div>
