@@ -76,7 +76,7 @@ export default function Hero() {
                     <Car className="h-5 w-5" />
                     <p className="text-sm sm:text-base font-bold break-words">{t("hero.taxi")}</p>
                   </div>
-                  <p className="mt-1 text-sm font-medium text-gray-800">{t("hero.taxiDesc")}</p>
+                  <p className="mt-1 text-sm font-medium text-gray-800 dark:text-gray-800">{t("hero.taxiDesc")}</p>
                 </Link>
               )}
               {showFood && (
