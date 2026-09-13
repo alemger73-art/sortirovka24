@@ -281,7 +281,9 @@ async def create_food_orders(
             from services.logistics_service import create_task_from_food_order
 
             fee = float(delivery_fee or payload.get("delivery_fee") or 0)
-            await create_task_from_food_order(db, result, delivery_fee=fee)
+            from services.food_operations import is_dam_order
+            if not await is_dam_order(db, result):
+                await create_task_from_food_order(db, result, delivery_fee=fee)
         except Exception as exc:
             logger.warning("Logistics task creation failed for food order %s: %s", result.id, exc)
 

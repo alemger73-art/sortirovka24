@@ -1469,7 +1469,15 @@ async def cabinet_order_detail(
             row.customer_phone,
         ):
             raise HTTPException(status_code=404, detail="Order not found")
-        return _serialize_food_order_detail(row)
+        data = _serialize_food_order_detail(row)
+        from models.food_operations import FoodOrderEvent
+        from services.dam_order_workflow import paid
+        data.update(receipt_revision=row.receipt_revision or 0, receipt_updated_at=row.receipt_updated_at,
+            payment_status=row.payment_status, paid_amount=float(paid(row)), version=row.version or 0)
+        events = (await db.scalars(select(FoodOrderEvent).where(FoodOrderEvent.order_id == row.id,
+            FoodOrderEvent.public_data.isnot(None)).order_by(FoodOrderEvent.id.desc()))).all() if row.receipt_revision else []
+        data['receipt_changes'] = [{'created_at': e.created_at, **json.loads(e.public_data)} for e in events]
+        return data
 
     for type_key, label, store_path, model in STORE_ORDER_SOURCES:
         if type_key != source:

@@ -122,3 +122,90 @@ async def test_message(db: AsyncSession = Depends(get_db)):
         return {'ok': True, **checked}
     except Exception:
         raise HTTPException(422, 'Тест не подтверждён. Проверьте канал и настройки перед повтором.') from None
+
+# Server-priced manual orders and versioned receipt changes.
+class ReceiptLine(BaseModel):
+    line_index: int | None = Field(None, ge=0)
+    id: int | None = Field(None, gt=0)
+    quantity: int = Field(ge=1, le=99)
+    modifiers: list[dict] = Field(default_factory=list, max_length=30)
+
+class ReceiptChange(BaseModel):
+    expected_version: int = Field(ge=0)
+    items: list[ReceiptLine] = Field(min_length=1, max_length=100)
+    reason: str = Field(min_length=3, max_length=500)
+    quoted_total: float | None = Field(None, ge=0, allow_inf_nan=False)
+
+class ManualOrder(BaseModel):
+    request_key: str = Field(min_length=16, max_length=64, pattern=r'^[a-zA-Z0-9-]+$')
+    customer_name: str = Field(min_length=1, max_length=150)
+    customer_phone: str = Field(min_length=10, max_length=32)
+    delivery_address: str = Field('', max_length=1000)
+    delivery_method: Literal['pickup', 'delivery'] = 'delivery'
+    payment_method: Literal['cash', 'kaspi_qr', 'halyk_qr'] = 'cash'
+    comment: str = Field('', max_length=1000)
+    items: list[ReceiptLine] = Field(min_length=1, max_length=100)
+    quoted_total: float | None = Field(None, ge=0, allow_inf_nan=False)
+
+@router.get('/catalog')
+async def operator_catalog(db: AsyncSession = Depends(get_db)):
+    from models.food_items import Food_items
+    from models.food_restaurants import Food_restaurants
+    from models.modifier_groups import Modifier_groups
+    from models.modifier_options import Modifier_options
+    from models.item_modifier_groups import Item_modifier_groups
+    from services.food_operations import brand
+    restaurants = (await db.scalars(select(Food_restaurants))).all()
+    ids = [r.id for r in restaurants if brand(r.name)]
+    products = (await db.scalars(select(Food_items).where(or_(Food_items.restaurant_id.in_(ids), Food_items.restaurant_id.is_(None)), Food_items.is_active.is_not(False), Food_items.available.is_not(False)).order_by(Food_items.sort_order, Food_items.id))).all()
+    groups = (await db.scalars(select(Modifier_groups).where(Modifier_groups.is_active.is_not(False)))).all()
+    options = (await db.scalars(select(Modifier_options).where(Modifier_options.is_active.is_not(False)))).all()
+    links = (await db.scalars(select(Item_modifier_groups))).all()
+    return {'products': [serialize(x) for x in products], 'groups': [serialize(x) for x in groups], 'options': [serialize(x) for x in options], 'links': [serialize(x) for x in links]}
+
+@router.post('/manual/quote')
+async def quote_manual(body: ManualOrder, db: AsyncSession = Depends(get_db)):
+    from services.dam_order_workflow import manual_quote
+    _, quote = await manual_quote(db, body)
+    return quote
+
+@router.post('/manual', status_code=201)
+async def create_manual(body: ManualOrder, request: Request, db: AsyncSession = Depends(get_db)):
+    from models.food_operations import FoodOrderRequest
+    from services.dam_order_workflow import manual_quote, money
+    from sqlalchemy.exc import IntegrityError
+    actor = await food_staff(request, db)
+    key = str(actor.get('staff_id') or 'admin') + ':' + body.request_key
+    previous = await db.get(FoodOrderRequest, key)
+    if previous:
+        return serialize(await order_for_panel(db, previous.order_id))
+    data, quote = await manual_quote(db, body)
+    if body.quoted_total is None or money(body.quoted_total) != money(quote['total_amount']):
+        raise HTTPException(409, 'Расчёт изменился. Рассчитайте заказ заново.')
+    try:
+        order = await Food_ordersService(db).create(data, request_key=key, actor=str(actor.get('display_name') or 'Оператор'))
+    except IntegrityError:
+        await db.rollback()
+        previous = await db.get(FoodOrderRequest, key)
+        if not previous:
+            raise
+        order = await order_for_panel(db, previous.order_id)
+    return serialize(order)
+
+@router.post('/orders/{order_id}/receipt/quote')
+async def quote_receipt(order_id: int, body: ReceiptChange, db: AsyncSession = Depends(get_db)):
+    from services.dam_order_workflow import quote_change
+    return await quote_change(db, await order_for_panel(db, order_id), body)
+
+@router.post('/orders/{order_id}/receipt')
+async def change_receipt(order_id: int, body: ReceiptChange, request: Request, db: AsyncSession = Depends(get_db)):
+    from services.dam_order_workflow import amend
+    if len(body.reason.strip()) < 3:
+        raise HTTPException(422, 'Укажите причину изменения')
+    actor = await food_staff(request, db)
+    try:
+        result = await amend(db, await order_for_panel(db, order_id), body, str(actor.get('display_name') or 'Оператор'))
+        return serialize(result)
+    except Exception:
+        await db.rollback()
+        raise

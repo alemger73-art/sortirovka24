@@ -17,6 +17,7 @@ export async function foodOperations<T>(path: string, method = 'GET', body?: unk
 }
 
 export interface OperatorOrder {
+  paid_amount?: number | null; receipt_revision?: number;
   id: number; version: number | null; status: string; customer_name: string; customer_phone: string;
   delivery_method: string; delivery_address: string; order_items: string; total_amount: number;
   payment_method: string; payment_status: string; comment: string; created_at: string;

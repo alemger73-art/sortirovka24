@@ -476,6 +476,8 @@ async def validate_food_order(
     zone_name: Optional[str] = None,
     account_user: Optional["User"] = None,
     bonus_points_to_use: Optional[float] = None,
+    staff_quote: bool = False,
+    catalog_only: bool = False,
 ) -> Tuple[Dict[str, Any], List[dict], float]:
     """
     Validate order payload against catalog and settings.
@@ -532,7 +534,8 @@ async def validate_food_order(
     set_svc = Food_settingsService(db)
     set_res = await set_svc.get_list(skip=0, limit=100, query_dict=None, sort="id")
     settings = _parse_settings(set_res["items"])
-    assert_kitchen_open(settings)
+    if not staff_quote:
+        assert_kitchen_open(settings)
 
     restaurant_id = data.get("restaurant_id")
     min_order = 0.0
@@ -586,7 +589,7 @@ async def validate_food_order(
 
         base_price = float(product.price or 0)
         client_price = float(raw.get("price") or base_price)
-        if abs(client_price - base_price) > 0.01:
+        if not staff_quote and abs(client_price - base_price) > 0.01:
             raise HTTPException(status_code=400, detail=f"Цена «{product.name}» изменилась. Обновите страницу")
 
         mod_total = 0.0
@@ -661,7 +664,7 @@ async def validate_food_order(
                 )
 
         client_mod_total = float(raw.get("modTotal") or raw.get("mod_total") or 0)
-        if abs(client_mod_total - mod_total) > 0.02:
+        if not staff_quote and abs(client_mod_total - mod_total) > 0.02:
             raise HTTPException(status_code=400, detail=f"Доплата за опции «{product.name}» не совпадает")
 
         line_sum = round((base_price + mod_total) * qty_int, 2)
@@ -677,9 +680,11 @@ async def validate_food_order(
         })
 
     subtotal = round(subtotal, 2)
+    if catalog_only and staff_quote:
+        return {}, validated_items, subtotal
     if min_order > 0 and subtotal < min_order:
         raise HTTPException(status_code=400, detail=f"Минимальный заказ {int(min_order)} ₸")
-    selected_gift = _resolve_selected_gift(
+    selected_gift = None if staff_quote else _resolve_selected_gift(
         str(data.get("selected_gift_id") or "").strip(),
         subtotal,
         settings,
@@ -782,7 +787,7 @@ async def validate_food_order(
         )
         expected_total = round(max(0.0, expected_total - bonus_discount), 2)
 
-    if abs(expected_total - client_total) > 1:
+    if not staff_quote and abs(expected_total - client_total) > 1:
         logger.warning(
             "Order total mismatch: expected=%s client=%s subtotal=%s service=%s delivery=%s bonus=%s",
             expected_total,

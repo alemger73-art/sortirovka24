@@ -32,3 +32,7 @@ class Food_orders(Base):
     version = Column(Integer, nullable=True)
     operator_note = Column(String, nullable=True)
     cancellation_reason = Column(String, nullable=True)
+    paid_amount = Column(Float, nullable=True)
+    receipt_revision = Column(Integer, nullable=True)
+    receipt_updated_at = Column(String, nullable=True)
+    order_source = Column(String, nullable=True)

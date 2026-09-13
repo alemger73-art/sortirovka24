@@ -1146,4 +1146,6 @@ const translations: Translations = {
   'admin.inactive': { ru: 'Неактивный', kz: 'Белсенді емес' },
 };
 
-export default { ...translations, ...publicTranslations, ...adminTranslations } satisfies Translations;
+import { workflowTranslations } from './workflowTranslations';
+
+export default { ...workflowTranslations, ...translations, ...publicTranslations, ...adminTranslations } satisfies Translations;

@@ -25,3 +25,10 @@ class FoodOrderEvent(Base):
     claimed_at = Column(Float, nullable=True)
     error = Column(String, nullable=True)
     telegram_message_id = Column(Integer, nullable=True)
+    public_data = Column(Text, nullable=True)
+
+
+class FoodOrderRequest(Base):
+    __tablename__ = 'food_order_requests'
+    key = Column(String(100), primary_key=True)
+    order_id = Column(Integer, nullable=False)

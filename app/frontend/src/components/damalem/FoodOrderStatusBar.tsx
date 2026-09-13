@@ -1,65 +1,12 @@
-import { useStoreTranslations } from '@/i18n/storeTranslations';
-import { CheckCircle2, Circle } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { CheckCircle2, Circle, Clock3 } from 'lucide-react';
 
-const STEPS = [
-  { key: 'new', label: 'Оформлен' },
-  { key: 'in_progress', label: 'Готовится' },
-  { key: 'ready', label: 'Готов' },
-  { key: 'in_delivery', label: 'Доставка' },
-  { key: 'done', label: 'Завершён' },
-] as const;
-
-function stepIndex(status: string): number {
-  if (status === 'cancelled') return -1;
-  if (status === 'done' || status === 'delivered' || status === 'completed') return 4;
-  if (status === 'ready') return 2;
-  if (status === 'in_progress') return 3;
-  if (status === 'preparing' || status === 'cooking') return 1;
-  if (status === 'confirmed') return 1;
-  return 0;
-}
-
-interface Props {
-  status: string;
-  compact?: boolean;
-  deliveryMethod?: string;
-}
-
-export default function FoodOrderStatusBar({ status, compact = false, deliveryMethod }: Props) {
-  const st = useStoreTranslations();
-
-  if (status === 'cancelled') {
-    return <p className="text-xs text-red-400 font-medium">{st("Заказ отменён")}</p>;
-  }
-
-  const current = stepIndex(status);
-
-  if (compact) {
-    const label = STEPS[Math.min(current, STEPS.length - 1)]?.label ?? st("Принят");
-    return <p className="text-[11px] text-gray-400">{st(label)}</p>;
-  }
-
-  return (
-    <div className="flex items-center gap-1 mt-2">
-      {STEPS.map((step, idx) => {
-        if (deliveryMethod === 'pickup' && step.key === 'in_delivery') return null;
-        const done = idx <= current;
-        return (
-          <div key={step.key} className="flex items-center gap-1 flex-1 min-w-0">
-            {done ? (
-              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-orange-500 dark:text-orange-400" />
-            ) : (
-              <Circle className="h-3.5 w-3.5 shrink-0 text-gray-300 dark:text-gray-600" />
-            )}
-            <span className={`text-[10px] truncate ${done ? 'text-orange-600 font-semibold dark:text-orange-300' : 'text-gray-400 dark:text-gray-500'}`}>
-              {st(step.label)}
-            </span>
-            {idx < STEPS.length - 1 && (
-              <div className={`h-px flex-1 mx-0.5 ${idx < current ? 'bg-orange-400/60 dark:bg-orange-400/50' : 'bg-gray-200 dark:bg-gray-700'}`} />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
+export default function FoodOrderStatusBar({status, compact = false, deliveryMethod}: {status: string; compact?: boolean; deliveryMethod?: string}) {
+  const {t} = useLanguage();
+  if (status === 'cancelled') return <p className="text-sm text-red-600 dark:text-red-300">{t('cabinet.orderStatus.cancelled')}</p>;
+  const stages = ['new', 'confirmed', 'preparing', 'ready', ...(deliveryMethod === 'pickup' ? [] : ['in_progress']), 'done'];
+  const labels: Record<string,string> = {new:t('workflow.new'), confirmed:t('workflow.accepted'), preparing:t('workflow.preparing'), ready:t('workflow.ready'), in_progress:t('workflow.transit'), done:t(deliveryMethod === 'pickup' ? 'cabinet.orderStatus.done' : 'workflow.done')};
+  const current = Math.max(0, stages.indexOf(['delivered','completed'].includes(status) ? 'done' : status));
+  if (compact) return <p className="text-xs text-muted-foreground">{labels[stages[current]]}</p>;
+  return <ol aria-live="polite" className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">{stages.map((stage,i) => <li key={stage} aria-current={i === current ? 'step' : undefined} className={`flex items-start gap-2 rounded-xl p-3 text-xs ${i === current ? 'bg-orange-100 text-orange-900 dark:bg-orange-950 dark:text-orange-200 font-bold' : i < current ? 'bg-muted text-foreground' : 'text-muted-foreground'}`}>{i < current ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : i === current ? <Clock3 className="h-4 w-4 shrink-0" /> : <Circle className="h-4 w-4 shrink-0" />}<span>{labels[stage]}</span></li>)}</ol>;
 }

@@ -71,14 +71,21 @@ export default function CabinetOrderDetail() {
       setError('');
       try {
         const result = await accountApi.orderDetail(source, orderId);
-        if (alive) setOrder(result);
+        if (alive) setOrder((previous: any) => previous && source === 'food' && (previous.version || 0) > (result.version || 0) ? previous : result);
       } catch (e) {
         if (alive) setError(humanizeApiError(e));
       } finally {
         if (alive) setLoading(false);
       }
     })();
-    return () => { alive = false; };
+    const refresh = async () => {
+      if (document.hidden) return;
+      try { const result = await accountApi.orderDetail(source, orderId); if (alive) {setOrder((previous: any) => previous && source === 'food' && (previous.version || 0) > (result.version || 0) ? previous : result); setError('');} }
+      catch (e) {if (alive) setError(humanizeApiError(e));}
+    };
+    const timer = window.setInterval(() => void refresh(), 3000);
+    window.addEventListener('focus', refresh);
+    return () => { alive = false; clearInterval(timer); window.removeEventListener('focus', refresh); };
   }, [source, orderId]);
 
   const items = parseOrderItems(order?.order_items);
@@ -133,7 +140,7 @@ export default function CabinetOrderDetail() {
                   </div>
                 </div>
                 <span className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${st.color}`}>
-                  {isFood ? ({ new: publicT("cabinet.orderStatus.new"), confirmed: publicT("public.CabinetOrderDetail.text41"), preparing: publicT("logistics.status.pending"), ready: publicT("public.CabinetOrderDetail.text42"), in_progress: publicT("public.CabinetOrderDetail.text43"), done: publicT("public.CabinetOrderDetail.text44"), cancelled: publicT("cabinet.orderStatus.cancelled") } as Record<string, string>)[order.status] || t(st.key) : t(st.key)}
+                  {isFood ? ({ new: publicT("cabinet.orderStatus.new"), confirmed: publicT("public.CabinetOrderDetail.text41"), preparing: publicT("workflow.preparing"), ready: publicT("public.CabinetOrderDetail.text42"), in_progress: publicT("public.CabinetOrderDetail.text43"), done: publicT("public.CabinetOrderDetail.text44"), cancelled: publicT("cabinet.orderStatus.cancelled") } as Record<string, string>)[order.status] || t(st.key) : t(st.key)}
                 </span>
               </div>
 
@@ -174,15 +181,16 @@ export default function CabinetOrderDetail() {
                   >
                     <RotateCcw className="h-4 w-4" /> {publicT("public.CabinetOrderDetail.text46")} </button>
                 ) : null}
-                {isFood && order.delivery_method === 'delivery' && !['done', 'cancelled', 'delivered'].includes(String(order.status)) && (
-                  <Link
-                    to={`/delivery/food/${order.order_number}`}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-orange-600/90 px-4 py-2 text-sm font-semibold text-white"
-                  >
-                    <MapPin className="h-4 w-4" /> {publicT("public.CabinetOrderDetail.text47")} </Link>
-                )}
+
               </div>
             </div>
+
+            {isFood && <div className="rounded-2xl border bg-card p-4 space-y-3">
+              <p className="text-sm text-muted-foreground">{t('workflow.live')}</p>
+              {!!order.receipt_revision && <p className="font-semibold text-orange-700 dark:text-orange-300">{t('workflow.changed')} · {formatOrderDate(order.receipt_updated_at)}</p>}
+              {order.paid_amount > 0 && <><p>{t('workflow.received')}: {order.paid_amount} ₸</p><p>{t(order.paid_amount > order.amount ? 'workflow.refund' : 'workflow.due')}: {Math.abs(order.amount - order.paid_amount)} ₸</p></>}
+              {!!order.receipt_changes?.length && <details><summary className="cursor-pointer font-semibold">{t('workflow.history')}</summary>{order.receipt_changes.map((change: any) => <div key={change.revision} className="border-t py-3 space-y-2 text-sm"><p>{formatOrderDate(change.created_at)} · {change.reason}</p><div className="grid sm:grid-cols-2 gap-3">{(['before','after'] as const).map(side => <div key={side}><strong>{t(`workflow.${side}`)}: {change[side].total_amount} ₸</strong>{change[side].items.map((x: any,i: number) => <p key={i}>{x.name} × {x.quantity}</p>)}</div>)}</div></div>)}</details>}
+            </div>}
 
             {items.length > 0 && (
               <div className="rounded-2xl border bg-white p-6 shadow-sm dark:bg-gray-900 dark:border-gray-800">

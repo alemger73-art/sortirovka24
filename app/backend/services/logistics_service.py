@@ -101,6 +101,11 @@ def task_to_dict(task: LogisticsTask, courier_user: Optional[User] = None, couri
         "offered_courier_id": task.offered_courier_id,
         "offer_expires_at": task.offer_expires_at,
         "total_amount": task.total_amount,
+        "paid_amount": task.paid_amount,
+        "amount_due": max(0, float(task.total_amount or 0) - float(task.paid_amount or 0)),
+        "order_items": task.order_items,
+        "receipt_revision": task.receipt_revision,
+        "order_status": task.order_status,
         "delivery_fee": task.delivery_fee,
         "comment": task.comment,
         "created_at": task.created_at.isoformat() if task.created_at else None,
@@ -157,7 +162,9 @@ async def create_task_from_food_order(db: AsyncSession, order: Food_orders, *, d
         return existing
 
     prep = _parse_prep_minutes(None, int(float(settings.get("default_prep_minutes", 20))))
-    ready_at = datetime.now(timezone.utc) + timedelta(minutes=prep)
+    from services.food_operations import is_dam_order
+    dam = await is_dam_order(db, order)
+    ready_at = None if dam else datetime.now(timezone.utc) + timedelta(minutes=prep)
 
     pickup_lat = float(settings.get("pickup_lat") or DEFAULT_CENTER_LAT)
     pickup_lng = float(settings.get("pickup_lng") or DEFAULT_CENTER_LNG)
@@ -187,7 +194,7 @@ async def create_task_from_food_order(db: AsyncSession, order: Food_orders, *, d
         customer_phone=order.customer_phone,
         merchant_name=order.restaurant_name,
         prep_minutes=prep,
-        ready_at=ready_at.isoformat(),
+        ready_at=ready_at.isoformat() if ready_at else None,
         total_amount=order.total_amount,
         delivery_fee=delivery_fee,
         comment=order.comment,
@@ -215,6 +222,11 @@ async def get_task_by_source(db: AsyncSession, source_type: str, source_id: int)
 
 
 async def mark_task_ready(db: AsyncSession, task: LogisticsTask) -> LogisticsTask:
+    if task.source_type == 'food_orders':
+        from services.food_operations import is_dam_order
+        order = await db.get(Food_orders, task.source_id)
+        if order and await is_dam_order(db, order) and order.status != 'ready':
+            raise ValueError('Готовность отмечается в кабинете DAM ALEM')
     if task.status not in ("pending", "ready"):
         raise ValueError("Задача не может быть отмечена готовой")
     task.status = "ready"
@@ -251,6 +263,9 @@ async def accept_task(db: AsyncSession, task_id: int, courier_user: User) -> Log
     if offer_is_active(task) and task.offered_courier_id != str(courier_user.id):
         raise ValueError("Заказ предложен другому курьеру")
 
+    # Serialize with operator edits/cancellation using the same food row first.
+    from services.dam_order_workflow import lock_courier_order
+    await lock_courier_order(db, task, require_ready=True)
     result = await db.execute(
         update(LogisticsTask)
         .where(LogisticsTask.id == task_id, LogisticsTask.status == "ready", LogisticsTask.courier_id.is_(None))
@@ -285,24 +300,49 @@ async def advance_task_status(db: AsyncSession, task: LogisticsTask, courier_use
     if not expected or expected[0] != new_status:
         raise ValueError(f"Нельзя перейти из {task.status} в {new_status}")
 
+    from services.dam_order_workflow import lock_courier_order
+    from services.food_operations import add_event, LABELS
+    food = await lock_courier_order(db, task, require_ready=new_status == 'picked_up')
+    old_food_status = food.status if food else None
     old_status = task.status
-    task.status = new_status
-    now = _now_iso()
-    if new_status == "picked_up":
-        task.picked_up_at = now
-    elif new_status == "delivered":
-        task.delivered_at = now
-        profile = (
-            await db.execute(select(CourierProfile).where(CourierProfile.user_id == task.courier_id))
-        ).scalar_one_or_none()
-        if profile:
-            profile.deliveries_count = (profile.deliveries_count or 0) + 1
-            fee = float(task.delivery_fee or 0)
-            if fee > 0:
-                profile.balance = float(profile.balance or 0) + fee
-
+    changes = {'status': new_status}
+    timestamp = _now_iso()
+    if new_status == 'picked_up':
+        changes['picked_up_at'] = timestamp
+    elif new_status == 'delivered':
+        changes['delivered_at'] = timestamp
+    result = await db.execute(update(LogisticsTask).where(LogisticsTask.id == task.id,
+        LogisticsTask.status == old_status, LogisticsTask.courier_id == task.courier_id).values(**changes))
+    if not result.rowcount:
+        await db.rollback()
+        raise ValueError('Доставка уже изменена. Обновите кабинет.')
+    if food:
+        target = 'done' if new_status == 'delivered' else 'in_progress'
+        if target != food.status:
+            food.status = target
+            task.order_status = target
+            if target == 'done':
+                food.completed_at = timestamp
+            add_event(db, food, f'Статус: {LABELS.get(old_food_status)} → {LABELS[target]}', 'Курьер')
+    if new_status == 'delivered':
+        await db.execute(update(CourierProfile).where(CourierProfile.user_id == task.courier_id).values(
+            deliveries_count=CourierProfile.deliveries_count + 1,
+            balance=CourierProfile.balance + max(0, float(task.delivery_fee or 0))))
     await db.commit()
     await db.refresh(task)
+    if food and old_food_status != food.status:
+        from services.user_notifications import notify_food_order_status
+        from services.bonus_rewards import handle_food_order_status_bonus
+        try:
+            await notify_food_order_status(db, food, old_food_status, food.status)
+            await handle_food_order_status_bonus(db, customer_phone=food.customer_phone,
+                food_order_id=food.id, total_amount=food.total_amount, old_status=old_food_status,
+                new_status=food.status, bonus_points_used=food.bonus_points_used)
+        except Exception:
+            logger.exception('Food delivery committed; notification/reward follow-up failed')
+            await db.rollback()
+            await db.refresh(task)
+
     try:
         from services.user_notifications import notify_logistics_task_status
 

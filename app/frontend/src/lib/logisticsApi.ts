@@ -92,6 +92,11 @@ export interface LogisticsTask {
   offered_courier_id?: string | null;
   offer_expires_at?: string | null;
   offer_seconds_left?: number;
+  paid_amount?: number | null;
+  amount_due?: number;
+  order_items?: string | null;
+  receipt_revision?: number | null;
+  order_status?: string | null;
   total_amount?: number | null;
   delivery_fee?: number | null;
   comment?: string | null;

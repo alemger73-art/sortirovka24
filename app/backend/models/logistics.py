@@ -83,6 +83,10 @@ class LogisticsTask(BaseModel):
     dispatch_round = Column(Integer, nullable=False, default=0)
     dispatch_excluded = Column(Text, nullable=True)
 
+    paid_amount = Column(Float, nullable=True)
+    order_items = Column(Text, nullable=True)
+    receipt_revision = Column(Integer, nullable=True)
+    order_status = Column(String(32), nullable=True)
     total_amount = Column(Float, nullable=True)
     delivery_fee = Column(Float, nullable=True)
     comment = Column(Text, nullable=True)

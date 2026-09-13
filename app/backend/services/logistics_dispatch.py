@@ -181,6 +181,12 @@ async def process_ready_pending(db: AsyncSession) -> int:
     ).scalars().all()
     count = 0
     for task in pending:
+        if task.source_type == 'food_orders':
+            from models.food_orders import Food_orders
+            from services.food_operations import is_dam_order
+            order = await db.get(Food_orders, task.source_id)
+            if order and await is_dam_order(db, order):
+                continue
         ready_at = _parse_iso(task.ready_at)
         if ready_at and ready_at <= now:
             task.status = "ready"
@@ -223,6 +229,12 @@ async def process_stale_tasks(db: AsyncSession) -> int:
     ).scalars().all()
     cancelled = 0
     for task in tasks:
+        if task.source_type == 'food_orders':
+            from models.food_orders import Food_orders
+            from services.food_operations import is_dam_order
+            order = await db.get(Food_orders, task.source_id)
+            if order and await is_dam_order(db, order):
+                continue
         created = task.created_at
         if not created:
             continue

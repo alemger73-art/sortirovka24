@@ -21,7 +21,7 @@ class Food_ordersService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create(self, data: Dict[str, Any], account_user=None) -> Optional[Food_orders]:
+    async def create(self, data: Dict[str, Any], account_user=None, *, request_key=None, actor="Система") -> Optional[Food_orders]:
         """Create a new food_orders"""
         try:
             _allowed = set(Food_orders.__table__.columns.keys())
@@ -42,10 +42,14 @@ class Food_ordersService:
                     discount=bonus_discount,
                 )
 
+            if request_key:
+                from models.food_operations import FoodOrderRequest
+                self.db.add(FoodOrderRequest(key=request_key, order_id=obj.id))
+                await self.db.flush()
             obj.version = 0
             dam_order = await is_dam_order(self.db, obj)
             if dam_order:
-                add_event(self.db, obj, "Заказ создан")
+                add_event(self.db, obj, "Заказ создан", actor)
             await self.db.commit()
             await self.db.refresh(obj)
             try:
@@ -171,6 +175,8 @@ class Food_ordersService:
                     raise HTTPException(409, "Недопустимый переход статуса")
                 if target == 'in_progress' and obj.delivery_method == 'pickup':
                     raise HTTPException(422, "Самовывоз не передаётся в доставку")
+                if target != old_status and obj.delivery_method != 'pickup' and target in ('in_progress', 'done') and actor != 'Курьер':
+                    raise HTTPException(409, 'Передачу и доставку отмечает курьер в своём кабинете')
                 if target == 'cancelled' and not (update_data.get('cancellation_reason') or '').strip():
                     raise HTTPException(422, "Укажите причину отмены")
                 if update_data.get('delivery_address') is not None and obj.delivery_method != 'pickup' and not update_data['delivery_address'].strip():
@@ -183,6 +189,7 @@ class Food_ordersService:
                 obj.version = version + 1
                 if update_data.get('payment_status') == 'paid' and obj.payment_status != 'paid':
                     obj.paid_at = now()
+                    obj.paid_amount = obj.total_amount
                 if target == 'done' and old_status != 'done':
                     obj.completed_at = now()
                 if target == 'cancelled' and old_status != 'cancelled':
@@ -197,6 +204,9 @@ class Food_ordersService:
                 if hasattr(obj, key):
                     setattr(obj, key, value)
 
+            if dam_order and ('status' in update_data or 'delivery_address' in update_data or 'payment_status' in update_data):
+                from services.dam_order_workflow import sync_task
+                await sync_task(self.db, obj)
             await self.db.commit()
             await self.db.refresh(obj)
             if "status" in update_data and update_data["status"] != old_status:

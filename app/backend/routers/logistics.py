@@ -238,6 +238,7 @@ async def accept_logistics_task(
         task = await accept_task(db, task_id, user)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    await _tracking_access(db, task, authorization)
     return await get_task_with_courier(db, task.id)
 
 
@@ -274,16 +275,31 @@ async def update_task_status(
         task = await advance_task_status(db, task, user, body.status)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    await _tracking_access(db, task, authorization)
     return await get_task_with_courier(db, task.id)
 
 
 # ─── Customer tracking ─────────────────────────────────────────────
 
+async def _tracking_access(db, task, authorization):
+    user = await get_taxi_user(db, authorization)
+    from routers.account_v2 import _owns_user_content
+    if user.role in ('admin', 'superadmin') or task.courier_id == str(user.id):
+        return
+    if not _owns_user_content(user, None, task.customer_phone):
+        raise HTTPException(404, 'Доставка не найдена')
+
+
 @router.get("/tasks/{task_id}")
 async def get_logistics_task(
     task_id: int,
+    authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
+    task = await get_task_by_id(db, task_id)
+    if not task:
+        raise HTTPException(404, 'Доставка не найдена')
+    await _tracking_access(db, task, authorization)
     data = await get_task_with_courier(db, task_id)
     if not data:
         raise HTTPException(status_code=404, detail="Задача не найдена")
@@ -293,11 +309,13 @@ async def get_logistics_task(
 @router.get("/track/food/{order_id}")
 async def track_food_order(
     order_id: int,
+    authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
     task = await get_task_by_source(db, "food_orders", order_id)
     if not task:
         raise HTTPException(status_code=404, detail="Доставка не найдена")
+    await _tracking_access(db, task, authorization)
     return await get_task_with_courier(db, task.id)
 
 

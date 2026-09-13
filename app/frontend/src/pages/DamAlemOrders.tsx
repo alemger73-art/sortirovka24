@@ -1,3 +1,4 @@
+import OrderReceiptEditor from '@/components/damalem/OrderReceiptEditor';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getPublicLocale } from '@/i18n/publicLocale';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -45,6 +46,7 @@ export default function DamAlemOrders() {
   };
 
 
+  const [receiptEditor, setReceiptEditor] = useState<'manual' | 'edit' | null>(null);
   const [params, setParams] = useSearchParams();
   const selected = Number(params.get('order')) || null;
   const requestedStatus = params.get('status') ?? 'active';
@@ -56,7 +58,7 @@ export default function DamAlemOrders() {
   const [cancelOpen, setCancelOpen] = useState(false), [editing, setEditing] = useState(false);
   const lock = useRef(false), generation = useRef(0);
   const latestInteraction = useRef({ selected, editing, cancelOpen, busy });
-  latestInteraction.current = { selected, editing, cancelOpen, busy };
+  latestInteraction.current = { selected, editing: editing || !!receiptEditor, cancelOpen, busy };
   useEffect(() => { setStatus(requestedStatus); setPage(0); }, [requestedStatus]);
   const load = useCallback(async () => {
     const gen = ++generation.current;
@@ -68,7 +70,7 @@ export default function DamAlemOrders() {
     finally { if (gen === generation.current) setLoading(false); }
   }, [status, search, page]);
   useEffect(() => { setLoading(true); const timer = window.setTimeout(load, 250); return () => { clearTimeout(timer); generation.current++; }; }, [load]);
-  useEffect(() => { const timer = window.setInterval(() => { if (!document.hidden) void load(); }, 15000); return () => clearInterval(timer); }, [load]);
+  useEffect(() => { const timer = window.setInterval(() => { if (!document.hidden) void load(); }, 3000); return () => clearInterval(timer); }, [load]);
   const refreshDetail = useCallback(async (automatic = false) => {
     if (!selected) return;
     const data = await foodOperations<OrderDetail>(`/orders/${selected}`);
@@ -83,7 +85,7 @@ export default function DamAlemOrders() {
   }, [selected]);
   useEffect(() => {
     if (!selected || editing || cancelOpen || busy) return;
-    const timer = window.setInterval(() => { if (!document.hidden) void refreshDetail(true).catch(e => { if (latestInteraction.current.selected === selected) setDetailError(e.message); }); }, 15000);
+    const timer = window.setInterval(() => { if (!document.hidden) void refreshDetail(true).catch(e => { if (latestInteraction.current.selected === selected) setDetailError(e.message); }); }, 3000);
     return () => clearInterval(timer);
   }, [selected, editing, cancelOpen, busy, refreshDetail]);
   async function change(values: Record<string, unknown>) {
@@ -104,10 +106,12 @@ export default function DamAlemOrders() {
   }
   const order = detail?.order;
   const closed = order && ['done', 'cancelled'].includes(order.status);
-  const target = order?.status === 'ready' && order.delivery_method === 'pickup' ? 'done' : next[order?.status || ''];
+  const target = order?.delivery_method !== 'pickup' && ['ready', 'in_progress'].includes(order?.status || '') ? '' : order?.status === 'ready' && order.delivery_method === 'pickup' ? 'done' : next[order?.status || ''];
   return <div className="space-y-5 min-w-0">
     <div className="flex flex-wrap justify-between gap-3"><div><h3 className="text-xl font-bold">{adminT('admin.dam.final.138')}</h3><p className="text-sm text-gray-500">{adminT('admin.dam.final.139')} {lastLoaded ? adminT('admin.dam.final.140').replace('{0}', () => String(new Date(lastLoaded).toLocaleTimeString(locale))) : adminT('admin.dam.final.141')}</p></div><Button variant="outline" onClick={() => void load()}>{adminT('admin.dam.final.142')}</Button></div>
-    <p className="rounded-xl bg-blue-50 p-3 text-sm text-blue-900">{adminT('admin.dam.final.143')}</p>
+    <Button onClick={() => setReceiptEditor('manual')}>{adminT('workflow.manual')}</Button>
+    {receiptEditor && <OrderReceiptEditor order={receiptEditor === 'edit' ? order : undefined} onClose={() => setReceiptEditor(null)} onSaved={id => {setReceiptEditor(null); const p = new URLSearchParams(params); p.set('section','orders'); p.set('order',String(id)); setParams(p); void load(); if (id === selected) void refreshDetail().catch(e => toast.error(e.message));}} />}
+    <p className="rounded-xl bg-blue-50 p-3 text-sm text-blue-900">{adminT('workflow.queueHelp')}</p>
     {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-red-800">{error}  {adminT('admin.dam.final.144')}</p>}
     <div className="flex flex-wrap gap-3"><Input aria-label={adminT('admin.dam.final.145')} className="min-w-0 flex-1 basis-64" placeholder={adminT('admin.dam.final.146')} value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} /><select aria-label={adminT('admin.dam.final.147')} className="rounded-lg border p-2 max-w-full" value={status} onChange={e => { setStatus(e.target.value); setPage(0); const p = new URLSearchParams(params); p.set('status', e.target.value); setParams(p); }}><option value="active">{adminT('admin.dam.final.148')}</option><option value="">{adminT('admin.dam.final.149')}</option>{Object.entries(orderLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></div>
     <div className="grid gap-5 xl:grid-cols-[minmax(260px,1fr)_minmax(0,1.6fr)]">
@@ -124,6 +128,9 @@ export default function DamAlemOrders() {
         {order && <><div className="flex flex-wrap gap-3 justify-between"><h3 className="font-bold text-xl">{adminT('admin.dam.final.159')}{order.id}</h3><Button variant="outline" disabled={busy || editing || cancelOpen} onClick={() => { void refreshDetail().catch(e => toast.error(e.message)); }}>{adminT('admin.dam.final.160')}</Button></div>
           <p className="font-semibold">{orderLabels[order.status] || order.status} · {order.delivery_method === 'pickup' ? adminT('admin.dam.final.025') : adminT('admin.dam.final.026')}</p>
           <div className="space-y-2 break-words"><p>{order.customer_name}</p><a className="text-blue-700 underline block" href={`tel:${(order.customer_phone || '').replace(/[^+\d]/g, '')}`}>{order.customer_phone}</a>{order.delivery_method !== 'pickup' && <p>{order.delivery_address}</p>}{order.comment && <p className="rounded-xl bg-amber-50 p-3">{adminT('admin.dam.final.161')} {order.comment}</p>}</div>
+          {!closed && !['in_progress'].includes(order.status) && <Button variant="outline" disabled={busy} onClick={() => setReceiptEditor('edit')}>{adminT('workflow.edit')}</Button>}
+          {order.delivery_method !== 'pickup' && order.status === 'ready' && <p className="rounded-xl border p-3 text-sm">{adminT('workflow.courierNext')}</p>}
+          {order.paid_amount != null && <div className="text-sm"><p>{adminT('workflow.received')}: {money(order.paid_amount)}</p><p>{adminT(order.paid_amount > order.total_amount ? 'workflow.refund' : 'workflow.due')}: {money(Math.abs(order.total_amount - order.paid_amount))}</p></div>}
           <Items raw={order.order_items} /><p className="text-lg font-bold">{adminT('admin.dam.final.162')} {money(order.total_amount)}</p><p>{adminT('admin.dam.final.163')} {({ cash: adminT('admin.dam.final.006'), kaspi_qr: 'Kaspi QR', halyk_qr: 'Halyk QR' } as Record<string, string>)[order.payment_method] || order.payment_method || adminT('admin.dam.final.164')} · {order.payment_status === 'paid' ? adminT('admin.dam.final.165') : adminT('admin.dam.final.166')}</p>
           {!closed && <div className="flex flex-wrap gap-2">{target && <Button disabled={busy} onClick={() => void change({ status: target })}>{target === 'done' ? order.delivery_method === 'pickup' ? adminT('admin.dam.final.167') : adminT('admin.dam.final.168') : orderLabels[target]}</Button>}{order.payment_status !== 'paid' && <Button variant="outline" disabled={busy} onClick={() => void change({ payment_status: 'paid' })}>{adminT('admin.dam.final.169')}</Button>}<Button variant="outline" disabled={busy} onClick={() => setCancelOpen(!cancelOpen)}>{adminT('admin.dam.final.170')}</Button></div>}
           {order.status === 'done' && order.payment_status !== 'paid' && <Button disabled={busy} onClick={() => void change({ payment_status: 'paid' })}>{adminT('admin.dam.final.169')}</Button>}

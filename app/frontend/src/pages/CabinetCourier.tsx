@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import StorageImg from '@/components/StorageImg';
+import { parseOrderItems, orderLineQuantity } from '@/lib/orderRoutes';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const VEHICLE_OPTIONS = [
@@ -321,15 +322,18 @@ export default function CabinetCourier() {
               {active_task.delivery_fee != null && (
                 <p className="font-bold text-xl">{formatTenge(active_task.delivery_fee)}</p>
               )}
+              {active_task.source_type === 'food_orders' && <div className="rounded-xl bg-muted/40 p-3 space-y-1"><p>{t('workflow.total')}: {formatTenge(active_task.total_amount)}</p><p>{t('workflow.received')}: {formatTenge(active_task.paid_amount)}</p><p className="font-bold">{t('workflow.due')}: {formatTenge(active_task.amount_due)}</p></div>}
+              {active_task.order_items && <div className="text-sm space-y-1">{parseOrderItems(active_task.order_items).map((item,i) => <p key={i}>{item.name || item.title} × {orderLineQuantity(item)}</p>)}</div>}
               {active_task.customer_phone && (
                 <a href={`tel:${active_task.customer_phone}`} className="flex items-center gap-2 text-sm text-blue-600">
                   <Phone className="h-4 w-4" /> {active_task.customer_name} · {active_task.customer_phone}
                 </a>
               )}
+              {active_task.status === 'assigned' && !!active_task.order_status && active_task.order_status !== 'ready' && <p className="text-sm text-orange-700 dark:text-orange-300">{t('workflow.preparing')}</p>}
               {COURIER_STATUS_FLOW[active_task.status] && (
                 <Button
                   className="w-full h-12 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold"
-                  disabled={updatingId === active_task.id}
+                  disabled={updatingId === active_task.id || (active_task.status === 'assigned' && !!active_task.order_status && active_task.order_status !== 'ready')}
                   onClick={() => advanceStatus(active_task)}
                 >
                   {updatingId === active_task.id ? (
