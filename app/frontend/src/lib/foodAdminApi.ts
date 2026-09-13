@@ -1,7 +1,7 @@
 /** Direct HTTP helpers for food entities when @metagptx/web-sdk has no generated client (e.g. food_restaurants). */
 
 import { getAPIBaseURL } from './config';
-import { getPartnerToken } from './partnerAuthApi';
+import { getRequestSessionToken } from './requestSession';
 import { humanizeApiError } from './apiErrors';
 
 const apiBase = () => getAPIBaseURL();
@@ -14,9 +14,7 @@ function adminHeaders(): HeadersInit {
       : '',
   };
   try {
-    const t = localStorage.getItem('_sp924_token')
-      || getPartnerToken('dam_alem')
-      || localStorage.getItem('token');
+    const t = getRequestSessionToken('dam_alem');
     if (t) h.Authorization = `Bearer ${t}`;
   } catch {
     /* ignore */
@@ -41,7 +39,7 @@ async function parseEntityError(res: Response): Promise<never> {
   } catch {
     /* ignore */
   }
-  const message = detail || `HTTP ${res.status}`;
+  const message = res.status === 401 ? 'Сессия кабинета истекла. Войдите в кабинет заново.' : detail || `HTTP ${res.status}`;
   throw new Error(humanizeApiError(new Error(message)));
 }
 
@@ -103,7 +101,7 @@ export async function fetchFoodRestaurantsList(): Promise<any[]> {
     `${apiBase()}/api/v1/entities/food_restaurants?limit=500&sort=sort_order`,
     { headers: adminHeaders() }
   );
-  if (!res.ok) return [];
+  if (!res.ok) await parseEntityError(res);
   const j = await res.json();
   return j.items || [];
 }
@@ -114,7 +112,7 @@ export async function createFoodRestaurant(data: Record<string, unknown>): Promi
     headers: adminHeaders(),
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('create restaurant failed');
+  if (!res.ok) await parseEntityError(res);
   return res.json();
 }
 
@@ -124,7 +122,7 @@ export async function updateFoodRestaurant(id: string | number, data: Record<str
     headers: adminHeaders(),
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('update restaurant failed');
+  if (!res.ok) await parseEntityError(res);
   return res.json();
 }
 
@@ -133,5 +131,5 @@ export async function deleteFoodRestaurant(id: string | number): Promise<void> {
     method: 'DELETE',
     headers: adminHeaders(),
   });
-  if (!res.ok) throw new Error('delete restaurant failed');
+  if (!res.ok) await parseEntityError(res);
 }

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { humanizeApiError } from '@/lib/apiErrors';
+import { useEffect, useRef, useState } from 'react';
 import { invalidateAllCaches } from '@/lib/cache';
 import {
   fetchFoodRestaurantsList,
@@ -11,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Save, Star, Clock, Phone, Truck, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
-import ImageUpload, { StorageImage } from '@/components/ImageUpload';
+import ImageUpload from '@/components/ImageUpload';
 
 interface Restaurant {
   id: number;
@@ -45,13 +46,19 @@ export default function AdminDamAlemBrand() {
   const [form, setForm] = useState<Partial<Restaurant>>(DEFAULT_RESTAURANT);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState('');
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const savingRef = useRef(false);
 
   useEffect(() => { void load(); }, []);
 
   async function load() {
     setLoading(true);
+    setError('');
     try {
       const list = await fetchFoodRestaurantsList();
+      setLoaded(true);
       const id = findDamAlemRestaurantId(list);
       const found = id != null ? list.find(r => r.id === id) : list.find(r => isDamAlemName(r.name));
       if (found) {
@@ -61,17 +68,25 @@ export default function AdminDamAlemBrand() {
       }
     } catch (e) {
       console.error(e);
-      toast.error('Ошибка загрузки профиля');
+      setLoaded(false);
+      setError(humanizeApiError(e));
     } finally {
       setLoading(false);
     }
   }
 
   async function save() {
+    if (!loaded || savingRef.current || photoUploading) return;
     if (!form.name?.trim()) {
       toast.error('Введите название заведения');
       return;
     }
+    if (!Number.isFinite(Number(form.min_order)) || Number(form.min_order) < 0 || !Number.isFinite(Number(form.rating)) || Number(form.rating) < 0 || Number(form.rating) > 5) {
+      setError('Минимальный заказ должен быть не меньше нуля, рейтинг — от 0 до 5.');
+      return;
+    }
+    savingRef.current = true;
+    setError('');
     setSaving(true);
     try {
       const payload = {
@@ -83,12 +98,13 @@ export default function AdminDamAlemBrand() {
         delivery_time: form.delivery_time || '',
         cuisine_type: form.cuisine_type || '',
         min_order: Number(form.min_order || 0),
-        rating: Number(form.rating || 4.5),
+        rating: Number(form.rating ?? 4.5),
         is_active: form.is_active !== false,
         sort_order: Number(form.sort_order ?? 1),
       };
       if (form.id) {
-        await updateFoodRestaurant(form.id, payload);
+        const updated = await updateFoodRestaurant(form.id, payload);
+        setForm(prev => ({ ...prev, ...updated }));
       } else {
         const created = await createFoodRestaurant({
           ...payload,
@@ -98,11 +114,14 @@ export default function AdminDamAlemBrand() {
       }
       toast.success('Профиль DAM ALEM 2.0 сохранён');
       invalidateAllCaches();
-      await load();
+
     } catch (e) {
       console.error(e);
-      toast.error('Ошибка сохранения');
+      const message = humanizeApiError(e);
+      setError(message);
+      toast.error(message);
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
@@ -115,20 +134,24 @@ export default function AdminDamAlemBrand() {
     );
   }
 
+  if (!loaded) return <div role="alert" className="space-y-3 rounded-xl border bg-white p-4"><p>Не удалось загрузить профиль заведения. {error}</p><Button onClick={() => void load()}>Повторить загрузку</Button></div>;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-bold text-gray-900">Профиль заведения</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Фото, рейтинг и ETA — на странице /food. WhatsApp и мин. заказ для заказов — в вкладке «Настройки».
+            Название, фото и описание видны клиентам. Условия оформления заказа настраиваются во вкладке «Настройки».
           </p>
         </div>
-        <Button onClick={save} disabled={saving} className="bg-[#FF3B30] hover:bg-[#e8352b]">
+        <Button onClick={save} disabled={saving || photoUploading} className="bg-[#FF3B30] hover:bg-[#e8352b]">
           <Save className="mr-1 h-4 w-4" />
           {saving ? 'Сохранение...' : 'Сохранить'}
         </Button>
       </div>
+
+      {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-800">{error} Введённые изменения сохранены в форме.</p>}
 
       {!form.id && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
@@ -136,7 +159,7 @@ export default function AdminDamAlemBrand() {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+      <fieldset disabled={saving} className="grid min-w-0 gap-6 lg:grid-cols-[280px_1fr]">
         <div className="space-y-4">
           <div className="overflow-hidden rounded-2xl border bg-white p-4">
             <p className="mb-3 text-sm font-medium text-gray-700">Фото / логотип</p>
@@ -144,12 +167,8 @@ export default function AdminDamAlemBrand() {
               value={form.photo || ''}
               onChange={key => setForm(prev => ({ ...prev, photo: key }))}
               folder="food"
+              onUploadingChange={setPhotoUploading}
             />
-            {form.photo && (
-              <div className="mt-3 overflow-hidden rounded-xl">
-                <StorageImage objectKey={form.photo} alt={form.name || ''} className="aspect-square w-full object-cover" />
-              </div>
-            )}
           </div>
           <label className="flex items-center gap-2 rounded-xl border bg-white p-4 text-sm">
             <input
@@ -164,14 +183,14 @@ export default function AdminDamAlemBrand() {
         <div className="space-y-4">
           <div className="rounded-xl border bg-white p-4">
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Название *</label>
-            <Input value={form.name || ''} onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))} />
+            <Input aria-label="Название" value={form.name || ''} onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))} />
           </div>
 
           <div className="rounded-xl border bg-white p-4">
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Описание</label>
             <Textarea
               rows={3}
-              value={form.description || ''}
+              aria-label="Описание" value={form.description || ''}
               onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
               placeholder="Краткое описание для клиентов"
             />
@@ -183,7 +202,7 @@ export default function AdminDamAlemBrand() {
                 <Phone className="h-4 w-4 text-[#FF3B30]" /> WhatsApp
               </div>
               <Input
-                value={form.whatsapp_phone || ''}
+                aria-label="WhatsApp" value={form.whatsapp_phone || ''}
                 onChange={e => setForm(prev => ({ ...prev, whatsapp_phone: e.target.value }))}
                 placeholder="+77470304096"
               />
@@ -193,7 +212,7 @@ export default function AdminDamAlemBrand() {
                 <Clock className="h-4 w-4 text-[#FF3B30]" /> Время работы
               </div>
               <Input
-                value={form.working_hours || ''}
+                aria-label="Время работы" value={form.working_hours || ''}
                 onChange={e => setForm(prev => ({ ...prev, working_hours: e.target.value }))}
                 placeholder="10:00 – 23:00"
               />
@@ -203,7 +222,7 @@ export default function AdminDamAlemBrand() {
                 <Truck className="h-4 w-4 text-[#FF3B30]" /> Срок доставки
               </div>
               <Input
-                value={form.delivery_time || ''}
+                aria-label="Срок доставки" value={form.delivery_time || ''}
                 onChange={e => setForm(prev => ({ ...prev, delivery_time: e.target.value }))}
                 placeholder="35–45 мин"
               />
@@ -214,7 +233,7 @@ export default function AdminDamAlemBrand() {
               </div>
               <Input
                 type="number"
-                value={form.min_order ?? ''}
+                aria-label="Минимальный заказ" value={form.min_order ?? ''}
                 onChange={e => setForm(prev => ({ ...prev, min_order: Number(e.target.value) || 0 }))}
               />
             </div>
@@ -227,14 +246,14 @@ export default function AdminDamAlemBrand() {
                 step="0.1"
                 min={0}
                 max={5}
-                value={form.rating ?? ''}
+                aria-label="Рейтинг" value={form.rating ?? ''}
                 onChange={e => setForm(prev => ({ ...prev, rating: Number(e.target.value) || 0 }))}
               />
             </div>
             <div className="rounded-xl border bg-white p-4">
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Типы кухни</label>
               <Input
-                value={form.cuisine_type || ''}
+                aria-label="Типы кухни" value={form.cuisine_type || ''}
                 onChange={e => setForm(prev => ({ ...prev, cuisine_type: e.target.value }))}
                 placeholder="pizza,sushi,burgers"
               />
@@ -242,7 +261,7 @@ export default function AdminDamAlemBrand() {
             </div>
           </div>
         </div>
-      </div>
+      </fieldset>
     </div>
   );
 }

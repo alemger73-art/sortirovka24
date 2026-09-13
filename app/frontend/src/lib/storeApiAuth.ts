@@ -1,6 +1,7 @@
 import { getAccountToken } from '@/lib/accountApi';
 
-import { getPartnerToken, type PartnerType } from '@/lib/partnerAuthApi';
+import { type PartnerType } from '@/lib/partnerAuthApi';
+import { getRequestSessionToken } from './requestSession';
 
 /** JSON headers + account token for checkout; legacy admin token for admin API calls. */
 export function storeApiHeaders(admin = false, partnerType?: PartnerType): Record<string, string> {
@@ -13,18 +14,8 @@ export function storeApiHeaders(admin = false, partnerType?: PartnerType): Recor
   };
   try {
     if (admin) {
-      const platform = localStorage.getItem('_sp924_token');
-      if (platform) {
-        h.Authorization = `Bearer ${platform}`;
-        return h;
-      }
-      if (partnerType) {
-        const pt = getPartnerToken(partnerType);
-        if (pt) h.Authorization = `Bearer ${pt}`;
-      } else {
-        const legacy = localStorage.getItem('token');
-        if (legacy) h.Authorization = `Bearer ${legacy}`;
-      }
+      const token = getRequestSessionToken(partnerType);
+      if (token) h.Authorization = `Bearer ${token}`;
     } else {
       const account = getAccountToken();
       if (account) h.Authorization = `Bearer ${account}`;
