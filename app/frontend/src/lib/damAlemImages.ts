@@ -280,38 +280,14 @@ function uniqueUrls(urls: string[]): string[] {
 }
 
 export function resolveDamAlemItemImage(item: DishImageInput): string {
-  const chain = buildDamAlemImageChain(item);
-  return chain[0] ?? DAM_ALEM_CDN.food;
+  return resolveImageSrc(item.imageUrl || '') || '';
 }
 
 export function buildDamAlemImageChain(item: DishImageInput): string[] {
   const uploaded = resolveImageSrc(item.imageUrl || '');
-  const primaryCandidates: string[] = [];
-
-  if (uploaded) primaryCandidates.push(uploaded);
-
-  const name = item.name || '';
-  for (const rule of DISH_PHOTO_RULES) {
-    if (rule.test.test(name)) {
-      primaryCandidates.push(img(rule.photo));
-      break;
-    }
-  }
-
-  if (item.categorySlug) {
-    primaryCandidates.push(getCategoryImage(item.categorySlug));
-  }
-
-  const variants = [
-    img(PHOTOS.food),
-    img(PHOTOS.spread),
-    img(PHOTOS.pizzaAlt),
-  ];
-  primaryCandidates.push(variants[item.id % variants.length]);
-
-  return uniqueUrls([...primaryCandidates, ...DAM_ALEM_IMAGE_FALLBACKS]);
+  return uploaded ? [uploaded] : [];
 }
 
 export function buildImageFallbackChain(primary: string, extra: string[] = []): string[] {
-  return uniqueUrls([primary, ...extra, ...DAM_ALEM_IMAGE_FALLBACKS]);
+  return uniqueUrls([primary, ...extra]);
 }
