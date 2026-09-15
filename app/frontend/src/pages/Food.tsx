@@ -9,7 +9,7 @@ import { fetchWithCache } from '@/lib/cache';
 import {
   X, Truck, Store,
   MapPin, MessageSquare,
-  ArrowLeft, Check, CheckCircle2,
+  ArrowLeft, ArrowRight, Check, CheckCircle2,
   AlertCircle, Smartphone, Banknote, Coins, RotateCcw,
   Search, ShoppingCart, Clock, LayoutGrid, Heart, User,
 } from 'lucide-react';

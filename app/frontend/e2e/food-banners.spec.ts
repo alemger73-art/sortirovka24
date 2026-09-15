@@ -63,7 +63,7 @@ test('all banners are reachable, category and promo clicks work, search stays fo
   ]);
   await page.goto('/food', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.dam-market-brand strong')).toHaveText('DAM ALEM 2.0');
-  await expect(page.locator('.dam-market-offer__content')).toContainText('Доставка еды по Сортировке №1');
+  await expect(page.locator('.dam-market-offer__content')).toContainText('UFO-бургеры, пицца и любимые напитки');
   const track = page.getByTestId('food-banner-track');
   await expect(track.locator('.food-campaign')).toHaveCount(5);
   await expect(page.getByTestId('food-banner-6')).toHaveCount(0);
@@ -158,7 +158,7 @@ test('upload keeps edited text and saves a resolvable image key', async ({ page 
   await expect.poll(() => photo.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
 });
 
-test('responsive header, safe insets and configured hero fit all screen sizes', async ({ page }, info) => {
+test('responsive header, safe insets and compact banner fit all screen sizes', async ({ page }, info) => {
   await setup(page);
   await page.route('**/api/v1/entities/food_settings*', route => route.fulfill({ json: { items: [
     { setting_key: 'hero_banner_image', setting_value: 'banners/hero.jpg' },
@@ -166,8 +166,7 @@ test('responsive header, safe insets and configured hero fit all screen sizes', 
     { setting_key: 'kitchen_close', setting_value: '00:00' },
   ] } }));
   await page.goto('/food');
-  await expect(page.locator('.dam-market-offer__photo img')).toHaveAttribute('src', image);
-  await expect.poll(() => page.locator('.dam-market-offer__photo img').evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
+  await expect(page.locator('.dam-market-offer--compact')).toBeVisible();
   for (const width of [320, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.evaluate((native) => {
@@ -178,7 +177,7 @@ test('responsive header, safe insets and configured hero fit all screen sizes', 
     await expect(brand).toBeInViewport();
     await expect.poll(async () => (await brand.boundingBox())!.y).toBeGreaterThanOrEqual(width < 1024 ? 32 : 0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    for (const selector of ['.dam-market-header__main', '.dam-market-search', '.dam-market-cart-button', '.dam-market-offer', '.dam-market-offer__photo', '.dam-market-offer > button']) {
+    for (const selector of ['.dam-market-header__main', '.dam-market-search', '.dam-market-cart-button', '.dam-market-offer', '.dam-market-offer__cta']) {
       const box = await page.locator(selector).boundingBox();
       expect(box!.x).toBeGreaterThanOrEqual(0);
       expect(box!.x + box!.width).toBeLessThanOrEqual(width + 1);
@@ -194,9 +193,8 @@ test('responsive header, safe insets and configured hero fit all screen sizes', 
     const stored = parseFloat((document.querySelector('.dam-page') as HTMLElement).style.getPropertyValue('--dam-header-height'));
     return Math.abs(header.getBoundingClientRect().height - stored);
   })).toBeLessThan(1);
-  // Failed photo still leaves readable copy and a light, intentional background.
-  await page.locator('.dam-market-offer__photo img').dispatchEvent('error');
+  // Banner remains readable without a photo dependency.
   await expect(page.locator('.dam-market-offer__photo img')).toHaveCount(0);
   await expect(page.locator('.dam-market-offer h1')).toBeVisible();
-  await expect(page.locator('.dam-market-offer')).toHaveCSS('background-color', 'rgb(238, 233, 223)');
+  await expect(page.locator('.dam-market-offer')).toHaveCSS('background-color', 'rgb(250, 236, 224)');
 });

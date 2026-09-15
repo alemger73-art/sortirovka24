@@ -35,3 +35,27 @@ def test_disabled_code_rejected(flag):
 def test_expired_code_rejected_and_fraction_matches_browser():
  with pytest.raises(HTTPException):_resolve_promo('OLD',10000,{'promo_codes':json.dumps([{'code':'OLD','value':10,'valid_until':'2020-01-01'}])})
  assert _resolve_promo('ROUND',2505,{'promo_codes':json.dumps([{'code':'ROUND','value':10}])})==(251,False)
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('raw',['[]',json.dumps([dict(p,active=False,value=3) for p in PROMO_CODES])])
+async def test_restart_preserves_owner_promo_configuration(monkeypatch,raw):
+ from sqlalchemy.ext.asyncio import create_async_engine,async_sessionmaker
+ from sqlalchemy import select
+ from core.database import db_manager
+ from models.food_settings import Food_settings
+ from services.dam_alem_marketing_seed import ensure_dam_alem_marketing
+ engine=create_async_engine('sqlite+aiosqlite:///:memory:')
+ async with engine.begin() as c:await c.run_sync(Food_settings.__table__.create)
+ maker=async_sessionmaker(engine,expire_on_commit=False)
+ async with maker() as db:
+  db.add(Food_settings(setting_key='promo_codes',setting_value=raw,is_active=True));await db.commit()
+ async def noop(db):return 0
+ monkeypatch.delenv('DAM_ALEM_SEED_MARKETING',raising=False)
+ monkeypatch.setattr(db_manager,'async_session_maker',maker)
+ monkeypatch.setattr('services.dam_alem_marketing_seed._refresh_food_banner_images',noop)
+ monkeypatch.setattr('services.dam_alem_marketing_seed._ensure_food_banners',noop)
+ await ensure_dam_alem_marketing()
+ async with maker() as db:
+  row=await db.scalar(select(Food_settings).where(Food_settings.setting_key=='promo_codes'))
+  assert row.setting_value==raw
+ await engine.dispose()
