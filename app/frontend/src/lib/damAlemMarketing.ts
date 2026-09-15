@@ -109,7 +109,7 @@ export function defaultPromoSlides(opts: {
   }
   slides.push({
     title: 'Готовим после заказа',
-    lines: ['Пицца, донеры, шашлыки и комбо — горячими к подъезду'],
+    lines: ['UFO-бургеры, пицца и комбо — горячими к подъезду'],
   });
   return slides;
 }
@@ -165,7 +165,7 @@ export function buildMarketingStories(opts: {
     {
       id: 'hits',
       title: 'Хиты DAM ALEM 2.0',
-      subtitle: 'Пицца, донеры, шашлыки и комплексные обеды — всё в одном приложении',
+      subtitle: 'UFO-бургеры, пицца и напитки — всё в одном приложении',
       cta: 'Популярное',
       image: getCategoryImage('donery'),
       gradient: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',

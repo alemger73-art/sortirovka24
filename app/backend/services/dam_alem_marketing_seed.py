@@ -206,8 +206,9 @@ async def ensure_dam_alem_marketing(*, force: bool = False) -> Optional[Dict[str
                     should_set = not existing
             if key == "loyalty_gifts" and _is_legacy_default_gifts(existing):
                 should_set = True
-            if key == "promo_codes" and _is_legacy_default_promos(existing):
-                should_set = True
+            if key == "promo_codes" and key in current:
+                # Existing owner settings, including an empty list, are authoritative.
+                should_set = force
             if key == "promo_slides" and _is_legacy_promo_slides(existing):
                 should_set = True
             if should_set:

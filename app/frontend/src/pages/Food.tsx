@@ -2,7 +2,7 @@ import { useStoreTranslations, storeCheckoutBlockReason } from '@/i18n/storeTran
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
-import { FoodStoreHeader, FoodHeroPhoto } from '@/components/damalem/FoodStoreLayout';
+import { FoodStoreHeader } from '@/components/damalem/FoodStoreLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { client, withRetry } from '@/lib/api';
 import { fetchWithCache } from '@/lib/cache';
@@ -1983,33 +1983,18 @@ export default function Food() {
           <main className="dam-market-menu">
             <div className={PAGE_X}>
               {!searchQuery.trim() && <>
-              <section className="dam-market-offer">
-                <FoodHeroPhoto source={settings.hero_banner_image} />
-
+              <a className="dam-market-offer dam-market-offer--compact" href="#dam-menu"
+                onClick={event => {
+                  event.preventDefault();
+                  document.getElementById('dam-market-categories')?.scrollIntoView({behavior: 'smooth', block: 'start'});
+                }}>
                 <div className="dam-market-offer__content">
                   <span>{DAM_ALEM_BRAND}</span>
-                  <h1>{st("Любимые блюда. Хороший вечер.")}</h1>
-                  <p>
-                    {st(DAM_ALEM_TAGLINE)}
-                  </p>
+                  <h1>{st("Горячее. Свежее. Ваше.")}</h1>
+                  <p>{st("UFO-бургеры, пицца и любимые напитки")}</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (lastOrderPreview && cartCount === 0) {
-                      void (async () => {
-                        await loadModifiers();
-                        applyRepeatPayload(lastOrderPreview);
-                      })();
-                      return;
-                    }
-                    (document.getElementById('dam-market-categories') || document.getElementById('dam-menu'))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }}
-                >
-                  {lastOrderPreview && cartCount === 0 ? <RotateCcw className="h-4 w-4" /> : null}
-                  {lastOrderPreview && cartCount === 0 ? st("Повторить заказ") : st("Выбрать блюда")}
-                </button>
-              </section>
+                <span className="dam-market-offer__cta">{st("Выбрать блюда")} <ArrowRight className="h-4 w-4" aria-hidden="true" /></span>
+              </a>
 
               <section className="dam-market-benefits" aria-label={st("Преимущества {0}", [DAM_ALEM_BRAND])}>
                 <article>

@@ -288,23 +288,20 @@ def _resolve_promo(
 ) -> Tuple[float, bool]:
     """Return (discount, free_delivery) for a promo code."""
     promos = _parse_promo_codes(settings.get("promo_codes") or "[]")
-    if not promos:
-        from services.dam_alem_marketing_defaults import PROMO_CODES
-        promos = list(PROMO_CODES)
     matched = None
     for promo in promos:
         if not promo or not isinstance(promo, dict):
             continue
         if str(promo.get("code", "")).strip().upper() != code.strip().upper():
             continue
-        if promo.get("active") is False or str(promo.get("active", "")).lower() in ("0", "false"):
+        if promo.get("active") is False or str(promo.get("active", "")).lower() in ("0", "false", "no", "off"):
             continue
         matched = promo
         break
     if not matched:
         raise HTTPException(status_code=400, detail="Промокод не найден или недействителен")
 
-    today = date.today().isoformat()
+    today = datetime.now(timezone(timedelta(hours=5))).date().isoformat()
     valid_from = str(matched.get("valid_from") or "").strip()
     valid_until = str(matched.get("valid_until") or "").strip()
     if valid_from and today < valid_from:
@@ -320,13 +317,13 @@ def _resolve_promo(
         )
 
     ptype = str(matched.get("type") or "percent")
-    value = float(matched.get("value") or 0)
+    value = max(0.0, float(matched.get("value") or 0))
     if ptype == "free_delivery":
         return 0.0, True
     if ptype == "fixed":
         return min(subtotal, value), False
     pct = max(0.0, min(100.0, value))
-    discount = round(subtotal * (pct / 100.0))
+    discount = int(subtotal * (pct / 100.0) + 0.5)
     try:
         max_discount = max(0.0, float(matched.get("max_discount") or 0))
     except (TypeError, ValueError):

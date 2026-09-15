@@ -74,6 +74,7 @@ export default function DamAlemStickyPills({
                   key={p.id}
                   ref={active ? activeRef : undefined}
                   type="button"
+                  aria-current={active ? "true" : undefined}
                   onClick={() => onSelect(p.id)}
                   className={`dam-category-pill ${active ? 'dam-category-pill--active' : 'dam-category-pill--idle'}`}
                 >

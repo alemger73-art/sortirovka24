@@ -56,3 +56,33 @@ html.native-app .dam-page {
   .dam-page .dam-market-header__meta { font-size: .7rem; }
   .dam-page .dam-market-header__meta span:first-child { flex-basis: 100%; }
 }
+
+/* Compact, fully clickable menu entry. No stock food imagery. */
+.dam-page a.dam-market-offer--compact {
+  display: flex; flex-direction: row; align-items: center; justify-content: space-between;
+  min-height: 140px; gap: 20px; padding: 24px 28px; border-radius: 24px;
+  background: radial-gradient(ellipse at 100% 0%, #ffd4a5 0, transparent 58%), #faece0;
+  border: 1px solid #ead7c6; text-decoration: none; color: #342a24;
+  box-shadow: 0 8px 28px #512c1110; transition: box-shadow .2s, border-color .2s;
+}
+.dam-page a.dam-market-offer--compact:hover { border-color: #dba678; box-shadow: 0 10px 30px #512c1120; }
+.dam-page a.dam-market-offer--compact:focus-visible { outline: 3px solid #ef5b40; outline-offset: 4px; }
+.dam-page .dam-market-offer--compact h1 { font-size: clamp(1.4rem, 3vw, 2rem); max-width: none; line-height: 1.15; margin-top: 8px; color: inherit; }
+.dam-page .dam-market-offer--compact p { margin-top: 8px; font-size: .85rem; line-height: 1.45; color: #6c5545; }
+.dam-page .dam-market-offer--compact .dam-market-offer__cta { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 10px; padding: 13px 16px; border-radius: 14px; color: #fff; background: #b93624; font-size: .8rem; letter-spacing: 0; text-transform: none; }
+.dark .dam-page a.dam-market-offer--compact { background: radial-gradient(ellipse at 100% 0%, #583b2f 0, transparent 65%), #24272d; border-color: #494039; color: #fff3e8; box-shadow: 0 10px 26px #0002; }
+.dark .dam-page .dam-market-offer--compact p, .dark .dam-page .dam-market-offer--compact .dam-market-offer__content > span { color: #ddc6b4; }
+.dark .dam-page .dam-market-offer--compact .dam-market-offer__cta { background: #f7bc8b; color: #30251f; }
+.dark .dam-page #dam-market-categories.dam-sticky-pills { background: rgba(21,27,35,.97); border-color: #303c48; box-shadow: 0 8px 22px #0003; }
+.dark .dam-page .dam-category-pill--idle { background: #26313d; border: 1px solid #3c4855; color: #e1e7ed; box-shadow: none; }
+.dark .dam-page .dam-category-pill--idle:hover { background: #33404d; color: #fff; }
+.dark .dam-page .dam-category-pill--active { background: #f7bc8b; color: #2d241d; border: 1px solid #ffd3ad; box-shadow: 0 3px 12px #f7bc8b20; }
+.dam-page .dam-category-pill { transition: background-color .18s, color .18s, box-shadow .18s; }
+.dam-page .dam-category-pill:focus-visible { outline: 2px solid #ef8c62; outline-offset: 2px; }
+@media(max-width:639px) {
+ .dam-page a.dam-market-offer--compact { min-height: 150px; padding: 20px; gap: 16px; flex-wrap: wrap; border-radius: 20px; }
+ .dam-page .dam-market-offer--compact .dam-market-offer__content { flex-basis: 100%; }
+ .dam-page .dam-market-offer--compact .dam-market-offer__cta { padding: 10px 13px; min-height: 42px; }
+}
+@media(prefers-reduced-motion:reduce) { .dam-page a.dam-market-offer--compact, .dam-page .dam-category-pill { transition: none; } }
+

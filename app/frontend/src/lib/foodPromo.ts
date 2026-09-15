@@ -48,11 +48,7 @@ export function newPromoCode(): FoodPromoCode {
 
 export function isPromoCurrent(promo: FoodPromoCode, today = new Date()): boolean {
   if (promo.active === false) return false;
-  const date = [
-    today.getFullYear(),
-    String(today.getMonth() + 1).padStart(2, '0'),
-    String(today.getDate()).padStart(2, '0'),
-  ].join('-');
+  const date = new Intl.DateTimeFormat('en-CA', {timeZone: 'Asia/Almaty', year: 'numeric', month: '2-digit', day: '2-digit'}).format(today);
   if (promo.valid_from && date < promo.valid_from) return false;
   if (promo.valid_until && date > promo.valid_until) return false;
   return true;

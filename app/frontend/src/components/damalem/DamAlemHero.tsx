@@ -100,7 +100,7 @@ export default function DamAlemHero({
           <div className="mt-auto space-y-4 lg:space-y-5">
             <div className="space-y-2">
               <h1 className="dam-hero-headline">{headline}</h1>
-              <p className="dam-hero-support">{st("Пицца · донеры · шашлыки · комбо — готовим после вашего заказа")}</p>
+              <p className="dam-hero-support">{st("UFO-бургеры · пицца · напитки — готовим после вашего заказа")}</p>
             </div>
 
             <div className="flex flex-wrap gap-2 lg:gap-2.5">

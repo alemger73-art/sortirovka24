@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timezone, timedelta
 from typing import Optional
 
 from core.admin_guard import require_panel_admin
 from core.database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from services.food_settings import Food_settingsService
 from services.gastronom_delivery import (
     DEFAULT_STORE_LAT,
@@ -28,7 +28,7 @@ class DeliveryQuoteRequest(BaseModel):
     address: Optional[str] = None
     lat: Optional[float] = None
     lng: Optional[float] = None
-    cart_subtotal: Optional[float] = None
+    cart_subtotal: Optional[float] = Field(None, ge=0, allow_inf_nan=False)
 
 
 def _normalize_food_delivery_settings(raw: dict[str, str]) -> dict[str, str]:
@@ -117,7 +117,7 @@ def _parse_promo_codes(raw: str) -> list[dict]:
 
 class PromoValidateRequest(BaseModel):
     code: str
-    cart_subtotal: Optional[float] = None
+    cart_subtotal: Optional[float] = Field(None, ge=0, allow_inf_nan=False)
 
 
 @router.post("/validate-promo")
@@ -140,22 +140,19 @@ async def validate_promo(
     svc = Food_settingsService(db)
     settings = await svc.get_all_as_dict()
     promos = _parse_promo_codes(settings.get("promo_codes") or "[]")
-    if not promos:
-        from services.dam_alem_marketing_defaults import PROMO_CODES
-        promos = list(PROMO_CODES)
     matched = None
     for p in promos:
         if not p or not isinstance(p, dict):
             continue
         if str(p.get("code", "")).strip().upper() != code:
             continue
-        if p.get("active") is False or str(p.get("active", "")).lower() in ("0", "false"):
+        if p.get("active") is False or str(p.get("active", "")).lower() in ("0", "false", "no", "off"):
             continue
         matched = p
         break
     if not matched:
         raise HTTPException(status_code=404, detail="Промокод не найден или недействителен")
-    today = date.today().isoformat()
+    today = datetime.now(timezone(timedelta(hours=5))).date().isoformat()
     valid_from = str(matched.get("valid_from") or "").strip()
     valid_until = str(matched.get("valid_until") or "").strip()
     if valid_from and today < valid_from:
@@ -169,7 +166,7 @@ async def validate_promo(
             detail=f"Промокод действует от {int(min_order):,} ₸".replace(",", " "),
         )
     ptype = str(matched.get("type") or "percent")
-    value = float(matched.get("value") or 0)
+    value = max(0.0, float(matched.get("value") or 0))
     discount = 0.0
     free_delivery = False
     pct = 0.0
@@ -179,7 +176,7 @@ async def validate_promo(
         discount = min(subtotal, value)
     else:
         pct = max(0.0, min(100.0, value))
-        discount = round(subtotal * (pct / 100.0))
+        discount = int(subtotal * (pct / 100.0) + 0.5)
         try:
             max_discount = max(0.0, float(matched.get("max_discount") or 0))
         except (TypeError, ValueError):
