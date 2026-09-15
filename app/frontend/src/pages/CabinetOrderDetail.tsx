@@ -1,4 +1,3 @@
-import PrintReceiptButton from '@/components/PrintReceiptButton';
 import { getPublicLocale } from '@/i18n/publicLocale';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -193,7 +192,6 @@ export default function CabinetOrderDetail() {
               {!!order.receipt_changes?.length && <details><summary className="cursor-pointer font-semibold">{t('workflow.history')}</summary>{order.receipt_changes.map((change: any) => <div key={change.revision} className="border-t py-3 space-y-2 text-sm"><p>{formatOrderDate(change.created_at)} · {change.reason}</p><div className="grid sm:grid-cols-2 gap-3">{(['before','after'] as const).map(side => <div key={side}><strong>{t(`workflow.${side}`)}: {change[side].total_amount} ₸</strong>{change[side].items.map((x: any,i: number) => <p key={i}>{x.name} × {x.quantity}</p>)}</div>)}</div></div>)}</details>}
             </div>}
 
-            <PrintReceiptButton order={order} />
             {items.length > 0 && (
               <div className="rounded-2xl border bg-white p-6 shadow-sm dark:bg-gray-900 dark:border-gray-800">
                 <h2 className="font-bold text-gray-900 dark:text-white mb-3">{publicT("public.extra.4")}</h2>
