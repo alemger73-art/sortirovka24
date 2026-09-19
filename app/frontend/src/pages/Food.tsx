@@ -1795,14 +1795,6 @@ export default function Food() {
     price: item.price,
   }));
 
-  const orderPaymentHint = orderSuccess
-    ? orderSuccess.paymentMethod === 'cash'
-      ? t('food.guide.payCash')
-      : orderSuccess.paymentMethod === 'kaspi_qr'
-        ? t('food.guide.payKaspi')
-        : t('food.guide.payHalyk')
-    : '';
-
   function renderNavButton(tab: DamTab, Icon: typeof LayoutGrid, label: string, compact = false) {
     const isActive = activeTab === tab;
     return (
@@ -1874,23 +1866,6 @@ export default function Food() {
                   <span className="text-right font-medium">{orderSuccess.deliveryMethod === 'pickup' ? st('Самовывоз') : orderSuccess.address}</span>
                 </div>
               </div>
-              {orderSuccess.paymentMethod !== 'cash' && (
-                <div className="mt-4 rounded-2xl border border-gray-100 p-4 text-center">
-                  <p className="text-sm font-semibold text-gray-800">{st(PAYMENT_LABELS[orderSuccess.paymentMethod])}</p>
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`DAMALEM:${orderSuccess.id};TOTAL:${orderSuccess.total};PAY:${orderSuccess.paymentMethod}`)}`}
-                    alt={st("QR оплаты")}
-                    className="mx-auto mt-3 h-48 w-48 rounded-xl ring-1 ring-gray-100"
-                  />
-                  <p className="mt-2 text-xs text-gray-400">{st("Покажите QR при получении заказа")}</p>
-                </div>
-              )}
-              {orderPaymentHint && (
-                <div className="mt-4 rounded-2xl border border-red-100 bg-red-50/50 p-4">
-                  <p className="text-sm font-semibold text-[#111111] mb-1">{t('food.guide.howToPay')}</p>
-                  <p className="text-sm text-[#555555] leading-relaxed">{orderPaymentHint}</p>
-                </div>
-              )}
               <div className="mt-5 space-y-2">
                 {orderSuccess.deliveryMethod === 'delivery' && orderSuccess.id > 0 && (
                   <Link
