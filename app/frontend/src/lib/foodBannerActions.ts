@@ -1,5 +1,6 @@
 /** One explicit action contract shared by storefront and banner editor. */
 export type FoodBannerAction =
+  | { type: 'product'; itemId: number }
   | { type: 'category'; slug: string }
   | { type: 'promo'; code: string; categorySlug?: string }
   | { type: 'popular' }
@@ -38,6 +39,8 @@ export function resolveFoodBannerAction(banner: FoodBannerLike): FoodBannerActio
   new URLSearchParams(hash).forEach((value, key) => params.set(key, value));
   const code = (params.get('promo') || params.get('code') || '').trim().toUpperCase();
   const slug = (params.get('category') || params.get('cat') || '').trim().toLowerCase();
+  const itemId = Number(params.get('product') || params.get('item'));
+  if (Number.isSafeInteger(itemId) && itemId > 0) return { type: 'product', itemId };
   if (code) return { type: 'promo', code, categorySlug: slug || undefined };
   if (slug) return { type: 'category', slug };
   const section = params.get('section') || hash;
@@ -48,6 +51,7 @@ export function resolveFoodBannerAction(banner: FoodBannerLike): FoodBannerActio
 export function foodBannerActionUrl(action: FoodBannerAction): string {
   if (action.type === 'link') return action.url.trim();
   if (action.type === 'menu') return '/food';
+  if (action.type === 'product') return `/food#product=${action.itemId}`;
   if (action.type === 'category') return `/food#category=${encodeURIComponent(action.slug)}`;
   if (action.type === 'promo') return `/food#promo=${encodeURIComponent(action.code.trim().toUpperCase())}${action.categorySlug ? `&category=${encodeURIComponent(action.categorySlug)}` : ''}`;
   return `/food#${action.type}`;
@@ -56,6 +60,7 @@ export function foodBannerActionUrl(action: FoodBannerAction): string {
 export function foodBannerCtaLabel(action: FoodBannerAction, custom?: string): string {
   if (custom?.trim()) return custom.trim();
   switch (action.type) {
+    case 'product': return 'В корзину';
     case 'promo': return `Применить ${action.code}`;
     case 'category': return 'Выбрать блюда';
     case 'popular': return 'Смотреть хиты';
@@ -67,6 +72,7 @@ export function foodBannerCtaLabel(action: FoodBannerAction, custom?: string): s
 
 export function foodBannerActionDescription(action: FoodBannerAction): string {
   switch (action.type) {
+    case 'product': return 'Добавление готового комбо в корзину';
     case 'category': return `Откроется категория «${action.slug}»`;
     case 'promo': return `Будет проверен и применён промокод ${action.code}`;
     case 'popular': return 'Переход к популярным блюдам';

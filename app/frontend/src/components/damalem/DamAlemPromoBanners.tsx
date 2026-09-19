@@ -15,6 +15,14 @@ export interface FoodBanner {
   button_url?: string;
 }
 
+export interface FoodBannerProduct {
+  id: number;
+  name: string;
+  description?: string;
+  price: number;
+  image_url?: string;
+}
+
 function BannerImage({ source }: { source: string }) {
   const [url, setUrl] = useState('');
   useEffect(() => {
@@ -26,28 +34,31 @@ function BannerImage({ source }: { source: string }) {
   return url ? <img src={url} alt="" loading="lazy" className="food-campaign__image" onError={() => setUrl('')} /> : null;
 }
 
-export function FoodBannerCard({ banner, onAction }: { banner: FoodBanner; onAction: (action: FoodBannerAction, banner: FoodBanner) => void }) {
+export function FoodBannerCard({ banner, onAction, product, formatPrice }: { banner: FoodBanner; onAction: (action: FoodBannerAction, banner: FoodBanner) => void; product?: FoodBannerProduct; formatPrice?: (price: number) => string }) {
   const st = useStoreTranslations();
 
   const action = resolveFoodBannerAction(banner);
   const label = banner.button_text?.trim() || (action.type === 'promo'
     ? st('Применить {0}', [action.code]) : st(foodBannerCtaLabel(action)));
-  const eyebrow = action.type === 'promo' ? st("Промокод {0}", [action.code]) : action.type === 'gifts' ? st("К вашему заказу") : action.type === 'category' ? st("Выберите своё") : st("DAM ALEM 2.0 рекомендует");
+  const eyebrow = action.type === 'product' ? st('Готовое комбо') : action.type === 'promo' ? st("Промокод {0}", [action.code]) : action.type === 'gifts' ? st("К вашему заказу") : action.type === 'category' ? st("Выберите своё") : st("DAM ALEM 2.0 рекомендует");
+  const title = banner.title || product?.name || '';
+  const subtitle = product ? `${product.description || ''}${product.price > 0 ? `${product.description ? ' · ' : ''}${formatPrice ? formatPrice(product.price) : `${product.price} ₸`}` : ''}` : (banner.subtitle || banner.banner_text || '');
+  const imageSource = product?.image_url || banner.image_url;
   return (
-    <button type="button" className={`food-campaign food-campaign--${action.type}`} onClick={() => onAction(action, banner)} aria-label={`${banner.title}. ${label}`} data-testid={`food-banner-${banner.id}`}>
-      {banner.image_url ? <BannerImage source={banner.image_url} /> : <span className="food-campaign__decoration" aria-hidden="true" />}
+    <button type="button" className={`food-campaign food-campaign--${action.type}`} onClick={() => onAction(action, banner)} aria-label={`${title}. ${label}`} data-testid={`food-banner-${banner.id}`}>
+      {imageSource ? <BannerImage source={imageSource} /> : <span className="food-campaign__decoration" aria-hidden="true" />}
       <span className="food-campaign__shade" />
       <span className="food-campaign__content">
         <span className="food-campaign__eyebrow">{eyebrow}</span>
-        <span className="food-campaign__title">{banner.title}</span>
-        {(banner.subtitle || banner.banner_text) && <span className="food-campaign__subtitle">{banner.subtitle || banner.banner_text}</span>}
+        <span className="food-campaign__title">{title}</span>
+        {subtitle && <span className="food-campaign__subtitle">{subtitle}</span>}
         <span className="food-campaign__cta">{label}{action.type === 'link' ? <ExternalLink aria-hidden="true" /> : <ArrowRight aria-hidden="true" />}</span>
       </span>
     </button>
   );
 }
 
-export default function DamAlemPromoBanners({ banners, onAction }: { banners: FoodBanner[]; onAction: (action: FoodBannerAction, banner: FoodBanner) => void }) {
+export default function DamAlemPromoBanners({ banners, onAction, products = [], formatPrice }: { banners: FoodBanner[]; onAction: (action: FoodBannerAction, banner: FoodBanner) => void; products?: FoodBannerProduct[]; formatPrice?: (price: number) => string }) {
   const st = useStoreTranslations();
 
   const track = useRef<HTMLDivElement>(null);
@@ -82,16 +93,20 @@ export default function DamAlemPromoBanners({ banners, onAction }: { banners: Fo
   return (
     <section className="food-campaigns" aria-label={st("Предложения DAM ALEM 2.0")}>
       <div className="food-campaigns__heading">
-        <div><p>{st("К хорошему заказу")}</p><h2>{st("Есть повод попробовать")}</h2></div>
+        <div><p>{st("Собрали вкусное за вас")}</p><h2>{st("Готовые комбо")}</h2></div>
         {banners.length > 1 && <div className="food-campaigns__controls">
           <button type="button" aria-label={st("Предыдущие предложения")} disabled={position === 0} onClick={() => move(-1)}><ArrowLeft /></button>
           <button type="button" aria-label={st("Следующие предложения")} disabled={atEnd} onClick={() => move(1)}><ArrowRight /></button>
         </div>}
       </div>
       <div ref={track} onScroll={sync} className="food-campaigns__track" tabIndex={0} aria-label={st("Листайте предложения")} data-testid="food-banner-track">
-        {banners.map(banner => <FoodBannerCard key={banner.id} banner={banner} onAction={onAction} />)}
+        {banners.map(banner => {
+          const action = resolveFoodBannerAction(banner);
+          const product = action.type === 'product' ? products.find(item => item.id === action.itemId) : undefined;
+          return <FoodBannerCard key={banner.id} banner={banner} onAction={onAction} product={product} formatPrice={formatPrice} />;
+        })}
       </div>
-      {banners.length > 1 && <p className="food-campaigns__hint">{st("Предложений:")} {banners.length}  {st("· нажмите на карточку, чтобы открыть")}</p>}
+      {banners.length > 1 && <p className="food-campaigns__hint">{st("Наборов:")} {banners.length}  {st("· нажмите на карточку, чтобы добавить в корзину")}</p>}
     </section>
   );
 }

@@ -9,7 +9,7 @@ import { invalidateAllCaches } from '@/lib/cache';
 import { bumpFoodMenuVersion } from '@/lib/foodCartStorage';
 import { parsePromoCodes, isPromoCurrent } from '@/lib/foodPromo';
 import { foodBannerActionUrl, isFoodBanner, resolveFoodBannerAction, safeBannerLink, type FoodBannerAction } from '@/lib/foodBannerActions';
-import { FoodBannerCard } from '@/components/damalem/DamAlemPromoBanners';
+import { FoodBannerCard, type FoodBannerProduct } from '@/components/damalem/DamAlemPromoBanners';
 import ImageUpload from '@/components/ImageUpload';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,7 @@ interface Banner extends BannerPayload { id: number }
 interface Category { id: number; name: string; slug?: string; restaurant_id?: number; is_active?: boolean }
 function getactions(adminT: (key: string) => string) {
   const actions: { type: FoodBannerAction['type']; label: string }[] = [
+  { type: 'product', label: 'Готовое комбо в корзину' },
   { type: 'menu', label: adminT("admin.ui.0260") }, { type: 'category', label: adminT("admin.ui.0261") },
   { type: 'promo', label: adminT("admin.ui.0262") }, { type: 'popular', label: adminT("admin.ui.0263") },
   { type: 'gifts', label: adminT("admin.ui.0264") }, { type: 'link', label: adminT("admin.ui.0265") },
@@ -38,6 +39,7 @@ export default function AdminDamAlemBanners() {
   const foodBannerCtaLabel = (value: FoodBannerAction): string => {
     switch (value.type) {
       case 'promo': return adminT('admin.banner.applyCode').replace('{code}', () => value.code);
+      case 'product': return 'В корзину';
       case 'category': return adminT('admin.banner.chooseDishes');
       case 'popular': return adminT('admin.banner.viewPopular');
       case 'gifts': return adminT('admin.banner.viewGifts');
@@ -48,6 +50,7 @@ export default function AdminDamAlemBanners() {
   const foodBannerActionDescription = (value: FoodBannerAction): string => {
     switch (value.type) {
       case 'category': return adminT('admin.banner.categoryDestination').replace('{name}', () => value.slug);
+      case 'product': return 'Добавление выбранного комбо в корзину';
       case 'promo': return adminT('admin.banner.promoDestination').replace('{code}', () => value.code);
       case 'popular': return adminT('admin.banner.popularDestination');
       case 'gifts': return adminT('admin.banner.giftsDestination');
@@ -59,6 +62,7 @@ export default function AdminDamAlemBanners() {
 
   const [items, setItems] = useState<Banner[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [comboItems, setComboItems] = useState<FoodBannerProduct[]>([]);
   const [promos, setPromos] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -80,11 +84,13 @@ export default function AdminDamAlemBanners() {
   useEffect(() => {
     void reload();
     let alive = true;
-    Promise.all([fetchFoodRestaurantsList(), client.entities.food_categories.query({ limit: 500 }), client.entities.food_settings.query({ limit: 200 })])
-      .then(([restaurants, cats, settings]) => {
+    Promise.all([fetchFoodRestaurantsList(), client.entities.food_categories.query({ limit: 500 }), client.entities.food_settings.query({ limit: 200 }), client.entities.food_items.query({ limit: 1000 })])
+      .then(([restaurants, cats, settings, foodItems]) => {
         if (!alive) return;
         const id = findDamAlemRestaurantId(restaurants);
         setCategories((cats.data.items as Category[]).filter(c => c.is_active !== false && (id == null || c.restaurant_id == null || c.restaurant_id === id)));
+        setComboItems((foodItems.data.items as Array<FoodBannerProduct & { restaurant_id?: number | null; is_combo?: boolean; is_active?: boolean; available?: boolean }>)
+          .filter(item => item.is_combo && item.is_active !== false && item.available !== false && (id == null || item.restaurant_id == null || item.restaurant_id === id)));
         const raw = settings.data.items.find((s: { setting_key: string }) => s.setting_key === 'promo_codes')?.setting_value;
         setPromos(parsePromoCodes(raw).filter(p => isPromoCurrent(p)).map(p => p.code));
       }).catch(() => { if (alive) setLookupWarning(adminT("admin.ui.0267")); });
@@ -111,6 +117,7 @@ export default function AdminDamAlemBanners() {
     else if (draft.title.trim().length > 70) message = adminT("admin.ui.0270");
     else if ((draft.subtitle || '').length > 160) message = adminT("admin.ui.0271");
     else if ((draft.button_text || '').length > 40) message = adminT("admin.ui.0272");
+    else if (action.type === 'product' && !comboItems.some(item => item.id === action.itemId)) message = 'Выберите активное комбо из меню.';
     else if (action.type === 'category' && !categories.some(c => categorySlug(c) === action.slug)) message = adminT("admin.ui.0273");
     else if (action.type === 'promo' && !action.code.trim()) message = adminT("admin.ui.0274");
     else if (action.type === 'promo' && !/^[A-ZА-ЯЁ0-9_-]{1,40}$/i.test(action.code.trim())) message = adminT("admin.ui.0275");
@@ -126,10 +133,10 @@ export default function AdminDamAlemBanners() {
     void mutate(() => draft.id ? updateBanner(draft.id, payload) : createBanner({ ...payload, created_at: new Date().toISOString() }), draft.active ? adminT("admin.ui.0277") : adminT("admin.ui.0278"), () => setDraft(null));
   };
   const chooseAction = (type: FoodBannerAction['type']) => {
-    setAction(type === 'category' ? { type, slug: '' } : type === 'promo' ? { type, code: '' } : type === 'link' ? { type, url: '' } : { type });
+    setAction(type === 'product' ? { type, itemId: comboItems[0]?.id || 0 } : type === 'category' ? { type, slug: '' } : type === 'promo' ? { type, code: '' } : type === 'link' ? { type, url: '' } : { type });
     setDraft(current => current ? { ...current, button_text: '' } : null);
   };
-  const describe = (value: FoodBannerAction) => value.type === 'category' ? adminT("admin.extra.1269").replace('{0}', () => String(categories.find(c => categorySlug(c) === value.slug)?.name || value.slug)) : foodBannerActionDescription(value);
+  const describe = (value: FoodBannerAction) => value.type === 'product' ? `В корзину добавится «${comboItems.find(item => item.id === value.itemId)?.name || 'выберите комбо'}»` : value.type === 'category' ? adminT("admin.extra.1269").replace('{0}', () => String(categories.find(c => categorySlug(c) === value.slug)?.name || value.slug)) : foodBannerActionDescription(value);
   const preview = draft ? { id: draft.id || 0, title: draft.title || adminT("admin.ui.0279"), subtitle: draft.subtitle, image_url: draft.image_url, button_text: draft.button_text, button_url: foodBannerActionUrl(action) } : null;
 
   return (
@@ -162,6 +169,7 @@ export default function AdminDamAlemBanners() {
           {draft && preview && <form onSubmit={e => { e.preventDefault(); save(); }} className="grid gap-6 md:grid-cols-2">
             <fieldset disabled={busy} className="min-w-0 space-y-4">
               <div><label htmlFor="banner-action" className="mb-1 block text-sm font-medium">{adminT("admin.ui.0294")}</label><select id="banner-action" className={selectClass} value={action.type} onChange={e => chooseAction(e.target.value as FoodBannerAction['type'])}>{actions.map(a => <option key={a.type} value={a.type}>{a.label}</option>)}</select></div>
+              {action.type === 'product' && <div><label htmlFor="banner-product" className="mb-1 block text-sm font-medium">Комбо из меню</label><select id="banner-product" className={selectClass} value={action.itemId || ''} onChange={e => setAction({ type: 'product', itemId: Number(e.target.value) })}><option value="">Выберите комбо</option>{comboItems.map(item => <option key={item.id} value={item.id}>{item.name} · {Number(item.price).toLocaleString('ru-RU')} ₸</option>)}</select><p className="mt-1 text-xs text-gray-500">Цена, состав и наличие берутся из карточки товара в разделе «Меню и акции».</p></div>}
               {action.type === 'category' && <div><label htmlFor="banner-category" className="mb-1 block text-sm font-medium">{adminT("admin.ui.0231")}</label><select id="banner-category" className={selectClass} value={action.slug} onChange={e => setAction({ type: 'category', slug: e.target.value })}><option value="">{adminT("admin.ui.0295")}</option>{action.slug && !categories.some(c => categorySlug(c) === action.slug) && <option value={action.slug}>{action.slug} {adminT("admin.ui.0296")}</option>}{categories.map(c => <option key={c.id} value={categorySlug(c)}>{c.name}</option>)}</select></div>}
               {action.type === 'promo' && <div><label htmlFor="banner-code" className="mb-1 block text-sm font-medium">{adminT("admin.ui.0297")}</label><Input id="banner-code" list="banner-known-promos" maxLength={40} value={action.code} onChange={e => setAction({ type: 'promo', code: e.target.value.toUpperCase() })} placeholder={adminT("admin.ui.0298")} /><datalist id="banner-known-promos">{promos.map(code => <option key={code} value={code} />)}</datalist><p className="mt-1 text-xs text-gray-500">{adminT("admin.ui.0299")}</p></div>}
               {action.type === 'link' && <div><label htmlFor="banner-url" className="mb-1 block text-sm font-medium">{adminT("admin.ui.0113")}</label><Input id="banner-url" value={action.url} onChange={e => setAction({ type: 'link', url: e.target.value })} placeholder={adminT("admin.ui.0300")} /><p className="mt-1 text-xs text-gray-500">{adminT("admin.ui.0301")}</p></div>}
@@ -170,7 +178,7 @@ export default function AdminDamAlemBanners() {
               <div><label htmlFor="banner-cta" className="mb-1 block text-sm font-medium">{adminT("admin.ui.0124")}</label><Input id="banner-cta" maxLength={40} value={draft.button_text || ''} onChange={e => setDraft({ ...draft, button_text: e.target.value })} placeholder={foodBannerCtaLabel(action)} /><p className="mt-1 text-xs text-gray-500">{adminT("admin.ui.0307")}</p></div>
               <div><p className="mb-1 text-sm font-medium">{adminT("admin.ui.0308")}</p><p className="mb-2 text-xs text-gray-500">{adminT("admin.ui.0309")}</p><ImageUpload value={draft.image_url || ''} onUploadingChange={setUploading} onChange={image_url => setDraft(current => current ? { ...current, image_url } : null)} folder="banners" /></div>
             </fieldset>
-            <div className="min-w-0 space-y-4"><div className="md:sticky md:top-0"><p className="mb-3 text-sm font-semibold text-gray-600">{adminT("admin.ui.0310")}</p><FoodBannerCard banner={preview} onAction={() => toast.info(describe(action))} /><p className="mt-3 rounded-xl bg-gray-50 p-3 text-sm text-gray-600 break-words">{describe(action)}</p><p className="mt-2 text-xs text-gray-500">{adminT("admin.ui.0311")}</p>
+            <div className="min-w-0 space-y-4"><div className="md:sticky md:top-0"><p className="mb-3 text-sm font-semibold text-gray-600">{adminT("admin.ui.0310")}</p><FoodBannerCard banner={preview} onAction={() => toast.info(describe(action))} product={action.type === 'product' ? comboItems.find(item => item.id === action.itemId) : undefined} formatPrice={price => `${price.toLocaleString('ru-RU')} ₸`} /><p className="mt-3 rounded-xl bg-gray-50 p-3 text-sm text-gray-600 break-words">{describe(action)}</p><p className="mt-2 text-xs text-gray-500">{adminT("admin.ui.0311")}</p>
               <label className="mt-5 flex items-start gap-3 rounded-xl border p-4"><input type="checkbox" className="mt-1 h-4 w-4 accent-emerald-800" checked={draft.active ?? false} disabled={busy} onChange={e => setDraft({ ...draft, active: e.target.checked })} /><span><strong className="text-sm">{adminT("admin.ui.0312")}</strong><span className="mt-1 block text-xs text-gray-500">{adminT("admin.ui.0313")}</span></span></label>
             </div></div>
             {formError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-800 md:col-span-2">{formError}</p>}
