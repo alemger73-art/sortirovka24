@@ -29,3 +29,39 @@ test('owner downloads the selected report',async({page})=>{
  const download=page.waitForEvent('download');await page.getByRole('button',{name:'Скачать CSV',exact:true}).click();
  expect((await download).suggestedFilename()).toBe('DAM-ALEM-2026-09-13-2026-09-13.csv');
 });
+
+
+test('operator delivery board shows courier and opens the matching order', async ({page}, info) => {
+ await setup(page, 'operator');
+ await page.route('**/operations/deliveries', r => r.fulfill({json:{items:[{order_id:71,status:'ready',delivery_status:'assigned',address:'Длинный адрес доставки, дом 12, квартира 40',customer_name:'Клиент',amount_due:1800,courier_name:'Курьер Арман',courier_phone:'+77001111111'}]}}));
+ await page.goto('/partner/dam-alem?section=deliveries');
+ await expect(page.getByText('Курьер Арман',{exact:true})).toBeVisible();
+ await expect(page.getByRole('link',{name:'+77001111111'})).toHaveAttribute('href','tel:+77001111111');
+ await expect(page.getByRole('link',{name:'Кабинет курьера',exact:true})).toHaveAttribute('href','/cabinet/courier');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+ await page.screenshot({path:info.outputPath('deliveries.png'),fullPage:true});
+ await page.getByRole('button',{name:'Открыть заказ',exact:true}).click();
+ await expect(page).toHaveURL(/order=71/);
+});
+
+
+test('courier keeps a profile draft when the cabinet refreshes', async ({page}) => {
+ await page.addInitScript(()=>{localStorage.setItem('app_lang','ru');localStorage.setItem('account_token','test');localStorage.setItem('account_user_profile',JSON.stringify({id:'courier',name:'Курьер',role:'user'}));sessionStorage.setItem('s24_welcome_done','1');});
+ let reads=0;
+ await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
+ await page.route('**/api/**', async r=>{
+  const path=new URL(r.request().url()).pathname;let json:unknown={items:[],total:0};
+  if(path.endsWith('/account/me'))json={id:'courier',name:'Курьер',role:'user'};
+  if(path.endsWith('/courier/access'))json={can_access_cabinet:true,is_courier:true,status:'approved'};
+  if(path.endsWith('/courier/cabinet')) {reads++;json={profile:{verified:true,online:true,phone:'+77001111111',vehicle_type:'bike',rating:5,deliveries_count:0},offered_task:null,active_task:null,available_tasks:[],task_history:[],earnings:0,status_flow:{}};}
+  await r.fulfill({json});
+ });
+ await page.goto('/cabinet/courier');
+ const phone=page.getByRole('textbox').last();
+ await expect(phone).toHaveValue('+77001111111');
+ await phone.fill('+77002222222');
+ const before=reads;
+ await expect.poll(()=>reads,{timeout:10000}).toBeGreaterThan(before);
+ await expect(phone).toHaveValue('+77002222222');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});

@@ -1,3 +1,4 @@
+import DamDeliveries from './DamDeliveries';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -19,7 +20,7 @@ import { foodBusiness as business } from '@/lib/foodOperations';
 import { DamToday, DamFinance, DamStaff, DamAvailability } from './DamAlemBusiness';
 import AdminPartnerAccess from '@/components/partner/AdminPartnerAccess';
 
-type Section = 'payroll' | 'brand' | 'menu' | 'categories' | 'modifiers' | 'orders' | 'settings' | 'banners' | 'pos' | 'telegram' | 'today' | 'sales' | 'staff' | 'availability';
+type Section = 'deliveries' | 'payroll' | 'brand' | 'menu' | 'categories' | 'modifiers' | 'orders' | 'settings' | 'banners' | 'pos' | 'telegram' | 'today' | 'sales' | 'staff' | 'availability';
 
 interface AdminDamAlemProps {
   initialSection?: Section;
@@ -29,6 +30,7 @@ interface AdminDamAlemProps {
 
 function getTABS(adminT: (key: string) => string) {
   const TABS: { id: Section; label: string; icon: typeof Utensils }[] = [
+  { id: 'deliveries', label: adminT('cabinet.deliveries'), icon: ShoppingBag },
   { id: 'today', label: adminT("admin.ui.0235"), icon: Store },
   { id: 'sales', label: adminT("payroll.salesReport"), icon: ShoppingBag },
   { id: 'payroll', label: adminT('payroll.title'), icon: Store },
@@ -57,28 +59,28 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
   const [access, setAccess] = useState<'owner' | 'operator' | null>(null);
   const [accessError, setAccessError] = useState('');
   useEffect(() => { let alive = true; business<{role: 'owner' | 'operator'}>('/me').then(v => { if (alive && ['owner', 'operator'].includes(v.role)) setAccess(v.role); else if (alive) setAccessError(adminT("admin.ui.0247")); }).catch(e => { if (alive) setAccessError(e.message); }); return () => { alive = false; }; }, []);
-  const tabs = TABS.filter(tab => (!partnerMode || tab.id !== 'pos') && (access === 'owner' || ['today', 'orders', 'availability'].includes(tab.id)));
-  const groupOf = (id: string) => id === 'payroll' ? 'sales' : ['today', 'orders', 'sales'].includes(id) ? id : ['menu', 'categories', 'modifiers', 'banners', 'availability'].includes(id) ? 'menu' : 'settings';
+  const tabs = TABS.filter(tab => (!partnerMode || tab.id !== 'pos') && (access === 'owner' || ['today', 'orders', 'availability', 'deliveries'].includes(tab.id)));
+  const groupOf = (id: string) => id === 'payroll' ? 'sales' : ['today', 'orders', 'sales', 'deliveries'].includes(id) ? id : ['menu', 'categories', 'modifiers', 'banners', 'availability'].includes(id) ? 'menu' : 'settings';
   const group = groupOf(section);
-  const groups = [{id:'today',label:adminT("admin.ui.0235")}, {id:'orders',label:adminT("admin.ui.0239")}, ...(access === 'owner' ? [{id:'sales',label:adminT("admin.ui.0236")}] : []), {id:'menu',label:access === 'owner' ? adminT("admin.ui.0248") : adminT("admin.ui.0249")}, ...(access === 'owner' ? [{id:'settings',label:adminT("admin.ui.0245")}] : [])];
+  const groups = [{id:'today',label:adminT("admin.ui.0235")}, {id:'orders',label:adminT("admin.ui.0239")}, {id:'deliveries',label:adminT('cabinet.deliveries')}, ...(access === 'owner' ? [{id:'sales',label:adminT("admin.ui.0236")}] : []), {id:'menu',label:access === 'owner' ? adminT("admin.ui.0248") : adminT("admin.ui.0249")}, ...(access === 'owner' ? [{id:'settings',label:adminT("admin.ui.0245")}] : [])];
   const navigate = (id: string, order?: number, status?: string) => { const p = new URLSearchParams(params); p.set('section', id); if (status) p.set('status', status); else p.delete('status'); if (order) p.set('order', String(order)); else if (id !== 'orders') p.delete('order'); setParams(p); };
 
   useEffect(() => {
-    const allowed = (id: string) => (access === 'owner' || ['today', 'orders', 'availability'].includes(id)) && (!partnerMode || id !== 'pos');
+    const allowed = (id: string) => (access === 'owner' || ['today', 'orders', 'availability', 'deliveries'].includes(id)) && (!partnerMode || id !== 'pos');
     setSection(TABS.some(t => t.id === requested) && allowed(requested) ? requested : allowed(initialSection) ? initialSection : 'today');
   }, [initialSection, partnerMode, requested, access]);
 
   if (!access) return <p role={accessError ? 'alert' : 'status'}>{accessError || adminT("admin.ui.0250")}</p>;
-  if (access === 'operator' && !['today', 'orders', 'availability'].includes(section)) return <p>{adminT("admin.ui.0251")}</p>;
+  if (access === 'operator' && !['today', 'orders', 'availability', 'deliveries'].includes(section)) return <p>{adminT("admin.ui.0251")}</p>;
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#FF3B30] via-[#e8352b] to-[#9f1e18] p-5 text-white shadow-lg md:p-6">
+      <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#FF3B30] via-[#e8352b] to-[#9f1e18] p-4 text-white md:p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-white/70">{adminT("admin.ui.0252")}</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-white/70">{adminT(access === 'owner' ? 'cabinet.owner' : 'cabinet.operator')}</p>
             <h2 className="mt-1 text-2xl font-black tracking-tight md:text-3xl">{DAM_ALEM_BRAND}</h2>
             <p className="mt-2 max-w-lg text-sm text-white/85">
-              {adminT("admin.ui.0253")} </p>
+              {adminT(access === 'owner' ? 'cabinet.ownerHelp' : 'cabinet.operatorHelp')} </p>
           </div>
           <Link
             to="/food"
@@ -90,7 +92,7 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
         </div>
       </div>
 
-      <nav aria-label={adminT("admin.ui.0255")} className="flex flex-wrap gap-2">{groups.map(g => <button key={g.id} onClick={() => navigate(g.id === 'menu' && access === 'operator' ? 'availability' : g.id)} className={`rounded-xl px-4 py-3 text-sm font-semibold ${group === g.id ? 'bg-[#FF3B30] text-white' : 'bg-white border text-gray-700'}`}>{g.label}</button>)}</nav>
+      <nav aria-label={adminT("admin.ui.0255")} className="flex flex-wrap gap-2">{groups.map(g => <button key={g.id} onClick={() => navigate(g.id === 'menu' && access === 'operator' ? 'availability' : g.id)} className={`rounded-xl px-4 py-3 text-sm font-semibold ${group === g.id ? 'bg-[#FF3B30] text-white' : 'bg-card border text-foreground hover:bg-muted'}`}>{g.label}</button>)}</nav>
 
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {tabs.filter(tab => ['menu', 'settings', 'sales'].includes(group) && groupOf(tab.id) === group).map(tab => {
@@ -104,7 +106,7 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
               className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
                 active
                   ? 'bg-[#FF3B30] text-white shadow-md shadow-[#FF3B30]/25'
-                  : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50'
+                  : 'bg-card text-foreground ring-1 ring-border hover:bg-muted'
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -114,6 +116,7 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
         })}
       </div>
 
+      {section === 'deliveries' && <DamDeliveries openOrder={id => navigate('orders', id)} />}
       {section === 'today' && <DamToday owner={access === 'owner'} navigate={navigate} />}
       {section === 'payroll' && access === 'owner' && <DamAlemPayroll />}
       {section === 'sales' && access === 'owner' && <DamFinance />}

@@ -322,3 +322,25 @@ async def test_payroll_blocks_unfinished_orders_and_changed_preview(env):
     close=await client.post(base+'/days/2026-09-13/close',headers=headers,json={'expected_version':report['version'],'fingerprint':report['fingerprint']})
     assert close.status_code==409
     assert not (await client.get(base+'/days/2026-09-13',headers=headers)).json()['closed']
+
+
+@pytest.mark.asyncio
+async def test_delivery_board_scopes_orders_and_shows_courier(env):
+    client, maker, headers, _ = env
+    async with maker() as db:
+        db.add(Food_orders(id=9, restaurant_id=9, restaurant_name='Other', status='ready', delivery_method='delivery', total_amount=500))
+        db.add(LogisticsTask(id=11, source_type='food_orders', source_id=1, vertical='food', status='assigned', courier_id='courier', pickup_address='Kitchen', dropoff_address='Test street 1'))
+        await db.commit()
+    response = await client.get(BASE + '/deliveries', headers=headers)
+    assert response.status_code == 200
+    items = response.json()['items']
+    assert [item['order_id'] for item in items] == [1]
+    assert items[0]['courier_name'] == 'Courier'
+    assert items[0]['amount_due'] == 0
+    assert items[0]['delivery_status'] == 'assigned'
+    assert (await client.get(BASE + '/deliveries')).status_code in (401, 403)
+    async with maker() as db:
+        order = await db.get(Food_orders, 1)
+        order.status = 'done'
+        await db.commit()
+    assert (await client.get(BASE + '/deliveries', headers=headers)).json()['items'] == []

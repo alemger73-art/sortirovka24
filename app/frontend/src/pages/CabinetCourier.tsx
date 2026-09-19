@@ -51,15 +51,22 @@ export default function CabinetCourier() {
   const [phone, setPhone] = useState('');
   const knownTaskIds = useRef<Set<number>>(new Set());
   const tasksInitialized = useRef(false);
+  const profileDirty = useRef(false);
+  const loadGeneration = useRef(0);
+  const statusLock = useRef(false);
 
   const canWork = Boolean(data?.profile.verified);
 
   const load = useCallback(async () => {
+    const generation = ++loadGeneration.current;
     try {
       const cab = await logisticsApi.courierCabinet();
+      if (generation !== loadGeneration.current) return;
       setData(cab);
-      setVehicleType(cab.profile.vehicle_type || 'bike');
-      setPhone(cab.profile.phone || '');
+      if (!profileDirty.current) {
+        setVehicleType(cab.profile.vehicle_type || 'bike');
+        setPhone(cab.profile.phone || '');
+      }
     } catch (e: unknown) {
       toast.error(String((e as Error)?.message || t('courier.loadError')));
     } finally {
@@ -72,14 +79,14 @@ export default function CabinetCourier() {
   }, [load]);
 
   useEffect(() => {
-    if (!data?.profile.online) {
+    if (!data?.profile.online && !data?.active_task) {
       knownTaskIds.current = new Set();
       tasksInitialized.current = false;
       return;
     }
     const interval = setInterval(load, 5000);
     return () => clearInterval(interval);
-  }, [data?.profile.online, load]);
+  }, [data?.profile.online, data?.active_task?.id, load]);
 
   useEffect(() => {
     if (!data?.profile.online || data.active_task) return;
@@ -190,7 +197,8 @@ export default function CabinetCourier() {
 
   async function advanceStatus(task: LogisticsTask) {
     const flow = COURIER_STATUS_FLOW[task.status];
-    if (!flow) return;
+    if (!flow || statusLock.current) return;
+    statusLock.current = true;
     setUpdatingId(task.id);
     try {
       await logisticsApi.updateTaskStatus(task.id, flow.next);
@@ -199,6 +207,7 @@ export default function CabinetCourier() {
     } catch (e: unknown) {
       toast.error(String((e as Error)?.message || t('courier.genericError')));
     } finally {
+      statusLock.current = false;
       setUpdatingId(null);
     }
   }
@@ -207,6 +216,7 @@ export default function CabinetCourier() {
     setSavingProfile(true);
     try {
       await logisticsApi.updateProfile({ vehicle_type: vehicleType, phone });
+      profileDirty.current = false;
       toast.success(t('courier.profileSaved'));
       await load();
     } catch (e: unknown) {
@@ -313,7 +323,7 @@ export default function CabinetCourier() {
           {active_task && (
             <div className="rounded-2xl bg-orange-50 border-2 border-orange-300 p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="font-bold text-gray-900">{t('courier.activeDelivery')} #{active_task.id}</h2>
+                <h2 className="font-bold text-gray-900">{t('courier.activeDelivery')} #{active_task.source_type === 'food_orders' ? active_task.source_id : active_task.id}</h2>
                 <span className={`text-xs font-semibold px-2 py-1 rounded-full ${LOGISTICS_STATUS_LABELS[active_task.status]?.color || ''}`}>
                   {LOGISTICS_STATUS_LABELS[active_task.status]?.labelKey ? t(LOGISTICS_STATUS_LABELS[active_task.status].labelKey) : active_task.status}
                 </span>
@@ -408,13 +418,14 @@ export default function CabinetCourier() {
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className="text-xs text-gray-500 dark:text-slate-400 mb-1 block">{t('courier.phone')}</label>
-                <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="rounded-xl dark:bg-gray-950 dark:border-gray-700 dark:text-white" />
+                <Input disabled={savingProfile} value={phone} onChange={(e) => { profileDirty.current = true; setPhone(e.target.value); }} className="rounded-xl dark:bg-gray-950 dark:border-gray-700 dark:text-white" />
               </div>
               <div>
                 <label className="text-xs text-gray-500 dark:text-slate-400 mb-1 block">{t('courier.transport')}</label>
                 <select
+                  disabled={savingProfile}
                   value={vehicleType}
-                  onChange={(e) => setVehicleType(e.target.value)}
+                  onChange={(e) => { profileDirty.current = true; setVehicleType(e.target.value); }}
                   className="w-full h-10 rounded-xl border border-gray-200 px-3 text-sm dark:bg-gray-950 dark:border-gray-700 dark:text-white"
                 >
                   {VEHICLE_OPTIONS.map((v) => (

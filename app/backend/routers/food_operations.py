@@ -41,6 +41,29 @@ async def orders(q: str = Query('', max_length=100), status: str = '', skip: int
     rows = (await db.scalars(select(Food_orders).where(*conditions).order_by(Food_orders.id.desc()).offset(skip).limit(limit))).all()
     return {'items': [serialize(r) for r in rows], 'total': total}
 
+@router.get('/deliveries')
+async def deliveries(db: AsyncSession = Depends(get_db)):
+    """Active restaurant deliveries, including orders not yet sent to dispatch."""
+    from models.logistics import LogisticsTask, CourierProfile
+    from models.auth import User
+    rows = (await db.execute(
+        select(Food_orders, LogisticsTask, User, CourierProfile)
+        .outerjoin(LogisticsTask, (LogisticsTask.source_type == 'food_orders') & (LogisticsTask.source_id == Food_orders.id))
+        .outerjoin(User, User.id == LogisticsTask.courier_id)
+        .outerjoin(CourierProfile, CourierProfile.user_id == LogisticsTask.courier_id)
+        .where(await scope(db), Food_orders.delivery_method.in_(['delivery', 'доставка']), Food_orders.status.notin_(['done', 'cancelled']))
+        .order_by(Food_orders.id.asc())
+    )).all()
+    return {'items': [{
+        'order_id': order.id, 'status': order.status,
+        'delivery_status': task.status if task else 'pending',
+        'address': order.delivery_address, 'customer_name': order.customer_name,
+        'total_amount': order.total_amount,
+        'amount_due': max(0, float(order.total_amount or 0) - float(order.paid_amount if order.paid_amount is not None else order.total_amount if order.payment_status == 'paid' else 0)),
+        'courier_name': courier.name if courier else None,
+        'courier_phone': (profile.phone or courier.phone) if profile and courier else courier.phone if courier else None,
+    } for order, task, courier, profile in rows]}
+
 @router.get('/orders/{order_id}')
 async def detail(order_id: int, db: AsyncSession = Depends(get_db)):
     obj = await order_for_panel(db, order_id)
