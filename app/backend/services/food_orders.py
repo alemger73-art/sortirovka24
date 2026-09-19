@@ -170,18 +170,18 @@ class Food_ordersService:
                 if obj.payment_status == 'paid' and update_data.get('payment_status', 'paid') != 'paid':
                     raise HTTPException(422, 'Полученную оплату нельзя стереть. Возврат отмечается владельцем отдельно.')
                 target = update_data.get('status', old_status)
-                transitions = {'new': {'confirmed', 'cancelled'}, 'confirmed': {'preparing', 'ready', 'in_progress', 'done', 'cancelled'}, 'preparing': {'ready', 'cancelled'}, 'ready': {'in_progress', 'done', 'cancelled'}, 'in_progress': {'done', 'cancelled'}}
-                if target != old_status and target not in transitions.get(old_status, set()):
-                    raise HTTPException(409, "Недопустимый переход статуса")
+                transitions = {'new': {'confirmed', 'cancelled'}, 'confirmed': {'preparing', 'cancelled'}, 'preparing': {'ready', 'cancelled'}, 'ready': {'in_progress', 'done', 'cancelled'}, 'in_progress': {'done', 'cancelled'}}
                 if target == 'in_progress' and obj.delivery_method in ('pickup', 'dine_in'):
                     raise HTTPException(422, "Самовывоз не передаётся в доставку")
-                if target != old_status and obj.delivery_method in ('delivery', 'доставка') and target in ('in_progress', 'done') and actor != 'Курьер':
+                if target != old_status and target not in transitions.get(old_status, set()):
+                    raise HTTPException(409, "Недопустимый переход статуса")
+                if target != old_status and obj.delivery_method in ('delivery', 'доставка') and target in ('in_progress', 'done'):
                     raise HTTPException(409, 'Передачу и доставку отмечает курьер в своём кабинете')
                 if target == 'cancelled' and not (update_data.get('cancellation_reason') or '').strip():
                     raise HTTPException(422, "Укажите причину отмены")
                 if update_data.get('delivery_address') is not None and obj.delivery_method != 'pickup' and not update_data['delivery_address'].strip():
                     raise HTTPException(422, "Адрес доставки не может быть пустым")
-                if any(k in update_data for k in ('total_amount', 'order_items', 'user_id', 'restaurant_id', 'restaurant_name', 'created_at')):
+                if any(k in update_data for k in ('total_amount', 'order_items', 'user_id', 'restaurant_id', 'restaurant_name', 'created_at', 'order_source')):
                     raise HTTPException(422, "Состав и сумма принятого заказа зафиксированы. Для замены оформите новый заказ.")
                 claimed = await self.db.execute(sql_update(Food_orders).where(Food_orders.id == obj_id, func.coalesce(Food_orders.version, 0) == version).values(version=version + 1).execution_options(synchronize_session=False))
                 if not claimed.rowcount:

@@ -54,6 +54,7 @@ SERVER_OWNED_FIELDS = (
     "user_id",
     "created_at",
     "frontpad_order_number",
+    "order_source",
     "bonus_points_used",
     "bonus_discount_amount",
 )
@@ -842,6 +843,7 @@ async def validate_food_order(
     sanitized['delivery_method'] = delivery_method
     sanitized["payment_status"] = "pending" if payment_method == "cash" else "awaiting_qr_payment"
     sanitized["status"] = "new"
+    sanitized["order_source"] = "app"
     sanitized["user_id"] = _account_user_id(account_user)
     sanitized["created_at"] = _server_now()
     if selected_gift:
@@ -862,6 +864,7 @@ async def validate_food_order(
     sanitized["total_amount"] = expected_total
     sanitized["promo_discount_amount"] = promo_discount
     sanitized['pricing_snapshot'] = json.dumps({
+        'breakdown': {'subtotal': subtotal, 'delivery_fee': delivery_fee + apartment_fee, 'service_fee': expected_service, 'discount': promo_discount + bonus_discount},
         'version': 1, 'service_rate': fee_rate if expected_service or (not marketplace_no_fee_hints and delivery_method != 'dine_in') else 0,
         'base_delivery_fee': base_delivery_fee, 'requested_apartment': requested_apartment,
         'promo_code': promo_code,

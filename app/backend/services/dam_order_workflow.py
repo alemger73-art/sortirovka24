@@ -221,14 +221,18 @@ async def manual_quote(db, body):
         'delivery_address': body.delivery_address.strip(), 'delivery_method': body.delivery_method,
         'payment_method': body.payment_method, 'comment': body.comment,
         'order_items': json.dumps([x.model_dump(exclude_none=True) for x in body.items]), 'total_amount': 0}
-    payload['selected_gift_id'] = body.selected_gift_id
+    # Resolve the gift after pricing so reducing a draft below the threshold
+    # removes its old gift instead of making automatic recalculation impossible.
     data, lines, total = await validate_food_order(db, payload, staff_quote=True)
     choices = await gift_choices(db, restaurant.id, subtotal(lines))
-    if len(choices) == 1 and not any(x.get('is_gift') for x in lines):
-        lines.append(gift_line(choices[0]))
+    chosen = next((g for g in choices if g['id'] == body.selected_gift_id), None)
+    if not chosen and len(choices) == 1:
+        chosen = choices[0]
+    if chosen:
+        lines.append(gift_line(chosen))
         data['order_items'] = json.dumps(lines, ensure_ascii=False)
     data['order_source'] = 'operator'
-    return data, {'items': lines, 'total_amount': total, 'gift_choices': choices,
+    return data, {'items': lines, 'total_amount': total, **json.loads(data['pricing_snapshot'])['breakdown'], 'gift_choices': choices,
         'gift_required': bool(choices and not any(x.get('is_gift') for x in lines))}
 
 

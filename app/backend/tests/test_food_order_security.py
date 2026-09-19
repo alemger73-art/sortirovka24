@@ -129,7 +129,8 @@ def catalog_patches():
 
 @pytest.mark.asyncio
 async def test_valid_order_forces_system_fields(catalog_patches):
-    sanitized, items, total = await validate_food_order(MagicMock(), _base_order())
+    sanitized, items, total = await validate_food_order(MagicMock(), _base_order(order_source="operator"))
+    assert sanitized["order_source"] == "app"
     assert sanitized["status"] == "new"
     assert sanitized["payment_status"] == "pending"
     assert sanitized["user_id"] is None

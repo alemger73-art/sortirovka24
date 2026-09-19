@@ -51,6 +51,7 @@ test('courier keeps a profile draft when the cabinet refreshes', async ({page}) 
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
  await page.route('**/api/**', async r=>{
   const path=new URL(r.request().url()).pathname;let json:unknown={items:[],total:0};
+  if(path.endsWith('/modules'))json={food:true};
   if(path.endsWith('/account/me'))json={id:'courier',name:'Курьер',role:'user'};
   if(path.endsWith('/courier/access'))json={can_access_cabinet:true,is_courier:true,status:'approved'};
   if(path.endsWith('/courier/cabinet')) {reads++;json={profile:{verified:true,online:true,phone:'+77001111111',vehicle_type:'bike',rating:5,deliveries_count:0},offered_task:null,active_task:null,available_tasks:[],task_history:[],earnings:0,status_flow:{}};}

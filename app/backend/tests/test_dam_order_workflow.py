@@ -8,6 +8,12 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from core.database import Base, get_db
 from core.auth import create_access_token
 from models.auth import User
+from models.module_settings import ModuleSettings
+from models.taxi import TaxiSettings
+from models.food_categories import Food_categories
+from models.modifier_groups import Modifier_groups
+from models.modifier_options import Modifier_options
+from models.item_modifier_groups import Item_modifier_groups
 from models.food_orders import Food_orders
 from models.food_items import Food_items
 from models.food_restaurants import Food_restaurants
@@ -135,6 +141,8 @@ async def test_customer_retry_returns_same_order_and_changed_payload_is_rejected
     assert a.status_code==201,a.text
     assert b.status_code==201,b.text
     assert a.json()['id']==b.json()['id']
+    async with maker() as db:
+        assert (await db.get(Food_orders, a.json()['id'])).order_source=='app'
     repeated=await send()
     assert repeated.json()['id']==a.json()['id']
     changed=await client.post('/api/v1/entities/food_orders',json={**body,'total_amount':601})
@@ -344,3 +352,77 @@ async def test_delivery_board_scopes_orders_and_shows_courier(env):
         order.status = 'done'
         await db.commit()
     assert (await client.get(BASE + '/deliveries', headers=headers)).json()['items'] == []
+
+
+@pytest.mark.asyncio
+async def test_pos_catalog_lookup_sources_and_transitions(env):
+    from models.food_categories import Food_categories
+    client,maker,headers,_=env
+    async with maker() as db:
+        db.add_all([Food_categories(id=1,restaurant_id=1,name='Drinks',sort_order=2,is_active=True),Food_categories(id=2,restaurant_id=1,name='Kitchen',sort_order=1,is_active=True),Food_categories(id=3,restaurant_id=9,name='Private',is_active=True)])
+        db.add(Food_orders(id=8,restaurant_id=9,customer_name='Foreign customer',customer_phone='87000000000',delivery_method='delivery',delivery_address='Private address',status='new'))
+        db.add(Food_items(id=8,restaurant_id=1,name='No price',price=0,is_active=True,available=True))
+        db.add(Food_items(id=9,restaurant_id=1,name='Stop list',price=100,is_active=True,available=False))
+        await db.commit()
+    catalog=(await client.get(BASE+'/catalog',headers=headers)).json()
+    assert [c['id'] for c in catalog['categories']]==[2,1]
+    assert {p['id'] for p in catalog['products']}=={1,2}
+    assert (await client.get(BASE+'/customer?phone=87000000000')).status_code==403
+    assert (await client.get(BASE+'/customer?phone=7000',headers=headers)).status_code==422
+    customer=(await client.get(BASE+'/customer?phone=8(700)000-00-00',headers=headers)).json()
+    assert customer['name']=='Client' and customer['addresses']==['Test street 1']
+    assert [r['id'] for r in customer['recent_orders']]==[1]
+    assert not (await client.get(BASE+'/customer?phone=87000000001',headers=headers)).json()['recent_orders']
+    body={'request_key':'12345678-1234-1234-1234-123456789099','customer_name':'Phone client','customer_phone':'+77002222222','delivery_method':'pickup','items':[{'id':2,'quantity':2}], 'order_source':'app'}
+    quote=(await client.post(BASE+'/manual/quote',headers=headers,json=body)).json()
+    assert quote['subtotal']==600 and quote['delivery_fee']==0 and quote['discount']==0 and quote['service_fee']==0
+    created=await client.post(BASE+'/manual',headers=headers,json={**body,'quoted_total':600})
+    assert created.status_code==201,created.text
+    assert created.json()['order_source']=='operator'
+    filtered=(await client.get(BASE+'/orders?source=operator',headers=headers)).json()
+    assert [r['id'] for r in filtered['items']]==[created.json()['id']]
+    assert (await client.get(BASE+'/orders?source=invalid',headers=headers)).status_code==422
+    assert (await client.get(BASE+'/orders?source=app',headers=headers)).json()['total']==0
+    assert (await client.patch(BASE+'/orders/1',headers=headers,json={'expected_version':0,'status':'confirmed'})).status_code==200
+    assert (await client.get(BASE+'/orders?status=working',headers=headers)).json()['total']==1
+    for target in ['ready','in_progress','done']:
+        assert (await client.patch(BASE+'/orders/1',headers=headers,json={'expected_version':1,'status':target})).status_code==409
+    async with maker() as db:
+        o=await db.get(Food_orders,1);o.status='ready'
+        staff=await db.get(PartnerCredentials,1);staff.display_name='Курьер'
+        await db.commit()
+    assert (await client.get(BASE+'/orders?status=courier',headers=headers)).json()['total']==1
+    assert (await client.patch(BASE+'/orders/1',headers=headers,json={'expected_version':1,'status':'in_progress'})).status_code==409
+
+
+@pytest.mark.asyncio
+async def test_manual_gift_recalculates_threshold_and_stop_list(env):
+    client,maker,headers,_=env
+    async with maker() as db:
+        enabled=await db.scalar(select(Food_settings).where(Food_settings.setting_key=='loyalty_enabled'))
+        enabled.setting_value='1'
+        db.add_all([Food_items(id=10,restaurant_id=1,name='Dessert A',price=500,is_active=True,available=True),Food_items(id=11,restaurant_id=1,name='Dessert B',price=500,is_active=True,available=True)])
+        db.add(Food_settings(setting_key='loyalty_gifts',setting_value=json.dumps([{'id':'a','title':'Dessert A','min_amount':11000,'product_id':10},{'id':'b','title':'Dessert B','min_amount':11000,'product_id':11}])))
+        await db.commit()
+    body={'request_key':'12345678-1234-1234-1234-123456789088','customer_name':'Phone client','customer_phone':'+77002222222','delivery_method':'pickup','items':[{'id':1,'quantity':8}]}
+    response=await client.post(BASE+'/manual/quote',headers=headers,json=body)
+    assert response.status_code==200,response.text
+    quote=response.json()
+    assert quote['total_amount']==12000 and quote['gift_required'] and len(quote['gift_choices'])==2
+    assert (await client.post(BASE+'/manual',headers=headers,json={**body,'quoted_total':12000})).status_code==409
+    body['selected_gift_id']='a'
+    quote=(await client.post(BASE+'/manual/quote',headers=headers,json=body)).json()
+    assert not quote['gift_required'] and quote['items'][-1]['gift_id']=='a'
+    body['items'][0]['quantity']=7
+    reduced=await client.post(BASE+'/manual/quote',headers=headers,json=body)
+    assert reduced.status_code==200,reduced.text
+    assert reduced.json()['total_amount']==10500 and not reduced.json()['gift_choices']
+    assert not any(x.get('is_gift') for x in reduced.json()['items'])
+    body['items'][0]['quantity']=8
+    async with maker() as db:
+        dessert=await db.get(Food_items,10);dessert.available=False;await db.commit()
+    quote=(await client.post(BASE+'/manual/quote',headers=headers,json=body)).json()
+    assert [g['id'] for g in quote['gift_choices']]==['b'] and quote['items'][-1]['gift_id']=='b'
+    created=await client.post(BASE+'/manual',headers=headers,json={**body,'quoted_total':12000})
+    assert created.status_code==201,created.text
+    assert json.loads(created.json()['order_items'])[-1]['gift_id']=='b'

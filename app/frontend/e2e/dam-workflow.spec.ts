@@ -7,6 +7,7 @@ async function setup(page:Page) {
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
  await page.route('**/api/**',async r=>{
   const path=new URL(r.request().url()).pathname; let json:any={items:[],total:0};
+  if(path.endsWith('/modules'))json={food:true,dam_alem:true,account:true};
   if(path.includes('verify-session'))json={valid:true,display_name:'Оператор'};
   if(path.endsWith('/business/me'))json={role:'operator',name:'Оператор'};
   if(path.endsWith('/operations/catalog'))json={products:[{id:2,name:'Напиток',price:300}],groups:[],options:[],links:[]};
@@ -27,22 +28,21 @@ test('operator adds a dish only after quote and customer reason',async({page},in
  const s=await setup(page);await page.goto('/partner/dam-alem?section=orders&order=71');
  await page.getByRole('button',{name:'Изменить состав заказа',exact:true}).click();
  const modal=page.getByRole('dialog');await modal.getByRole('button',{name:/Напиток/}).click();
- await expect(modal.getByRole('button',{name:'Рассчитать и проверить'})).toBeDisabled();
+ await expect(modal.getByRole('button',{name:/Подтвердить и сохранить/})).toBeDisabled();
  await modal.getByLabel('Причина изменения — увидит клиент').fill('Клиент позвонил и добавил напиток');
- await modal.getByRole('button',{name:'Рассчитать и проверить'}).click();
  await expect(modal.getByText('К оплате: 300 ₸',{exact:true})).toBeVisible();
  expect(s.writes).toBe(0);
  expect(await modal.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
  await page.screenshot({path:info.outputPath('receipt-editor.png')});
- await modal.getByRole('button',{name:'Подтвердить и сохранить'}).click();
+ await modal.getByRole('button',{name:/Подтвердить и сохранить/}).click();
  await expect(modal).toHaveCount(0);expect(s.writes).toBe(1);
 });
 
 test('operator can create a phone order with server quote',async({page})=>{
  const s=await setup(page);await page.goto('/partner/dam-alem?section=orders');await page.getByRole('button',{name:'Новый заказ',exact:true}).click();
  const modal=page.getByRole('dialog');await modal.getByLabel('Имя клиента').fill('Клиент');await modal.getByLabel('Телефон клиента').fill('+77000000000');await modal.getByLabel('Получение').selectOption('pickup');await modal.getByRole('button',{name:/Напиток/}).click();
- await modal.getByRole('button',{name:'Рассчитать и проверить'}).click();await expect(modal.getByText('Итого: 300 ₸',{exact:true})).toBeVisible();
- await modal.getByRole('button',{name:'Подтвердить и сохранить'}).click();await expect(modal).toHaveCount(0);expect(s.writes).toBe(1);
+ await expect(modal.getByRole('button',{name:/Создать заказ — 300/})).toBeEnabled();
+ await modal.getByRole('button',{name:/Создать заказ — 300/}).click();await expect(modal).toHaveCount(0);expect(s.writes).toBe(1);
 });
 
 test('customer sees refreshed receipt and status instead of map',async({page},info)=>{
@@ -60,7 +60,7 @@ test('onsite order needs no phone and receipt printing escapes customer text',as
  const s=await setup(page);await page.goto('/partner/dam-alem?section=orders&order=71');
  await page.getByRole('button',{name:'Новый заказ',exact:true}).click();const modal=page.getByRole('dialog');
  await modal.getByLabel('Получение').selectOption('dine_in');await modal.getByRole('button',{name:/Напиток/}).click();
- await modal.getByRole('button',{name:'Рассчитать и проверить'}).click();await modal.getByRole('button',{name:'Подтвердить и сохранить'}).click();
+ await modal.getByRole('button',{name:/Создать заказ — 300/}).click();
  await expect(modal).toHaveCount(0);expect(s.writes).toBe(1);
 });
 

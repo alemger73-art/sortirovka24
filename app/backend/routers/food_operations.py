@@ -25,12 +25,20 @@ async def order_for_panel(db, order_id):
     return obj
 
 @router.get('/orders')
-async def orders(q: str = Query('', max_length=100), status: str = '', skip: int = Query(0, ge=0), limit: int = Query(30, ge=1, le=100), db: AsyncSession = Depends(get_db)):
+async def orders(q: str = Query('', max_length=100), status: str = '', source: str = '', skip: int = Query(0, ge=0), limit: int = Query(30, ge=1, le=100), db: AsyncSession = Depends(get_db)):
     conditions = [await scope(db)]
     if status == 'active':
         conditions.append(Food_orders.status.notin_(['done', 'cancelled']))
+    elif status == 'working':
+        conditions.append(Food_orders.status.in_(['confirmed', 'preparing']))
+    elif status == 'courier':
+        conditions.extend([Food_orders.status == 'ready', Food_orders.delivery_method.in_(['delivery', 'доставка'])])
     elif status:
         conditions.append(Food_orders.status == status)
+    if source:
+        if source not in ('app', 'operator', 'whatsapp', 'instagram'):
+            raise HTTPException(422, 'Неизвестный источник заказа')
+        conditions.append(Food_orders.order_source == source)
     if q.strip():
         needle = '%' + q.strip().replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%'
         terms = [c.ilike(needle, escape='\\') for c in (Food_orders.customer_name, Food_orders.customer_phone, Food_orders.delivery_address)]
@@ -63,6 +71,19 @@ async def deliveries(db: AsyncSession = Depends(get_db)):
         'courier_name': courier.name if courier else None,
         'courier_phone': (profile.phone or courier.phone) if profile and courier else courier.phone if courier else None,
     } for order, task, courier, profile in rows]}
+
+@router.get('/customer')
+async def customer(phone: str = Query(min_length=10, max_length=32), db: AsyncSession = Depends(get_db)):
+    digits = re.sub(r'\D', '', phone)
+    if len(digits) not in (10, 11) or (len(digits) == 11 and digits[0] not in '78'):
+        raise HTTPException(422, 'Укажите полный номер телефона')
+    normalized = Food_orders.customer_phone
+    for symbol in ('+', ' ', '-', '(', ')'):
+        normalized = func.replace(normalized, symbol, '')
+    rows = (await db.scalars(select(Food_orders).where(await scope(db), func.substr(normalized, -10) == digits[-10:]).order_by(Food_orders.id.desc()).limit(5))).all()
+    return {'name': rows[0].customer_name if rows else '',
+            'addresses': list(dict.fromkeys(r.delivery_address for r in rows if r.delivery_method == 'delivery' and r.delivery_address)),
+            'recent_orders': [{'id': r.id, 'amount': r.total_amount, 'status': r.status} for r in rows]}
 
 @router.get('/orders/{order_id}')
 async def detail(order_id: int, db: AsyncSession = Depends(get_db)):
@@ -177,6 +198,7 @@ class ManualOrder(BaseModel):
 @router.get('/catalog')
 async def operator_catalog(db: AsyncSession = Depends(get_db)):
     from models.food_items import Food_items
+    from models.food_categories import Food_categories
     from models.food_restaurants import Food_restaurants
     from models.modifier_groups import Modifier_groups
     from models.modifier_options import Modifier_options
@@ -184,11 +206,12 @@ async def operator_catalog(db: AsyncSession = Depends(get_db)):
     from services.food_operations import brand
     restaurants = (await db.scalars(select(Food_restaurants))).all()
     ids = [r.id for r in restaurants if brand(r.name, r.merchant_key)]
-    products = (await db.scalars(select(Food_items).where(or_(Food_items.restaurant_id.in_(ids), Food_items.restaurant_id.is_(None)), Food_items.is_active.is_not(False), Food_items.available.is_not(False)).order_by(Food_items.sort_order, Food_items.id))).all()
+    products = (await db.scalars(select(Food_items).where(or_(Food_items.restaurant_id.in_(ids), Food_items.restaurant_id.is_(None)), Food_items.is_active.is_not(False), Food_items.available.is_not(False), Food_items.price > 0).order_by(Food_items.sort_order, Food_items.id))).all()
     groups = (await db.scalars(select(Modifier_groups).where(Modifier_groups.is_active.is_not(False)))).all()
-    options = (await db.scalars(select(Modifier_options).where(Modifier_options.is_active.is_not(False)))).all()
+    options = (await db.scalars(select(Modifier_options).where(Modifier_options.is_active.is_not(False)).order_by(Modifier_options.sort_order, Modifier_options.id))).all()
     links = (await db.scalars(select(Item_modifier_groups))).all()
-    return {'products': [serialize(x) for x in products], 'groups': [serialize(x) for x in groups], 'options': [serialize(x) for x in options], 'links': [serialize(x) for x in links]}
+    categories = (await db.scalars(select(Food_categories).where(or_(Food_categories.restaurant_id.in_(ids), Food_categories.restaurant_id.is_(None)), Food_categories.is_active.is_not(False)).order_by(Food_categories.sort_order, Food_categories.id))).all()
+    return {'categories': [serialize(x) for x in categories], 'products': [serialize(x) for x in products], 'groups': [serialize(x) for x in groups], 'options': [serialize(x) for x in options], 'links': [serialize(x) for x in links]}
 
 @router.post('/manual/quote')
 async def quote_manual(body: ManualOrder, db: AsyncSession = Depends(get_db)):

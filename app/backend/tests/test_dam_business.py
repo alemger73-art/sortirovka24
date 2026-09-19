@@ -166,3 +166,16 @@ async def test_supplement_keeps_original_payment_day(env):
     for date,amount in [(previous,1200),(day,600)]:
         result=await client.get('/api/v1/dam-alem/business/report',headers=owner,params={'start':date,'end':date})
         assert result.json()['receipts']==amount,result.text
+
+
+@pytest.mark.asyncio
+async def test_operator_daily_summary_uses_city_day_and_excludes_cancelled_amount(env,monkeypatch):
+    from datetime import date
+    monkeypatch.setattr('routers.food_business.city_today',lambda: date(2026,9,19))
+    client,maker,_,operator=env
+    async with maker() as db:
+        db.add_all([Food_orders(id=1,restaurant_id=1,status='new',total_amount=1000,created_at='2026-09-18T19:00:00+00:00'),Food_orders(id=2,restaurant_id=1,status='cancelled',total_amount=500,created_at='2026-09-19T12:00:00Z'),Food_orders(id=3,restaurant_id=1,status='done',total_amount=900,created_at='2026-09-18T18:59:59Z'),Food_orders(id=4,restaurant_id=2,status='new',total_amount=99999,created_at='2026-09-19T10:00:00Z')])
+        await db.commit()
+    response=await client.get('/api/v1/dam-alem/business/today',headers=operator)
+    assert response.status_code==200,response.text
+    assert response.json()['daily']=={'created':2,'order_total':1000}

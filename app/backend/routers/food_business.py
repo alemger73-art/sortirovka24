@@ -53,7 +53,11 @@ async def today(db:AsyncSession=Depends(get_db),claims=Depends(food_staff)):
     pending=await db.scalar(select(func.count()).select_from(FoodOrderEvent).join(Food_orders,Food_orders.id==FoodOrderEvent.order_id).where(condition,FoodOrderEvent.notification.in_(['failed','unknown'])))
     unpaid=await db.scalar(select(func.count()).select_from(Food_orders).where(condition,Food_orders.status!='cancelled',(Food_orders.payment_status!='paid') | Food_orders.payment_status.is_(None)))
     rows=(await db.scalars(select(Food_orders).where(condition,Food_orders.status=='new').order_by(Food_orders.id).limit(8))).all()
-    return {'day':str(city_today()),'counts':counts,'notification_errors':pending,'unpaid':unpaid,'new_orders':[{'id':o.id,'name':o.customer_name,'amount':o.total_amount,'delivery_method':o.delivery_method,'created_at':o.created_at} for o in rows]}
+    day = city_today()
+    candidates = (await db.execute(select(Food_orders.created_at, Food_orders.status, Food_orders.total_amount).where(condition, func.substr(Food_orders.created_at, 1, 10).in_([str(day), str(day - timedelta(days=1))])))).all()
+    daily_orders = [r for r in candidates if day_of(r.created_at) == day]
+    daily = {'created': len(daily_orders), 'order_total': float(sum((money(r.total_amount) for r in daily_orders if r.status != 'cancelled'), Decimal(0)))}
+    return {'day':str(day),'daily':daily,'counts':counts,'notification_errors':pending,'unpaid':unpaid,'new_orders':[{'id':o.id,'name':o.customer_name,'amount':o.total_amount,'delivery_method':o.delivery_method,'created_at':o.created_at} for o in rows]}
 
 @router.get('/report')
 async def report(start:date, end:date, db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
