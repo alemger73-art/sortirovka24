@@ -7,6 +7,7 @@ import os
 from typing import Any
 
 import httpx
+from core.deploy_safety import external_side_effects_allowed
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ FCM_LEGACY_URL = "https://fcm.googleapis.com/fcm/send"
 
 
 def push_enabled() -> bool:
-    return bool(os.environ.get("FCM_SERVER_KEY", "").strip())
+    return external_side_effects_allowed() and bool(os.environ.get("FCM_SERVER_KEY", "").strip())
 
 
 async def send_push_to_token(
@@ -25,6 +26,9 @@ async def send_push_to_token(
     data: dict[str, str] | None = None,
 ) -> bool:
     """Send a push notification to a single device token via FCM legacy HTTP API."""
+    if not external_side_effects_allowed():
+        logger.info("Push side effects disabled. Skipping notification.")
+        return False
     server_key = os.environ.get("FCM_SERVER_KEY", "").strip()
     if not server_key:
         logger.debug("FCM_SERVER_KEY not set — push skipped")

@@ -21,6 +21,7 @@ except ImportError:
 
 from core.env import is_production
 from core.config import settings
+from core.deploy_safety import database_target_fingerprint, environment_name, validate_runtime_safety
 from core.monitoring import init_sentry
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -56,7 +57,9 @@ def setup_logging():
     log_file = f"{log_dir}/app_{timestamp}.log"
 
     # Configure log format
-    log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    runtime_env = environment_name()
+    build_id = os.environ.get("APP_BUILD_ID", "local")[:16]
+    log_format = f"%(asctime)s - env={runtime_env} build={build_id} - %(name)s - %(levelname)s - %(message)s"
 
     # Root log level: DEBUG only when explicitly enabled, otherwise INFO.
     # A forced DEBUG level makes chatty libraries (aiosqlite/sqlalchemy) emit
@@ -219,6 +222,10 @@ async def _run_admin_summary_watch() -> None:
 async def lifespan(app: FastAPI):
     logger = logging.getLogger(__name__)
     logger.info("=== Application startup initiated ===")
+
+    # Staging fails closed when it points at an unexpected database or when
+    # real outbound integrations are enabled. Production behaviour is unchanged.
+    validate_runtime_safety()
 
     # Start heavy initialization in the background so the server begins serving
     # immediately. This ensures health checks (e.g. on /health) succeed even when
@@ -455,8 +462,34 @@ async def health_check():
         "status": "healthy" if db_ok else "degraded",
         "version": "2.1.0",
         "frontend_build": os.environ.get("APP_BUILD_ID", "unknown"),
+        "environment": environment_name(),
+        "database_target": database_target_fingerprint(),
         "database": "ok" if db_ok else "unavailable",
     }
+
+
+@app.get("/health/live")
+async def liveness_check():
+    return {
+        "status": "alive",
+        "version": "2.1.0",
+        "frontend_build": os.environ.get("APP_BUILD_ID", "unknown"),
+        "environment": environment_name(),
+    }
+
+
+@app.get("/health/ready")
+async def readiness_check():
+    db_ok = await check_database_health()
+    payload = {
+        "status": "ready" if db_ok else "not_ready",
+        "version": "2.1.0",
+        "frontend_build": os.environ.get("APP_BUILD_ID", "unknown"),
+        "environment": environment_name(),
+        "database_target": database_target_fingerprint(),
+        "database": "ok" if db_ok else "unavailable",
+    }
+    return JSONResponse(payload, status_code=200 if db_ok else 503)
 
 
 if FRONTEND_DIR.is_dir():

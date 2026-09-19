@@ -1,0 +1,38 @@
+name: Staging smoke test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Verify isolated staging
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Require staging URL
+        env:
+          STAGING_BASE_URL: ${{ vars.STAGING_BASE_URL }}
+        run: test -n "$STAGING_BASE_URL" || { echo 'Set repository variable STAGING_BASE_URL'; exit 1; }
+      - name: Wait for the develop deployment and run smoke checks
+        env:
+          STAGING_BASE_URL: ${{ vars.STAGING_BASE_URL }}
+        run: |
+          for attempt in $(seq 1 20); do
+            if python scripts/smoke-staging.py --base-url "$STAGING_BASE_URL"; then
+              exit 0
+            fi
+            sleep 15
+          done
+          exit 1

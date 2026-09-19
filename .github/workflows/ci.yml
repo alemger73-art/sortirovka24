@@ -2,10 +2,24 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, develop]
   pull_request:
 
 jobs:
+  deploy-safety:
+    name: Deploy safety and migration graph
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate Alembic graph without touching a database
+        run: python scripts/check-migration-graph.py
+      - name: Validate staging guard tests
+        working-directory: app/backend
+        run: python -m unittest discover -s tests -p 'test_deploy_safety.py'
+
   backend:
     name: Backend tests (pytest)
     runs-on: ubuntu-latest

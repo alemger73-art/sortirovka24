@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import httpx
+from core.deploy_safety import external_side_effects_allowed
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,13 @@ def _expose_code_enabled() -> bool:
 
 async def send_verification_code(phone: str, code: str) -> SMSDeliveryResult:
     """Send a registration verification code to *phone*."""
+    if not external_side_effects_allowed():
+        logger.info("SMS side effects disabled. Skipping verification message.")
+        return SMSDeliveryResult(
+            delivered=False,
+            pending_moderation=False,
+            provider_message="external_side_effects_disabled",
+        )
     provider = _provider()
     # Short text passes Mobizon moderation faster.
     text = f"Sortirovka24 kod: {code}"

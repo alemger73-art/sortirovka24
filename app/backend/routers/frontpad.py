@@ -52,6 +52,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import httpx
+from core.deploy_safety import external_side_effects_allowed
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -218,6 +219,9 @@ async def _call_frontpad(secret: str, method: str, extra_params: Optional[Dict[s
       POST https://app.frontpad.ru/api/index.php?{method}
       Body (form-encoded): secret=<secret>&other_params...
     """
+    if not external_side_effects_allowed():
+        raise HTTPException(status_code=503, detail="FrontPad отключён в этой среде")
+
     url = f"{FRONTPAD_API_BASE}?{method}"
     data = {"secret": secret}
     if extra_params:

@@ -32,6 +32,7 @@ from datetime import datetime
 from typing import Optional
 
 import httpx
+from core.deploy_safety import external_side_effects_allowed
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,8 @@ def _get_config(category: Optional[str] = None) -> tuple[Optional[str], Optional
 
 
 def _is_configured(category: Optional[str] = None) -> bool:
+    if not external_side_effects_allowed():
+        return False
     token, chat_id = _get_config(category)
     return bool(token and chat_id)
 
@@ -101,6 +104,9 @@ async def send_telegram_message(
     disable_web_page_preview: bool = False,
     chat_id_override: Optional[str] = None,
 ) -> bool:
+    if not external_side_effects_allowed():
+        logger.info("Telegram side effects disabled. Skipping message.")
+        return False
     token, chat_id = _get_config(category)
     if chat_id_override:
         chat_id = chat_id_override
@@ -138,6 +144,9 @@ async def send_telegram_photo(
     category: Optional[str] = None,
     parse_mode: str = "HTML",
 ) -> bool:
+    if not external_side_effects_allowed():
+        logger.info("Telegram side effects disabled. Skipping photo.")
+        return False
     token, chat_id = _get_config(category)
     if not token or not chat_id:
         logger.warning(f"Telegram not configured for category={category}. Skipping photo.")
@@ -154,6 +163,8 @@ async def send_telegram_photo(
 
 
 async def answer_callback_query(callback_query_id: str, text: str = "", category: Optional[str] = None) -> bool:
+    if not external_side_effects_allowed():
+        return False
     token, _ = _get_config(category)
     if not token:
         return False

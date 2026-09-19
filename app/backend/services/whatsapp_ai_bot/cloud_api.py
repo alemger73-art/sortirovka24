@@ -7,6 +7,7 @@ from typing import Any, Optional
 
 import httpx
 
+from core.deploy_safety import external_side_effects_allowed
 from services.whatsapp_ai_bot.config import WhatsAppBotConfig
 
 logger = logging.getLogger(__name__)
@@ -18,7 +19,9 @@ class WhatsAppCloudClient:
 
     @property
     def configured(self) -> bool:
-        return bool(self._config.access_token and self._config.phone_number_id)
+        return external_side_effects_allowed() and bool(
+            self._config.access_token and self._config.phone_number_id
+        )
 
     def _messages_url(self) -> str:
         version = (self._config.api_version or "v21.0").lstrip("/")

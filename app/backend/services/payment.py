@@ -4,6 +4,7 @@ from typing import Dict, Literal, Optional, Tuple
 
 import stripe
 from core.config import settings
+from core.deploy_safety import external_side_effects_allowed
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 logger = logging.getLogger(__name__)
@@ -148,6 +149,10 @@ async def initialize_stripe():
         CheckoutError: If Stripe initialization fails with a fixable error
     """
 
+    if not external_side_effects_allowed():
+        logger.info("Payment side effects disabled. Skipping Stripe initialization.")
+        return
+
     stripe_key = settings.stripe_secret_key
     if not stripe_key:
         logger.warning("Error: Stripe key is empty or None")
@@ -217,6 +222,14 @@ class PaymentService:
         Raises:
             CheckoutError: If there"s an error creating the checkout session.
         """
+        if not external_side_effects_allowed():
+            raise CheckoutError(
+                "Payments are disabled in this environment",
+                error_type="environment_disabled",
+                is_retryable=False,
+                fixable=False,
+            )
+
         try:
             logger.info(f"create checkout session with request: {request}")
 
@@ -326,6 +339,14 @@ class PaymentService:
         Raises:
             CheckoutError: If there"s an error retrieving the session status.
         """
+        if not external_side_effects_allowed():
+            raise CheckoutError(
+                "Payments are disabled in this environment",
+                error_type="environment_disabled",
+                is_retryable=False,
+                fixable=False,
+            )
+
         try:
             # Ensure stripe config is loaded
             await self._auto_reload_stripe_config()

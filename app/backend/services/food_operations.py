@@ -16,6 +16,7 @@ from fastapi import HTTPException
 from sqlalchemy import select, update, or_, and_
 from core.auth import _get_jwt_secret_key
 from core.database import db_manager
+from core.deploy_safety import external_side_effects_allowed
 from models.food_operations import FoodOperationsSettings, FoodOrderEvent
 from models.food_orders import Food_orders
 from models.food_restaurants import Food_restaurants
@@ -55,11 +56,20 @@ async def is_dam_order(db, order):
     return bool(await db.scalar(select(Food_orders.id).where(Food_orders.id == order.id, await scope(db))))
 
 def add_event(db, order, message, actor='Система', notify=True):
-    event = FoodOrderEvent(order_id=order.id, actor=actor[:200], message=message, created_at=now(), notification='pending' if notify else 'none')
+    should_notify = notify and external_side_effects_allowed()
+    event = FoodOrderEvent(
+        order_id=order.id,
+        actor=actor[:200],
+        message=message,
+        created_at=now(),
+        notification='pending' if should_notify else 'none',
+    )
     db.add(event)
     return event
 
 async def credentials(db):
+    if not external_side_effects_allowed():
+        return None
     cfg = await db.get(FoodOperationsSettings, 1)
     if cfg is not None:
         if not cfg.enabled:
@@ -71,6 +81,8 @@ async def credentials(db):
     return None
 
 async def telegram_call(token, method, payload):
+    if not external_side_effects_allowed():
+        raise ValueError('Внешние уведомления отключены в этой среде.')
     # Do not propagate httpx URLs/exceptions: the URL contains the bot secret.
     try:
         async with httpx.AsyncClient(timeout=12) as client:

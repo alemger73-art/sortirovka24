@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional
 
 import httpx
 
+from core.deploy_safety import external_side_effects_allowed
 from services.frontpad_settings import Frontpad_settingsService
 
 logger = logging.getLogger(__name__)
@@ -52,6 +53,8 @@ async def call_frontpad(
     method: str,
     extra_params: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
+    if not external_side_effects_allowed():
+        raise RuntimeError("FrontPad integration is disabled in this environment")
     url = f"{FRONTPAD_API_BASE}?{method}"
     data: Dict[str, Any] = {"secret": secret}
     if extra_params:
