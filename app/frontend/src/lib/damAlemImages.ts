@@ -280,11 +280,13 @@ function uniqueUrls(urls: string[]): string[] {
 }
 
 export function resolveDamAlemItemImage(item: DishImageInput): string {
-  return resolveImageSrc(item.imageUrl || '') || '';
+  const stored = item.imageUrl || '';
+  return resolveImageSrc(stored) || stored;
 }
 
 export function buildDamAlemImageChain(item: DishImageInput): string[] {
-  const uploaded = resolveImageSrc(item.imageUrl || '');
+  const stored = item.imageUrl || '';
+  const uploaded = resolveImageSrc(stored) || stored;
   return uploaded ? [uploaded] : [];
 }
 

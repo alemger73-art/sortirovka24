@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { UtensilsCrossed } from 'lucide-react';
 import { buildImageFallbackChain } from '@/lib/damAlemImages';
+import { resolveImageSrc, resolveImageUrl } from '@/lib/storage';
 
 interface Props {
   src: string;
@@ -11,15 +12,29 @@ interface Props {
 }
 
 export default function DamAlemImage({ src, alt = '', className, loading = 'lazy', fallbacks }: Props) {
+  const synchronousSource = resolveImageSrc(src) || '';
+  const [resolvedSource, setResolvedSource] = useState(synchronousSource);
+
+  useEffect(() => {
+    let active = true;
+    setResolvedSource(synchronousSource);
+    if (!src || synchronousSource) return () => { active = false; };
+
+    void resolveImageUrl(src).then((url) => {
+      if (active && url) setResolvedSource(url);
+    });
+    return () => { active = false; };
+  }, [src, synchronousSource]);
+
   const chain = useMemo(
-    () => buildImageFallbackChain(src, fallbacks),
-    [src, fallbacks],
+    () => buildImageFallbackChain(resolvedSource, fallbacks),
+    [resolvedSource, fallbacks],
   );
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
     setIndex(0);
-  }, [src]);
+  }, [resolvedSource]);
 
   const handleError = useCallback(() => {
     setIndex(prev => {
