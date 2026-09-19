@@ -48,5 +48,6 @@ COPY --from=frontend /app/frontend/dist ./frontend_dist
 
 EXPOSE 8000
 
-# Run DB migrations, then start the API (same as app/backend/start.sh).
-CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips=*"]
+# The Python entrypoint validates staging isolation before any database work.
+# Production still fails closed when Alembic cannot migrate.
+CMD ["python", "container_entrypoint.py"]

@@ -8,6 +8,7 @@ from core.deploy_safety import (
     staging_safety_errors,
     validate_runtime_safety,
 )
+from container_entrypoint import migration_strategy
 
 
 SAFE_STAGING = {
@@ -83,6 +84,12 @@ class DeploySafetyTests(unittest.TestCase):
         }
         with patch.dict(os.environ, isolated, clear=True):
             self.assertEqual(staging_safety_errors(), [])
+
+    def test_staging_uses_isolated_model_bootstrap(self):
+        with patch.dict(os.environ, {"ENVIRONMENT": "staging"}, clear=True):
+            self.assertEqual(migration_strategy(), "orm-bootstrap")
+        with patch.dict(os.environ, {"ENVIRONMENT": "production"}, clear=True):
+            self.assertEqual(migration_strategy(), "alembic")
 
 
 if __name__ == "__main__":
