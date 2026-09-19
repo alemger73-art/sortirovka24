@@ -48,6 +48,7 @@ class Food_restaurantsUpdateData(BaseModel):
 
 
 class Food_restaurantsResponse(BaseModel):
+    merchant_key: Optional[str] = None
     id: int
     name: Optional[str] = None
     photo: Optional[str] = None

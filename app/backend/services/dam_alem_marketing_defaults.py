@@ -84,42 +84,12 @@ PROMO_CODES: List[Dict[str, Any]] = [
 ]
 
 LOYALTY_GIFTS: List[Dict[str, Any]] = [
-    {
-        "id": "dam-gift-fries",
-        "min_amount": 5000,
-        "title": "Картофель фри 150 г",
-        "description": "Выберите бесплатно к заказу",
-        "image_url": _IMG["fries"],
-        "is_active": True,
-        "sort_order": 1,
-    },
-    {
-        "id": "dam-gift-lemonade",
-        "min_amount": 5000,
-        "title": "Лимонад 0.5 л",
-        "description": "Выберите бесплатно к заказу",
-        "image_url": _IMG["lemonade"],
-        "is_active": True,
-        "sort_order": 2,
-    },
-    {
-        "id": "dam-gift-sauce",
-        "min_amount": 5000,
-        "title": "Соус на выбор",
-        "description": "Выберите бесплатно к заказу",
-        "image_url": _IMG["burger"],
-        "is_active": True,
-        "sort_order": 3,
-    },
-    {
-        "id": "dam-gift-dessert",
-        "min_amount": 10000,
-        "title": "Десерт дня",
-        "description": "Следующий уровень — десерт бесплатно",
-        "image_url": _IMG["shake"],
-        "is_active": True,
-        "sort_order": 4,
-    },
+    {"id": "dam-dessert-cotton", "min_amount": 11000, "title": "Сладкая вата",
+     "product_name": "Сладкая вата", "description": "Один десерт на выбор в подарок",
+     "image_url": "", "is_active": True, "sort_order": 1},
+    {"id": "dam-dessert-waffle", "min_amount": 11000, "title": "Вафли с фруктами и шоколадом",
+     "product_name": "Вафли с фруктами и шоколадом", "description": "Один десерт на выбор в подарок",
+     "image_url": "", "is_active": True, "sort_order": 2},
 ]
 
 PROMO_SLIDES: List[Dict[str, Any]] = [

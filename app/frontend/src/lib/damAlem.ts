@@ -2,8 +2,8 @@ export const DAM_ALEM_BRAND = 'DAM ALEM 2.0';
 export const DAM_ALEM_TAGLINE = 'Доставка еды по Сортировке №1';
 
 export function normalizeDamAlemBrand(name: string): string {
-  const normalized = name.toLowerCase().replace(/[\s-]+/g, '').replace(/2\.0/g, '');
-  return ['damalem', 'дамалем', 'алемфуд', 'alemfood'].includes(normalized) ? 'damalem' : normalized;
+  const normalized = name.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[\s-]+/g, '').replace(/2\.0/g, '');
+  return ['damalem', 'дамалем', 'алемфуд', 'alemfood', 'damәлемі', 'дәмәлемі'].includes(normalized) ? 'damalem' : normalized;
 }
 
 export function isSameDamAlemBrand(name: string | null | undefined, brand = DAM_ALEM_BRAND): boolean {
@@ -32,7 +32,7 @@ export function isDamAlemName(name: string | null | undefined): boolean {
   );
 }
 
-export function findDamAlemRestaurantId(restaurants: { id: number; name: string }[]): number | null {
-  const hit = restaurants.find(r => isDamAlemName(r.name));
-  return hit?.id ?? restaurants[0]?.id ?? null;
+export function findDamAlemRestaurantId(restaurants: { id: number; name: string; merchant_key?: string }[]): number | null {
+  const hit = restaurants.find(r => r.merchant_key === 'dam_alem') || restaurants.find(r => isSameDamAlemBrand(r.name));
+  return hit?.id ?? null;
 }

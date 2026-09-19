@@ -207,6 +207,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
 
   const [loyaltyGifts, setLoyaltyGifts] = useState<LoyaltyGift[]>([]);
+  const [giftProducts, setGiftProducts] = useState<{id: number; name: string}[]>([]);
 
   const [loyaltyEnabled, setLoyaltyEnabled] = useState(true);
 
@@ -223,6 +224,9 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
 
   useEffect(() => { loadSettings(); }, []);
+  useEffect(() => {
+    client.entities.food_items.query({query: {is_active: true}, limit: 3000}).then(res => setGiftProducts(res?.data?.items || [])).catch(() => setGiftProducts([]));
+  }, []);
 
 
 
@@ -716,6 +720,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
             {adminT("admin.ui.0628")} </Button>
 
           <LoyaltyGiftsEditor
+            products={giftProducts}
 
             gifts={loyaltyGifts}
 

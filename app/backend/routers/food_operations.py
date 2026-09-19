@@ -1,4 +1,6 @@
 import re
+import hashlib
+import json
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from pydantic import BaseModel, Field
@@ -131,12 +133,14 @@ class ReceiptLine(BaseModel):
     modifiers: list[dict] = Field(default_factory=list, max_length=30)
 
 class ReceiptChange(BaseModel):
+    selected_gift_id: str | None = Field(None, max_length=100)
     expected_version: int = Field(ge=0)
     items: list[ReceiptLine] = Field(min_length=1, max_length=100)
     reason: str = Field(min_length=3, max_length=500)
     quoted_total: float | None = Field(None, ge=0, allow_inf_nan=False)
 
 class ManualOrder(BaseModel):
+    selected_gift_id: str | None = Field(None, max_length=100)
     request_key: str = Field(min_length=16, max_length=64, pattern=r'^[a-zA-Z0-9-]+$')
     customer_name: str = Field(min_length=1, max_length=150)
     customer_phone: str = Field('', max_length=32)
@@ -156,7 +160,7 @@ async def operator_catalog(db: AsyncSession = Depends(get_db)):
     from models.item_modifier_groups import Item_modifier_groups
     from services.food_operations import brand
     restaurants = (await db.scalars(select(Food_restaurants))).all()
-    ids = [r.id for r in restaurants if brand(r.name)]
+    ids = [r.id for r in restaurants if brand(r.name, r.merchant_key)]
     products = (await db.scalars(select(Food_items).where(or_(Food_items.restaurant_id.in_(ids), Food_items.restaurant_id.is_(None)), Food_items.is_active.is_not(False), Food_items.available.is_not(False)).order_by(Food_items.sort_order, Food_items.id))).all()
     groups = (await db.scalars(select(Modifier_groups).where(Modifier_groups.is_active.is_not(False)))).all()
     options = (await db.scalars(select(Modifier_options).where(Modifier_options.is_active.is_not(False)))).all()
@@ -176,19 +180,26 @@ async def create_manual(body: ManualOrder, request: Request, db: AsyncSession = 
     from sqlalchemy.exc import IntegrityError
     actor = await food_staff(request, db)
     key = str(actor.get('staff_id') or 'admin') + ':' + body.request_key
+    request_hash = hashlib.sha256(json.dumps(body.model_dump(exclude={'request_key'}), sort_keys=True).encode()).hexdigest()
     previous = await db.get(FoodOrderRequest, key)
     if previous:
+        if previous.payload_hash and previous.payload_hash != request_hash:
+            raise HTTPException(409, 'Этот запрос уже оформлен с другим составом')
         return serialize(await order_for_panel(db, previous.order_id))
     data, quote = await manual_quote(db, body)
+    if quote['gift_required']:
+        raise HTTPException(409, 'Выберите подарок для клиента')
     if body.quoted_total is None or money(body.quoted_total) != money(quote['total_amount']):
         raise HTTPException(409, 'Расчёт изменился. Рассчитайте заказ заново.')
     try:
-        order = await Food_ordersService(db).create(data, request_key=key, actor=str(actor.get('display_name') or 'Оператор'))
+        order = await Food_ordersService(db).create(data, request_key=key, request_hash=request_hash, actor=str(actor.get('display_name') or 'Оператор'))
     except IntegrityError:
         await db.rollback()
         previous = await db.get(FoodOrderRequest, key)
         if not previous:
             raise
+        if previous.payload_hash and previous.payload_hash != request_hash:
+            raise HTTPException(409, 'Этот запрос уже оформлен с другим составом')
         order = await order_for_panel(db, previous.order_id)
     return serialize(order)
 

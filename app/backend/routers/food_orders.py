@@ -1,10 +1,11 @@
 import json
 import logging
+import hashlib
 from typing import List, Optional
 
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
@@ -37,6 +38,8 @@ def _check_order_rate_limit(request: Request) -> None:
 class Food_ordersData(BaseModel):
     """Entity data schema (for create/update)"""
     user_id: Optional[int] = None
+    request_key: Optional[str] = Field(None, min_length=16, max_length=64, pattern=r'^[a-zA-Z0-9-]+$')
+    deliver_to_apartment: bool = False
     restaurant_id: Optional[int] = None
     restaurant_name: Optional[str] = None
     restaurant_phone: Optional[str] = None
@@ -248,8 +251,22 @@ async def create_food_orders(
     from services.bonus_spending import resolve_optional_account_user
 
     account_user = await resolve_optional_account_user(request, db)
+    from models.food_operations import FoodOrderRequest
+    from sqlalchemy.exc import IntegrityError
+    request_key = None
+    request_hash = None
+    if data.request_key:
+        identity = str(account_user.id) if account_user else ''.join(c for c in (data.customer_phone or '') if c.isdigit())
+        request_key = 'client:' + hashlib.sha256((identity + ':' + data.request_key).encode()).hexdigest()
+        request_hash = hashlib.sha256(json.dumps(data.model_dump(exclude={'request_key'}), sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+        previous = await db.get(FoodOrderRequest, request_key)
+        if previous:
+            if previous.payload_hash != request_hash:
+                raise HTTPException(409, 'Этот запрос уже оформлен с другим составом')
+            return await Food_ordersService(db).get_by_id(previous.order_id)
 
     payload = data.model_dump()
+    payload.pop('request_key', None)
     delivery_fee = payload.pop("delivery_fee", None)
     service_fee = payload.pop("service_fee", None)
     zone_name = payload.pop("delivery_zone", None)
@@ -273,7 +290,16 @@ async def create_food_orders(
 
     service = Food_ordersService(db)
     try:
-        result = await service.create(payload, account_user=account_user)
+        try:
+            result = await service.create(payload, account_user=account_user, request_key=request_key, request_hash=request_hash)
+        except IntegrityError:
+            await db.rollback()
+            previous = await db.get(FoodOrderRequest, request_key) if request_key else None
+            if not previous:
+                raise
+            if previous.payload_hash != request_hash:
+                raise HTTPException(409, 'Этот запрос уже оформлен с другим составом')
+            return await service.get_by_id(previous.order_id)
         if not result:
             raise HTTPException(status_code=400, detail="Failed to create food_orders")
 
@@ -289,6 +315,8 @@ async def create_food_orders(
 
         logger.info(f"Food_orders created successfully with id: {result.id}")
         return result
+    except HTTPException:
+        raise
     except ValueError as e:
         logger.error(f"Validation error creating food_orders: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))

@@ -120,3 +120,49 @@ async def test_late_payment_has_date_and_cannot_be_erased(env):
     assert again.status_code==422
     report=await client.get('/api/v1/dam-alem/business/report',headers=owner,params={'start':str(city_today()),'end':str(city_today())})
     assert report.json()['receipts']==1234 and report.json()['sales']==0
+
+
+@pytest.mark.asyncio
+async def test_reduced_paid_receipt_refunds_only_excess_then_cancellation(env):
+    client,maker,owner,_=env
+    day=str(city_today())
+    async with maker() as db:
+        db.add(Food_orders(id=91,restaurant_id=1,status='new',payment_status='paid',version=0,
+            total_amount=500,paid_amount=1200,paid_at=day+'T10:00:00+05:00',delivery_method='pickup'))
+        await db.commit()
+    url='/api/v1/dam-alem/business'
+    async def report():
+        response=await client.get(url+'/report',headers=owner,params={'start':day,'end':day})
+        assert response.status_code==200,response.text
+        return response.json()
+    before=await report()
+    assert before['receipts']==1200 and before['refunds_needed']==[{'id':91,'amount':700}]
+    body={'day':day,'note':'Переплата возвращена'}
+    assert (await client.post(url+'/refunds/91',headers=owner,json=body)).status_code==200
+    assert (await client.post(url+'/refunds/91',headers=owner,json=body)).status_code==409
+    after=await report()
+    assert after['receipts']==1200 and after['refunds']==700 and not after['refunds_needed']
+    async with maker() as db:
+        order=await db.get(Food_orders,91)
+        assert order.paid_amount==500
+        order.status='cancelled'
+        await db.commit()
+    assert (await client.post(url+'/refunds/91',headers=owner,json=body)).status_code==200
+    after=await report()
+    assert after['receipts']==1200 and after['refunds']==1200 and after['cash_difference']==0
+
+
+@pytest.mark.asyncio
+async def test_supplement_keeps_original_payment_day(env):
+    client,maker,owner,operator=env
+    day=str(city_today());previous=str(city_today()-timedelta(days=1))
+    async with maker() as db:
+        db.add(Food_orders(id=92,restaurant_id=1,status='new',payment_status='pending',version=0,
+            total_amount=1800,paid_amount=1200,paid_at=previous+'T10:00:00+05:00',delivery_method='pickup'))
+        await db.commit()
+    response=await client.patch('/api/v1/dam-alem/operations/orders/92',headers=operator,
+        json={'expected_version':0,'payment_status':'paid'})
+    assert response.status_code==200,response.text
+    for date,amount in [(previous,1200),(day,600)]:
+        result=await client.get('/api/v1/dam-alem/business/report',headers=owner,params={'start':date,'end':date})
+        assert result.json()['receipts']==amount,result.text

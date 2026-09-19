@@ -74,7 +74,12 @@ class Food_restaurantsService:
         if not obj:
             return None
         try:
+            from services.food_operations import brand
+            if not obj.merchant_key and brand(obj.name):
+                obj.merchant_key = 'dam_alem'
             for key, value in update_data.items():
+                if key == 'merchant_key':
+                    continue
                 if hasattr(obj, key):
                     setattr(obj, key, value)
             await self.db.commit()

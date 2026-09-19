@@ -163,7 +163,7 @@ function FoodBadge({ type }: { type: 'hit' | 'new' }) {
 function itemDisplayWeight(item: FoodItem): string {
   const w = (item.weight || '').trim();
   if (!w) return '';
-  if (/\d/.test(w) && (w.includes('г') || w.includes('кг') || w.includes('ml'))) return w;
+  if (!/^\d+(?:[.,]\d+)?$/.test(w)) return w;
   return `${w} г`;
 }
 
@@ -284,7 +284,9 @@ export default function Food() {
   const [bonusBalance, setBonusBalance] = useState(0);
   const [useBonuses, setUseBonuses] = useState(false);
   const [selectedGiftId, setSelectedGiftId] = useState<string | null>(null);
-  const BONUS_MAX_PERCENT = 30;
+  const [bonusRules, setBonusRules] = useState({ enabled: false, tenge_rate: 1, max_order_percent: 0 });
+  const BONUS_MAX_PERCENT = bonusRules.max_order_percent;
+  const checkoutAttempt = useRef<{ fingerprint: string; key: string } | null>(null);
 
   useEffect(() => { loadData(); }, []);
 
@@ -319,6 +321,7 @@ export default function Food() {
     accountApi.me()
       .then((me) => setBonusBalance(Number(me?.bonus_balance || 0)))
       .catch(() => setBonusBalance(0));
+    accountApi.bonusRules().then(setBonusRules).catch(() => setBonusRules({ enabled: false, tenge_rate: 1, max_order_percent: 0 }));
   }, [checkoutOpen, activeTab]);
 
   useEffect(() => {
@@ -534,7 +537,7 @@ export default function Food() {
           return t !== 'delivery' && t !== 'seasonal' && t !== 'service';
         });
         const eitems: FoodItem[] = filterByRestaurant(extract(results[1]) as FoodItem[])
-          .filter((i: FoodItem) => i.is_active !== false && (i as FoodItem & { available?: boolean }).available !== false)
+          .filter((i: FoodItem) => i.is_active !== false && i.available !== false && Number(i.price) > 0)
           .map((i: FoodItem) => ({
             ...i,
             is_popular: i.is_popular ?? i.is_recommended,
@@ -814,8 +817,9 @@ export default function Food() {
     [settings.apartment_free_from, settings.free_delivery_from],
   );
   const loyaltyGifts = useMemo(
-    () => resolveLoyaltyGifts(settings.loyalty_gifts, isLoyaltyEnabled(settings)),
-    [settings.loyalty_gifts, settings.loyalty_enabled],
+    () => resolveLoyaltyGifts(settings.loyalty_gifts, isLoyaltyEnabled(settings)).filter(gift =>
+      !gift.product_id && !gift.product_name || items.some(item => gift.product_id ? item.id === gift.product_id : item.name === gift.product_name)),
+    [settings.loyalty_gifts, settings.loyalty_enabled, items],
   );
   const availableGiftChoices = useMemo(
     () => availableLoyaltyGiftChoices(cartTotal, loyaltyGifts),
@@ -1094,15 +1098,15 @@ export default function Food() {
   }, [deliveryMethod, cartTotalWithService, activeDeliveryPrice, apartmentDeliveryFee, promoDiscountAmount]);
 
   const maxBonusPoints = useMemo(() => {
-    if (!getAccountToken() || bonusBalance <= 0) return 0;
+    if (!getAccountToken() || bonusBalance <= 0 || !bonusRules.enabled || bonusRules.tenge_rate <= 0) return 0;
     if (appliedPromo && !appliedPromo.pending) return 0;
-    const capBySubtotal = Math.floor(cartTotal * (BONUS_MAX_PERCENT / 100));
-    return Math.max(0, Math.min(bonusBalance, capBySubtotal, checkoutTotalBeforeBonus));
-  }, [bonusBalance, cartTotal, checkoutTotalBeforeBonus, appliedPromo]);
+    const capBySubtotal = cartTotal * (bonusRules.max_order_percent / 100) / bonusRules.tenge_rate;
+    return Math.floor(Math.max(0, Math.min(bonusBalance, capBySubtotal, checkoutTotalBeforeBonus / bonusRules.tenge_rate)) * 100) / 100;
+  }, [bonusBalance, cartTotal, checkoutTotalBeforeBonus, appliedPromo, bonusRules]);
 
   const bonusDiscountAmount = useMemo(
-    () => (useBonuses && maxBonusPoints > 0 ? maxBonusPoints : 0),
-    [useBonuses, maxBonusPoints],
+    () => (useBonuses && maxBonusPoints > 0 ? Math.round(maxBonusPoints * bonusRules.tenge_rate * 100) / 100 : 0),
+    [useBonuses, maxBonusPoints, bonusRules.tenge_rate],
   );
 
   /** Сумма к оплате: позиции + сервис + доставка + до квартиры − промокод − бонусы */
@@ -1347,9 +1351,7 @@ export default function Food() {
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      const created = await (
-        client.entities.food_orders.create({
-          data: {
+      const orderData = {
             restaurant_id: damAlemRestaurantId ?? 1,
             restaurant_name: settings.hero_banner_title || brandProfile?.name || DAM_ALEM_BRAND,
             restaurant_phone: settings.whatsapp_number || brandProfile?.whatsapp_phone || '',
@@ -1359,7 +1361,7 @@ export default function Food() {
             service_fee: serviceFeeAmount,
             ...(appliedPromo?.code && !appliedPromo.pending ? { promo_code: appliedPromo.code } : {}),
             ...(loyaltyGift ? { selected_gift_id: loyaltyGift.id } : {}),
-            ...(bonusDiscountAmount > 0 ? { bonus_points_to_use: bonusDiscountAmount } : {}),
+            ...(bonusDiscountAmount > 0 ? { bonus_points_to_use: maxBonusPoints } : {}),
             ...(deliveryMethod === 'delivery' && deliverToApartment
               ? { deliver_to_apartment: true, apartment_delivery_fee: apartmentDeliveryFee }
               : {}),
@@ -1372,9 +1374,17 @@ export default function Food() {
             comment: orderComment,
             delivery_method: deliveryMethod,
             payment_method: payment,
-          },
-        })
-      );
+      };
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(orderData)));
+      const fingerprint = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+      try {
+        if (!checkoutAttempt.current) checkoutAttempt.current = JSON.parse(sessionStorage.getItem('dam-checkout-attempt') || 'null');
+      } catch { /* Storage may be unavailable in private mode. */ }
+      if (checkoutAttempt.current?.fingerprint !== fingerprint) checkoutAttempt.current = { fingerprint, key: crypto.randomUUID() };
+      try { sessionStorage.setItem('dam-checkout-attempt', JSON.stringify(checkoutAttempt.current)); } catch { /* Keep the in-memory retry key. */ }
+      const created = await client.entities.food_orders.create({ data: { ...orderData, request_key: checkoutAttempt.current.key } });
+      checkoutAttempt.current = null;
+      try { sessionStorage.removeItem('dam-checkout-attempt'); } catch { /* Order is already saved. */ }
       const createdAny = created as { data?: { id?: number }; id?: number } | undefined;
       const orderId = Number(createdAny?.data?.id ?? createdAny?.id ?? 0);
       const orderItemsSnapshot = JSON.stringify(

@@ -139,6 +139,22 @@ async def test_valid_order_forces_system_fields(catalog_patches):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize('change', [{'delivery_method':'pickup_fake'}, {'restaurant_id':None}, {'restaurant_id':0}])
+async def test_invalid_delivery_and_missing_restaurant_rejected(catalog_patches, change):
+    with pytest.raises(HTTPException) as exc:
+        await validate_food_order(MagicMock(), _base_order(**change))
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_unpriced_product_cannot_be_ordered(catalog_patches):
+    with patch('services.food_order_validation.Food_itemsService', return_value=_svc([_product(price=0)])):
+        with pytest.raises(HTTPException) as exc:
+            await validate_food_order(MagicMock(), _base_order(total_amount=0))
+        assert exc.value.status_code == 400
+
+
+@pytest.mark.asyncio
 async def test_rejects_base_price_tamper(catalog_patches):
     data = _base_order(
         order_items='[{"id":10,"name":"Донер Куриный","price":10,"quantity":1,"modifiers":[],"modTotal":0}]',

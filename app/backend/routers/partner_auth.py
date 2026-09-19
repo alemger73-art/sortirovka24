@@ -3,12 +3,13 @@
 import hashlib
 import logging
 import os
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.auth import AccessTokenError, create_access_token, decode_access_token
@@ -251,6 +252,17 @@ async def partner_login(
     ip_address = _get_client_ip(request)
     user_agent = request.headers.get("user-agent", "")
 
+    kind, normalized = _normalize_login(login_raw)
+    login_raw = normalized or login_raw.lower()
+    since = datetime.now(timezone.utc) - timedelta(minutes=15)
+    failed = await db.scalar(select(func.count()).select_from(PartnerLoginAttempt).where(
+        PartnerLoginAttempt.partner_type == partner_type,
+        PartnerLoginAttempt.created_at >= since,
+        PartnerLoginAttempt.success.is_(False),
+        or_(PartnerLoginAttempt.login == login_raw, PartnerLoginAttempt.ip_address == ip_address)))
+    if failed and failed >= 10:
+        raise HTTPException(429, 'Слишком много попыток. Попробуйте через 15 минут.', headers={'Retry-After': '900'})
+
     if not login_raw or not payload.password:
         await _log_attempt(db, partner_type, login_raw, ip_address, user_agent, False, "empty_fields")
         return PartnerLoginResponse(success=False, message="Введите email или телефон и пароль.")
@@ -475,7 +487,10 @@ async def _initialize_partner_from_env(partner_type: str) -> None:
             logger.info("[Partner Auth] %s partner account already exists (id=%s).", partner_type, existing.id)
             return
 
-        pwd = password or f"{partner_type}-change-me"
+        if len(password) < 12:
+            logger.error('[Partner Auth] Initialization skipped: configure a password of at least 12 characters for %s', partner_type)
+            return
+        pwd = password
         if existing:
             existing.email = email or existing.email
             existing.phone = phone or existing.phone

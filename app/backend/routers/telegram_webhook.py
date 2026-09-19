@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import secrets
 from typing import Any, Optional
 
 from core.database import get_db
@@ -23,7 +24,9 @@ router = APIRouter(prefix="/api/v1/telegram", tags=["telegram"])
 
 def _verify_secret(secret_header: Optional[str]) -> None:
     expected = os.environ.get("TELEGRAM_WEBHOOK_SECRET", "").strip()
-    if expected and secret_header != expected:
+    if not expected:
+        raise HTTPException(status_code=503, detail="Telegram webhook is not configured")
+    if not secret_header or not secrets.compare_digest(secret_header.encode(), expected.encode()):
         raise HTTPException(status_code=403, detail="Invalid webhook secret")
 
 
@@ -48,11 +51,25 @@ async def telegram_webhook(
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON")
 
+    if not isinstance(update, dict):
+        raise HTTPException(400, 'Invalid update')
     callback = update.get("callback_query")
     if not callback:
         return {"ok": True}
+    if not isinstance(callback, dict):
+        raise HTTPException(400, 'Invalid callback')
 
     data = str(callback.get("data") or "")
+    # Legacy interactive bots must explicitly allow their operators/chats.
+    chats = {x.strip() for x in os.getenv('TELEGRAM_CALLBACK_CHAT_IDS', '').split(',') if x.strip()}
+    senders = {x.strip() for x in os.getenv('TELEGRAM_CALLBACK_USER_IDS', '').split(',') if x.strip()}
+    message, sender = callback.get('message'), callback.get('from')
+    if not isinstance(message, dict) or not isinstance(sender, dict) or not isinstance(message.get('chat'), dict):
+        raise HTTPException(403, 'Callback sender is not authorized')
+    chat_id = str(message['chat'].get('id', ''))
+    sender_id = str(sender.get('id', ''))
+    if chat_id not in chats or sender_id not in senders:
+        raise HTTPException(403, 'Callback sender is not authorized')
     callback_id = str(callback.get("id") or "")
     category = _callback_category(data)
     if not category or not callback_id:
@@ -62,6 +79,7 @@ async def telegram_webhook(
     try:
         answer_text = await handle_food_callback(db, data)
     except Exception as exc:
+        await db.rollback()
         logger.exception("Telegram callback error: %s", exc)
         answer_text = "Ошибка сервера"
 

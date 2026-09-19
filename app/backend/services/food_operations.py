@@ -7,6 +7,7 @@ import logging
 import os
 import re
 import time
+import unicodedata
 from datetime import datetime, timezone
 
 import httpx
@@ -37,12 +38,15 @@ def cipher():
     material = os.environ.get('FOOD_SECRETS_KEY') or _get_jwt_secret_key()
     return Fernet(base64.urlsafe_b64encode(hashlib.sha256(('food-operations:' + material).encode()).digest()))
 
-def brand(name):
-    return re.sub(r'[\s-]|2\.0', '', (name or '').lower()) in {'damalem', 'дамалем', 'алемфуд', 'alemfood'}
+def brand(name, merchant_key=None):
+    if merchant_key:
+        return merchant_key == 'dam_alem'
+    name = ''.join(c for c in unicodedata.normalize('NFKD', (name or '').lower()) if not unicodedata.combining(c))
+    return re.sub(r'[\s-]|2\.0', '', name) in {'damalem', 'дамалем', 'алемфуд', 'alemfood', 'damәлемі', 'дәмәлемі'}
 
 async def scope(db):
-    restaurants = (await db.execute(select(Food_restaurants.id, Food_restaurants.name))).all()
-    ids = [r.id for r in restaurants if brand(r.name)]
+    restaurants = (await db.execute(select(Food_restaurants.id, Food_restaurants.name, Food_restaurants.merchant_key))).all()
+    ids = [r.id for r in restaurants if brand(r.name, r.merchant_key)]
     # Only legacy orders without a restaurant id may be identified by stored name.
     names = ['DAM ALEM', 'DAM ALEM 2.0', 'Алем Фуд', 'Алем-Фуд', 'Alem Food', 'ДАМ АЛЕМ']
     return or_(Food_orders.restaurant_id.in_(ids), and_(Food_orders.restaurant_id.is_(None), Food_orders.restaurant_name.in_(names)))

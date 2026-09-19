@@ -46,6 +46,8 @@ async def env(monkeypatch, tmp_path):
         return await db.scalar(select(CourierProfile).where(CourierProfile.user_id==user.id))
     monkeypatch.setattr('services.logistics_service.get_or_create_courier_profile',courier_profile)
     app=FastAPI();app.include_router(router);app.include_router(account_v2.router);app.include_router(payroll_router)
+    from routers.food_orders import router as customer_orders
+    app.include_router(customer_orders)
     async def dependency():
         async with maker() as db: yield db
     app.dependency_overrides[get_db]=dependency
@@ -72,9 +74,25 @@ async def test_revision_preserves_old_price_and_payment_and_rejects_stale(env):
     assert (await client.post(BASE+'/orders/1/receipt',headers=headers,json=body)).status_code==409
     async with maker() as db:
         events=(await db.scalars(select(FoodOrderEvent).where(FoodOrderEvent.public_data.isnot(None)))).all()
+        events=[e for e in events if json.loads(e.public_data).get('kind') == 'receipt_changed']
         assert len(events)==1
         data=json.loads(events[0].public_data)
         assert data['before']['total_amount']==1200 and data['after']['total_amount']==1800
+
+
+@pytest.mark.asyncio
+async def test_revision_recalculates_saved_service_delivery_and_promo(env):
+    client,maker,headers,_=env
+    async with maker() as db:
+        order=await db.get(Food_orders,1)
+        order.pricing_snapshot=json.dumps({'version':1,'service_rate':0.05,'base_delivery_fee':600,
+            'requested_apartment':False,'promo_code':'TEN','settings':{'free_delivery_from':'1500',
+            'promo_codes':json.dumps([{'code':'TEN','active':True,'type':'percent','value':10,'min_order':1500}])}})
+        await db.commit()
+    result=await client.post(BASE+'/orders/1/receipt/quote',headers=headers,json=edit_body())
+    assert result.status_code==200,result.text
+    assert result.json()['total_amount']==1520  # 1600 + 5% - 10%, delivery becomes free.
+    assert result.json()['promo_discount_amount']==160
 
 @pytest.mark.asyncio
 async def test_bad_quote_and_other_restaurant_do_not_mutate(env):
@@ -102,6 +120,42 @@ async def test_manual_order_idempotency_and_server_prices(env):
     assert a.json()['total_amount']==600 and a.json()['order_source']=='operator'
     async with maker() as db:
         assert await db.scalar(select(func.count()).select_from(FoodOrderRequest))==1
+
+
+@pytest.mark.asyncio
+async def test_customer_retry_returns_same_order_and_changed_payload_is_rejected(env):
+    import asyncio
+    client,maker,_,_=env
+    body={'request_key':'customer-retry-1234567890','restaurant_id':1,'customer_name':'Client',
+        'customer_phone':'+77003333333','delivery_method':'pickup','payment_method':'cash',
+        'order_items':json.dumps([{'id':2,'quantity':2,'price':300}]),'total_amount':600}
+    async def send():
+        return await client.post('/api/v1/entities/food_orders',json=body)
+    a,b=await asyncio.gather(send(),send())
+    assert a.status_code==201,a.text
+    assert b.status_code==201,b.text
+    assert a.json()['id']==b.json()['id']
+    repeated=await send()
+    assert repeated.json()['id']==a.json()['id']
+    changed=await client.post('/api/v1/entities/food_orders',json={**body,'total_amount':601})
+    assert changed.status_code==409
+
+
+@pytest.mark.asyncio
+async def test_late_payment_awards_bonus_once_in_order_transaction(env):
+    client,maker,headers,monkeypatch=env
+    monkeypatch.setattr('services.bonus_rewards.FOOD_ORDER_BONUS_POINTS',50)
+    monkeypatch.setattr('services.bonus_rewards.FOOD_ORDER_BONUS_PERCENT',0)
+    async with maker() as db:
+        db.add(User(id='customer',phone='+77000000000',bonus_balance=100))
+        order=await db.get(Food_orders,1)
+        order.status='done';order.payment_status='pending';order.paid_amount=0
+        await db.commit()
+    for version in [0,1]:
+        response=await client.patch(BASE+'/orders/1',headers=headers,json={'expected_version':version,'payment_status':'paid'})
+        assert response.status_code==200,response.text
+    async with maker() as db:
+        assert (await db.get(User,'customer')).bonus_balance==150
 
 @pytest.mark.asyncio
 async def test_ready_courier_delivery_and_cancellation_are_one_workflow(env):
@@ -179,7 +233,7 @@ async def test_two_simultaneous_receipt_saves_have_one_winner(env):
     assert sorted(r.status_code for r in results)==[200,409]
     async with maker() as db:
         assert (await db.get(Food_orders,1)).version==1
-        assert await db.scalar(select(func.count()).select_from(FoodOrderEvent).where(FoodOrderEvent.public_data.isnot(None)))==1
+        assert await db.scalar(select(func.count()).select_from(FoodOrderEvent).where(FoodOrderEvent.public_data.isnot(None)))==2
 
 @pytest.mark.asyncio
 async def test_additive_schema_repair_preserves_existing_order(tmp_path):

@@ -22,42 +22,8 @@ export function resolvePromoCodes(raw?: string): FoodPromoCode[] {
 }
 
 export const DEFAULT_LOYALTY_GIFTS: LoyaltyGift[] = [
-  {
-    id: 'dam-gift-fries',
-    min_amount: 5000,
-    title: 'Картофель фри 150 г',
-    description: 'Выберите один подарок бесплатно',
-    image_url: getCategoryImage('kombo-fastfud'),
-    is_active: true,
-    sort_order: 1,
-  },
-  {
-    id: 'dam-gift-lemonade',
-    min_amount: 5000,
-    title: 'Лимонад 0.5 л',
-    description: 'Выберите один подарок бесплатно',
-    image_url: getCategoryImage('napitki'),
-    is_active: true,
-    sort_order: 2,
-  },
-  {
-    id: 'dam-gift-sauce',
-    min_amount: 5000,
-    title: 'Соус на выбор',
-    description: 'Выберите один подарок бесплатно',
-    image_url: getCategoryImage('burgery'),
-    is_active: true,
-    sort_order: 3,
-  },
-  {
-    id: 'dam-gift-dessert',
-    min_amount: 10000,
-    title: 'Десерт дня',
-    description: 'Следующий уровень — десерт бесплатно',
-    image_url: getCategoryImage('kombo-fastfud'),
-    is_active: true,
-    sort_order: 4,
-  },
+  { id: 'dam-dessert-cotton', min_amount: 11000, title: 'Сладкая вата', product_name: 'Сладкая вата', description: 'Один десерт на выбор в подарок', image_url: '', is_active: true, sort_order: 1 },
+  { id: 'dam-dessert-waffle', min_amount: 11000, title: 'Вафли с фруктами и шоколадом', product_name: 'Вафли с фруктами и шоколадом', description: 'Один десерт на выбор в подарок', image_url: '', is_active: true, sort_order: 2 },
 ];
 
 export function resolveLoyaltyGifts(raw?: string, enabled = true): LoyaltyGift[] {

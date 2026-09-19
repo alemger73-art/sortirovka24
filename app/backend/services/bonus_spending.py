@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import os
 from typing import Any, Optional
 
@@ -86,6 +87,8 @@ def calculate_bonus_discount(
     has_promo: bool,
 ) -> tuple[float, float]:
     """Return (points_to_use, discount_tenge)."""
+    if not all(math.isfinite(float(value)) for value in (subtotal, total_before_bonus, bonus_points_requested, BONUS_TENGE_RATE, BONUS_MAX_ORDER_PERCENT)) or BONUS_TENGE_RATE <= 0 or not 0 <= BONUS_MAX_ORDER_PERCENT <= 100:
+        raise HTTPException(400, 'Некорректные параметры списания бонусов')
     if not BONUS_SPENDING_ENABLED:
         raise HTTPException(status_code=400, detail="Списание бонусов временно недоступно")
     if has_promo:
@@ -99,9 +102,9 @@ def calculate_bonus_discount(
 
     max_by_percent = round(subtotal * (BONUS_MAX_ORDER_PERCENT / 100.0), 2)
     max_by_total = round(max(0.0, total_before_bonus), 2)
-    max_points = min(balance, max_by_percent, max_by_total / max(BONUS_TENGE_RATE, 0.0001))
+    max_points = min(balance, max_by_percent / max(BONUS_TENGE_RATE, 0.0001), max_by_total / max(BONUS_TENGE_RATE, 0.0001))
     points = min(float(bonus_points_requested), max_points)
-    points = round(max(0.0, points), 2)
+    points = math.floor(max(0.0, points) * 100 + 1e-9) / 100
     if points <= 0:
         raise HTTPException(status_code=400, detail="Нельзя списать бонусы для этого заказа")
 
@@ -113,75 +116,20 @@ def calculate_bonus_discount(
     return points, discount
 
 
-async def spend_bonuses_for_order(
-    db: AsyncSession,
-    *,
-    user: User,
-    food_order_id: int,
-    points: float,
-    discount: float,
-) -> None:
+async def spend_bonuses_for_order(db, *, user, food_order_id, points, discount):
     if points <= 0 or discount <= 0:
         return
-    balance = float(user.bonus_balance or 0)
-    if points > balance + 0.001:
-        raise HTTPException(status_code=400, detail="Недостаточно бонусов")
-
-    user.bonus_balance = round(balance - points, 2)
-    db.add(
-        Bonus(
-            user_id=str(user.id),
-            points=-points,
-            reason=f"Списано за заказ еды #{food_order_id}",
-        )
-    )
-    db.add(
-        UserAction(
-            user_id=str(user.id),
-            action="bonus_spent_food_order",
-            entity="food_orders",
-            entity_id=str(food_order_id),
-            payload=json.dumps({"points": points, "discount": discount}, ensure_ascii=False),
-        )
-    )
+    from services.bonus_ledger import record_bonus
+    await record_bonus(db, user=user, order_id=food_order_id,
+        action='bonus_spent_food_order', points=-points,
+        reason=f'Списано за заказ еды #{food_order_id}',
+        payload={'points': points, 'discount': discount})
 
 
-async def refund_bonuses_for_order(
-    db: AsyncSession,
-    *,
-    user: User,
-    food_order_id: int,
-    points: float,
-) -> None:
+async def refund_bonuses_for_order(db, *, user, food_order_id, points):
     if points <= 0:
         return
-    existing = (
-        await db.execute(
-            select(UserAction).where(
-                UserAction.user_id == str(user.id),
-                UserAction.action == "bonus_refund_food_order",
-                UserAction.entity == "food_orders",
-                UserAction.entity_id == str(food_order_id),
-            )
-        )
-    ).scalar_one_or_none()
-    if existing:
-        return
-
-    user.bonus_balance = round(float(user.bonus_balance or 0) + points, 2)
-    db.add(
-        Bonus(
-            user_id=str(user.id),
-            points=points,
-            reason=f"Возврат бонусов за отмену заказа #{food_order_id}",
-        )
-    )
-    db.add(
-        UserAction(
-            user_id=str(user.id),
-            action="bonus_refund_food_order",
-            entity="food_orders",
-            entity_id=str(food_order_id),
-            payload=json.dumps({"points": points}, ensure_ascii=False),
-        )
-    )
+    from services.bonus_ledger import record_bonus
+    await record_bonus(db, user=user, order_id=food_order_id,
+        action='bonus_refund_food_order', points=points,
+        reason=f'Возврат бонусов за отмену заказа #{food_order_id}')

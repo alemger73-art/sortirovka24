@@ -324,6 +324,9 @@ async def advance_task_status(db: AsyncSession, task: LogisticsTask, courier_use
             if target == 'done':
                 food.completed_at = timestamp
             add_event(db, food, f'Статус: {LABELS.get(old_food_status)} → {LABELS[target]}', 'Курьер')
+    if food:
+        from services.bonus_rewards import settle_food_order_bonus
+        await settle_food_order_bonus(db, food)
     if new_status == 'delivered':
         await db.execute(update(CourierProfile).where(CourierProfile.user_id == task.courier_id).values(
             deliveries_count=CourierProfile.deliveries_count + 1,
@@ -332,12 +335,8 @@ async def advance_task_status(db: AsyncSession, task: LogisticsTask, courier_use
     await db.refresh(task)
     if food and old_food_status != food.status:
         from services.user_notifications import notify_food_order_status
-        from services.bonus_rewards import handle_food_order_status_bonus
         try:
             await notify_food_order_status(db, food, old_food_status, food.status)
-            await handle_food_order_status_bonus(db, customer_phone=food.customer_phone,
-                food_order_id=food.id, total_amount=food.total_amount, old_status=old_food_status,
-                new_status=food.status, bonus_points_used=food.bonus_points_used)
         except Exception:
             logger.exception('Food delivery committed; notification/reward follow-up failed')
             await db.rollback()

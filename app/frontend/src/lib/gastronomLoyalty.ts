@@ -6,6 +6,8 @@ export interface LoyaltyGift {
   image_url?: string;
   is_active: boolean;
   sort_order: number;
+  product_id?: number;
+  product_name?: string;
 }
 
 export function isLoyaltyEnabled(settings: Record<string, string | undefined>): boolean {
@@ -32,6 +34,8 @@ export function parseLoyaltyGifts(raw: string | undefined): LoyaltyGift[] {
           image_url: String(item.image_url || '').trim(),
           is_active: item.is_active !== false,
           sort_order: Number(item.sort_order) || idx + 1,
+          product_id: Number(item.product_id) || undefined,
+          product_name: String(item.product_name || '') || undefined,
         } satisfies LoyaltyGift;
       })
       .filter(Boolean)

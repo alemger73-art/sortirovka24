@@ -8,13 +8,14 @@ import type { LoyaltyGift } from '@/lib/gastronomLoyalty';
 import { formatMoney, newLoyaltyGift } from '@/lib/gastronomLoyalty';
 
 interface Props {
+  products?: {id: number; name: string}[];
   gifts: LoyaltyGift[];
   onChange: (gifts: LoyaltyGift[]) => void;
   enabled: boolean;
   onEnabledChange: (enabled: boolean) => void;
 }
 
-export default function LoyaltyGiftsEditor({ gifts, onChange, enabled, onEnabledChange }: Props) {
+export default function LoyaltyGiftsEditor({ gifts, onChange, enabled, onEnabledChange, products }: Props) {
   const st = useStoreTranslations();
 
   const sorted = [...gifts].sort((a, b) => a.min_amount - b.min_amount || a.sort_order - b.sort_order);
@@ -112,6 +113,7 @@ export default function LoyaltyGiftsEditor({ gifts, onChange, enabled, onEnabled
               </div>
             </div>
 
+            {products && <label className="block text-sm">{st('Товар для подарка')}<select className="w-full border rounded-lg p-2 bg-background" value={gift.product_id || products.find(p => p.name === gift.product_name)?.id || ''} onChange={e => {const product = products.find(p => p.id === Number(e.target.value)); updateGift(gift.id, { product_id: product?.id, product_name: product?.name, ...(product ? {title: product.name} : {}) });}}><option value="">{st('Выберите товар')}</option>{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>}
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">{st("Описание для клиента")}</label>
               <Textarea

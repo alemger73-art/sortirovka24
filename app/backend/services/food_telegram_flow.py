@@ -235,6 +235,10 @@ async def handle_food_callback(db: AsyncSession, data: str) -> Optional[str]:
     if not order:
         return "Заказ не найден"
 
+    from services.food_operations import is_dam_order
+    if await is_dam_order(db, order):
+        return "Откройте кабинет курьера: статусы и оплата DAM ALEM изменяются только там."
+
     if action == "fcd_qr":
         ok = await send_courier_qr(order, task.id)
         return "QR отправлен в чат" if ok else "Не удалось отправить QR"

@@ -103,6 +103,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const accountApi = {
+  bonusRules: () => api<{ enabled: boolean; tenge_rate: number; max_order_percent: number }>("/api/v1/account/bonus-rules"),
   googleStatus: () => api<{ enabled: boolean }>("/api/v1/account/google/status"),
   googleStartUrl: (language: string = "ru") =>
     `${apiBase()}/api/v1/account/google/start?language=${encodeURIComponent(language)}`,

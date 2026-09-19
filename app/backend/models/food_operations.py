@@ -32,3 +32,4 @@ class FoodOrderRequest(Base):
     __tablename__ = 'food_order_requests'
     key = Column(String(100), primary_key=True)
     order_id = Column(Integer, nullable=False)
+    payload_hash = Column(String(64), nullable=True)

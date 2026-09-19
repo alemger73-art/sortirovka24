@@ -41,7 +41,12 @@ def _is_legacy_default_gifts(raw: str) -> bool:
         gifts = json.loads(raw or "[]")
     except (TypeError, ValueError):
         return False
-    if not isinstance(gifts, list) or len(gifts) != 5:
+    if not isinstance(gifts, list):
+        return False
+    ids = {g.get('id') for g in gifts if isinstance(g, dict)}
+    if ids == {'dam-gift-fries', 'dam-gift-lemonade', 'dam-gift-sauce', 'dam-gift-dessert'}:
+        return True
+    if len(gifts) != 5:
         return False
     expected = {
         "dam-gift-shake": 5000,
@@ -196,6 +201,20 @@ async def ensure_dam_alem_marketing(*, force: bool = False) -> Optional[Dict[str
         current = await svc.get_all_as_dict()
 
         settings_changed = 0
+        from models.food_restaurants import Food_restaurants
+        from services.food_operations import brand
+        for restaurant in (await db.scalars(select(Food_restaurants))).all():
+            if not restaurant.merchant_key and brand(restaurant.name):
+                restaurant.merchant_key = 'dam_alem'
+                settings_changed += 1
+        if current.get('unpriced_catalog_revision') != '2026-09-19':
+            from models.food_items import Food_items
+            from sqlalchemy import update, or_
+            dam_ids = [r.id for r in (await db.scalars(select(Food_restaurants))).all() if brand(r.name, r.merchant_key)]
+            await db.execute(update(Food_items).where(Food_items.restaurant_id.in_(dam_ids),
+                or_(Food_items.price.is_(None), Food_items.price <= 0)).values(is_active=False))
+            await _upsert_setting(db, 'unpriced_catalog_revision', '2026-09-19')
+            settings_changed += 1
         for key, default_value in MARKETING_SETTING_KEYS.items():
             existing = (current.get(key) or "").strip()
             should_set = force
@@ -206,7 +225,7 @@ async def ensure_dam_alem_marketing(*, force: bool = False) -> Optional[Dict[str
                     should_set = not existing
             if key == "loyalty_gifts" and _is_legacy_default_gifts(existing):
                 should_set = True
-            if key == "promo_codes" and key in current:
+            if key in ('promo_codes', 'loyalty_gifts') and key in current and not (key == 'loyalty_gifts' and _is_legacy_default_gifts(existing)):
                 # Existing owner settings, including an empty list, are authoritative.
                 should_set = force
             if key == "promo_slides" and _is_legacy_promo_slides(existing):
@@ -220,8 +239,33 @@ async def ensure_dam_alem_marketing(*, force: bool = False) -> Optional[Dict[str
                     "created" if created else "updated",
                 )
 
-        banners_patched = await _refresh_food_banner_images(db)
-        banners_added = await _ensure_food_banners(db)
+        banners_patched = 0
+        banners_added = 0
+        if current.get('combo_banner_revision') != '2026-09-19':
+            from models.food_items import Food_items
+            from models.food_restaurants import Food_restaurants
+            from services.food_operations import brand
+            restaurants = (await db.scalars(select(Food_restaurants))).all()
+            ids = [r.id for r in restaurants if brand(r.name, r.merchant_key)]
+            combos = (await db.scalars(select(Food_items).where(Food_items.restaurant_id.in_(ids),
+                Food_items.is_combo.is_(True), Food_items.is_active.is_(True), Food_items.price > 0))).all()
+            if combos:
+                existing_banners = (await db.scalars(select(Banners).where(Banners.banner_type == 'food_delivery'))).all()
+                for banner in existing_banners:
+                    url = banner.button_url or banner.link_url or ''
+                    if 'product=' not in url and 'item=' not in url:
+                        banner.active = False
+                        banners_patched += 1
+                for combo in combos:
+                    url = f'/food#product={combo.id}'
+                    if any((b.button_url or b.link_url) == url for b in existing_banners):
+                        continue
+                    title = 'UFO Старт' if 'курин' in combo.name.lower() else 'UFO Сила' if 'говяж' in combo.name.lower() else combo.name
+                    db.add(Banners(title=title, subtitle=combo.description or '', image_url=combo.image_url or '',
+                        button_text='В корзину', button_url=url, link_url=url, banner_type='food_delivery', active=True, created_at=_now()))
+                    banners_added += 1
+                await _upsert_setting(db, 'combo_banner_revision', '2026-09-19')
+                settings_changed += 1
 
         if settings_changed == 0 and banners_added == 0 and banners_patched == 0:
             logger.info("DAM ALEM marketing already configured; seed skipped")

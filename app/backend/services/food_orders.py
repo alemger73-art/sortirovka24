@@ -21,7 +21,7 @@ class Food_ordersService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create(self, data: Dict[str, Any], account_user=None, *, request_key=None, actor="Система") -> Optional[Food_orders]:
+    async def create(self, data: Dict[str, Any], account_user=None, *, request_key=None, request_hash=None, actor="Система") -> Optional[Food_orders]:
         """Create a new food_orders"""
         try:
             _allowed = set(Food_orders.__table__.columns.keys())
@@ -44,7 +44,7 @@ class Food_ordersService:
 
             if request_key:
                 from models.food_operations import FoodOrderRequest
-                self.db.add(FoodOrderRequest(key=request_key, order_id=obj.id))
+                self.db.add(FoodOrderRequest(key=request_key, order_id=obj.id, payload_hash=request_hash))
                 await self.db.flush()
             obj.version = 0
             dam_order = await is_dam_order(self.db, obj)
@@ -188,8 +188,8 @@ class Food_ordersService:
                     raise HTTPException(409, "Заказ изменён другим оператором. Обновите карточку.")
                 obj.version = version + 1
                 if update_data.get('payment_status') == 'paid' and obj.payment_status != 'paid':
-                    obj.paid_at = now()
-                    obj.paid_amount = obj.total_amount
+                    from services.food_payments import receive_outstanding
+                    await receive_outstanding(self.db, obj, actor)
                 if target == 'done' and old_status != 'done':
                     obj.completed_at = now()
                 if target == 'cancelled' and old_status != 'cancelled':
@@ -207,6 +207,9 @@ class Food_ordersService:
             if dam_order and ('status' in update_data or 'delivery_address' in update_data or 'payment_status' in update_data):
                 from services.dam_order_workflow import sync_task
                 await sync_task(self.db, obj)
+            if 'status' in update_data or 'payment_status' in update_data:
+                from services.bonus_rewards import settle_food_order_bonus
+                await settle_food_order_bonus(self.db, obj)
             await self.db.commit()
             await self.db.refresh(obj)
             if "status" in update_data and update_data["status"] != old_status:
@@ -223,20 +226,6 @@ class Food_ordersService:
                     })
                 except Exception as tg_err:
                     logger.warning("[Telegram] Food status notification skipped: %s", tg_err)
-                try:
-                    from services.bonus_rewards import handle_food_order_status_bonus
-
-                    await handle_food_order_status_bonus(
-                        self.db,
-                        customer_phone=obj.customer_phone,
-                        food_order_id=int(obj.id),
-                        total_amount=obj.total_amount,
-                        old_status=old_status,
-                        new_status=obj.status,
-                        bonus_points_used=getattr(obj, "bonus_points_used", None),
-                    )
-                except Exception as bonus_err:
-                    logger.warning("[Bonus] Food order status bonus handling skipped: %s", bonus_err)
                 try:
                     from services.user_notifications import notify_food_order_status
 
@@ -264,6 +253,8 @@ class Food_ordersService:
             if not obj:
                 logger.warning(f"Food_orders {obj_id} not found for deletion")
                 return False
+            if await is_dam_order(self.db, obj):
+                raise HTTPException(409, "Используйте отмену: история заказов DAM ALEM сохраняется")
             await self.db.delete(obj)
             await self.db.commit()
             logger.info(f"Deleted food_orders {obj_id}")

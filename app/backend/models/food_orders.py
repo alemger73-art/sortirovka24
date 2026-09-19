@@ -36,3 +36,4 @@ class Food_orders(Base):
     receipt_revision = Column(Integer, nullable=True)
     receipt_updated_at = Column(String, nullable=True)
     order_source = Column(String, nullable=True)
+    pricing_snapshot = Column(String, nullable=True)

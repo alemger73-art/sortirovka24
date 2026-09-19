@@ -73,7 +73,7 @@ async def update_employee(employee_id:int,body:Employee,db:AsyncSession=Depends(
 @router.get('/departments')
 async def departments(db:AsyncSession=Depends(get_db)):
     restaurants=(await db.scalars(select(Food_restaurants))).all()
-    ids=[x.id for x in restaurants if brand(x.name)]
+    ids=[x.id for x in restaurants if brand(x.name, x.merchant_key)]
     rows=(await db.scalars(select(Food_items).where((Food_items.restaurant_id.in_(ids)) | Food_items.restaurant_id.is_(None)).order_by(Food_items.name))).all()
     return [{'id':x.id,'name':x.name,'department':x.sales_department} for x in rows]
 class Department(BaseModel):

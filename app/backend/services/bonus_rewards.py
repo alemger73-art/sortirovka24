@@ -89,86 +89,41 @@ async def link_food_order_to_user(
     logger.info("[Bonus] Linked food order #%s to user %s", food_order_id, user.id)
 
 
-async def award_food_order_bonus(
-    db: AsyncSession,
-    *,
-    customer_phone: str | None,
-    food_order_id: int,
-    total_amount: float | None,
-) -> None:
-    """Award bonus points when order reaches delivered/done status."""
-    user = await find_user_by_phone(db, customer_phone)
-    if not user:
-        return
-    if await _bonus_already_awarded(db, str(user.id), food_order_id):
-        return
-
-    points = _calc_food_bonus(total_amount)
-    if points <= 0:
-        return
-
-    db.add(
-        Bonus(
-            user_id=str(user.id),
-            points=points,
-            reason=f"Бонус за заказ еды #{food_order_id}",
-        )
-    )
-    user.bonus_balance = float(user.bonus_balance or 0) + points
-    db.add(
-        UserAction(
-            user_id=str(user.id),
-            action="bonus_food_order",
-            entity="food_orders",
-            entity_id=str(food_order_id),
-            payload=json.dumps({"points": points, "amount": total_amount}, ensure_ascii=False),
-        )
-    )
-    await db.commit()
-    logger.info("[Bonus] Awarded %s points to user %s for food order #%s", points, user.id, food_order_id)
-    try:
-        from services.user_notifications import notify_bonus_awarded
-
-        await notify_bonus_awarded(db, user_id=str(user.id), points=points, food_order_id=food_order_id)
-    except Exception as exc:
-        logger.warning("[Notify] bonus award notify skipped: %s", exc)
-
-
-async def handle_food_order_status_bonus(
-    db: AsyncSession,
-    *,
-    customer_phone: str | None,
-    food_order_id: int,
-    total_amount: float | None,
-    old_status: str | None,
-    new_status: str | None,
-    bonus_points_used: float | None = None,
-) -> None:
+async def settle_food_order_bonus(db, order):
+    """Run before the order/payment transaction commits, including late payment."""
+    from services.bonus_ledger import record_bonus
     from services.bonus_spending import refund_bonuses_for_order
-
-    user = await find_user_by_phone(db, customer_phone)
+    refund = order.status == 'cancelled' and float(order.bonus_points_used or 0) > 0
+    award = order.status == FOOD_BONUS_AWARD_STATUS and order.payment_status == 'paid'
+    if not (refund or award):
+        return
+    user = await find_user_by_phone(db, order.customer_phone)
     if not user:
         return
+    if refund:
+        await refund_bonuses_for_order(db, user=user, food_order_id=order.id,
+            points=float(order.bonus_points_used or 0))
+    elif order.status == FOOD_BONUS_AWARD_STATUS and order.payment_status == 'paid':
+        points = _calc_food_bonus(order.total_amount)
+        if points > 0:
+            await record_bonus(db, user=user, order_id=order.id,
+                action='bonus_food_order', points=points,
+                reason=f'Бонус за заказ еды #{order.id}')
 
-    if new_status == FOOD_BONUS_AWARD_STATUS and old_status != FOOD_BONUS_AWARD_STATUS:
-        await award_food_order_bonus(
-            db,
-            customer_phone=customer_phone,
-            food_order_id=food_order_id,
-            total_amount=total_amount,
-        )
 
-    if new_status == "cancelled" and old_status != "cancelled":
-        pts = float(bonus_points_used or 0)
-        if pts > 0:
-            await refund_bonuses_for_order(db, user=user, food_order_id=food_order_id, points=pts)
-            await db.commit()
-            try:
-                from services.user_notifications import notify_bonus_refunded
+async def award_food_order_bonus(db, *, customer_phone, food_order_id, total_amount):
+    from models.food_orders import Food_orders
+    order = await db.get(Food_orders, food_order_id)
+    if order:
+        await settle_food_order_bonus(db, order)
+        await db.commit()
 
-                await notify_bonus_refunded(db, user_id=str(user.id), points=pts, food_order_id=food_order_id)
-            except Exception as exc:
-                logger.warning("[Notify] bonus refund notify skipped: %s", exc)
+
+async def handle_food_order_status_bonus(db, *, customer_phone, food_order_id,
+        total_amount, old_status, new_status, bonus_points_used=None):
+    # Compatibility for older callers; the entry is idempotent under the user lock.
+    await award_food_order_bonus(db, customer_phone=customer_phone,
+        food_order_id=food_order_id, total_amount=total_amount)
 
 
 reward_food_order = link_food_order_to_user

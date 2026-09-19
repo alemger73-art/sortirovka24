@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
@@ -124,21 +125,10 @@ def _parse_loyalty_gifts(settings: Dict[str, str]) -> List[Dict[str, Any]]:
             "description": str(gift.get("description") or "").strip(),
             "min_amount": min_amount,
             "sort_order": int(gift.get("sort_order") or index + 1),
+            "product_id": gift.get('product_id'),
+            "product_name": gift.get('product_name'),
         })
-    if gifts:
-        return gifts
-    from services.dam_alem_marketing_defaults import LOYALTY_GIFTS
-    return [
-        {
-            "id": str(gift.get("id") or f"gift-{index + 1}"),
-            "title": str(gift.get("title") or ""),
-            "description": str(gift.get("description") or ""),
-            "min_amount": float(gift.get("min_amount") or 0),
-            "sort_order": int(gift.get("sort_order") or index + 1),
-        }
-        for index, gift in enumerate(LOYALTY_GIFTS)
-        if gift.get("is_active", True) and gift.get("title") and float(gift.get("min_amount") or 0) > 0
-    ]
+    return gifts
 
 
 def _resolve_selected_gift(
@@ -161,6 +151,19 @@ def _resolve_selected_gift(
     if not selected:
         raise HTTPException(status_code=400, detail="Выбранный подарок недоступен")
     return selected
+
+
+def available_gifts(settings, products, restaurant_id):
+    result = []
+    for gift in _parse_loyalty_gifts(settings):
+        if gift.get('product_id') or gift.get('product_name'):
+            product = next((p for p in products if p.restaurant_id == restaurant_id and
+                (p.id == gift['product_id'] if gift.get('product_id') else p.name == gift['product_name'])), None)
+            if not product or product.is_active is False or getattr(product, 'available', None) is False:
+                continue
+            gift['product_id'] = product.id
+        result.append(gift)
+    return result
 
 
 def _nonnegative_setting(settings: Dict[str, str], key: str, default: float) -> float:
@@ -484,6 +487,8 @@ async def validate_food_order(
     customer_name = (data.get("customer_name") or "").strip()
     customer_phone = (data.get("customer_phone") or "").strip()
     delivery_method = (data.get("delivery_method") or "delivery").strip()
+    if delivery_method not in ({'delivery', 'pickup', 'dine_in'} if staff_quote else {'delivery', 'pickup'}):
+        raise HTTPException(400, 'Некорректный способ получения заказа')
     delivery_address = (data.get("delivery_address") or "").strip()
 
     if not customer_name:
@@ -499,6 +504,8 @@ async def validate_food_order(
         raise HTTPException(status_code=400, detail="Некорректный состав заказа")
     if not isinstance(raw_items, list) or len(raw_items) == 0:
         raise HTTPException(status_code=400, detail="Корзина пуста")
+    if len(raw_items) > 100:
+        raise HTTPException(400, 'В заказе допускается до 100 строк')
 
     items_svc = Food_itemsService(db)
     items_res = await items_svc.get_list(skip=0, limit=3000, query_dict=None, sort="sort_order")
@@ -535,10 +542,18 @@ async def validate_food_order(
         assert_kitchen_open(settings)
 
     restaurant_id = data.get("restaurant_id")
+    try:
+        restaurant_id = int(restaurant_id)
+        if restaurant_id <= 0:
+            raise ValueError()
+    except (TypeError, ValueError, OverflowError):
+        raise HTTPException(400, 'Выберите ресторан') from None
     min_order = 0.0
     if restaurant_id:
         rest_svc = Food_restaurantsService(db)
         rest = await rest_svc.get_by_id(int(restaurant_id))
+        if not rest or getattr(rest, 'is_active', True) is False:
+            raise HTTPException(400, 'Ресторан недоступен')
         if rest and rest.min_order is not None:
             min_order = float(rest.min_order)
     if min_order <= 0:
@@ -564,7 +579,7 @@ async def validate_food_order(
         if not qty_number.is_integer():
             raise HTTPException(status_code=400, detail="Количество должно быть целым числом")
         qty_int = int(qty_number)
-        if qty_int <= 0:
+        if qty_int <= 0 or qty_int > 99:
             raise HTTPException(status_code=400, detail="Некорректное количество")
 
         product = None
@@ -581,10 +596,12 @@ async def validate_food_order(
             label = raw.get("name") or prod_id or "?"
             raise HTTPException(status_code=400, detail=f"Блюдо «{label}» недоступно")
 
-        if restaurant_id and getattr(product, "restaurant_id", None) not in (None, int(restaurant_id)):
+        if getattr(product, "restaurant_id", None) != restaurant_id:
             raise HTTPException(status_code=400, detail=f"Блюдо «{product.name}» не относится к выбранному ресторану")
 
         base_price = float(product.price or 0)
+        if not math.isfinite(base_price) or base_price <= 0:
+            raise HTTPException(400, f'Для «{product.name}» пока не указана цена')
         client_price = float(raw.get("price") or base_price)
         if not staff_quote and abs(client_price - base_price) > 0.01:
             raise HTTPException(status_code=400, detail=f"Цена «{product.name}» изменилась. Обновите страницу")
@@ -682,10 +699,11 @@ async def validate_food_order(
         return {}, validated_items, subtotal
     if not (staff_quote and delivery_method in ("pickup", "dine_in")) and min_order > 0 and subtotal < min_order:
         raise HTTPException(status_code=400, detail=f"Минимальный заказ {int(min_order)} ₸")
-    selected_gift = None if staff_quote else _resolve_selected_gift(
+    gift_settings = {**settings, 'loyalty_gifts': json.dumps(available_gifts(settings, products_by_id.values(), restaurant_id))}
+    selected_gift = None if staff_quote and not data.get('selected_gift_id') else _resolve_selected_gift(
         str(data.get("selected_gift_id") or "").strip(),
         subtotal,
-        settings,
+        gift_settings,
     )
 
     requires_priced_checkout = _requires_priced_food_checkout(settings)
@@ -699,7 +717,7 @@ async def validate_food_order(
 
     fee_rate = _service_fee_rate(settings)
     if service_fee_hint is not None or requires_priced_checkout:
-        expected_service = round(subtotal * fee_rate)
+        expected_service = math.floor(subtotal * fee_rate + 0.5)
         if service_fee_hint is not None and abs(float(service_fee_hint) - expected_service) > 1:
             raise HTTPException(status_code=400, detail="Сервисный сбор не совпадает. Обновите страницу")
     else:
@@ -726,6 +744,14 @@ async def validate_food_order(
         lng,
         marketplace_no_fee_hints=marketplace_no_fee_hints,
     )
+    if selected_gift and (selected_gift.get('product_id') or selected_gift.get('product_name')):
+        gift_product = next((p for p in products_by_id.values() if
+            (p.id == selected_gift.get('product_id') if selected_gift.get('product_id') else p.name == selected_gift.get('product_name'))
+            and p.restaurant_id == restaurant_id), None)
+        if not gift_product or gift_product.is_active is False or getattr(gift_product, 'available', None) is False:
+            raise HTTPException(400, 'Выбранный подарок закончился. Выберите другой подарок.')
+        selected_gift['product_id'] = gift_product.id
+    base_delivery_fee = delivery_fee
     delivery_fee = _apply_free_delivery_threshold(subtotal, delivery_fee, settings)
 
     promo_code = (data.get("promo_code") or "").strip().upper()
@@ -811,6 +837,9 @@ async def validate_food_order(
     for owned_key in SERVER_OWNED_FIELDS:
         sanitized.pop(owned_key, None)
     sanitized["payment_method"] = payment_method
+    sanitized['restaurant_id'] = restaurant_id
+    sanitized['restaurant_name'] = getattr(rest, 'name', '') or ''
+    sanitized['delivery_method'] = delivery_method
     sanitized["payment_status"] = "pending" if payment_method == "cash" else "awaiting_qr_payment"
     sanitized["status"] = "new"
     sanitized["user_id"] = _account_user_id(account_user)
@@ -827,10 +856,17 @@ async def validate_food_order(
             "is_gift": True,
             "gift_id": selected_gift["id"],
             "gift_threshold": selected_gift["min_amount"],
+            "product_id": selected_gift.get('product_id'),
         })
     sanitized["order_items"] = json.dumps(validated_items, ensure_ascii=False)
     sanitized["total_amount"] = expected_total
     sanitized["promo_discount_amount"] = promo_discount
+    sanitized['pricing_snapshot'] = json.dumps({
+        'version': 1, 'service_rate': fee_rate if expected_service or (not marketplace_no_fee_hints and delivery_method != 'dine_in') else 0,
+        'base_delivery_fee': base_delivery_fee, 'requested_apartment': requested_apartment,
+        'promo_code': promo_code,
+        'settings': {key: settings[key] for key in ('free_delivery_from', 'apartment_free_from', 'apartment_delivery_price', 'promo_codes') if key in settings},
+    }, ensure_ascii=False)
     if bonus_points_used > 0:
         sanitized["bonus_points_used"] = bonus_points_used
         sanitized["bonus_discount_amount"] = bonus_discount

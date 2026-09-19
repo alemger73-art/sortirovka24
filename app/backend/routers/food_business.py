@@ -19,6 +19,8 @@ from models.food_items import Food_items
 from models.food_restaurants import Food_restaurants
 from models.partner_auth import PartnerCredentials
 from services.food_operations import scope, brand, now, add_event
+from services.food_payments import movement, preserve_legacy_payment, record
+from services.dam_order_workflow import paid, claim
 
 router = APIRouter(prefix='/api/v1/dam-alem/business', tags=['DAM ALEM business'])
 CITY = timezone(timedelta(hours=5))
@@ -59,14 +61,33 @@ async def report(start:date, end:date, db:AsyncSession=Depends(get_db),claims=De
     sales=Decimal(0); receipts=Decimal(0); bonuses=Decimal(0); completed=0; cancelled=0; created=0; undated_paid=0; undated_done=0
     promos=Decimal(0);untracked_promos=0
     methods={}; products={}; days={str(start+timedelta(days=i)):{'sales':Decimal(0),'receipts':Decimal(0),'expenses':Decimal(0),'refunds':Decimal(0)} for i in range((end-start).days+1)}
+    cash_events = (await db.scalars(select(FoodOrderEvent).join(Food_orders, Food_orders.id == FoodOrderEvent.order_id).where(await scope(db), FoodOrderEvent.public_data.isnot(None)))).all()
+    tracked = set(); journal_refunds = Decimal(0)
+    for event in cash_events:
+        entry = movement(event)
+        if not entry:
+            continue
+        tracked.add(event.order_id)
+        event_day = day_of(event.created_at)
+        if not inside(event_day):
+            continue
+        amount = money(entry['amount'])
+        if amount >= 0:
+            receipts += amount
+            key = entry.get('method') or 'unknown'
+            methods[key] = methods.get(key, Decimal(0)) + amount
+            days[str(event_day)]['receipts'] += amount
+        else:
+            journal_refunds -= amount
+            days[str(event_day)]['refunds'] -= amount
     stream=await db.stream_scalars(select(Food_orders).where(await scope(db)))
     async for order in stream:
         if inside(day_of(order.created_at)): created+=1
         if order.status=='cancelled' and inside(day_of(order.cancelled_at)): cancelled+=1
         if order.status=='done' and not day_of(order.completed_at): undated_done+=1
         if order.payment_status=='paid' and not day_of(order.paid_at): undated_paid+=1
-        if order.payment_status=='paid' and inside(day_of(order.paid_at)):
-            amount=money(order.total_amount);receipts+=amount;key=order.payment_method or 'unknown';methods[key]=methods.get(key,Decimal(0))+amount;days[str(day_of(order.paid_at))]['receipts']+=amount
+        if order.id not in tracked and paid(order) > 0 and inside(day_of(order.paid_at)):
+            amount=paid(order);receipts+=amount;key=order.payment_method or 'unknown';methods[key]=methods.get(key,Decimal(0))+amount;days[str(day_of(order.paid_at))]['receipts']+=amount
         if order.status=='done' and inside(day_of(order.completed_at)):
             promos+=money(order.promo_discount_amount)
             if order.promo_discount_amount is None: untracked_promos+=1
@@ -82,10 +103,12 @@ async def report(start:date, end:date, db:AsyncSession=Depends(get_db),claims=De
     for e in expenses:
         if not e.voided: spent+=e.amount;days[e.day]['expenses']+=e.amount
     refunds=(await db.scalars(select(FoodRefund).where(FoodRefund.day>=str(start),FoodRefund.day<=str(end)))).all()
-    returned=sum((r.amount for r in refunds),Decimal(0))
+    returned=journal_refunds + sum((r.amount for r in refunds),Decimal(0))
     for r in refunds: days[r.day]['refunds']+=r.amount
-    needs_refund=(await db.scalars(select(Food_orders).where(await scope(db),Food_orders.status=='cancelled',Food_orders.payment_status=='paid',~Food_orders.id.in_(select(FoodRefund.order_id))).order_by(Food_orders.id.desc()))).all()
-    return {'start':str(start),'end':str(end),'sales':sales,'completed':completed,'created':created,'cancelled':cancelled,'average':sales/completed if completed else 0,'receipts':receipts,'refunds':returned,'expenses_total':spent,'cash_difference':receipts-returned-spent,'bonuses':bonuses,'promo_discounts':promos,'untracked_promos':untracked_promos,'payment_methods':methods,'undated_paid':undated_paid,'undated_done':undated_done,'products':[{'name':k,**v} for k,v in sorted(products.items(),key=lambda kv:kv[1]['quantity'],reverse=True)[:20]],'days':[{'day':k,**v} for k,v in days.items()],'expenses':[{'id':e.id,'day':e.day,'amount':e.amount,'category':e.category,'note':e.note,'voided':e.voided,'void_reason':e.void_reason} for e in expenses],'refunds_needed':[{'id':o.id,'amount':o.total_amount} for o in needs_refund]}
+    candidates=(await db.scalars(select(Food_orders).where(await scope(db),~Food_orders.id.in_(select(FoodRefund.order_id))).order_by(Food_orders.id.desc()))).all()
+    needs_refund=[{'id':o.id,'amount':float(max(Decimal(0), paid(o) - (Decimal(0) if o.status == 'cancelled' else money(o.total_amount))))} for o in candidates]
+    needs_refund=[r for r in needs_refund if r['amount'] > 0]
+    return {'start':str(start),'end':str(end),'sales':sales,'completed':completed,'created':created,'cancelled':cancelled,'average':sales/completed if completed else 0,'receipts':receipts,'refunds':returned,'expenses_total':spent,'cash_difference':receipts-returned-spent,'bonuses':bonuses,'promo_discounts':promos,'untracked_promos':untracked_promos,'payment_methods':methods,'undated_paid':undated_paid,'undated_done':undated_done,'products':[{'name':k,**v} for k,v in sorted(products.items(),key=lambda kv:kv[1]['quantity'],reverse=True)[:20]],'days':[{'day':k,**v} for k,v in days.items()],'expenses':[{'id':e.id,'day':e.day,'amount':e.amount,'category':e.category,'note':e.note,'voided':e.voided,'void_reason':e.void_reason} for e in expenses],'refunds_needed':needs_refund}
 
 class ExpenseBody(BaseModel):
     id:UUID
@@ -147,20 +170,28 @@ class RefundBody(BaseModel):
 @router.post('/refunds/{order_id}')
 async def refund(order_id:int,body:RefundBody,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
     order=await db.scalar(select(Food_orders).where(Food_orders.id==order_id,await scope(db)))
-    if not order or order.status!='cancelled' or order.payment_status!='paid': raise HTTPException(422,'Возврат отмечается для оплаченного отменённого заказа')
+    if not order: raise HTTPException(404,'Заказ не найден')
     if body.day>city_today() or (day_of(order.paid_at) and body.day<day_of(order.paid_at)): raise HTTPException(422,'Проверьте дату возврата')
     if len(body.note.strip())<3: raise HTTPException(422,'Укажите как выполнен возврат')
     if await db.get(FoodRefund,order_id): raise HTTPException(409,'Возврат уже отмечен')
-    db.add(FoodRefund(order_id=order_id,amount=money(order.total_amount),day=str(body.day),note=body.note.strip(),actor=actor(claims),created_at=now()))
-    add_event(db,order,'Владелец отметил полный возврат оплаты',actor(claims),notify=False)
+    await claim(db, order, order.version or 0)
+    await preserve_legacy_payment(db, order)
+    amount = max(Decimal(0), paid(order) - (Decimal(0) if order.status == 'cancelled' else money(order.total_amount)))
+    if amount <= 0: raise HTTPException(409,'Суммы к возврату нет или возврат уже отмечен')
+    timestamp = datetime.combine(body.day, datetime.min.time(), tzinfo=CITY).isoformat()
+    event = record(db, order, -amount, actor(claims), at=timestamp)
+    event.message += ': ' + body.note.strip()
+    order.paid_amount = float(paid(order) - amount)
+    from services.dam_order_workflow import sync_task
+    await sync_task(db, order)
     try: await db.commit()
     except IntegrityError:
         await db.rollback();raise HTTPException(409,'Возврат уже отмечен')
     return {'ok':True}
 
 async def item_condition(db):
-    rows=(await db.execute(select(Food_restaurants.id,Food_restaurants.name))).all()
-    return Food_items.restaurant_id.in_([r.id for r in rows if brand(r.name)])
+    rows=(await db.execute(select(Food_restaurants.id,Food_restaurants.name,Food_restaurants.merchant_key))).all()
+    return Food_items.restaurant_id.in_([r.id for r in rows if brand(r.name, r.merchant_key)])
 
 @router.get('/availability')
 async def availability(db:AsyncSession=Depends(get_db),claims=Depends(food_staff)):
