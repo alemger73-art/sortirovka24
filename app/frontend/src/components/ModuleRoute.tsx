@@ -11,9 +11,11 @@ import { Loader2 } from 'lucide-react';
  */
 export default function ModuleRoute({
   module,
+  anyOf,
   children,
 }: {
   module?: ModuleKey;
+  anyOf?: ModuleKey[];
   children: JSX.Element;
 }) {
   const { pathname } = useLocation();
@@ -27,6 +29,6 @@ export default function ModuleRoute({
       </div>
     );
   }
-  if (key && !isEnabled(key)) return <Navigate to="/" replace />;
+  if ((anyOf && !anyOf.some(isEnabled)) || (key && !isEnabled(key))) return <Navigate to="/" replace />;
   return children;
 }

@@ -11,7 +11,9 @@ from routers import account_v2 as r
 @pytest.mark.asyncio
 async def test_cabinet_retains_detailed_orders_and_rejects_foreign_owner(monkeypatch):
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
-    models = [r.User, r.Bonus, r.Order, r.Food_orders, r.Complaints, r.Announcements,
+    from models.module_settings import ModuleSettings
+    from models.taxi import TaxiSettings
+    models = [ModuleSettings, TaxiSettings, r.User, r.Bonus, r.Order, r.Food_orders, r.Complaints, r.Announcements,
               r.Real_estate, r.Master_requests, r.Become_master_requests, r.UserAddress,
               *[entry[3] for entry in r.STORE_ORDER_SOURCES]]
     async with engine.begin() as conn:
@@ -37,6 +39,17 @@ async def test_cabinet_retains_detailed_orders_and_rejects_foreign_owner(monkeyp
         assert denied.value.status_code == 404
         detail = await r.cabinet_order_detail('food', 1, authorization='test', db=db)
         assert detail['order_number'] == 1
+        disabled = ModuleSettings(key='food', value='false')
+        db.add(disabled)
+        await db.commit()
+        assert (await r.cabinet(authorization='test', db=db))['orders'] == []
+        with pytest.raises(HTTPException) as unavailable:
+            await r.cabinet_order_detail('food', 1, authorization='test', db=db)
+        assert unavailable.value.status_code == 404
+        disabled.value = 'true'
+        await db.commit()
+        assert len((await r.cabinet(authorization='test', db=db))['orders']) == 1
+
     await engine.dispose()
 
 

@@ -77,7 +77,17 @@ from services.storage import StorageService
 from sqlalchemy import and_, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter(prefix="/api/v1/account", tags=["account-v2"])
+async def account_module_guard(request: Request, db: AsyncSession = Depends(get_db)):
+    path = request.url.path.removeprefix('/api/v1/account')
+    routes = {'/me/announcements': 'announcements', '/me/real-estate': 'real_estate', '/master': 'masters', '/masters': 'masters'}
+    for prefix, module in routes.items():
+        if path == prefix or path.startswith(prefix + '/'):
+            from services.module_settings import require_module
+            await require_module(module)(request, db)
+            return
+
+
+router = APIRouter(prefix="/api/v1/account", tags=["account-v2"], dependencies=[Depends(account_module_guard)])
 logger = logging.getLogger(__name__)
 
 LOGIN_ATTEMPTS: dict[str, list[datetime]] = {}
@@ -1341,6 +1351,8 @@ async def cabinet(
     db: AsyncSession = Depends(get_db),
 ):
     user = await _current_user(db, authorization)
+    from services.cabinet_modules import availability, source_visible
+    modules = await availability(db)
     await _maybe_promote_master_role(db, user)
     bonus_rows = (
         await db.execute(select(Bonus).where(Bonus.user_id == str(user.id)).order_by(desc(Bonus.id)).limit(100))
@@ -1348,18 +1360,18 @@ async def cabinet(
     order_rows = (
         await db.execute(select(Order).where(Order.user_id == str(user.id)).order_by(desc(Order.id)).limit(100))
     ).scalars().all()
-    food_rows = await list_owned_history(db, Food_orders, user, phone_field='customer_phone')
-    complaint_rows = await list_owned_history(db, Complaints, user)
-    announcement_rows = await list_owned_history(db, Announcements, user)
-    real_estate_rows = await list_owned_history(db, Real_estate, user)
-    master_request_rows = await list_owned_history(db, Master_requests, user, limit=50)
+    food_rows = await list_owned_history(db, Food_orders, user, phone_field='customer_phone') if modules['food'] else []
+    complaint_rows = await list_owned_history(db, Complaints, user) if modules['complaints'] else []
+    announcement_rows = await list_owned_history(db, Announcements, user) if modules['announcements'] else []
+    real_estate_rows = await list_owned_history(db, Real_estate, user) if modules['real_estate'] else []
+    master_request_rows = await list_owned_history(db, Master_requests, user, limit=50) if modules['masters'] else []
     address_rows = await _list_user_addresses(db, str(user.id))
-    become_rows = await list_owned_history(db, Become_master_requests, user, limit=10)
+    become_rows = await list_owned_history(db, Become_master_requests, user, limit=10) if modules['masters'] else []
     detailed_food_ids = {f.id for f in food_rows}
 
     merged_orders = [
         {"id": o.id, "type": o.order_type, "status": o.status, "amount": o.amount, "details": o.details, "created_at": o.created_at.isoformat() if o.created_at else None}
-        for o in order_rows if legacy_food_id(o) not in detailed_food_ids
+        for o in order_rows if source_visible(o.order_type, modules) and legacy_food_id(o) not in detailed_food_ids
     ]
     merged_orders.extend(
         {
@@ -1388,6 +1400,8 @@ async def cabinet(
     # SAME personal cabinet — matched to the account by customer phone so every
     # purchase across the app shows up in one place.
     for type_key, label, store_path, model in STORE_ORDER_SOURCES:
+        if not source_visible(type_key, modules):
+            continue
         rows = await list_owned_history(db, model, user, phone_field='customer_phone')
         merged_orders.extend(
             _store_order_summary(type_key, label, store_path, r)
@@ -1398,7 +1412,7 @@ async def cabinet(
 
     return {
         "profile": _to_user_response(user),
-        "bonuses": [{"id": b.id, "points": b.points, "reason": b.reason, "created_at": b.created_at.isoformat() if b.created_at else None} for b in bonus_rows],
+        "bonuses": [{"id": b.id, "points": b.points, "reason": b.reason if all(modules.values()) else (("Бонус есептелді" if b.points >= 0 else "Бонус жұмсалды") if user.language == "kz" else ("Начисление бонусов" if b.points >= 0 else "Списание бонусов")), "created_at": b.created_at.isoformat() if b.created_at else None} for b in bonus_rows],
         "orders": merged_orders[:100],
         "complaints": [{"id": c.id, "category": c.category, "status": c.status, "description": c.description} for c in complaint_rows[:100]],
         "announcements": [_announcement_to_dict(a) for a in announcement_rows[:100]],
@@ -1460,6 +1474,9 @@ async def cabinet_order_detail(
 ):
     user = await _current_user(db, authorization)
     source = source.strip().lower()
+    from services.cabinet_modules import availability, source_visible
+    if not source_visible(source, await availability(db)):
+        raise HTTPException(404, 'Module is disabled')
 
     if source == "food":
         row = (await db.execute(select(Food_orders).where(Food_orders.id == order_id))).scalar_one_or_none()

@@ -1,3 +1,6 @@
+import { useModules } from '@/hooks/useModules';
+import { useTaxiEnabled } from '@/hooks/useTaxiEnabled';
+import { ORDER_MODULE_KEYS } from '@/config/cabinetTabs';
 import { useEffect, useState } from 'react';
 import { Bell } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -30,6 +33,9 @@ function PrefRow({
 }
 
 export default function CabinetNotificationSettings({ t }: Props) {
+  const { isEnabled } = useModules();
+  const taxi = useTaxiEnabled();
+  const delivery = ORDER_MODULE_KEYS.some(isEnabled);
   const [notify, setNotify] = useState<CabinetNotificationPrefs | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -55,31 +61,31 @@ export default function CabinetNotificationSettings({ t }: Props) {
         {permission === 'denied' && <p className="mb-3 text-xs">{t('cabinet.notificationsDenied')}</p>}
         <p className="mb-2 text-xs text-gray-500 dark:text-slate-400">{t('cabinet.permissions.hint')}</p>
 
-        <PrefRow
+        {delivery && <PrefRow
           label={t('cabinet.permissions.orders')}
           checked={notify.orders}
           onCheckedChange={(v) => void persistNotify({ ...notify, orders: v })}
-        />
-        <PrefRow
+        />}
+        {delivery && <PrefRow
           label={t('cabinet.permissions.delivery')}
           checked={notify.delivery}
           onCheckedChange={(v) => void persistNotify({ ...notify, delivery: v })}
-        />
-        <PrefRow
+        />}
+        {taxi === true && <PrefRow
           label={t('cabinet.permissions.taxi')}
           checked={notify.taxi}
           onCheckedChange={(v) => void persistNotify({ ...notify, taxi: v })}
-        />
+        />}
         <PrefRow
           label={t('cabinet.permissions.bonuses')}
           checked={notify.bonuses}
           onCheckedChange={(v) => void persistNotify({ ...notify, bonuses: v })}
         />
-        <PrefRow
+        {isEnabled('masters') && <PrefRow
           label={t('cabinet.permissions.master')}
           checked={notify.master}
           onCheckedChange={(v) => void persistNotify({ ...notify, master: v })}
-        />
+        />}
       </section>
     </fieldset>;
 }

@@ -79,7 +79,9 @@ async def send_user_notification(
     db.add(row)
     await db.flush()
 
-    if push:
+    from services.cabinet_modules import availability, notification_condition
+    visible = await db.scalar(select(UserNotification.id).where(UserNotification.id == row.id, notification_condition(await availability(db))))
+    if push and visible:
         try:
             data: dict[str, str] = {"path": path or "/cabinet?tab=notifications", "category": category}
             if entity_type:
@@ -508,7 +510,8 @@ async def list_user_notifications(
     limit: int = 50,
     unread_only: bool = False,
 ) -> list[UserNotification]:
-    q = select(UserNotification).where(UserNotification.user_id == str(user_id))
+    from services.cabinet_modules import availability, notification_condition
+    q = select(UserNotification).where(UserNotification.user_id == str(user_id), notification_condition(await availability(db)))
     if unread_only:
         q = q.where(UserNotification.is_read.is_(False))
     q = q.order_by(UserNotification.id.desc()).limit(limit)
@@ -516,11 +519,13 @@ async def list_user_notifications(
 
 
 async def unread_notification_count(db: AsyncSession, user_id: str) -> int:
+    from services.cabinet_modules import availability, notification_condition
+    visible = notification_condition(await availability(db))
     return int(
         await db.scalar(
             select(func.count())
             .select_from(UserNotification)
-            .where(UserNotification.user_id == str(user_id), UserNotification.is_read.is_(False))
+            .where(UserNotification.user_id == str(user_id), UserNotification.is_read.is_(False), visible)
         )
         or 0
     )
@@ -537,9 +542,11 @@ async def mark_notification_read(db: AsyncSession, user_id: str, notification_id
 
 
 async def mark_all_notifications_read(db: AsyncSession, user_id: str) -> int:
+    from services.cabinet_modules import availability, notification_condition
+    visible = notification_condition(await availability(db))
     result = await db.execute(
         update(UserNotification)
-        .where(UserNotification.user_id == str(user_id), UserNotification.is_read.is_(False))
+        .where(UserNotification.user_id == str(user_id), UserNotification.is_read.is_(False), visible)
         .values(is_read=True)
     )
     await db.commit()

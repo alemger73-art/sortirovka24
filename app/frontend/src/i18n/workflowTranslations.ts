@@ -1,4 +1,5 @@
 export const workflowTranslations = {
+ 'resident.favoriteFood': {ru:'Избранные блюда', kz:'Таңдаулы тағамдар'},
  'cabinet.deliveries': {ru:'Доставки', kz:'Жеткізулер'},
  'cabinet.owner': {ru:'Кабинет владельца', kz:'Иесінің кабинеті'},
  'cabinet.operator': {ru:'Кабинет оператора', kz:'Оператор кабинеті'},

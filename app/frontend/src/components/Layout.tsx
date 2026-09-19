@@ -52,7 +52,7 @@ export default function Layout({
   const [authRedirectTo, setAuthRedirectTo] = useState('/login');
 
   const navItems = NAV_KEYS.filter((item) => {
-    if (item.path === '/taxi') return taxiEnabled !== false;
+    if (item.path === '/taxi') return taxiEnabled === true;
     return isEnabled(moduleForPath(item.path));
   });
   const showBottomNav = !hideBottomNav && shouldShowBottomNav(pathname);
@@ -80,7 +80,7 @@ export default function Layout({
       {!hideHeader && (
         <Header />
       )}
-      <SafetyTipBar />
+      {isEnabled('inspectors') && isEnabled('complaints') && <SafetyTipBar />}
 
       {/* Main content */}
       <main className="flex-1">{children}</main>
@@ -117,7 +117,7 @@ export default function Layout({
                 <Heart className="w-3.5 h-3.5" />
                 {supportPromoEnabled ? t('footer.support') : t('footer.aboutProject')}
               </Link>
-              <Link
+              {isEnabled("inspectors") && <Link
                 to="/inspectors#safety-tips"
                 onMouseEnter={() => handlePrefetch('/inspectors')}
                 onFocus={() => handlePrefetch('/inspectors')}
@@ -125,7 +125,7 @@ export default function Layout({
               >
                 <Shield className="w-3.5 h-3.5" />
                 {t('footer.safety')}
-              </Link>
+              </Link>}
               <Link
                 to="/report-problem"
                 onMouseEnter={() => handlePrefetch('/report-problem')}

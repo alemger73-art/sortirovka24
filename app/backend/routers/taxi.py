@@ -315,7 +315,14 @@ async def create_taxi_ride(
     return data
 
 
-@router.get("/rides/my")
+async def user_taxi_module_guard(db: AsyncSession = Depends(get_db)):
+    try:
+        await ensure_taxi_service_enabled(db)
+    except ValueError:
+        raise HTTPException(404, 'Такси недоступно')
+
+
+@router.get("/rides/my", dependencies=[Depends(user_taxi_module_guard)])
 async def my_rides(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
@@ -325,7 +332,7 @@ async def my_rides(
     return [ride_to_dict(r) for r in rides]
 
 
-@router.get("/rides/active")
+@router.get("/rides/active", dependencies=[Depends(user_taxi_module_guard)])
 async def my_active_ride(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
@@ -416,7 +423,7 @@ async def rate_taxi_ride(
 
 # ─── Driver ────────────────────────────────────────────────────────
 
-@router.get("/driver/cabinet")
+@router.get("/driver/cabinet", dependencies=[Depends(user_taxi_module_guard)])
 async def driver_cabinet(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
@@ -605,7 +612,7 @@ async def driver_update_status(
 
 # ─── Driver registration ───────────────────────────────────────────
 
-@router.get("/driver/application")
+@router.get("/driver/application", dependencies=[Depends(user_taxi_module_guard)])
 async def driver_application_status(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),

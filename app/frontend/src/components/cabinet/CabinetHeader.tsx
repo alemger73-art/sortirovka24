@@ -154,13 +154,13 @@ export default function CabinetHeader({
             <LogOut className="h-4 w-4" />
             {logoutLabel}
           </button>
-          {courierAccess?.status === "pending" && links.courierPending ? (
+          {roleVisibility?.courier && roleVisibility?.courier && courierAccess?.status === "pending" && links.courierPending ? (
             <p className="text-xs text-amber-600 dark:text-amber-400">{links.courierPending}</p>
           ) : null}
-          {driverPending && links.driverPending ? (
+          {roleVisibility?.driver && roleVisibility?.driver && driverPending && links.driverPending ? (
             <p className="text-xs text-amber-600 dark:text-amber-400">{links.driverPending}</p>
           ) : null}
-          {masterApplicationPending && links.masterPending ? (
+          {roleVisibility?.master && roleVisibility?.master && masterApplicationPending && links.masterPending ? (
             <p className="text-xs text-indigo-600 dark:text-indigo-400">{links.masterPending}</p>
           ) : null}
         </div>

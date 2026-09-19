@@ -187,15 +187,15 @@ function App() {
               <Route path="/more" element={<MorePage />} />
               <Route path="/taxi" element={<TaxiPage />} />
               <Route path="/taxi/driver" element={<TaxiDriverHub />} />
-              <Route path="/delivery/courier" element={<CourierHub />} />
+              <Route path="/delivery/courier" element={<ModuleRoute anyOf={["food", "gastronom", "volna", "pharmacy", "prorab"]}><CourierHub /></ModuleRoute>} />
               <Route path="/taxi/ride/:id" element={<RequireUserAuth><TaxiRidePage /></RequireUserAuth>} />
               <Route path="/transport" element={<ModuleRoute module="transport"><TransportPage /></ModuleRoute>} />
               <Route path="/account" element={<AccountAuth />} />
               <Route path="/cabinet" element={<Protected><Cabinet /></Protected>} />
-              <Route path="/cabinet/orders/:source/:orderId" element={<Protected><CabinetOrderDetail /></Protected>} />
-              <Route path="/cabinet/master" element={<Protected><RequireCabinetRole allowedRoles={["master"]}><CabinetMaster /></RequireCabinetRole></Protected>} />
+              <Route path="/cabinet/orders/:source/:orderId" element={<Protected><ModuleRoute><CabinetOrderDetail /></ModuleRoute></Protected>} />
+              <Route path="/cabinet/master" element={<Protected><RequireCabinetRole allowedRoles={["master"]}><ModuleRoute module="masters"><CabinetMaster /></ModuleRoute></RequireCabinetRole></Protected>} />
               <Route path="/cabinet/driver" element={<Protected><RequireCabinetRole allowedRoles={["driver"]}><CabinetDriver /></RequireCabinetRole></Protected>} />
-              <Route path="/cabinet/courier" element={<Protected><RequireCourierAccess><CabinetCourier /></RequireCourierAccess></Protected>} />
+              <Route path="/cabinet/courier" element={<Protected><ModuleRoute anyOf={["food", "gastronom", "volna", "pharmacy", "prorab"]}><RequireCourierAccess><CabinetCourier /></RequireCourierAccess></ModuleRoute></Protected>} />
               <Route path="/delivery/food/:orderId" element={<DeliveryTrack />} />
               <Route path="/cabinet/partner" element={<Protected><RequireCabinetRole allowedRoles={["seller"]}><CabinetPartner /></RequireCabinetRole></Protected>} />
               <Route path="/cabinet/admin" element={<Protected><RequireCabinetRole allowedRoles={["admin", "superadmin", "moderator"]}><CabinetAdmin /></RequireCabinetRole></Protected>} />

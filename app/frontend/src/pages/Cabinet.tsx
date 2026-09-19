@@ -1,3 +1,5 @@
+import { notificationVisible } from '@/lib/cabinetModuleVisibility';
+import { type ModuleKey } from '@/config/modules';
 import { formatDate, getStatusLabel } from '@/lib/api';
 import { getPublicLocale } from '@/i18n/publicLocale';
 import { useEffect, useMemo, useState, useRef } from "react";
@@ -101,7 +103,7 @@ export default function Cabinet() {
   const [searchParams] = useSearchParams();
   const { t, setLang } = useLanguage();
   const taxiEnabled = useTaxiEnabled();
-  const { isEnabled } = useModules();
+  const { modules, isEnabled, loading: modulesLoading } = useModules();
   const initialTab = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState<TabId>(
     isCabinetTabId(initialTab) ? initialTab : "profile",
@@ -187,9 +189,7 @@ export default function Cabinet() {
           language: lang,
         });
         if (lang === "kz" || lang === "ru") setLang(lang);
-        taxiApi.myRides().then(setTaxiRides).catch(() => {});
-        logisticsApi.getCourierAccess().then(setCourierAccess).catch(() => {});
-        taxiApi.getDriverApplication().then(setDriverApplication).catch(() => {});
+
         loadMasterNewRequests(data?.profile?.role).catch(() => {});
       } catch (e: unknown) {
         if (e instanceof AccountApiError && e.status === 401) {
@@ -571,15 +571,27 @@ export default function Cabinet() {
     } finally { contentMutation.current = false; setContentBusy(false); }
   };
 
+  const moduleSignature = JSON.stringify(modules);
+  const previousModules = useRef<string | null>(null);
+  useEffect(() => {
+    if (modulesLoading) return;
+    const previous = previousModules.current;
+    previousModules.current = moduleSignature;
+    if (previous === null || previous === moduleSignature || !getAccountToken()) return;
+    let alive = true;
+    void accountApi.cabinet().then(data => { if (alive) setCabinet(data); }).catch(e => { if (alive) setError(humanizeApiError(e)); });
+    return () => { alive = false; };
+  }, [moduleSignature, modulesLoading]);
+
   const rows = useMemo(() => ({
     bonuses: cabinet?.bonuses || [],
-    orders: cabinet?.orders || [],
+    orders: (cabinet?.orders || []).filter((order: CabinetOrderRow) => order.type === 'taxi' ? taxiEnabled === true : isEnabled(({park:'food',master:'masters'}[order.type] || order.type) as ModuleKey)),
     master_requests: cabinet?.master_requests || [],
     become_master_requests: cabinet?.become_master_requests || [],
     complaints: cabinet?.complaints || [],
     announcements: cabinet?.announcements || [],
     real_estate: cabinet?.real_estate || [],
-  }), [cabinet]);
+  }), [cabinet, isEnabled, taxiEnabled]);
 
   const masterApplicationPending = useMemo(
     () => (rows.become_master_requests || []).some((b: { status?: string }) => b.status === "pending"),
@@ -630,34 +642,40 @@ export default function Cabinet() {
   }, [tabVisibilityCtx, t]);
 
   const deliveryEnabled = anyModuleEnabled(DELIVERY_MODULE_KEYS, isEnabled);
+  useEffect(() => {
+    let alive = true;
+    const refresh = () => {
+      if (!getAccountToken()) return;
+      if (taxiEnabled === true) {
+        void taxiApi.myRides().then(v => { if (alive) setTaxiRides(v); }).catch(() => {});
+        void taxiApi.getDriverApplication().then(v => { if (alive) setDriverApplication(v); }).catch(() => {});
+      } else { setTaxiRides([]); setDriverApplication(null); }
+      if (deliveryEnabled) void logisticsApi.getCourierAccess().then(v => { if (alive) setCourierAccess(v); }).catch(() => {});
+      else setCourierAccess(null);
+    };
+    refresh();
+    const timer = window.setInterval(() => { if (!document.hidden) refresh(); }, 15000);
+    return () => { alive = false; clearInterval(timer); };
+  }, [taxiEnabled, deliveryEnabled]);
+
   const mastersEnabled = isEnabled("masters");
-  const taxiOn = taxiEnabled !== false;
+  const taxiOn = taxiEnabled === true;
   const isApprovedDriver = Boolean(driverApplication?.is_driver);
-  const hasMasterRole =
-    cabinet?.profile?.role === "master" ||
-    cabinet?.profile?.role === "admin" ||
-    cabinet?.profile?.role === "superadmin" ||
-    cabinet?.profile?.role === "moderator";
   const hasCourierAccess = Boolean(courierAccess?.can_access_cabinet);
-  const hasCourierHistory = Boolean(courierAccess?.status && courierAccess.status !== "none");
-  const hasDriverHistory =
-    isApprovedDriver || Boolean(driverApplication?.status && driverApplication.status !== "none");
-  const hasMasterHistory =
-    hasMasterRole || masterApplicationPending || rows.become_master_requests.length > 0;
 
   const roleVisibility = {
-    master: mastersEnabled || hasMasterRole,
+    master: mastersEnabled,
     becomeMaster: mastersEnabled && !masterApplicationPending,
-    driver: taxiOn || isApprovedDriver,
+    driver: taxiOn,
     becomeDriver: taxiOn && !isApprovedDriver && driverApplication?.status !== "pending",
-    courier: deliveryEnabled || hasCourierAccess,
+    courier: deliveryEnabled,
     becomeCourier: deliveryEnabled && !hasCourierAccess && courierAccess?.status !== "pending",
   };
 
   const showRoles = {
-    master: mastersEnabled || hasMasterHistory,
-    courier: deliveryEnabled || hasCourierHistory,
-    driver: taxiOn || hasDriverHistory,
+    master: mastersEnabled,
+    courier: deliveryEnabled,
+    driver: taxiOn,
   };
 
   const switchTab = (tab: TabId) => {
@@ -682,7 +700,7 @@ export default function Cabinet() {
 
       for (const item of data.items || []) {
         if (!item.is_read && !seenNotificationIds.current.has(item.id)) {
-          if (!isNotificationCategoryEnabled(item.category, prefs)) continue;
+          if (!notificationVisible(item, isEnabled, taxiEnabled) || !isNotificationCategoryEnabled(item.category, prefs)) continue;
           seenNotificationIds.current.add(item.id);
           if (typeof Notification !== "undefined" && Notification.permission === "granted") {
             try {
@@ -701,11 +719,11 @@ export default function Cabinet() {
   };
 
   useEffect(() => {
-    if (!getAccountToken()) return;
+    if (!getAccountToken() || modulesLoading || taxiEnabled === null) return;
     void refreshNotifications();
     const id = window.setInterval(() => refreshNotifications(true), 30000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [isEnabled, taxiEnabled, modulesLoading]);
 
   const markNotificationRead = async (id: number) => {
     if (readingNotifications.current.has(id) || !notifications.some(n => n.id === id && !n.is_read)) return;
@@ -786,13 +804,13 @@ export default function Cabinet() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
             <CabinetNav tabs={tabsWithBadges} activeTab={activeTab} onTabChange={switchTab} />
 
-            <fieldset disabled={contentBusy} className="cabinet-content min-w-0 space-y-4" id="cabinet-panel">
+            <fieldset disabled={contentBusy} className="cabinet-content min-w-0 space-y-4" id="cabinet-panel" hidden={!tabs.some(tab => tab.id === activeTab)}>
               {error ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">{error}</p> : null}
               {success ? <p role="status" className="rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300">{success}</p> : null}
 
               {activeTab === "profile" && (
                 <>
-                  <details className="cabinet-role-options"><summary>{t("cabinet.workOptions")}</summary><CabinetRoleApplications
+                  {Object.values(showRoles).some(Boolean) && <details className="cabinet-role-options"><summary>{t("cabinet.workOptions")}</summary><CabinetRoleApplications
                     profileRole={cabinet?.profile?.role}
                     becomeMasterRequests={rows.become_master_requests}
                     courierAccess={courierAccess}
@@ -811,8 +829,8 @@ export default function Cabinet() {
                       masterRequestsHint: t("cabinet.roles.masterRequestsHint"),
                     }}
                     showRoles={showRoles}
-                  /></details>
-                  {masterApplicationPending && (
+                  /></details>}
+                  {mastersEnabled && masterApplicationPending && (
                     <div className="rounded-2xl border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/80 dark:bg-indigo-950/20 px-4 py-4">
                       <p className="text-sm font-bold text-indigo-900 dark:text-indigo-200">{t("cabinet.masterPending")}</p>
                       <p className="text-xs text-indigo-700/80 dark:text-indigo-300/80 mt-1">{t("cabinet.master.becomePendingHint")}</p>
@@ -820,6 +838,10 @@ export default function Cabinet() {
                   )}
                 <DarkCard>
                   <div className="mb-4 flex items-center justify-between"><h2 className={sectionTitleClass}>{t("cabinet.tab.profile")}</h2></div>
+                  {isEnabled('food') && <div className="mb-4 flex flex-wrap gap-2">
+                    <Link className="rounded-xl border px-4 py-3 text-sm font-semibold hover:bg-muted" to="/food">DÄM ALEM</Link>
+                    <Link className="rounded-xl border px-4 py-3 text-sm font-semibold hover:bg-muted" to="/food?tab=favorites">{t('resident.favoriteFood')}</Link>
+                  </div>}
                   <div className="cabinet-profile-layout grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr]">
                     <div className="cabinet-avatar-panel rounded-xl border border-gray-200 bg-gray-50 p-4 text-center dark:border-[#2a3347] dark:bg-[#0f172a]">
                       {profileForm.avatar ? (
@@ -1090,7 +1112,7 @@ export default function Cabinet() {
                 <DarkCard>
                   {notificationError && <p role="alert" className="mb-3 text-sm text-red-600">{notificationError} <button type="button" onClick={() => void refreshNotifications()}>{t("cabinet.retry")}</button></p>}
                   <CabinetNotifications
-                    items={notifications}
+                    items={notifications.filter(item => notificationVisible(item, isEnabled, taxiEnabled))}
                     loading={notificationsLoading}
                     failed={!!notificationError}
                     busy={readingAll}
@@ -1113,7 +1135,7 @@ export default function Cabinet() {
                         ["all", t("cabinet.orders.filterAll")],
                         ["food", t("cabinet.orders.filterFood")],
                         ["store", t("cabinet.orders.filterStores")],
-                      ] as const).map(([key, label]) => (
+                      ] as const).filter(([key]) => key === 'all' || (key === 'food' ? isEnabled('food') : ['gastronom', 'volna', 'pharmacy', 'prorab'].some(key => isEnabled(key as ModuleKey)))).map(([key, label]) => (
                         <button
                           key={key}
                           type="button"
@@ -1145,9 +1167,9 @@ export default function Cabinet() {
                     {filteredOrders.length === 0 ? (
                       <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-6 py-10 text-center dark:border-[#26324a] dark:bg-[#0f172a]">
                         <p className="text-sm text-gray-500 dark:text-slate-400">{t("cabinet.noOrders")}</p>
-                        <Link to="/food" className="mt-3 inline-block text-sm font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400">
+                        {isEnabled("food") && <Link to="/food" className="mt-3 inline-block text-sm font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400">
                           {t("cabinet.orders.goToFood")} →
-                        </Link>
+                        </Link>}
                       </div>
                     ) : null}
                   </div>

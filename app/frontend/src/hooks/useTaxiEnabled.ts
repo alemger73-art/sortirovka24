@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { taxiApi } from '@/lib/taxiApi';
 
 let cached: { enabled: boolean; at: number } | null = null;
-const TTL_MS = 60_000;
+const TTL_MS = 10_000;
 
 export async function fetchTaxiEnabled(): Promise<boolean> {
   if (cached && Date.now() - cached.at < TTL_MS) {
@@ -27,10 +27,15 @@ export function useTaxiEnabled(): boolean | null {
 
   useEffect(() => {
     let cancelled = false;
-    fetchTaxiEnabled().then((value) => {
+    const refresh = () => fetchTaxiEnabled().then((value) => {
       if (!cancelled) setEnabled(value);
     });
+    void refresh();
+    const timer = window.setInterval(() => { if (!document.hidden) void refresh(); }, 15000);
+    window.addEventListener("focus", refresh);
     return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", refresh);
       cancelled = true;
     };
   }, []);

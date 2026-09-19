@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from core.database import get_db
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from models.auth import User
 from models.logistics import CourierProfile, LogisticsTask
 from pydantic import BaseModel, Field
@@ -39,7 +39,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/logistics", tags=["logistics"])
+async def public_delivery_guard(request: Request, db: AsyncSession = Depends(get_db)):
+    if '/admin/' in request.url.path:
+        return
+    from services.cabinet_modules import availability
+    flags = await availability(db)
+    if not any(flags.get(key) for key in ('food', 'gastronom', 'volna', 'pharmacy', 'prorab')):
+        raise HTTPException(404, 'Доставка недоступна')
+
+
+router = APIRouter(prefix="/api/v1/logistics", tags=["logistics"], dependencies=[Depends(public_delivery_guard)])
 
 COURIER_STATUS_FLOW = {
     "assigned": ("picked_up", "Забрал заказ"),
@@ -68,14 +77,15 @@ class TaskStatusRequest(BaseModel):
 
 
 class CourierApplyRequest(BaseModel):
-    full_name: str
-    phone: str = ""
-    vehicle_type: str = "bike"
-    vehicle_plate: str = ""
-    comment: str = ""
-    photo_url: str = ""
-    id_photo_url: str = ""
-    vehicle_photo_url: str = ""
+    model_config = {"extra": "forbid"}
+    full_name: str = Field(min_length=1, max_length=150)
+    phone: str = Field("", max_length=32)
+    vehicle_type: str = Field("bike", max_length=16)
+    vehicle_plate: str = Field("", max_length=32)
+    comment: str = Field("", max_length=2000)
+    photo_url: str = Field("", max_length=512)
+    id_photo_url: str = Field("", max_length=512)
+    vehicle_photo_url: str = Field("", max_length=512)
 
 
 class AdminNoteRequest(BaseModel):

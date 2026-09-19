@@ -1,6 +1,6 @@
 import { getPublicCategoryLabel } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,9 @@ export default function CourierHub() {
   const { t: publicT } = useLanguage();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const initialized = useRef(false);
+  const submitLock = useRef(false);
   const [application, setApplication] = useState<CourierApplication | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -45,8 +48,7 @@ export default function CourierHub() {
     vehicle_photo_url: '',
   });
 
-  useEffect(() => {
-    (async () => {
+  const refresh = useCallback(async () => {
       if (!getAccountToken()) {
         setLoading(false);
         return;
@@ -54,7 +56,8 @@ export default function CourierHub() {
       try {
         const app = await logisticsApi.getCourierApplication();
         setApplication(app);
-        if (app.status !== 'none') {
+        setLoadError('');
+        if (!initialized.current && app.status !== 'none') {
           setForm({
             full_name: app.full_name || '',
             phone: app.phone || '',
@@ -66,15 +69,22 @@ export default function CourierHub() {
             vehicle_photo_url: app.vehicle_photo_url || '',
           });
         }
-      } catch {
-        /* not logged in */
+        initialized.current = true;
+      } catch (e) {
+        setLoadError((e as Error).message || publicT("courier.loadError"));
       } finally {
         setLoading(false);
       }
-    })();
-  }, []);
+  }, [publicT]);
+  useEffect(() => {
+    void refresh();
+    const timer = window.setInterval(() => { if (!document.hidden) void refresh(); }, 15000);
+    window.addEventListener("focus", refresh);
+    return () => { clearInterval(timer); window.removeEventListener("focus", refresh); };
+  }, [refresh]);
 
   async function submit() {
+    if (submitLock.current || loadError) return;
     if (!getAccountToken()) {
       navigate('/account?redirect=/delivery/courier');
       return;
@@ -99,6 +109,7 @@ export default function CourierHub() {
       toast.error(publicT("public.CourierHub.text145"));
       return;
     }
+    submitLock.current = true;
     setSubmitting(true);
     try {
       const app = await logisticsApi.submitCourierApplication(form);
@@ -107,6 +118,7 @@ export default function CourierHub() {
     } catch (e: unknown) {
       toast.error(String((e as Error)?.message || publicT("courier.genericError")));
     } finally {
+      submitLock.current = false;
       setSubmitting(false);
     }
   }
@@ -115,6 +127,7 @@ export default function CourierHub() {
 
   return (
     <Layout>
+      {loadError && <div role="alert" className="mx-auto max-w-3xl p-4 text-destructive"><p>{loadError}</p><Button variant="outline" onClick={() => void refresh()}>{publicT("cabinet.refresh")}</Button></div>}
       <div className="min-h-screen bg-gray-900">
         <div className="bg-gradient-to-br from-orange-400 to-amber-500 px-4 py-10 md:py-14">
           <div className="mx-auto max-w-3xl text-center">
@@ -174,7 +187,7 @@ export default function CourierHub() {
             </div>
           ) : null}
 
-          {!isCourier && application?.status !== 'pending' && (
+          {!loading && !loadError && !isCourier && application?.status !== 'pending' && (
             <div className="rounded-3xl bg-white p-6 md:p-8 shadow-xl space-y-4">
               <h2 className="text-xl font-bold text-gray-900">
                 {getAccountToken() ? publicT("public.CourierHub.text162") : publicT("public.CourierHub.text163")}

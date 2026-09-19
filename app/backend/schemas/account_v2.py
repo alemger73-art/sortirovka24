@@ -2,7 +2,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
-RoleType = Literal["user", "master", "driver", "seller", "moderator", "admin", "superadmin"]
+RoleType = Literal["user", "courier", "master", "driver", "seller", "moderator", "admin", "superadmin"]
 
 
 class RegisterV2Request(BaseModel):

@@ -75,6 +75,10 @@ export const DEFAULT_MODULES: Record<ModuleKey, boolean> = MODULE_KEYS.reduce(
  * Returns null for routes not tied to a toggleable module.
  */
 export function moduleForPath(pathname: string): ModuleKey | null {
+  const order = pathname.match(/^\/cabinet\/orders\/([^/]+)/);
+  if (order) return (order[1] === 'park' ? 'food' : MODULE_KEYS.includes(order[1] as ModuleKey) ? order[1] : null) as ModuleKey | null;
+  if (pathname === '/cabinet/master') return 'masters';
+  if (pathname.startsWith('/delivery/food/')) return 'food';
   let best: { key: ModuleKey; len: number } | null = null;
   for (const def of MODULE_DEFS) {
     for (const path of def.paths) {

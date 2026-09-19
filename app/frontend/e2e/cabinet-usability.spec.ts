@@ -1,3 +1,4 @@
+import { MODULE_KEYS } from '../src/config/modules';
 import { test, expect, type Page } from '@playwright/test';
 import { parseOrderItems, orderLineTotal } from '../src/lib/orderRoutes';
 
@@ -14,6 +15,7 @@ async function setup(page: Page) {
     const req = route.request(), path = new URL(req.url()).pathname;
     const method = req.method();
     let body: any = { items: [], total: 0 };
+    if (path.endsWith('/modules')) body = Object.fromEntries(MODULE_KEYS.map(key => [key, true]));
     if (path.endsWith('/account/cabinet')) {
       if (state.failCabinet) return route.fulfill({ status: state.failCabinet, json: { detail: state.failCabinet === 401 ? 'Сессия истекла' : 'Сервер временно недоступен' } });
       body = { profile: state.profile, addresses: state.addresses, orders: [order], bonuses: [{ id: 1, points: 450, reason: 'Начисление', created_at: order.created_at }], complaints: [], announcements: [], real_estate: [], master_requests: [], become_master_requests: [] };
@@ -87,7 +89,7 @@ test('profile clears email, validates fields, preserves successful save', async 
   await expect(page.getByRole('alert')).toContainText('Укажите имя');
   expect(state.writes).toHaveLength(0);
   await page.getByLabel('Имя', { exact: true }).fill('Новое имя');
-  await page.getByLabel('Email', { exact: true }).fill('');
+  await page.getByLabel('Электронная почта', { exact: true }).fill('');
   // A saved profile must not depend on a second successful cabinet GET.
   state.failCabinet = 500;
   await page.getByRole('button', { name: 'Сохранить изменения' }).click();
@@ -297,4 +299,35 @@ for (const failCleanup of [false,true]) test(`Android Preferences migration keep
   if(!failCleanup)expect(await page.evaluate(()=>(window as any).nativePrefs.cabinet_security_v1)).toBeUndefined();
   await expect(page.getByRole('textbox',{name:'PIN-код'})).toHaveCount(0);
   expect(await page.evaluate(()=>localStorage.getItem('account_token'))).toBe('cabinet-test-token');
+});
+
+
+test('disabled services stay hidden even with old history and approved roles', async ({page}) => {
+ await setup(page);
+ const flags=Object.fromEntries(MODULE_KEYS.map(key=>[key,false]));
+ flags.food=true;
+ await page.route('**/api/v1/modules',r=>r.fulfill({json:flags}));
+ await page.route('**/taxi/settings',r=>r.fulfill({json:{enabled:false}}));
+ await page.route('**/account/cabinet',r=>r.fulfill({json:{profile,orders:[order,{id:'gastronom_1',type:'gastronom',details:'Старый Гастроном',amount:100,status:'done'}],addresses:[],bonuses:[],complaints:[],announcements:[],real_estate:[],master_requests:[{id:1,status:'new'}],become_master_requests:[{id:1,status:'pending'}]}}));
+ await page.goto('/cabinet?tab=orders');
+ await expect(page.getByText('Старый Гастроном')).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'Поездки такси',exact:true})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'Заявки мастерам',exact:true})).toHaveCount(0);
+ await page.goto('/cabinet?tab=settings');
+ await expect(page.getByRole('switch',{name:/Такси/})).toHaveCount(0);
+ flags.masters=true;
+ await page.evaluate(()=>window.dispatchEvent(new Event('s24-modules-updated')));
+ await expect(page.locator('nav[aria-label="Разделы личного кабинета"] button').filter({hasText:'Заявки мастерам'})).toHaveCount(1, {timeout:20000});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
+test('courier approval refreshes without reloading the application page', async ({page}) => {
+ await setup(page);
+ let status='pending';let reads=0;
+ await page.route('**/courier/application',r=>{reads++;return r.fulfill({json:{status,full_name:'Тестовый курьер',phone:'+77011234567',vehicle_type:'foot',is_courier:status==='approved',can_access_cabinet:status==='approved'}});});
+ await page.goto('/delivery/courier');
+ await expect.poll(()=>reads).toBeGreaterThan(0);
+ status='approved';
+ await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+ await expect(page.getByRole('button',{name:/кабинет курьера/i})).toBeVisible();
 });

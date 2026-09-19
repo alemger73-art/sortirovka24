@@ -1,7 +1,7 @@
 import { getAccountToken } from '@/lib/accountApi';
 import { getAPIBaseURL } from '@/lib/config';
 import { humanizeApiError } from '@/lib/apiErrors';
-import { DEFAULT_MODULES, MODULE_KEYS, type ModuleKey } from '@/config/modules';
+import { MODULE_KEYS, type ModuleKey } from '@/config/modules';
 
 export type ModulesMap = Record<ModuleKey, boolean>;
 
@@ -54,9 +54,9 @@ async function api<T>(path: string, init?: RequestInit, token?: string): Promise
   return JSON.parse(text) as T;
 }
 
-/** Normalize an arbitrary response into a full ModulesMap (missing keys -> true). */
+/** Normalize an arbitrary response into a full ModulesMap (missing keys -> false). */
 function normalize(raw: unknown): ModulesMap {
-  const out: ModulesMap = { ...DEFAULT_MODULES };
+  const out = Object.fromEntries(MODULE_KEYS.map(key => [key, false])) as ModulesMap;
   if (raw && typeof raw === 'object') {
     for (const key of MODULE_KEYS) {
       const value = (raw as Record<string, unknown>)[key];

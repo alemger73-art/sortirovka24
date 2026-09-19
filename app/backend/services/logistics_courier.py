@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import HTTPException
 from models.auth import User
 from models.logistics import CourierApplication, CourierProfile
-from sqlalchemy import desc, select
+from sqlalchemy import desc, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 VALID_VEHICLE_TYPES = {"bike", "car", "foot"}
@@ -110,6 +110,14 @@ async def courier_access_info(db: AsyncSession, user: User) -> Dict[str, Any]:
     }
 
 
+async def lock_applicant(db: AsyncSession, user_id: str) -> None:
+    # A stable parent row serializes submission and both review decisions,
+    # including the first submission when no application row exists yet.
+    result = await db.execute(update(User).where(User.id == user_id).values(id=User.id))
+    if not result.rowcount:
+        raise ValueError("Пользователь не найден")
+
+
 async def submit_courier_application(
     db: AsyncSession,
     user: User,
@@ -123,6 +131,10 @@ async def submit_courier_application(
     id_photo_url: str = "",
     vehicle_photo_url: str = "",
 ) -> CourierApplication:
+    await lock_applicant(db, str(user.id))
+    if not full_name.strip() or not phone.strip():
+        raise ValueError("Укажите имя и телефон")
+    photo_url, id_photo_url, vehicle_photo_url = photo_url.strip(), id_photo_url.strip(), vehicle_photo_url.strip()
     profile = await get_courier_profile(db, str(user.id))
     if profile and profile.is_verified:
         raise ValueError("Вы уже подключены как курьер")
@@ -187,6 +199,7 @@ async def approve_courier_application(
     user_id: str,
     admin_note: str = "",
 ) -> CourierProfile:
+    await lock_applicant(db, user_id)
     app = await get_user_courier_application(db, user_id)
     if not app:
         raise ValueError("Заявка не найдена")
@@ -236,6 +249,7 @@ async def reject_courier_application(
     user_id: str,
     admin_note: str = "",
 ) -> CourierApplication:
+    await lock_applicant(db, user_id)
     app = await get_user_courier_application(db, user_id)
     if not app:
         raise ValueError("Заявка не найдена")

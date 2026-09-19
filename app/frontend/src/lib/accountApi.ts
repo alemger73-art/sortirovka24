@@ -10,7 +10,7 @@ function apiBase(): string {
   return getAPIBaseURL().replace(/\/$/, "");
 }
 
-export type AccountRole = "user" | "master" | "driver" | "seller" | "moderator" | "admin" | "superadmin";
+export type AccountRole = "user" | "courier" | "master" | "driver" | "seller" | "moderator" | "admin" | "superadmin";
 
 export interface SavedAddress {
   id: number;

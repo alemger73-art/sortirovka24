@@ -73,6 +73,8 @@ async def _load_account_user(db: AsyncSession, payload: dict) -> User:
     user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+    if user.status in {"blocked", "deleted"}:
+        raise HTTPException(status_code=403, detail="Account is unavailable")
     return user
 
 

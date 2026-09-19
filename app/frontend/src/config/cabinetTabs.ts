@@ -20,7 +20,7 @@ type CabinetTabRule =
   | { kind: 'taxi' };
 
 /** Delivery-related tabs: any of these modules keeps addresses/orders visible. */
-export const DELIVERY_MODULE_KEYS: ModuleKey[] = ['food', 'gastronom', 'volna'];
+export const DELIVERY_MODULE_KEYS: ModuleKey[] = ['food', 'gastronom', 'volna', 'pharmacy', 'prorab'];
 
 /** Order history can also come from store partners. */
 export const ORDER_MODULE_KEYS: ModuleKey[] = [
@@ -31,7 +31,7 @@ export const ORDER_MODULE_KEYS: ModuleKey[] = [
 
 export const CABINET_TAB_RULES: Record<CabinetTabId, CabinetTabRule> = {
   profile: { kind: 'always' },
-  addresses: { kind: 'anyModule', keys: DELIVERY_MODULE_KEYS },
+  addresses: { kind: 'always' },
   bonuses: { kind: 'always' },
   notifications: { kind: 'always' },
   orders: { kind: 'anyModule', keys: ORDER_MODULE_KEYS },
@@ -46,7 +46,7 @@ export const CABINET_TAB_RULES: Record<CabinetTabId, CabinetTabRule> = {
 export interface CabinetTabVisibilityContext {
   isEnabled: (key: ModuleKey) => boolean;
   taxiEnabled: boolean | null;
-  /** When a module is off, keep the tab if the user already has data there. */
+  /** History is retained in storage, but never overrides a disabled module. */
   hasData: Partial<Record<CabinetTabId, boolean>>;
 }
 
@@ -58,7 +58,7 @@ export function isCabinetTabModuleOn(
   if (rule.kind === 'always') return true;
   if (rule.kind === 'module') return ctx.isEnabled(rule.key);
   if (rule.kind === 'anyModule') return rule.keys.some((key) => ctx.isEnabled(key));
-  if (rule.kind === 'taxi') return ctx.taxiEnabled !== false;
+  if (rule.kind === 'taxi') return ctx.taxiEnabled === true;
   return true;
 }
 
@@ -66,8 +66,7 @@ export function isCabinetTabVisible(
   tabId: CabinetTabId,
   ctx: CabinetTabVisibilityContext,
 ): boolean {
-  if (isCabinetTabModuleOn(tabId, ctx)) return true;
-  return Boolean(ctx.hasData[tabId]);
+  return isCabinetTabModuleOn(tabId, ctx);
 }
 
 export function anyModuleEnabled(

@@ -1,3 +1,4 @@
+import { useTaxiEnabled } from '@/hooks/useTaxiEnabled';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -12,6 +13,7 @@ type Props = {
 export default function RequireCabinetRole({ allowedRoles, children }: Props) {
   const { t: publicT } = useLanguage();
   const navigate = useNavigate();
+  const taxiEnabled = useTaxiEnabled();
   const [status, setStatus] = useState<"loading" | "ok" | "denied">("loading");
 
   useEffect(() => {
@@ -35,7 +37,8 @@ export default function RequireCabinetRole({ allowedRoles, children }: Props) {
   }, [allowedRoles, navigate]);
 
   if (!getAccountToken()) return <Navigate to="/account" replace />;
-  if (status === "loading") {
+  if (allowedRoles.includes("driver") && taxiEnabled === false) return <Navigate to="/cabinet" replace />;
+  if (status === "loading" || (allowedRoles.includes("driver") && taxiEnabled === null)) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center text-gray-500 dark:text-slate-300">
         {publicT("public.RequireCabinetRole.text350")} </div>
