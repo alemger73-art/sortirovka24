@@ -2,6 +2,7 @@ import type { ModuleKey } from '@/config/modules';
 
 export type CabinetTabId =
   | 'profile'
+  | 'work'
   | 'addresses'
   | 'bonuses'
   | 'notifications'
@@ -31,6 +32,7 @@ export const ORDER_MODULE_KEYS: ModuleKey[] = [
 
 export const CABINET_TAB_RULES: Record<CabinetTabId, CabinetTabRule> = {
   profile: { kind: 'always' },
+  work: { kind: 'always' },
   addresses: { kind: 'always' },
   bonuses: { kind: 'always' },
   notifications: { kind: 'always' },

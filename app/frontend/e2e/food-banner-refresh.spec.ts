@@ -3,6 +3,7 @@ for(const theme of ['light','dark'])test(`compact banner and category strip ${th
  await page.addInitScript(theme=>{localStorage.setItem('app_lang','ru');localStorage.setItem('sortirovka-theme',theme);sessionStorage.setItem('s24_welcome_done','1');},theme);
  await page.route('**/api/**',async r=>{
   const p=new URL(r.request().url()).pathname;let json:any={items:[],total:0};
+  if(p.endsWith('/modules'))json={food:true};
   if(p.includes('food_restaurants'))json={items:[{id:1,name:'DAM ALEM 2.0'}]};
   if(p==='/api/categories')json={categories:[{id:1,name:'UFO Бургеры',slug:'ufo'},{id:2,name:'Пиццы',slug:'pizza-30'},{id:3,name:'Лимонады',slug:'limonady'}]};
   if(p==='/api/products')json={products:Array.from({length:12},(_,i)=>({id:i+1,category_id:i<4?1:i<8?2:3,title:`Блюдо ${i+1}`,price:2000,available:true}))};

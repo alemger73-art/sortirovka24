@@ -2561,13 +2561,15 @@ export default function Food() {
                 </div>
 
                 {loyaltyGifts.length > 0 && (
-                  <LoyaltyGiftBanner
-                    subtotal={cartTotal}
-                    gifts={loyaltyGifts}
-                    compact
-                    selectedGiftId={selectedGiftId}
-                    onSelectGift={(gift) => setSelectedGiftId(gift.id)}
-                  />
+                  <div id="dam-checkout-gift-choice" className={giftSelectionRequired ? 'rounded-2xl ring-2 ring-amber-400/70' : ''}>
+                    <LoyaltyGiftBanner
+                      subtotal={cartTotal}
+                      gifts={loyaltyGifts}
+                      compact
+                      selectedGiftId={selectedGiftId}
+                      onSelectGift={(gift) => setSelectedGiftId(gift.id)}
+                    />
+                  </div>
                 )}
 
                 <div className="dam-checkout-section space-y-2">
@@ -2806,6 +2808,7 @@ export default function Food() {
                       }
                       if (giftSelectionRequired) {
                         toast.error(st("Выберите один бесплатный подарок"));
+                        requestAnimationFrame(() => document.getElementById('dam-checkout-gift-choice')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
                         return;
                       }
                       setCheckoutStep(3);

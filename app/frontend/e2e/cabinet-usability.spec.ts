@@ -61,13 +61,16 @@ test('all resident tabs fit, preserve URL and navigate back', async ({ page }, i
   await page.goto('/cabinet');
   const nav = page.getByRole('navigation', { name: 'Разделы личного кабинета' });
   await expect(page.getByLabel('Имя', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Личные данные', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: profile.name, exact: true })).toHaveCount(0);
+  await expect(nav.getByRole('combobox')).toHaveCount(0);
   await page.screenshot({ path: info.outputPath('cabinet-profile.png'), fullPage: true });
   const choose = async (label: string) => {
     const select = nav.getByRole('combobox');
     if (await select.isVisible()) await select.selectOption({ label });
     else await nav.getByRole('button', { name: label }).click();
   };
-  for (const label of ['Адреса доставки', 'Бонусы', 'Уведомления', 'История заказов', 'Заявки мастерам', 'Поездки такси', 'История жалоб', 'Мои объявления', 'Моя недвижимость', 'Настройки']) {
+  for (const label of ['Работа и роли', 'Адреса доставки', 'Бонусы', 'Уведомления', 'История заказов', 'Заявки мастерам', 'Поездки такси', 'История жалоб', 'Мои объявления', 'Моя недвижимость', 'Настройки']) {
     await choose(label);
     await expect(nav.locator('button[aria-current=page]')).toContainText(label);
     await expect(page.locator('#cabinet-panel')).toBeVisible();
@@ -95,7 +98,7 @@ test('profile clears email, validates fields, preserves successful save', async 
   await page.getByRole('button', { name: 'Сохранить изменения' }).click();
   await expect(page.getByRole('status')).toContainText('Профиль сохранён');
   expect(state.profile.email).toBe('');
-  await expect(page.getByRole('heading', { name: 'Новое имя' })).toBeVisible();
+  await expect(page.getByLabel('Имя', { exact: true })).toHaveValue('Новое имя');
 });
 
 test('load errors never invent zero balances and retry restores history', async ({ page }) => {
@@ -243,7 +246,7 @@ test('narrow native screen fits profile and settings with enlarged text', async 
   await page.evaluate(() => { document.documentElement.classList.add('native-app'); document.documentElement.style.fontSize = '18px'; (document.activeElement as HTMLElement)?.blur(); window.scrollTo(0, 0); });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect((await page.locator('.site-header > div').boundingBox())!.y).toBeGreaterThanOrEqual(32);
-  await page.getByLabel('Раздел кабинета').selectOption('settings');
+  await page.getByRole('navigation', {name:'Разделы личного кабинета'}).getByRole('button',{name:'Настройки',exact:true}).click();
   await expect(page.getByRole('switch',{name:'Заказы (еда, магазины)',exact:true})).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: info.outputPath('cabinet-native-320.png'), fullPage: true });

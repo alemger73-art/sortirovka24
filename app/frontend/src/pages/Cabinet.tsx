@@ -80,6 +80,7 @@ const sectionTitleClass = "text-xl font-bold text-gray-900 dark:text-white";
 
 const ALL_CABINET_TAB_IDS: TabId[] = [
   "profile",
+  "work",
   "addresses",
   "bonuses",
   "notifications",
@@ -624,9 +625,15 @@ export default function Cabinet() {
     [isEnabled, taxiEnabled, addresses.length, rows, taxiRides.length],
   );
 
+  const deliveryEnabled = anyModuleEnabled(DELIVERY_MODULE_KEYS, isEnabled);
+  const mastersEnabled = isEnabled("masters");
+  const taxiOn = taxiEnabled === true;
+  const showRoles = { master: mastersEnabled, courier: deliveryEnabled, driver: taxiOn };
+
   const tabs = useMemo(() => {
     const base: { id: TabId; label: string }[] = [
       { id: "profile", label: t("cabinet.tab.profile") },
+      { id: "work", label: t("cabinet.tab.work") },
       { id: "addresses", label: t("cabinet.tab.addresses") },
       { id: "bonuses", label: t("cabinet.tab.bonuses") },
       { id: "notifications", label: t("cabinet.tab.notifications") },
@@ -638,10 +645,9 @@ export default function Cabinet() {
       { id: "realEstate", label: t("cabinet.tab.realEstate") },
       { id: "settings", label: t("cabinet.tab.settings") },
     ];
-    return base.filter((tab) => isCabinetTabVisible(tab.id, tabVisibilityCtx));
-  }, [tabVisibilityCtx, t]);
+    return base.filter((tab) => (tab.id !== 'work' || mastersEnabled || deliveryEnabled || taxiOn) && isCabinetTabVisible(tab.id, tabVisibilityCtx));
+  }, [tabVisibilityCtx, t, mastersEnabled, deliveryEnabled, taxiOn]);
 
-  const deliveryEnabled = anyModuleEnabled(DELIVERY_MODULE_KEYS, isEnabled);
   useEffect(() => {
     let alive = true;
     const refresh = () => {
@@ -657,26 +663,6 @@ export default function Cabinet() {
     const timer = window.setInterval(() => { if (!document.hidden) refresh(); }, 15000);
     return () => { alive = false; clearInterval(timer); };
   }, [taxiEnabled, deliveryEnabled]);
-
-  const mastersEnabled = isEnabled("masters");
-  const taxiOn = taxiEnabled === true;
-  const isApprovedDriver = Boolean(driverApplication?.is_driver);
-  const hasCourierAccess = Boolean(courierAccess?.can_access_cabinet);
-
-  const roleVisibility = {
-    master: mastersEnabled,
-    becomeMaster: mastersEnabled && !masterApplicationPending,
-    driver: taxiOn,
-    becomeDriver: taxiOn && !isApprovedDriver && driverApplication?.status !== "pending",
-    courier: deliveryEnabled,
-    becomeCourier: deliveryEnabled && !hasCourierAccess && courierAccess?.status !== "pending",
-  };
-
-  const showRoles = {
-    master: mastersEnabled,
-    courier: deliveryEnabled,
-    driver: taxiOn,
-  };
 
   const switchTab = (tab: TabId) => {
     setError("");
@@ -767,7 +753,7 @@ export default function Cabinet() {
     <Layout>
       <div className="cabinet-page min-h-screen bg-gray-50 px-4 py-8 text-gray-900 dark:bg-[#0B0F19] dark:text-white">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-6">
+          {activeTab !== 'profile' && <div className="mb-6">
             <CabinetHeader
               profile={cabinet?.profile}
               ordersCount={(rows.orders || []).length}
@@ -797,9 +783,9 @@ export default function Cabinet() {
                 courierPending: t("cabinet.courierPending"),
                 driverPending: t("cabinet.driverPending"),
               }}
-              roleVisibility={{ ...roleVisibility, becomeDriver: false, becomeCourier: false, becomeMaster: false }}
+              roleVisibility={{ master: false, driver: false, courier: false, becomeDriver: false, becomeCourier: false, becomeMaster: false }}
             />
-          </div>
+          </div>}
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
             <CabinetNav tabs={tabsWithBadges} activeTab={activeTab} onTabChange={switchTab} />
@@ -809,39 +795,8 @@ export default function Cabinet() {
               {success ? <p role="status" className="rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300">{success}</p> : null}
 
               {activeTab === "profile" && (
-                <>
-                  {Object.values(showRoles).some(Boolean) && <details className="cabinet-role-options"><summary>{t("cabinet.workOptions")}</summary><CabinetRoleApplications
-                    profileRole={cabinet?.profile?.role}
-                    becomeMasterRequests={rows.become_master_requests}
-                    courierAccess={courierAccess}
-                    driverApplication={driverApplication}
-                    labels={{
-                      title: t("cabinet.roles.title"),
-                      master: t("cabinet.roles.master"),
-                      courier: t("cabinet.roles.courier"),
-                      driver: t("cabinet.roles.driver"),
-                      statusNone: t("cabinet.roles.statusNone"),
-                      statusPending: t("cabinet.roles.statusPending"),
-                      statusApproved: t("cabinet.roles.statusApproved"),
-                      statusRejected: t("cabinet.roles.statusRejected"),
-                      actionApply: t("cabinet.roles.actionApply"),
-                      actionCabinet: t("cabinet.roles.actionCabinet"),
-                      masterRequestsHint: t("cabinet.roles.masterRequestsHint"),
-                    }}
-                    showRoles={showRoles}
-                  /></details>}
-                  {mastersEnabled && masterApplicationPending && (
-                    <div className="rounded-2xl border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/80 dark:bg-indigo-950/20 px-4 py-4">
-                      <p className="text-sm font-bold text-indigo-900 dark:text-indigo-200">{t("cabinet.masterPending")}</p>
-                      <p className="text-xs text-indigo-700/80 dark:text-indigo-300/80 mt-1">{t("cabinet.master.becomePendingHint")}</p>
-                    </div>
-                  )}
                 <DarkCard>
-                  <div className="mb-4 flex items-center justify-between"><h2 className={sectionTitleClass}>{t("cabinet.tab.profile")}</h2></div>
-                  {isEnabled('food') && <div className="mb-4 flex flex-wrap gap-2">
-                    <Link className="rounded-xl border px-4 py-3 text-sm font-semibold hover:bg-muted" to="/food">DÄM ALEM</Link>
-                    <Link className="rounded-xl border px-4 py-3 text-sm font-semibold hover:bg-muted" to="/food?tab=favorites">{t('resident.favoriteFood')}</Link>
-                  </div>}
+                  <div className="mb-4 flex items-center justify-between"><h1 className={sectionTitleClass}>{t("cabinet.profileData")}</h1></div>
                   <div className="cabinet-profile-layout grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr]">
                     <div className="cabinet-avatar-panel rounded-xl border border-gray-200 bg-gray-50 p-4 text-center dark:border-[#2a3347] dark:bg-[#0f172a]">
                       {profileForm.avatar ? (
@@ -890,13 +845,22 @@ export default function Cabinet() {
                         <option value="ru">{publicT("lang.ru")}</option>
                         <option value="kz">Қазақша</option>
                       </select></label>
-                      <button onClick={saveProfile} disabled={savingProfile || avatarUploading} className="inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-[#0B0F19] disabled:opacity-60">
-                        <Save className="h-4 w-4" /> {savingProfile ? t("cabinet.saving") : t("cabinet.saveProfile")}
-                      </button>
+                      <div className="flex flex-wrap gap-2">
+                        <button onClick={saveProfile} disabled={savingProfile || avatarUploading} className="inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-[#0B0F19] disabled:opacity-60">
+                          <Save className="h-4 w-4" /> {savingProfile ? t("cabinet.saving") : t("cabinet.saveProfile")}
+                        </button>
+                        <button type="button" onClick={() => { logoutLocalUser(); navigate('/account'); }} className="rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold dark:border-[#2a3347]">{t("cabinet.logout")}</button>
+                      </div>
                     </div>
                   </div>
                 </DarkCard>
-                </>
+              )}
+
+              {activeTab === "work" && Object.values(showRoles).some(Boolean) && (
+                <div className="space-y-4">
+                  {mastersEnabled && masterApplicationPending && <div className="rounded-2xl border border-indigo-200 bg-indigo-50/80 px-4 py-4 dark:border-indigo-900/50 dark:bg-indigo-950/20"><p className="text-sm font-bold text-indigo-900 dark:text-indigo-200">{t("cabinet.masterPending")}</p><p className="mt-1 text-xs text-indigo-700/80 dark:text-indigo-300/80">{t("cabinet.master.becomePendingHint")}</p></div>}
+                  <CabinetRoleApplications profileRole={cabinet?.profile?.role} becomeMasterRequests={rows.become_master_requests} courierAccess={courierAccess} driverApplication={driverApplication} labels={{title:t("cabinet.roles.title"),master:t("cabinet.roles.master"),courier:t("cabinet.roles.courier"),driver:t("cabinet.roles.driver"),statusNone:t("cabinet.roles.statusNone"),statusPending:t("cabinet.roles.statusPending"),statusApproved:t("cabinet.roles.statusApproved"),statusRejected:t("cabinet.roles.statusRejected"),actionApply:t("cabinet.roles.actionApply"),actionCabinet:t("cabinet.roles.actionCabinet"),masterRequestsHint:t("cabinet.roles.masterRequestsHint")}} showRoles={showRoles} />
+                </div>
               )}
 
               {activeTab === "addresses" && (

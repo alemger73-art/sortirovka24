@@ -38,7 +38,9 @@ export default function LoyaltyGiftBanner({
     : 0;
   const remaining = next ? Math.max(0, next.min_amount - subtotal) : 0;
 
-  if (compact && !current && !next) return null;
+  // Multiple gifts at the reached threshold require a choice. Keep the
+  // selector visible even before one is selected.
+  if (compact && choices.length === 0 && !next) return null;
 
   return (
     <div className={`dam-loyalty-gift ${compact ? '' : 'shadow-sm'}`}>
@@ -55,7 +57,7 @@ export default function LoyaltyGiftBanner({
 
         {choices.length > 0 ? (
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-emerald-800">
+            <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
               {choices.length > 1 ? st("Выберите один подарок бесплатно") : st("Ваш подарок добавлен бесплатно")}
             </p>
             <div className={`grid gap-2 ${choices.length > 1 ? 'sm:grid-cols-2' : ''}`}>
@@ -69,8 +71,8 @@ export default function LoyaltyGiftBanner({
                     disabled={!onSelectGift}
                     className={`flex items-start gap-3 rounded-2xl border p-3 text-left shadow-sm transition ${
                       selected
-                        ? 'border-emerald-400 bg-emerald-50 ring-2 ring-emerald-100'
-                        : 'border-amber-100/80 bg-white/90 hover:border-emerald-200'
+                        ? 'border-emerald-400 bg-emerald-50 ring-2 ring-emerald-100 dark:bg-emerald-950/50 dark:ring-emerald-900/50'
+                        : 'border-amber-100/80 bg-white/90 hover:border-emerald-200 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-emerald-700'
                     }`}
                     aria-pressed={selected}
                   >
@@ -85,9 +87,9 @@ export default function LoyaltyGiftBanner({
                       <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
                         {selected ? st("Выбран") : st("Выбрать")}
                       </p>
-                      <p className="text-sm font-bold text-gray-900">{gift.title}</p>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">{gift.title}</p>
                       {gift.description && (
-                        <p className="mt-0.5 text-xs text-gray-600">{gift.description}</p>
+                        <p className="mt-0.5 text-xs text-gray-600 dark:text-slate-300">{gift.description}</p>
                       )}
                       <p className="mt-1 text-[11px] text-amber-700">{st("от")} {formatMoney(gift.min_amount)}</p>
                     </div>

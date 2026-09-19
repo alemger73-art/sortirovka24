@@ -10,6 +10,7 @@ async function setup(page: Page, initial: Banner[] = []) {
   await page.route('**/api/**', async route => {
     const request = route.request(), url = new URL(request.url()), path = url.pathname;
     let body: unknown = { items: [], total: 0 };
+    if (path.endsWith('/modules')) body = { food: true };
     if (path.includes('verify-session')) body = { valid: true, login: 'test', display_name: 'DAM ALEM 2.0' };
     if (path.endsWith('/business/me')) body = { role: 'owner', name: 'Test owner' };
     if (path.includes('food_restaurants')) body = { items: [{ id: 1, name: 'DAM ALEM 2.0' }] };

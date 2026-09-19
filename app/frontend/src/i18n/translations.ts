@@ -22,6 +22,7 @@ const translations: Translations = {
   "cabinet.emailInvalid": { ru: "Проверьте адрес электронной почты", kz: "Электрондық пошта мекенжайын тексеріңіз" },
   "cabinet.language": { ru: "Язык интерфейса", kz: "Интерфейс тілі" },
   "cabinet.workOptions": { ru: "Работа и сотрудничество", kz: "Жұмыс және ынтымақтастық" },
+  "cabinet.profileData": { ru: "Личные данные", kz: "Жеке деректер" },
   /* ─── Navigation ─── */
   'nav.home': { ru: 'Главная', kz: 'Басты бет' },
   'nav.masters': { ru: 'Мастера', kz: 'Шеберлер' },
@@ -506,6 +507,7 @@ const translations: Translations = {
   'cabinet.notLoggedIn': { ru: 'Вы не вошли в аккаунт.', kz: 'Сіз аккаунтқа кірмедіңіз.' },
   'cabinet.loginOrRegister': { ru: 'Войти или зарегистрироваться', kz: 'Кіру немесе тіркелу' },
   'cabinet.tab.profile': { ru: 'Профиль', kz: 'Профиль' },
+  'cabinet.tab.work': { ru: 'Работа и роли', kz: 'Жұмыс және рөлдер' },
   'cabinet.tab.bonuses': { ru: 'Бонусы', kz: 'Бонустар' },
   'cabinet.tab.notifications': { ru: 'Уведомления', kz: 'Хабарландырулар' },
   'cabinet.notifications.empty': { ru: 'Пока нет уведомлений. Здесь появятся статусы заказов, такси и доставки.', kz: 'Әзірге хабарландырулар жоқ. Мұнда тапсырыстардың, такси сапарларының және жеткізудің күйлері көрсетіледі.' },
