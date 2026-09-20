@@ -6,9 +6,9 @@ import { warmupBackend } from './lib/api';
 import { installProductionErrorHandlers } from './lib/errorHandlers';
 import { initMonitoring } from './lib/monitoring';
 import { initNativeShell } from './lib/native';
+import { initWebAppUpdates } from './lib/pwaUpdates';
 import { restoreAccountSession, scheduleNativeSessionHydration } from './lib/sessionStore';
 
-// PWA registration is handled by vite-plugin-pwa (web builds only; disabled in --mode mobile).
 // ─── Intercept SDK's postMessage error reporting ─────────────────
 // The @metagptx/web-sdk sends `mgx-appview-error` postMessages to
 // window.top for ANY HTTP response with status >= 400 (except 401).
@@ -84,6 +84,7 @@ import { restoreAccountSession, scheduleNativeSessionHydration } from './lib/ses
 
 initMonitoring();
 installProductionErrorHandlers();
+initWebAppUpdates();
 
 warmupBackend();
 

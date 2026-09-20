@@ -24,6 +24,9 @@ export default defineConfig(({ mode }) => ({
       includeAssets: ['icon-192.png', 'icon-512.png', 'favicon.svg'],
       manifest: false,
       workbox: {
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         navigateFallback: '/index.html',
         runtimeCaching: [
