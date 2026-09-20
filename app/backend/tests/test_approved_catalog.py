@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from core.database import Base
 from models.food_orders import Food_orders
+from models.banners import Banners
 from services.dam_alem_catalog_seed import seed_dam_alem_catalog, Food_items, Food_categories, Food_restaurants, Modifier_groups, Modifier_options, Item_modifier_groups, Food_settings
 from services.food_order_validation import validate_food_order
 from fastapi import HTTPException
@@ -24,6 +25,7 @@ async def test_menu_prices_modifiers_archiving_history_and_restart():
   products=(await db.scalars(select(Food_items).where(Food_items.restaurant_id==1,Food_items.is_active==True))).all()
   assert len(products)==37
   assert sum(x.available for x in products)==34
+  assert {x.name for x in products if x.is_combo}=={'Орбита Чикен','Орбита Биф'}
   assert (await db.get(Food_items,1)).is_active is False
   assert (await db.get(Food_items,2)).is_active is False
   assert (await db.get(Food_items,3)).is_active is True
@@ -59,4 +61,30 @@ async def test_menu_prices_modifiers_archiving_history_and_restart():
   products[0].price=2345;await db.commit()
   assert (await seed_dam_alem_catalog(db))['already_applied']
   assert products[0].price==2345
+ await engine.dispose()
+
+@pytest.mark.asyncio
+async def test_clean_database_bootstraps_restaurant_catalog_and_marketing(monkeypatch):
+ engine=create_async_engine('sqlite+aiosqlite:///:memory:')
+ async with engine.begin() as c:await c.run_sync(Base.metadata.create_all)
+ maker=async_sessionmaker(engine,expire_on_commit=False)
+ async with maker() as db:
+  result=await seed_dam_alem_catalog(db)
+  restaurant=await db.get(Food_restaurants,result['restaurant_id'])
+  assert restaurant.name=='DAM ALEM 2.0'
+  assert restaurant.merchant_key=='dam_alem'
+  assert restaurant.min_order==2000
+  assert len((await db.scalars(select(Food_items).where(Food_items.restaurant_id==restaurant.id))).all())==37
+ from core.database import db_manager
+ from services.dam_alem_marketing_seed import ensure_dam_alem_marketing
+ monkeypatch.setattr(db_manager,'async_session_maker',maker)
+ monkeypatch.delenv('DAM_ALEM_SEED_MARKETING',raising=False)
+ await ensure_dam_alem_marketing()
+ async with maker() as db:
+  settings={row.setting_key:row.setting_value for row in (await db.scalars(select(Food_settings))).all()}
+  assert settings['min_order_amount']=='2000'
+  assert settings['delivery_price']=='500'
+  assert settings['service_fee_rate']=='10'
+  active_banners=(await db.scalars(select(Banners).where(Banners.banner_type=='food_delivery',Banners.active.is_(True)))).all()
+  assert {banner.title for banner in active_banners}=={'Орбита Чикен','Орбита Биф'}
  await engine.dispose()

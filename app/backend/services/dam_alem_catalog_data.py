@@ -52,7 +52,7 @@ def build_items():
   if cat=='napitki': groups=[f'bottle-{n}']
   if name=='Гонконгские вафли': groups=['topping','sprinkles']
   result.append(dict(category_slug=cat,name=name,price=price,description=description,sort_order=n,
-   available=price is not None,is_combo=name.startswith('Комбо '),mod_groups=groups,
+   available=price is not None,is_combo=name in ('Орбита Чикен','Орбита Биф'),mod_groups=groups,
    weight='30 см' if cat=='pizza-30' else '0,5 л' if cat=='molochnye-kokteyli' else '',
    sales_department='kitchen' if cat in ('ufo','pizza-30','zakuski') else 'bar'))
  return result

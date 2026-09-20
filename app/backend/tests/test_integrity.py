@@ -76,7 +76,8 @@ class TestPublicReads:
 
     def test_gastronom_catalog(self, client: httpx.Client):
         r = client.get("/api/v1/gastronom/catalog")
-        assert r.status_code == 200
+        # Disabled modules intentionally disappear from the public API.
+        assert r.status_code in {200, 404}
 
     def test_taxi_settings(self, client: httpx.Client):
         r = client.get("/api/v1/taxi/settings")

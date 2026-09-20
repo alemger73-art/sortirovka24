@@ -10,7 +10,12 @@ async function setup(page: Page, lang: 'ru' | 'kz' = 'kz', theme = 'dark') {
   await page.route('**/api/**', r => {
     const path = new URL(r.request().url()).pathname;
     let json: unknown = {items: [], total: 0};
-    if (path.includes('/settings') || path.includes('/modules')) json = {};
+    if (path.includes('/settings')) json = {};
+    if (path.endsWith('/modules')) json = Object.fromEntries([
+      'food','gastronom','volna','prorab','pharmacy','masters','salons','inspectors',
+      'real_estate','announcements','jobs','directory','transport','questions',
+      'complaints','news','business','history',
+    ].map(key => [key, true]));
     if (path.includes('/support/settings')) json = {promo_enabled: true, recipient: '', bank: '', iban: '', bin: '', kaspi_phone: '', kaspi_qr_url: '', purpose: '', contact_email: ''};
     if (path.includes('/taxi/settings')) json = {enabled: true};
     if (path.endsWith('/inspector-directory')) json = {revision: 0, department_name: '', address: '', duty_phone: '', duty_whatsapp: '', map_url: '', reception_schedule: '', source_url: '', verified_on: null, notice: '', tips: []};

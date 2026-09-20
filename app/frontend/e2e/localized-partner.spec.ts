@@ -21,7 +21,7 @@ test('partner orders, finance and Telegram are localized and fit dark mode',asyn
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.text().includes('[i18n] Missing'))errors.push(m.text());});
  for(const section of ['today','sales','orders','staff','telegram','brand','menu','banners','settings']){
   await page.goto('/partner/dam-alem?section='+section);
-  await expect(page.locator('main nav')).toBeVisible();
+  await expect(page.getByRole('navigation',{name:'Кабинет бөлімдері'})).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang','kk');
   await expect(page.locator('html')).toHaveClass(/dark/);
   await page.waitForTimeout(250);

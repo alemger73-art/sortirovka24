@@ -1,10 +1,21 @@
 import json
 import pytest
+from services.dam_alem_marketing_defaults import MARKETING_SETTING_KEYS, PROMO_SLIDES
 from fastapi import HTTPException
 from starlette.requests import Request
 from services.food_order_validation import _resolve_promo
 from services.dam_alem_marketing_defaults import PROMO_CODES
 from routers.food_store import validate_promo, PromoValidateRequest
+
+def test_marketing_copy_and_checkout_defaults_match_rules():
+ gift_slide=next(slide for slide in PROMO_SLIDES if slide['title']=='Подарки к заказу')
+ promo_slide=next(slide for slide in PROMO_SLIDES if slide['title']=='Промокод DAMALEM10')
+ assert any('11 000' in line for line in gift_slide['lines'])
+ assert all('5 000' not in line for line in gift_slide['lines'])
+ assert any('1 500' in line for line in promo_slide['lines'])
+ assert MARKETING_SETTING_KEYS['min_order_amount']=='2000'
+ assert MARKETING_SETTING_KEYS['delivery_price']=='500'
+ assert MARKETING_SETTING_KEYS['service_fee_rate']=='10'
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('promo',PROMO_CODES)

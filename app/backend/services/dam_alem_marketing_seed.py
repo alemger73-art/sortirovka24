@@ -241,7 +241,7 @@ async def ensure_dam_alem_marketing(*, force: bool = False) -> Optional[Dict[str
 
         banners_patched = 0
         banners_added = 0
-        if current.get('combo_banner_revision') != '2026-09-19':
+        if current.get('combo_banner_revision') != '2026-09-20':
             from models.food_items import Food_items
             from models.food_restaurants import Food_restaurants
             from services.food_operations import brand
@@ -264,7 +264,7 @@ async def ensure_dam_alem_marketing(*, force: bool = False) -> Optional[Dict[str
                     db.add(Banners(title=title, subtitle=combo.description or '', image_url=combo.image_url or '',
                         button_text='В корзину', button_url=url, link_url=url, banner_type='food_delivery', active=True, created_at=_now()))
                     banners_added += 1
-                await _upsert_setting(db, 'combo_banner_revision', '2026-09-19')
+                await _upsert_setting(db, 'combo_banner_revision', '2026-09-20')
                 settings_changed += 1
 
         if settings_changed == 0 and banners_added == 0 and banners_patched == 0:

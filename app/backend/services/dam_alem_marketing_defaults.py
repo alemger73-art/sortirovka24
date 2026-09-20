@@ -104,7 +104,7 @@ PROMO_SLIDES: List[Dict[str, Any]] = [
     {
         "title": "Промокод DAMALEM10",
         "lines": [
-            "−10% на заказ, максимум 1 000 ₸",
+            "−10% на заказ, максимум 1 500 ₸",
             "Минимум всего 2 500 ₸",
             "Введите код при оформлении",
         ],
@@ -112,9 +112,9 @@ PROMO_SLIDES: List[Dict[str, Any]] = [
     {
         "title": "Подарки к заказу",
         "lines": [
-            "От 5 000 ₸ — подарок бесплатно",
-            "Фри, лимонад или соус",
-            "Выберите при оформлении",
+            "От 11 000 ₸ — один десерт бесплатно",
+            "Сладкая вата или вафли с фруктами",
+            "Выберите десерт при оформлении",
         ],
     },
     {
@@ -133,6 +133,11 @@ REFERRAL_SHARE_TEXT = (
 )
 
 MARKETING_SETTING_KEYS: Dict[str, str] = {
+    "whatsapp_number": "+77470304096",
+    "hero_banner_title": "DAM ALEM 2.0",
+    "min_order_amount": "2000",
+    "delivery_price": "500",
+    "service_fee_rate": "10",
     "free_delivery_from": "15000",
     "apartment_delivery_price": "300",
     "apartment_free_from": "15000",

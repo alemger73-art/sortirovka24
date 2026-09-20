@@ -13,7 +13,7 @@ from models.item_modifier_groups import Item_modifier_groups
 from services.dam_alem_catalog_data import CATEGORIES, build_items, build_modifier_groups
 
 logger=logging.getLogger(__name__)
-VERSION='approved-menu-2026-09-15'
+VERSION='approved-menu-2026-09-20'
 MARKER='dam_alem_catalog_revision'
 
 async def _find_dam_alem_restaurant(db):
@@ -24,7 +24,22 @@ async def _find_dam_alem_restaurant(db):
 
 async def seed_dam_alem_catalog(db, *, replace=True):
  restaurant=await _find_dam_alem_restaurant(db)
- if not restaurant:raise ValueError('Existing DAM ALEM restaurant not found')
+ if not restaurant:
+  # A clean staging/new installation has no mock rows when
+  # MGX_IGNORE_INIT_DATA is enabled. Bootstrap DAM ALEM only when the
+  # restaurant table is completely empty; never add it to an unrelated
+  # multi-restaurant database implicitly.
+  existing=await db.scalar(select(Food_restaurants.id).limit(1))
+  if existing is not None:raise ValueError('Existing DAM ALEM restaurant not found')
+  restaurant=Food_restaurants(
+   name='DAM ALEM 2.0',merchant_key='dam_alem',photo='',
+   description='Доставка еды по Сортировке №1',
+   whatsapp_phone='+77470304096',working_hours='10:00 – 22:00',
+   min_order=2000,delivery_time='35–45 мин',
+   cuisine_type='UFO-бургеры, пицца, закуски и напитки',rating=5,
+   is_active=True,sort_order=1,created_at=datetime.now(timezone.utc).isoformat(),
+  )
+  db.add(restaurant);await db.flush()
  # Serialize concurrent startup workers; all content and the marker commit together.
  await db.execute(select(Food_restaurants.id).where(Food_restaurants.id==restaurant.id).with_for_update())
  marker=await db.scalar(select(Food_settings).where(Food_settings.setting_key==MARKER))
