@@ -3,6 +3,15 @@ param([int]$VersionCode = 0)
 $ErrorActionPreference = 'Stop'
 $FrontendRoot = Split-Path $PSScriptRoot -Parent
 $AndroidRoot = Join-Path $FrontendRoot 'android'
+$env:GRADLE_USER_HOME = Join-Path $FrontendRoot '.gradle-home'
+$NodeExe = (Get-Command node -ErrorAction SilentlyContinue).Source
+if (-not $NodeExe) {
+    $NodeExe = @(
+        (Join-Path $env:USERPROFILE '.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe'),
+        (Join-Path $env:LOCALAPPDATA 'Programs\cursor\resources\app\resources\helpers\node.exe')
+    ) | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+}
+if (-not $NodeExe) { throw 'Node.js 20+ is required to build the web bundle.' }
 if (-not (Test-Path -LiteralPath (Join-Path $AndroidRoot 'keystore.properties'))) {
     throw 'Signing is not configured. Set up your upload keystore before building a release.'
 }
@@ -17,7 +26,7 @@ $env:ANDROID_SDK_ROOT = $SdkRoot
 [IO.File]::WriteAllText((Join-Path $AndroidRoot 'local.properties'), "sdk.dir=$($SdkRoot.Replace('\','/'))`n")
 Push-Location $FrontendRoot
 try {
-    & node scripts/build-store-web.mjs android
+    & $NodeExe scripts/build-store-web.mjs android
     if ($LASTEXITCODE -ne 0) { throw 'Web build / Capacitor sync failed.' }
     Push-Location $AndroidRoot
     try {

@@ -12,6 +12,15 @@ $AndroidRoot = Join-Path $FrontendRoot "android"
 $SdkRoot = Join-Path $FrontendRoot ".android-sdk"
 $ReleasesDir = Join-Path $FrontendRoot "releases"
 $CmdlineToolsZip = Join-Path $env:TEMP "android-cmdline-tools.zip"
+$env:GRADLE_USER_HOME = Join-Path $FrontendRoot ".gradle-home"
+$NodeExe = (Get-Command node -ErrorAction SilentlyContinue).Source
+if (-not $NodeExe) {
+    $NodeExe = @(
+        (Join-Path $env:USERPROFILE '.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe'),
+        (Join-Path $env:LOCALAPPDATA 'Programs\cursor\resources\app\resources\helpers\node.exe')
+    ) | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+}
+if (-not $NodeExe) { throw 'Node.js 20+ is required to build the web bundle.' }
 
 $JbrCandidates = @(
     "C:\Program Files\Android\Android Studio\jbr",
@@ -52,8 +61,8 @@ function Ensure-AndroidSdk {
     $yes = ("y`n" * 40)
     $yes | & $sdkmanager --licenses 2>&1 | Out-Null
 
-    Write-Host "[3/5] Installing platform-tools, build-tools, android-35..."
-    & $sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" 2>&1 | Write-Host
+    Write-Host "[3/5] Installing platform-tools, build-tools, android-36..."
+    & $sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" 2>&1 | Write-Host
 }
 
 function Write-LocalProperties {
@@ -87,17 +96,12 @@ if (-not (Test-Path ".env.mobile")) {
 Write-Host "[4/5] Building web bundle..."
 $prevEAP = $ErrorActionPreference
 $ErrorActionPreference = "Continue"
-if (Get-Command pnpm -ErrorAction SilentlyContinue) {
-    pnpm run build:mobile 2>&1 | ForEach-Object { Write-Host $_ }
-    if ($LASTEXITCODE -ne 0) { throw "pnpm run build:mobile failed with exit $LASTEXITCODE" }
-    pnpm exec cap sync android 2>&1 | ForEach-Object { Write-Host $_ }
-    if ($LASTEXITCODE -ne 0) { throw "cap sync failed with exit $LASTEXITCODE" }
-} else {
-    npm run build:mobile 2>&1 | ForEach-Object { Write-Host $_ }
-    if ($LASTEXITCODE -ne 0) { throw "npm run build:mobile failed with exit $LASTEXITCODE" }
-    npx cap sync android 2>&1 | ForEach-Object { Write-Host $_ }
-    if ($LASTEXITCODE -ne 0) { throw "cap sync failed with exit $LASTEXITCODE" }
-}
+& $NodeExe node_modules/typescript/bin/tsc -b 2>&1 | ForEach-Object { Write-Host $_ }
+if ($LASTEXITCODE -ne 0) { throw "TypeScript build failed with exit $LASTEXITCODE" }
+& $NodeExe node_modules/vite/bin/vite.js build --mode mobile 2>&1 | ForEach-Object { Write-Host $_ }
+if ($LASTEXITCODE -ne 0) { throw "Vite mobile build failed with exit $LASTEXITCODE" }
+& $NodeExe node_modules/@capacitor/cli/bin/capacitor sync android 2>&1 | ForEach-Object { Write-Host $_ }
+if ($LASTEXITCODE -ne 0) { throw "Capacitor sync failed with exit $LASTEXITCODE" }
 $ErrorActionPreference = $prevEAP
 
 if ($SkipGradle) {
