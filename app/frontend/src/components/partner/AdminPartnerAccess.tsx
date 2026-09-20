@@ -171,7 +171,12 @@ export default function AdminPartnerAccess({ partnerType }: { partnerType: Partn
           <Input placeholder={adminT("admin.ui.1319")} value={email} onChange={(e) => setEmail(e.target.value)} />
           <Input placeholder={adminT("admin.ui.1320")} value={phone} onChange={(e) => setPhone(e.target.value)} />
           <Input placeholder={adminT("admin.ui.1321")} value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-          <Input type="password" placeholder={adminT("admin.ui.1322")} value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Input
+            type="password"
+            placeholder={adminT(isDamAlem ? 'admin.dam.roles.passwordPlaceholder' : "admin.ui.1322")}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
         </div>
         <Button type="submit" disabled={saving} className={`gap-1.5 text-white ${cfg.buttonClass}`}>
           <Plus className="h-4 w-4" /> {saving ? adminT("admin.ui.0476") : adminT("admin.ui.1323")}
