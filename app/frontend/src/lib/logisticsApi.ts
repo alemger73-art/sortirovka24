@@ -149,6 +149,8 @@ export interface CourierCabinet {
   task_history: LogisticsTask[];
   earnings: number;
   status_flow: Record<string, [string, string]>;
+  pin_set: boolean;
+  shift: { id: number; staff_name: string; opened_at: string; closed_at?: string | null; active: boolean } | null;
 }
 
 export const LOGISTICS_STATUS_LABELS: Record<string, { label: string; labelKey: string; color: string; emoji: string }> = {
@@ -189,6 +191,10 @@ export const logisticsApi = {
   }) => api<CourierApplication>('/api/v1/logistics/courier/application', { method: 'POST', body: JSON.stringify(body) }),
 
   courierCabinet: () => api<CourierCabinet>('/api/v1/logistics/courier/cabinet'),
+
+  openShift: (pin: string) => api<{ shift: CourierCabinet['shift'] }>('/api/v1/logistics/courier/shift/open', { method: 'POST', body: JSON.stringify({ pin }) }),
+
+  closeShift: (pin: string) => api<{ shift: CourierCabinet['shift']; online: boolean }>('/api/v1/logistics/courier/shift/close', { method: 'POST', body: JSON.stringify({ pin }) }),
 
   setOnline: (online: boolean) =>
     api<{ online: boolean }>('/api/v1/logistics/courier/online', { method: 'PUT', body: JSON.stringify({ online }) }),

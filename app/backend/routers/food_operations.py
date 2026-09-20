@@ -12,6 +12,7 @@ from models.food_orders import Food_orders
 from models.food_operations import FoodOperationsSettings, FoodOrderEvent
 from services.food_operations import scope, cipher, now, check_connection, telegram_call
 from services.food_orders import Food_ordersService
+from services.food_shifts import require_partner_shift, record_action
 
 router = APIRouter(prefix='/api/v1/dam-alem/operations', tags=['DAM ALEM operations'], dependencies=[Depends(food_staff)])
 
@@ -160,18 +161,24 @@ class OrderChange(BaseModel):
 async def change(order_id: int, body: OrderChange, request: Request, db: AsyncSession = Depends(get_db)):
     await order_for_panel(db, order_id)
     actor = await food_staff(request, db)
+    shift = await require_partner_shift(db, actor)
     values = body.model_dump(exclude_none=True)
     version = values.pop('expected_version')
+    record_action(db, shift, 'order_updated', claims=actor, entity_type='order', entity_id=order_id, details=values)
     result = await Food_ordersService(db).update(order_id, values, expected_version=version, actor=str(actor.get('display_name') or actor.get('username') or actor.get('sub') or actor.get('partner_type') or 'Оператор'))
     return serialize(result)
 
 @router.post('/orders/{order_id}/notifications/{event_id}/retry')
-async def retry(order_id: int, event_id: int, db: AsyncSession = Depends(get_db)):
+async def retry(order_id: int, event_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     await order_for_panel(db, order_id)
+    actor = await food_staff(request, db)
+    shift = await require_partner_shift(db, actor)
     result = await db.execute(update(FoodOrderEvent).where(FoodOrderEvent.id == event_id, FoodOrderEvent.order_id == order_id, FoodOrderEvent.notification.in_(['failed', 'unknown', 'pending'])).values(notification='pending', retry_at=0, attempts=0, error=None))
-    await db.commit()
     if not result.rowcount:
+        await db.rollback()
         raise HTTPException(409, 'Уведомление уже отправлено или отправляется')
+    record_action(db, shift, 'notification_retried', claims=actor, entity_type='order', entity_id=order_id, details={'event_id':event_id})
+    await db.commit()
     return {'ok': True}
 
 def config_view(cfg):
@@ -301,6 +308,7 @@ async def create_manual(body: ManualOrder, request: Request, db: AsyncSession = 
     from services.dam_order_workflow import manual_quote, money
     from sqlalchemy.exc import IntegrityError
     actor = await food_staff(request, db)
+    shift = await require_partner_shift(db, actor)
     key = str(actor.get('staff_id') or 'admin') + ':' + body.request_key
     request_hash = hashlib.sha256(json.dumps(body.model_dump(exclude={'request_key'}), sort_keys=True).encode()).hexdigest()
     previous = await db.get(FoodOrderRequest, key)
@@ -313,8 +321,11 @@ async def create_manual(body: ManualOrder, request: Request, db: AsyncSession = 
         raise HTTPException(409, 'Выберите подарок для клиента')
     if body.quoted_total is None or money(body.quoted_total) != money(quote['total_amount']):
         raise HTTPException(409, 'Расчёт изменился. Рассчитайте заказ заново.')
+    action_entry = record_action(db, shift, 'order_created', claims=actor, entity_type='order_request', entity_id=body.request_key, details={'source':'operator','total':quote['total_amount']})
     try:
         order = await Food_ordersService(db).create(data, request_key=key, request_hash=request_hash, actor=str(actor.get('display_name') or 'Оператор'))
+        action_entry.entity_type, action_entry.entity_id = 'order', str(order.id)
+        await db.commit()
     except IntegrityError:
         await db.rollback()
         previous = await db.get(FoodOrderRequest, key)
@@ -336,6 +347,8 @@ async def change_receipt(order_id: int, body: ReceiptChange, request: Request, d
     if len(body.reason.strip()) < 3:
         raise HTTPException(422, 'Укажите причину изменения')
     actor = await food_staff(request, db)
+    shift = await require_partner_shift(db, actor)
+    record_action(db, shift, 'order_receipt_changed', claims=actor, entity_type='order', entity_id=order_id, details={'reason':body.reason.strip()})
     try:
         result = await amend(db, await order_for_panel(db, order_id), body, str(actor.get('display_name') or 'Оператор'))
         return serialize(result)

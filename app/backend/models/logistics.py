@@ -51,6 +51,7 @@ class CourierProfile(Base):
     photo_url = Column(String(512), nullable=True)
     id_photo_url = Column(String(512), nullable=True)
     vehicle_photo_url = Column(String(512), nullable=True)
+    pin_hash = Column(String(255), nullable=True)
 
 
 class LogisticsTask(BaseModel):

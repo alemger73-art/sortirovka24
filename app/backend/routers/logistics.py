@@ -34,6 +34,15 @@ from services.logistics_service import (
     task_to_dict,
 )
 from services.taxi_auth import get_taxi_user, require_taxi_admin
+from services.food_shifts import (
+    active_shift,
+    close_shift,
+    open_shift,
+    record_action,
+    require_courier_shift,
+    shift_view,
+)
+from utils.rate_limit import check_keyed_rate_limit
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -74,6 +83,10 @@ class CourierProfileUpdate(BaseModel):
 
 class TaskStatusRequest(BaseModel):
     status: str
+
+
+class CourierPinRequest(BaseModel):
+    pin: str = Field(pattern=r"^\d{4}$")
 
 
 class CourierApplyRequest(BaseModel):
@@ -168,6 +181,7 @@ async def courier_cabinet(
 
     completed = [t for t in history if t.status == "delivered"]
     earnings = sum(float(t.delivery_fee or 0) for t in completed)
+    shift = await active_shift(db, "courier", str(user.id))
 
     return {
         "profile": courier_profile_dict(profile, user),
@@ -177,7 +191,51 @@ async def courier_cabinet(
         "task_history": [task_to_dict(t) for t in history],
         "earnings": earnings,
         "status_flow": COURIER_STATUS_FLOW,
+        "pin_set": bool(profile.pin_hash),
+        "shift": shift_view(shift),
     }
+
+
+def _courier_pin_limit(request: Request, user_id: str) -> None:
+    host = request.client.host if request.client else "unknown"
+    check_keyed_rate_limit(
+        f"courier-shift-pin:{user_id}:{host}", window_seconds=15 * 60, max_hits=8,
+        message="Слишком много попыток PIN. Повторите через 15 минут.",
+    )
+
+
+@router.post("/courier/shift/open")
+async def open_courier_shift(
+    body: CourierPinRequest,
+    request: Request,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await get_taxi_user(db, authorization)
+    profile = await assert_courier_cabinet_access(db, user)
+    _courier_pin_limit(request, str(user.id))
+    row = await open_shift(
+        db, staff_type="courier", staff_id=str(user.id),
+        staff_name=user.name or profile.phone or user.phone or "Курьер", role="courier",
+        stored_pin=profile.pin_hash, pin=body.pin,
+    )
+    return {"shift": shift_view(row)}
+
+
+@router.post("/courier/shift/close")
+async def close_courier_shift(
+    body: CourierPinRequest,
+    request: Request,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await get_taxi_user(db, authorization)
+    profile = await assert_courier_cabinet_access(db, user)
+    _courier_pin_limit(request, str(user.id))
+    row = await close_shift(db, staff_type="courier", staff_id=str(user.id), stored_pin=profile.pin_hash, pin=body.pin)
+    profile.is_online = False
+    await db.commit()
+    return {"shift": shift_view(row), "online": False}
 
 
 @router.put("/courier/online")
@@ -197,7 +255,9 @@ async def set_courier_online(
             status_code=403,
             detail="Ожидайте одобрения заявки администратором.",
         )
+    shift = await require_courier_shift(db, profile) if body.online else await active_shift(db, "courier", str(user.id))
     profile.is_online = body.online
+    record_action(db, shift, 'courier_online_changed', staff_type='courier', staff_id=str(user.id), staff_name=user.name or profile.phone or 'Курьер', role='courier', details={'online':body.online})
     await db.commit()
     return {"online": profile.is_online}
 
@@ -210,6 +270,7 @@ async def update_courier_location(
 ):
     user = await get_taxi_user(db, authorization)
     profile = await assert_courier_cabinet_access(db, user)
+    await require_courier_shift(db, profile)
     profile.current_lat = body.lat
     profile.current_lng = body.lng
     profile.location_updated_at = datetime.now(timezone.utc).isoformat()
@@ -244,6 +305,9 @@ async def accept_logistics_task(
     db: AsyncSession = Depends(get_db),
 ):
     user = await get_taxi_user(db, authorization)
+    profile = await assert_courier_cabinet_access(db, user)
+    shift = await require_courier_shift(db, profile)
+    record_action(db, shift, 'delivery_accepted', staff_type='courier', staff_id=str(user.id), staff_name=user.name or profile.phone or 'Курьер', role='courier', entity_type='delivery_task', entity_id=task_id)
     try:
         task = await accept_task(db, task_id, user)
     except ValueError as e:
@@ -259,11 +323,13 @@ async def decline_logistics_task(
     db: AsyncSession = Depends(get_db),
 ):
     user = await get_taxi_user(db, authorization)
-    await assert_courier_cabinet_access(db, user)
+    profile = await assert_courier_cabinet_access(db, user)
+    shift = await require_courier_shift(db, profile)
     task = await get_task_by_id(db, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Задача не найдена")
     try:
+        record_action(db, shift, 'delivery_declined', staff_type='courier', staff_id=str(user.id), staff_name=user.name or profile.phone or 'Курьер', role='courier', entity_type='delivery_task', entity_id=task_id)
         task = await decline_offer(db, task, user)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -278,10 +344,13 @@ async def update_task_status(
     db: AsyncSession = Depends(get_db),
 ):
     user = await get_taxi_user(db, authorization)
+    profile = await assert_courier_cabinet_access(db, user)
+    shift = await require_courier_shift(db, profile)
     try:
         task = await get_task_by_id(db, task_id)
         if not task:
             raise HTTPException(status_code=404, detail="Задача не найдена")
+        record_action(db, shift, 'delivery_status_changed', staff_type='courier', staff_id=str(user.id), staff_name=user.name or profile.phone or 'Курьер', role='courier', entity_type='delivery_task', entity_id=task_id, details={'status':body.status})
         task = await advance_task_status(db, task, user, body.status)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

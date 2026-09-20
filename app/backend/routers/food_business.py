@@ -18,6 +18,10 @@ from models.food_business import FoodExpense, FoodRefund
 from models.food_items import Food_items
 from models.food_restaurants import Food_restaurants
 from models.partner_auth import PartnerCredentials
+from models.food_shifts import FoodShift
+from models.logistics import CourierProfile
+from models.auth import User
+from services.food_shifts import record_action, require_partner_shift
 from services.food_operations import scope, brand, now, add_event
 from services.food_payments import movement, preserve_legacy_payment, record
 from services.dam_order_workflow import paid, claim
@@ -133,12 +137,14 @@ class ExpenseBody(BaseModel):
 
 @router.post('/expenses')
 async def add_expense(body:ExpenseBody,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+    shift=await require_partner_shift(db,claims)
     values={'id':str(body.id),'day':str(body.day),'amount':body.amount,'category':body.category,'note':body.note}
     existing=await db.get(FoodExpense,values['id'])
     if existing:
         if any(getattr(existing,k)!=v for k,v in values.items()): raise HTTPException(409,'Эта операция уже сохранена с другими данными')
         return {'id':existing.id}
     db.add(FoodExpense(**values,actor=actor(claims),created_at=now(),voided=False))
+    record_action(db,shift,'expense_recorded',claims=claims,entity_type='expense',entity_id=str(body.id),details={'amount':float(body.amount),'category':body.category,'day':str(body.day)})
     try: await db.commit()
     except IntegrityError:
         await db.rollback()
@@ -151,6 +157,7 @@ class Reason(BaseModel):
 
 @router.post('/expenses/{expense_id}/void')
 async def void_expense(expense_id:UUID,body:Reason,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+    shift=await require_partner_shift(db,claims)
     if len(body.reason.strip())<3: raise HTTPException(422,'Укажите причину исправления')
     expense=await db.get(FoodExpense,str(expense_id))
     if expense and expense.category=='salary' and expense.note.startswith('Зарплата: '):
@@ -163,8 +170,9 @@ async def void_expense(expense_id:UUID,body:Reason,db:AsyncSession=Depends(get_d
             payment.voided=True
             payment.void_reason=f'{actor(claims)}: {body.reason.strip()}'
     result=await db.execute(update(FoodExpense).where(FoodExpense.id==str(expense_id),FoodExpense.voided==False).values(voided=True,void_reason=f'{actor(claims)}: {body.reason.strip()}'))
-    await db.commit()
     if not result.rowcount: raise HTTPException(409,'Расход уже исключён или не найден')
+    record_action(db,shift,'expense_voided',claims=claims,entity_type='expense',entity_id=str(expense_id),details={'reason':body.reason.strip()})
+    await db.commit()
     return {'ok':True}
 
 class RefundBody(BaseModel):
@@ -173,6 +181,7 @@ class RefundBody(BaseModel):
 
 @router.post('/refunds/{order_id}')
 async def refund(order_id:int,body:RefundBody,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+    shift=await require_partner_shift(db,claims)
     order=await db.scalar(select(Food_orders).where(Food_orders.id==order_id,await scope(db)))
     if not order: raise HTTPException(404,'Заказ не найден')
     if body.day>city_today() or (day_of(order.paid_at) and body.day<day_of(order.paid_at)): raise HTTPException(422,'Проверьте дату возврата')
@@ -188,6 +197,7 @@ async def refund(order_id:int,body:RefundBody,db:AsyncSession=Depends(get_db),cl
     order.paid_amount = float(paid(order) - amount)
     from services.dam_order_workflow import sync_task
     await sync_task(db, order)
+    record_action(db,shift,'refund_recorded',claims=claims,entity_type='order',entity_id=order_id,details={'amount':float(amount),'day':str(body.day)})
     try: await db.commit()
     except IntegrityError:
         await db.rollback();raise HTTPException(409,'Возврат уже отмечен')
@@ -207,40 +217,99 @@ class AvailableBody(BaseModel):
 
 @router.patch('/availability/{item_id}')
 async def set_available(item_id:int,body:AvailableBody,db:AsyncSession=Depends(get_db),claims=Depends(food_staff)):
+    shift=await require_partner_shift(db,claims)
     result=await db.execute(update(Food_items).where(Food_items.id==item_id,await item_condition(db)).values(available=body.available))
+    if not result.rowcount:
+        await db.rollback();raise HTTPException(404,'Блюдо не найдено')
+    record_action(db,shift,'product_availability_changed',claims=claims,entity_type='food_item',entity_id=item_id,details={'available':body.available})
     await db.commit()
-    if not result.rowcount: raise HTTPException(404,'Блюдо не найдено')
     return {'ok':True}
 
 @router.get('/staff')
 async def staff_list(db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
     rows=(await db.scalars(select(PartnerCredentials).where(PartnerCredentials.partner_type=='dam_alem').order_by(PartnerCredentials.id))).all()
-    return [{'id':r.id,'name':r.display_name,'email':r.email,'phone':r.phone,'active':r.is_active,'role':r.access_role or 'owner'} for r in rows]
+    return [{'id':r.id,'name':r.display_name,'email':r.email,'phone':r.phone,'active':r.is_active,'role':r.access_role or 'owner','pin_set':bool(r.pin_hash)} for r in rows]
 
 class StaffBody(BaseModel):
     name:str=Field(min_length=1,max_length=120)
     email:str=Field(min_length=5,max_length=255)
     password:str=Field(min_length=10,max_length=100)
+    pin:str=Field(pattern=r'^\d{4}$')
+    role:Literal['owner','operator']='operator'
 
 @router.post('/staff')
 async def staff_create(body:StaffBody,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
     from routers.partner_auth import _hash_password
+    from utils.courier_pin import hash_courier_pin
     email=body.email.strip().lower()
     if not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+',email): raise HTTPException(422,'Укажите email для входа')
     if len(body.password.encode('utf-8'))>72: raise HTTPException(422,'Пароль слишком длинный, используйте до 72 байт')
     if not body.name.strip(): raise HTTPException(422,'Укажите имя сотрудника')
-    row=PartnerCredentials(partner_type='dam_alem',email=email,display_name=body.name.strip(),password_hash=_hash_password(body.password),is_active=True,access_role='operator')
+    row=PartnerCredentials(partner_type='dam_alem',email=email,display_name=body.name.strip(),password_hash=_hash_password(body.password),pin_hash=hash_courier_pin(body.pin),is_active=True,access_role=body.role)
     db.add(row)
+    record_action(db,None,'staff_created',claims=claims,entity_type='staff',details={'name':row.display_name,'role':row.access_role})
     try: await db.commit()
     except IntegrityError:
         await db.rollback();raise HTTPException(409,'Этот email уже используется')
     return {'id':row.id}
 
-class StaffActive(BaseModel):
-    active:bool
+@router.get('/staff/couriers')
+async def courier_staff(db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+    rows=(await db.execute(select(CourierProfile,User).join(User,User.id==CourierProfile.user_id).where(CourierProfile.is_verified==True).order_by(User.name,User.phone))).all()
+    return [{'id':p.user_id,'name':u.name or p.phone or u.phone or 'Курьер','phone':p.phone or u.phone,'active':p.is_verified,'online':p.is_online,'role':'courier','pin_set':bool(p.pin_hash)} for p,u in rows]
+
+class CourierStaffUpdate(BaseModel):
+    pin:str=Field(pattern=r'^\d{4}$')
+
+@router.patch('/staff/couriers/{user_id}/pin')
+async def courier_staff_pin(user_id:str,body:CourierStaffUpdate,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+    from utils.courier_pin import hash_courier_pin
+    profile=await db.get(CourierProfile,user_id)
+    if not profile or not profile.is_verified: raise HTTPException(404,'Подтверждённый курьер не найден')
+    profile.pin_hash=hash_courier_pin(body.pin)
+    record_action(db,None,'courier_pin_changed',claims=claims,entity_type='courier',entity_id=user_id)
+    await db.commit();return {'ok':True}
+
+class StaffUpdate(BaseModel):
+    name:str|None=Field(None,min_length=1,max_length=120)
+    active:bool|None=None
+    role:Literal['owner','operator']|None=None
+    pin:str|None=Field(None,pattern=r'^\d{4}$')
+    password:str|None=Field(None,min_length=10,max_length=100)
+
+async def _last_active_owner(db:AsyncSession, row:PartnerCredentials) -> bool:
+    if (row.access_role or 'owner')!='owner' or not row.is_active: return False
+    count=await db.scalar(select(func.count()).select_from(PartnerCredentials).where(PartnerCredentials.partner_type=='dam_alem',PartnerCredentials.is_active==True,func.coalesce(PartnerCredentials.access_role,'owner')=='owner'))
+    return int(count or 0)<=1
 
 @router.patch('/staff/{staff_id}')
-async def staff_active(staff_id:int,body:StaffActive,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+async def staff_active(staff_id:int,body:StaffUpdate,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+    from routers.partner_auth import _hash_password
+    from utils.courier_pin import hash_courier_pin
     row=await db.get(PartnerCredentials,staff_id)
-    if not row or row.partner_type!='dam_alem' or row.access_role!='operator': raise HTTPException(403,'Здесь можно отключать только операторов')
-    row.is_active=body.active;await db.commit();return {'ok':True}
+    if not row or row.partner_type!='dam_alem': raise HTTPException(404,'Сотрудник не найден')
+    removes_owner=(body.active is False) or (body.role is not None and body.role!='owner')
+    if removes_owner and await _last_active_owner(db,row): raise HTTPException(409,'Нельзя отключить или понизить последнего активного владельца')
+    changes={}
+    if body.name is not None: row.display_name=body.name.strip();changes['name']=row.display_name
+    if body.active is not None: row.is_active=body.active;changes['active']=body.active
+    if body.role is not None: row.access_role=body.role;changes['role']=body.role
+    if body.pin is not None: row.pin_hash=hash_courier_pin(body.pin);changes['pin_changed']=True
+    if body.password is not None:
+        if len(body.password.encode('utf-8'))>72: raise HTTPException(422,'Пароль слишком длинный, используйте до 72 байт')
+        row.password_hash=_hash_password(body.password);changes['password_changed']=True
+    if not changes: raise HTTPException(422,'Нет изменений')
+    record_action(db,None,'staff_updated',claims=claims,entity_type='staff',entity_id=staff_id,details=changes)
+    await db.commit();return {'ok':True}
+
+@router.delete('/staff/{staff_id}')
+async def staff_delete(staff_id:int,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+    row=await db.get(PartnerCredentials,staff_id)
+    if not row or row.partner_type!='dam_alem': raise HTTPException(404,'Сотрудник не найден')
+    if await _last_active_owner(db,row): raise HTTPException(409,'Нельзя удалить последнего активного владельца')
+    active=await db.scalar(select(FoodShift.id).where(FoodShift.active_key==f'partner:{staff_id}'))
+    if active: raise HTTPException(409,'Сначала сотрудник должен закрыть смену')
+    snapshot={'name':row.display_name,'role':row.access_role or 'owner','email':row.email,'phone':row.phone}
+    await db.delete(row)
+    record_action(db,None,'staff_deleted',claims=claims,entity_type='staff',entity_id=staff_id,details=snapshot)
+    await db.commit();return {'ok':True}

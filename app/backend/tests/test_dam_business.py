@@ -12,6 +12,7 @@ from models.partner_auth import PartnerCredentials
 from models.food_orders import Food_orders
 from models.food_operations import FoodOrderEvent,FoodOperationsSettings
 from models.food_business import FoodExpense,FoodRefund
+from models.food_shifts import FoodShift,FoodStaffAction
 from models.food_restaurants import Food_restaurants
 from models.food_items import Food_items
 from routers.food_business import router,city_today
@@ -21,7 +22,7 @@ from middleware.entity_guard import EntityWriteGuardMiddleware
 @pytest.fixture
 async def env(monkeypatch):
     engine=create_async_engine('sqlite+aiosqlite:///:memory:')
-    tables=[m.__table__ for m in [PartnerCredentials,Food_orders,FoodOrderEvent,FoodOperationsSettings,FoodExpense,FoodRefund,Food_restaurants,Food_items]]
+    tables=[m.__table__ for m in [PartnerCredentials,Food_orders,FoodOrderEvent,FoodOperationsSettings,FoodExpense,FoodRefund,Food_restaurants,Food_items,FoodShift,FoodStaffAction]]
     async with engine.begin() as c: await c.run_sync(lambda conn:Base.metadata.create_all(conn,tables=tables))
     maker=async_sessionmaker(engine,expire_on_commit=False)
     async with maker() as db:
@@ -98,14 +99,14 @@ async def test_refund_only_once_and_only_owner(env):
 @pytest.mark.asyncio
 async def test_owner_creates_operator_without_exposing_password(env):
     client,maker,owner,operator=env
-    body={'name':'Сотрудник','email':'worker@example.test','password':'StrongTestPassword42'}
+    body={'name':'Сотрудник','email':'worker@example.test','password':'StrongTestPassword42','pin':'1234','role':'operator'}
     url='/api/v1/dam-alem/business/staff'
     assert (await client.post(url,headers=operator,json=body)).status_code==403
     response=await client.post(url,headers=owner,json=body);assert response.status_code==200,response.text
     rows=await client.get(url,headers=owner);assert body['password'] not in rows.text and 'password_hash' not in rows.text
     async with maker() as db:
         row=await db.get(PartnerCredentials,response.json()['id']);assert row.access_role=='operator' and row.password_hash!=body['password']
-    assert (await client.patch(url+'/1',headers=owner,json={'active':False})).status_code==403
+    assert (await client.patch(url+'/1',headers=owner,json={'active':False})).status_code==409
 
 @pytest.mark.asyncio
 async def test_late_payment_has_date_and_cannot_be_erased(env):

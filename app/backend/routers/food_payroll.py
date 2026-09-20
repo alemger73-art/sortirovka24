@@ -18,6 +18,7 @@ from services.food_payroll import calculate, report, CITY
 from datetime import datetime
 from services.dam_order_workflow import money
 from services.food_operations import now, brand
+from services.food_shifts import require_partner_shift, record_action
 
 router=APIRouter(prefix='/api/v1/dam-alem/payroll',tags=['DAM ALEM payroll'],dependencies=[Depends(food_owner)])
 
@@ -60,15 +61,17 @@ class Payment(BaseModel):
 async def employees(db:AsyncSession=Depends(get_db)):
     return [view(x) for x in (await db.scalars(select(FoodPayrollEmployee).order_by(FoodPayrollEmployee.id))).all()]
 @router.post('/employees')
-async def add_employee(body:Employee,db:AsyncSession=Depends(get_db)):
+async def add_employee(body:Employee,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+    shift=await require_partner_shift(db,claims)
     if not body.name.strip() or not body.position.strip():raise HTTPException(422,'Укажите имя и должность')
-    row=FoodPayrollEmployee(**body.model_dump());db.add(row);await db.commit();await db.refresh(row);return view(row)
+    row=FoodPayrollEmployee(**body.model_dump());db.add(row);record_action(db,shift,'payroll_employee_created',claims=claims,entity_type='payroll_employee',details={'name':body.name});await db.commit();await db.refresh(row);return view(row)
 @router.put('/employees/{employee_id}')
-async def update_employee(employee_id:int,body:Employee,db:AsyncSession=Depends(get_db)):
+async def update_employee(employee_id:int,body:Employee,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+    shift=await require_partner_shift(db,claims)
     row=await db.get(FoodPayrollEmployee,employee_id)
     if not row:raise HTTPException(404,'Сотрудник не найден')
     for k,v in body.model_dump().items():setattr(row,k,v)
-    await db.commit();return view(row)
+    record_action(db,shift,'payroll_employee_updated',claims=claims,entity_type='payroll_employee',entity_id=employee_id);await db.commit();return view(row)
 
 @router.get('/departments')
 async def departments(db:AsyncSession=Depends(get_db)):
@@ -79,16 +82,18 @@ async def departments(db:AsyncSession=Depends(get_db)):
 class Department(BaseModel):
     department: Literal['kitchen','bar']
 @router.put('/departments/{item_id}')
-async def set_department(item_id:int,body:Department,db:AsyncSession=Depends(get_db)):
+async def set_department(item_id:int,body:Department,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+    shift=await require_partner_shift(db,claims)
     allowed=await departments(db)
     if item_id not in {x['id'] for x in allowed}:raise HTTPException(404,'Блюдо не найдено')
-    row=await db.get(Food_items,item_id);row.sales_department=body.department;await db.commit();return {'ok':True}
+    row=await db.get(Food_items,item_id);row.sales_department=body.department;record_action(db,shift,'sales_department_changed',claims=claims,entity_type='food_item',entity_id=item_id,details={'department':body.department});await db.commit();return {'ok':True}
 
 @router.get('/days/{day}')
 async def day_report(day:date,db:AsyncSession=Depends(get_db)):
     return await report(db,day.isoformat())
 @router.put('/days/{day}/work/{employee_id}')
-async def save_work(day:date,employee_id:int,body:Work,db:AsyncSession=Depends(get_db)):
+async def save_work(day:date,employee_id:int,body:Work,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+    shift=await require_partner_shift(db,claims)
     key=day.isoformat();period=await lock_day(db,key,body.expected_version)
     if period.closed_json:raise HTTPException(409,'Расчёт закрыт')
     if not await db.get(FoodPayrollEmployee,employee_id):raise HTTPException(404,'Сотрудник не найден')
@@ -99,10 +104,11 @@ async def save_work(day:date,employee_id:int,body:Work,db:AsyncSession=Depends(g
         if not row:
             row=FoodPayrollWork(id=f'{key}:{employee_id}',day=key,employee_id=employee_id);db.add(row)
         row.daily_base,row.percent,row.basis=body.daily_base,body.percent,body.basis
-    await db.commit();return await report(db,key)
+    record_action(db,shift,'payroll_work_changed',claims=claims,entity_type='payroll_day',entity_id=key,details={'employee_id':employee_id,'worked':body.worked});await db.commit();return await report(db,key)
 
 @router.post('/days/{day}/close')
-async def close_day(day:date,body:Close,db:AsyncSession=Depends(get_db)):
+async def close_day(day:date,body:Close,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+    shift=await require_partner_shift(db,claims)
     key=day.isoformat();period=await lock_day(db,key,body.expected_version)
     if period.closed_json:raise HTTPException(409,'Расчёт уже закрыт')
     result=await calculate(db,key)
@@ -110,17 +116,19 @@ async def close_day(day:date,body:Close,db:AsyncSession=Depends(get_db)):
     if not result['rows']:raise HTTPException(422,'Отметьте работавших сотрудников')
     if result['pending_orders']:raise HTTPException(409,'Есть незавершённые или неоплаченные заказы за этот день')
     if result['unassigned'] and any(x['basis']!='all' for x in result['rows']):raise HTTPException(409,'Распределите проданные позиции между кухней и баром')
-    period.closed_json=json.dumps(result,ensure_ascii=False);period.closed_at=now();await db.commit();return await report(db,key)
+    period.closed_json=json.dumps(result,ensure_ascii=False);period.closed_at=now();record_action(db,shift,'payroll_day_closed',claims=claims,entity_type='payroll_day',entity_id=key);await db.commit();return await report(db,key)
 
 @router.post('/days/{day}/reopen')
-async def reopen(day:date,body:Close,db:AsyncSession=Depends(get_db)):
+async def reopen(day:date,body:Close,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+    shift=await require_partner_shift(db,claims)
     key=day.isoformat();period=await lock_day(db,key,body.expected_version)
     payments=(await db.scalars(select(FoodPayrollPayment).where(FoodPayrollPayment.day==key))).all()
     if any(not p.voided for p in payments):raise HTTPException(409,'За день уже записаны выплаты. Закрытые начисления нельзя переписать.')
-    period.closed_json=period.closed_at=None;await db.commit();return await report(db,key)
+    period.closed_json=period.closed_at=None;record_action(db,shift,'payroll_day_reopened',claims=claims,entity_type='payroll_day',entity_id=key);await db.commit();return await report(db,key)
 
 @router.post('/days/{day}/payments')
 async def payment(day:date,body:Payment,claims=Depends(food_owner),db:AsyncSession=Depends(get_db)):
+    shift=await require_partner_shift(db,claims)
     key=day.isoformat();existing=await db.get(FoodPayrollPayment,str(body.id))
     if existing:
         if existing.day!=key or existing.employee_id!=body.employee_id or money(existing.amount)!=money(body.amount):raise HTTPException(409,'Этот номер выплаты уже использован')
@@ -136,4 +144,5 @@ async def payment(day:date,body:Payment,claims=Depends(food_owner),db:AsyncSessi
     db.add(FoodPayrollPayment(id=str(body.id),day=key,employee_id=body.employee_id,amount=float(amount),note=body.note,created_at=now(),actor=actor))
     db.add(FoodExpense(id=str(body.id),day=datetime.now(CITY).date().isoformat(),amount=amount,category='salary',
         note=f'Зарплата: {employee["name"]}, за {key}. {body.note}',actor=actor,created_at=now(),voided=False))
+    record_action(db,shift,'salary_payment_recorded',claims=claims,entity_type='payroll_payment',entity_id=str(body.id),details={'employee_id':body.employee_id,'amount':float(amount),'day':key})
     await db.commit();return await report(db,key)

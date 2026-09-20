@@ -15,6 +15,7 @@ class PartnerCredentials(Base):
     phone = Column(String(32), unique=True, nullable=True, index=True)
     access_role = Column(String(20), nullable=True)
     password_hash = Column(String(255), nullable=False)
+    pin_hash = Column(String(255), nullable=True)
     display_name = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

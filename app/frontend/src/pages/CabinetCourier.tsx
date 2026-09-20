@@ -49,6 +49,8 @@ export default function CabinetCourier() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [vehicleType, setVehicleType] = useState('bike');
   const [phone, setPhone] = useState('');
+  const [shiftPin, setShiftPin] = useState('');
+  const [shiftBusy, setShiftBusy] = useState(false);
   const knownTaskIds = useRef<Set<number>>(new Set());
   const tasksInitialized = useRef(false);
   const profileDirty = useRef(false);
@@ -226,6 +228,19 @@ export default function CabinetCourier() {
     }
   }
 
+  async function changeShift(action: 'open' | 'close') {
+    if (shiftBusy || shiftPin.length !== 4) return;
+    setShiftBusy(true);
+    try {
+      if (action === 'open') await logisticsApi.openShift(shiftPin);
+      else await logisticsApi.closeShift(shiftPin);
+      setShiftPin('');
+      toast.success(t(action === 'open' ? 'dam.shift.openNow' : 'dam.shift.closedNow'));
+      await load();
+    } catch (e: unknown) { toast.error(String((e as Error)?.message || t('courier.genericError'))); }
+    finally { setShiftBusy(false); }
+  }
+
   if (loading) {
     return (
       <Layout>
@@ -280,7 +295,7 @@ export default function CabinetCourier() {
               </button>
               <Button
                 onClick={toggleOnline}
-                disabled={togglingOnline || !canWork}
+                disabled={togglingOnline || !canWork || !data.shift}
                 className={`h-12 px-6 rounded-xl font-bold ${
                   profile.online
                     ? 'bg-green-500 hover:bg-green-600 text-white'
@@ -304,6 +319,8 @@ export default function CabinetCourier() {
               {t('courier.waitVerify')}
             </div>
           )}
+
+          {canWork && <section className={`rounded-2xl border p-4 ${data.shift ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30' : 'border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30'}`}><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-bold">{data.shift ? t('dam.shift.openNow') : t('dam.shift.closedNow')}</h2><p className="text-sm text-muted-foreground">{!data.pin_set ? t('dam.shift.pinSetup') : data.shift ? `${data.shift.staff_name} · ${new Date(data.shift.opened_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}` : t('dam.shift.openHelp')}</p></div>{data.pin_set && <div className="flex gap-2"><Input className="w-28 text-center tracking-[.35em]" inputMode="numeric" maxLength={4} placeholder="••••" value={shiftPin} onChange={e=>setShiftPin(e.target.value.replace(/\D/g,'').slice(0,4))}/><Button disabled={shiftBusy||shiftPin.length!==4} onClick={()=>void changeShift(data.shift?'close':'open')} variant={data.shift?'outline':'default'}>{data.shift?t('dam.shift.close'):t('dam.shift.open')}</Button></div>}</div></section>}
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[

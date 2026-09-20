@@ -74,6 +74,10 @@ export default function DamAlemOrders() {
   const lock = useRef(false), generation = useRef(0);
   const latestInteraction = useRef({ selected, editing, cancelOpen, busy });
   latestInteraction.current = { selected, editing: editing || !!receiptEditor, cancelOpen, busy };
+  const refreshQueueCounts = useCallback(async () => {
+    try { setQueueCounts(await foodOperations<Record<string, number>>('/order-counts')); }
+    catch { /* the order list remains usable if the counters temporarily fail */ }
+  }, []);
   useEffect(() => { setStatus(requestedStatus); setPage(0); }, [requestedStatus]);
   useEffect(() => {
     if (selected) return;
@@ -84,10 +88,10 @@ export default function DamAlemOrders() {
   }, [selected]);
   useEffect(() => {
     let alive = true;
-    const refresh = () => { void foodOperations<Record<string, number>>('/order-counts').then(value => { if (alive) setQueueCounts(value); }).catch(() => undefined); };
+    const refresh = () => { if (alive) void refreshQueueCounts(); };
     refresh(); const timer = window.setInterval(refresh, 5000);
     return () => { alive = false; window.clearInterval(timer); };
-  }, []);
+  }, [refreshQueueCounts]);
   const load = useCallback(async () => {
     const gen = ++generation.current;
     try {
@@ -121,7 +125,7 @@ export default function DamAlemOrders() {
     lock.current = true; setBusy(true);
     try {
       await foodOperations(`/orders/${detail.order.id}`, 'PATCH', { expected_version: detail.order.version || 0, ...values });
-      await refreshDetail(); await load(); setEditing(false); setCancelOpen(false); toast.success(adminT('admin.dam.final.135'));
+      await Promise.all([refreshDetail(), load(), refreshQueueCounts()]); setEditing(false); setCancelOpen(false); toast.success(adminT('admin.dam.final.135'));
     } catch (e) { toast.error((e as Error).message); }
     finally { lock.current = false; setBusy(false); }
   }
@@ -148,7 +152,7 @@ export default function DamAlemOrders() {
   return <div className="space-y-5 min-w-0">
     <div className="flex flex-wrap justify-between gap-3"><div><h3 className="text-xl font-bold">{adminT('admin.dam.final.138')}</h3><p className="text-sm text-muted-foreground">{adminT('pos.live')} {lastLoaded ? adminT('admin.dam.final.140').replace('{0}', () => String(new Date(lastLoaded).toLocaleTimeString(locale))) : adminT('admin.dam.final.141')}</p></div><Button variant="outline" onClick={() => void load()}>{adminT('admin.dam.final.142')}</Button></div>
     <Button onClick={() => setReceiptEditor('manual')}>{adminT('workflow.manual')}</Button>
-    {receiptEditor && <OrderReceiptEditor order={receiptEditor === 'edit' ? order : undefined} onClose={() => setReceiptEditor(null)} onSaved={id => {const manual = receiptEditor === 'manual'; setReceiptEditor(null); const p = new URLSearchParams(params); if (manual) {setStatus('active'); setSource(''); setSearch(''); setPage(0); p.set('status','active');} p.set('section','orders'); p.set('order',String(id)); setParams(p); void load(); if (id === selected) void refreshDetail().catch(e => toast.error(e.message));}} />}
+    {receiptEditor && <OrderReceiptEditor order={receiptEditor === 'edit' ? order : undefined} onClose={() => setReceiptEditor(null)} onSaved={id => {const manual = receiptEditor === 'manual'; setReceiptEditor(null); const p = new URLSearchParams(params); if (manual) {setStatus('active'); setSource(''); setSearch(''); setPage(0); p.set('status','active');} p.set('section','orders'); p.set('order',String(id)); setParams(p); void Promise.all([load(), refreshQueueCounts()]); if (id === selected) void refreshDetail().catch(e => toast.error(e.message));}} />}
     <p className="rounded-xl bg-blue-50 dark:bg-blue-950/40 p-3 text-sm text-blue-900 dark:text-blue-100">{adminT('workflow.queueHelp')}</p>
     {error && <p role="alert" className="rounded-xl bg-red-50 dark:bg-red-950/30 p-3 text-red-800">{error}  {adminT('admin.dam.final.144')}</p>}
     <div className="flex flex-wrap gap-3"><Input aria-label={adminT('admin.dam.final.145')} className="min-w-0 flex-1 basis-64" placeholder={adminT('admin.dam.final.146')} value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} /><select aria-label={adminT('admin.dam.final.147')} className="rounded-lg border p-2 bg-background max-w-full" value={status} onChange={e => { setStatus(e.target.value); setPage(0); const p = new URLSearchParams(params); p.set('status', e.target.value); setParams(p); }}><option value="working">{adminT('pos.working')}</option><option value="courier">{adminT('pos.courier')}</option><option value="active">{adminT('pos.active')}</option><option value="">{adminT('admin.dam.final.149')}</option>{Object.entries(orderLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select><select aria-label={adminT('pos.source')} className="rounded-lg border p-2 bg-background max-w-full" value={source} onChange={e => {setSource(e.target.value); setPage(0);}}><option value="">{adminT('pos.allSources')}</option>{Object.entries(sourceLabels).filter(([key]) => ['app','operator'].includes(key)).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select></div>

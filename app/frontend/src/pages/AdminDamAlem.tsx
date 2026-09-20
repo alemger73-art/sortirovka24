@@ -20,6 +20,8 @@ import { foodBusiness as business } from '@/lib/foodOperations';
 import { DamToday, DamFinance, DamStaff, DamAvailability } from './DamAlemBusiness';
 import AdminPartnerAccess from '@/components/partner/AdminPartnerAccess';
 import DamAlemNewOrderAlert from '@/components/damalem/DamAlemNewOrderAlert';
+import DamShiftPanel, { type DamShift } from '@/components/damalem/DamShiftPanel';
+import DamShiftOverview from '@/components/damalem/DamShiftOverview';
 
 type Section = 'deliveries' | 'payroll' | 'brand' | 'menu' | 'categories' | 'modifiers' | 'orders' | 'settings' | 'banners' | 'pos' | 'telegram' | 'today' | 'sales' | 'staff' | 'availability';
 
@@ -58,6 +60,7 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
   const requested = params.get('section') as Section;
   const [section, setSection] = useState<Section>(TABS.some(t => t.id === requested) ? requested : initialSection);
   const [access, setAccess] = useState<'owner' | 'operator' | null>(null);
+  const [activeShift, setActiveShift] = useState<DamShift | null>(null);
   const [accessError, setAccessError] = useState('');
   useEffect(() => { let alive = true; business<{role: 'owner' | 'operator'}>('/me').then(v => { if (alive && ['owner', 'operator'].includes(v.role)) setAccess(v.role); else if (alive) setAccessError(adminT("admin.ui.0247")); }).catch(e => { if (alive) setAccessError(e.message); }); return () => { alive = false; }; }, []);
   const tabs = TABS.filter(tab => (!partnerMode || tab.id !== 'pos') && (access === 'owner' || ['today', 'orders', 'availability', 'deliveries'].includes(tab.id)));
@@ -114,6 +117,11 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
       </div>
 
       {access === 'operator' && <DamAlemNewOrderAlert onOpen={() => navigate('orders', undefined, 'new')} />}
+
+      <DamShiftPanel onChange={setActiveShift} />
+      {access === 'owner' && section === 'today' && <DamShiftOverview key={activeShift?.id ?? 'no-shift'} />}
+
+      {access === 'operator' && !activeShift && <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">{adminT('dam.shift.workBlocked')}</div>}
 
       <nav aria-label={adminT("admin.ui.0255")} className="flex flex-wrap gap-2">{groups.map(g => <button key={g.id} onClick={() => navigate(g.id === 'menu' && access === 'operator' ? 'availability' : g.id)} className={`rounded-xl px-4 py-3 text-sm font-semibold ${group === g.id ? 'bg-[#FF3B30] text-white' : 'bg-card border text-foreground hover:bg-muted'}`}>{g.label}</button>)}</nav>
 

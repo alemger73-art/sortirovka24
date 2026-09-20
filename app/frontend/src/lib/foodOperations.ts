@@ -33,3 +33,17 @@ export interface OrderDetail { order: OperatorOrder; events: OrderEvent[]; deliv
 export const orderLabels: Record<string, string> = { new: 'Новый', confirmed: 'Принят', preparing: 'Готовится', ready: 'Готов к выдаче', in_progress: 'В доставке', done: 'Завершён', cancelled: 'Отменён' };
 
 export const foodBusiness = <T,>(path: string, method = 'GET', body?: unknown) => foodOperations<T>(path, method, body, 'business');
+
+export async function foodShifts<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
+  const partner = getPartnerToken('dam_alem');
+  const admin = localStorage.getItem('_sp924_token') || localStorage.getItem('token');
+  const token = location.pathname.startsWith('/partner/') ? partner : admin || partner;
+  const response = await fetch(`${getAPIBaseURL()}/api/v1/dam-alem/shifts${path}`, {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : adminTranslations['admin.dam.operationError'][getPublicLanguage()]);
+  return data;
+}

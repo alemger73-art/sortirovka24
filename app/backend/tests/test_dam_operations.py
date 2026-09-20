@@ -13,6 +13,8 @@ from models.food_restaurants import Food_restaurants
 from models.food_operations import FoodOperationsSettings, FoodOrderEvent
 from models.auth import User
 from models.food_business import FoodRefund
+from models.food_shifts import FoodShift, FoodStaffAction
+from models.logistics import CourierProfile, LogisticsTask
 from routers.food_operations import router
 from services.food_orders import Food_ordersService
 from services import food_operations as ops
@@ -21,7 +23,7 @@ from services import food_operations as ops
 async def setup(monkeypatch):
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     async with engine.begin() as conn:
-        await conn.run_sync(lambda c: Base.metadata.create_all(c, tables=[User.__table__, FoodRefund.__table__, PartnerCredentials.__table__, Food_orders.__table__, Food_restaurants.__table__, FoodOperationsSettings.__table__, FoodOrderEvent.__table__]))
+        await conn.run_sync(lambda c: Base.metadata.create_all(c, tables=[User.__table__, FoodRefund.__table__, PartnerCredentials.__table__, Food_orders.__table__, Food_restaurants.__table__, FoodOperationsSettings.__table__, FoodOrderEvent.__table__, FoodShift.__table__, FoodStaffAction.__table__, CourierProfile.__table__, LogisticsTask.__table__]))
     maker = async_sessionmaker(engine, expire_on_commit=False)
     async with maker() as db:
         db.add(PartnerCredentials(id=10,partner_type='dam_alem',email='owner@example.test',password_hash='unused',display_name='test-operator',is_active=True,access_role='owner'))
