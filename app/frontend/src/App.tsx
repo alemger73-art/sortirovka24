@@ -61,8 +61,6 @@ const Prorab = lazy(() => import("./pages/Prorab"));
 const Pharmacy = lazy(() => import("./pages/Pharmacy"));
 const Food = lazy(() => import("./pages/Food"));
 const FoodRestaurants = lazy(() => import("./pages/FoodDelivery"));
-const FoodPark = lazy(() => import("./pages/FoodPark"));
-const FoodCourier = lazy(() => import("./pages/FoodCourier"));
 const BusinessPage = lazy(() => import("./pages/Business"));
 const SupportPage = lazy(() => import("./pages/Support"));
 const ReportProblemPage = lazy(() => import("./pages/ReportProblem"));
@@ -210,8 +208,7 @@ function App() {
               <Route path="/prorab" element={<ModuleRoute module="prorab"><Prorab /></ModuleRoute>} />
               <Route path="/apteka" element={<ModuleRoute module="pharmacy"><Pharmacy /></ModuleRoute>} />
               <Route path="/pharmacy" element={<Navigate to="/apteka" replace />} />
-              <Route path="/food/park" element={<ModuleRoute module="food"><FoodPark /></ModuleRoute>} />
-              <Route path="/food/courier" element={<ModuleRoute module="food"><FoodCourier /></ModuleRoute>} />
+              <Route path="/food/courier" element={<Navigate to="/cabinet/courier" replace />} />
               <Route path="/business" element={<ModuleRoute module="business"><BusinessPage /></ModuleRoute>} />
               <Route path="/support" element={<SupportPage />} />
               <Route path="/report-problem" element={<ReportProblemPage />} />

@@ -25,8 +25,6 @@ import AdminHistory from './AdminHistory';
 import AdminTransport from './AdminTransport';
 import AdminTaxi from './AdminTaxi';
 import AdminLogistics from './AdminLogistics';
-import AdminParkPoints from './AdminParkPoints';
-import AdminParkOrders from './AdminParkOrders';
 import AdminAccountSettings from './AdminAccountSettings';
 import AdminGastronom from './AdminGastronom';
 import AdminVolna from './AdminVolna';
@@ -360,8 +358,6 @@ function AdminPanelContent({
       case 'banners': return <AdminBanners />;
       case 'history': return <AdminHistory />;
       case 'dam-alem': return <AdminDamAlem />;
-      case 'park-points': return <AdminParkPoints />;
-      case 'park-orders': return <AdminParkOrders />;
       case 'transport': return <AdminTransport />;
       case 'taxi': return <AdminTaxi />;
       case 'logistics': return <AdminLogistics />;

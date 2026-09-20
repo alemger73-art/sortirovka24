@@ -1,6 +1,6 @@
 import { DAM_ALEM_BRAND } from '@/lib/damAlem';
 
-export type OrderSource = 'food' | 'volna' | 'gastronom' | 'pharmacy' | 'prorab' | 'park';
+export type OrderSource = 'food' | 'volna' | 'gastronom' | 'pharmacy' | 'prorab';
 
 export const ORDER_SOURCE_LABELS: Record<OrderSource, string> = {
   food: DAM_ALEM_BRAND,
@@ -8,7 +8,6 @@ export const ORDER_SOURCE_LABELS: Record<OrderSource, string> = {
   gastronom: 'Гастроном',
   pharmacy: 'Аптека',
   prorab: 'Прораб',
-  park: 'Фуд-парк',
 };
 
 export const ORDER_SOURCE_PATHS: Record<OrderSource, string> = {
@@ -17,7 +16,6 @@ export const ORDER_SOURCE_PATHS: Record<OrderSource, string> = {
   gastronom: '/gastronom',
   pharmacy: '/apteka',
   prorab: '/prorab',
-  park: '/food/park',
 };
 
 export function cabinetOrderDetailPath(source: string, orderNumber: number | string): string {

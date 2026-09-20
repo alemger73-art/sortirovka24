@@ -48,7 +48,6 @@ export default function AdminDamAlemGuide() {
               <li><strong>{st("Заказы")}</strong>  {st("— статусы и выручка")}</li>
               <li><strong>{st("Баннеры")}</strong>  {st("— акции на витрине")}</li>
               <li><strong>{st("Настройки")}</strong>  {st("— зоны доставки, мин. заказ, часы работы")}</li>
-              <li><strong>{st("Учёт / API")}</strong>  {st("— ключи FrontPad для кассы")}</li>
             </ul>
           </div>
 

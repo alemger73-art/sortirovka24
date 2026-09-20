@@ -985,8 +985,6 @@ const translations: Translations = {
   'food.categories': { ru: 'Категории', kz: 'Санаттар' },
   'food.deliveryHome': { ru: 'Доставка домой', kz: 'Үйге жеткізу' },
   'food.deliveryPark': { ru: 'Доставка в парк', kz: 'Саябаққа жеткізу' },
-  'food.selectParkPoint': { ru: 'Выберите точку в парке', kz: 'Саябақтағы нүктені таңдаңыз' },
-  'food.parkOrderSubmit': { ru: 'Подтвердить заказ в парк', kz: 'Саябаққа тапсырысты растау' },
   'food.noDishesHint': { ru: 'Попробуйте другую категорию', kz: 'Басқа санатты көріңіз' },
   'food.parkLandmark': { ru: 'Как вас найти (ориентир)', kz: 'Сізді қалай табуға болады' },
   'food.parkLandmarkRequired': { ru: 'Укажите ориентир — как вас найти в парке', kz: 'Саябақта сізді қалай табу керектігін жазыңыз' },

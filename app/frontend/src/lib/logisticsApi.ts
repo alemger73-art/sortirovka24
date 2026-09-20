@@ -99,6 +99,8 @@ export interface LogisticsTask {
   order_status?: string | null;
   total_amount?: number | null;
   delivery_fee?: number | null;
+  customer_delivery_fee?: number | null;
+  courier_payout?: number | null;
   comment?: string | null;
   created_at?: string;
   courier?: LogisticsCourierInfo;

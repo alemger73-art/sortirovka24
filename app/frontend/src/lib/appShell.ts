@@ -9,8 +9,6 @@ const HIDDEN_BOTTOM_NAV_PREFIXES = [
   '/gastronom',
   '/volna',
   '/apteka',
-  '/food/courier',
-  '/food/park',
   '/legal',
 ];
 

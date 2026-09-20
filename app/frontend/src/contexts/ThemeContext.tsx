@@ -59,7 +59,12 @@ export function ThemeProvider({
     let cancelled = false;
     void import('@capacitor/status-bar').then(({ StatusBar, Style }) => {
       if (cancelled) return;
-      return StatusBar.setStyle({ style: (forcedTheme ?? theme) === 'dark' ? Style.Dark : Style.Light });
+      // Capacitor Style.Light means light system icons; Style.Dark means dark icons.
+      const dark = (forcedTheme ?? theme) === 'dark';
+      return Promise.all([
+        StatusBar.setStyle({ style: dark ? Style.Light : Style.Dark }),
+        StatusBar.setBackgroundColor({ color: dark ? '#0E1520' : '#FFFFFF' }),
+      ]);
     }).catch(() => undefined);
     return () => { cancelled = true; };
   }, [theme, forcedTheme]);

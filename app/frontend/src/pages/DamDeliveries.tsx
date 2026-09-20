@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 interface Delivery {
   order_id: number; status: string; delivery_status: string; address: string;
   customer_name: string; amount_due: number; courier_name: string | null;
-  courier_phone: string | null;
+  courier_phone: string | null; customer_delivery_fee: number; courier_payout: number;
 }
 const lane = (item: Delivery) => ['assigned', 'picked_up', 'on_the_way'].includes(item.delivery_status)
   ? 'transit' : item.status === 'ready' ? 'waiting' : 'preparing';
@@ -55,6 +55,10 @@ export default function DamDeliveries({ openOrder }: { openOrder: (id: number) =
           <p className="text-sm font-medium">{item.courier_name || t('cabinet.unassigned')}</p>
           {item.courier_phone && <a className="inline-flex items-center gap-2 text-sm underline" href={`tel:${item.courier_phone.replace(/[^+\d]/g, '')}`}><Phone className="h-4 w-4" />{item.courier_phone}</a>}
           <p className="text-sm">{t('cabinet.due')}: <strong>{formatTenge(item.amount_due)}</strong></p>
+          <div className="rounded-lg bg-muted px-3 py-2 text-xs">
+            <p>{t('cabinet.customerDeliveryFee')}: <strong>{formatTenge(item.customer_delivery_fee)}</strong></p>
+            <p>{t('cabinet.courierPayout')}: <strong>{formatTenge(item.courier_payout)}</strong></p>
+          </div>
           <Button variant="outline" className="w-full" onClick={() => openOrder(item.order_id)}>{t('cabinet.openOrder')}</Button>
         </article>)}</div>
       </div>)}

@@ -19,7 +19,6 @@ export interface AdminSummary {
   real_estate_pending: number;
   jobs_pending: number;
   food_orders_new: number;
-  park_orders_active: number;
   taxi_applications_pending: number;
   courier_applications_pending: number;
   business_partner_new: number;
@@ -37,7 +36,6 @@ export type AdminBadgeKey = keyof Pick<
   | 'real_estate_pending'
   | 'jobs_pending'
   | 'food_orders_new'
-  | 'park_orders_active'
   | 'taxi_applications_pending'
   | 'courier_applications_pending'
   | 'business_partner_new'
@@ -52,7 +50,6 @@ export const TAB_BADGE_MAP: Record<string, AdminBadgeKey> = {
   'real-estate': 'real_estate_pending',
   jobs: 'jobs_pending',
   'dam-alem': 'food_orders_new',
-  'park-orders': 'park_orders_active',
   taxi: 'taxi_applications_pending',
   logistics: 'courier_applications_pending',
   'partners-business': 'business_partner_new',

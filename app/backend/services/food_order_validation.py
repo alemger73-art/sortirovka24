@@ -54,7 +54,6 @@ SERVER_OWNED_FIELDS = (
     "payment_status",
     "user_id",
     "created_at",
-    "frontpad_order_number",
     "order_source",
     "bonus_points_used",
     "bonus_discount_amount",

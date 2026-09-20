@@ -129,7 +129,6 @@ async def test_cancellation_reason_and_fixed_price(setup):
 async def test_creation_persists_notification_with_order(setup,monkeypatch):
     client,maker,headers=setup
     monkeypatch.setattr('services.food_orders.link_food_order_to_user',AsyncMock())
-    monkeypatch.setattr('services.food_orders.push_food_order_to_frontpad',AsyncMock(return_value=None))
     monkeypatch.setattr('services.admin_alerts.alert_new_food_order',AsyncMock())
     monkeypatch.setattr('services.user_notifications.notify_food_order_created',AsyncMock())
     old_send=AsyncMock()

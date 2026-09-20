@@ -62,10 +62,19 @@ async def sync_task(db, order):
         from services.logistics_service import DEFAULT_LOGISTICS_SETTINGS
         cfg = dict(DEFAULT_LOGISTICS_SETTINGS)
         cfg.update({x.key: x.value for x in (await db.scalars(select(LogisticsSettings))).all() if x.value is not None})
+        customer_delivery_fee = 0.0
+        try:
+            pricing = json.loads(order.pricing_snapshot or '{}')
+            customer_delivery_fee = float((pricing.get('breakdown') or {}).get('delivery_fee') or 0)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            pass
+        from services.logistics_service import resolve_courier_payout
+        courier_payout = await resolve_courier_payout(db, customer_delivery_fee)
         task = LogisticsTask(vertical='food', source_type='food_orders', source_id=order.id,
             pickup_address=cfg.get('pickup_address') or order.restaurant_name or 'DAM ALEM 2.0', pickup_lat=float(cfg['pickup_lat']), pickup_lng=float(cfg['pickup_lng']), dropoff_address=order.delivery_address or '',
             customer_name=order.customer_name, customer_phone=order.customer_phone,
-            merchant_name=order.restaurant_name, prep_minutes=0, delivery_fee=0, status='ready')
+            merchant_name=order.restaurant_name, prep_minutes=0, delivery_fee=customer_delivery_fee,
+            customer_delivery_fee=customer_delivery_fee, courier_payout=courier_payout, status='ready')
         db.add(task)
     if not task:
         return

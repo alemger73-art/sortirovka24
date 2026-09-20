@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.food_orders import Food_orders
 from services.bonus_rewards import link_food_order_to_user
 from services.telegram import notify_food_order_status as notify_telegram_order_status
-from services.frontpad_order_push import push_food_order_to_frontpad
 
 logger = logging.getLogger(__name__)
 
@@ -76,14 +75,6 @@ class Food_ordersService:
                 await alert_new_food_order(self.db, obj)
             except Exception as admin_err:
                 logger.warning("[Admin] Food order push skipped: %s", admin_err)
-            try:
-                fp_num = await push_food_order_to_frontpad(self.db, obj)
-                if fp_num:
-                    obj.frontpad_order_number = fp_num
-                    await self.db.commit()
-                    await self.db.refresh(obj)
-            except Exception as fp_err:
-                logger.warning("[FrontPad] Auto push skipped: %s", fp_err)
             try:
                 from services.user_notifications import notify_food_order_created
 

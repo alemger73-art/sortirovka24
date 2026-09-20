@@ -16,7 +16,6 @@ from models.food_orders import Food_orders
 from models.jobs import Jobs
 from models.logistics import CourierApplication
 from models.master_requests import Master_requests
-from models.park_orders import Park_orders
 from models.real_estate import Real_estate
 from models.taxi import TaxiDriverApplication
 
@@ -38,7 +37,6 @@ class AdminSummaryResponse(BaseModel):
     real_estate_pending: int = 0
     jobs_pending: int = 0
     food_orders_new: int = 0
-    park_orders_active: int = 0
     taxi_applications_pending: int = 0
     courier_applications_pending: int = 0
     business_partner_new: int = 0
@@ -85,14 +83,6 @@ async def compute_admin_summary(db: AsyncSession) -> AdminSummaryResponse:
     )
     jobs_pending = await _count(db, Jobs, _status_in(Jobs.status, ("pending",)))
     food_orders_new = await _count(db, Food_orders, _status_eq(Food_orders.status, "new"))
-    park_orders_active = await _count(
-        db,
-        Park_orders,
-        or_(
-            Park_orders.status.is_(None),
-            ~func.lower(func.coalesce(Park_orders.status, "")).in_(("delivered", "cancelled")),
-        ),
-    )
     taxi_applications_pending = await _count(
         db, TaxiDriverApplication, _status_eq(TaxiDriverApplication.status, "pending")
     )
@@ -116,7 +106,6 @@ async def compute_admin_summary(db: AsyncSession) -> AdminSummaryResponse:
         real_estate_pending,
         jobs_pending,
         food_orders_new,
-        park_orders_active,
         taxi_applications_pending,
         courier_applications_pending,
         business_partner_new,
@@ -261,7 +250,6 @@ async def compute_admin_summary(db: AsyncSession) -> AdminSummaryResponse:
         real_estate_pending=real_estate_pending,
         jobs_pending=jobs_pending,
         food_orders_new=food_orders_new,
-        park_orders_active=park_orders_active,
         taxi_applications_pending=taxi_applications_pending,
         courier_applications_pending=courier_applications_pending,
         business_partner_new=business_partner_new,
@@ -277,7 +265,7 @@ def summary_fingerprint(summary: AdminSummaryResponse) -> str:
         f"{summary.master_requests_new}|{summary.become_master_pending}|"
         f"{summary.announcements_pending}|{summary.complaints_new}|"
         f"{summary.real_estate_pending}|{summary.jobs_pending}|"
-        f"{summary.food_orders_new}|{summary.park_orders_active}|"
+        f"{summary.food_orders_new}|"
         f"{summary.taxi_applications_pending}|{summary.courier_applications_pending}|"
         f"{summary.business_partner_new}"
     )

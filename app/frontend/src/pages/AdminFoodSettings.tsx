@@ -96,6 +96,7 @@ type SettingsTab = 'delivery' | 'promo' | 'gifts' | 'zones' | 'general';
 const DELIVERY_KEYS = [
   'min_order_amount',
   'delivery_price',
+  'courier_payout',
   'free_delivery_from',
   'apartment_delivery_price',
   'apartment_free_from',
@@ -117,6 +118,8 @@ function getSETTING_FIELDS(adminT: (key: string) => string) {
   { key: 'min_order_amount', label: adminT("admin.ui.0554"), icon: DollarSign, placeholder: '2000', description: adminT("admin.ui.0555"), type: 'text' as const },
 
   { key: 'delivery_price', label: adminT("admin.ui.0556"), icon: Truck, placeholder: '500', description: adminT("admin.ui.0557"), type: 'text' as const },
+
+  { key: 'courier_payout', label: adminT("admin.ui.1337"), icon: Truck, placeholder: '800', description: adminT("admin.ui.1338"), type: 'text' as const },
 
   { key: 'free_delivery_from', label: adminT("admin.ui.0558"), icon: Truck, placeholder: '15000', description: adminT("admin.ui.0559"), type: 'text' as const },
 
@@ -322,6 +325,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
     const numericKeys = [
       'min_order_amount',
       'delivery_price',
+      'courier_payout',
       'free_delivery_from',
       'apartment_delivery_price',
       'apartment_free_from',

@@ -15,7 +15,7 @@ const TABS = [
     module: 'food' as ModuleKey,
     match: (p: string) =>
       p === '/food' ||
-      (p.startsWith('/food/') && !p.startsWith('/food/courier') && !p.startsWith('/food/park')),
+      p.startsWith('/food/'),
   },
   {
     path: '/announcements',

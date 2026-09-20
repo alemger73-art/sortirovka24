@@ -27,7 +27,6 @@ interface FoodOrder {
   delivery_method: string;
   payment_method?: string;
   payment_status?: string;
-  frontpad_order_number?: string;
   bonus_points_used?: number;
   bonus_discount_amount?: number;
   status: string;
@@ -314,11 +313,6 @@ export default function AdminFoodOrders({ damAlemMode = false }: AdminFoodOrders
                         </Badge>
                         {payLabel && (
                           <Badge className="bg-emerald-50 text-emerald-700 border-0 text-[10px]">{payLabel}</Badge>
-                        )}
-                        {order.frontpad_order_number && (
-                          <Badge className="bg-violet-50 text-violet-700 border-0 text-[10px]">
-                            FP #{order.frontpad_order_number}
-                          </Badge>
                         )}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-gray-500 mt-1 flex-wrap">

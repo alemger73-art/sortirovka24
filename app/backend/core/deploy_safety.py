@@ -67,15 +67,12 @@ def staging_safety_errors() -> list[str]:
     if (os.getenv("EXTERNAL_SIDE_EFFECTS") or "").strip().lower() != "disabled":
         errors.append("EXTERNAL_SIDE_EFFECTS=disabled is required in staging")
 
-    unsafe_true = ("FRONTPAD_AUTO_PUSH_ORDERS", "FRONTPAD_SYNC_ON_START", "WHATSAPP_BOT_ENABLED")
+    unsafe_true = ("WHATSAPP_BOT_ENABLED",)
     for name in unsafe_true:
         if _enabled(name):
             errors.append(f"{name} must be disabled in staging")
 
     forbidden_credentials = (
-        "FRONTPAD_SECRET",
-        "FRONTPAD_MENU_SECRET",
-        "FRONTPAD_ORDER_SECRET",
         "WHATSAPP_ACCESS_TOKEN",
         "WHATSAPP_APP_SECRET",
         "WHATSAPP_VERIFY_TOKEN",

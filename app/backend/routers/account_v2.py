@@ -25,7 +25,6 @@ from models.gastronom_orders import Gastronom_orders
 from models.gastronom_products import Gastronom_products
 from models.pharmacy_orders import Pharmacy_orders
 from models.prorab_orders import Prorab_orders
-from models.park_orders import Park_orders
 from models.volna_orders import Volna_orders
 from models.master_reviews import Master_reviews
 from models.master_requests import Master_requests
@@ -337,7 +336,6 @@ STORE_ORDER_SOURCES = [
     ("gastronom", "Гастроном", "/gastronom", Gastronom_orders),
     ("pharmacy", "Аптека", "/apteka", Pharmacy_orders),
     ("prorab", "Прораб", "/prorab", Prorab_orders),
-    ("park", "Фуд-парк", "/food/park", Park_orders),
 ]
 
 

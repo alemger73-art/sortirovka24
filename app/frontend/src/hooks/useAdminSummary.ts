@@ -29,7 +29,6 @@ const ALERT_LABELS: Record<AdminBadgeKey, string> = {
   real_estate_pending: "admin.dam.final.205",
   jobs_pending: "admin.dam.final.206",
   food_orders_new: "admin.dam.final.207",
-  park_orders_active: "admin.dam.final.208",
   taxi_applications_pending: "admin.dam.final.209",
   courier_applications_pending: "admin.dam.final.210",
   business_partner_new: "admin.dam.final.211",

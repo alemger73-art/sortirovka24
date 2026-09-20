@@ -19,8 +19,6 @@ SAFE_STAGING = {
     "PUBLIC_FRONTEND_URL": "https://sortirovka24-stage.up.railway.app",
     "EXTERNAL_SIDE_EFFECTS": "disabled",
     "WHATSAPP_BOT_ENABLED": "false",
-    "FRONTPAD_AUTO_PUSH_ORDERS": "false",
-    "FRONTPAD_SYNC_ON_START": "false",
 }
 
 
@@ -36,7 +34,7 @@ class DeploySafetyTests(unittest.TestCase):
             "DATABASE_URL": "postgresql+asyncpg://prod:secret@prod-db.internal:5432/railway",
             "STAGING_BASE_URL": "https://sortirovka24-production-8788.up.railway.app",
             "PUBLIC_FRONTEND_URL": "https://sortirovka24-production-8788.up.railway.app",
-            "FRONTPAD_AUTO_PUSH_ORDERS": "true",
+            "WHATSAPP_BOT_ENABLED": "true",
             "MOBIZON_API_KEY": "real-key",
             "TELEGRAM_BOT_TOKEN_FOOD": "real-token",
         }
@@ -44,7 +42,7 @@ class DeploySafetyTests(unittest.TestCase):
             errors = staging_safety_errors()
         self.assertTrue(any("STAGING_DATABASE_HOST" in error for error in errors))
         self.assertTrue(any("points to production" in error for error in errors))
-        self.assertTrue(any("FRONTPAD_AUTO_PUSH_ORDERS" in error for error in errors))
+        self.assertTrue(any("WHATSAPP_BOT_ENABLED" in error for error in errors))
         self.assertTrue(any("MOBIZON_API_KEY" in error for error in errors))
         self.assertTrue(any("Telegram credentials" in error for error in errors))
 

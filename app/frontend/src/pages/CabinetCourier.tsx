@@ -347,8 +347,8 @@ export default function CabinetCourier() {
               </div>
               <p className="text-sm text-gray-700">📍 {active_task.pickup_address}</p>
               <p className="text-sm text-gray-500">→ {active_task.dropoff_address}</p>
-              {active_task.delivery_fee != null && (
-                <p className="font-bold text-xl">{formatTenge(active_task.delivery_fee)}</p>
+              {active_task.courier_payout != null && (
+                <p className="font-bold text-xl">{formatTenge(active_task.courier_payout)}</p>
               )}
               {active_task.source_type === 'food_orders' && <div className="rounded-xl bg-muted/40 p-3 space-y-1"><p>{t('workflow.total')}: {formatTenge(active_task.total_amount)}</p><p>{t('workflow.received')}: {formatTenge(active_task.paid_amount)}</p><p className="font-bold">{t('workflow.due')}: {formatTenge(active_task.amount_due)}</p></div>}
               {active_task.order_items && <div className="text-sm space-y-1">{parseOrderItems(active_task.order_items).map((item,i) => <p key={i}>{String(item.name || item.title || '')} × {orderLineQuantity(item)}</p>)}</div>}
@@ -386,8 +386,8 @@ export default function CabinetCourier() {
               </div>
               <p className="text-sm font-medium text-gray-900">{offered_task.pickup_address}</p>
               <p className="text-sm text-gray-800">→ {offered_task.dropoff_address}</p>
-              {offered_task.delivery_fee != null && (
-                <p className="text-2xl font-black text-gray-900">{formatTenge(offered_task.delivery_fee)}</p>
+              {offered_task.courier_payout != null && (
+                <p className="text-2xl font-black text-gray-900">{formatTenge(offered_task.courier_payout)}</p>
               )}
               <div className="flex gap-2">
                 <Button
@@ -418,6 +418,7 @@ export default function CabinetCourier() {
                 <div key={task.id} className="rounded-2xl bg-white border border-gray-100 p-4 shadow-sm space-y-2 dark:bg-gray-900 dark:border-gray-800">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">{task.pickup_address}</p>
                   <p className="text-sm text-gray-500 dark:text-slate-400">→ {task.dropoff_address}</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{formatTenge(task.courier_payout)}</p>
                   <Button
                     className="w-full h-10 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold"
                     disabled={acceptingId === task.id}
@@ -468,9 +469,7 @@ export default function CabinetCourier() {
                 {task_history.slice(0, 10).map((task) => (
                   <div key={task.id} className="flex justify-between text-sm py-2 border-b border-gray-50 last:border-0 dark:border-gray-800">
                     <span className="text-gray-700 dark:text-slate-300 truncate max-w-[60%]">{task.dropoff_address}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${LOGISTICS_STATUS_LABELS[task.status]?.color || 'bg-gray-100'}`}>
-                      {LOGISTICS_STATUS_LABELS[task.status]?.labelKey ? t(LOGISTICS_STATUS_LABELS[task.status].labelKey) : task.status}
-                    </span>
+                    <span className="flex items-center gap-2"><strong>{formatTenge(task.courier_payout)}</strong><span className={`text-xs px-2 py-0.5 rounded-full ${LOGISTICS_STATUS_LABELS[task.status]?.color || 'bg-gray-100'}`}>{LOGISTICS_STATUS_LABELS[task.status]?.labelKey ? t(LOGISTICS_STATUS_LABELS[task.status].labelKey) : task.status}</span></span>
                   </div>
                 ))}
               </div>

@@ -5,6 +5,30 @@ export function isNativeApp(): boolean {
   return Capacitor.isNativePlatform();
 }
 
+const APP_LINK_HOSTS = new Set([
+  'sortirovka24.kz',
+  'www.sortirovka24.kz',
+  'sortirovka24-production-8788.up.railway.app',
+]);
+
+/** Convert verified web links and sortirovka24:// links into an in-app route. */
+export function nativeRouteFromUrl(rawUrl: string): string | null {
+  try {
+    const url = new URL(rawUrl);
+    const isWebAppLink = (url.protocol === 'https:' || url.protocol === 'http:') && APP_LINK_HOSTS.has(url.hostname);
+    const isCustomLink = url.protocol === 'sortirovka24:';
+    if (!isWebAppLink && !isCustomLink) return null;
+
+    const customPath = isCustomLink
+      ? `/${[url.hostname, url.pathname.replace(/^\/+/, '')].filter(Boolean).join('/')}`
+      : url.pathname;
+    const path = customPath.startsWith('/') ? customPath : `/${customPath}`;
+    return `${path}${url.search}${url.hash}`;
+  } catch {
+    return null;
+  }
+}
+
 /** Hide the native Capacitor splash once the in-app welcome is ready. */
 export async function hideNativeSplash(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
@@ -56,6 +80,13 @@ export async function initNativeShell(): Promise<void> {
       } else {
         document.documentElement.classList.add('app-background');
       }
+    });
+
+    App.addListener('appUrlOpen', ({ url }) => {
+      const route = nativeRouteFromUrl(url);
+      if (!route) return;
+      window.history.pushState({}, '', route);
+      window.dispatchEvent(new PopStateEvent('popstate'));
     });
 
     void initPushNotifications();

@@ -15,7 +15,6 @@ import AdminFoodSettings from './AdminFoodSettings';
 import AdminDamAlemBanners from './AdminDamAlemBanners';
 import AdminDamAlemBrand from './AdminDamAlemBrand';
 import AdminDamAlemModifiers from './AdminDamAlemModifiers';
-import AdminFrontpad from './AdminFrontpad';
 import { foodBusiness as business } from '@/lib/foodOperations';
 import { DamToday, DamFinance, DamStaff, DamAvailability } from './DamAlemBusiness';
 import AdminPartnerAccess from '@/components/partner/AdminPartnerAccess';
@@ -23,7 +22,7 @@ import DamAlemNewOrderAlert from '@/components/damalem/DamAlemNewOrderAlert';
 import DamShiftPanel, { type DamShift } from '@/components/damalem/DamShiftPanel';
 import DamShiftOverview from '@/components/damalem/DamShiftOverview';
 
-type Section = 'deliveries' | 'payroll' | 'brand' | 'menu' | 'categories' | 'modifiers' | 'orders' | 'settings' | 'banners' | 'pos' | 'telegram' | 'today' | 'sales' | 'staff' | 'availability';
+type Section = 'deliveries' | 'payroll' | 'brand' | 'menu' | 'categories' | 'modifiers' | 'orders' | 'settings' | 'banners' | 'telegram' | 'today' | 'sales' | 'staff' | 'availability';
 
 interface AdminDamAlemProps {
   initialSection?: Section;
@@ -47,7 +46,6 @@ function getTABS(adminT: (key: string) => string) {
   { id: 'modifiers', label: adminT("admin.ui.0243"), icon: SlidersHorizontal },
   { id: 'banners', label: adminT("admin.ui.0244"), icon: Image },
   { id: 'settings', label: adminT("admin.ui.0245"), icon: Settings },
-  { id: 'pos', label: adminT("admin.ui.0246"), icon: Plug },
 ];
   return TABS;
 }
@@ -63,7 +61,7 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
   const [activeShift, setActiveShift] = useState<DamShift | null>(null);
   const [accessError, setAccessError] = useState('');
   useEffect(() => { let alive = true; business<{role: 'owner' | 'operator'}>('/me').then(v => { if (alive && ['owner', 'operator'].includes(v.role)) setAccess(v.role); else if (alive) setAccessError(adminT("admin.ui.0247")); }).catch(e => { if (alive) setAccessError(e.message); }); return () => { alive = false; }; }, []);
-  const tabs = TABS.filter(tab => (!partnerMode || tab.id !== 'pos') && (access === 'owner' || ['today', 'orders', 'availability', 'deliveries'].includes(tab.id)));
+  const tabs = TABS.filter(tab => access === 'owner' || ['today', 'orders', 'availability', 'deliveries'].includes(tab.id));
   const groupOf = (id: string) => {
     if (id === 'payroll') return 'sales';
     if (id === 'staff') return 'staff';
@@ -90,7 +88,7 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
   const navigate = (id: string, order?: number, status?: string) => { const p = new URLSearchParams(params); p.set('section', id); if (status) p.set('status', status); else p.delete('status'); if (order) p.set('order', String(order)); else if (id !== 'orders') p.delete('order'); setParams(p); };
 
   useEffect(() => {
-    const allowed = (id: string) => (access === 'owner' || ['today', 'orders', 'availability', 'deliveries'].includes(id)) && (!partnerMode || id !== 'pos');
+    const allowed = (id: string) => access === 'owner' || ['today', 'orders', 'availability', 'deliveries'].includes(id);
     setSection(TABS.some(t => t.id === requested) && allowed(requested) ? requested : allowed(initialSection) ? initialSection : 'today');
   }, [initialSection, partnerMode, requested, access]);
 
@@ -178,16 +176,6 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
         </>
       )}
       {section === 'banners' && <AdminDamAlemBanners />}
-      {section === 'pos' && !partnerMode && (
-        <div className="space-y-3">
-          <div className="rounded-2xl border border-orange-100 bg-orange-50/70 p-4 text-sm text-orange-950">
-            <p className="font-semibold">{adminT("admin.ui.0258")}</p>
-            <p className="mt-1 text-orange-900/80">
-              {adminT("admin.ui.0259")} </p>
-          </div>
-          <AdminFrontpad />
-        </div>
-      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useCallback, useState } from 'react';
 import {
   AlertTriangle, Bell, Bike, Briefcase, Building2, Car, ClipboardList,
-  Loader2, Megaphone, RefreshCw, TreePine, UserPlus, Utensils, Wrench, Handshake,
+  Loader2, Megaphone, RefreshCw, UserPlus, Utensils, Wrench, Handshake,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -76,14 +76,6 @@ function getCARDS(adminT: (key: string) => string) {
     description: adminT("admin.ui.0387"),
     icon: Utensils,
     color: 'bg-green-50 border-green-200 text-green-800',
-  },
-  {
-    key: 'park_orders_active',
-    tab: 'park-orders',
-    label: adminT("admin.ui.0388"),
-    description: adminT("admin.ui.0389"),
-    icon: TreePine,
-    color: 'bg-emerald-50 border-emerald-200 text-emerald-800',
   },
   {
     key: 'taxi_applications_pending',

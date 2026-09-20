@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional
 
 from models.auth import User
 from models.food_orders import Food_orders
+from models.food_settings import Food_settings
 from models.logistics import CourierProfile, LogisticsSettings, LogisticsTask
 from services.taxi_geo import DEFAULT_CENTER_LAT, DEFAULT_CENTER_LNG, geocode_address, geo_context_from_taxi_settings
 from sqlalchemy import desc, select, update
@@ -62,11 +63,32 @@ def _parse_prep_minutes(raw: Optional[str], default: int = 20) -> int:
 
 async def ensure_logistics_settings(db: AsyncSession) -> None:
     existing = (await db.execute(select(LogisticsSettings))).scalars().all()
-    if existing:
-        return
-    for key, value in DEFAULT_LOGISTICS_SETTINGS.items():
-        db.add(LogisticsSettings(key=key, value=value))
-    await db.commit()
+    existing_keys = {row.key for row in existing}
+    missing = [(key, value) for key, value in DEFAULT_LOGISTICS_SETTINGS.items() if key not in existing_keys]
+    if missing:
+        for key, value in missing:
+            db.add(LogisticsSettings(key=key, value=value))
+        await db.commit()
+
+
+async def resolve_courier_payout(db: AsyncSession, customer_delivery_fee: float = 0) -> float:
+    """Resolve courier compensation without coupling it to the customer's delivery discount."""
+    rows = (
+        await db.execute(
+            select(Food_settings).where(Food_settings.setting_key.in_(("courier_payout", "delivery_price")))
+        )
+    ).scalars().all()
+    values = {row.setting_key: row.setting_value for row in rows if row.setting_key}
+    for raw in (values.get("courier_payout"), values.get("delivery_price"), customer_delivery_fee):
+        if raw is None or str(raw).strip() == "":
+            continue
+        try:
+            amount = float(raw)
+        except (TypeError, ValueError):
+            continue
+        if 0 <= amount <= 50_000:
+            return round(amount, 2)
+    return 0.0
 
 
 async def get_logistics_settings(db: AsyncSession) -> Dict[str, str]:
@@ -106,7 +128,9 @@ def task_to_dict(task: LogisticsTask, courier_user: Optional[User] = None, couri
         "order_items": task.order_items,
         "receipt_revision": task.receipt_revision,
         "order_status": task.order_status,
-        "delivery_fee": task.delivery_fee,
+        "delivery_fee": task.customer_delivery_fee if task.customer_delivery_fee is not None else task.delivery_fee,
+        "customer_delivery_fee": task.customer_delivery_fee if task.customer_delivery_fee is not None else task.delivery_fee,
+        "courier_payout": task.courier_payout if task.courier_payout is not None else task.delivery_fee,
         "comment": task.comment,
         "created_at": task.created_at.isoformat() if task.created_at else None,
     }
@@ -179,6 +203,8 @@ async def create_task_from_food_order(db: AsyncSession, order: Food_orders, *, d
     except Exception as exc:
         logger.warning("Geocode dropoff failed: %s", exc)
 
+    customer_fee = max(0, round(float(delivery_fee or 0), 2))
+    courier_payout = await resolve_courier_payout(db, customer_fee)
     task = LogisticsTask(
         vertical="food",
         source_type="food_orders",
@@ -196,7 +222,9 @@ async def create_task_from_food_order(db: AsyncSession, order: Food_orders, *, d
         prep_minutes=prep,
         ready_at=ready_at.isoformat() if ready_at else None,
         total_amount=order.total_amount,
-        delivery_fee=delivery_fee,
+        delivery_fee=customer_fee,
+        customer_delivery_fee=customer_fee,
+        courier_payout=courier_payout,
         comment=order.comment,
     )
     db.add(task)
@@ -328,9 +356,16 @@ async def advance_task_status(db: AsyncSession, task: LogisticsTask, courier_use
         from services.bonus_rewards import settle_food_order_bonus
         await settle_food_order_bonus(db, food)
     if new_status == 'delivered':
+        payout = task.courier_payout
+        if payout is None:
+            payout = await resolve_courier_payout(
+                db,
+                float(task.customer_delivery_fee if task.customer_delivery_fee is not None else task.delivery_fee or 0),
+            )
+            task.courier_payout = payout
         await db.execute(update(CourierProfile).where(CourierProfile.user_id == task.courier_id).values(
             deliveries_count=CourierProfile.deliveries_count + 1,
-            balance=CourierProfile.balance + max(0, float(task.delivery_fee or 0))))
+            balance=CourierProfile.balance + max(0, float(payout or 0))))
     await db.commit()
     await db.refresh(task)
     if food and old_food_status != food.status:

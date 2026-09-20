@@ -3,7 +3,6 @@ import unittest
 from decimal import Decimal
 from unittest.mock import patch
 
-from services.frontpad_client import call_frontpad
 from services.payment import CheckoutError, CheckoutSessionRequest, PaymentService, initialize_stripe
 from services.push_notifications import push_enabled, send_push_to_token
 from services.sms import send_verification_code
@@ -27,7 +26,7 @@ class ExternalSideEffectTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(push_enabled())
             self.assertFalse(await send_push_to_token("token", title="test", body="test"))
 
-    async def test_disabled_environment_rejects_frontpad_and_payment(self):
+    async def test_disabled_environment_rejects_payment(self):
         request = CheckoutSessionRequest(
             amount=Decimal("100"),
             currency="kzt",
@@ -35,8 +34,6 @@ class ExternalSideEffectTests(unittest.IsolatedAsyncioTestCase):
             cancel_url="https://stage.example/cancel",
         )
         with patch.dict(os.environ, {"EXTERNAL_SIDE_EFFECTS": "disabled"}, clear=True):
-            with self.assertRaisesRegex(RuntimeError, "FrontPad integration is disabled"):
-                await call_frontpad("secret", "new_order")
             await initialize_stripe()
             with self.assertRaises(CheckoutError) as raised:
                 await PaymentService().create_checkout_session(request)

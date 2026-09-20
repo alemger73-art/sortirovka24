@@ -37,7 +37,6 @@ STORE_PATHS = {
     "pharmacy": "/apteka",
     "volna": "/volna",
     "prorab": "/prorab",
-    "park": "/food/park",
 }
 
 

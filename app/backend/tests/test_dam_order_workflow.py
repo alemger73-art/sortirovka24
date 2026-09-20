@@ -46,7 +46,7 @@ async def env(monkeypatch, tmp_path):
         db.add(User(id='courier',name='Courier',phone='+77001111111',role='courier'))
         db.add(CourierProfile(user_id='courier',is_verified=True,is_online=True,deliveries_count=0,balance=0))
         await db.commit()
-    for target in ['services.food_orders.link_food_order_to_user','services.food_orders.push_food_order_to_frontpad','services.admin_alerts.alert_new_food_order','services.user_notifications.notify_food_order_created','services.user_notifications.notify_food_order_status','services.user_notifications.notify_logistics_task_status','services.user_notifications.notify_user_by_phone','services.bonus_rewards.handle_food_order_status_bonus']:
+    for target in ['services.food_orders.link_food_order_to_user','services.admin_alerts.alert_new_food_order','services.user_notifications.notify_food_order_created','services.user_notifications.notify_food_order_status','services.user_notifications.notify_logistics_task_status','services.user_notifications.notify_user_by_phone','services.bonus_rewards.handle_food_order_status_bonus']:
         monkeypatch.setattr(target,AsyncMock(return_value=None))
     async def courier_profile(db,user):
         return await db.scalar(select(CourierProfile).where(CourierProfile.user_id==user.id))
@@ -200,12 +200,16 @@ async def test_late_payment_awards_bonus_once_in_order_transaction(env):
 @pytest.mark.asyncio
 async def test_ready_courier_delivery_and_cancellation_are_one_workflow(env):
     client,maker,headers,_=env
+    async with maker() as db:
+        db.add(Food_settings(setting_key='courier_payout', setting_value='800'))
+        await db.commit()
     for version,status in enumerate(['confirmed','preparing','ready']):
         r=await client.patch(BASE+'/orders/1',headers=headers,json={'expected_version':version,'status':status})
         assert r.status_code==200,r.text
     async with maker() as db:
         task=await db.scalar(select(LogisticsTask));tid=task.id
         assert task.status=='ready' and task.total_amount==1200 and task.paid_amount==1200
+        assert task.customer_delivery_fee == 0 and task.courier_payout == 800
         user=await db.get(User,'courier')
         await accept_task(db,tid,user)
     # Assigned courier keeps the job but cannot collect until kitchen reconfirms readiness.
@@ -226,7 +230,7 @@ async def test_ready_courier_delivery_and_cancellation_are_one_workflow(env):
         assert food.status=='done' and food.completed_at
         with pytest.raises(ValueError): await advance_task_status(db,task,user,'delivered')
         profile=await db.scalar(select(CourierProfile))
-        assert profile.deliveries_count==1
+        assert profile.deliveries_count==1 and profile.balance==800
 
 @pytest.mark.asyncio
 async def test_ready_edit_returns_to_kitchen_and_cancel_revokes_delivery(env):

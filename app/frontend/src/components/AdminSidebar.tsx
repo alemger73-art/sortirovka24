@@ -3,7 +3,7 @@ import AppearanceControls from '@/components/AppearanceControls';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Newspaper, AlertTriangle, Wrench, BookOpen, Image, ClipboardList, UserPlus, LogOut, Home as HomeIcon, Lock, Megaphone, Briefcase, FolderTree, Building2, Utensils, BadgeCheck, BarChart3, Clock, Bus, TreePine, MapPin, ChevronDown, Menu, Store, Car, Heart, HardHat, Bell, Bike, Cross, Scissors, Power, Wine, LayoutDashboard, Handshake, Search, type LucideIcon } from 'lucide-react';
+import { Shield, Newspaper, AlertTriangle, Wrench, BookOpen, Image, ClipboardList, UserPlus, LogOut, Home as HomeIcon, Lock, Megaphone, Briefcase, FolderTree, Building2, Utensils, BadgeCheck, BarChart3, Clock, Bus, ChevronDown, Menu, Store, Car, Heart, HardHat, Bell, Bike, Cross, Scissors, Power, Wine, LayoutDashboard, Handshake, Search, type LucideIcon } from 'lucide-react';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { DAM_ALEM_BRAND } from '@/lib/damAlem';
 import { getGroupBadgeCount, getTabBadgeCount, type AdminSummary } from '@/lib/adminSummaryApi';
@@ -58,8 +58,6 @@ const MENU_GROUPS: MenuGroup[] = [
     label: adminT("admin.ui.1256"),
     items: [
       { id: 'dam-alem', label: DAM_ALEM_BRAND, icon: Utensils },
-      { id: 'park-points', label: adminT("admin.ui.1257"), icon: MapPin },
-      { id: 'park-orders', label: adminT("admin.ui.0388"), icon: TreePine },
     ],
   },
   {

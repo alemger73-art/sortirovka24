@@ -51,7 +51,6 @@ PUBLIC_CREATE_ENTITIES = {
     "master_requests",
     "become_master_requests",
     "food_orders",
-    "park_orders",
 }
 
 # Entity list reads that expose PII or admin-only data.
@@ -59,12 +58,10 @@ ADMIN_READ_ENTITIES = {
     "food_orders",
     "master_requests",
     "become_master_requests",
-    "frontpad_settings",
     "couriers",
 }
 
 # Entities whose UPDATE (PUT/PATCH) is performed by a public client.
-# park_orders updates go through /api/v1/park/courier/orders/{id}/status (PIN auth).
 PUBLIC_UPDATE_ENTITIES: set[str] = set()
 
 _DISABLED_VALUES = {"0", "off", "false", "no", "disabled"}

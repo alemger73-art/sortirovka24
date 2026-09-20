@@ -180,7 +180,7 @@ async def courier_cabinet(
     ).scalars().all()
 
     completed = [t for t in history if t.status == "delivered"]
-    earnings = sum(float(t.delivery_fee or 0) for t in completed)
+    earnings = sum(float(t.courier_payout if t.courier_payout is not None else t.delivery_fee or 0) for t in completed)
     shift = await active_shift(db, "courier", str(user.id))
 
     return {

@@ -164,18 +164,6 @@ async def _run_startup_initialization():
         except Exception as e:
             logger.warning(f"Bucket initialization failed: {e}")
 
-        try:
-            from core.database import db_manager
-            from services.frontpad_env import ensure_frontpad_settings_from_env
-            from services.frontpad_startup import maybe_sync_menu_on_startup, verify_frontpad_connection
-
-            if db_manager.async_session_maker:
-                async with db_manager.async_session_maker() as session:
-                    await ensure_frontpad_settings_from_env(session)
-                    await verify_frontpad_connection(session)
-                    await maybe_sync_menu_on_startup(session)
-        except Exception as e:
-            logger.warning(f"FrontPad startup tasks failed: {e}")
     else:
         logger.warning("Skipping post-DB initialization steps (mock data, admin, buckets)")
     # MODULE_STARTUP_END
