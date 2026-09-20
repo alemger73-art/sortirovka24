@@ -224,7 +224,12 @@ async def manual_quote(db, body):
     # Resolve the gift after pricing so reducing a draft below the threshold
     # removes its old gift instead of making automatic recalculation impossible.
     try:
-        data, lines, total = await validate_food_order(db, payload, staff_quote=True)
+        data, lines, total = await validate_food_order(
+            db,
+            payload,
+            staff_quote=True,
+            staff_delivery_fee=body.delivery_fee,
+        )
     except HTTPException as exc:
         if exc.status_code == 400 and isinstance(exc.detail, str) and (
             'Найти на карте' in exc.detail or 'Я здесь сейчас' in exc.detail

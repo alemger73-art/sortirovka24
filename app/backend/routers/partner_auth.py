@@ -80,7 +80,12 @@ def _normalize_login(login: str) -> tuple[str, str]:
         return "", ""
     if "@" in raw:
         return "email", raw.lower()
-    return "phone", _normalize_phone(raw)
+    phone = _normalize_phone(raw)
+    # Legacy DAM accounts used a short username in the email column. Keep
+    # those accounts usable while treating actual phone-shaped input as phone.
+    if len(phone) >= 10:
+        return "phone", phone
+    return "email", raw.lower()
 
 
 def _assert_partner_type(partner_type: str) -> str:
@@ -493,6 +498,39 @@ async def update_partner_credential(
     await db.commit()
     await db.refresh(row)
     return _credential_item(row)
+
+
+@router.delete("/{partner_type}/credentials/{credential_id}")
+async def delete_partner_credential(
+    partner_type: str,
+    credential_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Permanently remove a partner login while preserving at least one DAM owner."""
+    partner_type = _assert_partner_type(partner_type)
+    _require_panel_admin(request)
+    row = await db.scalar(select(PartnerCredentials).where(
+        PartnerCredentials.id == credential_id,
+        PartnerCredentials.partner_type == partner_type,
+    ))
+    if not row:
+        raise HTTPException(status_code=404, detail="Аккаунт не найден")
+    current_role = (row.access_role or "owner") if partner_type == DAM_ALEM_PARTNER_TYPE else None
+    if partner_type == DAM_ALEM_PARTNER_TYPE and current_role == "owner" and row.is_active:
+        other_active_owners = await db.scalar(
+            select(func.count()).select_from(PartnerCredentials).where(
+                PartnerCredentials.partner_type == DAM_ALEM_PARTNER_TYPE,
+                PartnerCredentials.id != row.id,
+                PartnerCredentials.is_active == True,
+                or_(PartnerCredentials.access_role == "owner", PartnerCredentials.access_role.is_(None)),
+            )
+        )
+        if not other_active_owners:
+            raise HTTPException(status_code=409, detail="Нельзя удалить последнего активного владельца.")
+    await db.delete(row)
+    await db.commit()
+    return {'ok': True}
 
 
 async def _initialize_partner_from_env(partner_type: str) -> None:

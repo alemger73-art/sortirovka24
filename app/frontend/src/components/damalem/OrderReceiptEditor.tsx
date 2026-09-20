@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 
 type Line = {line_index?: number; id?: number; name?: string; price?: number; modTotal?: number; quantity: number; modifiers: {option_id: number; name?: string}[]};
 type Product = {id: number; name: string; price: number; category_id?: number};
-type Catalog = {products: Product[]; categories?: {id: number; name: string}[]; groups: {id: number; name: string; is_required: boolean; min_select: number; max_select: number}[]; options: {id: number; group_id: number; name: string; price: number}[]; links: {food_item_id: number; modifier_group_id: number}[]};
+type Catalog = {products: Product[]; categories?: {id: number; name: string}[]; groups: {id: number; name: string; is_required: boolean; min_select: number; max_select: number}[]; options: {id: number; group_id: number; name: string; price: number}[]; links: {food_item_id: number; modifier_group_id: number}[]; delivery_options?: {id: string; name: string; price: number}[]};
 type Quote = {items: {name: string; quantity: number; sum: number}[]; total_amount: number; subtotal?: number; delivery_fee?: number; service_fee?: number; discount?: number; adjustment?: number; previous_total?: number; paid_amount?: number; amount_due?: number; refund_due?: number; gift_choices?: {id: string; title: string}[]; gift_required?: boolean};
 type Customer = {name: string; addresses: string[]; recent_orders: {id: number; amount: number; status: string}[]};
 
@@ -24,6 +24,8 @@ export default function OrderReceiptEditor({order, onClose, onSaved}: {order?: O
   });
   const [name, setName] = useState(''), [phone, setPhone] = useState(''), [address, setAddress] = useState('');
   const [method, setMethod] = useState('delivery'), [payment, setPayment] = useState('cash'), [comment, setComment] = useState('');
+  const [deliveryFee, setDeliveryFee] = useState('');
+  const [customDeliveryFee, setCustomDeliveryFee] = useState(false);
   const [reason, setReason] = useState(''), [search, setSearch] = useState(''), [category, setCategory] = useState<number | null>(null);
   const [quoteState, setQuoteState] = useState<{key: string; value: Quote} | null>(null), [busy, setBusy] = useState(false);
   const [calculating, setCalculating] = useState(false), [attempt, setAttempt] = useState(0);
@@ -39,13 +41,13 @@ export default function OrderReceiptEditor({order, onClose, onSaved}: {order?: O
     return () => {alive = false; clearTimeout(timer);};
   }, [phone, order]);
   const payload = useMemo(() => ({selected_gift_id: giftId || undefined, items: lines.map(x => ({line_index: x.line_index, id: typeof x.id === 'number' ? x.id : undefined, quantity: x.quantity, modifiers: x.modifiers || []})),
-    ...(order ? {expected_version: order.version || 0, reason} : {request_key: requestKey, customer_name: name.trim() || (method === 'dine_in' ? t('workflow.guest') : ''), customer_phone: phone, delivery_address: method === 'delivery' ? address : '', delivery_method: method, payment_method: payment, comment})}), [lines, giftId, order, reason, requestKey, name, phone, address, method, payment, comment, t]);
+    ...(order ? {expected_version: order.version || 0, reason} : {request_key: requestKey, customer_name: name.trim() || (method === 'dine_in' ? t('workflow.guest') : ''), customer_phone: phone, delivery_address: method === 'delivery' ? address : '', delivery_method: method, delivery_fee: method === 'delivery' && deliveryFee !== '' ? Number(deliveryFee) : undefined, payment_method: payment, comment})}), [lines, giftId, order, reason, requestKey, name, phone, address, method, deliveryFee, payment, comment, t]);
   const key = JSON.stringify(payload);
   const validOptions = lines.every(line => line.line_index != null || catalog?.groups.filter(g => catalog.links.some(l => l.food_item_id === line.id && l.modifier_group_id === g.id)).every(g => {
     const count = line.modifiers.filter(m => catalog.options.some(o => o.id === m.option_id && o.group_id === g.id)).length;
     return count >= Math.max(g.min_select || 0, g.is_required ? 1 : 0) && (!g.max_select || count <= g.max_select);
   }));
-  const ready = !!catalog && lines.length > 0 && validOptions && lines.every(x => Number.isInteger(x.quantity) && x.quantity >= 1 && x.quantity <= 99) && (order ? reason.trim().length >= 3 : (method === 'dine_in' || (!!name.trim() && phone.replace(/\D/g, '').length >= 10)) && (method !== 'delivery' || !!address.trim()));
+  const ready = !!catalog && lines.length > 0 && validOptions && lines.every(x => Number.isInteger(x.quantity) && x.quantity >= 1 && x.quantity <= 99) && (order ? reason.trim().length >= 3 : (method === 'dine_in' || (!!name.trim() && phone.replace(/\D/g, '').length >= 10)) && (method !== 'delivery' || (!!address.trim() && deliveryFee !== '' && Number.isFinite(Number(deliveryFee)) && Number(deliveryFee) >= 0 && Number(deliveryFee) <= 50_000)));
   const quote = quoteState?.key === key ? quoteState.value : null;
   const path = order ? `/orders/${order.id}/receipt` : '/manual';
   useEffect(() => {
@@ -96,7 +98,12 @@ export default function OrderReceiptEditor({order, onClose, onSaved}: {order?: O
           {customer?.name && <div className="sm:col-span-2 text-sm rounded-lg bg-muted p-3"><Button type="button" variant="outline" onClick={() => {setName(customer.name); if (customer.addresses[0]) setAddress(customer.addresses[0]);}}>{t('pos.useCustomer')} · {customer.name}</Button><p className="mt-2">{t('pos.recentOrders')}: {customer.recent_orders.map(o => `№${o.id} · ${money(o.amount)}`).join('; ')}</p>{customer.addresses.length > 1 && <select aria-label={t('workflow.address')} value={address} className="w-full mt-2 rounded-lg border bg-background p-2" onChange={e => setAddress(e.target.value)}><option value="">{t('workflow.address')}</option>{customer.addresses.map(a => <option key={a}>{a}</option>)}</select>}</div>}
           <label>{t('workflow.method')}<select className="w-full border rounded-lg p-3 bg-background" value={method} onChange={e => setMethod(e.target.value)}><option value="delivery">{t('workflow.delivery')}</option><option value="pickup">{t('workflow.pickup')}</option><option value="dine_in">{t('workflow.onsite')}</option></select></label>
           <label>{t('workflow.payment')}<select className="w-full border rounded-lg p-3 bg-background" value={payment} onChange={e => setPayment(e.target.value)}><option value="cash">{t('workflow.cash')}</option><option value="kaspi_qr">Kaspi QR</option><option value="halyk_qr">Halyk QR</option></select></label>
-          {method === 'delivery' && <label className="sm:col-span-2">{t('workflow.address')}<Input value={address} maxLength={1000} onChange={e => setAddress(e.target.value)} /></label>}
+          {method === 'delivery' && <>
+            <label className="sm:col-span-2">{t('workflow.address')}<Input value={address} maxLength={1000} onChange={e => setAddress(e.target.value)} /></label>
+            <label>{t('dam.pos.deliveryFee')}<select className="w-full border rounded-lg p-3 bg-background" value={customDeliveryFee ? 'custom' : deliveryFee} onChange={e => {const value = e.target.value; setCustomDeliveryFee(value === 'custom'); setDeliveryFee(value === 'custom' ? '' : value);}}><option value="">{t('dam.pos.chooseDeliveryFee')}</option>{(catalog?.delivery_options || []).map(option => <option key={option.id} value={option.price}>{option.name} — {money(option.price)}</option>)}<option value="custom">{t('dam.pos.customDeliveryFee')}</option></select></label>
+            {customDeliveryFee && <label>{t('dam.pos.deliveryAmount')}<Input type="number" inputMode="numeric" min={0} max={50000} step={100} value={deliveryFee} onChange={e => setDeliveryFee(e.target.value)} /></label>}
+            <p className="sm:col-span-2 text-sm text-muted-foreground">{t('dam.pos.deliveryFeeHelp')}</p>
+          </>}
           <label className="sm:col-span-2">{t('workflow.comment')}<Input value={comment} maxLength={1000} onChange={e => setComment(e.target.value)} /></label>
         </div>}
         <label className="block">{t('workflow.search')}<Input value={search} onChange={e => setSearch(e.target.value)} /></label>

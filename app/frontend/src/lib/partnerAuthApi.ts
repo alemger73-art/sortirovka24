@@ -242,6 +242,17 @@ export async function updatePartnerCredential(
   return resp.json();
 }
 
+export async function deletePartnerCredential(partnerType: PartnerType, id: number): Promise<void> {
+  const resp = await fetch(apiUrl(`/api/v1/partner-auth/${partnerType}/credentials/${id}`), {
+    method: 'DELETE',
+    headers: adminHeaders(),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.detail || 'Не удалось удалить доступ');
+  }
+}
+
 // Backward-compatible DAM ALEM aliases
 export const partnerDamAlemLogin = (login: string, password: string) => partnerLogin('dam_alem', login, password);
 export const partnerDamAlemVerifySession = () => partnerVerifySession('dam_alem');

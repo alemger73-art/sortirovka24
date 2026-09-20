@@ -129,6 +129,38 @@ async def test_manual_order_idempotency_and_server_prices(env):
 
 
 @pytest.mark.asyncio
+async def test_operator_selects_delivery_fee_without_geocoding(env):
+    client, maker, headers, monkeypatch = env
+    zones = [{'id': 'near', 'name': 'Ближняя зона', 'price': 600, 'polygon': [[49.9, 73.1], [50.0, 73.1], [50.0, 73.3], [49.9, 73.3]]}]
+    async with maker() as db:
+        db.add(Food_settings(setting_key='delivery_zones', setting_value=json.dumps(zones)))
+        await db.commit()
+    geocode = AsyncMock(side_effect=AssertionError('manual operator order must not geocode'))
+    monkeypatch.setattr('services.food_order_validation.geocode_address', geocode)
+
+    catalog = (await client.get(BASE + '/catalog', headers=headers)).json()
+    assert {option['price'] for option in catalog['delivery_options']} >= {0, 600, 800, 1200}
+
+    body = {
+        'request_key': '12345678-1234-1234-1234-123456789077',
+        'customer_name': 'Delivery client',
+        'customer_phone': '+77002222222',
+        'delivery_method': 'delivery',
+        'delivery_address': 'Локомотивная 13',
+        'delivery_fee': 800,
+        'items': [{'id': 1, 'quantity': 1}],
+    }
+    quote = await client.post(BASE + '/manual/quote', headers=headers, json=body)
+    assert quote.status_code == 200, quote.text
+    assert quote.json()['delivery_fee'] == 800
+    assert quote.json()['total_amount'] == 2300
+    created = await client.post(BASE + '/manual', headers=headers, json={**body, 'quoted_total': 2300})
+    assert created.status_code == 201, created.text
+    assert created.json()['delivery_address'] == 'Локомотивная 13'
+    assert geocode.await_count == 0
+
+
+@pytest.mark.asyncio
 async def test_customer_retry_returns_same_order_and_changed_payload_is_rejected(env):
     import asyncio
     client,maker,_,_=env
@@ -336,6 +368,8 @@ async def test_payroll_blocks_unfinished_orders_and_changed_preview(env):
 async def test_delivery_board_scopes_orders_and_shows_courier(env):
     client, maker, headers, _ = env
     async with maker() as db:
+        order = await db.get(Food_orders, 1)
+        order.status = 'ready'
         db.add(Food_orders(id=9, restaurant_id=9, restaurant_name='Other', status='ready', delivery_method='delivery', total_amount=500))
         db.add(LogisticsTask(id=11, source_type='food_orders', source_id=1, vertical='food', status='assigned', courier_id='courier', pickup_address='Kitchen', dropoff_address='Test street 1'))
         await db.commit()
@@ -346,6 +380,11 @@ async def test_delivery_board_scopes_orders_and_shows_courier(env):
     assert items[0]['courier_name'] == 'Courier'
     assert items[0]['amount_due'] == 0
     assert items[0]['delivery_status'] == 'assigned'
+    detail = (await client.get(BASE + '/orders/1', headers=headers)).json()
+    assert detail['delivery']['status'] == 'assigned'
+    assert detail['delivery']['courier_name'] == 'Courier'
+    counts = (await client.get(BASE + '/order-counts', headers=headers)).json()
+    assert counts['courier'] == 1 and counts['courier_assigned'] == 1 and counts['ready'] == 0
     assert (await client.get(BASE + '/deliveries')).status_code in (401, 403)
     async with maker() as db:
         order = await db.get(Food_orders, 1)

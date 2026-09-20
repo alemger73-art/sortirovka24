@@ -7,6 +7,7 @@ from core.auth import create_access_token
 from core.database import Base, get_db
 from models.partner_auth import PartnerCredentials
 from routers.partner_auth import router
+from routers.partner_auth import _verify_password
 
 
 @pytest.fixture
@@ -94,3 +95,22 @@ async def test_admin_can_fix_legacy_roles_but_cannot_remove_last_owner(env):
     changed = await client.patch(last_owner, headers=headers, json={"access_role": "operator"})
     assert changed.status_code == 200, changed.text
     assert changed.json()["access_role"] == "operator"
+
+
+@pytest.mark.asyncio
+async def test_admin_resets_password_and_deletes_access_but_keeps_last_owner(env):
+    client, maker, headers = env
+    async with maker() as db:
+        db.add_all([
+            PartnerCredentials(id=1, partner_type="dam_alem", email="owner@example.test", password_hash="old", access_role="owner", is_active=True),
+            PartnerCredentials(id=2, partner_type="dam_alem", email="worker@example.test", password_hash="old", access_role="operator", is_active=True),
+        ])
+        await db.commit()
+    reset = await client.patch("/api/v1/partner-auth/dam_alem/credentials/2", headers=headers, json={"password": "NewSecurePassword42", "access_role": "operator"})
+    assert reset.status_code == 200, reset.text
+    async with maker() as db:
+        worker = await db.get(PartnerCredentials, 2)
+        assert _verify_password("NewSecurePassword42", worker.password_hash)
+    deleted = await client.delete("/api/v1/partner-auth/dam_alem/credentials/2", headers=headers)
+    assert deleted.status_code == 200, deleted.text
+    assert (await client.delete("/api/v1/partner-auth/dam_alem/credentials/1", headers=headers)).status_code == 409

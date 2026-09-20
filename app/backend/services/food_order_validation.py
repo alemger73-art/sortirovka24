@@ -43,6 +43,7 @@ CLIENT_OWNED_TRANSIENT = (
     "delivery_zone",
     "delivery_lat",
     "delivery_lng",
+    "staff_delivery_fee",
     "bonus_points_to_use",
 )
 _TIME_RE = re.compile(r"(\d{1,2}):(\d{2})")
@@ -478,6 +479,7 @@ async def validate_food_order(
     account_user: Optional["User"] = None,
     bonus_points_to_use: Optional[float] = None,
     staff_quote: bool = False,
+    staff_delivery_fee: Optional[float] = None,
     catalog_only: bool = False,
 ) -> Tuple[Dict[str, Any], List[dict], float]:
     """
@@ -726,10 +728,19 @@ async def validate_food_order(
 
     if staff_quote and delivery_method == "dine_in":
         expected_service = 0
+    manual_delivery_fee: Optional[float] = None
+    if staff_quote and delivery_method == "delivery" and staff_delivery_fee is not None:
+        try:
+            manual_delivery_fee = round(float(staff_delivery_fee), 2)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Некорректная стоимость доставки") from None
+        if not math.isfinite(manual_delivery_fee) or manual_delivery_fee < 0 or manual_delivery_fee > 50_000:
+            raise HTTPException(status_code=400, detail="Стоимость доставки должна быть от 0 до 50 000 ₸")
+
     client_lat = _parse_coord(data.get("delivery_lat"))
     client_lng = _parse_coord(data.get("delivery_lng"))
     lat, lng = client_lat, client_lng
-    if delivery_method == "delivery" and parse_delivery_zones(settings):
+    if delivery_method == "delivery" and manual_delivery_fee is None and parse_delivery_zones(settings):
         lat, lng = await _resolve_trusted_delivery_coords(
             settings,
             delivery_address,
@@ -738,12 +749,8 @@ async def validate_food_order(
             require_server_geocode=not marketplace_no_fee_hints,
         )
 
-    delivery_fee = _server_delivery_fee(
-        delivery_method,
-        settings,
-        lat,
-        lng,
-        marketplace_no_fee_hints=marketplace_no_fee_hints,
+    delivery_fee = manual_delivery_fee if manual_delivery_fee is not None else _server_delivery_fee(
+        delivery_method, settings, lat, lng, marketplace_no_fee_hints=marketplace_no_fee_hints,
     )
     if selected_gift and (selected_gift.get('product_id') or selected_gift.get('product_name')):
         gift_product = next((p for p in products_by_id.values() if
@@ -753,7 +760,8 @@ async def validate_food_order(
             raise HTTPException(400, 'Выбранный подарок закончился. Выберите другой подарок.')
         selected_gift['product_id'] = gift_product.id
     base_delivery_fee = delivery_fee
-    delivery_fee = _apply_free_delivery_threshold(subtotal, delivery_fee, settings)
+    if manual_delivery_fee is None:
+        delivery_fee = _apply_free_delivery_threshold(subtotal, delivery_fee, settings)
 
     promo_code = (data.get("promo_code") or "").strip().upper()
     promo_discount = 0.0
@@ -763,7 +771,7 @@ async def validate_food_order(
         if promo_free_delivery:
             delivery_fee = 0.0
 
-    requested_apartment = requests_apartment_delivery(data, delivery_address)
+    requested_apartment = manual_delivery_fee is None and requests_apartment_delivery(data, delivery_address)
     apartment_fee = expected_apartment_fee(
         delivery_method=delivery_method,
         subtotal=subtotal,
@@ -867,6 +875,7 @@ async def validate_food_order(
         'breakdown': {'subtotal': subtotal, 'delivery_fee': delivery_fee + apartment_fee, 'service_fee': expected_service, 'discount': promo_discount + bonus_discount},
         'version': 1, 'service_rate': fee_rate if expected_service or (not marketplace_no_fee_hints and delivery_method != 'dine_in') else 0,
         'base_delivery_fee': base_delivery_fee, 'requested_apartment': requested_apartment,
+        'staff_delivery_fee': manual_delivery_fee is not None,
         'promo_code': promo_code,
         'settings': {key: settings[key] for key in ('free_delivery_from', 'apartment_free_from', 'apartment_delivery_price', 'promo_codes') if key in settings},
     }, ensure_ascii=False)

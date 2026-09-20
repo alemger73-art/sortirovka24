@@ -45,10 +45,20 @@ export default function DamAlemOrders() {
     done: adminT('admin.dam.orderStatus.done'),
     cancelled: adminT('admin.dam.orderStatus.cancelled'),
   };
+  const orderStatusClass: Record<string, string> = {
+    new: 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-100',
+    confirmed: 'bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-100',
+    preparing: 'bg-orange-100 text-orange-900 dark:bg-orange-950/60 dark:text-orange-100',
+    ready: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-100',
+    in_progress: 'bg-blue-100 text-blue-900 dark:bg-blue-950/60 dark:text-blue-100',
+    done: 'bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-slate-100',
+    cancelled: 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-200',
+  };
 
 
   const sourceLabels: Record<string, string> = {app: adminT('pos.sourceApp'), operator: adminT('pos.sourceOperator'), whatsapp: 'WhatsApp', instagram: 'Instagram'};
   const [source, setSource] = useState('');
+  const [queueCounts, setQueueCounts] = useState<Record<string, number>>({});
   const [summary, setSummary] = useState<{daily?: {created: number; order_total: number}; counts: Record<string, number>; unpaid: number; notification_errors: number} | null>(null);
   const [summaryError, setSummaryError] = useState(false);
   const [receiptEditor, setReceiptEditor] = useState<'manual' | 'edit' | null>(null);
@@ -72,6 +82,12 @@ export default function DamAlemOrders() {
     refresh(); const timer = setInterval(refresh, 15000);
     return () => {alive = false; clearInterval(timer);};
   }, [selected]);
+  useEffect(() => {
+    let alive = true;
+    const refresh = () => { void foodOperations<Record<string, number>>('/order-counts').then(value => { if (alive) setQueueCounts(value); }).catch(() => undefined); };
+    refresh(); const timer = window.setInterval(refresh, 5000);
+    return () => { alive = false; window.clearInterval(timer); };
+  }, []);
   const load = useCallback(async () => {
     const gen = ++generation.current;
     try {
@@ -120,6 +136,15 @@ export default function DamAlemOrders() {
   const isDelivery = ['delivery', 'доставка'].includes(order?.delivery_method || '');
   const closed = order && ['done', 'cancelled'].includes(order.status);
   const target = isDelivery && ['ready', 'in_progress'].includes(order?.status || '') ? '' : order?.status === 'ready' && !isDelivery ? 'done' : next[order?.status || ''];
+  const statusTabs = [
+    { key: '', label: adminT('admin.dam.final.149'), count: queueCounts.all, style: 'border-slate-300 bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100' },
+    { key: 'new', label: orderLabels.new, count: queueCounts.new, style: 'border-red-300 bg-red-50 text-red-800 dark:bg-red-950/50 dark:text-red-100' },
+    { key: 'working', label: adminT('pos.working'), count: queueCounts.working, style: 'border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-950/50 dark:text-amber-100' },
+    { key: 'ready', label: adminT('admin.dam.queue.readyPickup'), count: queueCounts.ready, style: 'border-emerald-300 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-100' },
+    { key: 'courier', label: adminT('admin.dam.queue.waitCourier'), count: queueCounts.courier, style: 'border-violet-300 bg-violet-50 text-violet-900 dark:bg-violet-950/50 dark:text-violet-100' },
+    { key: 'in_progress', label: orderLabels.in_progress, count: queueCounts.in_progress, style: 'border-blue-300 bg-blue-50 text-blue-900 dark:bg-blue-950/50 dark:text-blue-100' },
+    { key: 'done', label: orderLabels.done, count: queueCounts.done, style: 'border-slate-300 bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100' },
+  ];
   return <div className="space-y-5 min-w-0">
     <div className="flex flex-wrap justify-between gap-3"><div><h3 className="text-xl font-bold">{adminT('admin.dam.final.138')}</h3><p className="text-sm text-muted-foreground">{adminT('pos.live')} {lastLoaded ? adminT('admin.dam.final.140').replace('{0}', () => String(new Date(lastLoaded).toLocaleTimeString(locale))) : adminT('admin.dam.final.141')}</p></div><Button variant="outline" onClick={() => void load()}>{adminT('admin.dam.final.142')}</Button></div>
     <Button onClick={() => setReceiptEditor('manual')}>{adminT('workflow.manual')}</Button>
@@ -127,12 +152,12 @@ export default function DamAlemOrders() {
     <p className="rounded-xl bg-blue-50 dark:bg-blue-950/40 p-3 text-sm text-blue-900 dark:text-blue-100">{adminT('workflow.queueHelp')}</p>
     {error && <p role="alert" className="rounded-xl bg-red-50 dark:bg-red-950/30 p-3 text-red-800">{error}  {adminT('admin.dam.final.144')}</p>}
     <div className="flex flex-wrap gap-3"><Input aria-label={adminT('admin.dam.final.145')} className="min-w-0 flex-1 basis-64" placeholder={adminT('admin.dam.final.146')} value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} /><select aria-label={adminT('admin.dam.final.147')} className="rounded-lg border p-2 bg-background max-w-full" value={status} onChange={e => { setStatus(e.target.value); setPage(0); const p = new URLSearchParams(params); p.set('status', e.target.value); setParams(p); }}><option value="working">{adminT('pos.working')}</option><option value="courier">{adminT('pos.courier')}</option><option value="active">{adminT('pos.active')}</option><option value="">{adminT('admin.dam.final.149')}</option>{Object.entries(orderLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select><select aria-label={adminT('pos.source')} className="rounded-lg border p-2 bg-background max-w-full" value={source} onChange={e => {setSource(e.target.value); setPage(0);}}><option value="">{adminT('pos.allSources')}</option>{Object.entries(sourceLabels).filter(([key]) => ['app','operator'].includes(key)).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select></div>
-    <nav aria-label={adminT('admin.dam.final.147')} className="flex flex-wrap gap-2">{[['', adminT('admin.dam.final.149')], ['new', orderLabels.new], ['working', adminT('pos.working')], ['ready', orderLabels.ready], ['courier', adminT('pos.courier')], ['in_progress', orderLabels.in_progress], ['done', orderLabels.done]].map(([key,label]) => <Button key={key} aria-pressed={status === key} variant={status === key ? 'default' : 'outline'} onClick={() => {setStatus(key); setPage(0); const p = new URLSearchParams(params); p.set('status',key); setParams(p);}}>{label}</Button>)}</nav>
+    <nav aria-label={adminT('admin.dam.final.147')} className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">{statusTabs.map(tab => <button key={tab.key} aria-pressed={status === tab.key} className={`relative min-h-12 rounded-xl border px-3 py-2 text-left text-sm font-semibold transition ${tab.style} ${status === tab.key ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-slate-950' : 'hover:-translate-y-0.5'} ${tab.key === 'new' && Number(tab.count) > 0 ? 'animate-pulse' : ''}`} onClick={() => {setStatus(tab.key); setPage(0); const p = new URLSearchParams(params); p.set('status',tab.key); setParams(p);}}><span>{tab.label}</span><strong className="ml-2 inline-flex min-w-6 justify-center rounded-full bg-background/80 px-1.5 py-0.5 text-xs shadow-sm">{Number(tab.count || 0).toLocaleString(locale)}</strong>{tab.key === 'courier' && Number(queueCounts.courier_assigned) > 0 && <small className="mt-1 block font-normal">{adminT('admin.dam.queue.courierAssigned')}: {queueCounts.courier_assigned}</small>}</button>)}</nav>
     <div className="grid gap-5 xl:grid-cols-[minmax(260px,1fr)_minmax(0,1.6fr)]">
       <section className="min-w-0 space-y-2" aria-label={adminT('admin.dam.final.150')}>
         {loading && <p role="status">{adminT('admin.dam.final.151')}</p>}
         {!loading && !error && !rows.length && <p className="rounded-xl border p-6">{adminT('admin.dam.final.152')}</p>}
-        {rows.map(o => <button key={o.id} disabled={busy} onClick={() => { const p = new URLSearchParams(params); p.set('section', 'orders'); p.set('order', String(o.id)); setParams(p); }} className={`w-full rounded-xl border p-4 text-left ${selected === o.id ? 'border-red-400 bg-red-50 dark:bg-red-950/30' : 'bg-card hover:bg-muted/50'}`}><span className="flex flex-wrap justify-between gap-2"><strong>№{o.id} · {money(o.total_amount)}</strong><span className="text-xs rounded-full bg-muted px-2 py-1">{orderLabels[o.status] || o.status}</span></span><span className="block mt-2 break-words">{o.customer_name || adminT('admin.dam.final.024')} · {o.delivery_method === 'dine_in' ? adminT('workflow.onsite') : o.delivery_method === 'pickup' ? adminT('admin.dam.final.025') : adminT('admin.dam.final.026')}</span><span className="block my-2 text-xs font-medium text-primary">{sourceLabels[o.order_source || ''] || adminT('pos.sourceUnknown')}</span><span className="text-xs text-muted-foreground">{date(o.created_at)}</span></button>)}
+        {rows.map(o => <button key={o.id} disabled={busy} onClick={() => { const p = new URLSearchParams(params); p.set('section', 'orders'); p.set('order', String(o.id)); setParams(p); }} className={`w-full rounded-xl border p-4 text-left ${selected === o.id ? 'border-red-400 bg-red-50 dark:bg-red-950/30' : 'bg-card hover:bg-muted/50'}`}><span className="flex flex-wrap justify-between gap-2"><strong>№{o.id} · {money(o.total_amount)}</strong><span className={`text-xs rounded-full px-2 py-1 ${orderStatusClass[o.status] || 'bg-muted'}`}>{orderLabels[o.status] || o.status}</span></span><span className="block mt-2 break-words">{o.customer_name || adminT('admin.dam.final.024')} · {o.delivery_method === 'dine_in' ? adminT('workflow.onsite') : o.delivery_method === 'pickup' ? adminT('admin.dam.final.025') : adminT('admin.dam.final.026')}</span><span className="block my-2 text-xs font-medium text-primary">{sourceLabels[o.order_source || ''] || adminT('pos.sourceUnknown')}</span><span className="text-xs text-muted-foreground">{date(o.created_at)}</span></button>)}
         <div className="flex flex-wrap gap-2 items-center pt-3"><Button variant="outline" disabled={!page || loading} onClick={() => setPage(p => p - 1)}>{adminT('admin.dam.final.153')}</Button><span className="text-sm">{(total ? page * 30 + 1 : 0).toLocaleString(locale)}–{Math.min((page + 1) * 30, total).toLocaleString(locale)}  {adminT('admin.dam.final.154')} {total.toLocaleString(locale)}</span><Button variant="outline" disabled={(page + 1) * 30 >= total || loading} onClick={() => setPage(p => p + 1)}>{adminT('admin.dam.final.155')}</Button></div>
       </section>
       <section className="min-w-0 rounded-2xl border bg-card p-4 sm:p-6 space-y-4" aria-label={adminT('admin.dam.final.156')}>
@@ -144,7 +169,7 @@ export default function DamAlemOrders() {
           <p className="font-semibold">{orderLabels[order.status] || order.status} · {order.delivery_method === 'dine_in' ? adminT('workflow.onsite') : order.delivery_method === 'pickup' ? adminT('admin.dam.final.025') : adminT('admin.dam.final.026')}</p>
           <div className="space-y-2 break-words"><p>{order.customer_name}</p><a className="text-blue-700 underline block" href={`tel:${(order.customer_phone || '').replace(/[^+\d]/g, '')}`}>{order.customer_phone}</a>{isDelivery && <p>{order.delivery_address}</p>}{order.comment && <p className="rounded-xl bg-amber-50 dark:bg-amber-950/30 p-3">{adminT('admin.dam.final.161')} {order.comment}</p>}</div>
           {!closed && !['in_progress'].includes(order.status) && <Button variant="outline" disabled={busy} onClick={() => setReceiptEditor('edit')}>{adminT('workflow.edit')}</Button>}
-          {isDelivery && order.status === 'ready' && <p className="rounded-xl border p-3 text-sm">{adminT('workflow.courierNext')}</p>}
+          {isDelivery && <div className={`rounded-xl border p-4 text-sm space-y-2 ${detail.delivery?.status === 'delivered' ? 'border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30' : detail.delivery?.courier_name ? 'border-blue-300 bg-blue-50 dark:bg-blue-950/30' : 'border-violet-300 bg-violet-50 dark:bg-violet-950/30'}`}><p className="font-bold">{detail.delivery?.status === 'delivered' ? adminT('admin.dam.queue.delivered') : detail.delivery?.status === 'on_the_way' ? adminT('admin.dam.queue.onWay') : detail.delivery?.status === 'picked_up' ? adminT('admin.dam.queue.pickedUp') : detail.delivery?.courier_name ? adminT('admin.dam.queue.courierAssigned') : adminT('admin.dam.queue.noCourier')}</p>{detail.delivery?.courier_name && <p>{detail.delivery.courier_name}</p>}{detail.delivery?.courier_phone && <a className="block font-medium underline" href={`tel:${detail.delivery.courier_phone.replace(/[^+\d]/g, '')}`}>{adminT('admin.dam.queue.courierPhone')}: {detail.delivery.courier_phone}</a>}{order.status === 'ready' && !detail.delivery?.courier_name && <p>{adminT('workflow.courierNext')}</p>}</div>}
           {order.paid_amount != null && <div className="text-sm"><p>{adminT('workflow.received')}: {money(order.paid_amount)}</p><p>{adminT(order.paid_amount > order.total_amount ? 'workflow.refund' : 'workflow.due')}: {money(Math.abs(order.total_amount - order.paid_amount))}</p></div>}
           <PrintReceiptButton order={order} />
           <Items raw={order.order_items} /><p className="text-lg font-bold">{adminT('admin.dam.final.162')} {money(order.total_amount)}</p><p>{adminT('admin.dam.final.163')} {({ cash: adminT('admin.dam.final.006'), kaspi_qr: 'Kaspi QR', halyk_qr: 'Halyk QR' } as Record<string, string>)[order.payment_method] || order.payment_method || adminT('admin.dam.final.164')} · {order.payment_status === 'paid' ? adminT('admin.dam.final.165') : adminT('admin.dam.final.166')}</p>

@@ -33,6 +33,13 @@ async def orders(q: str = Query('', max_length=100), status: str = '', source: s
         conditions.append(Food_orders.status.in_(['confirmed', 'preparing']))
     elif status == 'courier':
         conditions.extend([Food_orders.status == 'ready', Food_orders.delivery_method.in_(['delivery', 'доставка'])])
+    elif status == 'ready':
+        # The operator board separates pickup orders from deliveries waiting
+        # for a courier, even though both use the same persisted order status.
+        conditions.extend([
+            Food_orders.status == 'ready',
+            or_(Food_orders.delivery_method.is_(None), Food_orders.delivery_method.notin_(['delivery', 'доставка'])),
+        ])
     elif status:
         conditions.append(Food_orders.status == status)
     if source:
@@ -48,6 +55,36 @@ async def orders(q: str = Query('', max_length=100), status: str = '', source: s
     total = await db.scalar(select(func.count()).select_from(Food_orders).where(*conditions))
     rows = (await db.scalars(select(Food_orders).where(*conditions).order_by(Food_orders.id.desc()).offset(skip).limit(limit))).all()
     return {'items': [serialize(r) for r in rows], 'total': total}
+
+@router.get('/order-counts')
+async def order_counts(db: AsyncSession = Depends(get_db)):
+    """Exact counters for the operator queue tabs."""
+    rows = (await db.execute(
+        select(Food_orders.status, Food_orders.delivery_method, func.count())
+        .where(await scope(db))
+        .group_by(Food_orders.status, Food_orders.delivery_method)
+    )).all()
+    result = {'all': 0, 'new': 0, 'working': 0, 'ready': 0, 'courier': 0, 'in_progress': 0, 'done': 0}
+    for order_status, method, amount in rows:
+        count = int(amount or 0)
+        result['all'] += count
+        if order_status == 'new':
+            result['new'] += count
+        elif order_status in ('confirmed', 'preparing'):
+            result['working'] += count
+        elif order_status == 'ready':
+            result['courier' if method in ('delivery', 'доставка') else 'ready'] += count
+        elif order_status in ('in_progress', 'done'):
+            result[order_status] += count
+
+    from models.logistics import LogisticsTask
+    assigned = await db.scalar(
+        select(func.count()).select_from(LogisticsTask)
+        .join(Food_orders, (LogisticsTask.source_type == 'food_orders') & (LogisticsTask.source_id == Food_orders.id))
+        .where(await scope(db), Food_orders.status == 'ready', LogisticsTask.status == 'assigned')
+    )
+    result['courier_assigned'] = int(assigned or 0)
+    return result
 
 @router.get('/deliveries')
 async def deliveries(db: AsyncSession = Depends(get_db)):
@@ -89,7 +126,27 @@ async def customer(phone: str = Query(min_length=10, max_length=32), db: AsyncSe
 async def detail(order_id: int, db: AsyncSession = Depends(get_db)):
     obj = await order_for_panel(db, order_id)
     events = (await db.scalars(select(FoodOrderEvent).where(FoodOrderEvent.order_id == order_id).order_by(FoodOrderEvent.id.desc()))).all()
-    return {'order': serialize(obj), 'events': [serialize(e) for e in events]}
+    from models.logistics import LogisticsTask, CourierProfile
+    from models.auth import User
+    delivery = (await db.execute(
+        select(LogisticsTask, User, CourierProfile)
+        .outerjoin(User, User.id == LogisticsTask.courier_id)
+        .outerjoin(CourierProfile, CourierProfile.user_id == LogisticsTask.courier_id)
+        .where(LogisticsTask.source_type == 'food_orders', LogisticsTask.source_id == order_id)
+        .order_by(LogisticsTask.id.desc()).limit(1)
+    )).first()
+    delivery_data = None
+    if delivery:
+        task, courier, profile = delivery
+        delivery_data = {
+            'id': task.id,
+            'status': task.status,
+            'courier_name': courier.name if courier else None,
+            'courier_phone': (profile.phone or courier.phone) if profile and courier else courier.phone if courier else None,
+            'picked_up_at': task.picked_up_at,
+            'delivered_at': task.delivered_at,
+        }
+    return {'order': serialize(obj), 'events': [serialize(e) for e in events], 'delivery': delivery_data}
 
 class OrderChange(BaseModel):
     expected_version: int = Field(ge=0)
@@ -190,6 +247,7 @@ class ManualOrder(BaseModel):
     customer_phone: str = Field('', max_length=32)
     delivery_address: str = Field('', max_length=1000)
     delivery_method: Literal['pickup', 'delivery', 'dine_in'] = 'delivery'
+    delivery_fee: float | None = Field(None, ge=0, le=50_000, allow_inf_nan=False)
     payment_method: Literal['cash', 'kaspi_qr', 'halyk_qr'] = 'cash'
     comment: str = Field('', max_length=1000)
     items: list[ReceiptLine] = Field(min_length=1, max_length=100)
@@ -204,6 +262,8 @@ async def operator_catalog(db: AsyncSession = Depends(get_db)):
     from models.modifier_options import Modifier_options
     from models.item_modifier_groups import Item_modifier_groups
     from services.food_operations import brand
+    from services.food_settings import Food_settingsService
+    from services.gastronom_delivery import parse_delivery_zones
     restaurants = (await db.scalars(select(Food_restaurants))).all()
     ids = [r.id for r in restaurants if brand(r.name, r.merchant_key)]
     products = (await db.scalars(select(Food_items).where(or_(Food_items.restaurant_id.in_(ids), Food_items.restaurant_id.is_(None)), Food_items.is_active.is_not(False), Food_items.available.is_not(False), Food_items.price > 0).order_by(Food_items.sort_order, Food_items.id))).all()
@@ -211,7 +271,23 @@ async def operator_catalog(db: AsyncSession = Depends(get_db)):
     options = (await db.scalars(select(Modifier_options).where(Modifier_options.is_active.is_not(False)).order_by(Modifier_options.sort_order, Modifier_options.id))).all()
     links = (await db.scalars(select(Item_modifier_groups))).all()
     categories = (await db.scalars(select(Food_categories).where(or_(Food_categories.restaurant_id.in_(ids), Food_categories.restaurant_id.is_(None)), Food_categories.is_active.is_not(False)).order_by(Food_categories.sort_order, Food_categories.id))).all()
-    return {'categories': [serialize(x) for x in categories], 'products': [serialize(x) for x in products], 'groups': [serialize(x) for x in groups], 'options': [serialize(x) for x in options], 'links': [serialize(x) for x in links]}
+    settings = await Food_settingsService(db).get_all_as_dict()
+    configured = []
+    for zone in parse_delivery_zones(settings):
+        price = float(zone['price'])
+        if not any(abs(option['price'] - price) < 0.01 for option in configured):
+            configured.append({'id': zone['id'], 'name': zone['name'], 'price': price})
+    try:
+        fallback = float(settings.get('delivery_price') or settings.get('delivery_fee') or 0)
+    except (TypeError, ValueError):
+        fallback = 0.0
+    if fallback > 0 and not any(abs(option['price'] - fallback) < 0.01 for option in configured):
+        configured.append({'id': 'standard', 'name': 'Стандартная доставка', 'price': fallback})
+    quick_prices = [0.0, 600.0, 800.0, 1200.0]
+    for price in quick_prices:
+        if not any(abs(option['price'] - price) < 0.01 for option in configured):
+            configured.append({'id': f'quick-{int(price)}', 'name': 'Бесплатно' if price == 0 else f'Доставка {int(price)} ₸', 'price': price})
+    return {'categories': [serialize(x) for x in categories], 'products': [serialize(x) for x in products], 'groups': [serialize(x) for x in groups], 'options': [serialize(x) for x in options], 'links': [serialize(x) for x in links], 'delivery_options': configured}
 
 @router.post('/manual/quote')
 async def quote_manual(body: ManualOrder, db: AsyncSession = Depends(get_db)):

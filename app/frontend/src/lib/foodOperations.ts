@@ -25,7 +25,11 @@ export interface OperatorOrder {
   operator_note: string | null; cancellation_reason: string | null;
 }
 export interface OrderEvent { id: number; actor: string; message: string; created_at: string; notification: string; error: string | null }
-export interface OrderDetail { order: OperatorOrder; events: OrderEvent[] }
+export interface OrderDelivery {
+  id: number; status: string; courier_name: string | null; courier_phone: string | null;
+  picked_up_at: string | null; delivered_at: string | null;
+}
+export interface OrderDetail { order: OperatorOrder; events: OrderEvent[]; delivery: OrderDelivery | null }
 export const orderLabels: Record<string, string> = { new: 'Новый', confirmed: 'Принят', preparing: 'Готовится', ready: 'Готов к выдаче', in_progress: 'В доставке', done: 'Завершён', cancelled: 'Отменён' };
 
 export const foodBusiness = <T,>(path: string, method = 'GET', body?: unknown) => foodOperations<T>(path, method, body, 'business');
