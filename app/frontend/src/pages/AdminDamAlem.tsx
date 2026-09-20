@@ -19,6 +19,7 @@ import AdminFrontpad from './AdminFrontpad';
 import { foodBusiness as business } from '@/lib/foodOperations';
 import { DamToday, DamFinance, DamStaff, DamAvailability } from './DamAlemBusiness';
 import AdminPartnerAccess from '@/components/partner/AdminPartnerAccess';
+import DamAlemNewOrderAlert from '@/components/damalem/DamAlemNewOrderAlert';
 
 type Section = 'deliveries' | 'payroll' | 'brand' | 'menu' | 'categories' | 'modifiers' | 'orders' | 'settings' | 'banners' | 'pos' | 'telegram' | 'today' | 'sales' | 'staff' | 'availability';
 
@@ -111,6 +112,8 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
           </Link>
         </div>
       </div>
+
+      {access === 'operator' && <DamAlemNewOrderAlert onOpen={() => navigate('orders', undefined, 'new')} />}
 
       <nav aria-label={adminT("admin.ui.0255")} className="flex flex-wrap gap-2">{groups.map(g => <button key={g.id} onClick={() => navigate(g.id === 'menu' && access === 'operator' ? 'availability' : g.id)} className={`rounded-xl px-4 py-3 text-sm font-semibold ${group === g.id ? 'bg-[#FF3B30] text-white' : 'bg-card border text-foreground hover:bg-muted'}`}>{g.label}</button>)}</nav>
 

@@ -21,6 +21,7 @@ LEGACY_ALMATY_STORE_LAT = 43.2250
 LEGACY_ALMATY_STORE_LNG = 76.9120
 DEFAULT_DELIVERY_CITY = "Караганда"
 DEFAULT_SERVICE_AREA = "Сортировка, Караганда"
+MAX_GEOCODE_DISTANCE_FROM_STORE_KM = 80.0
 
 ZONE_COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6"]
 
@@ -395,8 +396,10 @@ async def geocode_address(
                         },
                         headers=headers,
                     )
-                    if coords:
+                    if coords and haversine_km(store_lat, store_lng, coords[0], coords[1]) <= MAX_GEOCODE_DISTANCE_FROM_STORE_KM:
                         return coords
+                    if coords:
+                        logger.info("Ignoring remote geocode result for %r", candidate[:80])
                 except Exception as e:
                     logger.debug("Nominatim query failed for %r: %s", candidate[:60], e)
 
@@ -427,7 +430,7 @@ async def geocode_address(
                             },
                             headers=headers,
                         )
-                        if coords:
+                        if coords and haversine_km(store_lat, store_lng, coords[0], coords[1]) <= MAX_GEOCODE_DISTANCE_FROM_STORE_KM:
                             return coords
                     except Exception as e:
                         logger.debug("Structured geocode failed: %s", e)

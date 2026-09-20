@@ -223,7 +223,17 @@ async def manual_quote(db, body):
         'order_items': json.dumps([x.model_dump(exclude_none=True) for x in body.items]), 'total_amount': 0}
     # Resolve the gift after pricing so reducing a draft below the threshold
     # removes its old gift instead of making automatic recalculation impossible.
-    data, lines, total = await validate_food_order(db, payload, staff_quote=True)
+    try:
+        data, lines, total = await validate_food_order(db, payload, staff_quote=True)
+    except HTTPException as exc:
+        if exc.status_code == 400 and isinstance(exc.detail, str) and (
+            'Найти на карте' in exc.detail or 'Я здесь сейчас' in exc.detail
+        ):
+            raise HTTPException(
+                400,
+                'Не удалось определить адрес. Укажите улицу, номер дома и город, например: «Локомотивная 13, Караганда».',
+            ) from None
+        raise
     choices = await gift_choices(db, restaurant.id, subtotal(lines))
     chosen = next((g for g in choices if g['id'] == body.selected_gift_id), None)
     if not chosen and len(choices) == 1:

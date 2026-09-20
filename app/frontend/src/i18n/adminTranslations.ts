@@ -2,6 +2,12 @@ import type { Translations } from './translations';
 
 /** Admin/partner UI only. Merge into the central dictionary in the parent integration. */
 export const adminTranslations: Translations = {
+  "dam.alert.title": {"ru":"Новый заказ","kz":"Жаңа тапсырыс"},
+  "dam.alert.one": {"ru":"Заказ ждёт подтверждения. Примите его сейчас.","kz":"Тапсырыс растауды күтуде. Оны қазір қабылдаңыз."},
+  "dam.alert.many": {"ru":"Новых заказов: {count}. Они ждут подтверждения.","kz":"Жаңа тапсырыс саны: {count}. Олар растауды күтуде."},
+  "dam.alert.open": {"ru":"Открыть заказы","kz":"Тапсырыстарды ашу"},
+  "dam.alert.soundOn": {"ru":"Звук включён","kz":"Дыбыс қосулы"},
+  "dam.alert.soundOff": {"ru":"Включить звук","kz":"Дыбысты қосу"},
   "admin.ui.0000": {"ru":"Введите логин и пароль","kz":"Логин мен құпиясөзді енгізіңіз"},
   "admin.ui.0001": {"ru":"Неверный логин или пароль","kz":"Логин немесе құпиясөз қате"},
   "admin.ui.0002": {"ru":"Ошибка подключения к серверу","kz":"Серверге қосылу қатесі"},
