@@ -1,4 +1,4 @@
-# Google Play — Sortirovka24
+# Google Play — Sortirovka 24
 
 Пошаговая инструкция для публикации. Техническая часть подготовлена в репозитории.
 
@@ -6,7 +6,8 @@
 
 | Готово | Где |
 |--------|-----|
-| Release keystore (скрипт создания) | `scripts/setup-play-keystore.ps1` |
+| Release keystore и скрипт создания | `android/sortirovka24-release.jks`, `scripts/setup-play-keystore.ps1` |
+| Подписанный AAB | `releases/Sortirovka24-release.aab` |
 | Сборка подписанного AAB | `npm run build:android:release` |
 | Package ID | `kz.sortirovka24.app` |
 | targetSdk 36 | `android/variables.gradle` |
@@ -22,15 +23,15 @@
 
 **Политика конфиденциальности:**
 ```
-https://sortirovka24-production-8788.up.railway.app/privacy.html
+https://www.sortirovka24.kz/privacy.html
 ```
 
 **Пользовательское соглашение:**
 ```
-https://sortirovka24-production-8788.up.railway.app/terms.html
+https://www.sortirovka24.kz/terms.html
 ```
 
-> Задеплойте последний коммит на Railway, чтобы эти страницы появились онлайн.
+> Перед отправкой приложения откройте обе страницы по публичному домену и проверьте код ответа 200.
 
 ---
 
@@ -75,7 +76,7 @@ app\frontend\android\PLAY_SIGNING_SECRET.txt
 ## Шаг 3 — Создать приложение в консоли
 
 1. **Create app**
-2. Название: **Sortirovka24** (в магазине можно «Сортировка 24»)
+2. Название: **Sortirovka 24**
 3. Default language: **Русский**
 4. App / Free
 
@@ -95,7 +96,7 @@ app\frontend\android\PLAY_SIGNING_SECRET.txt
 ## Шаг 5 — Обязательные анкеты
 
 ### App content → Privacy policy
-URL: `https://sortirovka24-production-8788.up.railway.app/privacy.html`
+URL: `https://www.sortirovka24.kz/privacy.html`
 
 ### Data safety
 Ответы: `play-store/DATA_SAFETY.md`
@@ -124,7 +125,7 @@ URL: `https://sortirovka24-production-8788.up.railway.app/privacy.html`
 
 1. Увеличить в `android/app/build.gradle`:
    - `versionCode` (+1 каждый раз)
-   - `versionName` (например 1.0.17)
+   - `versionName` (например 1.0.30)
 2. `npm run build:android:release`
 3. Play Console → новый release → загрузить AAB
 
