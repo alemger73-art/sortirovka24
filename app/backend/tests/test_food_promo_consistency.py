@@ -17,6 +17,13 @@ def test_marketing_copy_and_checkout_defaults_match_rules():
  assert MARKETING_SETTING_KEYS['delivery_price']=='500'
  assert MARKETING_SETTING_KEYS['service_fee_rate']=='10'
 
+def test_previous_default_promo_slides_are_upgraded_but_owner_copy_is_preserved():
+ from services.dam_alem_marketing_seed import _is_legacy_promo_slides
+ previous=json.dumps([{'title':'Подарки к заказу','lines':['От 5 000 ₸ — подарок бесплатно']}])
+ owner=json.dumps([{'title':'Моя акция','lines':['Подарок владельца']}])
+ assert _is_legacy_promo_slides(previous)
+ assert not _is_legacy_promo_slides(owner)
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize('promo',PROMO_CODES)
 async def test_preview_matches_checkout_at_threshold_and_cap(monkeypatch,promo):

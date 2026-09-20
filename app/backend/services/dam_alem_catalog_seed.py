@@ -88,7 +88,6 @@ async def ensure_dam_alem_catalog(*, force=False):
  from core.database import db_manager
  if os.getenv('DAM_ALEM_SEED_CATALOG','').lower()=='skip' or not db_manager.async_session_maker:return None
  async with db_manager.async_session_maker() as db:
-  if not await _find_dam_alem_restaurant(db):return None
   result=await seed_dam_alem_catalog(db)
   logger.info('DAM ALEM approved menu: %s',result)
   return result

@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from core.database import Base
 from models.food_orders import Food_orders
 from models.banners import Banners
-from services.dam_alem_catalog_seed import seed_dam_alem_catalog, Food_items, Food_categories, Food_restaurants, Modifier_groups, Modifier_options, Item_modifier_groups, Food_settings
+from services.dam_alem_catalog_seed import ensure_dam_alem_catalog, seed_dam_alem_catalog, Food_items, Food_categories, Food_restaurants, Modifier_groups, Modifier_options, Item_modifier_groups, Food_settings
 from services.food_order_validation import validate_food_order
 from fastapi import HTTPException
 
@@ -68,16 +68,16 @@ async def test_clean_database_bootstraps_restaurant_catalog_and_marketing(monkey
  engine=create_async_engine('sqlite+aiosqlite:///:memory:')
  async with engine.begin() as c:await c.run_sync(Base.metadata.create_all)
  maker=async_sessionmaker(engine,expire_on_commit=False)
+ from core.database import db_manager
+ monkeypatch.setattr(db_manager,'async_session_maker',maker)
+ result=await ensure_dam_alem_catalog()
  async with maker() as db:
-  result=await seed_dam_alem_catalog(db)
   restaurant=await db.get(Food_restaurants,result['restaurant_id'])
   assert restaurant.name=='DAM ALEM 2.0'
   assert restaurant.merchant_key=='dam_alem'
   assert restaurant.min_order==2000
   assert len((await db.scalars(select(Food_items).where(Food_items.restaurant_id==restaurant.id))).all())==37
- from core.database import db_manager
  from services.dam_alem_marketing_seed import ensure_dam_alem_marketing
- monkeypatch.setattr(db_manager,'async_session_maker',maker)
  monkeypatch.delenv('DAM_ALEM_SEED_MARKETING',raising=False)
  await ensure_dam_alem_marketing()
  async with maker() as db:

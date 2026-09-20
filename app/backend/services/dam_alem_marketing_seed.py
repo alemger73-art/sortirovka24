@@ -84,8 +84,13 @@ def _is_legacy_promo_slides(raw: str) -> bool:
         slides = json.loads(raw or "[]")
     except (TypeError, ValueError):
         return False
+    legacy_lines = {
+        "Добавляем автоматически",
+        "От 5 000 ₸ — подарок бесплатно",
+        "−10% на заказ, максимум 1 000 ₸",
+    }
     return isinstance(slides, list) and any(
-        isinstance(slide, dict) and "Добавляем автоматически" in (slide.get("lines") or [])
+        isinstance(slide, dict) and legacy_lines.intersection(slide.get("lines") or [])
         for slide in slides
     )
 
