@@ -19,8 +19,10 @@ if (-not $JavaHome) {
 $keytool = Join-Path $JavaHome "bin\keytool.exe"
 
 function New-RandomPassword([int]$Length = 24) {
-    $chars = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-    -join ((1..$Length) | ForEach-Object { $chars[(Get-Random -Maximum $chars.Length)] })
+    $bytes = New-Object byte[] $Length
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
+    return ([BitConverter]::ToString($bytes) -replace '-', '').ToLowerInvariant()
 }
 
 if ((Test-Path $JksPath) -and (Test-Path $PropsPath)) {

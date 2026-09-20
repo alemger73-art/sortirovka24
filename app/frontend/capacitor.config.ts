@@ -32,7 +32,7 @@ const liveServerUrl = process.env.CAPACITOR_BUILD_MODE === 'store' ? '' : (
 
 const config: CapacitorConfig = {
   appId: 'kz.sortirovka24.app',
-  appName: 'Sortirovka24',
+  appName: 'Sortirovka 24',
   webDir: 'dist',
   server: liveServerUrl
     ? {
@@ -41,6 +41,8 @@ const config: CapacitorConfig = {
         cleartext: false,
         allowNavigation: [
           'sortirovka24-production-8788.up.railway.app',
+          'sortirovka24.kz',
+          'www.sortirovka24.kz',
           // Keep native navigation restricted to the configured application host.
         ],
       }
@@ -56,7 +58,7 @@ const config: CapacitorConfig = {
       showSpinner: false,
     },
     StatusBar: {
-      style: 'DARK',
+      style: 'LIGHT',
       backgroundColor: '#0B0F19',
     },
     Keyboard: {

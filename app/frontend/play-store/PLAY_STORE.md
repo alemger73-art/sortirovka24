@@ -9,7 +9,7 @@
 | Release keystore (скрипт создания) | `scripts/setup-play-keystore.ps1` |
 | Сборка подписанного AAB | `npm run build:android:release` |
 | Package ID | `kz.sortirovka24.app` |
-| targetSdk 35 | `android/variables.gradle` |
+| targetSdk 36 | `android/variables.gradle` |
 | Иконка 512×512 | `public/icon-512.png` |
 | Feature graphic | `play-store/feature-graphic.png` |
 | Политика конфиденциальности (статика) | `public/privacy.html` |
