@@ -145,6 +145,7 @@ export interface PartnerCredential {
   email: string | null;
   phone: string | null;
   display_name: string | null;
+  access_role: 'owner' | 'operator' | null;
   is_active: boolean;
   created_at: string | null;
 }
@@ -210,7 +211,7 @@ export async function listPartnerCredentials(partnerType: PartnerType): Promise<
 
 export async function createPartnerCredential(
   partnerType: PartnerType,
-  payload: { email?: string; phone?: string; password: string; display_name?: string },
+  payload: { email?: string; phone?: string; password: string; display_name?: string; access_role?: 'owner' | 'operator' },
 ): Promise<PartnerCredential> {
   const resp = await fetch(apiUrl(`/api/v1/partner-auth/${partnerType}/credentials`), {
     method: 'POST',
@@ -227,7 +228,7 @@ export async function createPartnerCredential(
 export async function updatePartnerCredential(
   partnerType: PartnerType,
   id: number,
-  payload: Partial<{ email: string; phone: string; password: string; display_name: string; is_active: boolean }>,
+  payload: Partial<{ email: string; phone: string; password: string; display_name: string; access_role: 'owner' | 'operator'; is_active: boolean }>,
 ): Promise<PartnerCredential> {
   const resp = await fetch(apiUrl(`/api/v1/partner-auth/${partnerType}/credentials/${id}`), {
     method: 'PATCH',

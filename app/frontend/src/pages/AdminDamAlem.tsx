@@ -30,13 +30,13 @@ interface AdminDamAlemProps {
 
 function getTABS(adminT: (key: string) => string) {
   const TABS: { id: Section; label: string; icon: typeof Utensils }[] = [
-  { id: 'deliveries', label: adminT('cabinet.deliveries'), icon: ShoppingBag },
   { id: 'today', label: adminT("admin.ui.0235"), icon: Store },
+  { id: 'orders', label: adminT("admin.ui.0239"), icon: ShoppingBag },
+  { id: 'deliveries', label: adminT('cabinet.deliveries'), icon: ShoppingBag },
   { id: 'sales', label: adminT("payroll.salesReport"), icon: ShoppingBag },
   { id: 'payroll', label: adminT('payroll.title'), icon: Store },
   { id: 'staff', label: adminT("admin.ui.0237"), icon: Store },
   { id: 'availability', label: adminT("admin.ui.0238"), icon: ChefHat },
-  { id: 'orders', label: adminT("admin.ui.0239"), icon: ShoppingBag },
   { id: 'telegram', label: 'Telegram', icon: Plug },
   { id: 'brand', label: adminT("admin.ui.0240"), icon: Store },
   { id: 'menu', label: adminT("admin.ui.0241"), icon: ChefHat },
@@ -60,9 +60,29 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
   const [accessError, setAccessError] = useState('');
   useEffect(() => { let alive = true; business<{role: 'owner' | 'operator'}>('/me').then(v => { if (alive && ['owner', 'operator'].includes(v.role)) setAccess(v.role); else if (alive) setAccessError(adminT("admin.ui.0247")); }).catch(e => { if (alive) setAccessError(e.message); }); return () => { alive = false; }; }, []);
   const tabs = TABS.filter(tab => (!partnerMode || tab.id !== 'pos') && (access === 'owner' || ['today', 'orders', 'availability', 'deliveries'].includes(tab.id)));
-  const groupOf = (id: string) => id === 'payroll' ? 'sales' : ['today', 'orders', 'sales', 'deliveries'].includes(id) ? id : ['menu', 'categories', 'modifiers', 'banners', 'availability'].includes(id) ? 'menu' : 'settings';
+  const groupOf = (id: string) => {
+    if (id === 'payroll') return 'sales';
+    if (id === 'staff') return 'staff';
+    if (['menu', 'categories', 'modifiers', 'banners', 'availability'].includes(id)) return 'menu';
+    if (access === 'owner' && ['today', 'orders', 'deliveries'].includes(id)) return 'today';
+    if (['today', 'orders', 'sales', 'deliveries'].includes(id)) return id;
+    return 'settings';
+  };
   const group = groupOf(section);
-  const groups = [{id:'today',label:adminT("admin.ui.0235")}, {id:'orders',label:adminT("admin.ui.0239")}, {id:'deliveries',label:adminT('cabinet.deliveries')}, ...(access === 'owner' ? [{id:'sales',label:adminT("admin.ui.0236")}] : []), {id:'menu',label:access === 'owner' ? adminT("admin.ui.0248") : adminT("admin.ui.0249")}, ...(access === 'owner' ? [{id:'settings',label:adminT("admin.ui.0245")}] : [])];
+  const groups = access === 'owner'
+    ? [
+        { id: 'today', label: adminT('cabinet.ownerOverview') },
+        { id: 'sales', label: adminT('admin.ui.0236') },
+        { id: 'menu', label: adminT('admin.ui.0248') },
+        { id: 'staff', label: adminT('cabinet.team') },
+        { id: 'settings', label: adminT('admin.ui.0245') },
+      ]
+    : [
+        { id: 'today', label: adminT('cabinet.operatorShift') },
+        { id: 'orders', label: adminT('admin.ui.0239') },
+        { id: 'deliveries', label: adminT('cabinet.deliveries') },
+        { id: 'menu', label: adminT('admin.ui.0249') },
+      ];
   const navigate = (id: string, order?: number, status?: string) => { const p = new URLSearchParams(params); p.set('section', id); if (status) p.set('status', status); else p.delete('status'); if (order) p.set('order', String(order)); else if (id !== 'orders') p.delete('order'); setParams(p); };
 
   useEffect(() => {
@@ -95,7 +115,7 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
       <nav aria-label={adminT("admin.ui.0255")} className="flex flex-wrap gap-2">{groups.map(g => <button key={g.id} onClick={() => navigate(g.id === 'menu' && access === 'operator' ? 'availability' : g.id)} className={`rounded-xl px-4 py-3 text-sm font-semibold ${group === g.id ? 'bg-[#FF3B30] text-white' : 'bg-card border text-foreground hover:bg-muted'}`}>{g.label}</button>)}</nav>
 
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-        {tabs.filter(tab => ['menu', 'settings', 'sales'].includes(group) && groupOf(tab.id) === group).map(tab => {
+        {tabs.filter(tab => ['today', 'menu', 'settings', 'sales', 'staff'].includes(group) && groupOf(tab.id) === group).map(tab => {
           const Icon = tab.icon;
           const active = section === tab.id;
           return (
@@ -135,8 +155,8 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
       {section === 'orders' && <DamAlemOrders />}
       {section === 'settings' && (
         <>
-          <AdminFoodSettings damAlemMode />
           {!partnerMode && <AdminPartnerAccess partnerType="dam_alem" />}
+          <AdminFoodSettings damAlemMode />
           {partnerMode && (
             <div className="rounded-2xl border border-orange-100 bg-orange-50/70 p-4 text-sm text-orange-950">
               <p className="font-semibold">{adminT("admin.ui.0256")}</p>

@@ -4,7 +4,7 @@ import hashlib
 import logging
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Literal, Optional
 
 import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -209,6 +209,7 @@ class PartnerCredentialItem(BaseModel):
     email: str | None = None
     phone: str | None = None
     display_name: str | None = None
+    access_role: Literal["owner", "operator"] | None = None
     is_active: bool
     created_at: str | None = None
 
@@ -218,6 +219,7 @@ class PartnerCredentialCreateRequest(BaseModel):
     phone: str | None = None
     password: str
     display_name: str | None = None
+    access_role: Literal["owner", "operator"] | None = None
 
 
 class PartnerCredentialUpdateRequest(BaseModel):
@@ -225,6 +227,7 @@ class PartnerCredentialUpdateRequest(BaseModel):
     phone: str | None = None
     password: str | None = None
     display_name: str | None = None
+    access_role: Literal["owner", "operator"] | None = None
     is_active: bool | None = None
 
 
@@ -235,6 +238,7 @@ def _credential_item(row: PartnerCredentials) -> PartnerCredentialItem:
         email=row.email,
         phone=row.phone,
         display_name=row.display_name,
+        access_role=(row.access_role or "owner") if row.partner_type == DAM_ALEM_PARTNER_TYPE else None,
         is_active=row.is_active,
         created_at=row.created_at.isoformat() if row.created_at else None,
     )
@@ -389,8 +393,9 @@ async def create_partner_credential(
     phone = _normalize_phone(payload.phone or "") if payload.phone else None
     if not email and not phone:
         raise HTTPException(status_code=400, detail="Укажите email или телефон.")
-    if len(payload.password or "") < 6:
-        raise HTTPException(status_code=400, detail="Пароль — минимум 6 символов.")
+    minimum_password_length = 10 if partner_type == DAM_ALEM_PARTNER_TYPE else 6
+    if len(payload.password or "") < minimum_password_length:
+        raise HTTPException(status_code=400, detail=f"Пароль — минимум {minimum_password_length} символов.")
 
     filters = []
     if email:
@@ -415,6 +420,7 @@ async def create_partner_credential(
         phone=phone,
         password_hash=_hash_password(payload.password),
         display_name=(payload.display_name or "").strip() or _default_name(partner_type),
+        access_role=(payload.access_role or "owner") if partner_type == DAM_ALEM_PARTNER_TYPE else None,
         is_active=True,
     )
     db.add(row)
@@ -444,17 +450,41 @@ async def update_partner_credential(
     if not row:
         raise HTTPException(status_code=404, detail="Аккаунт не найден")
 
+    current_role = (row.access_role or "owner") if partner_type == DAM_ALEM_PARTNER_TYPE else None
+    next_role = payload.access_role or current_role
+    next_active = payload.is_active if payload.is_active is not None else row.is_active
+    if partner_type == DAM_ALEM_PARTNER_TYPE and current_role == "owner" and (
+        next_role != "owner" or not next_active
+    ):
+        other_active_owners = await db.scalar(
+            select(func.count())
+            .select_from(PartnerCredentials)
+            .where(
+                PartnerCredentials.partner_type == DAM_ALEM_PARTNER_TYPE,
+                PartnerCredentials.id != row.id,
+                PartnerCredentials.is_active == True,
+                or_(PartnerCredentials.access_role == "owner", PartnerCredentials.access_role.is_(None)),
+            )
+        )
+        if not other_active_owners:
+            raise HTTPException(status_code=409, detail="Нельзя отключить или понизить последнего активного владельца.")
+
     if payload.email is not None:
         row.email = payload.email.strip().lower() or None
     if payload.phone is not None:
         row.phone = _normalize_phone(payload.phone) if payload.phone.strip() else None
     if payload.display_name is not None:
         row.display_name = payload.display_name.strip() or row.display_name
+    if payload.access_role is not None:
+        if partner_type != DAM_ALEM_PARTNER_TYPE:
+            raise HTTPException(status_code=400, detail="Роли сотрудников доступны только для DAM ALEM.")
+        row.access_role = payload.access_role
     if payload.is_active is not None:
         row.is_active = payload.is_active
     if payload.password:
-        if len(payload.password) < 6:
-            raise HTTPException(status_code=400, detail="Пароль — минимум 6 символов.")
+        minimum_password_length = 10 if partner_type == DAM_ALEM_PARTNER_TYPE else 6
+        if len(payload.password) < minimum_password_length:
+            raise HTTPException(status_code=400, detail=f"Пароль — минимум {minimum_password_length} символов.")
         row.password_hash = _hash_password(payload.password)
 
     if not row.email and not row.phone:
@@ -506,6 +536,7 @@ async def _initialize_partner_from_env(partner_type: str) -> None:
                     phone=phone,
                     password_hash=_hash_password(pwd),
                     display_name=display_name,
+                    access_role="owner" if partner_type == DAM_ALEM_PARTNER_TYPE else None,
                     is_active=True,
                 )
             )

@@ -1318,15 +1318,11 @@ export default function Food() {
       ? `${deliveryQuote?.display_address || effectiveAddress}${aptPart}${toAptNote}`
       : '';
 
-    const aptFeeNote = deliverToApartment
-      ? apartmentDeliveryFee > 0
-        ? `\n🚪 Доставка до квартиры: +${apartmentDeliveryFee} ₸`
-        : '\n🚪 Доставка до квартиры: бесплатно'
-      : '';
-    const giftNote = loyaltyGift ? `\n🎁 Подарок: ${loyaltyGift.title}` : '';
-    const promoNote = appliedPromo ? `\n🏷 Промокод ${appliedPromo.code}: ${appliedPromo.label}` : '';
-    const bonusNote = bonusDiscountAmount > 0 ? `\n🪙 Бонусы: −${bonusDiscountAmount} ₸` : '';
-    const orderComment = (comment.trim() + aptFeeNote + giftNote + promoNote + bonusNote).trim();
+    // The comment belongs to the customer. Gifts, promos, bonuses and delivery
+    // fees are stored in structured order fields and may change later when an
+    // operator edits the receipt. Duplicating them in the comment leaves stale
+    // information in the customer's cabinet after a valid recalculation.
+    const orderComment = comment.trim();
 
     const orderItems = cart.map(ci => {
       const mods: { name: string; price: number; option_id: number }[] = [];
