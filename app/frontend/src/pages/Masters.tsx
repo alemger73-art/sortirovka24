@@ -17,6 +17,7 @@ import { StorageGallery } from '@/components/MultiImageUpload';
 import { requireAuthDialog, getAccountPrefill } from '@/lib/localAuth';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { usePageSeo } from '@/hooks/usePageSeo';
 
 export { default as BecomeMasterForm } from '@/components/masters/BecomeMasterWizard';
 
@@ -325,6 +326,20 @@ export function MasterDetail() {
   const { t } = useLanguage();
   const [master, setMaster] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  usePageSeo({
+    title: master?.name,
+    description: master ? [master.description, master.category, master.services, master.district].filter(Boolean).join(' · ').slice(0, 160) : '',
+    image: master?.photo_url,
+    structuredData: master ? {
+      '@context': 'https://schema.org',
+      '@type': 'ProfessionalService',
+      name: master.name,
+      description: master.description,
+      image: master.photo_url || '/icon-512.png',
+      areaServed: master.district || 'Сортировка, Караганда',
+    } : null,
+  });
 
   useEffect(() => {
     loadMaster();

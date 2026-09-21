@@ -35,6 +35,7 @@ import {
 } from '@/lib/realEstate';
 import { useLanguage } from '@/contexts/LanguageContext';
 import SafetyAlert from '@/components/SafetyAlert';
+import { usePageSeo } from '@/hooks/usePageSeo';
 
 type ReFormState = {
   category_id: string;
@@ -482,6 +483,24 @@ export function RealEstateDetail() {
   const [loading, setLoading] = useState(true);
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
   const [isFav, setIsFav] = useState(false);
+  const seoDescription = item
+    ? [item.description, item.rooms && `${item.rooms} комн.`, item.area && `${item.area} м²`, item.price, item.address]
+        .filter(Boolean).join(' · ').replace(/\s+/g, ' ').trim().slice(0, 160)
+    : '';
+
+  usePageSeo({
+    title: item?.title,
+    description: seoDescription,
+    image: item?.image_url,
+    structuredData: item ? {
+      '@context': 'https://schema.org',
+      '@type': 'Residence',
+      name: item.title,
+      description: seoDescription,
+      image: item.image_url || '/icon-512.png',
+      address: item.address ? { '@type': 'PostalAddress', streetAddress: item.address, addressLocality: 'Караганда', addressCountry: 'KZ' } : undefined,
+    } : null,
+  });
 
   useEffect(() => {
     fetchRealEstateCategories().then(setCategories).catch(() => setCategories([]));

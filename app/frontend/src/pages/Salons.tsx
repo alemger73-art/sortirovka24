@@ -14,6 +14,7 @@ import {
   Phone, MessageCircle, MapPin, Clock, ChevronLeft, ChevronRight, Search,
   Sparkles, BadgeCheck, Instagram, Navigation, Scissors,
 } from 'lucide-react';
+import { usePageSeo } from '@/hooks/usePageSeo';
 
 const PAGE_SIZE = 24;
 
@@ -349,6 +350,21 @@ export function SalonDetail() {
   const { id } = useParams();
   const [salon, setSalon] = useState<Salon | null>(null);
   const [loading, setLoading] = useState(true);
+
+  usePageSeo({
+    title: salon?.name,
+    description: salon ? [salon.description, salon.category, salon.services, salon.address].filter(Boolean).join(' · ').slice(0, 160) : '',
+    image: salon?.photo_url,
+    structuredData: salon ? {
+      '@context': 'https://schema.org',
+      '@type': 'LocalBusiness',
+      name: salon.name,
+      description: salon.description,
+      image: salon.photo_url || '/icon-512.png',
+      telephone: salon.phone,
+      address: salon.address ? { '@type': 'PostalAddress', streetAddress: salon.address, addressLocality: 'Караганда', addressCountry: 'KZ' } : undefined,
+    } : null,
+  });
 
   useEffect(() => { loadSalon(); }, [id]);
 

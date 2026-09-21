@@ -25,7 +25,7 @@ from core.deploy_safety import database_target_fingerprint, environment_name, va
 from core.monitoring import init_sentry
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.routing import APIRouter
 
 # MODULE_IMPORTS_START
@@ -446,11 +446,15 @@ _RESERVED_PREFIXES = ("api", "health", "docs", "redoc", "openapi.json")
 
 
 @app.get("/")
-def root():
+async def root():
     if _FRONTEND_INDEX.is_file():
-        return FileResponse(
-            _FRONTEND_INDEX,
-            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        from services.seo_renderer import build_seo_page, render_html
+
+        page = await build_seo_page("/")
+        document = _FRONTEND_INDEX.read_text(encoding="utf-8")
+        return HTMLResponse(
+            render_html(document, page),
+            headers={"Cache-Control": "public, max-age=60, stale-while-revalidate=300"},
         )
     return {"message": "FastAPI Modular Template is running"}
 
@@ -493,12 +497,34 @@ async def readiness_check():
 
 
 if FRONTEND_DIR.is_dir():
+    @app.get("/sitemap.xml", include_in_schema=False)
+    async def sitemap_xml():
+        from services.seo_renderer import build_sitemap_xml
+
+        return HTMLResponse(
+            await build_sitemap_xml(),
+            media_type="application/xml",
+            headers={"Cache-Control": "public, max-age=900, stale-while-revalidate=3600"},
+        )
+
+    @app.get("/ads", include_in_schema=False)
+    async def redirect_ads():
+        return RedirectResponse("/announcements", status_code=301)
+
+    @app.get("/pharmacy", include_in_schema=False)
+    async def redirect_pharmacy():
+        return RedirectResponse("/apteka", status_code=301)
+
     @app.get("/{full_path:path}")
-    def serve_spa(full_path: str):
+    async def serve_spa(full_path: str):
         """Serve static assets and fall back to index.html for client-side routes."""
         # Never shadow the API, docs or health endpoints.
         if full_path.split("/", 1)[0] in _RESERVED_PREFIXES:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        if full_path.endswith("/"):
+            return RedirectResponse("/" + full_path.rstrip("/"), status_code=301)
+        if full_path in {"dashboard", "panel", "wp-admin"} or full_path.startswith(("dashboard/", "panel/", "wp-admin/")):
+            return RedirectResponse("/", status_code=301)
         candidate = (FRONTEND_DIR / full_path).resolve()
         # Guard against path traversal, then serve the real file if it exists.
         if FRONTEND_DIR in candidate.parents and candidate.is_file():
@@ -506,10 +532,16 @@ if FRONTEND_DIR.is_dir():
             if candidate.name == "index.html" or full_path == "":
                 headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
             return FileResponse(candidate, headers=headers if headers else None)
-        # Unknown path → let the SPA router handle it.
-        return FileResponse(
-            _FRONTEND_INDEX,
-            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        # Public routes receive server-rendered metadata and meaningful HTML.
+        # React replaces the prerendered shell after it starts.
+        from services.seo_renderer import build_seo_page, render_html
+
+        page = await build_seo_page("/" + full_path)
+        document = _FRONTEND_INDEX.read_text(encoding="utf-8")
+        return HTMLResponse(
+            render_html(document, page),
+            status_code=page.status_code,
+            headers={"Cache-Control": "public, max-age=60, stale-while-revalidate=300"},
         )
 
 

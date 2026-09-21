@@ -16,6 +16,7 @@ const PAGE_META: Array<[string, PageMeta]> = [
   ['/inspectors', { title: 'Участковые инспекторы Сортировки', description: 'Контакты участковых инспекторов и отделов полиции района Сортировка.' }],
   ['/business', { title: 'Бизнес района Сортировка', description: 'Местные компании, магазины и услуги района Сортировка в Караганде.' }],
   ['/masters', { title: 'Мастера на Сортировке', description: 'Каталог проверенных мастеров и услуг в районе Сортировка.' }],
+  ['/salons', { title: 'Салоны и заведения Сортировки', description: 'Салоны, заведения и локальные услуги района Сортировка в Караганде.' }],
   ['/food', { title: 'DÄM ALEM — доставка еды на Сортировке', description: 'Закажите UFO-бургеры, пиццу, закуски и напитки с доставкой по району Сортировка.' }],
   ['/news', { title: 'Новости района Сортировка', description: 'Последние новости и события района Сортировка в Караганде.' }],
   ['/jobs', { title: 'Работа на Сортировке', description: 'Свежие вакансии и предложения работы в районе Сортировка.' }],
@@ -40,7 +41,9 @@ export default function SeoManager() {
 
   useEffect(() => {
     const privatePage = PRIVATE_PREFIXES.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`));
-    const entry = PAGE_META.find(([prefix]) => prefix === '/' ? pathname === '/' : pathname === prefix || pathname.startsWith(`${prefix}/`));
+    const entry = PAGE_META.find(([prefix]) => pathname === prefix);
+    const dynamicPublicPage = /^\/(news|announcements|real-estate|jobs|masters|salons)\/[^/]+$/.test(pathname);
+    if (dynamicPublicPage && !privatePage) return;
     const meta = entry?.[1] ?? { title: DEFAULT_TITLE, description: DEFAULT_DESCRIPTION };
     const title = meta.title === DEFAULT_TITLE ? meta.title : `${meta.title} | Сортировка 24`;
     const cleanPath = pathname === '/' ? '/' : pathname.replace(/\/+$/, '');

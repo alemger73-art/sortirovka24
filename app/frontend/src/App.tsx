@@ -38,6 +38,7 @@ const RealEstateDetail = lazy(() => import("./pages/RealEstate").then(m => ({ de
 const NewRealEstateForm = lazy(() => import("./pages/RealEstate").then(m => ({ default: m.NewRealEstateForm })));
 const EditRealEstateForm = lazy(() => import("./pages/RealEstate").then(m => ({ default: m.EditRealEstateForm })));
 const JobsList = lazy(() => import("./pages/Content").then(m => ({ default: m.JobsList })));
+const JobDetail = lazy(() => import("./pages/Content").then(m => ({ default: m.JobDetail })));
 const NewJobForm = lazy(() => import("./pages/Content").then(m => ({ default: m.NewJobForm })));
 const QuestionsList = lazy(() => import("./pages/Content").then(m => ({ default: m.QuestionsList })));
 const QuestionDetail = lazy(() => import("./pages/Content").then(m => ({ default: m.QuestionDetail })));
@@ -179,6 +180,7 @@ function App() {
               <Route path="/real-estate/:id/edit" element={<ModuleRoute module="real_estate"><RequireUserAuth><EditRealEstateForm /></RequireUserAuth></ModuleRoute>} />
               <Route path="/real-estate/:id" element={<ModuleRoute module="real_estate"><RealEstateDetail /></ModuleRoute>} />
               <Route path="/jobs" element={<ModuleRoute module="jobs"><JobsList /></ModuleRoute>} />
+              <Route path="/jobs/:id" element={<ModuleRoute module="jobs"><JobDetail /></ModuleRoute>} />
               <Route path="/jobs/new" element={<ModuleRoute module="jobs"><NewJobForm /></ModuleRoute>} />
               <Route path="/questions" element={<ModuleRoute module="questions"><QuestionsList /></ModuleRoute>} />
               <Route path="/questions/new" element={<ModuleRoute module="questions"><NewQuestionForm /></ModuleRoute>} />

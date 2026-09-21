@@ -29,6 +29,11 @@ export default defineConfig(({ mode }) => ({
         skipWaiting: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         navigateFallback: '/index.html',
+        // Public pages must reach the server so every navigation receives
+        // route-specific metadata and the server-rendered SEO shell.
+        navigateFallbackDenylist: [
+          /^\/(?:news|announcements|real-estate|jobs|food|directory|transport|inspectors|business|masters|salons|support|questions|complaints)(?:\/|$)/,
+        ],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/sortirovka24-production-8788\.up\.railway\.app\/api\/.*/i,

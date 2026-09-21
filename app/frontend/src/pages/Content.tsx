@@ -33,6 +33,7 @@ import {
 } from '@/lib/announcements';
 import { useLanguage } from '@/contexts/LanguageContext';
 import SafetyAlert from '@/components/SafetyAlert';
+import { usePageSeo } from '@/hooks/usePageSeo';
 
 function normalizeYoutubeWatchUrl(value: string): string {
   const raw = (value || '').trim();
@@ -133,6 +134,24 @@ export function NewsDetail() {
   const [loading, setLoading] = useState(true);
   const youtubeWatchUrl = normalizeYoutubeWatchUrl(item?.youtube_url || '');
   const youtubeEmbedUrl = buildYoutubeEmbedUrl(item?.youtube_url || '');
+  const newsTitle = item ? localized(item, 'title') : '';
+  const newsDescription = item ? (localized(item, 'short_description') || localized(item, 'content') || '').replace(/\s+/g, ' ').trim().slice(0, 160) : '';
+
+  usePageSeo({
+    title: newsTitle,
+    description: newsDescription,
+    image: item?.image_url,
+    type: 'article',
+    structuredData: item ? {
+      '@context': 'https://schema.org',
+      '@type': 'NewsArticle',
+      headline: newsTitle,
+      description: newsDescription,
+      datePublished: item.created_at,
+      image: item.image_url || '/icon-512.png',
+      author: { '@type': 'Organization', name: 'Сортировка 24' },
+    } : null,
+  });
 
   useEffect(() => {
     (async () => {
@@ -892,6 +911,21 @@ export function AnnouncementDetail() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const announcementDescription = item ? String(item.description || item.title || '').replace(/\s+/g, ' ').trim().slice(0, 160) : '';
+
+  usePageSeo({
+    title: item?.title,
+    description: announcementDescription,
+    image: item?.image_url,
+    structuredData: item ? {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: item.title,
+      description: announcementDescription,
+      image: item.image_url || '/icon-512.png',
+      offers: item.price ? { '@type': 'Offer', price: String(item.price), priceCurrency: 'KZT', availability: 'https://schema.org/InStock' } : undefined,
+    } : null,
+  });
 
   useEffect(() => {
     fetchAnnouncementCategories().then(setCategories).catch(() => setCategories([]));
@@ -1118,7 +1152,7 @@ export function JobsList() {
               <div key={job.id} className="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-all">
                 <div className="flex items-start gap-4">
                   {job.image_url ? (
-                    <StorageImg objectKey={job.image_url} alt="" className="w-14 h-14 rounded-xl object-cover flex-shrink-0" />
+                    <StorageImg objectKey={job.image_url} alt={job.job_title || 'Вакансия'} className="w-14 h-14 rounded-xl object-cover flex-shrink-0" />
                   ) : (
                     <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
                       <Briefcase className="w-6 h-6 text-blue-600" />
@@ -1137,6 +1171,7 @@ export function JobsList() {
                       {job.district && <span>📍 {job.district}</span>}
                     </div>
                     <div className="flex gap-2 mt-3 pt-3 border-t border-gray-50">
+                      <Link to={`/jobs/${job.id}`} className="inline-flex items-center gap-1 text-sm font-semibold text-gray-700 hover:text-blue-700">Подробнее</Link>
                       <a href={`tel:${job.phone}`} className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"><Phone className="w-3.5 h-3.5" /> {job.phone}</a>
                       {job.whatsapp && <a href={`https://wa.me/${job.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-green-600 hover:text-green-700"><MessageCircle className="w-3.5 h-3.5" /> WhatsApp</a>}
                     </div>
@@ -1147,6 +1182,68 @@ export function JobsList() {
           </div>
         )}
       </div>
+    </Layout>
+  );
+}
+
+/* ============ JOB DETAIL ============ */
+export function JobDetail() {
+  const { t: publicT } = useLanguage();
+  const { id } = useParams();
+  const [job, setJob] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const seoDescription = job ? String(job.description || job.job_title || '').replace(/\s+/g, ' ').trim().slice(0, 160) : '';
+
+  usePageSeo({
+    title: job?.job_title,
+    description: seoDescription,
+    image: job?.image_url,
+    structuredData: job ? {
+      '@context': 'https://schema.org',
+      '@type': 'JobPosting',
+      title: job.job_title,
+      description: seoDescription,
+      datePosted: job.created_at,
+      hiringOrganization: { '@type': 'Organization', name: job.employer || 'Сортировка 24' },
+      jobLocation: { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: 'Караганда', addressRegion: job.district || 'Сортировка', addressCountry: 'KZ' } },
+    } : null,
+  });
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const response = await withRetry(() => client.entities.jobs.get({ id: id! }));
+        const value = response.data;
+        if (value && value.active !== false && ['approved', 'published'].includes(value.status)) setJob(value);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [id]);
+
+  if (loading) return <Layout><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400">{publicT('common.retrying')}</div></Layout>;
+  if (!job) return <Layout><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400">Вакансия не найдена</div></Layout>;
+
+  return (
+    <Layout>
+      <article className="max-w-3xl mx-auto px-4 py-8">
+        <Link to="/jobs" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> Все вакансии</Link>
+        {job.image_url ? <StorageImg objectKey={job.image_url} alt={job.job_title} className="w-full max-h-80 object-cover rounded-xl mb-6" /> : null}
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{job.job_title}</h1>
+        {job.employer ? <p className="text-gray-600 mt-2">{job.employer}</p> : null}
+        {job.salary ? <p className="text-xl font-bold text-blue-600 mt-3">{job.salary}</p> : null}
+        <div className="flex flex-wrap gap-3 mt-4 text-sm text-gray-500">
+          {job.schedule ? <span>📅 {job.schedule}</span> : null}
+          {job.district ? <span>📍 {job.district}</span> : null}
+        </div>
+        <section className="mt-6"><h2 className="font-bold text-lg mb-2">Описание вакансии</h2><p className="whitespace-pre-line text-gray-700 leading-relaxed">{job.description}</p></section>
+        <div className="flex flex-wrap gap-3 mt-7">
+          {job.phone ? <a href={`tel:${job.phone}`} className="rounded-lg bg-blue-600 px-4 py-3 text-white font-semibold">Позвонить</a> : null}
+          {job.whatsapp ? <a href={`https://wa.me/${job.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-green-600 px-4 py-3 text-white font-semibold">WhatsApp</a> : null}
+        </div>
+      </article>
     </Layout>
   );
 }

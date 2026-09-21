@@ -9,6 +9,13 @@ Disallow: /account
 Disallow: /login
 Disallow: /register
 Disallow: /system-portal-924
+Disallow: /operator
+Disallow: /orders
+Disallow: /checkout
+Disallow: /payment
+Disallow: /delivery/
+Disallow: /taxi/ride/
+Disallow: /auth/
 
 Host: www.sortirovka24.kz
 Sitemap: https://www.sortirovka24.kz/sitemap.xml
