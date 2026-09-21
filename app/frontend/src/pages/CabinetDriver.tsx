@@ -155,9 +155,6 @@ export default function CabinetDriver() {
       const next = !data.profile.online;
       if (next) {
         await unlockTaxiSound();
-        if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-          void Notification.requestPermission();
-        }
       }
       await taxiApi.setOnline(next);
       toast.success(next ? t('driver.online') : t('driver.offline'));

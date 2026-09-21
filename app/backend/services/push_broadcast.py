@@ -3,9 +3,16 @@
 from __future__ import annotations
 
 import logging
+import json
 
 from models.push_devices import PushDevice
-from services.push_notifications import push_enabled, send_push_to_token
+from services.push_notifications import (
+    native_push_enabled,
+    push_enabled,
+    send_push_to_token,
+    send_web_push_subscription,
+    web_push_enabled,
+)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,7 +33,7 @@ async def broadcast_push(
 ) -> dict[str, int | bool]:
     """Send a push to all active devices (optionally filtered by user/platform)."""
     if not push_enabled():
-        logger.debug("FCM not configured — broadcast skipped")
+        logger.debug("Push providers are not configured — broadcast skipped")
         return {"sent": 0, "failed": 0, "total": 0, "skipped": True}
 
     query = select(PushDevice).where(PushDevice.is_active.is_(True))
@@ -40,16 +47,31 @@ async def broadcast_push(
     failed = 0
 
     for device in devices:
-        ok = await send_push_to_token(
-            device.token,
-            title=title,
-            body=body,
-            data=data,
-        )
+        expired = False
+        if device.platform == "web":
+            if not web_push_enabled():
+                continue
+            try:
+                subscription = json.loads(device.token)
+            except (TypeError, ValueError):
+                ok, expired = False, True
+            else:
+                ok, expired = await send_web_push_subscription(
+                    subscription, title=title, body=body, data=data
+                )
+        else:
+            if not native_push_enabled():
+                continue
+            ok = await send_push_to_token(device.token, title=title, body=body, data=data)
         if ok:
             sent += 1
         else:
             failed += 1
+        if expired:
+            device.is_active = False
+
+    if any(not device.is_active for device in devices):
+        await db.commit()
 
     return {"sent": sent, "failed": failed, "total": len(devices), "skipped": False}
 

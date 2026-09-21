@@ -66,9 +66,6 @@ export default function TaxiRide() {
 
   useEffect(() => {
     load();
-    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-      void Notification.requestPermission();
-    }
   }, [load]);
 
   useEffect(() => {

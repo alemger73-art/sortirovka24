@@ -1,9 +1,11 @@
-"""Firebase Cloud Messaging (FCM) helpers for native push notifications."""
+"""Native FCM and standards-based Web Push delivery helpers."""
 
 from __future__ import annotations
 
 import logging
 import os
+import asyncio
+import json
 from typing import Any
 
 import httpx
@@ -14,8 +16,23 @@ logger = logging.getLogger(__name__)
 FCM_LEGACY_URL = "https://fcm.googleapis.com/fcm/send"
 
 
-def push_enabled() -> bool:
+def native_push_enabled() -> bool:
     return external_side_effects_allowed() and bool(os.environ.get("FCM_SERVER_KEY", "").strip())
+
+
+def web_push_enabled() -> bool:
+    return external_side_effects_allowed() and bool(
+        os.environ.get("WEB_PUSH_PUBLIC_KEY", "").strip()
+        and os.environ.get("WEB_PUSH_PRIVATE_KEY", "").strip()
+    )
+
+
+def push_enabled() -> bool:
+    return native_push_enabled() or web_push_enabled()
+
+
+def web_push_public_key() -> str:
+    return os.environ.get("WEB_PUSH_PUBLIC_KEY", "").strip() if web_push_enabled() else ""
 
 
 async def send_push_to_token(
@@ -62,3 +79,43 @@ async def send_push_to_token(
     except Exception as exc:
         logger.warning("FCM send failed: %s", exc)
     return False
+
+
+async def send_web_push_subscription(
+    subscription: dict[str, Any],
+    *,
+    title: str,
+    body: str,
+    data: dict[str, str] | None = None,
+) -> tuple[bool, bool]:
+    """Return (delivered, expired). Expired endpoints should be deactivated."""
+    if not web_push_enabled():
+        return False, False
+    try:
+        from pywebpush import WebPushException, webpush
+    except ImportError:
+        logger.error("pywebpush is not installed — Web Push skipped")
+        return False, False
+    try:
+        payload = json.dumps({"title": title, "body": body, "data": data or {}}, ensure_ascii=False)
+        contact = os.environ.get("WEB_PUSH_CONTACT", "mailto:admin@sortirovka24.kz").strip()
+
+        def _send() -> None:
+            webpush(
+                subscription_info=subscription,
+                data=payload,
+                vapid_private_key=os.environ["WEB_PUSH_PRIVATE_KEY"].strip(),
+                vapid_claims={"sub": contact},
+                ttl=86400,
+            )
+
+        await asyncio.to_thread(_send)
+        return True, False
+    except WebPushException as exc:
+        status_code = getattr(getattr(exc, "response", None), "status_code", None)
+        expired = status_code in {404, 410}
+        logger.warning("Web Push delivery failed (status=%s): %s", status_code, exc)
+        return False, expired
+    except Exception as exc:
+        logger.warning("Web Push send failed: %s", exc)
+        return False, False

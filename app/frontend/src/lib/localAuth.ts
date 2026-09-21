@@ -140,6 +140,8 @@ export function isLoggedIn(): boolean {
 }
 
 export function logoutLocalUser() {
+  const token = getAccountToken();
+  void import('@/lib/pushNotifications').then(({ disablePushNotifications }) => disablePushNotifications(token)).catch(() => {});
   accountApi.logout().catch(() => {});
   clearAccountToken();
   localStorage.removeItem(PROFILE_KEY);

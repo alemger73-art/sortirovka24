@@ -42,6 +42,7 @@ export interface PushStats {
   active_devices: number;
   android_active: number;
   ios_active: number;
+  web_active?: number;
   admin_active?: number;
 }
 
@@ -62,11 +63,25 @@ export const pushApiClient = {
       body: JSON.stringify({ token, platform }),
     }),
 
-  unregister: (token: string) =>
+  unregister: (token: string, accountToken?: string) =>
     pushApi<{ success: boolean }>('/api/v1/push/unregister', {
       method: 'POST',
       body: JSON.stringify({ token }),
+    }, accountToken),
+
+  webKey: () => pushApi<{ enabled: boolean; public_key: string }>('/api/v1/push/web-key'),
+
+  registerWeb: (subscription: PushSubscriptionJSON) =>
+    pushApi<{ success: boolean; registered: boolean }>('/api/v1/push/register-web', {
+      method: 'POST',
+      body: JSON.stringify({ subscription }),
     }),
+
+  unregisterWeb: (endpoint: string, accountToken?: string) =>
+    pushApi<{ success: boolean; registered: boolean }>('/api/v1/push/unregister-web', {
+      method: 'POST',
+      body: JSON.stringify({ endpoint }),
+    }, accountToken),
 
   adminStats: () =>
     pushApi<PushStats>('/api/v1/push/stats', undefined, getAdminToken()),
@@ -75,7 +90,7 @@ export const pushApiClient = {
     title: string;
     body: string;
     path?: string;
-    platform?: 'android' | 'ios';
+    platform?: 'android' | 'ios' | 'web';
   }) =>
     pushApi<PushBroadcastResult>('/api/v1/push/broadcast', {
       method: 'POST',

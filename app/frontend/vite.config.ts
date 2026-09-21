@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => ({
       includeAssets: ['icon-192.png', 'icon-512.png', 'favicon.svg'],
       manifest: false,
       workbox: {
+        importScripts: ['/push-sw.js'],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
@@ -34,17 +35,9 @@ export default defineConfig(({ mode }) => ({
         navigateFallbackDenylist: [
           /^\/(?:news|announcements|real-estate|jobs|food|directory|transport|inspectors|business|masters|salons|support|questions|complaints)(?:\/|$)/,
         ],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/sortirovka24-production-8788\.up\.railway\.app\/api\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              networkTimeoutSeconds: 10,
-              expiration: { maxEntries: 32, maxAgeSeconds: 60 },
-            },
-          },
-        ],
+        // Account, order and payment APIs are deliberately network-only.
+        // Workbox precaches static assets but never stores private API responses.
+        runtimeCaching: [],
       },
     }),
   ],

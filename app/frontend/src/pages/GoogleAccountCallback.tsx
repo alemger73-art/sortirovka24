@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { accountApi, setAccountToken } from "@/lib/accountApi";
-import { linkPushTokenToAccount } from "@/lib/pushNotifications";
+import { linkPushTokenToAccount, syncWebPushSubscriptionToAccount } from "@/lib/pushNotifications";
 import { cacheAccountProfile } from "@/lib/localAuth";
 
 function getCabinetRouteByRole(role?: string): string {
@@ -55,6 +55,7 @@ export default function GoogleAccountCallback() {
       try {
         setAccountToken(token);
         void linkPushTokenToAccount();
+        void syncWebPushSubscriptionToAccount();
         const me = await accountApi.me();
         if (cancelled) return;
         cacheAccountProfile({

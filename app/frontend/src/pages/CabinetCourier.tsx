@@ -157,9 +157,6 @@ export default function CabinetCourier() {
       const next = !data.profile.online;
       if (next) {
         await unlockTaxiSound();
-        if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-          void Notification.requestPermission();
-        }
       }
       await logisticsApi.setOnline(next);
       toast.success(next ? t('courier.online') : t('courier.offline'));

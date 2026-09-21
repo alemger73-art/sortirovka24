@@ -6,6 +6,12 @@ import { Bell } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { humanizeApiError } from '@/lib/apiErrors';
 import { loadNotificationPrefs, saveNotificationPrefs, type CabinetNotificationPrefs } from '@/lib/cabinetPreferences';
+import {
+  disablePushNotifications,
+  enablePushNotifications,
+  getPushPermissionState,
+  type PushPermissionState,
+} from '@/lib/pushNotifications';
 
 interface Props { t: (key: string) => string }
 function PrefRow({
@@ -39,8 +45,23 @@ export default function CabinetNotificationSettings({ t }: Props) {
   const [notify, setNotify] = useState<CabinetNotificationPrefs | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [permission, setPermission] = useState(typeof Notification === 'undefined' ? 'unsupported' : Notification.permission);
+  const [permission, setPermission] = useState<PushPermissionState>('disabled');
+  const [pushBusy, setPushBusy] = useState(false);
   useEffect(() => { void loadNotificationPrefs().then(setNotify); }, []);
+  useEffect(() => { void getPushPermissionState().then(setPermission).catch(() => setPermission('unsupported')); }, []);
+  async function changePush(enabled: boolean) {
+    if (pushBusy) return;
+    setPushBusy(true);
+    setError('');
+    try {
+      setPermission(enabled ? await enablePushNotifications() : await disablePushNotifications());
+    } catch (e) {
+      setError(humanizeApiError(e));
+      setPermission(await getPushPermissionState().catch((): PushPermissionState => 'unsupported'));
+    } finally {
+      setPushBusy(false);
+    }
+  }
   async function persistNotify(next: CabinetNotificationPrefs) {
     if (saving) return;
     setSaving(true);
@@ -57,8 +78,19 @@ export default function CabinetNotificationSettings({ t }: Props) {
           <Bell className="h-5 w-5 text-sky-600" />
           <h3 className="text-sm font-bold text-gray-900 dark:text-white">{t('cabinet.permissions.title')}</h3>
         </div>
-        {permission === 'default' && <button type="button" className="mb-3 rounded-xl bg-sky-100 px-4 py-3 text-sm font-semibold text-sky-800" onClick={() => { void Notification.requestPermission().then(setPermission); }}>{t('cabinet.enableNotifications')}</button>}
-        {permission === 'denied' && <p className="mb-3 text-xs">{t('cabinet.notificationsDenied')}</p>}
+        {permission === 'enabled' ? (
+          <div className="mb-3 flex flex-wrap items-center gap-3">
+            <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Push-уведомления включены</span>
+            <button type="button" disabled={pushBusy} className="text-xs font-semibold text-gray-600 underline dark:text-slate-300" onClick={() => void changePush(false)}>Отключить на этом устройстве</button>
+          </div>
+        ) : permission === 'disabled' ? (
+          <button type="button" disabled={pushBusy} className="mb-3 rounded-xl bg-sky-100 px-4 py-3 text-sm font-semibold text-sky-800 disabled:opacity-60" onClick={() => void changePush(true)}>
+            {pushBusy ? 'Подключаем…' : t('cabinet.enableNotifications')}
+          </button>
+        ) : null}
+        {permission === 'denied' && <p className="mb-3 text-xs">Уведомления заблокированы в настройках браузера или телефона. Разрешите их для Sortirovka 24 и вернитесь на эту страницу.</p>}
+        {permission === 'needs-install' && <p className="mb-3 text-xs">На iPhone сначала установите Sortirovka 24 на экран «Домой» через кнопку «Поделиться», затем откройте установленное приложение и включите уведомления здесь.</p>}
+        {permission === 'unsupported' && <p className="mb-3 text-xs">Это устройство или браузер не поддерживает push-уведомления.</p>}
         <p className="mb-2 text-xs text-gray-500 dark:text-slate-400">{t('cabinet.permissions.hint')}</p>
 
         {delivery && <PrefRow
