@@ -16,6 +16,7 @@ export default function InstallAppBanner() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
   const [iosInstructions, setIosInstructions] = useState(false);
+  const [showManualIosHelp, setShowManualIosHelp] = useState(false);
 
   useEffect(() => {
     if (isNativeApp()) return;
@@ -85,9 +86,34 @@ export default function InstallAppBanner() {
           >
             {publicT("public.InstallAppBanner.text336")}
           </button> : (
-            <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
-              <Share className="h-4 w-4" /> Поделиться → На экран Домой
-            </div>
+            <>
+              <button
+                type="button"
+                className="mt-3 flex min-h-11 items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-left text-sm font-semibold text-blue-700 transition active:scale-[0.98] dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
+                onClick={async () => {
+                  if (typeof navigator.share === 'function') {
+                    try {
+                      await navigator.share({
+                        title: 'Sortirovka 24',
+                        text: 'Установить Sortirovka 24 на телефон',
+                        url: window.location.origin,
+                      });
+                      return;
+                    } catch (error) {
+                      if (error instanceof DOMException && error.name === 'AbortError') return;
+                    }
+                  }
+                  setShowManualIosHelp(true);
+                }}
+              >
+                <Share className="h-4 w-4 shrink-0" /> Открыть меню «Поделиться»
+              </button>
+              {showManualIosHelp && (
+                <p className="mt-2 rounded-lg bg-blue-50 p-2 text-xs text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
+                  Если меню не открылось, нажмите «⋯» внизу браузера, затем «Поделиться» и «На экран Домой». На iPhone используйте Safari, если этого пункта нет.
+                </p>
+              )}
+            </>
           )}
         </div>
         <button
