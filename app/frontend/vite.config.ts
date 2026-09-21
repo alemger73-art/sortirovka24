@@ -41,6 +41,7 @@ export default defineConfig(({ mode }) => ({
         navigateFallbackDenylist: [
           /^\/api(?:\/|$)/,
           /^\/(?:news|announcements|real-estate|jobs|food|directory|transport|inspectors|business|masters|salons|support|questions|complaints)(?:\/|$)/,
+          /^\/(?:dam-alem|delivery|cabinet|account|partner|admin)(?:\/|$)/,
         ],
         // Account, order and payment APIs are deliberately network-only.
         // Workbox precaches static assets but never stores private API responses.

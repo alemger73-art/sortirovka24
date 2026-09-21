@@ -188,7 +188,7 @@ function App() {
               <Route path="/more" element={<MorePage />} />
               <Route path="/taxi" element={<TaxiPage />} />
               <Route path="/taxi/driver" element={<TaxiDriverHub />} />
-              <Route path="/delivery/courier" element={<Navigate to="/dam-alem/courier" replace />} />
+              <Route path="/delivery/courier" element={<Navigate to="/food/courier" replace />} />
               <Route path="/taxi/ride/:id" element={<RequireUserAuth><TaxiRidePage /></RequireUserAuth>} />
               <Route path="/transport" element={<ModuleRoute module="transport"><TransportPage /></ModuleRoute>} />
               <Route path="/account" element={<AccountAuth />} />
@@ -196,8 +196,8 @@ function App() {
               <Route path="/cabinet/orders/:source/:orderId" element={<Protected><ModuleRoute><CabinetOrderDetail /></ModuleRoute></Protected>} />
               <Route path="/cabinet/master" element={<Protected><RequireCabinetRole allowedRoles={["master"]}><ModuleRoute module="masters"><CabinetMaster /></ModuleRoute></RequireCabinetRole></Protected>} />
               <Route path="/cabinet/driver" element={<Protected><RequireCabinetRole allowedRoles={["driver"]}><CabinetDriver /></RequireCabinetRole></Protected>} />
-              <Route path="/cabinet/courier" element={<Navigate to="/dam-alem/courier" replace />} />
-              <Route path="/dam-alem/courier" element={<ModuleRoute module="food"><DamAlemCourier /></ModuleRoute>} />
+              <Route path="/cabinet/courier" element={<Navigate to="/food/courier" replace />} />
+              <Route path="/dam-alem/courier" element={<Navigate to="/food/courier" replace />} />
               <Route path="/delivery/food/:orderId" element={<DeliveryTrack />} />
               <Route path="/cabinet/partner" element={<Protected><RequireCabinetRole allowedRoles={["seller"]}><CabinetPartner /></RequireCabinetRole></Protected>} />
               <Route path="/cabinet/admin" element={<Protected><RequireCabinetRole allowedRoles={["admin", "superadmin", "moderator"]}><CabinetAdmin /></RequireCabinetRole></Protected>} />
@@ -213,7 +213,7 @@ function App() {
               <Route path="/apteka" element={<ModuleRoute module="pharmacy"><Pharmacy /></ModuleRoute>} />
               <Route path="/pharmacy" element={<Navigate to="/apteka" replace />} />
               <Route path="/food/park" element={<ModuleRoute module="food"><FoodPark /></ModuleRoute>} />
-              <Route path="/food/courier" element={<Navigate to="/dam-alem/courier" replace />} />
+              <Route path="/food/courier" element={<ModuleRoute module="food"><DamAlemCourier /></ModuleRoute>} />
               <Route path="/business" element={<ModuleRoute module="business"><BusinessPage /></ModuleRoute>} />
               <Route path="/support" element={<SupportPage />} />
               <Route path="/report-problem" element={<ReportProblemPage />} />
