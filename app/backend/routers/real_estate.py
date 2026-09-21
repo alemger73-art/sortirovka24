@@ -1,9 +1,12 @@
+from services.content_access import is_content_admin
+from services.account_session import resolve_account_user
+from datetime import datetime, timezone
 import json
 import logging
 from typing import List, Optional
 
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -146,6 +149,7 @@ async def query_real_estates(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
     fields: str = Query(None, description="Comma-separated list of fields to return"),
+    authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
     """Query real_estates with filtering, sorting, and pagination"""
@@ -158,10 +162,13 @@ async def query_real_estates(
         if query:
             try:
                 query_dict = json.loads(query)
+                if not isinstance(query_dict, dict):
+                    raise HTTPException(400, "Query must be a JSON object")
             except json.JSONDecodeError:
                 raise HTTPException(status_code=400, detail="Invalid query JSON format")
         
         result = await service.get_list(
+            public_only=not await is_content_admin(db, authorization),
             skip=skip, 
             limit=limit,
             query_dict=query_dict,
@@ -183,6 +190,7 @@ async def query_real_estates_all(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
     fields: str = Query(None, description="Comma-separated list of fields to return"),
+    authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
     # Query real_estates with filtering, sorting, and pagination without user limitation
@@ -195,10 +203,13 @@ async def query_real_estates_all(
         if query:
             try:
                 query_dict = json.loads(query)
+                if not isinstance(query_dict, dict):
+                    raise HTTPException(400, "Query must be a JSON object")
             except json.JSONDecodeError:
                 raise HTTPException(status_code=400, detail="Invalid query JSON format")
 
         result = await service.get_list(
+            public_only=not await is_content_admin(db, authorization),
             skip=skip,
             limit=limit,
             query_dict=query_dict,
@@ -217,6 +228,7 @@ async def query_real_estates_all(
 async def get_real_estate(
     id: int,
     fields: str = Query(None, description="Comma-separated list of fields to return"),
+    authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
     """Get a single real_estate by ID"""
@@ -224,7 +236,7 @@ async def get_real_estate(
     
     service = Real_estateService(db)
     try:
-        result = await service.get_by_id(id)
+        result = await service.get_by_id(id, public_only=not await is_content_admin(db, authorization))
         if not result:
             logger.warning(f"Real_estate with id {id} not found")
             raise HTTPException(status_code=404, detail="Real_estate not found")
@@ -245,6 +257,7 @@ async def get_real_estate(
 @router.post("", response_model=Real_estateResponse, status_code=201)
 async def create_real_estate(
     data: Real_estateData,
+    authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new real_estate"""
@@ -252,12 +265,22 @@ async def create_real_estate(
     
     service = Real_estateService(db)
     try:
-        result = await service.create(data.model_dump())
+        payload = data.model_dump()
+        if not await is_content_admin(db, authorization):
+            payload.update(status="pending", active=True, user_id=None,
+                           created_at=datetime.now(timezone.utc).isoformat(),
+                           promotion_tier=None, promoted_until=None, views_count=0, expires_at=None)
+        user = await resolve_account_user(db, authorization)
+        if user:
+            payload["user_id"] = str(user.id)
+        result = await service.create(payload)
         if not result:
             raise HTTPException(status_code=400, detail="Failed to create real_estate")
         
         logger.info(f"Real_estate created successfully with id: {result.id}")
         return result
+    except HTTPException:
+        raise
     except ValueError as e:
         logger.error(f"Validation error creating real_estate: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))

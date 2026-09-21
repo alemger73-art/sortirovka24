@@ -341,11 +341,15 @@ class StorageService:
         return DeleteResponse(success=True)
 
     async def create_upload_url(self, request: FileUpDownRequest) -> FileUpDownResponse:
-        image_key = request.object_key
+        folder, _, filename = request.object_key.rpartition("/")
+        extension = filename.rsplit(".", 1)[-1] if "." in filename else "bin"
+        folder = "/".join(segment for segment in folder.split("/") if segment not in ("", ".", ".."))
+        object_key = f"{folder + '/' if folder else ''}{uuid4().hex}.{extension}"
+        image_key = object_key
         thumbnail_key = ""
         is_image = _is_image_upload(request.object_key)
         if is_image:
-            image_key, thumbnail_key = _build_image_keys(request.object_key)
+            image_key, thumbnail_key = _build_image_keys(object_key)
 
         token = self._make_upload_token(
             request.bucket_name,
@@ -395,7 +399,7 @@ class StorageService:
             public_id=public_id,
             format=force_format or fmt,
             resource_type=resource_type,
-            overwrite=True,
+            overwrite=False,
             invalidate=True,
             unique_filename=False,
         )

@@ -1,3 +1,5 @@
+from services.content_access import is_content_admin
+from datetime import datetime, timezone
 import json
 import logging
 from typing import List, Optional
@@ -136,6 +138,7 @@ async def query_announcementss(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
     fields: str = Query(None, description="Comma-separated list of fields to return"),
+    authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
     """Query announcementss with filtering, sorting, and pagination"""
@@ -148,10 +151,13 @@ async def query_announcementss(
         if query:
             try:
                 query_dict = json.loads(query)
+                if not isinstance(query_dict, dict):
+                    raise HTTPException(400, "Query must be a JSON object")
             except json.JSONDecodeError:
                 raise HTTPException(status_code=400, detail="Invalid query JSON format")
         
         result = await service.get_list(
+            public_only=not await is_content_admin(db, authorization),
             skip=skip, 
             limit=limit,
             query_dict=query_dict,
@@ -173,6 +179,7 @@ async def query_announcementss_all(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
     fields: str = Query(None, description="Comma-separated list of fields to return"),
+    authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
     # Query announcementss with filtering, sorting, and pagination without user limitation
@@ -185,10 +192,13 @@ async def query_announcementss_all(
         if query:
             try:
                 query_dict = json.loads(query)
+                if not isinstance(query_dict, dict):
+                    raise HTTPException(400, "Query must be a JSON object")
             except json.JSONDecodeError:
                 raise HTTPException(status_code=400, detail="Invalid query JSON format")
 
         result = await service.get_list(
+            public_only=not await is_content_admin(db, authorization),
             skip=skip,
             limit=limit,
             query_dict=query_dict,
@@ -207,6 +217,7 @@ async def query_announcementss_all(
 async def get_announcements(
     id: int,
     fields: str = Query(None, description="Comma-separated list of fields to return"),
+    authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
     """Get a single announcements by ID"""
@@ -214,7 +225,7 @@ async def get_announcements(
     
     service = AnnouncementsService(db)
     try:
-        result = await service.get_by_id(id)
+        result = await service.get_by_id(id, public_only=not await is_content_admin(db, authorization))
         if not result:
             logger.warning(f"Announcements with id {id} not found")
             raise HTTPException(status_code=404, detail="Announcements not found")
@@ -245,6 +256,10 @@ async def create_announcements(
     service = AnnouncementsService(db)
     try:
         payload = data.model_dump()
+        if not await is_content_admin(db, authorization):
+            payload.update(status="pending", active=True, user_id=None,
+                           created_at=datetime.now(timezone.utc).isoformat(),
+                           promotion_tier=None, promoted_until=None, views_count=0, expires_at=None)
         account_user = await resolve_account_user(db, authorization)
         if account_user:
             payload["user_id"] = str(account_user.id)
@@ -266,6 +281,8 @@ async def create_announcements(
             except Exception as admin_push_err:
                 logger.warning(f"Admin push notify skipped: {admin_push_err}")
         return result
+    except HTTPException:
+        raise
     except ValueError as e:
         logger.error(f"Validation error creating announcements: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))

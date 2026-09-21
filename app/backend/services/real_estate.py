@@ -43,10 +43,12 @@ class Real_estateService:
             logger.error(f"Error creating real_estate: {str(e)}")
             raise
 
-    async def get_by_id(self, obj_id: int) -> Optional[Real_estate]:
+    async def get_by_id(self, obj_id: int, *, public_only: bool = False) -> Optional[Real_estate]:
         """Get real_estate by ID"""
         try:
             query = select(Real_estate).where(Real_estate.id == obj_id)
+            if public_only:
+                query = query.where(Real_estate.status.in_(("approved", "published")) & Real_estate.active.is_(True))
             result = await self.db.execute(query)
             return result.scalar_one_or_none()
         except Exception as e:
@@ -59,11 +61,15 @@ class Real_estateService:
         limit: int = 20, 
         query_dict: Optional[Dict[str, Any]] = None,
         sort: Optional[str] = None,
+        public_only: bool = False,
     ) -> Dict[str, Any]:
         """Get paginated list of real_estates"""
         try:
             query = select(Real_estate)
             count_query = select(func.count(Real_estate.id))
+            if public_only:
+                query = query.where(Real_estate.status.in_(("approved", "published")) & Real_estate.active.is_(True))
+                count_query = count_query.where(Real_estate.status.in_(("approved", "published")) & Real_estate.active.is_(True))
             
             if query_dict:
                 for field, value in query_dict.items():

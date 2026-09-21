@@ -1,9 +1,11 @@
+from services.content_access import is_content_admin
+from datetime import datetime, timezone
 import json
 import logging
 from typing import List, Optional
 
 
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, Header, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -107,6 +109,7 @@ async def query_newss(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
     fields: str = Query(None, description="Comma-separated list of fields to return"),
+    authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
     """Query newss with filtering, sorting, and pagination"""
@@ -119,10 +122,13 @@ async def query_newss(
         if query:
             try:
                 query_dict = json.loads(query)
+                if not isinstance(query_dict, dict):
+                    raise HTTPException(400, "Query must be a JSON object")
             except json.JSONDecodeError:
                 raise HTTPException(status_code=400, detail="Invalid query JSON format")
         
         result = await service.get_list(
+            public_only=not await is_content_admin(db, authorization),
             skip=skip, 
             limit=limit,
             query_dict=query_dict,
@@ -144,6 +150,7 @@ async def query_newss_all(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
     fields: str = Query(None, description="Comma-separated list of fields to return"),
+    authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
     # Query newss with filtering, sorting, and pagination without user limitation
@@ -156,10 +163,13 @@ async def query_newss_all(
         if query:
             try:
                 query_dict = json.loads(query)
+                if not isinstance(query_dict, dict):
+                    raise HTTPException(400, "Query must be a JSON object")
             except json.JSONDecodeError:
                 raise HTTPException(status_code=400, detail="Invalid query JSON format")
 
         result = await service.get_list(
+            public_only=not await is_content_admin(db, authorization),
             skip=skip,
             limit=limit,
             query_dict=query_dict,
@@ -178,6 +188,7 @@ async def query_newss_all(
 async def get_news(
     id: int,
     fields: str = Query(None, description="Comma-separated list of fields to return"),
+    authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
     """Get a single news by ID"""
@@ -185,7 +196,7 @@ async def get_news(
     
     service = NewsService(db)
     try:
-        result = await service.get_by_id(id)
+        result = await service.get_by_id(id, public_only=not await is_content_admin(db, authorization))
         if not result:
             logger.warning(f"News with id {id} not found")
             raise HTTPException(status_code=404, detail="News not found")

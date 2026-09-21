@@ -514,11 +514,6 @@ async def change_credentials(
 
 # ---------- Initialization ----------
 
-# Default password used ONLY when creating the very first admin account and no
-# ADMIN_PASSWORD was configured. The operator is expected to change it.
-_DEFAULT_ADMIN_PASSWORD = "Admin123@"
-
-
 def _truthy(value: str) -> bool:
     return value.strip().lower() in ("1", "true", "yes", "on")
 
@@ -529,7 +524,7 @@ async def initialize_admin_credentials():
     Behaviour:
     - The admin login is ``ADMIN_USERNAME`` (or legacy ``ADMIN_EMAIL``), default "admin".
     - If the account does not exist yet, it is created using ``ADMIN_PASSWORD``
-      (or a default password that MUST be changed if none is provided).
+      (initialization is skipped when it is absent).
     - An existing account's password is left untouched, so changes made through
       the admin UI persist across restarts/redeploys. To force a reset, set
       ``ADMIN_FORCE_RESET=true`` together with ``ADMIN_PASSWORD``.
@@ -559,23 +554,14 @@ async def initialize_admin_credentials():
             existing_admin = result.scalar_one_or_none()
 
             if existing_admin is None:
-                password = admin_password or _DEFAULT_ADMIN_PASSWORD
-                db.add(AdminCredentials(
-                    username=admin_username,
-                    password_hash=_hash_password(password),
-                    is_active=True,
-                ))
+                if not admin_password:
+                    logger.error("[Admin Auth] ADMIN_PASSWORD is required to create the first administrator; setup skipped.")
+                    return
+                db.add(AdminCredentials(username=admin_username,
+                    password_hash=_hash_password(admin_password), is_active=True))
                 await db.commit()
-                if admin_password:
-                    logger.info("[Admin Auth] Admin account created (username: %s)", admin_username)
-                else:
-                    logger.warning(
-                        "[Admin Auth] Admin account '%s' created with the DEFAULT password. "
-                        "Set ADMIN_PASSWORD or change it in the panel immediately.",
-                        admin_username,
-                    )
+                logger.info("[Admin Auth] Admin account created (username: %s)", admin_username)
             else:
-                existing_admin.is_active = True
                 if admin_password and force_reset:
                     existing_admin.password_hash = _hash_password(admin_password)
                     logger.info("[Admin Auth] Admin password reset from env (username: %s)", admin_username)

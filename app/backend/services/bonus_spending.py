@@ -14,7 +14,7 @@ from models.user_management import Bonus, UserAction
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.auth import AccessTokenError, decode_access_token
+from services.account_session import resolve_account_user
 from services.bonus_rewards import find_user_by_phone, phone_digits
 
 logger = logging.getLogger(__name__)
@@ -52,25 +52,7 @@ async def resolve_optional_account_user(
     request: Request,
     db: AsyncSession,
 ) -> User | None:
-    auth = request.headers.get("authorization", "")
-    if not auth.lower().startswith("bearer "):
-        return None
-    token = auth[7:].strip()
-    if not token:
-        return None
-    try:
-        payload = decode_access_token(token)
-    except AccessTokenError:
-        return None
-    if payload.get("role") == "admin" and payload.get("username"):
-        return None
-    user_id = payload.get("sub")
-    if not user_id:
-        return None
-    user = (await db.execute(select(User).where(User.id == str(user_id)))).scalar_one_or_none()
-    if not user or not user.is_active or user.status == "blocked":
-        return None
-    return user
+    return await resolve_account_user(db, request.headers.get("authorization"))
 
 
 def _phones_match(a: str | None, b: str | None) -> bool:

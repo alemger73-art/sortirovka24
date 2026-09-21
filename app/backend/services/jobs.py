@@ -31,10 +31,12 @@ class JobsService:
             logger.error(f"Error creating jobs: {str(e)}")
             raise
 
-    async def get_by_id(self, obj_id: int) -> Optional[Jobs]:
+    async def get_by_id(self, obj_id: int, *, public_only: bool = False) -> Optional[Jobs]:
         """Get jobs by ID"""
         try:
             query = select(Jobs).where(Jobs.id == obj_id)
+            if public_only:
+                query = query.where(Jobs.status.in_(("approved", "published")) & Jobs.active.is_(True))
             result = await self.db.execute(query)
             return result.scalar_one_or_none()
         except Exception as e:
@@ -47,11 +49,15 @@ class JobsService:
         limit: int = 20, 
         query_dict: Optional[Dict[str, Any]] = None,
         sort: Optional[str] = None,
+        public_only: bool = False,
     ) -> Dict[str, Any]:
         """Get paginated list of jobss"""
         try:
             query = select(Jobs)
             count_query = select(func.count(Jobs.id))
+            if public_only:
+                query = query.where(Jobs.status.in_(("approved", "published")) & Jobs.active.is_(True))
+                count_query = count_query.where(Jobs.status.in_(("approved", "published")) & Jobs.active.is_(True))
             
             if query_dict:
                 for field, value in query_dict.items():

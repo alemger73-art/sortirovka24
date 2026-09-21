@@ -43,7 +43,7 @@ async def create_bucket(request: BucketRequest, _current_user: UserResponse = De
 
 
 @router.get("/list-buckets", response_model=BucketListResponse)
-async def list_buckets(_current_user: UserResponse = Depends(get_current_user)):
+async def list_buckets(_current_user: UserResponse = Depends(get_admin_user)):
     """
     List buckets of the user
     """
@@ -59,7 +59,7 @@ async def list_buckets(_current_user: UserResponse = Depends(get_current_user)):
 
 
 @router.get("/list-objects", response_model=ObjectListResponse)
-async def list_objects(request: OSSBaseModel = Depends(), _current_user: UserResponse = Depends(get_current_user)):
+async def list_objects(request: OSSBaseModel = Depends(), _current_user: UserResponse = Depends(get_admin_user)):
     """
     List objects under the bucket
     """
@@ -75,7 +75,7 @@ async def list_objects(request: OSSBaseModel = Depends(), _current_user: UserRes
 
 
 @router.get("/get-object-info", response_model=ObjectInfo)
-async def get_object_info(request: ObjectRequest = Depends(), _current_user: UserResponse = Depends(get_current_user)):
+async def get_object_info(request: ObjectRequest = Depends(), _current_user: UserResponse = Depends(get_admin_user)):
     """
     Get object metadata from the bucket
     """
@@ -91,7 +91,7 @@ async def get_object_info(request: ObjectRequest = Depends(), _current_user: Use
 
 
 @router.post("/rename-object", response_model=RenameResponse)
-async def rename_object(request: RenameRequest, _current_user: UserResponse = Depends(get_current_user)):
+async def rename_object(request: RenameRequest, _current_user: UserResponse = Depends(get_admin_user)):
     """
     Rename object inside the bucket
     """
@@ -107,7 +107,7 @@ async def rename_object(request: RenameRequest, _current_user: UserResponse = De
 
 
 @router.delete("/delete-object", response_model=DeleteResponse)
-async def delete_object(request: ObjectRequest, _current_user: UserResponse = Depends(get_current_user)):
+async def delete_object(request: ObjectRequest, _current_user: UserResponse = Depends(get_admin_user)):
     """
     Delete object inside the bucket
     """
@@ -253,7 +253,13 @@ async def public_upload_file(request: FileUpDownRequest, http_request: Request):
 @router.put("/upload-proxy/{token}", response_model=UploadImageResponse)
 async def upload_via_proxy(token: str, request: Request):
     """Receive raw file bytes and upload to Cloudinary using a signed token."""
-    body = await request.body()
+    # Bound allocation even when Content-Length is absent or forged.
+    chunks = bytearray()
+    async for chunk in request.stream():
+        if len(chunks) + len(chunk) > MAX_UPLOAD_BYTES:
+            raise HTTPException(413, "File too large (max 20 MB)")
+        chunks.extend(chunk)
+    body = bytes(chunks)
     if not body:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty upload body")
     if len(body) > MAX_UPLOAD_BYTES:

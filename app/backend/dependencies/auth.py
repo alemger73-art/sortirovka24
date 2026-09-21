@@ -1,6 +1,9 @@
-import hashlib
+from core.database import get_db
+from models.admin_auth import AdminCredentials
+from services.account_session import resolve_account_user
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 import logging
-from datetime import datetime
 from typing import Optional
 
 from core.auth import AccessTokenError, decode_access_token
@@ -24,36 +27,25 @@ async def get_bearer_token(
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication credentials were not provided")
 
 
-async def get_current_user(token: str = Depends(get_bearer_token)) -> UserResponse:
-    """Dependency to get current authenticated user via JWT token."""
+async def get_current_user(token: str = Depends(get_bearer_token), db: AsyncSession = Depends(get_db)) -> UserResponse:
+    """Resolve live account sessions; never trust stale role/status JWT claims."""
     try:
         payload = decode_access_token(token)
-    except AccessTokenError as exc:
-        # Log error type only, not the full exception which may contain sensitive token data
-        logger.warning("Token validation failed: %s", type(exc).__name__)
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=exc.message)
-
-    user_id = payload.get("sub")
-    if not user_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication token")
-
-    last_login_raw = payload.get("last_login")
-    last_login = None
-    if isinstance(last_login_raw, str):
-        try:
-            last_login = datetime.fromisoformat(last_login_raw)
-        except ValueError:
-            # Log user hash instead of actual user ID to avoid exposing sensitive information
-            user_hash = hashlib.sha256(str(user_id).encode()).hexdigest()[:8] if user_id else "unknown"
-            logger.debug("Failed to parse last_login for user hash: %s", user_hash)
-
-    return UserResponse(
-        id=user_id,
-        email=payload.get("email", ""),
-        name=payload.get("name"),
-        role=payload.get("role", "user"),
-        last_login=last_login,
-    )
+    except AccessTokenError:
+        raise HTTPException(401, "Invalid authentication token")
+    # Platform administrators have separate credentials, not resident sessions.
+    if payload.get("type") == "admin_session" and payload.get("role") == "admin":
+        username = payload.get("username")
+        admin = await db.scalar(select(AdminCredentials).where(
+            AdminCredentials.username == username, AdminCredentials.is_active == True))
+        if admin and payload.get("sub") == f"admin:{username}":
+            return UserResponse(id=payload["sub"], email="", name=username, role="admin")
+        raise HTTPException(401, "Administrator access is not active")
+    user = await resolve_account_user(db, f"Bearer {token}")
+    if user is None:
+        raise HTTPException(401, "Session is not active")
+    return UserResponse(id=str(user.id), email=user.email or "", name=user.name,
+                        role=user.role, last_login=user.last_login)
 
 
 async def get_admin_user(current_user: UserResponse = Depends(get_current_user)) -> UserResponse:

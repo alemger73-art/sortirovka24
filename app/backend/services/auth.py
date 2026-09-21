@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+from uuid import uuid4
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional, Tuple
 
@@ -8,6 +9,8 @@ from core.auth import create_access_token
 from core.config import settings
 from core.database import db_manager
 from models.auth import OIDCState, User
+from models.user_management import UserSession
+from fastapi import HTTPException
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -49,6 +52,8 @@ class AuthService:
         user: User,
     ) -> Tuple[str, datetime, Dict[str, Any]]:
         """Generate application JWT token for the authenticated user."""
+        if not user.is_active or user.status != "active":
+            raise HTTPException(403, "Account is not active")
         try:
             expires_minutes = int(getattr(settings, "jwt_expire_minutes", 60))
         except (TypeError, ValueError):
@@ -60,6 +65,7 @@ class AuthService:
             "sub": user.id,
             "email": user.email,
             "role": user.role,
+            "jti": str(uuid4()),
         }
 
         if user.name:
@@ -67,6 +73,9 @@ class AuthService:
         if user.last_login:
             claims["last_login"] = user.last_login.isoformat()
         token = create_access_token(claims, expires_minutes=expires_minutes)
+        self.db.add(UserSession(user_id=str(user.id), token_jti=claims["jti"],
+                                is_active=True, expires_at=expires_at))
+        await self.db.commit()
 
         return token, expires_at, claims
 

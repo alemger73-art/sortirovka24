@@ -74,7 +74,7 @@ from services.google_oauth import (
 )
 from services.sms import SMSDeliveryError, SMSDeliveryResult, send_verification_code, should_expose_code_on_screen
 from services.storage import StorageService
-from sqlalchemy import and_, desc, func, or_, select
+from sqlalchemy import and_, desc, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 async def account_module_guard(request: Request, db: AsyncSession = Depends(get_db)):
@@ -596,34 +596,9 @@ async def _current_user(
     db: AsyncSession,
     authorization: str | None,
 ) -> User:
-    if not authorization or not authorization.lower().startswith("bearer "):
-        raise HTTPException(status_code=401, detail="Missing bearer token")
-    token = authorization.split(" ", 1)[1].strip()
-    try:
-        payload = decode_access_token(token)
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    user_id = str(payload.get("sub") or "")
-    jti = str(payload.get("jti") or "")
-    if not user_id or not jti:
-        raise HTTPException(status_code=401, detail="Invalid token payload")
-    session = (
-        await db.execute(
-            select(UserSession).where(
-                and_(UserSession.user_id == user_id, UserSession.token_jti == jti, UserSession.is_active == True)
-            )
-        )
-    ).scalar_one_or_none()
-    if not session:
+    user = await resolve_account_user(db, authorization)
+    if user is None:
         raise HTTPException(status_code=401, detail="Session is not active")
-    session_expiry = _as_aware_utc(session.expires_at)
-    if session_expiry and session_expiry < datetime.now(timezone.utc):
-        session.is_active = False
-        await db.commit()
-        raise HTTPException(status_code=401, detail="Session expired")
-    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
     return user
 
 
@@ -2289,6 +2264,8 @@ async def admin_update_user(
     if request.status is not None:
         user.status = request.status
         user.is_active = request.status == "active"
+        if not user.is_active:
+            await db.execute(update(UserSession).where(UserSession.user_id == user_id).values(is_active=False))
     if request.bonus_delta:
         user.bonus_balance = float(user.bonus_balance or 0) + float(request.bonus_delta)
         db.add(Bonus(user_id=str(user.id), points=float(request.bonus_delta), reason="admin_adjustment"))
@@ -2317,6 +2294,7 @@ async def admin_delete_user(
         raise HTTPException(status_code=404, detail="User not found")
     user.status = "deleted"
     user.is_active = False
+    await db.execute(update(UserSession).where(UserSession.user_id == user_id).values(is_active=False))
     await db.commit()
     await _log_action(db, str(admin.id), "admin_user_delete", "users", user_id)
     return {"success": True}

@@ -40,6 +40,6 @@ async def resolve_account_user(db: AsyncSession, authorization: str | None) -> U
         await db.commit()
         return None
     user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
-    if not user or user.status == "blocked" or user.status == "deleted":
+    if not user or not user.is_active or user.status != "active":
         return None
     return user

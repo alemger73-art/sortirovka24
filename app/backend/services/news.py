@@ -42,10 +42,12 @@ class NewsService:
             logger.error(f"Error creating news: {str(e)}")
             raise
 
-    async def get_by_id(self, obj_id: int) -> Optional[News]:
+    async def get_by_id(self, obj_id: int, *, public_only: bool = False) -> Optional[News]:
         """Get news by ID"""
         try:
             query = select(News).where(News.id == obj_id)
+            if public_only:
+                query = query.where(News.published.is_(True))
             result = await self.db.execute(query)
             return result.scalar_one_or_none()
         except Exception as e:
@@ -58,11 +60,15 @@ class NewsService:
         limit: int = 20, 
         query_dict: Optional[Dict[str, Any]] = None,
         sort: Optional[str] = None,
+        public_only: bool = False,
     ) -> Dict[str, Any]:
         """Get paginated list of newss"""
         try:
             query = select(News)
             count_query = select(func.count(News.id))
+            if public_only:
+                query = query.where(News.published.is_(True))
+                count_query = count_query.where(News.published.is_(True))
             
             if query_dict:
                 for field, value in query_dict.items():

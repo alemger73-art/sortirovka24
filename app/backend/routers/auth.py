@@ -17,7 +17,7 @@ from core.auth import (
 from core.config import settings
 from core.database import get_db
 from dependencies.auth import get_current_user
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from models.auth import User
 from schemas.auth import (
@@ -320,7 +320,10 @@ async def get_current_user_info(current_user: UserResponse = Depends(get_current
 
 
 @router.get("/logout")
-async def logout():
-    """Logout user."""
-    logout_url = build_logout_url()
+async def logout(authorization: str | None = Header(default=None), db: AsyncSession = Depends(get_db)):
+    """Revoke the same persisted session used by both account and OIDC logins."""
+    if authorization:
+        from routers.account_v2 import logout as account_logout
+        await account_logout(authorization, db)
+    logout_url = build_logout_url() if getattr(settings, "oidc_issuer_url", "") else "/"
     return {"redirect_url": logout_url}
