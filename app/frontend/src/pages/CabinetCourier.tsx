@@ -1,5 +1,5 @@
 import PrintReceiptButton from '@/components/PrintReceiptButton';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import {
   Bike,
   Check,
   Loader2,
+  LogOut,
   MapPin,
   Navigation,
   Phone,
@@ -38,7 +39,11 @@ const VEHICLE_OPTIONS = [
   { id: 'foot', labelKey: 'courier.vehicleFoot' },
 ];
 
-export default function CabinetCourier() {
+function CourierPageShell({ standalone, children }: { standalone: boolean; children: ReactNode }) {
+  return standalone ? <>{children}</> : <Layout>{children}</Layout>;
+}
+
+export default function CabinetCourier({ standalone = false, onLogout }: { standalone?: boolean; onLogout?: () => void }) {
   const { t } = useLanguage();
   const [data, setData] = useState<CourierCabinet | null>(null);
   const [loading, setLoading] = useState(true);
@@ -240,21 +245,21 @@ export default function CabinetCourier() {
 
   if (loading) {
     return (
-      <Layout>
+      <CourierPageShell standalone={standalone}>
         <div className="flex items-center justify-center min-h-[50vh]">
           <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
         </div>
-      </Layout>
+      </CourierPageShell>
     );
   }
 
   if (!data) {
     return (
-      <Layout>
+      <CourierPageShell standalone={standalone}>
         <div className="mx-auto max-w-lg px-4 py-16 text-center text-gray-600 dark:text-slate-300">
           {t('courier.unavailable')}
         </div>
-      </Layout>
+      </CourierPageShell>
     );
   }
 
@@ -262,7 +267,7 @@ export default function CabinetCourier() {
   const pendingCount = (offered_task ? 1 : 0) + available_tasks.length;
 
   return (
-    <Layout>
+    <CourierPageShell standalone={standalone}>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         <div className="bg-orange-600 px-4 py-6 md:px-8">
           <div className="mx-auto max-w-4xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -277,7 +282,11 @@ export default function CabinetCourier() {
               <div>
                 <h1 className="text-xl font-bold text-white">{t('courier.title')}</h1>
                 <p className="text-white/70 text-sm">
-                  <Link to="/cabinet" className="hover:text-white underline underline-offset-2">{t('cabinet.personalTitle')}</Link>
+                  {standalone ? (
+                    <span>DÄM ALEM · Доставка</span>
+                  ) : (
+                    <Link to="/cabinet" className="hover:text-white underline underline-offset-2">{t('cabinet.personalTitle')}</Link>
+                  )}
                   {' · '}
                   <span className="inline-flex items-center gap-1">
                     <Star className="h-3.5 w-3.5 text-yellow-300 fill-yellow-300" />
@@ -290,6 +299,11 @@ export default function CabinetCourier() {
               <button onClick={load} className="p-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20">
                 <RefreshCw className="h-4 w-4" />
               </button>
+              {standalone && onLogout && (
+                <button onClick={onLogout} className="p-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20" aria-label="Выйти">
+                  <LogOut className="h-4 w-4" />
+                </button>
+              )}
               <Button
                 onClick={toggleOnline}
                 disabled={togglingOnline || !canWork || !data.shift}
@@ -477,6 +491,6 @@ export default function CabinetCourier() {
           )}
         </div>
       </div>
-    </Layout>
+    </CourierPageShell>
   );
 }

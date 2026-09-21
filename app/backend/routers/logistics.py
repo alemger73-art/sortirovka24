@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import logging
+import hashlib
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from core.auth import create_access_token, decode_access_token
 from core.database import get_db
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from models.auth import User
@@ -43,6 +45,7 @@ from services.food_shifts import (
     shift_view,
 )
 from utils.rate_limit import check_keyed_rate_limit
+from utils.courier_pin import verify_courier_pin
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -93,6 +96,12 @@ class CourierPinRequest(BaseModel):
     pin: str = Field(pattern=r"^\d{4}$")
 
 
+class CourierPinLoginResponse(BaseModel):
+    token: str
+    name: str
+    expires_in: int = 43200
+
+
 class CourierApplyRequest(BaseModel):
     model_config = {"extra": "forbid"}
     full_name: str = Field(min_length=1, max_length=150)
@@ -107,6 +116,81 @@ class CourierApplyRequest(BaseModel):
 
 class AdminNoteRequest(BaseModel):
     admin_note: str = ""
+
+
+def _courier_pin_version(pin_hash: str | None) -> str:
+    return hashlib.sha256((pin_hash or "").encode("utf-8")).hexdigest()[:16]
+
+
+async def _courier_user(
+    db: AsyncSession,
+    authorization: str | None,
+) -> User:
+    """Accept only the dedicated courier PIN session."""
+    if authorization and authorization.lower().startswith("bearer "):
+        token = authorization.split(" ", 1)[1].strip()
+        try:
+            claims = decode_access_token(token)
+        except Exception:
+            claims = {}
+        if claims.get("type") == "courier_pin_session":
+            user_id = str(claims.get("sub") or "")
+            profile = await db.get(CourierProfile, user_id)
+            user = await db.get(User, user_id)
+            if (
+                not profile
+                or not profile.is_verified
+                or not profile.pin_hash
+                or not user
+                or not user.is_active
+                or user.status != "active"
+                or claims.get("pin_version") != _courier_pin_version(profile.pin_hash)
+            ):
+                raise HTTPException(status_code=401, detail="Сессия курьера недействительна")
+            return user
+    raise HTTPException(status_code=401, detail="Войдите в кабинет курьера по PIN")
+
+
+@router.post("/courier/pin-login", response_model=CourierPinLoginResponse)
+async def courier_pin_login(
+    body: CourierPinRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    host = request.client.host if request.client else "unknown"
+    check_keyed_rate_limit(
+        f"dam-courier-pin-login:{host}",
+        window_seconds=15 * 60,
+        max_hits=6,
+        message="Слишком много попыток PIN. Повторите через 15 минут.",
+    )
+    profiles = (
+        await db.execute(
+            select(CourierProfile).where(
+                CourierProfile.is_verified == True,
+                CourierProfile.pin_hash.isnot(None),
+            )
+        )
+    ).scalars().all()
+    matches = [profile for profile in profiles if verify_courier_pin(profile.pin_hash, body.pin)]
+    if not matches:
+        raise HTTPException(status_code=401, detail="Неверный PIN")
+    if len(matches) > 1:
+        raise HTTPException(status_code=409, detail="PIN назначен нескольким курьерам. Обратитесь к владельцу.")
+    profile = matches[0]
+    user = await db.get(User, profile.user_id)
+    if not user or not user.is_active or user.status != "active":
+        raise HTTPException(status_code=403, detail="Доступ курьера отключён")
+    token = create_access_token(
+        {
+            "sub": str(user.id),
+            "role": "courier",
+            "type": "courier_pin_session",
+            "pin_version": _courier_pin_version(profile.pin_hash),
+        },
+        expires_minutes=12 * 60,
+    )
+    return CourierPinLoginResponse(token=token, name=user.name or profile.phone or "Курьер")
 
 
 # ─── Courier registration ──────────────────────────────────────────
@@ -170,7 +254,7 @@ async def courier_cabinet(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_taxi_user(db, authorization)
+    user = await _courier_user(db, authorization)
     profile = await assert_courier_cabinet_access(db, user)
     offered, broadcast, active = await courier_cabinet_tasks(db, str(user.id))
 
@@ -223,7 +307,7 @@ async def open_courier_shift(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_taxi_user(db, authorization)
+    user = await _courier_user(db, authorization)
     profile = await assert_courier_cabinet_access(db, user)
     _courier_pin_limit(request, str(user.id))
     row = await open_shift(
@@ -241,7 +325,7 @@ async def close_courier_shift(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_taxi_user(db, authorization)
+    user = await _courier_user(db, authorization)
     profile = await assert_courier_cabinet_access(db, user)
     _courier_pin_limit(request, str(user.id))
     row = await close_shift(db, staff_type="courier", staff_id=str(user.id), stored_pin=profile.pin_hash, pin=body.pin)
@@ -256,7 +340,7 @@ async def set_courier_online(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_taxi_user(db, authorization)
+    user = await _courier_user(db, authorization)
     settings = await get_logistics_settings(db)
     if settings.get("enabled", "true").lower() not in ("true", "1", "yes"):
         raise HTTPException(status_code=503, detail="Доставка временно недоступна")
@@ -280,7 +364,7 @@ async def update_courier_location(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_taxi_user(db, authorization)
+    user = await _courier_user(db, authorization)
     profile = await assert_courier_cabinet_access(db, user)
     await require_courier_shift(db, profile)
     profile.current_lat = body.lat
@@ -296,7 +380,7 @@ async def update_courier_profile(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_taxi_user(db, authorization)
+    user = await _courier_user(db, authorization)
     profile = await assert_courier_cabinet_access(db, user)
     if body.vehicle_type:
         if body.vehicle_type not in {"bike", "car", "foot"}:
@@ -316,7 +400,7 @@ async def accept_logistics_task(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_taxi_user(db, authorization)
+    user = await _courier_user(db, authorization)
     profile = await assert_courier_cabinet_access(db, user)
     shift = await require_courier_shift(db, profile)
     record_action(db, shift, 'delivery_accepted', staff_type='courier', staff_id=str(user.id), staff_name=user.name or profile.phone or 'Курьер', role='courier', entity_type='delivery_task', entity_id=task_id)
@@ -334,7 +418,7 @@ async def decline_logistics_task(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_taxi_user(db, authorization)
+    user = await _courier_user(db, authorization)
     profile = await assert_courier_cabinet_access(db, user)
     shift = await require_courier_shift(db, profile)
     task = await get_task_by_id(db, task_id)
@@ -355,7 +439,7 @@ async def update_task_status(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await get_taxi_user(db, authorization)
+    user = await _courier_user(db, authorization)
     profile = await assert_courier_cabinet_access(db, user)
     shift = await require_courier_shift(db, profile)
     try:
@@ -373,7 +457,13 @@ async def update_task_status(
 # ─── Customer tracking ─────────────────────────────────────────────
 
 async def _tracking_access(db, task, authorization):
-    user = await get_taxi_user(db, authorization)
+    token_type = ""
+    if authorization and authorization.lower().startswith("bearer "):
+        try:
+            token_type = str(decode_access_token(authorization.split(" ", 1)[1].strip()).get("type") or "")
+        except Exception:
+            token_type = ""
+    user = await _courier_user(db, authorization) if token_type == "courier_pin_session" else await get_taxi_user(db, authorization)
     from routers.account_v2 import _owns_user_content
     if user.role in ('admin', 'superadmin') or task.courier_id == str(user.id):
         return

@@ -1,4 +1,5 @@
 import { getAccountToken } from '@/lib/accountApi';
+import { clearCourierToken, getCourierToken } from '@/lib/courierSession';
 import { getAPIBaseURL } from '@/lib/config';
 import { humanizeApiError } from '@/lib/apiErrors';
 
@@ -20,7 +21,8 @@ function getAdminToken(): string {
 }
 
 async function api<T>(path: string, init?: RequestInit, token?: string): Promise<T> {
-  const authToken = token ?? getAccountToken();
+  const courierToken = getCourierToken();
+  const authToken = token !== undefined ? token : getAccountToken();
   let resp: Response;
   try {
     resp = await fetch(`${apiBase()}${path}`, {
@@ -43,6 +45,9 @@ async function api<T>(path: string, init?: RequestInit, token?: string): Promise
     } catch {
       /* keep raw */
     }
+    if (resp.status === 401 && courierToken && authToken === courierToken) {
+      clearCourierToken();
+    }
     throw new Error(message);
   }
   if (resp.status === 204) return undefined as T;
@@ -53,6 +58,10 @@ async function api<T>(path: string, init?: RequestInit, token?: string): Promise
 
 async function adminApi<T>(path: string, init?: RequestInit): Promise<T> {
   return api<T>(path, init, getAdminToken());
+}
+
+async function courierApi<T>(path: string, init?: RequestInit): Promise<T> {
+  return api<T>(path, init, getCourierToken());
 }
 
 export interface LogisticsCourierInfo {
@@ -178,6 +187,12 @@ export function formatTenge(n: number | null | undefined): string {
 }
 
 export const logisticsApi = {
+  courierPinLogin: (pin: string) => api<{ token: string; name: string; expires_in: number }>(
+    '/api/v1/logistics/courier/pin-login',
+    { method: 'POST', body: JSON.stringify({ pin }) },
+    '',
+  ),
+
   getCourierAccess: () => api<CourierAccess>('/api/v1/logistics/courier/access'),
 
   getCourierApplication: () => api<CourierApplication>('/api/v1/logistics/courier/application'),
@@ -193,27 +208,27 @@ export const logisticsApi = {
     vehicle_photo_url?: string;
   }) => api<CourierApplication>('/api/v1/logistics/courier/application', { method: 'POST', body: JSON.stringify(body) }),
 
-  courierCabinet: () => api<CourierCabinet>('/api/v1/logistics/courier/cabinet'),
+  courierCabinet: () => courierApi<CourierCabinet>('/api/v1/logistics/courier/cabinet'),
 
-  openShift: (pin: string) => api<{ shift: CourierCabinet['shift'] }>('/api/v1/logistics/courier/shift/open', { method: 'POST', body: JSON.stringify({ pin }) }),
+  openShift: (pin: string) => courierApi<{ shift: CourierCabinet['shift'] }>('/api/v1/logistics/courier/shift/open', { method: 'POST', body: JSON.stringify({ pin }) }),
 
-  closeShift: (pin: string) => api<{ shift: CourierCabinet['shift']; online: boolean }>('/api/v1/logistics/courier/shift/close', { method: 'POST', body: JSON.stringify({ pin }) }),
+  closeShift: (pin: string) => courierApi<{ shift: CourierCabinet['shift']; online: boolean }>('/api/v1/logistics/courier/shift/close', { method: 'POST', body: JSON.stringify({ pin }) }),
 
   setOnline: (online: boolean) =>
-    api<{ online: boolean }>('/api/v1/logistics/courier/online', { method: 'PUT', body: JSON.stringify({ online }) }),
+    courierApi<{ online: boolean }>('/api/v1/logistics/courier/online', { method: 'PUT', body: JSON.stringify({ online }) }),
 
   updateLocation: (lat: number, lng: number) =>
-    api<{ success: boolean }>('/api/v1/logistics/courier/location', { method: 'PUT', body: JSON.stringify({ lat, lng }) }),
+    courierApi<{ success: boolean }>('/api/v1/logistics/courier/location', { method: 'PUT', body: JSON.stringify({ lat, lng }) }),
 
   updateProfile: (body: { vehicle_type?: string; phone?: string; photo_url?: string }) =>
-    api<{ success: boolean }>('/api/v1/logistics/courier/profile', { method: 'PUT', body: JSON.stringify(body) }),
+    courierApi<{ success: boolean }>('/api/v1/logistics/courier/profile', { method: 'PUT', body: JSON.stringify(body) }),
 
-  acceptTask: (id: number) => api<LogisticsTask>(`/api/v1/logistics/tasks/${id}/accept`, { method: 'POST' }),
+  acceptTask: (id: number) => courierApi<LogisticsTask>(`/api/v1/logistics/tasks/${id}/accept`, { method: 'POST' }),
 
-  declineTask: (id: number) => api<LogisticsTask>(`/api/v1/logistics/tasks/${id}/decline`, { method: 'POST' }),
+  declineTask: (id: number) => courierApi<LogisticsTask>(`/api/v1/logistics/tasks/${id}/decline`, { method: 'POST' }),
 
   updateTaskStatus: (id: number, status: string) =>
-    api<LogisticsTask>(`/api/v1/logistics/tasks/${id}/status`, { method: 'POST', body: JSON.stringify({ status }) }),
+    courierApi<LogisticsTask>(`/api/v1/logistics/tasks/${id}/status`, { method: 'POST', body: JSON.stringify({ status }) }),
 
   getTask: (id: number) => api<LogisticsTask>(`/api/v1/logistics/tasks/${id}`),
 

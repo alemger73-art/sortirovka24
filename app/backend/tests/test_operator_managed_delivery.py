@@ -3,9 +3,10 @@ from sqlalchemy import select
 from tests.test_dam_order_workflow import env, BASE
 from models.food_orders import Food_orders
 from models.food_settings import Food_settings
-from models.logistics import LogisticsTask
+from models.logistics import CourierProfile, LogisticsTask
 from models.auth import User
 from services.logistics_service import advance_task_status
+from utils.courier_pin import hash_courier_pin
 
 
 @pytest.mark.asyncio
@@ -62,7 +63,7 @@ async def test_pickup_never_requires_delivery(env):
 
 
 @pytest.mark.asyncio
-async def test_courier_portal_requires_auth_and_approved_courier_can_open_it(env):
+async def test_courier_workplace_is_not_opened_by_account_session(env):
     from datetime import datetime, timedelta, timezone
     from fastapi import FastAPI
     from httpx import AsyncClient, ASGITransport
@@ -88,4 +89,49 @@ async def test_courier_portal_requires_auth_and_approved_courier_can_open_it(env
         access = await client.get('/api/v1/logistics/courier/access', headers=auth)
         assert access.status_code == 200 and access.json()['can_access_cabinet'] is True
         cabinet = await client.get('/api/v1/logistics/courier/cabinet', headers=auth)
-        assert cabinet.status_code == 200
+        assert cabinet.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_courier_has_separate_pin_login_without_account_session(env):
+    from fastapi import FastAPI
+    from httpx import AsyncClient, ASGITransport
+    from core.database import get_db
+    from routers.logistics import router
+    _, maker, _, _ = env
+    app = FastAPI()
+    app.include_router(router)
+
+    async def db_session():
+        async with maker() as db:
+            yield db
+
+    app.dependency_overrides[get_db] = db_session
+    async with maker() as db:
+        profile = await db.get(CourierProfile, 'courier')
+        profile.pin_hash = hash_courier_pin('2954')
+        await db.commit()
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client:
+        wrong = await client.post('/api/v1/logistics/courier/pin-login', json={'pin':'0000'})
+        assert wrong.status_code == 401
+
+        login = await client.post('/api/v1/logistics/courier/pin-login', json={'pin':'2954'})
+        assert login.status_code == 200, login.text
+        token = login.json()['token']
+        cabinet = await client.get(
+            '/api/v1/logistics/courier/cabinet',
+            headers={'Authorization':f'Bearer {token}'},
+        )
+        assert cabinet.status_code == 200, cabinet.text
+        assert cabinet.json()['profile']['verified'] is True
+
+        async with maker() as db:
+            profile = await db.get(CourierProfile, 'courier')
+            profile.pin_hash = hash_courier_pin('8642')
+            await db.commit()
+        revoked = await client.get(
+            '/api/v1/logistics/courier/cabinet',
+            headers={'Authorization':f'Bearer {token}'},
+        )
+        assert revoked.status_code == 401
