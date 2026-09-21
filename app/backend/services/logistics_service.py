@@ -48,6 +48,50 @@ COURIER_STATUS_FLOW = {
 }
 
 
+async def assign_dam_delivery(db: AsyncSession, task: LogisticsTask, courier_user: User) -> LogisticsTask:
+    """Atomically hand a ready DAM ALEM order to a selected verified courier."""
+    profile = await get_or_create_courier_profile(db, courier_user)
+    if not profile.is_verified:
+        raise ValueError("Курьер не подтверждён")
+    active = await db.scalar(select(LogisticsTask).where(
+        LogisticsTask.courier_id == str(courier_user.id),
+        LogisticsTask.status.in_(ACTIVE_TASK_STATUSES),
+        LogisticsTask.id != task.id,
+    ))
+    if active:
+        raise ValueError("У курьера уже есть активная доставка")
+    from services.dam_order_workflow import lock_courier_order
+    from services.food_operations import add_event, LABELS
+    order = await lock_courier_order(db, task, require_ready=True)
+    if not order:
+        raise ValueError("Назначение доступно только для заказов DAM ALEM")
+    result = await db.execute(update(LogisticsTask).where(
+        LogisticsTask.id == task.id,
+        LogisticsTask.status.in_(("ready", "assigned")),
+    ).values(
+        courier_id=str(courier_user.id), status="on_the_way",
+        picked_up_at=_now_iso(), offered_courier_id=None, offer_expires_at=None,
+        order_status="in_progress",
+    ))
+    if not result.rowcount:
+        raise ValueError("Доставка уже изменена. Обновите заказ")
+    old_status = order.status
+    order.status = "in_progress"
+    order.version = int(order.version or 0) + 1
+    add_event(db, order,
+        f"Статус: {LABELS.get(old_status, old_status)} → {LABELS['in_progress']}. Курьер: {courier_user.name or profile.phone or 'Курьер'}",
+        "Оператор")
+    await db.commit()
+    await db.refresh(task)
+    from services.user_notifications import notify_food_order_status
+    try:
+        await notify_food_order_status(db, order, old_status, order.status)
+    except Exception:
+        logger.exception("Courier assigned; customer notification failed")
+        await db.rollback()
+    return task
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -286,6 +330,13 @@ async def accept_task(db: AsyncSession, task_id: int, courier_user: User) -> Log
     if not task or task.status != "ready":
         raise ValueError("Заказ недоступен")
 
+    if task.source_type == "food_orders":
+        from services.food_operations import is_dam_order
+
+        order = await db.get(Food_orders, task.source_id)
+        if order and await is_dam_order(db, order):
+            raise ValueError("Курьера на заказ DÄM ALEM назначает оператор")
+
     from services.logistics_dispatch import offer_is_active
 
     if offer_is_active(task) and task.offered_courier_id != str(courier_user.id):
@@ -348,6 +399,7 @@ async def advance_task_status(db: AsyncSession, task: LogisticsTask, courier_use
         target = 'done' if new_status == 'delivered' else 'in_progress'
         if target != food.status:
             food.status = target
+            food.version = int(food.version or 0) + 1
             task.order_status = target
             if target == 'done':
                 food.completed_at = timestamp

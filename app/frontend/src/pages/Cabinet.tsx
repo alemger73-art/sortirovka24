@@ -36,6 +36,7 @@ import {
 import { useLanguage } from "@/contexts/LanguageContext";
 import TaxiUnavailable from "@/components/taxi/TaxiUnavailable";
 import { cabinetOrderDetailPath, orderDetailId, type CabinetOrderRow } from "@/lib/orderRoutes";
+import { logisticsApi, type CourierAccess } from "@/lib/logisticsApi";
 
 import '@/styles/cabinet.css';
 
@@ -121,7 +122,7 @@ export default function Cabinet() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [hasPassword, setHasPassword] = useState(true);
   const [taxiRides, setTaxiRides] = useState<TaxiRide[]>([]);
-  const courierAccess = null; // Courier self-service is paused during operator-managed delivery.
+  const [courierAccess, setCourierAccess] = useState<CourierAccess | null>(null);
   const [driverApplication, setDriverApplication] = useState<DriverApplication | null>(null);
   const [masterNewRequests, setMasterNewRequests] = useState(0);
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
@@ -627,7 +628,14 @@ export default function Cabinet() {
   const deliveryEnabled = anyModuleEnabled(DELIVERY_MODULE_KEYS, isEnabled);
   const mastersEnabled = isEnabled("masters");
   const taxiOn = taxiEnabled === true;
-  const showRoles = { master: mastersEnabled, courier: false, driver: taxiOn };
+  const showRoles = { master: mastersEnabled, courier: deliveryEnabled && Boolean(courierAccess?.can_access_cabinet), driver: taxiOn };
+
+  useEffect(() => {
+    let alive = true;
+    if (!deliveryEnabled || !getAccountToken()) { setCourierAccess(null); return; }
+    void logisticsApi.getCourierAccess().then(value => { if (alive) setCourierAccess(value); }).catch(() => { if (alive) setCourierAccess(null); });
+    return () => { alive = false; };
+  }, [deliveryEnabled]);
 
   const tabs = useMemo(() => {
     const base: { id: TabId; label: string }[] = [
@@ -644,8 +652,8 @@ export default function Cabinet() {
       { id: "realEstate", label: t("cabinet.tab.realEstate") },
       { id: "settings", label: t("cabinet.tab.settings") },
     ];
-    return base.filter((tab) => (tab.id !== 'work' || mastersEnabled || taxiOn) && isCabinetTabVisible(tab.id, tabVisibilityCtx));
-  }, [tabVisibilityCtx, t, mastersEnabled, deliveryEnabled, taxiOn]);
+    return base.filter((tab) => (tab.id !== 'work' || mastersEnabled || taxiOn || Boolean(courierAccess?.can_access_cabinet)) && isCabinetTabVisible(tab.id, tabVisibilityCtx));
+  }, [tabVisibilityCtx, t, mastersEnabled, deliveryEnabled, taxiOn, courierAccess?.can_access_cabinet]);
 
   useEffect(() => {
     let alive = true;

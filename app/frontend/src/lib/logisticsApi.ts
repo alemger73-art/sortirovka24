@@ -98,6 +98,9 @@ export interface LogisticsTask {
   receipt_revision?: number | null;
   order_status?: string | null;
   total_amount?: number | null;
+  payment_method?: string | null;
+  payment_status?: string | null;
+  order_source?: string | null;
   delivery_fee?: number | null;
   comment?: string | null;
   created_at?: string;

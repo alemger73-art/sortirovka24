@@ -170,10 +170,10 @@ async def notify_user_by_id(
 
 FOOD_STATUS_MESSAGES: dict[str, tuple[str, str]] = {
     "confirmed": ("Заказ подтверждён", "Оператор принял заказ"),
-    "preparing": ("Заказ готовится", "Кухня приступила к приготовлению"),
+    "preparing": ("Заказ передан на кухню", "Кухня приступила к приготовлению"),
     "ready": ("Заказ готов", "Заказ готов к выдаче"),
-    "in_progress": ("Заказ в доставке", "Заказ передан в доставку"),
-    "done": ("Заказ завершён", "Спасибо за заказ!"),
+    "in_progress": ("Заказ передан курьеру", "Ваш заказ передан курьеру"),
+    "done": ("Ваш заказ доставлен", "Приятного аппетита! Спасибо за заказ."),
     "cancelled": ("Заказ отменён", "Если списали бонусы — они вернутся на баланс"),
 }
 
@@ -205,6 +205,22 @@ async def notify_food_order_status(db: AsyncSession, order: Any, old_status: str
     order_id = int(order.id)
     title, body = tpl
     name = (getattr(order, "restaurant_name", None) or "DAM ALEM 2.0").strip()
+    if new_status == "in_progress":
+        from models.logistics import LogisticsTask, CourierProfile
+        from models.auth import User
+        row = (await db.execute(
+            select(User, CourierProfile)
+            .join(LogisticsTask, LogisticsTask.courier_id == User.id)
+            .outerjoin(CourierProfile, CourierProfile.user_id == User.id)
+            .where(LogisticsTask.source_type == "food_orders", LogisticsTask.source_id == order_id)
+            .order_by(LogisticsTask.id.desc()).limit(1)
+        )).first()
+        if row:
+            courier, profile = row
+            courier_name = courier.name or "Курьер"
+            courier_phone = (profile.phone if profile else None) or courier.phone or "не указан"
+            body = (f"Ваш заказ передан курьеру. Ваш курьер: {courier_name}. "
+                    f"Телефон: {courier_phone}. Можете держать связь с курьером.")
     await notify_user_by_phone(
         db,
         phone=getattr(order, "customer_phone", None),
@@ -216,6 +232,19 @@ async def notify_food_order_status(db: AsyncSession, order: Any, old_status: str
         entity_type="food_orders",
         entity_id=str(order_id),
     )
+    if getattr(order, "order_source", None) == "whatsapp":
+        try:
+            from services.whatsapp_ai_bot.cloud_api import WhatsAppCloudClient
+            from services.whatsapp_ai_bot.config import get_whatsapp_config
+
+            phone = "".join(ch for ch in str(getattr(order, "customer_phone", "") or "") if ch.isdigit())
+            if phone:
+                await WhatsAppCloudClient(get_whatsapp_config()).send_text(
+                    to_wa_id=phone,
+                    body=f"{title}\n\n{name} · заказ №{order_id}. {body}",
+                )
+        except Exception as exc:
+            logger.warning("[Notify] WhatsApp status skipped (%s): %s", new_status, exc)
 
 
 # ── Logistics / courier ───────────────────────────────────────────────────────

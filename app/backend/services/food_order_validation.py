@@ -849,7 +849,9 @@ async def validate_food_order(
     sanitized['restaurant_id'] = restaurant_id
     sanitized['restaurant_name'] = getattr(rest, 'name', '') or ''
     sanitized['delivery_method'] = delivery_method
-    sanitized["payment_status"] = "pending" if payment_method == "cash" else "awaiting_qr_payment"
+    # Kaspi and Halyk are currently a customer's stated payment method.  They
+    # are not an automatically confirmed QR payment yet.
+    sanitized["payment_status"] = "pending"
     sanitized["status"] = "new"
     sanitized["order_source"] = "app"
     sanitized["user_id"] = _account_user_id(account_user)

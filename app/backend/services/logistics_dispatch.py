@@ -268,6 +268,13 @@ async def auto_offer_ready_tasks(db: AsyncSession) -> int:
     ).scalars().all()
     offered = 0
     for task in ready:
+        if task.source_type == 'food_orders':
+            from models.food_orders import Food_orders
+            from services.food_operations import is_dam_order
+            order = await db.get(Food_orders, task.source_id)
+            if order and await is_dam_order(db, order):
+                # DAM ALEM couriers are selected explicitly by the operator.
+                continue
         if offer_is_active(task):
             continue
         if await offer_task_to_next_courier(db, task):
@@ -301,6 +308,15 @@ async def courier_cabinet_tasks(db: AsyncSession, courier_id: str) -> tuple[Opti
     active = None
 
     for task in tasks:
+        if task.source_type == "food_orders" and task.courier_id != courier_id:
+            from models.food_orders import Food_orders
+            from services.food_operations import is_dam_order
+
+            order = await db.get(Food_orders, task.source_id)
+            if order and await is_dam_order(db, order):
+                # DÄM ALEM deliveries are assigned by the operator. They must not
+                # appear in the public courier pool before that assignment.
+                continue
         data = task_to_dict(task)
         if task.courier_id == courier_id and task.status in ACTIVE_COURIER_TASK:
             active = data

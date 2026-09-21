@@ -187,6 +187,14 @@ async def courier_cabinet(
     earnings = sum(float(t.delivery_fee or 0) for t in completed)
     shift = await active_shift(db, "courier", str(user.id))
 
+    if active and active.get('source_type') == 'food_orders':
+        from models.food_orders import Food_orders
+        food_order = await db.get(Food_orders, active['source_id'])
+        if food_order:
+            active['payment_method'] = food_order.payment_method
+            active['payment_status'] = food_order.payment_status
+            active['order_source'] = food_order.order_source or 'app'
+
     return {
         "profile": courier_profile_dict(profile, user),
         "offered_task": offered,

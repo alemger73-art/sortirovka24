@@ -15,7 +15,9 @@ function getNotifyLabels(adminT: (key: string) => string) {
 const notifyLabels: Record<string, string> = { pending: adminT('admin.dam.final.128'), sending: adminT('admin.dam.final.129'), sent: adminT('admin.dam.final.130'), failed: adminT('admin.dam.final.131'), unknown: adminT('admin.dam.final.132'), none: adminT('admin.dam.final.133') };
 return notifyLabels;
 }
-const next: Record<string, string> = { new: 'confirmed', confirmed: 'preparing', preparing: 'ready', ready: 'in_progress', in_progress: 'done' };
+const next: Record<string, string> = { new: 'preparing', confirmed: 'preparing', preparing: 'ready' };
+
+interface CourierChoice { id: string; name: string; phone: string; online: boolean; active_delivery: boolean }
 
 function Items({ raw }: { raw: string }) {
   const money = (value: number) => `${Number(value || 0).toLocaleString(locale)} ₸`;
@@ -56,7 +58,9 @@ export default function DamAlemOrders() {
   };
 
 
-  const sourceLabels: Record<string, string> = {app: adminT('pos.sourceApp'), operator: adminT('pos.sourceOperator'), whatsapp: 'WhatsApp', instagram: 'Instagram'};
+  const sourceLabels: Record<string, string> = lang === 'kz'
+    ? {app: 'Қосымша', operator: 'Оператор орнында', whatsapp: 'WhatsApp-бот'}
+    : {app: 'Приложение', operator: 'Оператор на месте', whatsapp: 'WhatsApp-бот'};
   const [source, setSource] = useState('');
   const [queueCounts, setQueueCounts] = useState<Record<string, number>>({});
   const [summary, setSummary] = useState<{daily?: {created: number; order_total: number}; counts: Record<string, number>; unpaid: number; notification_errors: number} | null>(null);
@@ -70,6 +74,7 @@ export default function DamAlemOrders() {
   const [loading, setLoading] = useState(true), [error, setError] = useState(''), [lastLoaded, setLastLoaded] = useState('');
   const [detail, setDetail] = useState<OrderDetail | null>(null), [detailError, setDetailError] = useState('');
   const [busy, setBusy] = useState(false), [note, setNote] = useState(''), [address, setAddress] = useState(''), [reason, setReason] = useState('');
+  const [couriers, setCouriers] = useState<CourierChoice[]>([]), [courierId, setCourierId] = useState('');
   const [cancelOpen, setCancelOpen] = useState(false), [editing, setEditing] = useState(false);
   const lock = useRef(false), generation = useRef(0);
   const latestInteraction = useRef({ selected, editing, cancelOpen, busy });
@@ -86,6 +91,15 @@ export default function DamAlemOrders() {
     refresh(); const timer = setInterval(refresh, 15000);
     return () => {alive = false; clearInterval(timer);};
   }, [selected]);
+  useEffect(() => {
+    let alive = true;
+    void foodOperations<{items: CourierChoice[]}>('/couriers').then(data => {
+      if (!alive) return;
+      setCouriers(data.items);
+      setCourierId(current => current || data.items.find(item => !item.active_delivery)?.id || '');
+    }).catch(() => { if (alive) setCouriers([]); });
+    return () => { alive = false; };
+  }, []);
   useEffect(() => {
     let alive = true;
     const refresh = () => { if (alive) void refreshQueueCounts(); };
@@ -136,6 +150,17 @@ export default function DamAlemOrders() {
     try { await foodOperations(`/orders/${selected}/notifications/${eventId}/retry`, 'POST'); await refreshDetail(); toast.success(adminT('admin.dam.final.137')); }
     catch (e) { toast.error((e as Error).message); } finally { lock.current = false; setBusy(false); }
   }
+  async function assignCourier() {
+    if (!detail || !courierId || lock.current) return;
+    lock.current = true; setBusy(true);
+    try {
+      await foodOperations(`/orders/${detail.order.id}/assign-courier`, 'POST', { courier_id: courierId });
+      setRows(current => current.map(item => item.id === detail.order.id ? { ...item, status: 'in_progress' } : item));
+      await Promise.all([refreshDetail(), load(), refreshQueueCounts()]);
+      toast.success(lang === 'kz' ? 'Тапсырыс курьерге берілді' : 'Заказ передан курьеру');
+    } catch (e) { toast.error((e as Error).message); }
+    finally { lock.current = false; setBusy(false); }
+  }
   const order = detail?.order;
   const isDelivery = ['delivery', 'доставка'].includes(order?.delivery_method || '');
   const closed = order && ['done', 'cancelled'].includes(order.status);
@@ -155,7 +180,7 @@ export default function DamAlemOrders() {
     {receiptEditor && <OrderReceiptEditor order={receiptEditor === 'edit' ? order : undefined} onClose={() => setReceiptEditor(null)} onSaved={id => {const manual = receiptEditor === 'manual'; setReceiptEditor(null); const p = new URLSearchParams(params); if (manual) {setStatus('active'); setSource(''); setSearch(''); setPage(0); p.set('status','active');} p.set('section','orders'); p.set('order',String(id)); setParams(p); void Promise.all([load(), refreshQueueCounts()]); if (id === selected) void refreshDetail().catch(e => toast.error(e.message));}} />}
     <p className="rounded-xl bg-blue-50 dark:bg-blue-950/40 p-3 text-sm text-blue-900 dark:text-blue-100">{adminT('workflow.queueHelp')}</p>
     {error && <p role="alert" className="rounded-xl bg-red-50 dark:bg-red-950/30 p-3 text-red-800">{error}  {adminT('admin.dam.final.144')}</p>}
-    <div className="flex flex-wrap gap-3"><Input aria-label={adminT('admin.dam.final.145')} className="min-w-0 flex-1 basis-64" placeholder={adminT('admin.dam.final.146')} value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} /><select aria-label={adminT('admin.dam.final.147')} className="rounded-lg border p-2 bg-background max-w-full" value={status} onChange={e => { setStatus(e.target.value); setPage(0); const p = new URLSearchParams(params); p.set('status', e.target.value); setParams(p); }}><option value="working">{adminT('pos.working')}</option><option value="courier">{adminT('pos.courier')}</option><option value="active">{adminT('pos.active')}</option><option value="">{adminT('admin.dam.final.149')}</option>{Object.entries(orderLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select><select aria-label={adminT('pos.source')} className="rounded-lg border p-2 bg-background max-w-full" value={source} onChange={e => {setSource(e.target.value); setPage(0);}}><option value="">{adminT('pos.allSources')}</option>{Object.entries(sourceLabels).filter(([key]) => ['app','operator'].includes(key)).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select></div>
+    <div className="flex flex-wrap gap-3"><Input aria-label={adminT('admin.dam.final.145')} className="min-w-0 flex-1 basis-64" placeholder={adminT('admin.dam.final.146')} value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} /><select aria-label={adminT('admin.dam.final.147')} className="rounded-lg border p-2 bg-background max-w-full" value={status} onChange={e => { setStatus(e.target.value); setPage(0); const p = new URLSearchParams(params); p.set('status', e.target.value); setParams(p); }}><option value="working">{adminT('pos.working')}</option><option value="courier">{adminT('pos.courier')}</option><option value="active">{adminT('pos.active')}</option><option value="">{adminT('admin.dam.final.149')}</option>{Object.entries(orderLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select><select aria-label={adminT('pos.source')} className="rounded-lg border p-2 bg-background max-w-full" value={source} onChange={e => {setSource(e.target.value); setPage(0);}}><option value="">{adminT('pos.allSources')}</option>{Object.entries(sourceLabels).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select></div>
     <nav aria-label={adminT('admin.dam.final.147')} className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">{statusTabs.map(tab => <button key={tab.key} aria-pressed={status === tab.key} className={`relative min-h-12 rounded-xl border px-3 py-2 text-left text-sm font-semibold transition ${tab.style} ${status === tab.key ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-slate-950' : 'hover:-translate-y-0.5'} ${tab.key === 'new' && Number(tab.count) > 0 ? 'animate-pulse' : ''}`} onClick={() => {setStatus(tab.key); setPage(0); const p = new URLSearchParams(params); p.set('status',tab.key); setParams(p);}}><span>{tab.label}</span><strong className="ml-2 inline-flex min-w-6 justify-center rounded-full bg-background/80 px-1.5 py-0.5 text-xs shadow-sm">{Number(tab.count || 0).toLocaleString(locale)}</strong>{tab.key === 'courier' && Number(queueCounts.courier_assigned) > 0 && <small className="mt-1 block font-normal">{adminT('admin.dam.queue.courierAssigned')}: {queueCounts.courier_assigned}</small>}</button>)}</nav>
     <div className="grid gap-5 xl:grid-cols-[minmax(260px,1fr)_minmax(0,1.6fr)]">
       <section className="min-w-0 space-y-2" aria-label={adminT('admin.dam.final.150')}>
@@ -176,8 +201,10 @@ export default function DamAlemOrders() {
           {isDelivery && <p className="rounded-xl border bg-muted/30 p-4 text-sm">{adminT('dam.delivery.operatorHelp')}</p>}
           {order.paid_amount != null && <div className="text-sm"><p>{adminT('workflow.received')}: {money(order.paid_amount)}</p><p>{adminT(order.paid_amount > order.total_amount ? 'workflow.refund' : 'workflow.due')}: {money(Math.abs(order.total_amount - order.paid_amount))}</p></div>}
           <PrintReceiptButton order={order} />
-          <Items raw={order.order_items} /><p className="text-lg font-bold">{adminT('admin.dam.final.162')} {money(order.total_amount)}</p><p>{adminT('admin.dam.final.163')} {({ cash: adminT('admin.dam.final.006'), kaspi_qr: 'Kaspi QR', halyk_qr: 'Halyk QR' } as Record<string, string>)[order.payment_method] || order.payment_method || adminT('admin.dam.final.164')} · {order.payment_status === 'paid' ? adminT('admin.dam.final.165') : adminT('admin.dam.final.166')}</p>
-          {!closed && <div className="flex flex-wrap gap-2">{target && <Button className="min-h-12 px-5" disabled={busy} onClick={() => void change({ status: target })}>{target === 'done' ? !isDelivery ? adminT('admin.dam.final.167') : adminT('admin.dam.final.168') : ({confirmed: adminT('pos.accept'), preparing: adminT('pos.kitchen'), ready: adminT('pos.ready'), in_progress: adminT('dam.delivery.departed')} as Record<string,string>)[target] || orderLabels[target]}</Button>}{order.payment_status !== 'paid' && <Button variant="outline" disabled={busy} onClick={() => void change({ payment_status: 'paid' })}>{adminT('admin.dam.final.169')}</Button>}<Button variant="outline" disabled={busy} onClick={() => setCancelOpen(!cancelOpen)}>{adminT('admin.dam.final.170')}</Button></div>}
+          <Items raw={order.order_items} /><p className="text-lg font-bold">{adminT('admin.dam.final.162')} {money(order.total_amount)}</p><p>{adminT('admin.dam.final.163')} {({ cash: adminT('admin.dam.final.006'), kaspi_qr: 'Kaspi', halyk_qr: 'Halyk' } as Record<string, string>)[order.payment_method] || order.payment_method || adminT('admin.dam.final.164')} · {order.payment_status === 'paid' ? adminT('admin.dam.final.165') : adminT('admin.dam.final.166')}</p>
+          {isDelivery && order.status === 'ready' && <div className="rounded-xl border border-violet-300 bg-violet-50 p-4 space-y-3 dark:bg-violet-950/30"><label className="block font-semibold">{lang === 'kz' ? 'Курьерді таңдаңыз' : 'Выберите курьера'}<select className="mt-2 w-full rounded-lg border bg-background p-3" value={courierId} onChange={e => setCourierId(e.target.value)}><option value="">{lang === 'kz' ? 'Курьер таңдалмаған' : 'Курьер не выбран'}</option>{couriers.map(c => <option key={c.id} value={c.id} disabled={c.active_delivery}>{c.name}{c.phone ? ` · ${c.phone}` : ''}{c.active_delivery ? (lang === 'kz' ? ' · жеткізуде' : ' · уже в доставке') : c.online ? (lang === 'kz' ? ' · желіде' : ' · на линии') : ''}</option>)}</select></label><Button className="w-full min-h-12" disabled={busy || !courierId} onClick={() => void assignCourier()}>{lang === 'kz' ? 'Курьерге берілді' : 'Отдано курьеру'}</Button>{!couriers.length && <p className="text-sm text-destructive">{lang === 'kz' ? 'Расталған курьерлер жоқ' : 'Нет подтверждённых курьеров. Сначала добавьте или одобрите курьера.'}</p>}</div>}
+          {isDelivery && order.status === 'in_progress' && <p className="rounded-xl bg-blue-50 p-4 font-medium text-blue-900 dark:bg-blue-950/30 dark:text-blue-100">{detail?.delivery?.courier_name ? `Курьер: ${detail.delivery.courier_name}${detail.delivery.courier_phone ? ` · ${detail.delivery.courier_phone}` : ''}` : (lang === 'kz' ? 'Тапсырыс курьерде' : 'Заказ у курьера')}</p>}
+          {!closed && <div className="flex flex-wrap gap-2">{target && <Button className="min-h-12 px-5" disabled={busy} onClick={() => void change({ status: target })}>{target === 'done' ? adminT('admin.dam.final.167') : ({preparing: lang === 'kz' ? 'Асүйге берілді' : 'Передал на кухню', ready: lang === 'kz' ? 'Дайын' : 'Готово'} as Record<string,string>)[target] || orderLabels[target]}</Button>}{order.payment_status !== 'paid' && <Button variant="outline" disabled={busy} onClick={() => void change({ payment_status: 'paid' })}>{adminT('admin.dam.final.169')}</Button>}<Button variant="outline" disabled={busy} onClick={() => setCancelOpen(!cancelOpen)}>{adminT('admin.dam.final.170')}</Button></div>}
           {order.status === 'done' && order.payment_status !== 'paid' && <Button disabled={busy} onClick={() => void change({ payment_status: 'paid' })}>{adminT('admin.dam.final.169')}</Button>}
           {cancelOpen && <div className="rounded-xl bg-red-50 dark:bg-red-950/30 p-3 space-y-2"><label className="block">{adminT('admin.dam.final.171')}<Input aria-label={adminT('admin.dam.final.171')} maxLength={500} value={reason} onChange={e => setReason(e.target.value)} /></label><p className="text-sm">{adminT('admin.dam.final.172')}</p><Button disabled={busy || !reason.trim()} onClick={() => void change({ status: 'cancelled', cancellation_reason: reason.trim() })}>{adminT('admin.dam.final.173')}</Button></div>}
           {order.cancellation_reason && <p className="text-red-700">{adminT('admin.dam.final.174')} {order.cancellation_reason}</p>}

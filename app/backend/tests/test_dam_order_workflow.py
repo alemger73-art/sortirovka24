@@ -207,21 +207,23 @@ async def test_ready_courier_delivery_and_cancellation_are_one_workflow(env):
         task=await db.scalar(select(LogisticsTask));tid=task.id
         assert task.status=='ready' and task.total_amount==1200 and task.paid_amount==1200
         user=await db.get(User,'courier')
-        await accept_task(db,tid,user)
-    # Assigned courier keeps the job but cannot collect until kitchen reconfirms readiness.
-    body=edit_body(4)
+        with pytest.raises(ValueError, match='назначает оператор'):
+            await accept_task(db,tid,user)
+    # The operator may still edit a ready order before assigning the courier.
+    body=edit_body(3)
     response=await client.post(BASE+'/orders/1/receipt',headers=headers,json=body)
     assert response.status_code==200,response.text
     async with maker() as db:
-        user=await db.get(User,'courier');task=await db.get(LogisticsTask,tid)
-        assert task.status=='assigned' and task.order_status=='preparing'
-        with pytest.raises(ValueError): await advance_task_status(db,task,user,'picked_up')
-    response=await client.patch(BASE+'/orders/1',headers=headers,json={'expected_version':5,'status':'ready'})
+        task=await db.get(LogisticsTask,tid)
+        assert task.status=='pending' and task.order_status=='preparing'
+    response=await client.patch(BASE+'/orders/1',headers=headers,json={'expected_version':4,'status':'ready'})
     assert response.status_code==200,response.text
+    assigned=await client.post(BASE+'/orders/1/assign-courier',headers=headers,json={'courier_id':'courier'})
+    assert assigned.status_code==200,assigned.text
     async with maker() as db:
         user=await db.get(User,'courier');task=await db.get(LogisticsTask,tid)
-        for status in ['picked_up','on_the_way','delivered']:
-            await advance_task_status(db,task,user,status)
+        assert task.status=='on_the_way'
+        await advance_task_status(db,task,user,'delivered')
         food=await db.get(Food_orders,1)
         assert food.status=='done' and food.completed_at
         with pytest.raises(ValueError): await advance_task_status(db,task,user,'delivered')
@@ -423,7 +425,8 @@ async def test_pos_catalog_lookup_sources_and_transitions(env):
     assert (await client.get(BASE+'/orders?source=invalid',headers=headers)).status_code==422
     assert (await client.get(BASE+'/orders?source=app',headers=headers)).json()['total']==0
     assert (await client.patch(BASE+'/orders/1',headers=headers,json={'expected_version':0,'status':'confirmed'})).status_code==200
-    assert (await client.get(BASE+'/orders?status=working',headers=headers)).json()['total']==1
+    # Manual orders are accepted immediately too, so both are already in work.
+    assert (await client.get(BASE+'/orders?status=working',headers=headers)).json()['total']==2
     for target in ['ready','in_progress','done']:
         assert (await client.patch(BASE+'/orders/1',headers=headers,json={'expected_version':1,'status':target})).status_code==409
     async with maker() as db:
@@ -431,7 +434,9 @@ async def test_pos_catalog_lookup_sources_and_transitions(env):
         staff=await db.get(PartnerCredentials,1);staff.display_name='Курьер'
         await db.commit()
     assert (await client.get(BASE+'/orders?status=courier',headers=headers)).json()['total']==1
-    assert (await client.patch(BASE+'/orders/1',headers=headers,json={'expected_version':1,'status':'in_progress'})).status_code==200
+    assert (await client.patch(BASE+'/orders/1',headers=headers,json={'expected_version':1,'status':'in_progress'})).status_code==409
+    assigned = await client.post(BASE+'/orders/1/assign-courier',headers=headers,json={'courier_id':'courier'})
+    assert assigned.status_code==200, assigned.text
 
 
 @pytest.mark.asyncio

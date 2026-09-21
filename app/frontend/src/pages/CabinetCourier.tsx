@@ -345,12 +345,14 @@ export default function CabinetCourier() {
                   {LOGISTICS_STATUS_LABELS[active_task.status]?.labelKey ? t(LOGISTICS_STATUS_LABELS[active_task.status].labelKey) : active_task.status}
                 </span>
               </div>
+              {active_task.order_source && <p className="text-xs font-semibold uppercase tracking-wide text-orange-800">Источник: {({app:'Приложение',operator:'Оператор на месте',whatsapp:'WhatsApp-бот'} as Record<string,string>)[active_task.order_source] || active_task.order_source}</p>}
               <p className="text-sm text-gray-700">📍 {active_task.pickup_address}</p>
               <p className="text-sm text-gray-500">→ {active_task.dropoff_address}</p>
+              <a className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 underline" target="_blank" rel="noreferrer" href={active_task.dropoff_lat != null && active_task.dropoff_lng != null ? `https://www.google.com/maps/dir/?api=1&destination=${active_task.dropoff_lat},${active_task.dropoff_lng}` : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(active_task.dropoff_address)}`}><Navigation className="h-4 w-4" />Открыть маршрут</a>
               {active_task.delivery_fee != null && (
                 <p className="font-bold text-xl">{formatTenge(active_task.delivery_fee)}</p>
               )}
-              {active_task.source_type === 'food_orders' && <div className="rounded-xl bg-muted/40 p-3 space-y-1"><p>{t('workflow.total')}: {formatTenge(active_task.total_amount)}</p><p>{t('workflow.received')}: {formatTenge(active_task.paid_amount)}</p><p className="font-bold">{t('workflow.due')}: {formatTenge(active_task.amount_due)}</p></div>}
+              {active_task.source_type === 'food_orders' && <div className="rounded-xl bg-muted/40 p-3 space-y-1"><p>{t('workflow.total')}: {formatTenge(active_task.total_amount)}</p><p>Оплата: <strong>{({cash:'Наличные',kaspi_qr:'Kaspi',halyk_qr:'Halyk'} as Record<string,string>)[active_task.payment_method || ''] || active_task.payment_method || '—'}</strong> · {active_task.payment_status === 'paid' ? 'оплачено' : 'не оплачено'}</p><p>{t('workflow.received')}: {formatTenge(active_task.paid_amount)}</p><p className="font-bold">{active_task.payment_method === 'cash' ? 'Получить у клиента' : t('workflow.due')}: {formatTenge(active_task.amount_due)}</p>{active_task.comment && <p>Комментарий: {active_task.comment}</p>}</div>}
               {active_task.order_items && <div className="text-sm space-y-1">{parseOrderItems(active_task.order_items).map((item,i) => <p key={i}>{String(item.name || item.title || '')} × {orderLineQuantity(item)}</p>)}</div>}
               <PrintReceiptButton order={{...active_task, order_number: active_task.source_id}} />
               {active_task.customer_phone && (
@@ -362,7 +364,7 @@ export default function CabinetCourier() {
               {COURIER_STATUS_FLOW[active_task.status] && (
                 <Button
                   className="w-full h-12 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold"
-                  disabled={updatingId === active_task.id || (active_task.status === 'assigned' && !!active_task.order_status && active_task.order_status !== 'ready')}
+                  disabled={!data.shift || updatingId === active_task.id || (active_task.status === 'assigned' && !!active_task.order_status && active_task.order_status !== 'ready')}
                   onClick={() => advanceStatus(active_task)}
                 >
                   {updatingId === active_task.id ? (
@@ -392,7 +394,7 @@ export default function CabinetCourier() {
               <div className="flex gap-2">
                 <Button
                   className="flex-1 h-12 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-bold"
-                  disabled={acceptingId === offered_task.id}
+                  disabled={!data.shift || acceptingId === offered_task.id}
                   onClick={() => acceptTask(offered_task)}
                 >
                   {acceptingId === offered_task.id ? <Loader2 className="h-4 w-4 animate-spin" /> : t('courier.accept')}
@@ -420,7 +422,7 @@ export default function CabinetCourier() {
                   <p className="text-sm text-gray-500 dark:text-slate-400">→ {task.dropoff_address}</p>
                   <Button
                     className="w-full h-10 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold"
-                    disabled={acceptingId === task.id}
+                    disabled={!data.shift || acceptingId === task.id}
                     onClick={() => acceptTask(task)}
                   >
                     {acceptingId === task.id ? <Loader2 className="h-4 w-4 animate-spin" /> : t('courier.accept')}

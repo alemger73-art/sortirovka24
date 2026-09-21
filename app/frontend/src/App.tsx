@@ -8,6 +8,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import AuthGateLoader from "@/components/AuthGateLoader";
 import RequireCabinetRole from "@/components/RequireCabinetRole";
 import RequireUserAuth from "@/components/RequireUserAuth";
+import RequireCourierAccess from "@/components/RequireCourierAccess";
 import ModuleRoute from "@/components/ModuleRoute";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
@@ -78,6 +79,7 @@ const DeliveryTrack = lazy(() => import("./pages/DeliveryTrack"));
 const CabinetPartner = lazy(() => import("./pages/CabinetPartner"));
 const CabinetAdmin = lazy(() => import("./pages/CabinetAdmin"));
 const CabinetOrderDetail = lazy(() => import("./pages/CabinetOrderDetail"));
+const CabinetCourier = lazy(() => import("./pages/CabinetCourier"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Minimal skeleton loading fallback
@@ -191,7 +193,7 @@ function App() {
               <Route path="/cabinet/orders/:source/:orderId" element={<Protected><ModuleRoute><CabinetOrderDetail /></ModuleRoute></Protected>} />
               <Route path="/cabinet/master" element={<Protected><RequireCabinetRole allowedRoles={["master"]}><ModuleRoute module="masters"><CabinetMaster /></ModuleRoute></RequireCabinetRole></Protected>} />
               <Route path="/cabinet/driver" element={<Protected><RequireCabinetRole allowedRoles={["driver"]}><CabinetDriver /></RequireCabinetRole></Protected>} />
-              <Route path="/cabinet/courier" element={<Navigate to="/cabinet" replace />} />
+              <Route path="/cabinet/courier" element={<Protected><RequireCourierAccess><ModuleRoute module="food"><CabinetCourier /></ModuleRoute></RequireCourierAccess></Protected>} />
               <Route path="/delivery/food/:orderId" element={<DeliveryTrack />} />
               <Route path="/cabinet/partner" element={<Protected><RequireCabinetRole allowedRoles={["seller"]}><CabinetPartner /></RequireCabinetRole></Protected>} />
               <Route path="/cabinet/admin" element={<Protected><RequireCabinetRole allowedRoles={["admin", "superadmin", "moderator"]}><CabinetAdmin /></RequireCabinetRole></Protected>} />

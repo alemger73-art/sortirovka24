@@ -49,6 +49,9 @@ class Food_ordersService:
             obj.version = 0
             dam_order = await is_dam_order(self.db, obj)
             if dam_order:
+                # DAM ALEM receives the order directly in the operator queue.
+                # There is no separate manual "accept" step.
+                obj.status = 'confirmed'
                 add_event(self.db, obj, "Заказ создан", actor)
             await self.db.commit()
             await self.db.refresh(obj)
@@ -170,9 +173,13 @@ class Food_ordersService:
                 if obj.payment_status == 'paid' and update_data.get('payment_status', 'paid') != 'paid':
                     raise HTTPException(422, 'Полученную оплату нельзя стереть. Возврат отмечается владельцем отдельно.')
                 target = update_data.get('status', old_status)
-                transitions = {'new': {'confirmed', 'cancelled'}, 'confirmed': {'preparing', 'cancelled'}, 'preparing': {'ready', 'cancelled'}, 'ready': {'in_progress', 'done', 'cancelled'}, 'in_progress': {'done', 'cancelled'}}
+                transitions = {'new': {'confirmed', 'preparing', 'cancelled'}, 'confirmed': {'preparing', 'cancelled'}, 'preparing': {'ready', 'cancelled'}, 'ready': {'in_progress', 'done', 'cancelled'}, 'in_progress': {'done', 'cancelled'}}
                 if target == 'in_progress' and obj.delivery_method in ('pickup', 'dine_in'):
                     raise HTTPException(422, "Самовывоз не передаётся в доставку")
+                if target == 'in_progress' and obj.delivery_method in ('delivery', 'доставка'):
+                    raise HTTPException(409, "Выберите курьера и нажмите «Отдано курьеру»")
+                if target == 'done' and old_status == 'in_progress' and obj.delivery_method in ('delivery', 'доставка'):
+                    raise HTTPException(409, "Доставку завершает назначенный курьер")
                 if target != old_status and target not in transitions.get(old_status, set()):
                     raise HTTPException(409, "Недопустимый переход статуса")
                 if target != old_status and obj.delivery_method in ('delivery', 'доставка') and target == 'done' and old_status != 'in_progress':

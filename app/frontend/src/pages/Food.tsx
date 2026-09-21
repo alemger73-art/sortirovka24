@@ -138,8 +138,8 @@ interface OrderSuccessInfo {
 
 const PAYMENT_LABELS: Record<'cash' | 'kaspi_qr' | 'halyk_qr', string> = {
   cash: 'Наличные',
-  kaspi_qr: 'Kaspi QR',
-  halyk_qr: 'Halyk QR',
+  kaspi_qr: 'Kaspi',
+  halyk_qr: 'Halyk',
 };
 
 interface CartItemSelection { [groupId: number]: number[]; }
@@ -1864,7 +1864,7 @@ export default function Food() {
                 </p>
               </div>
               <div className="mt-4 dam-card p-4">
-                <FoodOrderStatusBar status="new" deliveryMethod={orderSuccess.deliveryMethod} />
+                <FoodOrderStatusBar status="confirmed" deliveryMethod={orderSuccess.deliveryMethod} />
               </div>
               <div className="mt-4 space-y-2 dam-card p-4 text-sm">
                 <div className="flex justify-between">
@@ -2609,8 +2609,8 @@ export default function Food() {
                     {(
                       [
                         { id: 'cash' as const, label: st("Наличные"), Icon: Banknote },
-                        { id: 'kaspi_qr' as const, label: 'Kaspi QR', Icon: Smartphone },
-                        { id: 'halyk_qr' as const, label: 'Halyk QR', Icon: Smartphone },
+                        { id: 'kaspi_qr' as const, label: 'Kaspi', Icon: Smartphone },
+                        { id: 'halyk_qr' as const, label: 'Halyk', Icon: Smartphone },
                       ] as const
                     ).map(({ id, label, Icon }) => (
                       <button

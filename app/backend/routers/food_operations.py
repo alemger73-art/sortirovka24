@@ -17,7 +17,10 @@ from services.food_shifts import require_partner_shift, record_action
 router = APIRouter(prefix='/api/v1/dam-alem/operations', tags=['DAM ALEM operations'], dependencies=[Depends(food_staff)])
 
 def serialize(row):
-    return {c.name: getattr(row, c.name) for c in row.__table__.columns}
+    data = {c.name: getattr(row, c.name) for c in row.__table__.columns}
+    if isinstance(row, Food_orders):
+        data['order_source'] = data.get('order_source') or 'app'
+    return data
 
 async def order_for_panel(db, order_id):
     obj = await db.scalar(select(Food_orders).where(Food_orders.id == order_id, await scope(db)))
@@ -158,6 +161,62 @@ class OrderChange(BaseModel):
     cancellation_reason: str | None = Field(None, max_length=500)
     delivery_address: str | None = Field(None, max_length=1000)
     payment_status: Literal['pending', 'paid'] | None = None
+
+class CourierAssignment(BaseModel):
+    courier_id: str = Field(min_length=1, max_length=255)
+
+@router.get('/couriers')
+async def couriers(db: AsyncSession = Depends(get_db)):
+    """Verified couriers available for explicit operator assignment."""
+    from models.logistics import CourierProfile, LogisticsTask
+    from models.auth import User
+    rows = (await db.execute(
+        select(User, CourierProfile)
+        .join(CourierProfile, CourierProfile.user_id == User.id)
+        .where(CourierProfile.is_verified.is_(True))
+        .order_by(User.name, User.id)
+    )).all()
+    return {'items': [{
+        'id': str(user.id),
+        'name': user.name or profile.phone or user.phone or 'Курьер',
+        'phone': profile.phone or user.phone or '',
+        'online': bool(profile.is_online),
+        'active_delivery': bool(await db.scalar(select(func.count()).select_from(LogisticsTask).where(
+            LogisticsTask.courier_id == str(user.id),
+            LogisticsTask.status.in_(['assigned', 'picked_up', 'on_the_way'])
+        ))),
+    } for user, profile in rows]}
+
+@router.post('/orders/{order_id}/assign-courier')
+async def assign_courier(order_id: int, body: CourierAssignment, request: Request, db: AsyncSession = Depends(get_db)):
+    order = await order_for_panel(db, order_id)
+    if order.delivery_method not in ('delivery', 'доставка') or order.status != 'ready':
+        raise HTTPException(409, 'Сначала отметьте заказ как готовый')
+    actor = await food_staff(request, db)
+    shift = await require_partner_shift(db, actor)
+    from models.auth import User
+    from models.logistics import CourierProfile
+    from services.dam_order_workflow import task_for, sync_task
+    from services.logistics_service import assign_dam_delivery
+    courier = await db.get(User, body.courier_id)
+    profile = await db.get(CourierProfile, body.courier_id)
+    if not courier or not profile or not profile.is_verified:
+        raise HTTPException(404, 'Курьер не найден или не подтверждён')
+    task = await task_for(db, order)
+    if not task:
+        await sync_task(db, order)
+        await db.flush()
+        task = await task_for(db, order)
+    if not task:
+        raise HTTPException(409, 'Не удалось подготовить доставку')
+    try:
+        task = await assign_dam_delivery(db, task, courier)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from None
+    record_action(db, shift, 'courier_assigned', claims=actor, entity_type='order', entity_id=order_id,
+        details={'courier_id': body.courier_id, 'courier_name': courier.name or profile.phone})
+    await db.commit()
+    return {'ok': True, 'task_id': task.id, 'status': task.status, 'courier_name': courier.name or profile.phone}
 
 @router.patch('/orders/{order_id}')
 async def change(order_id: int, body: OrderChange, request: Request, db: AsyncSession = Depends(get_db)):
