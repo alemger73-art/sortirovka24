@@ -33,6 +33,7 @@ export default defineConfig(({ mode }) => ({
         // Public pages must reach the server so every navigation receives
         // route-specific metadata and the server-rendered SEO shell.
         navigateFallbackDenylist: [
+          /^\/api(?:\/|$)/,
           /^\/(?:news|announcements|real-estate|jobs|food|directory|transport|inspectors|business|masters|salons|support|questions|complaints)(?:\/|$)/,
         ],
         // Account, order and payment APIs are deliberately network-only.
