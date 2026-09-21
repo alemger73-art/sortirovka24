@@ -3,6 +3,18 @@ import { getPublicLanguage } from '@/i18n/publicLocale';
 import { getAPIBaseURL } from './config';
 import { getPartnerToken } from './partnerAuthApi';
 
+function errorMessage(detail: unknown): string {
+  if (typeof detail === 'string') return detail;
+  const lang = getPublicLanguage();
+  if (Array.isArray(detail)) {
+    const fields: Record<string, string> = { name: 'dam.staff.name', email: 'dam.staff.login', password: 'dam.staff.password', pin: 'dam.staff.pin', role: 'dam.staff.role' };
+    const labels = detail.map(item => fields[item?.loc?.at(-1)]).filter(Boolean)
+      .map(key => adminTranslations[key]?.[lang]).filter(Boolean);
+    if (labels.length) return `${adminTranslations['dam.staff.checkField'][lang]}: ${[...new Set(labels)].join(', ')}`;
+  }
+  return adminTranslations['admin.dam.operationError'][lang];
+}
+
 export async function foodOperations<T>(path: string, method = 'GET', body?: unknown, area: 'operations' | 'business' | 'payroll' = 'operations'): Promise<T> {
   const partner = getPartnerToken('dam_alem');
   const admin = localStorage.getItem('_sp924_token') || localStorage.getItem('token');
@@ -12,7 +24,7 @@ export async function foodOperations<T>(path: string, method = 'GET', body?: unk
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : adminTranslations['admin.dam.operationError'][getPublicLanguage()]);
+  if (!response.ok) throw new Error(errorMessage(data.detail));
   return data;
 }
 

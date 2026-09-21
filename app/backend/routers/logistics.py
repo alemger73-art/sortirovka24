@@ -49,6 +49,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 logger = logging.getLogger(__name__)
 
 async def public_delivery_guard(request: Request, db: AsyncSession = Depends(get_db)):
+    from core.delivery_mode import COURIER_PORTAL_ENABLED
+    if not COURIER_PORTAL_ENABLED and (request.url.path.startswith('/api/v1/logistics/courier') or
+            (request.method != 'GET' and request.url.path.startswith('/api/v1/logistics/tasks/'))):
+        raise HTTPException(404, 'Доставкой управляет оператор')
     if '/admin/' in request.url.path:
         return
     from services.cabinet_modules import availability

@@ -1864,7 +1864,7 @@ export default function Food() {
                 </p>
               </div>
               <div className="mt-4 dam-card p-4">
-                <FoodOrderStatusBar status="new" />
+                <FoodOrderStatusBar status="new" deliveryMethod={orderSuccess.deliveryMethod} />
               </div>
               <div className="mt-4 space-y-2 dam-card p-4 text-sm">
                 <div className="flex justify-between">

@@ -7,7 +7,6 @@ import AppWelcomeSplash from "@/components/AppWelcomeSplash";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import AuthGateLoader from "@/components/AuthGateLoader";
 import RequireCabinetRole from "@/components/RequireCabinetRole";
-import RequireCourierAccess from "@/components/RequireCourierAccess";
 import RequireUserAuth from "@/components/RequireUserAuth";
 import ModuleRoute from "@/components/ModuleRoute";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -62,7 +61,6 @@ const Pharmacy = lazy(() => import("./pages/Pharmacy"));
 const Food = lazy(() => import("./pages/Food"));
 const FoodRestaurants = lazy(() => import("./pages/FoodDelivery"));
 const FoodPark = lazy(() => import("./pages/FoodPark"));
-const FoodCourier = lazy(() => import("./pages/FoodCourier"));
 const BusinessPage = lazy(() => import("./pages/Business"));
 const SupportPage = lazy(() => import("./pages/Support"));
 const ReportProblemPage = lazy(() => import("./pages/ReportProblem"));
@@ -76,8 +74,6 @@ const LegalPage = lazy(() => import("./pages/LegalPage"));
 const Cabinet = lazy(() => import("./pages/Cabinet"));
 const CabinetMaster = lazy(() => import("./pages/CabinetMaster"));
 const CabinetDriver = lazy(() => import("./pages/CabinetDriver"));
-const CourierHub = lazy(() => import("./pages/CourierHub"));
-const CabinetCourier = lazy(() => import("./pages/CabinetCourier"));
 const DeliveryTrack = lazy(() => import("./pages/DeliveryTrack"));
 const CabinetPartner = lazy(() => import("./pages/CabinetPartner"));
 const CabinetAdmin = lazy(() => import("./pages/CabinetAdmin"));
@@ -187,7 +183,7 @@ function App() {
               <Route path="/more" element={<MorePage />} />
               <Route path="/taxi" element={<TaxiPage />} />
               <Route path="/taxi/driver" element={<TaxiDriverHub />} />
-              <Route path="/delivery/courier" element={<ModuleRoute anyOf={["food", "gastronom", "volna", "pharmacy", "prorab"]}><CourierHub /></ModuleRoute>} />
+              <Route path="/delivery/courier" element={<Navigate to="/cabinet" replace />} />
               <Route path="/taxi/ride/:id" element={<RequireUserAuth><TaxiRidePage /></RequireUserAuth>} />
               <Route path="/transport" element={<ModuleRoute module="transport"><TransportPage /></ModuleRoute>} />
               <Route path="/account" element={<AccountAuth />} />
@@ -195,7 +191,7 @@ function App() {
               <Route path="/cabinet/orders/:source/:orderId" element={<Protected><ModuleRoute><CabinetOrderDetail /></ModuleRoute></Protected>} />
               <Route path="/cabinet/master" element={<Protected><RequireCabinetRole allowedRoles={["master"]}><ModuleRoute module="masters"><CabinetMaster /></ModuleRoute></RequireCabinetRole></Protected>} />
               <Route path="/cabinet/driver" element={<Protected><RequireCabinetRole allowedRoles={["driver"]}><CabinetDriver /></RequireCabinetRole></Protected>} />
-              <Route path="/cabinet/courier" element={<Protected><ModuleRoute anyOf={["food", "gastronom", "volna", "pharmacy", "prorab"]}><RequireCourierAccess><CabinetCourier /></RequireCourierAccess></ModuleRoute></Protected>} />
+              <Route path="/cabinet/courier" element={<Navigate to="/cabinet" replace />} />
               <Route path="/delivery/food/:orderId" element={<DeliveryTrack />} />
               <Route path="/cabinet/partner" element={<Protected><RequireCabinetRole allowedRoles={["seller"]}><CabinetPartner /></RequireCabinetRole></Protected>} />
               <Route path="/cabinet/admin" element={<Protected><RequireCabinetRole allowedRoles={["admin", "superadmin", "moderator"]}><CabinetAdmin /></RequireCabinetRole></Protected>} />
@@ -211,7 +207,7 @@ function App() {
               <Route path="/apteka" element={<ModuleRoute module="pharmacy"><Pharmacy /></ModuleRoute>} />
               <Route path="/pharmacy" element={<Navigate to="/apteka" replace />} />
               <Route path="/food/park" element={<ModuleRoute module="food"><FoodPark /></ModuleRoute>} />
-              <Route path="/food/courier" element={<ModuleRoute module="food"><FoodCourier /></ModuleRoute>} />
+              <Route path="/food/courier" element={<Navigate to="/cabinet" replace />} />
               <Route path="/business" element={<ModuleRoute module="business"><BusinessPage /></ModuleRoute>} />
               <Route path="/support" element={<SupportPage />} />
               <Route path="/report-problem" element={<ReportProblemPage />} />

@@ -89,6 +89,10 @@ class LogisticsTask(BaseModel):
     receipt_revision = Column(Integer, nullable=True)
     order_status = Column(String(32), nullable=True)
     total_amount = Column(Float, nullable=True)
+    # Customer charge and courier compensation are intentionally independent.
+    customer_delivery_fee = Column(Float, nullable=True)
+    courier_payout = Column(Float, nullable=True)
+    # Legacy alias retained for old records/API clients; mirrors customer_delivery_fee on new tasks.
     delivery_fee = Column(Float, nullable=True)
     comment = Column(Text, nullable=True)
 

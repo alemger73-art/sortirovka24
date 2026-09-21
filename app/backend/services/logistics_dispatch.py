@@ -125,6 +125,9 @@ def offer_is_active(task: LogisticsTask) -> bool:
 
 
 async def offer_task_to_next_courier(db: AsyncSession, task: LogisticsTask) -> bool:
+    from core.delivery_mode import COURIER_PORTAL_ENABLED
+    if not COURIER_PORTAL_ENABLED:
+        return False
     if task.status != "ready" or task.courier_id:
         return False
     if task.pickup_lat is None or task.pickup_lng is None:
@@ -273,6 +276,9 @@ async def auto_offer_ready_tasks(db: AsyncSession) -> int:
 
 
 async def run_logistics_maintenance(db: AsyncSession) -> None:
+    from core.delivery_mode import COURIER_PORTAL_ENABLED
+    if not COURIER_PORTAL_ENABLED:
+        return
     await process_ready_pending(db)
     await process_expired_offers(db)
     await process_stale_tasks(db)

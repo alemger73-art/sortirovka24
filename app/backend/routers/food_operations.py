@@ -106,6 +106,8 @@ async def deliveries(db: AsyncSession = Depends(get_db)):
         'address': order.delivery_address, 'customer_name': order.customer_name,
         'total_amount': order.total_amount,
         'amount_due': max(0, float(order.total_amount or 0) - float(order.paid_amount if order.paid_amount is not None else order.total_amount if order.payment_status == 'paid' else 0)),
+        'customer_delivery_fee': (task.customer_delivery_fee if task and task.customer_delivery_fee is not None else task.delivery_fee if task else 0),
+        'courier_payout': (task.courier_payout if task and task.courier_payout is not None else task.delivery_fee if task else 0),
         'courier_name': courier.name if courier else None,
         'courier_phone': (profile.phone or courier.phone) if profile and courier else courier.phone if courier else None,
     } for order, task, courier, profile in rows]}

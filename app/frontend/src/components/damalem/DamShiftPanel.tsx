@@ -35,7 +35,7 @@ export default function DamShiftPanel({ onChange }: { onChange?: (shift: DamShif
       <div className="flex items-start gap-3">
         <span className={`rounded-xl p-2 ${state?.shift ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-white'}`}><Clock3 className="h-5 w-5" /></span>
         <div><h3 className="font-bold">{state?.shift ? t('dam.shift.openNow') : t('dam.shift.closedNow')}</h3>
-          {state?.shift ? <p className="text-sm text-muted-foreground">{state.shift.staff_name} · {new Date(state.shift.opened_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p> : <p className="text-sm text-muted-foreground">{state?.staff.pin_set ? t('dam.shift.openHelp') : t('dam.shift.pinSetup')}</p>}
+          {state?.shift ? <p className="text-sm text-muted-foreground">{state.shift.staff_name} · {new Date(state.shift.opened_at).toLocaleTimeString([], { timeZone: 'Asia/Almaty', hour: '2-digit', minute: '2-digit' })}</p> : <p className="text-sm text-muted-foreground">{state?.staff.pin_set ? t('dam.shift.openHelp') : t('dam.shift.pinSetup')}</p>}
         </div>
       </div>
       {state?.staff.id && state.staff.pin_set && <div className="flex w-full gap-2 md:w-auto">

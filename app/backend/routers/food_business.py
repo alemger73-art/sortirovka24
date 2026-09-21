@@ -291,7 +291,9 @@ async def staff_active(staff_id:int,body:StaffUpdate,db:AsyncSession=Depends(get
     removes_owner=(body.active is False) or (body.role is not None and body.role!='owner')
     if removes_owner and await _last_active_owner(db,row): raise HTTPException(409,'Нельзя отключить или понизить последнего активного владельца')
     changes={}
-    if body.name is not None: row.display_name=body.name.strip();changes['name']=row.display_name
+    if body.name is not None:
+        if not body.name.strip(): raise HTTPException(422,'Укажите имя сотрудника')
+        row.display_name=body.name.strip();changes['name']=row.display_name
     if body.active is not None: row.is_active=body.active;changes['active']=body.active
     if body.role is not None: row.access_role=body.role;changes['role']=body.role
     if body.pin is not None: row.pin_hash=hash_courier_pin(body.pin);changes['pin_changed']=True

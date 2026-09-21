@@ -1,3 +1,4 @@
+import { foodOrderStatusKey } from '@/lib/foodOrderStatus';
 import { getPublicLocale } from '@/i18n/publicLocale';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Link, useNavigate } from "react-router-dom";
@@ -155,7 +156,7 @@ export default function CabinetOrderCard({ order: o, detailPath, t }: Props) {
               </p>
               {st ? (
                 <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${st.badge}`}>
-                  {t(st.key)}
+                  {t(isFood ? foodOrderStatusKey(o.status || "new", o.delivery_method) : st.key)}
                 </span>
               ) : null}
             </div>

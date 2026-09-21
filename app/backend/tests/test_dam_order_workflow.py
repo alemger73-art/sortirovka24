@@ -431,7 +431,7 @@ async def test_pos_catalog_lookup_sources_and_transitions(env):
         staff=await db.get(PartnerCredentials,1);staff.display_name='Курьер'
         await db.commit()
     assert (await client.get(BASE+'/orders?status=courier',headers=headers)).json()['total']==1
-    assert (await client.patch(BASE+'/orders/1',headers=headers,json={'expected_version':1,'status':'in_progress'})).status_code==409
+    assert (await client.patch(BASE+'/orders/1',headers=headers,json={'expected_version':1,'status':'in_progress'})).status_code==200
 
 
 @pytest.mark.asyncio

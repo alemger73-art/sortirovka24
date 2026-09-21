@@ -1,3 +1,4 @@
+import { foodOrderStatusKey } from '@/lib/foodOrderStatus';
 import { getPublicLocale } from '@/i18n/publicLocale';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -140,7 +141,7 @@ export default function CabinetOrderDetail() {
                   </div>
                 </div>
                 <span className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${st.color}`}>
-                  {isFood ? ({ new: publicT("cabinet.orderStatus.new"), confirmed: publicT("public.CabinetOrderDetail.text41"), preparing: publicT("workflow.preparing"), ready: publicT("public.CabinetOrderDetail.text42"), in_progress: publicT("public.CabinetOrderDetail.text43"), done: publicT("public.CabinetOrderDetail.text44"), cancelled: publicT("cabinet.orderStatus.cancelled") } as Record<string, string>)[order.status] || t(st.key) : t(st.key)}
+                  {isFood ? t(foodOrderStatusKey(order.status || 'new', order.delivery_method)) : t(st.key)}
                 </span>
               </div>
 

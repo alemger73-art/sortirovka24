@@ -1003,7 +1003,7 @@ async def list_notifications(
                 "entity_type": row.entity_type,
                 "entity_id": row.entity_id,
                 "is_read": bool(row.is_read),
-                "created_at": row.created_at.isoformat() if row.created_at else None,
+                "created_at": (row.created_at.replace(tzinfo=timezone.utc) if row.created_at.tzinfo is None else row.created_at).isoformat() if row.created_at else None,
             }
             for row in rows
         ],

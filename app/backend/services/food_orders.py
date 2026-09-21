@@ -175,8 +175,8 @@ class Food_ordersService:
                     raise HTTPException(422, "Самовывоз не передаётся в доставку")
                 if target != old_status and target not in transitions.get(old_status, set()):
                     raise HTTPException(409, "Недопустимый переход статуса")
-                if target != old_status and obj.delivery_method in ('delivery', 'доставка') and target in ('in_progress', 'done'):
-                    raise HTTPException(409, 'Передачу и доставку отмечает курьер в своём кабинете')
+                if target != old_status and obj.delivery_method in ('delivery', 'доставка') and target == 'done' and old_status != 'in_progress':
+                    raise HTTPException(409, 'Сначала отметьте «Доставка уехала»')
                 if target == 'cancelled' and not (update_data.get('cancellation_reason') or '').strip():
                     raise HTTPException(422, "Укажите причину отмены")
                 if update_data.get('delivery_address') is not None and obj.delivery_method != 'pickup' and not update_data['delivery_address'].strip():

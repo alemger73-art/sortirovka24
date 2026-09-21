@@ -1,3 +1,4 @@
+import { PasswordInput } from '@/components/ui/password-input';
 import AppearanceControls from '@/components/AppearanceControls';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
@@ -102,7 +103,8 @@ function PartnerLoginForm({
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  tabIndex={-1}
+                  aria-label={adminT('admin.dam.access.showPassword')}
+                  aria-pressed={showPassword}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -163,8 +165,8 @@ function ChangePasswordDialog({ partnerType, onClose }: { partnerType: PartnerTy
         <CardHeader><CardTitle className="text-lg">{adminT("admin.ui.1334")}</CardTitle></CardHeader>
         <CardContent>
           <form onSubmit={submit} className="space-y-3">
-            <Input type="password" placeholder={adminT("admin.ui.0027")} value={current} onChange={(e) => setCurrent(e.target.value)} />
-            <Input type="password" placeholder={adminT("admin.ui.1335")} value={next} onChange={(e) => setNext(e.target.value)} />
+            <PasswordInput placeholder={adminT("admin.ui.0027")} value={current} onChange={(e) => setCurrent(e.target.value)} />
+            <PasswordInput placeholder={adminT("admin.ui.1335")} value={next} onChange={(e) => setNext(e.target.value)} />
             <div className="flex gap-2">
               <Button type="button" variant="outline" className="flex-1" onClick={onClose}>{adminT("admin.ui.0095")}</Button>
               <Button type="submit" className={`flex-1 text-white ${cfg.buttonClass}`} disabled={loading}>

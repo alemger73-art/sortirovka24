@@ -25,7 +25,6 @@ import { isRealEstateExpired, isRealEstatePromoted, resolveReTypeLabel } from "@
 import { toast } from "sonner";
 import { uploadAvatar, assertImageFileSize } from "@/lib/storage";
 import { formatTenge, taxiApi, TAXI_STATUS_LABELS, type TaxiRide, type DriverApplication } from "@/lib/taxiApi";
-import { logisticsApi, type CourierAccess } from "@/lib/logisticsApi";
 import { useTaxiEnabled } from "@/hooks/useTaxiEnabled";
 import { useModules } from "@/hooks/useModules";
 import {
@@ -122,7 +121,7 @@ export default function Cabinet() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [hasPassword, setHasPassword] = useState(true);
   const [taxiRides, setTaxiRides] = useState<TaxiRide[]>([]);
-  const [courierAccess, setCourierAccess] = useState<CourierAccess | null>(null);
+  const courierAccess = null; // Courier self-service is paused during operator-managed delivery.
   const [driverApplication, setDriverApplication] = useState<DriverApplication | null>(null);
   const [masterNewRequests, setMasterNewRequests] = useState(0);
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
@@ -628,7 +627,7 @@ export default function Cabinet() {
   const deliveryEnabled = anyModuleEnabled(DELIVERY_MODULE_KEYS, isEnabled);
   const mastersEnabled = isEnabled("masters");
   const taxiOn = taxiEnabled === true;
-  const showRoles = { master: mastersEnabled, courier: deliveryEnabled, driver: taxiOn };
+  const showRoles = { master: mastersEnabled, courier: false, driver: taxiOn };
 
   const tabs = useMemo(() => {
     const base: { id: TabId; label: string }[] = [
@@ -645,7 +644,7 @@ export default function Cabinet() {
       { id: "realEstate", label: t("cabinet.tab.realEstate") },
       { id: "settings", label: t("cabinet.tab.settings") },
     ];
-    return base.filter((tab) => (tab.id !== 'work' || mastersEnabled || deliveryEnabled || taxiOn) && isCabinetTabVisible(tab.id, tabVisibilityCtx));
+    return base.filter((tab) => (tab.id !== 'work' || mastersEnabled || taxiOn) && isCabinetTabVisible(tab.id, tabVisibilityCtx));
   }, [tabVisibilityCtx, t, mastersEnabled, deliveryEnabled, taxiOn]);
 
   useEffect(() => {
@@ -656,8 +655,6 @@ export default function Cabinet() {
         void taxiApi.myRides().then(v => { if (alive) setTaxiRides(v); }).catch(() => {});
         void taxiApi.getDriverApplication().then(v => { if (alive) setDriverApplication(v); }).catch(() => {});
       } else { setTaxiRides([]); setDriverApplication(null); }
-      if (deliveryEnabled) void logisticsApi.getCourierAccess().then(v => { if (alive) setCourierAccess(v); }).catch(() => {});
-      else setCourierAccess(null);
     };
     refresh();
     const timer = window.setInterval(() => { if (!document.hidden) refresh(); }, 15000);

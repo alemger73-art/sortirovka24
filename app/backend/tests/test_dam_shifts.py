@@ -101,3 +101,22 @@ async def test_owner_can_manage_personal_pin_without_exposing_it(shift_env):
     assert (await client.post("/api/v1/dam-alem/shifts/open", headers=operator, json={"pin": "2222"})).status_code == 401
     opened = await client.post("/api/v1/dam-alem/shifts/open", headers=operator, json={"pin": "3333"})
     assert opened.status_code == 200 and opened.json()["shift"]["staff_name"] == "Оператор 2"
+
+
+@pytest.mark.asyncio
+async def test_staff_create_validation_hash_duplicate_and_permissions(shift_env):
+    from routers.partner_auth import _verify_password
+    client, maker, owner, operator = shift_env
+    url = '/api/v1/dam-alem/business/staff'
+    body = {'name':'Новый оператор','email':'new@example.invalid','password':'Synthetic-2026!', 'pin':'4567','role':'operator'}
+    assert (await client.post(url, headers=operator, json=body)).status_code == 403
+    assert (await client.post(url, headers=owner, json={**body,'password':'short'})).status_code == 422
+    result = await client.post(url, headers=owner, json=body)
+    assert result.status_code == 200, result.text
+    assert (await client.post(url, headers=owner, json=body)).status_code == 409
+    staff_id = result.json()['id']
+    assert (await client.patch(f'{url}/{staff_id}', headers=owner, json={'name':'   '})).status_code == 422
+    async with maker() as db:
+        row = await db.get(PartnerCredentials, staff_id)
+        assert row.password_hash != body['password'] and _verify_password(body['password'], row.password_hash)
+        assert row.pin_hash != body['pin']

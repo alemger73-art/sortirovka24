@@ -136,5 +136,5 @@ async def action_history(
         "entity_type": row.entity_type,
         "entity_id": row.entity_id,
         "details": row.details,
-        "created_at": row.created_at,
+        "created_at": row.created_at.replace(tzinfo=timezone.utc) if row.created_at and row.created_at.tzinfo is None else row.created_at,
     } for row in rows]}
