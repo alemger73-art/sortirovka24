@@ -9,6 +9,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from main import app
+from core.auth import create_access_token
 from services.account_profile import AvatarValidationError, normalize_avatar_url
 from services.sms import SMSDeliveryResult
 
@@ -155,6 +156,53 @@ async def test_change_password(client: AsyncClient):
         json={"phone": phone, "password": new_password},
     )
     assert login_new.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_legacy_admin_can_reset_account_password_and_revoke_sessions(client: AsyncClient):
+    token, old_password = await _register_test_user(client)
+    headers = {"Authorization": f"Bearer {token}"}
+    me = await client.get("/api/v1/account/me", headers=headers)
+    user_id = me.json()["id"]
+    phone = me.json()["phone"]
+    admin_token = create_access_token(
+        {"role": "admin", "username": "pytest-admin", "type": "admin_session"},
+        expires_minutes=30,
+    )
+    new_password = "CourierReset99!"
+
+    reset = await client.post(
+        f"/api/v1/account/admin/users/{user_id}/reset-password",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json={"new_password": new_password},
+    )
+    assert reset.status_code == 200, reset.text
+    assert reset.json() == {"success": True}
+
+    revoked = await client.get("/api/v1/account/me", headers=headers)
+    assert revoked.status_code == 401
+    old_login = await client.post(
+        "/api/v1/account/login", json={"phone": phone, "password": old_password}
+    )
+    assert old_login.status_code == 401
+    new_login = await client.post(
+        "/api/v1/account/login", json={"phone": phone, "password": new_password}
+    )
+    assert new_login.status_code == 200, new_login.text
+
+
+@pytest.mark.asyncio
+async def test_password_reset_rejects_non_admin(client: AsyncClient):
+    token, _password = await _register_test_user(client)
+    me = await client.get(
+        "/api/v1/account/me", headers={"Authorization": f"Bearer {token}"}
+    )
+    response = await client.post(
+        f"/api/v1/account/admin/users/{me.json()['id']}/reset-password",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"new_password": "ForbiddenReset99!"},
+    )
+    assert response.status_code == 403
 
 
 @pytest.mark.asyncio

@@ -112,6 +112,10 @@ class AdminUserUpdateRequest(BaseModel):
     bonus_delta: Optional[float] = None
 
 
+class AdminPasswordResetRequest(BaseModel):
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class DashboardStatsResponse(BaseModel):
     total_users: int
     new_users_today: int

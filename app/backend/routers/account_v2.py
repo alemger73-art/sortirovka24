@@ -41,6 +41,7 @@ from schemas.account_v2 import (
     AddressGeocodeResponse,
     AddressResponse,
     AddressUpdateRequest,
+    AdminPasswordResetRequest,
     AdminUserUpdateRequest,
     AuthV2Response,
     ChangePasswordV2Request,
@@ -2277,6 +2278,37 @@ async def admin_update_user(
         "users",
         str(user.id),
         {"role": request.role, "status": request.status, "bonus_delta": request.bonus_delta},
+    )
+    return {"success": True}
+
+
+@router.post("/admin/users/{user_id}/reset-password")
+async def admin_reset_user_password(
+    user_id: str,
+    request: AdminPasswordResetRequest,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Reset an account password from either supported administration panel."""
+    actor_id, actor_user = await _assert_panel_admin(authorization, db)
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.password_hash = _hash_password(request.new_password)
+    await db.execute(
+        update(UserSession)
+        .where(UserSession.user_id == user_id)
+        .values(is_active=False)
+    )
+    await db.commit()
+    await _log_action(
+        db,
+        str(actor_user.id) if actor_user else None,
+        "admin_user_password_reset",
+        "users",
+        str(user.id),
+        {"actor": actor_id},
     )
     return {"success": True}
 
