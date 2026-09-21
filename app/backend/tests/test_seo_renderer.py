@@ -19,9 +19,12 @@ async def test_private_and_unknown_pages_are_not_indexed(monkeypatch):
     monkeypatch.setattr(seo_renderer.db_manager, "async_session_maker", None)
 
     private_page = await seo_renderer.build_seo_page("/cabinet/orders/food/1")
+    courier_page = await seo_renderer.build_seo_page("/dam-alem/courier")
     missing_page = await seo_renderer.build_seo_page("/definitely-missing")
 
     assert private_page.robots == "noindex, nofollow"
+    assert courier_page.status_code == 200
+    assert courier_page.robots == "noindex, nofollow"
     assert missing_page.status_code == 404
     assert missing_page.robots.startswith("noindex")
 

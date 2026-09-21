@@ -76,7 +76,7 @@ PUBLIC_PAGES: dict[str, tuple[str, str, str]] = {
 
 PRIVATE_PREFIXES = (
     "/api", "/admin", "/partner", "/cabinet", "/account", "/login", "/register",
-    "/system-portal-924", "/delivery", "/checkout", "/payment", "/auth", "/taxi/ride",
+    "/system-portal-924", "/delivery", "/dam-alem", "/checkout", "/payment", "/auth", "/taxi/ride",
 )
 
 NOINDEX_CLIENT_ROUTES = (
