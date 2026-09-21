@@ -7,8 +7,8 @@ self.addEventListener('push', (event) => {
   const path = rawPath.startsWith('/') && !rawPath.startsWith('//') ? rawPath : '/cabinet/notifications';
   event.waitUntil(self.registration.showNotification(title, {
     body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    icon: '/icon-192-v2.png',
+    badge: '/icon-maskable-192-v2.png',
     data: { path },
     tag: payload.data && payload.data.event_key ? String(payload.data.event_key) : undefined,
   }));
