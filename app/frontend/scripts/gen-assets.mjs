@@ -1,12 +1,12 @@
 // Rasterizes brand SVGs into the PNG sources required by Capacitor assets
 // and the PWA. Run: node scripts/gen-assets.mjs
 import sharp from 'sharp';
-import { readFileSync, mkdirSync } from 'fs';
+import { readFileSync, mkdirSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const iconSvg = readFileSync(resolve(root, 'assets/icon.svg'));
+const iconSvg = readFileSync(resolve(root, existsSync(resolve(root, 'assets/brand-logo.jpg')) ? 'assets/brand-logo.jpg' : 'assets/icon.svg'));
 const splashSvg = readFileSync(resolve(root, 'assets/splash.svg'));
 
 mkdirSync(resolve(root, 'assets'), { recursive: true });
