@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-const baseUrl = "https://atoms.template.com";
+const baseUrl = (process.env.SITE_URL || "https://www.sortirovka24.kz").replace(/\/$/, "");
 const distDir = "./dist";
 const outFile = "./dist/sitemap.xml";
 const contentDir = "./seo/content";

@@ -10,6 +10,7 @@ import RequireCabinetRole from "@/components/RequireCabinetRole";
 import RequireUserAuth from "@/components/RequireUserAuth";
 import RequireCourierAccess from "@/components/RequireCourierAccess";
 import ModuleRoute from "@/components/ModuleRoute";
+import SeoManager from "@/components/SeoManager";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { getAccountToken } from "@/lib/accountApi";
@@ -146,6 +147,7 @@ function App() {
       <LanguageProvider>
         {showWelcome && <AppWelcomeSplash onHidden={dismissWelcome} />}
         <BrowserRouter>
+          <SeoManager />
           <Toaster position="top-center" richColors />
           <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>

@@ -1,2 +1,14 @@
 User-agent: *
 Allow: /
+
+Disallow: /api/
+Disallow: /admin
+Disallow: /partner/
+Disallow: /cabinet
+Disallow: /account
+Disallow: /login
+Disallow: /register
+Disallow: /system-portal-924
+
+Host: www.sortirovka24.kz
+Sitemap: https://www.sortirovka24.kz/sitemap.xml
