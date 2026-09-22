@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
 const SITE_URL = 'https://www.sortirovka24.kz';
-const DEFAULT_TITLE = 'Сортировка 24 — цифровой портал района';
+const DEFAULT_TITLE = 'Сортировка Караганда — новости и сервисы района | Сортировка 24';
 const DEFAULT_DESCRIPTION =
   'Новости района Сортировка в Караганде, объявления, работа, полезный справочник, расписание транспорта и доставка еды DÄM ALEM.';
 
