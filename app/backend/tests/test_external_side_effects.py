@@ -6,11 +6,20 @@ from unittest.mock import patch
 from services.frontpad_client import call_frontpad
 from services.payment import CheckoutError, CheckoutSessionRequest, PaymentService, initialize_stripe
 from services.push_notifications import push_enabled, send_push_to_token
-from services.sms import send_verification_code
+from services.sms import SMSDeliveryResult, send_verification_code, should_expose_code_on_screen
 from services.telegram import send_telegram_message
 
 
 class ExternalSideEffectTests(unittest.IsolatedAsyncioTestCase):
+    async def test_pending_provider_never_exposes_code_in_production(self):
+        result = SMSDeliveryResult(delivered=False, pending_moderation=True)
+        with patch.dict(
+            os.environ,
+            {"DEBUG": "false", "SMS_EXPOSE_CODE": "false"},
+            clear=True,
+        ):
+            self.assertFalse(should_expose_code_on_screen(result))
+
     async def test_disabled_environment_skips_message_delivery(self):
         env = {
             "EXTERNAL_SIDE_EFFECTS": "disabled",

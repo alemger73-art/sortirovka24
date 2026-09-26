@@ -49,7 +49,7 @@ def test_normalize_avatar_url_none():
 
 
 async def _register_test_user(client: AsyncClient) -> tuple[str, str]:
-    suffix = random.randint(10_000_000, 99_999_999)
+    suffix = random.randint(1_000_000_000, 9_999_999_999)
     phone = f"+7{suffix}"
     password = "TestPass123!"
 
@@ -73,6 +73,31 @@ async def _register_test_user(client: AsyncClient) -> tuple[str, str]:
     assert reg.status_code == 200, reg.text
     token = reg.json()["token"]
     return token, password
+
+
+@pytest.mark.asyncio
+async def test_registration_uses_six_digit_code_and_resend_cooldown(client: AsyncClient):
+    phone = f"+7{random.randint(1_000_000_000, 9_999_999_999)}"
+    first = await client.post("/api/v1/account/register/request-sms", json={"phone": phone})
+    assert first.status_code == 200, first.text
+    body = first.json()
+    assert body["debug_code"].isdigit()
+    assert len(body["debug_code"]) == 6
+    assert body["resend_after_seconds"] >= 30
+
+    second = await client.post("/api/v1/account/register/request-sms", json={"phone": phone})
+    assert second.status_code == 200, second.text
+    assert second.json()["debug_code"] is None
+    assert second.json()["resend_after_seconds"] > 0
+
+
+@pytest.mark.asyncio
+async def test_registration_rejects_incomplete_phone(client: AsyncClient):
+    response = await client.post(
+        "/api/v1/account/register/request-sms",
+        json={"phone": "+7 (700) 12"},
+    )
+    assert response.status_code == 400
 
 
 @pytest.mark.asyncio

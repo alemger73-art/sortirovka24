@@ -107,7 +107,7 @@ export const accountApi = {
   googleStatus: () => api<{ enabled: boolean }>("/api/v1/account/google/status"),
   googleStartUrl: (language: string = "ru") =>
     `${apiBase()}/api/v1/account/google/start?language=${encodeURIComponent(language)}`,
-  requestSmsCode: (body: { phone: string }) => api<{ success: boolean; ttl_seconds: number; debug_code?: string; sms_pending_moderation?: boolean; on_screen_code_hint?: string }>("/api/v1/account/register/request-sms", { method: "POST", body: JSON.stringify(body) }),
+  requestSmsCode: (body: { phone: string }) => api<{ success: boolean; ttl_seconds: number; resend_after_seconds: number; debug_code?: string; sms_pending_moderation?: boolean; on_screen_code_hint?: string }>("/api/v1/account/register/request-sms", { method: "POST", body: JSON.stringify(body) }),
   confirmRegistration: (body: any) => api<{ token: string; user_id: string; role: AccountRole }>("/api/v1/account/register/confirm", { method: "POST", body: JSON.stringify(body) }),
   register: (body: any) => api<{ token: string; user_id: string; role: AccountRole }>("/api/v1/account/register", { method: "POST", body: JSON.stringify(body) }),
   login: (body: any) => api<{ token: string; user_id: string; role: AccountRole }>("/api/v1/account/login", { method: "POST", body: JSON.stringify(body) }),

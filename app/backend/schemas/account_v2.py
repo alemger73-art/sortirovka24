@@ -132,13 +132,14 @@ class RequestSmsCodeRequest(BaseModel):
 class RequestSmsCodeResponse(BaseModel):
     success: bool
     ttl_seconds: int
+    resend_after_seconds: int = 60
     debug_code: Optional[str] = None
     sms_pending_moderation: bool = False
     on_screen_code_hint: Optional[str] = None
 
 
 class ConfirmRegistrationRequest(RegisterV2Request):
-    sms_code: str = Field(min_length=4, max_length=8)
+    sms_code: str = Field(pattern=r"^\d{6}$")
 
 
 class AddressCreateRequest(BaseModel):

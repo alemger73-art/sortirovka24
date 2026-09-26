@@ -99,6 +99,7 @@ export default function AccountAuth() {
   const [password2, setPassword2] = useState("");
   const [smsInfo, setSmsInfo] = useState("");
   const [onScreenCode, setOnScreenCode] = useState("");
+  const [resendSeconds, setResendSeconds] = useState(0);
   const [regStep, setRegStep] = useState<RegStep>(1);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
@@ -118,6 +119,14 @@ export default function AccountAuth() {
     accountApi.googleStatus().then((res) => setGoogleEnabled(Boolean(res.enabled))).catch(() => setGoogleEnabled(false));
   }, []);
 
+  useEffect(() => {
+    if (resendSeconds <= 0) return;
+    const timer = window.setInterval(() => {
+      setResendSeconds((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendSeconds > 0]);
+
   function startGoogleAuth() {
     setError("");
     if (!isLogin && !agreementsOk) {
@@ -133,6 +142,7 @@ export default function AccountAuth() {
     setPassword2("");
     setSmsInfo("");
     setOnScreenCode("");
+    setResendSeconds(0);
     setTermsAccepted(false);
     setPrivacyAccepted(false);
     setForm((f) => ({ ...f, password: "" }));
@@ -153,6 +163,7 @@ export default function AccountAuth() {
       if (!agreementsOk) throw new Error(publicT("public.AccountAuth.text5"));
       const res = await accountApi.requestSmsCode({ phone: form.phone });
       setRegStep(2);
+      setResendSeconds(Math.max(0, res.resend_after_seconds || 60));
       if (res.on_screen_code_hint) {
         setSmsInfo(res.on_screen_code_hint);
       } else {
@@ -183,7 +194,7 @@ export default function AccountAuth() {
 
   function goToPasswordStep() {
     setError("");
-    if (!smsCode.trim() || smsCode.trim().length < 4) {
+    if (!/^\d{6}$/.test(smsCode.trim())) {
       setError(publicT("public.AccountAuth.text9"));
       return;
     }
@@ -427,9 +438,10 @@ export default function AccountAuth() {
                 <button
                   type="button"
                   onClick={requestSmsCode}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                  disabled={resendSeconds > 0}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
                 >
-                  {publicT("public.AccountAuth.text30")} </button>
+                  {resendSeconds > 0 ? `Повторить через ${resendSeconds} сек.` : publicT("public.AccountAuth.text30")} </button>
                 <button
                   type="button"
                   onClick={() => setRegStep(1)}

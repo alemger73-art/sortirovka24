@@ -1,9 +1,10 @@
 import bcrypt
 import json
 import hashlib
+import hmac
 import logging
 import os
-import random
+import secrets
 from typing import Any
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
@@ -73,7 +74,7 @@ from services.google_oauth import (
     fetch_google_userinfo,
     google_oauth_enabled,
 )
-from services.sms import SMSDeliveryError, SMSDeliveryResult, send_verification_code, should_expose_code_on_screen
+from services.sms import SMSDeliveryError, send_verification_code, should_expose_code_on_screen
 from services.storage import StorageService
 from sqlalchemy import and_, desc, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -96,11 +97,13 @@ LOGIN_WINDOW = timedelta(minutes=15)
 MAX_ATTEMPTS = 6
 SMS_CODE_TTL_MINUTES = 5
 MAX_SMS_VERIFY_ATTEMPTS = 5
+SMS_RESEND_COOLDOWN_SECONDS = max(30, int(os.getenv("SMS_RESEND_COOLDOWN_SECONDS", "60")))
 SMS_REQUEST_ATTEMPTS: dict[str, list[datetime]] = {}
 SMS_REQUEST_WINDOW = timedelta(minutes=max(1, int(os.getenv("SMS_REQUEST_WINDOW_MINUTES", "15"))))
 MAX_SMS_REQUESTS_PER_WINDOW = max(1, int(os.getenv("SMS_MAX_REQUESTS_PER_WINDOW", "6")))
 SESSION_EXPIRY_DAYS = max(1, int(os.getenv("ACCOUNT_SESSION_DAYS", "30")))
 WELCOME_BONUS_POINTS = float(os.getenv("WELCOME_BONUS_POINTS", "300"))
+_SMS_HASH_FALLBACK_SECRET = secrets.token_bytes(32)
 
 
 def _hash_password(raw: str) -> str:
@@ -118,6 +121,11 @@ def _matches_user_phone(candidate: str | None, user_phone: str | None) -> bool:
     left = _phone_digits(candidate)
     right = _phone_digits(user_phone)
     return bool(left and right and left == right)
+
+
+def _is_valid_kz_phone(phone: str) -> bool:
+    digits = _phone_digits(phone)
+    return len(digits) == 11 and digits.startswith("7")
 
 
 async def _find_master_listing(db: AsyncSession, user: User) -> Masters | None:
@@ -352,7 +360,15 @@ def _session_expiry_minutes() -> int:
 
 
 def _hash_sms_code(phone: str, code: str) -> str:
-    return hashlib.sha256(f"{phone}:{code}".encode("utf-8")).hexdigest()
+    configured_secret = (
+        os.getenv("SMS_CODE_SECRET", "").strip()
+        or os.getenv("JWT_SECRET_KEY", "").strip()
+        or os.getenv("SECRET_KEY", "").strip()
+    )
+    # Production already requires JWT_SECRET_KEY.  The process-local fallback
+    # keeps development usable without putting a predictable OTP hash in DB.
+    secret = configured_secret.encode("utf-8") if configured_secret else _SMS_HASH_FALLBACK_SECRET
+    return hmac.new(secret, f"{phone}:{code}".encode("utf-8"), hashlib.sha256).hexdigest()
 
 
 def _clean_attempts(phone: str) -> list[datetime]:
@@ -398,25 +414,19 @@ async def _active_phone_verification(db: AsyncSession, phone: str) -> PhoneVerif
     ).scalar_one_or_none()
 
 
-def _existing_code_response(row: PhoneVerification, *, resend: bool) -> RequestSmsCodeResponse:
+def _existing_code_response(row: PhoneVerification) -> RequestSmsCodeResponse:
     now = datetime.now(timezone.utc)
-    ttl = max(1, int((row.expires_at - now).total_seconds()))
-    hint = (
-        "Код уже был отправлен. Введите его с экрана — новое SMS не отправлялось."
-        if resend
-        else "SMS проходит модерацию Mobizon. Пока SMS не пришло — введите код с экрана."
-    )
-    expose = (
-        row.pending_code
-        if should_expose_code_on_screen(SMSDeliveryResult(delivered=False, pending_moderation=True))
-        else None
-    )
+    expires_at = _as_aware_utc(row.expires_at)
+    created_at = _as_aware_utc(row.created_at) if row.created_at else now
+    ttl = max(1, int((expires_at - now).total_seconds()))
+    resend_after = max(1, SMS_RESEND_COOLDOWN_SECONDS - int((now - created_at).total_seconds()))
     return RequestSmsCodeResponse(
         success=True,
         ttl_seconds=ttl,
-        debug_code=expose,
-        sms_pending_moderation=True,
-        on_screen_code_hint=hint if expose else None,
+        resend_after_seconds=resend_after,
+        debug_code=None,
+        sms_pending_moderation=False,
+        on_screen_code_hint="Код уже отправлен. Проверьте SMS или дождитесь повторной отправки.",
     )
 
 
@@ -683,13 +693,15 @@ async def register_request_sms(
     db: AsyncSession = Depends(get_db),
 ):
     normalized_phone = _normalize_phone(request.phone)
-    if not normalized_phone:
+    if not normalized_phone or not _is_valid_kz_phone(normalized_phone):
         raise HTTPException(status_code=400, detail="Invalid phone")
     await _cleanup_phone_verifications(db, normalized_phone)
 
     active_row = await _active_phone_verification(db, normalized_phone)
-    if active_row and active_row.pending_code:
-        return _existing_code_response(active_row, resend=True)
+    if active_row and active_row.created_at:
+        age_seconds = (datetime.now(timezone.utc) - _as_aware_utc(active_row.created_at)).total_seconds()
+        if age_seconds < SMS_RESEND_COOLDOWN_SECONDS:
+            return _existing_code_response(active_row)
 
     client_ip = http_request.client.host if http_request.client else "unknown"
     window_sec = SMS_REQUEST_WINDOW.total_seconds()
@@ -711,7 +723,7 @@ async def register_request_sms(
     if existing:
         raise HTTPException(status_code=400, detail="User with this phone already exists")
 
-    code = f"{random.randint(1000, 9999)}"
+    code = f"{secrets.randbelow(1_000_000):06d}"
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=SMS_CODE_TTL_MINUTES)
     previous_rows = (
         await db.execute(
@@ -727,7 +739,7 @@ async def register_request_sms(
         PhoneVerification(
             phone=normalized_phone,
             code_hash=_hash_sms_code(normalized_phone, code),
-            pending_code=code,
+            pending_code=None,
             is_verified=False,
             attempts=0,
             expires_at=expires_at,
@@ -739,6 +751,10 @@ async def register_request_sms(
     try:
         delivery = await send_verification_code(normalized_phone, code)
     except SMSDeliveryError as exc:
+        failed_row = await _active_phone_verification(db, normalized_phone)
+        if failed_row:
+            await db.delete(failed_row)
+            await db.commit()
         logger_msg = str(exc)
         raise HTTPException(
             status_code=502,
@@ -749,8 +765,7 @@ async def register_request_sms(
     on_screen_hint = None
     if delivery.pending_moderation:
         on_screen_hint = (
-            "SMS проходит модерацию Mobizon (обычно 1–15 минут). "
-            "Пока SMS не пришло — введите код ниже с экрана."
+            "SMS принято сервисом и ожидает отправки. Доставка может занять несколько минут."
         )
     elif expose_code:
         on_screen_hint = "Код для регистрации — введите его с экрана."
@@ -760,6 +775,7 @@ async def register_request_sms(
     return RequestSmsCodeResponse(
         success=True,
         ttl_seconds=SMS_CODE_TTL_MINUTES * 60,
+        resend_after_seconds=SMS_RESEND_COOLDOWN_SECONDS,
         debug_code=stored_code,
         sms_pending_moderation=delivery.pending_moderation,
         on_screen_code_hint=on_screen_hint,
@@ -773,7 +789,7 @@ async def register_confirm(
     db: AsyncSession = Depends(get_db),
 ):
     normalized_phone = _normalize_phone(request.phone)
-    if not normalized_phone:
+    if not normalized_phone or not _is_valid_kz_phone(normalized_phone):
         raise HTTPException(status_code=400, detail="Invalid phone")
     await _cleanup_phone_verifications(db, normalized_phone)
 

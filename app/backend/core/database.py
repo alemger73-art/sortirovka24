@@ -184,9 +184,15 @@ class DatabaseManager:
                         or os.environ.get("IS_LAMBDA", "").lower() in ("true", "1", "yes")
                     )
 
+                    is_sqlite = database_url.startswith("sqlite+")
                     if is_lambda:
                         engine_kwargs["poolclass"] = NullPool
                         logger.info("Using NullPool for Lambda environment")
+                    elif is_sqlite:
+                        # SQLite's async dialect selects its own pool. QueuePool
+                        # sizing options are invalid here and prevented local
+                        # startup as well as registration tests from running.
+                        logger.info("Using SQLite default connection pool")
                     else:
                         engine_kwargs["pool_pre_ping"] = True
                         engine_kwargs["pool_size"] = 5

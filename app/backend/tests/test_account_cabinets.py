@@ -27,7 +27,7 @@ async def client(monkeypatch):
 
 
 async def _register(client: AsyncClient) -> tuple[str, str]:
-    phone = f"+7{random.randint(10_000_000, 99_999_999)}"
+    phone = f"+7{random.randint(1_000_000_000, 9_999_999_999)}"
     password = "TestPass123!"
     sms = await client.post("/api/v1/account/register/request-sms", json={"phone": phone})
     code = sms.json()["debug_code"]

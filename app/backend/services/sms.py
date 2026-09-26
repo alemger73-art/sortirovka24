@@ -76,10 +76,9 @@ async def send_verification_code(phone: str, code: str) -> SMSDeliveryResult:
 
 
 def should_expose_code_on_screen(result: SMSDeliveryResult) -> bool:
-    if _debug_mode() or _expose_code_enabled():
-        return True
-    # Only show on-screen when SMS is genuinely pending (Mobizon moderation, etc.)
-    return result.pending_moderation
+    # Verification codes must never be returned to a production browser.  A
+    # delayed provider response is not a safe reason to bypass phone ownership.
+    return _debug_mode() or _expose_code_enabled()
 
 
 async def _mobizon_post(path: str, *, params: dict[str, Any] | None = None, data: dict[str, str] | None = None) -> dict[str, Any]:
@@ -132,8 +131,12 @@ async def _send_mobizon(phone: str, text: str) -> SMSDeliveryResult:
                 data={"ids[0]": message_id},
             )
             status_rows = status_payload.get("data")
+            row = None
             if isinstance(status_rows, list) and status_rows:
                 row = status_rows[0]
+            elif isinstance(status_rows, dict):
+                row = status_rows.get(message_id) or next(iter(status_rows.values()), None)
+            if isinstance(row, dict):
                 status_name = str(row.get("status") or "").upper()
                 if status_name in {"MODERATION", "PENDING", "NEW", "QUEUED"}:
                     pending_moderation = True
