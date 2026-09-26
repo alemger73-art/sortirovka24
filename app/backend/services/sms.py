@@ -7,6 +7,7 @@ from typing import Any
 
 import httpx
 from core.deploy_safety import external_side_effects_allowed
+from core.env import is_production
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ async def send_verification_code(phone: str, code: str) -> SMSDeliveryResult:
     if provider == "mobizon":
         return await _send_mobizon(phone, text)
 
-    if _debug_mode():
+    if _debug_mode() and not is_production():
         logger.warning("[SMS] No provider configured — debug mode, SMS not sent to %s", phone)
         return SMSDeliveryResult(delivered=False, pending_moderation=False, provider_message="debug_mode")
 
@@ -78,7 +79,7 @@ async def send_verification_code(phone: str, code: str) -> SMSDeliveryResult:
 def should_expose_code_on_screen(result: SMSDeliveryResult) -> bool:
     # Verification codes must never be returned to a production browser.  A
     # delayed provider response is not a safe reason to bypass phone ownership.
-    return _debug_mode() or _expose_code_enabled()
+    return not is_production() and (_debug_mode() or _expose_code_enabled())
 
 
 async def _mobizon_post(path: str, *, params: dict[str, Any] | None = None, data: dict[str, str] | None = None) -> dict[str, Any]:
@@ -113,7 +114,7 @@ async def _send_mobizon(phone: str, text: str) -> SMSDeliveryResult:
             send_data["from"] = SMS_SENDER
         payload = await _mobizon_post(MOBIZON_SEND_PATH, data=send_data)
     except httpx.HTTPError as exc:
-        logger.error("[SMS] Mobizon HTTP error: %s", exc)
+        logger.error("[SMS] Mobizon HTTP error: %s", type(exc).__name__)
         raise SMSDeliveryError("Mobizon request failed") from exc
     except ValueError as exc:
         logger.error("[SMS] Mobizon returned non-JSON response")
@@ -143,7 +144,7 @@ async def _send_mobizon(phone: str, text: str) -> SMSDeliveryResult:
                 if status_name in {"DELIVERED", "SENT"}:
                     pending_moderation = False
         except Exception as exc:
-            logger.warning("[SMS] Could not fetch Mobizon status for %s: %s", message_id, exc)
+            logger.warning("[SMS] Could not fetch Mobizon status for %s: %s", message_id, type(exc).__name__)
             pending_moderation = True
     else:
         # Mobizon accepted the request but delivery is not confirmed yet.

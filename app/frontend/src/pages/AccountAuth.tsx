@@ -155,8 +155,12 @@ export default function AccountAuth() {
   }
 
   async function requestSmsCode() {
+    if (loading || resendSeconds > 0) return;
+    setLoading(true);
     setError("");
     setSmsInfo("");
+    setOnScreenCode("");
+    setSmsCode("");
     try {
       if (!form.name.trim() || form.name.trim().length < 2) throw new Error(publicT("public.AccountAuth.text6"));
       if (!form.phone.trim()) throw new Error(publicT("public.AccountAuth.text7"));
@@ -171,7 +175,7 @@ export default function AccountAuth() {
           formatPublicText(publicT, "public.auth.codeSent", { v0: form.phone, v1: Math.floor(res.ttl_seconds / 60) }),
         );
       }
-      if (res.debug_code) {
+      if (import.meta.env.DEV && res.debug_code) {
         setOnScreenCode(res.debug_code);
         setSmsCode(res.debug_code);
         if (!res.sms_pending_moderation) {
@@ -189,6 +193,8 @@ export default function AccountAuth() {
       } else {
         setError(raw);
       }
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -428,7 +434,7 @@ export default function AccountAuth() {
                 ) : null}
                 <input
                   className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-center text-lg tracking-widest text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
-                  placeholder="• • • •"
+                  placeholder="• • • • • •"
                   inputMode="numeric"
                   maxLength={6}
                   value={smsCode}

@@ -6,11 +6,22 @@ from unittest.mock import patch
 from services.frontpad_client import call_frontpad
 from services.payment import CheckoutError, CheckoutSessionRequest, PaymentService, initialize_stripe
 from services.push_notifications import push_enabled, send_push_to_token
-from services.sms import SMSDeliveryResult, send_verification_code, should_expose_code_on_screen
+from services.sms import SMSDeliveryError, SMSDeliveryResult, send_verification_code, should_expose_code_on_screen
 from services.telegram import send_telegram_message
 
 
 class ExternalSideEffectTests(unittest.IsolatedAsyncioTestCase):
+    async def test_production_debug_does_not_fake_sms_delivery(self):
+        with patch.dict(os.environ, {"ENVIRONMENT": "production", "DEBUG": "true", "EXTERNAL_SIDE_EFFECTS": "enabled"}, clear=True):
+            with self.assertRaises(SMSDeliveryError):
+                await send_verification_code("+77000000000", "123456")
+
+    async def test_production_blocks_code_even_with_debug_flags(self):
+        result = SMSDeliveryResult(delivered=False, pending_moderation=True)
+        for environment in ({"ENVIRONMENT": "production"}, {"RAILWAY_ENVIRONMENT": "production"}):
+            with patch.dict(os.environ, {**environment, "DEBUG": "true", "SMS_EXPOSE_CODE": "true"}, clear=True):
+                self.assertFalse(should_expose_code_on_screen(result))
+
     async def test_pending_provider_never_exposes_code_in_production(self):
         result = SMSDeliveryResult(delivered=False, pending_moderation=True)
         with patch.dict(
