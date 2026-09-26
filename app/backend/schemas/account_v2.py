@@ -105,6 +105,10 @@ class RealEstateUpdateRequest(BaseModel):
     telegram: Optional[str] = None
     author_name: Optional[str] = None
 
+    seller_type: Optional[Literal["owner", "realtor"]] = None
+    agency_name: Optional[str] = Field(default=None, max_length=120)
+    commission: Optional[str] = Field(default=None, max_length=120)
+
 
 class AdminUserUpdateRequest(BaseModel):
     role: Optional[RoleType] = None

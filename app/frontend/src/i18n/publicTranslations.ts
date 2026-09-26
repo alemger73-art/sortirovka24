@@ -2,6 +2,19 @@ import type { Translations } from './translations';
 
 /** Public UI additions. Merge into the application dictionary. */
 export const publicTranslations: Translations = {
+  "realestate.moderation.explain": { "ru": "Автор увидит причину в своём кабинете и сможет исправить объявление.", "kz": "Автор себебін жеке кабинетінде көріп, хабарландыруын түзете алады." },
+  "realestate.moderation.reject": { "ru": "Отклонить", "kz": "Қабылдамау" },
+  "realestate.moderation.approve": { "ru": "Одобрить", "kz": "Мақұлдау" },
+  "realestate.seller.label": {"ru": "Кто размещает объявление", "kz": "Хабарландыру беруші"},
+  "realestate.seller.choose": {"ru": "Выберите тип автора", "kz": "Автор түрін таңдаңыз"},
+  "realestate.seller.owner": {"ru": "Собственник", "kz": "Меншік иесі"},
+  "realestate.seller.realtor": {"ru": "Риелтор", "kz": "Риелтор"},
+  "realestate.seller.agency": {"ru": "Агентство (если есть)", "kz": "Агенттік (бар болса)"},
+  "realestate.seller.commission": {"ru": "Комиссия: сумма или процент", "kz": "Комиссия: сома немесе пайыз"},
+  "realestate.seller.reason": {"ru": "Что нужно исправить", "kz": "Нені түзету керек"},
+
+  "realestate.loadError": { "ru": "Не удалось загрузить объявления. Попробуйте ещё раз.", "kz": "Хабарландыруларды жүктеу мүмкін болмады. Қайталап көріңіз." },
+  "realestate.retry": { "ru": "Повторить загрузку", "kz": "Қайта жүктеу" },
   "public.AccountAuth.text0": {
     "ru": "Данные",
     "kz": "Деректер"

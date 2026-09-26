@@ -46,6 +46,10 @@ export type RealEstateListing = {
   whatsapp?: string | null;
   telegram?: string | null;
   author_name?: string | null;
+  seller_type?: "owner" | "realtor" | null;
+  agency_name?: string | null;
+  commission?: string | null;
+  moderation_reason?: string | null;
   active?: boolean | null;
   status?: string | null;
   created_at?: string | null;

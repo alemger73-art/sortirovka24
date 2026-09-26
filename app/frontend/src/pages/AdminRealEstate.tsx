@@ -31,6 +31,10 @@ interface RealEstateItem {
   whatsapp?: string;
   telegram?: string;
   author_name?: string;
+  seller_type?: string;
+  agency_name?: string;
+  commission?: string;
+  moderation_reason?: string;
   active?: boolean;
   status?: string;
   created_at?: string;
@@ -61,6 +65,9 @@ export default function AdminRealEstate() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Partial<RealEstateItem> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [rejectId, setRejectId] = useState<number | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [moderating, setModerating] = useState(false);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -80,15 +87,25 @@ export default function AdminRealEstate() {
     return () => clearInterval(id);
   }, [filterStatus, filterType]);
 
-  const changeStatus = async (id: number, status: string) => {
+  const changeStatus = async (id: number, status: string, reason?: string) => {
+    if (status === "rejected" && !reason?.trim()) {
+      setViewItem(null);
+      setRejectId(id);
+      setRejectReason("");
+      return;
+    }
+    if (moderating) return;
+    setModerating(true);
     try {
-      await withRetry(() => client.entities.real_estate.update({ id: String(id), data: { status } }));
+      await withRetry(() => client.entities.real_estate.update({ id: String(id), data: { status, moderation_reason: reason } }));
       const labels: Record<string, string> = { approved: adminT("admin.ui.0040"), rejected: adminT("admin.ui.0042"), hidden: adminT("admin.ui.0043"), pending: adminT("admin.ui.0039") };
       toast.success(labels[status] || adminT("admin.ui.0047"));
       invalidateAllCaches();
+      setRejectId(null);
       fetchItems();
-      if (viewItem?.id === id) setViewItem({ ...viewItem!, status });
+      if (viewItem?.id === id) setViewItem({ ...viewItem!, status, moderation_reason: reason });
     } catch { toast.error(adminT("admin.ui.0048")); }
+    finally { setModerating(false); }
   };
 
   const handleDelete = async (id: number) => {
@@ -137,6 +154,10 @@ export default function AdminRealEstate() {
         whatsapp: editItem.whatsapp || '',
         telegram: editItem.telegram || '',
         author_name: editItem.author_name || '',
+        seller_type: editItem.seller_type || undefined,
+        agency_name: editItem.agency_name || '',
+        commission: editItem.commission || '',
+        moderation_reason: editItem.moderation_reason || '',
         active: editItem.active ?? true,
         status: editItem.status || 'approved',
       };
@@ -216,14 +237,14 @@ export default function AdminRealEstate() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setViewItem(item)}>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={adminT("cabinet.realEstate.view")} title={adminT("cabinet.realEstate.view")} onClick={() => setViewItem(item)}>
                       <Eye className="h-4 w-4 text-gray-500" />
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(item)}>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={adminT("cabinet.realEstate.edit")} title={adminT("cabinet.realEstate.edit")} onClick={() => openEdit(item)}>
                       <Pencil className="h-4 w-4 text-blue-600" />
                     </Button>
                     {item.status !== 'approved' && (
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => changeStatus(item.id, 'approved')}>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={adminT("realestate.moderation.approve")} title={adminT("realestate.moderation.approve")} onClick={() => changeStatus(item.id, 'approved')}>
                         <Check className="h-4 w-4 text-green-600" />
                       </Button>
                     )}
@@ -233,16 +254,16 @@ export default function AdminRealEstate() {
                       </Button>
                     )}
                     {item.status === 'hidden' && (
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => changeStatus(item.id, 'approved')} title={adminT("admin.ui.0065")}>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={adminT("realestate.moderation.approve")} title={adminT("realestate.moderation.approve")} onClick={() => changeStatus(item.id, 'approved')}>
                         <EyeIcon className="h-4 w-4 text-green-500" />
                       </Button>
                     )}
                     {item.status !== 'rejected' && item.status !== 'hidden' && (
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => changeStatus(item.id, 'rejected')}>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={adminT("realestate.moderation.reject")} title={adminT("realestate.moderation.reject")} onClick={() => changeStatus(item.id, 'rejected')}>
                         <X className="h-4 w-4 text-red-500" />
                       </Button>
                     )}
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleDelete(item.id)}>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={adminT("cabinet.realEstate.delete")} title={adminT("cabinet.realEstate.delete")} onClick={() => handleDelete(item.id)}>
                       <Trash2 className="h-4 w-4 text-gray-400" />
                     </Button>
                   </div>
@@ -254,6 +275,14 @@ export default function AdminRealEstate() {
         {items.length === 0 && <p className="text-center text-gray-400 py-8">{adminT("admin.ui.1070")}</p>}
       </div>
 
+      <Dialog open={rejectId !== null} onOpenChange={(open) => { if (!open && !moderating) setRejectId(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>{adminT("realestate.seller.reason")}</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">{adminT("realestate.moderation.explain")}</p>
+          <Textarea aria-label={adminT("realestate.seller.reason")} value={rejectReason} maxLength={1000} onChange={e => setRejectReason(e.target.value)} />
+          <Button disabled={moderating || !rejectReason.trim()} onClick={() => rejectId !== null && changeStatus(rejectId, 'rejected', rejectReason.trim())}>{adminT("realestate.moderation.reject")}</Button>
+        </DialogContent>
+      </Dialog>
       {/* View Dialog */}
       <Dialog open={!!viewItem} onOpenChange={() => setViewItem(null)}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -279,6 +308,9 @@ export default function AdminRealEstate() {
                 <p className="flex items-center gap-2"><Phone className="h-4 w-4" />{viewItem.phone}</p>
                 {viewItem.whatsapp && <p className="flex items-center gap-2"><MessageCircle className="h-4 w-4" />{viewItem.whatsapp}</p>}
                 {viewItem.telegram && <p className="flex items-center gap-2"><Send className="h-4 w-4" />{viewItem.telegram}</p>}
+                {viewItem.seller_type && <p>{adminT(`realestate.seller.${viewItem.seller_type}`)}{viewItem.agency_name ? ` · ${viewItem.agency_name}` : ""}</p>}
+                {viewItem.commission && <p>{adminT("realestate.seller.commission")}: {viewItem.commission}</p>}
+                {viewItem.moderation_reason && <p>{adminT("realestate.seller.reason")}: {viewItem.moderation_reason}</p>}
                 {viewItem.author_name && <p>{adminT("admin.ui.0068")} {viewItem.author_name}</p>}
               </div>
               {viewItem.image_url && (
@@ -385,6 +417,9 @@ export default function AdminRealEstate() {
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0089")}</label>
+                <label className="block text-sm">{adminT("realestate.seller.reason")}
+                  <Textarea value={editItem.moderation_reason || ''} maxLength={1000} onChange={e => setEditItem({ ...editItem, moderation_reason: e.target.value })} />
+                </label>
                 <Select value={editItem.status || 'approved'} onValueChange={v => setEditItem({ ...editItem, status: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>

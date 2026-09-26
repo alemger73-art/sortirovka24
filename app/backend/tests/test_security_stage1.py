@@ -152,10 +152,12 @@ async def test_public_creation_moderation_and_approval(security_env,entity,title
     base='/api/v1/entities/'+entity
     body={**title,'status':'approved','active':True,'user_id':'bob',
           'promoted_until':'2099-01-01','promotion_tier':'premium','views_count':999}
-    r=await client.post(base,json=body); assert r.status_code==201,r.text
+    if entity=='real_estate': body.update(description='Two rooms', phone='+77001234567')
+    r=await client.post(base,json=body,headers=headers['alice'] if entity=='real_estate' else {}); assert r.status_code==201,r.text
     data=r.json(); assert data['status']=='pending'
     if entity in ('announcements','real_estate'):
-        assert data['user_id'] is None and data['promotion_tier'] is None and data['views_count']==0
+        assert data['user_id']==('alice' if entity=='real_estate' else None)
+        assert data['promotion_tier'] is None and data['views_count']==0
     item=base+'/'+str(data['id'])
     assert (await client.get(item)).status_code==404
     for suffix in ('','/all'):
@@ -208,7 +210,7 @@ async def test_invalid_query_and_owner_spoofing(security_env):
         assert r.status_code==400
     for entity in ('announcements','real_estate'):
         r=await client.post('/api/v1/entities/'+entity,headers=headers['alice'],
-                            json={'title':'Owned','user_id':'bob','status':'approved'})
+                            json={'title':'Owned','description':'Two rooms','phone':'+77001234567','user_id':'bob','status':'approved'})
         assert r.status_code==201 and r.json()['user_id']=='alice' and r.json()['status']=='pending'
 
 

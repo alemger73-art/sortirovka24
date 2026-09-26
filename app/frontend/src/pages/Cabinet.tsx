@@ -1356,6 +1356,7 @@ export default function Cabinet() {
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
                               <p className="font-semibold text-gray-900 dark:text-white">{r.title || t("cabinet.realEstate.default")}</p>
+                              {r.moderation_reason && <p className="mt-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{t("realestate.seller.reason")}: {r.moderation_reason}</p>}
                               <div className="mt-1 flex flex-wrap items-center gap-2">
                                 <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusMeta.color}`}>
                                   {getStatusLabel(r.status, t)}
@@ -1379,12 +1380,12 @@ export default function Cabinet() {
                               ) : null}
                             </div>
                             <div className="flex flex-wrap gap-2">
-                              <Link
+                              {isPublished && !isRealEstateExpired(r) && (<Link
                                 to={`/real-estate/${r.id}`}
                                 className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-white dark:border-[#2a3347] dark:text-slate-200 dark:hover:bg-[#111827]"
                               >
                                 {t("cabinet.realEstate.view")}
-                              </Link>
+                              </Link>)}
                               <Link
                                 to={`/real-estate/${r.id}/edit`}
                                 className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-200 dark:hover:bg-emerald-500/10"
@@ -1411,13 +1412,13 @@ export default function Cabinet() {
                                   </button>
                                 </>
                               ) : null}
-                              <button
+                              {isPublished && (<button
                                 type="button"
                                 onClick={() => extendRealEstate(Number(r.id))}
                                 className="inline-flex items-center gap-1 rounded-lg border border-green-200 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50 dark:border-green-500/30 dark:text-green-200 dark:hover:bg-green-500/10"
                               >
                                 {t("cabinet.realEstate.extend")}
-                              </button>
+                              </button>)}
                               <button
                                 type="button"
                                 onClick={() => deleteRealEstate(Number(r.id))}

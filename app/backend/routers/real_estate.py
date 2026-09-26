@@ -3,16 +3,16 @@ from services.account_session import resolve_account_user
 from datetime import datetime, timezone
 import json
 import logging
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 
 from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
 from services.module_settings import require_module
-from services.real_estate import Real_estateService
+from services.real_estate import Real_estateService, validate_author_listing
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -29,29 +29,33 @@ router = APIRouter(
 # ---------- Pydantic Schemas ----------
 class Real_estateData(BaseModel):
     """Entity data schema (for create/update)"""
-    user_id: str = None
-    re_type: str = None
-    category_id: int = None
-    title: str = None
-    description: str = None
-    price: str = None
-    address: str = None
-    rooms: str = None
-    area: str = None
-    floor_info: str = None
-    image_url: str = None
-    gallery_images: str = None
-    phone: str = None
-    whatsapp: str = None
-    telegram: str = None
-    author_name: str = None
-    active: bool = None
-    status: str = None
-    created_at: str = None
-    expires_at: str = None
-    promoted_until: str = None
-    promotion_tier: str = None
-    views_count: int = None
+    user_id: Optional[str] = None
+    re_type: Optional[str] = None
+    category_id: Optional[int] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[str] = None
+    address: Optional[str] = None
+    rooms: Optional[str] = None
+    area: Optional[str] = None
+    floor_info: Optional[str] = None
+    image_url: Optional[str] = None
+    gallery_images: Optional[str] = None
+    phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    telegram: Optional[str] = None
+    author_name: Optional[str] = None
+    seller_type: Optional[Literal["owner", "realtor"]] = None
+    agency_name: Optional[str] = Field(default=None, max_length=120)
+    commission: Optional[str] = Field(default=None, max_length=120)
+    moderation_reason: Optional[str] = Field(default=None, max_length=1000)
+    active: Optional[bool] = None
+    status: Optional[str] = None
+    created_at: Optional[str] = None
+    expires_at: Optional[str] = None
+    promoted_until: Optional[str] = None
+    promotion_tier: Optional[str] = None
+    views_count: Optional[int] = None
 
 
 class Real_estateUpdateData(BaseModel):
@@ -72,6 +76,10 @@ class Real_estateUpdateData(BaseModel):
     whatsapp: Optional[str] = None
     telegram: Optional[str] = None
     author_name: Optional[str] = None
+    seller_type: Optional[Literal["owner", "realtor"]] = None
+    agency_name: Optional[str] = Field(default=None, max_length=120)
+    commission: Optional[str] = Field(default=None, max_length=120)
+    moderation_reason: Optional[str] = Field(default=None, max_length=1000)
     active: Optional[bool] = None
     status: Optional[str] = None
     created_at: Optional[str] = None
@@ -100,6 +108,10 @@ class Real_estateResponse(BaseModel):
     whatsapp: Optional[str] = None
     telegram: Optional[str] = None
     author_name: Optional[str] = None
+    seller_type: Optional[Literal["owner", "realtor"]] = None
+    agency_name: Optional[str] = Field(default=None, max_length=120)
+    commission: Optional[str] = Field(default=None, max_length=120)
+    moderation_reason: Optional[str] = Field(default=None, max_length=1000)
     active: Optional[bool] = None
     status: Optional[str] = None
     created_at: Optional[str] = None
@@ -139,6 +151,14 @@ class Real_estateBatchUpdateRequest(BaseModel):
 class Real_estateBatchDeleteRequest(BaseModel):
     """Batch delete request"""
     ids: List[int]
+
+
+async def require_real_estate_admin(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    if not await is_content_admin(db, authorization):
+        raise HTTPException(status_code=403, detail="Недостаточно прав")
 
 
 # ---------- Routes ----------
@@ -261,16 +281,20 @@ async def create_real_estate(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new real_estate"""
-    logger.debug(f"Creating new real_estate with data: {data}")
+    logger.debug("Creating real estate listing")
     
     service = Real_estateService(db)
     try:
         payload = data.model_dump()
-        if not await is_content_admin(db, authorization):
+        admin = await is_content_admin(db, authorization)
+        user = await resolve_account_user(db, authorization)
+        if not admin and user is None:
+            raise HTTPException(status_code=401, detail="Войдите, чтобы разместить объявление")
+        if not admin:
+            validate_author_listing(payload)
             payload.update(status="pending", active=True, user_id=None,
                            created_at=datetime.now(timezone.utc).isoformat(),
-                           promotion_tier=None, promoted_until=None, views_count=0, expires_at=None)
-        user = await resolve_account_user(db, authorization)
+                           promotion_tier=None, promoted_until=None, views_count=0, expires_at=None, moderation_reason=None)
         if user:
             payload["user_id"] = str(user.id)
         result = await service.create(payload)
@@ -289,7 +313,7 @@ async def create_real_estate(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.post("/batch", response_model=List[Real_estateResponse], status_code=201)
+@router.post("/batch", response_model=List[Real_estateResponse], status_code=201, dependencies=[Depends(require_real_estate_admin)])
 async def create_real_estates_batch(
     request: Real_estateBatchCreateRequest,
     db: AsyncSession = Depends(get_db),
@@ -308,13 +332,15 @@ async def create_real_estates_batch(
         
         logger.info(f"Batch created {len(results)} real_estates successfully")
         return results
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         logger.error(f"Error in batch create: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Batch create failed: {str(e)}")
 
 
-@router.put("/batch", response_model=List[Real_estateResponse])
+@router.put("/batch", response_model=List[Real_estateResponse], dependencies=[Depends(require_real_estate_admin)])
 async def update_real_estates_batch(
     request: Real_estateBatchUpdateRequest,
     db: AsyncSession = Depends(get_db),
@@ -335,13 +361,15 @@ async def update_real_estates_batch(
         
         logger.info(f"Batch updated {len(results)} real_estates successfully")
         return results
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         logger.error(f"Error in batch update: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Batch update failed: {str(e)}")
 
 
-@router.put("/{id}", response_model=Real_estateResponse)
+@router.put("/{id}", response_model=Real_estateResponse, dependencies=[Depends(require_real_estate_admin)])
 async def update_real_estate(
     id: int,
     data: Real_estateUpdateData,
@@ -371,7 +399,7 @@ async def update_real_estate(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.delete("/batch")
+@router.delete("/batch", dependencies=[Depends(require_real_estate_admin)])
 async def delete_real_estates_batch(
     request: Real_estateBatchDeleteRequest,
     db: AsyncSession = Depends(get_db),
@@ -390,13 +418,15 @@ async def delete_real_estates_batch(
         
         logger.info(f"Batch deleted {deleted_count} real_estates successfully")
         return {"message": f"Successfully deleted {deleted_count} real_estates", "deleted_count": deleted_count}
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         logger.error(f"Error in batch delete: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Batch delete failed: {str(e)}")
 
 
-@router.delete("/{id}")
+@router.delete("/{id}", dependencies=[Depends(require_real_estate_admin)])
 async def delete_real_estate(
     id: int,
     db: AsyncSession = Depends(get_db),

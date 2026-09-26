@@ -1,4 +1,6 @@
 import logging
+from datetime import datetime, timedelta, timezone
+from fastapi import HTTPException
 from typing import Optional, Dict, Any, List
 
 from sqlalchemy import select, func
@@ -21,6 +23,20 @@ RE_TYPE_SLUG: dict[str, str] = {
 RE_TYPE_BY_SLUG: dict[str, str] = {slug: re_type for re_type, slug in RE_TYPE_SLUG.items()}
 
 
+def validate_author_listing(data: Dict[str, Any]) -> None:
+    """Validate resident input independently of browser-required controls."""
+    from utils.phone import normalize_phone
+    for field, label, maximum in (("title", "заголовок", 200), ("description", "описание", 10000)):
+        value = str(data.get(field) or "").strip()
+        if not value or len(value) > maximum:
+            raise HTTPException(status_code=422, detail=f"Заполните {label} (до {maximum} символов)")
+        data[field] = value
+    phone = normalize_phone(str(data.get("phone") or ""))
+    if len(phone) != 12 or not phone.startswith("+7"):
+        raise HTTPException(status_code=422, detail="Укажите телефон в формате +7 и 10 цифр")
+    data["phone"] = phone
+
+
 # ------------------ Service Layer ------------------
 class Real_estateService:
     """Service layer for Real_estate operations"""
@@ -31,7 +47,13 @@ class Real_estateService:
     async def create(self, data: Dict[str, Any]) -> Optional[Real_estate]:
         """Create a new real_estate"""
         try:
+            if data.get("status") in {"approved", "published"} and not data.get("expires_at"):
+                data = {**data, "expires_at": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()}
+            if data.get("status") == "rejected" and not str(data.get("moderation_reason") or "").strip():
+                raise HTTPException(status_code=422, detail="Укажите причину отклонения объявления")
             _allowed = set(Real_estate.__table__.columns.keys())
+            if data.get("seller_type") == "owner":
+                data = {**data, "agency_name": None, "commission": None}
             obj = Real_estate(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
             await self.db.commit()
@@ -111,6 +133,15 @@ class Real_estateService:
             if not obj:
                 logger.warning(f"Real_estate {obj_id} not found for update")
                 return None
+            status = update_data.get("status")
+            if status == "rejected" and not str(update_data.get("moderation_reason") or "").strip():
+                raise HTTPException(status_code=422, detail="Укажите причину отклонения объявления")
+            if status in {"approved", "published"}:
+                update_data = {**update_data, "active": True, "moderation_reason": None}
+                if obj.status not in {"approved", "published"} or not obj.expires_at:
+                    update_data["expires_at"] = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+            elif status in {"hidden", "rejected"}:
+                update_data = {**update_data, "active": False}
             for key, value in update_data.items():
                 if hasattr(obj, key):
                     setattr(obj, key, value)

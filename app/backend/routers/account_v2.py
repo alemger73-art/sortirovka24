@@ -35,7 +35,7 @@ from models.user_addresses import UserAddress
 from models.user_management import Bonus, Order, PhoneVerification, UserAction, UserSession
 from models.categories import Categories
 from services.announcements import ANN_TYPE_SLUG
-from services.real_estate import RE_TYPE_BY_SLUG
+from services.real_estate import RE_TYPE_BY_SLUG, validate_author_listing
 from schemas.account_v2 import (
     AddressCreateRequest,
     AddressGeocodeRequest,
@@ -302,6 +302,10 @@ def _real_estate_to_dict(row: Real_estate) -> dict:
         "whatsapp": row.whatsapp,
         "telegram": row.telegram,
         "author_name": row.author_name,
+        "seller_type": row.seller_type,
+        "agency_name": row.agency_name,
+        "commission": row.commission,
+        "moderation_reason": row.moderation_reason,
         "active": row.active,
         "status": row.status,
         "created_at": row.created_at,
@@ -1775,6 +1779,14 @@ async def update_my_real_estate(
     user = await _current_user(db, authorization)
     row = await _get_owned_real_estate(db, user, listing_id)
     changed = False
+    for field in ("seller_type", "agency_name", "commission"):
+        value = getattr(request, field)
+        if value is not None:
+            setattr(row, field, value.strip() or None)
+            changed = True
+    if row.seller_type == "owner":
+        row.agency_name = None
+        row.commission = None
     if request.re_type is not None:
         row.re_type = request.re_type.strip() or None
         changed = True
@@ -1826,7 +1838,12 @@ async def update_my_real_estate(
         first = (gallery.split(",")[0] or "").strip() if gallery else None
         row.image_url = first or None
         changed = True
-    if changed and row.status in {"approved", "published"}:
+    if changed:
+        checked = {"title": row.title, "description": row.description, "phone": row.phone}
+        validate_author_listing(checked)
+        row.title, row.description, row.phone = checked["title"], checked["description"], checked["phone"]
+        row.moderation_reason = None
+    if changed and row.status in {"approved", "published", "rejected", "hidden"}:
         row.status = "pending"
         row.active = True
     await db.commit()
@@ -1871,14 +1888,9 @@ async def extend_my_real_estate(
 ):
     user = await _current_user(db, authorization)
     row = await _get_owned_real_estate(db, user, listing_id)
-    now = datetime.now(timezone.utc)
-    base = _parse_iso_datetime(row.expires_at) or now
-    if base < now:
-        base = now
-    row.expires_at = (base + timedelta(days=30)).isoformat()
-    row.active = True
-    if row.status == "hidden":
-        row.status = "pending"
+    if row.status not in {"approved", "published"} or not row.active:
+        raise HTTPException(status_code=409, detail="Продлить можно только опубликованное объявление")
+    row.expires_at = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
     await db.commit()
     await _log_action(db, str(user.id), "real_estate_extend", "real_estate", str(row.id))
     return {"success": True, "listing": _real_estate_to_dict(row)}

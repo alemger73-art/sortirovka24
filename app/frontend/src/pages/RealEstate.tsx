@@ -50,6 +50,9 @@ type ReFormState = {
   whatsapp: string;
   telegram: string;
   author_name: string;
+  seller_type: string;
+  agency_name: string;
+  commission: string;
 };
 
 function ReFormFields({
@@ -69,6 +72,24 @@ function ReFormFields({
 }) {
   return (
     <>
+      <fieldset className="space-y-3 rounded-xl border border-emerald-200 p-4">
+        <legend className="px-1 font-medium">{t('realestate.seller.label')}</legend>
+        <select aria-label={t('realestate.seller.label')} required value={form.seller_type}
+          onChange={(e) => setForm({ ...form, seller_type: e.target.value, agency_name: '', commission: '' })}
+          className="w-full rounded-lg border p-3">
+          <option value="">{t('realestate.seller.choose')}</option>
+          <option value="owner">{t('realestate.seller.owner')}</option>
+          <option value="realtor">{t('realestate.seller.realtor')}</option>
+        </select>
+        {form.seller_type === 'realtor' && <>
+          <label className="block text-sm">{t('realestate.seller.agency')}
+            <input maxLength={120} value={form.agency_name} onChange={(e) => setForm({ ...form, agency_name: e.target.value })} className="mt-1 w-full rounded-lg border p-3" />
+          </label>
+          <label className="block text-sm">{t('realestate.seller.commission')}
+            <input maxLength={120} value={form.commission} onChange={(e) => setForm({ ...form, commission: e.target.value })} className="mt-1 w-full rounded-lg border p-3" />
+          </label>
+        </>}
+      </fieldset>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">{t('realestate.form.type')} *</label>
         <select
@@ -106,7 +127,7 @@ function ReFormFields({
           required
         />
       </div>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{t('realestate.form.price')}</label>
           <input type="text" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="15 000 000 ₸" />
@@ -130,7 +151,7 @@ function ReFormFields({
           <input type="text" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder={t('realestate.form.addressPlaceholder')} />
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{t('realestate.form.phone')} *</label>
           <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" required />
@@ -247,6 +268,7 @@ function ReListingCard({
 
 export function RealEstateList() {
   const { t } = useLanguage();
+  const [loadError, setLoadError] = useState(false);
   const [items, setItems] = useState<RealEstateListing[]>([]);
   const [categories, setCategories] = useState<ReCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -268,6 +290,7 @@ export function RealEstateList() {
 
   async function loadData() {
     setLoading(true);
+    setLoadError(false);
     try {
       const res = await fetchWithCache(
         'real_estate_list_v2',
@@ -276,6 +299,7 @@ export function RealEstateList() {
       );
       setItems(filterPublicRealEstate(res.data?.items || []));
     } catch (e) {
+      setLoadError(true);
       console.error(e);
     } finally {
       setLoading(false);
@@ -455,6 +479,11 @@ export function RealEstateList() {
 
           {loading ? (
             <div className="flex items-center justify-center py-16 text-gray-500">{t('common.loading')}</div>
+          ) : loadError ? (
+            <div role="alert" className="rounded-2xl border p-8 text-center">
+              <p>{t('realestate.loadError')}</p>
+              <button type="button" onClick={loadData} className="mt-4 rounded-lg bg-emerald-700 px-5 py-3 text-white">{t('realestate.retry')}</button>
+            </div>
           ) : filteredItems.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {filteredItems.map((item) => (
@@ -633,7 +662,7 @@ export function RealEstateDetail() {
           {(item.rooms || item.area || item.floor_info) ? (
             <div className="bg-white rounded-2xl shadow-sm p-5 md:p-6">
               <h2 className="font-bold text-gray-900 mb-4">{t('realestate.characteristics')}</h2>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {item.rooms ? <div className="text-center bg-gray-50 rounded-xl p-4"><p className="text-lg font-bold">{item.rooms}</p><p className="text-xs text-gray-400">{t('realestate.rooms')}</p></div> : null}
                 {item.area ? <div className="text-center bg-gray-50 rounded-xl p-4"><p className="text-lg font-bold">{item.area} {t('realestate.sqm')}</p><p className="text-xs text-gray-400">{t('realestate.area')}</p></div> : null}
                 {item.floor_info ? <div className="text-center bg-gray-50 rounded-xl p-4"><p className="text-lg font-bold">{item.floor_info}</p><p className="text-xs text-gray-400">{t('realestate.form.floor')}</p></div> : null}
@@ -648,10 +677,12 @@ export function RealEstateDetail() {
             ))}
           </div>
 
-          {item.author_name ? (
+          {item.author_name || item.seller_type ? (
             <div className="bg-white rounded-2xl shadow-sm p-5 md:p-6">
               <h2 className="font-bold text-gray-900 mb-3">{t('realestate.contactPerson')}</h2>
               <p className="font-semibold">{item.author_name}</p>
+              {item.seller_type && <p className="mt-2 text-sm">{t(`realestate.seller.${item.seller_type}`)}{item.agency_name ? ` · ${item.agency_name}` : ""}</p>}
+              {item.commission && <p className="mt-2 text-sm">{t("realestate.seller.commission")}: {item.commission}</p>}
             </div>
           ) : null}
 
@@ -681,7 +712,7 @@ export function NewRealEstateForm() {
   const [categories, setCategories] = useState<ReCategory[]>([]);
   const [form, setForm] = useState<ReFormState>({
     category_id: '', title: '', description: '', price: '', rooms: '', area: '',
-    floor_info: '', address: '', phone: '', whatsapp: '', telegram: '', author_name: '',
+    floor_info: '', address: '', phone: '', whatsapp: '', telegram: '', author_name: '', seller_type: '', agency_name: '', commission: '',
   });
   const [galleryKeys, setGalleryKeys] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -709,7 +740,7 @@ export function NewRealEstateForm() {
       const cat = categories.find((c) => c.id === categoryId);
       const re_type = reTypeForCategory(cat, categoryId);
       const firstImage = galleryKeys.split(',').map((k) => k.trim()).find(Boolean) || null;
-      await withRetry(() => client.entities.real_estate.create({
+      await client.entities.real_estate.create({
         data: {
           ...form,
           category_id: Number.isFinite(categoryId) ? categoryId : undefined,
@@ -722,7 +753,7 @@ export function NewRealEstateForm() {
           expires_at: defaultReExpiresAtIso(30),
           created_at: new Date().toISOString(),
         },
-      }));
+      });
       setSuccess(true);
     } catch (err) {
       console.error(err);
@@ -774,7 +805,7 @@ export function EditRealEstateForm() {
   const [categories, setCategories] = useState<ReCategory[]>([]);
   const [form, setForm] = useState<ReFormState>({
     category_id: '', title: '', description: '', price: '', rooms: '', area: '',
-    floor_info: '', address: '', phone: '', whatsapp: '', telegram: '', author_name: '',
+    floor_info: '', address: '', phone: '', whatsapp: '', telegram: '', author_name: '', seller_type: '', agency_name: '', commission: '',
   });
   const [galleryKeys, setGalleryKeys] = useState('');
   const [loading, setLoading] = useState(true);
@@ -803,6 +834,9 @@ export function EditRealEstateForm() {
           whatsapp: data.whatsapp || '',
           telegram: data.telegram || '',
           author_name: data.author_name || '',
+          seller_type: data.seller_type || '',
+          agency_name: data.agency_name || '',
+          commission: data.commission || '',
         });
         setGalleryKeys(data.gallery_images || '');
         setStatus(data.status || '');
