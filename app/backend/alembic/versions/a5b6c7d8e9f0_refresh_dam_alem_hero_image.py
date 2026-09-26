@@ -1,7 +1,11 @@
 """Refresh DAM ALEM hero banner to appetizing food photography.
 
-Revision ID: a5b6c7d8e9f0
-Revises: z4a5b6c7d8e9
+The original revision collided with the combo migration. The historical ID
+is retained by that migration; this default-only refresh has a distinct ID.
+Existing customized hero images are left untouched.
+
+Revision ID: a5_hero_refresh
+Revises: a5b6c7d8e9f0
 """
 
 from __future__ import annotations
@@ -11,8 +15,8 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "a5b6c7d8e9f0"
-down_revision: Union[str, None] = "z4a5b6c7d8e9"
+revision: str = "a5_hero_refresh"
+down_revision: Union[str, None] = "a5b6c7d8e9f0"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

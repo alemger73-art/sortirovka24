@@ -36,3 +36,5 @@ app/backend/.jwt_secret
 **/*.log
 .cache
 uploads
+
+pytest-cache-files-*
