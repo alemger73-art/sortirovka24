@@ -1,7 +1,10 @@
 """
 Integration / integrity tests for Sortirovka24 API.
 
-Run against production:
+Default: this checkout through TestClient and a temporary SQLite database.
+Build app/frontend first; startup integration workers are not started.
+
+Explicit external target (includes negative write/auth probes):
   set INTEGRITY_BASE_URL=https://sortirovka24-production-8788.up.railway.app
   cd app/backend && python -m pytest tests/test_integrity.py -v
 
@@ -16,17 +19,47 @@ import os
 import httpx
 import pytest
 
-BASE_URL = os.getenv(
-    "INTEGRITY_BASE_URL",
-    "https://sortirovka24-production-8788.up.railway.app",
-).rstrip("/")
+BASE_URL = os.getenv("INTEGRITY_BASE_URL", "").rstrip("/")
 TIMEOUT = float(os.getenv("INTEGRITY_TIMEOUT", "30"))
 
 
 @pytest.fixture
-def client():
-    with httpx.Client(base_url=BASE_URL, timeout=TIMEOUT, follow_redirects=False) as c:
-        yield c
+def client(tmp_path, monkeypatch):
+    if BASE_URL:
+        with httpx.Client(base_url=BASE_URL, timeout=TIMEOUT, follow_redirects=False) as c:
+            yield c
+        return
+    # Default suite must test this checkout, never silently send write probes
+    # to production. No lifespan: startup integrations/workers must not run.
+    import asyncio
+    from pathlib import Path
+    from fastapi.testclient import TestClient
+    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+    from sqlalchemy.pool import NullPool
+    import main
+    from core.database import Base, get_db, db_manager
+    engine = create_async_engine('sqlite+aiosqlite:///' + (tmp_path/'integrity.db').as_posix(), poolclass=NullPool)
+    async def initialize():
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    asyncio.run(initialize())
+    maker = async_sessionmaker(engine, expire_on_commit=False)
+    monkeypatch.setattr(db_manager, 'engine', engine)
+    monkeypatch.setattr(db_manager, 'async_session_maker', maker)
+    monkeypatch.setattr(db_manager, '_initialized', True)
+    async def dependency():
+        async with maker() as db:
+            yield db
+    old = main.app.dependency_overrides.copy()
+    main.app.dependency_overrides[get_db] = dependency
+    monkeypatch.setattr(main, 'FRONTEND_DIR', Path(__file__).parents[2]/'frontend'/'dist')
+    monkeypatch.setattr(main, '_FRONTEND_INDEX', main.FRONTEND_DIR/'index.html')
+    try:
+        yield TestClient(main.app, follow_redirects=False)
+    finally:
+        main.app.dependency_overrides.clear()
+        main.app.dependency_overrides.update(old)
+        asyncio.run(engine.dispose())
 
 
 class TestPublicHealth:

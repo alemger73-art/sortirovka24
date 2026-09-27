@@ -188,8 +188,8 @@ async def notify_food_order_created(db: AsyncSession, order: Any) -> None:
         phone=getattr(order, "customer_phone", None),
         category="food",
         event_key=f"food:created:{order_id}",
-        title="Заказ принят",
-        body=f"{name} · заказ №{order_id}{amount_txt}",
+        title="Заказ создан",
+        body=f"{name} · заказ №{order_id}{amount_txt}. Ожидает принятия оператором.",
         path=f"/cabinet/orders/food/{order_id}",
         entity_type="food_orders",
         entity_id=str(order_id),
@@ -204,6 +204,8 @@ async def notify_food_order_status(db: AsyncSession, order: Any, old_status: str
         return
     order_id = int(order.id)
     title, body = tpl
+    if new_status == "done" and getattr(order, "delivery_method", None) in ("pickup", "dine_in"):
+        title = "Ваш заказ выдан"
     name = (getattr(order, "restaurant_name", None) or "DAM ALEM 2.0").strip()
     if new_status == "in_progress":
         from models.logistics import LogisticsTask, CourierProfile

@@ -17,9 +17,10 @@ def configuration():
 
 def test_all_legacy_revisions_resolve():
     scripts=ScriptDirectory.from_config(configuration())
-    assert scripts.get_heads()==['m20260927_merge_legacy_heads']
+    assert scripts.get_heads()==['pp20260927_partner_profiles']
+    assert scripts.get_revision('pp20260927_partner_profiles').down_revision == 'm20260927_merge_legacy_heads'
     revisions=list(scripts.walk_revisions())
-    assert len(revisions)==60
+    assert len(revisions)==61
     for rev in ['r6s7t8u9v0w1','r6s7t8u9v0w1_add_partner_credentials',
                 's7t8u9v0w1x2','s7t8u9v0w1x2_food_order_bonus_columns',
                 'x2y3z4a5b6c7','x2y3z4a5b6c7_repair_banners_columns','a5b6c7d8e9f0']:
@@ -40,7 +41,8 @@ def test_upgrade_existing_head_preserves_listing_and_custom_banner(tmp_path,monk
     command.upgrade(configuration(),'head')
     command.upgrade(configuration(),'head')
     with engine.connect() as conn:
-        assert conn.scalar(sa.text('SELECT version_num FROM alembic_version'))=='m20260927_merge_legacy_heads'
+        assert conn.scalar(sa.text('SELECT version_num FROM alembic_version'))=='pp20260927_partner_profiles'
+        assert sa.inspect(conn).has_table('business_showcases')
         assert tuple(conn.execute(sa.text('SELECT title,seller_type,moderation_reason FROM real_estate')).one())==('Existing listing',None,None)
         assert conn.scalar(sa.text('SELECT setting_value FROM food_settings'))=='https://example.test/custom.jpg'
     engine.dispose()

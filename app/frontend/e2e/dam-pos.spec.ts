@@ -9,7 +9,8 @@ async function setup(page: Page) {
   const url = new URL(r.request().url()), path = url.pathname;
   let json: any = {items: [], total: 0};
   if (path.includes('verify-session')) json = {valid:true,display_name:'Оператор'};
-  if (path.endsWith('/business/me')) json = {role:'operator',name:'Оператор'};
+  if(path.endsWith('/shifts/me'))json={staff:{id:1,name:'Оператор',role:'operator',pin_set:true},shift:{id:1,staff_name:'Оператор',role:'operator',opened_at:'2026-09-27T07:00:00Z',active:true}};
+ if (path.endsWith('/business/me')) json = {role:'operator',name:'Оператор'};
   if (path.endsWith('/business/today')) json = {counts:{new:2,preparing:3,ready:1},unpaid:4,notification_errors:0,daily:{created:6,order_total:12000}};
   if (path.endsWith('/operations/catalog')) json = {
    categories:[{id:1,name:'Пиццы'},{id:2,name:'Лимонады'}],
@@ -66,7 +67,7 @@ test('CRM lookup is editable and delivery switches automatically',async({page})=
  const m=page.getByRole('dialog');await m.getByLabel('Телефон клиента').fill('+77001112233');
  await m.getByRole('button',{name:'Подставить данные · Асель'}).click();
  await expect(m.getByLabel('Имя клиента')).toHaveValue('Асель');await expect(m.getByLabel('Адрес доставки',{exact:true})).toHaveValue('Абая, 10');
- await m.getByLabel('Имя клиента').fill('Асель — новый заказ');await m.getByRole('button',{name:/Пепперони/}).click();
+ await m.getByRole('combobox',{name:'Стоимость доставки'}).selectOption('custom');await m.getByLabel('Введите сумму доставки',{exact:true}).fill('600');await m.getByLabel('Имя клиента').fill('Асель — новый заказ');await m.getByRole('button',{name:/Пепперони/}).click();
  await expect(m.getByRole('button',{name:/Создать заказ — 3.*800/})).toBeEnabled();
  await m.getByLabel('Получение').selectOption('pickup');await expect(m.getByLabel('Адрес доставки',{exact:true})).toHaveCount(0);
  await expect(m.getByRole('button',{name:/Создать заказ — 3.*200/})).toBeEnabled();
@@ -83,8 +84,8 @@ test('failed automatic quote cannot create an order and can recover',async({page
 test('queue sends status and source filters to the server',async({page})=>{
  const s=await setup(page);await page.goto('/partner/dam-alem?section=orders');
  await page.getByLabel('Источник заказа',{exact:true}).selectOption('app');
- await page.getByRole('navigation',{name:'Статус заказов',exact:true}).getByRole('button',{name:'В работе',exact:true}).click();
- await expect.poll(()=>s.queries.some(q=>q.includes('status=working')&&q.includes('source=app'))).toBe(true);
+ await page.getByRole('navigation',{name:'Статус заказов',exact:true}).getByRole('button',{name:/^Готовятся(?: \d+)?$/}).click();
+ await expect.poll(()=>s.queries.some(q=>q.includes('status=preparing')&&q.includes('source=app'))).toBe(true);
 });
 
 test('late quote cannot restore an old amount and gift choice is saved',async({page})=>{
@@ -124,6 +125,6 @@ test('legacy delivery wording does not expose pickup completion to operator',asy
  await page.route('**/operations/orders/92',r=>r.fulfill({json:{order:{id:92,status:'ready',delivery_method:'доставка',delivery_address:'Абая, 10',order_items:'[]',total_amount:1000,order_source:'app'},events:[]}}));
  await page.goto('/partner/dam-alem?section=orders&order=92');
  const detail=page.getByRole('region',{name:'Карточка заказа',exact:true});
- await expect(detail.getByText('Абая, 10',{exact:true})).toBeVisible();await expect(detail.getByRole('button',{name:'Выдан клиенту'})).toHaveCount(0);
+ await expect(detail.getByText('Абая, 10',{exact:true})).toBeVisible();await expect(detail.getByRole('button',{name:'Выдать заказ'})).toHaveCount(0);
  await expect(detail.getByRole('button',{name:'В доставке'})).toHaveCount(0);await expect(detail).toContainText('Приложение');
 });

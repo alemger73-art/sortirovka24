@@ -5,7 +5,7 @@ export type FoodCheckoutContext = {
   kitchenMessage?: string;
   cartTotal: number;
   minOrder: number;
-  deliveryMethod: 'delivery' | 'pickup';
+  deliveryMethod: 'delivery' | 'pickup' | 'dine_in';
   deliveryReady: boolean;
   deliveryQuoteLoading: boolean;
   /** Trimmed address the customer entered / selected */
@@ -23,7 +23,7 @@ export type FoodCheckoutContext = {
 
 export function foodCheckoutBlockReason(ctx: FoodCheckoutContext): string | null {
   if (!ctx.kitchenOpen) return ctx.kitchenMessage || 'Сейчас кухня закрыта';
-  if (ctx.minOrder > 0 && ctx.cartTotal < ctx.minOrder) {
+  if (ctx.deliveryMethod !== 'dine_in' && ctx.minOrder > 0 && ctx.cartTotal < ctx.minOrder) {
     return `Минимальная сумма заказа — ${ctx.minOrder.toLocaleString('ru-RU')} ₸`;
   }
   if (ctx.deliveryMethod === 'delivery') {

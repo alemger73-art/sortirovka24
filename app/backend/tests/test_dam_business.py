@@ -119,10 +119,10 @@ async def test_late_payment_has_date_and_cannot_be_erased(env):
     async with maker() as db:
         db.add(Food_orders(id=90,restaurant_id=1,status='done',payment_status='pending',version=0,total_amount=1234));await db.commit()
     url='/api/v1/dam-alem/operations/orders/90'
-    response=await client.patch(url,headers=operator,json={'expected_version':0,'payment_status':'paid'})
+    response=await client.patch(url,headers=owner,json={'expected_version':0,'payment_status':'paid'})
     assert response.status_code==200,response.text
     assert response.json()['paid_at'] and response.json()['completed_at'] is None
-    again=await client.patch(url,headers=operator,json={'expected_version':1,'payment_status':'pending'})
+    again=await client.patch(url,headers=owner,json={'expected_version':1,'payment_status':'pending'})
     assert again.status_code==422
     report=await client.get('/api/v1/dam-alem/business/report',headers=owner,params={'start':str(city_today()),'end':str(city_today())})
     assert report.json()['receipts']==1234 and report.json()['sales']==0

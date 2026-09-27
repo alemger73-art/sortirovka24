@@ -133,7 +133,7 @@ interface OrderSuccessInfo {
   name: string;
   phone: string;
   address: string;
-  deliveryMethod: 'delivery' | 'pickup';
+  deliveryMethod: 'delivery' | 'pickup' | 'dine_in';
 }
 
 const PAYMENT_LABELS: Record<'cash' | 'kaspi_qr' | 'halyk_qr', string> = {
@@ -258,7 +258,7 @@ export default function Food() {
   const [apartment, setApartment] = useState('');
   const [deliverToApartment, setDeliverToApartment] = useState(false);
   const [comment, setComment] = useState('');
-  const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
+  const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup' | 'dine_in'>('delivery');
   const [payment, setPayment] = useState<'cash' | 'kaspi_qr' | 'halyk_qr'>('cash');
   const [orderSuccess, setOrderSuccess] = useState<OrderSuccessInfo | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -799,7 +799,7 @@ export default function Food() {
     if (Number.isNaN(v)) return 0.1;
     return v > 1 ? v / 100 : v;
   }, [settings.service_fee_rate]);
-  const serviceFeeAmount = useMemo(() => Math.round(cartTotal * serviceFeeRate), [cartTotal, serviceFeeRate]);
+  const serviceFeeAmount = useMemo(() => deliveryMethod === 'dine_in' ? 0 : Math.round(cartTotal * serviceFeeRate), [cartTotal, serviceFeeRate, deliveryMethod]);
   const cartTotalWithService = cartTotal + serviceFeeAmount;
   const serviceFeePercent = Math.round(serviceFeeRate * 100);
   const serviceFeeLabel = `${t('food.serviceFeeBase')} (${serviceFeePercent}%)`;
@@ -1057,7 +1057,7 @@ export default function Food() {
     : checkoutBlockReason;
 
   const openCheckout = useCallback(() => {
-    if (minOrder > 0 && cartTotal < minOrder) {
+    if (deliveryMethod !== 'dine_in' && minOrder > 0 && cartTotal < minOrder) {
       toast.error(st("Минимальная сумма заказа — {0} ₸", [minOrder.toLocaleString('ru-RU')]));
       return;
     }
@@ -1157,7 +1157,7 @@ export default function Food() {
         ? freeDeliveryFrom
         : nextGift && cartTotal < nextGift.min_amount
           ? nextGift.min_amount
-          : minOrder > 0 && cartTotal < minOrder
+          : deliveryMethod !== 'dine_in' && minOrder > 0 && cartTotal < minOrder
             ? minOrder
             : 0;
     const gap = goalTarget > cartTotal ? goalTarget - cartTotal : 0;
@@ -1416,7 +1416,7 @@ export default function Food() {
       }
       pushCabinetItem('foodOrders', {
         title: `Заказ #${orderId || '—'} · ${total.toLocaleString('ru-RU')} ₸`,
-        subtitle: deliveryMethod === 'delivery' ? fullAddress : 'Самовывоз',
+        subtitle: deliveryMethod === 'delivery' ? fullAddress : deliveryMethod === 'dine_in' ? 'В заведении' : 'Самовывоз',
         status: 'Новый',
       });
       clearFoodCartStorage();
@@ -1430,7 +1430,7 @@ export default function Food() {
         paymentMethod: payment,
         name: customerName,
         phone: customerPhone,
-        address: deliveryMethod === 'delivery' ? fullAddress : 'Самовывоз',
+        address: deliveryMethod === 'delivery' ? fullAddress : deliveryMethod === 'dine_in' ? 'В заведении' : 'Самовывоз',
         deliveryMethod,
       });
       setCustomerName('');
@@ -1735,7 +1735,7 @@ export default function Food() {
       setActiveTab('cart');
     }
     if (payload.delivery_address) setDeliveryAddress(payload.delivery_address);
-    if (payload.delivery_method === 'pickup') setDeliveryMethod('pickup');
+    if (payload.delivery_method === 'pickup' || payload.delivery_method === 'dine_in') setDeliveryMethod(payload.delivery_method);
   }
 
   function MenuDishRow({
@@ -1855,7 +1855,7 @@ export default function Food() {
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/30">
                   <CheckCircle2 className="h-8 w-8" />
                 </div>
-                <h2 className="dam-section-title text-zinc-900">{st("Заказ принят!")}</h2>
+                <h2 className="dam-section-title text-zinc-900">{t('workflow.created')}</h2>
                 {orderSuccess.id > 0 && (
                   <p className="mt-1 text-sm font-semibold text-[#FF3B30]">№ {orderSuccess.id}</p>
                 )}
@@ -1864,7 +1864,7 @@ export default function Food() {
                 </p>
               </div>
               <div className="mt-4 dam-card p-4">
-                <FoodOrderStatusBar status="confirmed" deliveryMethod={orderSuccess.deliveryMethod} />
+                <FoodOrderStatusBar status="new" deliveryMethod={orderSuccess.deliveryMethod} />
               </div>
               <div className="mt-4 space-y-2 dam-card p-4 text-sm">
                 <div className="flex justify-between">
@@ -2102,6 +2102,13 @@ export default function Food() {
 
         {activeTab === 'cart' && (
           <div className={`${PAGE_X} dam-market-cart-page`}>
+            <div role="group" aria-label="Способ получения заказа" className="mb-4 flex flex-wrap gap-2">
+              {(['delivery','pickup','dine_in'] as const).map(method => <button key={method} type="button"
+                aria-pressed={deliveryMethod === method} onClick={()=>setDeliveryMethod(method)}
+                className={`rounded-xl border px-4 py-3 text-sm font-semibold ${deliveryMethod===method?'bg-red-600 text-white':'bg-card text-foreground'}`}>
+                {method==='delivery'?t('food.delivery'):method==='pickup'?t('food.pickup'):t('workflow.onsite')}
+              </button>)}
+            </div>
             <DamAlemCartView
               lines={cartViewLines}
               suggestions={cartViewSuggestions}
@@ -2110,7 +2117,7 @@ export default function Food() {
               serviceFee={serviceFeeAmount}
               discount={promoDiscountAmount}
               total={Math.max(0, cartTotalWithService - promoDiscountAmount)}
-              minOrder={minOrder}
+              minOrder={deliveryMethod === 'dine_in' ? 0 : minOrder}
               freeDeliveryFrom={freeDeliveryFrom}
               apartmentFreeFrom={apartmentFreeFrom}
               gifts={loyaltyGifts}
@@ -2407,6 +2414,10 @@ export default function Food() {
                       <span className={`text-sm font-bold block ${deliveryMethod === 'pickup' ? 'text-[#FF3B30]' : 'text-gray-600'}`}>{t('food.pickup')}</span>
                       <span className="text-xs text-gray-400 mt-0.5 block">{t('food.free')}</span>
                     </button>
+                    <button type="button" onClick={() => setDeliveryMethod('dine_in')}
+                      className={`dam-method-card col-span-2 ${deliveryMethod === 'dine_in' ? 'dam-method-card--active' : ''}`}>
+                      <span className="text-sm font-bold block">{t('workflow.onsite')}</span>
+                    </button>
                   </div>
                 </div>
 
@@ -2636,7 +2647,7 @@ export default function Food() {
                   <div className="dam-checkout-section space-y-3 lg:hidden">
                     <div className="dam-checkout-section__title">{st("Проверьте заказ")}</div>
                     <p className="text-sm text-zinc-600">
-                      {deliveryMethod === 'delivery' ? st("Доставка") : st('Самовывоз')}
+                      {deliveryMethod === 'delivery' ? st("Доставка") : deliveryMethod === 'dine_in' ? t('workflow.onsite') : st('Самовывоз')}
                       {deliveryMethod === 'delivery' && effectiveAddress
                         ? ` · ${effectiveAddress}`
                         : ''}

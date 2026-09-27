@@ -70,7 +70,7 @@ async def order_counts(db: AsyncSession = Depends(get_db)):
         .where(await scope(db))
         .group_by(Food_orders.status, Food_orders.delivery_method)
     )).all()
-    result = {'all': 0, 'new': 0, 'working': 0, 'ready': 0, 'courier': 0, 'in_progress': 0, 'done': 0}
+    result = {'all': 0, 'new': 0, 'working': 0, 'ready': 0, 'courier': 0, 'in_progress': 0, 'done': 0, 'cancelled': 0, 'confirmed': 0, 'preparing': 0, 'ready_all': 0}
     for order_status, method, amount in rows:
         count = int(amount or 0)
         result['all'] += count
@@ -78,9 +78,11 @@ async def order_counts(db: AsyncSession = Depends(get_db)):
             result['new'] += count
         elif order_status in ('confirmed', 'preparing'):
             result['working'] += count
+            result[order_status] += count
         elif order_status == 'ready':
+            result['ready_all'] += count
             result['courier' if method in ('delivery', 'доставка') else 'ready'] += count
-        elif order_status in ('in_progress', 'done'):
+        elif order_status in ('in_progress', 'done', 'cancelled'):
             result[order_status] += count
 
     from models.logistics import LogisticsTask
@@ -178,16 +180,22 @@ async def couriers(db: AsyncSession = Depends(get_db)):
         .where(CourierProfile.is_verified.is_(True))
         .order_by(User.name, User.id)
     )).all()
-    return {'items': [{
-        'id': str(user.id),
-        'name': user.name or profile.phone or user.phone or 'Курьер',
-        'phone': profile.phone or user.phone or '',
-        'online': bool(profile.is_online),
-        'active_delivery': bool(await db.scalar(select(func.count()).select_from(LogisticsTask).where(
+    from services.food_shifts import active_shift
+    items = []
+    for user, profile in rows:
+        on_shift = bool(await active_shift(db, 'courier', user.id))
+        active = bool(await db.scalar(select(func.count()).select_from(LogisticsTask).where(
             LogisticsTask.courier_id == str(user.id),
             LogisticsTask.status.in_(['assigned', 'picked_up', 'on_the_way'])
-        ))),
-    } for user, profile in rows]}
+        )))
+        enabled = bool(user.is_active and user.status == 'active')
+        items.append({
+            'id': str(user.id), 'name': user.name or profile.phone or user.phone or 'Курьер',
+            'phone': profile.phone or user.phone or '', 'online': bool(profile.is_online),
+            'on_shift': on_shift, 'active_delivery': active,
+            'assignable': enabled and on_shift and bool(profile.is_online) and not active,
+        })
+    return {'items': items}
 
 @router.post('/orders/{order_id}/assign-courier')
 async def assign_courier(order_id: int, body: CourierAssignment, request: Request, db: AsyncSession = Depends(get_db)):
@@ -222,8 +230,10 @@ async def assign_courier(order_id: int, body: CourierAssignment, request: Reques
 
 @router.patch('/orders/{order_id}')
 async def change(order_id: int, body: OrderChange, request: Request, db: AsyncSession = Depends(get_db)):
-    await order_for_panel(db, order_id)
+    order = await order_for_panel(db, order_id)
     actor = await food_staff(request, db)
+    if actor['access_role'] == 'operator' and order.status in ('done', 'cancelled'):
+        raise HTTPException(409, 'Завершённый заказ доступен оператору только для просмотра')
     shift = await require_partner_shift(db, actor)
     values = body.model_dump(exclude_none=True)
     version = values.pop('expected_version')
@@ -233,8 +243,10 @@ async def change(order_id: int, body: OrderChange, request: Request, db: AsyncSe
 
 @router.post('/orders/{order_id}/notifications/{event_id}/retry')
 async def retry(order_id: int, event_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    await order_for_panel(db, order_id)
+    order = await order_for_panel(db, order_id)
     actor = await food_staff(request, db)
+    if actor['access_role'] == 'operator' and order.status in ('done', 'cancelled'):
+        raise HTTPException(409, 'Завершённый заказ доступен оператору только для просмотра')
     shift = await require_partner_shift(db, actor)
     result = await db.execute(update(FoodOrderEvent).where(FoodOrderEvent.id == event_id, FoodOrderEvent.order_id == order_id, FoodOrderEvent.notification.in_(['failed', 'unknown', 'pending'])).values(notification='pending', retry_at=0, attempts=0, error=None))
     if not result.rowcount:

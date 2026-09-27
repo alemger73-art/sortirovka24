@@ -51,6 +51,9 @@ async def env(monkeypatch, tmp_path):
         employee=await db.get(PartnerCredentials,1)
         employee.pin_hash=hash_courier_pin('2222')
         await open_shift(db,staff_type='partner',staff_id=1,staff_name='Operator',role='operator',stored_pin=employee.pin_hash,pin='2222')
+        courier=await db.get(CourierProfile,'courier')
+        courier.pin_hash=hash_courier_pin('2954')
+        await open_shift(db,staff_type='courier',staff_id='courier',staff_name='Courier',role='courier',stored_pin=courier.pin_hash,pin='2954')
     for target in ['services.food_orders.link_food_order_to_user','services.food_orders.push_food_order_to_frontpad','services.admin_alerts.alert_new_food_order','services.user_notifications.notify_food_order_created','services.user_notifications.notify_food_order_status','services.user_notifications.notify_logistics_task_status','services.user_notifications.notify_user_by_phone','services.bonus_rewards.handle_food_order_status_bonus']:
         monkeypatch.setattr(target,AsyncMock(return_value=None))
     async def courier_profile(db,user):
@@ -59,6 +62,10 @@ async def env(monkeypatch, tmp_path):
     app=FastAPI();app.include_router(router);app.include_router(account_v2.router);app.include_router(payroll_router)
     from routers.food_orders import router as customer_orders
     app.include_router(customer_orders)
+    from routers.food_business import router as business_router
+    from routers.food_shifts import router as shifts_router
+    from routers.logistics import router as logistics_router
+    app.include_router(business_router);app.include_router(shifts_router);app.include_router(logistics_router)
     async def dependency():
         async with maker() as db: yield db
     app.dependency_overrides[get_db]=dependency
@@ -188,7 +195,8 @@ async def test_customer_retry_returns_same_order_and_changed_payload_is_rejected
 
 @pytest.mark.asyncio
 async def test_late_payment_awards_bonus_once_in_order_transaction(env):
-    client,maker,headers,monkeypatch=env
+    client,maker,_,monkeypatch=env
+    headers=owner_headers()
     monkeypatch.setattr('services.bonus_rewards.FOOD_ORDER_BONUS_POINTS',50)
     monkeypatch.setattr('services.bonus_rewards.FOOD_ORDER_BONUS_PERCENT',0)
     async with maker() as db:
@@ -430,8 +438,8 @@ async def test_pos_catalog_lookup_sources_and_transitions(env):
     assert (await client.get(BASE+'/orders?source=invalid',headers=headers)).status_code==422
     assert [o['id'] for o in (await client.get(BASE+'/orders?source=app',headers=headers)).json()['items']]==[1]  # Legacy NULL source is displayed as app.
     assert (await client.patch(BASE+'/orders/1',headers=headers,json={'expected_version':0,'status':'confirmed'})).status_code==200
-    # Manual orders are accepted immediately too, so both are already in work.
-    assert (await client.get(BASE+'/orders?status=working',headers=headers)).json()['total']==2
+    # Manual orders also await explicit acceptance; only the first order is confirmed.
+    assert (await client.get(BASE+'/orders?status=working',headers=headers)).json()['total']==1
     for target in ['ready','in_progress','done']:
         assert (await client.patch(BASE+'/orders/1',headers=headers,json={'expected_version':1,'status':target})).status_code==409
     async with maker() as db:

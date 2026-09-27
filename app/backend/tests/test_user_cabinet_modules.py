@@ -107,7 +107,12 @@ async def test_courier_api_cannot_self_approve(session):
         assert (await client.get('/api/v1/logistics/admin/applications', headers=headers)).status_code == 403
         assert (await client.post('/api/v1/logistics/admin/applications/resident/approve', headers=headers, json={})).status_code == 403
         assert (await client.post('/api/v1/logistics/admin/applications/resident/reject', headers=headers, json={})).status_code == 403
-        assert (await client.get('/api/v1/logistics/courier/cabinet', headers=headers)).status_code == 403
+        # A resident JWT is not a dedicated courier PIN session, even if valid
+        # for the customer account. Authentication fails before role approval.
+        cabinet = await client.get('/api/v1/logistics/courier/cabinet', headers=headers)
+        assert cabinet.status_code == 401
+        assert cabinet.json()['detail'] == 'Войдите в кабинет курьера по PIN'
+        assert 'profile' not in cabinet.json()
         assert (await client.post('/api/v1/logistics/courier/application', headers=headers, json={'full_name':'Resident','role':'courier'})).status_code == 422
 
         assert (await client.get('/api/v1/taxi/rides/my', headers=headers)).status_code == 404

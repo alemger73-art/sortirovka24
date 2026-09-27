@@ -15,21 +15,24 @@ type NewOrdersResponse = {items: OperatorOrder[]; total: number};
 
 export default function DamAlemNewOrderAlert({onOpen}: {onOpen: () => void}) {
   const {t} = useLanguage();
-  const [orders, setOrders] = useState<OperatorOrder[]>([]);
+  const [total, setTotal] = useState(0);
+  const onOpenRef = useRef(onOpen);
+  onOpenRef.current = onOpen;
   const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem(SOUND_KEY) !== 'off');
   const previousIds = useRef<Set<number> | null>(null);
   const lastReminder = useRef(0);
+  const mounted = useRef(false);
 
-  const notify = useCallback(async (fresh: OperatorOrder[], isReminder: boolean) => {
-    const count = fresh.length;
+  const notify = useCallback(async (count: number, isReminder: boolean) => {
     if (!count) return;
     if (soundEnabled) {
       try { await playDamOrderAlertSound(); } catch { /* Browser will allow sound after operator interaction. */ }
     }
+    if (!mounted.current) return;
     toast.warning(t(count === 1 ? 'dam.alert.one' : 'dam.alert.many').replace('{count}', String(count)), {
       id: TOAST_ID,
       duration: Infinity,
-      action: {label: t('dam.alert.open'), onClick: onOpen},
+      action: {label: t('dam.alert.open'), onClick: () => onOpenRef.current()},
     });
     if (!isReminder && document.hidden && 'Notification' in window && Notification.permission === 'granted') {
       new Notification(t('dam.alert.title'), {
@@ -38,13 +41,14 @@ export default function DamAlemNewOrderAlert({onOpen}: {onOpen: () => void}) {
         requireInteraction: true,
       });
     }
-  }, [onOpen, soundEnabled, t]);
+  }, [soundEnabled, t]);
 
   const poll = useCallback(async () => {
     try {
       const data = await foodOperations<NewOrdersResponse>('/orders?status=new&source=&q=&skip=0');
+      if (!mounted.current) return;
       const fresh = data.items || [];
-      setOrders(fresh);
+      setTotal(data.total);
       const ids = new Set(fresh.map(order => order.id));
       const hasAddedOrder = previousIds.current === null
         ? fresh.length > 0
@@ -53,7 +57,7 @@ export default function DamAlemNewOrderAlert({onOpen}: {onOpen: () => void}) {
       const reminderDue = fresh.length > 0 && now - lastReminder.current >= REMINDER_MS;
       if (hasAddedOrder || reminderDue) {
         lastReminder.current = now;
-        await notify(fresh, !hasAddedOrder);
+        await notify(data.total, !hasAddedOrder);
       }
       previousIds.current = ids;
       if (!fresh.length) toast.dismiss(TOAST_ID);
@@ -63,16 +67,17 @@ export default function DamAlemNewOrderAlert({onOpen}: {onOpen: () => void}) {
   }, [notify]);
 
   useEffect(() => {
+    mounted.current = true;
     void poll();
     const timer = window.setInterval(() => { void poll(); }, POLL_MS);
-    return () => { window.clearInterval(timer); toast.dismiss(TOAST_ID); };
+    return () => { mounted.current = false; window.clearInterval(timer); toast.dismiss(TOAST_ID); };
   }, [poll]);
 
   useEffect(() => {
     const originalTitle = document.title.replace(/^\(\d+\)\s*/, '');
-    document.title = orders.length ? `(${orders.length}) ${originalTitle}` : originalTitle;
+    document.title = total ? `(${total}) ${originalTitle}` : originalTitle;
     return () => { document.title = originalTitle; };
-  }, [orders.length]);
+  }, [total]);
 
   useEffect(() => {
     if (!soundEnabled) return;
@@ -97,18 +102,18 @@ export default function DamAlemNewOrderAlert({onOpen}: {onOpen: () => void}) {
     }
   }
 
-  if (!orders.length) return null;
+  if (!total) return null;
   return (
     <section role="alert" aria-live="assertive" className="sticky top-2 z-40 overflow-hidden rounded-2xl border-2 border-red-500 bg-red-600 p-4 text-white shadow-xl shadow-red-950/20 motion-safe:animate-pulse">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <button type="button" onClick={onOpen} className="flex min-w-0 items-center gap-3 text-left">
           <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/20">
             <BellRing className="h-6 w-6" />
-            <span className="absolute -right-1 -top-1 min-w-6 rounded-full bg-white px-1.5 py-0.5 text-center text-xs font-black text-red-600">{orders.length}</span>
+            <span className="absolute -right-1 -top-1 min-w-6 rounded-full bg-white px-1.5 py-0.5 text-center text-xs font-black text-red-600">{total}</span>
           </span>
           <span>
             <strong className="block text-lg">{t('dam.alert.title')}</strong>
-            <span className="text-sm text-white/90">{t(orders.length === 1 ? 'dam.alert.one' : 'dam.alert.many').replace('{count}', String(orders.length))}</span>
+            <span className="text-sm text-white/90">{t(total === 1 ? 'dam.alert.one' : 'dam.alert.many').replace('{count}', String(total))}</span>
           </span>
         </button>
         <div className="flex flex-wrap gap-2">

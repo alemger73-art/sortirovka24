@@ -9,7 +9,8 @@ async function setup(page:Page) {
   const path=new URL(r.request().url()).pathname; let json:any={items:[],total:0};
   if(path.endsWith('/modules'))json={food:true,dam_alem:true,account:true};
   if(path.includes('verify-session'))json={valid:true,display_name:'Оператор'};
-  if(path.endsWith('/business/me'))json={role:'operator',name:'Оператор'};
+  if(path.endsWith('/shifts/me'))json={staff:{id:1,name:'Оператор',role:'operator',pin_set:true},shift:{id:1,staff_name:'Оператор',role:'operator',opened_at:'2026-09-27T07:00:00Z',active:true}};
+ if(path.endsWith('/business/me'))json={role:'operator',name:'Оператор'};
   if(path.endsWith('/operations/catalog'))json={products:[{id:2,name:'Напиток',price:300}],groups:[],options:[],links:[]};
   if(path.endsWith('/operations/orders'))json={items:[order],total:1};
   if(path.endsWith('/operations/orders/71'))json={order,events:[]};

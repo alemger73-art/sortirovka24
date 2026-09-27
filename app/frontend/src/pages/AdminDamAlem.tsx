@@ -28,6 +28,7 @@ type Section = 'deliveries' | 'payroll' | 'brand' | 'menu' | 'categories' | 'mod
 
 interface AdminDamAlemProps {
   initialSection?: Section;
+  onLock?: () => void;
   /** When true, hides platform-only controls (partner panel at /partner/dam-alem). */
   partnerMode?: boolean;
 }
@@ -53,7 +54,7 @@ function getTABS(adminT: (key: string) => string) {
   return TABS;
 }
 
-export default function AdminDamAlem({ initialSection = 'today', partnerMode = false }: AdminDamAlemProps) {
+export default function AdminDamAlem({ initialSection = 'today', partnerMode = false, onLock }: AdminDamAlemProps) {
   const { t: adminT } = useLanguage();
   const TABS = getTABS(adminT);
 
@@ -84,23 +85,22 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
         { id: 'settings', label: adminT('admin.ui.0245') },
       ]
     : [
-        { id: 'today', label: adminT('cabinet.operatorShift') },
         { id: 'orders', label: adminT('admin.ui.0239') },
         { id: 'deliveries', label: adminT('cabinet.deliveries') },
-        { id: 'menu', label: adminT('admin.ui.0249') },
+        { id: 'menu', label: 'Стоп-лист' },
       ];
   const navigate = (id: string, order?: number, status?: string) => { const p = new URLSearchParams(params); p.set('section', id); if (status) p.set('status', status); else p.delete('status'); if (order) p.set('order', String(order)); else if (id !== 'orders') p.delete('order'); setParams(p); };
 
   useEffect(() => {
     const allowed = (id: string) => (access === 'owner' || ['today', 'orders', 'availability', 'deliveries'].includes(id)) && (!partnerMode || id !== 'pos');
-    setSection(TABS.some(t => t.id === requested) && allowed(requested) ? requested : allowed(initialSection) ? initialSection : 'today');
-  }, [initialSection, partnerMode, requested, access]);
+    setSection(TABS.some(t => t.id === requested) && allowed(requested) && !(onLock && requested === 'today') ? requested : allowed(initialSection) ? initialSection : 'today');
+  }, [initialSection, partnerMode, requested, access, onLock]);
 
   if (!access) return <p role={accessError ? 'alert' : 'status'}>{accessError || adminT("admin.ui.0250")}</p>;
   if (access === 'operator' && !['today', 'orders', 'availability', 'deliveries'].includes(section)) return <p>{adminT("admin.ui.0251")}</p>;
   return (
     <div className="min-w-0 space-y-6">
-      <div className="rounded-2xl border bg-card p-4 md:p-5">
+      {!onLock && <div className="rounded-2xl border bg-card p-4 md:p-5">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{adminT(access === 'owner' ? 'cabinet.owner' : 'cabinet.operator')}</p>
@@ -117,11 +117,10 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
             <span className="hidden sm:inline">{adminT("admin.ui.0254")}</span> <ExternalLink className="h-4 w-4" />
           </Link>
         </div>
-      </div>
-
+      </div>}
       {access === 'operator' && <DamAlemNewOrderAlert onOpen={() => navigate('orders', undefined, 'new')} />}
 
-      {access === 'operator' && <DamShiftPanel onChange={setActiveShift} />}
+      {access === 'operator' && <DamShiftPanel onChange={setActiveShift} onLock={onLock} />}
 
       {access === 'operator' && !activeShift && <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">{adminT('dam.shift.workBlocked')}</div>}
 
@@ -165,7 +164,7 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
       )}
       {section === 'telegram' && <DamAlemTelegram />}
       {section === 'modifiers' && <AdminDamAlemModifiers />}
-      {section === 'orders' && <DamAlemOrders />}
+      {section === 'orders' && <DamAlemOrders operatorMode={access === 'operator'} />}
       {section === 'settings' && (
         <>
           {!partnerMode && <AdminPartnerAccess partnerType="dam_alem" />}

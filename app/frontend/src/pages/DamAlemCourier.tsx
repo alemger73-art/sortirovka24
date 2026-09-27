@@ -73,7 +73,7 @@ export default function DamAlemCourier() {
         <form onSubmit={submit} className="rounded-3xl border border-white/10 bg-slate-900/90 p-6 shadow-2xl">
           <div className="mb-5 flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950 px-4 py-3">
             <LockKeyhole className="h-5 w-5 text-orange-400" />
-            <input
+            <input type="password"
               autoFocus
               autoComplete="one-time-code"
               inputMode="numeric"

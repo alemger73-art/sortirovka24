@@ -490,7 +490,7 @@ async def validate_food_order(
     customer_name = (data.get("customer_name") or "").strip()
     customer_phone = (data.get("customer_phone") or "").strip()
     delivery_method = (data.get("delivery_method") or "delivery").strip()
-    if delivery_method not in ({'delivery', 'pickup', 'dine_in'} if staff_quote else {'delivery', 'pickup'}):
+    if delivery_method not in {'delivery', 'pickup', 'dine_in'}:
         raise HTTPException(400, 'Некорректный способ получения заказа')
     delivery_address = (data.get("delivery_address") or "").strip()
 
@@ -700,7 +700,7 @@ async def validate_food_order(
     subtotal = round(subtotal, 2)
     if catalog_only and staff_quote:
         return {}, validated_items, subtotal
-    if not (staff_quote and delivery_method in ("pickup", "dine_in")) and min_order > 0 and subtotal < min_order:
+    if delivery_method != "dine_in" and not (staff_quote and delivery_method == "pickup") and min_order > 0 and subtotal < min_order:
         raise HTTPException(status_code=400, detail=f"Минимальный заказ {int(min_order)} ₸")
     gift_settings = {**settings, 'loyalty_gifts': json.dumps(available_gifts(settings, products_by_id.values(), restaurant_id))}
     selected_gift = None if staff_quote and not data.get('selected_gift_id') else _resolve_selected_gift(
@@ -720,7 +720,7 @@ async def validate_food_order(
 
     fee_rate = _service_fee_rate(settings)
     if service_fee_hint is not None or requires_priced_checkout:
-        expected_service = math.floor(subtotal * fee_rate + 0.5)
+        expected_service = 0 if delivery_method == "dine_in" else math.floor(subtotal * fee_rate + 0.5)
         if service_fee_hint is not None and abs(float(service_fee_hint) - expected_service) > 1:
             raise HTTPException(status_code=400, detail="Сервисный сбор не совпадает. Обновите страницу")
     else:

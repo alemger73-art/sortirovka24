@@ -50,9 +50,19 @@ COURIER_STATUS_FLOW = {
 
 async def assign_dam_delivery(db: AsyncSession, task: LogisticsTask, courier_user: User) -> LogisticsTask:
     """Atomically hand a ready DAM ALEM order to a selected verified courier."""
-    profile = await get_or_create_courier_profile(db, courier_user)
+    # Serialize assignments to one courier; re-read readiness inside the lock.
+    profile = await db.scalar(select(CourierProfile).where(
+        CourierProfile.user_id == str(courier_user.id)
+    ).with_for_update().execution_options(populate_existing=True))
+    if not profile or not courier_user.is_active or courier_user.status != 'active':
+        raise ValueError("Доступ курьера отключён")
     if not profile.is_verified:
         raise ValueError("Курьер не подтверждён")
+    from services.food_shifts import active_shift
+    if not await active_shift(db, 'courier', courier_user.id):
+        raise ValueError("Курьер не на смене")
+    if not profile.is_online:
+        raise ValueError("Курьер не на линии")
     active = await db.scalar(select(LogisticsTask).where(
         LogisticsTask.courier_id == str(courier_user.id),
         LogisticsTask.status.in_(ACTIVE_TASK_STATUSES),

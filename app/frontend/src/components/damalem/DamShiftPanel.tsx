@@ -11,7 +11,7 @@ export interface DamShift {
 }
 interface ShiftState { staff: { id?: number; name: string; role: string; pin_set: boolean }; shift: DamShift | null }
 
-export default function DamShiftPanel({ onChange }: { onChange?: (shift: DamShift | null) => void }) {
+export default function DamShiftPanel({ onChange, onLock }: { onChange?: (shift: DamShift | null) => void; onLock?: () => void }) {
   const { t } = useLanguage();
   const [state, setState] = useState<ShiftState | null>(null);
   const [pin, setPin] = useState('');
@@ -21,7 +21,7 @@ export default function DamShiftPanel({ onChange }: { onChange?: (shift: DamShif
     try { const next = await foodShifts<ShiftState>('/me'); setState(next); onChange?.(next.shift); setError(''); }
     catch (e) { setError((e as Error).message); }
   }, [onChange]);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load(); const timer=window.setInterval(()=>{if(!document.hidden)void load();},15000); return ()=>window.clearInterval(timer); }, [load]);
   async function mutate(action: 'open' | 'close') {
     if (!/^\d{4}$/.test(pin) || busy) return;
     setBusy(true); setError('');
@@ -38,8 +38,9 @@ export default function DamShiftPanel({ onChange }: { onChange?: (shift: DamShif
           {state?.shift ? <p className="text-sm text-muted-foreground">{state.shift.staff_name} · {new Date(state.shift.opened_at).toLocaleTimeString([], { timeZone: 'Asia/Almaty', hour: '2-digit', minute: '2-digit' })}</p> : <p className="text-sm text-muted-foreground">{state?.staff.pin_set ? t('dam.shift.openHelp') : t('dam.shift.pinSetup')}</p>}
         </div>
       </div>
+      {onLock && <Button variant="outline" onClick={onLock}>Заблокировать рабочее место</Button>}
       {state?.staff.id && state.staff.pin_set && <div className="flex w-full gap-2 md:w-auto">
-        <div className="relative flex-1 md:w-36"><KeyRound className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input inputMode="numeric" autoComplete="off" maxLength={4} aria-label={t('dam.shift.pin')} placeholder="••••" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} className="pl-9 text-center tracking-[.4em]" /></div>
+        <div className="relative flex-1 md:w-36"><KeyRound className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input type="password" inputMode="numeric" autoComplete="off" maxLength={4} aria-label={t('dam.shift.pin')} placeholder="••••" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} className="pl-9 text-center tracking-[.4em]" /></div>
         <Button disabled={busy || pin.length !== 4} onClick={() => void mutate(state.shift ? 'close' : 'open')} variant={state.shift ? 'outline' : 'default'}>{state.shift ? <LogOut className="mr-2 h-4 w-4" /> : <LogIn className="mr-2 h-4 w-4" />}{state.shift ? t('dam.shift.close') : t('dam.shift.open')}</Button>
       </div>}
     </div>
