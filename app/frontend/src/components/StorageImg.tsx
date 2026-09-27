@@ -55,6 +55,7 @@ const StorageImg = memo(function StorageImg({
   const [retried, setRetried] = useState(false);
   const [inView, setInView] = useState(priority || alreadyCached);
   const containerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     let alive = true;
@@ -79,6 +80,15 @@ const StorageImg = memo(function StorageImg({
       alive = false;
     };
   }, [rawValue, syncSrc]);
+
+  // Cached images can finish before the reset effect or React's load handler.
+  useEffect(() => {
+    const image = imageRef.current;
+    if (image?.complete && image.naturalWidth > 0) {
+      setLoaded(true);
+      if (src) markImageLoaded(src);
+    }
+  }, [src, inView]);
 
   // IntersectionObserver for lazy loading with 300px rootMargin
   useEffect(() => {
@@ -154,6 +164,7 @@ const StorageImg = memo(function StorageImg({
       )}
       {inView && (
         <img
+          ref={imageRef}
           src={src}
           alt={alt}
           className={`w-full h-full object-cover transition-opacity duration-300 ${
