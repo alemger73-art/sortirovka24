@@ -16,6 +16,8 @@ from routers.food_business import router as business_router
 from routers.food_operations import router as operations_router
 from routers.food_shifts import router as shifts_router
 from utils.courier_pin import hash_courier_pin
+from models.auth import User
+from models.logistics import CourierProfile, LogisticsTask
 
 
 @pytest.fixture
@@ -23,7 +25,7 @@ async def shift_env():
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     tables = [m.__table__ for m in (
         PartnerCredentials, Food_orders, FoodOrderEvent, FoodOperationsSettings,
-        FoodExpense, FoodRefund, Food_restaurants, Food_items, FoodShift, FoodStaffAction,
+        FoodExpense, FoodRefund, Food_restaurants, Food_items, FoodShift, FoodStaffAction, User, CourierProfile, LogisticsTask,
     )]
     async with engine.begin() as conn:
         await conn.run_sync(lambda sync: Base.metadata.create_all(sync, tables=tables))
@@ -120,3 +122,72 @@ async def test_staff_create_validation_hash_duplicate_and_permissions(shift_env)
         row = await db.get(PartnerCredentials, staff_id)
         assert row.password_hash != body['password'] and _verify_password(body['password'], row.password_hash)
         assert row.pin_hash != body['pin']
+
+
+@pytest.mark.asyncio
+async def test_owner_without_shift_overview_finance_and_isolation(shift_env):
+    from uuid import uuid4
+    from routers.food_business import city_today
+    client,maker,owner,operator=shift_env
+    base='/api/v1/dam-alem'
+    expense={'id':str(uuid4()),'day':str(city_today()),'amount':'150','category':'other','note':'Local test'}
+    assert (await client.post(base+'/business/expenses',headers=owner,json=expense)).status_code==200
+    assert (await client.get(base+'/shifts/me',headers=owner)).json()['shift'] is None
+    assert (await client.get(base+'/business/overview',headers=operator)).status_code==403
+    other={'Authorization':'Bearer '+create_access_token({'role':'partner','type':'partner_session','partner_type':'gastronom','partner_id':1})}
+    for endpoint in ['/business/overview','/business/staff','/shifts/actions','/operations/orders']:
+        assert (await client.get(base+endpoint,headers=other)).status_code==403
+    await client.post(base+'/shifts/open',headers=operator,json={'pin':'2222'})
+    team=(await client.get(base+'/business/overview',headers=owner)).json()['team']
+    assert next(p for p in team if p['id']=='2')['shift']['active']
+    assert next(p for p in team if p['id']=='1')['shift'] is None
+    response=await client.get(base+'/shifts/actions?staff_type=partner&staff_id=2&action=shift_opened',headers=owner)
+    assert len(response.json()['items'])==1
+    assert (await client.patch(base+'/business/staff/2',headers=owner,json={'active':False})).status_code==200
+    assert (await client.get(base+'/business/today',headers=operator)).status_code==403
+    shifts=(await client.get(base+'/shifts/history',headers=owner)).json()['items']
+    assert not next(s for s in shifts if s['staff_id']=='2')['active']
+    assert (await client.delete(base+'/business/staff/2',headers=owner)).status_code==200
+    assert len((await client.get(base+'/shifts/actions?staff_id=2',headers=owner)).json()['items'])>=1
+
+
+@pytest.mark.asyncio
+async def test_courier_access_preserves_history_and_unique_pin(shift_env):
+    client,maker,owner,operator=shift_env
+    url='/api/v1/dam-alem/business/staff/couriers'
+    body={'name':'Local courier','phone':'+77000000101','pin':'9836'}
+    assert (await client.post(url,headers=operator,json=body)).status_code==403
+    result=await client.post(url,headers=owner,json=body)
+    assert result.status_code==200,result.text
+    id=result.json()['id']
+    assert (await client.post(url,headers=owner,json={**body,'phone':'+77000000102'})).status_code==409
+    rows=await client.get(url,headers=owner)
+    assert '9836' not in rows.text and 'pin_hash' not in rows.text
+    assert (await client.patch(url+'/'+id,headers=owner,json={'active':False})).status_code==200
+    assert (await client.patch(url+'/'+id,headers=owner,json={'active':True,'name':'Renamed'})).status_code==200
+    assert (await client.delete(url+'/'+id,headers=owner)).status_code==200
+    async with maker() as db:
+        assert (await db.get(User,id)).name=='Renamed'
+        profile=await db.get(CourierProfile,id)
+        assert not profile.is_verified and profile.pin_hash is None
+
+
+@pytest.mark.asyncio
+async def test_operator_without_configured_pin_cannot_mutate(shift_env):
+    client,maker,owner,operator=shift_env
+    async with maker() as db:
+        (await db.get(PartnerCredentials,2)).pin_hash=None
+        await db.commit()
+    assert (await client.patch('/api/v1/dam-alem/business/availability/1',headers=operator,json={'available':False})).status_code==409
+
+
+@pytest.mark.asyncio
+async def test_owner_creation_does_not_require_pin(shift_env):
+    client,maker,owner,operator=shift_env
+    body={'name':'Second owner','email':'second-owner','password':'Synthetic-2026!','role':'owner'}
+    response=await client.post('/api/v1/dam-alem/business/staff',headers=owner,json=body)
+    assert response.status_code==200,response.text
+    async with maker() as db:
+        row=await db.get(PartnerCredentials,response.json()['id'])
+        assert row.access_role=='owner' and row.pin_hash is None
+    assert (await client.post('/api/v1/dam-alem/business/staff',headers=owner,json={**body,'email':'missing-pin','role':'operator'})).status_code==422

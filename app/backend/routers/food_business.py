@@ -63,11 +63,17 @@ async def today(db:AsyncSession=Depends(get_db),claims=Depends(food_staff)):
     daily = {'created': len(daily_orders), 'order_total': float(sum((money(r.total_amount) for r in daily_orders if r.status != 'cancelled'), Decimal(0)))}
     return {'day':str(day),'daily':daily,'counts':counts,'notification_errors':pending,'unpaid':unpaid,'new_orders':[{'id':o.id,'name':o.customer_name,'amount':o.total_amount,'delivery_method':o.delivery_method,'created_at':o.created_at} for o in rows]}
 
+@router.get('/overview')
+async def owner_overview(db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+    from services.dam_owner_overview import overview
+    return await overview(db)
+
 @router.get('/report')
 async def report(start:date, end:date, db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
     inside=period(start,end)
     sales=Decimal(0); receipts=Decimal(0); bonuses=Decimal(0); completed=0; cancelled=0; created=0; undated_paid=0; undated_done=0
     promos=Decimal(0);untracked_promos=0
+    sources={}; fulfillment={}
     methods={}; products={}; days={str(start+timedelta(days=i)):{'sales':Decimal(0),'receipts':Decimal(0),'expenses':Decimal(0),'refunds':Decimal(0)} for i in range((end-start).days+1)}
     cash_events = (await db.scalars(select(FoodOrderEvent).join(Food_orders, Food_orders.id == FoodOrderEvent.order_id).where(await scope(db), FoodOrderEvent.public_data.isnot(None)))).all()
     tracked = set(); journal_refunds = Decimal(0)
@@ -97,6 +103,10 @@ async def report(start:date, end:date, db:AsyncSession=Depends(get_db),claims=De
         if order.id not in tracked and paid(order) > 0 and inside(day_of(order.paid_at)):
             amount=paid(order);receipts+=amount;key=order.payment_method or 'unknown';methods[key]=methods.get(key,Decimal(0))+amount;days[str(day_of(order.paid_at))]['receipts']+=amount
         if order.status=='done' and inside(day_of(order.completed_at)):
+            for breakdown, key in ((sources, order.order_source or 'app'), (fulfillment, order.delivery_method or 'unknown')):
+                entry = breakdown.setdefault(key, {'count': 0, 'amount': Decimal(0)})
+                entry['count'] += 1
+                entry['amount'] += money(order.total_amount)
             promos+=money(order.promo_discount_amount)
             if order.promo_discount_amount is None: untracked_promos+=1
             amount=money(order.total_amount);sales+=amount;completed+=1;bonuses+=money(order.bonus_discount_amount);days[str(day_of(order.completed_at))]['sales']+=amount
@@ -110,13 +120,13 @@ async def report(start:date, end:date, db:AsyncSession=Depends(get_db),claims=De
     spent=Decimal(0)
     for e in expenses:
         if not e.voided: spent+=e.amount;days[e.day]['expenses']+=e.amount
-    refunds=(await db.scalars(select(FoodRefund).where(FoodRefund.day>=str(start),FoodRefund.day<=str(end)))).all()
+    refunds=(await db.scalars(select(FoodRefund).join(Food_orders, Food_orders.id==FoodRefund.order_id).where(await scope(db),FoodRefund.day>=str(start),FoodRefund.day<=str(end)))).all()
     returned=journal_refunds + sum((r.amount for r in refunds),Decimal(0))
     for r in refunds: days[r.day]['refunds']+=r.amount
     candidates=(await db.scalars(select(Food_orders).where(await scope(db),~Food_orders.id.in_(select(FoodRefund.order_id))).order_by(Food_orders.id.desc()))).all()
     needs_refund=[{'id':o.id,'amount':float(max(Decimal(0), paid(o) - (Decimal(0) if o.status == 'cancelled' else money(o.total_amount))))} for o in candidates]
     needs_refund=[r for r in needs_refund if r['amount'] > 0]
-    return {'start':str(start),'end':str(end),'sales':sales,'completed':completed,'created':created,'cancelled':cancelled,'average':sales/completed if completed else 0,'receipts':receipts,'refunds':returned,'expenses_total':spent,'cash_difference':receipts-returned-spent,'bonuses':bonuses,'promo_discounts':promos,'untracked_promos':untracked_promos,'payment_methods':methods,'undated_paid':undated_paid,'undated_done':undated_done,'products':[{'name':k,**v} for k,v in sorted(products.items(),key=lambda kv:kv[1]['quantity'],reverse=True)[:20]],'days':[{'day':k,**v} for k,v in days.items()],'expenses':[{'id':e.id,'day':e.day,'amount':e.amount,'category':e.category,'note':e.note,'voided':e.voided,'void_reason':e.void_reason} for e in expenses],'refunds_needed':needs_refund}
+    return {'start':str(start),'end':str(end),'sales':sales,'completed':completed,'created':created,'cancelled':cancelled,'average':sales/completed if completed else 0,'receipts':receipts,'refunds':returned,'expenses_total':spent,'cash_difference':receipts-returned-spent,'bonuses':bonuses,'promo_discounts':promos,'untracked_promos':untracked_promos,'payment_methods':methods,'sources':sources,'fulfillment':fulfillment,'undated_paid':undated_paid,'undated_done':undated_done,'products':[{'name':k,**v} for k,v in sorted(products.items(),key=lambda kv:kv[1]['quantity'],reverse=True)[:20]],'days':[{'day':k,**v} for k,v in days.items()],'expenses':[{'id':e.id,'day':e.day,'amount':e.amount,'category':e.category,'note':e.note,'voided':e.voided,'void_reason':e.void_reason} for e in expenses],'refunds_needed':needs_refund}
 
 class ExpenseBody(BaseModel):
     id:UUID
@@ -242,7 +252,7 @@ class StaffBody(BaseModel):
     name:str=Field(min_length=1,max_length=120)
     email:str=Field(min_length=3,max_length=255)
     password:str=Field(min_length=10,max_length=100)
-    pin:str=Field(pattern=r'^\d{4}$')
+    pin:str|None=Field(None,pattern=r'^\d{4}$')
     role:Literal['owner','operator']='operator'
 
 @router.post('/staff')
@@ -252,7 +262,8 @@ async def staff_create(body:StaffBody,db:AsyncSession=Depends(get_db),claims=Dep
     email=staff_login(body.email)
     if len(body.password.encode('utf-8'))>72: raise HTTPException(422,'Пароль слишком длинный, используйте до 72 байт')
     if not body.name.strip(): raise HTTPException(422,'Укажите имя сотрудника')
-    row=PartnerCredentials(partner_type='dam_alem',email=email,display_name=body.name.strip(),password_hash=_hash_password(body.password),pin_hash=hash_courier_pin(body.pin),is_active=True,access_role=body.role)
+    if body.role=='operator' and not body.pin: raise HTTPException(422,'Назначьте оператору PIN из 4 цифр')
+    row=PartnerCredentials(partner_type='dam_alem',email=email,display_name=body.name.strip(),password_hash=_hash_password(body.password),pin_hash=hash_courier_pin(body.pin) if body.pin else None,is_active=True,access_role=body.role)
     db.add(row)
     record_action(db,None,'staff_created',claims=claims,entity_type='staff',details={'name':row.display_name,'role':row.access_role})
     try: await db.commit()
@@ -262,19 +273,80 @@ async def staff_create(body:StaffBody,db:AsyncSession=Depends(get_db),claims=Dep
 
 @router.get('/staff/couriers')
 async def courier_staff(db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
-    rows=(await db.execute(select(CourierProfile,User).join(User,User.id==CourierProfile.user_id).where(CourierProfile.is_verified==True).order_by(User.name,User.phone))).all()
+    rows=(await db.execute(select(CourierProfile,User).join(User,User.id==CourierProfile.user_id).where((CourierProfile.is_verified==True) | CourierProfile.pin_hash.is_not(None) | (User.role=='courier')).order_by(User.name,User.phone))).all()
     return [{'id':p.user_id,'name':u.name or p.phone or u.phone or 'Курьер','phone':p.phone or u.phone,'active':p.is_verified,'online':p.is_online,'role':'courier','pin_set':bool(p.pin_hash)} for p,u in rows]
 
 class CourierStaffUpdate(BaseModel):
     pin:str=Field(pattern=r'^\d{4}$')
 
+class CourierCreate(BaseModel):
+    name: str = Field(min_length=1,max_length=120)
+    phone: str = Field(min_length=10,max_length=32)
+    pin: str = Field(pattern=r'^\d{4}$')
+
+@router.post('/staff/couriers')
+async def create_courier(body:CourierCreate,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+    from uuid import uuid4
+    from utils.courier_pin import hash_courier_pin, verify_courier_pin
+    digits=re.sub(r'\D','',body.phone)
+    if len(digits)!=11 or digits[0] not in '78' or not body.name.strip():
+        raise HTTPException(422,'Укажите имя и телефон +7…')
+    normalized=func.replace(func.replace(User.phone,'+',''),' ','')
+    if await db.scalar(select(User.id).where(func.substr(normalized,-10)==digits[-10:]).limit(1)):
+        raise HTTPException(409,'Телефон уже используется. Измените существующего курьера или обратитесь к администратору.')
+    pins=(await db.scalars(select(CourierProfile.pin_hash).where(CourierProfile.pin_hash.is_not(None)))).all()
+    if any(verify_courier_pin(pin,body.pin) for pin in pins):
+        raise HTTPException(409,'Этот PIN уже назначен другому курьеру')
+    id=str(uuid4()); phone='+7'+digits[-10:]
+    db.add(User(id=id,name=body.name.strip(),phone=phone,role='courier',status='active',is_active=True))
+    await db.flush()
+    db.add(CourierProfile(user_id=id,phone=phone,is_verified=True,is_online=False,pin_hash=hash_courier_pin(body.pin)))
+    record_action(db,None,'staff_created',claims=claims,entity_type='courier',entity_id=id,details={'name':body.name.strip(),'role':'courier'})
+    await db.commit()
+    return {'id':id}
+
+class CourierAccessUpdate(BaseModel):
+    name: str | None = Field(None,min_length=1,max_length=120)
+    active: bool | None = None
+    pin: str | None = Field(None,pattern=r'^\d{4}$')
+
+@router.patch('/staff/couriers/{user_id}')
+async def update_courier_access(user_id:str,body:CourierAccessUpdate,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+    from models.logistics import LogisticsTask
+    from utils.courier_pin import hash_courier_pin, verify_courier_pin
+    from services.food_shifts import active_shift, utcnow
+    profile=await db.get(CourierProfile,user_id);user=await db.get(User,user_id)
+    if not profile or not user: raise HTTPException(404,'Курьер не найден')
+    if body.active is False:
+        if await db.scalar(select(LogisticsTask.id).where(LogisticsTask.courier_id==user_id,LogisticsTask.status.notin_(['delivered','cancelled'])).limit(1)):
+            raise HTTPException(409,'Сначала завершите или переназначьте активные доставки')
+        shift=await active_shift(db,'courier',user_id)
+        if shift:
+            shift.closed_at=utcnow();shift.closed_by=actor(claims);shift.active_key=None
+            record_action(db,None,'shift_closed',claims=claims,entity_type='shift',entity_id=shift.id,details={'reason':'access_disabled','employee_id':user_id})
+        profile.is_online=False
+    if body.active is not None: profile.is_verified=body.active
+    if body.name is not None:
+        if not body.name.strip(): raise HTTPException(422,'Укажите имя сотрудника')
+        user.name=body.name.strip()
+    if body.pin:
+        pins=(await db.scalars(select(CourierProfile.pin_hash).where(CourierProfile.user_id!=user_id,CourierProfile.pin_hash.is_not(None)))).all()
+        if any(verify_courier_pin(pin,body.pin) for pin in pins): raise HTTPException(409,'Этот PIN уже назначен другому курьеру')
+        profile.pin_hash=hash_courier_pin(body.pin)
+    record_action(db,None,'staff_updated',claims=claims,entity_type='courier',entity_id=user_id,details={'name':body.name,'active':body.active,'pin_changed':bool(body.pin)})
+    await db.commit();return {'ok':True}
+
 @router.patch('/staff/couriers/{user_id}/pin')
 async def courier_staff_pin(user_id:str,body:CourierStaffUpdate,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
-    from utils.courier_pin import hash_courier_pin
+    return await update_courier_access(user_id,CourierAccessUpdate(pin=body.pin),db,claims)
+
+@router.delete('/staff/couriers/{user_id}')
+async def delete_courier_access(user_id:str,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+    # Retain the user/profile referenced by historical delivery records.
+    await update_courier_access(user_id,CourierAccessUpdate(active=False),db,claims)
     profile=await db.get(CourierProfile,user_id)
-    if not profile or not profile.is_verified: raise HTTPException(404,'Подтверждённый курьер не найден')
-    profile.pin_hash=hash_courier_pin(body.pin)
-    record_action(db,None,'courier_pin_changed',claims=claims,entity_type='courier',entity_id=user_id)
+    profile.pin_hash=None
+    record_action(db,None,'staff_deleted',claims=claims,entity_type='courier',entity_id=user_id)
     await db.commit();return {'ok':True}
 
 class StaffUpdate(BaseModel):
@@ -299,6 +371,15 @@ async def staff_active(staff_id:int,body:StaffUpdate,db:AsyncSession=Depends(get
     removes_owner=(body.active is False) or (body.role is not None and body.role!='owner')
     if removes_owner and await _last_active_owner(db,row): raise HTTPException(409,'Нельзя отключить или понизить последнего активного владельца')
     changes={}
+    if body.active is False or (body.role is not None and body.role != (row.access_role or 'owner')):
+        from services.food_shifts import active_shift, utcnow
+        current_shift = await active_shift(db, 'partner', staff_id)
+        if current_shift:
+            current_shift.closed_at = utcnow()
+            current_shift.closed_by = actor(claims)
+            current_shift.active_key = None
+            record_action(db, None, 'shift_closed', claims=claims, entity_type='shift', entity_id=current_shift.id,
+                          details={'employee_id': staff_id, 'reason': 'access_disabled' if body.active is False else 'role_changed'})
     if body.email is not None:
         row.email=staff_login(body.email);changes['login']=row.email
     if body.name is not None:

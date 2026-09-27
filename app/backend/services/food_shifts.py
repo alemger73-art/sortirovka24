@@ -120,17 +120,19 @@ async def close_shift(
 
 
 async def require_partner_shift(db: AsyncSession, claims: dict) -> FoodShift | None:
-    """Require a shift once a personal PIN is configured.
-
-    Existing production accounts are rolled out safely: until the owner sets a
-    PIN, current work keeps functioning and the UI clearly requests setup.
-    """
+    """Operators work in personal shifts; owners manage independently."""
     staff_id = claims.get("staff_id")
     if not staff_id:  # system administrator maintenance session
         return None
     credentials = await db.get(PartnerCredentials, int(staff_id))
-    if not credentials or not credentials.pin_hash:
+    if not credentials or not credentials.is_active:
+        raise HTTPException(403, "Доступ сотрудника отключён")
+    # Management actions belong to the owner, not to a fabricated work shift.
+    # Use the current database role rather than a potentially stale JWT claim.
+    if credentials and (credentials.access_role or 'owner') == 'owner':
         return None
+    if not credentials.pin_hash:
+        raise HTTPException(409, "Владелец должен назначить сотруднику PIN-код")
     row = await active_shift(db, "partner", staff_id)
     if not row:
         raise HTTPException(409, "Сначала откройте смену")

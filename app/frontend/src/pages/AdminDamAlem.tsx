@@ -22,6 +22,7 @@ import AdminPartnerAccess from '@/components/partner/AdminPartnerAccess';
 import DamAlemNewOrderAlert from '@/components/damalem/DamAlemNewOrderAlert';
 import DamShiftPanel, { type DamShift } from '@/components/damalem/DamShiftPanel';
 import DamShiftOverview from '@/components/damalem/DamShiftOverview';
+import DamOwnerDashboard from './DamOwnerDashboard';
 
 type Section = 'deliveries' | 'payroll' | 'brand' | 'menu' | 'categories' | 'modifiers' | 'orders' | 'settings' | 'banners' | 'pos' | 'telegram' | 'today' | 'sales' | 'staff' | 'availability';
 
@@ -68,16 +69,17 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
     if (id === 'payroll') return 'sales';
     if (id === 'staff') return 'staff';
     if (['menu', 'categories', 'modifiers', 'banners', 'availability'].includes(id)) return 'menu';
-    if (access === 'owner' && ['today', 'orders', 'deliveries'].includes(id)) return 'today';
+    if (access === 'owner' && id === 'deliveries') return 'orders';
     if (['today', 'orders', 'sales', 'deliveries'].includes(id)) return id;
     return 'settings';
   };
   const group = groupOf(section);
   const groups = access === 'owner'
     ? [
-        { id: 'today', label: adminT('cabinet.ownerOverview') },
-        { id: 'sales', label: adminT('admin.ui.0236') },
-        { id: 'menu', label: adminT('admin.ui.0248') },
+        { id: 'today', label: 'Главная' },
+        { id: 'orders', label: 'Заказы' },
+        { id: 'sales', label: 'Финансы' },
+        { id: 'menu', label: 'Меню' },
         { id: 'staff', label: adminT('cabinet.team') },
         { id: 'settings', label: adminT('admin.ui.0245') },
       ]
@@ -97,36 +99,36 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
   if (!access) return <p role={accessError ? 'alert' : 'status'}>{accessError || adminT("admin.ui.0250")}</p>;
   if (access === 'operator' && !['today', 'orders', 'availability', 'deliveries'].includes(section)) return <p>{adminT("admin.ui.0251")}</p>;
   return (
-    <div className="space-y-6">
-      <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#FF3B30] via-[#e8352b] to-[#9f1e18] p-4 text-white md:p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="min-w-0 space-y-6">
+      <div className="rounded-2xl border bg-card p-4 md:p-5">
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-white/70">{adminT(access === 'owner' ? 'cabinet.owner' : 'cabinet.operator')}</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{adminT(access === 'owner' ? 'cabinet.owner' : 'cabinet.operator')}</p>
             <h2 className="mt-1 text-2xl font-black tracking-tight md:text-3xl">{DAM_ALEM_BRAND}</h2>
-            <p className="mt-2 max-w-lg text-sm text-white/85">
+            <p className="mt-2 hidden max-w-lg text-sm text-muted-foreground sm:block">
               {adminT(access === 'owner' ? 'cabinet.ownerHelp' : 'cabinet.operatorHelp')} </p>
           </div>
           <Link
+            aria-label={adminT("admin.ui.0254")}
             to="/food"
             target="_blank"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-white/15 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/25"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition hover:bg-muted"
           >
-            {adminT("admin.ui.0254")} <ExternalLink className="h-4 w-4" />
+            <span className="hidden sm:inline">{adminT("admin.ui.0254")}</span> <ExternalLink className="h-4 w-4" />
           </Link>
         </div>
       </div>
 
       {access === 'operator' && <DamAlemNewOrderAlert onOpen={() => navigate('orders', undefined, 'new')} />}
 
-      <DamShiftPanel onChange={setActiveShift} />
-      {access === 'owner' && section === 'today' && <DamShiftOverview key={activeShift?.id ?? 'no-shift'} />}
+      {access === 'operator' && <DamShiftPanel onChange={setActiveShift} />}
 
       {access === 'operator' && !activeShift && <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">{adminT('dam.shift.workBlocked')}</div>}
 
       <nav aria-label={adminT("admin.ui.0255")} className="flex flex-wrap gap-2">{groups.map(g => <button key={g.id} onClick={() => navigate(g.id === 'menu' && access === 'operator' ? 'availability' : g.id)} className={`rounded-xl px-4 py-3 text-sm font-semibold ${group === g.id ? 'bg-[#FF3B30] text-white' : 'bg-card border text-foreground hover:bg-muted'}`}>{g.label}</button>)}</nav>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-        {tabs.filter(tab => ['today', 'menu', 'settings', 'sales', 'staff'].includes(group) && groupOf(tab.id) === group).map(tab => {
+      {access === 'owner' && ['orders','menu','settings','sales'].includes(group) && <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        {tabs.filter(tab => access === 'owner' && ['orders', 'menu', 'settings', 'sales'].includes(group) && groupOf(tab.id) === group).map(tab => {
           const Icon = tab.icon;
           const active = section === tab.id;
           return (
@@ -145,13 +147,13 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
             </button>
           );
         })}
-      </div>
+      </div>}
 
       {section === 'deliveries' && <DamDeliveries openOrder={id => navigate('orders', id)} />}
-      {section === 'today' && <DamToday owner={access === 'owner'} navigate={navigate} />}
+      {section === 'today' && (access === 'owner' ? <DamOwnerDashboard navigate={navigate} /> : <DamToday owner={false} navigate={navigate} />)}
       {section === 'payroll' && access === 'owner' && <DamAlemPayroll />}
       {section === 'sales' && access === 'owner' && <DamFinance />}
-      {section === 'staff' && access === 'owner' && <DamStaff />}
+      {section === 'staff' && access === 'owner' && <><DamStaff /><DamShiftOverview /></>}
       {section === 'availability' && <DamAvailability />}
       {section === 'brand' && <AdminDamAlemBrand />}
       {(section === 'menu' || section === 'categories') && (

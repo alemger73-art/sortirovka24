@@ -37,6 +37,8 @@ async def orders(q: str = Query('', max_length=100), status: str = '', source: s
         conditions.append(Food_orders.status.in_(['confirmed', 'preparing']))
     elif status == 'courier':
         conditions.extend([Food_orders.status == 'ready', Food_orders.delivery_method.in_(['delivery', 'доставка'])])
+    elif status == 'ready_all':
+        conditions.append(Food_orders.status == 'ready')
     elif status == 'ready':
         # The operator board separates pickup orders from deliveries waiting
         # for a courier, even though both use the same persisted order status.
@@ -49,7 +51,7 @@ async def orders(q: str = Query('', max_length=100), status: str = '', source: s
     if source:
         if source not in ('app', 'operator', 'whatsapp', 'instagram'):
             raise HTTPException(422, 'Неизвестный источник заказа')
-        conditions.append(Food_orders.order_source == source)
+        conditions.append(func.coalesce(Food_orders.order_source, 'app') == source)
     if q.strip():
         needle = '%' + q.strip().replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%'
         terms = [c.ilike(needle, escape='\\') for c in (Food_orders.customer_name, Food_orders.customer_phone, Food_orders.delivery_address)]

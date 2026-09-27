@@ -46,6 +46,11 @@ async def env(monkeypatch, tmp_path):
         db.add(User(id='courier',name='Courier',phone='+77001111111',role='courier'))
         db.add(CourierProfile(user_id='courier',is_verified=True,is_online=True,deliveries_count=0,balance=0))
         await db.commit()
+        from services.food_shifts import open_shift
+        from utils.courier_pin import hash_courier_pin
+        employee=await db.get(PartnerCredentials,1)
+        employee.pin_hash=hash_courier_pin('2222')
+        await open_shift(db,staff_type='partner',staff_id=1,staff_name='Operator',role='operator',stored_pin=employee.pin_hash,pin='2222')
     for target in ['services.food_orders.link_food_order_to_user','services.food_orders.push_food_order_to_frontpad','services.admin_alerts.alert_new_food_order','services.user_notifications.notify_food_order_created','services.user_notifications.notify_food_order_status','services.user_notifications.notify_logistics_task_status','services.user_notifications.notify_user_by_phone','services.bonus_rewards.handle_food_order_status_bonus']:
         monkeypatch.setattr(target,AsyncMock(return_value=None))
     async def courier_profile(db,user):
@@ -423,7 +428,7 @@ async def test_pos_catalog_lookup_sources_and_transitions(env):
     filtered=(await client.get(BASE+'/orders?source=operator',headers=headers)).json()
     assert [r['id'] for r in filtered['items']]==[created.json()['id']]
     assert (await client.get(BASE+'/orders?source=invalid',headers=headers)).status_code==422
-    assert (await client.get(BASE+'/orders?source=app',headers=headers)).json()['total']==0
+    assert [o['id'] for o in (await client.get(BASE+'/orders?source=app',headers=headers)).json()['items']]==[1]  # Legacy NULL source is displayed as app.
     assert (await client.patch(BASE+'/orders/1',headers=headers,json={'expected_version':0,'status':'confirmed'})).status_code==200
     # Manual orders are accepted immediately too, so both are already in work.
     assert (await client.get(BASE+'/orders?status=working',headers=headers)).json()['total']==2

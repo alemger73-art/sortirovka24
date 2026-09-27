@@ -114,6 +114,7 @@ class EntityWriteGuardMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         method = request.method.upper()
         path = request.url.path
+        dam_actor = None
 
         if path.startswith('/api/v1/') and not path.endswith('/login'):
             from core.partner_guard import _decode_bearer, is_dam_alem_partner_payload
@@ -126,6 +127,14 @@ class EntityWriteGuardMiddleware(BaseHTTPMiddleware):
                     async with aclosing(get_db()) as staff_sessions:
                         async for staff_db in staff_sessions:
                             staff = await food_staff(request, staff_db)
+                            if staff['access_role']=='owner' and method in _MUTATING_METHODS and path.startswith(_ENTITIES_PREFIX):
+                                from services.dam_entity_scope import verify_entity_write
+                                try:
+                                    body = await request.json() if method != 'DELETE' else {}
+                                except ValueError:
+                                    raise HTTPException(422,'Некорректный JSON') from None
+                                await verify_entity_write(staff_db, _entity_name(path), path.rstrip('/').split('/')[-1], method, body if isinstance(body,dict) else {})
+                                dam_actor = staff
                             break
                     if staff['access_role'] == 'operator':
                         allowed = path.startswith('/api/v1/dam-alem/') or path.startswith('/api/v1/partner-auth/dam_alem/')
@@ -196,4 +205,18 @@ class EntityWriteGuardMiddleware(BaseHTTPMiddleware):
                     content={"detail": "Требуется авторизация администратора."},
                 )
 
-        return await call_next(request)
+        response = await call_next(request)
+        if dam_actor and response.status_code < 300:
+            # Never store values: settings may contain integration credentials.
+            from services.food_shifts import record_action
+            from core.database import get_db
+            from contextlib import aclosing
+            try:
+                async with aclosing(get_db()) as sessions:
+                    async for db in sessions:
+                        record_action(db,None,'business_settings_changed',claims=dam_actor,entity_type=_entity_name(path),entity_id=path.rstrip('/').split('/')[-1],details={'method':method})
+                        await db.commit()
+                        break
+            except Exception:
+                logger.error('Failed to record DAM management action')
+        return response

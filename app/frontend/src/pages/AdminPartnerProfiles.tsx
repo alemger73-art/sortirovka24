@@ -18,7 +18,7 @@ export default function AdminPartnerProfiles() {
   const [uploading, setUploading] = useState(false);
   const load = () => { setLoading(true); setError(''); partnerProfiles.list(true).then(r=>setItems(r.items)).catch(e=>setError(e.message)).finally(()=>setLoading(false)); };
   useEffect(load, []);
-  const uploadState = (key: string, value: boolean) => { value ? uploads.current.add(key) : uploads.current.delete(key); setUploading(uploads.current.size > 0); };
+  const uploadState = (key: string, value: boolean) => { if (value) uploads.current.add(key); else uploads.current.delete(key); setUploading(uploads.current.size > 0); };
   const save = async (event: React.FormEvent) => {
     event.preventDefault(); if(!edit || busy.current || uploading) return;
     if (!originalSlug.current && items.some(p=>p.slug===edit.slug)) { toast.error('Этот адрес уже занят. Выберите другой.'); return; }

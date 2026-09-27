@@ -1,6 +1,6 @@
 """DAM ALEM employee shift API."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from core.database import get_db
 from core.food_staff_guard import food_owner, food_staff
@@ -115,6 +115,11 @@ async def shift_history(
 async def action_history(
     shift_id: int | None = None,
     staff_id: str | None = None,
+    staff_type: str | None = None,
+    start: date | None = None,
+    end: date | None = None,
+    action: str | None = None,
+    order_id: int | None = None,
     limit: int = Query(150, ge=1, le=500),
     db: AsyncSession = Depends(get_db),
     claims=Depends(food_owner),
@@ -124,6 +129,19 @@ async def action_history(
         query = query.where(FoodStaffAction.shift_id == shift_id)
     if staff_id:
         query = query.where(FoodStaffAction.staff_id == staff_id)
+    if staff_type:
+        query = query.where(FoodStaffAction.staff_type == staff_type)
+    if start:
+        query = query.where(FoodStaffAction.created_at >= datetime.combine(start, datetime.min.time(), CITY).astimezone(timezone.utc))
+    if end:
+        query = query.where(FoodStaffAction.created_at < datetime.combine(end + timedelta(days=1), datetime.min.time(), CITY).astimezone(timezone.utc))
+    if action:
+        query = query.where(FoodStaffAction.action == action)
+    if order_id is not None:
+        from models.logistics import LogisticsTask
+        from sqlalchemy import cast, String, and_, or_
+        task_ids = select(cast(LogisticsTask.id, String)).where(LogisticsTask.source_type == 'food_orders', LogisticsTask.source_id == order_id)
+        query = query.where(or_(and_(FoodStaffAction.entity_type == 'order', FoodStaffAction.entity_id == str(order_id)), and_(FoodStaffAction.entity_type == 'delivery_task', FoodStaffAction.entity_id.in_(task_ids))))
     rows = (await db.scalars(query.order_by(desc(FoodStaffAction.created_at)).limit(limit))).all()
     return {"items": [{
         "id": row.id,

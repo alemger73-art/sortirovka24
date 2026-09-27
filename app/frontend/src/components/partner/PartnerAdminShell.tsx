@@ -235,7 +235,7 @@ export default function PartnerAdminShell({ partnerType, children }: PartnerAdmi
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0 flex-1 basis-40 break-words">
             <p className={`text-xs font-semibold uppercase tracking-widest ${cfg.accentClass}`}>{adminT("admin.ui.1336")}</p>
             <p className="font-bold text-gray-900">{displayName || cfg.label}</p>
@@ -249,7 +249,7 @@ export default function PartnerAdminShell({ partnerType, children }: PartnerAdmi
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+      <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
       {showPasswordDialog && (
         <ChangePasswordDialog partnerType={partnerType} onClose={() => setShowPasswordDialog(false)} />
       )}

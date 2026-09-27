@@ -29,6 +29,11 @@ async def env(monkeypatch):
         db.add_all([PartnerCredentials(id=1,partner_type='dam_alem',email='owner@example.test',password_hash='not-used',access_role='owner',is_active=True),PartnerCredentials(id=2,partner_type='dam_alem',email='operator@example.test',password_hash='not-used',access_role='operator',is_active=True)])
         db.add_all([Food_restaurants(id=1,name='DAM ALEM 2.0'),Food_restaurants(id=2,name='Other')])
         db.add_all([Food_items(id=1,restaurant_id=1,name='Донер',price=1000,is_active=True,available=True),Food_items(id=2,restaurant_id=2,name='Чужое',price=1,is_active=True,available=True)])
+        from utils.courier_pin import hash_courier_pin
+        from services.food_shifts import utcnow
+        await db.flush()
+        (await db.get(PartnerCredentials,2)).pin_hash=hash_courier_pin('2222')
+        db.add(FoodShift(staff_type='partner',staff_id='2',staff_name='Operator',role='operator',active_key='partner:2',opened_at=utcnow(),opened_by='Operator'))
         await db.commit()
     async def dependency():
         async with maker() as db: yield db
@@ -180,3 +185,21 @@ async def test_operator_daily_summary_uses_city_day_and_excludes_cancelled_amoun
     response=await client.get('/api/v1/dam-alem/business/today',headers=operator)
     assert response.status_code==200,response.text
     assert response.json()['daily']=={'created':2,'order_total':1000}
+
+@pytest.mark.asyncio
+async def test_owner_cannot_edit_foreign_menu_and_reports_match_filters(env):
+    client,maker,owner,_=env
+    assert (await client.put('/api/v1/entities/food_items/2',headers=owner,json={'price':3})).status_code==403
+    assert (await client.put('/api/v1/entities/food_items/1',headers=owner,json={'restaurant_id':2})).status_code==403
+    async with maker() as db:
+        db.add_all([
+            Food_orders(id=81,restaurant_id=1,status='ready',delivery_method='delivery'),
+            Food_orders(id=82,restaurant_id=1,status='ready',delivery_method='pickup'),
+            Food_orders(id=83,restaurant_id=1,status='done',delivery_method='pickup',order_source='operator',total_amount=1250,completed_at='2026-09-27T12:00:00+05:00'),
+            Food_orders(id=84,restaurant_id=2,status='done',total_amount=999999,completed_at='2026-09-27T12:00:00+05:00'),
+        ]);await db.commit()
+    response=await client.get('/api/v1/dam-alem/operations/orders?status=ready_all',headers=owner)
+    assert {o['id'] for o in response.json()['items']}=={81,82}
+    report=(await client.get('/api/v1/dam-alem/business/report?start=2026-09-27&end=2026-09-27',headers=owner)).json()
+    assert report['sources']=={'operator':{'count':1,'amount':1250}}
+    assert report['fulfillment']=={'pickup':{'count':1,'amount':1250}}
