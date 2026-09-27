@@ -213,9 +213,9 @@ export function RealEstateList() {
   }
 
   const quickFilters = [
-    { key: '', label: t('common.all') },
-    { key: 'apartment', label: t('realestate.apartment') },
-    { key: 'house', label: t('realestate.house') },
+    { key: '', label: `🏠 ${t('common.all')}` },
+    { key: 'apartment', label: `🏢 ${t('realestate.apartment')}` },
+    { key: 'house', label: `🏡 ${t('realestate.house')}` },
     { key: 'commercial', label: t('realestate.commercial') },
   ];
 
@@ -270,36 +270,39 @@ export function RealEstateList() {
         </div>
       </header>
       <section className="estate-search-panel" aria-label={t('realestate.filters')}>
-        <div className="estate-deal-tabs" role="group" aria-label={t('realestate.dealType')}>
-          {[['',t('common.all')],['sell',t('realestate.sell')],['rent',t('realestate.rent')],['need',t('realestate.need')]].map(([value,label]) =>
-            <button key={value} type="button" aria-pressed={dealFilter === value} className={dealFilter === value ? 'is-selected' : ''} onClick={() => setDealFilter(value)}>{label}</button>)}
-        </div>
         <div className="estate-search-row">
           <label className="estate-search"><Search size={20} /><input aria-label={t('realestate.searchPlaceholder')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={t('realestate.searchPlaceholder')} />
             {searchQuery && <button type="button" aria-label={t('realestate.design.reset')} onClick={() => setSearchQuery('')}><X size={18} /></button>}
           </label>
+          <select aria-label={t('realestate.sort.new')} value={sortBy} onChange={e => setSortBy(e.target.value as RealEstateSort)}><option value="new">{t('realestate.sort.new')}</option><option value="price_asc">{t('realestate.sort.priceAsc')}</option><option value="price_desc">{t('realestate.sort.priceDesc')}</option></select>
           <button type="button" className="estate-button estate-button-secondary" aria-expanded={showFilters} aria-controls="estate-filters" onClick={() => setShowFilters(!showFilters)}>
             <SlidersHorizontal size={18} />{t('realestate.filters')}{activeFilterCount > 0 && <span className="estate-count">{activeFilterCount}</span>}
           </button>
         </div>
-        {showFilters && <div id="estate-filters" className="estate-filter-grid">
+        {showFilters && <div id="estate-filters">
+        <div className="estate-deal-tabs" role="group" aria-label={t('realestate.dealType')}>
+          {[['',t('common.all')],['sell',t('realestate.sell')],['rent',t('realestate.rent')],['need',t('realestate.need')]].map(([value,label]) =>
+            <button key={value} type="button" aria-pressed={dealFilter === value} className={dealFilter === value ? 'is-selected' : ''} onClick={() => setDealFilter(value)}>{label}</button>)}
+        </div>
+        <div className="estate-filter-grid">
           <label className="estate-field"><span>{t('realestate.rooms')}</span><select value={roomFilter} onChange={e => setRoomFilter(e.target.value)}><option value="">{t('realestate.any')}</option>{['1','2','3','4+'].map(r => <option key={r}>{r}</option>)}</select></label>
           <label className="estate-field"><span>{t('realestate.priceFrom')}</span><input type="number" min="0" inputMode="numeric" value={priceFrom} onChange={e => setPriceFrom(e.target.value)} /></label>
           <label className="estate-field"><span>{t('realestate.priceTo')}</span><input type="number" min="0" inputMode="numeric" aria-invalid={invalidPrice} value={priceTo} onChange={e => setPriceTo(e.target.value)} /></label>
           {invalidPrice && <p role="alert" className="estate-filter-error">{t('realestate.design.priceError')}</p>}
-        </div>}
+        </div></div>}
+      </section>
         <div className="estate-type-row"><div className="estate-chips">
           {quickFilters.map(f => <button key={f.key} type="button" aria-pressed={typeFilter === f.key} className={typeFilter === f.key ? 'is-selected' : ''} onClick={() => setTypeFilter(f.key)}>{f.label}</button>)}
         </div><button className={`estate-favorite-filter ${showFavoritesOnly ? 'is-selected' : ''}`} type="button" aria-pressed={showFavoritesOnly} onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}><Heart size={17} />{t('realestate.favorites')}{favorites.length > 0 && ` · ${favorites.length}`}</button></div>
-      </section>
+      <Link to="/real-estate/new" className="estate-button estate-button-primary estate-publish-mobile"><Home size={21} />{t("realestate.design.publish")}</Link>
       <div className="estate-results-bar"><div><h2>{showFavoritesOnly ? t('realestate.favorites') : t('realestate.allListings')}<span>{loading ? '…' : filteredItems.length}</span></h2>
         {hasFilters && <button type="button" className="estate-text-link" onClick={resetFilters}><X size={14} />{t('realestate.design.reset')}</button>}
-      </div><select aria-label={t('realestate.sort.new')} value={sortBy} onChange={e => setSortBy(e.target.value as RealEstateSort)}><option value="new">{t('realestate.sort.new')}</option><option value="price_asc">{t('realestate.sort.priceAsc')}</option><option value="price_desc">{t('realestate.sort.priceDesc')}</option></select></div>
+      </div></div>
       {loading ? <div className="estate-grid" aria-busy="true" aria-label={t('common.loading')}>{[1,2,3].map(i => <div key={i} className="estate-skeleton"><div /><span /><span /></div>)}</div>
       : loadError ? <div role="alert" className="estate-empty"><Home size={36} /><h2>{t('realestate.loadError')}</h2><button className="estate-button estate-button-primary" onClick={loadData}>{t('realestate.retry')}</button></div>
       : filteredItems.length ? <div className="estate-grid">{filteredItems.map(item => <ReListingCard key={item.id} item={item} categories={categories} favorites={favorites} onToggleFavorite={handleToggleFavorite} t={t} />)}</div>
-      : <div className="estate-empty"><div className="estate-empty-icon">{showFavoritesOnly ? <Heart size={30} /> : <Building2 size={32} />}</div>
-          <h2>{hasFilters ? t('realestate.noResults') : t('realestate.design.empty')}</h2>
+      : <div className="estate-empty"><div className="estate-empty-icon">{showFavoritesOnly ? <Heart size={30} /> : <Home size={40} />}</div>
+          <h2>{t('realestate.noResults')}</h2>
           <p>{t(showFavoritesOnly ? 'realestate.design.favoritesHint' : hasFilters ? 'realestate.design.filteredHint' : 'realestate.design.emptyHint')}</p>
           {hasFilters ? <button type="button" className="estate-button estate-button-secondary" onClick={resetFilters}>{t('realestate.design.reset')}</button> : <Link className="estate-button estate-button-primary" to="/real-estate/new"><Plus size={18} />{t('realestate.design.publish')}</Link>}
         </div>}

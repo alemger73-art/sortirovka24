@@ -1,20 +1,20 @@
 /* Real-estate surfaces are scoped: other portal modules keep their own design. */
-.estate-surface { --estate-bg:#f4f6f5; --estate-panel:#fff; --estate-ink:#172e29; --estate-muted:#65756f; --estate-line:#dce5e0; --estate-accent:#146750; --estate-soft:#e7f1eb; background:var(--estate-bg); color:var(--estate-ink); min-height:70vh; }
-.dark .estate-surface { --estate-bg:#101c20; --estate-panel:#19292e; --estate-ink:#e6f0eb; --estate-muted:#a8bbb3; --estate-line:#34494b; --estate-accent:#91d4b8; --estate-soft:#253e36; }
+.estate-surface { --estate-bg:#f1f5f9; --estate-panel:#fff; --estate-ink:#142331; --estate-muted:#526579; --estate-line:#dce4ed; --estate-accent:#008660; --estate-soft:#e0f4ec; background:var(--estate-bg); color:var(--estate-ink); min-height:70vh; }
+.dark .estate-surface { --estate-bg:#111d29; --estate-panel:#1b2737; --estate-ink:#f1f5f9; --estate-muted:#b3bdca; --estate-line:#2a394b; --estate-accent:#6ee7b7; --estate-soft:#173c35; }
 .estate-shell { max-width:1200px; margin:auto; padding:0 24px 88px; }
 .estate-hero { display:flex; justify-content:space-between; gap:40px; align-items:center; padding:48px 0 34px; }
 .estate-eyebrow { display:flex; align-items:center; gap:7px; font-size:11px; letter-spacing:.14em; font-weight:700; color:var(--estate-accent); margin-bottom:16px; }
 .estate-hero h1 { font-size:clamp(30px,3.4vw,46px); line-height:1.12; letter-spacing:-.045em; font-weight:750; max-width:620px; }
 .estate-intro { margin-top:18px; max-width:610px; font-size:15px; line-height:1.7; color:var(--estate-muted); }
 .estate-hero-actions { display:flex; flex-direction:column; align-items:center; gap:16px; flex-shrink:0; }
-.estate-button { display:inline-flex; align-items:center; justify-content:center; gap:9px; min-height:46px; padding:12px 20px; border:1px solid transparent; border-radius:12px; font-size:14px; font-weight:650; text-align:center; cursor:pointer; transition:background .15s,box-shadow .15s; }
-.estate-button-primary { background:#146750; color:#fff; box-shadow:0 4px 12px #14675014; }
-.estate-button-primary:hover { background:#0e513f; }
+.estate-button { display:inline-flex; align-items:center; justify-content:center; gap:9px; min-height:46px; padding:12px 20px; border:1px solid transparent; border-radius:16px; font-size:15px; font-weight:650; text-align:center; cursor:pointer; transition:background .15s,box-shadow .15s; }
+.estate-button-primary { background:#009b72; color:#fff; box-shadow:0 6px 24px #00b78424; }
+.estate-button-primary:hover { background:#008663; }
 .estate-button-secondary { background:var(--estate-panel); border-color:var(--estate-line); color:var(--estate-ink); }
 .estate-button-secondary:hover { background:var(--estate-soft); }
 .estate-button:disabled { opacity:.55; cursor:wait; }
 .estate-text-link { display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--estate-accent); }
-.estate-search-panel { background:var(--estate-panel); border:1px solid var(--estate-line); border-radius:20px; padding:22px 24px; box-shadow:0 7px 30px #10251d04; }
+.estate-search-panel { background:var(--estate-panel); border:1px solid var(--estate-line); border-radius:24px; padding:24px; box-shadow:0 12px 30px #112b4515; }
 .estate-deal-tabs { display:flex; gap:24px; border-bottom:1px solid var(--estate-line); margin-bottom:20px; }
 .estate-deal-tabs button { min-height:44px; padding:0 3px 13px; border-bottom:3px solid transparent; color:var(--estate-muted); font-size:14px; font-weight:600; }
 .estate-deal-tabs button.is-selected { color:var(--estate-accent); border-color:var(--estate-accent); }
@@ -26,8 +26,8 @@
 .estate-count { background:var(--estate-soft); padding:2px 7px; border-radius:6px; font-size:11px; }
 .estate-type-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-top:20px; }
 .estate-chips { display:flex; flex-wrap:wrap; gap:8px; }
-.estate-chips button,.estate-favorite-filter { min-height:40px; border:1px solid var(--estate-line); border-radius:9px; padding:9px 14px; color:var(--estate-muted); font-size:13px; }
-.estate-chips .is-selected,.estate-favorite-filter.is-selected { background:var(--estate-soft); border-color:var(--estate-accent); color:var(--estate-accent); }
+.estate-chips button,.estate-favorite-filter { min-height:46px; background:var(--estate-panel); border:1px solid var(--estate-line); border-radius:999px; padding:12px 22px; color:var(--estate-muted); font-size:13px; }
+.estate-chips .is-selected,.estate-favorite-filter.is-selected { background:#009b72; border-color:#009b72; color:#fff; box-shadow:0 6px 22px #00b78435; }
 .estate-favorite-filter { display:flex; gap:8px; align-items:center; }
 .estate-results-bar { display:flex; gap:16px; justify-content:space-between; align-items:center; padding:28px 0 20px; }
 .estate-results-bar h2 { font-size:21px; font-weight:700; display:flex; align-items:center; gap:10px; }
@@ -51,8 +51,8 @@
 .estate-address svg { flex-shrink:0; margin-top:1px; }
 .estate-specs { display:flex; flex-wrap:wrap; gap:12px; margin-top:14px; font-size:12px; }
 .estate-card footer { display:flex; justify-content:space-between; gap:8px; margin-top:18px; padding-top:14px; border-top:1px solid var(--estate-line); font-size:11px; color:var(--estate-muted); }
-.estate-empty { display:flex; align-items:center; flex-direction:column; text-align:center; padding:52px 24px; border:1px dashed var(--estate-line); border-radius:18px; background:var(--estate-panel); }
-.estate-empty-icon { width:72px; height:72px; border-radius:23px; background:var(--estate-soft); color:var(--estate-accent); display:grid; place-items:center; margin-bottom:20px; }
+.estate-empty { display:flex; align-items:center; flex-direction:column; text-align:center; padding:52px 24px; border:1px solid transparent; border-radius:24px; background:var(--estate-panel); }
+.estate-empty-icon { width:72px; height:72px; border-radius:23px; color:var(--estate-accent); display:grid; place-items:center; margin-bottom:12px; }
 .estate-empty h2 { font-size:22px; font-weight:650; line-height:1.3; }
 .estate-empty p { max-width:440px; color:var(--estate-muted); font-size:14px; line-height:1.7; margin:12px 0 22px; }
 .estate-skeleton { padding-bottom:20px; border:1px solid var(--estate-line); border-radius:16px; overflow:hidden; }
@@ -133,3 +133,30 @@
 .estate-seller-role,.estate-commission { color:var(--estate-muted); font-size:13px; line-height:1.6; margin:6px 0; }
 .estate-seller-buttons { display:flex; flex-direction:column; align-items:stretch; gap:10px; margin:24px 0; }
 @media(max-width:800px) { .estate-detail-grid { grid-template-columns:1fr; gap:22px; } .estate-seller-panel { grid-row:2; } .estate-detail-panel { padding:20px; } .estate-seller-sticky { position:static; } .estate-detail-nav { padding:16px 0; } }
+
+/* Rounded blue/emerald catalogue, matching the selected mobile reference. */
+.estate-publish-mobile { display:none; }
+.estate-search-row { display:grid; grid-template-columns:minmax(0,1fr) 185px 150px; }
+.estate-search-row select { width:100%; min-height:50px; padding:12px 16px; border:1px solid var(--estate-line); border-radius:16px; background:var(--estate-bg); color:var(--estate-ink); font-size:15px; }
+.estate-search-row > button { background:var(--estate-bg); }
+.estate-deal-tabs { margin:22px 0 0; }
+.estate-type-row { margin-top:26px; }
+.dark .estate-search-panel { box-shadow:0 10px 26px #81a4be16; }
+.estate-empty > .estate-button-primary { background:transparent; box-shadow:none; color:var(--estate-accent); }
+.estate-empty > .estate-button-primary svg { display:none; }
+@media(max-width:600px) {
+ .estate-search-panel { padding:18px; border-radius:22px; }
+ .estate-search-row { grid-template-columns:minmax(0,1fr) minmax(100px,.65fr); gap:14px; }
+ .estate-search { grid-column:1/-1; border-radius:17px; }
+ .estate-search input { font-size:16px; padding:16px 0; }
+ .estate-search-row select,.estate-search-row > button { min-height:50px; font-size:14px; padding:12px; }
+ .estate-type-row { margin-top:24px; }
+ .estate-chips { flex-wrap:nowrap; overflow-x:auto; width:100%; padding:0 0 12px; gap:10px; scrollbar-width:thin; scrollbar-color:var(--estate-line) transparent; }
+ .estate-chips button { flex-shrink:0; padding:12px 20px; font-size:15px; }
+ .estate-hero-actions .estate-button { display:none; }
+ .estate-publish-mobile { display:flex; width:100%; margin-top:20px; min-height:50px; }
+ .estate-empty { padding:36px 20px; min-height:230px; justify-content:center; }
+ .estate-empty h2 { font-size:19px; color:var(--estate-muted); }
+ .estate-empty p { font-size:13px; margin:10px 0; }
+ .estate-card,.estate-form-section,.estate-detail-panel { border-radius:22px; }
+}
