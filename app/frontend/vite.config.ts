@@ -11,6 +11,9 @@ process.env.VITE_APP_LOGO_URL ??= process.env.OVERVIEW_LOGO_URL ?? '/icon-192-v2
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  define: {
+    'import.meta.env.VITE_APP_BUILD_ID': JSON.stringify(process.env.APP_BUILD_ID || process.env.RAILWAY_GIT_COMMIT_SHA || String(Date.now())),
+  },
   plugins: [
     viteSourceLocator({
       prefix: 'mgx', // 前缀用于标识源代码位置，不能修改
@@ -19,8 +22,8 @@ export default defineConfig(({ mode }) => ({
     atoms(),
     VitePWA({
       disable: mode === 'mobile',
-      injectRegister: mode === 'mobile' ? null : 'auto',
-      registerType: 'autoUpdate',
+      injectRegister: null,
+      registerType: 'prompt',
       includeAssets: [
         'icon-192-v2.png',
         'icon-512-v2.png',
@@ -33,7 +36,7 @@ export default defineConfig(({ mode }) => ({
         importScripts: ['/push-sw.js'],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
-        skipWaiting: true,
+        skipWaiting: false,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         navigateFallback: '/index.html',
         // Public pages must reach the server so every navigation receives

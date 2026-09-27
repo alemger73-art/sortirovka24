@@ -529,8 +529,10 @@ if FRONTEND_DIR.is_dir():
         # Guard against path traversal, then serve the real file if it exists.
         if FRONTEND_DIR in candidate.parents and candidate.is_file():
             headers = {}
-            if candidate.name == "index.html" or full_path == "":
+            if candidate.name in {"index.html", "sw.js", "push-sw.js", "manifest.json"} or full_path == "":
                 headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+                headers["CDN-Cache-Control"] = "no-store"
+                headers["Cloudflare-CDN-Cache-Control"] = "no-store"
             return FileResponse(candidate, headers=headers if headers else None)
         # Public routes receive server-rendered metadata and meaningful HTML.
         # React replaces the prerendered shell after it starts.
