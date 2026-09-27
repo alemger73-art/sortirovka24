@@ -25,3 +25,17 @@ def matches_phone(a: str | None, b: str | None) -> bool:
     left = phone_digits(a)
     right = phone_digits(b)
     return bool(left and right and left == right)
+
+
+def phone_suffix_expression(column):
+    """Last ten phone digits, with identical PostgreSQL/SQLite semantics.
+
+    PostgreSQL does not interpret a negative substr start as an offset from
+    the end. Use a positive position computed from the normalized length.
+    """
+    from sqlalchemy import func
+
+    normalized = column
+    for symbol in ('+', ' ', '-', '(', ')', '.', '\u00a0'):
+        normalized = func.replace(normalized, symbol, '')
+    return func.substr(normalized, func.length(normalized) - 9, 10)

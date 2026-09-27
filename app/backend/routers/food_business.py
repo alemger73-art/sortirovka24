@@ -298,27 +298,42 @@ async def create_courier(body:CourierCreate,db:AsyncSession=Depends(get_db),clai
     digits=re.sub(r'\D','',body.phone)
     if len(digits)!=11 or digits[0] not in '78' or not body.name.strip():
         raise HTTPException(422,'Укажите имя и телефон +7…')
-    normalized=func.replace(func.replace(User.phone,'+',''),' ','')
+    from utils.phone import phone_suffix_expression
     from services.food_preorders import lock_dam_operations
     await lock_dam_operations(db)
-    existing = await db.scalar(select(User).where(func.substr(normalized,-10)==digits[-10:]).with_for_update())
+    matches = (await db.scalars(select(User).where(
+        phone_suffix_expression(User.phone) == digits[-10:]
+    ).limit(2).with_for_update())).all()
+    if len(matches) > 1:
+        raise HTTPException(409, 'Найдено несколько аккаунтов с этим телефоном. Обратитесь к администратору для проверки дублей.')
+    existing = matches[0] if matches else None
     if existing:
+        if await db.get(CourierProfile, existing.id):
+            raise HTTPException(409,'Курьерский профиль уже существует. Используйте настройки доступа.')
         if not body.attach_existing:
             raise HTTPException(409,'Пользователь с таким телефоном уже существует. Добавить ему доступ курьера?')
         if not existing.is_active or existing.status != 'active' or existing.role not in ('user','customer','courier'):
             raise HTTPException(409,'Нельзя подключить заблокированный или служебный аккаунт')
-        if await db.get(CourierProfile, existing.id):
-            raise HTTPException(409,'Курьерский профиль уже существует. Используйте настройки доступа.')
     pins=(await db.scalars(select(CourierProfile.pin_hash).where(CourierProfile.pin_hash.is_not(None)))).all()
     if any(verify_courier_pin(pin,body.pin) for pin in pins):
         raise HTTPException(409,'Этот PIN уже назначен другому курьеру')
     id=str(existing.id) if existing else str(uuid4()); phone='+7'+digits[-10:]
-    if not existing:
-        db.add(User(id=id,name=body.name.strip(),phone=phone,role='courier',status='active',is_active=True))
-    await db.flush()
-    db.add(CourierProfile(user_id=id,phone=phone,is_verified=True,is_online=False,pin_hash=hash_courier_pin(body.pin)))
-    record_action(db,None,'staff_created',claims=claims,entity_type='courier',entity_id=id,details={'name':body.name.strip(),'role':'courier'})
-    await db.commit()
+    try:
+        if not existing:
+            db.add(User(id=id,name=body.name.strip(),phone=phone,role='courier',status='active',is_active=True))
+        await db.flush()
+        db.add(CourierProfile(user_id=id,phone=phone,is_verified=True,is_online=False,pin_hash=hash_courier_pin(body.pin)))
+        record_action(db,None,'staff_created',claims=claims,entity_type='courier',entity_id=id,details={'name':body.name.strip(),'role':'courier'})
+        await db.commit()
+    except IntegrityError as error:
+        await db.rollback()
+        # Customer registration can race with this operation outside the DAM
+        # advisory lock. Return a retryable conflict without leaking SQL/PIN.
+        unique = (getattr(error.orig, 'sqlstate', None) == '23505'
+                  or getattr(error.orig, 'sqlite_errorcode', None) in (1555, 2067))
+        if not unique:
+            raise
+        raise HTTPException(409, 'Телефон или курьерский профиль уже зарегистрирован. Обновите список и повторите добавление доступа.') from None
     return {'id':id}
 
 class CourierAccessUpdate(BaseModel):

@@ -187,10 +187,8 @@ async def customer(phone: str = Query(min_length=10, max_length=32), db: AsyncSe
     digits = re.sub(r'\D', '', phone)
     if len(digits) not in (10, 11) or (len(digits) == 11 and digits[0] not in '78'):
         raise HTTPException(422, 'Укажите полный номер телефона')
-    normalized = Food_orders.customer_phone
-    for symbol in ('+', ' ', '-', '(', ')'):
-        normalized = func.replace(normalized, symbol, '')
-    rows = (await db.scalars(select(Food_orders).where(await scope(db), func.substr(normalized, -10) == digits[-10:]).order_by(Food_orders.id.desc()).limit(5))).all()
+    from utils.phone import phone_suffix_expression
+    rows = (await db.scalars(select(Food_orders).where(await scope(db), phone_suffix_expression(Food_orders.customer_phone) == digits[-10:]).order_by(Food_orders.id.desc()).limit(5))).all()
     return {'name': rows[0].customer_name if rows else '',
             'addresses': list(dict.fromkeys(r.delivery_address for r in rows if r.delivery_method == 'delivery' and r.delivery_address)),
             'recent_orders': [{'id': r.id, 'amount': r.total_amount, 'status': r.status} for r in rows]}
