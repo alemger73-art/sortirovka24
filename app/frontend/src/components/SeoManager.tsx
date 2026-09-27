@@ -9,6 +9,7 @@ const DEFAULT_DESCRIPTION =
 type PageMeta = { title: string; description: string };
 
 const PAGE_META: Array<[string, PageMeta]> = [
+  ['/partners', { title: 'Партнёры района Сортировка', description: 'Местные компании, услуги, примеры работ и контакты в Караганде.' }],
   ['/announcements', { title: 'Объявления района Сортировка', description: 'Актуальные объявления жителей района Сортировка в Караганде.' }],
   ['/real-estate', { title: 'Недвижимость на Сортировке', description: 'Объявления о продаже и аренде недвижимости в районе Сортировка, Караганда.' }],
   ['/directory', { title: 'Полезный справочник Сортировки', description: 'Телефоны и контакты важных служб района Сортировка в Караганде.' }],
@@ -42,7 +43,7 @@ export default function SeoManager() {
   useEffect(() => {
     const privatePage = PRIVATE_PREFIXES.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`));
     const entry = PAGE_META.find(([prefix]) => pathname === prefix);
-    const dynamicPublicPage = /^\/(news|announcements|real-estate|jobs|masters|salons)\/[^/]+$/.test(pathname);
+    const dynamicPublicPage = /^\/(news|announcements|real-estate|jobs|masters|salons|partners)\/[^/]+$/.test(pathname);
     if (dynamicPublicPage && !privatePage) return;
     const meta = entry?.[1] ?? { title: DEFAULT_TITLE, description: DEFAULT_DESCRIPTION };
     const title = meta.title === DEFAULT_TITLE ? meta.title : `${meta.title} | Сортировка 24`;

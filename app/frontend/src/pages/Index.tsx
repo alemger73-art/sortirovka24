@@ -20,8 +20,9 @@ import {
 } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
 import PromoBannerMedia from '@/components/PromoBannerMedia';
+import PartnerCards from '@/components/PartnerCards';
+import { moduleForPath } from '@/config/modules';
 import VolnaImage from '@/components/volna/VolnaImage';
-import { SITE_BANNER_IMAGES } from '@/lib/siteBannerImages';
 import { VOLNA_INDEX_IMAGE } from '@/lib/volnaImages';
 import Hero from '@/components/landing/Hero';
 import { useSupportSettings } from '@/hooks/useSupportSettings';
@@ -39,9 +40,6 @@ const GASTRONOM_IMG = 'https://images.unsplash.com/photo-1542838132-92c53300491e
 const PRORAB_IMG = 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&h=800&fit=crop';
 const SALONS_IMG = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&h=800&fit=crop';
 const PHARMACY_IMG = 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=600&h=800&fit=crop';
-const BUSINESS_BANNER_IMG = SITE_BANNER_IMAGES.business;
-const DIRECTORY_BANNER_IMG = SITE_BANNER_IMAGES.directory;
-const INSPECTOR_BANNER_IMG = SITE_BANNER_IMAGES.inspector;
 
 /* ─── Types ─── */
 interface Category { id: number; name: string; slug: string; cat_type: string; icon: string; description: string; parent_id: number | null; sort_order: number; show_on_main: boolean; is_active: boolean; }
@@ -93,10 +91,17 @@ export default function Index() {
   const { t, lang } = useLanguage();
   const { promoEnabled: supportPromoEnabled } = useSupportSettings();
   const { isEnabled } = useModules();
+
   const [news, setNews] = useState<any[]>([]);
   const [complaints, setComplaints] = useState<any[]>([]);
   const [jobs, setJobs] = useState<any[]>([]);
   const [banners, setBanners] = useState<any[]>([]);
+  const visibleOffers = banners.filter(b => {
+    if (!['promo', 'food_delivery'].includes(b.banner_type)) return false;
+    const target = String(b.button_url || b.link_url || '');
+    const module = moduleForPath(target);
+    return (!module || isEnabled(module)) && (b.banner_type !== 'food_delivery' || isEnabled('food'));
+  }).slice(0, 2);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isStale, setIsStale] = useState(false);
@@ -146,7 +151,7 @@ export default function Index() {
         cachedQuery('news', () => client.entities.news.query({ query: { published: true }, sort: '-created_at', limit: 6 })),
         cachedQuery('complaints', () => client.entities.complaints.query({ sort: '-created_at', limit: 3 })),
         cachedQuery('jobs', () => client.entities.jobs.query({ query: { active: true }, sort: '-created_at', limit: 3 })),
-        cachedQuery('banners', () => client.entities.banners.query({ query: { active: true }, limit: 4 })),
+        cachedQuery('banners', () => client.entities.banners.query({ query: { active: true }, sort: '-created_at', limit: 50 })),
       ]);
 
       const extract = (r: PromiseSettledResult<any>): any[] => {
@@ -391,15 +396,18 @@ export default function Index() {
             </section>
           )}
 
+          {isEnabled('business') && <PartnerCards />}
+
           {/* ═══════════════════════════════════════════
-              4. СПЕЦПРЕДЛОЖЕНИЯ / БАННЕРЫ (dynamic from DB + static fallbacks)
+              4. Акции: только актуальные предложения включённых сервисов
           ═══════════════════════════════════════════ */}
+          {visibleOffers.length > 0 && (
           <section>
             <SectionHeader title={t('specials.title')} accentColor="from-amber-500 to-orange-500" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Dynamic banners from database (admin-managed) */}
-              {banners.length > 0 && (
-                banners.map((b, idx) => {
+              {visibleOffers.length > 0 && (
+                visibleOffers.map((b, idx) => {
                   const accentColors = [
                     { tag: 'bg-orange-500/30 text-orange-300', border: '' },
                     { tag: 'bg-blue-500/30 text-blue-300', border: '' },
@@ -407,7 +415,7 @@ export default function Index() {
                     { tag: 'bg-purple-500/30 text-purple-300', border: '' },
                   ];
                   const accent = accentColors[idx % accentColors.length];
-                  const linkTo = String(b.button_url || '').trim();
+                  const linkTo = String(b.button_url || b.link_url || '').trim();
                   const isInternal = linkTo.startsWith('/') && !linkTo.startsWith('//') && !linkTo.includes('\\');
                   const isExternal = /^https?:\/\//i.test(linkTo);
 
@@ -439,53 +447,9 @@ export default function Index() {
                 })
               )}
 
-              {/* Static navigation banners */}
-              {isEnabled('directory') && (
-              <Link to="/directory" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 min-h-44 md:min-h-52 flex items-end ring-1 ring-black/5">
-                <img src={DIRECTORY_BANNER_IMG} alt={t('banner.openDirectory')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/90 via-emerald-900/45 to-emerald-800/20" />
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.1),transparent_50%)]" />
-                <div className="absolute top-4 right-4 w-20 h-20 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <BookOpen className="w-10 h-10 text-white/30" />
-                </div>
-                <div className="relative z-10 p-5">
-                  <span className="text-xs font-bold text-teal-200 bg-teal-500/30 backdrop-blur-sm px-3 py-1 rounded-full">📖 {t('banner.directoryTag')}</span>
-                  <h3 className="text-lg font-extrabold text-white mt-2">{t('banner.openDirectory')}</h3>
-                  <p className="text-white/70 text-sm mt-1">{t('banner.openDirectoryDesc')}</p>
-                </div>
-              </Link>
-              )}
-
-              {isEnabled('inspectors') && (
-              <Link to="/inspectors" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 min-h-44 md:min-h-52 flex items-end ring-1 ring-black/5">
-                <img src={INSPECTOR_BANNER_IMG} alt={t('banner.findInspector')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                <div className="absolute inset-0 bg-gradient-to-t from-blue-950/90 via-indigo-900/50 to-blue-800/20" />
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.1),transparent_50%)]" />
-                <div className="absolute top-4 right-4 w-20 h-20 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <Shield className="w-10 h-10 text-white/30" />
-                </div>
-                <div className="relative z-10 p-5">
-                  <span className="text-xs font-bold text-blue-200 bg-blue-500/30 backdrop-blur-sm px-3 py-1 rounded-full">🛡️ {t('banner.inspectorTag')}</span>
-                  <h3 className="text-lg font-extrabold text-white mt-2">{t('banner.findInspector')}</h3>
-                  <p className="text-white/70 text-sm mt-1">{t('banner.findInspectorDesc')}</p>
-                </div>
-              </Link>
-              )}
-
-              {isEnabled('business') && (
-              <Link to="/business" className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 min-h-44 md:min-h-52 flex items-end ring-1 ring-black/5">
-                <img src={BUSINESS_BANNER_IMG} alt={t('banner.getClients')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/10" />
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.12),transparent_55%)]" />
-                <div className="relative z-10 p-5">
-                  <span className="text-xs font-bold text-emerald-300 bg-emerald-500/30 backdrop-blur-sm px-3 py-1 rounded-full">💼 {t('banner.forBusiness')}</span>
-                  <h3 className="text-lg font-extrabold text-white mt-2">{t('banner.getClients')}</h3>
-                  <p className="text-white/70 text-sm mt-1">{t('banner.getClientsDesc')}</p>
-                </div>
-              </Link>
-              )}
             </div>
           </section>
+          )}
 
           {/* ═══════════════════════════════════════════
               6. ЖАЛОБЫ ЖИТЕЛЕЙ (3 cards with status)

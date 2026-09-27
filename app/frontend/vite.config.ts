@@ -43,7 +43,7 @@ export default defineConfig(({ mode }) => ({
         // route-specific metadata and the server-rendered SEO shell.
         navigateFallbackDenylist: [
           /^\/api(?:\/|$)/,
-          /^\/(?:news|announcements|real-estate|jobs|food|directory|transport|inspectors|business|masters|salons|support|questions|complaints)(?:\/|$)/,
+          /^\/(?:news|announcements|real-estate|jobs|food|directory|transport|inspectors|business|partners|masters|salons|support|questions|complaints)(?:\/|$)/,
           /^\/(?:dam-alem|delivery|cabinet|account|partner|admin)(?:\/|$)/,
         ],
         // Account, order and payment APIs are deliberately network-only.

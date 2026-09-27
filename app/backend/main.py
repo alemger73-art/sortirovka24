@@ -120,6 +120,14 @@ async def _run_startup_initialization():
         logger.warning("Application will start without database - lazy init on first request")
 
     if db_ready:
+        try:
+            from services.partner_profiles_seed import seed_partner_profiles
+            from core.database import db_manager
+            async with db_manager.async_session_maker() as session:
+                await seed_partner_profiles(session)
+        except Exception as e:
+            logger.warning(f"Partner profiles seed skipped: {e}")
+
         if not is_production() and "MGX_IGNORE_INIT_DATA" not in os.environ:
             try:
                 await initialize_mock_data()

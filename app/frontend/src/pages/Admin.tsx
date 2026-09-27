@@ -17,6 +17,7 @@ import AdminMasters from './AdminMasters';
 import AdminSalons from './AdminSalons';
 import AdminDirectory from './AdminDirectory';
 import AdminBanners from './AdminBanners';
+import AdminPartnerProfiles from './AdminPartnerProfiles';
 import AdminCategories from './AdminCategories';
 import AdminDamAlem from './AdminDamAlem';
 import AdminInspectors from './AdminInspectors';
@@ -367,7 +368,7 @@ function AdminPanelContent({
       case 'logistics': return <AdminLogistics />;
       case 'account-settings': return <AdminAccountSettings />;
       case 'partners-gastronom': return <AdminGastronom />;
-      case 'partners-business': return <AdminBusinessPartners />;
+      case 'partners-business': return <><AdminPartnerProfiles /><AdminBusinessPartners /></>;
       case 'partners-volna': return <AdminVolna />;
       case 'partners-prorab': return <AdminProrab />;
       case 'partners-pharmacy': return <AdminPharmacy />;

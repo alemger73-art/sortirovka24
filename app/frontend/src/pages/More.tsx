@@ -17,10 +17,11 @@ type MoreItem = {
   icon: typeof User;
   accent: string;
   hidden?: boolean;
+  label?: string;
 };
 
 export default function More() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const taxiEnabled = useTaxiEnabled();
   const { isEnabled } = useModules();
   const isLoggedIn = Boolean(getAccountToken());
@@ -58,6 +59,7 @@ export default function More() {
         { path: '/jobs', key: 'nav.jobs', icon: Briefcase, accent: 'bg-indigo-600' },
         { path: '/questions', key: 'nav.questions', icon: HelpCircle, accent: 'bg-teal-600' },
         { path: '/real-estate', key: 'more.realEstate', icon: Landmark, accent: 'bg-cyan-600' },
+        { path: '/partners', key: 'more.business', label: lang === 'kz' ? 'Аудан серіктестері' : 'Партнёры района', icon: Store, accent: 'bg-emerald-600' },
         { path: '/business', key: 'more.business', icon: Store, accent: 'bg-pink-600' },
         { path: '/history', key: 'more.history', icon: Landmark, accent: 'bg-stone-600' },
       ],
@@ -109,7 +111,7 @@ export default function More() {
                           <Icon className="h-5 w-5" aria-hidden />
                         </div>
                         <span className="flex-1 text-sm font-semibold text-gray-900 dark:text-white">
-                          {t(item.key)}
+                          {item.label || t(item.key)}
                         </span>
                         <ChevronRight className="h-4 w-4 shrink-0 text-gray-300 dark:text-gray-600" aria-hidden />
                       </Link>

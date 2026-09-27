@@ -98,6 +98,7 @@ export function isObjectKey(value: string): boolean {
  */
 export function resolveImageSrc(value: string | null | undefined): string | null {
   if (!value) return null;
+  if (value.startsWith('/') && !value.startsWith('//') && !value.includes('\\')) return value;
   if (isDirectUrl(value)) return value;
   return getPublicObjectUrl(value);
 }
@@ -201,6 +202,7 @@ export async function resolveImageUrl(
   objectKey: string | undefined | null
 ): Promise<string | null> {
   if (!objectKey) return null;
+  if (objectKey.startsWith('/') && !objectKey.startsWith('//') && !objectKey.includes('\\')) return objectKey;
   if (isDirectUrl(objectKey)) return objectKey;
 
   // Check cache first

@@ -27,6 +27,8 @@ from models.masters import Masters
 from models.news import News
 from models.real_estate import Real_estate
 from models.salons import Salons
+from models.partner_profiles import PartnerShowcase
+from services.module_settings import is_module_enabled
 
 SITE_URL = "https://www.sortirovka24.kz"
 SITE_NAME = "Сортировка 24"
@@ -163,6 +165,8 @@ def _breadcrumb(path: str, name: str) -> dict[str, Any]:
 
 async def build_seo_page(path: str) -> SeoPage:
     path = "/" + path.strip("/") if path.strip("/") else "/"
+    if path == "/partners" or path.startswith("/partners/"):
+        return await _partner_seo_page(path)
     page = _base_page(path)
     dynamic_match = DYNAMIC_PUBLIC_ROUTE.fullmatch(path)
     if page.status_code == 404 or (page.robots.startswith("noindex") and not dynamic_match):
@@ -375,6 +379,17 @@ async def build_sitemap_xml() -> str:
         except Exception:
             pass
 
+    if db_manager.async_session_maker:
+        try:
+            async with db_manager.async_session_maker() as session:
+                if await is_module_enabled(session, "business"):
+                    urls["/partners"] = None
+                    rows = (await session.execute(select(PartnerShowcase).where(PartnerShowcase.published.is_(True)))).scalars().all()
+                    for row in rows:
+                        urls[f"/partners/{row.slug}"] = _sitemap_date(row.updated_at)
+        except Exception:
+            pass
+
     entries = []
     for path, lastmod in urls.items():
         loc = xml_escape(f"{SITE_URL}{path if path != '/' else '/'}")
@@ -387,3 +402,42 @@ def _sitemap_date(value: Any) -> str | None:
     raw = _text(value, 40)
     match = re.match(r"^(\d{4}-\d{2}-\d{2})", raw)
     return match.group(1) if match else None
+
+
+async def _partner_seo_page(path: str) -> SeoPage:
+    page = SeoPage("Партнёры района | Сортировка 24", "Местные компании, услуги и контакты в Караганде.", path, "Партнёры района", "Компании и услуги для жителей Сортировки.")
+    if not db_manager.async_session_maker:
+        page.robots = "noindex, follow"
+        return page
+    try:
+        async with db_manager.async_session_maker() as session:
+            if not await is_module_enabled(session, "business"):
+                page.status_code = 404
+                page.robots = "noindex, nofollow"
+                return page
+            if path == "/partners":
+                rows = (await session.execute(select(PartnerShowcase).where(PartnerShowcase.published.is_(True)))).scalars().all()
+                page.body = "".join(_link(f"/partners/{r.slug}", r.content.get("name"), r.content.get("headline")) for r in rows)
+                return page
+            row = await session.get(PartnerShowcase, path.removeprefix("/partners/"))
+            if row is None or not row.published:
+                page.title = page.heading = "Компания не найдена"
+                page.robots = "noindex, follow"
+                page.status_code = 404
+                return page
+            data = row.content
+            page.title = f"{data['name']} — {data['category']}, Караганда | Сортировка 24"
+            page.heading = data["name"]
+            page.description = data["headline"]
+            page.intro = data["description"]
+            image = data.get("cover", "")
+            if image.startswith("/") and not image.startswith("//"):
+                page.image = SITE_URL + image
+            elif image.startswith("https://"):
+                page.image = image
+            page.body = "<h2>Услуги</h2><ul>" + "".join(f"<li>{html.escape(s)}</li>" for s in data.get("services", [])) + "</ul>"
+            page.body += f"<p>{html.escape(data.get('area', ''))}</p><p>{html.escape(data.get('phone', ''))}</p>"
+            page.schemas.append({"@context":"https://schema.org", "@type":"Organization", "name":data["name"], "url":page.canonical, "telephone":data.get("phone", ""), "sameAs":[data["instagram"]] if data.get("instagram") else []})
+    except Exception:
+        page.robots = "noindex, follow"
+    return page
