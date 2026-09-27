@@ -45,6 +45,9 @@ export default function AdminNews() {
   const [previewItem, setPreviewItem] = useState<NewsItem | null>(null);
   const [editItem, setEditItem] = useState<Partial<NewsItem> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
+  const visibleItems = items.filter(item => (filter === 'all' || (filter === 'published' ? item.published : !item.published)) && `${item.title} ${item.content}`.toLocaleLowerCase().includes(search.toLocaleLowerCase()));
 
   const fetchItems = async () => {
     setLoading(true);
@@ -68,7 +71,7 @@ export default function AdminNews() {
     setDialogOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (published: boolean) => {
     if (!editItem?.title?.trim() || !editItem?.content?.trim() || !editItem?.category) {
       toast.error(adminT("admin.ui.0921"));
       return;
@@ -87,7 +90,7 @@ export default function AdminNews() {
         image_url: editItem.image_url || '',
         gallery_images: editItem.gallery_images || '',
         youtube_url: editItem.youtube_url || '',
-        published: editItem.published ?? true,
+        published,
       };
       if (editItem.id) {
         await client.entities.news.update({ id: String(editItem.id), data });
@@ -132,8 +135,14 @@ export default function AdminNews() {
       <div className="rounded-xl border border-blue-200 dark:border-blue-900 p-4 text-sm text-gray-600 dark:text-gray-300">
         {lang === 'kz' ? 'Алдымен мәтін мен фотосуреттерді қосып, нобайды сақтаңыз. Дайын болғанда жариялауды қосыңыз. Instagram сілтемесі қосымша беріледі, автоматты импорт қосылмаған.' : 'Добавьте текст и фотографии, сохраните черновик и проверьте предпросмотр. Когда всё готово — включите публикацию. Ссылку на Instagram можно приложить к статье; автоматический импорт пока не подключён.'}
       </div>
+      <div className="flex flex-wrap gap-3">
+        <Input aria-label="Поиск новостей в админке" placeholder="Найти новость…" value={search} onChange={e => setSearch(e.target.value)} className="max-w-md" />
+        <select aria-label="Статус публикации" value={filter} onChange={e => setFilter(e.target.value)} className="rounded-md border bg-background p-2">
+          <option value="all">Все статусы</option><option value="published">Опубликованные</option><option value="draft">Черновики</option>
+        </select>
+      </div>
       <div className="space-y-2">
-        {items.map(item => (
+        {visibleItems.map(item => (
           <Card key={item.id} className="overflow-hidden bg-white">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-start justify-between gap-3">
@@ -167,7 +176,7 @@ export default function AdminNews() {
             </CardContent>
           </Card>
         ))}
-        {items.length === 0 && <p className="text-center text-gray-400 py-8">{adminT("admin.ui.0964")}</p>}
+        {visibleItems.length === 0 && <p className="text-center text-gray-400 py-8">{adminT("admin.ui.0964")}</p>}
       </div>
 
       {/* Edit/Create Dialog */}
@@ -230,16 +239,10 @@ export default function AdminNews() {
                 <label htmlFor="news-instagram-link" className="text-sm font-medium">{lang === 'kz' ? 'Instagram жарияланымының сілтемесі' : 'Ссылка на публикацию в Instagram'}</label>
                 <Input id="news-instagram-link" value={editItem.instagram_link || ''} onChange={e => setEditItem({ ...editItem, instagram_link: e.target.value })} placeholder="https://www.instagram.com/p/.../" />
               </div>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" id="published" checked={editItem.published ?? true} onChange={e => setEditItem({ ...editItem, published: e.target.checked })} className="rounded" />
-                <label htmlFor="published" className="text-sm text-gray-700">{adminT("admin.ui.0041")}</label>
-              </div>
-              <div className="flex gap-2 pt-2">
-                <Button onClick={() => setDialogOpen(false)} variant="outline" className="flex-1">{adminT("admin.ui.0095")}</Button>
-                <Button onClick={handleSave} disabled={saving} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-                  {editItem.id ? adminT("admin.ui.0096") : adminT("admin.ui.0097")}
-                </Button>
+              <div className="flex flex-wrap gap-2 border-t pt-4">
+                <Button disabled={saving} variant="outline" onClick={() => setPreviewItem(editItem as NewsItem)}>Предпросмотр</Button>
+                <Button disabled={saving} variant="outline" onClick={() => handleSave(false)}>{editItem.published ? 'Снять с публикации' : 'Сохранить черновик'}</Button>
+                <Button disabled={saving} onClick={() => handleSave(true)} className="bg-blue-600 text-white">{saving ? 'Сохраняем…' : editItem.published ? 'Сохранить изменения' : 'Опубликовать'}</Button>
               </div>
             </div>
           )}
@@ -273,7 +276,8 @@ export default function AdminNews() {
                 </div>
               )}
               {previewItem.short_description && <p className="text-sm text-gray-600 italic">{previewItem.short_description}</p>}
-              <p className="text-sm text-gray-800 whitespace-pre-wrap">{previewItem.content}</p>
+              <p className="text-sm text-gray-800 whitespace-pre-wrap">{splitNewsContent(previewItem.content).content}</p>
+              {(previewItem.instagram_link || splitNewsContent(previewItem.content).instagram) && <p className="text-sm text-blue-600 break-all">Instagram: {previewItem.instagram_link || splitNewsContent(previewItem.content).instagram}</p>}
             </div>
           )}
         </DialogContent>

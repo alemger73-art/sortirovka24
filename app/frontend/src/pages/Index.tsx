@@ -12,7 +12,7 @@ import { preloadCriticalImages, preloadImagesOnIdle, extractImageUrls } from '@/
 import { resolveImageSrc } from '@/lib/storage';
 import { prefetchFromIndex } from '@/lib/prefetch';
 import {
-  Wrench, AlertTriangle, Megaphone, ChevronRight, ChevronLeft,
+  Wrench, AlertTriangle, Megaphone, ChevronRight,
   MapPin, Phone as PhoneIcon, Clock, Briefcase,
   Home, ShoppingBag, Utensils, FileText, BookOpen,
   ArrowRight, Send, Building2, HardHat, Users, Coffee,
@@ -103,7 +103,6 @@ export default function Index() {
   const [retrying, setRetrying] = useState(false);
   const autoRetryCountRef = useRef(0);
   const autoRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const newsScrollRef = useRef<HTMLDivElement>(null);
 
   // Preload critical above-the-fold CDN images immediately
   useEffect(() => {
@@ -239,11 +238,7 @@ export default function Index() {
     { labelKey: 'categories.jobs', to: '/jobs', img: JOBS_IMG, module: 'jobs' },
   ] as { labelKey: string; to: string; img: string; module: ModuleKey }[]).filter(c => isEnabled(c.module));
 
-  const scrollNews = (dir: 'left' | 'right') => {
-    if (!newsScrollRef.current) return;
-    const scrollAmount = 300;
-    newsScrollRef.current.scrollBy({ left: dir === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
-  };
+
 
   return (
     <Layout>
@@ -476,53 +471,19 @@ export default function Index() {
           <section>
             <SectionHeader title={t('news.title')} accentColor="from-blue-500 to-cyan-500" linkTo="/news" linkText={t('news.all')} />
             {news.length > 0 ? (
-              <div className="relative">
-                {/* Scroll buttons */}
-                <button
-                  aria-label={lang === 'kz' ? 'Алдыңғы жаңалықтар' : 'Предыдущие новости'}
-                  onClick={() => scrollNews('left')}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 bg-white dark:bg-gray-800 shadow-lg rounded-full w-9 h-9 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors hidden md:flex"
-                >
-                  <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-                </button>
-                <button
-                  aria-label={lang === 'kz' ? 'Келесі жаңалықтар' : 'Следующие новости'}
-                  onClick={() => scrollNews('right')}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 bg-white dark:bg-gray-800 shadow-lg rounded-full w-9 h-9 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors hidden md:flex"
-                >
-                  <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-                </button>
-
-                <div
-                  ref={newsScrollRef}
-                  className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory"
-                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                >
-                  {news.map(item => (
-                    <Link
-                      key={item.id}
-                      to={`/news/${item.id}`}
-                      className="flex-shrink-0 w-[260px] sm:w-[280px] bg-white dark:bg-gray-900 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group border border-gray-100 dark:border-gray-800 snap-start"
-                    >
-                      {item.image_url ? (
-                        <div className="h-36 overflow-hidden">
-                          <StorageImg objectKey={item.image_url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                        </div>
-                      ) : (
-                        <div className="h-36 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 flex items-center justify-center">
-                          <FileText className="w-10 h-10 text-blue-200 dark:text-blue-700" />
-                        </div>
-                      )}
-                      <div className="p-4">
-                        <span className="text-[10px] text-gray-400 dark:text-gray-500">{formatDate(item.created_at)}</span>
-                        <h3 className="font-bold text-gray-900 dark:text-white text-sm line-clamp-2 mt-1">{item.title}</h3>
-                        {item.short_description && (
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 line-clamp-2">{item.short_description}</p>
-                        )}
-                      </div>
-                    </Link>
-                  ))}
-                </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                {news.slice(0, 5).map((item, index) => (
+                  <Link key={item.id} to={`/news/${item.id}`} className={`group overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 ${index === 0 ? 'md:row-span-4' : 'flex items-center'}`}>
+                    <div className={index === 0 ? 'h-56 sm:h-64 overflow-hidden bg-slate-800' : 'w-24 h-24 shrink-0 overflow-hidden bg-slate-800'}>
+                      {item.image_url ? <StorageImg objectKey={item.image_url} alt="" className="w-full h-full object-cover" /> : <FileText className="w-10 h-full mx-auto text-sky-300" />}
+                    </div>
+                    <div className={index === 0 ? 'p-5' : 'p-3 min-w-0'}>
+                      <span className="text-xs text-gray-500">{formatDate(item.created_at)}</span>
+                      <h3 className={`${index === 0 ? 'text-xl' : 'text-sm'} font-bold mt-1 text-gray-900 dark:text-white line-clamp-3`}>{item.title}</h3>
+                      {index === 0 && <><p className="mt-3 text-sm text-gray-500 dark:text-gray-400 line-clamp-3">{item.short_description}</p><span className="inline-block mt-4 text-sm font-semibold text-sky-600 dark:text-sky-300">{lang === 'kz' ? 'Жаңалықты оқу →' : 'Читать новость →'}</span></>}
+                    </div>
+                  </Link>
+                ))}
               </div>
             ) : (
               <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 text-center border border-gray-100 dark:border-gray-800">
