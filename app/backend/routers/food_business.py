@@ -230,9 +230,17 @@ async def staff_list(db:AsyncSession=Depends(get_db),claims=Depends(food_owner))
     rows=(await db.scalars(select(PartnerCredentials).where(PartnerCredentials.partner_type=='dam_alem').order_by(PartnerCredentials.id))).all()
     return [{'id':r.id,'name':r.display_name,'email':r.email,'phone':r.phone,'active':r.is_active,'role':r.access_role or 'owner','pin_set':bool(r.pin_hash)} for r in rows]
 
+def staff_login(value: str) -> str:
+    value = value.strip().lower()
+    if not (re.fullmatch(r'[a-z][a-z0-9_.-]{2,39}', value) or re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', value)):
+        raise HTTPException(422, 'Логин: 3–40 латинских букв, цифр, точки, дефиса или подчёркивания; начните с буквы. Можно указать email.')
+    if '@' not in value and sum(c.isdigit() for c in value) >= 10:
+        raise HTTPException(422, 'Используйте меньше 10 цифр в логине')
+    return value
+
 class StaffBody(BaseModel):
     name:str=Field(min_length=1,max_length=120)
-    email:str=Field(min_length=5,max_length=255)
+    email:str=Field(min_length=3,max_length=255)
     password:str=Field(min_length=10,max_length=100)
     pin:str=Field(pattern=r'^\d{4}$')
     role:Literal['owner','operator']='operator'
@@ -241,8 +249,7 @@ class StaffBody(BaseModel):
 async def staff_create(body:StaffBody,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
     from routers.partner_auth import _hash_password
     from utils.courier_pin import hash_courier_pin
-    email=body.email.strip().lower()
-    if not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+',email): raise HTTPException(422,'Укажите email для входа')
+    email=staff_login(body.email)
     if len(body.password.encode('utf-8'))>72: raise HTTPException(422,'Пароль слишком длинный, используйте до 72 байт')
     if not body.name.strip(): raise HTTPException(422,'Укажите имя сотрудника')
     row=PartnerCredentials(partner_type='dam_alem',email=email,display_name=body.name.strip(),password_hash=_hash_password(body.password),pin_hash=hash_courier_pin(body.pin),is_active=True,access_role=body.role)
@@ -250,7 +257,7 @@ async def staff_create(body:StaffBody,db:AsyncSession=Depends(get_db),claims=Dep
     record_action(db,None,'staff_created',claims=claims,entity_type='staff',details={'name':row.display_name,'role':row.access_role})
     try: await db.commit()
     except IntegrityError:
-        await db.rollback();raise HTTPException(409,'Этот email уже используется')
+        await db.rollback();raise HTTPException(409,'Этот логин уже используется')
     return {'id':row.id}
 
 @router.get('/staff/couriers')
@@ -271,6 +278,7 @@ async def courier_staff_pin(user_id:str,body:CourierStaffUpdate,db:AsyncSession=
     await db.commit();return {'ok':True}
 
 class StaffUpdate(BaseModel):
+    email:str|None=Field(None,min_length=3,max_length=255)
     name:str|None=Field(None,min_length=1,max_length=120)
     active:bool|None=None
     role:Literal['owner','operator']|None=None
@@ -291,6 +299,8 @@ async def staff_active(staff_id:int,body:StaffUpdate,db:AsyncSession=Depends(get
     removes_owner=(body.active is False) or (body.role is not None and body.role!='owner')
     if removes_owner and await _last_active_owner(db,row): raise HTTPException(409,'Нельзя отключить или понизить последнего активного владельца')
     changes={}
+    if body.email is not None:
+        row.email=staff_login(body.email);changes['login']=row.email
     if body.name is not None:
         if not body.name.strip(): raise HTTPException(422,'Укажите имя сотрудника')
         row.display_name=body.name.strip();changes['name']=row.display_name
@@ -302,7 +312,10 @@ async def staff_active(staff_id:int,body:StaffUpdate,db:AsyncSession=Depends(get
         row.password_hash=_hash_password(body.password);changes['password_changed']=True
     if not changes: raise HTTPException(422,'Нет изменений')
     record_action(db,None,'staff_updated',claims=claims,entity_type='staff',entity_id=staff_id,details=changes)
-    await db.commit();return {'ok':True}
+    try: await db.commit()
+    except IntegrityError:
+        await db.rollback();raise HTTPException(409,'Этот логин уже используется')
+    return {'ok':True}
 
 @router.delete('/staff/{staff_id}')
 async def staff_delete(staff_id:int,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
