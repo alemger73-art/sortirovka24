@@ -1,3 +1,4 @@
+import '@/styles/realEstate.css';
 import { notificationVisible } from '@/lib/cabinetModuleVisibility';
 import { type ModuleKey } from '@/config/modules';
 import { formatDate, getStatusLabel } from '@/lib/api';
@@ -1336,6 +1337,7 @@ export default function Cabinet() {
 
               {activeTab === "realEstate" && (
                 <DarkCard>
+                  <div className="estate-surface estate-cabinet">
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <h2 className={sectionTitleClass}>{t("cabinet.tab.realEstate")}</h2>
                     <Link
@@ -1346,16 +1348,20 @@ export default function Cabinet() {
                       {t("cabinet.realEstate.create")}
                     </Link>
                   </div>
+                  <p className="estate-cabinet-help">{t("realestate.design.cabinetHint")}</p>
                   <div className="space-y-3">
                     {(rows.real_estate || []).map((r: any) => {
                       const statusMeta = STATUS_LABELS[r.status] || { label: r.status || "-", color: "bg-gray-100 text-gray-800" };
                       const isPublished = ["approved", "published"].includes(r.status);
                       const typeLabel = resolveReTypeLabel(r, []);
                       return (
-                        <div key={r.id} className={listCardClass}>
+                        <div key={r.id} className={`${listCardClass} estate-cabinet-listing`}>
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
                               <p className="font-semibold text-gray-900 dark:text-white">{r.title || t("cabinet.realEstate.default")}</p>
+                              {r.status === 'pending' && <p className="estate-cabinet-status">{t('realestate.design.pendingHint')}</p>}
+                              {r.status === 'hidden' && <p className="estate-cabinet-status">{t('realestate.design.hiddenHint')}</p>}
+                              {isPublished && <p className="estate-cabinet-status">{t('realestate.design.publishedHint')}</p>}
                               {r.moderation_reason && <p className="mt-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{t("realestate.seller.reason")}: {r.moderation_reason}</p>}
                               <div className="mt-1 flex flex-wrap items-center gap-2">
                                 <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusMeta.color}`}>
@@ -1379,7 +1385,7 @@ export default function Cabinet() {
                                 </p>
                               ) : null}
                             </div>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="estate-cabinet-actions">
                               {isPublished && !isRealEstateExpired(r) && (<Link
                                 to={`/real-estate/${r.id}`}
                                 className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-white dark:border-[#2a3347] dark:text-slate-200 dark:hover:bg-[#111827]"
@@ -1442,6 +1448,7 @@ export default function Cabinet() {
                       </div>
                     ) : null}
                   </div>
+                </div>
                 </DarkCard>
               )}
 

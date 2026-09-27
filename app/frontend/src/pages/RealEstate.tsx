@@ -1,3 +1,4 @@
+import '@/styles/realEstate.css';
 import { getStatusLabel, getPublicCategoryLabel } from '@/lib/api';
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
@@ -6,7 +7,7 @@ import { client, withRetry, STATUS_LABELS, timeAgo, formatDate } from '@/lib/api
 import { fetchWithCache } from '@/lib/cache';
 import {
   ChevronLeft, MapPin, Phone, MessageCircle, Clock, Send, Loader2, Home,
-  Search, Eye, Share2, Sparkles,
+  Search, Eye, Share2, Sparkles, Heart, Plus, SlidersHorizontal, ArrowUpRight, Building2, ImageOff, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import StorageImg from '@/components/StorageImg';
@@ -18,10 +19,7 @@ import {
   type ReCategory,
   type RealEstateListing,
   type RealEstateSort,
-  RE_FALLBACK_IMAGES,
-  RE_HERO_IMG,
   defaultReExpiresAtIso,
-  dealTypeForReType,
   fetchRealEstateCategories,
   filterPublicRealEstate,
   getRealEstateCover,
@@ -70,111 +68,64 @@ function ReFormFields({
   categories: ReCategory[];
   t: (key: string) => string;
 }) {
-  return (
-    <>
-      <fieldset className="space-y-3 rounded-xl border border-emerald-200 p-4">
-        <legend className="px-1 font-medium">{t('realestate.seller.label')}</legend>
-        <select aria-label={t('realestate.seller.label')} required value={form.seller_type}
-          onChange={(e) => setForm({ ...form, seller_type: e.target.value, agency_name: '', commission: '' })}
-          className="w-full rounded-lg border p-3">
-          <option value="">{t('realestate.seller.choose')}</option>
-          <option value="owner">{t('realestate.seller.owner')}</option>
-          <option value="realtor">{t('realestate.seller.realtor')}</option>
-        </select>
-        {form.seller_type === 'realtor' && <>
-          <label className="block text-sm">{t('realestate.seller.agency')}
-            <input maxLength={120} value={form.agency_name} onChange={(e) => setForm({ ...form, agency_name: e.target.value })} className="mt-1 w-full rounded-lg border p-3" />
-          </label>
-          <label className="block text-sm">{t('realestate.seller.commission')}
-            <input maxLength={120} value={form.commission} onChange={(e) => setForm({ ...form, commission: e.target.value })} className="mt-1 w-full rounded-lg border p-3" />
-          </label>
-        </>}
-      </fieldset>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">{t('realestate.form.type')} *</label>
-        <select
-          value={form.category_id}
-          onChange={(e) => setForm({ ...form, category_id: e.target.value })}
-          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          required
-        >
+  function field(key: keyof ReFormState, label: string, options: { required?: boolean; placeholder?: string; type?: string; maxLength?: number } = {}) {
+    return <label className="estate-field" htmlFor={`estate-${key}`}>
+      <span>{label}{options.required && ' *'}</span>
+      <input id={`estate-${key}`} type={options.type || 'text'} required={options.required}
+        placeholder={options.placeholder} maxLength={options.maxLength}
+        value={form[key]} onChange={e => setForm(previous => ({ ...previous, [key]: e.target.value }))} />
+    </label>;
+  }
+  return <div className="estate-form-sections">
+    <section className="estate-form-section">
+      <header><span className="estate-step">01</span><div><h2>{t('realestate.design.object')}</h2><p>{t('realestate.design.objectHint')}</p></div></header>
+      <label className="estate-field" htmlFor="estate-category"><span>{t('realestate.form.type')} *</span>
+        <select id="estate-category" required value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })}>
           <option value="">{t('realestate.form.selectType')}</option>
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.icon ? `${cat.icon} ` : ''}{getPublicCategoryLabel(cat.name, t)}
-            </option>
-          ))}
+          {categories.map(cat => <option key={cat.id} value={cat.id}>{getPublicCategoryLabel(cat.name, t)}</option>)}
         </select>
+      </label>
+      {field('title', t('realestate.form.title'), { required: true, maxLength: 200, placeholder: t('realestate.form.titlePlaceholder') })}
+      {field('address', t('realestate.district'), { placeholder: t('realestate.form.addressPlaceholder') })}
+      <div className="estate-fields-grid">
+        {field('price', t('realestate.form.price'), { placeholder: '15 000 000 ₸' })}
+        {field('rooms', t('realestate.rooms'), { placeholder: '2' })}
+        {field('area', `${t('realestate.area')} (${t('realestate.sqm')})`, { placeholder: '55' })}
+        {field('floor_info', t('realestate.form.floor'), { placeholder: '3/9' })}
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">{t('realestate.form.title')} *</label>
-        <input
-          type="text"
-          value={form.title}
-          onChange={(e) => setForm({ ...form, title: e.target.value })}
-          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          placeholder={t('realestate.form.titlePlaceholder')}
-          required
-        />
+      <label className="estate-field" htmlFor="estate-description"><span>{t('realestate.description')} *</span>
+        <textarea id="estate-description" required maxLength={10000} rows={5} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+      </label>
+    </section>
+    <section className="estate-form-section">
+      <header><span className="estate-step">02</span><div><h2>{t('realestate.gallery')}</h2><p>{t('realestate.design.photosHint')}</p></div></header>
+      <MultiImageUpload value={galleryKeys} onChange={setGalleryKeys} folder="real-estate" maxImages={10} />
+    </section>
+    <section className="estate-form-section">
+      <header><span className="estate-step">03</span><div><h2>{t('realestate.design.contacts')}</h2><p>{t('realestate.design.contactsHint')}</p></div></header>
+      <fieldset className="estate-seller-choice"><legend>{t('realestate.seller.label')} *</legend>
+        {(['owner', 'realtor'] as const).map(role => <label key={role} className={form.seller_type === role ? 'is-selected' : ''}>
+          <input type="radio" name="seller_type" required value={role} checked={form.seller_type === role}
+            onChange={() => setForm({ ...form, seller_type: role, agency_name: '', commission: '' })} />
+          {role === 'owner' ? <Home size={19} /> : <Building2 size={19} />}{t(`realestate.seller.${role}`)}
+        </label>)}
+      </fieldset>
+      {form.seller_type === 'realtor' && <div className="estate-fields-grid">
+        {field('agency_name', t('realestate.seller.agency'), { maxLength: 120 })}
+        {field('commission', t('realestate.seller.commission'), { maxLength: 120 })}
+      </div>}
+      <div className="estate-fields-grid">
+        {field('author_name', t('realestate.form.author'))}
+        {field('phone', t('realestate.form.phone'), { required: true, type: 'tel', placeholder: '+7…' })}
+        {field('whatsapp', t('realestate.whatsapp'), { type: 'tel', placeholder: '+7…' })}
+        {field('telegram', 'Telegram', { placeholder: '@username' })}
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">{t('realestate.description')} *</label>
-        <textarea
-          value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
-          rows={4}
-          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
-          required
-        />
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t('realestate.form.price')}</label>
-          <input type="text" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="15 000 000 ₸" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t('realestate.rooms')}</label>
-          <input type="text" value={form.rooms} onChange={(e) => setForm({ ...form, rooms: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="2" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t('realestate.area')} ({t('realestate.sqm')})</label>
-          <input type="text" value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="55" />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t('realestate.form.floor')}</label>
-          <input type="text" value={form.floor_info} onChange={(e) => setForm({ ...form, floor_info: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="3/9" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t('realestate.district')}</label>
-          <input type="text" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder={t('realestate.form.addressPlaceholder')} />
-        </div>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t('realestate.form.phone')} *</label>
-          <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" required />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t('realestate.whatsapp')}</label>
-          <input type="tel" value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Telegram</label>
-          <input type="text" value={form.telegram} onChange={(e) => setForm({ ...form, telegram: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="@username" />
-        </div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">{t('realestate.form.author')}</label>
-        <input type="text" value={form.author_name} onChange={(e) => setForm({ ...form, author_name: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">{t('realestate.gallery')}</label>
-        <MultiImageUpload value={galleryKeys} onChange={setGalleryKeys} folder="real-estate" maxImages={10} />
-      </div>
-    </>
-  );
+    </section>
+  </div>;
+}
+
+function EstatePhotoPlaceholder({ t }: { t: (key: string) => string }) {
+  return <div className="estate-photo-placeholder"><ImageOff size={32} strokeWidth={1.3} /><span>{t('realestate.design.noPhoto')}</span></div>;
 }
 
 function ReListingCard({
@@ -191,79 +142,28 @@ function ReListingCard({
   t: (key: string) => string;
 }) {
   const isFav = favorites.includes(item.id);
-  const fallbackSrc = RE_FALLBACK_IMAGES[item.id % RE_FALLBACK_IMAGES.length];
   const imgKey = getRealEstateCover(item) || '';
-  const hasStorageImg = Boolean(imgKey);
-  const deal = dealTypeForReType(item.re_type);
   const promoted = isRealEstatePromoted(item);
   const typeLabel = getPublicCategoryLabel(resolveReTypeLabel(item, categories), t);
-
-  return (
-    <Link
-      to={`/real-estate/${item.id}`}
-      className={`bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group block ${promoted ? 'ring-2 ring-amber-300/80' : ''}`}
-    >
-      <div className="h-52 bg-gray-100 relative overflow-hidden">
-        {hasStorageImg ? (
-          <StorageImg objectKey={imgKey} alt={item.title || ''} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-        ) : (
-          <img src={fallbackSrc} alt={item.title || ''} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-          {promoted ? (
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg bg-amber-400 text-amber-950 flex items-center gap-1">
-              <Sparkles className="w-3 h-3" /> TOP
-            </span>
-          ) : null}
-          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg ${
-            deal === 'sell' ? 'bg-emerald-500 text-white' : deal === 'rent' ? 'bg-blue-500 text-white' : 'bg-amber-500 text-white'
-          }`}>
-            {typeLabel}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={(e) => onToggleFavorite(e, item.id)}
-          className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-lg ${
-            isFav ? 'bg-red-500 text-white scale-110' : 'bg-white/90 backdrop-blur-sm text-gray-400 hover:text-red-500 hover:bg-white'
-          }`}
-        >
-          <svg className="w-4.5 h-4.5" fill={isFav ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-          </svg>
-        </button>
-        {item.gallery_images ? (
-          <span className="absolute bottom-3 right-3 bg-black/50 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-0.5 rounded-full">
-            📷 {item.gallery_images.split(',').filter((k) => k.trim()).length}
-          </span>
-        ) : null}
-        {item.price ? (
-          <div className="absolute bottom-3 left-3">
-            <span className="bg-white/95 backdrop-blur-sm text-gray-900 font-extrabold text-base px-3 py-1.5 rounded-xl shadow-lg">{item.price}</span>
-          </div>
-        ) : null}
-      </div>
-      <div className="p-4">
-        <h3 className="font-bold text-gray-900 text-[15px] leading-tight line-clamp-1 group-hover:text-emerald-700 transition-colors">{item.title}</h3>
-        {item.address ? (
-          <div className="flex items-center gap-1.5 mt-1.5 text-xs text-gray-400">
-            <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">{item.address}</span>
-          </div>
-        ) : null}
-        <div className="flex flex-wrap gap-1.5 mt-3">
-          {item.rooms ? <span className="bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-lg">{item.rooms} {t('realestate.form.roomsShort')}</span> : null}
-          {item.area ? <span className="bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-lg">{item.area} {t('realestate.sqm')}</span> : null}
-          {item.floor_info ? <span className="bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-lg">{item.floor_info}</span> : null}
-        </div>
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
-          <span className="flex items-center gap-1 text-xs text-gray-400"><Eye className="w-3.5 h-3.5" /> {item.views_count || 0}</span>
-          <span className="text-[10px] text-gray-300 ml-auto">{timeAgo(item.created_at || '')}</span>
-        </div>
-      </div>
+  return <article className={`estate-card ${promoted ? 'estate-card-promoted' : ''}`}>
+    <Link to={`/real-estate/${item.id}`} className="estate-card-photo" aria-label={item.title || t('realestate.title')}>
+      {imgKey ? <StorageImg objectKey={imgKey} alt={item.title || ''} className="w-full h-full object-cover" /> : <EstatePhotoPlaceholder t={t} />}
+      <span className="estate-photo-badge">{promoted && <Sparkles size={13} />}{typeLabel}</span>
     </Link>
-  );
+    <button type="button" onClick={e => onToggleFavorite(e, item.id)} aria-label={t('realestate.favorites')} aria-pressed={isFav}
+      className={`estate-heart ${isFav ? 'is-selected' : ''}`}><Heart size={20} fill={isFav ? 'currentColor' : 'none'} /></button>
+    <div className="estate-card-body">
+      <p className="estate-price">{item.price || t('realestate.design.priceUnknown')}</p>
+      <Link to={`/real-estate/${item.id}`} className="estate-card-title">{item.title}</Link>
+      {item.address && <p className="estate-address"><MapPin size={15} /><span>{item.address}</span></p>}
+      <div className="estate-specs">
+        {item.rooms && <span>{item.rooms} {t('realestate.form.roomsShort')}</span>}
+        {item.area && <span>{item.area} {t('realestate.sqm')}</span>}
+        {item.floor_info && <span>{t('realestate.form.floor')} {item.floor_info}</span>}
+      </div>
+      <footer><span>{item.seller_type ? t(`realestate.seller.${item.seller_type}`) : t('realestate.contactPerson')}</span><span>{timeAgo(item.created_at || '')}</span></footer>
+    </div>
+  </article>;
 }
 
 export function RealEstateList() {
@@ -312,17 +212,16 @@ export function RealEstateList() {
     setFavorites(toggleReFavorite(id));
   }
 
-  const quickFilters = useMemo(() => [
-    { key: '', label: t('common.all'), icon: '🏠' },
-    { key: 'sell_apartment', label: t('realestate.apartment'), icon: '🏢' },
-    { key: 'sell_house', label: t('realestate.house'), icon: '🏡' },
-    { key: 'rent_apartment', label: t('realestate.rent'), icon: '🔑' },
-    { key: 'commercial', label: t('realestate.commercial'), icon: '🏪' },
-  ], [t]);
+  const quickFilters = [
+    { key: '', label: t('common.all') },
+    { key: 'apartment', label: t('realestate.apartment') },
+    { key: 'house', label: t('realestate.house') },
+    { key: 'commercial', label: t('realestate.commercial') },
+  ];
 
   const filteredItems = useMemo(() => {
     const filtered = items.filter((item) => {
-      if (typeFilter && item.re_type !== typeFilter) return false;
+      if (typeFilter && !(item.re_type || '').includes(typeFilter)) return false;
       if (dealFilter === 'sell' && !item.re_type?.startsWith('sell')) return false;
       if (dealFilter === 'rent' && !item.re_type?.startsWith('rent')) return false;
       if (dealFilter === 'need' && !item.re_type?.startsWith('need')) return false;
@@ -354,153 +253,58 @@ export function RealEstateList() {
   }, [items, typeFilter, dealFilter, roomFilter, priceFrom, priceTo, searchQuery, showFavoritesOnly, favorites, sortBy]);
 
   const activeFilterCount = [typeFilter, dealFilter, roomFilter, priceFrom, priceTo].filter(Boolean).length;
+  const hasFilters = activeFilterCount > 0 || !!searchQuery || showFavoritesOnly;
+  const invalidPrice = !!priceFrom && !!priceTo && Number(priceFrom) > Number(priceTo);
+  function resetFilters() {
+    setTypeFilter(''); setDealFilter(''); setRoomFilter(''); setPriceFrom(''); setPriceTo(''); setSearchQuery(''); setShowFavoritesOnly(false);
+  }
 
-  return (
-    <Layout>
-      <div className="bg-[#f8f9fa] min-h-screen">
-        <section className="relative overflow-hidden">
-          <div className="absolute inset-0">
-            <img src={RE_HERO_IMG} alt="" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/80 via-emerald-800/60 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-          </div>
-          <div className="relative max-w-7xl mx-auto px-4 py-12 md:py-20">
-            <div className="max-w-xl">
-              <span className="bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full">🏠 {t('realestate.title')}</span>
-              <h1 className="text-3xl md:text-5xl font-extrabold text-white leading-tight mt-3">{t('realestate.heroTitle')}</h1>
-              <p className="text-white/70 text-base md:text-lg mt-3">{t('realestate.heroSubtitle')}</p>
-              <Link to="/cabinet?tab=realEstate" className="inline-flex items-center gap-2 mt-5 text-sm font-medium text-emerald-100 hover:text-white transition-colors">
-                {t('realestate.myListings')} →
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        <div className="max-w-7xl mx-auto px-4 -mt-7 relative z-10">
-          <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 p-4 md:p-5">
-            <div className="flex gap-3 items-center flex-wrap">
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('realestate.searchPlaceholder')}
-                  className="w-full pl-11 pr-4 py-3 bg-gray-50 rounded-xl border-0 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                />
-              </div>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as RealEstateSort)}
-                className="px-4 py-3 bg-gray-50 rounded-xl border-0 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-              >
-                <option value="new">{t('realestate.sort.new')}</option>
-                <option value="price_asc">{t('realestate.sort.priceAsc')}</option>
-                <option value="price_desc">{t('realestate.sort.priceDesc')}</option>
-              </select>
-              <button
-                type="button"
-                onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                  showFilters || activeFilterCount > 0 ? 'bg-emerald-50 text-emerald-700 border-2 border-emerald-200' : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border-2 border-transparent'
-                }`}
-              >
-                {t('realestate.filters')}
-                {activeFilterCount > 0 ? <span className="w-5 h-5 bg-emerald-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{activeFilterCount}</span> : null}
-              </button>
-              <Link to="/real-estate/new" className="hidden sm:flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl text-sm font-semibold transition-all shadow-md shadow-emerald-200/50">
-                <Home className="w-4 h-4" /> {t('realestate.publish')}
-              </Link>
-            </div>
-            {showFilters ? (
-              <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div>
-                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{t('realestate.dealType')}</label>
-                  <select value={dealFilter} onChange={(e) => setDealFilter(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 rounded-xl border-0 text-sm">
-                    <option value="">{t('common.all')}</option>
-                    <option value="sell">{t('realestate.sell')}</option>
-                    <option value="rent">{t('realestate.rent')}</option>
-                    <option value="need">{t('realestate.need')}</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{t('realestate.rooms')}</label>
-                  <select value={roomFilter} onChange={(e) => setRoomFilter(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 rounded-xl border-0 text-sm">
-                    <option value="">{t('realestate.any')}</option>
-                    {['1', '2', '3', '4+'].map((r) => <option key={r} value={r}>{r}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{t('realestate.priceFrom')}</label>
-                  <input type="number" value={priceFrom} onChange={(e) => setPriceFrom(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 rounded-xl border-0 text-sm" />
-                </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{t('realestate.priceTo')}</label>
-                  <input type="number" value={priceTo} onChange={(e) => setPriceTo(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 rounded-xl border-0 text-sm" />
-                </div>
-              </div>
-            ) : null}
-          </div>
+  return <Layout><div className="estate-surface">
+    <div className="estate-shell">
+      <header className="estate-hero">
+        <div><p className="estate-eyebrow"><MapPin size={14} />{t('realestate.design.eyebrow')}</p>
+          <h1>{t('realestate.design.headline')}</h1><p className="estate-intro">{t('realestate.design.intro')}</p>
         </div>
-
-        <div className="max-w-7xl mx-auto px-4 pt-6 pb-24">
-          <div className="flex gap-2.5 overflow-x-auto pb-4 mb-2 scrollbar-hide -mx-4 px-4">
-            {quickFilters.map((f) => (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => setTypeFilter(f.key === typeFilter ? '' : f.key)}
-                className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-semibold transition-all ${
-                  typeFilter === f.key ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200/40 scale-105' : 'bg-white text-gray-600 hover:bg-gray-50 shadow-sm'
-                }`}
-              >
-                {f.icon} {f.label}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-              className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-semibold transition-all ${
-                showFavoritesOnly ? 'bg-red-500 text-white shadow-lg shadow-red-200/40' : 'bg-white text-gray-600 hover:bg-gray-50 shadow-sm'
-              }`}
-            >
-              ❤️ {t('realestate.favorites')} {favorites.length > 0 ? `(${favorites.length})` : ''}
-            </button>
-          </div>
-
-          <Link to="/real-estate/new" className="sm:hidden flex items-center justify-center gap-2 bg-emerald-600 text-white w-full py-3 rounded-xl text-sm font-semibold mb-5">
-            <Home className="w-4 h-4" /> {t('realestate.publish')}
-          </Link>
-
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-bold text-gray-900">{showFavoritesOnly ? t('realestate.favorites') : t('realestate.allListings')}</h2>
-            <span className="text-sm text-gray-400">{filteredItems.length} {t('realestate.listingsCount')}</span>
-          </div>
-
-          {loading ? (
-            <div className="flex items-center justify-center py-16 text-gray-500">{t('common.loading')}</div>
-          ) : loadError ? (
-            <div role="alert" className="rounded-2xl border p-8 text-center">
-              <p>{t('realestate.loadError')}</p>
-              <button type="button" onClick={loadData} className="mt-4 rounded-lg bg-emerald-700 px-5 py-3 text-white">{t('realestate.retry')}</button>
-            </div>
-          ) : filteredItems.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredItems.map((item) => (
-                <ReListingCard key={item.id} item={item} categories={categories} favorites={favorites} onToggleFavorite={handleToggleFavorite} t={t} />
-              ))}
-            </div>
-          ) : (
-            <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
-              <Home className="w-10 h-10 text-emerald-300 mx-auto mb-3" />
-              <p className="text-gray-500 font-medium">{t('realestate.noResults')}</p>
-              <Link to="/real-estate/new" className="mt-4 inline-block text-emerald-600 font-semibold text-sm">{t('realestate.publishFirst')}</Link>
-            </div>
-          )}
+        <div className="estate-hero-actions"><Link to="/real-estate/new" className="estate-button estate-button-primary"><Plus size={18} />{t('realestate.design.publish')}</Link>
+          <Link to="/cabinet?tab=realEstate" className="estate-text-link">{t('realestate.myListings')}<ArrowUpRight size={16} /></Link>
         </div>
-      </div>
-    </Layout>
-  );
+      </header>
+      <section className="estate-search-panel" aria-label={t('realestate.filters')}>
+        <div className="estate-deal-tabs" role="group" aria-label={t('realestate.dealType')}>
+          {[['',t('common.all')],['sell',t('realestate.sell')],['rent',t('realestate.rent')],['need',t('realestate.need')]].map(([value,label]) =>
+            <button key={value} type="button" aria-pressed={dealFilter === value} className={dealFilter === value ? 'is-selected' : ''} onClick={() => setDealFilter(value)}>{label}</button>)}
+        </div>
+        <div className="estate-search-row">
+          <label className="estate-search"><Search size={20} /><input aria-label={t('realestate.searchPlaceholder')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={t('realestate.searchPlaceholder')} />
+            {searchQuery && <button type="button" aria-label={t('realestate.design.reset')} onClick={() => setSearchQuery('')}><X size={18} /></button>}
+          </label>
+          <button type="button" className="estate-button estate-button-secondary" aria-expanded={showFilters} aria-controls="estate-filters" onClick={() => setShowFilters(!showFilters)}>
+            <SlidersHorizontal size={18} />{t('realestate.filters')}{activeFilterCount > 0 && <span className="estate-count">{activeFilterCount}</span>}
+          </button>
+        </div>
+        {showFilters && <div id="estate-filters" className="estate-filter-grid">
+          <label className="estate-field"><span>{t('realestate.rooms')}</span><select value={roomFilter} onChange={e => setRoomFilter(e.target.value)}><option value="">{t('realestate.any')}</option>{['1','2','3','4+'].map(r => <option key={r}>{r}</option>)}</select></label>
+          <label className="estate-field"><span>{t('realestate.priceFrom')}</span><input type="number" min="0" inputMode="numeric" value={priceFrom} onChange={e => setPriceFrom(e.target.value)} /></label>
+          <label className="estate-field"><span>{t('realestate.priceTo')}</span><input type="number" min="0" inputMode="numeric" aria-invalid={invalidPrice} value={priceTo} onChange={e => setPriceTo(e.target.value)} /></label>
+          {invalidPrice && <p role="alert" className="estate-filter-error">{t('realestate.design.priceError')}</p>}
+        </div>}
+        <div className="estate-type-row"><div className="estate-chips">
+          {quickFilters.map(f => <button key={f.key} type="button" aria-pressed={typeFilter === f.key} className={typeFilter === f.key ? 'is-selected' : ''} onClick={() => setTypeFilter(f.key)}>{f.label}</button>)}
+        </div><button className={`estate-favorite-filter ${showFavoritesOnly ? 'is-selected' : ''}`} type="button" aria-pressed={showFavoritesOnly} onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}><Heart size={17} />{t('realestate.favorites')}{favorites.length > 0 && ` · ${favorites.length}`}</button></div>
+      </section>
+      <div className="estate-results-bar"><div><h2>{showFavoritesOnly ? t('realestate.favorites') : t('realestate.allListings')}<span>{loading ? '…' : filteredItems.length}</span></h2>
+        {hasFilters && <button type="button" className="estate-text-link" onClick={resetFilters}><X size={14} />{t('realestate.design.reset')}</button>}
+      </div><select aria-label={t('realestate.sort.new')} value={sortBy} onChange={e => setSortBy(e.target.value as RealEstateSort)}><option value="new">{t('realestate.sort.new')}</option><option value="price_asc">{t('realestate.sort.priceAsc')}</option><option value="price_desc">{t('realestate.sort.priceDesc')}</option></select></div>
+      {loading ? <div className="estate-grid" aria-busy="true" aria-label={t('common.loading')}>{[1,2,3].map(i => <div key={i} className="estate-skeleton"><div /><span /><span /></div>)}</div>
+      : loadError ? <div role="alert" className="estate-empty"><Home size={36} /><h2>{t('realestate.loadError')}</h2><button className="estate-button estate-button-primary" onClick={loadData}>{t('realestate.retry')}</button></div>
+      : filteredItems.length ? <div className="estate-grid">{filteredItems.map(item => <ReListingCard key={item.id} item={item} categories={categories} favorites={favorites} onToggleFavorite={handleToggleFavorite} t={t} />)}</div>
+      : <div className="estate-empty"><div className="estate-empty-icon">{showFavoritesOnly ? <Heart size={30} /> : <Building2 size={32} />}</div>
+          <h2>{hasFilters ? t('realestate.noResults') : t('realestate.design.empty')}</h2>
+          <p>{t(showFavoritesOnly ? 'realestate.design.favoritesHint' : hasFilters ? 'realestate.design.filteredHint' : 'realestate.design.emptyHint')}</p>
+          {hasFilters ? <button type="button" className="estate-button estate-button-secondary" onClick={resetFilters}>{t('realestate.design.reset')}</button> : <Link className="estate-button estate-button-primary" to="/real-estate/new"><Plus size={18} />{t('realestate.design.publish')}</Link>}
+        </div>}
+    </div>
+  </div></Layout>;
 }
 
 export function RealEstateDetail() {
@@ -559,15 +363,13 @@ export function RealEstateDetail() {
     setIsFav(next.includes(item.id));
   }
 
-  function shareListing() {
+  async function shareListing() {
     if (!item) return;
     const url = window.location.href;
-    if (navigator.share) {
-      void navigator.share({ title: item.title || t('realestate.title'), url });
-    } else {
-      void navigator.clipboard.writeText(url);
-      toast.success(t('realestate.linkCopied'));
-    }
+    try {
+      if (navigator.share) await navigator.share({ title: item.title || t('realestate.title'), url });
+      else { await navigator.clipboard.writeText(url); toast.success(t('realestate.linkCopied')); }
+    } catch (error) { if (!(error instanceof DOMException && error.name === 'AbortError')) toast.error(t('realestate.form.error')); }
   }
 
   function getGalleryKeys(): string[] {
@@ -599,111 +401,45 @@ export function RealEstateDetail() {
   }
 
   const galleryKeys = getGalleryKeys();
-  const deal = dealTypeForReType(item.re_type);
-  const fallbackSrc = RE_FALLBACK_IMAGES[(item.id || 0) % RE_FALLBACK_IMAGES.length];
   const typeLabel = getPublicCategoryLabel(resolveReTypeLabel(item, categories), t);
 
-  return (
-    <Layout>
-      <div className="bg-[#f8f9fa] min-h-screen pb-28">
-        <div className="max-w-4xl mx-auto px-4 pt-4 pb-2 flex items-center justify-between">
-          <button type="button" onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 font-medium">
-            <ChevronLeft className="w-4 h-4" /> {t('common.back')}
-          </button>
-          <div className="flex gap-2">
-            <button type="button" onClick={shareListing} className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-500 hover:text-emerald-600"><Share2 className="w-4 h-4" /></button>
-            <button type="button" onClick={toggleFav} className={`w-9 h-9 rounded-full shadow-sm flex items-center justify-center ${isFav ? 'bg-red-500 text-white' : 'bg-white text-gray-400'}`}>
-              <svg className="w-4 h-4" fill={isFav ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-            </button>
-          </div>
-        </div>
-
-        <div className="max-w-4xl mx-auto px-4 mb-6">
-          <div className="relative rounded-2xl overflow-hidden bg-gray-100 shadow-lg">
-            <div className="aspect-[16/9]">
-              {galleryKeys.length > 0 ? (
-                <StorageImage objectKey={galleryKeys[activePhotoIdx] || galleryKeys[0]} alt={item.title || ''} className="w-full h-full object-cover" />
-              ) : (
-                <img src={fallbackSrc} alt={item.title || ''} className="w-full h-full object-cover" />
-              )}
-            </div>
-            {galleryKeys.length > 1 ? (
-              <>
-                <button type="button" onClick={() => setActivePhotoIdx((i) => (i - 1 + galleryKeys.length) % galleryKeys.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 rounded-full flex items-center justify-center"><ChevronLeft className="w-5 h-5" /></button>
-                <button type="button" onClick={() => setActivePhotoIdx((i) => (i + 1) % galleryKeys.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 rounded-full flex items-center justify-center"><ChevronLeft className="w-5 h-5 rotate-180" /></button>
-              </>
-            ) : null}
-            <div className="absolute bottom-4 left-4 flex gap-2">
-              <span className={`text-xs font-bold px-3 py-1.5 rounded-full shadow-lg ${deal === 'sell' ? 'bg-emerald-500 text-white' : deal === 'rent' ? 'bg-blue-500 text-white' : 'bg-amber-500 text-white'}`}>{typeLabel}</span>
-              <span className="text-xs font-medium px-3 py-1.5 rounded-full bg-black/50 text-white flex items-center gap-1"><Eye className="w-3.5 h-3.5" /> {item.views_count || 0}</span>
-            </div>
-          </div>
-          {galleryKeys.length > 1 ? (
-            <div className="flex gap-2 mt-3 overflow-x-auto">
-              {galleryKeys.map((key, idx) => (
-                <button key={idx} type="button" onClick={() => setActivePhotoIdx(idx)} className={`flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden ${idx === activePhotoIdx ? 'ring-2 ring-emerald-500' : 'opacity-60'}`}>
-                  <StorageImg objectKey={key} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="max-w-4xl mx-auto px-4 space-y-5">
-          <div className="bg-white rounded-2xl shadow-sm p-5 md:p-6">
-            {item.price ? <p className="text-2xl md:text-3xl font-extrabold text-emerald-600 mb-2">{item.price}</p> : null}
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900">{item.title}</h1>
-            {item.address ? (
-              <div className="flex items-center gap-2 mt-2 text-sm text-gray-500"><MapPin className="w-4 h-4" /><span>{item.address}</span></div>
-            ) : null}
-            <p className="text-xs text-gray-400 mt-2">{item.created_at ? formatDate(item.created_at) : ''}</p>
-          </div>
-
-          {(item.rooms || item.area || item.floor_info) ? (
-            <div className="bg-white rounded-2xl shadow-sm p-5 md:p-6">
-              <h2 className="font-bold text-gray-900 mb-4">{t('realestate.characteristics')}</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {item.rooms ? <div className="text-center bg-gray-50 rounded-xl p-4"><p className="text-lg font-bold">{item.rooms}</p><p className="text-xs text-gray-400">{t('realestate.rooms')}</p></div> : null}
-                {item.area ? <div className="text-center bg-gray-50 rounded-xl p-4"><p className="text-lg font-bold">{item.area} {t('realestate.sqm')}</p><p className="text-xs text-gray-400">{t('realestate.area')}</p></div> : null}
-                {item.floor_info ? <div className="text-center bg-gray-50 rounded-xl p-4"><p className="text-lg font-bold">{item.floor_info}</p><p className="text-xs text-gray-400">{t('realestate.form.floor')}</p></div> : null}
-              </div>
-            </div>
-          ) : null}
-
-          <div className="bg-white rounded-2xl shadow-sm p-5 md:p-6">
-            <h2 className="font-bold text-gray-900 mb-3">{t('realestate.description')}</h2>
-            {(item.description || t('realestate.noDescription')).split('\n').map((p, i) => (
-              <p key={i} className="text-gray-600 leading-relaxed mb-3 text-sm">{p}</p>
-            ))}
-          </div>
-
-          {item.author_name || item.seller_type ? (
-            <div className="bg-white rounded-2xl shadow-sm p-5 md:p-6">
-              <h2 className="font-bold text-gray-900 mb-3">{t('realestate.contactPerson')}</h2>
-              <p className="font-semibold">{item.author_name}</p>
-              {item.seller_type && <p className="mt-2 text-sm">{t(`realestate.seller.${item.seller_type}`)}{item.agency_name ? ` · ${item.agency_name}` : ""}</p>}
-              {item.commission && <p className="mt-2 text-sm">{t("realestate.seller.commission")}: {item.commission}</p>}
-            </div>
-          ) : null}
-
-          <SafetyAlert variant="announcement_detail" />
-        </div>
-
-        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-200 z-40 safe-area-bottom">
-          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
-            {item.price ? <div className="hidden sm:block mr-auto"><p className="text-lg font-extrabold text-emerald-600">{item.price}</p></div> : null}
-            <a href={`tel:${item.phone}`} className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-xl text-sm font-bold"><Phone className="w-4 h-4" /> {t('realestate.call')}</a>
-            {item.whatsapp ? (
-              <a href={`https://wa.me/${item.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-green-600 text-white px-6 py-3 rounded-xl text-sm font-bold"><MessageCircle className="w-4 h-4" /> {t('realestate.whatsapp')}</a>
-            ) : null}
-            {item.telegram ? (
-              <a href={`https://t.me/${item.telegram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-blue-500 text-white px-5 py-3 rounded-xl text-sm font-bold"><Send className="w-4 h-4" /> Telegram</a>
-            ) : null}
-          </div>
-        </div>
-      </div>
-    </Layout>
-  );
+  return <Layout><div className="estate-surface estate-detail-page"><div className="estate-shell">
+    <nav className="estate-detail-nav" aria-label={t('realestate.backToList')}><Link to="/real-estate"><ChevronLeft size={18} />{t('realestate.backToList')}</Link>
+      <div><button type="button" className="estate-icon-button" onClick={shareListing} aria-label={t('realestate.design.share')}><Share2 size={19} /></button>
+        <button type="button" className="estate-icon-button" onClick={toggleFav} aria-label={t('realestate.favorites')} aria-pressed={isFav}><Heart size={19} fill={isFav ? 'currentColor' : 'none'} /></button></div>
+    </nav>
+    <header className="estate-detail-heading"><p className="estate-eyebrow">{typeLabel}</p><h1>{item.title}</h1>
+      {item.address && <p className="estate-address"><MapPin size={17} />{item.address}</p>}
+    </header>
+    <div className="estate-detail-grid"><div className="estate-detail-main">
+      <section className="estate-gallery" aria-label={t('realestate.gallery')}><div className="estate-gallery-main">
+        {galleryKeys.length ? <StorageImage objectKey={galleryKeys[activePhotoIdx] || galleryKeys[0]} alt={item.title || ''} className="w-full h-full object-cover" /> : <EstatePhotoPlaceholder t={t} />}
+        {galleryKeys.length > 1 && <>
+          <button type="button" className="estate-gallery-prev estate-icon-button" aria-label={t('realestate.design.previous')} onClick={() => setActivePhotoIdx(i => (i - 1 + galleryKeys.length) % galleryKeys.length)}><ChevronLeft size={21} /></button>
+          <button type="button" className="estate-gallery-next estate-icon-button" aria-label={t('realestate.design.next')} onClick={() => setActivePhotoIdx(i => (i + 1) % galleryKeys.length)}><ChevronLeft size={21} className="rotate-180" /></button>
+          <span className="estate-gallery-count">{activePhotoIdx + 1} / {galleryKeys.length}</span>
+        </>}
+      </div>{galleryKeys.length > 1 && <div className="estate-thumbnails">{galleryKeys.map((key,idx) => <button type="button" key={key} aria-label={`${t('realestate.design.photo')} ${idx + 1}`} aria-pressed={idx === activePhotoIdx} className={idx === activePhotoIdx ? 'is-selected' : ''} onClick={() => setActivePhotoIdx(idx)}><StorageImg objectKey={key} alt="" className="w-full h-full object-cover" /></button>)}</div>}</section>
+      {(item.rooms || item.area || item.floor_info) && <section className="estate-detail-panel"><h2>{t('realestate.characteristics')}</h2><dl className="estate-characteristics">
+        {item.rooms && <div><dt>{t('realestate.rooms')}</dt><dd>{item.rooms}</dd></div>}
+        {item.area && <div><dt>{t('realestate.area')}</dt><dd>{item.area} {t('realestate.sqm')}</dd></div>}
+        {item.floor_info && <div><dt>{t('realestate.form.floor')}</dt><dd>{item.floor_info}</dd></div>}
+      </dl></section>}
+      <section className="estate-detail-panel"><h2>{t('realestate.description')}</h2><p className="estate-description">{item.description || t('realestate.noDescription')}</p></section>
+      <div className="estate-detail-meta"><span>№ {item.id}</span>{item.created_at && <span>{formatDate(item.created_at)}</span>}<span><Eye size={14} />{item.views_count || 0}</span></div>
+    </div><aside className="estate-seller-panel"><div className="estate-detail-panel estate-seller-sticky">
+      <p className="estate-price">{item.price || t('realestate.design.priceUnknown')}</p><hr />
+      <h2>{item.author_name || t('realestate.contactPerson')}</h2>
+      {item.seller_type && <p className="estate-seller-role">{t(`realestate.seller.${item.seller_type}`)}</p>}
+      {item.agency_name && <p>{item.agency_name}</p>}
+      {item.commission && <p className="estate-commission">{t('realestate.seller.commission')}: {item.commission}</p>}
+      <div className="estate-seller-buttons">
+        {item.phone ? <a className="estate-button estate-button-primary" href={`tel:${item.phone}`}><Phone size={18} />{t('realestate.call')}</a> : <p>{t('realestate.design.contactMissing')}</p>}
+        {item.whatsapp && <a className="estate-button estate-button-secondary" href={`https://wa.me/${item.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer"><MessageCircle size={18} />WhatsApp</a>}
+        {item.telegram && <a className="estate-text-link" href={`https://t.me/${item.telegram.replace('@','')}`} target="_blank" rel="noopener noreferrer"><Send size={16} />Telegram</a>}
+      </div><SafetyAlert variant="announcement_detail" />
+    </div></aside></div>
+  </div></div></Layout>;
 }
 
 export function NewRealEstateForm() {
@@ -782,15 +518,15 @@ export function NewRealEstateForm() {
 
   return (
     <Layout>
-      <div className="max-w-lg mx-auto px-4 py-8">
+      <div className="estate-surface estate-form-page">
         <Link to="/real-estate" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> {t('common.back')}</Link>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('realestate.form.createTitle')}</h1>
         <p className="text-gray-500 mb-6">{t('realestate.form.createDesc')}</p>
-        <SafetyAlert variant="real_estate_form" />
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4 mt-4">
+        <p className="estate-form-help">{t("realestate.design.formHint")}</p><SafetyAlert variant="real_estate_form" />
+        <form onSubmit={handleSubmit} className="estate-form">
           <ReFormFields form={form} setForm={setForm} galleryKeys={galleryKeys} setGalleryKeys={setGalleryKeys} categories={categories} t={t} />
-          <button type="submit" disabled={submitting || submitted} className="w-full bg-emerald-600 text-white font-medium py-3 rounded-lg hover:bg-emerald-700 disabled:opacity-50">
-            {submitting ? <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> {t('realestate.form.submitting')}</span> : t('realestate.publish')}
+          <button type="submit" disabled={submitting || submitted} className="estate-button estate-button-primary estate-submit">
+            {submitting ? <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> {t('realestate.form.submitting')}</span> : t('realestate.design.moderation')}
           </button>
         </form>
       </div>
@@ -879,7 +615,7 @@ export function EditRealEstateForm() {
 
   return (
     <Layout>
-      <div className="max-w-lg mx-auto px-4 py-8">
+      <div className="estate-surface estate-form-page">
         <Link to="/cabinet?tab=realEstate" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> {t('realestate.myListings')}</Link>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('realestate.form.editTitle')}</h1>
         {status ? (
@@ -888,10 +624,10 @@ export function EditRealEstateForm() {
           </p>
         ) : null}
         {expiresAt ? <p className="text-sm text-gray-500 mb-4">{t('realestate.form.activeUntil')} {formatDate(expiresAt || "")}</p> : null}
-        <SafetyAlert variant="real_estate_form" />
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4 mt-4">
+        <p className="estate-form-help">{t("realestate.design.formHint")}</p><SafetyAlert variant="real_estate_form" />
+        <form onSubmit={handleSubmit} className="estate-form">
           <ReFormFields form={form} setForm={setForm} galleryKeys={galleryKeys} setGalleryKeys={setGalleryKeys} categories={categories} t={t} />
-          <button type="submit" disabled={submitting} className="w-full bg-emerald-600 text-white font-medium py-3 rounded-lg hover:bg-emerald-700 disabled:opacity-50">
+          <button type="submit" disabled={submitting} className="estate-button estate-button-primary estate-submit">
             {submitting ? <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> {t('realestate.form.saving')}</span> : t('realestate.form.save')}
           </button>
         </form>
