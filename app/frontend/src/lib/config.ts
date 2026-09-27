@@ -8,7 +8,7 @@
 
 import { Capacitor } from '@capacitor/core';
 
-const DEFAULT_NATIVE_API = 'https://sortirovka24-production-8788.up.railway.app';
+const DEFAULT_NATIVE_API = 'https://www.sortirovka24.kz';
 
 function resolveBaseURL(): string {
   const envUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;

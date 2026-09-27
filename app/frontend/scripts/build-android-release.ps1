@@ -1,5 +1,5 @@
 # Build signed, bundled APK/AAB. Never generate or replace an existing signing identity.
-param([int]$VersionCode = 0)
+param([int]$VersionCode = 0, [switch]$Live)
 $ErrorActionPreference = 'Stop'
 $FrontendRoot = Split-Path $PSScriptRoot -Parent
 $AndroidRoot = Join-Path $FrontendRoot 'android'
@@ -26,22 +26,27 @@ $env:ANDROID_SDK_ROOT = $SdkRoot
 [IO.File]::WriteAllText((Join-Path $AndroidRoot 'local.properties'), "sdk.dir=$($SdkRoot.Replace('\','/'))`n")
 Push-Location $FrontendRoot
 try {
-    & $NodeExe scripts/build-store-web.mjs android
+    $webArgs = @('scripts/build-store-web.mjs', 'android')
+    if ($Live) { $webArgs += '--live' }
+    & $NodeExe @webArgs
     if ($LASTEXITCODE -ne 0) { throw 'Web build / Capacitor sync failed.' }
     Push-Location $AndroidRoot
     try {
         $gradleArgs = @('bundleRelease', 'assembleRelease', '--no-daemon', '--max-workers=2')
+        if ($Live) { $gradleArgs = @('assembleRelease', '--no-daemon', '--max-workers=2') }
         if ($VersionCode -gt 0) { $gradleArgs += "-PstoreVersionCode=$VersionCode" }
         & .\gradlew.bat @gradleArgs
         if ($LASTEXITCODE -ne 0) { throw 'Gradle release failed.' }
     } finally { Pop-Location }
     $ReleasesDir = Join-Path $FrontendRoot 'releases'
     New-Item -ItemType Directory -Force -Path $ReleasesDir | Out-Null
-    foreach ($kind in @('aab', 'apk')) {
+    $kinds = if ($Live) { @('apk') } else { @('aab', 'apk') }
+    foreach ($kind in $kinds) {
         $relative = if ($kind -eq 'aab') { 'app/build/outputs/bundle/release/app-release.aab' } else { 'app/build/outputs/apk/release/app-release.apk' }
         $source = Join-Path $AndroidRoot $relative
         if (-not (Test-Path -LiteralPath $source)) { throw "Missing signed artifact: $source" }
-        $destination = Join-Path $ReleasesDir "Sortirovka24-release.$kind"
+        $artifactName = if ($Live) { "Sortirovka24-live.$kind" } else { "Sortirovka24-release.$kind" }
+        $destination = Join-Path $ReleasesDir $artifactName
         Copy-Item -LiteralPath $source -Destination $destination -Force
         Get-FileHash -LiteralPath $destination -Algorithm SHA256
     }

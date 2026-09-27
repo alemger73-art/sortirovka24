@@ -248,38 +248,6 @@ export default function Index() {
         <div className="max-w-6xl mx-auto px-4 py-10 space-y-12">
 
           {/* ═══════════════════════════════════════════
-              НОВОСТИ РАЙОНА
-          ═══════════════════════════════════════════ */}
-          {isEnabled('news') && (
-          <section aria-label={lang === 'kz' ? 'Аудан жаңалықтары' : 'Новости района'} className="rounded-3xl border border-blue-100 bg-blue-50/60 p-4 sm:p-6 dark:border-blue-900/50 dark:bg-blue-950/20">
-            <SectionHeader title={lang === 'kz' ? 'Аудан жаңалықтары' : 'Новости района'} accentColor="from-blue-500 to-cyan-500" linkTo="/news" linkText={lang === 'kz' ? 'Барлық жаңалықтар' : 'Все новости'} />
-            <p className="-mt-3 mb-5 text-sm text-slate-600 dark:text-slate-400">{lang === 'kz' ? 'Сұрыптауда не болып жатыр: оқиғалар мен тұрғындарға маңызды ақпарат.' : 'Что происходит на Сортировке: события и важная информация для жителей.'}</p>
-            {news.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                {news.slice(0, 5).map((item, index) => (
-                  <Link key={item.id} to={`/news/${item.id}`} className={`group overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 ${index === 0 ? 'md:row-span-4' : 'flex items-center'}`}>
-                    <div className={index === 0 ? 'h-56 sm:h-64 overflow-hidden bg-slate-800' : 'w-24 h-24 shrink-0 overflow-hidden bg-slate-800'}>
-                      {item.image_url ? <StorageImg objectKey={item.image_url} alt="" className="w-full h-full object-cover" /> : <FileText className="w-10 h-full mx-auto text-sky-300" />}
-                    </div>
-                    <div className={index === 0 ? 'p-5' : 'p-3 min-w-0'}>
-                      <span className="text-xs text-gray-500">{formatDate(item.created_at)}</span>
-                      <h3 className={`${index === 0 ? 'text-xl' : 'text-sm'} font-bold mt-1 text-gray-900 dark:text-white line-clamp-3`}>{item.title}</h3>
-                      {index === 0 && <><p className="mt-3 text-sm text-gray-500 dark:text-gray-400 line-clamp-3">{item.short_description}</p><span className="inline-block mt-4 text-sm font-semibold text-sky-600 dark:text-sky-300">{lang === 'kz' ? 'Жаңалықты оқу →' : 'Читать новость →'}</span></>}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 text-center border border-gray-100 dark:border-gray-800">
-                <FileText className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                <p className="text-gray-400 dark:text-gray-500 text-sm">{loading ? (lang === 'kz' ? 'Жаңалықтар жүктелуде…' : 'Новости загружаются…') : error || isStale ? (lang === 'kz' ? 'Жаңалықтарды жүктеу мүмкін болмады' : 'Не удалось загрузить новости') : (lang === 'kz' ? 'Жаңа жаңалықтар әзірге жоқ' : 'Новых новостей пока нет')}</p>
-              </div>
-            )}
-          </section>
-          )}
-
-
-          {/* ═══════════════════════════════════════════
               1b. МАГАЗИНЫ РАЙОНА — DAM ALEM 2.0 рядом с остальными
           ═══════════════════════════════════════════ */}
           {(isEnabled('food') || isEnabled('gastronom') || isEnabled('volna') || isEnabled('prorab') || isEnabled('pharmacy')) && (
@@ -398,6 +366,29 @@ export default function Index() {
               ))}
             </div>
           </section>
+          )}
+
+          {isEnabled('news') && (
+            <section aria-label={lang === 'kz' ? 'Аудан жаңалықтары' : 'Новости района'} className="rounded-2xl border border-blue-100 bg-white p-4 sm:p-5 dark:border-blue-900/50 dark:bg-gray-900">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <h2 className="flex items-center gap-2 text-base sm:text-lg font-bold text-gray-900 dark:text-white"><FileText className="w-5 h-5 shrink-0 text-blue-500" />{lang === 'kz' ? 'Аудан жаңалықтары' : 'Новости района'}</h2>
+                <Link to="/news" className="flex min-h-[44px] shrink-0 items-center gap-1 text-sm font-semibold text-blue-600 dark:text-blue-400">{lang === 'kz' ? 'Барлығы' : 'Все новости'}<ChevronRight className="w-4 h-4" /></Link>
+              </div>
+              {news.length > 0 ? (
+                <Link to={`/news/${news[0].id}`} className="group flex items-center gap-3 sm:gap-4 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">
+                  <div className="h-20 w-20 sm:h-24 sm:w-24 shrink-0 overflow-hidden rounded-xl bg-blue-50 dark:bg-blue-950">
+                    {news[0].image_url ? <StorageImg objectKey={news[0].image_url} alt="" className="h-full w-full object-cover" /> : <FileText className="mx-auto h-full w-8 text-blue-400" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{formatDate(news[0].created_at)}</p>
+                    <h3 className="mt-1 text-sm sm:text-base font-semibold text-gray-900 dark:text-white line-clamp-2 group-hover:text-blue-600">{news[0].title}</h3>
+                    <span className="mt-1 inline-block text-xs font-medium text-blue-600 dark:text-blue-400">{lang === 'kz' ? 'Оқу →' : 'Читать →'}</span>
+                  </div>
+                </Link>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">{loading ? (lang === 'kz' ? 'Жаңалықтар жүктелуде…' : 'Новости загружаются…') : (lang === 'kz' ? 'Аудан оқиғалары мен тұрғындарға маңызды ақпарат.' : 'События района и важная информация для жителей.')}</p>
+              )}
+            </section>
           )}
 
           {/* ═══════════════════════════════════════════
