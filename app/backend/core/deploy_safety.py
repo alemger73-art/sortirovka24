@@ -20,7 +20,11 @@ PRODUCTION_HOSTS = {
 
 
 def environment_name() -> str:
-    return (os.getenv("ENVIRONMENT") or "local").strip().lower()
+    for key in ("ENVIRONMENT", "RAILWAY_ENVIRONMENT_NAME", "RAILWAY_ENVIRONMENT"):
+        value = os.getenv(key, "").strip().lower()
+        if value:
+            return value
+    return "local"
 
 
 def _enabled(name: str) -> bool:

@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch
 
 from core.deploy_safety import (
+    environment_name,
     database_target_fingerprint,
     external_side_effects_allowed,
     staging_safety_errors,
@@ -25,6 +26,17 @@ SAFE_STAGING = {
 
 
 class DeploySafetyTests(unittest.TestCase):
+    def test_railway_environment_is_detected_without_override(self):
+        with patch.dict(os.environ, {"RAILWAY_ENVIRONMENT_NAME": "production"}, clear=True):
+            self.assertEqual(environment_name(), "production")
+        with patch.dict(os.environ, {"ENVIRONMENT": "test", "RAILWAY_ENVIRONMENT_NAME": "production"}, clear=True):
+            self.assertEqual(environment_name(), "test")
+        with patch.dict(os.environ, {"RAILWAY_ENVIRONMENT": "staging"}, clear=True):
+            self.assertEqual(environment_name(), "staging")
+            self.assertTrue(staging_safety_errors())
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(environment_name(), "local")
+
     def test_safe_staging_contract_passes(self):
         with patch.dict(os.environ, SAFE_STAGING, clear=True):
             self.assertEqual(staging_safety_errors(), [])
