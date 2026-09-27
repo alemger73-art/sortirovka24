@@ -1,7 +1,7 @@
 import logging
 from typing import Optional, Dict, Any, List
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.news import News
@@ -72,7 +72,13 @@ class NewsService:
             
             if query_dict:
                 for field, value in query_dict.items():
-                    if hasattr(News, field):
+                    if field == "search" and isinstance(value, str):
+                        term = value.strip()[:200]
+                        if term:
+                            condition = or_(News.title.icontains(term, autoescape=True), News.content.icontains(term, autoescape=True), News.short_description.icontains(term, autoescape=True))
+                            query = query.where(condition)
+                            count_query = count_query.where(condition)
+                    elif hasattr(News, field):
                         query = query.where(getattr(News, field) == value)
                         count_query = count_query.where(getattr(News, field) == value)
             
@@ -90,6 +96,7 @@ class NewsService:
             else:
                 query = query.order_by(News.id.desc())
 
+            query = query.order_by(News.id.desc())
             result = await self.db.execute(query.offset(skip).limit(limit))
             items = result.scalars().all()
 

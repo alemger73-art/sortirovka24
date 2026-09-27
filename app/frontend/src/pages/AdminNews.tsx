@@ -1,3 +1,4 @@
+import { instagramPost, splitNewsContent } from '@/lib/news';
 import { adminMetadataLabel } from '@/i18n/adminTranslations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useEffect } from 'react';
@@ -24,6 +25,7 @@ interface NewsItem {
   image_url?: string;
   gallery_images?: string;
   youtube_url?: string;
+  instagram_link?: string;
   published?: boolean;
   created_at?: string;
 }
@@ -56,25 +58,30 @@ export default function AdminNews() {
   useEffect(() => { fetchItems(); }, []);
 
   const openCreate = () => {
-    setEditItem({ title: '', content: '', short_description: '', category: NEWS_CATEGORIES[0], image_url: '', gallery_images: '', youtube_url: '', published: true });
+    setEditItem({ title: '', content: '', short_description: '', category: NEWS_CATEGORIES[0], image_url: '', gallery_images: '', youtube_url: '', published: false });
     setDialogOpen(true);
   };
 
   const openEdit = (item: NewsItem) => {
-    setEditItem({ ...item });
+    const body = splitNewsContent(item.content);
+    setEditItem({ ...item, content: body.content, instagram_link: body.instagram });
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
-    if (!editItem?.title || !editItem?.content || !editItem?.category) {
+    if (!editItem?.title?.trim() || !editItem?.content?.trim() || !editItem?.category) {
       toast.error(adminT("admin.ui.0921"));
       return;
+    }
+    if (saving) return;
+    if (editItem.instagram_link && !instagramPost(editItem.instagram_link)) {
+      toast.error(lang === 'kz' ? 'Instagram постының немесе Reels сілтемесін енгізіңіз' : 'Укажите ссылку на публикацию или Reels в Instagram'); return;
     }
     setSaving(true);
     try {
       const data = {
-        title: editItem.title,
-        content: editItem.content,
+        title: editItem.title.trim(),
+        content: [editItem.content.trim(), editItem.instagram_link ? instagramPost(editItem.instagram_link) : ''].filter(Boolean).join('\n\n'),
         short_description: editItem.short_description || '',
         category: editItem.category,
         image_url: editItem.image_url || '',
@@ -83,10 +90,10 @@ export default function AdminNews() {
         published: editItem.published ?? true,
       };
       if (editItem.id) {
-        await withRetry(() => client.entities.news.update({ id: String(editItem.id), data }));
+        await client.entities.news.update({ id: String(editItem.id), data });
         toast.success(adminT("admin.ui.0959"));
       } else {
-        await withRetry(() => client.entities.news.create({ data: { ...data, created_at: new Date().toISOString().replace('T', ' ').slice(0, 19) } }));
+        await client.entities.news.create({ data: { ...data, created_at: new Date().toISOString() } });
         toast.success(adminT("admin.ui.0960"));
       }
       invalidateAllCaches();
@@ -122,6 +129,9 @@ export default function AdminNews() {
           <Plus className="h-4 w-4 mr-1" /> {adminT("admin.ui.0062")} </Button>
       </div>
 
+      <div className="rounded-xl border border-blue-200 dark:border-blue-900 p-4 text-sm text-gray-600 dark:text-gray-300">
+        {lang === 'kz' ? 'Алдымен мәтін мен фотосуреттерді қосып, нобайды сақтаңыз. Дайын болғанда жариялауды қосыңыз. Instagram сілтемесі қосымша беріледі, автоматты импорт қосылмаған.' : 'Добавьте текст и фотографии, сохраните черновик и проверьте предпросмотр. Когда всё готово — включите публикацию. Ссылку на Instagram можно приложить к статье; автоматический импорт пока не подключён.'}
+      </div>
       <div className="space-y-2">
         {items.map(item => (
           <Card key={item.id} className="overflow-hidden bg-white">
@@ -143,13 +153,13 @@ export default function AdminNews() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPreviewItem(item)}>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={lang === "kz" ? "Алдын ала қарау" : "Предпросмотр"} onClick={() => setPreviewItem(item)}>
                     <Eye className="h-4 w-4 text-gray-500" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(item)}>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={lang === "kz" ? "Өзгерту" : "Редактировать"} onClick={() => openEdit(item)}>
                     <Pencil className="h-4 w-4 text-blue-600" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleDelete(item.id)}>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={lang === "kz" ? "Жою" : "Удалить"} onClick={() => handleDelete(item.id)}>
                     <Trash2 className="h-4 w-4 text-red-500" />
                   </Button>
                 </div>
@@ -215,6 +225,10 @@ export default function AdminNews() {
                     <iframe src={getYoutubeEmbedUrl(editItem.youtube_url)!} className="w-full h-full" allowFullScreen title="preview" />
                   </div>
                 )}
+              </div>
+              <div>
+                <label htmlFor="news-instagram-link" className="text-sm font-medium">{lang === 'kz' ? 'Instagram жарияланымының сілтемесі' : 'Ссылка на публикацию в Instagram'}</label>
+                <Input id="news-instagram-link" value={editItem.instagram_link || ''} onChange={e => setEditItem({ ...editItem, instagram_link: e.target.value })} placeholder="https://www.instagram.com/p/.../" />
               </div>
               <div className="flex items-center gap-2">
                 <input type="checkbox" id="published" checked={editItem.published ?? true} onChange={e => setEditItem({ ...editItem, published: e.target.checked })} className="rounded" />
