@@ -82,6 +82,7 @@ const CabinetPartner = lazy(() => import("./pages/CabinetPartner"));
 const CabinetAdmin = lazy(() => import("./pages/CabinetAdmin"));
 const CabinetOrderDetail = lazy(() => import("./pages/CabinetOrderDetail"));
 const DamAlemCourier = lazy(() => import("./pages/DamAlemCourier"));
+const DamOperatorDesktop = lazy(() => import("./pages/DamOperatorDesktop"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Minimal skeleton loading fallback
@@ -223,6 +224,7 @@ function App() {
 
               {/* Admin panel — accessible via /admin */}
               <Route path="/admin" element={<AdminPanel />} />
+              <Route path="/partner/dam-alem/operator" element={<DamOperatorDesktop />} />
               <Route path="/partner/dam-alem" element={<PartnerDamAlemAdmin />} />
               <Route path="/partner/gastronom" element={<PartnerGastronomAdmin />} />
               <Route path="/partner/volna" element={<PartnerVolnaAdmin />} />

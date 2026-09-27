@@ -72,6 +72,7 @@ function sessionKey(partnerType: PartnerType): string {
 
 export function getPartnerToken(partnerType: PartnerType): string {
   try {
+    if (partnerType === 'dam_alem' && location.pathname.startsWith('/partner/dam-alem/operator')) return sessionStorage.getItem('dam_workstation_session') || '';
     if (partnerType === 'dam_alem') {
       return localStorage.getItem(sessionKey(partnerType))
         || localStorage.getItem('_dam_alem_partner_token')
