@@ -22,6 +22,24 @@ class PinBody(BaseModel):
     pin: str = Field(pattern=r"^\d{4}$")
 
 
+from services.food_procurement import ProcurementReport, close_blockers, report_view
+
+
+class CloseShiftBody(PinBody):
+    shift_id: int | None = Field(None, gt=0)
+    procurement: ProcurementReport | None = None
+
+
+@router.get('/close-preview')
+async def close_preview(db: AsyncSession = Depends(get_db), claims=Depends(food_staff)):
+    return await close_blockers(db)
+
+
+@router.get('/{shift_id}/procurement')
+async def procurement(shift_id: int, db: AsyncSession = Depends(get_db), claims=Depends(food_owner)):
+    return {'report': await report_view(db, shift_id)}
+
+
 def _limit(request: Request, staff_id: str | int) -> None:
     host = request.client.host if request.client else "unknown"
     check_keyed_rate_limit(
@@ -70,7 +88,7 @@ async def open_my_shift(body: PinBody, request: Request, db: AsyncSession = Depe
 
 
 @router.post("/close")
-async def close_my_shift(body: PinBody, request: Request, db: AsyncSession = Depends(get_db), claims=Depends(food_staff)):
+async def close_my_shift(body: CloseShiftBody, request: Request, db: AsyncSession = Depends(get_db), claims=Depends(food_staff)):
     staff_id = claims.get("staff_id")
     credentials = await db.get(PartnerCredentials, int(staff_id)) if staff_id else None
     if not credentials:
@@ -83,6 +101,8 @@ async def close_my_shift(body: PinBody, request: Request, db: AsyncSession = Dep
         staff_id=staff_id,
         stored_pin=credentials.pin_hash,
         pin=body.pin,
+        report=body.procurement,
+        shift_id=body.shift_id,
     )
     return {"shift": shift_view(row)}
 

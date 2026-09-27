@@ -122,11 +122,12 @@ async def test_assignment_rechecks_courier_readiness(env, unavailable):
                 pickup_address='A',dropoff_address='B',status='on_the_way',courier_id='courier'))
         await db.commit()
     choices = (await client.get(BASE+'/couriers',headers=headers)).json()['items']
-    assert not any(c['id']=='courier' and c['assignable'] for c in choices)
+    allowed = unavailable in ('offline','busy')  # Stage 2: explicit dispatch needs verified + active + on shift.
+    assert any(c['id']=='courier' and c['assignable'] for c in choices) == allowed
     response = await client.post(BASE+'/orders/1/assign-courier',headers=headers,json={'courier_id':'courier'})
-    assert response.status_code in (404,409), response.text
+    assert response.status_code == 200 if allowed else response.status_code in (404,409), response.text
     detail = (await client.get(BASE+'/orders/1',headers=headers)).json()['order']
-    assert detail['status']=='ready'
+    assert detail['status']==('in_progress' if allowed else 'ready')
 
 
 @pytest.mark.asyncio
@@ -151,7 +152,11 @@ async def test_restoring_shift_does_not_open_or_close_it(env):
     second=(await client.get(url+'/me',headers=operator)).json()['shift']
     assert first['id']==second['id'] and first['opened_at']==second['opened_at']
     assert (await client.post(url+'/close',headers=operator,json={'pin':'0000'})).status_code==401
-    assert (await client.post(url+'/close',headers=operator,json={'pin':'2222'})).status_code==200
+    # Stage 2 requires finishing active orders and an explicit procurement report.
+    assert (await client.post(url+'/close',headers=operator,json={'pin':'2222'})).status_code==409
+    async with maker() as db:
+        order=await db.get(Food_orders,1);order.status='done';await db.commit()
+    assert (await client.post(url+'/close',headers=operator,json={'pin':'2222','procurement':{'not_required':True,'reason':'Остатков достаточно'}})).status_code==200
     assert (await client.get(url+'/me',headers=operator)).json()['shift'] is None
     response=await client.patch(BASE+'/orders/1',headers=operator,json={'expected_version':0,'status':'confirmed'})
     assert response.status_code==409

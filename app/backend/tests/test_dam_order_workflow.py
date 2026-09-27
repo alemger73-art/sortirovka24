@@ -54,7 +54,7 @@ async def env(monkeypatch, tmp_path):
         courier=await db.get(CourierProfile,'courier')
         courier.pin_hash=hash_courier_pin('2954')
         await open_shift(db,staff_type='courier',staff_id='courier',staff_name='Courier',role='courier',stored_pin=courier.pin_hash,pin='2954')
-    for target in ['services.food_orders.link_food_order_to_user','services.food_orders.push_food_order_to_frontpad','services.admin_alerts.alert_new_food_order','services.user_notifications.notify_food_order_created','services.user_notifications.notify_food_order_status','services.user_notifications.notify_logistics_task_status','services.user_notifications.notify_user_by_phone','services.bonus_rewards.handle_food_order_status_bonus']:
+    for target in ['services.courier_notifications.notify_courier_task','services.food_orders.link_food_order_to_user','services.food_orders.push_food_order_to_frontpad','services.admin_alerts.alert_new_food_order','services.user_notifications.notify_food_order_created','services.user_notifications.notify_food_order_status','services.user_notifications.notify_logistics_task_status','services.user_notifications.notify_user_by_phone','services.bonus_rewards.handle_food_order_status_bonus']:
         monkeypatch.setattr(target,AsyncMock(return_value=None))
     async def courier_profile(db,user):
         return await db.scalar(select(CourierProfile).where(CourierProfile.user_id==user.id))
@@ -239,7 +239,9 @@ async def test_ready_courier_delivery_and_cancellation_are_one_workflow(env):
         await advance_task_status(db,task,user,'delivered')
         food=await db.get(Food_orders,1)
         assert food.status=='done' and food.completed_at
-        with pytest.raises(ValueError): await advance_task_status(db,task,user,'delivered')
+        # A retry after a lost delivery response is idempotent; it must not
+        # count a second delivery or accrue a second courier payment.
+        await advance_task_status(db,task,user,'delivered')
         profile=await db.scalar(select(CourierProfile))
         assert profile.deliveries_count==1
 

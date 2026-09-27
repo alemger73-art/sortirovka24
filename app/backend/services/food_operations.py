@@ -130,7 +130,7 @@ async def deliver_one(db, event_id):
     event = await db.get(FoodOrderEvent, event_id)
     if not event or event.notification != 'pending' or event.retry_at > time.time():
         return
-    if cfg and not cfg.status_updates and event.message != 'Заказ создан':
+    if not event.shift_id and cfg and not cfg.status_updates and event.message != 'Заказ создан':
         event.notification = 'none'
         await db.commit()
         return
@@ -139,15 +139,21 @@ async def deliver_one(db, event_id):
     if not claimed.rowcount:
         return
     await db.refresh(event)
-    order = await db.get(Food_orders, event.order_id)
-    if not order:
-        event.notification, event.error = 'failed', 'Заказ не найден'
+    order = await db.get(Food_orders, event.order_id) if event.order_id else None
+    if event.shift_id:
+        from services.food_procurement import report_text
+        message = await report_text(db, event.shift_id)
+    elif order:
+        message = notification_text(order, event)
+    else:
+        event.notification, event.error = 'failed', 'Заказ или закуп не найден'
         await db.commit()
         return
-    payload = {'chat_id': chat, 'text': notification_text(order, event)}
+    payload = {'chat_id': chat, 'text': message}
     base = (os.environ.get('PUBLIC_FRONTEND_URL') or os.environ.get('FRONTEND_URL') or '').rstrip('/')
     if base.startswith('https://'):
-        payload['reply_markup'] = {'inline_keyboard': [[{'text': 'Открыть заказ в кабинете', 'url': f'{base}/partner/dam-alem?section=orders&order={order.id}'}]]}
+        path = f'?section=staff' if event.shift_id else f'?section=orders&order={order.id}'
+        payload['reply_markup'] = {'inline_keyboard': [[{'text': 'Открыть в кабинете', 'url': f'{base}/partner/dam-alem{path}'}]]}
     try:
         result = await telegram_call(token, 'sendMessage', payload)
         event.notification, event.error = 'sent', None

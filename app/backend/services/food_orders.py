@@ -24,6 +24,8 @@ class Food_ordersService:
     async def create(self, data: Dict[str, Any], account_user=None, *, request_key=None, request_hash=None, actor="Система") -> Optional[Food_orders]:
         """Create a new food_orders"""
         try:
+            from services.food_preorders import lock_dam_operations
+            await lock_dam_operations(self.db)
             _allowed = set(Food_orders.__table__.columns.keys())
             bonus_points = float(data.get("bonus_points_used") or 0)
             bonus_discount = float(data.get("bonus_discount_amount") or 0)
@@ -157,6 +159,8 @@ class Food_ordersService:
     async def update(self, obj_id: int, update_data: Dict[str, Any], *, expected_version=None, actor="Система") -> Optional[Food_orders]:
         """Update food_orders"""
         try:
+            from services.food_preorders import lock_dam_operations
+            await lock_dam_operations(self.db)
             obj = await self.get_by_id(obj_id)
             if not obj:
                 logger.warning(f"Food_orders {obj_id} not found for update")
@@ -164,6 +168,7 @@ class Food_ordersService:
             old_status = obj.status
             dam_order = await is_dam_order(self.db, obj)
             if dam_order:
+                early = update_data.pop('start_early', False)
                 version = obj.version or 0
                 if expected_version is not None and version != expected_version:
                     raise HTTPException(409, "Заказ уже изменён другим оператором. Обновите карточку.")
@@ -172,10 +177,20 @@ class Food_ordersService:
                 if obj.payment_status == 'paid' and update_data.get('payment_status', 'paid') != 'paid':
                     raise HTTPException(422, 'Полученную оплату нельзя стереть. Возврат отмечается владельцем отдельно.')
                 target = update_data.get('status', old_status)
+                from services.food_preorders import schedule_view, schedule_settings, validate_schedule
+                settings = await schedule_settings(self.db)
+                if target == 'preparing' and old_status == 'confirmed' and schedule_view(obj, settings)['is_future_preorder'] and not early:
+                    raise HTTPException(409, 'Подтвердите раннее начало приготовления предзаказа')
+                if 'scheduled_for' in update_data:
+                    if old_status not in ('new', 'confirmed'):
+                        raise HTTPException(409, 'Перенос возможен только до начала приготовления')
+                    previous_schedule = obj.scheduled_for
+                    update_data['scheduled_for'] = validate_schedule(update_data['scheduled_for'], settings)
+                    add_event(self.db, obj, f"Предзаказ перенесён: {previous_schedule or 'сейчас'} → {update_data['scheduled_for']}", actor)
                 transitions = {'new': {'confirmed', 'cancelled'}, 'confirmed': {'preparing', 'cancelled'}, 'preparing': {'ready', 'cancelled'}, 'ready': {'in_progress', 'done', 'cancelled'}, 'in_progress': {'done', 'cancelled'}}
                 if target == 'in_progress' and obj.delivery_method in ('pickup', 'dine_in'):
                     raise HTTPException(422, "Самовывоз не передаётся в доставку")
-                if target == 'in_progress' and obj.delivery_method in ('delivery', 'доставка'):
+                if target != old_status and target == 'in_progress' and obj.delivery_method in ('delivery', 'доставка'):
                     raise HTTPException(409, "Выберите курьера и нажмите «Отдано курьеру»")
                 if target == 'done' and old_status == 'in_progress' and obj.delivery_method in ('delivery', 'доставка'):
                     raise HTTPException(409, "Доставку завершает назначенный курьер")
@@ -213,12 +228,25 @@ class Food_ordersService:
             if dam_order and ('status' in update_data or 'delivery_address' in update_data or 'payment_status' in update_data):
                 from services.dam_order_workflow import sync_task
                 await sync_task(self.db, obj)
+                if obj.status == 'cancelled':
+                    from services.dam_order_workflow import task_for
+                    from services.courier_issues import resolve_terminal_issues
+                    delivery = await task_for(self.db, obj)
+                    if delivery:
+                        await resolve_terminal_issues(self.db, delivery, 'Заказ отменён: '+str(obj.cancellation_reason or ''),
+                            {'display_name':actor,'sub':actor,'access_role':'operator'})
             if 'status' in update_data or 'payment_status' in update_data:
                 from services.bonus_rewards import settle_food_order_bonus
                 await settle_food_order_bonus(self.db, obj)
             await self.db.commit()
             await self.db.refresh(obj)
             if "status" in update_data and update_data["status"] != old_status:
+                if dam_order and obj.status == 'cancelled':
+                    from services.dam_order_workflow import task_for
+                    from services.courier_notifications import notify_courier_task
+                    task = await task_for(self.db, obj)
+                    if task:
+                        await notify_courier_task(self.db, task, 'cancelled', version=obj.version)
                 try:
                     if not dam_order:
                         await notify_telegram_order_status({

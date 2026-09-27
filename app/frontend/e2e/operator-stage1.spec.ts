@@ -23,6 +23,7 @@ async function setup(page:Page, fulfillment='delivery', source='app') {
       if(state.expired)return r.fulfill({status:403,json:{detail:'Доступ отключён'}});
       json={staff:{id:2,name:'Айжан',role:'operator',pin_set:true},shift:shift()};
     }
+    if(path.endsWith('/shifts/close-preview'))json={can_close:true,orders:[],counts:{}};
     if(path.endsWith('/shifts/close')){state.closed++;state.shift=false;json={shift:null};}
     if(path.endsWith('/workstation/enter')){state.pinEntries++;state.shift=true;json={token:'operator',name:'Айжан',shift:shift()};}
     if(path.endsWith('/business/me'))json={role:'operator',name:'Айжан'};
@@ -30,7 +31,7 @@ async function setup(page:Page, fulfillment='delivery', source='app') {
     if(path.endsWith('/operations/order-counts'))json={all:1,[order.status]:1,ready_all:order.status==='ready'?1:0};
     if(path.endsWith('/operations/couriers'))json={items:[
       {id:'offline',name:'Не на смене',on_shift:false,online:false,active_delivery:false,assignable:false},
-      {id:'busy',name:'Занятый',on_shift:true,online:true,active_delivery:true,assignable:false},
+      {id:'busy',name:'Занятый',on_shift:true,online:true,active_delivery:true,active_deliveries:2,assignable:true},
       {id:'ready',name:'Алсу',on_shift:true,online:true,active_delivery:false,assignable:true},
     ]};
     if(path.endsWith('/operations/orders')){
@@ -64,7 +65,7 @@ test('new alert, explicit acceptance, kitchen and eligible courier',async({page}
   await page.getByRole('button',{name:'Готово',exact:true}).click();
   const select=page.getByLabel('Выберите курьера');
   await expect(select.locator('option[value="offline"]')).toHaveJSProperty('disabled',true);
-  await expect(select.locator('option[value="busy"]')).toHaveJSProperty('disabled',true);
+  await expect(select.locator('option[value="busy"]')).toHaveJSProperty('disabled',false);
   await select.selectOption('ready');await page.getByRole('button',{name:'Назначить курьера',exact:true}).click();
   await expect(page.getByText(/Курьер: Алсу/)).toBeVisible();
   expect(state.order.payment_status).toBe('pending');
@@ -89,6 +90,9 @@ test('refresh preserves session, lock requires PIN, close is separate',async({pa
   expect(state.pinEntries).toBe(1);
   await page.locator('input[placeholder="••••"]').fill('1234');
   await page.getByRole('button',{name:'Закрыть смену',exact:true}).click();
+  await page.getByLabel('Закуп не требуется',{exact:true}).check();
+  await page.getByLabel('Причина',{exact:true}).fill('Остатков достаточно');
+  await page.getByRole('button',{name:'Сохранить закуп и закрыть смену',exact:true}).click();
   await expect.poll(()=>state.closed).toBe(1);
   expect(state.shift).toBe(false);
 });

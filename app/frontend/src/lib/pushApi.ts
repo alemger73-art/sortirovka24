@@ -1,5 +1,6 @@
 import { getAPIBaseURL } from '@/lib/config';
 import { getAccountToken } from '@/lib/accountApi';
+import { getCourierToken } from '@/lib/courierSession';
 
 function apiBase(): string {
   return getAPIBaseURL().replace(/\/$/, '');
@@ -18,7 +19,11 @@ async function pushApi<T>(
   init?: RequestInit,
   token?: string | null,
 ): Promise<T> {
-  const auth = token === undefined ? getAccountToken() : token;
+  // A personal courier workspace must link this device to its PIN identity,
+  // even if a different customer account is also signed in on this browser.
+  const workspaceToken = typeof window !== 'undefined' && window.location.pathname === '/food/courier'
+    ? getCourierToken() : '';
+  const auth = token === undefined ? workspaceToken || getAccountToken() : token;
   const resp = await fetch(`${apiBase()}${path}`, {
     ...init,
     headers: {

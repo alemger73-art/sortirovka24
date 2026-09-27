@@ -37,3 +37,5 @@ class Food_orders(Base):
     receipt_updated_at = Column(String, nullable=True)
     order_source = Column(String, nullable=True)
     pricing_snapshot = Column(String, nullable=True)
+    # ISO UTC, matching the existing order timestamp representation.
+    scheduled_for = Column(String(40), nullable=True, index=True)

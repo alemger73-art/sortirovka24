@@ -9,6 +9,26 @@ from models.food_settings import Food_settings
 logger = logging.getLogger(__name__)
 
 
+def validate_setting(key, value):
+    if key == 'courier_payout':
+        from decimal import Decimal, InvalidOperation
+        try:
+            amount = Decimal(str(value))
+            if not amount.is_finite() or not 0 <= amount <= 50000 or amount.as_tuple().exponent < -2:
+                raise ValueError()
+        except (ValueError, TypeError, InvalidOperation):
+            from fastapi import HTTPException
+            raise HTTPException(422, 'Вознаграждение курьеру: сумма от 0 до 50 000 ₸, не более двух знаков после запятой') from None
+    if key == 'preorder_lead_minutes':
+        try:
+            number = int(value)
+            if str(number) != str(value).strip() or not 0 <= number <= 1440:
+                raise ValueError()
+        except (ValueError, TypeError):
+            from fastapi import HTTPException
+            raise HTTPException(422, 'Время подготовки предзаказа: целое число от 0 до 1440 минут') from None
+
+
 # ------------------ Service Layer ------------------
 class Food_settingsService:
     """Service layer for Food_settings operations"""
@@ -19,6 +39,7 @@ class Food_settingsService:
     async def create(self, data: Dict[str, Any]) -> Optional[Food_settings]:
         """Create a new food_settings"""
         try:
+            validate_setting(data.get('setting_key'), data.get('setting_value'))
             _allowed = set(Food_settings.__table__.columns.keys())
             obj = Food_settings(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
@@ -93,6 +114,7 @@ class Food_settingsService:
             if not obj:
                 logger.warning(f"Food_settings {obj_id} not found for update")
                 return None
+            validate_setting(update_data.get('setting_key',obj.setting_key), update_data.get('setting_value',obj.setting_value))
             for key, value in update_data.items():
                 if hasattr(obj, key):
                     setattr(obj, key, value)

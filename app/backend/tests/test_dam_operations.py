@@ -8,6 +8,7 @@ from sqlalchemy import select
 from core.database import Base, get_db
 from core.auth import create_access_token
 from models.food_orders import Food_orders
+from models.food_settings import Food_settings
 from models.partner_auth import PartnerCredentials
 from models.food_restaurants import Food_restaurants
 from models.food_operations import FoodOperationsSettings, FoodOrderEvent
@@ -23,7 +24,7 @@ from services import food_operations as ops
 async def setup(monkeypatch):
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     async with engine.begin() as conn:
-        await conn.run_sync(lambda c: Base.metadata.create_all(c, tables=[User.__table__, FoodRefund.__table__, PartnerCredentials.__table__, Food_orders.__table__, Food_restaurants.__table__, FoodOperationsSettings.__table__, FoodOrderEvent.__table__, FoodShift.__table__, FoodStaffAction.__table__, CourierProfile.__table__, LogisticsTask.__table__]))
+        await conn.run_sync(lambda c: Base.metadata.create_all(c, tables=[Food_settings.__table__, User.__table__, FoodRefund.__table__, PartnerCredentials.__table__, Food_orders.__table__, Food_restaurants.__table__, FoodOperationsSettings.__table__, FoodOrderEvent.__table__, FoodShift.__table__, FoodStaffAction.__table__, CourierProfile.__table__, LogisticsTask.__table__]))
     maker = async_sessionmaker(engine, expire_on_commit=False)
     async with maker() as db:
         db.add(PartnerCredentials(id=10,partner_type='dam_alem',email='owner@example.test',password_hash='unused',display_name='test-operator',is_active=True,access_role='owner'))

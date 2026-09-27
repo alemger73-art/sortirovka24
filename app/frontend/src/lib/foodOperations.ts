@@ -3,13 +3,17 @@ import { getPublicLanguage } from '@/i18n/publicLocale';
 import { getAPIBaseURL } from './config';
 import { getPartnerToken } from './partnerAuthApi';
 
+export class FoodApiError extends Error { constructor(message: string, public detail?: {code?: string; message?: string}) {super(message);} }
+
 function errorMessage(detail: unknown): string {
   if (typeof detail === 'string') return detail;
+  if (detail && typeof detail === 'object' && 'message' in detail) return String(detail.message);
   const lang = getPublicLanguage();
   if (Array.isArray(detail)) {
     const fields: Record<string, string> = { name: 'dam.staff.name', email: 'dam.staff.login', password: 'dam.staff.password', pin: 'dam.staff.pin', role: 'dam.staff.role' };
     const labels = detail.map(item => fields[item?.loc?.at(-1)]).filter(Boolean)
       .map(key => adminTranslations[key]?.[lang]).filter(Boolean);
+    if (!labels.length && detail[0]?.msg) return String(detail[0].msg).replace(/^Value error, /,'');
     if (labels.length) return `${adminTranslations['dam.staff.checkField'][lang]}: ${[...new Set(labels)].join(', ')}`;
   }
   return adminTranslations['admin.dam.operationError'][lang];
@@ -29,6 +33,7 @@ export async function foodOperations<T>(path: string, method = 'GET', body?: unk
 }
 
 export interface OperatorOrder {
+  preorder_bucket?: string; scheduled_for?: string | null; is_future_preorder?: boolean; preparation_due_at?: string | null; pricing_snapshot?: string;
   order_source?: string | null;
   paid_amount?: number | null; receipt_revision?: number;
   id: number; version: number | null; status: string; customer_name: string; customer_phone: string;
@@ -56,6 +61,6 @@ export async function foodShifts<T>(path: string, method = 'GET', body?: unknown
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : adminTranslations['admin.dam.operationError'][getPublicLanguage()]);
+  if (!response.ok) throw new FoodApiError(errorMessage(data.detail), data.detail);
   return data;
 }

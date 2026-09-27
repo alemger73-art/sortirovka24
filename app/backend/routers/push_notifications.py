@@ -36,6 +36,16 @@ def _device_id(token: str) -> str:
 
 
 async def _require_account(db: AsyncSession, authorization: str | None):
+    # Same device store and delivery stack; PIN sessions are authorized separately.
+    from core.auth import decode_access_token
+    if authorization and authorization.lower().startswith('bearer '):
+        try:
+            claims = decode_access_token(authorization.split(' ', 1)[1])
+        except Exception:
+            claims = {}
+        if claims.get('type') == 'courier_pin_session':
+            from routers.logistics import _courier_user
+            return await _courier_user(db, authorization)
     user = await resolve_account_user(db, authorization)
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")

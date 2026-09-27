@@ -10,7 +10,8 @@ from models.food_items import Food_items
 from models.food_operations import FoodOperationsSettings, FoodOrderEvent
 from models.food_orders import Food_orders
 from models.food_restaurants import Food_restaurants
-from models.food_shifts import FoodShift, FoodStaffAction
+from models.food_shifts import FoodShift, FoodStaffAction, FoodShiftProcurement
+from models.food_settings import Food_settings
 from models.partner_auth import PartnerCredentials
 from routers.food_business import router as business_router
 from routers.food_operations import router as operations_router
@@ -25,7 +26,7 @@ async def shift_env():
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     tables = [m.__table__ for m in (
         PartnerCredentials, Food_orders, FoodOrderEvent, FoodOperationsSettings,
-        FoodExpense, FoodRefund, Food_restaurants, Food_items, FoodShift, FoodStaffAction, User, CourierProfile, LogisticsTask,
+        FoodExpense, FoodRefund, Food_restaurants, Food_items, FoodShift, FoodStaffAction, FoodShiftProcurement, Food_settings, User, CourierProfile, LogisticsTask,
     )]
     async with engine.begin() as conn:
         await conn.run_sync(lambda sync: Base.metadata.create_all(sync, tables=tables))
@@ -78,7 +79,7 @@ async def test_pin_shift_lifecycle_and_work_gate(shift_env):
 
     # The owner cannot close another employee's shift through the personal endpoint.
     assert (await client.post(shifts + "/close", headers=owner, json={"pin": "1111"})).status_code == 409
-    closed = await client.post(shifts + "/close", headers=operator, json={"pin": "2222"})
+    closed = await client.post(shifts + "/close", headers=operator, json={"pin": "2222", "procurement": {"not_required": True, "reason": "Остатков достаточно"}})
     assert closed.status_code == 200 and closed.json()["shift"]["active"] is False
     assert closed.json()["shift"]["duration_seconds"] is not None
     assert (await client.patch(availability, headers=operator, json={"available": True})).status_code == 409

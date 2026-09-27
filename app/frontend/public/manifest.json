@@ -13,6 +13,7 @@
   "prefer_related_applications": false,
   "categories": ["lifestyle", "food", "social"],
   "lang": "ru",
+  "shortcuts": [{"name":"Курьер DÄM ALEM","short_name":"Курьер","url":"/food/courier","icons":[{"src":"/icon-192-v2.png","sizes":"192x192","type":"image/png"}]}],
   "icons": [
     {
       "src": "/icon-192-v2.png",

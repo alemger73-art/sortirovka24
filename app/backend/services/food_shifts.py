@@ -104,12 +104,41 @@ async def close_shift(
     staff_id: str | int,
     stored_pin: str | None,
     pin: str,
+    report=None,
+    shift_id: int | None = None,
 ) -> FoodShift:
     if not PIN_PATTERN.fullmatch(pin or "") or not verify_courier_pin(stored_pin, pin):
         raise HTTPException(401, "Неверный PIN-код")
-    row = await active_shift(db, staff_type, staff_id)
+    from services.food_preorders import lock_dam_operations
+    await lock_dam_operations(db)
+    condition = FoodShift.id == shift_id if shift_id else FoodShift.active_key == staff_key(staff_type, staff_id)
+    row = await db.scalar(select(FoodShift).where(condition, FoodShift.staff_type == staff_type,
+        FoodShift.staff_id == str(staff_id)).with_for_update().execution_options(populate_existing=True))
     if not row:
         raise HTTPException(409, "Открытая смена не найдена")
+    if row.closed_at:
+        return row  # retry of the same shift is idempotent, never closes a later one
+    if staff_type == 'courier':
+        from models.logistics import LogisticsTask
+        tasks = (await db.scalars(select(LogisticsTask).where(
+            LogisticsTask.courier_id == str(staff_id),
+            LogisticsTask.status.notin_(('delivered', 'cancelled')),
+        ))).all()
+        if tasks:
+            numbers = ', '.join(f'№{task.source_id} — в работе' for task in tasks)
+            raise HTTPException(409, f'Смену нельзя закрыть. У вас остаются доставки: {numbers}. Сначала завершите или передайте доставки оператору.')
+        from services.courier_money import totals, cash_balance
+        balance = cash_balance(await totals(db, str(staff_id)))
+        if balance > 0:
+            raise HTTPException(409, f'Сначала передайте наличные {balance} ₸ и дождитесь подтверждения оператора.')
+    if staff_type == 'partner' and row.role == 'operator':
+        from services.food_procurement import assert_can_close, enqueue_report, ProcurementReport
+        await assert_can_close(db)
+        if report is None:
+            raise HTTPException(422, 'Заполните закупной отчёт перед закрытием смены')
+        report = ProcurementReport.model_validate(report)
+        enqueue_report(db, row, report)
+        record_action(db, row, 'procurement_submitted', entity_type='shift', entity_id=str(row.id))
     row.closed_at = utcnow()
     row.closed_by = row.staff_name
     row.active_key = None

@@ -16,6 +16,7 @@ from models.food_orders import Food_orders
 from models.food_operations import FoodOrderEvent
 from models.food_business import FoodExpense, FoodRefund
 from models.food_items import Food_items
+from models.food_categories import Food_categories
 from models.food_restaurants import Food_restaurants
 from models.partner_auth import PartnerCredentials
 from models.food_shifts import FoodShift
@@ -53,10 +54,12 @@ async def me(claims=Depends(food_staff)):
 @router.get('/today')
 async def today(db:AsyncSession=Depends(get_db),claims=Depends(food_staff)):
     condition=await scope(db)
-    counts=dict((await db.execute(select(Food_orders.status,func.count()).where(condition).group_by(Food_orders.status))).all())
+    from services.food_preorders import current_condition, schedule_settings
+    current = current_condition(await schedule_settings(db))
+    counts=dict((await db.execute(select(Food_orders.status,func.count()).where(condition, current).group_by(Food_orders.status))).all())
     pending=await db.scalar(select(func.count()).select_from(FoodOrderEvent).join(Food_orders,Food_orders.id==FoodOrderEvent.order_id).where(condition,FoodOrderEvent.notification.in_(['failed','unknown'])))
     unpaid=await db.scalar(select(func.count()).select_from(Food_orders).where(condition,Food_orders.status!='cancelled',(Food_orders.payment_status!='paid') | Food_orders.payment_status.is_(None)))
-    rows=(await db.scalars(select(Food_orders).where(condition,Food_orders.status=='new').order_by(Food_orders.id).limit(8))).all()
+    rows=(await db.scalars(select(Food_orders).where(condition,current,Food_orders.status=='new').order_by(Food_orders.id).limit(8))).all()
     day = city_today()
     candidates = (await db.execute(select(Food_orders.created_at, Food_orders.status, Food_orders.total_amount).where(condition, func.substr(Food_orders.created_at, 1, 10).in_([str(day), str(day - timedelta(days=1))])))).all()
     daily_orders = [r for r in candidates if day_of(r.created_at) == day]
@@ -220,7 +223,10 @@ async def item_condition(db):
 @router.get('/availability')
 async def availability(db:AsyncSession=Depends(get_db),claims=Depends(food_staff)):
     rows=(await db.scalars(select(Food_items).where(await item_condition(db),Food_items.is_active==True).order_by(Food_items.name))).all()
-    return [{'id':i.id,'name':i.name,'available':i.available is not False} for i in rows]
+    category_ids = {i.category_id for i in rows if i.category_id is not None}
+    categories = {c.id:c.name for c in (await db.scalars(select(Food_categories).where(Food_categories.id.in_(category_ids)))).all()} if category_ids else {}
+    return [{'id':i.id,'name':i.name,'available':i.available is not False,
+             'category_id':i.category_id,'category_name':categories.get(i.category_id)} for i in rows]
 
 class AvailableBody(BaseModel):
     available:bool
@@ -283,6 +289,7 @@ class CourierCreate(BaseModel):
     name: str = Field(min_length=1,max_length=120)
     phone: str = Field(min_length=10,max_length=32)
     pin: str = Field(pattern=r'^\d{4}$')
+    attach_existing: bool = False
 
 @router.post('/staff/couriers')
 async def create_courier(body:CourierCreate,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
@@ -292,13 +299,22 @@ async def create_courier(body:CourierCreate,db:AsyncSession=Depends(get_db),clai
     if len(digits)!=11 or digits[0] not in '78' or not body.name.strip():
         raise HTTPException(422,'Укажите имя и телефон +7…')
     normalized=func.replace(func.replace(User.phone,'+',''),' ','')
-    if await db.scalar(select(User.id).where(func.substr(normalized,-10)==digits[-10:]).limit(1)):
-        raise HTTPException(409,'Телефон уже используется. Измените существующего курьера или обратитесь к администратору.')
+    from services.food_preorders import lock_dam_operations
+    await lock_dam_operations(db)
+    existing = await db.scalar(select(User).where(func.substr(normalized,-10)==digits[-10:]).with_for_update())
+    if existing:
+        if not body.attach_existing:
+            raise HTTPException(409,'Пользователь с таким телефоном уже существует. Добавить ему доступ курьера?')
+        if not existing.is_active or existing.status != 'active' or existing.role not in ('user','customer','courier'):
+            raise HTTPException(409,'Нельзя подключить заблокированный или служебный аккаунт')
+        if await db.get(CourierProfile, existing.id):
+            raise HTTPException(409,'Курьерский профиль уже существует. Используйте настройки доступа.')
     pins=(await db.scalars(select(CourierProfile.pin_hash).where(CourierProfile.pin_hash.is_not(None)))).all()
     if any(verify_courier_pin(pin,body.pin) for pin in pins):
         raise HTTPException(409,'Этот PIN уже назначен другому курьеру')
-    id=str(uuid4()); phone='+7'+digits[-10:]
-    db.add(User(id=id,name=body.name.strip(),phone=phone,role='courier',status='active',is_active=True))
+    id=str(existing.id) if existing else str(uuid4()); phone='+7'+digits[-10:]
+    if not existing:
+        db.add(User(id=id,name=body.name.strip(),phone=phone,role='courier',status='active',is_active=True))
     await db.flush()
     db.add(CourierProfile(user_id=id,phone=phone,is_verified=True,is_online=False,pin_hash=hash_courier_pin(body.pin)))
     record_action(db,None,'staff_created',claims=claims,entity_type='courier',entity_id=id,details={'name':body.name.strip(),'role':'courier'})
@@ -310,18 +326,77 @@ class CourierAccessUpdate(BaseModel):
     active: bool | None = None
     pin: str | None = Field(None,pattern=r'^\d{4}$')
 
+class CourierPayoutRequest(BaseModel):
+    model_config = {'extra':'forbid'}
+    request_key: UUID
+    amount: Decimal = Field(gt=0,le=10000000,max_digits=14,decimal_places=2)
+    comment: str = Field(min_length=1,max_length=1000)
+
+@router.get('/couriers/{user_id}/details')
+async def courier_details(user_id:str,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+    from services.courier_money import view
+    from services.food_shifts import shift_view
+    from models.logistics import LogisticsTask
+    from services.logistics_service import task_to_dict
+    from models.courier_workflow import CourierCashHandover
+    profile=await db.get(CourierProfile,user_id)
+    if not profile:raise HTTPException(404,'Курьер не найден')
+    shifts=(await db.scalars(select(FoodShift).where(FoodShift.staff_type=='courier',FoodShift.staff_id==user_id).order_by(FoodShift.id.desc()).limit(50))).all()
+    tasks=(await db.scalars(select(LogisticsTask).where(LogisticsTask.courier_id==user_id).order_by(LogisticsTask.id.desc()).limit(100))).all()
+    transfers=(await db.scalars(select(CourierCashHandover).where(CourierCashHandover.courier_id==user_id).order_by(CourierCashHandover.id.desc()).limit(100))).all()
+    return {'money':await view(db,user_id),'shifts':[shift_view(s) for s in shifts],
+        'deliveries':[task_to_dict(t) for t in tasks],
+        'handovers':[{'id':r.id,'amount':float(r.amount),'status':r.status,'created_at':r.created_at,'confirmed_at':r.confirmed_at,'confirmed_by':r.confirmed_by} for r in transfers],
+        'legacy_balance':profile.balance,'legacy_note':'Старый баланс сохранён отдельно. Новый журнал не предполагает, какие прежние суммы уже выплачены.'}
+
+@router.post('/couriers/{user_id}/payouts')
+async def courier_payout(user_id:str,body:CourierPayoutRequest,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+    from services.courier_money import payout
+    row=await payout(db,user_id,body,claims)
+    await db.commit()
+    return {'id':row.id,'amount':float(row.amount)}
+
+class CourierCashAdjustment(BaseModel):
+    model_config={'extra':'forbid'}
+    request_key:UUID
+    amount:Decimal=Field(ge=-10000000,le=10000000,max_digits=14,decimal_places=2)
+    reason:str=Field(min_length=1,max_length=1000)
+
+@router.post('/couriers/{user_id}/cash-adjustments')
+async def courier_cash_adjustment(user_id:str,body:CourierCashAdjustment,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
+    from services.courier_money import lock_wallet,totals,cash_balance,add_entry
+    from models.courier_workflow import CourierLedger,CourierCashHandover
+    from services.food_shifts import active_shift
+    await lock_wallet(db,user_id)
+    import hashlib
+    key='adjustment:'+hashlib.sha256(f'{user_id}:{body.request_key}'.encode()).hexdigest()
+    existing=await db.scalar(select(CourierLedger).where(CourierLedger.entry_key==key))
+    if existing:
+        if existing.amount!=body.amount or existing.comment!=body.reason.strip():raise HTTPException(409,'Параметры повторной корректировки отличаются')
+        return {'id':existing.id}
+    if not body.reason.strip() or not body.amount:raise HTTPException(422,'Укажите ненулевую сумму и причину')
+    if await db.scalar(select(CourierCashHandover.id).where(CourierCashHandover.active_key==user_id)):
+        raise HTTPException(409,'Сначала обработайте ожидающую передачу наличных')
+    if cash_balance(await totals(db,user_id))+body.amount<0:raise HTTPException(422,'Остаток не может стать отрицательным')
+    entry=await add_entry(db,key=key,courier_id=user_id,shift=await active_shift(db,'courier',user_id),kind='cash_adjustment',
+        amount=body.amount,actor=actor(claims),actor_id=claims.get('staff_id') or 'admin',comment=body.reason.strip())
+    record_action(db,None,'cash_adjustment',claims=claims,entity_type='courier',entity_id=user_id,details={'amount':str(body.amount),'reason':body.reason.strip()})
+    await db.commit();return {'id':entry.id}
+
 @router.patch('/staff/couriers/{user_id}')
 async def update_courier_access(user_id:str,body:CourierAccessUpdate,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
     from models.logistics import LogisticsTask
     from utils.courier_pin import hash_courier_pin, verify_courier_pin
     from services.food_shifts import active_shift, utcnow
-    profile=await db.get(CourierProfile,user_id);user=await db.get(User,user_id)
+    from services.courier_money import lock_wallet
+    profile=await lock_wallet(db,user_id);user=await db.get(User,user_id)
     if not profile or not user: raise HTTPException(404,'Курьер не найден')
     if body.active is False:
         if await db.scalar(select(LogisticsTask.id).where(LogisticsTask.courier_id==user_id,LogisticsTask.status.notin_(['delivered','cancelled'])).limit(1)):
             raise HTTPException(409,'Сначала завершите или переназначьте активные доставки')
+        from services.courier_money import totals, cash_balance
         shift=await active_shift(db,'courier',user_id)
-        if shift:
+        if shift and cash_balance(await totals(db,user_id)) <= 0:
             shift.closed_at=utcnow();shift.closed_by=actor(claims);shift.active_key=None
             record_action(db,None,'shift_closed',claims=claims,entity_type='shift',entity_id=shift.id,details={'reason':'access_disabled','employee_id':user_id})
         profile.is_online=False

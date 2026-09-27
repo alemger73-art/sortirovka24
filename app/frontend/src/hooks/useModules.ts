@@ -15,7 +15,7 @@ export async function fetchModules(): Promise<ModulesMap> {
     pending = modulesApi.list().then(data => {
       cached = { data, at: Date.now() };
       return data;
-    }).catch(() => CLOSED_MODULES).finally(() => { pending = null; });
+    }).finally(() => { pending = null; });
   }
   return pending;
 }
@@ -33,6 +33,7 @@ export function invalidateModulesCache() {
 export function useModules() {
   const [modules, setModules] = useState<ModulesMap>(cached?.data ?? CLOSED_MODULES);
   const [loading, setLoading] = useState(!cached);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,8 +41,9 @@ export function useModules() {
       if (!cancelled) {
         setModules(data);
         setLoading(false);
+        setError(false);
       }
-    });
+    }).catch(() => { if (!cancelled) {setError(true);setLoading(false);} });
     void refresh();
     const timer = window.setInterval(() => { if (!document.hidden) void refresh(); }, 15000);
     window.addEventListener("focus", refresh);
@@ -59,5 +61,5 @@ export function useModules() {
     return modules[key] === true;
   }, [modules]);
 
-  return { modules, loading, isEnabled };
+  return { modules, loading, isEnabled, error, retry: invalidateModulesCache };
 }

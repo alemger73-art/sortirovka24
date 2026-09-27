@@ -13,8 +13,62 @@ from models.food_operations import FoodOperationsSettings, FoodOrderEvent
 from services.food_operations import scope, cipher, now, check_connection, telegram_call
 from services.food_orders import Food_ordersService
 from services.food_shifts import require_partner_shift, record_action
+from services.food_preorders import schedule_settings, schedule_view, future_condition, current_condition, lock_dam_operations
 
 router = APIRouter(prefix='/api/v1/dam-alem/operations', tags=['DAM ALEM operations'], dependencies=[Depends(food_staff)])
+
+@router.get('/courier-work')
+async def courier_work(db:AsyncSession=Depends(get_db)):
+    from models.courier_workflow import CourierCashHandover, CourierDeliveryIssue
+    from models.auth import User
+    transfers=(await db.execute(select(CourierCashHandover,User.name).join(User,User.id==CourierCashHandover.courier_id).where(CourierCashHandover.status=='pending'))).all()
+    issues=(await db.execute(select(CourierDeliveryIssue,User.name).join(User,User.id==CourierDeliveryIssue.courier_id).where(CourierDeliveryIssue.status=='open'))).all()
+    return {'handovers':[{'id':r.id,'courier_id':r.courier_id,'name':name,'amount':float(r.amount)} for r,name in transfers],
+        'issues':[{'id':r.id,'task_id':r.task_id,'order_id':r.order_id,'name':name,'reason':r.reason,'comment':r.comment,'created_at':r.created_at} for r,name in issues]}
+
+@router.post('/cash-handovers/{handover_id}/confirm')
+async def confirm_cash_handover(handover_id:int,request:Request,db:AsyncSession=Depends(get_db)):
+    claims=await food_staff(request,db)
+    await require_partner_shift(db,claims)
+    from services.courier_money import confirm_handover
+    row=await confirm_handover(db,handover_id,claims)
+    await db.commit()
+    return {'id':row.id,'status':row.status,'amount':float(row.amount)}
+
+class IssueResolution(BaseModel):
+    resolution:str=Field(min_length=1,max_length=1000)
+
+class CourierReassignment(BaseModel):
+    model_config={'extra':'forbid'}
+    courier_id:str=Field(min_length=1,max_length=255)
+    expected_version:int=Field(ge=0)
+    reason:str=Field(min_length=1,max_length=1000)
+
+@router.post('/delivery-issues/{issue_id}/resolve')
+async def resolve_delivery_issue(issue_id:int,body:IssueResolution,request:Request,db:AsyncSession=Depends(get_db)):
+    from models.courier_workflow import CourierDeliveryIssue
+    from services.courier_issues import resolve_issue
+    await lock_dam_operations(db)
+    claims=await food_staff(request,db);await require_partner_shift(db,claims)
+    issue=await db.get(CourierDeliveryIssue,issue_id)
+    if not issue:raise HTTPException(404,'Проблема не найдена')
+    await order_for_panel(db,issue.order_id)
+    await resolve_issue(db,issue,body.resolution,claims)
+    await db.commit()
+    from services.courier_notifications import notify_courier_task
+    from models.logistics import LogisticsTask
+    task=await db.get(LogisticsTask,issue.task_id)
+    await notify_courier_task(db,task,'issue_resolved',version=issue.id)
+    return {'ok':True}
+
+@router.post('/orders/{order_id}/reassign-courier')
+async def reassign_courier(order_id:int,body:CourierReassignment,request:Request,db:AsyncSession=Depends(get_db)):
+    await lock_dam_operations(db)
+    claims=await food_staff(request,db);await require_partner_shift(db,claims)
+    if not body.reason.strip():raise HTTPException(422,'Укажите причину переназначения')
+    from services.courier_issues import reassign
+    task=await reassign(db,await order_for_panel(db,order_id),body,claims)
+    return {'id':task.id,'courier_id':task.courier_id,'status':task.status}
 
 def serialize(row):
     data = {c.name: getattr(row, c.name) for c in row.__table__.columns}
@@ -30,7 +84,12 @@ async def order_for_panel(db, order_id):
 
 @router.get('/orders')
 async def orders(q: str = Query('', max_length=100), status: str = '', source: str = '', skip: int = Query(0, ge=0), limit: int = Query(30, ge=1, le=100), db: AsyncSession = Depends(get_db)):
+    settings = await schedule_settings(db)
     conditions = [await scope(db)]
+    if status == 'preorders':
+        conditions.append(future_condition(settings))
+    elif status and status not in ('done', 'cancelled'):
+        conditions.append(current_condition(settings))
     if status == 'active':
         conditions.append(Food_orders.status.notin_(['done', 'cancelled']))
     elif status == 'working':
@@ -46,7 +105,7 @@ async def orders(q: str = Query('', max_length=100), status: str = '', source: s
             Food_orders.status == 'ready',
             or_(Food_orders.delivery_method.is_(None), Food_orders.delivery_method.notin_(['delivery', 'доставка'])),
         ])
-    elif status:
+    elif status and status != 'preorders':
         conditions.append(Food_orders.status == status)
     if source:
         if source not in ('app', 'operator', 'whatsapp', 'instagram'):
@@ -59,15 +118,17 @@ async def orders(q: str = Query('', max_length=100), status: str = '', source: s
             terms.append(Food_orders.id == int(q.strip()))
         conditions.append(or_(*terms))
     total = await db.scalar(select(func.count()).select_from(Food_orders).where(*conditions))
-    rows = (await db.scalars(select(Food_orders).where(*conditions).order_by(Food_orders.id.desc()).offset(skip).limit(limit))).all()
-    return {'items': [serialize(r) for r in rows], 'total': total}
+    ordering = (Food_orders.scheduled_for.asc(), Food_orders.id.asc()) if status == 'preorders' else (Food_orders.id.desc(),)
+    rows = (await db.scalars(select(Food_orders).where(*conditions).order_by(*ordering).offset(skip).limit(limit))).all()
+    return {'items': [{**serialize(r), **schedule_view(r, settings)} for r in rows], 'total': total}
 
 @router.get('/order-counts')
 async def order_counts(db: AsyncSession = Depends(get_db)):
     """Exact counters for the operator queue tabs."""
+    settings = await schedule_settings(db)
     rows = (await db.execute(
         select(Food_orders.status, Food_orders.delivery_method, func.count())
-        .where(await scope(db))
+        .where(await scope(db), current_condition(settings))
         .group_by(Food_orders.status, Food_orders.delivery_method)
     )).all()
     result = {'all': 0, 'new': 0, 'working': 0, 'ready': 0, 'courier': 0, 'in_progress': 0, 'done': 0, 'cancelled': 0, 'confirmed': 0, 'preparing': 0, 'ready_all': 0}
@@ -91,6 +152,8 @@ async def order_counts(db: AsyncSession = Depends(get_db)):
         .join(Food_orders, (LogisticsTask.source_type == 'food_orders') & (LogisticsTask.source_id == Food_orders.id))
         .where(await scope(db), Food_orders.status == 'ready', LogisticsTask.status == 'assigned')
     )
+    result['preorders'] = int(await db.scalar(select(func.count()).select_from(Food_orders).where(await scope(db), future_condition(settings))))
+    result['all'] += result['preorders']
     result['courier_assigned'] = int(assigned or 0)
     return result
 
@@ -156,9 +219,11 @@ async def detail(order_id: int, db: AsyncSession = Depends(get_db)):
             'picked_up_at': task.picked_up_at,
             'delivered_at': task.delivered_at,
         }
-    return {'order': serialize(obj), 'events': [serialize(e) for e in events], 'delivery': delivery_data}
+    return {'order': {**serialize(obj), **schedule_view(obj, await schedule_settings(db))}, 'events': [serialize(e) for e in events], 'delivery': delivery_data}
 
 class OrderChange(BaseModel):
+    scheduled_for: str | None = Field(None, min_length=10, max_length=40)
+    start_early: bool = False
     expected_version: int = Field(ge=0)
     status: Literal['new', 'confirmed', 'preparing', 'ready', 'in_progress', 'done', 'cancelled'] | None = None
     operator_note: str | None = Field(None, max_length=2000)
@@ -184,7 +249,7 @@ async def couriers(db: AsyncSession = Depends(get_db)):
     items = []
     for user, profile in rows:
         on_shift = bool(await active_shift(db, 'courier', user.id))
-        active = bool(await db.scalar(select(func.count()).select_from(LogisticsTask).where(
+        active = int(await db.scalar(select(func.count()).select_from(LogisticsTask).where(
             LogisticsTask.courier_id == str(user.id),
             LogisticsTask.status.in_(['assigned', 'picked_up', 'on_the_way'])
         )))
@@ -192,13 +257,14 @@ async def couriers(db: AsyncSession = Depends(get_db)):
         items.append({
             'id': str(user.id), 'name': user.name or profile.phone or user.phone or 'Курьер',
             'phone': profile.phone or user.phone or '', 'online': bool(profile.is_online),
-            'on_shift': on_shift, 'active_delivery': active,
-            'assignable': enabled and on_shift and bool(profile.is_online) and not active,
+            'on_shift': on_shift, 'active_delivery': bool(active), 'active_deliveries': active,
+            'assignable': enabled and on_shift,
         })
     return {'items': items}
 
 @router.post('/orders/{order_id}/assign-courier')
 async def assign_courier(order_id: int, body: CourierAssignment, request: Request, db: AsyncSession = Depends(get_db)):
+    await lock_dam_operations(db)
     order = await order_for_panel(db, order_id)
     if order.delivery_method not in ('delivery', 'доставка') or order.status != 'ready':
         raise HTTPException(409, 'Сначала отметьте заказ как готовый')
@@ -219,17 +285,18 @@ async def assign_courier(order_id: int, body: CourierAssignment, request: Reques
         task = await task_for(db, order)
     if not task:
         raise HTTPException(409, 'Не удалось подготовить доставку')
+    record_action(db, shift, 'courier_assigned', claims=actor, entity_type='order', entity_id=order_id,
+        details={'courier_id': body.courier_id, 'courier_name': courier.name or profile.phone})
     try:
         task = await assign_dam_delivery(db, task, courier)
     except ValueError as exc:
+        await db.rollback()
         raise HTTPException(409, str(exc)) from None
-    record_action(db, shift, 'courier_assigned', claims=actor, entity_type='order', entity_id=order_id,
-        details={'courier_id': body.courier_id, 'courier_name': courier.name or profile.phone})
-    await db.commit()
     return {'ok': True, 'task_id': task.id, 'status': task.status, 'courier_name': courier.name or profile.phone}
 
 @router.patch('/orders/{order_id}')
 async def change(order_id: int, body: OrderChange, request: Request, db: AsyncSession = Depends(get_db)):
+    await lock_dam_operations(db)
     order = await order_for_panel(db, order_id)
     actor = await food_staff(request, db)
     if actor['access_role'] == 'operator' and order.status in ('done', 'cancelled'):
@@ -323,6 +390,8 @@ class ReceiptChange(BaseModel):
     quoted_total: float | None = Field(None, ge=0, allow_inf_nan=False)
 
 class ManualOrder(BaseModel):
+    scheduled_for: str | None = Field(None, max_length=40)
+    promo_code: str = Field('', max_length=80)
     selected_gift_id: str | None = Field(None, max_length=100)
     request_key: str = Field(min_length=16, max_length=64, pattern=r'^[a-zA-Z0-9-]+$')
     customer_name: str = Field(min_length=1, max_length=150)
@@ -382,6 +451,7 @@ async def create_manual(body: ManualOrder, request: Request, db: AsyncSession = 
     from models.food_operations import FoodOrderRequest
     from services.dam_order_workflow import manual_quote, money
     from sqlalchemy.exc import IntegrityError
+    await lock_dam_operations(db)
     actor = await food_staff(request, db)
     shift = await require_partner_shift(db, actor)
     key = str(actor.get('staff_id') or 'admin') + ':' + body.request_key

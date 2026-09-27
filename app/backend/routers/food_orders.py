@@ -38,6 +38,7 @@ def _check_order_rate_limit(request: Request) -> None:
 class Food_ordersData(BaseModel):
     """Entity data schema (for create/update)"""
     user_id: Optional[int] = None
+    scheduled_for: Optional[str] = Field(None, max_length=40)
     request_key: Optional[str] = Field(None, min_length=16, max_length=64, pattern=r'^[a-zA-Z0-9-]+$')
     deliver_to_apartment: bool = False
     restaurant_id: Optional[int] = None
@@ -88,6 +89,7 @@ class Food_ordersUpdateData(BaseModel):
 class Food_ordersResponse(BaseModel):
     """Entity response schema"""
     id: int
+    scheduled_for: Optional[str] = None
     user_id: Optional[int] = None
     restaurant_id: Optional[int] = None
     restaurant_name: Optional[str] = None

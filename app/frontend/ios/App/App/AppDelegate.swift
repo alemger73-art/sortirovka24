@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import WebKit
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -64,24 +65,49 @@ class ReceiptBridgeViewController: CAPBridgeViewController {
 }
 
 @objc(ReceiptPrinterPlugin)
-public class ReceiptPrinterPlugin: CAPPlugin, CAPBridgedPlugin {
+public class ReceiptPrinterPlugin: CAPPlugin, CAPBridgedPlugin, WKNavigationDelegate, UIPrintInteractionControllerDelegate {
     public let identifier = "ReceiptPrinterPlugin"
     public let jsName = "ReceiptPrinter"
     public let pluginMethods: [CAPPluginMethod] = [CAPPluginMethod(name: "print", returnType: CAPPluginReturnPromise)]
     private var printing = false
+    private var receiptView: WKWebView?
+    private var pendingPrint: CAPPluginCall?
+    private var paperSize: CGSize?
     @objc func print(_ call: CAPPluginCall) {
         guard let html = call.getString("html"), html.utf8.count <= 1_000_000 else { call.reject("Invalid receipt"); return }
         DispatchQueue.main.async {
             guard !self.printing, let view = self.bridge?.viewController?.view else { call.reject("Printing unavailable"); return }
             self.printing = true
+            self.pendingPrint = call
+            if let width = call.getDouble("paperWidthMm"), width == 58,
+               let height = call.getDouble("paperHeightMm"), height.isFinite, height > 0, height <= 5000 {
+                self.paperSize = CGSize(width: width * 72 / 25.4, height: height * 72 / 25.4)
+            } else {
+                self.paperSize = nil
+            }
+            let configuration = WKWebViewConfiguration()
+            configuration.defaultWebpagePreferences.allowsContentJavaScript = false
+            let webView = WKWebView(frame: CGRect(x: -10000, y: 0, width: self.paperSize == nil ? 300 : 58 * 96 / 25.4, height: 1), configuration: configuration)
+            webView.navigationDelegate = self
+            view.addSubview(webView)
+            self.receiptView = webView
+            webView.loadHTMLString(html, baseURL: nil)
+        }
+    }
+    public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        guard let call = pendingPrint, let view = bridge?.viewController?.view else { cleanup(); return }
             let controller = UIPrintInteractionController.shared
             let info = UIPrintInfo(dictionary: nil)
             info.jobName = call.getString("title") ?? "Receipt"
             info.outputType = .general
             controller.printInfo = info
-            controller.printFormatter = UIMarkupTextPrintFormatter(markupText: html)
+            controller.delegate = self
+            // A web-view formatter preserves the inline vector QR as well as text.
+            let formatter = webView.viewPrintFormatter()
+            formatter.perPageContentInsets = .zero
+            controller.printFormatter = formatter
             let completion: UIPrintInteractionController.CompletionHandler = { _, _, error in
-                self.printing = false
+                self.cleanup()
                 if let error = error { call.reject(error.localizedDescription) } else { call.resolve() }
             }
             if UIDevice.current.userInterfaceIdiom == .pad {
@@ -89,6 +115,18 @@ public class ReceiptPrinterPlugin: CAPPlugin, CAPBridgedPlugin {
             } else {
                 controller.present(animated: true, completionHandler: completion)
             }
-        }
+    }
+    public func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        pendingPrint?.reject(error.localizedDescription); cleanup()
+    }
+    public func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        pendingPrint?.reject(error.localizedDescription); cleanup()
+    }
+    public func printInteractionController(_ printInteractionController: UIPrintInteractionController, choosePaper paperList: [UIPrintPaper]) -> UIPrintPaper {
+        UIPrintPaper.bestPaper(forPageSize: paperSize ?? CGSize(width: 595, height: 842), withPapersFrom: paperList)
+    }
+    private func cleanup() {
+        receiptView?.removeFromSuperview(); receiptView = nil
+        pendingPrint = nil; paperSize = nil; printing = false
     }
 }

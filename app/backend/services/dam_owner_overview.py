@@ -26,6 +26,8 @@ def minutes_since(value):
 
 async def overview(db):
     condition = await scope(db)
+    from services.food_preorders import current_condition, schedule_settings, schedule_view
+    settings = await schedule_settings(db)
     credentials = (await db.scalars(select(PartnerCredentials).where(PartnerCredentials.partner_type == 'dam_alem'))).all()
     couriers = (await db.execute(select(CourierProfile, User).join(User, User.id == CourierProfile.user_id).where(CourierProfile.is_verified == True))).all()
     shifts = (await db.scalars(select(FoodShift).where(FoodShift.active_key.is_not(None)))).all()
@@ -51,9 +53,9 @@ async def overview(db):
         if elapsed is not None and elapsed >= (60 if task.status in ('picked_up', 'on_the_way') else 20):
             if task.status in ('picked_up', 'on_the_way', 'ready', 'pending', 'assigned'):
                 attention.append({'key': f'delivery:{task.id}', 'text': f'Заказ №{task.source_id}: ' + ('доставка более часа' if task.status in ('picked_up', 'on_the_way') else 'ожидает курьера более 20 минут'), 'section': 'orders', 'order_id': task.source_id})
-    new_orders = (await db.scalars(select(Food_orders).where(condition, Food_orders.status == 'new').order_by(Food_orders.id).limit(20))).all()
+    new_orders = (await db.scalars(select(Food_orders).where(condition, Food_orders.status == 'new', current_condition(settings)).order_by(Food_orders.id).limit(20))).all()
     for order in new_orders:
-        elapsed = minutes_since(order.created_at)
+        elapsed = minutes_since(schedule_view(order, settings)['preparation_due_at'] if order.scheduled_for else order.created_at)
         if elapsed is not None and elapsed >= 10:
             attention.append({'key': f'new:{order.id}', 'text': f'Заказ №{order.id}: новый более 10 минут', 'section': 'orders', 'order_id': order.id})
     unpaid = (await db.scalars(select(Food_orders).where(condition, Food_orders.status == 'done',

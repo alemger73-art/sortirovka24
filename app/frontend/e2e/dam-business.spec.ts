@@ -23,7 +23,7 @@ async function setup(page:Page,role='owner'){
 }
 test('owner dashboard and report are clear on all screens',async({page},info)=>{await setup(page);await page.goto('/partner/dam-alem');await expect(page.getByRole('heading',{name:/^Сегодня,/})).toBeVisible();await expect(page.getByText('Выручка сегодня',{exact:true})).toBeVisible();await page.getByRole('navigation',{name:'Разделы кабинета'}).getByRole('button',{name:'Финансы',exact:true}).click();await expect(page.getByText('Популярные блюда',{exact:true})).toBeVisible();await expect(page.getByText(/Денежная разница за период, не чистая прибыль/)).toBeVisible();await expect(page.getByText('Тестовый донер · 2 шт.',{exact:true})).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('finance.png'),fullPage:true});});
 test('owner records expense and adds operator through team',async({page})=>{const state=await setup(page);await page.goto('/partner/dam-alem?section=sales');await page.getByLabel('Сумма расхода',{exact:true}).fill('250.50');await page.getByLabel('Назначение расхода',{exact:true}).fill('Тестовая упаковка');await page.getByRole('button',{name:'Записать расход',exact:true}).click();await expect(page.getByText('Тестовая упаковка',{exact:true})).toBeVisible();expect(state.writes).toBe(1);expect(state.lastBody.amount).toBe('250.5');await page.getByRole('navigation',{name:'Разделы кабинета'}).getByRole('button',{name:'Команда',exact:true}).click();await page.getByLabel('Имя сотрудника',{exact:true}).fill('Тестовый оператор');await page.getByLabel('Логин для входа',{exact:true}).fill('operator@example.test');await page.getByLabel('Пароль (минимум 10 символов)',{exact:true}).fill('StrongTestPassword42');await page.getByLabel('Повторите пароль',{exact:true}).fill('StrongTestPassword42');await page.locator('fieldset').filter({has:page.getByRole('heading',{name:'Добавить сотрудника',exact:true})}).getByLabel('PIN из 4 цифр',{exact:true}).fill('8274');await page.getByRole('button',{name:'Создать личный доступ',exact:true}).click();await expect(page.getByLabel('Пароль (минимум 10 символов)',{exact:true})).toHaveValue('');await expect(page.getByText('Тестовый оператор',{exact:true})).toBeVisible();expect(state.writes).toBe(2);});
-test('operator cannot open finance and can mark dishes unavailable',async({page},info)=>{const state=await setup(page,'operator');await page.goto('/partner/dam-alem?section=sales');await expect(page.getByRole('heading',{name:'Сегодня',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Финансы',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'Настройки',exact:true})).toHaveCount(0);await expect(page.getByText('Выручка сегодня',{exact:true})).toHaveCount(0);await page.getByRole('button',{name:/Готовятся/}).click();await expect(page).toHaveURL(/status=preparing/);await page.getByRole('button',{name:'Стоп-лист',exact:true}).click();await page.getByRole('button',{name:'Есть · отметить закончилось',exact:true}).click();await expect(page.getByRole('button',{name:'Закончилось · вернуть в меню',exact:true})).toBeVisible();expect(state.available).toBe(false);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('operator.png'),fullPage:true});});
+test('operator cannot open finance and can mark dishes unavailable',async({page},info)=>{const state=await setup(page,'operator');await page.goto('/partner/dam-alem?section=sales');await expect(page.getByRole('heading',{name:'Сегодня',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Финансы',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'Настройки',exact:true})).toHaveCount(0);await expect(page.getByText('Выручка сегодня',{exact:true})).toHaveCount(0);await page.getByRole('button',{name:/Готовятся/}).click();await expect(page).toHaveURL(/status=preparing/);await page.getByRole('button',{name:'Стоп-лист',exact:true}).click();await page.getByRole('button',{name:'В стоп',exact:true}).click();await expect(page.getByRole('button',{name:'Вернуть',exact:true})).toBeVisible();expect(state.available).toBe(false);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('operator.png'),fullPage:true});});
 
 test('CSV escapes formulas and exports numeric amounts',()=>{
  const csv=reportCsv([['Название','Сумма'],['=HYPERLINK("test")',-250.5],['+cmd',100]]);
@@ -33,6 +33,35 @@ test('owner downloads the selected report',async({page})=>{
  await setup(page);await page.goto('/partner/dam-alem?section=sales');
  const download=page.waitForEvent('download');await page.getByRole('button',{name:'Скачать CSV',exact:true}).click();
  expect((await download).suggestedFilename()).toBe('DAM-ALEM-2026-09-13-2026-09-13.csv');
+});
+
+test('owner courier details show custody and record a real payout intent',async({page},info)=>{
+ await setup(page);
+ const money={collected:1200,handed_over:0,cash_balance:1200,earned:800,earned_total:800,paid_total:0,payout_due:800,deliveries:1,pending_handover:null,events:[]};
+ let writes=0;
+ await page.route('**/business/staff/couriers',r=>r.fulfill({json:[{id:'test-courier',name:'Тестовый курьер',phone:'+77000000000',active:true,pin_set:true}]}));
+ await page.route('**/business/couriers/test-courier/details',r=>r.fulfill({json:{money,legacy_balance:0,legacy_note:'Старый баланс сохранён отдельно.',shifts:[{id:1,opened_at:'2026-09-28T06:00:00Z',closed_at:null}],deliveries:[],handovers:[]}}));
+ await page.route('**/business/couriers/test-courier/payouts',r=>{const body=r.request().postDataJSON();expect(body.amount).toBe('800');expect(body.comment).toBe('Выплата за смену');expect(body.request_key).toMatch(/^[a-f\d-]{36}$/);writes++;money.paid_total=800;money.payout_due=0;return r.fulfill({json:{id:1,amount:800}});});
+ await page.goto('/partner/dam-alem');await page.getByRole('navigation',{name:'Разделы кабинета'}).getByRole('button',{name:'Команда',exact:true}).click();
+ await page.getByRole('button',{name:'Работа и деньги',exact:true}).click();await expect(page.getByText('Наличные у курьера',{exact:true})).toBeVisible();
+ await page.getByText('Отметить выплату курьеру',{exact:true}).click();await page.getByLabel('Сумма',{exact:true}).fill('800');await page.getByLabel('Комментарий',{exact:true}).fill('Выплата за смену');
+ page.once('dialog',d=>d.accept());await page.getByRole('button',{name:'Отметить выплаченным'}).click();
+ await expect.poll(()=>writes).toBe(1);await expect(page.getByLabel('Сумма',{exact:true})).toHaveValue('');
+ expect(money.cash_balance).toBe(1200);expect(money.payout_due).toBe(0);
+ const overflow=await page.locator('body *').evaluateAll(els=>els.filter(e=>{const b=e.getBoundingClientRect();return b.width>0&&b.right>innerWidth+1;}).map(e=>({tag:e.tagName,cls:e.className,text:e.textContent?.slice(0,90)})));expect(overflow).toEqual([]);
+ await page.screenshot({path:info.outputPath('owner-courier-money.png'),fullPage:true});
+});
+
+test('operator confirms cash custody and resolves a courier problem',async({page})=>{
+ await setup(page,'operator');
+ const work={handovers:[{id:1,name:'Тестовый курьер',amount:1200}],issues:[{id:1,order_id:7,name:'Тестовый курьер',reason:'no_answer',comment:'Жду у подъезда'}]};
+ await page.route('**/operations/courier-work',r=>r.fulfill({json:work}));
+ await page.route('**/operations/cash-handovers/1/confirm',r=>{work.handovers=[];return r.fulfill({json:{id:1,status:'confirmed'}});});
+ await page.route('**/operations/delivery-issues/1/resolve',r=>{expect(r.request().postDataJSON().resolution).toBe('Позвонил клиенту, повторить доставку');work.issues=[];return r.fulfill({json:{ok:true}});});
+ await page.goto('/partner/dam-alem?section=deliveries');
+ await expect(page.getByText('Клиент не отвечает · Жду у подъезда',{exact:true})).toBeVisible();
+ page.once('dialog',d=>d.accept());await page.getByRole('button',{name:'Подтвердить получение',exact:true}).click();await expect(page.getByRole('button',{name:'Подтвердить получение',exact:true})).toHaveCount(0);
+ page.once('dialog',d=>d.accept('Позвонил клиенту, повторить доставку'));await page.getByRole('button',{name:'Отметить решённой'}).click();await expect(page.getByText('Курьеры: требует внимания',{exact:true})).toHaveCount(0);
 });
 
 
@@ -63,7 +92,8 @@ test('courier keeps a profile draft when the cabinet refreshes', async ({page}) 
   await r.fulfill({json});
  });
  await page.goto('/cabinet/courier');await expect(page).toHaveURL(/food\/courier/);
- const phone=page.getByRole('textbox').last();
+ await page.getByRole('navigation',{name:'Кабинет курьера'}).getByRole('button',{name:'Профиль',exact:true}).click();
+ const phone=page.getByLabel('Телефон',{exact:true});
  await expect(phone).toHaveValue('+77001111111');
  await phone.fill('+77002222222');
  const before=reads;

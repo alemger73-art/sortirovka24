@@ -30,6 +30,9 @@ async def build_task_tracking(
         "phase": task.status,
     }
 
+    if task.status not in ('assigned', 'picked_up', 'on_the_way'):
+        return tracking
+
     if courier and courier.current_lat is not None and courier.current_lng is not None:
         tracking["courier_lat"] = courier.current_lat
         tracking["courier_lng"] = courier.current_lng

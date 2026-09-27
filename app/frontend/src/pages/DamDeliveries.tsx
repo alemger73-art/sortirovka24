@@ -4,6 +4,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { foodOperations } from '@/lib/foodOperations';
 import { formatTenge } from '@/lib/logisticsApi';
 import { Button } from '@/components/ui/button';
+import CourierControlPanel from '@/components/damalem/CourierControlPanel';
 
 interface Delivery {
   order_id: number; status: string; delivery_status: string; address: string;
@@ -38,6 +39,7 @@ export default function DamDeliveries({ openOrder }: { openOrder: (id: number) =
     return () => { clearInterval(timer); generation.current++; };
   }, [load]);
   return <section className="space-y-4 min-w-0">
+    <CourierControlPanel openOrder={openOrder}/>
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h3 className="text-xl font-bold flex items-center gap-2"><Truck className="h-5 w-5" />{t('cabinet.deliveries')}</h3>
       <Button variant="outline" disabled={loading} onClick={() => void load()}><RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />{t('cabinet.refresh')}</Button>

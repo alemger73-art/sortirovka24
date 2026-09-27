@@ -83,7 +83,11 @@ async def sync_task(db, order):
     task.order_items = order.order_items
     task.receipt_revision = order.receipt_revision or 0
     task.order_status = order.status
-    task.dropoff_address = order.delivery_address or ''
+    address = order.delivery_address or ''
+    if task.dropoff_address != address:
+        # Never navigate to an old point after an operator corrects the address.
+        task.dropoff_lat = task.dropoff_lng = None
+    task.dropoff_address = address
     task.comment = order.comment
     if order.status == 'cancelled':
         task.status, task.cancelled_at, task.cancel_reason = 'cancelled', now(), order.cancellation_reason
@@ -147,6 +151,7 @@ async def quote_change(db, order, body):
     adjustment = money(order.total_amount) - before_subtotal
     total = after_subtotal + adjustment
     promo_discount = money(order.promo_discount_amount)
+    snapshot = None
     if order.pricing_snapshot:
         try:
             snapshot = json.loads(order.pricing_snapshot)
@@ -170,6 +175,7 @@ async def quote_change(db, order, body):
                 requested=snapshot.get('requested_apartment', False)))
             adjustment = service + delivery + apartment - promo_discount - money(order.bonus_discount_amount)
             total = after_subtotal + adjustment
+            snapshot['breakdown'] = {'subtotal':float(after_subtotal), 'delivery_fee':float(delivery+apartment), 'service_fee':float(service), 'discount':float(promo_discount+money(order.bonus_discount_amount))}
         except (KeyError, ValueError, TypeError):
             raise HTTPException(409, 'Не удалось прочитать условия расчёта заказа') from None
     if total < 0 or after_subtotal < money(order.bonus_discount_amount):
@@ -184,7 +190,7 @@ async def quote_change(db, order, body):
     received = paid(order)
     return {'items': revised, 'total_amount': float(total), 'previous_total': float(money(order.total_amount)),
             'adjustment': float(adjustment), 'paid_amount': float(received),
-            'promo_discount_amount': float(promo_discount),
+            'promo_discount_amount': float(promo_discount), 'pricing_snapshot':json.dumps(snapshot,ensure_ascii=False) if snapshot else order.pricing_snapshot,
             'gift_choices': choices, 'gift_required': bool(choices and not chosen),
             'amount_due': float(max(Decimal(0), total - received)), 'refund_due': float(max(Decimal(0), received - total))}
 
@@ -202,6 +208,7 @@ async def amend(db, order, body, actor):
     order.order_items = json.dumps(quote['items'], ensure_ascii=False)
     order.total_amount, order.paid_amount = quote['total_amount'], quote['paid_amount']
     order.promo_discount_amount = quote['promo_discount_amount']
+    order.pricing_snapshot = quote['pricing_snapshot']
     order.payment_status = 'paid' if quote['paid_amount'] >= quote['total_amount'] and quote['paid_amount'] > 0 else 'pending'
     order.receipt_revision = (order.receipt_revision or 0) + 1
     order.receipt_updated_at = now()
@@ -235,6 +242,7 @@ async def manual_quote(db, body):
         'customer_name': body.customer_name.strip(), 'customer_phone': body.customer_phone.strip(),
         'delivery_address': body.delivery_address.strip(), 'delivery_method': body.delivery_method,
         'payment_method': body.payment_method, 'comment': body.comment,
+        'promo_code': body.promo_code, 'scheduled_for': body.scheduled_for,
         'order_items': json.dumps([x.model_dump(exclude_none=True) for x in body.items]), 'total_amount': 0}
     # Resolve the gift after pricing so reducing a draft below the threshold
     # removes its old gift instead of making automatic recalculation impossible.
@@ -262,7 +270,8 @@ async def manual_quote(db, body):
         lines.append(gift_line(chosen))
         data['order_items'] = json.dumps(lines, ensure_ascii=False)
     data['order_source'] = 'operator'
-    return data, {'items': lines, 'total_amount': total, **json.loads(data['pricing_snapshot'])['breakdown'], 'gift_choices': choices,
+    return data, {'items': lines, 'total_amount': total, 'promo_code': body.promo_code,
+        **json.loads(data['pricing_snapshot'])['breakdown'], 'gift_choices': choices,
         'gift_required': bool(choices and not any(x.get('is_gift') for x in lines))}
 
 

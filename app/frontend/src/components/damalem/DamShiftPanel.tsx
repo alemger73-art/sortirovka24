@@ -1,3 +1,4 @@
+import ShiftCloseDialog from './ShiftCloseDialog';
 import { useCallback, useEffect, useState } from 'react';
 import { Clock3, KeyRound, LogIn, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ interface ShiftState { staff: { id?: number; name: string; role: string; pin_set
 export default function DamShiftPanel({ onChange, onLock }: { onChange?: (shift: DamShift | null) => void; onLock?: () => void }) {
   const { t } = useLanguage();
   const [state, setState] = useState<ShiftState | null>(null);
+  const [closing,setClosing]=useState(false);
   const [pin, setPin] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -24,6 +26,7 @@ export default function DamShiftPanel({ onChange, onLock }: { onChange?: (shift:
   useEffect(() => { void load(); const timer=window.setInterval(()=>{if(!document.hidden)void load();},15000); return ()=>window.clearInterval(timer); }, [load]);
   async function mutate(action: 'open' | 'close') {
     if (!/^\d{4}$/.test(pin) || busy) return;
+    if(action==='close' && state?.shift && state.staff.role==='operator'){setClosing(true);return;}
     setBusy(true); setError('');
     try { await foodShifts(`/${action}`, 'POST', { pin }); setPin(''); await load(); }
     catch (e) { setError((e as Error).message); }
@@ -44,6 +47,7 @@ export default function DamShiftPanel({ onChange, onLock }: { onChange?: (shift:
         <Button disabled={busy || pin.length !== 4} onClick={() => void mutate(state.shift ? 'close' : 'open')} variant={state.shift ? 'outline' : 'default'}>{state.shift ? <LogOut className="mr-2 h-4 w-4" /> : <LogIn className="mr-2 h-4 w-4" />}{state.shift ? t('dam.shift.close') : t('dam.shift.open')}</Button>
       </div>}
     </div>
+    {closing && state?.shift && <ShiftCloseDialog shiftId={state.shift.id} pin={pin} onClose={()=>setClosing(false)} onClosed={()=>{setClosing(false);setPin('');void load();}}/>}
     {error && <p role="alert" className="mt-3 text-sm font-medium text-red-700 dark:text-red-300">{error}</p>}
   </section>;
 }

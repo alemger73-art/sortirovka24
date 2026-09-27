@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import hashlib
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Literal
 
 from core.auth import create_access_token, decode_access_token
 from core.database import get_db
@@ -78,8 +78,8 @@ class CourierOnlineRequest(BaseModel):
 
 
 class CourierLocationRequest(BaseModel):
-    lat: float
-    lng: float
+    lat: float = Field(ge=-90, le=90, allow_inf_nan=False)
+    lng: float = Field(ge=-180, le=180, allow_inf_nan=False)
 
 
 class CourierProfileUpdate(BaseModel):
@@ -89,7 +89,9 @@ class CourierProfileUpdate(BaseModel):
 
 
 class TaskStatusRequest(BaseModel):
+    model_config = {'extra': 'forbid'}
     status: str
+    cash_received: bool | None = None
 
 
 class CourierPinRequest(BaseModel):
@@ -100,6 +102,11 @@ class CourierPinLoginResponse(BaseModel):
     token: str
     name: str
     expires_in: int = 43200
+
+class DeliveryIssueRequest(BaseModel):
+    model_config = {'extra':'forbid'}
+    reason: Literal['no_answer','wrong_address','refused','payment','transport','other']
+    comment: str = Field('',max_length=1000)
 
 
 class CourierApplyRequest(BaseModel):
@@ -190,6 +197,9 @@ async def courier_pin_login(
         },
         expires_minutes=12 * 60,
     )
+    record_action(db,None,'courier_pin_login',staff_type='courier',staff_id=str(user.id),
+                  staff_name=user.name or 'Курьер',role='courier')
+    await db.commit()
     return CourierPinLoginResponse(token=token, name=user.name or profile.phone or "Курьер")
 
 
@@ -256,7 +266,8 @@ async def courier_cabinet(
 ):
     user = await _courier_user(db, authorization)
     profile = await assert_courier_cabinet_access(db, user)
-    offered, broadcast, active = await courier_cabinet_tasks(db, str(user.id))
+    # PIN workplace is operator-managed: never expose the generic dispatch pool.
+    offered, broadcast, active = None, [], None
 
     history = (
         await db.execute(
@@ -267,25 +278,35 @@ async def courier_cabinet(
         )
     ).scalars().all()
 
-    completed = [t for t in history if t.status == "delivered"]
-    earnings = sum(float(t.delivery_fee or 0) for t in completed)
+    from services.courier_money import view as money_view
+    money = await money_view(db, str(user.id))
+    earnings = money['earned']
     shift = await active_shift(db, "courier", str(user.id))
 
-    if active and active.get('source_type') == 'food_orders':
-        from models.food_orders import Food_orders
-        food_order = await db.get(Food_orders, active['source_id'])
+    active_rows = (await db.scalars(select(LogisticsTask).where(
+        LogisticsTask.courier_id == str(user.id),
+        LogisticsTask.status.in_(('assigned', 'picked_up', 'on_the_way'))
+    ).order_by(LogisticsTask.id))).all()
+    active_tasks = [task_to_dict(task) for task in active_rows]
+    from models.food_orders import Food_orders
+    order_ids = [t['source_id'] for t in active_tasks if t['source_type'] == 'food_orders']
+    orders = {o.id: o for o in (await db.scalars(select(Food_orders).where(Food_orders.id.in_(order_ids)))).all()}
+    for task in active_tasks:
+        food_order = orders.get(task['source_id']) if task['source_type'] == 'food_orders' else None
         if food_order:
-            active['payment_method'] = food_order.payment_method
-            active['payment_status'] = food_order.payment_status
-            active['order_source'] = food_order.order_source or 'app'
+            task.update(payment_method=food_order.payment_method, payment_status=food_order.payment_status,
+                        order_source=food_order.order_source or 'app')
+    active = active_tasks[0] if active_tasks else None
 
     return {
         "profile": courier_profile_dict(profile, user),
         "offered_task": offered,
         "available_tasks": broadcast,
         "active_task": active,
+        "active_tasks": active_tasks,
         "task_history": [task_to_dict(t) for t in history],
         "earnings": earnings,
+        "money": money,
         "status_flow": COURIER_STATUS_FLOW,
         "pin_set": bool(profile.pin_hash),
         "shift": shift_view(shift),
@@ -400,16 +421,8 @@ async def accept_logistics_task(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await _courier_user(db, authorization)
-    profile = await assert_courier_cabinet_access(db, user)
-    shift = await require_courier_shift(db, profile)
-    record_action(db, shift, 'delivery_accepted', staff_type='courier', staff_id=str(user.id), staff_name=user.name or profile.phone or 'Курьер', role='courier', entity_type='delivery_task', entity_id=task_id)
-    try:
-        task = await accept_task(db, task_id, user)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    await _tracking_access(db, task, authorization)
-    return await get_task_with_courier(db, task.id)
+    await _courier_user(db, authorization)
+    raise HTTPException(409,'В кабинете DÄM ALEM доставку назначает оператор')
 
 
 @router.post("/tasks/{task_id}/decline")
@@ -424,6 +437,8 @@ async def decline_logistics_task(
     task = await get_task_by_id(db, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Задача не найдена")
+    if task.courier_id != str(user.id):
+        raise HTTPException(404,'Доставка не найдена')
     try:
         record_action(db, shift, 'delivery_declined', staff_type='courier', staff_id=str(user.id), staff_name=user.name or profile.phone or 'Курьер', role='courier', entity_type='delivery_task', entity_id=task_id)
         task = await decline_offer(db, task, user)
@@ -441,13 +456,17 @@ async def update_task_status(
 ):
     user = await _courier_user(db, authorization)
     profile = await assert_courier_cabinet_access(db, user)
-    shift = await require_courier_shift(db, profile)
     try:
         task = await get_task_by_id(db, task_id)
         if not task:
             raise HTTPException(status_code=404, detail="Задача не найдена")
+        if task.courier_id != str(user.id):
+            raise HTTPException(404, 'Доставка не найдена')
+        if task.status == body.status == 'delivered':
+            return await get_task_with_courier(db, task.id)
+        shift = await require_courier_shift(db, profile)
         record_action(db, shift, 'delivery_status_changed', staff_type='courier', staff_id=str(user.id), staff_name=user.name or profile.phone or 'Курьер', role='courier', entity_type='delivery_task', entity_id=task_id, details={'status':body.status})
-        task = await advance_task_status(db, task, user, body.status)
+        task = await advance_task_status(db, task, user, body.status, cash_received=body.cash_received)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     await _tracking_access(db, task, authorization)
@@ -455,6 +474,22 @@ async def update_task_status(
 
 
 # ─── Customer tracking ─────────────────────────────────────────────
+
+@router.post('/courier/cash-handover')
+async def courier_request_handover(authorization: str | None = Header(None), db: AsyncSession = Depends(get_db)):
+    user = await _courier_user(db, authorization)
+    from services.courier_money import request_handover
+    row = await request_handover(db, str(user.id))
+    await db.commit()
+    return {'id': row.id, 'amount': float(row.amount), 'status': row.status}
+
+@router.post('/tasks/{task_id}/issue')
+async def report_delivery_issue(task_id:int,body:DeliveryIssueRequest,authorization:str|None=Header(None),db:AsyncSession=Depends(get_db)):
+    user=await _courier_user(db,authorization)
+    from services.courier_issues import create_issue
+    row=await create_issue(db,task_id,user,body)
+    await db.commit()
+    return {'id':row.id,'status':row.status}
 
 async def _tracking_access(db, task, authorization):
     token_type = ""
@@ -465,6 +500,10 @@ async def _tracking_access(db, task, authorization):
             token_type = ""
     user = await _courier_user(db, authorization) if token_type == "courier_pin_session" else await get_taxi_user(db, authorization)
     from routers.account_v2 import _owns_user_content
+    if token_type == 'courier_pin_session':
+        if task.courier_id != str(user.id):
+            raise HTTPException(404, 'Доставка не найдена')
+        return
     if user.role in ('admin', 'superadmin') or task.courier_id == str(user.id):
         return
     if not _owns_user_content(user, None, task.customer_phone):
@@ -484,6 +523,28 @@ async def get_logistics_task(
     data = await get_task_with_courier(db, task_id)
     if not data:
         raise HTTPException(status_code=404, detail="Задача не найдена")
+    if task.source_type == 'food_orders':
+        # Receipt is read only after task ownership authorization. Use the
+        # actual order timestamp/snapshot, not the logistics task creation time.
+        import json
+        from models.food_orders import Food_orders
+        from services.dam_order_workflow import paid, money
+        order = await db.get(Food_orders, task.source_id)
+        if order:
+            fields = ('id', 'restaurant_name', 'created_at', 'customer_name', 'customer_phone',
+                'delivery_address', 'delivery_method', 'comment', 'scheduled_for', 'order_items',
+                'total_amount', 'paid_amount', 'payment_method', 'payment_status',
+                'promo_discount_amount', 'bonus_discount_amount')
+            receipt = {field: getattr(order, field) for field in fields}
+            receipt['amount_due'] = float(max(0, money(order.total_amount) - paid(order)))
+            try:
+                snapshot = json.loads(order.pricing_snapshot or '{}')
+                if not isinstance(snapshot, dict): snapshot = {}
+            except (ValueError, TypeError):
+                snapshot = {}
+            # Internal pricing configuration/promo catalogue is not a receipt.
+            receipt['pricing_snapshot'] = json.dumps({key: snapshot[key] for key in ('breakdown', 'promo_code') if key in snapshot}, ensure_ascii=False)
+            data['receipt'] = receipt
     return data
 
 

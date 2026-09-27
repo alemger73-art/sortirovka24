@@ -15,6 +15,8 @@ from models.food_business import FoodExpense,FoodRefund
 from models.food_shifts import FoodShift,FoodStaffAction
 from models.food_restaurants import Food_restaurants
 from models.food_items import Food_items
+from models.food_categories import Food_categories
+from models.food_settings import Food_settings
 from routers.food_business import router,city_today
 from routers.food_operations import router as operations
 from middleware.entity_guard import EntityWriteGuardMiddleware
@@ -22,7 +24,7 @@ from middleware.entity_guard import EntityWriteGuardMiddleware
 @pytest.fixture
 async def env(monkeypatch):
     engine=create_async_engine('sqlite+aiosqlite:///:memory:')
-    tables=[m.__table__ for m in [PartnerCredentials,Food_orders,FoodOrderEvent,FoodOperationsSettings,FoodExpense,FoodRefund,Food_restaurants,Food_items,FoodShift,FoodStaffAction]]
+    tables=[m.__table__ for m in [PartnerCredentials,Food_orders,FoodOrderEvent,FoodOperationsSettings,FoodExpense,FoodRefund,Food_restaurants,Food_categories,Food_settings,Food_items,FoodShift,FoodStaffAction]]
     async with engine.begin() as c: await c.run_sync(lambda conn:Base.metadata.create_all(conn,tables=tables))
     maker=async_sessionmaker(engine,expire_on_commit=False)
     async with maker() as db:

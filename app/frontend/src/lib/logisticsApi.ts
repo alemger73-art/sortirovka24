@@ -2,6 +2,8 @@ import { getAccountToken } from '@/lib/accountApi';
 import { clearCourierToken, getCourierToken } from '@/lib/courierSession';
 import { getAPIBaseURL } from '@/lib/config';
 import { humanizeApiError } from '@/lib/apiErrors';
+import type { PrintableOrder } from './damReceipt';
+import { Capacitor } from '@capacitor/core';
 
 function apiBase(): string {
   return getAPIBaseURL().replace(/\/$/, '');
@@ -111,6 +113,7 @@ export interface LogisticsTask {
   payment_status?: string | null;
   order_source?: string | null;
   delivery_fee?: number | null;
+  courier_payout?: number | null;
   comment?: string | null;
   created_at?: string;
   courier?: LogisticsCourierInfo;
@@ -154,15 +157,23 @@ export interface CourierProfile {
 }
 
 export interface CourierCabinet {
+  money?: CourierMoney;
   profile: CourierProfile;
   offered_task: LogisticsTask | null;
   available_tasks: LogisticsTask[];
   active_task: LogisticsTask | null;
+  active_tasks?: LogisticsTask[];
   task_history: LogisticsTask[];
   earnings: number;
   status_flow: Record<string, [string, string]>;
   pin_set: boolean;
   shift: { id: number; staff_name: string; opened_at: string; closed_at?: string | null; active: boolean } | null;
+}
+
+export interface CourierMoney {
+  collected: number; handed_over: number; cash_balance: number; earned: number;
+  payout_due: number; deliveries: number; pending_handover: number | null;
+  events: Array<{id:number;label:string;amount:number;created_at:string;actor:string}>;
 }
 
 export const LOGISTICS_STATUS_LABELS: Record<string, { label: string; labelKey: string; color: string; emoji: string }> = {
@@ -227,10 +238,34 @@ export const logisticsApi = {
 
   declineTask: (id: number) => courierApi<LogisticsTask>(`/api/v1/logistics/tasks/${id}/decline`, { method: 'POST' }),
 
-  updateTaskStatus: (id: number, status: string) =>
-    courierApi<LogisticsTask>(`/api/v1/logistics/tasks/${id}/status`, { method: 'POST', body: JSON.stringify({ status }) }),
+  updateTaskStatus: (id: number, status: string, cash_received?: boolean) =>
+    courierApi<LogisticsTask>(`/api/v1/logistics/tasks/${id}/status`, { method: 'POST', body: JSON.stringify({ status, cash_received }) }),
+  requestHandover: () => courierApi('/api/v1/logistics/courier/cash-handover', {method:'POST'}),
+  reportIssue: (id:number,reason:string,comment:string) => courierApi(`/api/v1/logistics/tasks/${id}/issue`,{method:'POST',body:JSON.stringify({reason,comment})}),
+  enableCourierPush: async () => {
+    if (Capacitor.isNativePlatform()) {
+      const {enablePushNotifications} = await import('./pushNotifications');
+      const state = await enablePushNotifications();
+      if (state === 'unsupported') throw new Error('Push не настроен в этой сборке приложения');
+      if (state !== 'enabled') throw new Error('Разрешите уведомления в настройках приложения');
+      return;
+    }
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) throw new Error('Push не поддерживается этим браузером');
+    if (await Notification.requestPermission() !== 'granted') throw new Error('Разрешите уведомления в настройках браузера');
+    const key = await api<{enabled:boolean;public_key:string}>('/api/v1/push/web-key');
+    if (!key.enabled || !key.public_key) throw new Error('Push пока не настроен на сервере');
+    const registration = await Promise.race([navigator.serviceWorker.ready,new Promise<never>((_,reject)=>setTimeout(()=>reject(new Error('Установите приложение или обновите страницу')),8000))]);
+    const binary=atob((key.public_key+'='.repeat((4-key.public_key.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/'));
+    const subscription=await registration.pushManager.getSubscription() || await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:Uint8Array.from(binary,c=>c.charCodeAt(0))});
+    await courierApi('/api/v1/push/register-web',{method:'POST',body:JSON.stringify({subscription:subscription.toJSON()})});
+  },
 
   getTask: (id: number) => api<LogisticsTask>(`/api/v1/logistics/tasks/${id}`),
+  courierReceipt: async (id: number) => {
+    const data = await courierApi<LogisticsTask & {receipt?: PrintableOrder}>(`/api/v1/logistics/tasks/${id}`);
+    if (!data.receipt) throw new Error('Чек заказа недоступен. Обратитесь к оператору.');
+    return data.receipt;
+  },
 
   trackFoodOrder: (orderId: number) => api<LogisticsTask>(`/api/v1/logistics/track/food/${orderId}`),
 

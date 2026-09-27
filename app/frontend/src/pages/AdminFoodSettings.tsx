@@ -96,11 +96,13 @@ type SettingsTab = 'delivery' | 'promo' | 'gifts' | 'zones' | 'general';
 const DELIVERY_KEYS = [
   'min_order_amount',
   'delivery_price',
+  'courier_payout',
   'free_delivery_from',
   'apartment_delivery_price',
   'apartment_free_from',
   'delivery_time',
   'working_hours',
+  'preorder_lead_minutes',
 ];
 
 
@@ -117,6 +119,7 @@ function getSETTING_FIELDS(adminT: (key: string) => string) {
   { key: 'min_order_amount', label: adminT("admin.ui.0554"), icon: DollarSign, placeholder: '2000', description: adminT("admin.ui.0555"), type: 'text' as const },
 
   { key: 'delivery_price', label: adminT("admin.ui.0556"), icon: Truck, placeholder: '500', description: adminT("admin.ui.0557"), type: 'text' as const },
+  { key: 'courier_payout', label: 'Оплата курьеру за доставку', icon: Truck, placeholder: '800', description: 'Вознаграждение курьеру за завершённую доставку. Не зависит от бесплатной доставки клиенту. Фиксируется при подготовке задания.', type: 'text' as const },
 
   { key: 'free_delivery_from', label: adminT("admin.ui.0558"), icon: Truck, placeholder: '15000', description: adminT("admin.ui.0559"), type: 'text' as const },
 
@@ -134,6 +137,7 @@ function getSETTING_FIELDS(adminT: (key: string) => string) {
 
   { key: 'delivery_time', label: adminT("admin.ui.0575"), icon: Truck, placeholder: adminT("admin.ui.0321"), description: adminT("admin.ui.0576"), type: 'text' as const },
 
+  { key: 'preorder_lead_minutes', label: 'Предзаказ: за сколько минут начинать готовить', icon: Truck, placeholder: '30', description: 'Будущие предзаказы появляются в текущей очереди за это время до получения (0–1440 минут).', type: 'number' as const },
   { key: 'working_hours', label: adminT("admin.ui.0464"), icon: Truck, placeholder: '10:00-22:00', description: adminT("admin.ui.0577"), type: 'text' as const },
 
 ];
@@ -322,6 +326,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
     const numericKeys = [
       'min_order_amount',
       'delivery_price',
+      'courier_payout',
       'free_delivery_from',
       'apartment_delivery_price',
       'apartment_free_from',

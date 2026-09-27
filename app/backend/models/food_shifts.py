@@ -1,7 +1,7 @@
 """Employee shifts and an immutable operational audit trail for DAM ALEM."""
 
 from core.database import Base
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text, Boolean, JSON, func
 
 
 class FoodShift(Base):
@@ -24,6 +24,16 @@ class FoodShift(Base):
     closed_at = Column(DateTime(timezone=True), nullable=True)
     opened_by = Column(String(255), nullable=False)
     closed_by = Column(String(255), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class FoodShiftProcurement(Base):
+    __tablename__ = 'food_shift_procurements'
+    shift_id = Column(Integer, ForeignKey('food_shifts.id'), primary_key=True)
+    items = Column(JSON, nullable=False)
+    not_required = Column(Boolean, nullable=False, default=False)
+    reason = Column(String(500), nullable=False, default='')
+    comment = Column(String(1000), nullable=False, default='')
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 

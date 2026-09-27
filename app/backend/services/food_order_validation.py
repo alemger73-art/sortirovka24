@@ -541,7 +541,9 @@ async def validate_food_order(
     set_svc = Food_settingsService(db)
     set_res = await set_svc.get_list(skip=0, limit=100, query_dict=None, sort="id")
     settings = _parse_settings(set_res["items"])
-    if not staff_quote:
+    from services.food_preorders import validate_schedule
+    scheduled_for = validate_schedule(data.get('scheduled_for'), settings)
+    if not staff_quote and not scheduled_for:
         assert_kitchen_open(settings)
 
     restaurant_id = data.get("restaurant_id")
@@ -854,6 +856,7 @@ async def validate_food_order(
     sanitized["payment_status"] = "pending"
     sanitized["status"] = "new"
     sanitized["order_source"] = "app"
+    sanitized['scheduled_for'] = scheduled_for
     sanitized["user_id"] = _account_user_id(account_user)
     sanitized["created_at"] = _server_now()
     if selected_gift:

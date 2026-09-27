@@ -15,6 +15,9 @@ env/
 
 backups/
 app/frontend/dist/
+app/frontend/test-receipt-build/
+app/frontend/test-results-courier*/
+app/frontend/test-results-receipt*/
 app/frontend/.android-sdk/
 app/backend/frontend_dist/
 dist/

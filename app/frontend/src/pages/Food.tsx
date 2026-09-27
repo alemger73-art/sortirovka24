@@ -1,3 +1,4 @@
+import PreorderFields, {scheduleISO, scheduleLabel} from '@/components/damalem/PreorderFields';
 import { useStoreTranslations, storeCheckoutBlockReason } from '@/i18n/storeTranslations';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -258,6 +259,7 @@ export default function Food() {
   const [apartment, setApartment] = useState('');
   const [deliverToApartment, setDeliverToApartment] = useState(false);
   const [comment, setComment] = useState('');
+  const [preorder,setPreorder]=useState(false),[schedule,setSchedule]=useState('');
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup' | 'dine_in'>('delivery');
   const [payment, setPayment] = useState<'cash' | 'kaspi_qr' | 'halyk_qr'>('cash');
   const [orderSuccess, setOrderSuccess] = useState<OrderSuccessInfo | null>(null);
@@ -1030,7 +1032,7 @@ export default function Food() {
 
   const checkoutBlockReason = useMemo(() => {
     return storeCheckoutBlockReason({
-      kitchenOpen: kitchenStatus.open,
+      kitchenOpen: preorder || kitchenStatus.open,
       kitchenMessage: kitchenStatus.message,
       cartTotal,
       minOrder,
@@ -1047,12 +1049,12 @@ export default function Food() {
       loggedIn: isLoggedIn(),
     }, st);
   }, [st,
-    kitchenStatus, cartTotal, minOrder, deliveryMethod, deliveryReady, deliveryQuoteLoading,
+    kitchenStatus, preorder, cartTotal, minOrder, deliveryMethod, deliveryReady, deliveryQuoteLoading,
     deliveryQuote, effectiveAddress, deliveryQuoteError, deliveryUnavailableMessage,
     deliverToApartment, apartment, customerName, customerPhone, getAccountToken(),
   ]);
   const giftSelectionRequired = availableGiftChoices.length > 1 && !loyaltyGift;
-  const checkoutFinalBlockReason = giftSelectionRequired
+  const checkoutFinalBlockReason = preorder && !scheduleISO(schedule) ? 'Выберите дату и время предзаказа' : giftSelectionRequired
     ? st("Выберите один бесплатный подарок")
     : checkoutBlockReason;
 
@@ -1282,6 +1284,7 @@ export default function Food() {
   }
 
   async function submitOrder() {
+    if(preorder && !scheduleISO(schedule)){toast.error('Выберите дату и время предзаказа');return;}
     if (submittingRef.current) return;
     if (giftSelectionRequired) {
       toast.error(st("Выберите один бесплатный подарок"));
@@ -1289,7 +1292,7 @@ export default function Food() {
       return;
     }
     const block = storeCheckoutBlockReason({
-      kitchenOpen: kitchenStatus.open,
+      kitchenOpen: preorder || kitchenStatus.open,
       kitchenMessage: kitchenStatus.message,
       cartTotal,
       minOrder,
@@ -1348,6 +1351,7 @@ export default function Food() {
     setSubmitting(true);
     try {
       const orderData = {
+            scheduled_for:preorder?scheduleISO(schedule):undefined,
             restaurant_id: damAlemRestaurantId ?? 1,
             restaurant_name: settings.hero_banner_title || brandProfile?.name || DAM_ALEM_BRAND,
             restaurant_phone: settings.whatsapp_number || brandProfile?.whatsapp_phone || '',
@@ -2388,6 +2392,7 @@ export default function Food() {
                 {checkoutStep === 1 ? (
                 <>
                 <div className="dam-checkout-section">
+                  <div className="mb-4"><PreorderFields enabled={preorder} value={schedule} onEnabled={setPreorder} onChange={setSchedule}/></div>
                   <div className="dam-checkout-section__title">{st("Способ получения")}</div>
                   <div className="grid grid-cols-2 gap-3">
                     <button
@@ -2665,7 +2670,7 @@ export default function Food() {
                   <aside className={`dam-checkout-aside space-y-4${checkoutStep === 3 ? '' : ' hidden lg:block'}`}>
                 {/* Order summary */}
                 <div className="dam-checkout-section dam-checkout-section--summary">
-                  <div className="dam-checkout-section__title">{t('food.yourOrder')}</div>
+                  <div className="dam-checkout-section__title">{t('food.yourOrder')}</div>{preorder&&<p className="text-sm">Предзаказ: {scheduleLabel(scheduleISO(schedule))}</p>}
                   <div className="space-y-2.5">
                     {cart.map((ci, idx) => {
                       const modTotal = calcSelectionsPrice(ci.selections);

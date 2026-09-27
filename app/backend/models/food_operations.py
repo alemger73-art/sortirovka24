@@ -1,5 +1,5 @@
 from core.database import Base
-from sqlalchemy import Column, Integer, String, Text, Boolean, Float
+from sqlalchemy import Column, Integer, String, Text, Boolean, Float, ForeignKey
 
 
 class FoodOperationsSettings(Base):
@@ -15,7 +15,8 @@ class FoodOperationsSettings(Base):
 class FoodOrderEvent(Base):
     __tablename__ = 'food_order_events'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    order_id = Column(Integer, index=True, nullable=False)
+    order_id = Column(Integer, index=True, nullable=True)
+    shift_id = Column(Integer, ForeignKey('food_shifts.id'), nullable=True, unique=True)
     actor = Column(String, nullable=False)
     message = Column(Text, nullable=False)
     created_at = Column(String, nullable=False)

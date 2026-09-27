@@ -61,15 +61,8 @@ async def assign_dam_delivery(db: AsyncSession, task: LogisticsTask, courier_use
     from services.food_shifts import active_shift
     if not await active_shift(db, 'courier', courier_user.id):
         raise ValueError("Курьер не на смене")
-    if not profile.is_online:
-        raise ValueError("Курьер не на линии")
-    active = await db.scalar(select(LogisticsTask).where(
-        LogisticsTask.courier_id == str(courier_user.id),
-        LogisticsTask.status.in_(ACTIVE_TASK_STATUSES),
-        LogisticsTask.id != task.id,
-    ))
-    if active:
-        raise ValueError("У курьера уже есть активная доставка")
+    # DAM dispatch is an explicit operator decision: workload/online presence
+    # is informative. Verification, active access and a personal shift are required.
     from services.dam_order_workflow import lock_courier_order
     from services.food_operations import add_event, LABELS
     order = await lock_courier_order(db, task, require_ready=True)
@@ -94,6 +87,8 @@ async def assign_dam_delivery(db: AsyncSession, task: LogisticsTask, courier_use
     await db.commit()
     await db.refresh(task)
     from services.user_notifications import notify_food_order_status
+    from services.courier_notifications import notify_courier_task
+    await notify_courier_task(db, task, 'assigned', version=order.version)
     try:
         await notify_food_order_status(db, order, old_status, order.status)
     except Exception:
@@ -184,7 +179,7 @@ def task_to_dict(task: LogisticsTask, courier_user: Optional[User] = None, couri
         "order_status": task.order_status,
         "delivery_fee": task.customer_delivery_fee if task.customer_delivery_fee is not None else task.delivery_fee,
         "customer_delivery_fee": task.customer_delivery_fee if task.customer_delivery_fee is not None else task.delivery_fee,
-        "courier_payout": task.courier_payout if task.courier_payout is not None else task.delivery_fee,
+        "courier_payout": task.courier_payout,
         "comment": task.comment,
         "created_at": task.created_at.isoformat() if task.created_at else None,
     }
@@ -330,7 +325,7 @@ async def accept_task(db: AsyncSession, task_id: int, courier_user: User) -> Log
             select(LogisticsTask).where(
                 LogisticsTask.courier_id == str(courier_user.id),
                 LogisticsTask.status.in_(ACTIVE_TASK_STATUSES),
-            )
+            ).limit(1)
         )
     ).scalar_one_or_none()
     if active:
@@ -382,9 +377,16 @@ async def accept_task(db: AsyncSession, task_id: int, courier_user: User) -> Log
     return task
 
 
-async def advance_task_status(db: AsyncSession, task: LogisticsTask, courier_user: User, new_status: str) -> LogisticsTask:
+async def advance_task_status(db: AsyncSession, task: LogisticsTask, courier_user: User, new_status: str, *, cash_received: bool | None = None) -> LogisticsTask:
+    from services.food_preorders import lock_dam_operations
+    await lock_dam_operations(db)
+    await db.refresh(task)
     if task.courier_id != str(courier_user.id) and courier_user.role not in {"admin", "superadmin"}:
         raise ValueError("Нет доступа")
+    if task.status == new_status == 'delivered':
+        return task
+    if cash_received is not None and new_status != 'delivered':
+        raise ValueError('Получение наличных подтверждается при доставке')
     expected = COURIER_STATUS_FLOW.get(task.status)
     if not expected or expected[0] != new_status:
         raise ValueError(f"Нельзя перейти из {task.status} в {new_status}")
@@ -392,6 +394,14 @@ async def advance_task_status(db: AsyncSession, task: LogisticsTask, courier_use
     from services.dam_order_workflow import lock_courier_order
     from services.food_operations import add_event, LABELS
     food = await lock_courier_order(db, task, require_ready=new_status == 'picked_up')
+    courier_shift = None
+    if food:
+        from services.courier_money import lock_wallet, collect_cash
+        from services.food_shifts import require_courier_shift
+        profile = await lock_wallet(db, str(courier_user.id))
+        courier_shift = await require_courier_shift(db, profile)
+        if cash_received:
+            await collect_cash(db, task, food, courier_user, courier_shift)
     old_food_status = food.status if food else None
     old_status = task.status
     changes = {'status': new_status}
@@ -428,6 +438,13 @@ async def advance_task_status(db: AsyncSession, task: LogisticsTask, courier_use
         await db.execute(update(CourierProfile).where(CourierProfile.user_id == task.courier_id).values(
             deliveries_count=CourierProfile.deliveries_count + 1,
             balance=CourierProfile.balance + max(0, float(payout or 0))))
+        if food:
+            from services.courier_money import accrue
+            await accrue(db, task, courier_user, courier_shift, payout)
+            from services.courier_issues import resolve_terminal_issues
+            await resolve_terminal_issues(db, task, 'Курьер завершил доставку', {
+                'staff_type':'courier','staff_id':str(courier_user.id),
+                'display_name':courier_user.name or 'Курьер','access_role':'courier'})
     await db.commit()
     await db.refresh(task)
     if food and old_food_status != food.status:

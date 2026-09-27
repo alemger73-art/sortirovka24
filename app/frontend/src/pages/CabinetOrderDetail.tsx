@@ -1,3 +1,4 @@
+import {scheduleLabel} from '@/components/damalem/PreorderFields';
 import { foodOrderStatusKey } from '@/lib/foodOrderStatus';
 import { getPublicLocale } from '@/i18n/publicLocale';
 import { useEffect, useState } from 'react';
@@ -147,7 +148,7 @@ export default function CabinetOrderDetail() {
 
               {isFood && order.status !== 'cancelled' && order.status !== 'done' ? (
                 <div className="mt-4">
-                  <FoodOrderStatusBar status={order.status || 'new'} deliveryMethod={order.delivery_method} />
+                  <>{order.scheduled_for&&<p className="rounded-xl bg-sky-50 p-3 text-sky-950">Предзаказ: {scheduleLabel(order.scheduled_for)}</p>}<FoodOrderStatusBar status={order.status || 'new'} deliveryMethod={order.delivery_method} /></>
                 </div>
               ) : null}
 

@@ -22,6 +22,12 @@ public class ReceiptPrinterPlugin extends Plugin {
     public void print(PluginCall call) {
         String html = call.getString("html", "");
         String title = call.getString("title", "Receipt");
+        Double widthMm = call.getDouble("paperWidthMm");
+        Double heightMm = call.getDouble("paperHeightMm");
+        final boolean thermal = widthMm != null && widthMm == 58.0;
+        if (thermal && (heightMm == null || !Double.isFinite(heightMm) || heightMm <= 0 || heightMm > 5000)) {
+            call.reject("Invalid paper size"); return;
+        }
         if (html.isEmpty() || html.length() > 1000000) { call.reject("Invalid receipt"); return; }
         getActivity().runOnUiThread(() -> {
             if (document != null) { call.reject("Printing is already open"); return; }
@@ -35,13 +41,20 @@ public class ReceiptPrinterPlugin extends Plugin {
                 @Override public void onPageFinished(WebView view, String url) {
                     if (started) return;
                     started = true;
+                    PrintAttributes.Builder attributes = new PrintAttributes.Builder();
+                    if (thermal) {
+                        attributes.setMediaSize(new PrintAttributes.MediaSize("DAM_58", "Receipt 58 mm",
+                            (int)Math.round(58.0 / 25.4 * 1000), (int)Math.ceil(heightMm / 25.4 * 1000)))
+                            .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
+                            .setColorMode(PrintAttributes.COLOR_MODE_MONOCHROME);
+                    }
                     PrintDocumentAdapter adapter = view.createPrintDocumentAdapter(title);
                     manager.print(title, new PrintDocumentAdapter() {
                         @Override public void onStart() { adapter.onStart(); }
                         @Override public void onLayout(PrintAttributes oldAttrs, PrintAttributes newAttrs, CancellationSignal signal, LayoutResultCallback callback, Bundle extras) { adapter.onLayout(oldAttrs, newAttrs, signal, callback, extras); }
                         @Override public void onWrite(PageRange[] pages, ParcelFileDescriptor destination, CancellationSignal signal, WriteResultCallback callback) { adapter.onWrite(pages, destination, signal, callback); }
                         @Override public void onFinish() { adapter.onFinish(); if (document != null) { document.destroy(); document = null; } }
-                    }, new PrintAttributes.Builder().build());
+                    }, attributes.build());
                     call.resolve();
                 }
             });

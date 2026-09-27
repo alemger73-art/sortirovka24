@@ -1456,6 +1456,7 @@ def _serialize_food_order_detail(row: Food_orders) -> dict:
         "customer_phone": row.customer_phone,
         "comment": row.comment,
         "delivery_method": row.delivery_method,
+        "scheduled_for": row.scheduled_for,
         "restaurant_name": row.restaurant_name,
         "created_at": row.created_at,
     }

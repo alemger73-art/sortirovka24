@@ -1,4 +1,7 @@
 export const DAM_ALEM_BRAND = 'DAM ALEM 2.0';
+// Public canonical menu route (App.tsx /food; SeoManager canonical origin).
+// Never derive printed links from the device, preview server or order session.
+export const DAM_ALEM_STOREFRONT_URL = 'https://www.sortirovka24.kz/food';
 export const DAM_ALEM_TAGLINE = 'Доставка еды по Сортировке №1';
 
 export function normalizeDamAlemBrand(name: string): string {

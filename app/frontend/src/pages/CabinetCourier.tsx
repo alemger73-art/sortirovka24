@@ -1,4 +1,5 @@
 import PrintReceiptButton from '@/components/PrintReceiptButton';
+import DamCourierWorkplace from '@/components/damalem/DamCourierWorkplace';
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -43,7 +44,11 @@ function CourierPageShell({ standalone, children }: { standalone: boolean; child
   return standalone ? <>{children}</> : <Layout>{children}</Layout>;
 }
 
-export default function CabinetCourier({ standalone = false, onLogout }: { standalone?: boolean; onLogout?: () => void }) {
+export default function CabinetCourier(props: { standalone?: boolean; onLogout?: () => void }) {
+  return props.standalone ? <DamCourierWorkplace onLogout={props.onLogout}/> : <LegacyCourier {...props}/>;
+}
+
+function LegacyCourier({ standalone = false, onLogout }: { standalone?: boolean; onLogout?: () => void }) {
   const { t } = useLanguage();
   const [data, setData] = useState<CourierCabinet | null>(null);
   const [loading, setLoading] = useState(true);
@@ -86,14 +91,14 @@ export default function CabinetCourier({ standalone = false, onLogout }: { stand
   }, [load]);
 
   useEffect(() => {
-    if (!data?.profile.online && !data?.active_task) {
+    if (!data?.profile.online && !data?.active_task && !data?.shift) {
       knownTaskIds.current = new Set();
       tasksInitialized.current = false;
       return;
     }
     const interval = setInterval(load, 5000);
     return () => clearInterval(interval);
-  }, [data?.profile.online, data?.active_task?.id, load]);
+  }, [data?.profile.online, data?.active_task?.id, data?.shift?.id, load]);
 
   useEffect(() => {
     if (!data?.profile.online || data.active_task) return;
@@ -264,6 +269,7 @@ export default function CabinetCourier({ standalone = false, onLogout }: { stand
   }
 
   const { profile, offered_task, available_tasks, active_task, task_history, earnings } = data;
+  const activeTasks = data.active_tasks ?? (active_task ? [active_task] : []);
   const pendingCount = (offered_task ? 1 : 0) + available_tasks.length;
 
   return (
@@ -348,8 +354,9 @@ export default function CabinetCourier({ standalone = false, onLogout }: { stand
             ))}
           </div>
 
-          {active_task && (
-            <div className="rounded-2xl bg-orange-50 border-2 border-orange-300 p-5 space-y-4">
+          {activeTasks.length > 0 && <h2 className="font-bold text-xl">Мои доставки — {activeTasks.length}</h2>}
+          {activeTasks.map(active_task => (
+            <div key={active_task.id} className="rounded-2xl bg-orange-50 border-2 border-orange-300 p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="font-bold text-gray-900">{t('courier.activeDelivery')} #{active_task.source_type === 'food_orders' ? active_task.source_id : active_task.id}</h2>
                 <span className={`text-xs font-semibold px-2 py-1 rounded-full ${LOGISTICS_STATUS_LABELS[active_task.status]?.color || ''}`}>
@@ -387,7 +394,7 @@ export default function CabinetCourier({ standalone = false, onLogout }: { stand
                 </Button>
               )}
             </div>
-          )}
+          ))}
 
           {!active_task && profile.online && offered_task && (
             <div className="rounded-2xl bg-gradient-to-br from-orange-300 to-amber-400 border-2 border-orange-500 p-5 space-y-4 shadow-lg">
