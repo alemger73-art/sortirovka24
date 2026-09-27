@@ -24,6 +24,7 @@ from models.partner_auth import PartnerCredentials
 from routers.food_business import router as business_router
 from routers.food_operations import router as operations_router
 from routers.logistics import router as logistics_router
+from routers.food_cashbox import router as cashbox_router
 
 URL = '/api/v1/dam-alem/business/staff/couriers'
 
@@ -51,7 +52,7 @@ async def registration(request, tmp_path):
             db.add(Food_restaurants(id=1, name='DAM ALEM 2.0'))
             await db.commit()
         app = FastAPI()
-        for router in (business_router, operations_router, logistics_router):
+        for router in (business_router, operations_router, logistics_router, cashbox_router):
             app.include_router(router)
 
         async def dependency():

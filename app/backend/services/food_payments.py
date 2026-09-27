@@ -20,12 +20,20 @@ def movement(event):
         return None
 
 
-def record(db, order, amount, actor, *, at=None, method=None):
+async def record(db, order, amount, actor, *, at=None, method=None, cash_location='cashbox'):
     amount = money(amount)
     event = add_event(db, order, f"{'Оплата' if amount >= 0 else 'Возврат'}: {abs(amount)} ₸", actor, notify=False)
     event.created_at = at or now()
     event.public_data = json.dumps({'kind': 'cash_movement', 'amount': str(amount),
-        'method': method or order.payment_method or 'unknown'}, ensure_ascii=False)
+        'method': method or order.payment_method or 'unknown', 'cash_location':cash_location}, ensure_ascii=False)
+    if (method or order.payment_method) == 'cash' and cash_location == 'cashbox':
+        from services.food_operations import is_dam_order
+        from services.food_cashbox import automatic
+        await db.flush()
+        if await is_dam_order(db, order):
+            await automatic(db, key=f'payment:{event.id}', kind='payment' if amount >= 0 else 'refund',
+                amount=amount, actor=actor, recipient=order.customer_name or 'Клиент',
+                reason=f'Заказ №{order.id}', order_id=order.id)
     return event
 
 
@@ -36,7 +44,7 @@ async def preserve_legacy_payment(db, order):
     received = paid(order)
     if received > 0:
         # Keep missing dates missing rather than inventing historical revenue today.
-        record(db, order, received, 'Система', at=order.paid_at or 'undated')
+        await record(db, order, received, 'Система', at=order.paid_at or 'undated', cash_location='legacy')
     previous_refund = await db.get(FoodRefund, order.id)
     if previous_refund:
         order.paid_amount = float(max(Decimal(0), received - money(previous_refund.amount)))
@@ -45,10 +53,10 @@ async def preserve_legacy_payment(db, order):
     await db.flush()
 
 
-async def receive_outstanding(db, order, actor):
+async def receive_outstanding(db, order, actor, *, cash_location='cashbox'):
     await preserve_legacy_payment(db, order)
     outstanding = max(Decimal(0), money(order.total_amount) - paid(order))
     if outstanding:
-        record(db, order, outstanding, actor)
+        await record(db, order, outstanding, actor, cash_location=cash_location)
         order.paid_amount = float(paid(order) + outstanding)
     order.paid_at = order.paid_at or now()

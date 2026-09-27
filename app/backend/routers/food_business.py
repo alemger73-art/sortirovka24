@@ -15,6 +15,7 @@ from core.food_staff_guard import food_staff, food_owner
 from models.food_orders import Food_orders
 from models.food_operations import FoodOrderEvent
 from models.food_business import FoodExpense, FoodRefund
+from models.food_cashbox import FoodCashEntry  # register with accounting metadata
 from models.food_items import Food_items
 from models.food_categories import Food_categories
 from models.food_restaurants import Food_restaurants
@@ -205,7 +206,7 @@ async def refund(order_id:int,body:RefundBody,db:AsyncSession=Depends(get_db),cl
     amount = max(Decimal(0), paid(order) - (Decimal(0) if order.status == 'cancelled' else money(order.total_amount)))
     if amount <= 0: raise HTTPException(409,'Суммы к возврату нет или возврат уже отмечен')
     timestamp = datetime.combine(body.day, datetime.min.time(), tzinfo=CITY).isoformat()
-    event = record(db, order, -amount, actor(claims), at=timestamp)
+    event = await record(db, order, -amount, actor(claims), at=timestamp)
     event.message += ': ' + body.note.strip()
     order.paid_amount = float(paid(order) - amount)
     from services.dam_order_workflow import sync_task

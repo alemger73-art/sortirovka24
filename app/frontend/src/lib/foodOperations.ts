@@ -19,7 +19,7 @@ function errorMessage(detail: unknown): string {
   return adminTranslations['admin.dam.operationError'][lang];
 }
 
-export async function foodOperations<T>(path: string, method = 'GET', body?: unknown, area: 'operations' | 'business' | 'payroll' = 'operations'): Promise<T> {
+export async function foodOperations<T>(path: string, method = 'GET', body?: unknown, area: 'operations' | 'business' | 'payroll' | 'cashbox' = 'operations'): Promise<T> {
   const partner = getPartnerToken('dam_alem');
   const admin = localStorage.getItem('_sp924_token') || localStorage.getItem('token');
   const token = location.pathname.startsWith('/partner/') ? partner : admin || partner;

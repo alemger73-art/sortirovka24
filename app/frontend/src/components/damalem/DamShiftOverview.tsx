@@ -34,6 +34,7 @@ const actionKey: Record<string, string> = {
   courier_pin_changed: 'dam.shift.actionCourierPinChanged',
 };
 const courierAction:Record<string,string>={courier_pin_login:'Вход курьера',cash_collected:'Получены наличные от клиента',earning:'Начислено за доставку',cash_handover_requested:'Запрошена передача наличных',cash_handed_over:'Приняты наличные курьера',cash_adjustment:'Корректировка наличных',courier_payout_paid:'Выплачено вознаграждение',courier_reassigned:'Курьер переназначен',delivery_issue_created:'Сообщена проблема доставки',delivery_issue_resolved:'Проблема доставки решена'};
+Object.assign(courierAction, {cashbox_opening:'Начальный остаток кассы',cashbox_expense:'Расход из кассы',cashbox_withdrawal:'Выданы наличные',cashbox_deposit:'Внесены наличные',cashbox_correction:'Пересчёт кассы'});
 function duration(seconds?: number | null) { if (seconds == null) return ''; const h = Math.floor(seconds / 3600); const m = Math.floor((seconds % 3600) / 60); return `${h} ч ${m} мин`; }
 
 export default function DamShiftOverview() {

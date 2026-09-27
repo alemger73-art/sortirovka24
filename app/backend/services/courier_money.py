@@ -79,7 +79,7 @@ async def collect_cash(db, task, order, courier, shift):
         return
     # Server amount, existing payment journal, same order transaction.
     from services.food_payments import receive_outstanding
-    await receive_outstanding(db,order,courier.name or 'Курьер')
+    await receive_outstanding(db,order,courier.name or 'Курьер',cash_location='courier')
     order.payment_status='paid'
     task.paid_amount=order.paid_amount
     await add_entry(db,key=f'cash:{task.id}',courier_id=str(courier.id),shift=shift,
@@ -116,6 +116,10 @@ async def confirm_handover(db, id, claims):
     await add_entry(db,key=f'handover:{row.id}',courier_id=row.courier_id,shift=shift,
         kind='cash_handed_over',amount=row.amount,actor=name,actor_id=staff,comment=f'Передача №{row.id}')
     row.status='confirmed';row.active_key=None;row.confirmed_at=datetime.now(timezone.utc);row.confirmed_by=staff
+    from services.food_cashbox import automatic
+    courier_user = await db.get(User, row.courier_id)
+    await automatic(db, key=f'handover:{row.id}', kind='handover', amount=row.amount, actor=name,
+        actor_id=staff, recipient=courier_user.name or 'Курьер', reason=f'Получены наличные курьера, передача №{row.id}')
     record_action(db,None,'cash_handed_over',claims=claims,entity_type='courier',entity_id=row.courier_id,details={'handover_id':row.id,'amount':str(row.amount)})
     return row
 

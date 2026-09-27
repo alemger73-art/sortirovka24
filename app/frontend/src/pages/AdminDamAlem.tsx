@@ -23,8 +23,9 @@ import DamAlemNewOrderAlert from '@/components/damalem/DamAlemNewOrderAlert';
 import DamShiftPanel, { type DamShift } from '@/components/damalem/DamShiftPanel';
 import DamShiftOverview from '@/components/damalem/DamShiftOverview';
 import DamOwnerDashboard from './DamOwnerDashboard';
+import DamCashbox from '@/components/damalem/DamCashbox';
 
-type Section = 'deliveries' | 'payroll' | 'brand' | 'menu' | 'categories' | 'modifiers' | 'orders' | 'settings' | 'banners' | 'pos' | 'telegram' | 'today' | 'sales' | 'staff' | 'availability';
+type Section = 'cashbox' | 'deliveries' | 'payroll' | 'brand' | 'menu' | 'categories' | 'modifiers' | 'orders' | 'settings' | 'banners' | 'pos' | 'telegram' | 'today' | 'sales' | 'staff' | 'availability';
 
 interface AdminDamAlemProps {
   initialSection?: Section;
@@ -38,6 +39,7 @@ function getTABS(adminT: (key: string) => string) {
   { id: 'today', label: adminT("admin.ui.0235"), icon: Store },
   { id: 'orders', label: adminT("admin.ui.0239"), icon: ShoppingBag },
   { id: 'deliveries', label: adminT('cabinet.deliveries'), icon: ShoppingBag },
+  { id: 'cashbox', label: 'Общая касса', icon: Store },
   { id: 'sales', label: adminT("payroll.salesReport"), icon: ShoppingBag },
   { id: 'payroll', label: adminT('payroll.title'), icon: Store },
   { id: 'staff', label: adminT("admin.ui.0237"), icon: Store },
@@ -65,9 +67,10 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
   const [activeShift, setActiveShift] = useState<DamShift | null>(null);
   const [accessError, setAccessError] = useState('');
   useEffect(() => { let alive = true; business<{role: 'owner' | 'operator'}>('/me').then(v => { if (alive && ['owner', 'operator'].includes(v.role)) setAccess(v.role); else if (alive) setAccessError(adminT("admin.ui.0247")); }).catch(e => { if (alive) setAccessError(e.message); }); return () => { alive = false; }; }, []);
-  const tabs = TABS.filter(tab => (!partnerMode || tab.id !== 'pos') && (access === 'owner' || ['today', 'orders', 'availability', 'deliveries'].includes(tab.id)));
+  const tabs = TABS.filter(tab => (!partnerMode || tab.id !== 'pos') && (access === 'owner' || ['today', 'orders', 'availability', 'deliveries', 'cashbox'].includes(tab.id)));
   const groupOf = (id: string) => {
-    if (id === 'payroll') return 'sales';
+    if (id === 'payroll' || (id === 'cashbox' && access === 'owner')) return 'sales';
+    if (id === 'cashbox') return 'cashbox';
     if (id === 'staff') return 'staff';
     if (['menu', 'categories', 'modifiers', 'banners', 'availability'].includes(id)) return 'menu';
     if (access === 'owner' && id === 'deliveries') return 'orders';
@@ -87,17 +90,18 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
     : [
         { id: 'orders', label: adminT('admin.ui.0239') },
         { id: 'deliveries', label: adminT('cabinet.deliveries') },
+        { id: 'cashbox', label: 'Общая касса' },
         { id: 'menu', label: 'Стоп-лист' },
       ];
   const navigate = (id: string, order?: number, status?: string) => { const p = new URLSearchParams(params); p.set('section', id); if (status) p.set('status', status); else p.delete('status'); if (order) p.set('order', String(order)); else if (id !== 'orders') p.delete('order'); setParams(p); };
 
   useEffect(() => {
-    const allowed = (id: string) => (access === 'owner' || ['today', 'orders', 'availability', 'deliveries'].includes(id)) && (!partnerMode || id !== 'pos');
+    const allowed = (id: string) => (access === 'owner' || ['today', 'orders', 'availability', 'deliveries', 'cashbox'].includes(id)) && (!partnerMode || id !== 'pos');
     setSection(TABS.some(t => t.id === requested) && allowed(requested) && !(onLock && requested === 'today') ? requested : allowed(initialSection) ? initialSection : 'today');
   }, [initialSection, partnerMode, requested, access, onLock]);
 
   if (!access) return <p role={accessError ? 'alert' : 'status'}>{accessError || adminT("admin.ui.0250")}</p>;
-  if (access === 'operator' && !['today', 'orders', 'availability', 'deliveries'].includes(section)) return <p>{adminT("admin.ui.0251")}</p>;
+  if (access === 'operator' && !['today', 'orders', 'availability', 'deliveries', 'cashbox'].includes(section)) return <p>{adminT("admin.ui.0251")}</p>;
   return (
     <div className="min-w-0 space-y-6">
       {!onLock && <div className="rounded-2xl border bg-card p-4 md:p-5">
@@ -151,7 +155,8 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
       {section === 'deliveries' && <DamDeliveries openOrder={id => navigate('orders', id)} />}
       {section === 'today' && (access === 'owner' ? <DamOwnerDashboard navigate={navigate} /> : <DamToday owner={false} navigate={navigate} />)}
       {section === 'payroll' && access === 'owner' && <DamAlemPayroll />}
-      {section === 'sales' && access === 'owner' && <DamFinance />}
+      {section === 'sales' && access === 'owner' && <><div className="rounded-xl border p-3 text-sm">Выдачу наличных оформляйте в <button className="font-semibold underline" onClick={()=>navigate('cashbox')}>общей кассе</button>. Расход из кассы автоматически включается в этот отчёт.</div><DamFinance /></>}
+      {section === 'cashbox' && <DamCashbox owner={access === 'owner'} canWrite={access === 'owner' || !!activeShift} />}
       {section === 'staff' && access === 'owner' && <><DamStaff /><DamShiftOverview /></>}
       {section === 'availability' && <DamAvailability />}
       {section === 'brand' && <AdminDamAlemBrand />}
