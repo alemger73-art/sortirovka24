@@ -13,7 +13,7 @@ export function PartnerCard({ profile: p }: { profile: PartnerProfile }) {
       <span className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-slate-900">{p.category}</span>
     </div>
     <div className="p-5">
-      <div className="flex items-center gap-3">{p.logo && <StorageImg objectKey={p.logo} alt="" className="h-12 w-12 rounded-xl object-contain" />}<h3 className="min-w-0 flex-1 text-xl font-bold">{p.name}</h3><ArrowUpRight className="h-5 w-5 shrink-0 text-emerald-600" /></div>
+      <div className="flex items-center gap-3">{p.logo && <StorageImg objectKey={p.logo} alt="" className="h-12 w-12 shrink-0 rounded-full" />}<h3 className="min-w-0 flex-1 text-xl font-bold">{p.name}</h3><ArrowUpRight className="h-5 w-5 shrink-0 text-emerald-600" /></div>
       <p className="mt-3 line-clamp-2 text-sm text-gray-600 dark:text-gray-300">{p.headline}</p>
       {p.area && <p className="mt-3 flex gap-2 text-xs text-gray-500"><MapPin className="h-4 w-4 shrink-0" />{p.area}</p>}
       {p.offer && <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">{p.offer}</p>}

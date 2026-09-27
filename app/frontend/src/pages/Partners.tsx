@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowUpRight, Check, MapPin, Phone, MessageCircle, Play, Store } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Check, MapPin, Phone, MessageCircle, Play } from 'lucide-react';
 import Layout from '@/components/Layout';
 import StorageImg from '@/components/StorageImg';
 import { PartnerCard } from '@/components/PartnerCards';
@@ -35,12 +35,15 @@ export default function Partners() {
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">{items.filter(p=>`${p.name} ${p.category} ${p.headline} ${p.area} ${p.services.join(' ')}`.toLocaleLowerCase().includes(search.toLocaleLowerCase().trim())).map(p=><PartnerCard key={p.slug} profile={p}/>)}</div>
       {!items.some(p=>`${p.name} ${p.category} ${p.headline} ${p.area} ${p.services.join(' ')}`.toLocaleLowerCase().includes(search.toLocaleLowerCase().trim())) && <p className="py-12 text-center text-gray-500">{lang === 'kz' ? 'Компаниялар табылмады.' : search ? 'Ничего не найдено. Попробуйте другое название или услугу.' : 'Здесь скоро появятся компании района.'}</p>}
     </> : profile && <>
-      <section className="overflow-hidden rounded-[2rem] bg-slate-950 text-white">
-        <div className="grid md:grid-cols-2"><div className="p-6 sm:p-10 lg:p-12">
-          <div className="flex items-center gap-4">{profile.logo && <StorageImg objectKey={profile.logo} alt={`Логотип ${profile.name}`} className="h-20 w-20 rounded-2xl object-contain" />}<div><p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">{lang === 'kz' ? 'Біздің серіктес' : 'Наш партнёр'}</p><h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">{profile.name}</h1></div></div>
-          <p className="mt-7 text-2xl font-semibold leading-snug">{profile.headline}</p><p className="mt-5 flex gap-2 text-sm text-slate-300"><MapPin className="h-5 w-5 shrink-0" />{profile.area}</p>
+      <section className="relative isolate overflow-hidden rounded-[2rem] bg-slate-950 text-white">
+        {profile.cover && <div className="absolute inset-0 -z-20"><StorageImg objectKey={profile.cover} alt="" priority className="h-full w-full" /></div>}
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-slate-950/95 via-slate-950/85 to-slate-950/30" />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-slate-950/80 to-transparent" />
+        <div className="max-w-2xl px-6 py-8 sm:p-10 lg:p-12">
+          <div className="flex items-center gap-4">{profile.logo && <StorageImg objectKey={profile.logo} alt={`Логотип ${profile.name}`} className="h-16 w-16 shrink-0 rounded-full sm:h-20 sm:w-20" />}<div><p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">{lang === 'kz' ? 'Біздің серіктес' : 'Наш партнёр'}</p><h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">{profile.name}</h1></div></div>
+          <p className="mt-7 max-w-lg text-xl font-semibold leading-relaxed sm:text-2xl">{profile.headline}</p><p className="mt-5 flex gap-2 text-sm text-slate-300"><MapPin className="h-5 w-5 shrink-0" />{profile.area}</p>
           <div className="mt-7 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">{whatsappLink(profile.whatsapp) && <a href={`${whatsappLink(profile.whatsapp)}?text=${encodeURIComponent(`Здравствуйте! Нашёл ${profile.name} на Сортировка 24. Хочу узнать об услугах.`)}`} target="_blank" rel="noopener noreferrer" className={`${button} bg-emerald-500 text-slate-950`}><MessageCircle className="h-5 w-5" />WhatsApp</a>}{phoneLink(profile.phone) && <a href={phoneLink(profile.phone)!} className={`${button} border border-white/25`}><Phone className="h-5 w-5" />{lang === 'kz' ? 'Қоңырау шалу' : 'Позвонить'}</a>}</div>
-        </div><div className="min-h-64 md:min-h-96">{profile.cover ? <StorageImg objectKey={profile.cover} alt={profile.name} priority className="h-64 md:h-full md:max-h-[560px] w-full object-cover" /> : <Store className="m-auto h-full w-24 text-slate-700" />}</div></div>
+        </div>
       </section>
       <nav aria-label="Разделы компании" className="my-6 flex flex-wrap gap-2 text-sm font-semibold">{[['about','О компании'],['services','Услуги'],['works','Работы'],['contacts','Контакты']].map(([id,label])=><a key={id} href={`#${id}`} className="rounded-full border px-4 py-3 hover:bg-emerald-50 dark:hover:bg-emerald-950">{label}</a>)}</nav>
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
