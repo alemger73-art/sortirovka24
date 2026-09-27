@@ -31,6 +31,9 @@ class StaffAccessTest(unittest.IsolatedAsyncioTestCase):
     self.assertFalse((await login('operator1',body['password'])).json()['success'])
     r=await login('operator2','LocalTesting-Password2');self.assertTrue(r.json()['success'],r.text)
     operator={'Authorization':'Bearer '+r.json()['jwt_token']}
+    self.assertEqual((await c.patch(f'{path}/{id}',json={'pin':'7391'},headers=headers)).status_code,200)
+    self.assertTrue((await login('operator2','LocalTesting-Password2')).json()['success'])
+    self.assertFalse((await login('operator2','7391')).json()['success'])
     self.assertEqual((await c.get(path,headers=operator)).status_code,403)
     self.assertEqual((await c.patch(f'{path}/{id}',json={'role':'owner'},headers=operator)).status_code,403)
     rows=(await c.get(path,headers=headers)).json();self.assertEqual(rows[0]['email'],'operator2')

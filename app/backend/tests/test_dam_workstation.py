@@ -36,6 +36,18 @@ class WorkstationTest(unittest.IsolatedAsyncioTestCase):
     first=await c.post(root+'/enter',json={'pin':'5938'},headers=device);self.assertEqual(first.status_code,200,first.text)
     second=await c.post(root+'/enter',json={'pin':'5938'},headers=device);self.assertEqual(second.json()['shift']['id'],first.json()['shift']['id']);self.assertTrue(second.json()['resumed'])
     self.assertEqual((await c.get('/api/v1/dam-alem/business/staff',headers={'Authorization':'Bearer '+first.json()['token']})).status_code,403)
+    # Owner save is committed and immediately used by PIN login on an already connected device.
+    changed=await c.patch('/api/v1/dam-alem/business/staff/2',headers=h(1),json={'pin':'8276'})
+    self.assertEqual(changed.status_code,200,changed.text)
+    self.assertEqual((await c.post(root+'/enter',json={'pin':'5938'},headers=device)).status_code,403)
+    resumed=await c.post(root+'/enter',json={'pin':'8276'},headers=device)
+    self.assertEqual(resumed.status_code,200,resumed.text)
+    self.assertEqual(resumed.json()['shift']['id'],first.json()['shift']['id'])
+    async with maker() as s:
+     from utils.courier_pin import verify_courier_pin
+     operator=await s.get(PartnerCredentials,2)
+     self.assertTrue(verify_courier_pin(operator.pin_hash,'8276'))
+     self.assertEqual(operator.password_hash,'test-hash')
     async with maker() as s:
      self.assertEqual(await s.scalar(select(func.count()).select_from(FoodShift)),1)
      owner=await s.get(PartnerCredentials,1);owner.password_hash='changed';await s.commit()

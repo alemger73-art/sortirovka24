@@ -75,6 +75,7 @@ function PartnerLoginForm({
           <p className="text-sm text-gray-500 mt-2">{adminT("admin.ui.1328")} {adminT(`admin.partner.${partnerType}.description`)}</p>
         </CardHeader>
         <CardContent>
+          {partnerType === 'dam_alem' && <div className="mb-4 rounded-lg border p-3 text-sm"><Link to="/partner/dam-alem/operator" className="font-semibold text-blue-600 underline">Оператору: войти по PIN →</Link><p className="mt-1 text-muted-foreground">Эта форма — для логина и пароля. PIN из 4 цифр вводится на рабочем месте оператора.</p></div>}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1.5 block">{adminT("admin.ui.1329")}</label>
