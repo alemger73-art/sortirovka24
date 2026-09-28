@@ -27,6 +27,10 @@ class FoodOrderEvent(Base):
     error = Column(String, nullable=True)
     telegram_message_id = Column(Integer, nullable=True)
     public_data = Column(Text, nullable=True)
+    event_type = Column(String(60), nullable=True, index=True)
+    event_key = Column(String(180), nullable=True, unique=True)
+    # Internal structured audit/outbox data. Never exposed in public tracking.
+    event_data = Column(Text, nullable=True)
 
 
 class FoodOrderRequest(Base):

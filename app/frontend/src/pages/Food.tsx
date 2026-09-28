@@ -1,3 +1,8 @@
+import MenuSelectionDialog from '@/components/damalem/MenuSelection';
+import {publicMenu, needsSelection, type MenuProduct, type MenuCatalog, type MenuSelection} from '@/lib/damMenu';
+import PickupCard from '@/components/damalem/PickupCard';
+import { clientLoyalty, type MyLoyalty } from '@/lib/loyalty';
+import CashAmount from '@/components/damalem/CashAmount';
 import PreorderFields, {scheduleISO, scheduleLabel} from '@/components/damalem/PreorderFields';
 import { useStoreTranslations, storeCheckoutBlockReason } from '@/i18n/storeTranslations';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -79,7 +84,7 @@ interface FoodCategory {
   restaurant_id?: number | null;
   category_type?: string | null;
 }
-interface FoodItem {
+interface FoodItem extends Omit<MenuProduct, 'category_id'> {
   id: number;
   category_id: number;
   name: string;
@@ -144,7 +149,7 @@ const PAYMENT_LABELS: Record<'cash' | 'kaspi_qr' | 'halyk_qr', string> = {
 };
 
 interface CartItemSelection { [groupId: number]: number[]; }
-interface CartItem { item: FoodItem; quantity: number; selections: CartItemSelection; }
+interface CartItem { item: FoodItem; quantity: number; selections: CartItemSelection; choices?: MenuSelection['choices']; }
 
 /* ─── Badge (как Tasko: «Хит» — красная таблетка, только текст) ─── */
 function FoodBadge({ type }: { type: 'hit' | 'new' }) {
@@ -250,6 +255,7 @@ export default function Food() {
   const [brandProfile, setBrandProfile] = useState<BrandProfile | null>(null);
   const [promoBanners, setPromoBanners] = useState<FoodBanner[]>([]);
   const [damAlemRestaurantId, setDamAlemRestaurantId] = useState<number | null>(null);
+  const [editingCartIndex,setEditingCartIndex]=useState<number|null>(null);
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(null);
   const [currentSelections, setCurrentSelections] = useState<CartItemSelection>({});
 
@@ -261,6 +267,7 @@ export default function Food() {
   const [comment, setComment] = useState('');
   const [preorder,setPreorder]=useState(false),[schedule,setSchedule]=useState('');
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup' | 'dine_in'>('delivery');
+  const [cashGiven, setCashGiven] = useState('');
   const [payment, setPayment] = useState<'cash' | 'kaspi_qr' | 'halyk_qr'>('cash');
   const [orderSuccess, setOrderSuccess] = useState<OrderSuccessInfo | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -284,6 +291,13 @@ export default function Food() {
   } | null>(null);
   const [promoLoading, setPromoLoading] = useState(false);
   const [bonusBalance, setBonusBalance] = useState(0);
+  useEffect(() => {
+    const code = new URLSearchParams(location.search).get('ref');
+    if (code && /^[A-Za-z0-9_-]{16,48}$/.test(code)) sessionStorage.setItem('dam_referral', code);
+    const pending = sessionStorage.getItem('dam_referral');
+    if (pending && getAccountToken()) void clientLoyalty('/referral', {code:pending}).then(() => sessionStorage.removeItem('dam_referral')).catch(() => { /* Client cabinet exposes the explicit retry and reason. */ });
+  }, []);
+
   const [useBonuses, setUseBonuses] = useState(false);
   const [selectedGiftId, setSelectedGiftId] = useState<string | null>(null);
   const [bonusRules, setBonusRules] = useState({ enabled: false, tenge_rate: 1, max_order_percent: 0 });
@@ -320,8 +334,8 @@ export default function Food() {
       setUseBonuses(false);
       return;
     }
-    accountApi.me()
-      .then((me) => setBonusBalance(Number(me?.bonus_balance || 0)))
+    clientLoyalty<MyLoyalty>('/me')
+      .then((me) => setBonusBalance(Number(me?.balance || 0)))
       .catch(() => setBonusBalance(0));
     accountApi.bonusRules().then(setBonusRules).catch(() => setBonusRules({ enabled: false, tenge_rate: 1, max_order_percent: 0 }));
   }, [checkoutOpen, activeTab]);
@@ -395,6 +409,32 @@ export default function Food() {
     if (addressFocusTimerRef.current) clearTimeout(addressFocusTimerRef.current);
   }, []);
 
+  function installMenuModifiers(catalog:MenuCatalog) {
+    const groups=catalog.groups as ModifierGroup[];
+    const options=catalog.options as ModifierOption[];
+    const links=catalog.links;
+    modGroupsRef.current=groups;modOptionsRef.current=options;itemGroupLinksRef.current=links;
+    setModGroups(groups);setModOptions(options);setItemGroupLinks(links);modifiersLoadedRef.current=true;
+  }
+  function applyMenuCatalog(c:MenuCatalog) {
+    installMenuModifiers(c);
+    setCategories(c.categories.map(p=>({...p,icon:'🍽',is_active:true,sort_order:('sort_order' in p?Number(p.sort_order):0)})));
+    setItems(c.products.filter(p=>p.sellable!==false).map(p=>({...p,category_id:p.category_id || 0,description:p.description || '',image_url:p.image_url || '',is_active:p.is_active!==false,is_recommended:!!p.is_popular,weight:p.weight || '',sort_order:p.sort_order || 0})));
+  }
+  useEffect(()=>{
+    const refresh=()=>{if(document.visibilityState==='visible')void publicMenu().then(applyMenuCatalog).catch(()=>{});};
+    const timer=setInterval(refresh,30000);window.addEventListener('focus',refresh);
+    return()=>{clearInterval(timer);window.removeEventListener('focus',refresh);};
+  },[]);
+  function selectionOf(ci:CartItem):MenuSelection {
+    const counts=new Map<number,number>();Object.values(ci.selections).flat().forEach(id=>counts.set(id,(counts.get(id)||0)+1));
+    return {choices:ci.choices || [],modifiers:[...counts].map(([option_id,quantity])=>({option_id,quantity}))};
+  }
+  function productForSelection(item:FoodItem):MenuProduct {
+    return item.modifier_groups ? item : {...item,modifier_groups:getGroupsForItem(item.id).map(g=>({...g,options:getOptionsForGroup(g.id)}))};
+  }
+  function choicePrice(ci:CartItem) {return (ci.choices || []).reduce((sum,c)=>sum+Number(ci.item.combo?.groups.find(g=>g.id===c.group_id)?.options.find(o=>o.item_id===c.item_id)?.surcharge || 0),0);}
+  function comboNames(ci:CartItem) {return [...(ci.item.combo?.components || []).map(p=>p.name+' ×'+p.quantity),...(ci.choices || []).map(c=>{const group=ci.item.combo?.groups.find(g=>g.id===c.group_id);const p=group?.options.find(o=>o.item_id===c.item_id);return p?group?.name+': '+p.name+' ×'+p.quantity:'';})].filter(Boolean);}
   async function loadModifiers(force = false) {
     if (!force && modifiersLoadedRef.current) return;
     if (modifiersLoadingRef.current) {
@@ -460,6 +500,8 @@ export default function Food() {
       if (brand) setBrandProfile(brand);
 
       const restaurantQs = rid != null ? `?restaurant_id=${rid}` : '';
+      let configuredCatalog: MenuCatalog | null = null;
+      try { configuredCatalog = await publicMenu(); } catch (e) { if ((e as Error & {status?:number}).status!==404) throw e; }
       let cats: FoodCategory[] | null = null;
       let foodItems: FoodItem[] | null = null;
       try {
@@ -529,7 +571,9 @@ export default function Food() {
       const filterByRestaurant = <T extends { restaurant_id?: number | null }>(rows: T[]) =>
         rid != null ? rows.filter(r => r.restaurant_id == null || r.restaurant_id === rid) : rows;
 
-      if (cats && foodItems) {
+      if (configuredCatalog) {
+        applyMenuCatalog(configuredCatalog);
+      } else if (cats && foodItems) {
         setCategories(cats);
         setItems(foodItems);
       } else {
@@ -571,7 +615,7 @@ export default function Food() {
           image_url: b.image_url, button_text: b.button_text, button_url: b.button_url || b.link_url,
         })));
 
-      void loadModifiers(true);
+      if (!configuredCatalog) void loadModifiers(true);
     } catch (e) {
       console.error('Error loading food data:', e);
       setLoadError(true);
@@ -638,18 +682,12 @@ export default function Food() {
 
   const showRecommendations = settings.show_recommendations !== 'false';
 
-  const menuCategorySections = useMemo(
-    () =>
-      categories
-        .map(category => ({
-          category,
-          items: poolItems
-            .filter(item => item.category_id === category.id)
-            .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
-        }))
-        .filter(section => section.items.length > 0),
-    [categories, poolItems],
-  );
+  const menuCategorySections = useMemo(() => {
+    const combos=poolItems.filter(item=>item.is_combo).sort((a,b)=>(a.sort_order || 0)-(b.sort_order || 0));
+    const sections=categories.map(category=>({category,items:poolItems.filter(item=>item.category_id===category.id&&!item.is_combo).sort((a,b)=>(a.sort_order || 0)-(b.sort_order || 0))})).filter(section=>section.items.length>0);
+    if(combos.length) sections.unshift({category:{id:-1,name:'Комбо',slug:'combo',icon:'',sort_order:-1,is_active:true},items:combos});
+    return sections;
+  },[categories,poolItems]);
   const categoryPills = useMemo(
     () => menuCategorySections.map(({ category }) => ({ id: String(category.id), label: category.name })),
     [menuCategorySections],
@@ -744,29 +782,6 @@ export default function Food() {
     return total;
   }
 
-  function validateSelections(itemId: number, selections: CartItemSelection): { valid: boolean; errors: string[] } {
-    const itemGroups = getGroupsForItem(itemId);
-    const errors: string[] = [];
-    for (const group of itemGroups) {
-      const selected = selections[group.id] || [];
-      if (group.is_required && selected.length === 0) {
-        errors.push(`${t('food.selectRequired')}: ${localized(group, 'name') || group.name}`);
-      }
-      if (group.type === 'radio' && group.is_required && selected.length !== 1) {
-        errors.push(`${t('food.chooseOne')}: ${localized(group, 'name') || group.name}`);
-      }
-      if (group.type === 'checkbox') {
-        if (group.min_select > 0 && selected.length < group.min_select) {
-          errors.push(st("Мин. {0} — \"{1}\"", [group.min_select, localized(group, 'name') || group.name]));
-        }
-        if (group.max_select > 0 && selected.length > group.max_select) {
-          errors.push(st("Макс. {0} — \"{1}\"", [group.max_select, localized(group, 'name') || group.name]));
-        }
-      }
-    }
-    return { valid: errors.length === 0, errors };
-  }
-
   function getSelectionNames(selections: CartItemSelection): string[] {
     const names: string[] = [];
     for (const groupId of Object.keys(selections)) {
@@ -790,7 +805,7 @@ export default function Food() {
 
   const cartTotal = useMemo(() => cart.reduce((sum, ci) => {
     const modTotal = calcSelectionsPrice(ci.selections);
-    return sum + (ci.item.price + modTotal) * ci.quantity;
+    return sum + (ci.item.price + choicePrice(ci) + modTotal) * ci.quantity;
   }, 0), [cart, modOptions]);
 
   const cartCount = useMemo(() => cart.reduce((sum, ci) => sum + ci.quantity, 0), [cart]);
@@ -1101,10 +1116,9 @@ export default function Food() {
 
   const maxBonusPoints = useMemo(() => {
     if (!getAccountToken() || bonusBalance <= 0 || !bonusRules.enabled || bonusRules.tenge_rate <= 0) return 0;
-    if (appliedPromo && !appliedPromo.pending) return 0;
-    const capBySubtotal = cartTotal * (bonusRules.max_order_percent / 100) / bonusRules.tenge_rate;
+    const capBySubtotal = Math.max(0, cartTotal - promoDiscountAmount) * (bonusRules.max_order_percent / 100) / bonusRules.tenge_rate;
     return Math.floor(Math.max(0, Math.min(bonusBalance, capBySubtotal, checkoutTotalBeforeBonus / bonusRules.tenge_rate)) * 100) / 100;
-  }, [bonusBalance, cartTotal, checkoutTotalBeforeBonus, appliedPromo, bonusRules]);
+  }, [bonusBalance, cartTotal, checkoutTotalBeforeBonus, promoDiscountAmount, bonusRules]);
 
   const bonusDiscountAmount = useMemo(
     () => (useBonuses && maxBonusPoints > 0 ? Math.round(maxBonusPoints * bonusRules.tenge_rate * 100) / 100 : 0),
@@ -1195,7 +1209,7 @@ export default function Food() {
 
   async function quickAdd(item: FoodItem) {
     await loadModifiers();
-    if (itemHasGroups(item.id)) {
+    if (needsSelection(productForSelection(item))) {
       openItemModal(item);
     } else {
       addToCart(item, {});
@@ -1205,17 +1219,6 @@ export default function Food() {
   async function openItemModal(item: FoodItem) {
     await loadModifiers();
     setSelectedItem(item);
-    const groups = getGroupsForItem(item.id);
-    const defaults: CartItemSelection = {};
-    for (const group of groups) {
-      if (group.type === 'radio' && group.is_required) {
-        const opts = getOptionsForGroup(group.id);
-        if (opts.length > 0) defaults[group.id] = [opts[0].id];
-      } else {
-        defaults[group.id] = [];
-      }
-    }
-    setCurrentSelections(defaults);
   }
 
   function quickRemove(itemId: number) {
@@ -1252,40 +1255,10 @@ export default function Food() {
     setCart(prev => prev.filter((_, i) => i !== index));
   }
 
-  function handleRadioSelect(groupId: number, optionId: number) {
-    setCurrentSelections(prev => ({ ...prev, [groupId]: [optionId] }));
-  }
-
-  function handleCheckboxToggle(groupId: number, optionId: number, maxSelect: number) {
-    setCurrentSelections(prev => {
-      const current = prev[groupId] || [];
-      if (current.includes(optionId)) {
-        return { ...prev, [groupId]: current.filter(id => id !== optionId) };
-      }
-      if (maxSelect > 0 && current.length >= maxSelect) {
-        toast.error(st("Максимум {0} выбора", [maxSelect]));
-        return prev;
-      }
-      return { ...prev, [groupId]: [...current, optionId] };
-    });
-  }
-
-  function confirmAddWithSelections() {
-    if (!selectedItem) return;
-    const { valid, errors } = validateSelections(selectedItem.id, currentSelections);
-    if (!valid) { toast.error(errors[0]); return; }
-    const cleanSelections: CartItemSelection = {};
-    for (const [gid, opts] of Object.entries(currentSelections)) {
-      if (opts.length > 0) cleanSelections[Number(gid)] = opts;
-    }
-    addToCart(selectedItem, cleanSelections);
-    setSelectedItem(null);
-    setCurrentSelections({});
-  }
-
   async function submitOrder() {
     if(preorder && !scheduleISO(schedule)){toast.error('Выберите дату и время предзаказа');return;}
     if (submittingRef.current) return;
+    if (payment === 'cash' && cashGiven !== '' && (!Number.isFinite(Number(cashGiven)) || Number(cashGiven) < checkoutGrandTotal)) {toast.error('Проверьте сумму наличных для сдачи'); return;}
     if (giftSelectionRequired) {
       toast.error(st("Выберите один бесплатный подарок"));
       setCheckoutStep(2);
@@ -1327,24 +1300,7 @@ export default function Food() {
     // information in the customer's cabinet after a valid recalculation.
     const orderComment = comment.trim();
 
-    const orderItems = cart.map(ci => {
-      const mods: { name: string; price: number; option_id: number }[] = [];
-      for (const gid of Object.keys(ci.selections)) {
-        for (const optId of ci.selections[Number(gid)] || []) {
-          const opt = modOptionsRef.current.find(o => o.id === optId);
-          if (opt) mods.push({ name: opt.name, price: opt.price || 0, option_id: opt.id });
-        }
-      }
-      const modTotal = calcSelectionsPrice(ci.selections);
-      return {
-        id: ci.item.id,
-        name: ci.item.name,
-        price: ci.item.price,
-        quantity: ci.quantity,
-        modifiers: mods,
-        modTotal,
-      };
-    });
+    const orderItems = cart.map(ci => ({id:ci.item.id,name:ci.item.name,price:ci.item.price+choicePrice(ci),quantity:ci.quantity,...selectionOf(ci),modTotal:calcSelectionsPrice(ci.selections)}));
     const total = checkoutGrandTotal;
     const paymentLabel = PAYMENT_LABELS[payment];
     submittingRef.current = true;
@@ -1374,6 +1330,7 @@ export default function Food() {
             comment: orderComment,
             delivery_method: deliveryMethod,
             payment_method: payment,
+            cash_given_amount: payment === 'cash' && cashGiven !== '' ? Number(cashGiven) : undefined,
       };
       const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(orderData)));
       const fingerprint = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
@@ -1394,6 +1351,7 @@ export default function Food() {
           price: ci.item.price,
           quantity: ci.quantity,
           selections: ci.selections,
+          choices: ci.choices || [],
           modifiers: Object.keys(ci.selections).flatMap(gid =>
             (ci.selections[Number(gid)] || []).map(optionId => ({ option_id: optionId })),
           ),
@@ -1444,7 +1402,7 @@ export default function Food() {
       setDeliveryQuote(null);
       setComment('');
       setDeliverToApartment(false);
-      setPayment('cash');
+      setPayment('cash');setCashGiven('');
     } catch (e) {
       console.error('Error creating order:', e);
       toast.error(publicOrderErrorMessage(e, st));
@@ -1491,9 +1449,6 @@ export default function Food() {
     return null;
   }
 
-  const modalTotalPrice = selectedItem ? selectedItem.price + calcSelectionsPrice(currentSelections) : 0;
-  const modalValidation = selectedItem ? validateSelections(selectedItem.id, currentSelections) : { valid: true, errors: [] };
-  const selectedItemBadge = selectedItem ? getBadgeType(selectedItem) : null;
 
   const deliveryFromPrice = useMemo(() => {
     if (mapDeliveryZones.length > 0) {
@@ -1731,7 +1686,7 @@ export default function Food() {
       const qty = Math.max(1, Number(row.quantity) || 1);
       const fresh = byId.get(id);
       if (!fresh) continue;
-      lines.push({ item: fresh, quantity: qty, selections: selectionsFromRepeatRow(row) });
+      lines.push({ item: fresh, quantity: qty, selections: selectionsFromRepeatRow(row), choices: row.choices || [] });
     }
     if (lines.length > 0) {
       setCart(lines);
@@ -1796,14 +1751,14 @@ export default function Food() {
 
   const cartViewLines = cart.map((ci, index) => {
     const modTotal = calcSelectionsPrice(ci.selections);
-    const selNames = getSelectionNames(ci.selections);
+    const selNames = [...comboNames(ci),...getSelectionNames(ci.selections)];
     return {
       key: `${ci.item.id}-${selectionsKey(ci.selections)}-${index}`,
       name: localized(ci.item, 'name') || ci.item.name,
       image: getItemImage(ci.item),
       modifiers: selNames.length > 0 ? selNames.join(', ') : undefined,
       quantity: ci.quantity,
-      linePrice: (ci.item.price + modTotal) * ci.quantity,
+      linePrice: (ci.item.price + choicePrice(ci) + modTotal) * ci.quantity,
     };
   });
   const cartViewSuggestions = (showRecommendations ? cartSuggestions : []).map(item => ({
@@ -2142,7 +2097,8 @@ export default function Food() {
               referralPromoCode={settings.referral_promo_code || 'DAMALEM10'}
               formatPrice={formatPrice}
               onBrowse={() => setActiveTab('menu')}
-              onUpdateQty={updateQuantity}
+              onEdit={index=>{setEditingCartIndex(index);setSelectedItem(cart[index].item);}}
+                  onUpdateQty={updateQuantity}
               onRemove={removeCartLine}
               onAddSuggestion={id => {
                 const item = items.find(candidate => candidate.id === id);
@@ -2206,135 +2162,17 @@ export default function Food() {
         </div>
 
         {/* ═══ PRODUCT POPUP MODAL ═══ */}
-        {selectedItem && (
-          <DamAlemSheet
-            open
-            overlayClassName="sm:p-4 sm:items-center"
-            panelClassName="max-w-md !h-auto !max-h-[92vh] overflow-y-auto bg-[#FAFAFA] !rounded-t-[22px] sm:!rounded-[22px]"
-            onClose={() => setSelectedItem(null)}
-          >
-              <div className="bg-white px-3 pb-1 pt-3 sm:rounded-t-[22px]">
-                <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-[#ECECEC]">
-                  <DamAlemImage src={getItemImage(selectedItem)} alt={selectedItem.name} className="h-full w-full object-cover" />
-                  {selectedItemBadge && (
-                    <span className="absolute left-3 top-3">
-                      <FoodBadge type={selectedItemBadge} />
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedItem(null)}
-                    className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-[#111111] shadow-sm ring-1 ring-black/5 transition hover:bg-white"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-white px-5 pb-6 pt-1">
-                <h3 className="text-[22px] font-extrabold leading-tight tracking-tight text-[#111111]">{localized(selectedItem, 'name') || selectedItem.name}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-[#777777]">{localized(selectedItem, 'description') || selectedItem.description}</p>
-
-                {getGroupsForItem(selectedItem.id).map((group, gIdx) => {
-                  const groupOptions = getOptionsForGroup(group.id);
-                  const selectedOpts = currentSelections[group.id] || [];
-                  if (groupOptions.length === 0) return null;
-
-                  return (
-                    <div key={group.id} className={gIdx === 0 ? 'mt-6' : 'mt-6 border-t border-gray-100 pt-5'}>
-                      <div className="mb-3 flex items-center gap-2">
-                        <h4 className="text-base font-bold text-[#111111]">{group.name}</h4>
-                        {group.is_required && (
-                          <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-[#FF3B30]">{t('food.required')}</span>
-                        )}
-                      </div>
-                      {group.type === 'checkbox' && (group.min_select > 0 || group.max_select < 10) && (
-                        <p className="mb-2 -mt-1 text-[11px] text-[#777777]">
-                          {group.min_select > 0 && st("Мин: {0}", [group.min_select])}
-                          {group.min_select > 0 && group.max_select < 10 && ' • '}
-                          {group.max_select < 10 && st("Макс: {0}", [group.max_select])}
-                          {' • '}{st("Выбрано:")} {selectedOpts.length}
-                        </p>
-                      )}
-                      {group.type === 'radio' ? (
-                        <div className="-mx-1 flex gap-2 overflow-x-auto pb-1 scrollbar-hide px-1">
-                          {groupOptions.map(opt => {
-                            const isSelected = selectedOpts.includes(opt.id);
-                            return (
-                              <button
-                                key={opt.id}
-                                type="button"
-                                onClick={() => handleRadioSelect(group.id, opt.id)}
-                                className={`shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold transition ${
-                                  isSelected
-                                    ? 'border-[#FF3B30] text-[#FF3B30] bg-red-50/60'
-                                    : 'border-gray-200 bg-white text-[#111111] hover:border-gray-300'
-                                }`}
-                              >
-                                <span>{opt.name}</span>
-                                {opt.price > 0 && (
-                                  <span className={`ml-1 text-xs font-bold ${isSelected ? 'text-[#FF3B30]' : 'text-[#777777]'}`}>
-                                    +{formatPrice(opt.price)}
-                                  </span>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="space-y-1.5">
-                          {groupOptions.map(opt => {
-                            const isSelected = selectedOpts.includes(opt.id);
-                            return (
-                              <button
-                                key={opt.id}
-                                type="button"
-                                onClick={() => handleCheckboxToggle(group.id, opt.id, group.max_select)}
-                                className={`flex w-full items-center justify-between rounded-xl border p-3 transition ${
-                                  isSelected ? 'border-[#FF3B30] bg-red-50' : 'border-gray-100 bg-[#F7F7F7] hover:border-gray-200'
-                                }`}
-                              >
-                                <div className="flex items-center gap-2.5">
-                                  <div className={`flex h-5 w-5 items-center justify-center rounded-md border-2 transition ${isSelected ? 'border-[#FF3B30] bg-[#FF3B30]' : 'border-gray-300'}`}>
-                                    {isSelected && <Check className="h-3 w-3 text-white" />}
-                                  </div>
-                                  <span className="text-sm font-medium text-[#111111]">{opt.name}</span>
-                                </div>
-                                <span className="text-sm font-bold text-[#FF3B30]">
-                                  {opt.price > 0 ? `+${formatPrice(opt.price)}` : st("бесплатно")}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {/* Validation errors */}
-                {!modalValidation.valid && (
-                  <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-3 flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
-                    <div className="text-xs text-red-600">
-                      {modalValidation.errors.map((err, i) => <p key={i}>{err}</p>)}
-                    </div>
-                  </div>
-                )}
-
-                <div className="sticky bottom-0 bg-white pt-3 pb-1">
-                  <Button
-                    onClick={confirmAddWithSelections}
-                    data-testid="dam-product-add"
-                    disabled={!modalValidation.valid}
-                    className="w-full bg-[#FF3B30] hover:bg-[#E6352B] text-white h-14 text-base font-bold rounded-2xl active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {formatPrice(modalTotalPrice)}  + {t('food.addToCart')}
-                  </Button>
-                </div>
-              </div>
-          </DamAlemSheet>
-        )}
+        {selectedItem && <MenuSelectionDialog product={productForSelection(selectedItem)}
+          initial={editingCartIndex!=null?selectionOf(cart[editingCartIndex]):undefined}
+          initialQuantity={editingCartIndex!=null?cart[editingCartIndex].quantity:1}
+          confirmLabel={editingCartIndex!=null?'Сохранить изменения':'Добавить в корзину'}
+          onClose={()=>{setSelectedItem(null);setEditingCartIndex(null);}}
+          onConfirm={(value,quantity)=>{
+            const selections:CartItemSelection={};value.modifiers.forEach(m=>{const o=modOptionsRef.current.find(x=>x.id===m.option_id);if(o)selections[o.group_id]=[...(selections[o.group_id] || []),...Array(m.quantity || 1).fill(m.option_id)];});
+            const line:CartItem={item:selectedItem,quantity,selections,choices:value.choices};
+            setCart(previous=>editingCartIndex!=null?previous.map((x,i)=>i===editingCartIndex?line:x):[...previous,line]);
+            setSelectedItem(null);setEditingCartIndex(null);
+          }}/>}
 
         {/* ═══ CHECKOUT MODAL ═══ */}
         <DamAlemSheet
@@ -2426,6 +2264,7 @@ export default function Food() {
                   </div>
                 </div>
 
+                {deliveryMethod === 'pickup' && <PickupCard/>}
                 {deliveryMethod === 'delivery' && (freeDeliveryFrom > 0 || minOrder > 0 || nextGift) && (
                   <OrderGoalsProgress
                     subtotal={cartTotal}
@@ -2568,7 +2407,7 @@ export default function Food() {
 
                   <div className="dam-field mt-3">
                     <label className="mb-1.5 block">{t('food.comment')}</label>
-                    <Textarea value={comment} onChange={e => setComment(e.target.value)} placeholder={st("Пожелания к заказу...")} className="dam-input dam-textarea" rows={2} />
+                    <Textarea value={comment} onChange={e => setComment(e.target.value)} maxLength={1000} placeholder="Например: без лука, соус отдельно, позвонить по приезду…" className="dam-input dam-textarea" rows={2} />
                   </div>
                 </div>
 
@@ -2632,6 +2471,8 @@ export default function Food() {
                       <button
                         key={id}
                         type="button"
+                        disabled={id !== 'cash'}
+                        title={id !== 'cash' ? 'Автоматическая оплата пока не подключена' : undefined}
                         onClick={() => setPayment(id)}
                         className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition ${
                           payment === id
@@ -2648,6 +2489,7 @@ export default function Food() {
                 </>
                 ) : null}
 
+                {checkoutStep === 2 && <div className="space-y-3"><p className="text-sm text-muted-foreground">Автоматическая оплата Kaspi/Halyk пока не подключена. Сейчас доступна оплата наличными.</p>{payment === 'cash' && <CashAmount total={checkoutGrandTotal} value={cashGiven} onChange={setCashGiven}/>}</div>}
                 {checkoutStep === 3 ? (
                   <div className="dam-checkout-section space-y-3 lg:hidden">
                     <div className="dam-checkout-section__title">{st("Проверьте заказ")}</div>
@@ -2687,7 +2529,7 @@ export default function Food() {
                               <span className="text-[11px] text-[#FF3B30] block mt-0.5">+ {selNames.join(', ')}</span>
                             )}
                           </div>
-                          <span className="font-bold text-sm text-gray-900 whitespace-nowrap">{formatPrice((ci.item.price + modTotal) * ci.quantity)}</span>
+                          <span className="font-bold text-sm text-gray-900 whitespace-nowrap">{formatPrice((ci.item.price + choicePrice(ci) + modTotal) * ci.quantity)}</span>
                           </div>
                         </div>
                       );
@@ -2737,10 +2579,7 @@ export default function Food() {
                         </span>
                       </div>
                     )}
-                    {getAccountToken() && bonusBalance > 0 && appliedPromo && !appliedPromo.pending && (
-                      <p className="text-xs text-gray-500">{st("Бонусы нельзя списать вместе с промокодом")}</p>
-                    )}
-                    {getAccountToken() && bonusBalance > 0 && (!appliedPromo || appliedPromo.pending) && (
+                    {getAccountToken() && bonusBalance > 0 && (
                       <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3 space-y-2">
                         <label className="flex items-start gap-3 cursor-pointer">
                           <input

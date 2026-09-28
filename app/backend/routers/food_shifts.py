@@ -32,7 +32,13 @@ class CloseShiftBody(PinBody):
 
 @router.get('/close-preview')
 async def close_preview(db: AsyncSession = Depends(get_db), claims=Depends(food_staff)):
-    return await close_blockers(db)
+    result = await close_blockers(db)
+    shift = await active_shift(db, 'partner', claims.get('staff_id'))
+    if shift:
+        from services.dam_shift_summary import summary
+        result['summary'] = await summary(db, shift)
+        result['summary']['unresolved'] = len(result['orders'])
+    return result
 
 
 @router.get('/{shift_id}/procurement')

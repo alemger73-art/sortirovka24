@@ -13,6 +13,7 @@ STATUS_LABELS = {
     "assigned": "Курьер назначен",
     "picked_up": "Курьер забрал заказ",
     "on_the_way": "Курьер в пути",
+    "arrived": "Курьер на месте",
     "delivered": "Доставлено",
     "cancelled": "Отменено",
 }
@@ -30,16 +31,16 @@ async def build_task_tracking(
         "phase": task.status,
     }
 
-    if task.status not in ('assigned', 'picked_up', 'on_the_way'):
+    if task.status not in ('assigned', 'picked_up', 'on_the_way', 'arrived'):
         return tracking
 
     if courier and courier.current_lat is not None and courier.current_lng is not None:
         tracking["courier_lat"] = courier.current_lat
         tracking["courier_lng"] = courier.current_lng
 
-    if task.status in ("assigned", "picked_up", "on_the_way") and courier:
-        target_lat = task.dropoff_lat if task.status in ("picked_up", "on_the_way") else task.pickup_lat
-        target_lng = task.dropoff_lng if task.status in ("picked_up", "on_the_way") else task.pickup_lng
+    if task.status in ("assigned", "picked_up", "on_the_way", "arrived") and courier:
+        target_lat = task.dropoff_lat if task.status in ("picked_up", "on_the_way", "arrived") else task.pickup_lat
+        target_lng = task.dropoff_lng if task.status in ("picked_up", "on_the_way", "arrived") else task.pickup_lng
         if target_lat is not None and courier.current_lat is not None:
             eta, _ = await road_eta_minutes(courier.current_lat, courier.current_lng, target_lat, target_lng)
             tracking["eta_minutes"] = eta

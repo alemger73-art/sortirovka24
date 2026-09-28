@@ -19,11 +19,11 @@ function errorMessage(detail: unknown): string {
   return adminTranslations['admin.dam.operationError'][lang];
 }
 
-export async function foodOperations<T>(path: string, method = 'GET', body?: unknown, area: 'operations' | 'business' | 'payroll' | 'cashbox' = 'operations'): Promise<T> {
+export async function foodOperations<T>(path: string, method = 'GET', body?: unknown, area: 'operations' | 'business' | 'payroll' | 'cashbox' | 'loyalty' | 'checkout-config' | 'crm' | 'menu' = 'operations'): Promise<T> {
   const partner = getPartnerToken('dam_alem');
   const admin = localStorage.getItem('_sp924_token') || localStorage.getItem('token');
   const token = location.pathname.startsWith('/partner/') ? partner : admin || partner;
-  const response = await fetch(`${getAPIBaseURL()}/api/v1/dam-alem/${area}${path}`, {
+  const response = await fetch(`${getAPIBaseURL()}/api/v1/${area === 'crm' ? 'crm/businesses/dam_alem' : 'dam-alem/'+area}${path}`, {
     method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
@@ -33,6 +33,8 @@ export async function foodOperations<T>(path: string, method = 'GET', body?: unk
 }
 
 export interface OperatorOrder {
+  loyalty_snapshot?: Record<string,unknown>|null; pickup_snapshot?: import('@/components/damalem/PreorderFields').PickupLocation|null;
+  cash_given_amount?: number | null; change_amount?: number | null; workflow_state?: string; payment_state?: string;
   preorder_bucket?: string; scheduled_for?: string | null; is_future_preorder?: boolean; preparation_due_at?: string | null; pricing_snapshot?: string;
   order_source?: string | null;
   paid_amount?: number | null; receipt_revision?: number;

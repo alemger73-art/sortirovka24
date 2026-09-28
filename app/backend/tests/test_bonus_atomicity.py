@@ -1,69 +1,55 @@
+"""Atomicity regressions retained against the canonical ledger (not User cache)."""
 import asyncio
-from types import SimpleNamespace
-
+from decimal import Decimal
 import pytest
 from fastapi import HTTPException
 from sqlalchemy import select, func
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-from core.database import Base
-from models.auth import User
-from models.user_management import Bonus, UserAction
-from services.bonus_ledger import record_bonus
-from services.bonus_spending import calculate_bonus_discount
-
+from models.user_management import Bonus
+from models.food_orders import Food_orders
+from services import loyalty as L
+from tests.test_loyalty import store, order, credit
 
 @pytest.mark.asyncio
-async def test_concurrent_spending_never_overspends_and_retries_are_idempotent(tmp_path):
-    engine = create_async_engine('sqlite+aiosqlite:///' + (tmp_path / 'bonus.db').as_posix())
-    maker = async_sessionmaker(engine, expire_on_commit=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(lambda c: Base.metadata.create_all(c, tables=[User.__table__, Bonus.__table__, UserAction.__table__]))
-    async with maker() as db:
-        db.add(User(id='client', bonus_balance=100))
+async def test_concurrent_spending_never_overspends_and_retries_are_idempotent(store):
+    async with store() as db:
+        await credit(db,1000)
+        a,b=await order(db,completed=False),await order(db,completed=False)
+        for row in (a,b):
+            row.bonus_points_used=1000
+            row.loyalty_snapshot={**row.loyalty_snapshot,'bonus_spent':'1000.00'}
+        ids=[a.id,b.id]
         await db.commit()
-    loaded, ready = 0, asyncio.Event()
-    async def spend(order_id):
-        nonlocal loaded
-        async with maker() as db:
-            user = await db.get(User, 'client')
-            loaded += 1
-            if loaded == 2:
-                ready.set()
-            await ready.wait()
+    async def spend(oid):
+        async with store() as db:
             try:
-                await record_bonus(db, user=user, order_id=order_id, action='spend', points=-80, reason='test')
+                row=await db.get(Food_orders,oid)
+                await L.spend(db,None,row)
                 await db.commit()
-                return order_id
+                return oid
             except HTTPException as exc:
                 await db.rollback()
-                assert exc.status_code == 409
+                assert exc.status_code in (409,422)
                 return None
-    results = await asyncio.gather(spend(1), spend(2))
-    winner = next(x for x in results if x is not None)
-    assert results.count(None) == 1
-    async with maker() as db:
-        user = await db.get(User, 'client')
-        assert user.bonus_balance == 20
-        assert not await record_bonus(db, user=user, order_id=winner, action='spend', points=-80, reason='retry')
+    results=await asyncio.gather(*(spend(i) for i in ids))
+    assert results.count(None)==1
+    winner=next(i for i in results if i)
+    async with store() as db:
+        row=await db.get(Food_orders,winner)
+        await L.spend(db,None,row)
+        assert (await L.account(db,'a')).bonus_balance==0
+        assert await db.scalar(select(func.count()).select_from(Bonus).where(Bonus.kind=='SPEND'))==1
         await db.commit()
-        assert await db.scalar(select(func.count()).select_from(Bonus)) == 1
-        await record_bonus(db, user=user, order_id=winner, action='refund', points=80, reason='test')
+        await L.restore_spend(db,await L.account(db,'a'),row)
         await db.rollback()
-        assert (await db.get(User, 'client')).bonus_balance == 20
-    await engine.dispose()
+        assert (await L.account(db,'a')).bonus_balance==0
 
+def test_one_bonus_equals_one_tenge_and_server_cap_is_twenty_percent():
+    # Old test configured a 2:1 environment rate and 30% limit. Both violate the
+    # accepted 1:1 / DB-configured policy; the server must reject excess, not clamp.
+    assert L.quote(L.DEFAULTS,1000,200,1000)==(Decimal('200'),Decimal('200'))
+    with pytest.raises(HTTPException):L.quote(L.DEFAULTS,1000,201,1000)
 
-def test_non_unit_bonus_exchange_rate_respects_percentage(monkeypatch):
-    monkeypatch.setattr('services.bonus_spending.BONUS_TENGE_RATE', 2)
-    monkeypatch.setattr('services.bonus_spending.BONUS_MAX_ORDER_PERCENT', 30)
-    points, discount = calculate_bonus_discount(user=SimpleNamespace(bonus_balance=1000), subtotal=1000,
-        total_before_bonus=1100, bonus_points_requested=1000, has_promo=False)
-    assert (points, discount) == (150, 300)
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize('points', [float('nan'), float('inf'), 'bad'])
-async def test_invalid_bonus_never_reaches_database(points):
-    with pytest.raises(HTTPException) as exc:
-        await record_bonus(None, user=None, order_id=1, action='spend', points=points, reason='test')
-    assert exc.value.status_code == 422
+@pytest.mark.parametrize('points',[float('nan'),float('inf'),'bad'])
+def test_invalid_bonus_never_reaches_database(points):
+    with pytest.raises(HTTPException) as exc:L.amount(points)
+    assert exc.value.status_code==422

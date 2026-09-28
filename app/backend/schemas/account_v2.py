@@ -38,6 +38,7 @@ class UserV2Response(BaseModel):
     language: str
     bonus_balance: float
     has_password: bool = False
+    phone_verified: bool = False
     created_at: Optional[str] = None
 
 

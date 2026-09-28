@@ -35,6 +35,12 @@ async def login(client):
     assert result.status_code == 200, result.text
     return {'Authorization': 'Bearer ' + result.json()['token']}
 
+async def arrive(client, tid, auth):
+    # Existing money/issue tests exercise the full new handoff sequence.
+    for stage in ('picked_up','on_the_way','arrived'):
+        result=await client.post(f'/api/v1/logistics/tasks/{tid}/status',headers=auth,json={'status':stage})
+        assert result.status_code==200,result.text
+
 async def assigned(env, payment='cash'):
     client, maker, headers, _ = env
     async with maker() as db:
@@ -45,8 +51,10 @@ async def assigned(env, payment='cash'):
         await db.commit()
     result = await client.post(BASE + '/orders/1/assign-courier', headers=headers, json={'courier_id':'courier'})
     assert result.status_code == 200, result.text
-    async with maker() as db:
-        return (await db.scalar(select(LogisticsTask))).id
+    tid=result.json()['task_id']
+    assert result.json()['status']=='assigned'
+    await arrive(client,tid,await login(client))
+    return tid
 
 @pytest.mark.asyncio
 async def test_shift_active_delivery_and_update_in_transit(env):
@@ -61,11 +69,11 @@ async def test_shift_active_delivery_and_update_in_transit(env):
         task.dropoff_lat = 49.9; task.dropoff_lng = 73.2
         await db.commit()
     change = await client.patch(BASE + '/orders/1', headers=headers, json={'expected_version':version,
-        'payment_status':'paid', 'delivery_address':'Corrected street 2', 'operator_note':'Called'})
+        'delivery_address':'Corrected street 2', 'operator_note':'Called'})
     assert change.status_code == 200, change.text
     async with maker() as db:
         task = await db.scalar(select(LogisticsTask))
-        assert task.status == 'on_the_way' and task.courier_id == 'courier'
+        assert task.status == 'arrived' and task.courier_id == 'courier'
         assert task.dropoff_lat is None and task.dropoff_lng is None
     assert (await client.patch(BASE + '/orders/1', headers=headers, json={'expected_version':version,'operator_note':'stale'})).status_code == 409
 
@@ -213,6 +221,7 @@ async def test_issue_lifecycle_reassignment_and_old_courier_loses_access(env):
     assert (await client.post(f'/api/v1/logistics/tasks/{tid}/status',headers=old_auth,json={'status':'delivered'})).status_code in (403,404)
     assert (await client.get(f'/api/v1/logistics/tasks/{tid}/tracking',headers=old_auth)).status_code in (403,404)
     assert (await client.get(BASE+'/courier-work',headers=operator)).json()['issues']==[]
+    await arrive(client,tid,new_auth)
     done=await client.post(f'/api/v1/logistics/tasks/{tid}/status',headers=new_auth,json={'status':'delivered','cash_received':False})
     assert done.status_code==200,done.text
     async with maker() as db:
@@ -332,6 +341,7 @@ async def test_three_deliveries_two_sessions_second_first_and_notifications(env)
         cab=(await client.get(COURIER+'/cabinet',headers=auth)).json()
         assert {t['id'] for t in cab['active_tasks']}==set(tasks)
         assert (await client.post(COURIER+'/shift/close',headers=auth,json={'pin':'2954'})).status_code==409
+    await arrive(client,tasks[1],auth1)
     url=f'/api/v1/logistics/tasks/{tasks[1]}/status'
     for auth in (auth1,auth2):
         result=await client.post(url,headers=auth,json={'status':'delivered','cash_received':False})

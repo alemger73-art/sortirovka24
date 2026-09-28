@@ -11,3 +11,4 @@ class Item_modifier_groups(Base):
     modifier_group_id = Column(Integer, nullable=True)
     sort_order = Column(Integer, nullable=True)
     created_at = Column(String, nullable=True)
+    business_id = Column(String(64), nullable=True, index=True)

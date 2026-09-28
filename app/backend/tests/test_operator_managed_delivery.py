@@ -30,12 +30,14 @@ async def test_operator_delivery_preserves_payout_and_rejects_replay(env):
         task = await db.scalar(select(LogisticsTask))
         order = await db.get(Food_orders, 1)
         assert task.customer_delivery_fee == 0 and task.courier_payout == 800
-        assert task.status == 'on_the_way' and task.picked_up_at
+        assert task.status == 'assigned' and task.handed_at and not task.picked_up_at
         assert order.status == 'in_progress'
         assert (await client.patch(BASE+'/orders/1', headers=headers,
             json={'expected_version': order.version, 'status':'done'})).status_code == 409
         courier = await db.get(User, 'courier')
-        task = await advance_task_status(db, task, courier, 'delivered')
+        for stage in ('picked_up', 'on_the_way', 'arrived'):
+            task = await advance_task_status(db, task, courier, stage)
+        task = await advance_task_status(db, task, courier, 'delivered', cash_received=False)
         await db.refresh(order)
         assert task.status == 'delivered' and task.delivered_at
         assert order.status == 'done' and order.completed_at

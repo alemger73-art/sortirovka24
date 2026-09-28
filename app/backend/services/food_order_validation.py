@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 import json
 import logging
 import math
@@ -479,6 +481,7 @@ async def validate_food_order(
     account_user: Optional["User"] = None,
     bonus_points_to_use: Optional[float] = None,
     staff_quote: bool = False,
+    server_pricing: bool = False,
     staff_delivery_fee: Optional[float] = None,
     catalog_only: bool = False,
 ) -> Tuple[Dict[str, Any], List[dict], float]:
@@ -590,7 +593,10 @@ async def validate_food_order(
         product = None
         prod_id = raw.get("id")
         if prod_id is not None:
-            product = products_by_id.get(int(prod_id))
+            try:
+                product = products_by_id.get(int(prod_id))
+            except (TypeError, ValueError, OverflowError):
+                raise HTTPException(422, 'Некорректное блюдо') from None
         if not product:
             name_key = (raw.get("name") or "").strip().lower()
             for p in products_by_id.values():
@@ -604,100 +610,13 @@ async def validate_food_order(
         if getattr(product, "restaurant_id", None) != restaurant_id:
             raise HTTPException(status_code=400, detail=f"Блюдо «{product.name}» не относится к выбранному ресторану")
 
-        base_price = float(product.price or 0)
-        if not math.isfinite(base_price) or base_price <= 0:
-            raise HTTPException(400, f'Для «{product.name}» пока не указана цена')
-        client_price = float(raw.get("price") or base_price)
-        if not staff_quote and abs(client_price - base_price) > 0.01:
-            raise HTTPException(status_code=400, detail=f"Цена «{product.name}» изменилась. Обновите страницу")
-
-        mod_total = 0.0
-        validated_mods: List[dict] = []
-        allowed_groups = groups_by_item.get(int(product.id), set())
-        selected_by_group: Dict[int, int] = {}
-        seen_option_ids: set[int] = set()
-        for mod in raw.get("modifiers") or []:
-            if not isinstance(mod, dict):
-                raise HTTPException(status_code=400, detail=f"Некорректная опция для «{product.name}»")
-            opt_id = mod.get("option_id") if mod.get("option_id") is not None else mod.get("id")
-            if opt_id is None:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Некорректная опция для «{product.name}»",
-                )
-            try:
-                option_id = int(opt_id)
-                opt = options_by_id.get(option_id)
-            except (TypeError, ValueError):
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Некорректная опция для «{product.name}»",
-                )
-            if not opt or opt.is_active is False:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Опция недоступна для «{product.name}»",
-                )
-            if option_id in seen_option_ids:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Опция «{opt.name}» выбрана повторно",
-                )
-            seen_option_ids.add(option_id)
-            group_id = getattr(opt, "group_id", None)
-            if group_id is None or int(group_id) not in allowed_groups:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Опция не относится к блюду «{product.name}»",
-                )
-            selected_by_group[int(group_id)] = selected_by_group.get(int(group_id), 0) + 1
-            price = float(opt.price or 0)
-            mod_total += price
-            validated_mods.append({
-                "name": opt.name or "",
-                "price": price,
-                "option_id": opt.id,
-            })
-
-        for group_id in allowed_groups:
-            group = modifier_groups_by_id.get(group_id)
-            if not group:
-                continue
-            selected_count = selected_by_group.get(group_id, 0)
-            min_select = max(
-                int(getattr(group, "min_select", 0) or 0),
-                1 if getattr(group, "is_required", False) else 0,
-            )
-            max_select = int(getattr(group, "max_select", 0) or 0)
-            if str(getattr(group, "type", "") or "").strip().lower() in ("single", "radio"):
-                max_select = 1
-            if selected_count < min_select:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Для «{product.name}» выберите: {group.name}",
-                )
-            if max_select > 0 and selected_count > max_select:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Для «{product.name}» можно выбрать максимум {max_select}: {group.name}",
-                )
-
-        client_mod_total = float(raw.get("modTotal") or raw.get("mod_total") or 0)
-        if not staff_quote and abs(client_mod_total - mod_total) > 0.02:
-            raise HTTPException(status_code=400, detail=f"Доплата за опции «{product.name}» не совпадает")
-
-        line_sum = round((base_price + mod_total) * qty_int, 2)
-        subtotal += line_sum
-        validated_items.append({
-            "id": product.id,
-            "department": getattr(product, "sales_department", None),
-            "name": product.name,
-            "price": base_price,
-            "quantity": qty_int,
-            "modifiers": validated_mods,
-            "modTotal": mod_total,
-            "sum": line_sum,
-        })
+        from services.menu_configuration import price_line
+        snapshot = price_line(product, raw, products_by_id, modifier_groups_by_id,
+            options_by_id, groups_by_item.get(int(product.id), set()),
+            business_id=getattr(rest, 'business_id', None),
+            trust_price=staff_quote or server_pricing)
+        subtotal += snapshot['sum']
+        validated_items.append(snapshot)
 
     subtotal = round(subtotal, 2)
     if catalog_only and staff_quote:
@@ -805,26 +724,22 @@ async def validate_food_order(
         expected_service = 0
         delivery_fee = 0
 
-    bonus_points_used = 0.0
-    bonus_discount = 0.0
-    requested_bonus = float(bonus_points_to_use or 0)
-    if requested_bonus > 0:
-        from services.bonus_spending import _phones_match, calculate_bonus_discount
+    from services.food_operations import brand
+    from services.loyalty import price_snapshot, amount as bonus_amount
+    from services.bonus_spending import _phones_match
+    requested_bonus = bonus_amount(bonus_points_to_use)
+    if requested_bonus and not account_user:
+        raise HTTPException(401, "Войдите в аккаунт, чтобы списать бонусы")
+    if requested_bonus and not _phones_match(account_user.phone, customer_phone):
+        raise HTTPException(400, "Телефон заказа должен совпадать с аккаунтом")
+    loyalty = await price_snapshot(db, food=subtotal, promo=promo_discount,
+        delivery=delivery_fee+apartment_fee, service=expected_service,
+        requested=requested_bonus, user=account_user, business_id=(getattr(rest,'business_id',None) or ('dam_alem' if brand(getattr(rest,'name',''),getattr(rest,'merchant_key',None)) else f'restaurant-{restaurant_id}')))
+    bonus_points_used = float(loyalty['bonus_spent'])
+    bonus_discount = bonus_points_used
+    expected_total = float(loyalty['total_amount'])
 
-        if not account_user:
-            raise HTTPException(status_code=401, detail="Войдите в аккаунт, чтобы списать бонусы")
-        if not _phones_match(account_user.phone, customer_phone):
-            raise HTTPException(status_code=400, detail="Телефон заказа должен совпадать с аккаунтом")
-        bonus_points_used, bonus_discount = calculate_bonus_discount(
-            user=account_user,
-            subtotal=subtotal,
-            total_before_bonus=expected_total,
-            bonus_points_requested=requested_bonus,
-            has_promo=bool(promo_code),
-        )
-        expected_total = round(max(0.0, expected_total - bonus_discount), 2)
-
-    if not staff_quote and abs(expected_total - client_total) > 1:
+    if not (staff_quote or server_pricing) and abs(expected_total - client_total) > 1:
         logger.warning(
             "Order total mismatch: expected=%s client=%s subtotal=%s service=%s delivery=%s bonus=%s",
             expected_total,
@@ -851,13 +766,27 @@ async def validate_food_order(
     sanitized['restaurant_id'] = restaurant_id
     sanitized['restaurant_name'] = getattr(rest, 'name', '') or ''
     sanitized['delivery_method'] = delivery_method
-    # Kaspi and Halyk are currently a customer's stated payment method.  They
-    # are not an automatically confirmed QR payment yet.
+    # Checkout never confirms payment. The configured bank adapter must later
+    # authenticate a server notification; cash is received by staff explicitly.
     sanitized["payment_status"] = "pending"
     sanitized["status"] = "new"
     sanitized["order_source"] = "app"
+    comment = str(data.get('comment') or '').strip()
+    if len(comment) > 1000 or any(ord(c)<32 and c not in '\n\r\t' for c in comment):
+        raise HTTPException(422, 'Комментарий: не более 1000 символов, без управляющих символов')
+    sanitized['comment'] = comment
+    from services.crm import pickup_location
+    location = await pickup_location(db, loyalty['business_id']) if delivery_method in ('pickup','delivery') else None
+    if delivery_method == 'pickup' and location and not location.get('supports_pickup', True):
+        raise HTTPException(409, 'Самовывоз временно недоступен')
+    if delivery_method == 'delivery' and location and not location.get('supports_delivery', True):
+        raise HTTPException(409, 'Доставка временно недоступна')
+    sanitized['pickup_snapshot'] = {k:float(v) if isinstance(v, Decimal) else v for k,v in location.items()} if location and delivery_method == 'pickup' else None
     sanitized['scheduled_for'] = scheduled_for
-    sanitized["user_id"] = _account_user_id(account_user)
+    sanitized["user_id"] = _account_user_id(account_user) if account_user and type(account_user).__name__ == "User" else None
+    sanitized["customer_id"] = None
+    sanitized["business_id"] = None
+    sanitized["loyalty_snapshot"] = loyalty
     sanitized["created_at"] = _server_now()
     if selected_gift:
         validated_items.append({
@@ -875,6 +804,11 @@ async def validate_food_order(
         })
     sanitized["order_items"] = json.dumps(validated_items, ensure_ascii=False)
     sanitized["total_amount"] = expected_total
+    from services.dam_payment_flow import cash_values
+    if payment_method == 'cash':
+        sanitized['cash_given_amount'], sanitized['change_amount'] = cash_values(expected_total, data.get('cash_given_amount'))
+    else:
+        sanitized['cash_given_amount'] = sanitized['change_amount'] = None
     sanitized["promo_discount_amount"] = promo_discount
     sanitized['pricing_snapshot'] = json.dumps({
         'breakdown': {'subtotal': subtotal, 'delivery_fee': delivery_fee + apartment_fee, 'service_fee': expected_service, 'discount': promo_discount + bonus_discount},

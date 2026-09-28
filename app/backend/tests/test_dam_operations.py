@@ -5,6 +5,9 @@ from fastapi import FastAPI, HTTPException
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy import select
+from models.user_notifications import UserNotification  # noqa: F401
+from models.user_management import Bonus, UserAction  # noqa: F401
+from models.auth import User  # noqa: F401
 from core.database import Base, get_db
 from core.auth import create_access_token
 from models.food_orders import Food_orders
@@ -12,6 +15,8 @@ from models.food_settings import Food_settings
 from models.partner_auth import PartnerCredentials
 from models.food_restaurants import Food_restaurants
 from models.food_operations import FoodOperationsSettings, FoodOrderEvent
+from models.food_payment import FoodPayment
+from models.food_cashbox import FoodCashEntry
 from models.auth import User
 from models.food_business import FoodRefund
 from models.food_shifts import FoodShift, FoodStaffAction
@@ -22,14 +27,16 @@ from services import food_operations as ops
 
 @pytest.fixture
 async def setup(monkeypatch):
+    # These tests exercise the notification outbox; every transport is mocked.
+    monkeypatch.setattr(ops, 'external_side_effects_allowed', lambda: True)
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     async with engine.begin() as conn:
-        await conn.run_sync(lambda c: Base.metadata.create_all(c, tables=[Food_settings.__table__, User.__table__, FoodRefund.__table__, PartnerCredentials.__table__, Food_orders.__table__, Food_restaurants.__table__, FoodOperationsSettings.__table__, FoodOrderEvent.__table__, FoodShift.__table__, FoodStaffAction.__table__, CourierProfile.__table__, LogisticsTask.__table__]))
+        await conn.run_sync(Base.metadata.create_all)
     maker = async_sessionmaker(engine, expire_on_commit=False)
     async with maker() as db:
         db.add(PartnerCredentials(id=10,partner_type='dam_alem',email='owner@example.test',password_hash='unused',display_name='test-operator',is_active=True,access_role='owner'))
         db.add_all([Food_restaurants(id=1, name='DAM ALEM 2.0'), Food_restaurants(id=2, name='Другой ресторан')])
-        db.add_all([Food_orders(id=1, restaurant_id=1, status='new', version=0, delivery_method='pickup', customer_name='Тест', customer_phone='+77000000000', total_amount=1000, order_items='[]'), Food_orders(id=2, restaurant_id=2, restaurant_name='DAM ALEM 2.0', status='new', version=0)])
+        db.add_all([Food_orders(id=1, restaurant_id=1, status='new', version=0, delivery_method='pickup', payment_method='cash', customer_name='Тест', customer_phone='+77000000000', total_amount=1000, order_items='[]'), Food_orders(id=2, restaurant_id=2, restaurant_name='DAM ALEM 2.0', status='new', version=0)])
         await db.commit()
     app = FastAPI(); app.include_router(router)
     async def dependency():
@@ -72,7 +79,7 @@ async def test_status_version_and_journal(setup):
     assert (await change(expected_version=4,status='done')).status_code==200
     assert (await change(expected_version=5,status='new')).status_code==409
     detail=(await client.get(url,headers=headers)).json()
-    assert len(detail['events'])==6  # Five workflow entries plus the payment movement.
+    assert len([e for e in detail['events'] if not e.get('event_type')])==6
     assert detail['events'][0]['actor']=='test-operator'
     assert detail['order']['payment_status']=='paid'
 
@@ -136,7 +143,7 @@ async def test_creation_persists_notification_with_order(setup,monkeypatch):
     old_send=AsyncMock()
     monkeypatch.setattr('services.food_telegram_flow.notify_operator_new_order',old_send)
     async with maker() as db:
-        order=await Food_ordersService(db).create({'restaurant_id':1,'status':'new','delivery_method':'pickup','total_amount':1000})
+        order=await Food_ordersService(db).create({'restaurant_id':1,'customer_name':'Client','customer_phone':'+77009990000','status':'new','delivery_method':'pickup','total_amount':1000})
         event=await db.scalar(select(FoodOrderEvent).where(FoodOrderEvent.order_id==order.id))
         assert event is not None and event.notification=='pending'
         assert order.id and order.version==0

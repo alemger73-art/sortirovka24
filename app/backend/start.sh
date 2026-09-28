@@ -3,12 +3,9 @@
 # defaulting to 8000 for local use. Using a script guarantees correct shell
 # variable expansion regardless of how the platform invokes the start command.
 
-if command -v alembic >/dev/null 2>&1; then
-  echo "Running database migrations..."
-  alembic upgrade head || echo "WARNING: alembic upgrade failed — continuing startup"
-else
-  echo "alembic not found — skipping migrations"
-fi
+set -eu
+echo "Running database migrations..."
+alembic upgrade head
 
 exec uvicorn main:app \
   --host 0.0.0.0 \

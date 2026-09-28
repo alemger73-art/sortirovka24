@@ -52,6 +52,7 @@ interface Props {
   onBrowse: () => void;
   onUpdateQty: (index: number, delta: number) => void;
   onRemove: (index: number) => void;
+  onEdit?: (index: number) => void;
   onAddSuggestion: (id: number) => void;
   onPromoInput: (value: string) => void;
   onApplyPromo: () => void;
@@ -91,6 +92,7 @@ export default function DamAlemCartView({
   onBrowse,
   onUpdateQty,
   onRemove,
+  onEdit,
   onAddSuggestion,
   onPromoInput,
   onApplyPromo,
@@ -173,6 +175,7 @@ export default function DamAlemCartView({
                     <div className="min-w-0">
                       <h3>{line.name}</h3>
                       {line.modifiers ? <p>{line.modifiers}</p> : null}
+                      {onEdit && <button className="min-h-10 text-sm font-semibold underline" type="button" onClick={()=>onEdit(index)}>Изменить состав</button>}
                     </div>
                     <button type="button" onClick={() => onRemove(index)} className="dam-cart-line__trash" aria-label={st("Удалить {0}", [line.name])}>
                       <Trash2 className="h-4 w-4" />

@@ -24,6 +24,7 @@ class FoodShift(Base):
     closed_at = Column(DateTime(timezone=True), nullable=True)
     opened_by = Column(String(255), nullable=False)
     closed_by = Column(String(255), nullable=True)
+    closing_summary = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 

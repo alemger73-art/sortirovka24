@@ -8,6 +8,7 @@ class Food_restaurants(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True, nullable=False)
     name = Column(String, nullable=True)
+    business_id = Column(String(64), nullable=True, index=True)
     merchant_key = Column(String(40), nullable=True)
     photo = Column(String, nullable=True)
     description = Column(String, nullable=True)

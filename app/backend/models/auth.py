@@ -1,5 +1,5 @@
 from models.base import Base
-from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Float, Numeric, Integer, String, Text
 from sqlalchemy.sql import func
 
 
@@ -10,13 +10,15 @@ class User(Base):
     email = Column(String(255), nullable=True, index=True)
     google_sub = Column(String(255), nullable=True, unique=True, index=True)
     phone = Column(String(32), nullable=True, unique=True, index=True)
+    phone_verified_at = Column(DateTime(timezone=True), nullable=True)
     password_hash = Column(String(255), nullable=True)
     name = Column(String(255), nullable=True)
     avatar_url = Column(Text, nullable=True)
     language = Column(String(8), nullable=False, default="ru")
     role = Column(String(50), default="user", nullable=False)  # user/master/driver/seller/moderator/admin/superadmin
     status = Column(String(32), default="active", nullable=False)  # active/blocked/deleted
-    bonus_balance = Column(Float, nullable=False, default=0)
+    bonus_balance = Column(Numeric(14, 2), nullable=False, default=0)
+    bonus_debt = Column(Numeric(14, 2), nullable=False, default=0, server_default="0")
     agreement_accepted = Column(Boolean, nullable=False, default=False)
     privacy_accepted = Column(Boolean, nullable=False, default=False)
     is_active = Column(Boolean, nullable=False, default=True)

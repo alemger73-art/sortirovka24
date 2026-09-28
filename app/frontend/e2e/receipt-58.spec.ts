@@ -23,7 +23,7 @@ test('timezone is Karaganda, including naive legacy UTC',()=>{expect(receiptDate
 test('snapshot discount and promo are not repriced',()=>{const d=data({total_amount:9905,pricing_snapshot:JSON.stringify({promo_code:'SORT24',breakdown:{subtotal:10100,discount:1000,delivery_fee:805}})});expect([d.total,d.discount,d.promo]).toEqual([9905,1000,'SORT24']);expect(renderReceiptHtml(d)).toContain('Промокод: SORT24');});
 test('no promo or invented promotion is printed',()=>{expect(renderReceiptHtml(data())).not.toContain('Промокод:');expect(renderReceiptHtml(data())).not.toContain('Акция:');});
 test('gift is explicit, zero-priced item alone is not a gift',()=>{const d=data({order_items:JSON.stringify([{name:'Gift',price:0,is_gift:true},{name:'Free item',price:0},{name:'Invalid gift',price:200,is_gift:true}])});expect(d.lines.map(l=>l.gift)).toEqual([true,false,false]);expect(renderReceiptHtml(d).match(/ПОДАРОК/g)).toHaveLength(1);});
-test('modifiers use names, never internal ids',()=>{const d=data({order_items:JSON.stringify([{name:'Бургер',price:1000,quantity:2,sum:2400,modifiers:[{id:98765,name:'+ сыр',price:200},{id:23456,title:'без лука'},{id:34567}]}])});expect(d.lines[0].modifiers).toEqual(['+ сыр','без лука']);expect(d.lines[0].amount).toBe(2400);expect(renderReceiptHtml(d)).not.toMatch(/98765|23456|34567/);});
+test('modifiers use names, never internal ids',()=>{const d=data({order_items:JSON.stringify([{name:'Бургер',price:1000,quantity:2,sum:2400,modifiers:[{id:98765,name:'+ сыр',price:200},{id:23456,title:'без лука'},{id:34567}]}])});expect(d.lines[0].modifiers).toEqual(['+ сыр · 200 ₸','без лука']);expect(d.lines[0].amount).toBe(2400);expect(renderReceiptHtml(d)).not.toMatch(/98765|23456|34567/);});
 test('customer comment is escaped and technical fields never printed',()=>{const o={...base,comment:'<script>alert(1)</script>',operator_note:'SECRET_INTERNAL',version:53,order_source:'whatsapp',merchant_key:'dam_alem'};const html=renderReceiptHtml(createReceiptData(o));expect(html).toContain('&lt;script&gt;');expect(html).not.toContain('<script>');expect(html).not.toMatch(/SECRET_INTERNAL|merchant_key|whatsapp|gift_id/);});
 test('empty comment has no blank heading',()=>{expect(renderReceiptHtml(data({comment:'  '}))).not.toContain('Комментарий:');});
 test('free delivery is represented by actual zero',()=>{const d=data({pricing_snapshot:JSON.stringify({breakdown:{subtotal:10100,delivery_fee:0}})});expect(d.deliveryFee).toBe(0);expect(renderReceiptHtml(d)).toContain('Доставка');});
@@ -48,16 +48,38 @@ test('shared native push API registers the current courier identity, not a custo
   });
   expect(auth).toEqual(['Bearer synthetic-courier','Bearer synthetic-customer']);
 });
-async function printHtml(page:Page,order:PrintableOrder,native=false){
+async function printHtml(page:Page,order:PrintableOrder,native=false,kitchen=false){
   await harness(page);
-  return page.evaluate(async({order,native})=>{
+  return page.evaluate(async({order,native,kitchen})=>{
     if(native){(window as any).androidBridge={};(window as any).Capacitor={PluginHeaders:[{name:'ReceiptPrinter',methods:[{name:'print',rtype:'promise'}]}],nativePromise:async(_plugin:string,_method:string,options:unknown)=>{(window as any).nativeReceipt=options;}};}
     else Object.defineProperty(HTMLIFrameElement.prototype,'contentWindow',{get:(()=>{const original=Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype,'contentWindow')!.get!;return function(this:HTMLIFrameElement){const win=original.call(this);if(win)win.print=()=>{(window as any).printCalls=((window as any).printCalls||0)+1;};return win;};})()});
-    const {printOrder}=await import('/receiptPrint.js');
-    await Promise.all([printOrder(order),printOrder(order)]);
+    const module=await import('/receiptPrint.js');
+    const print=kitchen?module.printKitchenOrder:module.printOrder;
+    await Promise.all([print(order),print(order)]);
     return native ? (window as any).nativeReceipt : {html:document.querySelector('iframe')!.contentDocument!.documentElement.outerHTML,calls:(window as any).printCalls};
-  },{order,native});
+  },{order,native,kitchen});
 }
+
+for(const native of [false,true])test(`cash change reaches ${native?'native':'browser'} customer and kitchen print`,async({page})=>{
+  const order={...base,status:'preparing',total_amount:7800,cash_given_amount:8000,change_amount:200,comment:'Без лука',order_items:JSON.stringify([{name:'Бургер',quantity:2,price:3900,sum:7800,modifiers:[{name:'Сыр'}]}])};
+  let result=await printHtml(page,order,native);
+  await page.setContent(result.html);
+  await expect(page.getByText('ПОДГОТОВИТЬ СДАЧУ',{exact:true})).toBeVisible();
+  expect(createReceiptData(order).change).toBe(200);
+  result=await printHtml(page,order,native,true);
+  await page.setContent(result.html);
+  await expect(page.getByText('Сдача: 200 ₸',{exact:true})).toBeVisible();
+  await expect(page.getByText('2 × Бургер',{exact:true})).toBeVisible();
+  await expect(page.getByText('+ Сыр',{exact:true})).toBeVisible();
+  await expect(page.getByText('Комментарий: Без лука',{exact:true})).toBeVisible();
+  if(native)expect(result.paperWidthMm).toBe(58);
+});
+
+test('kitchen receipt rejects an order before operator handoff',async({page})=>{
+  await harness(page);
+  const error=await page.evaluate(async order=>{const {printKitchenOrder}=await import('/receiptPrint.js');try{await printKitchenOrder(order);}catch(e){return (e as Error).message;}}, {...base,status:'new'});
+  expect(error).toBe('Сначала передайте заказ на кухню');
+});
 async function decodeQr(page:Page){const pixels=await page.locator('.qr svg').evaluate(async svg=>{const image=new Image();image.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(new XMLSerializer().serializeToString(svg));await image.decode();const canvas=document.createElement('canvas');canvas.width=224;canvas.height=224;const ctx=canvas.getContext('2d')!;ctx.fillStyle='#fff';ctx.fillRect(0,0,224,224);ctx.drawImage(image,0,0,224,224);return Array.from(ctx.getImageData(0,0,224,224).data);});return jsQR(new Uint8ClampedArray(pixels),224,224)?.data;}
 
 for(const native of [false,true])test(`${native?'native bridge':'browser iframe'} prints same scanned QR without personal data`,async({page})=>{
@@ -93,4 +115,9 @@ for(const sample of ['cash','paid','long'])test(`58mm print PDF and layout: ${sa
   await page.locator('.receipt').screenshot({path:info.outputPath(`receipt-${sample}.png`)});
   const pdf=await page.pdf({path:info.outputPath(`receipt-${sample}.pdf`),preferCSSPageSize:true,printBackground:true,displayHeaderFooter:false});
   expect(pdf.length).toBeGreaterThan(3000);
+});
+
+for(const native of [false,true])test(`combo components, choices and modifier snapshot reach ${native?'native':'browser'} receipts`,async({page})=>{
+ const order={...base,status:'preparing',total_amount:8100,order_items:JSON.stringify([{name:'Комбо для двоих',base_price:7000,price:7500,quantity:1,sum:8100,combo_components:[{name:'Фри',quantity:1},{name:'4 сезона',quantity:1,group_name:'Выберите пиццу',surcharge:500}],modifiers:[{name:'Сырный соус',quantity:2,price:300,sum:600}]}])};
+ for(const kitchen of [false,true]){const result=await printHtml(page,order,native,kitchen);await page.setContent(result.html);await expect(page.getByText(/Фри.*1/).first()).toBeVisible();await expect(page.getByText(/Выберите пиццу.*4 сезона/).first()).toBeVisible();await expect(page.getByText(/Сырный соус.*2.*600/).first()).toBeVisible();}
 });

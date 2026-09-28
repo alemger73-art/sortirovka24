@@ -1,3 +1,4 @@
+import type {MenuSelection} from './damMenu';
 const CART_KEY = 'damalem_cart_v1';
 
 export type CartItemSelection = Record<number, number[]>;
@@ -6,6 +7,7 @@ export interface StoredCartLine {
   itemId: number;
   quantity: number;
   selections: CartItemSelection;
+  choices?: MenuSelection['choices'];
 }
 
 interface MinimalFoodItem {
@@ -25,12 +27,13 @@ interface MinimalFoodItem {
   available?: boolean;
 }
 
-export function saveFoodCart(cart: { item: { id: number }; quantity: number; selections: CartItemSelection }[]): void {
+export function saveFoodCart(cart: { item: { id: number }; quantity: number; selections: CartItemSelection; choices?: MenuSelection['choices'] }[]): void {
   try {
     const lines: StoredCartLine[] = cart.map(ci => ({
       itemId: ci.item.id,
       quantity: ci.quantity,
       selections: ci.selections || {},
+      choices: ci.choices || [],
     }));
     localStorage.setItem(CART_KEY, JSON.stringify(lines));
   } catch {
@@ -38,7 +41,7 @@ export function saveFoodCart(cart: { item: { id: number }; quantity: number; sel
   }
 }
 
-export function loadFoodCart<T extends MinimalFoodItem>(items: T[]): { item: T; quantity: number; selections: CartItemSelection }[] {
+export function loadFoodCart<T extends MinimalFoodItem>(items: T[]): { item: T; quantity: number; selections: CartItemSelection; choices?: MenuSelection['choices'] }[] {
   try {
     const raw = localStorage.getItem(CART_KEY);
     if (!raw) return [];
@@ -54,10 +57,11 @@ export function loadFoodCart<T extends MinimalFoodItem>(items: T[]): { item: T; 
       if (line.selections && typeof line.selections === 'object' && !Array.isArray(line.selections)) {
         for (const [group, options] of Object.entries(line.selections)) {
           if (!Number.isSafeInteger(Number(group)) || Number(group) <= 0 || !Array.isArray(options)) continue;
-          selections[Number(group)] = [...new Set(options.filter(id => Number.isSafeInteger(id) && id > 0))];
+          selections[Number(group)] = options.filter(id => Number.isSafeInteger(id) && id > 0).slice(0,30);
         }
       }
-      return [{ item, quantity: line.quantity, selections }];
+      const choices=Array.isArray(line.choices)?line.choices.filter(c=>typeof c.group_id==='string' && Number.isSafeInteger(c.item_id)).slice(0,30):[];
+      return [{ item, quantity: line.quantity, selections, choices }];
     });
   } catch {
     return [];

@@ -41,7 +41,7 @@ test('operator adds a dish only after quote and customer reason',async({page},in
 
 test('operator can create a phone order with server quote',async({page})=>{
  const s=await setup(page);await page.goto('/partner/dam-alem?section=orders');await page.getByRole('button',{name:'Новый заказ',exact:true}).click();
- const modal=page.getByRole('dialog');await modal.getByLabel('Имя клиента').fill('Клиент');await modal.getByLabel('Телефон клиента').fill('+77000000000');await modal.getByLabel('Получение').selectOption('pickup');await modal.getByRole('button',{name:/Напиток/}).click();
+ const modal=page.getByRole('dialog');await modal.getByLabel('Имя клиента').fill('Клиент');await modal.getByLabel('Телефон клиента').fill('+77000000000');await modal.getByRole('combobox',{name:'Получение',exact:true}).selectOption('pickup');await modal.getByRole('button',{name:/Напиток/}).click();
  await expect(modal.getByRole('button',{name:/Создать заказ — 300/})).toBeEnabled();
  await modal.getByRole('button',{name:/Создать заказ — 300/}).click();await expect(modal).toHaveCount(0);expect(s.writes).toBe(1);
 });
@@ -60,7 +60,7 @@ test('customer sees refreshed receipt and status instead of map',async({page},in
 test('onsite order needs no phone and receipt printing escapes customer text',async({page})=>{
  const s=await setup(page);await page.goto('/partner/dam-alem?section=orders&order=71');
  await page.getByRole('button',{name:'Новый заказ',exact:true}).click();const modal=page.getByRole('dialog');
- await modal.getByLabel('Получение').selectOption('dine_in');await modal.getByRole('button',{name:/Напиток/}).click();
+ await modal.getByRole('combobox',{name:'Получение',exact:true}).selectOption('dine_in');await modal.getByRole('button',{name:/Напиток/}).click();
  await modal.getByRole('button',{name:/Создать заказ — 300/}).click();
  await expect(modal).toHaveCount(0);expect(s.writes).toBe(1);
 });

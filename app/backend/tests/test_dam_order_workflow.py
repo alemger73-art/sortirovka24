@@ -7,6 +7,8 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from core.database import Base, get_db
 from core.auth import create_access_token
+from models.user_notifications import UserNotification  # noqa: F401 — outbox used by loyalty
+from models.user_management import Bonus
 from models.auth import User
 from models.module_settings import ModuleSettings
 from models.taxi import TaxiSettings
@@ -19,6 +21,7 @@ from models.food_items import Food_items
 from models.food_restaurants import Food_restaurants
 from models.food_settings import Food_settings
 from models.food_operations import FoodOrderEvent, FoodOrderRequest
+from models.food_cashbox import FoodCashEntry  # noqa: F401 — register cash table before create_all, also in isolated runs
 from models.partner_auth import PartnerCredentials
 from models.logistics import LogisticsTask, CourierProfile
 from routers.food_operations import router
@@ -30,6 +33,10 @@ BASE='/api/v1/dam-alem/operations'
 
 @pytest.fixture
 async def env(monkeypatch, tmp_path):
+    monkeypatch.setenv('APP_ENV', 'test')
+    monkeypatch.setenv('PAYMENT_TEST_SECRET', 'isolated-test-secret')
+    monkeypatch.setenv('EXTERNAL_SIDE_EFFECTS', 'disabled')
+    monkeypatch.delenv('RAILWAY_ENVIRONMENT_ID', raising=False)
     from routers import account_v2
     engine=create_async_engine('sqlite+aiosqlite:///' + (tmp_path/'workflow.db').as_posix())
     async with engine.begin() as conn:
@@ -45,6 +52,9 @@ async def env(monkeypatch, tmp_path):
         db.add(Food_orders(id=1,restaurant_id=1,restaurant_name='DAM ALEM 2.0',customer_name='Client',customer_phone='+77000000000',delivery_method='delivery',delivery_address='Test street 1',status='new',version=0,payment_status='paid',total_amount=1200,order_items=json.dumps([{'id':1,'name':'Pizza','price':1000,'quantity':1,'modTotal':0,'sum':1000}])))
         db.add(User(id='courier',name='Courier',phone='+77001111111',role='courier'))
         db.add(CourierProfile(user_id='courier',is_verified=True,is_online=True,deliveries_count=0,balance=0))
+        await db.commit()
+        from services.crm import attach_order
+        await attach_order(db,await db.get(Food_orders,1))
         await db.commit()
         from services.food_shifts import open_shift
         from utils.courier_pin import hash_courier_pin
@@ -66,6 +76,10 @@ async def env(monkeypatch, tmp_path):
     from routers.food_shifts import router as shifts_router
     from routers.logistics import router as logistics_router
     app.include_router(business_router);app.include_router(shifts_router);app.include_router(logistics_router)
+    from routers.dam_payments import router as payment_router
+    app.include_router(payment_router)
+    from routers import crm, loyalty, dam_checkout_config
+    app.include_router(crm.router);app.include_router(loyalty.router);app.include_router(dam_checkout_config.router)
     async def dependency():
         async with maker() as db: yield db
     app.dependency_overrides[get_db]=dependency
@@ -197,18 +211,22 @@ async def test_customer_retry_returns_same_order_and_changed_payload_is_rejected
 async def test_late_payment_awards_bonus_once_in_order_transaction(env):
     client,maker,_,monkeypatch=env
     headers=owner_headers()
-    monkeypatch.setattr('services.bonus_rewards.FOOD_ORDER_BONUS_POINTS',50)
-    monkeypatch.setattr('services.bonus_rewards.FOOD_ORDER_BONUS_PERCENT',0)
     async with maker() as db:
-        db.add(User(id='customer',phone='+77000000000',bonus_balance=100))
+        from services import loyalty as L,crm
+        u=User(id='customer',phone='+77000000000',bonus_balance=100,phone_verified_at=L.now());db.add(u);await db.flush()
+        await crm.for_account(db,u)
         order=await db.get(Food_orders,1)
-        order.status='done';order.payment_status='pending';order.paid_amount=0
+        order.loyalty_snapshot=await L.price_snapshot(db,food=1000,promo=0,delivery=200,service=0,user=u)
+        order.status='done';order.payment_status='pending';order.paid_amount=0;order.payment_method='cash'
         await db.commit()
     for version in [0,1]:
         response=await client.patch(BASE+'/orders/1',headers=headers,json={'expected_version':version,'payment_status':'paid'})
         assert response.status_code==200,response.text
     async with maker() as db:
-        assert (await db.get(User,'customer')).bonus_balance==150
+        # Legacy unscoped cache is preserved; canonical business ledger owns new rewards.
+        assert (await db.get(User,'customer')).bonus_balance==100
+        assert (await L.account(db,'customer')).bonus_balance==330
+        assert await db.scalar(select(func.count()).select_from(Bonus).where(Bonus.kind=='EARN'))==1
 
 @pytest.mark.asyncio
 async def test_ready_courier_delivery_and_cancellation_are_one_workflow(env):
@@ -235,7 +253,9 @@ async def test_ready_courier_delivery_and_cancellation_are_one_workflow(env):
     assert assigned.status_code==200,assigned.text
     async with maker() as db:
         user=await db.get(User,'courier');task=await db.get(LogisticsTask,tid)
-        assert task.status=='on_the_way'
+        assert task.status=='assigned'
+        for stage in ('picked_up','on_the_way','arrived'):
+            await advance_task_status(db,task,user,stage)
         await advance_task_status(db,task,user,'delivered')
         food=await db.get(Food_orders,1)
         assert food.status=='done' and food.completed_at
@@ -272,7 +292,11 @@ async def test_paid_reduction_shows_refund_and_customer_history_is_private(env):
     assert r.json()['refund_due']==700
     assert (await client.post(BASE+'/orders/1/receipt',headers=headers,json=body)).status_code==200
     from routers import account_v2
-    monkeypatch.setattr(account_v2,'_current_user',AsyncMock(return_value=User(id='customer',phone='+77000000000',role='user')))
+    from services import loyalty as L,crm
+    async with maker() as db:
+        u=User(id='customer',phone='+77000000000',role='user',phone_verified_at=L.now());db.add(u);await db.flush()
+        await crm.for_account(db,u);await db.commit()
+    monkeypatch.setattr(account_v2,'_current_user',AsyncMock(return_value=u))
     response=await client.get('/api/v1/account/orders/food/1')
     assert response.status_code==200,response.text
     assert response.json()['receipt_changes'][0]['after']['total_amount']==500
@@ -421,7 +445,9 @@ async def test_pos_catalog_lookup_sources_and_transitions(env):
         db.add(Food_items(id=9,restaurant_id=1,name='Stop list',price=100,is_active=True,available=False))
         await db.commit()
     catalog=(await client.get(BASE+'/catalog',headers=headers)).json()
-    assert [c['id'] for c in catalog['categories']]==[2,1]
+    # Shared catalog also exposes dishes without a category instead of hiding them.
+    assert [c['id'] for c in catalog['categories']]==[2,1,0]
+    assert catalog['categories'][-1]['name']=='Другие блюда'
     assert {p['id'] for p in catalog['products']}=={1,2}
     assert (await client.get(BASE+'/customer?phone=87000000000')).status_code==403
     assert (await client.get(BASE+'/customer?phone=7000',headers=headers)).status_code==422

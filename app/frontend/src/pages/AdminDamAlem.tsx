@@ -1,3 +1,6 @@
+import OwnerMenu from '@/components/damalem/OwnerMenu';
+import OwnerCRM from '@/components/damalem/OwnerCRM';
+import OwnerLoyalty from '@/components/damalem/OwnerLoyalty';
 import DamDeliveries from './DamDeliveries';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useState } from 'react';
@@ -25,7 +28,7 @@ import DamShiftOverview from '@/components/damalem/DamShiftOverview';
 import DamOwnerDashboard from './DamOwnerDashboard';
 import DamCashbox from '@/components/damalem/DamCashbox';
 
-type Section = 'cashbox' | 'deliveries' | 'payroll' | 'brand' | 'menu' | 'categories' | 'modifiers' | 'orders' | 'settings' | 'banners' | 'pos' | 'telegram' | 'today' | 'sales' | 'staff' | 'availability';
+type Section = 'crm' | 'loyalty' | 'cashbox' | 'deliveries' | 'payroll' | 'brand' | 'menu' | 'categories' | 'combos' | 'modifiers' | 'orders' | 'settings' | 'banners' | 'pos' | 'telegram' | 'today' | 'sales' | 'staff' | 'availability';
 
 interface AdminDamAlemProps {
   initialSection?: Section;
@@ -40,6 +43,8 @@ function getTABS(adminT: (key: string) => string) {
   { id: 'orders', label: adminT("admin.ui.0239"), icon: ShoppingBag },
   { id: 'deliveries', label: adminT('cabinet.deliveries'), icon: ShoppingBag },
   { id: 'cashbox', label: 'Общая касса', icon: Store },
+  { id: 'crm', label: 'Клиенты', icon: Store },
+  { id: 'loyalty', label: 'Бонусы', icon: Store },
   { id: 'sales', label: adminT("payroll.salesReport"), icon: ShoppingBag },
   { id: 'payroll', label: adminT('payroll.title'), icon: Store },
   { id: 'staff', label: adminT("admin.ui.0237"), icon: Store },
@@ -48,7 +53,8 @@ function getTABS(adminT: (key: string) => string) {
   { id: 'brand', label: adminT("admin.ui.0240"), icon: Store },
   { id: 'menu', label: adminT("admin.ui.0241"), icon: ChefHat },
   { id: 'categories', label: adminT("admin.ui.0242"), icon: Utensils },
-  { id: 'modifiers', label: adminT("admin.ui.0243"), icon: SlidersHorizontal },
+  { id: 'combos', label: 'Комбо', icon: Utensils },
+  { id: 'modifiers', label: 'Добавки', icon: SlidersHorizontal },
   { id: 'banners', label: adminT("admin.ui.0244"), icon: Image },
   { id: 'settings', label: adminT("admin.ui.0245"), icon: Settings },
   { id: 'pos', label: adminT("admin.ui.0246"), icon: Plug },
@@ -69,10 +75,11 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
   useEffect(() => { let alive = true; business<{role: 'owner' | 'operator'}>('/me').then(v => { if (alive && ['owner', 'operator'].includes(v.role)) setAccess(v.role); else if (alive) setAccessError(adminT("admin.ui.0247")); }).catch(e => { if (alive) setAccessError(e.message); }); return () => { alive = false; }; }, []);
   const tabs = TABS.filter(tab => (!partnerMode || tab.id !== 'pos') && (access === 'owner' || ['today', 'orders', 'availability', 'deliveries', 'cashbox'].includes(tab.id)));
   const groupOf = (id: string) => {
+    if (id === 'loyalty' || id === 'crm') return id;
     if (id === 'payroll' || (id === 'cashbox' && access === 'owner')) return 'sales';
     if (id === 'cashbox') return 'cashbox';
     if (id === 'staff') return 'staff';
-    if (['menu', 'categories', 'modifiers', 'banners', 'availability'].includes(id)) return 'menu';
+    if (['menu', 'categories', 'combos', 'modifiers', 'banners', 'availability'].includes(id)) return 'menu';
     if (access === 'owner' && id === 'deliveries') return 'orders';
     if (['today', 'orders', 'sales', 'deliveries'].includes(id)) return id;
     return 'settings';
@@ -82,7 +89,9 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
     ? [
         { id: 'today', label: 'Главная' },
         { id: 'orders', label: 'Заказы' },
-        { id: 'sales', label: 'Финансы' },
+        { id: 'crm', label: 'Клиенты' },
+        { id: 'loyalty', label: 'Бонусы', icon: Store },
+  { id: 'sales', label: 'Финансы' },
         { id: 'menu', label: 'Меню' },
         { id: 'staff', label: adminT('cabinet.team') },
         { id: 'settings', label: adminT('admin.ui.0245') },
@@ -152,6 +161,8 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
         })}
       </div>}
 
+      {section === 'crm' && access === 'owner' && <OwnerCRM />}
+      {section === 'loyalty' && access === 'owner' && <OwnerLoyalty />}
       {section === 'deliveries' && <DamDeliveries openOrder={id => navigate('orders', id)} />}
       {section === 'today' && (access === 'owner' ? <DamOwnerDashboard navigate={navigate} /> : <DamToday owner={false} navigate={navigate} />)}
       {section === 'payroll' && access === 'owner' && <DamAlemPayroll />}
@@ -160,11 +171,13 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
       {section === 'staff' && access === 'owner' && <><DamStaff /><DamShiftOverview /></>}
       {section === 'availability' && <DamAvailability />}
       {section === 'brand' && <AdminDamAlemBrand />}
-      {(section === 'menu' || section === 'categories') && (
+      {section === 'menu' && <OwnerMenu />}
+      {section === 'combos' && <OwnerMenu mode="combos" />}
+      {section === 'categories' && (
         <AdminFood
           damAlemMode
           hideSubTabs
-          initialSection={section === 'categories' ? 'categories' : 'items'}
+          initialSection="categories"
         />
       )}
       {section === 'telegram' && <DamAlemTelegram />}

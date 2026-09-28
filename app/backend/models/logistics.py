@@ -96,6 +96,9 @@ class LogisticsTask(BaseModel):
     delivery_fee = Column(Float, nullable=True)
     comment = Column(Text, nullable=True)
 
+    handed_at = Column(String(64), nullable=True)
+    departed_at = Column(String(64), nullable=True)
+    arrived_at = Column(String(64), nullable=True)
     picked_up_at = Column(String(64), nullable=True)
     delivered_at = Column(String(64), nullable=True)
     cancelled_at = Column(String(64), nullable=True)

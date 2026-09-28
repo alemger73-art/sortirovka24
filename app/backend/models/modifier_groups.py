@@ -15,3 +15,6 @@ class Modifier_groups(Base):
     sort_order = Column(Integer, nullable=True)
     is_active = Column(Boolean, nullable=True)
     created_at = Column(String, nullable=True)
+    business_id = Column(String(64), nullable=True, index=True)
+    archived_at = Column(String, nullable=True)
+    menu_version = Column(Integer, nullable=False, default=1, server_default='1')

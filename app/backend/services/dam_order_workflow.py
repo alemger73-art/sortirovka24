@@ -97,8 +97,8 @@ async def sync_task(db, order):
         task.delivered_at = task.delivered_at or now()
         task.offered_courier_id = task.offer_expires_at = None
     elif order.status == 'in_progress':
-        task.status = 'on_the_way'
-        task.picked_up_at = task.picked_up_at or now()
+        if task.status not in ('assigned', 'picked_up', 'on_the_way', 'arrived'):
+            task.status = 'on_the_way'
         task.offered_courier_id = task.offer_expires_at = None
     elif order.status == 'ready' and task.status in ('pending', 'ready'):
         task.status, task.ready_at = 'ready', now()
@@ -113,7 +113,7 @@ async def quote_change(db, order, body):
     if order.status not in ('new', 'confirmed', 'preparing', 'ready'):
         raise HTTPException(409, 'Состав нельзя менять после передачи курьеру или закрытия заказа')
     task = await task_for(db, order)
-    if task and task.status in ('picked_up', 'on_the_way', 'delivered'):
+    if task and task.status in ('picked_up', 'on_the_way', 'arrived', 'delivered'):
         raise HTTPException(409, 'Курьер уже забрал заказ. Состав зафиксирован для доставки.')
     original = items(order)
     revised, additions, seen = [], [], set()
@@ -133,7 +133,8 @@ async def quote_change(db, order, body):
                 await validate_food_order(db, dict(restaurant_id=order.restaurant_id,
                     customer_name=order.customer_name, customer_phone=order.customer_phone,
                     delivery_method='pickup', order_items=json.dumps([{**old, 'quantity': line.quantity}])),
-                    staff_quote=True, catalog_only=True)
+                    staff_quote=True,
+                    catalog_only=True)
             revised.append({**old, 'quantity': line.quantity, 'sum': float((money(old.get('price')) + money(old.get('modTotal'))) * line.quantity)})
         else:
             if not line.id:
@@ -180,6 +181,11 @@ async def quote_change(db, order, body):
             raise HTTPException(409, 'Не удалось прочитать условия расчёта заказа') from None
     if total < 0 or after_subtotal < money(order.bonus_discount_amount):
         raise HTTPException(422, 'Сумма ниже уже применённых скидок. Согласуйте отмену и возврат бонусов с клиентом.')
+    if order.loyalty_snapshot:
+        from services.loyalty import quote as bonus_quote
+        snap = order.loyalty_snapshot
+        bonus_quote(snap['policy'], max(Decimal(0), after_subtotal-promo_discount),
+            order.bonus_points_used or 0, order.bonus_points_used or 0)
     choices = await gift_choices(db, order.restaurant_id, after_subtotal)
     selected_id = body.selected_gift_id or next((x.get('gift_id') for x in original if x.get('is_gift')), None)
     chosen = next((x for x in choices if x['id'] == selected_id), None)
@@ -209,7 +215,24 @@ async def amend(db, order, body, actor):
     order.total_amount, order.paid_amount = quote['total_amount'], quote['paid_amount']
     order.promo_discount_amount = quote['promo_discount_amount']
     order.pricing_snapshot = quote['pricing_snapshot']
+    if order.loyalty_snapshot:
+        snap = dict(order.loyalty_snapshot)
+        breakdown = json.loads(order.pricing_snapshot or '{}').get('breakdown', {})
+        snap.update(food_amount=str(subtotal(quote['items'])), promo_discount=str(money(quote['promo_discount_amount'])),
+            eligible_amount=str(max(Decimal(0), subtotal(quote['items'])-money(quote['promo_discount_amount'])-money(order.bonus_discount_amount))),
+            delivery_fee=str(money(breakdown.get('delivery_fee'))), service_fee=str(money(breakdown.get('service_fee'))), total_amount=str(money(order.total_amount)))
+        order.loyalty_snapshot = snap
     order.payment_status = 'paid' if quote['paid_amount'] >= quote['total_amount'] and quote['paid_amount'] > 0 else 'pending'
+    from services.dam_payment_flow import cash_values, current_payment
+    payment = await current_payment(db, order)
+    if payment and payment.provider != 'CASH' and money(payment.amount) != money(order.total_amount):
+        raise HTTPException(409, 'Сумма онлайн-платежа зафиксирована. Отмените заказ; оплаченный возврат оформляет владелец.')
+    if order.payment_method == 'cash':
+        # Exact cash follows the revised total; an explicit larger note stays fixed.
+        given = None if order.cash_given_amount is None or money(order.cash_given_amount) == money(before['total_amount']) else order.cash_given_amount
+        order.cash_given_amount, order.change_amount = cash_values(order.total_amount, given)
+        if payment:
+            payment.amount = money(order.total_amount)
     order.receipt_revision = (order.receipt_revision or 0) + 1
     order.receipt_updated_at = now()
     if order.status == 'ready':
@@ -242,8 +265,11 @@ async def manual_quote(db, body):
         'customer_name': body.customer_name.strip(), 'customer_phone': body.customer_phone.strip(),
         'delivery_address': body.delivery_address.strip(), 'delivery_method': body.delivery_method,
         'payment_method': body.payment_method, 'comment': body.comment,
+        'cash_given_amount': body.cash_given_amount,
         'promo_code': body.promo_code, 'scheduled_for': body.scheduled_for,
         'order_items': json.dumps([x.model_dump(exclude_none=True) for x in body.items]), 'total_amount': 0}
+    from services import crm
+    bonus_customer = await crm.resolve(db,body.customer_phone,body.customer_name,business_id=crm.DAM,source=body.order_source if hasattr(body,'order_source') else 'operator') if body.customer_phone.strip() else None
     # Resolve the gift after pricing so reducing a draft below the threshold
     # removes its old gift instead of making automatic recalculation impossible.
     try:
@@ -251,6 +277,8 @@ async def manual_quote(db, body):
             db,
             payload,
             staff_quote=True,
+            account_user=bonus_customer,
+            bonus_points_to_use=body.bonus_points_to_use,
             staff_delivery_fee=body.delivery_fee,
         )
     except HTTPException as exc:
@@ -271,6 +299,7 @@ async def manual_quote(db, body):
         data['order_items'] = json.dumps(lines, ensure_ascii=False)
     data['order_source'] = 'operator'
     return data, {'items': lines, 'total_amount': total, 'promo_code': body.promo_code,
+        'loyalty': data.get('loyalty_snapshot'),
         **json.loads(data['pricing_snapshot'])['breakdown'], 'gift_choices': choices,
         'gift_required': bool(choices and not any(x.get('is_gift') for x in lines))}
 
@@ -298,7 +327,7 @@ async def lock_courier_order(db, task, *, require_ready=False):
     from services.food_operations import is_dam_order
     if not order or not await is_dam_order(db, order):
         return None
-    if order.status in ('done', 'cancelled') or (require_ready and order.status != 'ready'):
+    if order.status in ('done', 'cancelled') or (require_ready and order.status not in ('ready', 'in_progress')):
         raise ValueError('Заказ ещё не готов или уже закрыт. Обновите кабинет.')
     await claim(db, order, order.version or 0)
     return order

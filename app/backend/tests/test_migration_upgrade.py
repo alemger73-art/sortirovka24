@@ -17,12 +17,14 @@ def configuration():
 
 def test_all_legacy_revisions_resolve():
     scripts=ScriptDirectory.from_config(configuration())
-    assert scripts.get_heads()==['dam20260929_courier_workflow']
+    assert scripts.get_heads()==['dam20261005_menu_configuration']
+    assert scripts.get_revision('dam20261001_payment_lifecycle').down_revision == 'dam20260930_shared_cashbox'
+    assert scripts.get_revision('dam20260930_shared_cashbox').down_revision == 'dam20260929_courier_workflow'
     assert scripts.get_revision('dam20260929_courier_workflow').down_revision == 'dam20260928_operator_workflow'
     assert scripts.get_revision('dam20260928_operator_workflow').down_revision == 'pp20260927_partner_profiles'
     assert scripts.get_revision('pp20260927_partner_profiles').down_revision == 'm20260927_merge_legacy_heads'
     revisions=list(scripts.walk_revisions())
-    assert len(revisions)==63
+    assert len(revisions)==70
     for rev in ['r6s7t8u9v0w1','r6s7t8u9v0w1_add_partner_credentials',
                 's7t8u9v0w1x2','s7t8u9v0w1x2_food_order_bonus_columns',
                 'x2y3z4a5b6c7','x2y3z4a5b6c7_repair_banners_columns','a5b6c7d8e9f0']:
@@ -40,15 +42,23 @@ def test_upgrade_existing_head_preserves_listing_and_custom_banner(tmp_path,monk
         conn.execute(sa.text("INSERT INTO real_estate VALUES(1,'Existing listing')"))
         conn.execute(sa.text('CREATE TABLE food_settings(setting_key TEXT,setting_value TEXT)'))
         conn.execute(sa.text("INSERT INTO food_settings VALUES('hero_banner_image','https://example.test/custom.jpg')"))
-        conn.execute(sa.text('CREATE TABLE food_orders(id INTEGER PRIMARY KEY, customer_name TEXT)'))
-        conn.execute(sa.text("INSERT INTO food_orders VALUES(77,'Existing customer')"))
+        conn.execute(sa.text('CREATE TABLE food_orders(id INTEGER PRIMARY KEY, customer_name TEXT,customer_phone TEXT,restaurant_id INTEGER,restaurant_name TEXT,status TEXT,payment_status TEXT)'))
+        conn.execute(sa.text("INSERT INTO food_orders(id,customer_name) VALUES(77,'Existing customer')"))
+        conn.execute(sa.text('CREATE TABLE users(id VARCHAR(255) PRIMARY KEY,phone TEXT,name TEXT,bonus_balance FLOAT)'))
+        conn.execute(sa.text('CREATE TABLE food_restaurants(id INTEGER PRIMARY KEY,name TEXT,merchant_key TEXT)'))
+        conn.execute(sa.text('CREATE TABLE bonuses(id INTEGER PRIMARY KEY,user_id VARCHAR(255) NOT NULL,points FLOAT,reason TEXT,created_at DATETIME)'))
+        conn.execute(sa.text('CREATE TABLE user_notifications(id INTEGER PRIMARY KEY)'))
+        for sql in ['CREATE TABLE food_items(id INTEGER PRIMARY KEY,restaurant_id INTEGER)', 'CREATE TABLE modifier_groups(id INTEGER PRIMARY KEY)', 'CREATE TABLE modifier_options(id INTEGER PRIMARY KEY,group_id INTEGER)', 'CREATE TABLE item_modifier_groups(id INTEGER PRIMARY KEY,food_item_id INTEGER,modifier_group_id INTEGER)']:
+            conn.execute(sa.text(sql))
         conn.execute(sa.text('CREATE TABLE food_shifts(id INTEGER PRIMARY KEY)'))
         conn.execute(sa.text('CREATE TABLE food_order_events(id INTEGER PRIMARY KEY, order_id INTEGER NOT NULL)'))
         conn.execute(sa.text('INSERT INTO food_order_events VALUES(1,77)'))
     command.upgrade(configuration(),'head')
     command.upgrade(configuration(),'head')
     with engine.connect() as conn:
-        assert conn.scalar(sa.text('SELECT version_num FROM alembic_version'))=='dam20260929_courier_workflow'
+        assert conn.scalar(sa.text('SELECT version_num FROM alembic_version'))=='dam20261005_menu_configuration'
+        assert sa.inspect(conn).has_table('food_payments')
+        assert sa.inspect(conn).has_table('food_payment_callbacks')
         assert sa.inspect(conn).has_table('courier_ledger')
         assert sa.inspect(conn).has_table('courier_cash_handovers')
         assert sa.inspect(conn).has_table('courier_delivery_issues')

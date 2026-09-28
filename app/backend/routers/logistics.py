@@ -285,7 +285,7 @@ async def courier_cabinet(
 
     active_rows = (await db.scalars(select(LogisticsTask).where(
         LogisticsTask.courier_id == str(user.id),
-        LogisticsTask.status.in_(('assigned', 'picked_up', 'on_the_way'))
+        LogisticsTask.status.in_(('assigned', 'picked_up', 'on_the_way', 'arrived'))
     ).order_by(LogisticsTask.id))).all()
     active_tasks = [task_to_dict(task) for task in active_rows]
     from models.food_orders import Food_orders
@@ -295,7 +295,8 @@ async def courier_cabinet(
         food_order = orders.get(task['source_id']) if task['source_type'] == 'food_orders' else None
         if food_order:
             task.update(payment_method=food_order.payment_method, payment_status=food_order.payment_status,
-                        order_source=food_order.order_source or 'app')
+                        order_source=food_order.order_source or 'app',
+                        cash_given_amount=food_order.cash_given_amount, change_amount=food_order.change_amount)
     active = active_tasks[0] if active_tasks else None
 
     return {
@@ -533,7 +534,7 @@ async def get_logistics_task(
         if order:
             fields = ('id', 'restaurant_name', 'created_at', 'customer_name', 'customer_phone',
                 'delivery_address', 'delivery_method', 'comment', 'scheduled_for', 'order_items',
-                'total_amount', 'paid_amount', 'payment_method', 'payment_status',
+                'total_amount', 'paid_amount', 'payment_method', 'payment_status', 'cash_given_amount', 'change_amount',
                 'promo_discount_amount', 'bonus_discount_amount')
             receipt = {field: getattr(order, field) for field in fields}
             receipt['amount_due'] = float(max(0, money(order.total_amount) - paid(order)))

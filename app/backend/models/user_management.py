@@ -1,5 +1,5 @@
 from models.base import Base
-from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text, Numeric, JSON
 from sqlalchemy.sql import func
 
 
@@ -35,8 +35,21 @@ class Bonus(Base):
     __table_args__ = {"extend_existing": True}
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(String(255), ForeignKey("users.id"), index=True, nullable=False)
-    points = Column(Float, nullable=False, default=0)
+    user_id = Column(String(255), ForeignKey("users.id"), index=True, nullable=True)
+    account_id = Column(String(36), ForeignKey('bonus_members.id'), nullable=True, index=True)
+    business_id = Column(String(64), ForeignKey('businesses.id'), nullable=True, index=True)
+    customer_id = Column(String(36), ForeignKey('customers.id'), nullable=True, index=True)
+    points = Column(Numeric(14, 2), nullable=False, default=0)
+    kind = Column(String(32), nullable=False, default="LEGACY", server_default="LEGACY")
+    order_id = Column(Integer, nullable=True, index=True)
+    balance_before = Column(Numeric(14, 2), nullable=True)
+    balance_after = Column(Numeric(14, 2), nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    created_by = Column(String(255), nullable=True)
+    actor_role = Column(String(40), nullable=True)
+    details = Column(JSON, nullable=True)
+    idempotency_key = Column(String(255), nullable=True, unique=True)
+
     reason = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

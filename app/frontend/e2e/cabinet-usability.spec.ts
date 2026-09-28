@@ -20,6 +20,11 @@ async function setup(page: Page) {
       if (state.failCabinet) return route.fulfill({ status: state.failCabinet, json: { detail: state.failCabinet === 401 ? 'Сессия истекла' : 'Сервер временно недоступен' } });
       body = { profile: state.profile, addresses: state.addresses, orders: [order], bonuses: [{ id: 1, points: 450, reason: 'Начисление', created_at: order.created_at }], complaints: [], announcements: [], real_estate: [], master_requests: [], become_master_requests: [] };
     }
+    // Bonus totals now come from the selected business ledger, never profile.bonus_balance.
+    const loyalty = {balance:450,debt:0,enrolled:true,referral_code:'random-code',expires:[],history:[{id:1,kind:'EARN',amount:450,reason:'Начисление',created_at:order.created_at}],rules:{cashback_rate:3,max_spend_percent:20,regular_days:60,welcome_days:14,welcome_amount:300,referral_enabled:false}};
+    if(path.endsWith('/dam-alem/loyalty/me')) body=loyalty;
+    if(path.endsWith('/crm/me/businesses')) body=[{business_id:'dam_alem',name:'DÄM ALEM 2.0',loyalty}];
+    if(path.endsWith('/crm/me/businesses/dam_alem')) body={id:'mine',business_id:'dam_alem',name:profile.name,phone:profile.phone,loyalty,orders_count:1,paid_total:5600,average_check:5600,addresses:[],upcoming:[],recent:[],marketing_opt_in:false};
     if (path.endsWith('/account/me')) {
       if (method === 'PUT') { const patch = req.postDataJSON(); state.writes.push({ path, body: patch }); Object.assign(state.profile, patch); }
       body = state.profile;
@@ -324,13 +329,16 @@ test('disabled services stay hidden even with old history and approved roles', a
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 
-test('courier approval refreshes without reloading the application page', async ({page}) => {
+test('legacy courier URL opens independent PIN access, not the customer session', async ({page}) => {
  await setup(page);
- let status='pending';let reads=0;
- await page.route('**/courier/application',r=>{reads++;return r.fulfill({json:{status,full_name:'Тестовый курьер',phone:'+77011234567',vehicle_type:'foot',is_courier:status==='approved',can_access_cabinet:status==='approved'}});});
+ let applicationReads=0;
+ await page.route('**/courier/application',r=>{applicationReads++;return r.fulfill({json:{status:'approved',is_courier:true,can_access_cabinet:true}});});
  await page.goto('/delivery/courier');
- await expect.poll(()=>reads).toBeGreaterThan(0);
- status='approved';
- await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
- await expect(page.getByRole('button',{name:/кабинет курьера/i})).toBeVisible();
+ await expect(page).toHaveURL(/\/food\/courier/);
+ await expect(page.getByRole('heading',{name:'Кабинет курьера',exact:true})).toBeVisible();
+ await expect(page.getByLabel('PIN курьера')).toBeVisible();
+ await expect(page.getByRole('button',{name:'Войти и начать смену'})).toBeDisabled();
+ await page.reload();
+ await expect(page.getByLabel('PIN курьера')).toBeVisible();
+ expect(applicationReads).toBe(0);
 });

@@ -9,6 +9,7 @@ async function setup(page:Page) {
   const url=new URL(r.request().url()),p=url.pathname,method=r.request().method();let json:any={items:[],total:0};
   const blockers=()=>({can_close:!state.blocked,orders:state.blocked?[{id:71,status:'in_progress',label:'В доставке',courier:'Алсу'}]:[],counts:state.blocked?{in_progress:1}:{}});
   if(p.endsWith('/modules'))json={food:true,dam_alem:true,account:true};
+  if(p.endsWith('/checkout-config'))json={timezone:'Asia/Almaty',policy:{enabled:true,min_minutes:30,advance_days:7,step_minutes:30,closed_dates:[],prepare_minutes:30},working_hours:'Круглосуточно',pickup:{display_name:'DAM ALEM',address:'Парк Железнодорожников',instructions:'',photo:'',latitude:null,longitude:null},days:[{date:'2099-10-02',slots:[{value:'2099-10-02T07:00:00Z',label:'12:00'},{value:'2099-10-02T08:00:00Z',label:'13:00'}]}]};
   if(p.endsWith('/business/me'))json={role:'operator',name:'Айжан'};
   if(p.endsWith('/shifts/me'))json={staff:{id:1,name:'Айжан',role:'operator',pin_set:true},shift:state.closed?null:{id:9,staff_name:'Айжан',role:'operator',active:true,opened_at:new Date().toISOString()}};
   if(p.endsWith('/shifts/close-preview'))json=blockers();
@@ -67,7 +68,8 @@ test('preorder reschedule and early kitchen require explicit action',async({page
  await page.goto('/partner/dam-alem/operator?section=orders&status=preorders&order=71');
  await expect(page.getByRole('button',{name:'Все активные 0',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Перенести предзаказ',exact:true}).click();
- const dialog=page.getByRole('dialog');await dialog.getByLabel('Дата и время (UTC+5)').fill('2099-10-02T13:00');await dialog.getByRole('button',{name:'Сохранить время'}).click();
+ // The order's old day is absent from the currently available slots.
+ const dialog=page.getByRole('dialog');await expect(dialog.getByRole('combobox',{name:'День предзаказа'})).toHaveValue('2099-10-02');await dialog.getByRole('button',{name:'13:00',exact:true}).click();await dialog.getByLabel('Причина переноса').fill('Клиент попросил другое время');await dialog.getByRole('button',{name:'Сохранить время'}).click();
  await expect.poll(()=>s.order.scheduled_for).toBe('2099-10-02T08:00:00.000Z');
  await page.getByRole('button',{name:'Подтвердить предзаказ',exact:true}).click();
  await expect.poll(()=>s.order.status).toBe('confirmed');expect(s.order.is_future_preorder).toBe(true);
@@ -84,9 +86,9 @@ test('manual preorder uses UTC+5 and server promo recalculation',async({page},in
  await page.getByRole('button',{name:'Новый заказ',exact:true}).click();
  const modal=page.getByRole('dialog');await modal.getByRole('combobox',{name:'Получение',exact:true}).selectOption('dine_in');
  await modal.getByRole('button',{name:/Напиток/}).click();
- await modal.getByLabel('Предзаказ',{exact:true}).check();
+ await modal.getByRole('radio',{name:'Выбрать дату и время'}).check();
  await expect(modal.getByRole('button',{name:/Создать заказ/})).toBeDisabled();
- await modal.getByLabel('Дата и время',{exact:true}).fill('2099-10-02T12:00');
+ await modal.getByRole('button',{name:'12:00',exact:true}).click();
  await modal.getByLabel('Промокод',{exact:true}).fill('BAD');await modal.getByRole('button',{name:'Применить',exact:true}).click();
  await expect(modal.getByRole('alert')).toContainText('Промокод недействителен');await expect(modal.getByRole('button',{name:/Создать заказ/})).toBeDisabled();
  await modal.getByLabel('Промокод',{exact:true}).fill('TEST');await modal.getByRole('button',{name:'Применить',exact:true}).click();
@@ -114,7 +116,7 @@ test('courier on shift receives assignments while offline and completes one of t
   await r.fulfill({json});
  });
  await page.goto('/food/courier');await expect(page.getByText(/Смена с/)).toBeVisible();
- tasks=[1,2,3].map(id=>({id,source_type:'food_orders',source_id:id,status:'on_the_way',pickup_address:'Заведение',dropoff_address:'Улица '+id,customer_name:'Клиент '+id,customer_phone:'+7700000000'+id,total_amount:id*1000,amount_due:id*1000,payment_method:'cash',payment_status:'pending',order_status:'in_progress',order_source:'operator',order_items:'[]'}));
+ tasks=[1,2,3].map(id=>({id,source_type:'food_orders',source_id:id,status:'arrived',pickup_address:'Заведение',dropoff_address:'Улица '+id,customer_name:'Клиент '+id,customer_phone:'+7700000000'+id,total_amount:id*1000,amount_due:id*1000,payment_method:'cash',payment_status:'pending',order_status:'in_progress',order_source:'operator',order_items:'[]'}));
  await page.clock.runFor(5000);await expect(page.getByRole('heading',{name:'Мои доставки — 3'})).toBeVisible();
  await expect(page.getByText('Получить у клиента: 2 000 ₸',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Доставлено',exact:true}).nth(1).click();

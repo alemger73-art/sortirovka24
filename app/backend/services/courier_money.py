@@ -71,19 +71,29 @@ async def add_entry(db, *, key, courier_id, shift, kind, amount, actor, actor_id
     await db.flush()
     return entry
 
-async def collect_cash(db, task, order, courier, shift):
+async def collect_cash(db, task, order, courier, shift, *, amount=None, actor_name=None, actor_id=None):
     if not order or order.payment_method != 'cash':
         raise HTTPException(422,'Курьер может подтвердить только наличную оплату')
     outstanding=max(Decimal(0),money(order.total_amount)-paid(order))
     if not outstanding:
         return
     # Server amount, existing payment journal, same order transaction.
-    from services.food_payments import receive_outstanding
-    await receive_outstanding(db,order,courier.name or 'Курьер',cash_location='courier')
-    order.payment_status='paid'
+    from services.food_payments import record, preserve_legacy_payment
+    collected = outstanding if amount is None else money(amount)
+    if collected <= 0 or collected > outstanding:
+        raise HTTPException(422, 'Полученная сумма должна быть больше нуля и не больше остатка к оплате')
+    await preserve_legacy_payment(db, order)
+    await record(db, order, collected, actor_name or courier.name or 'Курьер', cash_location='courier')
+    order.paid_amount = float(paid(order) + collected)
+    order.payment_status = 'paid' if paid(order) >= money(order.total_amount) else 'pending'
+    if order.payment_status == 'paid':
+        from services.food_operations import now
+        order.paid_at = now()
+    from services.dam_payment_flow import synchronize_cash
+    await synchronize_cash(db, order, courier.name or 'Курьер')
     task.paid_amount=order.paid_amount
     await add_entry(db,key=f'cash:{task.id}',courier_id=str(courier.id),shift=shift,
-        kind='cash_collected',amount=outstanding,actor=courier.name or 'Курьер',actor_id=courier.id,task=task)
+        kind='cash_collected',amount=collected,actor=actor_name or courier.name or 'Курьер',actor_id=actor_id or courier.id,task=task)
 
 async def accrue(db, task, courier, shift, payout):
     await add_entry(db,key=f'earning:{task.id}',courier_id=str(courier.id),shift=shift,

@@ -1,5 +1,5 @@
 from core.database import Base
-from sqlalchemy import Boolean, Column, Float, Integer, String
+from sqlalchemy import Boolean, Column, Float, Integer, String, JSON
 
 
 class Food_items(Base):
@@ -25,3 +25,8 @@ class Food_items(Base):
     frontpad_id = Column(String, nullable=True)
     photo_locked = Column(Boolean, nullable=True)
     created_at = Column(String, nullable=True)
+    business_id = Column(String(64), nullable=True, index=True)
+    modifiers_enabled = Column(Boolean, nullable=True)
+    combo_config = Column(JSON, nullable=True)
+    archived_at = Column(String, nullable=True)
+    menu_version = Column(Integer, nullable=False, default=1, server_default='1')

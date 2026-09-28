@@ -30,7 +30,7 @@ test('delayed shift open never exposes a stale working screen',async({page})=>{
 test('courier prints the current order snapshot from delivery details',async({page})=>{
  const s=await setup(page);
  await page.addInitScript(()=>{window.print=()=>{};});
- s.tasks.push({id:9,source_id:14,status:'on_the_way',dropoff_address:'Адрес из списка',payment_method:'cash',amount_due:1200});
+ s.tasks.push({id:9,source_id:14,status:'arrived',dropoff_address:'Адрес из списка',payment_method:'cash',amount_due:1200});
  await page.route('**/api/v1/logistics/tasks/9',async r=>{
    expect(r.request().headers().authorization).toBe('Bearer test');
    await r.fulfill({json:{id:9,receipt:{id:14,restaurant_name:'DAM ALEM 2.0',created_at:'2026-09-28T15:16:00Z',delivery_method:'delivery',delivery_address:'Актуальный адрес чека',payment_method:'halyk_qr',payment_status:'paid',total_amount:1200,paid_amount:1200,amount_due:0,order_items:JSON.stringify([{name:'Блюдо из заказа',quantity:1,sum:1200}])}}});
@@ -46,7 +46,7 @@ test('courier prints the current order snapshot from delivery details',async({pa
 });
 
 test('cash delivery, controlled handover, shift summary and logout',async({page},info)=>{
- const s=await setup(page);s.tasks.push({id:1,source_id:7,status:'on_the_way',dropoff_address:'Тестовый адрес',customer_phone:'+77000000000',payment_method:'cash',amount_due:1200,total_amount:1200,courier_payout:800});
+ const s=await setup(page);s.tasks.push({id:1,source_id:7,status:'arrived',dropoff_address:'Тестовый адрес',customer_phone:'+77000000000',payment_method:'cash',amount_due:1200,total_amount:1200,courier_payout:800});
  await page.goto('/food/courier');await page.getByRole('button',{name:'Доставлено',exact:true}).click();
  await page.getByRole('button',{name:'Подтвердить получение и доставку'}).click();
  await expect(page.getByRole('heading',{name:'Мои доставки — 0'})).toBeVisible();
@@ -72,7 +72,7 @@ test('cash delivery, controlled handover, shift summary and logout',async({page}
 test('issue validation, GPS denial and lost delivery response reconcile safely',async({page},info)=>{
  await page.clock.install();
  await page.clock.pauseAt(new Date(Date.now()+1000)); // install alone keeps real-time polling running.
- const s=await setup(page);s.tasks.push({id:1,source_id:7,status:'on_the_way',dropoff_address:'Тестовый адрес',customer_phone:'+77000000000',payment_method:'cash',amount_due:1200,total_amount:1200});
+ const s=await setup(page);s.tasks.push({id:1,source_id:7,status:'arrived',dropoff_address:'Тестовый адрес',customer_phone:'+77000000000',payment_method:'cash',amount_due:1200,total_amount:1200});
  await page.goto('/food/courier');await page.getByRole('button',{name:'Проблема',exact:true}).click();
  await page.getByLabel('Причина проблемы').selectOption('other');await expect(page.getByRole('button',{name:'Сообщить оператору'})).toBeDisabled();
  await page.getByLabel('Комментарий',{exact:true}).fill('Клиент просит подождать');
@@ -87,7 +87,7 @@ test('issue validation, GPS denial and lost delivery response reconcile safely',
 });
 
 test('active shift cannot close and logout does not close it',async({page})=>{
- const s=await setup(page);s.tasks.push({id:1,source_id:7,status:'on_the_way',dropoff_address:'Тестовый адрес',payment_method:'halyk_qr',amount_due:1200});
+ const s=await setup(page);s.tasks.push({id:1,source_id:7,status:'arrived',dropoff_address:'Тестовый адрес',payment_method:'halyk_qr',amount_due:1200});
  await page.goto('/food/courier');await page.getByRole('navigation',{name:'Кабинет курьера'}).getByRole('button',{name:'Профиль',exact:true}).click();
  await page.getByLabel('PIN для смены').fill('2954');await page.getByRole('button',{name:'Закрыть смену',exact:true}).click();
  await expect(page.getByRole('dialog')).toContainText('№7');await expect(page.getByRole('button',{name:'Подтвердить закрытие смены'})).toHaveCount(0);
@@ -98,7 +98,7 @@ test('three assignments alert independently; mobile actions and refresh',async({
  await page.clock.install();const s=await setup(page);await page.goto('/food/courier');
  await expect(page.getByRole('heading',{name:'Мои доставки — 0'})).toBeVisible();
  for(const id of [1,2,3]){
-   s.tasks.push({id,source_id:id,status:'on_the_way',dropoff_address:'Улица '+id,customer_name:'Клиент',customer_phone:'+77000000000',payment_method:'cash',amount_due:1200,total_amount:1200,order_items:'[]'});
+   s.tasks.push({id,source_id:id,status:'arrived',dropoff_address:'Улица '+id,customer_name:'Клиент',customer_phone:'+77000000000',payment_method:'cash',amount_due:1200,total_amount:1200,order_items:'[]'});
    await page.clock.runFor(5100);await expect(page.getByText('Новая доставка №'+id,{exact:true})).toBeVisible();
  }
  const call=page.getByRole('link',{name:'Позвонить'}).first();const box=await call.boundingBox();expect(box?.height).toBeGreaterThanOrEqual(48);expect(box?.y).toBeLessThan(650);

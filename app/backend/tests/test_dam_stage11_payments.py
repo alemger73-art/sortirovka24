@@ -8,7 +8,7 @@ from tests.test_dam_order_workflow import env, BASE, owner_headers
 @pytest.mark.parametrize('method', ['kaspi_qr', 'halyk_qr', 'cash'])
 @pytest.mark.parametrize('outcome', ['completed_unpaid', 'paid_completed', 'cancelled_paid'])
 async def test_payment_lifecycle_and_owner_aggregates(env, method, outcome):
-    client, _, operator, _ = env
+    client, maker, operator, _ = env
     owner = owner_headers()
     manual = {'request_key':f'payment-{method.replace("_", "-")}-{outcome.replace("_", "-")}',
               'customer_name':'Payment test', 'customer_phone':'+77003334455',
@@ -35,7 +35,13 @@ async def test_payment_lifecycle_and_owner_aggregates(env, method, outcome):
     assert created.json()['payment_status'] == 'pending'
     assert float((await report())['sales']) == 0
     if outcome != 'completed_unpaid':
-        paid = await change(payment_status='paid')
+        if method == 'cash':
+            paid = await change(payment_status='paid')
+        else:
+            from tests.test_dam_payment_lifecycle import callback
+            assert (await callback(env, created.json())).status_code == 200
+            paid = (await client.get(BASE+f'/orders/{oid}',headers=operator)).json()['order']
+            version = paid['version']
         assert paid['status'] == 'new' and paid['payment_method'] == method
         finance = await report()
         assert float(finance['receipts']) == 600 and float(finance['sales']) == 0
@@ -58,7 +64,15 @@ async def test_payment_lifecycle_and_owner_aggregates(env, method, outcome):
         assert float(finance['receipts']) == 600 and float(finance['refunds']) == 600
         assert float(finance['cash_difference']) == 0 and not finance['refunds_needed']
     else:
-        for status in ['confirmed','preparing','ready','done']:
+        statuses = ['confirmed','preparing','ready','done']
+        if outcome == 'completed_unpaid' and method != 'cash':
+            blocked = await client.patch(BASE+f'/orders/{oid}',headers=operator,json={'expected_version':version,'status':'preparing'})
+            assert blocked.status_code == 409
+            from models.food_orders import Food_orders
+            async with maker() as db:
+                legacy = await db.get(Food_orders,oid); legacy.status='preparing'; await db.commit()
+            statuses = ['ready','done']
+        for status in statuses:
             order = await change(status=status)
             assert order['payment_status'] == ('pending' if outcome == 'completed_unpaid' else 'paid')
         finance = await report()

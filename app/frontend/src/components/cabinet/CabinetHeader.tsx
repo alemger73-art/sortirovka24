@@ -1,5 +1,4 @@
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getPublicLocale } from '@/i18n/publicLocale';
 import { Link } from "react-router-dom";
 import { Bike, Car, Coins, LogOut, UserCircle2, Wrench, Bell } from "lucide-react";
 import type { CourierAccess } from "@/lib/logisticsApi";
@@ -70,7 +69,6 @@ export default function CabinetHeader({
 }: Props) {
   const { t: publicT } = useLanguage();
   const show = (key: keyof NonNullable<Props['roleVisibility']>) => roleVisibility?.[key] !== false;
-  const bonus = Number(profile?.bonus_balance || 0);
   const isApprovedDriver = Boolean(driverApplication?.is_driver);
   const driverPending = driverApplication?.status === "pending";
   const roleLinks = [
@@ -134,7 +132,7 @@ export default function CabinetHeader({
                 className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800 transition hover:bg-amber-100 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200 dark:hover:bg-amber-500/20"
               >
                 <Coins className="h-3.5 w-3.5" />
-                {bonus.toLocaleString(getPublicLocale())} {bonusLabel}
+                {bonusLabel}
               </button>
               {ordersCount > 0 ? (
                 <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600 dark:bg-[#0f172a] dark:text-slate-300">

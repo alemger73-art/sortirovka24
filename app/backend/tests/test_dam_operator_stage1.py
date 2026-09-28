@@ -52,7 +52,7 @@ async def test_source_and_fulfillment_are_independent(env, source, fulfillment):
     queue = (await client.get(BASE+f'/orders?status=new&source={source}', headers=operator)).json()
     assert oid in [o['id'] for o in queue['items']]
     skipped = await client.patch(BASE+f'/orders/{oid}', headers=operator,
-        json={'expected_version':0,'status':'preparing'})
+        json={'expected_version':0,'status':'ready'})
     assert skipped.status_code == 409
     for version, status in enumerate(['confirmed','preparing','ready']):
         result = await client.patch(BASE+f'/orders/{oid}', headers=operator,
@@ -74,8 +74,10 @@ async def test_source_and_fulfillment_are_independent(env, source, fulfillment):
         assert cabinet.status_code == 200, cabinet.text
         task = cabinet.json()['active_task']
         assert task['source_id'] == oid
+        from tests.test_dam_courier_workflow import arrive
+        await arrive(client,task['id'],courier)
         delivered = await client.post(f"/api/v1/logistics/tasks/{task['id']}/status",
-            headers=courier, json={'status':'delivered'})
+            headers=courier, json={'status':'delivered','cash_received':False})
         assert delivered.status_code == 200, delivered.text
     else:
         assign = await client.post(BASE+f'/orders/{oid}/assign-courier', headers=operator,
@@ -91,7 +93,7 @@ async def test_source_and_fulfillment_are_independent(env, source, fulfillment):
     await owner_sees('done')
     assert detail['payment_status'] == 'pending'  # Fulfillment never collects cash.
     assert float(detail['paid_amount'] or 0) == 0
-    for values in [{'payment_status':'paid'}, {'operator_note':'change history'}]:
+    for values in [{'operator_note':'change history'}]:
         response = await client.patch(BASE+f'/orders/{oid}', headers=operator,
             json={'expected_version':detail['version'], **values})
         assert response.status_code == 409

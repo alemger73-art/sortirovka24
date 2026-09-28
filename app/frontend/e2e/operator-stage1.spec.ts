@@ -56,11 +56,9 @@ async function setup(page:Page, fulfillment='delivery', source='app') {
 test('new alert, explicit acceptance, kitchen and eligible courier',async({page})=>{
   const state=await setup(page);state.alertTotal=31;
   await page.goto('/partner/dam-alem/operator?section=orders&order=71');
-  await expect(page.getByRole('button',{name:'Принять заказ',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Принять заказ',exact:true})).toHaveCount(0);
   await expect(page).toHaveTitle(/^\(31\)/);
-  await expect(page.getByRole('button',{name:'Передать на кухню',exact:true})).toHaveCount(0);
-  await page.getByRole('button',{name:'Принять заказ',exact:true}).click();
-  expect(state.order.status).toBe('confirmed');
+  await expect(page.getByRole('button',{name:'Передать на кухню',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Передать на кухню',exact:true}).click();
   await page.getByRole('button',{name:'Готово',exact:true}).click();
   const select=page.getByLabel('Выберите курьера');
@@ -103,8 +101,9 @@ for(const fulfillment of ['pickup','dine_in'])test(`${fulfillment} does not requ
   await expect(page.getByRole('button',{name:'Назначить курьера',exact:true})).toHaveCount(0);
   await page.getByRole('button',{name:'Выдать заказ',exact:true}).click();
   expect(state.order.status).toBe('done');expect(state.order.order_source).toBe('whatsapp');
-  await expect(page.getByText('Заказ завершён без подтверждения денег. Для сверки обратитесь к владельцу.')).toBeVisible();
-  await expect(page.getByRole('button',{name:/Отметить оплату|Подтвердить оплату|Изменить состав заказа/})).toHaveCount(0);
+  await expect(page.getByText(/Заказ завершён без подтверждения денег/)).toBeVisible();
+  await expect(page.getByRole('button',{name:'Изменить состав заказа',exact:true})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'Подтвердить получение оплаты',exact:true})).toBeVisible();
 });
 
 test('customer chooses dine-in separately from source, without delivery minimum',async({page})=>{
@@ -116,6 +115,8 @@ test('customer chooses dine-in separately from source, without delivery minimum'
     if(path.includes('food_restaurants'))json={items:[{id:1,name:'DAM ALEM 2.0'}]};
     if(path==='/api/categories')json={categories:[{id:1,name:'Напитки',slug:'drinks'}]};
     if(path==='/api/products')json={products:[{id:1,category_id:1,title:'Лимонад',price:600,available:true}]};
+    // Storefront now consumes the shared menu contract, not /api/products.
+    if(path==='/api/v1/dam-alem/menu/catalog')json={business_id:'dam_alem',restaurant_id:1,categories:[{id:1,name:'Напитки',slug:'drinks'}],products:[{id:1,restaurant_id:1,category_id:1,name:'Лимонад',price:600,available:true,is_active:true,sellable:true,modifiers_enabled:false,modifier_groups:[]}],groups:[],options:[],links:[]};
     if(path.includes('food_settings'))json={items:Object.entries({min_order_amount:'3000',service_fee_rate:'0.1',promo_codes:'[]',loyalty_gifts:'[]',kitchen_open:'00:00',kitchen_close:'00:00'}).map(([setting_key,setting_value])=>({setting_key,setting_value}))};
     await r.fulfill({json});
   });

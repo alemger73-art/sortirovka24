@@ -168,15 +168,26 @@ async def deliver_one(db, event_id):
     await db.commit()
 
 async def notification_worker():
+    next_maintenance = 0
     while True:
         try:
             if db_manager._initialized and db_manager.async_session_maker:
+                if time.monotonic() >= next_maintenance:
+                    async with db_manager.async_session_maker() as maintenance:
+                        from services.food_preorders import due_reminders
+                        await due_reminders(maintenance)
+                    async with db_manager.async_session_maker() as maintenance:
+                        from services.loyalty import maintain_expirations
+                        await maintain_expirations(maintenance)
+                    next_maintenance = time.monotonic()+60
                 async with db_manager.async_session_maker() as db:
                     await db.execute(update(FoodOrderEvent).where(FoodOrderEvent.notification == 'sending', FoodOrderEvent.claimed_at < time.time() - 120).values(notification='unknown', error='Отправка прервалась. Проверьте канал перед повтором.'))
                     await db.commit()
                     ids = (await db.scalars(select(FoodOrderEvent.id).where(FoodOrderEvent.notification == 'pending', FoodOrderEvent.retry_at <= time.time()).order_by(FoodOrderEvent.id).limit(10))).all()
                     for event_id in ids:
                         await deliver_one(db, event_id)
+                    from services.user_notifications import deliver_queued_notifications
+                    await deliver_queued_notifications(db)
         except asyncio.CancelledError:
             raise
         except Exception:

@@ -7,6 +7,7 @@ import { foodShifts } from '@/lib/foodOperations';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export interface DamShift {
+  closing_summary?: {orders:number; delivered:number; cancelled:number; sales:number; receipts:number; refunds:number; payment_methods:Record<string,number>; unresolved:number; orders_scope:string; money_scope:string} | null;
   id: number; staff_name: string; role: string; opened_at: string; closed_at?: string | null;
   duration_seconds?: number | null; active: boolean;
 }

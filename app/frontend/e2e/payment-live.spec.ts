@@ -1,0 +1,97 @@
+import {randomUUID} from 'node:crypto';
+import {test,expect} from '@playwright/test';
+test.beforeEach(async({request})=>{await request.post('/__test__/reset-rate-limits');});
+
+test('real API: manual order → kitchen → courier cash → owner → shift close',async({page,context,request},info)=>{
+  const sessions=await (await request.get('/__test__/sessions')).json();
+  const operator={Authorization:`Bearer ${sessions.operator}`};
+  // A new isolated API is shared between viewports; reopen this employee's shift.
+  await request.post('/api/v1/dam-alem/shifts/open',{headers:operator,data:{pin:'2222'}});
+  await page.addInitScript(token=>{localStorage.setItem('_partner_token_dam_alem',token);localStorage.setItem('_dam_alem_partner_token',token);localStorage.setItem('app_lang','ru');sessionStorage.setItem('s24_welcome_done','1');},sessions.operator);
+  await page.goto('/partner/dam-alem?section=orders');
+  await page.getByRole('button',{name:'Новый заказ',exact:true}).click();
+  const modal=page.getByRole('dialog');
+  await modal.getByLabel('Имя клиента').fill('Проверка браузера');
+  await modal.getByLabel('Телефон клиента').fill('+77005557788');
+  await modal.getByLabel('Адрес доставки').fill('Тестовая 10');
+  await modal.getByRole('combobox', {name:/Стоимость доставки/}).selectOption('0');
+  await modal.getByRole('button',{name:/Drink/}).click();
+  await modal.getByRole('button',{name:'Без сдачи',exact:true}).click();
+  await expect(modal.getByRole('button',{name:/Создать заказ/})).toBeEnabled();
+  await modal.getByRole('button',{name:/Создать заказ/}).click();
+  await expect(modal).toHaveCount(0);
+  const oid=Number(new URL(page.url()).searchParams.get('order'));
+  expect(oid).toBeGreaterThan(1);
+  await expect(page.getByText(/Подготовить сдачу: 0/)).toBeVisible();
+  await expect(page.getByRole('button',{name:'Принять заказ',exact:true})).toHaveCount(0);
+  await page.getByRole('button',{name:'Передать на кухню',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Чек на кухню'})).toBeVisible();
+  await page.getByRole('button',{name:'Готово',exact:true}).click();
+  await page.getByLabel('Выберите курьера').selectOption('courier');
+  await page.getByRole('button',{name:'Назначить курьера',exact:true}).click();
+  await expect(page.getByText(/^Курьер: Courier/)).toBeVisible();
+  await page.screenshot({path:info.outputPath('operator-handed.png'),fullPage:true});
+  const courier=await context.newPage();
+  await courier.goto('/food/courier');
+  await expect(courier.getByLabel('PIN курьера')).toBeVisible();
+  {
+    await courier.getByLabel('PIN курьера').fill('2954');
+    await courier.getByRole('button',{name:'Войти и начать смену'}).click();
+  }
+  for(const label of ['Принял заказ','Выехал','На месте'])await courier.getByRole('button',{name:label,exact:true}).click();
+  await courier.getByRole('button',{name:'Доставлено',exact:true}).click();
+  await courier.getByRole('button',{name:'Подтвердить получение и доставку'}).click();
+  await expect(courier.getByRole('heading',{name:'Мои доставки — 0'})).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('region',{name:'Оплата заказа'})).toContainText('Оплачено');
+  const detail=await (await request.get(`/api/v1/dam-alem/operations/orders/${oid}`,{headers:operator})).json();
+  expect(detail.order.status).toBe('done');expect(detail.order.payment_status).toBe('paid');
+  const owner=await (await request.get('/api/v1/dam-alem/business/overview',{headers:{Authorization:`Bearer ${sessions.owner}`}})).json();
+  expect(owner.recent_orders.some((o:{id:number;status:string})=>o.id===oid&&o.status==='done')).toBe(true);
+  const preview=await (await request.get('/api/v1/dam-alem/shifts/close-preview',{headers:operator})).json();
+  expect(preview.can_close).toBe(true);expect(preview.summary.unresolved).toBe(0);
+  await page.getByLabel('Персональный PIN').fill('2222');
+  await page.getByRole('button',{name:'Закрыть смену',exact:true}).click();
+  const closing=page.getByRole('dialog');
+  await expect(closing.getByText('Итог смены',{exact:true})).toBeVisible();
+  await closing.getByLabel('Закуп не требуется').check();
+  await closing.getByLabel('Причина',{exact:true}).fill('Остатков достаточно');
+  await closing.getByRole('button',{name:'Сохранить закуп и закрыть смену'}).click();
+  await expect(closing).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole('button',{name:'Открыть смену',exact:true})).toBeVisible();
+  const history=await (await request.get('/api/v1/dam-alem/shifts/history',{headers:{Authorization:`Bearer ${sessions.owner}`}})).json();
+  expect(history.items.some((s:{staff_id:string;closing_summary?:{unresolved:number}})=>s.staff_id==='1'&&s.closing_summary?.unresolved===0)).toBe(true);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+  await courier.screenshot({path:info.outputPath('courier-complete.png'),fullPage:true});
+});
+
+test('real API: manual delivery requires explicit cash, preserves audit and reload',async({page,request},info)=>{
+  const sessions=await (await request.get('/__test__/sessions')).json();
+  const headers={Authorization:`Bearer ${sessions.operator}`};
+  await request.post('/api/v1/dam-alem/shifts/open',{headers,data:{pin:'2222'}});
+  const base='/api/v1/dam-alem/operations';
+  const body={request_key:`browser-manual-${info.project.name}-${randomUUID()}`,customer_name:'Ручная доставка',customer_phone:'+77005557788',delivery_method:'delivery',delivery_address:'Тестовая 20',delivery_fee:0,payment_method:'cash',cash_given_amount:8000,items:[{id:2,quantity:26}],quoted_total:7800};
+  const created=await request.post(base+'/manual',{headers,data:body});
+  expect(created.ok(),await created.text()).toBe(true);
+  let order=await created.json();
+  for(const status of ['preparing','ready']){const result=await request.patch(base+`/orders/${order.id}`,{headers,data:{expected_version:order.version,status}});expect(result.ok(),await result.text()).toBe(true);order=await result.json();}
+  const assigned=await request.post(base+`/orders/${order.id}/assign-courier`,{headers,data:{courier_id:'courier'}});
+  expect(assigned.ok(),await assigned.text()).toBe(true);
+  await page.addInitScript(token=>{localStorage.setItem('_partner_token_dam_alem',token);localStorage.setItem('_dam_alem_partner_token',token);localStorage.setItem('app_lang','ru');},sessions.operator);
+  await page.goto(`/partner/dam-alem?section=orders&order=${order.id}`);
+  await page.getByRole('button',{name:'Завершить доставку вручную'}).click();
+  const dialog=page.getByRole('dialog');
+  await expect(dialog.getByRole('button',{name:'Подтвердить завершение'})).toBeDisabled();
+  await dialog.getByLabel('Кто подтвердил?').selectOption('customer');
+  await dialog.getByRole('radio',{name:'Да',exact:true}).check();
+  await expect(dialog.getByLabel('Полученная сумма, ₸')).toHaveValue('7800');
+  expect(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+  await dialog.screenshot({path:info.outputPath('manual-cash.png')});
+  await dialog.getByRole('button',{name:'Подтвердить завершение'}).click();
+  await expect(dialog).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole('region',{name:'Оплата заказа'})).toContainText('Оплачено');
+  const actions=await(await request.get('/api/v1/dam-alem/shifts/actions?action=manual_delivered',{headers:{Authorization:`Bearer ${sessions.owner}`}})).json();
+  expect(actions.items.some((a:{entity_id:string;staff_name:string})=>a.entity_id===String(order.id)&&a.staff_name==='Operator')).toBe(true);
+});

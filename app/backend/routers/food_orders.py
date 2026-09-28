@@ -49,8 +49,9 @@ class Food_ordersData(BaseModel):
     customer_name: str = None
     customer_phone: str = None
     delivery_address: str = None
-    comment: str = None
+    comment: Optional[str] = Field(None, max_length=1000)
     delivery_method: str = None
+    cash_given_amount: Optional[float] = Field(None, ge=0, le=100000000, allow_inf_nan=False)
     payment_method: Optional[str] = None
     payment_status: Optional[str] = None
     status: str = None
@@ -78,7 +79,7 @@ class Food_ordersUpdateData(BaseModel):
     customer_name: Optional[str] = None
     customer_phone: Optional[str] = None
     delivery_address: Optional[str] = None
-    comment: Optional[str] = None
+    comment: Optional[str] = Field(None, max_length=1000)
     delivery_method: Optional[str] = None
     payment_method: Optional[str] = None
     payment_status: Optional[str] = None
@@ -87,8 +88,12 @@ class Food_ordersUpdateData(BaseModel):
 
 
 class Food_ordersResponse(BaseModel):
+    pickup_snapshot: Optional[dict] = None
+    loyalty_snapshot: Optional[dict] = None
     """Entity response schema"""
     id: int
+    cash_given_amount: Optional[float] = None
+    change_amount: Optional[float] = None
     scheduled_for: Optional[str] = None
     user_id: Optional[int] = None
     restaurant_id: Optional[int] = None
@@ -99,7 +104,7 @@ class Food_ordersResponse(BaseModel):
     customer_name: Optional[str] = None
     customer_phone: Optional[str] = None
     delivery_address: Optional[str] = None
-    comment: Optional[str] = None
+    comment: Optional[str] = Field(None, max_length=1000)
     delivery_method: Optional[str] = None
     payment_method: Optional[str] = None
     payment_status: Optional[str] = None

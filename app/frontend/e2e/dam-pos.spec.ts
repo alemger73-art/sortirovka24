@@ -39,7 +39,7 @@ test('catalog categories, quantities, different volumes and automatic total',asy
  await expect(page.getByText('Создано за сегодня:',{exact:false})).toBeVisible();
  await page.getByRole('button',{name:'Новый заказ',exact:true}).click();
  const modal=page.getByRole('dialog');
- await modal.getByLabel('Получение').selectOption('dine_in');
+ await modal.getByRole('combobox',{name:'Получение',exact:true}).selectOption('dine_in');
  await modal.getByRole('button',{name:'Лимонады',exact:true}).click();
  await expect(modal.getByRole('button',{name:/Пепперони/})).toHaveCount(0);
  await modal.getByRole('button',{name:/Мохито.*1.*300/}).click();
@@ -57,7 +57,7 @@ test('catalog categories, quantities, different volumes and automatic total',asy
  await modal.getByRole('button',{name:/Создать заказ — 2.*800/}).click();
  await expect(modal).toHaveCount(0);
  expect(s.writes).toBe(1);expect(s.payload.items.map((x:any)=>x.quantity)).toEqual([1,1]);
- expect(s.payload.items[0].modifiers).toEqual([{option_id:2}]);expect(s.payload.items[1].modifiers).toEqual([{option_id:1}]);
+ expect(s.payload.items[0].modifiers).toEqual([{option_id:2,quantity:1}]);expect(s.payload.items[1].modifiers).toEqual([{option_id:1}]);
  await expect(page.getByRole('heading',{name:'Заказ №92',exact:true})).toBeVisible();
  await expect(page.getByRole('region',{name:'Список заказов',exact:true})).toContainText('Оператор');
 });
@@ -69,14 +69,14 @@ test('CRM lookup is editable and delivery switches automatically',async({page})=
  await expect(m.getByLabel('Имя клиента')).toHaveValue('Асель');await expect(m.getByLabel('Адрес доставки',{exact:true})).toHaveValue('Абая, 10');
  await m.getByRole('combobox',{name:'Стоимость доставки'}).selectOption('custom');await m.getByLabel('Введите сумму доставки',{exact:true}).fill('600');await m.getByLabel('Имя клиента').fill('Асель — новый заказ');await m.getByRole('button',{name:/Пепперони/}).click();
  await expect(m.getByRole('button',{name:/Создать заказ — 3.*800/})).toBeEnabled();
- await m.getByLabel('Получение').selectOption('pickup');await expect(m.getByLabel('Адрес доставки',{exact:true})).toHaveCount(0);
+ await m.getByRole('combobox',{name:'Получение',exact:true}).selectOption('pickup');await expect(m.getByLabel('Адрес доставки',{exact:true})).toHaveCount(0);
  await expect(m.getByRole('button',{name:/Создать заказ — 3.*200/})).toBeEnabled();
  await m.getByRole('button',{name:'Убрать',exact:true}).click();await expect(m.getByRole('button',{name:/Создать заказ/})).toBeDisabled();
 });
 
 test('failed automatic quote cannot create an order and can recover',async({page})=>{
  const s=await setup(page);s.fail=true;await page.goto('/partner/dam-alem?section=orders');await page.getByRole('button',{name:'Новый заказ',exact:true}).click();
- const m=page.getByRole('dialog');await m.getByLabel('Получение').selectOption('dine_in');await m.getByRole('button',{name:/Пепперони/}).click();
+ const m=page.getByRole('dialog');await m.getByRole('combobox',{name:'Получение',exact:true}).selectOption('dine_in');await m.getByRole('button',{name:/Пепперони/}).click();
  await expect(m.getByRole('alert')).toContainText('Блюдо временно недоступно');await expect(m.getByRole('button',{name:/Создать заказ/})).toBeDisabled();expect(s.writes).toBe(0);
  s.fail=false;await m.getByRole('button',{name:'Повторить проверку'}).click();await expect(m.getByRole('button',{name:/Создать заказ — 3.*200/})).toBeEnabled();
 });
@@ -97,7 +97,7 @@ test('late quote cannot restore an old amount and gift choice is saved',async({p
   await r.fulfill({json:{items:[],total_amount:12800,gift_choices:[{id:'waffle',title:'Вафля'},{id:'cotton',title:'Сладкая вата'}],gift_required:!body.selected_gift_id}});
  });
  await page.goto('/partner/dam-alem?section=orders');await page.getByRole('button',{name:'Новый заказ',exact:true}).click();
- const m=page.getByRole('dialog');await m.getByLabel('Получение').selectOption('dine_in');await m.getByRole('button',{name:/Пепперони/}).click();
+ const m=page.getByRole('dialog');await m.getByRole('combobox',{name:'Получение',exact:true}).selectOption('dine_in');await m.getByRole('button',{name:/Пепперони/}).click();
  await expect.poll(()=>!!release).toBe(true);
  await m.getByLabel('Количество Пепперони',{exact:true}).fill('4');
  await expect(m.getByLabel('Подарок клиенту')).toBeVisible();await expect(m.getByRole('button',{name:/Создать заказ/})).toBeDisabled();
@@ -113,7 +113,7 @@ test('gift selector shows the remaining available dessert after recalculation',a
   await r.fulfill({json:{items:[],total_amount:body.items[0].quantity*3200,gift_choices:onlyCotton?[{id:'cotton',title:'Сладкая вата'}]:[{id:'waffle',title:'Вафля'},{id:'cotton',title:'Сладкая вата'}],gift_required:!onlyCotton&&!body.selected_gift_id}});
  });
  await page.goto('/partner/dam-alem?section=orders');await page.getByRole('button',{name:'Новый заказ',exact:true}).click();
- const m=page.getByRole('dialog');await m.getByLabel('Получение').selectOption('dine_in');await m.getByRole('button',{name:/Пепперони/}).click();
+ const m=page.getByRole('dialog');await m.getByRole('combobox',{name:'Получение',exact:true}).selectOption('dine_in');await m.getByRole('button',{name:/Пепперони/}).click();
  await m.getByLabel('Количество Пепперони',{exact:true}).fill('4');await m.getByLabel('Подарок клиенту').selectOption('waffle');
  await expect(m.getByRole('button',{name:/Создать заказ — 12.*800/})).toBeEnabled();
  onlyCotton=true;await m.getByLabel('Количество Пепперони',{exact:true}).fill('5');
@@ -127,4 +127,17 @@ test('legacy delivery wording does not expose pickup completion to operator',asy
  const detail=page.getByRole('region',{name:'Карточка заказа',exact:true});
  await expect(detail.getByText('Абая, 10',{exact:true})).toBeVisible();await expect(detail.getByRole('button',{name:'Выдать заказ'})).toHaveCount(0);
  await expect(detail.getByRole('button',{name:'В доставке'})).toHaveCount(0);await expect(detail).toContainText('Приложение');
+});
+
+// A bad API payload must not crash taking an ASAP order.
+test('malformed schedule shows a recoverable preorder error without crashing checkout',async({page})=>{
+ await setup(page);await page.goto('/partner/dam-alem?section=orders');
+ await page.getByRole('button',{name:'Новый заказ',exact:true}).click();
+ const form=page.getByRole('dialog');await form.getByRole('radio',{name:'Выбрать дату и время'}).check();
+ await expect(form.getByRole('alert')).toContainText('некорректное расписание');
+ await expect(form.getByRole('button',{name:/Создать заказ/})).toBeDisabled();
+ await form.getByRole('radio',{name:'Как можно скорее'}).check();
+ await form.getByRole('combobox',{name:'Получение',exact:true}).selectOption('dine_in');
+ await form.getByRole('button',{name:/Пепперони/}).click();
+ await expect(form.getByRole('button',{name:/Создать заказ — 3.*200/})).toBeEnabled();
 });

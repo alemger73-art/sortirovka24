@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
-ACTIVE_COURIER_TASK = ("assigned", "picked_up", "on_the_way")
+ACTIVE_COURIER_TASK = ("assigned", "picked_up", "on_the_way", "arrived")
 
 
 def _now() -> datetime:
@@ -298,7 +298,7 @@ async def courier_cabinet_tasks(db: AsyncSession, courier_id: str) -> tuple[Opti
     tasks = (
         await db.execute(
             select(LogisticsTask).where(
-                LogisticsTask.status.in_(("pending", "ready", "assigned", "picked_up", "on_the_way"))
+                LogisticsTask.status.in_(("pending", "ready", "assigned", "picked_up", "on_the_way", "arrived"))
             ).order_by(desc(LogisticsTask.id)).limit(50)
         )
     ).scalars().all()

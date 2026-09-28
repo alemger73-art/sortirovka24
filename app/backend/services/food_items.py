@@ -19,6 +19,14 @@ class Food_itemsService:
     async def create(self, data: Dict[str, Any]) -> Optional[Food_items]:
         """Create a new food_items"""
         try:
+            from services.menu_configuration import money
+            from models.food_restaurants import Food_restaurants
+            data = dict(data)
+            if "price" in data:
+                data["price"] = float(money(data["price"]))
+            restaurant = await self.db.get(Food_restaurants, data.get("restaurant_id")) if data.get("restaurant_id") else None
+            data["business_id"] = restaurant.business_id if restaurant else None
+            data["menu_version"] = 1
             _allowed = set(Food_items.__table__.columns.keys())
             obj = Food_items(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
@@ -93,6 +101,13 @@ class Food_itemsService:
             if not obj:
                 logger.warning(f"Food_items {obj_id} not found for update")
                 return None
+            from services.menu_configuration import money
+            if "price" in update_data:
+                update_data["price"] = float(money(update_data["price"]))
+            if "restaurant_id" in update_data and update_data["restaurant_id"] != obj.restaurant_id:
+                from fastapi import HTTPException
+                raise HTTPException(422, "Нельзя переносить существующее блюдо в другой бизнес")
+            obj.menu_version = Food_items.menu_version + 1
             for key, value in update_data.items():
                 if hasattr(obj, key):
                     setattr(obj, key, value)
@@ -113,7 +128,11 @@ class Food_itemsService:
             if not obj:
                 logger.warning(f"Food_items {obj_id} not found for deletion")
                 return False
-            await self.db.delete(obj)
+            from datetime import datetime, timezone
+            obj.is_active = False
+            obj.available = False
+            obj.archived_at = datetime.now(timezone.utc).isoformat()
+            obj.menu_version = (obj.menu_version or 1) + 1
             await self.db.commit()
             logger.info(f"Deleted food_items {obj_id}")
             return True

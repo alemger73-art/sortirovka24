@@ -1,0 +1,64 @@
+import {randomUUID} from 'node:crypto';
+import {test,expect,type Page} from '@playwright/test';
+test.beforeEach(async({request})=>{await request.post('/__test__/reset-rate-limits');});
+async function staff(page:Page,token:string){await page.addInitScript(t=>{localStorage.setItem('_partner_token_dam_alem',t);localStorage.setItem('_dam_alem_partner_token',t);localStorage.setItem('app_lang','ru');sessionStorage.setItem('s24_welcome_done','1');},token);}
+
+test('CRM: preorder, bonus debit, owner note, private client view and cancellation reversal',async({page,context,request},info)=>{
+ const s=await(await request.get('/__test__/sessions')).json(),headers={Authorization:`Bearer ${s.operator}`};
+ await request.post('/api/v1/dam-alem/shifts/open',{headers,data:{pin:'2222'}});
+ const before=await(await request.get('/api/v1/dam-alem/loyalty/me',{headers:{Authorization:`Bearer ${s.client}`}})).json();
+ await staff(page,s.operator);await page.goto('/partner/dam-alem?section=orders');
+ await page.getByRole('button',{name:'Новый заказ',exact:true}).click();
+ const form=page.getByRole('dialog');
+ await form.getByLabel('Имя клиента').fill('Client');await form.getByLabel('Телефон клиента').fill('+77000000000');
+ await expect(form.getByLabel('Списать бонусы')).toBeVisible();
+ await form.getByRole('combobox',{name:'Получение',exact:true}).selectOption('pickup');
+ await form.getByRole('button',{name:/Drink/}).click();await form.getByLabel('Списать бонусы').fill('60');
+ await form.getByRole('radio',{name:'Выбрать дату и время'}).check();
+ const days=await form.getByLabel('День предзаказа').locator('option').all();
+ const tomorrow=await days[1].getAttribute('value');await form.getByLabel('День предзаказа').selectOption(tomorrow!);
+ await form.getByRole('button',{name:'13:00',exact:true}).click();await form.getByLabel('Пожелания клиента').fill('Позвонить при готовности; без сахара');
+ await expect(form.getByRole('button',{name:/Создать заказ.*240/})).toBeEnabled();
+ await form.getByRole('button',{name:/Создать заказ.*240/}).click();await expect(form).toHaveCount(0);
+ const id=Number(new URL(page.url()).searchParams.get('order'));expect(id).toBeGreaterThan(0);
+ await page.reload();const card=page.getByRole('region',{name:'Карточка заказа',exact:true});
+ await expect(card).toContainText('13:00');await expect(card).toContainText('Самовывоз');await expect(card).toContainText('без сахара');
+ const row=await(await request.get(`/api/v1/dam-alem/operations/orders/${id}`,{headers})).json();
+ expect(row.order.order_source).toBe('operator');expect(row.order.delivery_method).toBe('pickup');expect(row.order.total_amount).toBe(240);
+ expect(row.order.pickup_snapshot.address).toContain('Железнодорожников');
+ const owner=await context.newPage();await staff(owner,s.owner);await owner.goto('/partner/dam-alem?section=crm');
+ await owner.getByLabel('Поиск клиента').fill('+77000000000');await owner.getByRole('button',{name:/Client.*77000000000/}).click();
+ const profile=owner.getByRole('dialog');await expect(profile).toContainText('Предстоящие предзаказы');
+ const note=`Внутренняя проверка ${info.project.name} ${randomUUID()}`;await profile.getByLabel('Внутренняя заметка').fill(note);await profile.getByRole('button',{name:'Сохранить заметку'}).click();
+ await expect(profile.locator('p').filter({hasText:note})).toBeVisible();
+ await profile.screenshot({path:info.outputPath('owner-crm.png')});
+ const client=await context.newPage();await client.addInitScript(t=>{localStorage.setItem('account_token',t);localStorage.setItem('s24_account_token_v1',t);localStorage.setItem('app_lang','ru');sessionStorage.setItem('s24_welcome_done','1');},s.client);
+ await client.goto('/cabinet?tab=bonuses');const bonuses=client.getByRole('region',{name:'Мои бонусы'});
+ await expect(bonuses).toContainText(String(Number(before.balance)-60));await expect(bonuses).toContainText(`Заказ №${id}`);
+ await expect(bonuses).not.toContainText('Внутренняя проверка');
+ expect(await client.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+ await client.screenshot({path:info.outputPath('client-loyalty.png'),fullPage:true});
+ await page.getByRole('button',{name:'Отменить заказ',exact:true}).click();await page.getByLabel('Причина отмены',{exact:true}).fill('Клиент изменил планы');
+ await page.getByRole('button',{name:'Подтвердить отмену',exact:true}).click();await expect(card).toContainText('Отменён');
+ await client.reload();await expect(bonuses).toContainText(String(before.balance));
+ const after=await(await request.get('/api/v1/dam-alem/loyalty/me',{headers:{Authorization:`Bearer ${s.client}`}})).json();expect(Number(after.balance)).toBe(Number(before.balance));
+});
+
+test('CRM: paid completed dine-in earns once and owner sees the same order',async({page,request},info)=>{
+ const s=await(await request.get('/__test__/sessions')).json(),headers={Authorization:`Bearer ${s.operator}`};
+ await request.post('/api/v1/dam-alem/shifts/open',{headers,data:{pin:'2222'}});
+ const before=await(await request.get('/api/v1/dam-alem/loyalty/me',{headers:{Authorization:`Bearer ${s.client}`}})).json();
+ await staff(page,s.operator);await page.goto('/partner/dam-alem?section=orders');await page.getByRole('button',{name:'Новый заказ',exact:true}).click();
+ const form=page.getByRole('dialog');await form.getByLabel('Имя клиента').fill('Client');await form.getByLabel('Телефон клиента').fill('+77000000000');
+ await form.getByRole('combobox',{name:'Получение',exact:true}).selectOption('dine_in');await form.getByRole('button',{name:/Drink/}).click();await form.getByLabel('Списать бонусы').fill('60');
+ await expect(form.getByRole('button',{name:/Создать заказ.*240/})).toBeEnabled();await form.getByRole('button',{name:/Создать заказ.*240/}).click();await expect(form).toHaveCount(0);
+ const id=Number(new URL(page.url()).searchParams.get('order'));const card=page.getByRole('region',{name:'Карточка заказа',exact:true});
+ await expect(card.getByRole('button',{name:'Принять заказ',exact:true})).toHaveCount(0);await card.getByRole('button',{name:'Передать на кухню',exact:true}).click();await card.getByRole('button',{name:'Готово',exact:true}).click();
+ await card.getByRole('button',{name:'Выдать заказ',exact:true}).click();await expect(card).toContainText('Завершён');
+ const unpaid=await(await request.get('/api/v1/dam-alem/loyalty/me',{headers:{Authorization:`Bearer ${s.client}`}})).json();expect(Number(unpaid.balance)).toBe(Number(before.balance)-60);
+ page.once('dialog',d=>d.accept());await card.getByRole('button',{name:'Подтвердить получение оплаты',exact:true}).click();await expect(card.getByRole('region',{name:'Оплата заказа'})).toContainText('Оплачено');
+ await page.reload();await expect(card).toContainText('Завершён');
+ const after=await(await request.get('/api/v1/dam-alem/loyalty/me',{headers:{Authorization:`Bearer ${s.client}`}})).json();expect(Number(after.balance)).toBe(Number(before.balance)-60+7);
+ const overview=await(await request.get('/api/v1/dam-alem/business/overview',{headers:{Authorization:`Bearer ${s.owner}`}})).json();expect(overview.recent_orders.some((x:{id:number;status:string})=>x.id===id&&x.status==='done')).toBe(true);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);await page.screenshot({path:info.outputPath('operator-completed.png'),fullPage:true});
+});

@@ -9,3 +9,9 @@ from models.volna_orders import Volna_orders  # noqa: F401
 from models.volna_products import Volna_products  # noqa: F401
 from models.volna_settings import Volna_settings  # noqa: F401
 from models.user_addresses import UserAddress  # noqa: F401
+from models.food_payment import FoodPayment, FoodPaymentCallback  # noqa: F401
+
+from models.loyalty import BonusPolicy, BonusLot, BonusAllocation, BonusMember, BonusReferral, BonusReview
+
+
+from models.crm import Business, Customer, CustomerIdentity, BusinessCustomer, CustomerNote, BusinessLocation, CustomerMigrationIssue, ChannelConfirmation

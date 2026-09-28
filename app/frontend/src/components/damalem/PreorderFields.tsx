@@ -1,18 +1,13 @@
-import { Input } from '@/components/ui/input';
-
-export function scheduleISO(value: string): string | undefined {
-  if (!value) return undefined;
-  const date = new Date(`${value}:00+05:00`);
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
-}
-export function scheduleLocal(value?: string | null): string {
-  if (!value) return '';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '' : new Date(date.getTime()+5*3600000).toISOString().slice(0,16);
-}
-export function scheduleLabel(value?: string | null): string {
-  return value ? new Date(value).toLocaleString('ru-KZ',{timeZone:'Asia/Almaty',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
-}
-export default function PreorderFields({enabled,value,onEnabled,onChange}: {enabled:boolean;value:string;onEnabled:(value:boolean)=>void;onChange:(value:string)=>void}) {
-  return <fieldset className="min-w-0 space-y-3 rounded-xl border p-3"><legend className="px-1 text-sm font-semibold">Когда получить заказ</legend><div className="flex flex-wrap gap-4"><label className="flex gap-2"><input type="radio" checked={!enabled} onChange={()=>onEnabled(false)}/>Сейчас</label><label className="flex gap-2"><input type="radio" checked={enabled} onChange={()=>onEnabled(true)}/>Предзаказ</label></div>{enabled&&<><label className="block">Дата и время<Input type="datetime-local" value={value} min={scheduleLocal(new Date().toISOString())} onChange={e=>onChange(e.target.value)}/></label><p className="text-xs text-muted-foreground">Местное время Караганды (UTC+5). Время проверяется по часам работы заведения.</p></>}</fieldset>;
+import {useEffect,useState} from 'react';
+import {getAPIBaseURL} from '@/lib/config';
+export type PickupLocation={supports_pickup?:boolean;supports_delivery?:boolean;display_name:string;address:string;instructions:string;photo:string;latitude:number|null;longitude:number|null};
+export type CheckoutConfiguration={timezone:string;policy:{enabled:boolean;min_minutes:number;advance_days:number;step_minutes:number;closed_dates:string[];prepare_minutes:number};days:{date:string;slots:{value:string;label:string}[]}[];pickup:PickupLocation;working_hours:string};
+export async function checkoutConfig():Promise<CheckoutConfiguration>{const r=await fetch(`${getAPIBaseURL()}/api/v1/dam-alem/checkout-config`);if(!r.ok)throw new Error('Не удалось получить доступное время');const data=await r.json();if(!data||!Array.isArray(data.days)||!data.policy||typeof data.policy.enabled!=='boolean'||!data.pickup||!data.days.every((d:CheckoutConfiguration['days'][number])=>typeof d.date==='string'&&Array.isArray(d.slots)))throw new Error('Сервис вернул некорректное расписание');return data;}
+export function useCheckoutConfig(){const [data,setData]=useState<CheckoutConfiguration|null>(null),[error,setError]=useState('');useEffect(()=>{let active=true;const load=()=>checkoutConfig().then(d=>{if(active){setData(d);setError('');}}).catch(e=>{if(active)setError(e.message);});void load();const timer=setInterval(load,60000);return()=>{active=false;clearInterval(timer);};},[]);return{data,error};}
+export function scheduleISO(value:string):string|undefined{if(!value)return;const d=new Date(`${value}:00+05:00`);return Number.isNaN(d.getTime())?undefined:d.toISOString();}
+export function scheduleLocal(value?:string|null):string{if(!value)return '';const d=new Date(value);return Number.isNaN(d.getTime())?'':new Date(d.getTime()+5*3600000).toISOString().slice(0,16);}
+export function scheduleLabel(value?:string|null):string{return value?new Date(value).toLocaleString('ru-KZ',{timeZone:'Asia/Almaty',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';}
+export default function PreorderFields({enabled,value,onEnabled,onChange}:{enabled:boolean;value:string;onEnabled:(v:boolean)=>void;onChange:(v:string)=>void}){
+ const {data,error}=useCheckoutConfig();const [pickedDay,setDay]=useState('');const requestedDay=pickedDay||value.slice(0,10);const day=data?.days.some(d=>d.date===requestedDay)?requestedDay:data?.days[0]?.date||'';const slots=data?.days.find(d=>d.date===day)?.slots||[];
+ return <fieldset className="min-w-0 space-y-3 rounded-xl border p-3"><legend className="px-1 text-sm font-semibold">Когда приготовить заказ?</legend><div className="flex flex-wrap gap-4"><label className="flex gap-2 py-2"><input type="radio" checked={!enabled} onChange={()=>onEnabled(false)}/>Как можно скорее</label><label className="flex gap-2 py-2"><input type="radio" checked={enabled} onChange={()=>onEnabled(true)}/>Выбрать дату и время</label></div>{enabled&&<>{error?<p role="alert" className="text-sm text-red-600">{error}. Попробуйте обновить страницу.</p>:!data?<p role="status">Загружаем время…</p>:!data.policy.enabled?<p>Предзаказы сейчас отключены.</p>:!data.days.length?<p>Нет доступного времени. Свяжитесь с заведением.</p>:<><label className="block text-sm">День<select aria-label="День предзаказа" className="mt-1 w-full rounded-lg border bg-background p-3" value={day} onChange={e=>{setDay(e.target.value);onChange('');}}>{data.days.map(d=><option key={d.date} value={d.date}>{new Date(d.date+'T12:00:00+05:00').toLocaleDateString('ru-KZ',{timeZone:'Asia/Almaty',weekday:'short',day:'numeric',month:'long'})}</option>)}</select></label><div className="grid max-h-52 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-5" aria-label="Доступное время">{slots.map(s=><button type="button" key={s.value} onClick={()=>onChange(scheduleLocal(s.value))} aria-pressed={value===scheduleLocal(s.value)} className={`rounded-lg border p-3 text-sm font-medium ${value===scheduleLocal(s.value)?'border-primary bg-primary text-primary-foreground':'bg-background'}`}>{s.label}</button>)}</div><p className="text-xs text-muted-foreground">Местное время Караганды. Минимум за {data.policy.min_minutes} мин. Время окончательно проверяется при оформлении.</p></>}</>}</fieldset>;
 }

@@ -10,6 +10,8 @@ import pytest
 from fastapi import HTTPException
 
 from services.food_order_validation import validate_food_order
+from tests.test_loyalty import store
+from models.auth import User
 
 
 def _product(**kw):
@@ -104,6 +106,13 @@ def _base_order(**extra):
     }
     data.update(extra)
     return data
+
+
+@pytest.fixture(autouse=True)
+def pricing_configuration_reads(monkeypatch):
+    from services.loyalty import DEFAULTS
+    monkeypatch.setattr('services.loyalty.rules', AsyncMock(return_value=dict(DEFAULTS)))
+    monkeypatch.setattr('services.crm.pickup_location', AsyncMock(return_value=None))
 
 
 @pytest.fixture
@@ -262,14 +271,13 @@ async def test_payment_status_paid_is_overwritten(catalog_patches):
 
 
 @pytest.mark.asyncio
-async def test_foreign_user_id_ignored(catalog_patches):
-    account = SimpleNamespace(id="42", phone="+77001234567")
-    sanitized, _, _ = await validate_food_order(
-        MagicMock(),
-        _base_order(user_id=99999),
-        account_user=account,
-    )
-    assert sanitized["user_id"] == 42
+async def test_foreign_user_id_ignored(catalog_patches,store):
+    from services.loyalty import now
+    async with store() as db:
+        account=User(id='42',phone='+77001234567',phone_verified_at=now())
+        db.add(account);await db.flush()
+        sanitized, _, _ = await validate_food_order(db,_base_order(user_id=99999),account_user=account)
+        assert sanitized['user_id']==42
 
 
 @pytest.mark.asyncio

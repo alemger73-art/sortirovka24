@@ -11,7 +11,7 @@ from utils.phone import matches_phone
 def owns_content(user, record_user_id, record_phone):
     if record_user_id is not None and str(record_user_id) != '':
         return str(record_user_id) == str(user.id)
-    return matches_phone(record_phone, user.phone)
+    return bool(getattr(user, 'phone_verified_at', None)) and matches_phone(record_phone, user.phone)
 
 
 def legacy_food_id(order):
@@ -22,6 +22,21 @@ def legacy_food_id(order):
 
 
 async def list_owned_history(db, model, user, *, phone_field='phone', limit=100):
+    if model.__tablename__ == 'food_orders':
+        from models.crm import Customer
+        c = await db.scalar(select(Customer).where(Customer.user_id==str(user.id)))
+        clauses = [cast(model.user_id, String)==str(user.id)]
+        if c and c.verified_at and user.phone_verified_at:
+            clauses.append(model.customer_id==c.id)
+        # Unlinked historical phone records require SMS proof; migration normally
+        # attaches these to the canonical Customer already.
+        if getattr(user, 'phone_verified_at', None):
+            from utils.phone import phone_suffix_expression
+            digits=re.sub(r'\D','',user.phone or '')[-10:]
+            if len(digits)==10:
+                from sqlalchemy import and_
+                clauses.append(and_(model.customer_id.is_(None), model.user_id.is_(None), phone_suffix_expression(model.customer_phone)==digits))
+        return list((await db.scalars(select(model).where(or_(*clauses)).order_by(model.id.desc()).limit(limit))).all())
     found = []
     before = None
     owner_column = getattr(model, 'user_id', None)

@@ -1,0 +1,9 @@
+import {useEffect,useState} from 'react';
+import {resolveImageUrl} from '@/lib/storage';
+import {useCheckoutConfig,type PickupLocation} from './PreorderFields';
+export default function PickupCard({location}:{location?:PickupLocation|null}){const {data,error}=useCheckoutConfig();const point=location||data?.pickup;const [photo,setPhoto]=useState('');useEffect(()=>{let active=true;setPhoto('');if(point?.photo)void resolveImageUrl(point.photo).then(url=>{if(active)setPhoto(url);}).catch(()=>{});return()=>{active=false;};},[point?.photo]);if(!point)return <p role="status">{error||'Загружаем точку самовывоза…'}</p>;
+ const coordinates=point.latitude!==null&&point.longitude!==null;
+ const target=coordinates?`${point.latitude},${point.longitude}`:`${point.address}, Караганда`;
+ const route=`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(target)}`;
+ return <section className="my-4 overflow-hidden rounded-2xl border bg-card" aria-label="Точка самовывоза">{photo&&<img src={photo} alt="Точка самовывоза" className="max-h-56 w-full object-cover"/>}<div className="space-y-2 p-4"><p className="text-xs font-semibold uppercase text-primary">Самовывоз</p><h3 className="font-bold">{point.display_name}</h3><p>{point.address}</p><p className="text-sm text-muted-foreground">{point.instructions}</p>{coordinates&&<p className="text-xs text-muted-foreground">Точка: {point.latitude}, {point.longitude}</p>}<a href={route} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground">{coordinates?'Построить маршрут':'Найти парк на карте'}</a>{!coordinates&&<p className="text-xs text-muted-foreground">Точная точка ещё уточняется заведением. Ориентируйтесь на описание.</p>}</div></section>;
+}

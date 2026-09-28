@@ -43,14 +43,37 @@ class ProcurementReport(BaseModel):
 async def close_blockers(db):
     settings = await schedule_settings(db)
     current = (await db.scalars(select(Food_orders).where(
-        await scope(db), Food_orders.status.in_(ACTIVE_STATUSES), current_condition(settings)))).all()
+        await scope(db), current_condition(settings)))).all()
     # Also surface inconsistent unfinished deliveries of already terminal orders.
     deliveries = (await db.execute(select(LogisticsTask, Food_orders, User)
         .join(Food_orders, (LogisticsTask.source_type == 'food_orders') & (LogisticsTask.source_id == Food_orders.id))
         .outerjoin(User, User.id == LogisticsTask.courier_id)
         .where(await scope(db), LogisticsTask.status.notin_(('delivered', 'cancelled')),
                current_condition(settings)))).all()
-    items = {o.id: {'id': o.id, 'status': o.status, 'label': LABELS.get(o.status, o.status), 'courier': None} for o in current}
+    from services.dam_order_workflow import paid, money
+    from models.food_payment import FoodPayment
+    from models.courier_workflow import CourierDeliveryIssue
+    waiting = set((await db.scalars(select(FoodPayment.order_id).where(FoodPayment.provider != 'CASH',
+        FoodPayment.status.in_(('CREATED', 'WAITING'))))).all())
+    issues = set((await db.scalars(select(CourierDeliveryIssue.order_id).where(CourierDeliveryIssue.status == 'open'))).all())
+    items = {}
+    for o in current:
+        reasons = []
+        amount_due = max(money(0), money(o.total_amount)-paid(o))
+        if o.status in ACTIVE_STATUSES:
+            reasons.append(f'Предзаказ на {o.scheduled_for} требует завершения' if o.scheduled_for else 'Заказ не завершён')
+        if o.status != 'cancelled' and amount_due > 0:
+            reasons.append('Наличные не подтверждены' if o.payment_method == 'cash' else 'Онлайн-оплата не подтверждена')
+        if o.id in waiting:
+            reasons.append('Ожидается результат онлайн-платежа')
+        if o.status == 'cancelled' and paid(o) > 0 or paid(o) > money(o.total_amount):
+            reasons.append('Владелец должен оформить возврат')
+        if o.id in issues:
+            reasons.append('Не решена проблема доставки')
+        if reasons:
+            items[o.id] = {'id':o.id, 'status':o.status, 'label':LABELS.get(o.status,o.status),
+                'courier':None, 'reasons':reasons, 'payment_method':o.payment_method,
+                'payment_status':o.payment_status, 'amount_due':float(amount_due)}
     for task, order, courier in deliveries:
         item = items.setdefault(order.id, {'id': order.id, 'status': 'in_progress', 'label': 'Незавершённая доставка', 'courier': None})
         item['courier'] = courier.name if courier else None
@@ -58,7 +81,9 @@ async def close_blockers(db):
     counts = {}
     for item in items.values():
         counts[item['status']] = counts.get(item['status'], 0) + 1
-    return {'can_close': not items, 'orders': list(items.values()), 'counts': counts}
+    from services.food_preorders import future_condition
+    future = (await db.scalars(select(Food_orders).where(await scope(db), future_condition(settings)).order_by(Food_orders.scheduled_for))).all()
+    return {'can_close': not items, 'orders': list(items.values()), 'counts': counts, 'future_preorders': [{'id':o.id,'scheduled_for':o.scheduled_for,'payment_status':o.payment_status,'total_amount':o.total_amount} for o in future]}
 
 
 async def assert_can_close(db):

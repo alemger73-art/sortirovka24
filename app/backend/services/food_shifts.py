@@ -56,6 +56,7 @@ def shift_view(row: FoodShift | None) -> dict | None:
         "closed_at": row.closed_at.replace(tzinfo=timezone.utc) if row.closed_at and row.closed_at.tzinfo is None else row.closed_at,
         "opened_by": row.opened_by,
         "closed_by": row.closed_by,
+        "closing_summary": row.closing_summary,
         "duration_seconds": duration_seconds,
         "active": bool(row.active_key),
     }
@@ -141,6 +142,9 @@ async def close_shift(
         record_action(db, row, 'procurement_submitted', entity_type='shift', entity_id=str(row.id))
     row.closed_at = utcnow()
     row.closed_by = row.staff_name
+    if staff_type == "partner" and row.role == "operator":
+        from services.dam_shift_summary import summary
+        row.closing_summary = await summary(db, row)
     row.active_key = None
     record_action(db, row, "shift_closed", entity_type="shift", entity_id=str(row.id))
     await db.commit()

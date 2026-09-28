@@ -9,13 +9,13 @@ from models.food_orders import Food_orders
 from services.food_preorders import lock_dam_operations
 from services.food_shifts import require_courier_shift, record_action, active_shift
 from services.dam_order_workflow import claim, task_for
-from services.food_operations import add_event
+from services.food_operations import add_event, now
 
 async def create_issue(db, task_id, user, body):
     await lock_dam_operations(db)
     task=await db.scalar(select(LogisticsTask).where(LogisticsTask.id==task_id).with_for_update())
     if not task or task.courier_id!=str(user.id):raise HTTPException(404,'Доставка не найдена')
-    if task.status not in ('assigned','picked_up','on_the_way'):raise HTTPException(409,'Доставка уже закрыта')
+    if task.status not in ('assigned','picked_up','on_the_way','arrived'):raise HTTPException(409,'Доставка уже закрыта')
     if task.source_type!='food_orders':raise HTTPException(409,'Не заказ DÄM ALEM')
     from services.food_operations import scope
     order=await db.scalar(select(Food_orders).where(Food_orders.id==task.source_id,await scope(db)))
@@ -55,7 +55,7 @@ async def reassign(db, order, body, claims):
         raise HTTPException(409,'Переназначение доступно для доставки в пути')
     if order.version!=body.expected_version:raise HTTPException(409,'Заказ уже изменён. Обновите карточку.')
     task=await task_for(db,order)
-    if not task or task.status not in ('assigned','picked_up','on_the_way'):raise HTTPException(409,'Нет активной доставки')
+    if not task or task.status not in ('assigned','picked_up','on_the_way','arrived'):raise HTTPException(409,'Нет активной доставки')
     if task.courier_id==body.courier_id:raise HTTPException(409,'Этот курьер уже назначен')
     user=await db.get(User,body.courier_id)
     from services.courier_money import lock_wallet
@@ -64,8 +64,7 @@ async def reassign(db, order, body, claims):
         raise HTTPException(409,'Новый курьер должен иметь активный доступ и открытую смену')
     await claim(db,order,body.expected_version)
     previous=task.courier_id
-    task.courier_id=body.courier_id;task.status='on_the_way'
-    task.picked_up_at=datetime.now(timezone.utc).isoformat()
+    task.courier_id=body.courier_id;task.status='assigned';task.handed_at=now();task.picked_up_at=None;task.departed_at=None;task.arrived_at=None
     name=str(claims.get('display_name') or claims.get('sub') or 'Оператор')
     add_event(db,order,f'Курьер переназначен: {previous} → {user.name}. Причина: {body.reason.strip()}',name,notify=False)
     record_action(db,None,'courier_reassigned',claims=claims,entity_type='order',entity_id=order.id,

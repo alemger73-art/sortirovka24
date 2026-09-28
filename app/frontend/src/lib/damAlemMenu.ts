@@ -103,7 +103,7 @@ export function buildDamAlemMenuSections<C extends MenuCategoryLike, I extends M
     .filter(i => i.is_combo)
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   if (combos.length > 0) {
-    sections.push({ id: 'combo', label: 'Комбо', items: combos.slice(0, 8) });
+    sections.push({ id: 'combo', label: 'Комбо', items: combos });
   }
 
   for (const def of DAM_ALEM_SECTION_ORDER) {
@@ -121,7 +121,7 @@ export function buildDamAlemMenuSections<C extends MenuCategoryLike, I extends M
     sections.push({
       id: def.id,
       label: def.label,
-      items: sectionItems.slice(0, cap),
+      items: sectionItems,
       category: cat,
     });
   }
@@ -135,7 +135,7 @@ export function buildDamAlemMenuSections<C extends MenuCategoryLike, I extends M
     usedCatIds.add(cat.id);
     const id = opts?.categorySlugOf?.(cat) || slugOf(cat) || `cat-${cat.id}`;
     const label = (cat.name || '').replace(/^[\p{Emoji}\s]+/u, '').trim() || cat.name;
-    sections.push({ id, label, items: sectionItems.slice(0, 16), category: cat });
+    sections.push({ id, label, items: sectionItems, category: cat });
   }
 
   return sections;

@@ -19,13 +19,15 @@ from routers.food_shifts import router as shifts_router
 from utils.courier_pin import hash_courier_pin
 from models.auth import User
 from models.logistics import CourierProfile, LogisticsTask
+from models.food_payment import FoodPayment
+from models.courier_workflow import CourierDeliveryIssue
 
 
 @pytest.fixture
 async def shift_env():
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     tables = [m.__table__ for m in (
-        PartnerCredentials, Food_orders, FoodOrderEvent, FoodOperationsSettings,
+        PartnerCredentials, Food_orders, FoodOrderEvent, FoodOperationsSettings, FoodPayment, CourierDeliveryIssue,
         FoodExpense, FoodRefund, Food_restaurants, Food_items, FoodShift, FoodStaffAction, FoodShiftProcurement, Food_settings, User, CourierProfile, LogisticsTask,
     )]
     async with engine.begin() as conn:

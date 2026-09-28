@@ -101,7 +101,7 @@ async def test_report_close_idempotent_and_telegram_retry(env, report):
 async def test_preorder_full_lifecycle_and_shift_window(env,source,fulfillment):
     client,maker,headers,monkeypatch=env
     await finish_seed(maker)
-    scheduled=(datetime.now(timezone.utc)+timedelta(days=1)).replace(microsecond=0)
+    scheduled=(datetime.now(timezone.utc)+timedelta(days=1)).replace(minute=0, second=0, microsecond=0)
     if source=='operator':
         order=await manual(client,headers,fulfillment,scheduled_for=scheduled.isoformat())
     else:
@@ -132,11 +132,14 @@ async def test_preorder_full_lifecycle_and_shift_window(env,source,fulfillment):
         response=await client.post(BASE+f'/orders/{oid}/assign-courier',headers=headers,json={'courier_id':'courier'})
         assert response.status_code==200,response.text
         token=(await client.post('/api/v1/logistics/courier/pin-login',json={'pin':'2954'})).json()['token']
-        response=await client.post(f"/api/v1/logistics/tasks/{response.json()['task_id']}/status",headers={'Authorization':'Bearer '+token},json={'status':'delivered'})
+        from tests.test_dam_courier_workflow import arrive
+        task_id=response.json()['task_id'];auth={'Authorization':'Bearer '+token}
+        await arrive(client,task_id,auth)
+        response=await client.post(f"/api/v1/logistics/tasks/{task_id}/status",headers=auth,json={'status':'delivered','cash_received':False})
     else:
         response=await client.patch(BASE+f'/orders/{oid}',headers=headers,json={'expected_version':3,'status':'done'})
     assert response.status_code==200,response.text
-    assert (await client.get(SHIFTS+'/close-preview',headers=headers)).json()['can_close']
+    assert not (await client.get(SHIFTS+'/close-preview',headers=headers)).json()['can_close']  # terminal unpaid now blocks closing
     detail=(await client.get(BASE+f'/orders/{oid}',headers=owner_headers())).json()['order']
     assert detail['status']=='done' and detail['order_source']==source and detail['delivery_method']==fulfillment
     assert detail['payment_status']!='paid'
@@ -146,10 +149,10 @@ async def test_preorder_full_lifecycle_and_shift_window(env,source,fulfillment):
 async def test_early_start_reschedule_audit_and_future_shift_close(env):
     client,maker,headers,_=env
     await finish_seed(maker)
-    future=(datetime.now(timezone.utc)+timedelta(days=1)).isoformat()
+    future=(datetime.now(timezone.utc)+timedelta(days=1)).replace(minute=0,second=0,microsecond=0).isoformat()
     order=await manual(client,headers,scheduled_for=future)
     url=BASE+f"/orders/{order['id']}"
-    changed=await client.patch(url,headers=headers,json={'expected_version':0,'scheduled_for':(datetime.now(timezone.utc)+timedelta(days=2)).isoformat()})
+    changed=await client.patch(url,headers=headers,json={'expected_version':0,'schedule_reason':'Клиент попросил перенос','scheduled_for':(datetime.now(timezone.utc)+timedelta(days=2)).replace(minute=0,second=0,microsecond=0).isoformat()})
     assert changed.status_code==200,changed.text
     events=(await client.get(url,headers=headers)).json()['events']
     assert any('перенесён' in e['message'] for e in events)
@@ -205,9 +208,11 @@ async def test_three_deliveries_independent_no_duplicate(env):
     tasks=(await client.get('/api/v1/logistics/courier/cabinet',headers=courier)).json()['active_tasks']
     assert {t['source_id'] for t in tasks}==set(ids)
     assert all(t['payment_method']=='cash' and t['amount_due']==300 for t in tasks)
-    assert (await client.post(f"/api/v1/logistics/tasks/{tasks[0]['id']}/status",headers=courier,json={'status':'delivered'})).status_code==200
+    from tests.test_dam_courier_workflow import arrive
+    await arrive(client,tasks[0]['id'],courier)
+    assert (await client.post(f"/api/v1/logistics/tasks/{tasks[0]['id']}/status",headers=courier,json={'status':'delivered','cash_received':False})).status_code==200
     remaining=(await client.get('/api/v1/logistics/courier/cabinet',headers=courier)).json()['active_tasks']
-    assert len(remaining)==2 and all(t['status']=='on_the_way' for t in remaining)
+    assert len(remaining)==2 and all(t['status']=='assigned' for t in remaining)
     async with maker() as db:
         assert await db.scalar(select(func.count()).select_from(LogisticsTask).where(LogisticsTask.source_id.in_(ids)))==3
 

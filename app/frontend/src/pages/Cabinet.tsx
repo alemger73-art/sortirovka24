@@ -1,3 +1,4 @@
+import ClientLoyalty from '@/components/damalem/ClientLoyalty';
 import '@/styles/realEstate.css';
 import { notificationVisible } from '@/lib/cabinetModuleVisibility';
 import { type ModuleKey } from '@/config/modules';
@@ -6,7 +7,7 @@ import { getPublicLocale } from '@/i18n/publicLocale';
 import { useEffect, useMemo, useState, useRef } from "react";
 import Layout from "@/components/Layout";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Camera, Coins, Save, UserCircle2, Wrench, MapPin, Plus, Trash2, Star, Pencil, X, Loader2, CheckCircle2, AlertCircle, Search, Megaphone, EyeOff, Home } from "lucide-react";
+import { Camera, Save, UserCircle2, Wrench, MapPin, Plus, Trash2, Star, Pencil, X, Loader2, CheckCircle2, AlertCircle, Search, Megaphone, EyeOff, Home } from "lucide-react";
 import CabinetNav from "@/components/cabinet/CabinetNav";
 import CabinetHeader from "@/components/cabinet/CabinetHeader";
 import CabinetRoleApplications from "@/components/cabinet/CabinetRoleApplications";
@@ -1044,39 +1045,7 @@ export default function Cabinet() {
                 </DarkCard>
               )}
 
-              {activeTab === "bonuses" && (
-                <DarkCard>
-                  <h2 className="mb-4 text-xl font-bold">{t("cabinet.myBonuses")}</h2>
-                  <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 p-5 dark:border-yellow-400/30 dark:from-yellow-500/20 dark:via-amber-500/10 dark:to-orange-500/5">
-                    <p className="text-sm text-amber-800/80 dark:text-yellow-100/80">{t("cabinet.bonusBalance")}</p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <Coins className="h-7 w-7 text-amber-600 dark:text-yellow-300" />
-                      <p className="text-4xl font-black text-amber-700 dark:text-yellow-300">{Number(cabinet?.profile?.bonus_balance || 0).toLocaleString(getPublicLocale())}</p>
-                    </div>
-                    <p className="mt-1 text-sm text-amber-900/70 dark:text-yellow-100/70">{t("cabinet.bonusHint")}</p>
-                    <Link
-                      to="/food"
-                      className="mt-4 inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-600"
-                    >
-                      {t("cabinet.spendBonusesCta")}
-                    </Link>
-                  </div>
-                  <div className="mt-4 space-y-2">
-                    {rows.bonuses.length === 0 ? (
-                      <p className="text-sm text-slate-400">{t("cabinet.noBonuses")}</p>
-                    ) : null}
-                    {rows.bonuses.map((entry: any) => (
-                      <div key={entry.id} className={listCardClass}>
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm text-gray-900 dark:text-white">{entry.reason || t("cabinet.bonusReason")}</p>
-                          <p className="font-semibold text-amber-600 dark:text-yellow-300">{entry.points > 0 ? "+" : ""}{entry.points}</p>
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-slate-400">{entry.created_at || ""}</p>
-                      </div>
-                    ))}
-                  </div>
-                </DarkCard>
-              )}
+              {activeTab === "bonuses" && <ClientLoyalty />}
 
               {activeTab === "notifications" && (
                 <DarkCard>

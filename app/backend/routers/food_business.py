@@ -190,25 +190,50 @@ async def void_expense(expense_id:UUID,body:Reason,db:AsyncSession=Depends(get_d
     return {'ok':True}
 
 class RefundBody(BaseModel):
+    amount: Decimal | None = Field(None, gt=0, le=100000000, allow_inf_nan=False)
+    request_key: str | None = Field(None, min_length=16, max_length=64, pattern=r'^[A-Za-z0-9-]+$')
     day:date
     note:str=Field(min_length=3,max_length=1000)
 
 @router.post('/refunds/{order_id}')
 async def refund(order_id:int,body:RefundBody,db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
     shift=await require_partner_shift(db,claims)
+    from services.food_preorders import lock_dam_operations
+    await lock_dam_operations(db)
     order=await db.scalar(select(Food_orders).where(Food_orders.id==order_id,await scope(db)))
     if not order: raise HTTPException(404,'Заказ не найден')
     if body.day>city_today() or (day_of(order.paid_at) and body.day<day_of(order.paid_at)): raise HTTPException(422,'Проверьте дату возврата')
     if len(body.note.strip())<3: raise HTTPException(422,'Укажите как выполнен возврат')
     if await db.get(FoodRefund,order_id): raise HTTPException(409,'Возврат уже отмечен')
+    from models.food_operations import FoodOrderEvent
+    refund_key = f'owner-refund:{order_id}:{body.request_key}' if body.request_key else None
+    if body.amount is not None and not refund_key:
+        raise HTTPException(422, 'Для частичного возврата нужен ключ операции')
+    if refund_key and await db.scalar(select(FoodOrderEvent.id).where(FoodOrderEvent.event_key == refund_key)):
+        return {'ok': True}
     await claim(db, order, order.version or 0)
     await preserve_legacy_payment(db, order)
     amount = max(Decimal(0), paid(order) - (Decimal(0) if order.status == 'cancelled' else money(order.total_amount)))
+    if body.amount is not None:
+        if order.status not in ('done', 'cancelled') or body.amount > paid(order):
+            raise HTTPException(422, 'Сумма возврата превышает полученную оплату или заказ не завершён')
+        amount = body.amount
     if amount <= 0: raise HTTPException(409,'Суммы к возврату нет или возврат уже отмечен')
+    before_paid = paid(order)
     timestamp = datetime.combine(body.day, datetime.min.time(), tzinfo=CITY).isoformat()
     event = await record(db, order, -amount, actor(claims), at=timestamp)
     event.message += ': ' + body.note.strip()
     order.paid_amount = float(paid(order) - amount)
+    if order.paid_amount == 0:
+        order.payment_status = 'refunded'
+    from services.dam_payment_flow import mark_refunded, emit
+    await mark_refunded(db, order)
+    emit(db, order, 'PAYMENT_REFUNDED', actor(claims), key=refund_key, amount=str(amount), source='owner', comment=body.note)
+    from services.loyalty import refund as loyalty_refund, amount as bonus_amount
+    snap = order.loyalty_snapshot or {}
+    real_refund = max(Decimal(0), amount - max(Decimal(0), before_paid-money(order.total_amount)))
+    await loyalty_refund(db, order, bonus_amount(snap.get('refund_amount', 0))+real_refund,
+        {'id': str(claims.get('staff_id') or claims.get('partner_id') or 'admin'), 'role': 'owner'})
     from services.dam_order_workflow import sync_task
     await sync_task(db, order)
     record_action(db,shift,'refund_recorded',claims=claims,entity_type='order',entity_id=order_id,details={'amount':float(amount),'day':str(body.day)})

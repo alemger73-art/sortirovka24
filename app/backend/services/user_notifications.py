@@ -582,3 +582,41 @@ async def mark_all_notifications_read(db: AsyncSession, user_id: str) -> int:
     )
     await db.commit()
     return int(result.rowcount or 0)
+
+
+async def enqueue_notification(db, *, user_id, category, key, title, body, path, entity_id=None, entity_type=None):
+    """Atomic inbox/outbox insert; caller owns commit. Reuses push providers."""
+    if not await db.scalar(select(UserNotification.id).where(UserNotification.user_id == str(user_id), UserNotification.event_key == key)):
+        db.add(UserNotification(user_id=str(user_id), category=category, event_key=key, title=title,
+            body=body, path=path, entity_type=(entity_type or 'food_orders') if entity_id else None,
+            entity_id=str(entity_id) if entity_id else None, is_read=False, push_status='pending'))
+
+
+async def deliver_queued_notifications(db):
+    from datetime import datetime, timezone, timedelta
+    # A crashed sender has an uncertain provider outcome. Keep the inbox and
+    # expose uncertainty instead of silently duplicating a customer's push.
+    await db.execute(update(UserNotification).where(
+        UserNotification.push_status == 'sending',
+        UserNotification.push_claimed_at < datetime.now(timezone.utc)-timedelta(minutes=10)
+    ).values(push_status='unknown'))
+    await db.commit()
+    from core.deploy_safety import external_side_effects_allowed
+    if not external_side_effects_allowed():
+        return
+    ids = (await db.scalars(select(UserNotification.id).where(UserNotification.push_status == 'pending').order_by(UserNotification.id).limit(20))).all()
+    for notification_id in ids:
+        claimed = await db.execute(update(UserNotification).where(UserNotification.id == notification_id,
+            UserNotification.push_status == 'pending').values(push_status='sending', push_claimed_at=datetime.now(timezone.utc), push_attempts=UserNotification.push_attempts+1))
+        await db.commit()
+        if not claimed.rowcount:
+            continue
+        row = await db.get(UserNotification, notification_id)
+        try:
+            result = await broadcast_push(db, user_id=row.user_id, title=row.title, body=row.body or '',
+                data={'path':row.path or '/cabinet?tab=notifications','category':row.category,'event_key':row.event_key})
+            # Inbox remains authoritative if provider/device is unavailable.
+            row.push_status = 'sent' if result['sent'] else 'unavailable' if result.get('skipped') or not result['total'] else 'failed'
+        except Exception:
+            row.push_status = 'unknown'  # do not blindly resend after an uncertain delivery
+        await db.commit()

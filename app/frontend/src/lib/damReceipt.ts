@@ -3,6 +3,8 @@ import { DAM_ALEM_BRAND, DAM_ALEM_STOREFRONT_URL } from './damAlem';
 import { parseOrderItems, orderLineQuantity, orderLineTotal } from './orderRoutes';
 
 export type PrintableOrder = {
+  loyalty_snapshot?: Record<string, unknown> | null;
+  cash_given_amount?: number | null; change_amount?: number | null;
   id?: string | number; order_number?: string | number; total_amount?: number | null;
   amount?: number; order_items?: string | null; customer_name?: string | null;
   customer_phone?: string | null; delivery_address?: string | null; dropoff_address?: string | null;
@@ -45,9 +47,16 @@ export function createReceiptData(order: PrintableOrder) {
     const amount = number(line.sum) ?? orderLineTotal(line);
     const modifiers = (Array.isArray(line.modifiers) ? line.modifiers : []).flatMap(mod => {
       const name = typeof mod === 'string' ? text(mod) : text(object(mod).name) || text(object(mod).title);
-      return name ? [name] : [];
+      const details = object(mod);
+      const count = number(details.quantity) || 1;
+      const price = number(details.price);
+      return name ? [name + (count > 1 ? ' ×' + count : '') + (price != null ? ' · ' + (price * count).toLocaleString('ru-RU') + ' ₸' : '')] : [];
     });
-    return { name: text(line.name) || text(line.title) || 'Позиция заказа', quantity,
+    const components = (Array.isArray(line.combo_components) ? line.combo_components : []).map(part => {
+      const p = object(part);
+      return (text(p.group_name) ? text(p.group_name) + ': ' : '') + text(p.name) + ' ×' + (number(p.quantity) || 1);
+    });
+    return { components, name: text(line.name) || text(line.title) || 'Позиция заказа', quantity,
       amount, unit: amount / quantity, gift: line.is_gift === true && amount === 0, modifiers };
   });
   const total = Math.max(0, number(order.total_amount) ?? number(order.amount) ?? 0);
@@ -61,10 +70,13 @@ export function createReceiptData(order: PrintableOrder) {
   const status = ({paid: 'ОПЛАЧЕНО', pending: 'НЕ ОПЛАЧЕНО', unpaid: 'НЕ ОПЛАЧЕНО',
     partial: 'ЧАСТИЧНО ОПЛАЧЕНО', refunded: 'ВОЗВРАТ ОПЛАТЫ'} as Record<string, string>)[text(order.payment_status)]
     || (due === 0 && paid > 0 ? 'ОПЛАЧЕНО' : paid > 0 ? 'ЧАСТИЧНО ОПЛАЧЕНО' : 'НЕ ОПЛАЧЕНО');
-  return { number: String(order.order_number ?? order.id ?? ''), created: receiptDate(order.created_at),
+  const loyalty = object(order.loyalty_snapshot);
+  return { loyaltyEarned: loyalty.finalized ? number(loyalty.bonus_earned) : undefined, loyaltyBalance: number(loyalty.balance_after), loyaltySpent: number(loyalty.bonus_spent) ?? number(order.bonus_discount_amount), number: String(order.order_number ?? order.id ?? ''), created: receiptDate(order.created_at),
     fulfillment, fulfillmentLabel: fulfillment === 'delivery' ? 'ДОСТАВКА' : fulfillment === 'pickup' ? 'САМОВЫВОЗ' : 'В ЗАВЕДЕНИИ',
     scheduled: receiptDate(order.scheduled_for), name: text(order.customer_name), phone: text(order.customer_phone),
     address: fulfillment === 'delivery' ? text(order.delivery_address) || text(order.dropoff_address) : '',
+    cashGiven: order.payment_method === 'cash' ? number(order.cash_given_amount) : undefined,
+    change: order.payment_method === 'cash' ? number(order.change_amount) : undefined,
     comment: text(order.comment), lines, total, paid, due, overpaid: Math.max(0, paid - total), methodName,
     paymentLabel: paid > 0 && due > 0 && order.payment_status !== 'refunded' ? 'ЧАСТИЧНО ОПЛАЧЕНО' : status,
     subtotal: number(breakdown.subtotal), discount: number(breakdown.discount)
@@ -113,15 +125,16 @@ export function renderReceiptHtml(data: ReceiptData): string {
     <hr class="rule"><section class="customer">${data.name ? `<p>Клиент: ${e(data.name)}</p>` : ''}${data.phone ? `<p>Тел: ${e(data.phone)}</p>` : ''}
     ${data.address ? `<p><b>Адрес:</b><br>${e(data.address)}</p>` : ''}${data.comment ? `<p><b>Комментарий:</b><br>${e(data.comment)}</p>` : ''}</section>
     <p class="section-title">СОСТАВ ЗАКАЗА</p><hr class="rule">
-    ${data.lines.map(line => `<section class="item"><p class="item-name">${e(line.name)}</p><div class="row"><span>${e(line.quantity)}${line.quantity > 1 && !line.gift ? ` × ${money(line.unit)}` : ' шт'}</span><b class="amount">${line.gift ? 'ПОДАРОК' : money(line.amount)}</b></div>${line.modifiers.map(mod => `<p class="modifier">${e(mod)}</p>`).join('')}</section>`).join('')}
+    ${data.lines.map(line => `<section class="item"><p class="item-name">${e(line.name)}</p><div class="row"><span>${e(line.quantity)}${line.quantity > 1 && !line.gift ? ` × ${money(line.unit)}` : ' шт'}</span><b class="amount">${line.gift ? 'ПОДАРОК' : money(line.amount)}</b></div>${line.components.map(component => `<p class="modifier">${e(component)}</p>`).join('')}${line.modifiers.map(mod => `<p class="modifier">${e(mod)}</p>`).join('')}</section>`).join('')}
     <hr class="rule"><section class="totals">${data.subtotal !== undefined ? row('Товары', data.subtotal) : ''}
     ${data.promo ? `<p>Промокод: ${e(data.promo)}</p>` : ''}${data.discount > 0 ? row('Скидка', -data.discount) : ''}
     ${data.deliveryFee !== undefined ? row('Доставка', data.deliveryFee) : ''}${data.serviceFee ? row('Сервисный сбор', data.serviceFee) : ''}
     <hr class="rule">${row('ИТОГО', data.total, 'total')}</section>
     <section class="payment"><p>Оплата: <b>${e(data.methodName)}</b></p><p>Статус: <b>${e(data.paymentLabel)}</b></p>
     ${data.paid > 0 ? row('Оплачено', data.paid) : ''}${row('К ПОЛУЧЕНИЮ', data.due, 'due')}
+    ${data.cashGiven !== undefined ? row('Клиент даст', data.cashGiven) : ''}${data.change !== undefined ? row('ПОДГОТОВИТЬ СДАЧУ', data.change) : ''}
     ${data.overpaid > 0 ? row('Переплата', data.overpaid) : ''}</section><hr class="rule">
-    <footer class="footer"><p><b>Спасибо за ваш заказ!</b><br>Приятного аппетита!</p><div class="qr">${createReceiptQr()}</div>
+    <footer class="footer">${data.loyaltyEarned ? `<p>Начислено: +${escapePrint(data.loyaltyEarned)} бонусов</p>` : ''}${data.loyaltySpent ? `<p>Списано: −${escapePrint(data.loyaltySpent)} бонусов</p>` : ''}${data.loyaltyEarned && data.loyaltyBalance !== undefined ? `<p>Баланс после начисления: ${escapePrint(data.loyaltyBalance)} бонусов</p>` : ''}<p><b>Спасибо за ваш заказ!</b><br>Приятного аппетита!</p><div class="qr">${createReceiptQr()}</div>
     <p class="qr-caption">Сканируйте QR-код,<br>чтобы заказать снова</p><p class="footer-brand">${DAM_ALEM_BRAND}</p><p>sortirovka24.kz</p>
     <p class="disclaimer">Не является фискальным чеком</p><hr class="rule"></footer></main>`;
   return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Заказ ${e(data.number)} · ${DAM_ALEM_BRAND}</title><style>${receiptCss}</style></head><body>${body}</body></html>`;

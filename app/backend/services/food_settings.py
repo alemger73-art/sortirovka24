@@ -19,14 +19,27 @@ def validate_setting(key, value):
         except (ValueError, TypeError, InvalidOperation):
             from fastapi import HTTPException
             raise HTTPException(422, 'Вознаграждение курьеру: сумма от 0 до 50 000 ₸, не более двух знаков после запятой') from None
-    if key == 'preorder_lead_minutes':
+    if key in ('preorder_lead_minutes','preorder_min_minutes','preorder_advance_days','preorder_step_minutes'):
+        from fastapi import HTTPException
+        lo, hi = {'preorder_lead_minutes':(0,1440),'preorder_min_minutes':(0,1440),'preorder_advance_days':(1,30),'preorder_step_minutes':(5,120)}[key]
         try:
             number = int(value)
-            if str(number) != str(value).strip() or not 0 <= number <= 1440:
+            if str(number) != str(value).strip() or not lo <= number <= hi:
                 raise ValueError()
         except (ValueError, TypeError):
-            from fastapi import HTTPException
-            raise HTTPException(422, 'Время подготовки предзаказа: целое число от 0 до 1440 минут') from None
+            raise HTTPException(422, f'Значение {key}: целое число от {lo} до {hi}') from None
+    if key == 'preorders_enabled' and str(value) not in ('0','1','true','false'):
+        from fastapi import HTTPException
+        raise HTTPException(422, 'Некорректный переключатель предзаказов')
+    if key == 'pickup_location':
+        import json
+        from pydantic import ValidationError
+        from fastapi import HTTPException
+        from routers.dam_checkout_config import Pickup
+        try:
+            Pickup.model_validate(json.loads(value))
+        except (ValueError, TypeError, ValidationError):
+            raise HTTPException(422, 'Некорректные данные точки самовывоза') from None
 
 
 # ------------------ Service Layer ------------------

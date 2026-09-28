@@ -17,6 +17,50 @@ from services.food_preorders import schedule_settings, schedule_view, future_con
 
 router = APIRouter(prefix='/api/v1/dam-alem/operations', tags=['DAM ALEM operations'], dependencies=[Depends(food_staff)])
 
+class ManualDelivery(BaseModel):
+    model_config = {'extra': 'forbid'}
+    expected_version: int = Field(ge=0)
+    reason: Literal['courier', 'customer', 'other']
+    cash_received: bool | None = None
+    amount: float | None = Field(None, ge=0, allow_inf_nan=False)
+    comment: str = Field('', max_length=1000)
+
+
+@router.post('/orders/{order_id}/manual-delivery')
+async def manual_delivery(order_id: int, body: ManualDelivery, request: Request, db: AsyncSession = Depends(get_db)):
+    await lock_dam_operations(db)
+    claims = await food_staff(request, db)
+    await require_partner_shift(db, claims)
+    order = await order_for_panel(db, order_id)
+    from services.dam_order_workflow import task_for, money, paid
+    from models.auth import User
+    from services.logistics_service import advance_task_status
+    task = await task_for(db, order)
+    if not task or not task.courier_id or order.delivery_method not in ('delivery', 'доставка'):
+        raise HTTPException(409, 'Заказ не передан курьеру')
+    if task.status == 'delivered' and order.status == 'done':
+        return serialize(order)  # never collect money a second time on retry
+    if (order.version or 0) != body.expected_version:
+        raise HTTPException(409, 'Заказ изменён. Обновите карточку')
+    outstanding = max(money(0), money(order.total_amount)-paid(order))
+    if order.payment_method == 'cash' and outstanding > 0 and body.cash_received is None:
+        raise HTTPException(422, 'Укажите, получены ли деньги')
+    if order.payment_method != 'cash' and (body.cash_received is not None or body.amount is not None):
+        raise HTTPException(422, 'Онлайн-оплату подтверждает только провайдер')
+    amount = outstanding if body.amount is None else money(body.amount)
+    unusual = body.reason == 'other' or (outstanding > 0 and body.cash_received is False) or (body.cash_received and amount != outstanding)
+    if unusual and len(body.comment.strip()) < 3:
+        raise HTTPException(422, 'Для нестандартного завершения укажите комментарий')
+    courier = await db.get(User, task.courier_id)
+    try:
+        await advance_task_status(db, task, courier, 'delivered', cash_received=body.cash_received,
+            manual_claims=claims, manual_reason=body.reason, manual_comment=body.comment.strip(),
+            cash_amount=amount if body.cash_received else None)
+    except ValueError as exc:
+        await db.rollback()
+        raise HTTPException(409, str(exc)) from None
+    return serialize(order)
+
 @router.get('/courier-work')
 async def courier_work(db:AsyncSession=Depends(get_db)):
     from models.courier_workflow import CourierCashHandover, CourierDeliveryIssue
@@ -74,6 +118,9 @@ def serialize(row):
     data = {c.name: getattr(row, c.name) for c in row.__table__.columns}
     if isinstance(row, Food_orders):
         data['order_source'] = data.get('order_source') or 'app'
+        from services.dam_payment_flow import workflow_state, payment_state
+        data['workflow_state'] = workflow_state(row)
+        data['payment_state'] = payment_state(row)
     return data
 
 async def order_for_panel(db, order_id):
@@ -184,14 +231,15 @@ async def deliveries(db: AsyncSession = Depends(get_db)):
 
 @router.get('/customer')
 async def customer(phone: str = Query(min_length=10, max_length=32), db: AsyncSession = Depends(get_db)):
-    digits = re.sub(r'\D', '', phone)
-    if len(digits) not in (10, 11) or (len(digits) == 11 and digits[0] not in '78'):
-        raise HTTPException(422, 'Укажите полный номер телефона')
-    from utils.phone import phone_suffix_expression
-    rows = (await db.scalars(select(Food_orders).where(await scope(db), phone_suffix_expression(Food_orders.customer_phone) == digits[-10:]).order_by(Food_orders.id.desc()).limit(5))).all()
-    return {'name': rows[0].customer_name if rows else '',
-            'addresses': list(dict.fromkeys(r.delivery_address for r in rows if r.delivery_method == 'delivery' and r.delivery_address)),
-            'recent_orders': [{'id': r.id, 'amount': r.total_amount, 'status': r.status} for r in rows]}
+    from services import crm
+    from models.crm import Customer, BusinessCustomer
+    normalized=crm.normalize_phone(phone)
+    matched=await db.scalar(select(Customer).join(BusinessCustomer,BusinessCustomer.customer_id==Customer.id).where(
+        BusinessCustomer.business_id==crm.DAM, Customer.normalized_phone==normalized))
+    if not matched: return {'loyalty':None,'name':'','addresses':[],'recent_orders':[]}
+    info=await crm.overview(db,crm.DAM,matched.id,include_internal=True)
+    await db.commit()
+    return {**info, 'recent_orders':[{'id':r['id'],'amount':r['total_amount'],'status':r['status']} for r in info['recent']]}
 
 @router.get('/orders/{order_id}')
 async def detail(order_id: int, db: AsyncSession = Depends(get_db)):
@@ -214,12 +262,20 @@ async def detail(order_id: int, db: AsyncSession = Depends(get_db)):
             'status': task.status,
             'courier_name': courier.name if courier else None,
             'courier_phone': (profile.phone or courier.phone) if profile and courier else courier.phone if courier else None,
+            'handed_at': task.handed_at, 'departed_at': task.departed_at, 'arrived_at': task.arrived_at,
             'picked_up_at': task.picked_up_at,
             'delivered_at': task.delivered_at,
         }
-    return {'order': {**serialize(obj), **schedule_view(obj, await schedule_settings(db))}, 'events': [serialize(e) for e in events], 'delivery': delivery_data}
+    from services.dam_payment_flow import current_payment, payment_state, workflow_state
+    payment = await current_payment(db, obj)
+    payment_view = {'payment_state':payment_state(obj, payment),
+        'workflow_state':workflow_state(obj, delivery_data['status'] if delivery_data else None)}
+    if payment:
+        payment_view['payment_id'] = payment.id
+    return {'order': {**serialize(obj), **payment_view, **schedule_view(obj, await schedule_settings(db))}, 'events': [serialize(e) for e in events], 'delivery': delivery_data}
 
 class OrderChange(BaseModel):
+    schedule_reason: str | None = Field(None, min_length=3, max_length=500)
     scheduled_for: str | None = Field(None, min_length=10, max_length=40)
     start_early: bool = False
     expected_version: int = Field(ge=0)
@@ -249,7 +305,7 @@ async def couriers(db: AsyncSession = Depends(get_db)):
         on_shift = bool(await active_shift(db, 'courier', user.id))
         active = int(await db.scalar(select(func.count()).select_from(LogisticsTask).where(
             LogisticsTask.courier_id == str(user.id),
-            LogisticsTask.status.in_(['assigned', 'picked_up', 'on_the_way'])
+            LogisticsTask.status.in_(['assigned', 'picked_up', 'on_the_way', 'arrived'])
         )))
         enabled = bool(user.is_active and user.status == 'active')
         items.append({
@@ -297,12 +353,12 @@ async def change(order_id: int, body: OrderChange, request: Request, db: AsyncSe
     await lock_dam_operations(db)
     order = await order_for_panel(db, order_id)
     actor = await food_staff(request, db)
-    if actor['access_role'] == 'operator' and order.status in ('done', 'cancelled'):
+    values = body.model_dump(exclude_none=True, exclude_unset=True)
+    if actor['access_role'] == 'operator' and order.status in ('done', 'cancelled') and not (order.status == 'done' and order.payment_method == 'cash' and set(values) <= {'expected_version', 'payment_status'} and body.payment_status == 'paid'):
         raise HTTPException(409, 'Завершённый заказ доступен оператору только для просмотра')
     shift = await require_partner_shift(db, actor)
-    values = body.model_dump(exclude_none=True)
     version = values.pop('expected_version')
-    record_action(db, shift, 'order_updated', claims=actor, entity_type='order', entity_id=order_id, details=values)
+    record_action(db, shift, 'order_updated', claims=actor, entity_type='order', entity_id=order_id, details={'source':'operator','before':{k:getattr(order,k,None) for k in values},'after':values})
     result = await Food_ordersService(db).update(order_id, values, expected_version=version, actor=str(actor.get('display_name') or actor.get('username') or actor.get('sub') or actor.get('partner_type') or 'Оператор'))
     return serialize(result)
 
@@ -379,6 +435,7 @@ class ReceiptLine(BaseModel):
     id: int | None = Field(None, gt=0)
     quantity: int = Field(ge=1, le=99)
     modifiers: list[dict] = Field(default_factory=list, max_length=30)
+    choices: list[dict] = Field(default_factory=list, max_length=30)
 
 class ReceiptChange(BaseModel):
     selected_gift_id: str | None = Field(None, max_length=100)
@@ -388,6 +445,7 @@ class ReceiptChange(BaseModel):
     quoted_total: float | None = Field(None, ge=0, allow_inf_nan=False)
 
 class ManualOrder(BaseModel):
+    bonus_points_to_use: float = Field(0, ge=0, le=100000000, allow_inf_nan=False)
     scheduled_for: str | None = Field(None, max_length=40)
     promo_code: str = Field('', max_length=80)
     selected_gift_id: str | None = Field(None, max_length=100)
@@ -397,6 +455,7 @@ class ManualOrder(BaseModel):
     delivery_address: str = Field('', max_length=1000)
     delivery_method: Literal['pickup', 'delivery', 'dine_in'] = 'delivery'
     delivery_fee: float | None = Field(None, ge=0, le=50_000, allow_inf_nan=False)
+    cash_given_amount: float | None = Field(None, ge=0, le=100000000, allow_inf_nan=False)
     payment_method: Literal['cash', 'kaspi_qr', 'halyk_qr'] = 'cash'
     comment: str = Field('', max_length=1000)
     items: list[ReceiptLine] = Field(min_length=1, max_length=100)
@@ -436,6 +495,12 @@ async def operator_catalog(db: AsyncSession = Depends(get_db)):
     for price in quick_prices:
         if not any(abs(option['price'] - price) < 0.01 for option in configured):
             configured.append({'id': f'quick-{int(price)}', 'name': 'Бесплатно' if price == 0 else f'Доставка {int(price)} ₸', 'price': price})
+    from services.menu_configuration import catalog
+    current = await catalog(db)
+    # Compatibility with legacy test/unscoped restaurant fixtures. Real migrated
+    # restaurants carry business_id and use the common scoped catalog.
+    if current['restaurant_id'] is not None:
+        return {**current, 'products': [p for p in current['products'] if p['sellable']], 'delivery_options': configured}
     return {'categories': [serialize(x) for x in categories], 'products': [serialize(x) for x in products], 'groups': [serialize(x) for x in groups], 'options': [serialize(x) for x in options], 'links': [serialize(x) for x in links], 'delivery_options': configured}
 
 @router.post('/manual/quote')
@@ -466,9 +531,8 @@ async def create_manual(body: ManualOrder, request: Request, db: AsyncSession = 
         raise HTTPException(409, 'Расчёт изменился. Рассчитайте заказ заново.')
     action_entry = record_action(db, shift, 'order_created', claims=actor, entity_type='order_request', entity_id=body.request_key, details={'source':'operator','total':quote['total_amount']})
     try:
-        order = await Food_ordersService(db).create(data, request_key=key, request_hash=request_hash, actor=str(actor.get('display_name') or 'Оператор'))
-        action_entry.entity_type, action_entry.entity_id = 'order', str(order.id)
-        await db.commit()
+        order = await Food_ordersService(db).create(data, request_key=key, request_hash=request_hash,
+            actor=str(actor.get('display_name') or 'Оператор'), staff_action=action_entry)
     except IntegrityError:
         await db.rollback()
         previous = await db.get(FoodOrderRequest, key)

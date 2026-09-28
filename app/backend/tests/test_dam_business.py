@@ -6,11 +6,16 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy import select
+from models.user_notifications import UserNotification  # noqa: F401
+from models.user_management import Bonus, UserAction  # noqa: F401
+from models.auth import User  # noqa: F401
 from core.database import Base,get_db
 from core.auth import create_access_token
 from models.partner_auth import PartnerCredentials
 from models.food_orders import Food_orders
 from models.food_operations import FoodOrderEvent,FoodOperationsSettings
+from models.food_payment import FoodPayment
+from models.food_cashbox import FoodCashEntry
 from models.food_business import FoodExpense,FoodRefund
 from models.food_shifts import FoodShift,FoodStaffAction
 from models.food_restaurants import Food_restaurants
@@ -24,8 +29,8 @@ from middleware.entity_guard import EntityWriteGuardMiddleware
 @pytest.fixture
 async def env(monkeypatch):
     engine=create_async_engine('sqlite+aiosqlite:///:memory:')
-    tables=[m.__table__ for m in [PartnerCredentials,Food_orders,FoodOrderEvent,FoodOperationsSettings,FoodExpense,FoodRefund,Food_restaurants,Food_categories,Food_settings,Food_items,FoodShift,FoodStaffAction]]
-    async with engine.begin() as c: await c.run_sync(lambda conn:Base.metadata.create_all(conn,tables=tables))
+    tables=[m.__table__ for m in [PartnerCredentials,Food_orders,FoodPayment,FoodCashEntry,FoodOrderEvent,FoodOperationsSettings,FoodExpense,FoodRefund,Food_restaurants,Food_categories,Food_settings,Food_items,FoodShift,FoodStaffAction]]
+    async with engine.begin() as c: await c.run_sync(lambda conn:Base.metadata.create_all(conn))
     maker=async_sessionmaker(engine,expire_on_commit=False)
     async with maker() as db:
         db.add_all([PartnerCredentials(id=1,partner_type='dam_alem',email='owner@example.test',password_hash='not-used',access_role='owner',is_active=True),PartnerCredentials(id=2,partner_type='dam_alem',email='operator@example.test',password_hash='not-used',access_role='operator',is_active=True)])
@@ -119,7 +124,7 @@ async def test_owner_creates_operator_without_exposing_password(env):
 async def test_late_payment_has_date_and_cannot_be_erased(env):
     client,maker,owner,operator=env
     async with maker() as db:
-        db.add(Food_orders(id=90,restaurant_id=1,status='done',payment_status='pending',version=0,total_amount=1234));await db.commit()
+        db.add(Food_orders(id=90,restaurant_id=1,status='done',payment_status='pending',payment_method='cash',version=0,total_amount=1234));await db.commit()
     url='/api/v1/dam-alem/operations/orders/90'
     response=await client.patch(url,headers=owner,json={'expected_version':0,'payment_status':'paid'})
     assert response.status_code==200,response.text
@@ -165,7 +170,7 @@ async def test_supplement_keeps_original_payment_day(env):
     client,maker,owner,operator=env
     day=str(city_today());previous=str(city_today()-timedelta(days=1))
     async with maker() as db:
-        db.add(Food_orders(id=92,restaurant_id=1,status='new',payment_status='pending',version=0,
+        db.add(Food_orders(id=92,restaurant_id=1,status='new',payment_status='pending',payment_method='cash',version=0,
             total_amount=1800,paid_amount=1200,paid_at=previous+'T10:00:00+05:00',delivery_method='pickup'))
         await db.commit()
     response=await client.patch('/api/v1/dam-alem/operations/orders/92',headers=operator,

@@ -31,6 +31,7 @@ const tabs = [
   { id: "profile", title: "Профиль", icon: UserRound },
 ] as const;
 type Tab = (typeof tabs)[number]["id"];
+const DAM_FLOW = {...COURIER_STATUS_FLOW, assigned:{next:'picked_up',label:'Принял заказ'}, picked_up:{next:'on_the_way',label:'Выехал'}, on_the_way:{next:'arrived',label:'На месте'}, arrived:{next:'delivered',label:'Доставлено'}};
 const reasons = {
   no_answer: "Клиент не отвечает",
   wrong_address: "Неверный адрес",
@@ -193,14 +194,14 @@ export default function DamCourierWorkplace({
   }
   function advance(task: LogisticsTask) {
     if (
-      task.status === "on_the_way" &&
+      task.status === "arrived" &&
       task.payment_method === "cash" &&
       Number(task.amount_due) > 0
     ) {
       setConfirm(task);
       return;
     }
-    const next = COURIER_STATUS_FLOW[task.status]?.next;
+    const next = DAM_FLOW[task.status]?.next;
     if (next)
       void run(
         () => logisticsApi.updateTaskStatus(task.id, next),
@@ -291,7 +292,7 @@ export default function DamCourierWorkplace({
                   <div className="flex justify-between gap-2">
                     <h3 className="font-bold">Заказ №{task.source_id}</h3>
                     <span className="text-sm text-orange-700 dark:text-orange-300">
-                      {task.status === "on_the_way" ? "В пути" : "Назначен"}
+                      {({assigned:'Передан курьеру',picked_up:'Принят курьером',on_the_way:'В пути',arrived:'На месте'} as Record<string,string>)[task.status] || task.status}
                     </span>
                   </div>
                   <p className="mt-2 break-words text-lg font-semibold leading-snug">
@@ -314,6 +315,7 @@ export default function DamCourierWorkplace({
                         ? `Получить у клиента: ${formatTenge(task.amount_due)}`
                         : "Оплата подтверждена"}
                     </p>
+                    {task.payment_method === 'cash' && <p className="font-semibold">Клиент даст: {task.cash_given_amount == null ? 'уточните' : formatTenge(task.cash_given_amount)}<br/>Сдача: {task.change_amount == null ? 'уточните' : formatTenge(task.change_amount)}</p>}
                     {task.payment_method !== "cash" &&
                       Number(task.amount_due) > 0 && (
                         <p className="mt-1 text-xs">
@@ -363,7 +365,7 @@ export default function DamCourierWorkplace({
                       disabled={busy || !data.shift}
                       onClick={() => advance(task)}
                     >
-                      {COURIER_STATUS_FLOW[task.status]?.label || "Доставлено"}
+                      {DAM_FLOW[task.status]?.label || "Доставлено"}
                     </Button>
                   </div>
                   <details className="mt-3 text-sm">

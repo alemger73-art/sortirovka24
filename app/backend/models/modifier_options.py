@@ -13,3 +13,5 @@ class Modifier_options(Base):
     sort_order = Column(Integer, nullable=True)
     is_active = Column(Boolean, nullable=True)
     created_at = Column(String, nullable=True)
+    business_id = Column(String(64), nullable=True, index=True)
+    archived_at = Column(String, nullable=True)

@@ -205,6 +205,9 @@ class EntityWriteGuardMiddleware(BaseHTTPMiddleware):
                     content={"detail": "Требуется авторизация администратора."},
                 )
 
+        if method in _MUTATING_METHODS and path.startswith(_ENTITIES_PREFIX) and _entity_name(path) in {'modifier_groups', 'modifier_options', 'item_modifier_groups'}:
+            return JSONResponse(status_code=409, content={'detail': 'Откройте Меню → Добавки: сохранение теперь выполняется целиком в кабинете владельца.'})
+
         response = await call_next(request)
         if dam_actor and response.status_code < 300:
             # Never store values: settings may contain integration credentials.

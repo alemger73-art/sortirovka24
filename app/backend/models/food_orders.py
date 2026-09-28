@@ -1,5 +1,5 @@
 from core.database import Base
-from sqlalchemy import Column, Float, Integer, String
+from sqlalchemy import Column, Float, Integer, String, JSON
 
 
 class Food_orders(Base):
@@ -7,6 +7,10 @@ class Food_orders(Base):
     __table_args__ = {"extend_existing": True}
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True, nullable=False)
+    business_id = Column(String(64), nullable=True, index=True)
+    customer_id = Column(String(255), nullable=True, index=True)
+    pickup_snapshot = Column(JSON, nullable=True)
+    loyalty_snapshot = Column(JSON, nullable=True)
     user_id = Column(Integer, nullable=True)
     restaurant_id = Column(Integer, nullable=True)
     restaurant_name = Column(String, nullable=True)
@@ -39,3 +43,5 @@ class Food_orders(Base):
     pricing_snapshot = Column(String, nullable=True)
     # ISO UTC, matching the existing order timestamp representation.
     scheduled_for = Column(String(40), nullable=True, index=True)
+    cash_given_amount = Column(Float, nullable=True)
+    change_amount = Column(Float, nullable=True)

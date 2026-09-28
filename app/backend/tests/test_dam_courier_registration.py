@@ -152,9 +152,12 @@ async def test_service_or_disabled_customer_cannot_be_attached(registration, rol
 async def test_operator_customer_history_uses_same_phone_matching(registration):
     client, maker, owner = registration
     async with maker() as db:
-        db.add(Food_orders(id=1, restaurant_id=1, restaurant_name='DAM ALEM 2.0',
+        from services import crm
+        row=Food_orders(id=1, restaurant_id=1, restaurant_name='DAM ALEM 2.0',
             customer_name='Known customer', customer_phone='8 (700) 444-44-44',
-            delivery_method='delivery', delivery_address='Test street 1', status='new', total_amount=1000))
+            delivery_method='delivery', delivery_address='Test street 1', status='new', total_amount=1000)
+        db.add(row)
+        await crm.attach_order(db,row)
         await db.commit()
     response = await client.get('/api/v1/dam-alem/operations/customer', params={'phone':'+77004444444'}, headers=owner)
     assert response.status_code == 200, response.text

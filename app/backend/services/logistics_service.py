@@ -35,11 +35,12 @@ TASK_STATUSES = {
     "assigned",
     "picked_up",
     "on_the_way",
+    "arrived",
     "delivered",
     "cancelled",
 }
 
-ACTIVE_TASK_STATUSES = {"assigned", "picked_up", "on_the_way"}
+ACTIVE_TASK_STATUSES = {"assigned", "picked_up", "on_the_way", "arrived"}
 
 COURIER_STATUS_FLOW = {
     "assigned": ("picked_up", "Забрал заказ"),
@@ -72,8 +73,8 @@ async def assign_dam_delivery(db: AsyncSession, task: LogisticsTask, courier_use
         LogisticsTask.id == task.id,
         LogisticsTask.status.in_(("ready", "assigned")),
     ).values(
-        courier_id=str(courier_user.id), status="on_the_way",
-        picked_up_at=_now_iso(), offered_courier_id=None, offer_expires_at=None,
+        courier_id=str(courier_user.id), status="assigned",
+        handed_at=_now_iso(), offered_courier_id=None, offer_expires_at=None,
         order_status="in_progress",
     ))
     if not result.rowcount:
@@ -84,6 +85,8 @@ async def assign_dam_delivery(db: AsyncSession, task: LogisticsTask, courier_use
     add_event(db, order,
         f"Статус: {LABELS.get(old_status, old_status)} → {LABELS['in_progress']}. Курьер: {courier_user.name or profile.phone or 'Курьер'}",
         "Оператор")
+    from services.dam_payment_flow import emit
+    emit(db, order, 'HANDED_TO_COURIER', 'Оператор', courier_id=str(courier_user.id), source='operator')
     await db.commit()
     await db.refresh(task)
     from services.user_notifications import notify_food_order_status
@@ -168,6 +171,8 @@ def task_to_dict(task: LogisticsTask, courier_user: Optional[User] = None, couri
         "merchant_name": task.merchant_name,
         "prep_minutes": task.prep_minutes,
         "ready_at": task.ready_at,
+        "handed_at": task.handed_at, "picked_up_at": task.picked_up_at,
+        "departed_at": task.departed_at, "arrived_at": task.arrived_at, "delivered_at": task.delivered_at,
         "courier_id": task.courier_id,
         "offered_courier_id": task.offered_courier_id,
         "offer_expires_at": task.offer_expires_at,
@@ -377,17 +382,22 @@ async def accept_task(db: AsyncSession, task_id: int, courier_user: User) -> Log
     return task
 
 
-async def advance_task_status(db: AsyncSession, task: LogisticsTask, courier_user: User, new_status: str, *, cash_received: bool | None = None) -> LogisticsTask:
+async def advance_task_status(db: AsyncSession, task: LogisticsTask, courier_user: User, new_status: str, *, cash_received: bool | None = None, manual_claims=None, manual_reason=None, manual_comment=None, cash_amount=None) -> LogisticsTask:
     from services.food_preorders import lock_dam_operations
     await lock_dam_operations(db)
     await db.refresh(task)
-    if task.courier_id != str(courier_user.id) and courier_user.role not in {"admin", "superadmin"}:
+    if not manual_claims and task.courier_id != str(courier_user.id) and courier_user.role not in {"admin", "superadmin"}:
         raise ValueError("Нет доступа")
     if task.status == new_status == 'delivered':
         return task
     if cash_received is not None and new_status != 'delivered':
         raise ValueError('Получение наличных подтверждается при доставке')
-    expected = COURIER_STATUS_FLOW.get(task.status)
+    from services.food_operations import is_dam_order
+    candidate = await db.get(Food_orders, task.source_id) if task.source_type == 'food_orders' else None
+    dam = candidate and await is_dam_order(db, candidate)
+    expected = (('arrived', 'На месте') if task.status == 'on_the_way' else ('delivered', 'Доставлено') if task.status == 'arrived' else COURIER_STATUS_FLOW.get(task.status)) if dam else COURIER_STATUS_FLOW.get(task.status)
+    if manual_claims and new_status == 'delivered' and task.status in ('assigned', 'picked_up', 'on_the_way', 'arrived'):
+        expected = ('delivered', 'Доставлено')
     if not expected or expected[0] != new_status:
         raise ValueError(f"Нельзя перейти из {task.status} в {new_status}")
 
@@ -399,15 +409,28 @@ async def advance_task_status(db: AsyncSession, task: LogisticsTask, courier_use
         from services.courier_money import lock_wallet, collect_cash
         from services.food_shifts import require_courier_shift
         profile = await lock_wallet(db, str(courier_user.id))
-        courier_shift = await require_courier_shift(db, profile)
+        if manual_claims:
+            from services.food_shifts import active_shift
+            courier_shift = await active_shift(db, 'courier', courier_user.id)
+        else:
+            courier_shift = await require_courier_shift(db, profile)
+        from services.dam_order_workflow import paid, money
+        if new_status == 'delivered' and food.payment_method == 'cash' and paid(food) < money(food.total_amount) and cash_received is None:
+            raise ValueError('Подтвердите, получены ли наличные: да или нет')
         if cash_received:
-            await collect_cash(db, task, food, courier_user, courier_shift)
+            await collect_cash(db, task, food, courier_user, courier_shift, amount=cash_amount,
+                actor_name=manual_claims.get('display_name') if manual_claims else None,
+                actor_id=manual_claims.get('staff_id') if manual_claims else None)
     old_food_status = food.status if food else None
     old_status = task.status
     changes = {'status': new_status}
     timestamp = _now_iso()
     if new_status == 'picked_up':
         changes['picked_up_at'] = timestamp
+    elif new_status == 'on_the_way':
+        changes['departed_at'] = timestamp
+    elif new_status == 'arrived':
+        changes['arrived_at'] = timestamp
     elif new_status == 'delivered':
         changes['delivered_at'] = timestamp
     result = await db.execute(update(LogisticsTask).where(LogisticsTask.id == task.id,
@@ -425,6 +448,19 @@ async def advance_task_status(db: AsyncSession, task: LogisticsTask, courier_use
                 food.completed_at = timestamp
             add_event(db, food, f'Статус: {LABELS.get(old_food_status)} → {LABELS[target]}', 'Курьер')
     if food:
+        from services.dam_payment_flow import emit
+        from services.food_shifts import record_action, require_partner_shift
+        claims = manual_claims or {'sub':str(courier_user.id),'display_name':courier_user.name,'access_role':'courier'}
+        actor_name = claims.get('display_name') or 'Курьер'
+        kind = {'on_the_way':'COURIER_ON_THE_WAY','delivered':'DELIVERED'}.get(new_status, 'DELIVERY_STATUS_CHANGED')
+        details = dict(old_status=old_status, new_status=new_status, old_order_status=old_food_status,
+            order_status=food.status, payment_status=food.payment_status, cash_received=cash_received,
+            reason=manual_reason, comment=manual_comment, amount=cash_amount,
+            source='operator_manual' if manual_claims else 'courier')
+        emit(db, food, kind, actor_name, **details)
+        audit_shift = await require_partner_shift(db, manual_claims) if manual_claims else courier_shift
+        record_action(db, audit_shift, 'manual_delivered' if manual_claims else 'delivery_status_changed',
+            claims=claims, staff_type='partner' if manual_claims else 'courier', entity_type='order', entity_id=food.id, details=details)
         from services.bonus_rewards import settle_food_order_bonus
         await settle_food_order_bonus(db, food)
     if new_status == 'delivered':

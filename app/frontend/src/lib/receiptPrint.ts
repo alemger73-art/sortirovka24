@@ -3,7 +3,7 @@ import { getPublicLanguage } from '@/i18n/publicLocale';
 import { workflowTranslations as labels } from '@/i18n/workflowTranslations';
 import { parseOrderItems, orderLineQuantity, orderLineTotal } from '@/lib/orderRoutes';
 import { isSameDamAlemBrand } from './damAlem';
-import { createReceiptData, renderReceiptHtml, escapePrint, type PrintableOrder } from './damReceipt';
+import { createReceiptData, renderReceiptHtml, receiptCss, escapePrint, type PrintableOrder } from './damReceipt';
 export { escapePrint, type PrintableOrder } from './damReceipt';
 
 const ReceiptPrinter = registerPlugin<{print(options: {html: string; title: string; paperWidthMm?: number; paperHeightMm?: number}): Promise<void>}>('ReceiptPrinter');
@@ -73,4 +73,18 @@ export async function printOrder(order: PrintableOrder) {
   const title = `${t('workflow.receipt')} №${order.order_number ?? order.id}`;
   const rows = parseOrderItems(order.order_items).map(line => `<tr><td>${escapePrint(line.name || line.title)}<br><small>${escapePrint(orderLineQuantity(line))} × ${escapePrint(Number(line.price || 0) + Number(line.modTotal || 0))} ₸</small></td><td>${escapePrint(orderLineTotal(line))} ₸</td></tr>`).join('');
   await printDocument(title, `<h1>${escapePrint(brand)}</h1><h2>${escapePrint(title)}</h2><p>${escapePrint(order.created_at ? new Date(order.created_at).toLocaleString(lang === 'kz' ? 'kk-KZ' : 'ru-RU') : '')}</p><p>${escapePrint(order.customer_name)} ${escapePrint(order.customer_phone)}</p><p>${escapePrint(order.delivery_method === 'dine_in' ? t('workflow.onsite') : order.delivery_method === 'pickup' ? t('workflow.pickup') : order.delivery_address || order.dropoff_address)}</p><table>${rows}</table><h2>${escapePrint(t('workflow.total'))}: ${total} ₸</h2><p>${escapePrint(t('workflow.received'))}: ${received} ₸</p><p>${escapePrint(t(received > total ? 'workflow.refund' : 'workflow.due'))}: ${Math.abs(total - received)} ₸</p><hr><small>${escapePrint(t('workflow.nonFiscal'))}</small>`);
+}
+
+export async function printKitchenOrder(order: PrintableOrder) {
+  if (!['preparing', 'ready', 'in_progress', 'done'].includes(order.status || '')) {
+    throw new Error('Сначала передайте заказ на кухню');
+  }
+  const d = createReceiptData(order), e = escapePrint;
+  const title = `Кухня · Заказ №${d.number}`;
+  await dispatchPrint(title, `<!doctype html><html><head><meta charset="utf-8"><title>${e(title)}</title><style>${receiptCss}</style></head><body><main class="receipt" aria-label="Кухонный чек"><h1>DAM ALEM 2.0 · КУХНЯ</h1><h2>Заказ №${e(d.number)}</h2>
+    <p>${e(d.created)} · ${e(d.fulfillmentLabel)}</p>${d.scheduled ? `<p>К сроку: ${e(d.scheduled)}</p>` : ''}
+    <hr>${d.lines.map(l=>`<h2>${e(l.quantity)} × ${e(l.name)}</h2>${l.components.map(c=>`<p>${e(c)}</p>`).join('')}${l.modifiers.map(m=>`<p>+ ${e(m)}</p>`).join('')}`).join('')}
+    ${d.comment ? `<hr><p><b>Комментарий: ${e(d.comment)}</b></p>` : ''}
+    <hr><p>${e(d.methodName)} · ${e(d.paymentLabel)}</p>
+    ${d.change !== undefined ? `<p>Сдача: ${e(d.change)} ₸</p>` : ''}</main></body></html>`, true);
 }

@@ -1,4 +1,5 @@
 """Exercise the actual cabinet endpoints against an isolated in-memory database."""
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -6,20 +7,17 @@ import pytest
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from routers import account_v2 as r
+from models.module_settings import ModuleSettings
 
 
 @pytest.mark.asyncio
 async def test_cabinet_retains_detailed_orders_and_rejects_foreign_owner(monkeypatch):
     engine = create_async_engine('sqlite+aiosqlite:///:memory:')
-    from models.module_settings import ModuleSettings
-    from models.taxi import TaxiSettings
-    models = [ModuleSettings, TaxiSettings, r.User, r.Bonus, r.Order, r.Food_orders, r.Complaints, r.Announcements,
-              r.Real_estate, r.Master_requests, r.Become_master_requests, r.UserAddress,
-              *[entry[3] for entry in r.STORE_ORDER_SOURCES]]
+    from core.database import Base
+    from models.crm import Customer
     async with engine.begin() as conn:
-        for model in models:
-            await conn.run_sync(lambda sync, table=model.__table__: table.create(sync, checkfirst=True))
-    user = SimpleNamespace(id='account-uuid', phone='+77011234567', language='ru', agreement_accepted=True, privacy_accepted=True)
+        await conn.run_sync(Base.metadata.create_all)
+    user = SimpleNamespace(id='account-uuid', phone='+77011234567', phone_verified_at=datetime.now(timezone.utc), language='ru', agreement_accepted=True, privacy_accepted=True)
     monkeypatch.setattr(r, '_current_user', AsyncMock(return_value=user))
     monkeypatch.setattr(r, '_maybe_promote_master_role', AsyncMock())
     monkeypatch.setattr(r, '_to_user_response', lambda _: {'id': user.id, 'bonus_balance': 450})

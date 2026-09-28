@@ -1,3 +1,4 @@
+import CheckoutSettings from '@/components/damalem/CheckoutSettings';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useEffect } from 'react';
 
@@ -759,7 +760,8 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
             <p className="mb-2 text-xs text-gray-500">{damAlemHeroBannerSizeHint()}</p>
 
-            <ImageUpload value={heroImage} onChange={setHeroImage} folder="food" />
+            <CheckoutSettings/>
+          <ImageUpload value={heroImage} onChange={setHeroImage} folder="food" />
 
           </div>
 

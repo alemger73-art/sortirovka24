@@ -458,6 +458,7 @@ def _to_user_response(user: User) -> UserV2Response:
         language=user.language or "ru",
         bonus_balance=float(user.bonus_balance or 0),
         has_password=bool(user.password_hash),
+        phone_verified=bool(user.phone_verified_at),
         created_at=user.created_at.isoformat() if user.created_at else None,
     )
 
@@ -547,19 +548,11 @@ async def _get_or_create_google_user(
             role="user",
             status="active",
             is_active=True,
-            bonus_balance=WELCOME_BONUS_POINTS,
+            bonus_balance=0,
             last_login=datetime.now(timezone.utc),
         )
         db.add(user)
         await db.flush()
-        if WELCOME_BONUS_POINTS > 0:
-            db.add(
-                Bonus(
-                    user_id=str(user.id),
-                    points=WELCOME_BONUS_POINTS,
-                    reason="Бонус за регистрацию через Google",
-                )
-            )
     else:
         if email and not user.email:
             user.email = email
@@ -626,6 +619,7 @@ async def _create_user_and_login(
     request: RegisterV2Request,
     http_request: Request,
     db: AsyncSession,
+    phone_verified=False,
 ):
     normalized_phone = _normalize_phone(request.phone)
     # Only match on email when one was actually supplied — otherwise
@@ -646,6 +640,7 @@ async def _create_user_and_login(
         id=str(uuid4()),
         name=request.name.strip(),
         phone=normalized_phone,
+        phone_verified_at=datetime.now(timezone.utc) if phone_verified else None,
         email=request.email,
         password_hash=_hash_password(request.password),
         avatar_url=None,
@@ -655,7 +650,7 @@ async def _create_user_and_login(
         role="user",
         status="active",
         is_active=True,
-        bonus_balance=WELCOME_BONUS_POINTS,
+        bonus_balance=0,
         last_login=datetime.now(timezone.utc),
     )
     db.add(user)
@@ -664,14 +659,9 @@ async def _create_user_and_login(
         _apply_avatar_update(user, request.avatar)
     except AvatarValidationError as exc:
         raise _avatar_http_error(exc) from exc
-    if WELCOME_BONUS_POINTS > 0:
-        db.add(
-            Bonus(
-                user_id=str(user.id),
-                points=WELCOME_BONUS_POINTS,
-                reason="Бонус за регистрацию",
-            )
-        )
+    if phone_verified:
+        from services.crm import for_account
+        await for_account(db,user)
     await db.commit()
     await db.refresh(user)
     await _maybe_promote_master_role(db, user)
@@ -696,7 +686,11 @@ async def register_request_sms(
     http_request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    normalized_phone = _normalize_phone(request.phone)
+    return await _request_phone_code(request.phone, http_request, db)
+
+
+async def _request_phone_code(phone, http_request, db, *, allow_existing=False):
+    normalized_phone = _normalize_phone(phone)
     if not normalized_phone or not _is_valid_kz_phone(normalized_phone):
         raise HTTPException(status_code=400, detail="Invalid phone")
     await _cleanup_phone_verifications(db, normalized_phone)
@@ -724,7 +718,7 @@ async def register_request_sms(
     now = datetime.now(timezone.utc)
 
     existing = (await db.execute(select(User).where(User.phone == normalized_phone))).scalar_one_or_none()
-    if existing:
+    if existing and not allow_existing:
         raise HTTPException(status_code=400, detail="User with this phone already exists")
 
     code = f"{secrets.randbelow(1_000_000):06d}"
@@ -792,7 +786,27 @@ async def register_confirm(
     http_request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    normalized_phone = _normalize_phone(request.phone)
+    normalized_phone = await _consume_phone_code(db, request.phone, request.sms_code)
+    await db.commit()
+    return await _create_user_and_login(
+        RegisterV2Request(
+            name=request.name,
+            phone=normalized_phone,
+            email=request.email,
+            password=request.password,
+            avatar=request.avatar,
+            language=request.language,
+            agreement_accepted=request.agreement_accepted,
+            privacy_accepted=request.privacy_accepted,
+        ),
+        http_request=http_request,
+        db=db,
+        phone_verified=True,
+    )
+
+
+async def _consume_phone_code(db, phone, code):
+    normalized_phone = _normalize_phone(phone)
     if not normalized_phone or not _is_valid_kz_phone(normalized_phone):
         raise HTTPException(status_code=400, detail="Invalid phone")
     await _cleanup_phone_verifications(db, normalized_phone)
@@ -815,26 +829,44 @@ async def register_confirm(
         raise HTTPException(status_code=429, detail="Слишком много попыток ввода кода. Запросите новый SMS-код.")
 
     row.attempts += 1
-    if row.code_hash != _hash_sms_code(normalized_phone, request.sms_code.strip()):
+    if row.code_hash != _hash_sms_code(normalized_phone, code.strip()):
         await db.commit()
         raise HTTPException(status_code=400, detail="Invalid SMS code")
 
     row.is_verified = True
+    await db.flush()
+    return normalized_phone
+
+
+@router.post("/phone/request-sms", response_model=RequestSmsCodeResponse)
+async def verify_own_phone_request(http_request: Request, authorization: str | None = Header(None), db: AsyncSession = Depends(get_db)):
+    user = await _current_user(db, authorization)
+    if user.phone_verified_at:
+        raise HTTPException(409, "Телефон уже подтверждён")
+    # The destination comes from the authenticated account, never from a caller.
+    return await _request_phone_code(user.phone, http_request, db, allow_existing=True)
+
+
+from pydantic import BaseModel, ConfigDict, Field
+
+class VerifyOwnPhone(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    code: str = Field(pattern=r'^[0-9]{6}$')
+
+
+@router.post("/phone/confirm")
+async def verify_own_phone(body: VerifyOwnPhone, authorization: str | None = Header(None), db: AsyncSession = Depends(get_db)):
+    user = await _current_user(db, authorization)
+    from services import crm
+    await crm.lock(db)
+    if user.phone_verified_at:
+        return {'verified': True}
+    await _consume_phone_code(db, user.phone, body.code)
+    user.phone_verified_at = datetime.now(timezone.utc)
+    await crm.for_account(db, user)
+    await _log_action(db, str(user.id), 'account_phone_verified', 'users', str(user.id))
     await db.commit()
-    return await _create_user_and_login(
-        RegisterV2Request(
-            name=request.name,
-            phone=normalized_phone,
-            email=request.email,
-            password=request.password,
-            avatar=request.avatar,
-            language=request.language,
-            agreement_accepted=request.agreement_accepted,
-            privacy_accepted=request.privacy_accepted,
-        ),
-        http_request=http_request,
-        db=db,
-    )
+    return {'verified': True}
 
 
 @router.post("/login", response_model=AuthV2Response)
@@ -986,13 +1018,20 @@ async def bonus_rules(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
-    from services.bonus_spending import bonus_rules_public
 
-    rules = bonus_rules_public()
+    from services.loyalty import rules as loyalty_rules
+    values = await loyalty_rules(db)
+    rules = {"enabled": values['spending_enabled'], "tenge_rate": 1, "max_order_percent": values['max_spend_percent'],
+        "earn": {"percent": values['cashback_rate'], "welcome_points": values['welcome_amount'], "award_on_status": "done"},
+        "spend": {"login_required": True, "exclusive_with_promo": False, "applies_to": "food_after_discounts"}}
+    await db.commit()
     if authorization:
         try:
             user = await _current_user(db, authorization)
-            rules = {**rules, "balance": float(user.bonus_balance or 0)}
+            from services.loyalty import summary
+            state = await summary(db, user.id)
+            rules = {**rules, "balance": state['balance']}
+            await db.commit()
         except HTTPException:
             pass
     return rules
@@ -1457,6 +1496,8 @@ def _serialize_food_order_detail(row: Food_orders) -> dict:
         "comment": row.comment,
         "delivery_method": row.delivery_method,
         "scheduled_for": row.scheduled_for,
+        "pickup_snapshot": row.pickup_snapshot,
+        "loyalty_snapshot": row.loyalty_snapshot,
         "restaurant_name": row.restaurant_name,
         "created_at": row.created_at,
     }
@@ -1477,17 +1518,15 @@ async def cabinet_order_detail(
 
     if source == "food":
         row = (await db.execute(select(Food_orders).where(Food_orders.id == order_id))).scalar_one_or_none()
-        if not row or not _owns_user_content(
-            user,
-            str(row.user_id) if getattr(row, "user_id", None) else None,
-            row.customer_phone,
-        ):
+        from services.crm import owns_order
+        if not row or not await owns_order(db,user,row):
             raise HTTPException(status_code=404, detail="Order not found")
         data = _serialize_food_order_detail(row)
         from models.food_operations import FoodOrderEvent
         from services.dam_order_workflow import paid
         data.update(receipt_revision=row.receipt_revision or 0, receipt_updated_at=row.receipt_updated_at,
-            payment_status=row.payment_status, paid_amount=float(paid(row)), version=row.version or 0)
+            payment_status=row.payment_status, paid_amount=float(paid(row)), version=row.version or 0,
+            cash_given_amount=row.cash_given_amount, change_amount=row.change_amount)
         events = (await db.scalars(select(FoodOrderEvent).where(FoodOrderEvent.order_id == row.id,
             FoodOrderEvent.public_data.isnot(None)).order_by(FoodOrderEvent.id.desc()))).all() if row.receipt_revision else []
         data['receipt_changes'] = [{'created_at': e.created_at, **json.loads(e.public_data)} for e in events]
@@ -2297,8 +2336,7 @@ async def admin_update_user(
         if not user.is_active:
             await db.execute(update(UserSession).where(UserSession.user_id == user_id).values(is_active=False))
     if request.bonus_delta:
-        user.bonus_balance = float(user.bonus_balance or 0) + float(request.bonus_delta)
-        db.add(Bonus(user_id=str(user.id), points=float(request.bonus_delta), reason="admin_adjustment"))
+        raise HTTPException(422, "Используйте раздел бонусов владельца с обязательной причиной корректировки")
     await db.commit()
     await _log_action(
         db,
