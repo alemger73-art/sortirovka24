@@ -1,0 +1,33 @@
+[
+  {
+    "test": "manifest browser parse",
+    "passed": true,
+    "installability": {
+      "installabilityErrors": []
+    }
+  },
+  {
+    "test": "real SW offline navigation and reconnect",
+    "passed": true
+  },
+  {
+    "test": "API and HTML excluded from caches",
+    "passed": true
+  },
+  {
+    "test": "push order deep link preserved through login redirect",
+    "passed": true
+  },
+  {
+    "test": "diagnostics UI and live SW version (API access mocked)",
+    "passed": true
+  },
+  {
+    "test": "safari instructions (UA emulation, not real iOS installation)",
+    "passed": true
+  },
+  {
+    "test": "chrome-ios instructions (UA emulation, not real iOS installation)",
+    "passed": true
+  }
+]

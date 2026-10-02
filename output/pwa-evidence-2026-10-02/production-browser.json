@@ -1,0 +1,17 @@
+{
+  "manifestErrors": [],
+  "installabilityErrors": [],
+  "state": {
+    "script": "https://www.sortirovka24.kz/sw.js?v=8e529c603150f0c4c3c1c3b516edf1d08538f069",
+    "permission": "default",
+    "caches": [
+      "s24-offline-v1",
+      "workbox-precache-v2-https://www.sortirovka24.kz/",
+      "s24-pwa-click-v1"
+    ],
+    "standalone": false
+  },
+  "offline": "passed",
+  "networkRestored": "passed",
+  "physicalDevice": false
+}

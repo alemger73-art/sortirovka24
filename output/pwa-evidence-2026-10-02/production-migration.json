@@ -1,0 +1,23 @@
+{
+  "verified": {
+    "environment": "production",
+    "time": "2026-10-02T05:19:06.708488+00:00",
+    "head": "dam20261006_pwa_preferences",
+    "missing_baseline_columns": {},
+    "counts": {
+      "food_orders": 32,
+      "food_items": 202,
+      "food_order_events": 152,
+      "food_shifts": 8,
+      "bonuses": 21,
+      "users": 6
+    }
+  },
+  "backup": {
+    "time": "2026-10-02T05:13:55.292651+00:00",
+    "file": "before-051305.dump",
+    "size": 410328,
+    "sha256": "8201c7fa0df42ca501da6414673e69ad4622a957679d5454add5915acb606a6f"
+  },
+  "initial_attempt": "Deadlock caused rollback; completed inside Railway container before serving requests"
+}

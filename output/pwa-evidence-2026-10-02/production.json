@@ -1,0 +1,193 @@
+[
+  {
+    "path": "/health",
+    "status": 200,
+    "content_type": "application/json",
+    "cache_control": null,
+    "cf_cache": "DYNAMIC",
+    "health": {
+      "status": "healthy",
+      "version": "2.1.0",
+      "frontend_build": "8e529c603150f0c4c3c1c3b516edf1d08538f069",
+      "environment": "production",
+      "database_target": "154994f4c151",
+      "database": "ok"
+    }
+  },
+  {
+    "path": "/manifest.json",
+    "status": 200,
+    "content_type": "application/manifest+json",
+    "cache_control": "no-cache, no-store, must-revalidate",
+    "cf_cache": "DYNAMIC",
+    "manifest": {
+      "id": "/",
+      "name": "Sortirovka 24",
+      "short_name": "S24",
+      "description": "\u0412\u0441\u044f \u0421\u043e\u0440\u0442\u0438\u0440\u043e\u0432\u043a\u0430 \u0432 \u043e\u0434\u043d\u043e\u043c \u043c\u0435\u0441\u0442\u0435",
+      "start_url": "/?source=pwa",
+      "scope": "/",
+      "display": "standalone",
+      "background_color": "#F8FAFC",
+      "theme_color": "#2563EB",
+      "orientation": "any",
+      "prefer_related_applications": false,
+      "categories": [
+        "lifestyle",
+        "food",
+        "social"
+      ],
+      "lang": "ru",
+      "shortcuts": [
+        {
+          "name": "\u041a\u0443\u0440\u044c\u0435\u0440 D\u00c4M ALEM",
+          "short_name": "\u041a\u0443\u0440\u044c\u0435\u0440",
+          "url": "/food/courier",
+          "icons": [
+            {
+              "src": "/icon-192-v2.png",
+              "sizes": "192x192",
+              "type": "image/png"
+            }
+          ]
+        }
+      ],
+      "icons": [
+        {
+          "src": "/icon-192-v2.png",
+          "sizes": "192x192",
+          "type": "image/png",
+          "purpose": "any"
+        },
+        {
+          "src": "/icon-maskable-192-v3.png",
+          "sizes": "192x192",
+          "type": "image/png",
+          "purpose": "maskable"
+        },
+        {
+          "src": "/icon-512-v2.png",
+          "sizes": "512x512",
+          "type": "image/png",
+          "purpose": "any"
+        },
+        {
+          "src": "/icon-maskable-512-v3.png",
+          "sizes": "512x512",
+          "type": "image/png",
+          "purpose": "maskable"
+        }
+      ]
+    }
+  },
+  {
+    "path": "/sw.js",
+    "status": 200,
+    "content_type": "text/javascript; charset=utf-8",
+    "cache_control": "no-cache, no-store, must-revalidate",
+    "cf_cache": "BYPASS"
+  },
+  {
+    "path": "/push-sw.js",
+    "status": 200,
+    "content_type": "text/javascript; charset=utf-8",
+    "cache_control": "no-cache, no-store, must-revalidate",
+    "cf_cache": "BYPASS"
+  },
+  {
+    "path": "/offline.html",
+    "status": 200,
+    "content_type": "text/html; charset=utf-8",
+    "cache_control": "no-cache, no-store, must-revalidate",
+    "cf_cache": "DYNAMIC"
+  },
+  {
+    "path": "/icon-maskable-192-v3.png",
+    "status": 200,
+    "content_type": "image/png",
+    "cache_control": "max-age=14400",
+    "cf_cache": "HIT"
+  },
+  {
+    "path": "/icon-maskable-512-v3.png",
+    "status": 200,
+    "content_type": "image/png",
+    "cache_control": "max-age=14400",
+    "cf_cache": "HIT"
+  },
+  {
+    "path": "/api/v1/push/web-key",
+    "status": 200,
+    "content_type": "application/json",
+    "cache_control": null,
+    "cf_cache": "DYNAMIC",
+    "configured": true
+  },
+  {
+    "path": "/food",
+    "status": 200,
+    "content_type": "text/html; charset=utf-8",
+    "cache_control": "public, max-age=60, stale-while-revalidate=300",
+    "cf_cache": "DYNAMIC"
+  },
+  {
+    "path": "/partner/dam-alem",
+    "status": 200,
+    "content_type": "text/html; charset=utf-8",
+    "cache_control": "public, max-age=60, stale-while-revalidate=300",
+    "cf_cache": "DYNAMIC"
+  },
+  {
+    "path": "/partner/dam-alem/operator",
+    "status": 200,
+    "content_type": "text/html; charset=utf-8",
+    "cache_control": "public, max-age=60, stale-while-revalidate=300",
+    "cf_cache": "DYNAMIC"
+  },
+  {
+    "path": "/food/courier",
+    "status": 200,
+    "content_type": "text/html; charset=utf-8",
+    "cache_control": "public, max-age=60, stale-while-revalidate=300",
+    "cf_cache": "DYNAMIC"
+  },
+  {
+    "path": "/admin/pwa-diagnostics",
+    "status": 200,
+    "content_type": "text/html; charset=utf-8",
+    "cache_control": "public, max-age=60, stale-while-revalidate=300",
+    "cf_cache": "DYNAMIC"
+  },
+  {
+    "origin": "http://sortirovka24.kz/food",
+    "status": 200,
+    "final": "https://www.sortirovka24.kz/food",
+    "redirects": [
+      301
+    ]
+  },
+  {
+    "origin": "https://sortirovka24.kz/food",
+    "status": 200,
+    "final": "https://www.sortirovka24.kz/food",
+    "redirects": [
+      301
+    ]
+  },
+  {
+    "origin": "http://www.sortirovka24.kz/food",
+    "status": 200,
+    "final": "https://www.sortirovka24.kz/food",
+    "redirects": [
+      301
+    ]
+  },
+  {
+    "origin": "https://sortirovka24-production-8788.up.railway.app/food",
+    "status": 200,
+    "final": "https://www.sortirovka24.kz/food",
+    "redirects": [
+      301
+    ]
+  }
+]
