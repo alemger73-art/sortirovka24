@@ -22,8 +22,8 @@ def native_push_enabled() -> bool:
 
 def web_push_enabled() -> bool:
     return external_side_effects_allowed() and bool(
-        os.environ.get("WEB_PUSH_PUBLIC_KEY", "").strip()
-        and os.environ.get("WEB_PUSH_PRIVATE_KEY", "").strip()
+        (os.environ.get("VAPID_PUBLIC_KEY") or os.environ.get("WEB_PUSH_PUBLIC_KEY", "")).strip()
+        and (os.environ.get("VAPID_PRIVATE_KEY") or os.environ.get("WEB_PUSH_PRIVATE_KEY", "")).strip()
     )
 
 
@@ -32,7 +32,7 @@ def push_enabled() -> bool:
 
 
 def web_push_public_key() -> str:
-    return os.environ.get("WEB_PUSH_PUBLIC_KEY", "").strip() if web_push_enabled() else ""
+    return (os.environ.get("VAPID_PUBLIC_KEY") or os.environ.get("WEB_PUSH_PUBLIC_KEY", "")).strip() if web_push_enabled() else ""
 
 
 async def send_push_to_token(
@@ -98,13 +98,13 @@ async def send_web_push_subscription(
         return False, False
     try:
         payload = json.dumps({"title": title, "body": body, "data": data or {}}, ensure_ascii=False)
-        contact = os.environ.get("WEB_PUSH_CONTACT", "mailto:admin@sortirovka24.kz").strip()
+        contact = (os.environ.get('VAPID_SUBJECT') or os.environ.get("WEB_PUSH_CONTACT", "mailto:admin@sortirovka24.kz")).strip()
 
         def _send() -> None:
             webpush(
                 subscription_info=subscription,
                 data=payload,
-                vapid_private_key=os.environ["WEB_PUSH_PRIVATE_KEY"].strip(),
+                vapid_private_key=(os.environ.get('VAPID_PRIVATE_KEY') or os.environ['WEB_PUSH_PRIVATE_KEY']).strip(),
                 vapid_claims={"sub": contact},
                 ttl=86400,
             )
@@ -114,8 +114,8 @@ async def send_web_push_subscription(
     except WebPushException as exc:
         status_code = getattr(getattr(exc, "response", None), "status_code", None)
         expired = status_code in {404, 410}
-        logger.warning("Web Push delivery failed (status=%s): %s", status_code, exc)
+        logger.warning("Web Push delivery failed (status=%s)", status_code)
         return False, expired
     except Exception as exc:
-        logger.warning("Web Push send failed: %s", exc)
+        logger.warning("Web Push send failed (%s)", type(exc).__name__)
         return False, False

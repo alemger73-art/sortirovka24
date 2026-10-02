@@ -4,6 +4,7 @@ import {
   ShoppingBag, Shield, Heart, Landmark, Store, UtensilsCrossed, ChevronRight, LogIn, Cross, Wine, Bug,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
+import InstallAppBanner from '@/components/InstallAppBanner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTaxiEnabled } from '@/hooks/useTaxiEnabled';
 import { useModules } from '@/hooks/useModules';
@@ -80,6 +81,7 @@ export default function More() {
 
   return (
     <Layout>
+      <div className="mx-auto max-w-lg px-4 pt-4"><InstallAppBanner manual /></div>
       <div className="mx-auto max-w-lg px-4 py-5 md:max-w-3xl md:py-8">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('nav.more')}</h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('more.subtitle')}</p>

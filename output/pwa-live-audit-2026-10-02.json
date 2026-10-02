@@ -1,0 +1,143 @@
+{
+  "http://sortirovka24.kz": {
+    "status": 200,
+    "url": "https://www.sortirovka24.kz/",
+    "hops": [
+      [
+        301,
+        "https://www.sortirovka24.kz/"
+      ]
+    ]
+  },
+  "https://sortirovka24.kz": {
+    "status": 200,
+    "url": "https://www.sortirovka24.kz/",
+    "hops": [
+      [
+        301,
+        "https://www.sortirovka24.kz/"
+      ]
+    ]
+  },
+  "http://www.sortirovka24.kz": {
+    "status": 200,
+    "url": "https://www.sortirovka24.kz/",
+    "hops": [
+      [
+        301,
+        "https://www.sortirovka24.kz/"
+      ]
+    ]
+  },
+  "https://www.sortirovka24.kz": {
+    "status": 200,
+    "url": "https://www.sortirovka24.kz/",
+    "hops": []
+  },
+  "/manifest.json": {
+    "status": 200,
+    "type": "application/json",
+    "cache": "no-cache, no-store, must-revalidate",
+    "size": 1278
+  },
+  "manifest": {
+    "id": "/",
+    "name": "Sortirovka 24",
+    "short_name": "Sortirovka 24",
+    "description": "Портал жилого комплекса Сортировка: еда, мастера, объявления, новости",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "display_override": [
+      "window-controls-overlay",
+      "standalone",
+      "minimal-ui"
+    ],
+    "background_color": "#F8FAFC",
+    "theme_color": "#2563EB",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "categories": [
+      "lifestyle",
+      "food",
+      "social"
+    ],
+    "lang": "ru",
+    "shortcuts": [
+      {
+        "name": "Курьер DÄM ALEM",
+        "short_name": "Курьер",
+        "url": "/food/courier",
+        "icons": [
+          {
+            "src": "/icon-192-v2.png",
+            "sizes": "192x192",
+            "type": "image/png"
+          }
+        ]
+      }
+    ],
+    "icons": [
+      {
+        "src": "/icon-192-v2.png",
+        "sizes": "192x192",
+        "type": "image/png",
+        "purpose": "any"
+      },
+      {
+        "src": "/icon-maskable-192-v2.png",
+        "sizes": "192x192",
+        "type": "image/png",
+        "purpose": "maskable"
+      },
+      {
+        "src": "/icon-512-v2.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "any"
+      },
+      {
+        "src": "/icon-maskable-512-v2.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "maskable"
+      }
+    ]
+  },
+  "/sw.js": {
+    "status": 200,
+    "type": "text/javascript; charset=utf-8",
+    "cache": "no-cache, no-store, must-revalidate",
+    "size": 9178
+  },
+  "/push-sw.js": {
+    "status": 200,
+    "type": "text/javascript; charset=utf-8",
+    "cache": "no-cache, no-store, must-revalidate",
+    "size": 1580
+  },
+  "/apple-touch-icon-v2.png": {
+    "status": 200,
+    "type": "image/png",
+    "cache": "max-age=14400",
+    "size": 44902
+  },
+  "/icon-192-v2.png": {
+    "status": 200,
+    "type": "image/png",
+    "cache": "max-age=14400",
+    "size": 49851
+  },
+  "/icon-512-v2.png": {
+    "status": 200,
+    "type": "image/png",
+    "cache": "max-age=14400",
+    "size": 226186
+  },
+  "/icon-maskable-512-v2.png": {
+    "status": 200,
+    "type": "image/png",
+    "cache": "max-age=14400",
+    "size": 226186
+  }
+}

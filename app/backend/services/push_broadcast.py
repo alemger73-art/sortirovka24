@@ -4,6 +4,15 @@ from __future__ import annotations
 
 import logging
 import json
+from datetime import datetime, timezone
+
+def push_category_allowed(preferences, category):
+    key = {'ORDER': 'orders', 'food': 'orders', 'store': 'orders', 'DELIVERY': 'delivery', 'logistics': 'delivery',
+        'NEWS': 'news', 'news': 'news', 'ADVERTISEMENT': 'marketing', 'marketing': 'marketing',
+        'bonus': 'bonuses', 'taxi': 'taxi', 'master': 'master'}.get(category)
+    if not key:
+        return True
+    return bool((preferences or {}).get(key, key not in ('news', 'marketing')))
 
 from models.push_devices import PushDevice
 from services.push_notifications import (
@@ -45,8 +54,11 @@ async def broadcast_push(
     devices = (await db.execute(query)).scalars().all()
     sent = 0
     failed = 0
+    attempted = 0
 
     for device in devices:
+        if not push_category_allowed(device.preferences, (data or {}).get('category', 'SYSTEM')):
+            continue
         expired = False
         if device.platform == "web":
             if not web_push_enabled():
@@ -63,17 +75,18 @@ async def broadcast_push(
             if not native_push_enabled():
                 continue
             ok = await send_push_to_token(device.token, title=title, body=body, data=data)
+        attempted += 1
         if ok:
             sent += 1
+            device.last_used_at = datetime.now(timezone.utc)
         else:
             failed += 1
         if expired:
             device.is_active = False
 
-    if any(not device.is_active for device in devices):
-        await db.commit()
+    await db.commit()
 
-    return {"sent": sent, "failed": failed, "total": len(devices), "skipped": False}
+    return {"sent": sent, "failed": failed, "total": attempted, "skipped": False}
 
 
 async def notify_published_news(news_id: int, title: str) -> None:
@@ -90,7 +103,7 @@ async def notify_published_news(news_id: int, title: str) -> None:
                 db,
                 title="Sortirovka24",
                 body=headline,
-                data={"path": f"/news/{news_id}"},
+                data={"path": f"/news/{news_id}", 'category': 'NEWS'},
             )
             logger.info("News push broadcast: %s", result)
     except Exception as exc:

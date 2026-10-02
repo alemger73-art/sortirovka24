@@ -6,6 +6,8 @@ import hashlib
 import json
 from urllib.parse import urlparse
 from uuid import uuid4
+import logging
+from pydantic import BaseModel, Field
 
 from core.admin_guard import require_panel_admin
 from core.database import get_db
@@ -20,6 +22,7 @@ from schemas.push import (
     PushUnregisterRequest,
     WebPushRegisterRequest,
     WebPushUnregisterRequest,
+    PushPreferences,
 )
 from services.account_session import resolve_account_user
 from services.push_broadcast import ADMIN_DEVICE_USER_ID, broadcast_push
@@ -58,7 +61,14 @@ def _web_token(body: WebPushRegisterRequest) -> str:
 
 def _validate_web_push_endpoint(endpoint: str) -> None:
     """Only browser vendor push gateways are valid; arbitrary URLs would enable SSRF."""
-    hostname = (urlparse(endpoint).hostname or "").lower()
+    parsed = urlparse(endpoint)
+    hostname = (parsed.hostname or "").lower()
+    try:
+        valid = parsed.scheme == 'https' and not parsed.username and not parsed.password and parsed.port in (None, 443) and not parsed.fragment
+    except ValueError:
+        valid = False
+    if not valid:
+        raise HTTPException(status_code=422, detail='Invalid browser push endpoint')
     allowed_hosts = {
         "fcm.googleapis.com",
         "android.googleapis.com",
@@ -162,6 +172,39 @@ async def web_push_key():
     return {"enabled": web_push_enabled(), "public_key": web_push_public_key()}
 
 
+@router.put('/preferences')
+async def push_preferences(body: PushPreferences, db: AsyncSession = Depends(get_db), authorization: str | None = Header(None)):
+    user = await _require_account(db, authorization)
+    check_keyed_rate_limit(f'push-prefs:{user.id}', window_seconds=60, max_hits=30)
+    from sqlalchemy import update
+    await db.execute(update(PushDevice).where(PushDevice.user_id == user.id).values(preferences=body.model_dump()))
+    await db.commit()
+    return {'success': True}
+
+
+@router.get('/diagnostics-access')
+async def diagnostics_access(request: Request, db: AsyncSession = Depends(get_db)):
+    from core.food_staff_guard import food_staff, food_owner
+    claims = await food_staff(request, db)
+    await food_owner(claims)
+    return {'allowed': True, 'web_push_configured': web_push_enabled()}
+
+
+class PwaEvent(BaseModel):
+    event: str = Field(pattern='^(pwa_install_cta_shown|pwa_install_cta_clicked|pwa_install_prompt_shown|pwa_install_accepted|pwa_install_dismissed|pwa_appinstalled|pwa_standalone_open|push_prompt_shown|push_permission_granted|push_permission_denied|push_subscription_created|push_notification_clicked)$')
+    platform: str = Field(pattern='^(ios|android|desktop)$')
+    browser: str = Field(pattern='^(chrome|safari|samsung|edge|firefox|other)$')
+    source: str = Field(pattern='^(pwa|browser)$')
+
+
+@router.post('/analytics', status_code=202)
+async def pwa_analytics(body: PwaEvent, request: Request):
+    check_keyed_rate_limit(f'pwa-analytics:{request.client.host if request.client else "unknown"}', window_seconds=60, max_hits=60)
+    # Structured server logs; no persistent fingerprint, raw UA or query string.
+    logging.getLogger('pwa.analytics').info('pwa_event %s', json.dumps(body.model_dump(), sort_keys=True))
+    return {'accepted': True}
+
+
 @router.post("/register-web", response_model=PushRegisterResponse)
 async def register_web_push_device(
     body: WebPushRegisterRequest,
@@ -179,8 +222,12 @@ async def register_web_push_device(
         existing.token = token
         existing.user_id = user.id
         existing.is_active = True
+        existing.browser = body.browser
+        existing.device_platform = body.device_platform
+        existing.preferences = body.preferences.model_dump()
     else:
-        db.add(PushDevice(id=device_id or str(uuid4()), token=token, platform="web", user_id=user.id, is_active=True))
+        db.add(PushDevice(id=device_id or str(uuid4()), token=token, platform="web", user_id=user.id, is_active=True,
+            browser=body.browser, device_platform=body.device_platform, preferences=body.preferences.model_dump()))
     await db.commit()
     return PushRegisterResponse(success=True, registered=True)
 
@@ -208,7 +255,8 @@ async def broadcast_push_notification(
     """Admin-only: send push to all registered devices."""
     require_panel_admin(request)
 
-    data = {"path": body.path} if body.path else None
+    check_keyed_rate_limit('push-broadcast-admin', window_seconds=60, max_hits=10)
+    data = {"path": body.path or '/cabinet?tab=notifications', 'category': body.category}
     result = await broadcast_push(
         db,
         title=body.title,

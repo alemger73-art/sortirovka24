@@ -17,7 +17,7 @@ import {
   type PharmacySettings,
 } from '@/lib/pharmacyApi';
 import { parseDeliveryZones, type DeliveryQuote } from '@/lib/gastronomDelivery';
-import { GeolocationError, ensureLocationPermission, requestCurrentPosition } from '@/lib/geolocation';
+import { GeolocationError, getLocationPermissionStatus, requestCurrentPosition } from '@/lib/geolocation';
 import {
   isLoyaltyEnabled,
   parseLoyaltyGifts,
@@ -483,7 +483,7 @@ export default function Pharmacy() {
 
     const timer = window.setTimeout(() => {
       void (async () => {
-        const status = await ensureLocationPermission();
+        const status = await getLocationPermissionStatus();
         if (status === 'granted') {
           await requestGeolocation();
         }

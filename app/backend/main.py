@@ -327,6 +327,14 @@ app.add_middleware(SDKCompatMiddleware)
 # Disable instantly via ENTITY_WRITE_PROTECTION=off if ever needed.
 from middleware.entity_guard import EntityWriteGuardMiddleware
 app.add_middleware(EntityWriteGuardMiddleware)
+
+@app.middleware('http')
+async def canonical_pwa_origin(request: Request, call_next):
+    from core.pwa_origin import canonical_web_redirect
+    target = canonical_web_redirect(request)
+    if target:
+        return RedirectResponse(target, status_code=301)
+    return await call_next(request)
 # MODULE_MIDDLEWARE_END
 
 
@@ -537,11 +545,12 @@ if FRONTEND_DIR.is_dir():
         # Guard against path traversal, then serve the real file if it exists.
         if FRONTEND_DIR in candidate.parents and candidate.is_file():
             headers = {}
-            if candidate.name in {"index.html", "sw.js", "push-sw.js", "manifest.json"} or full_path == "":
+            if candidate.name in {"index.html", "sw.js", "push-sw.js", "manifest.json", "operator.webmanifest", "offline.html"} or full_path == "":
                 headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
                 headers["CDN-Cache-Control"] = "no-store"
                 headers["Cloudflare-CDN-Cache-Control"] = "no-store"
-            return FileResponse(candidate, headers=headers if headers else None)
+            return FileResponse(candidate, headers=headers if headers else None,
+                media_type='application/manifest+json' if candidate.name in {'manifest.json', 'operator.webmanifest'} else None)
         # Public routes receive server-rendered metadata and meaningful HTML.
         # React replaces the prerendered shell after it starts.
         from services.seo_renderer import build_seo_page, render_html

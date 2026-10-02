@@ -4,6 +4,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html.pwa-standalone .site-header { padding-top: env(safe-area-inset-top, 0px); }
+html.pwa-standalone { scroll-padding-top: env(safe-area-inset-top, 0px); }
+html.pwa-standalone body { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+
 @layer base {
   html.native-app,
   html.native-app body {

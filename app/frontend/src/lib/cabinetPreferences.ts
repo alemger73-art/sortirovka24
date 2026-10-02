@@ -13,6 +13,7 @@ export interface CabinetNotificationPrefs {
   bonuses: boolean;
   master: boolean;
   marketing: boolean;
+  news: boolean;
 }
 
 const DEFAULT_NOTIFY: CabinetNotificationPrefs = {
@@ -22,6 +23,7 @@ const DEFAULT_NOTIFY: CabinetNotificationPrefs = {
   bonuses: true,
   master: true,
   marketing: false,
+  news: false,
 };
 
 async function readJson<T>(key: string, fallback: T): Promise<T> {
@@ -77,6 +79,15 @@ export async function loadNotificationPrefs(): Promise<CabinetNotificationPrefs>
 }
 
 export async function saveNotificationPrefs(prefs: CabinetNotificationPrefs): Promise<void> {
+  const { getAccountToken } = await import('./accountApi');
+  const token = getAccountToken();
+  if (token) {
+    const { getAPIBaseURL } = await import('./config');
+    const response = await fetch(getAPIBaseURL().replace(/\/$/, '') + '/api/v1/push/preferences', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(prefs),
+    });
+    if (!response.ok) throw new Error('Не удалось сохранить настройки уведомлений на сервере');
+  }
   await writeJson(NOTIFY_KEY, prefs);
 }
 
@@ -88,6 +99,7 @@ const CATEGORY_MAP: Record<string, keyof CabinetNotificationPrefs> = {
   bonus: 'bonuses',
   master: 'master',
   marketing: 'marketing',
+  news: 'news',
 };
 
 export function isNotificationCategoryEnabled(

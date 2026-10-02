@@ -114,6 +114,10 @@ class EntityWriteGuardMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         method = request.method.upper()
         path = request.url.path
+        # Subscription endpoints and encryption material never belong in the
+        # generic entity API, including when generic write protection is disabled.
+        if path.startswith(_ENTITIES_PREFIX) and _entity_name(path) == 'push_devices':
+            return JSONResponse(status_code=403, content={'detail': 'Используйте защищённый API уведомлений.'})
         dam_actor = None
 
         if path.startswith('/api/v1/') and not path.endswith('/login'):

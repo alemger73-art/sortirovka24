@@ -16,7 +16,7 @@ import {
   type VolnaSettings,
 } from '@/lib/volnaApi';
 import { parseDeliveryZones, type DeliveryQuote } from '@/lib/gastronomDelivery';
-import { GeolocationError, ensureLocationPermission, requestCurrentPosition } from '@/lib/geolocation';
+import { GeolocationError, getLocationPermissionStatus, requestCurrentPosition } from '@/lib/geolocation';
 import {
   isLoyaltyEnabled,
   parseLoyaltyGifts,
@@ -352,7 +352,7 @@ export default function Volna() {
     geoPromptStarted.current = true;
     const timer = window.setTimeout(() => {
       void (async () => {
-        if ((await ensureLocationPermission()) === 'granted') await requestGeolocation();
+        if ((await getLocationPermissionStatus()) === 'granted') await requestGeolocation();
       })();
     }, 500);
     return () => window.clearTimeout(timer);

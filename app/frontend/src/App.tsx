@@ -1,7 +1,7 @@
 import CabinetPreferencesMigration from '@/components/cabinet/CabinetPreferencesMigration';
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Capacitor } from "@capacitor/core";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import AppWelcomeSplash from "@/components/AppWelcomeSplash";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -51,6 +51,7 @@ const SalonDetail = lazy(() => import("./pages/Salons").then(m => ({ default: m.
 const InspectorsPage = lazy(() => import("./pages/Inspectors"));
 const HistoryPage = lazy(() => import("./pages/History"));
 const AdminPanel = lazy(() => import("./pages/Admin"));
+const PwaDiagnostics = lazy(() => import('./pages/PwaDiagnostics'));
 const PartnerDamAlemAdmin = lazy(() => import("./pages/PartnerDamAlemAdmin"));
 const PartnerGastronomAdmin = lazy(() => import("./pages/PartnerGastronomAdmin"));
 const PartnerVolnaAdmin = lazy(() => import("./pages/PartnerVolnaAdmin"));
@@ -119,11 +120,12 @@ function PageLoader() {
 
 function Protected({ children }: { children: JSX.Element }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const authed = Boolean(getAccountToken());
 
   useEffect(() => {
-    if (!authed) navigate("/account", { replace: true });
-  }, [authed, navigate]);
+    if (!authed) navigate('/account?redirect=' + encodeURIComponent(location.pathname + location.search), { replace: true });
+  }, [authed, navigate, location.pathname, location.search]);
 
   if (!authed) return <AuthGateLoader />;
   return <CabinetPreferencesMigration>{children}</CabinetPreferencesMigration>;
@@ -224,6 +226,7 @@ function App() {
 
               {/* Admin panel — accessible via /admin */}
               <Route path="/admin" element={<AdminPanel />} />
+              <Route path="/admin/pwa-diagnostics" element={<PwaDiagnostics />} />
               <Route path="/partner/dam-alem/operator" element={<DamOperatorDesktop />} />
               <Route path="/partner/dam-alem" element={<PartnerDamAlemAdmin />} />
               <Route path="/partner/gastronom" element={<PartnerGastronomAdmin />} />

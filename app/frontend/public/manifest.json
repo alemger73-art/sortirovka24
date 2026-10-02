@@ -1,15 +1,14 @@
 {
   "id": "/",
   "name": "Sortirovka 24",
-  "short_name": "Sortirovka 24",
-  "description": "Портал жилого комплекса Сортировка: еда, мастера, объявления, новости",
-  "start_url": "/",
+  "short_name": "S24",
+  "description": "Вся Сортировка в одном месте",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#F8FAFC",
   "theme_color": "#2563EB",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "prefer_related_applications": false,
   "categories": ["lifestyle", "food", "social"],
   "lang": "ru",
@@ -22,7 +21,7 @@
       "purpose": "any"
     },
     {
-      "src": "/icon-maskable-192-v2.png",
+      "src": "/icon-maskable-192-v3.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
@@ -34,7 +33,7 @@
       "purpose": "any"
     },
     {
-      "src": "/icon-maskable-512-v2.png",
+      "src": "/icon-maskable-512-v3.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

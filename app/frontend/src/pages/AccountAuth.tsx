@@ -1,5 +1,6 @@
 import { formatPublicText } from '@/i18n/publicLocale';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { safeInternalPath } from '@/lib/pwa';
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Check, Eye, EyeOff } from "lucide-react";
@@ -87,7 +88,7 @@ export default function AccountAuth() {
   const redirectTo = useMemo(() => {
     const params = new URLSearchParams(location.search);
     const target = params.get("redirect");
-    if (target && target.startsWith("/") && !target.startsWith("//")) return target;
+    if (target) return safeInternalPath(target, '/cabinet');
     return null;
   }, [location.search]);
   const [isLogin, setIsLogin] = useState(location.pathname !== "/register");

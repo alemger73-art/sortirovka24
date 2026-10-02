@@ -1,6 +1,8 @@
 import { getAPIBaseURL } from '@/lib/config';
 import { getAccountToken } from '@/lib/accountApi';
 import { getCourierToken } from '@/lib/courierSession';
+import { pwaPlatform } from './pwa';
+import { loadNotificationPrefs } from './cabinetPreferences';
 
 function apiBase(): string {
   return getAPIBaseURL().replace(/\/$/, '');
@@ -76,10 +78,10 @@ export const pushApiClient = {
 
   webKey: () => pushApi<{ enabled: boolean; public_key: string }>('/api/v1/push/web-key'),
 
-  registerWeb: (subscription: PushSubscriptionJSON) =>
+  registerWeb: async (subscription: PushSubscriptionJSON) =>
     pushApi<{ success: boolean; registered: boolean }>('/api/v1/push/register-web', {
       method: 'POST',
-      body: JSON.stringify({ subscription }),
+      body: JSON.stringify({ subscription, browser: pwaPlatform().browser, device_platform: pwaPlatform().platform, preferences: await loadNotificationPrefs() }),
     }),
 
   unregisterWeb: (endpoint: string, accountToken?: string) =>
@@ -96,6 +98,7 @@ export const pushApiClient = {
     body: string;
     path?: string;
     platform?: 'android' | 'ios' | 'web';
+    category?: 'ORDER' | 'DELIVERY' | 'NEWS' | 'ADVERTISEMENT' | 'SYSTEM';
   }) =>
     pushApi<PushBroadcastResult>('/api/v1/push/broadcast', {
       method: 'POST',

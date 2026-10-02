@@ -5,8 +5,9 @@ import './index.css';
 import { warmupBackend } from './lib/api';
 import { installProductionErrorHandlers } from './lib/errorHandlers';
 import { initMonitoring } from './lib/monitoring';
-import { initNativeShell } from './lib/native';
+import { initNativeShell, isNativeApp } from './lib/native';
 import { initWebAppUpdates } from './lib/pwaUpdates';
+import { initPwaInstall } from './lib/pwa';
 import { restoreAccountSession, scheduleNativeSessionHydration } from './lib/sessionStore';
 
 // ─── Intercept SDK's postMessage error reporting ─────────────────
@@ -85,6 +86,7 @@ import { restoreAccountSession, scheduleNativeSessionHydration } from './lib/ses
 initMonitoring();
 installProductionErrorHandlers();
 initWebAppUpdates();
+if (!isNativeApp()) initPwaInstall();
 
 warmupBackend();
 

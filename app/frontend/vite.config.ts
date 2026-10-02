@@ -27,8 +27,8 @@ export default defineConfig(({ mode }) => ({
       includeAssets: [
         'icon-192-v2.png',
         'icon-512-v2.png',
-        'icon-maskable-192-v2.png',
-        'icon-maskable-512-v2.png',
+        'icon-maskable-192-v3.png',
+        'icon-maskable-512-v3.png',
         'apple-touch-icon-v2.png',
       ],
       manifest: false,
@@ -37,8 +37,8 @@ export default defineConfig(({ mode }) => ({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: false,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        navigateFallback: '/index.html',
+        globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
+        navigateFallback: undefined,
         // Public pages must reach the server so every navigation receives
         // route-specific metadata and the server-rendered SEO shell.
         navigateFallbackDenylist: [

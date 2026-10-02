@@ -92,6 +92,9 @@ export default function CabinetNotificationSettings({ t }: Props) {
         {permission === 'needs-install' && <p className="mb-3 text-xs">На iPhone сначала установите Sortirovka 24 на экран «Домой» через кнопку «Поделиться», затем откройте установленное приложение и включите уведомления здесь.</p>}
         {permission === 'unsupported' && <p className="mb-3 text-xs">Это устройство или браузер не поддерживает push-уведомления.</p>}
         <p className="mb-2 text-xs text-gray-500 dark:text-slate-400">{t('cabinet.permissions.hint')}</p>
+        <p className="mb-2 text-xs text-gray-500">Получайте статус заказов, доставки и выбранные новости Sortirovka 24.</p>
+        <PrefRow label="Новости района" checked={notify.news} onCheckedChange={v => void persistNotify({ ...notify, news: v })} />
+        <PrefRow label="Реклама и предложения" hint="Только с вашего согласия" checked={notify.marketing} onCheckedChange={v => void persistNotify({ ...notify, marketing: v })} />
 
         {delivery && <PrefRow
           label={t('cabinet.permissions.orders')}

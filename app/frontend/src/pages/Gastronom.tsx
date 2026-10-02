@@ -17,7 +17,7 @@ import {
   type GastronomSettings,
 } from '@/lib/gastronomApi';
 import { parseDeliveryZones, type DeliveryQuote } from '@/lib/gastronomDelivery';
-import { GeolocationError, ensureLocationPermission, requestCurrentPosition } from '@/lib/geolocation';
+import { GeolocationError, getLocationPermissionStatus, requestCurrentPosition } from '@/lib/geolocation';
 import {
   isLoyaltyEnabled,
   parseLoyaltyGifts,
@@ -488,14 +488,14 @@ export default function Gastronom() {
     }
   }, [st, runDeliveryQuote]);
 
-  // Ask for location permission as soon as the store opens (system dialog).
+  // Restore an already granted location; a new permission requires the GPS button.
   useEffect(() => {
     if (geoPromptStarted.current) return;
     geoPromptStarted.current = true;
 
     const timer = window.setTimeout(() => {
       void (async () => {
-        const status = await ensureLocationPermission();
+        const status = await getLocationPermissionStatus();
         if (status === 'granted') {
           await requestGeolocation();
         }

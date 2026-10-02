@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { pushApiClient } from '@/lib/pushApi';
+import { isPwaStandalone, pwaPlatform, safeInternalPath, pwaEvent } from '@/lib/pwa';
 
 let registeredToken: string | null = null;
 let listenersBound = false;
@@ -11,7 +12,7 @@ function pushEnabledInBuild(): boolean {
 }
 
 function navigateToPath(path: string): void {
-  const target = path.startsWith('/') ? path : `/${path}`;
+  const target = safeInternalPath(path);
   if (window.location.pathname !== target) {
     window.history.pushState({}, '', target);
     window.dispatchEvent(new PopStateEvent('popstate'));
@@ -85,16 +86,15 @@ export async function initPushNotifications(): Promise<void> {
 }
 
 function isStandalone(): boolean {
-  return window.matchMedia('(display-mode: standalone)').matches
-    || Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+  return isPwaStandalone();
 }
 
 function isIosBrowser(): boolean {
-  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+  return pwaPlatform().ios;
 }
 
 function webPushSupported(): boolean {
-  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  return window.isSecureContext && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 }
 
 function decodeVapidKey(value: string): ArrayBuffer {
@@ -106,7 +106,7 @@ function decodeVapidKey(value: string): ArrayBuffer {
 
 async function currentWebSubscription(): Promise<PushSubscription | null> {
   if (!webPushSupported()) return null;
-  const registration = await navigator.serviceWorker.ready;
+  const registration = await readyForPush();
   return registration.pushManager.getSubscription();
 }
 
@@ -117,9 +117,10 @@ export async function getPushPermissionState(): Promise<PushPermissionState> {
     const permission = await PushNotifications.checkPermissions();
     return permission.receive === 'granted' ? 'enabled' : permission.receive === 'denied' ? 'denied' : 'disabled';
   }
-  if (!webPushSupported()) return 'unsupported';
   if (isIosBrowser() && !isStandalone()) return 'needs-install';
+  if (!webPushSupported()) return 'unsupported';
   if (Notification.permission === 'denied') return 'denied';
+  if (Notification.permission !== 'granted') return 'disabled';
   return (await currentWebSubscription()) ? 'enabled' : 'disabled';
 }
 
@@ -133,19 +134,23 @@ export async function enablePushNotifications(): Promise<PushPermissionState> {
     await PushNotifications.register();
     return 'enabled';
   }
-  if (!webPushSupported()) return 'unsupported';
   if (isIosBrowser() && !isStandalone()) return 'needs-install';
+  if (!webPushSupported()) return 'unsupported';
+  if (Notification.permission === 'denied') return 'denied';
+  pwaEvent('push_prompt_shown');
   const permission = await Notification.requestPermission();
+  pwaEvent(permission === 'granted' ? 'push_permission_granted' : 'push_permission_denied');
   if (permission !== 'granted') return permission === 'denied' ? 'denied' : 'disabled';
   const key = await pushApiClient.webKey();
   if (!key.enabled || !key.public_key) throw new Error('Web Push пока не настроен на сервере');
-  const registration = await navigator.serviceWorker.ready;
+  const registration = await readyForPush();
   const existing = await registration.pushManager.getSubscription();
   const subscription = existing || await registration.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey: decodeVapidKey(key.public_key),
   });
   await pushApiClient.registerWeb(subscription.toJSON());
+  pwaEvent('push_subscription_created');
   return 'enabled';
 }
 
@@ -165,7 +170,16 @@ export async function disablePushNotifications(accountToken?: string): Promise<P
     try { await pushApiClient.unregisterWeb(subscription.endpoint, accountToken); } catch { /* best effort */ }
     await subscription.unsubscribe();
   }
-  return Notification.permission === 'denied' ? 'denied' : 'disabled';
+  return 'Notification' in window && Notification.permission === 'denied' ? 'denied' : 'disabled';
+}
+
+async function readyForPush(): Promise<ServiceWorkerRegistration> {
+  let timer: ReturnType<typeof setTimeout>;
+  try {
+    return await Promise.race([navigator.serviceWorker.ready, new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('Приложение ещё не готово к push. Обновите страницу и повторите.')), 10000);
+    })]);
+  } finally { clearTimeout(timer!); }
 }
 
 export async function linkPushTokenToAccount(): Promise<void> {

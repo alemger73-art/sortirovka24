@@ -167,7 +167,7 @@ export default function Layout({
       </footer>}
 
       {showBottomNav && <MobileBottomNav />}
-      <InstallAppBanner />
+      {window.location.pathname !== '/more' && <InstallAppBanner />}
     </div>
   );
 }

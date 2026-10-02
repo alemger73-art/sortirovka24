@@ -1,5 +1,5 @@
 from core.database import Base
-from sqlalchemy import Boolean, Column, DateTime, String, Text, func
+from sqlalchemy import Boolean, Column, DateTime, String, Text, JSON, func
 
 
 class PushDevice(Base):
@@ -12,3 +12,7 @@ class PushDevice(Base):
     is_active = Column(Boolean, nullable=False, default=True, server_default="true")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    browser = Column(String(24), nullable=True)
+    device_platform = Column(String(24), nullable=True)
+    preferences = Column(JSON, nullable=True)
+    last_used_at = Column(DateTime(timezone=True), nullable=True)

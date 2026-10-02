@@ -1,4 +1,13 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+class PushPreferences(BaseModel):
+    orders: bool = True
+    delivery: bool = True
+    news: bool = False
+    marketing: bool = False
+    bonuses: bool = True
+    taxi: bool = True
+    master: bool = True
 
 
 class PushRegisterRequest(BaseModel):
@@ -23,6 +32,9 @@ class WebPushSubscription(BaseModel):
 
 class WebPushRegisterRequest(BaseModel):
     subscription: WebPushSubscription
+    browser: str | None = Field(None, pattern='^(chrome|safari|samsung|edge|firefox|other)$')
+    device_platform: str | None = Field(None, pattern='^(ios|android|desktop)$')
+    preferences: PushPreferences = Field(default_factory=PushPreferences)
 
 
 class WebPushUnregisterRequest(BaseModel):
@@ -40,6 +52,14 @@ class PushBroadcastRequest(BaseModel):
     path: str | None = Field(None, max_length=256, pattern=r"^/.*")
     user_id: str | None = Field(None, max_length=255)
     platform: str | None = Field(None, pattern="^(android|ios|web)$")
+    category: str = Field('NEWS', pattern='^(ORDER|DELIVERY|NEWS|ADVERTISEMENT|SYSTEM)$')
+
+    @field_validator('path')
+    @classmethod
+    def internal_path(cls, value):
+        if value and (value.startswith('//') or any(ord(c) <= 32 or c == '\\' for c in value)):
+            raise ValueError('Only internal paths are allowed')
+        return value
 
 
 class PushBroadcastResponse(BaseModel):
