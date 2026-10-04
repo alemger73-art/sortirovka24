@@ -2,13 +2,50 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, update, or_, cast, DateTime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.announcements import Announcements
 from models.categories import Categories
 
 logger = logging.getLogger(__name__)
+
+VISIBLE_STATUSES = {"approved", "published"}
+
+
+def parse_announcement_date(value):
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
+    except (ValueError, TypeError):
+        return None
+
+
+def validate_announcement_fields(data):
+    """Validate supplied fields for both submission and owner edits."""
+    payload = dict(data)
+    for field, maximum in (("title", 120), ("description", 5000), ("phone", 30),
+                           ("whatsapp", 30), ("author_name", 100), ("address", 250), ("price", 100)):
+        if field not in payload:
+            continue
+        value = str(payload[field] or "").strip()
+        if field in {"title", "description", "phone"} and not value:
+            raise ValueError("Заполните название, описание и телефон")
+        if len(value) > maximum:
+            raise ValueError(f"Поле {field}: не более {maximum} символов")
+        if field in {"phone", "whatsapp"} and value:
+            digits = "".join(c for c in value if c.isdigit())
+            if not 10 <= len(digits) <= 15:
+                raise ValueError("Укажите телефон с кодом страны")
+        payload[field] = value
+    if payload.get('gallery_images'):
+        images = [image.strip() for image in payload['gallery_images'].split(',') if image.strip()]
+        if len(images) > 5:
+            raise ValueError('Можно добавить не более 5 фотографий')
+        payload['gallery_images'] = ','.join(images)
+    return payload
 
 ANN_TYPE_SLUG = {
     "sell": "prodam",
@@ -28,7 +65,20 @@ class AnnouncementsService:
 
     async def enrich_payload(self, data: Dict[str, Any]) -> Dict[str, Any]:
         payload = dict(data)
-        if not payload.get("expires_at"):
+        if payload.get('category_id'):
+            category = await self.db.get(Categories, payload['category_id'])
+            if not category or category.cat_type != 'announcements' or not category.is_active:
+                raise ValueError('Выберите доступную категорию объявлений')
+            reverse = {slug: ann_type for ann_type, slug in ANN_TYPE_SLUG.items()}
+            if category.slug in reverse:
+                payload['ann_type'] = reverse[category.slug]
+        for field in ('expires_at', 'promoted_until'):
+            if payload.get(field):
+                parsed = parse_announcement_date(payload[field])
+                if not parsed:
+                    raise ValueError('Укажите корректную дату')
+                payload[field] = parsed.astimezone(timezone.utc).isoformat()
+        if payload.get("status") in VISIBLE_STATUSES and not payload.get("expires_at"):
             payload["expires_at"] = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
         if payload.get("views_count") is None:
             payload["views_count"] = 0
@@ -52,11 +102,20 @@ class AnnouncementsService:
         return payload
 
     async def increment_views(self, obj_id: int) -> None:
-        obj = await self.get_by_id(obj_id)
-        if not obj:
-            return
-        obj.views_count = int(obj.views_count or 0) + 1
+        await self.db.execute(update(Announcements).where(Announcements.id == obj_id).values(
+            views_count=func.coalesce(Announcements.views_count, 0) + 1))
         await self.db.commit()
+
+    def public_conditions(self):
+        # Dates are stored as text in the legacy schema. Compare as dates so
+        # ISO offsets and legacy space-separated timestamps work consistently.
+        expires = func.nullif(Announcements.expires_at, "")
+        if self.db.bind.dialect.name == "sqlite":
+            valid_until = func.datetime(expires) > datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            valid_until = cast(expires, DateTime(timezone=True)) > datetime.now(timezone.utc)
+        return (Announcements.status.in_(VISIBLE_STATUSES), Announcements.active.is_(True),
+                or_(expires.is_(None), valid_until))
 
     async def create(self, data: Dict[str, Any]) -> Optional[Announcements]:
         """Create a new announcements"""
@@ -79,7 +138,7 @@ class AnnouncementsService:
         try:
             query = select(Announcements).where(Announcements.id == obj_id)
             if public_only:
-                query = query.where(Announcements.status.in_(("approved", "published")) & Announcements.active.is_(True))
+                query = query.where(*self.public_conditions())
             result = await self.db.execute(query)
             return result.scalar_one_or_none()
         except Exception as e:
@@ -99,8 +158,9 @@ class AnnouncementsService:
             query = select(Announcements)
             count_query = select(func.count(Announcements.id))
             if public_only:
-                query = query.where(Announcements.status.in_(("approved", "published")) & Announcements.active.is_(True))
-                count_query = count_query.where(Announcements.status.in_(("approved", "published")) & Announcements.active.is_(True))
+                conditions = self.public_conditions()
+                query = query.where(*conditions)
+                count_query = count_query.where(*conditions)
             
             if query_dict:
                 for field, value in query_dict.items():
@@ -142,6 +202,26 @@ class AnnouncementsService:
             if not obj:
                 logger.warning(f"Announcements {obj_id} not found for update")
                 return None
+            update_data = dict(update_data)
+            if 'ann_type' in update_data and 'category_id' not in update_data:
+                slug = ANN_TYPE_SLUG.get(update_data['ann_type'])
+                category = await self.db.scalar(select(Categories).where(
+                    Categories.slug == slug, Categories.cat_type == 'announcements', Categories.is_active.is_(True))) if slug else None
+                update_data['category_id'] = category.id if category else None
+            for field in ('expires_at', 'promoted_until'):
+                if update_data.get(field):
+                    parsed = parse_announcement_date(update_data[field])
+                    if not parsed:
+                        raise ValueError('Укажите корректную дату')
+                    update_data[field] = parsed.astimezone(timezone.utc).isoformat()
+            if update_data.get("status") in VISIBLE_STATUSES:
+                update_data = dict(update_data)
+                update_data["active"] = True
+                previous_expiry = parse_announcement_date(obj.expires_at)
+                if obj.status not in VISIBLE_STATUSES or not previous_expiry or previous_expiry <= datetime.now(timezone.utc):
+                    update_data.setdefault("expires_at", (datetime.now(timezone.utc) + timedelta(days=30)).isoformat())
+            elif update_data.get("status") in {"hidden", "rejected"}:
+                update_data = {**update_data, "active": False}
             for key, value in update_data.items():
                 if hasattr(obj, key):
                     setattr(obj, key, value)

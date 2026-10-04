@@ -1667,9 +1667,19 @@ async def update_my_announcement(
 ):
     user = await _current_user(db, authorization)
     row = await _get_owned_announcement(db, user, announcement_id)
+    from services.announcements import validate_announcement_fields
+    try:
+        validate_announcement_fields(request.model_dump(exclude_none=True))
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
     changed = False
     if request.ann_type is not None:
         row.ann_type = request.ann_type.strip() or None
+        if request.category_id is None:
+            slug = ANN_TYPE_SLUG.get(row.ann_type)
+            category = await db.scalar(select(Categories).where(
+                Categories.slug == slug, Categories.cat_type == 'announcements', Categories.is_active.is_(True))) if slug else None
+            row.category_id = category.id if category else None
         changed = True
     if request.category_id is not None:
         row.category_id = request.category_id or None
@@ -1677,6 +1687,8 @@ async def update_my_announcement(
             cat = (
                 await db.execute(select(Categories).where(Categories.id == row.category_id))
             ).scalar_one_or_none()
+            if not cat or cat.cat_type != 'announcements' or not cat.is_active:
+                raise HTTPException(400, 'Выберите доступную категорию объявлений')
             if cat and cat.slug and cat.slug in SLUG_TO_ANN_TYPE:
                 row.ann_type = SLUG_TO_ANN_TYPE[cat.slug]
         changed = True
@@ -1707,11 +1719,18 @@ async def update_my_announcement(
         first = (gallery.split(",")[0] or "").strip() if gallery else None
         row.image_url = first or None
         changed = True
-    if changed and row.status in {"approved", "published"}:
+    if changed:
         row.status = "pending"
         row.active = True
+        row.expires_at = None
     await db.commit()
     await _log_action(db, str(user.id), "announcement_update", "announcements", str(row.id))
+    if changed:
+        try:
+            from services.admin_alerts import alert_new_announcement
+            await alert_new_announcement(db, _announcement_to_dict(row))
+        except Exception:
+            logger.warning('Announcement moderation alert failed', exc_info=True)
     return {"success": True, "announcement": _announcement_to_dict(row)}
 
 
@@ -1765,6 +1784,8 @@ async def extend_my_announcement(
     user = await _current_user(db, authorization)
     row = await _get_owned_announcement(db, user, announcement_id)
     now = datetime.now(timezone.utc)
+    if row.status in {"pending", "rejected"}:
+        raise HTTPException(400, "Сначала отредактируйте объявление и дождитесь одобрения")
     base = _parse_iso_datetime(row.expires_at) or now
     if base < now:
         base = now
@@ -1774,6 +1795,12 @@ async def extend_my_announcement(
         row.status = "pending"
     await db.commit()
     await _log_action(db, str(user.id), "announcement_extend", "announcements", str(row.id))
+    if row.status == 'pending':
+        try:
+            from services.admin_alerts import alert_new_announcement
+            await alert_new_announcement(db, _announcement_to_dict(row))
+        except Exception:
+            logger.warning('Announcement moderation alert failed', exc_info=True)
     return {"success": True, "announcement": _announcement_to_dict(row)}
 
 
@@ -1785,7 +1812,8 @@ async def boost_my_announcement(
 ):
     user = await _current_user(db, authorization)
     row = await _get_owned_announcement(db, user, announcement_id)
-    if row.status not in {"approved", "published"}:
+    expires = _parse_iso_datetime(row.expires_at)
+    if row.status not in {"approved", "published"} or not row.active or (expires and expires <= datetime.now(timezone.utc)):
         raise HTTPException(status_code=400, detail="Поднять можно только опубликованное объявление")
     now = datetime.now(timezone.utc)
     active_until = _parse_iso_datetime(row.promoted_until)

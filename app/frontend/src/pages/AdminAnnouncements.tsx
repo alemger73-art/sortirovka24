@@ -2,7 +2,7 @@ import { adminMetadataLabel } from '@/i18n/adminTranslations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useEffect } from 'react';
 import { client, withRetry, ANN_TYPES, formatDate, timeAgo } from '@/lib/api';
-import { defaultExpiresAtIso } from '@/lib/announcements';
+import { defaultExpiresAtIso, isAnnouncementExpired } from '@/lib/announcements';
 import { invalidateAllCaches } from '@/lib/cache';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,30 +63,42 @@ export default function AdminAnnouncements() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Partial<Announcement> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [actionId, setActionId] = useState<number | null>(null);
+  const [search, setSearch] = useState('');
 
-  const fetchItems = async () => {
-    setLoading(true);
+  const fetchItems = async (background = false) => {
+    if (!background) setLoading(true);
     try {
       const query: Record<string, string> = {};
       if (filterStatus !== 'all') query.status = filterStatus;
-      const res = await withRetry(() => client.entities.announcements.query({ query, sort: '-created_at', limit: 200 }));
-      setItems(res.data?.items || []);
+      const all: Announcement[] = [];
+      let skip = 0;
+      while (true) {
+        const res = await withRetry(() => client.entities.announcements.query({ query, sort: '-created_at', skip, limit: 200 }));
+        const batch = res.data?.items || [];
+        all.push(...batch);
+        skip += batch.length;
+        if (!batch.length || skip >= Number(res.data?.total ?? skip)) break;
+      }
+      setItems(all);
     } catch { toast.error(adminT("admin.ui.0044")); }
     finally { setLoading(false); }
   };
 
   useEffect(() => {
     fetchItems();
-    const id = setInterval(fetchItems, 30_000);
+    const id = setInterval(() => void fetchItems(true), 30_000);
     return () => clearInterval(id);
   }, [filterStatus]);
 
   const changeStatus = async (id: number, status: string) => {
+    if (actionId !== null) return;
+    setActionId(id);
     try {
       const patch: Record<string, string> = { status };
       if (status === 'approved' || status === 'published') {
         const item = items.find((i) => i.id === id);
-        if (item && !item.expires_at) patch.expires_at = defaultExpiresAtIso(30);
+        if (item && (!item.expires_at || isAnnouncementExpired(item))) patch.expires_at = defaultExpiresAtIso(30);
       }
       await withRetry(() => client.entities.announcements.update({ id: String(id), data: patch }));
       toast.success(status === 'approved' ? adminT("admin.ui.0045") : status === 'rejected' ? adminT("admin.ui.0046") : adminT("admin.ui.0047"));
@@ -94,6 +106,7 @@ export default function AdminAnnouncements() {
       fetchItems();
       if (viewItem?.id === id) setViewItem({ ...viewItem!, status });
     } catch { toast.error(adminT("admin.ui.0048")); }
+    finally { setActionId(null); }
   };
 
   const handleDelete = async (id: number) => {
@@ -152,23 +165,28 @@ export default function AdminAnnouncements() {
         toast.success(adminT("admin.ui.0053"));
       } else {
         await withRetry(() => client.entities.announcements.create({
-          data: { ...data, created_at: new Date().toISOString().replace('T', ' ').slice(0, 19) }
+          data: { ...data, created_at: new Date().toISOString() }
         }));
         toast.success(adminT("admin.ui.0054"));
         invalidateAllCaches();
       }
       setDialogOpen(false);
+      invalidateAllCaches();
       fetchItems();
     } catch { toast.error(adminT("admin.ui.0055")); }
     finally { setSaving(false); }
   };
 
+  const filteredItems = items.filter((item) => [item.title, item.description, item.phone, item.author_name, String(item.id)].some((value) => String(value || '').toLowerCase().includes(search.trim().toLowerCase())));
+
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
 
   return (
     <div className="space-y-4">
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{adminT('ann.adminGuide')}</div>
+      <Input aria-label={adminT('public.Content.text76')} placeholder={adminT('public.Content.text76')} value={search} onChange={(e) => setSearch(e.target.value)} />
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <p className="text-sm text-gray-500">{items.length} {adminT("admin.ui.0056")}</p>
+        <p className="text-sm text-gray-500">{filteredItems.length} {adminT("admin.ui.0056")}</p>
         <div className="flex items-center gap-2">
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
@@ -187,12 +205,12 @@ export default function AdminAnnouncements() {
       </div>
 
       <div className="space-y-2">
-        {items.map(item => {
+        {filteredItems.map(item => {
           const st = STATUS_MAP[item.status || 'pending'] || STATUS_MAP.pending;
           return (
             <Card key={item.id} className="overflow-hidden">
               <CardContent className="p-3 sm:p-4">
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     {item.image_url && (
                       <StorageImage objectKey={item.image_url} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
@@ -201,6 +219,7 @@ export default function AdminAnnouncements() {
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <Badge variant="outline" className="text-xs">{adminMetadataLabel(ANN_TYPES[item.ann_type] || item.ann_type, adminT)}</Badge>
                         <Badge className={`text-xs border ${st.color}`}>{st.label}</Badge>
+                        {isAnnouncementExpired(item) && <Badge className="bg-red-50 text-red-700">{adminT('cabinet.announcements.expired')}</Badge>}
                         {item.promotion_tier === 'vip' && <Badge className="text-xs bg-purple-100 text-purple-800 border-purple-200">VIP</Badge>}
                         {item.promotion_tier === 'boost' && <Badge className="text-xs bg-blue-100 text-blue-800 border-blue-200">{adminT("admin.ui.0063")}</Badge>}
                       </div>
@@ -214,33 +233,33 @@ export default function AdminAnnouncements() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setViewItem(item)}>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={adminT("cabinet.announcements.view")} aria-label={adminT("cabinet.announcements.view")} onClick={() => setViewItem(item)}>
                       <Eye className="h-4 w-4 text-gray-500" />
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(item)}>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={adminT("common.edit")} aria-label={adminT("common.edit")} onClick={() => openEdit(item)}>
                       <Pencil className="h-4 w-4 text-blue-600" />
                     </Button>
-                    {item.status !== 'approved' && (
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => changeStatus(item.id, 'approved')}>
+                    {!['approved', 'published'].includes(item.status || '') && item.status !== 'hidden' && (
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={actionId !== null} aria-label={adminT('admin.ui.0071')} onClick={() => changeStatus(item.id, 'approved')}>
                         <Check className="h-4 w-4 text-green-600" />
                       </Button>
                     )}
                     {item.status !== 'hidden' && (
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => changeStatus(item.id, 'hidden')} title={adminT("admin.ui.0064")}>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={actionId !== null} aria-label={adminT('admin.ui.0064')} onClick={() => changeStatus(item.id, 'hidden')} title={adminT("admin.ui.0064")}>
                         <EyeOff className="h-4 w-4 text-gray-400" />
                       </Button>
                     )}
                     {item.status === 'hidden' && (
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => changeStatus(item.id, 'approved')} title={adminT("admin.ui.0065")}>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={actionId !== null} onClick={() => changeStatus(item.id, 'approved')} title={adminT("admin.ui.0065")}>
                         <EyeIcon className="h-4 w-4 text-green-500" />
                       </Button>
                     )}
                     {item.status !== 'rejected' && item.status !== 'hidden' && (
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => changeStatus(item.id, 'rejected')}>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={actionId !== null} aria-label={adminT('admin.ui.0072')} onClick={() => changeStatus(item.id, 'rejected')}>
                         <X className="h-4 w-4 text-red-500" />
                       </Button>
                     )}
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleDelete(item.id)}>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={adminT("common.delete")} onClick={() => handleDelete(item.id)}>
                       <Trash2 className="h-4 w-4 text-gray-400" />
                     </Button>
                   </div>
@@ -249,7 +268,7 @@ export default function AdminAnnouncements() {
             </Card>
           );
         })}
-        {items.length === 0 && <p className="text-center text-gray-400 py-8">{adminT("admin.ui.0066")}</p>}
+        {filteredItems.length === 0 && <p className="text-center text-gray-400 py-8">{adminT("admin.ui.0066")}</p>}
       </div>
 
       {/* View Dialog */}
@@ -290,14 +309,14 @@ export default function AdminAnnouncements() {
                     size="sm"
                     className={viewItem.status === 'approved' ? "bg-green-600 text-white" : ''}
                     variant={viewItem.status === 'approved' ? 'default' : 'outline'}
-                    onClick={() => changeStatus(viewItem.id, 'approved')}
+                    disabled={actionId !== null} onClick={() => changeStatus(viewItem.id, 'approved')}
                   >
                     <Check className="h-4 w-4 mr-1" /> {adminT("admin.ui.0071")} </Button>
                   <Button
                     size="sm"
                     variant={viewItem.status === 'rejected' ? 'default' : 'outline'}
                     className={viewItem.status === 'rejected' ? "bg-red-600 text-white" : ''}
-                    onClick={() => changeStatus(viewItem.id, 'rejected')}
+                    disabled={actionId !== null} onClick={() => changeStatus(viewItem.id, 'rejected')}
                   >
                     <X className="h-4 w-4 mr-1" /> {adminT("admin.ui.0072")} </Button>
                   <Button
@@ -323,7 +342,7 @@ export default function AdminAnnouncements() {
             <div className="space-y-3">
               <div>
                 <label className="text-sm font-medium text-gray-700">{adminT("admin.ui.0076")}</label>
-                <Select value={editItem.ann_type || 'sell'} onValueChange={v => setEditItem({ ...editItem, ann_type: v })}>
+                <Select value={editItem.ann_type || 'sell'} onValueChange={v => setEditItem({ ...editItem, ann_type: v, category_id: undefined })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {ANN_TYPE_KEYS.map(k => <SelectItem key={k} value={k}>{adminMetadataLabel(ANN_TYPES[k], adminT)}</SelectItem>)}
