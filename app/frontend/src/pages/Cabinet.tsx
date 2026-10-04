@@ -1211,7 +1211,7 @@ export default function Cabinet() {
                   <div className="space-y-3">
                     {(rows.announcements || []).map((a: any) => {
                       const statusMeta = STATUS_LABELS[a.status] || { label: a.status || "-", color: "bg-gray-100 text-gray-800" };
-                      const isPublished = ["approved", "published"].includes(a.status);
+                      const isPublished = ["approved", "published"].includes(a.status) && a.active === true && !isAnnouncementExpired(a);
                       return (
                         <div key={a.id} className={listCardClass}>
                           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1219,7 +1219,7 @@ export default function Cabinet() {
                               <p className="font-semibold text-gray-900 dark:text-white">{a.title || t("cabinet.announcementDefault")}</p>
                               <div className="mt-1 flex flex-wrap items-center gap-2">
                                 <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusMeta.color}`}>
-                                  {getStatusLabel(a.status, t)}
+                                  {isAnnouncementExpired(a) && ["approved", "published"].includes(a.status) ? t("cabinet.announcements.expired") : getStatusLabel(a.status === "approved" ? "published" : a.status, t)}
                                 </span>
                                 {a.ann_type ? (
                                   <span className="text-xs text-amber-600 dark:text-yellow-300">{ANN_TYPES[a.ann_type] || a.ann_type}</span>
@@ -1256,14 +1256,14 @@ export default function Cabinet() {
                                 <>
                                   <button
                                     type="button"
-                                    onClick={() => boostAnnouncement(Number(a.id))}
+                                    disabled={contentBusy || isAnnouncementPromoted(a)} onClick={() => boostAnnouncement(Number(a.id))}
                                     className="inline-flex items-center gap-1 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-500/30 dark:text-blue-200 dark:hover:bg-blue-500/10"
                                   >
                                     {t("cabinet.announcements.boost")}
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => unpublishAnnouncement(Number(a.id))}
+                                    disabled={contentBusy} onClick={() => unpublishAnnouncement(Number(a.id))}
                                     className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-white dark:border-[#2a3347] dark:text-slate-200 dark:hover:bg-[#111827]"
                                   >
                                     <EyeOff className="h-3.5 w-3.5" />
@@ -1273,14 +1273,14 @@ export default function Cabinet() {
                               ) : null}
                               <button
                                 type="button"
-                                onClick={() => extendAnnouncement(Number(a.id))}
+                                disabled={contentBusy || ["pending", "rejected"].includes(a.status)} onClick={() => extendAnnouncement(Number(a.id))}
                                 className="inline-flex items-center gap-1 rounded-lg border border-green-200 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50 dark:border-green-500/30 dark:text-green-200 dark:hover:bg-green-500/10"
                               >
-                                {t("cabinet.announcements.extend")}
+                                {a.status === "hidden" ? t("ann.resubmit") : t("cabinet.announcements.extend")}
                               </button>
                               <button
                                 type="button"
-                                onClick={() => deleteAnnouncement(Number(a.id))}
+                                disabled={contentBusy} onClick={() => deleteAnnouncement(Number(a.id))}
                                 className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />

@@ -13,6 +13,8 @@ from core.database import Base, get_db
 from models.auth import User
 from models.admin_auth import AdminCredentials
 from models.user_management import UserSession
+from models.logistics import LogisticsTask, CourierProfile  # register ledger foreign-key targets
+from models.food_shifts import FoodShift
 from models.news import News
 from models.user_preferences import User_preferences
 from routers import account_v2, auth, storage, news, announcements, jobs, real_estate, user_preferences, admin_auth
@@ -24,8 +26,8 @@ from schemas.storage import FileUpDownRequest
 
 
 @pytest.fixture
-async def security_env(tmp_path, monkeypatch):
-    engine = create_async_engine('sqlite+aiosqlite:///' + (tmp_path / 'security.db').as_posix())
+async def security_env(monkeypatch):
+    engine = create_async_engine('sqlite+aiosqlite:///:memory:')
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     maker = async_sessionmaker(engine, expire_on_commit=False)
@@ -152,11 +154,11 @@ async def test_public_creation_moderation_and_approval(security_env,entity,title
     base='/api/v1/entities/'+entity
     body={**title,'status':'approved','active':True,'user_id':'bob',
           'promoted_until':'2099-01-01','promotion_tier':'premium','views_count':999}
-    if entity=='real_estate': body.update(description='Two rooms', phone='+77001234567')
-    r=await client.post(base,json=body,headers=headers['alice'] if entity=='real_estate' else {}); assert r.status_code==201,r.text
+    if entity in ('real_estate', 'announcements'): body.update(description='Two rooms', phone='+77001234567')
+    r=await client.post(base,json=body,headers=headers['alice'] if entity in ('real_estate', 'announcements') else {}); assert r.status_code==201,r.text
     data=r.json(); assert data['status']=='pending'
     if entity in ('announcements','real_estate'):
-        assert data['user_id']==('alice' if entity=='real_estate' else None)
+        assert data['user_id']=='alice'
         assert data['promotion_tier'] is None and data['views_count']==0
     item=base+'/'+str(data['id'])
     assert (await client.get(item)).status_code==404

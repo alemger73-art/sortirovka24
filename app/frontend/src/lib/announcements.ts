@@ -33,14 +33,15 @@ export type AnnouncementSort = 'new' | 'price_asc' | 'price_desc';
 
 export function loadAnnFavorites(): number[] {
   try {
-    return JSON.parse(localStorage.getItem(ANN_FAV_KEY) || '[]');
+    const value = JSON.parse(localStorage.getItem(ANN_FAV_KEY) || '[]');
+    return Array.isArray(value) ? [...new Set(value.filter((id) => Number.isInteger(id) && id > 0))] : [];
   } catch {
     return [];
   }
 }
 
 export function saveAnnFavorites(ids: number[]) {
-  localStorage.setItem(ANN_FAV_KEY, JSON.stringify(ids));
+  try { localStorage.setItem(ANN_FAV_KEY, JSON.stringify(ids)); } catch { /* Restricted storage. */ }
 }
 
 export function toggleAnnFavorite(id: number): number[] {
@@ -106,10 +107,10 @@ export function sortAnnouncements<T extends {
   return [...items].sort((a, b) => {
     const pa = isAnnouncementPromoted(a, now) ? 1 : 0;
     const pb = isAnnouncementPromoted(b, now) ? 1 : 0;
-    if (pb !== pa) return pb - pa;
-    const ta = tierRank(a.promotion_tier);
-    const tb = tierRank(b.promotion_tier);
-    if (tb !== ta) return tb - ta;
+    if (sortBy === 'new' && pb !== pa) return pb - pa;
+    const ta = pa ? tierRank(a.promotion_tier) : 0;
+    const tb = pb ? tierRank(b.promotion_tier) : 0;
+    if (sortBy === 'new' && tb !== ta) return tb - ta;
 
     if (sortBy === 'price_asc' || sortBy === 'price_desc') {
       const paPrice = parseAnnouncementPrice(a.price);
@@ -125,17 +126,18 @@ export function sortAnnouncements<T extends {
       }
     }
 
-    return Date.parse(b.created_at || '') - Date.parse(a.created_at || '');
+    return (Date.parse(b.created_at || '') || 0) - (Date.parse(a.created_at || '') || 0);
   });
 }
 
 export function filterPublicAnnouncements<T extends {
   status?: string | null;
   expires_at?: string | null;
+  active?: boolean | null;
 }>(items: T[]): T[] {
   const now = Date.now();
   return items.filter(
-    (item) => ANN_VISIBLE_STATUSES.includes(String(item.status || '')) && !isAnnouncementExpired(item, now),
+    (item) => item.active === true && ANN_VISIBLE_STATUSES.includes(String(item.status || '')) && !isAnnouncementExpired(item, now),
   );
 }
 
@@ -148,7 +150,9 @@ export async function fetchAnnouncementCategories(): Promise<AnnCategory[]> {
     }),
   );
   const items: AnnCategory[] = res.data?.items || [];
-  return items.filter((cat) => cat.parent_id !== null && cat.parent_id !== '' && cat.parent_id !== undefined);
+  // Accept leaf categories whether the directory uses a root node or a flat list.
+  const parents = new Set(items.map((cat) => String(cat.parent_id ?? '')));
+  return items.filter((cat) => !parents.has(String(cat.id)));
 }
 
 export function annTypeForCategory(category: AnnCategory | undefined, categoryId: number | string): string {

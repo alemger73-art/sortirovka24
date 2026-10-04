@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { client, withRetry, COMPLAINT_CATEGORIES, NEWS_CATEGORIES, ANN_TYPES, REAL_ESTATE_TYPES, JOB_CATEGORIES, STATUS_LABELS, timeAgo, formatDate } from '@/lib/api';
-import { fetchWithCache } from '@/lib/cache';
+import { fetchWithCache, invalidateAllCaches } from '@/lib/cache';
 import { ChevronLeft, MapPin, Phone, MessageCircle, Clock, CheckCircle, AlertTriangle, Star, Briefcase, HelpCircle, Send, BookOpen, Megaphone, Shield, Loader2, Plus, Home, Search, Pencil, Trash2, EyeOff, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import ImageUpload, { StorageImage } from "@/components/ImageUpload";
@@ -15,16 +15,13 @@ import StorageVideo from '@/components/StorageVideo';
 import { pushCabinetItem, requireAuthDialog, getAccountPrefill, getCurrentUser } from '@/lib/localAuth';
 import { accountApi } from '@/lib/accountApi';
 import {
-  ANN_VISIBLE_STATUSES,
   type AnnCategory,
   type AnnouncementSort,
   annTypeForCategory,
-  defaultExpiresAtIso,
   fallbackAnnouncementCategories,
   fetchAnnouncementCategories,
   filterPublicAnnouncements,
   getAnnouncementCover,
-  isAnnouncementExpired,
   isAnnouncementPromoted,
   loadAnnFavorites,
   resolveCategoryLabel,
@@ -276,7 +273,7 @@ function normalizePhoneDigits(value?: string | null) {
 function userOwnsAnnouncement(ann: { user_id?: string; phone?: string }) {
   const user = getCurrentUser();
   if (!user) return false;
-  if (ann.user_id && String(ann.user_id) === String(user.id)) return true;
+  if (ann.user_id) return String(ann.user_id) === String(user.id);
   const userPhone = normalizePhoneDigits(user.phone);
   const annPhone = normalizePhoneDigits(ann.phone);
   return Boolean(userPhone && annPhone && userPhone === annPhone);
@@ -293,6 +290,19 @@ type AnnouncementFormState = {
   author_name: string;
 };
 
+function validateAnnouncementForm(form: AnnouncementFormState, t: (key: string) => string) {
+  if (!form.category_id || !form.title.trim() || !form.description.trim()) {
+    toast.error(t('ann.required'));
+    return false;
+  }
+  if (![form.phone, form.whatsapp].every((phone, index) =>
+    index === 1 && !phone.trim() || /^\d{10,15}$/.test(normalizePhoneDigits(phone)))) {
+    toast.error(t('ann.phoneInvalid'));
+    return false;
+  }
+  return true;
+}
+
 function AnnouncementFormFields({
   form,
   setForm,
@@ -307,11 +317,17 @@ function AnnouncementFormFields({
   categories: AnnCategory[];
 }) {
   const { t: publicT } = useLanguage();
+  const selectedCategory = categories.find((cat) => String(cat.id) === form.category_id || annTypeForCategory(cat, cat.id) === form.category_id);
   return (
     <>
+      <div className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
+        <p className="font-semibold">{publicT('ann.form.guideTitle')}</p>
+        <p className="mt-1">{publicT('ann.form.guide')}</p>
+      </div>
+      <h2 className="font-semibold text-gray-900 dark:text-slate-100">{publicT('ann.form.about')}</h2>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text54")}</label>
-        <select value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        <label htmlFor="ann-category_id" className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">{publicT("public.Content.text54")}</label>
+        <select id="ann-category_id" value={selectedCategory ? String(selectedCategory.id) : form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })} className="dark:bg-slate-900 dark:text-slate-100 w-full px-3 py-2.5 border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
           <option value="">{publicT("masters.selectCategory")}</option>
           {(categories.length ? categories : fallbackAnnouncementCategories()).map((cat) => (
             <option key={cat.id} value={String(cat.id)}>{cat.icon ? `${cat.icon} ` : ''}{getPublicCategoryLabel(cat.name, publicT)}</option>
@@ -319,39 +335,40 @@ function AnnouncementFormFields({
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text68")}</label>
-        <input type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+        <label htmlFor="ann-title" className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">{publicT("public.Content.text68")}</label>
+        <input type="text" maxLength={120} id="ann-title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="dark:bg-slate-900 dark:text-slate-100 w-full px-3 py-2.5 border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required aria-required="true" />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text69")}</label>
-        <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={4} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" required />
+        <label htmlFor="ann-description" className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">{publicT("public.Content.text69")}</label>
+        <textarea maxLength={5000} id="ann-description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={4} className="dark:bg-slate-900 dark:text-slate-100 w-full px-3 py-2.5 border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" required />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("realestate.form.price")}</label>
-          <input type="text" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder={publicT("public.Content.text70")} />
+          <label htmlFor="ann-price" className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">{publicT("realestate.form.price")}</label>
+          <input type="text" id="ann-price" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="dark:bg-slate-900 dark:text-slate-100 w-full px-3 py-2.5 border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder={publicT("public.Content.text70")} />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text71")}</label>
-          <input type="text" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text72")}</label>
-          <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
-          <input type="tel" value={form.whatsapp} onChange={e => setForm({ ...form, whatsapp: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <label htmlFor="ann-address" className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">{publicT("public.Content.text71")}</label>
+          <input type="text" id="ann-address" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className="dark:bg-slate-900 dark:text-slate-100 w-full px-3 py-2.5 border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("realestate.form.author")}</label>
-        <input type="text" value={form.author_name} onChange={e => setForm({ ...form, author_name: e.target.value })} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <h2 className="font-semibold text-gray-900 dark:text-slate-100">{publicT("ann.form.contacts")}</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="ann-phone" className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">{publicT("public.Content.text72")}</label>
+          <input type="tel" autoComplete="tel" maxLength={30} id="ann-phone" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="dark:bg-slate-900 dark:text-slate-100 w-full px-3 py-2.5 border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+        </div>
+        <div>
+          <label htmlFor="ann-whatsapp" className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">WhatsApp</label>
+          <input type="tel" maxLength={30} id="ann-whatsapp" value={form.whatsapp} onChange={e => setForm({ ...form, whatsapp: e.target.value })} className="dark:bg-slate-900 dark:text-slate-100 w-full px-3 py-2.5 border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">{publicT("public.Content.text73")}</label>
+        <label htmlFor="ann-author_name" className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">{publicT("realestate.form.author")}</label>
+        <input type="text" id="ann-author_name" value={form.author_name} onChange={e => setForm({ ...form, author_name: e.target.value })} className="dark:bg-slate-900 dark:text-slate-100 w-full px-3 py-2.5 border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1">{publicT("public.Content.text73")}</label>
         <p className="text-xs text-gray-400 mb-1.5">{publicT("public.Content.text74")}</p>
         <MultiImageUpload value={galleryKeys} onChange={setGalleryKeys} folder="announcements" maxImages={5} />
       </div>
@@ -365,6 +382,8 @@ export function AnnouncementsList() {
   const [items, setItems] = useState<any[]>([]);
   const [categories, setCategories] = useState<AnnCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(24);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<AnnouncementSort>('new');
@@ -375,20 +394,27 @@ export function AnnouncementsList() {
     fetchAnnouncementCategories().then(setCategories).catch(() => setCategories([]));
   }, []);
 
-  useEffect(() => { loadData(); }, [categoryFilter]);
+  useEffect(() => { void loadData(); }, []);
+  useEffect(() => { setVisibleCount(24); }, [categoryFilter, searchQuery, sortBy, showFavoritesOnly]);
 
   async function loadData() {
     setLoading(true);
+    setLoadError(false);
     try {
-      const query: any = {};
-      if (categoryFilter) {
-        const num = Number(categoryFilter);
-        if (Number.isFinite(num)) query.category_id = num;
-        else query.ann_type = categoryFilter;
+      const all: any[] = [];
+      let skip = 0;
+      while (true) {
+        const res = await withRetry(() => client.entities.announcements.query({ sort: '-created_at', skip, limit: 200 }));
+        const batch = res.data?.items || [];
+        all.push(...batch);
+        skip += batch.length;
+        if (!batch.length || skip >= Number(res.data?.total ?? skip)) break;
       }
-      const res = await fetchWithCache(`announcements_list_${categoryFilter || 'all'}`, () => withRetry(() => client.entities.announcements.query({ query, sort: '-created_at', limit: 100 })), 5 * 60 * 1000);
-      setItems(filterPublicAnnouncements(res.data?.items || []));
-    } catch (e) { console.error(e); } finally { setLoading(false); }
+      setItems(filterPublicAnnouncements(all));
+    } catch (e) {
+      console.error(e);
+      setLoadError(true);
+    } finally { setLoading(false); }
   }
 
   function handleToggleFavorite(e: React.MouseEvent, id: number) {
@@ -399,9 +425,14 @@ export function AnnouncementsList() {
 
   const filteredItems = sortAnnouncements(
     items.filter((ann) => {
+      if (categoryFilter) {
+        const cat = categories.find((c) => String(c.id) === categoryFilter);
+        const type = annTypeForCategory(cat, categoryFilter);
+        if (String(ann.category_id) !== categoryFilter && ann.ann_type !== type) return false;
+      }
       if (showFavoritesOnly && !favorites.includes(ann.id)) return false;
       if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase();
+      const q = searchQuery.trim().toLowerCase();
       return [ann.title, ann.description, ann.address, ann.price, resolveCategoryLabel(ann, categories)]
         .filter(Boolean)
         .some((part: string) => String(part).toLowerCase().includes(q));
@@ -418,13 +449,15 @@ export function AnnouncementsList() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{publicT("categories.announcements")}</h1>
-            <p className="text-gray-500 mt-1">{publicT("public.Content.text75")}</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-slate-100">{publicT("categories.announcements")}</h1>
+            <p className="text-gray-500 dark:text-slate-400 mt-1">{publicT('ann.catalogGuide')}</p>
           </div>
           <Link to="/announcements/new" className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 bg-amber-500 text-white font-medium px-4 py-2.5 rounded-lg hover:bg-amber-600 text-sm">
             <Megaphone className="w-4 h-4" /> {publicT("realestate.publish")} </Link>
         </div>
 
+        <Link to="/cabinet?tab=announcements" className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-amber-700">{publicT('realestate.myListings')} <ChevronLeft className="h-4 w-4 rotate-180" /></Link>
+        <div className="rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 mb-6">
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -432,14 +465,14 @@ export function AnnouncementsList() {
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={publicT("public.Content.text76")}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400"
+              aria-label={publicT("public.Content.text76")} placeholder={publicT("public.Content.text76")}
+              className="dark:bg-slate-900 dark:text-slate-100 w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400"
             />
           </div>
           <select
-            value={sortBy}
+            aria-label={publicT("ann.sort")} value={sortBy}
             onChange={(e) => setSortBy(e.target.value as AnnouncementSort)}
-            className="rounded-xl border border-gray-200 px-3 py-2.5 text-sm bg-white"
+            className="rounded-xl border border-gray-200 dark:border-slate-700 px-3 py-2.5 text-sm bg-white"
           >
             <option value="new">{publicT("realestate.sort.new")}</option>
             <option value="price_asc">{publicT("realestate.sort.priceAsc")}</option>
@@ -466,30 +499,37 @@ export function AnnouncementsList() {
           </button>
         </div>
 
-        {loading ? <div className="text-center py-12 text-gray-400">{publicT("common.retrying")}</div> : filteredItems.length === 0 ? (
+        <div className="flex items-center justify-between gap-3 text-sm text-gray-500 dark:text-slate-400">
+          <span aria-live="polite">{filteredItems.length} {publicT('ann.results')}</span>
+          <button type="button" onClick={() => { setSearchQuery(''); setCategoryFilter(''); setShowFavoritesOnly(false); setSortBy('new'); }} className="font-medium text-amber-700">{publicT('ann.reset')}</button>
+        </div>
+        </div>
+        {loadError ? <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+          <p>{publicT('ann.loadError')}</p>
+          <button type="button" onClick={() => void loadData()} className="mt-3 rounded-lg bg-amber-500 px-4 py-2 font-medium text-white">{publicT('cabinet.retry')}</button>
+        </div> : loading ? <div className="text-center py-12 text-gray-400">{publicT("common.retrying")}</div> : filteredItems.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <Megaphone className="w-12 h-12 mx-auto mb-3 opacity-40" />
-            <p>{publicT("public.Content.text78")}</p>
+            <p className="font-medium text-gray-700 dark:text-slate-200">{publicT("public.Content.text78")}</p>
+            <p className="mt-2 text-sm">{publicT(showFavoritesOnly ? 'ann.emptyFavorites' : 'ann.emptySearch')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredItems.map(ann => {
+            {filteredItems.slice(0, visibleCount).map(ann => {
               const cover = getAnnouncementCover(ann);
               const isFav = favorites.includes(ann.id);
               const promoted = isAnnouncementPromoted(ann);
               return (
-              <Link key={ann.id} to={`/announcements/${ann.id}`} className="relative bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all hover:-translate-y-0.5 block">
+              <Link key={ann.id} to={`/announcements/${ann.id}`} className="relative bg-white dark:bg-slate-900 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all hover:-translate-y-0.5 block">
                 <button
                   type="button"
                   onClick={(e) => handleToggleFavorite(e, ann.id)}
                   className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/90 shadow flex items-center justify-center"
-                  aria-label={publicT("realestate.favorites")}
+                  aria-pressed={isFav} aria-label={publicT("realestate.favorites")}
                 >
                   <Heart className={`w-4 h-4 ${isFav ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
                 </button>
-                {cover && (
-                  <StorageImg objectKey={cover} alt={ann.title} className="w-full h-40 object-cover" />
-                )}
+                {cover ? <StorageImg objectKey={cover} alt={ann.title} className="w-full h-48 object-cover" /> : <div className="h-48 bg-amber-50 flex items-center justify-center"><Megaphone className="h-12 w-12 text-amber-200" /></div>}
                 <div className="p-5">
                   <div className="flex items-center justify-between mb-2 gap-2">
                     <div className="flex flex-wrap gap-1">
@@ -503,8 +543,8 @@ export function AnnouncementsList() {
                     </div>
                     <span className="text-xs text-gray-400 shrink-0">{timeAgo(ann.created_at)}</span>
                   </div>
-                  <h3 className="font-semibold text-gray-900">{ann.title}</h3>
-                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">{ann.description}</p>
+                  <h3 className="font-semibold text-gray-900 dark:text-slate-100">{ann.title}</h3>
+                  <p className="text-sm text-gray-500 dark:text-slate-400 mt-1 line-clamp-2">{ann.description}</p>
                   {ann.price && <p className="text-blue-600 font-bold mt-2">{ann.price}</p>}
                   {ann.address && <div className="flex items-center gap-1 mt-2 text-xs text-gray-400"><MapPin className="w-3.5 h-3.5" /> {ann.address}</div>}
                   <div className="flex gap-2 mt-3 pt-3 border-t border-gray-50">
@@ -516,6 +556,7 @@ export function AnnouncementsList() {
             );})}
           </div>
         )}
+        {!loading && !loadError && filteredItems.length > visibleCount && <div className="mt-6 text-center"><button type="button" onClick={() => setVisibleCount((n) => n + 24)} className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-6 py-3 font-medium">{publicT('ann.more')}</button></div>}
       </div>
     </Layout>
   );
@@ -547,7 +588,7 @@ export function NewAnnouncementForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!requireAuthDialog(navigate)) return;
-    if (!form.category_id || !form.title || !form.description || !form.phone) return;
+    if (!validateAnnouncementForm(form, publicT)) return;
     if (submitted) return;
     setSubmitting(true);
     setSubmitted(true);
@@ -555,9 +596,9 @@ export function NewAnnouncementForm() {
       const accountUser = getCurrentUser();
       const categoryId = Number(form.category_id);
       const cat = categories.find((c) => c.id === categoryId);
-      const ann_type = annTypeForCategory(cat, categoryId);
+      const ann_type = annTypeForCategory(cat, form.category_id);
       const firstImage = galleryKeys.split(',').map((k) => k.trim()).find(Boolean) || null;
-      await withRetry(() => client.entities.announcements.create({
+      await client.entities.announcements.create({
         data: {
           ...form,
           category_id: Number.isFinite(categoryId) ? categoryId : undefined,
@@ -567,10 +608,10 @@ export function NewAnnouncementForm() {
           status: 'pending',
           gallery_images: galleryKeys,
           image_url: firstImage,
-          expires_at: defaultExpiresAtIso(30),
           created_at: new Date().toISOString(),
         },
-      }));
+      });
+      invalidateAllCaches();
       setSuccess(true);
       pushCabinetItem('announcements', {
         title: form.title,
@@ -605,8 +646,8 @@ export function NewAnnouncementForm() {
   if (success) return (
     <Layout><div className="max-w-lg mx-auto px-4 py-16 text-center">
       <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4"><Clock className="w-8 h-8 text-amber-600" /></div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">{publicT("public.Content.text80")}</h2>
-      <p className="text-gray-500 mb-6">{publicT("public.Content.text81")}</p>
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">{publicT("public.Content.text80")}</h2>
+      <p className="text-gray-500 dark:text-slate-400 mb-6">{publicT("public.Content.text81")}</p>
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <Link to="/cabinet?tab=announcements" className="text-blue-600 hover:text-blue-700 font-medium">{publicT("realestate.myListings")}</Link>
         <Link to="/announcements" className="text-blue-600 hover:text-blue-700 font-medium">{publicT("realestate.allListings")}</Link>
@@ -617,10 +658,10 @@ export function NewAnnouncementForm() {
   return (
     <Layout>
       <div className="max-w-lg mx-auto px-4 py-8">
-        <Link to="/announcements" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> {publicT("common.back")}</Link>
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">{publicT("quick.postAd")}</h1>
+        <Link to="/announcements" className="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:text-slate-200 mb-6"><ChevronLeft className="w-4 h-4" /> {publicT("common.back")}</Link>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-6">{publicT("quick.postAd")}</h1>
         <SafetyAlert variant="announcement_form" />
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4 mt-4">
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-6 space-y-4 mt-4">
           <AnnouncementFormFields form={form} setForm={setForm} galleryKeys={galleryKeys} setGalleryKeys={setGalleryKeys} categories={categories} />
           <button type="submit" disabled={submitting || submitted} className="w-full bg-amber-500 text-white font-medium py-3 rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-50">
             {submitting ? (
@@ -656,7 +697,7 @@ export function EditAnnouncementForm() {
     accountApi.getMyAnnouncement(Number(id))
       .then((data) => {
         setForm({
-          category_id: data.category_id ? String(data.category_id) : '',
+          category_id: data.category_id ? String(data.category_id) : data.ann_type || '',
           title: data.title || '',
           description: data.description || '',
           price: data.price || '',
@@ -665,7 +706,7 @@ export function EditAnnouncementForm() {
           whatsapp: data.whatsapp || '',
           author_name: data.author_name || '',
         });
-        setGalleryKeys(data.gallery_images || '');
+        setGalleryKeys(data.gallery_images || data.image_url || '');
         setStatus(data.status || '');
         setExpiresAt(data.expires_at || '');
       })
@@ -679,7 +720,7 @@ export function EditAnnouncementForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!id || !form.category_id || !form.title || !form.description || !form.phone) return;
+    if (!id || submitting || !validateAnnouncementForm(form, publicT)) return;
     setSubmitting(true);
     try {
       const categoryId = Number(form.category_id);
@@ -687,10 +728,11 @@ export function EditAnnouncementForm() {
       await accountApi.updateMyAnnouncement(Number(id), {
         ...form,
         category_id: Number.isFinite(categoryId) ? categoryId : undefined,
-        ann_type: annTypeForCategory(cat, categoryId),
+        ann_type: annTypeForCategory(cat, form.category_id),
         gallery_images: galleryKeys,
       });
-      toast.success(publicT("realestate.form.saved"));
+      invalidateAllCaches();
+      toast.success(publicT("ann.editSaved"));
       navigate('/cabinet?tab=announcements');
     } catch (err) {
       console.error(err);
@@ -707,18 +749,19 @@ export function EditAnnouncementForm() {
   return (
     <Layout>
       <div className="max-w-lg mx-auto px-4 py-8">
-        <Link to="/cabinet?tab=announcements" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"><ChevronLeft className="w-4 h-4" /> {publicT("realestate.myListings")}</Link>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">{publicT("realestate.form.editTitle")}</h1>
+        <Link to="/cabinet?tab=announcements" className="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:text-slate-200 mb-6"><ChevronLeft className="w-4 h-4" /> {publicT("realestate.myListings")}</Link>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">{publicT("realestate.form.editTitle")}</h1>
         {status && (
-          <p className="text-sm text-gray-500 mb-2">
+          <p className="text-sm text-gray-500 dark:text-slate-400 mb-2">
             {publicT("public.extra.9")} <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_LABELS[status]?.color || 'bg-gray-100 text-gray-800'}`}>{getStatusLabel(status, publicT)}</span>
           </p>
         )}
         {expiresAt && (
-          <p className="text-sm text-gray-500 mb-4">{publicT("realestate.form.activeUntil")} {formatDate(expiresAt || "")}</p>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mb-4">{publicT("realestate.form.activeUntil")} {formatDate(expiresAt || "")}</p>
         )}
         <SafetyAlert variant="announcement_form" />
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4 mt-4">
+        <p className="mt-3 text-sm text-gray-500 dark:text-slate-400">{publicT("ann.editNotice")}</p>
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-6 space-y-4 mt-4">
           <AnnouncementFormFields form={form} setForm={setForm} galleryKeys={galleryKeys} setGalleryKeys={setGalleryKeys} categories={categories} />
           <button type="submit" disabled={submitting} className="w-full bg-amber-500 text-white font-medium py-3 rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-50">
             {submitting ? (
@@ -742,6 +785,8 @@ export function AnnouncementDetail() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
   const announcementDescription = item ? String(item.description || item.title || '').replace(/\s+/g, ' ').trim().slice(0, 160) : '';
 
   usePageSeo({
@@ -763,18 +808,26 @@ export function AnnouncementDetail() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setItem(null);
+    setLoadError(false);
     (async () => {
       try {
         const res = await withRetry(() => client.entities.announcements.get({ id: id! }));
+        if (cancelled) return;
         setItem(res.data);
         const favs = loadAnnFavorites();
         setIsFavorite(favs.includes(Number(id)));
-      } catch (e) { console.error(e); } finally { setLoading(false); }
+      } catch (e: any) {
+        if (!cancelled && (e?.response?.status ?? e?.status) !== 404) setLoadError(true);
+      } finally { if (!cancelled) setLoading(false); }
     })();
-  }, [id]);
+    return () => { cancelled = true; };
+  }, [id, retryKey]);
 
   const isOwner = item ? userOwnsAnnouncement(item) : false;
-  const isPublic = item ? ANN_VISIBLE_STATUSES.includes(item.status) && !isAnnouncementExpired(item) : false;
+  const isPublic = item ? filterPublicAnnouncements([item]).length > 0 : false;
   const cover = item ? getAnnouncementCover(item) : null;
   const promoted = item ? isAnnouncementPromoted(item) : false;
 
@@ -785,11 +838,11 @@ export function AnnouncementDetail() {
   }
 
   async function handleUnpublish() {
-    if (!item?.id || !window.confirm(publicT("cabinet.realEstate.unpublishConfirm"))) return;
+    if (!item?.id || !window.confirm(publicT("cabinet.announcements.unpublishConfirm"))) return;
     setActionLoading(true);
     try {
       await accountApi.unpublishMyAnnouncement(Number(item.id));
-      toast.success(publicT("cabinet.realEstate.unpublished"));
+      toast.success(publicT("cabinet.announcements.unpublished"));
       navigate('/cabinet?tab=announcements');
     } catch (err) {
       console.error(err);
@@ -800,11 +853,11 @@ export function AnnouncementDetail() {
   }
 
   async function handleDelete() {
-    if (!item?.id || !window.confirm(publicT("cabinet.realEstate.deleteConfirm"))) return;
+    if (!item?.id || !window.confirm(publicT("cabinet.announcements.deleteConfirm"))) return;
     setActionLoading(true);
     try {
       await accountApi.deleteMyAnnouncement(Number(item.id));
-      toast.success(publicT("cabinet.realEstate.deleted"));
+      toast.success(publicT("cabinet.announcements.deleted"));
       navigate('/cabinet?tab=announcements');
     } catch (err) {
       console.error(err);
@@ -815,12 +868,13 @@ export function AnnouncementDetail() {
   }
 
   if (loading) return <Layout><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400">{publicT("common.retrying")}</div></Layout>;
-  if (!item || (!isPublic && !isOwner)) return <Layout><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400">{publicT("realestate.notFound")}</div></Layout>;
+  if (loadError) return <Layout><div role="alert" className="max-w-3xl mx-auto px-4 py-12 text-center"><p>{publicT('ann.loadError')}</p><button className="mt-3 rounded-lg border px-4 py-2" onClick={() => setRetryKey((v) => v + 1)}>{publicT('cabinet.retry')}</button></div></Layout>;
+  if (!item || (!isPublic && !isOwner)) return <Layout><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-400"><p>{publicT("realestate.notFound")}</p><Link to="/announcements" className="mt-3 inline-block text-blue-600">{publicT('realestate.allListings')}</Link></div></Layout>;
 
   return (
     <Layout>
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <Link to="/announcements" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6">
+        <Link to="/announcements" className="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:text-slate-200 mb-6">
           <ChevronLeft className="w-4 h-4" /> {publicT("realestate.allListings")} </Link>
 
         {isOwner && !isPublic && (
@@ -830,7 +884,7 @@ export function AnnouncementDetail() {
           </div>
         )}
 
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden relative">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm overflow-hidden relative">
           <button
             type="button"
             onClick={toggleFavorite}
@@ -859,21 +913,21 @@ export function AnnouncementDetail() {
               )}
             </div>
 
-            <h1 className="text-2xl font-bold text-gray-900 mb-3">{item.title}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-3">{item.title}</h1>
 
             {item.price && (
               <p className="text-xl text-blue-600 font-bold mb-4">{item.price}</p>
             )}
 
             <div className="prose prose-gray max-w-none mb-6">
-              {item.description.split('\n').map((p: string, i: number) => (
-                <p key={i} className="text-gray-700 leading-relaxed mb-3">{p}</p>
+              {String(item.description || '').split('\n').map((p: string, i: number) => (
+                <p key={i} className="text-gray-700 dark:text-slate-200 leading-relaxed mb-3">{p}</p>
               ))}
             </div>
 
             {item.gallery_images && (
               <div className="mb-6">
-                <p className="text-sm font-medium text-gray-500 mb-2">{publicT("public.Content.text86")}</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-slate-400 mb-2">{publicT("public.Content.text86")}</p>
                 <StorageGallery keys={item.gallery_images} />
               </div>
             )}
@@ -882,7 +936,7 @@ export function AnnouncementDetail() {
               <SafetyAlert variant="announcement_detail" />
             </div>
 
-            <div className="border-t border-gray-100 pt-4 space-y-2">
+            <div className="border-t border-gray-100 dark:border-slate-700 pt-4 space-y-2">
               {item.address && (
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <MapPin className="w-4 h-4 text-gray-400" /> {item.address}
@@ -890,23 +944,23 @@ export function AnnouncementDetail() {
               )}
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Phone className="w-4 h-4 text-gray-400" />
-                <a href={`tel:${item.phone}`} className="text-blue-600 hover:text-blue-700 font-medium">{item.phone}</a>
+                <a href={`tel:${item.phone}`} className="inline-flex rounded-lg bg-blue-600 px-4 py-2.5 text-white font-medium hover:bg-blue-700">{publicT("ann.call")} · {item.phone}</a>
               </div>
               {item.whatsapp && (
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <MessageCircle className="w-4 h-4 text-green-500" />
-                  <a href={`https://wa.me/${item.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-700 font-medium">
+                  <a href={`https://wa.me/${item.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex rounded-lg bg-green-600 px-4 py-2.5 text-white font-medium hover:bg-green-700">
                     WhatsApp: {item.whatsapp}
                   </a>
                 </div>
               )}
               {item.author_name && (
-                <p className="text-sm text-gray-500">{publicT("public.Content.text87")} {item.author_name}</p>
+                <p className="text-sm text-gray-500 dark:text-slate-400">{publicT("public.Content.text87")} {item.author_name}</p>
               )}
             </div>
 
             {isOwner && (
-              <div className="mt-6 pt-4 border-t border-gray-100 flex flex-wrap gap-2">
+              <div className="mt-6 pt-4 border-t border-gray-100 dark:border-slate-700 flex flex-wrap gap-2">
                 <Link
                   to={`/announcements/${item.id}/edit`}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600"
@@ -917,7 +971,7 @@ export function AnnouncementDetail() {
                     type="button"
                     disabled={actionLoading}
                     onClick={handleUnpublish}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-slate-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-gray-50 disabled:opacity-50"
                   >
                     <EyeOff className="w-4 h-4" /> {publicT("public.extra.10")} </button>
                 )}

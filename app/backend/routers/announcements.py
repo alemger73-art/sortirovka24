@@ -11,7 +11,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
 from services.account_session import resolve_account_user
-from services.announcements import AnnouncementsService
+from services.announcements import AnnouncementsService, validate_announcement_fields
+from services.cabinet_history import owns_content
+
+
+async def require_announcement_admin(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    if not await is_content_admin(db, authorization):
+        raise HTTPException(403, "Доступ только для администратора")
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -225,14 +234,21 @@ async def get_announcements(
     
     service = AnnouncementsService(db)
     try:
-        result = await service.get_by_id(id, public_only=not await is_content_admin(db, authorization))
+        admin = await is_content_admin(db, authorization)
+        result = await service.get_by_id(id, public_only=not admin)
+        if not result and not admin:
+            user = await resolve_account_user(db, authorization)
+            candidate = await service.get_by_id(id) if user else None
+            if candidate and owns_content(user, candidate.user_id, candidate.phone):
+                result = candidate
         if not result:
             logger.warning(f"Announcements with id {id} not found")
             raise HTTPException(status_code=404, detail="Announcements not found")
 
         try:
-            await service.increment_views(id)
-            result.views_count = int(result.views_count or 0) + 1
+            if not admin and await service.get_by_id(id, public_only=True):
+                await service.increment_views(id)
+                await db.refresh(result)
         except Exception:
             logger.warning(f"Failed to increment views for announcement {id}", exc_info=True)
 
@@ -256,11 +272,16 @@ async def create_announcements(
     service = AnnouncementsService(db)
     try:
         payload = data.model_dump()
-        if not await is_content_admin(db, authorization):
+        admin = await is_content_admin(db, authorization)
+        account_user = await resolve_account_user(db, authorization)
+        if not admin:
+            if not account_user:
+                raise HTTPException(401, 'Войдите в аккаунт, чтобы разместить объявление')
+            payload['phone'] = payload.get('phone') or account_user.phone
+            payload = validate_announcement_fields(payload)
             payload.update(status="pending", active=True, user_id=None,
                            created_at=datetime.now(timezone.utc).isoformat(),
                            promotion_tier=None, promoted_until=None, views_count=0, expires_at=None)
-        account_user = await resolve_account_user(db, authorization)
         if account_user:
             payload["user_id"] = str(account_user.id)
             if not payload.get("phone"):
@@ -291,7 +312,7 @@ async def create_announcements(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.post("/batch", response_model=List[AnnouncementsResponse], status_code=201)
+@router.post("/batch", response_model=List[AnnouncementsResponse], status_code=201, dependencies=[Depends(require_announcement_admin)])
 async def create_announcementss_batch(
     request: AnnouncementsBatchCreateRequest,
     db: AsyncSession = Depends(get_db),
@@ -316,7 +337,7 @@ async def create_announcementss_batch(
         raise HTTPException(status_code=500, detail=f"Batch create failed: {str(e)}")
 
 
-@router.put("/batch", response_model=List[AnnouncementsResponse])
+@router.put("/batch", response_model=List[AnnouncementsResponse], dependencies=[Depends(require_announcement_admin)])
 async def update_announcementss_batch(
     request: AnnouncementsBatchUpdateRequest,
     db: AsyncSession = Depends(get_db),
@@ -343,7 +364,7 @@ async def update_announcementss_batch(
         raise HTTPException(status_code=500, detail=f"Batch update failed: {str(e)}")
 
 
-@router.put("/{id}", response_model=AnnouncementsResponse)
+@router.put("/{id}", response_model=AnnouncementsResponse, dependencies=[Depends(require_announcement_admin)])
 async def update_announcements(
     id: int,
     data: AnnouncementsUpdateData,
@@ -373,7 +394,7 @@ async def update_announcements(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.delete("/batch")
+@router.delete("/batch", dependencies=[Depends(require_announcement_admin)])
 async def delete_announcementss_batch(
     request: AnnouncementsBatchDeleteRequest,
     db: AsyncSession = Depends(get_db),
@@ -398,7 +419,7 @@ async def delete_announcementss_batch(
         raise HTTPException(status_code=500, detail=f"Batch delete failed: {str(e)}")
 
 
-@router.delete("/{id}")
+@router.delete("/{id}", dependencies=[Depends(require_announcement_admin)])
 async def delete_announcements(
     id: int,
     db: AsyncSession = Depends(get_db),
