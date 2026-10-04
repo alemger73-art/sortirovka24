@@ -38,3 +38,29 @@ def test_code_only_production_start_never_calls_alembic(monkeypatch):
     entry.main()
     verified.assert_awaited_once_with('expected')
     migration.assert_not_called()
+
+@pytest.mark.asyncio
+async def test_code_only_release_disables_runtime_schema_repair(monkeypatch):
+    from core.database import DatabaseManager
+    monkeypatch.setenv('S24_SCHEMA_VERIFY_ONLY', 'expected')
+    manager = DatabaseManager()
+    manager.check_and_repair_existing_tables = AsyncMock()
+    manager.engine = MagicMock()
+    await manager.create_tables()
+    manager.check_and_repair_existing_tables.assert_not_called()
+    manager.engine.begin.assert_not_called()
+    assert manager._initialized
+
+
+def test_container_runs_guarded_entrypoint():
+    from pathlib import Path
+    dockerfile = (Path(__file__).parents[3] / 'Dockerfile').read_text(encoding='utf-8-sig')
+    assert 'CMD ["python", "container_entrypoint.py"]' in dockerfile
+    assert 'alembic upgrade head' not in dockerfile
+
+
+def test_railway_override_runs_guarded_entrypoint():
+    import json
+    from pathlib import Path
+    config = json.loads((Path(__file__).parents[3] / 'railway.json').read_text(encoding='utf-8-sig'))
+    assert config['deploy']['startCommand'] == 'python container_entrypoint.py'

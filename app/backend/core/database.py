@@ -257,6 +257,10 @@ class DatabaseManager:
 
     async def create_tables(self):
         """Create all tables with thread safety and retry logic"""
+        if os.getenv("S24_SCHEMA_VERIFY_ONLY", "").strip():
+            logger.info("Code-only release: runtime table creation and schema repair disabled")
+            self._initialized = True
+            return
         start_time = time.time()
         logger.debug("[DB_OP] Starting create_tables")
         await self._table_creation_lock.acquire()
@@ -644,3 +648,4 @@ async def get_db() -> AsyncSession:
     except Exception as e:
         logger.error(f"Failed to create database session: {e}", exc_info=True)
         raise
+

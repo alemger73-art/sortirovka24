@@ -32,6 +32,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    S24_SCHEMA_VERIFY_ONLY=dam20261006_pwa_preferences \
     APP_BUILD_ID=${RAILWAY_GIT_COMMIT_SHA}
 
 WORKDIR /app/backend
@@ -50,4 +51,4 @@ EXPOSE 8000
 
 # Historical databases require the separately audited baseline before release.
 # Never serve requests against a partially upgraded schema.
-CMD ["sh", "-c", "alembic upgrade head && exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips=*"]
+CMD ["python", "container_entrypoint.py"]

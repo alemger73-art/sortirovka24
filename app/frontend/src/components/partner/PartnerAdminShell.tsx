@@ -243,9 +243,9 @@ export default function PartnerAdminShell({ partnerType, children }: PartnerAdmi
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <AppearanceControls />
-            <Button variant="outline" size="sm" onClick={() => setShowPasswordDialog(true)} className="gap-1.5">
+            <Button variant="outline" size="sm" onClick={() => setShowPasswordDialog(true)} className="gap-1.5 text-foreground">
               <KeyRound className="h-4 w-4" /> {adminT("admin.ui.0007")} </Button>
-            <Button variant="outline" size="sm" onClick={() => { clearPartnerToken(partnerType); setAuthenticated(false); }} className="gap-1.5">
+            <Button variant="outline" size="sm" onClick={() => { clearPartnerToken(partnerType); setAuthenticated(false); }} className="gap-1.5 text-foreground">
               <LogOut className="h-4 w-4" /> {adminT("admin.ui.1273")} </Button>
           </div>
         </div>

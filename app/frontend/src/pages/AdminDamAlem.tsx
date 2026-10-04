@@ -3,6 +3,7 @@ import OwnerCRM from '@/components/damalem/OwnerCRM';
 import OwnerLoyalty from '@/components/damalem/OwnerLoyalty';
 import DamDeliveries from './DamDeliveries';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
@@ -64,7 +65,8 @@ function getTABS(adminT: (key: string) => string) {
 
 export default function AdminDamAlem({ initialSection = 'today', partnerMode = false, onLock }: AdminDamAlemProps) {
   const { t: adminT } = useLanguage();
-  const TABS = getTABS(adminT);
+  const st = useStoreTranslations();
+  const TABS = getTABS(adminT).map(tab => ({...tab, label: st(tab.label)}));
 
   const [params, setParams] = useSearchParams();
   const requested = params.get('section') as Section;
@@ -125,7 +127,7 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
             aria-label={adminT("admin.ui.0254")}
             to="/food"
             target="_blank"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition hover:bg-muted"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold text-foreground transition hover:bg-muted"
           >
             <span className="hidden sm:inline">{adminT("admin.ui.0254")}</span> <ExternalLink className="h-4 w-4" />
           </Link>
@@ -137,7 +139,7 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
 
       {access === 'operator' && !activeShift && <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">{adminT('dam.shift.workBlocked')}</div>}
 
-      <nav aria-label={adminT("admin.ui.0255")} className="flex flex-wrap gap-2">{groups.map(g => <button key={g.id} onClick={() => navigate(g.id === 'menu' && access === 'operator' ? 'availability' : g.id)} className={`rounded-xl px-4 py-3 text-sm font-semibold ${group === g.id ? 'bg-[#FF3B30] text-white' : 'bg-card border text-foreground hover:bg-muted'}`}>{g.label}</button>)}</nav>
+      <nav aria-label={adminT("admin.ui.0255")} className="flex flex-wrap gap-2">{groups.map(g => <button key={g.id} onClick={() => navigate(g.id === 'menu' && access === 'operator' ? 'availability' : g.id)} className={`rounded-xl px-4 py-3 text-sm font-semibold ${group === g.id ? 'bg-[#FF3B30] text-white' : 'bg-card border text-foreground hover:bg-muted'}`}>{st(g.label)}</button>)}</nav>
 
       {access === 'owner' && ['orders','menu','settings','sales'].includes(group) && <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {tabs.filter(tab => access === 'owner' && ['orders', 'menu', 'settings', 'sales'].includes(group) && groupOf(tab.id) === group).map(tab => {

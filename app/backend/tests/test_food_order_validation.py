@@ -8,6 +8,7 @@ import pytest
 from fastapi import HTTPException
 
 from services.food_order_validation import (
+    validate_food_order,
     APARTMENT_DELIVERY_FEE,
     _apply_free_delivery_threshold,
     _resolve_promo,
@@ -17,6 +18,15 @@ from services.food_order_validation import (
     parse_kitchen_hours,
     requests_apartment_delivery,
 )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('catalog_only', [False, True])
+async def test_public_checkout_rejects_dine_in_before_pricing(catalog_only):
+    with pytest.raises(HTTPException) as error:
+        await validate_food_order(None, {'delivery_method': 'dine_in'}, catalog_only=catalog_only)
+    assert error.value.status_code == 400
+    assert 'сотрудник' in error.value.detail
 
 
 def test_free_delivery_threshold_zeroes_fee():

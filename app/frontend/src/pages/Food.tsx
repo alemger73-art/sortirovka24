@@ -242,6 +242,7 @@ export default function Food() {
   const modifiersLoadedRef = useRef(false);
   const modifiersLoadingRef = useRef<Promise<void> | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartAvailabilityNotice, setCartAvailabilityNotice] = useState('');
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<1 | 2 | 3>(1);
   const [lastOrderPreview, setLastOrderPreview] = useState<{
@@ -386,6 +387,8 @@ export default function Food() {
       cartHydratedRef.current = true;
       return;
     }
+    const unavailable = cart.filter(ci => !items.some(i => i.id === ci.item.id && i.is_active !== false && i.available !== false));
+    if (unavailable.length) setCartAvailabilityNotice(st('Эти блюда закончились и удалены из корзины: {0}. Выберите замену в меню.', [unavailable.map(ci => ci.item.name).join(', ')]));
     setCart(prev => {
       const byId = new Map(items.map(i => [i.id, i]));
       const next = prev
@@ -1694,7 +1697,7 @@ export default function Food() {
       setActiveTab('cart');
     }
     if (payload.delivery_address) setDeliveryAddress(payload.delivery_address);
-    if (payload.delivery_method === 'pickup' || payload.delivery_method === 'dine_in') setDeliveryMethod(payload.delivery_method);
+    setDeliveryMethod(payload.delivery_method === 'delivery' ? 'delivery' : 'pickup');
   }
 
   function MenuDishRow({
@@ -2062,12 +2065,13 @@ export default function Food() {
         {activeTab === 'cart' && (
           <div className={`${PAGE_X} dam-market-cart-page`}>
             <div role="group" aria-label="Способ получения заказа" className="mb-4 flex flex-wrap gap-2">
-              {(['delivery','pickup','dine_in'] as const).map(method => <button key={method} type="button"
+              {(['delivery','pickup'] as const).map(method => <button key={method} type="button"
                 aria-pressed={deliveryMethod === method} onClick={()=>setDeliveryMethod(method)}
                 className={`rounded-xl border px-4 py-3 text-sm font-semibold ${deliveryMethod===method?'bg-red-600 text-white':'bg-card text-foreground'}`}>
                 {method==='delivery'?t('food.delivery'):method==='pickup'?t('food.pickup'):t('workflow.onsite')}
               </button>)}
             </div>
+            {cartAvailabilityNotice && <div role="alert" className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"><p>{cartAvailabilityNotice}</p><button type="button" className="mt-2 underline" onClick={() => setCartAvailabilityNotice('')}>{st('Понятно')}</button></div>}
             <DamAlemCartView
               lines={cartViewLines}
               suggestions={cartViewSuggestions}
@@ -2077,8 +2081,8 @@ export default function Food() {
               discount={promoDiscountAmount}
               total={Math.max(0, cartTotalWithService - promoDiscountAmount)}
               minOrder={deliveryMethod === 'dine_in' ? 0 : minOrder}
-              freeDeliveryFrom={freeDeliveryFrom}
-              apartmentFreeFrom={apartmentFreeFrom}
+              freeDeliveryFrom={deliveryMethod === 'delivery' ? freeDeliveryFrom : 0}
+              apartmentFreeFrom={deliveryMethod === 'delivery' ? apartmentFreeFrom : 0}
               gifts={loyaltyGifts}
               selectedGiftId={selectedGiftId}
               promoInput={promoInput}
@@ -2144,8 +2148,8 @@ export default function Food() {
             cartCount={cartCount}
             subtotal={cartTotal}
             minOrder={minOrder}
-            freeDeliveryFrom={freeDeliveryFrom}
-            apartmentFreeFrom={apartmentFreeFrom}
+            freeDeliveryFrom={deliveryMethod === 'delivery' ? freeDeliveryFrom : 0}
+            apartmentFreeFrom={deliveryMethod === 'delivery' ? apartmentFreeFrom : 0}
             nextGift={nextGift}
             formatPrice={formatPrice}
             onOpenCart={() => setActiveTab('cart')}
@@ -2256,10 +2260,6 @@ export default function Food() {
                       <Store className={`w-6 h-6 mx-auto mb-1.5 ${deliveryMethod === 'pickup' ? 'text-[#FF3B30]' : 'text-gray-400'}`} />
                       <span className={`text-sm font-bold block ${deliveryMethod === 'pickup' ? 'text-[#FF3B30]' : 'text-gray-600'}`}>{t('food.pickup')}</span>
                       <span className="text-xs text-gray-400 mt-0.5 block">{t('food.free')}</span>
-                    </button>
-                    <button type="button" onClick={() => setDeliveryMethod('dine_in')}
-                      className={`dam-method-card col-span-2 ${deliveryMethod === 'dine_in' ? 'dam-method-card--active' : ''}`}>
-                      <span className="text-sm font-bold block">{t('workflow.onsite')}</span>
                     </button>
                   </div>
                 </div>

@@ -1,4 +1,10 @@
 import {test,expect,type Page} from '@playwright/test';
+test('courier understands an empty delivery history', async ({page}) => {
+  await setup(page);
+  await page.goto('/food/courier');
+  await page.getByRole('button',{name:'История',exact:true}).click();
+  await expect(page.getByText('Доставок пока нет. Здесь появятся завершённые и отменённые доставки.',{exact:true})).toBeVisible();
+});
 async function setup(page:Page,authenticated=true) {
   page.on('pageerror',error=>{throw error;});
   const s={shift:authenticated,online:false,tasks:[] as Array<Record<string,unknown>>,completed:[] as number[],opens:0,closes:0,issues:[] as unknown[],dropReply:false,failReads:false,
