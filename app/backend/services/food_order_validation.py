@@ -495,6 +495,8 @@ async def validate_food_order(
     delivery_method = (data.get("delivery_method") or "delivery").strip()
     if delivery_method not in {'delivery', 'pickup', 'dine_in'}:
         raise HTTPException(400, 'Некорректный способ получения заказа')
+    if delivery_method == 'dine_in' and not staff_quote:
+        raise HTTPException(400, 'Заказ в заведении оформляет сотрудник. Выберите доставку или самовывоз.')
     delivery_address = (data.get("delivery_address") or "").strip()
 
     if not customer_name:

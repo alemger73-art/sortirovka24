@@ -17,6 +17,13 @@ async def main():
         client, maker, operator, _ = await anext(fixture)
         patcher.setattr("services.bonus_rewards.handle_food_order_status_bonus", real_bonus_settlement)
         app = client._transport.app
+        # Exercise the real boundary middleware as well as router permissions.
+        from middleware.entity_guard import EntityWriteGuardMiddleware
+        async def middleware_db():
+            async with maker() as db:
+                yield db
+        patcher.setattr('core.database.get_db', middleware_db)
+        app.add_middleware(EntityWriteGuardMiddleware)
         from routers.dam_menu import router as menu_router
         app.include_router(menu_router)
         from routers.food_restaurants import router as restaurant_router
@@ -37,7 +44,11 @@ async def main():
         async with maker() as db:
             from models.food_items import Food_items
             from models.food_categories import Food_categories
+            from models.food_settings import Food_settings
             from sqlalchemy import select
+            # Browser checkout must not depend on the wall-clock time of the
+            # test run. This setting belongs only to the disposable fixture DB.
+            db.add(Food_settings(setting_key='working_hours', setting_value='00:00-23:59'))
             for product in (await db.scalars(select(Food_items).where(Food_items.restaurant_id==1))).all(): product.business_id='dam_alem'
             db.add(Food_categories(id=1,restaurant_id=1,name='Основное меню',is_active=True,sort_order=1))
             (await db.get(Food_items,1)).category_id=1

@@ -1,9 +1,11 @@
 import { foodCheckoutBlockReason, type FoodCheckoutContext } from '@/lib/foodCheckoutGuards';
 import { useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { damOwnerTranslations } from './damOwnerTranslations';
 
 /** Store UI only. Never pass entity fields or persisted order data to this lookup. */
 const storeTranslations: Record<string, string> = {
+  ...damOwnerTranslations,
   "Товар для подарка": "Сыйлыққа арналған тауар",
   "Выберите товар": "Тауарды таңдаңыз",
   "· нажмите на карточку, чтобы добавить в корзину": "· себетке қосу үшін карточканы басыңыз",

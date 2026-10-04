@@ -467,6 +467,7 @@ export default function DamCourierWorkplace({
         {data && tab === "history" && (
           <section>
             <h2 className="mb-4 text-xl font-bold">История доставок</h2>
+            {!data.task_history.some(t => ['delivered', 'cancelled'].includes(t.status)) && <p className="rounded-xl border bg-card p-4 text-muted-foreground">Доставок пока нет. Здесь появятся завершённые и отменённые доставки.</p>}
             {data.task_history
               .filter((t) => ["delivered", "cancelled"].includes(t.status))
               .map((t) => (
@@ -490,6 +491,7 @@ export default function DamCourierWorkplace({
           <section className="space-y-4">
             <h2 className="text-xl font-bold">Профиль и смена</h2>
             <p>{gps}{lastGps && ` · Обновлено ${new Date(lastGps).toLocaleTimeString('ru-RU')}`}</p>
+            {gps === 'Нет разрешения GPS' && <p className="text-sm text-muted-foreground">Разрешите доступ к геолокации для этого сайта в настройках браузера или телефона, затем обновите страницу.</p>}
             <Button
               variant="outline"
               className="h-12 w-full"

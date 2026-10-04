@@ -1,5 +1,19 @@
 import {test,expect,type Page} from '@playwright/test';
 import {reportCsv} from '../src/lib/foodBusinessExport';
+
+test('owner navigation and loyalty follow the selected Kazakh language', async ({page}) => {
+  await setup(page);
+  await page.route('**/api/v1/dam-alem/loyalty/owner**', async route => {
+    const path = new URL(route.request().url()).pathname;
+    await route.fulfill({json: path.endsWith('/owner') ? {totals:{},liability:600,customers:1,with_balance:1,review_count:0,reviews:[],rules:{version:1}} : []});
+  });
+  await page.goto('/partner/dam-alem?section=loyalty');
+  await page.getByRole('button', {name:'Сменить язык',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Басты бет',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Бонустар және клиенттердің қайта келуі',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'CSV экспорттау',exact:true})).toBeVisible();
+  await expect(page.getByText('Қазіргі міндеттемелер',{exact:true})).toBeVisible();
+});
 async function setup(page:Page,role='owner'){
  const data={start:'2026-09-13',end:'2026-09-13',sales:5000,completed:2,created:3,cancelled:1,average:2500,receipts:6000,refunds:500,expenses_total:1000,cash_difference:4500,bonuses:100,promo_discounts:200,untracked_promos:0,payment_methods:{cash:4000,kaspi_qr:2000},undated_done:0,undated_paid:0,products:[{name:'Тестовый донер',quantity:2,amount:5000}],days:[{day:'2026-09-13',sales:5000}],expenses:[] as {id:string;day:string;amount:number;category:string;note:string;voided:boolean;void_reason:string}[],refunds_needed:[]};
  const summary={day:'2026-09-13',daily:{created:3},counts:{new:2,preparing:1,ready:1},notification_errors:1,unpaid:2,new_orders:[]};
