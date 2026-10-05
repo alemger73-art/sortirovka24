@@ -62,6 +62,44 @@ jobs:
       - run: pnpm run check:i18n
       - run: pnpm build
 
+  checkout-mobile:
+    name: E2E (Playwright, mobile checkout matrix)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ENVIRONMENT: test
+      EXTERNAL_SIDE_EFFECTS: disabled
+      DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+      INTEGRITY_BASE_URL: ""
+      VITE_API_BASE_URL: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: app/frontend/pnpm-lock.yaml
+      - name: Install backend deps
+        working-directory: app/backend
+        run: pip install -r requirements.txt
+      - name: Install frontend deps
+        working-directory: app/frontend
+        run: pnpm install --frozen-lockfile
+      - name: Install dedicated Chromium
+        working-directory: app/frontend
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run all mobile viewport and theme projects with isolated API
+        working-directory: app/frontend
+        run: |
+          pnpm exec vite build --config vite.food-test.config.ts
+          pnpm exec playwright test --config playwright.checkout-mobile.config.ts
+
   e2e:
     name: E2E (Playwright, ${{ matrix.suite }})
     runs-on: ubuntu-latest

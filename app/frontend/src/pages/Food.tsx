@@ -23,7 +23,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { getAccountPrefill, isLoggedIn, pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
+import { getAccountPrefill, isLoggedIn, pushCabinetItem, openAuthPrompt } from '@/lib/localAuth';
+import { saveFoodCheckoutReturn, takeFoodCheckoutReturn } from '@/lib/foodCheckoutReturn';
 import { accountApi, getAccountToken } from '@/lib/accountApi';
 import { fetchFoodRestaurantsList } from '@/lib/foodAdminApi';
 import { apiUrl } from '@/lib/config';
@@ -304,8 +305,34 @@ export default function Food() {
   const [bonusRules, setBonusRules] = useState({ enabled: false, tenge_rate: 1, max_order_percent: 0 });
   const BONUS_MAX_PERCENT = bonusRules.max_order_percent;
   const checkoutAttempt = useRef<{ fingerprint: string; key: string } | null>(null);
+  const returnDeliveryAddress = useRef<string | null>(null);
 
   useEffect(() => { loadData(); }, []);
+
+  useEffect(() => {
+    if (searchParams.get('checkout') !== 'resume' || !isLoggedIn() || loading || cart.length === 0) return;
+    const form = takeFoodCheckoutReturn();
+    if (form) {
+      setDeliveryMethod(form.deliveryMethod);
+      setCustomerName(form.customerName);
+      setCustomerPhone(form.customerPhone);
+      setDeliveryAddress(form.deliveryAddress);
+      returnDeliveryAddress.current = form.deliveryMethod === 'delivery' ? form.deliveryAddress : null;
+      setApartment(form.apartment);
+      setDeliverToApartment(form.deliverToApartment);
+      setComment(form.comment);
+      setPreorder(form.preorder);
+      setSchedule(form.schedule);
+      setCashGiven(form.cashGiven);
+      setPayment(form.payment);
+      setSelectedGiftId(form.selectedGiftId);
+      setCheckoutStep(form.step);
+      setCheckoutOpen(true);
+    }
+    const params = new URLSearchParams(searchParams);
+    params.delete('checkout');
+    setSearchParams(params, { replace: true });
+  }, [searchParams, setSearchParams, loading, cart.length]);
 
   useEffect(() => {
     try {
@@ -945,6 +972,13 @@ export default function Food() {
     void runDeliveryQuote({ address: target }, { notify: true });
   }, [st, effectiveAddress, runDeliveryQuote]);
 
+  useEffect(() => {
+    const address = returnDeliveryAddress.current;
+    if (!address || loading || cart.length === 0) return;
+    returnDeliveryAddress.current = null;
+    void runDeliveryQuote({ address });
+  }, [loading, cart.length, runDeliveryQuote]);
+
   const requestGeolocation = useCallback(async () => {
     setDeliveryQuoteLoading(true);
     try {
@@ -1258,6 +1292,19 @@ export default function Food() {
     setCart(prev => prev.filter((_, i) => i !== index));
   }
 
+  function promptCheckoutAuth() {
+    saveFoodCheckoutReturn({
+      step: checkoutStep, deliveryMethod, customerName, customerPhone,
+      deliveryAddress, apartment, deliverToApartment, comment, preorder,
+      schedule, cashGiven, payment, selectedGiftId,
+    });
+    const params = new URLSearchParams(searchParams);
+    params.set('tab', 'cart');
+    params.set('checkout', 'resume');
+    if (appliedPromo?.code) params.set('promo', appliedPromo.code);
+    openAuthPrompt(`/account?redirect=${encodeURIComponent(`/food?${params}`)}`);
+  }
+
   async function submitOrder() {
     if(preorder && !scheduleISO(schedule)){toast.error('Выберите дату и время предзаказа');return;}
     if (submittingRef.current) return;
@@ -1286,10 +1333,10 @@ export default function Food() {
     }, st);
     if (block) {
       toast.error(block);
-      if (!isLoggedIn()) requireAuthDialog(navigate);
+      if (!isLoggedIn()) promptCheckoutAuth();
       return;
     }
-    if (!requireAuthDialog(navigate)) return;
+    if (!isLoggedIn()) { promptCheckoutAuth(); return; }
 
     const aptPart = apartment.trim() ? `, кв. ${apartment.trim()}` : '';
     const toAptNote = deliverToApartment ? ' (до квартиры)' : ' (до подъезда)';
@@ -2670,11 +2717,7 @@ export default function Food() {
                   <>
                     <DamAlemCheckoutButton
                       label={submitting ? st("Отправляем заказ…") : st("Оформить заказ")}
-                      sublabel={
-                        checkoutFinalBlockReason && !submitting
-                          ? checkoutFinalBlockReason
-                          : formatPrice(checkoutGrandTotal)
-                      }
+                      sublabel={formatPrice(checkoutGrandTotal)}
                       disabled={submitting}
                       loading={submitting}
                       onClick={submitOrder}
