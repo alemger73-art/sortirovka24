@@ -10,7 +10,7 @@ test("masters catalog page loads and shows key UI", async ({ page }) => {
 
 test("become master route requires login", async ({ page }) => {
   await page.goto("/masters/become");
-  await page.waitForURL("**/account", { timeout: 10_000 });
+  await page.waitForURL(/\/account(?:\?|$)/, { timeout: 10_000 });
   await expect(page).toHaveURL(/\/account/);
 });
 

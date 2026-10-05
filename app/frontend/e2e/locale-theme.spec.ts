@@ -23,6 +23,7 @@ async function setup(page: Page, lang: 'ru' | 'kz' = 'kz', theme = 'dark') {
     if (path.includes('food_restaurants')) json = {items: [{id: 1, name: 'DAM ALEM 2.0'}]};
     if (path === '/api/categories') json = {categories: [{id: 1, name: 'Pizza', slug: 'pizza'}]};
     if (path === '/api/products') json = {products: [{id: 1, category_id: 1, title: 'Margherita', description: '', image: '/icon-512.png', price: 2500, available: true}]};
+    if (path === '/api/v1/dam-alem/menu/catalog') json = {business_id:'dam_alem',restaurant_id:1,categories:[{id:1,name:'Pizza',slug:'pizza'}],products:[{id:1,restaurant_id:1,category_id:1,name:'Margherita',price:2500,available:true,is_active:true,sellable:true,modifiers_enabled:false,modifier_groups:[]}],groups:[],options:[],links:[]};
     if (path.includes('food_settings')) json = {items: Object.entries({min_order_amount: '0', service_fee_rate: '0', free_delivery_from: '8000', promo_codes: '[]', loyalty_gifts: '[]', kitchen_open: '00:00', kitchen_close: '00:00'}).map(([setting_key, setting_value]) => ({setting_key, setting_value}))};
     return r.fulfill({json});
   });

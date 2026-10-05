@@ -9,6 +9,7 @@ async function mockCatalog(page: import('@playwright/test').Page) {
     if (path.endsWith('/modules')) body = { food: true };
     if (path.includes('food_restaurants')) body = { items: [{ id: 1, name: 'DAM ALEM 2.0' }] };
     if (path === '/api/categories') body = { categories: [{ id: 1, name: 'Пицца', slug: 'pizza' }, { id: 2, name: 'Напитки', slug: 'napitki' }] };
+    if (path === '/api/v1/dam-alem/menu/catalog') body = {business_id:'dam_alem',restaurant_id:1,categories:[{id:1,name:'Пицца',slug:'pizza'},{id:2,name:'Напитки',slug:'napitki'}],products:[{id:1,restaurant_id:1,category_id:1,name:'Маргарита',description:'Томаты, моцарелла, базилик',image_url:'/food-hero-reference.png',price:2500,available:true,is_active:true,sellable:true,modifiers_enabled:false,modifier_groups:[]},{id:2,restaurant_id:1,category_id:2,name:'Лимонад',price:600,available:true,is_active:true,sellable:true,modifiers_enabled:false,modifier_groups:[]},{id:3,restaurant_id:1,category_id:2,name:'Нет в наличии',price:500,available:false,is_active:true,sellable:false,modifier_groups:[]}],groups:[],options:[],links:[]};
     if (path === '/api/products') body = { products: [
       { id: 1, category_id: 1, title: 'Маргарита', description: 'Томаты, моцарелла, базилик', image: '/food-hero-reference.png', price: 2500, available: true },
       { id: 2, category_id: 2, title: 'Лимонад', description: 'Лимон и мята', image: '/food-hero-reference.png', price: 600, available: true },
@@ -59,7 +60,7 @@ test('corrupted storage preserves valid lines', async () => {
     const cart = loadFoodCart([{ id: 1, name: 'Test', price: 100, category_id: 1 }, { id: 2, name: 'Unavailable', price: 100, category_id: 1, available: false }]);
     expect(cart).toHaveLength(1);
     expect(cart[0].quantity).toBe(2);
-    expect(cart[0].selections).toEqual({ 1: [2] });
+    expect(cart[0].selections).toEqual({1:[2,2]}); // Preserve modifier quantity while dropping invalid IDs.
   } finally {
     if (previous) Object.defineProperty(globalThis, 'localStorage', previous);
     else Reflect.deleteProperty(globalThis, 'localStorage');
@@ -96,17 +97,17 @@ test('checkout shows every eligible gift and requires an explicit choice', async
     { id: 'gift-waffle', min_amount: 2000, title: 'Вафли с фруктами', product_name: 'Вафли с фруктами', description: 'Десерт в подарок', is_active: true, sort_order: 2 },
   ];
   await page.route('**/api/v1/entities/food_settings**', route => route.fulfill({ json: { items: Object.entries({ min_order_amount: '0', service_fee_rate: '0', free_delivery_from: '0', loyalty_enabled: '1', loyalty_gifts: JSON.stringify(gifts), kitchen_open: '00:00', kitchen_close: '00:00' }).map(([setting_key, setting_value]) => ({ setting_key, setting_value })) } }));
-  await page.route('**/api/products**', route => route.fulfill({ json: { products: [
-    { id: 1, category_id: 1, title: 'Маргарита', description: 'Пицца', price: 2500, available: true },
-    { id: 10, category_id: 2, title: 'Сладкая вата', price: 500, available: true },
-    { id: 11, category_id: 2, title: 'Вафли с фруктами', price: 1200, available: true },
-  ] } }));
+  await page.route('**/api/v1/dam-alem/menu/catalog', route => route.fulfill({ json: {business_id:'dam_alem',restaurant_id:1,categories:[{id:1,name:'Пицца',slug:'pizza'},{id:2,name:'Напитки',slug:'napitki'}],products:[
+    { id: 1, restaurant_id:1, category_id: 1, name: 'Маргарита', description: 'Пицца', price: 2500, available: true, is_active:true,sellable:true,modifiers_enabled:false,modifier_groups:[] },
+    { id: 10, restaurant_id:1, category_id: 2, name: 'Сладкая вата', price: 500, available: true,is_active:true,sellable:true,modifiers_enabled:false,modifier_groups:[] },
+    { id: 11, restaurant_id:1, category_id: 2, name: 'Вафли с фруктами', price: 1200, available: true,is_active:true,sellable:true,modifiers_enabled:false,modifier_groups:[] },
+  ],groups:[],options:[],links:[] } }));
 
   await page.goto('/food', { waitUntil: 'domcontentloaded' });
   await page.locator('.dam-grid-card').filter({ hasText: 'Маргарита' }).first().getByRole('button', { name: 'В корзину', exact: true }).click();
   await page.getByTestId('dam-cart-open').click();
   await page.getByTestId('dam-cart-checkout').click();
-  await page.getByRole('button', { name: /Самовывоз/ }).click();
+  await page.getByTestId('dam-checkout-overlay').getByText('Самовывоз',{exact:true}).click();
   await page.getByTestId('dam-checkout-next').click();
 
   const giftChoice = page.locator('#dam-checkout-gift-choice');

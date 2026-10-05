@@ -8,6 +8,7 @@ async function setup(page:Page){
  await page.route('**/api/**',async route=>{
   const req=route.request(),path=new URL(req.url()).pathname;let json:unknown={items:[],total:0};
   if(path.includes('verify-session'))json={valid:true,username:'test'};
+  if(path.endsWith('/modules'))json={inspectors:true,directory:true,transport:true};
   if(path.endsWith('/inspector-directory')){
    if(req.method()==='PUT'){state.writes++;if(state.failSave){state.failSave=false;return route.fulfill({status:409,json:{detail:'Сведения уже изменены. Обновите страницу перед сохранением.'}});}state.directory={...req.postDataJSON(),revision:state.directory.revision+1};}
    json=state.directory;

@@ -7,6 +7,7 @@ async function setup(page:Page){const state={routes:[{...route},{...route,id:2,r
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
  await page.route('**/api/**',async r=>{const path=new URL(r.request().url()).pathname;let json:unknown={items:[],total:0};if(path.includes('verify-session'))json={valid:true,username:'test'};
   if(path.includes('/entities/bus_routes')){if(r.request().method()==='POST'){state.writes++;const raw=r.request().postDataJSON();const added={id:99,...(raw.data||raw)};state.routes.push(added);json=added;}else if(r.request().method()==='PUT'){state.writes++;const raw=r.request().postDataJSON();const selected=state.routes.find(s=>String(s.id)===path.split('/').pop())!;Object.assign(selected,raw.data||raw);json=selected;}else json={items:state.routes,total:state.routes.length};}
+  if(path.endsWith('/modules'))json={transport:true,directory:true,inspectors:true};
   if(path.includes('/entities/bus_notifications'))json={items:state.notices,total:state.notices.length};await r.fulfill({json});});return state;
 }
 test('timetable helpers never infer arrival or reverse stops',()=>{expect(departureTimes('06:10 06:40')).toEqual(['06:10','06:40']);expect(departureTimes('25:00')).toBeNull();expect(departureTimes('06:00,06:00')).toBeNull();expect(verifiedRoute(route)).toBe(true);expect(verifiedRoute({...route,source_url:''})).toBe(false);expect(routeMatches(route,'рынок')).toBe(true);expect(routeMatches(route,'рынок аэропорт')).toBe(false);expect(journeyError(journey)).toBe('');});

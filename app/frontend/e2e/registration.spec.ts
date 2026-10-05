@@ -38,5 +38,5 @@ test("user can register and reach the personal cabinet", async ({ page }) => {
 
   // Lands in the personal cabinet
   await page.waitForURL("**/cabinet", { timeout: 15_000 });
-  await expect(page.getByText("E2E Тест")).toBeVisible();
+  await expect(page.getByLabel('Имя',{exact:true})).toHaveValue('E2E Тест');
 });

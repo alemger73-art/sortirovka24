@@ -7,6 +7,7 @@ for(const theme of ['light','dark'])test(`compact banner and category strip ${th
   if(p.includes('food_restaurants'))json={items:[{id:1,name:'DAM ALEM 2.0'}]};
   if(p==='/api/categories')json={categories:[{id:1,name:'UFO Бургеры',slug:'ufo'},{id:2,name:'Пиццы',slug:'pizza-30'},{id:3,name:'Лимонады',slug:'limonady'}]};
   if(p==='/api/products')json={products:Array.from({length:12},(_,i)=>({id:i+1,category_id:i<4?1:i<8?2:3,title:`Блюдо ${i+1}`,price:2000,available:true}))};
+  if(p==='/api/v1/dam-alem/menu/catalog')json={business_id:'dam_alem',restaurant_id:1,categories:[{id:1,name:'UFO Бургеры',slug:'ufo'},{id:2,name:'Пиццы',slug:'pizza-30'},{id:3,name:'Лимонады',slug:'limonady'}],products:Array.from({length:12},(_,i)=>({id:i+1,restaurant_id:1,category_id:i<4?1:i<8?2:3,name:`Блюдо ${i+1}`,price:2000,available:true,is_active:true,sellable:true,modifiers_enabled:false,modifier_groups:[]})),groups:[],options:[],links:[]};
   if(p.includes('food_settings'))json={items:Object.entries({promo_codes:JSON.stringify([{code:'TEST10',type:'percent',value:10,min_order:2500,max_discount:1500,label:'Неправильная подпись',active:true}]),loyalty_gifts:'[]',kitchen_open:'00:00',kitchen_close:'00:00'}).map(([setting_key,setting_value])=>({setting_key,setting_value}))};
   await r.fulfill({json});
  });

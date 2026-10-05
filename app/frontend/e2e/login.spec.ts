@@ -16,10 +16,10 @@ test("user can log in with phone + password and log out", async ({ page, request
   await page.getByRole("button", { name: "Войти" }).click();
 
   await page.waitForURL("**/cabinet", { timeout: 15_000 });
-  await expect(page.getByText("Login User")).toBeVisible();
+  await expect(page.getByLabel('Имя',{exact:true})).toHaveValue('Login User');
 
   // Logout from the cabinet header returns to the auth page.
-  await page.getByRole("button", { name: "Выход" }).click();
+  await page.getByRole("button", { name: "Выход", exact:true }).first().click();
   await page.waitForURL("**/account", { timeout: 10_000 });
   await expect(page.getByRole("heading", { name: "Вход" })).toBeVisible();
 });

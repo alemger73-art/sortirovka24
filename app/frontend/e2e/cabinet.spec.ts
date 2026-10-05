@@ -20,7 +20,7 @@ test("user can change password in the cabinet and re-login with it", async ({ pa
   await page.getByRole("button", { name: "Выход" }).first().click();
   await page.waitForURL("**/account", { timeout: 10_000 });
   await loginViaUi(page, { ...user, password: newPassword });
-  await expect(page.getByText("Pw Change User")).toBeVisible();
+  await expect(page.getByLabel('Имя',{exact:true})).toHaveValue('Pw Change User');
 });
 
 test("regular user is redirected away from role-restricted cabinets", async ({ page, request }) => {

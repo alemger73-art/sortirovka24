@@ -18,7 +18,8 @@ async function setup(page: Page) {
     if(p.includes('/modules'))json={};
     if(/\/(taxi|logistics)\/admin\/(applications|rides|drivers|couriers|tasks)$/.test(p))json=[];
     if(p.endsWith('/business/me'))json={role:'owner',name:'Тестовый владелец'};
-    if(p.endsWith('/business/today'))json={day:'2026-09-13',counts:{},notification_errors:0,unpaid:0,new_orders:[]};
+    if(p.endsWith('/business/overview'))json={team:[],attention:[],attention_total:0,recent_orders:[]};
+    if(p.endsWith('/business/today'))json={day:'2026-09-13',daily:{created:0},counts:{},notification_errors:0,unpaid:0,new_orders:[]};
     if(p.endsWith('/business/report'))json={start:'2026-09-13',end:'2026-09-13',sales:0,completed:0,created:0,cancelled:0,average:0,receipts:0,refunds:0,expenses_total:0,cash_difference:0,bonuses:0,promo_discounts:0,untracked_promos:0,payment_methods:{},undated_done:0,undated_paid:0,products:[],days:[],expenses:[],refunds_needed:[]};
     await r.fulfill({json});
   });
@@ -94,7 +95,8 @@ test('session verification outage keeps the saved session and offers retry',asyn
 });
 test('broken section leaves navigation available',async({page})=>{
   await setup(page);await page.route('**/business/today',r=>r.fulfill({json:{counts:null}}));
-  await page.goto('/admin?tab=dam-alem');await expect(page.getByRole('alert')).toContainText('Не удалось открыть раздел');
+  await page.goto('/admin?tab=dam-alem');await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.getByRole('alert').getByRole('button',{name:'Повторить',exact:true})).toBeEnabled();
   if(page.viewportSize()!.width<768)await page.getByRole('button',{name:'Открыть меню'}).click();
   await page.getByRole('navigation',{name:'Разделы админки'}).filter({visible:true}).getByRole('button',{name:'Центр управления',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Требует внимания'})).toBeVisible();

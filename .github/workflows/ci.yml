@@ -68,7 +68,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [ui, crm, payment, menu, cart, checkout, receipt]
+        suite: [ui, crm, payment, menu, cart, checkout, client, receipt]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
