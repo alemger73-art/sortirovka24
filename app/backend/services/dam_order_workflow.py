@@ -45,8 +45,12 @@ async def task_for(db, order):
     return await db.scalar(select(LogisticsTask).where(LogisticsTask.source_type == 'food_orders', LogisticsTask.source_id == order.id).with_for_update())
 
 
-async def claim(db, order, version):
-    result = await db.execute(update(Food_orders).where(Food_orders.id == order.id, func.coalesce(Food_orders.version, 0) == version).values(version=version + 1).execution_options(synchronize_session=False))
+async def claim(db, order, version, *, customer=False):
+    conditions = [Food_orders.id == order.id, func.coalesce(Food_orders.version, 0) == version]
+    if customer:
+        conditions.extend([Food_orders.status == 'new', func.coalesce(Food_orders.paid_amount, 0) == 0,
+                           func.coalesce(Food_orders.payment_status, '').not_in(('paid', 'refunded')), Food_orders.payment_method == 'cash'])
+    result = await db.execute(update(Food_orders).where(*conditions).values(version=version + 1).execution_options(synchronize_session=False))
     if not result.rowcount:
         raise HTTPException(409, 'Заказ уже изменён. Обновите карточку и проверьте изменения.')
     order.version = version + 1
@@ -201,16 +205,24 @@ async def quote_change(db, order, body):
             'amount_due': float(max(Decimal(0), total - received)), 'refund_due': float(max(Decimal(0), received - total))}
 
 
-async def amend(db, order, body, actor):
-    await claim(db, order, body.expected_version)
+async def amend(db, order, body, actor, *, customer=False):
+    from services.customer_order_receipt import receipt_snapshot, customer_edit_allowed
+    if len(body.reason.strip()) < 3:
+        raise HTTPException(422, 'Укажите причину изменения')
+    if customer and not await customer_edit_allowed(db, order):
+        raise HTTPException(409, 'Заказ уже принят или связан с оплатой. Отправьте запрос оператору.')
+    await claim(db, order, body.expected_version, customer=customer)
     quote = await quote_change(db, order, body.model_copy(update={'expected_version': body.expected_version + 1}))
+    if customer:
+        from services.customer_order_receipt import validate_customer_minimum
+        await validate_customer_minimum(db, order, quote)
     if quote['gift_required']:
         raise HTTPException(409, 'Выберите подарок для клиента')
     if body.quoted_total is None or money(body.quoted_total) != money(quote['total_amount']):
         raise HTTPException(409, 'Расчёт изменился. Проверьте новую сумму перед сохранением.')
     from services.food_payments import preserve_legacy_payment
     await preserve_legacy_payment(db, order)
-    before = {'items': items(order), 'total_amount': order.total_amount}
+    before = receipt_snapshot(order)
     order.order_items = json.dumps(quote['items'], ensure_ascii=False)
     order.total_amount, order.paid_amount = quote['total_amount'], quote['paid_amount']
     order.promo_discount_amount = quote['promo_discount_amount']
@@ -239,7 +251,8 @@ async def amend(db, order, body, actor):
         order.status = 'preparing'
     event = add_event(db, order, f"Состав изменён: {before['total_amount']} → {quote['total_amount']} ₸. {body.reason.strip()}", actor)
     event.public_data = json.dumps({'kind': 'receipt_changed', 'revision': order.receipt_revision,
-        'reason': body.reason.strip(), 'before': before, 'after': {'items': quote['items'], 'total_amount': quote['total_amount']}}, ensure_ascii=False)
+        'actor_role': 'customer' if customer else 'operator',
+        'reason': body.reason.strip(), 'before': before, 'after': receipt_snapshot(order)}, ensure_ascii=False)
     await sync_task(db, order)
     await db.commit()
     await db.refresh(order)

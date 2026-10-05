@@ -43,7 +43,7 @@ export interface OperatorOrder {
   payment_method: string; payment_status: string; comment: string; created_at: string;
   operator_note: string | null; cancellation_reason: string | null;
 }
-export interface OrderEvent { id: number; actor: string; message: string; created_at: string; notification: string; error: string | null }
+export interface OrderEvent { id: number; actor: string; message: string; created_at: string; notification: string; error: string | null; public_data?: string | null }
 export interface OrderDelivery {
   id: number; status: string; courier_name: string | null; courier_phone: string | null;
   picked_up_at: string | null; delivered_at: string | null;

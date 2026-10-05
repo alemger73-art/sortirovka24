@@ -1,4 +1,5 @@
 import logging
+import json
 from typing import Optional, Dict, Any, List
 
 from sqlalchemy import select, func, update as sql_update
@@ -54,7 +55,11 @@ class Food_ordersService:
                 obj.status = 'new'
                 from services.dam_payment_flow import create_payment
                 await create_payment(self.db, obj)
-                add_event(self.db, obj, "Заказ создан", actor)
+                from services.customer_order_receipt import receipt_snapshot
+                created = add_event(self.db, obj, "Заказ создан", actor)
+                created.public_data = json.dumps({'kind': 'receipt_created', 'revision': 0,
+                    'actor_role': 'operator' if staff_action is not None else 'customer',
+                    'after': receipt_snapshot(obj)}, ensure_ascii=False)
             if staff_action is not None:
                 # Link the employee audit before the same commit as the order,
                 # request key and payment. A crash cannot leave an orphan audit.

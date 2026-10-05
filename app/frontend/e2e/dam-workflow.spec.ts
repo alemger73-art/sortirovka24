@@ -51,7 +51,8 @@ test('customer sees refreshed receipt and status instead of map',async({page},in
  await expect(page.locator('[aria-current="step"]')).toHaveText('Готовится');
  s.status='ready';s.order.receipt_revision=1;s.order.total_amount=1500;s.changes=[{revision:1,reason:'Клиент добавил напиток',created_at:'2026-09-13T10:10:00Z',before:{total_amount:1200,items:[{name:'Пицца',quantity:1}]},after:{total_amount:1500,items:[{name:'Пицца',quantity:1},{name:'Напиток',quantity:1}]}}];
  await expect(page.locator('[aria-current="step"]')).toHaveText('Готов',{timeout:10000});
- await page.getByText('История изменений состава',{exact:true}).click();await expect(page.getByText('Напиток × 1',{exact:true})).toBeVisible();
+ await page.getByText('История чеков и запросов (1)',{exact:true}).click();
+ await page.getByText('Изменение чека №1',{exact:true}).click();await expect(page.getByText('Напиток',{exact:true})).toBeVisible();
  await expect(page.locator('.leaflet-container, .maplibregl-map')).toHaveCount(0);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  await page.screenshot({path:info.outputPath('customer-receipt.png')});

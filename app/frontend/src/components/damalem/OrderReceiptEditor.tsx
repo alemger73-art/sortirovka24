@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getPublicLocale } from '@/i18n/publicLocale';
 import { foodOperations, type OperatorOrder } from '@/lib/foodOperations';
+import { accountApi } from '@/lib/accountApi';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,8 +19,14 @@ type Catalog = {products: Product[]; categories?: {id: number; name: string}[]; 
 type Quote = {loyalty?: {maximum_spend:string;bonus_spent:string;eligible_amount:string;bonus_rate:string};promo_code?: string;items: {name: string; quantity: number; sum: number}[]; total_amount: number; subtotal?: number; delivery_fee?: number; service_fee?: number; discount?: number; adjustment?: number; previous_total?: number; paid_amount?: number; amount_due?: number; refund_due?: number; gift_choices?: {id: string; title: string}[]; gift_required?: boolean};
 type Customer = {loyalty?: {balance:number;rules:{max_spend_percent:number;cashback_rate:number}};name: string; addresses: string[]; recent_orders: {id: number; amount: number; status: string}[]};
 
-export default function OrderReceiptEditor({order, onClose, onSaved}: {order?: OperatorOrder; onClose: () => void; onSaved: (id: number) => void}) {
+export default function OrderReceiptEditor({order, customerMode, onClose, onSaved}: {order?: OperatorOrder; customerMode?: 'edit' | 'request'; onClose: () => void; onSaved: (id: number) => void}) {
   const {t, lang} = useLanguage();
+  const label = (ru: string, kz: string) => lang === 'kz' ? kz : ru;
+  function command<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
+    if (customerMode && order) return accountApi.receiptCommand<T>(order.id,
+      path === '/catalog' ? 'catalog' : path.endsWith('/quote') ? 'quote' : customerMode === 'request' ? 'request' : '', method, body);
+    return foodOperations<T>(path, method, body);
+  }
   const money = (value: number) => `${Number(value || 0).toLocaleString(getPublicLocale(lang), {maximumFractionDigits: 2})} ₸`;
   const [catalog, setCatalog] = useState<Catalog | null>(null), [error, setError] = useState('');
   const [catalogAttempt, setCatalogAttempt] = useState(0);
@@ -43,7 +50,7 @@ export default function OrderReceiptEditor({order, onClose, onSaved}: {order?: O
   const [customer, setCustomer] = useState<Customer | null>(null);
   useEffect(() => {setBonusUse('');}, [phone]);
   const lock = useRef(false), quoteGeneration = useRef(0);
-  useEffect(() => { let alive = true; foodOperations<Catalog>('/catalog').then(x => {if (alive) {setCatalog(x); setError('');}}).catch(e => {if (alive) setError(e.message);}); return () => {alive = false;}; }, [catalogAttempt]);
+  useEffect(() => { let alive = true; command<Catalog>('/catalog').then(x => {if (alive) {setCatalog(x); setError('');}}).catch(e => {if (alive) setError(e.message);}); return () => {alive = false;}; }, [catalogAttempt]);
   useEffect(() => {
     let alive = true; setCustomer(null);
     if (order || phone.replace(/\D/g, '').length < 10) return;
@@ -63,7 +70,7 @@ export default function OrderReceiptEditor({order, onClose, onSaved}: {order?: O
     setError('');
     if (!ready) {setCalculating(false); return;}
     setCalculating(true);
-    const timer = setTimeout(() => { void foodOperations<Quote>(path + '/quote', 'POST', JSON.parse(key)).then(value => {
+    const timer = setTimeout(() => { void command<Quote>(path + '/quote', 'POST', JSON.parse(key)).then(value => {
       if (gen === quoteGeneration.current) setQuoteState({key, value});
     }).catch(e => {if (gen === quoteGeneration.current) {setQuoteState(null); setError(e.message);}}).finally(() => {if (gen === quoteGeneration.current) setCalculating(false);}); }, 350);
     return () => {clearTimeout(timer); quoteGeneration.current++;};
@@ -82,14 +89,15 @@ export default function OrderReceiptEditor({order, onClose, onSaved}: {order?: O
     if (lock.current || !ready || !quote || calculating || quote.gift_required) return;
     lock.current = true; setBusy(true); setError('');
     try {
-      const result = await foodOperations<OperatorOrder>(path, 'POST', {...payload, quoted_total: quote.total_amount});
-      toast.success(`${t('workflow.saved')} №${result.id}`); onSaved(result.id);
+      const result = await command<OperatorOrder>(path, 'POST', {...payload, quoted_total: quote.total_amount});
+      toast.success(customerMode === 'request' ? label('Запрос отправлен. Заказ пока не изменён.', 'Өтініш жіберілді. Тапсырыс әлі өзгерген жоқ.') : `${t('workflow.saved')} №${order?.id || result.id}`); onSaved(order?.id || result.id);
     } catch (e) {setError((e as Error).message);}
     finally {lock.current = false; setBusy(false);}
   }
   const products = catalog?.products.filter(x => (category == null || x.category_id === category) && x.name.toLowerCase().includes(search.toLowerCase())) || [];
   const categories = (catalog?.categories || []).filter(c => catalog?.products.some(p => p.category_id === c.id));
-  return <Dialog open onOpenChange={open => {if (!open && !busy) onClose();}}><DialogContent className="w-[calc(100%-1rem)] max-w-7xl max-h-[95dvh] overflow-y-auto p-4 sm:p-6"><DialogHeader><DialogTitle>{t(order ? 'workflow.edit' : 'workflow.manual')}</DialogTitle></DialogHeader>
+  return <Dialog open onOpenChange={open => {if (!open && !busy) onClose();}}><DialogContent className="w-[calc(100%-1rem)] max-w-7xl max-h-[95dvh] overflow-y-auto p-4 sm:p-6"><DialogHeader><DialogTitle>{customerMode === 'request' ? label('Запросить изменение заказа', 'Тапсырысты өзгертуге өтініш') : t(order ? 'workflow.edit' : 'workflow.manual')}</DialogTitle></DialogHeader>
+    {customerMode && <p className="text-sm text-muted-foreground">{customerMode === 'request' ? label('Предложите новый состав оператору. Действующий заказ и оплата останутся прежними до согласования.', 'Операторға жаңа құрамды ұсыныңыз. Келісілгенге дейін тапсырыс пен төлем өзгермейді.') : label('Изменить состав можно до принятия заказа оператором. Проверьте новую сумму перед сохранением.', 'Тапсырыс оператор қабылдағанға дейін өзгертіледі. Сақтамас бұрын жаңа соманы тексеріңіз.')}</p>}
     <fieldset disabled={busy} className="min-w-0 grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(340px,1fr)]">
       <section className="min-w-0 space-y-4">
         {!order && <div className="grid sm:grid-cols-2 gap-3 rounded-xl border p-4">
@@ -131,14 +139,14 @@ export default function OrderReceiptEditor({order, onClose, onSaved}: {order?: O
           {line.line_index == null && catalog?.products.find(p=>p.id===line.id) && <MenuSelectionFields product={configuredProduct(catalog.products.find(p=>p.id===line.id)!)} value={{modifiers:line.modifiers,choices:line.choices || []}} onChange={value=>setLines(lines.map((x,j)=>j===i?{...x,...value}:x))}/>}
           {line.line_index == null && groupsFor(line.id).length > 0 && <Button variant="outline" size="sm" onClick={() => {const product = catalog?.products.find(p => p.id === line.id); if (product) add(product, true);}}>{t('pos.variant')}</Button>}
         </div>)}</div>
-        {order && <label className="block">{t('workflow.reason')}<Input value={reason} maxLength={500} placeholder={t('workflow.reasonHint')} onChange={e => setReason(e.target.value)} /></label>}
+        {order && <label className="block">{customerMode ? customerMode === 'request' ? label('Комментарий оператору', 'Операторға түсініктеме') : label('Причина изменения', 'Өзгерту себебі') : t('workflow.reason')}<Input value={reason} maxLength={500} placeholder={customerMode ? label('Например: хочу добавить напиток', 'Мысалы: сусын қосқым келеді') : t('workflow.reasonHint')} onChange={e => setReason(e.target.value)} /></label>}
         {!!quote?.gift_choices?.length && <label className="block">{t('workflow.gift')}<select className="w-full border rounded-lg p-3 bg-background" value={quote.gift_choices.some(g => g.id === giftId) ? giftId : quote.gift_choices.length === 1 ? quote.gift_choices[0].id : ''} onChange={e => setGiftId(e.target.value)}><option value="">{t('workflow.chooseGift')}</option>{quote.gift_choices.map(g => <option key={g.id} value={g.id}>{g.title}</option>)}</select></label>}
         <div aria-live="polite" className="border-t pt-3 space-y-2"><p className="flex justify-between"><span>{t('pos.subtotal')}</span><span>{money(quote?.subtotal ?? draftSubtotal)}</span></p>
           {quote && <>{quote.delivery_fee != null && <p className="flex justify-between"><span>{t('workflow.delivery')}</span><span>{money(quote.delivery_fee)}</span></p>}{!!quote.service_fee && <p className="flex justify-between"><span>{t('pos.service')}</span><span>{money(quote.service_fee)}</span></p>}{!!quote.discount && <p className="flex justify-between"><span>{t('pos.discount')}</span><span>−{money(quote.discount)}</span></p>}{quote.adjustment != null && <p className="flex justify-between"><span>{t('pos.adjustment')}</span><span>{money(quote.adjustment)}</span></p>}<p className="text-xl font-bold flex justify-between"><span>{t('workflow.total')}</span><span>{money(quote.total_amount)}</span></p>{quote.paid_amount != null && <p>{t('workflow.received')}: {money(quote.paid_amount)}</p>}{!!quote.amount_due && <p>{t('workflow.due')}: {money(quote.amount_due)}</p>}{!!quote.refund_due && <p>{t('workflow.refund')}: {money(quote.refund_due)}</p>}</>}
           {!ready && <p className="text-sm text-muted-foreground">{t(order ? 'pos.editHint' : 'pos.fillHint')}</p>}{calculating && <p role="status">{t('pos.calculating')}</p>}
         </div>
         {error && <div role="alert" className="rounded-xl bg-destructive/10 text-destructive p-3"><p>{error}</p><Button variant="outline" onClick={() => setAttempt(v => v + 1)}>{t('pos.retry')}</Button></div>}
-        <Button className="w-full h-auto min-h-14 text-base whitespace-normal" disabled={busy || !ready || calculating || !quote || !!quote.gift_required} onClick={() => void save()}>{busy ? t('workflow.loading') : `${t(order ? 'workflow.confirm' : 'pos.create')}${quote ? ` — ${money(quote.total_amount)}` : ''}`}</Button>
+        <Button className="w-full h-auto min-h-14 text-base whitespace-normal" disabled={busy || !ready || calculating || !quote || !!quote.gift_required} onClick={() => void save()}>{busy ? t('workflow.loading') : `${customerMode === 'request' ? label('Отправить запрос оператору', 'Операторға өтініш жіберу') : t(order ? 'workflow.confirm' : 'pos.create')}${quote ? ` — ${money(quote.total_amount)}` : ''}`}</Button>
         <Button className="w-full" variant="outline" onClick={onClose}>{t('workflow.cancel')}</Button>
       </aside>
     </fieldset>
