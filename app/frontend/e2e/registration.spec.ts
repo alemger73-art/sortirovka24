@@ -13,11 +13,12 @@ test("user can register and reach the personal cabinet", async ({ page }) => {
   const password = "E2ePass123!";
 
   await page.goto("/register");
+  await page.getByRole("button", { name: "Уже есть пароль? Войти по паролю" }).click();
   await expect(page.getByRole("heading", { name: "Регистрация" })).toBeVisible();
 
   // Step 1: data + legal agreements
   await page.getByPlaceholder("Ваше имя").fill("E2E Тест");
-  await page.getByPlaceholder("+7 (700) 123-45-67").fill(phone);
+  await page.getByPlaceholder("700 123 45 67").fill(phone);
 
   await acceptLegalDoc(page, "Пользовательское соглашение");
   await acceptLegalDoc(page, "Политика конфиденциальности");
