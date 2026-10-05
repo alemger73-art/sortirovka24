@@ -112,7 +112,7 @@ interface Props {
 }
 
 export default function CabinetOrderCard({ order: o, detailPath, t }: Props) {
-  const { t: publicT } = useLanguage();
+  const { t: publicT, lang } = useLanguage();
   const navigate = useNavigate();
   const isFood = o.type === "food";
   const isStore = o.type in STORE_ORDER_LABELS;
@@ -214,7 +214,7 @@ export default function CabinetOrderCard({ order: o, detailPath, t }: Props) {
         </div>
 
         {detailPath ? (
-          <ChevronRight className="mt-3 h-5 w-5 shrink-0 text-gray-300 transition group-hover:text-amber-500 dark:text-slate-600" />
+          <div className="shrink-0 text-right">{isFood && <span className="text-xs font-semibold text-orange-700 dark:text-orange-300">{lang === 'kz' ? 'Чекті ашу' : 'Открыть чек'}</span>}<ChevronRight className="ml-auto mt-3 h-5 w-5 text-gray-300 transition group-hover:text-amber-500 dark:text-slate-600" /></div>
         ) : null}
       </div>
     </div>

@@ -1,4 +1,5 @@
 import ManualDeliveryDialog from '@/components/damalem/ManualDeliveryDialog';
+import CustomerReceiptHistory from '@/components/cabinet/CustomerReceiptHistory';
 import PreorderFields, {scheduleISO, scheduleLocal, scheduleLabel} from '@/components/damalem/PreorderFields';
 import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import PrintReceiptButton from '@/components/PrintReceiptButton';
@@ -244,6 +245,9 @@ export default function DamAlemOrders({ operatorMode = false }: { operatorMode?:
           {order.operator_note && !editing && <p className="rounded-xl bg-muted/50 p-3 break-words">{adminT('admin.dam.final.175')} {order.operator_note}</p>}
           {!historyOnly && <Button variant="outline" disabled={busy} onClick={() => { setEditing(!editing); setNote(order.operator_note || ''); setAddress(order.delivery_address || ''); }}>{adminT('admin.dam.final.176')}{!closed && isDelivery ? adminT('admin.dam.final.177') : ''}</Button>}
           {!historyOnly && editing && <fieldset disabled={busy} className="space-y-3"><label className="block">{adminT('admin.dam.final.178')}<textarea aria-label={adminT('admin.dam.final.178')} maxLength={2000} className="w-full rounded-lg border p-3" value={note} onChange={e => setNote(e.target.value)} /></label>{!closed && isDelivery && <label className="block">{adminT('admin.dam.final.179')}<Input value={address} maxLength={1000} onChange={e => setAddress(e.target.value)} /></label>}<Button onClick={() => void change({ operator_note: note, ...(!closed && isDelivery ? { delivery_address: address } : {}) })}>{adminT('admin.dam.final.180')}</Button></fieldset>}
+          <CustomerReceiptHistory orderNumber={order.id} changes={(detail?.events || []).flatMap(event => {
+            try { const data = JSON.parse(event.public_data || '{}'); return data.kind === 'receipt_change_requested' ? [{...data, created_at:event.created_at}] : []; } catch { return []; }
+          })} />
           <div className="border-t pt-4"><h4 className="font-semibold mb-3">{adminT('admin.dam.final.181')}</h4>{!detail?.events.length && <p className="text-sm text-muted-foreground">{adminT('admin.dam.final.182')}</p>}{detail?.events.map(event => <div key={event.id} className="py-3 border-b text-sm space-y-1 break-words"><p>{event.message}</p><p className="text-muted-foreground">{date(event.created_at)} · {event.actor}</p><p>{notifyLabels[event.notification] || event.notification}</p>{event.error && <p className="text-red-700">{event.error}</p>}{!historyOnly && ['failed', 'unknown', 'pending'].includes(event.notification) && <Button variant="outline" size="sm" disabled={busy} onClick={() => void retry(event.id, event.notification === 'unknown')}>{adminT('admin.dam.final.183')}</Button>}</div>)}</div>
         </>}
       </section>

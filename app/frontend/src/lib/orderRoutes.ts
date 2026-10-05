@@ -37,7 +37,7 @@ export function orderLineQuantity(item: Record<string, unknown>): number {
 }
 
 export function orderLineTotal(item: Record<string, unknown>): number {
-  const explicit = item.line_total ?? item.total;
+  const explicit = item.line_total ?? item.sum ?? item.total;
   if (explicit != null && Number.isFinite(Number(explicit))) return Math.max(0, Number(explicit));
   const extras = item.modTotal ?? (Array.isArray(item.modifiers) ? item.modifiers.reduce((sum, mod) => sum + (Number(mod?.price) || 0), 0) : 0);
   const total = (Number(item.price ?? 0) + Number(extras)) * orderLineQuantity(item);

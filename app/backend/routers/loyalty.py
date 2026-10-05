@@ -130,9 +130,9 @@ async def dashboard(start: date | None = None, end: date | None = None, db=Depen
 
 @router.get('/owner/customers')
 async def customers(q: str = Query('', max_length=100), db=Depends(get_db), _=Depends(food_owner)):
-    from sqlalchemy import or_
+    from services.crm import search_criterion
     rows=(await db.execute(select(Customer,BonusMember).join(BonusMember,BonusMember.customer_id==Customer.id).where(
-        BonusMember.business_id==DAM, or_(Customer.name.ilike('%'+q+'%'),Customer.normalized_phone.ilike('%'+q+'%'))).order_by(Customer.name).limit(40))).all()
+        BonusMember.business_id==DAM, search_criterion(q) if q.strip() else True).order_by(Customer.name).limit(40))).all()
     return [{'id':c.id,'name':c.name,'phone':'***'+c.normalized_phone[-4:],'balance':m.bonus_balance} for c,m in rows]
 
 

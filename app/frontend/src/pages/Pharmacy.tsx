@@ -956,7 +956,7 @@ export default function Pharmacy() {
           </div>
 
           {/* Desktop top bar */}
-          <div className={`hidden lg:flex items-center gap-6 ${PAGE_X} py-4`}>
+          <div className={`hidden lg:flex flex-wrap items-center gap-6 ${PAGE_X} py-4`}>
             <button
               type="button"
               className="p-2 -ml-2 text-gray-600 hover:text-teal-600 transition-colors shrink-0"
@@ -986,7 +986,7 @@ export default function Pharmacy() {
                 </div>
               )}
             </div>
-            <div className="flex-1 max-w-md xl:max-w-lg">
+            <div className="min-w-0 flex-1 max-w-md xl:max-w-lg">
               <Input
                 placeholder={st("Поиск лекарств, витаминов, действующего вещества...")}
                 value={searchQuery}

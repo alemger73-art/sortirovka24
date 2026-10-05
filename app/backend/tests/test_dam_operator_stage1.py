@@ -21,6 +21,13 @@ async def test_source_and_fulfillment_are_independent(env, source, fulfillment):
         order_items=json.dumps([{'id':2,'quantity':2,'price':300}]), total_amount=600)
     if source == 'app':
         result = await client.post('/api/v1/entities/food_orders', json=body)
+        if fulfillment == 'dine_in':
+            assert result.status_code == 400, result.text
+            assert 'оформляет сотрудник' in result.json()['detail']
+            async with maker() as db:
+                assert (await db.scalars(select(Food_orders))).all()[0].id == 1
+                assert len((await db.scalars(select(Food_orders))).all()) == 1
+            return
         assert result.status_code == 201, result.text
         order = result.json()
     elif source == 'operator':

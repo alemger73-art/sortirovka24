@@ -1,3 +1,6 @@
+import CustomerOrderReceipt from '@/components/cabinet/CustomerOrderReceipt';
+import CustomerReceiptHistory from '@/components/cabinet/CustomerReceiptHistory';
+import OrderReceiptEditor from '@/components/damalem/OrderReceiptEditor';
 import {scheduleLabel} from '@/components/damalem/PreorderFields';
 import { foodOrderStatusKey } from '@/lib/foodOrderStatus';
 import { getPublicLocale } from '@/i18n/publicLocale';
@@ -11,8 +14,6 @@ import {
   ORDER_SOURCE_LABELS,
   ORDER_SOURCE_PATHS,
   parseOrderItems,
-  orderLineQuantity,
-  orderLineTotal,
   saveStoreRepeatOrder,
   type OrderSource,
 } from '@/lib/orderRoutes';
@@ -57,17 +58,21 @@ function StoreIcon({ type }: { type: string }) {
 }
 
 export default function CabinetOrderDetail() {
-  const { t: publicT } = useLanguage();
+  const { t: publicT, lang } = useLanguage();
+  const label = (ru: string, kz: string) => lang === 'kz' ? kz : ru;
   const { source = '', orderId = '' } = useParams();
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [order, setOrder] = useState<any>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [editor, setEditor] = useState<{mode: 'edit' | 'request'; order: any} | null>(null);
 
   useEffect(() => {
     if (!source || !orderId) return;
     let alive = true;
+    setEditor(null);
+    setOrder(null);
     (async () => {
       setLoading(true);
       setError('');
@@ -191,32 +196,20 @@ export default function CabinetOrderDetail() {
               <p className="text-sm text-muted-foreground">{t('workflow.live')}</p>
               {!!order.receipt_revision && <p className="font-semibold text-orange-700 dark:text-orange-300">{t('workflow.changed')} · {formatOrderDate(order.receipt_updated_at)}</p>}
               {order.paid_amount > 0 && <><p>{t('workflow.received')}: {order.paid_amount} ₸</p><p>{t(order.paid_amount > order.amount ? 'workflow.refund' : 'workflow.due')}: {Math.abs(order.amount - order.paid_amount)} ₸</p></>}
-              {!!order.receipt_changes?.length && <details><summary className="cursor-pointer font-semibold">{t('workflow.history')}</summary>{order.receipt_changes.map((change: any) => <div key={change.revision} className="border-t py-3 space-y-2 text-sm"><p>{formatOrderDate(change.created_at)} · {change.reason}</p><div className="grid sm:grid-cols-2 gap-3">{(['before','after'] as const).map(side => <div key={side}><strong>{t(`workflow.${side}`)}: {change[side].total_amount} ₸</strong>{change[side].items.map((x: any,i: number) => <p key={i}>{x.name} × {x.quantity}</p>)}</div>)}</div></div>)}</details>}
+              {(order.can_edit_receipt || order.can_request_receipt_change) && <button type="button" className="rounded-xl border px-4 py-3 font-semibold hover:bg-muted" onClick={() => setEditor({mode: order.can_edit_receipt ? 'edit' : 'request', order: {...order, id: Number(order.food_order_id || order.order_number || orderId), total_amount: order.amount}})}>{order.can_edit_receipt ? label('Изменить состав заказа', 'Тапсырыс құрамын өзгерту') : label('Запросить изменение', 'Өзгертуге өтініш')}</button>}
+              {order.can_edit_receipt && <p className="text-xs text-muted-foreground">{label('Доступно до принятия оператором. Новую сумму покажем перед сохранением.', 'Оператор қабылдағанға дейін қолжетімді. Сақтамас бұрын жаңа сома көрсетіледі.')}</p>}
+              {order.can_edit_receipt && order.can_request_receipt_change && <button type="button" className="text-sm underline" onClick={() => setEditor({mode: 'request', order: {...order, id: Number(order.food_order_id || order.order_number || orderId), total_amount: order.amount}})}>{label('Попросить оператора изменить заказ', 'Оператордан тапсырысты өзгертуді сұрау')}</button>}
             </div>}
 
-            {items.length > 0 && (
-              <div className="rounded-2xl border bg-white p-6 shadow-sm dark:bg-gray-900 dark:border-gray-800">
-                <h2 className="font-bold text-gray-900 dark:text-white mb-3">{publicT("public.extra.4")}</h2>
-                <ul className="space-y-2">
-                  {items.map((item, idx) => {
-                    const name = String(item.name || item.title || publicT("public.CabinetOrderDetail.text48"));
-                    const qty = orderLineQuantity(item);
-                    const price = orderLineTotal(item);
-                    return (
-                      <li key={idx} className="flex justify-between gap-3 text-sm border-b border-gray-100 dark:border-gray-800 pb-2 last:border-0">
-                        <span className="text-gray-800 dark:text-slate-200">{name} × {qty}</span>
-                        {price > 0 ? (
-                          <span className="font-semibold shrink-0">{price.toLocaleString(getPublicLocale())} ₸</span>
-                        ) : null}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            )}
+            <CustomerOrderReceipt order={order} />
+            {isFood && <CustomerReceiptHistory changes={order.receipt_changes || []} orderNumber={Number(order.order_number || orderId)} />}
           </div>
         ) : null}
       </div>
+      {editor && <OrderReceiptEditor order={editor.order} customerMode={editor.mode} onClose={() => setEditor(null)} onSaved={() => {
+        setEditor(null);
+        void accountApi.orderDetail(source, orderId).then(result => setOrder((previous: any) => previous && (previous.version || 0) > (result.version || 0) ? previous : result)).catch(e => setError(humanizeApiError(e)));
+      }} />}
     </Layout>
   );
 }

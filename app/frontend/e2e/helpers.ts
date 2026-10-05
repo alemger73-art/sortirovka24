@@ -53,7 +53,8 @@ export async function seedUserViaApi(
 /** Log in through the real UI form and wait for the cabinet. */
 export async function loginViaUi(page: Page, user: SeededUser) {
   await page.goto("/login");
-  await page.getByPlaceholder("+7 (700) 123-45-67").fill(user.phoneDigits);
+  await page.getByRole("button", { name: "Уже есть пароль? Войти по паролю" }).click();
+  await page.getByPlaceholder("700 123 45 67").fill(user.phoneDigits);
   await page.getByPlaceholder("Пароль").fill(user.password);
   await page.getByRole("button", { name: "Войти" }).click();
   await page.waitForURL("**/cabinet", { timeout: 15_000 });

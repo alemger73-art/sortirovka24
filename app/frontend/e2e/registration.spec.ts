@@ -13,11 +13,12 @@ test("user can register and reach the personal cabinet", async ({ page }) => {
   const password = "E2ePass123!";
 
   await page.goto("/register");
+  await page.getByRole("button", { name: "Уже есть пароль? Войти по паролю" }).click();
   await expect(page.getByRole("heading", { name: "Регистрация" })).toBeVisible();
 
   // Step 1: data + legal agreements
   await page.getByPlaceholder("Ваше имя").fill("E2E Тест");
-  await page.getByPlaceholder("+7 (700) 123-45-67").fill(phone);
+  await page.getByPlaceholder("700 123 45 67").fill(phone);
 
   await acceptLegalDoc(page, "Пользовательское соглашение");
   await acceptLegalDoc(page, "Политика конфиденциальности");
@@ -26,7 +27,7 @@ test("user can register and reach the personal cabinet", async ({ page }) => {
   await page.getByRole("button", { name: "Получить SMS-код" }).click();
 
   // Step 2: SMS code (auto-filled from the on-screen debug code)
-  const codeInput = page.getByPlaceholder("• • • •");
+  const codeInput = page.getByPlaceholder("• • • • • •");
   await expect(codeInput).toBeVisible();
   await expect(codeInput).not.toHaveValue("", { timeout: 10_000 });
   await page.getByRole("button", { name: "Подтвердить код" }).click();
@@ -38,5 +39,5 @@ test("user can register and reach the personal cabinet", async ({ page }) => {
 
   // Lands in the personal cabinet
   await page.waitForURL("**/cabinet", { timeout: 15_000 });
-  await expect(page.getByText("E2E Тест")).toBeVisible();
+  await expect(page.getByLabel('Имя',{exact:true})).toHaveValue('E2E Тест');
 });

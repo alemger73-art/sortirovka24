@@ -3,13 +3,15 @@ import { emptyDirectory } from '../src/lib/inspectorDirectory';
 const tabs = ['dashboard','news','banners','complaints','history','announcements','real-estate','jobs','masters','salons','master-requests','become-master','dam-alem','park-points','park-orders','directory','inspectors','taxi','logistics','transport','partners-business','partners-gastronom','partners-volna','partners-prorab','partners-pharmacy','modules','stats','categories','support','push','account-settings'];
 const counters = { master_requests_new:0, become_master_pending:0, announcements_pending:0, complaints_new:0, real_estate_pending:0, jobs_pending:0, food_orders_new:0, park_orders_active:0, taxi_applications_pending:0, courier_applications_pending:0, business_partner_new:0 };
 async function setup(page: Page) {
-  const state = { failSummary:false, failModules:false, writes:0, summary:{...counters,total_pending:0,updated_at:'2026-09-13T10:00:00Z',recent:[]} };
+  const state = { failSummary:false, failModules:false, writes:0, writePaths:[] as string[], summary:{...counters,total_pending:0,updated_at:'2026-09-13T10:00:00Z',recent:[]} };
   await page.addInitScript(() => {localStorage.setItem('_sp924_token','test-admin');localStorage.setItem('token','test-admin');localStorage.setItem('app_lang','ru');});
   await page.route('**/*', r => new URL(r.request().url()).hostname === '127.0.0.1' ? r.continue() : r.abort());
   await page.routeWebSocket('**/ws/**', ws => ws.close());
   await page.route('**/api/**', async r => {
     const p=new URL(r.request().url()).pathname;
-    if (!['GET','OPTIONS'].includes(r.request().method()) && !p.includes('verify-session')) state.writes++;
+    // These POST endpoints only validate a session or resolve an image URL.
+    const readOnlyPost=p.includes('verify-session')||p.endsWith('/storage/public/download-url');
+    if (!['GET','OPTIONS'].includes(r.request().method()) && !readOnlyPost) {state.writes++;state.writePaths.push(p);}
     if ((p.endsWith('/admin/summary') && state.failSummary) || (p.endsWith('/modules/admin/settings') && state.failModules)) return r.fulfill({status:503,json:{detail:'Test outage'}});
     let json:unknown={items:[],total:0};
     if(p.includes('verify-session'))json={valid:true,username:'test'};
@@ -18,7 +20,8 @@ async function setup(page: Page) {
     if(p.includes('/modules'))json={};
     if(/\/(taxi|logistics)\/admin\/(applications|rides|drivers|couriers|tasks)$/.test(p))json=[];
     if(p.endsWith('/business/me'))json={role:'owner',name:'Тестовый владелец'};
-    if(p.endsWith('/business/today'))json={day:'2026-09-13',counts:{},notification_errors:0,unpaid:0,new_orders:[]};
+    if(p.endsWith('/business/overview'))json={team:[],attention:[],attention_total:0,recent_orders:[]};
+    if(p.endsWith('/business/today'))json={day:'2026-09-13',daily:{created:0},counts:{},notification_errors:0,unpaid:0,new_orders:[]};
     if(p.endsWith('/business/report'))json={start:'2026-09-13',end:'2026-09-13',sales:0,completed:0,created:0,cancelled:0,average:0,receipts:0,refunds:0,expenses_total:0,cash_difference:0,bonuses:0,promo_discounts:0,untracked_promos:0,payment_methods:{},undated_done:0,undated_paid:0,products:[],days:[],expenses:[],refunds_needed:[]};
     await r.fulfill({json});
   });
@@ -79,7 +82,7 @@ test('failed visibility load cannot save defaults',async({page})=>{
   const s=await setup(page);s.failModules=true;await page.goto('/admin?tab=modules');
   await expect(page.getByRole('alert')).toContainText('Не удалось загрузить видимость');
   await expect(page.getByRole('button',{name:'Сохранить изменения'})).toHaveCount(0);
-  expect(s.writes).toBe(0);
+  expect(s.writes,JSON.stringify(s.writePaths)).toBe(0);
   s.failModules=false;await page.getByRole('button',{name:'Повторить загрузку'}).click();
   await expect(page.getByRole('button',{name:'Сохранить изменения'})).toBeVisible();
 });
@@ -94,7 +97,8 @@ test('session verification outage keeps the saved session and offers retry',asyn
 });
 test('broken section leaves navigation available',async({page})=>{
   await setup(page);await page.route('**/business/today',r=>r.fulfill({json:{counts:null}}));
-  await page.goto('/admin?tab=dam-alem');await expect(page.getByRole('alert')).toContainText('Не удалось открыть раздел');
+  await page.goto('/admin?tab=dam-alem');await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.getByRole('alert').getByRole('button',{name:'Повторить',exact:true})).toBeEnabled();
   if(page.viewportSize()!.width<768)await page.getByRole('button',{name:'Открыть меню'}).click();
   await page.getByRole('navigation',{name:'Разделы админки'}).filter({visible:true}).getByRole('button',{name:'Центр управления',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Требует внимания'})).toBeVisible();
@@ -108,5 +112,5 @@ test('content editors fit the viewport and can be cancelled without writes',asyn
     expect(await dialog.evaluate(e=>e.scrollWidth<=e.clientWidth+1),`${tab}: dialog content overflow`).toBe(true);
     await page.keyboard.press('Escape');await expect(dialog).toHaveCount(0);
   }
-  expect(s.writes).toBe(0);
+  expect(s.writes,JSON.stringify(s.writePaths)).toBe(0);
 });

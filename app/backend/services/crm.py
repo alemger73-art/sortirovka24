@@ -144,6 +144,24 @@ async def attach_order(db, order, account_user=None):
     return customer
 
 
+def search_criterion(query):
+    """One normalized phone/name predicate for operator and owner searches."""
+    text = query.strip()[:80]
+    if re.fullmatch(r'[0-9\s()+.\-]+', text):
+        digits = re.sub(r'[^0-9]', '', text)
+        if len(digits) in (10, 11):
+            try:
+                return Customer.normalized_phone == normalize_phone(text)
+            except HTTPException:
+                # An invalid complete number must not match a different client.
+                return Customer.normalized_phone == ''
+        if digits.startswith('8'):
+            digits = '7' + digits[1:]
+        return Customer.normalized_phone.like('+' + digits + '%')
+    text = text.replace('%', '').replace('_', '').replace('\\', '')
+    return Customer.name.ilike('%' + text + '%')
+
+
 async def search(db,business_id,query,limit=10):
     text=query.strip()[:80]
     if len(text)<3: return []

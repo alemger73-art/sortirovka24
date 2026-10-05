@@ -8,6 +8,7 @@ async function setup(page: Page) {
  await page.route('**/api/**',async r=>{
   const path=new URL(r.request().url()).pathname;let json:unknown={items:[],total:0};
   if(path.includes('verify-session'))json={valid:true,username:'test'};
+  if(path.endsWith('/modules'))json={directory:true,inspectors:true,transport:true};
   if(path.includes('/entities/directory_entries')){
    if(state.fail)return r.fulfill({status:500,json:{detail:'Test failure'}});
    if(r.request().method()==='POST'){state.writes++;const raw=r.request().postDataJSON();const added={id:99,...(raw.data||raw)};state.items.push(added);json=added;}

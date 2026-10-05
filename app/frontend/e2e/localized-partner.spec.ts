@@ -8,7 +8,10 @@ async function setup(page:Page,role='owner'){
  await page.route('**/api/**',async r=>{const url=new URL(r.request().url()),path=url.pathname,method=r.request().method();let json:unknown={items:[],total:0};
  if(path.includes('verify-session'))json={valid:true,display_name:'Тестовый сотрудник',login:'test'};
  if(path.endsWith('/business/me'))json={role:state.role,name:'Тест'};
- if(path.endsWith('/business/today'))json={day:'2026-09-13',counts:{new:2,preparing:1,ready:1},notification_errors:1,unpaid:2,new_orders:[{id:71,name:'Тестовый клиент',amount:2000,delivery_method:'pickup'}]};
+ if(path.endsWith('/business/overview'))json={team:[],attention:[],attention_total:0,recent_orders:[]};
+ if(path.endsWith('/business/today'))json={day:'2026-09-13',daily:{created:3},counts:{new:2,preparing:1,ready:1},notification_errors:1,unpaid:2,new_orders:[{id:71,name:'Тестовый клиент',amount:2000,delivery_method:'pickup'}]};
+ if(path.endsWith('/business/staff/couriers'))json=[];
+ if(path.endsWith('/shifts/me'))json={staff:{id:1,name:'Тест',role:'owner',pin_set:true},shift:null};
  if(path.endsWith('/business/report'))json=state.data;
  if(path.endsWith('/business/expenses')){state.writes++;state.lastBody=r.request().postDataJSON();state.data.expenses.push({...state.lastBody,amount:Number(state.lastBody.amount),voided:false,void_reason:''} as typeof data.expenses[number]);json={id:state.lastBody.id};}
  if(path.endsWith('/business/staff')){if(method==='POST'){state.writes++;const b=r.request().postDataJSON();state.staff.push({id:2,name:b.name,email:b.email,phone:'',active:true,role:'operator'});json={id:2};}else json=state.staff;}

@@ -1,4 +1,5 @@
 import ClientLoyalty from '@/components/damalem/ClientLoyalty';
+import AccountIdentitySettings from '@/components/cabinet/AccountIdentitySettings';
 import '@/styles/realEstate.css';
 import { notificationVisible } from '@/lib/cabinetModuleVisibility';
 import { type ModuleKey } from '@/config/modules';
@@ -1424,6 +1425,7 @@ export default function Cabinet() {
               {activeTab === "settings" && (
                 <DarkCard>
                   <h2 className={`mb-4 ${sectionTitleClass}`}>{t("cabinet.tab.settings")}</h2>
+                  <AccountIdentitySettings />
                   <CabinetNotificationSettings t={t} />
                   <div className="my-6 border-t border-gray-200 dark:border-[#26324a]" />
                   <div className="mb-6 space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-[#2a3347] dark:bg-[#0f172a]">

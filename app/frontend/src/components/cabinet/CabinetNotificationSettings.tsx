@@ -2,6 +2,7 @@ import { useModules } from '@/hooks/useModules';
 import { useTaxiEnabled } from '@/hooks/useTaxiEnabled';
 import { ORDER_MODULE_KEYS } from '@/config/cabinetTabs';
 import { useEffect, useState } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Bell } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { humanizeApiError } from '@/lib/apiErrors';
@@ -39,6 +40,8 @@ function PrefRow({
 }
 
 export default function CabinetNotificationSettings({ t }: Props) {
+  const { lang } = useLanguage();
+  const text = (ru: string, kz: string) => lang === 'kz' ? kz : ru;
   const { isEnabled } = useModules();
   const taxi = useTaxiEnabled();
   const delivery = ORDER_MODULE_KEYS.some(isEnabled);
@@ -48,7 +51,12 @@ export default function CabinetNotificationSettings({ t }: Props) {
   const [permission, setPermission] = useState<PushPermissionState>('disabled');
   const [pushBusy, setPushBusy] = useState(false);
   useEffect(() => { void loadNotificationPrefs().then(setNotify); }, []);
-  useEffect(() => { void getPushPermissionState().then(setPermission).catch(() => setPermission('unsupported')); }, []);
+  useEffect(() => {
+    let mounted = true;
+    const refresh = () => { void getPushPermissionState().then(value => { if (mounted) setPermission(value); }).catch(() => { if (mounted) setPermission('unsupported'); }); };
+    refresh(); window.addEventListener('focus', refresh);
+    return () => { mounted = false; window.removeEventListener('focus', refresh); };
+  }, []);
   async function changePush(enabled: boolean) {
     if (pushBusy) return;
     setPushBusy(true);
@@ -71,7 +79,7 @@ export default function CabinetNotificationSettings({ t }: Props) {
     finally { setSaving(false); }
   }
   if (!notify) return <p role="status">{t('cabinet.loading')}</p>;
-  return <fieldset disabled={saving} className="min-w-0 space-y-6">
+  return <fieldset disabled={saving || pushBusy} className="min-w-0 space-y-6">
     {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
       <section className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-[#2a3347] dark:bg-[#0f172a]">
         <div className="mb-3 flex items-center gap-2">
@@ -85,14 +93,16 @@ export default function CabinetNotificationSettings({ t }: Props) {
           </div>
         ) : permission === 'disabled' ? (
           <button type="button" disabled={pushBusy} className="mb-3 rounded-xl bg-sky-100 px-4 py-3 text-sm font-semibold text-sky-800 disabled:opacity-60" onClick={() => void changePush(true)}>
-            {pushBusy ? 'Подключаем…' : t('cabinet.enableNotifications')}
+            {pushBusy ? text('Подключаем…', 'Қосылуда…') : text('Включить уведомления', 'Хабарландыруларды қосу')}
           </button>
         ) : null}
         {permission === 'denied' && <p className="mb-3 text-xs">Уведомления заблокированы в настройках браузера или телефона. Разрешите их для Sortirovka 24 и вернитесь на эту страницу.</p>}
         {permission === 'needs-install' && <p className="mb-3 text-xs">На iPhone сначала установите Sortirovka 24 на экран «Домой» через кнопку «Поделиться», затем откройте установленное приложение и включите уведомления здесь.</p>}
         {permission === 'unsupported' && <p className="mb-3 text-xs">Это устройство или браузер не поддерживает push-уведомления.</p>}
-        <p className="mb-2 text-xs text-gray-500 dark:text-slate-400">{t('cabinet.permissions.hint')}</p>
-        <p className="mb-2 text-xs text-gray-500">Получайте статус заказов, доставки и выбранные новости Sortirovka 24.</p>
+        <p className="mb-2 text-xs text-gray-500 dark:text-slate-400">{text('Нажмите кнопку и выберите «Разрешить» в запросе браузера или телефона.', 'Түймені басып, браузер немесе телефон сұрауында «Рұқсат беру» тармағын таңдаңыз.')}</p>
+        <p className="mb-2 text-xs text-gray-500">{text('Статусы заказов и доставки, такси и бонусы. Новости и реклама включаются отдельно ниже.', 'Тапсырыс пен жеткізу мәртебелері, такси және бонустар. Жаңалықтар мен жарнама төменде бөлек қосылады.')}</p>
+        <details className="mt-4">
+          <summary className="cursor-pointer text-sm font-semibold text-sky-700 dark:text-sky-300">{text('Настроить категории уведомлений', 'Хабарландыру санаттарын баптау')}</summary>
         <PrefRow label="Новости района" checked={notify.news} onCheckedChange={v => void persistNotify({ ...notify, news: v })} />
         <PrefRow label="Реклама и предложения" hint="Только с вашего согласия" checked={notify.marketing} onCheckedChange={v => void persistNotify({ ...notify, marketing: v })} />
 
@@ -121,6 +131,7 @@ export default function CabinetNotificationSettings({ t }: Props) {
           checked={notify.master}
           onCheckedChange={(v) => void persistNotify({ ...notify, master: v })}
         />}
+        </details>
       </section>
     </fieldset>;
 }

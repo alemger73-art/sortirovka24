@@ -106,7 +106,7 @@ for(const fulfillment of ['pickup','dine_in'])test(`${fulfillment} does not requ
   await expect(page.getByRole('button',{name:'Подтвердить получение оплаты',exact:true})).toBeVisible();
 });
 
-test('customer chooses dine-in separately from source, without delivery minimum',async({page})=>{
+test('customer checkout offers pickup and reserves dine-in for staff',async({page})=>{
   await page.addInitScript(()=>{localStorage.setItem('app_lang','ru');sessionStorage.setItem('s24_welcome_done','1');});
   await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
   await page.route('**/api/**',async r=>{
@@ -124,7 +124,10 @@ test('customer chooses dine-in separately from source, without delivery minimum'
   await page.locator('.dam-grid-card').filter({hasText:'Лимонад'}).first().getByRole('button',{name:'В корзину',exact:true}).click();
   await page.getByTestId('dam-cart-open').click();
   await expect(page.getByTestId('dam-cart-checkout')).toBeDisabled();
-  await page.getByRole('group',{name:'Способ получения заказа'}).getByRole('button',{name:'На месте',exact:true}).click();
+  await expect(page.getByRole('group',{name:'Способ получения заказа'}).getByRole('button',{name:'На месте',exact:true})).toHaveCount(0);
+  await page.getByRole('group',{name:'Способ получения заказа'}).getByRole('button',{name:'Самовывоз',exact:true}).click();
+  await expect(page.getByTestId('dam-cart-checkout')).toBeDisabled();
+  for (let i=0;i<4;i++) await page.getByRole('button',{name:'Плюс',exact:true}).click();
   await expect(page.getByTestId('dam-cart-checkout')).toBeEnabled();
   await page.getByTestId('dam-cart-checkout').click();
   await expect(page.getByTestId('dam-checkout')).toBeVisible();

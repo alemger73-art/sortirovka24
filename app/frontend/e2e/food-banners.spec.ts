@@ -3,8 +3,9 @@ import { DAM_ALEM_BRAND, isSameDamAlemBrand, findDamAlemRestaurantId } from '../
 import { foodBannerActionUrl, isFoodBanner, resolveFoodBannerAction, safeBannerLink } from '../src/lib/foodBannerActions';
 
 type Banner = { id: number; title: string; subtitle?: string; button_url: string; banner_type: string; active: boolean; image_url?: string; button_text?: string };
-const image = 'http://127.0.0.1:3174/food-hero-reference.png';
+let image = 'http://127.0.0.1:3174/food-hero-reference.png';
 async function setup(page: Page, initial: Banner[] = []) {
+  image = new URL('/food-hero-reference.png',test.info().project.use.baseURL as string).href;
   const state = { banners: initial, writes: 0, failNext: false };
   await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' || route.request().url().includes('/api/') ? route.continue() : route.abort());
   await page.route('**/api/**', async route => {
@@ -16,6 +17,7 @@ async function setup(page: Page, initial: Banner[] = []) {
     if (path.includes('food_restaurants')) body = { items: [{ id: 1, name: 'DAM ALEM 2.0' }] };
     const categories = [{ id: 1, name: 'Пицца', slug: 'pizza', restaurant_id: 1 }, { id: 2, name: 'Напитки', slug: 'napitki', restaurant_id: 1 }];
     if (path === '/api/categories') body = { categories };
+    if (path === '/api/v1/dam-alem/menu/catalog') body = {business_id:'dam_alem',restaurant_id:1,categories,products:[{id:1,restaurant_id:1,category_id:1,name:'Маргарита',description:'Моцарелла и томаты',price:2500,image_url:image,available:true,is_active:true,sellable:true,modifiers_enabled:false,modifier_groups:[]},{id:2,restaurant_id:1,category_id:2,name:'Лимонад',price:600,image_url:image,available:true,is_active:true,sellable:true,modifiers_enabled:false,modifier_groups:[]}],groups:[],options:[],links:[]};
     if (path.includes('/entities/food_categories')) body = { items: categories };
     if (path === '/api/products') body = { products: [{ id: 1, category_id: 1, title: 'Маргарита', description: 'Моцарелла и томаты', price: 2500, image, available: true }, { id: 2, category_id: 2, title: 'Лимонад', price: 600, image, available: true }] };
     if (path.includes('food_settings')) body = { items: Object.entries({ promo_codes: JSON.stringify([{ code: 'TEST10', type: 'percent', value: 10, active: true, min_order: 0 }]), loyalty_gifts: '[]', min_order_amount: '0', kitchen_open: '00:00', kitchen_close: '00:00' }).map(([setting_key, setting_value]) => ({ setting_key, setting_value })) };
@@ -132,7 +134,7 @@ test('upload keeps edited text and saves a resolvable image key', async ({ page 
   const state = await setup(page);
   let release!: () => void;
   const uploaded = new Promise<void>(resolve => { release = resolve; });
-  await page.route('**/api/v1/storage/public/upload-url', route => route.fulfill({ json: { upload_url: 'http://127.0.0.1:3174/api/test-upload', object_key: 'banners/test.png' } }));
+  await page.route('**/api/v1/storage/public/upload-url', route => route.fulfill({ json: { upload_url: new URL('/api/test-upload',page.url()).href, object_key: 'banners/test.png' } }));
   await page.route('**/api/test-upload', async route => {
     await uploaded;
     await route.fulfill({ json: { object_key: 'banners/test.png', image_url: image } });
