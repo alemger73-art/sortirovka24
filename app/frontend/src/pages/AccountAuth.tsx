@@ -1,3 +1,4 @@
+import KzPhoneInput from '@/components/KzPhoneInput';
 import { formatPublicText } from '@/i18n/publicLocale';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { safeInternalPath } from '@/lib/pwa';
@@ -10,6 +11,13 @@ import { PRIVACY_POLICY, USER_AGREEMENT } from "@/content/legal";
 import { accountApi, setAccountToken } from "@/lib/accountApi";
 import { linkPushTokenToAccount, syncWebPushSubscriptionToAccount } from "@/lib/pushNotifications";
 import { cacheAccountProfile } from "@/lib/localAuth";
+
+import QuickAccountAuth from "@/components/QuickAccountAuth";
+
+export default function AccountAuth() {
+  const [passwordMode, setPasswordMode] = useState(false);
+  return passwordMode ? <><button type="button" onClick={() => setPasswordMode(false)} className="mx-auto block px-4 pt-4 text-sm text-blue-600">Google / SMS</button><PasswordAccountAuth /></> : <QuickAccountAuth onPasswordLogin={() => setPasswordMode(true)} />;
+}
 
 type RegStep = 1 | 2 | 3;
 
@@ -79,7 +87,7 @@ function StepIndicator({ step }: { step: RegStep }) {
   );
 }
 
-export default function AccountAuth() {
+function PasswordAccountAuth() {
   const { t: publicT } = useLanguage();
   const USER_AGREEMENT = { title: publicT('public.legal.USER_AGREEMENT.title'), updated: publicT('public.legal.USER_AGREEMENT.updated'), sections: Array.from({ length: 7 }, (_, i) => ({ heading: publicT(`public.legal.USER_AGREEMENT.${i}.heading`), body: publicT(`public.legal.USER_AGREEMENT.${i}.body`) })) };
   const PRIVACY_POLICY = { title: publicT('public.legal.PRIVACY_POLICY.title'), updated: publicT('public.legal.PRIVACY_POLICY.updated'), sections: Array.from({ length: 8 }, (_, i) => ({ heading: publicT(`public.legal.PRIVACY_POLICY.${i}.heading`), body: publicT(`public.legal.PRIVACY_POLICY.${i}.body`) })) };
@@ -134,7 +142,7 @@ export default function AccountAuth() {
       setError(publicT("public.AccountAuth.text5"));
       return;
     }
-    window.location.href = accountApi.googleStartUrl(form.language);
+    window.location.href = accountApi.googleStartUrl(form.language, agreementsOk);
   }
 
   function resetRegistration() {
@@ -333,13 +341,7 @@ export default function AccountAuth() {
             {/* ── LOGIN ── */}
             {isLogin ? (
               <>
-                <input
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
-                  placeholder="+7 (700) 123-45-67"
-                  inputMode="tel"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: formatPhoneInput(e.target.value) })}
-                />
+                <KzPhoneInput aria-label="Телефон, код страны +7" value={form.phone} onChange={phone => setForm({ ...form, phone })} />
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
@@ -369,13 +371,7 @@ export default function AccountAuth() {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />
-                <input
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
-                  placeholder="+7 (700) 123-45-67"
-                  inputMode="tel"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: formatPhoneInput(e.target.value) })}
-                />
+                <KzPhoneInput aria-label="Телефон, код страны +7" value={form.phone} onChange={phone => setForm({ ...form, phone })} />
                 <select
                   className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
                   value={form.language}

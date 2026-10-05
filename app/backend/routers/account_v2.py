@@ -5,7 +5,7 @@ import hmac
 import logging
 import os
 import secrets
-from typing import Any
+from typing import Any, Literal
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -460,6 +460,7 @@ def _to_user_response(user: User) -> UserV2Response:
         bonus_balance=float(user.bonus_balance or 0),
         has_password=bool(user.password_hash),
         phone_verified=bool(user.phone_verified_at),
+        google_linked=bool(user.google_sub),
         created_at=user.created_at.isoformat() if user.created_at else None,
     )
 
@@ -520,6 +521,7 @@ async def _get_or_create_google_user(
     name: str | None,
     avatar: str | None,
     language: str = "ru",
+    agreements_accepted: bool = False,
 ) -> tuple[User, bool]:
     user = (
         await db.execute(select(User).where(User.google_sub == google_sub))
@@ -530,10 +532,12 @@ async def _get_or_create_google_user(
             await db.execute(select(User).where(User.email == email))
         ).scalar_one_or_none()
         if user:
-            user.google_sub = google_sub
+            raise GoogleOAuthError("Этот email уже используется. Войдите в существующий кабинет для привязки Google.")
 
     created = False
     if not user:
+        if not agreements_accepted:
+            raise GoogleOAuthError("Для создания аккаунта подтвердите соглашение и политику конфиденциальности.")
         created = True
         user = User(
             id=str(uuid4()),
@@ -621,6 +625,7 @@ async def _create_user_and_login(
     http_request: Request,
     db: AsyncSession,
     phone_verified=False,
+    passwordless=False,
 ):
     normalized_phone = _normalize_phone(request.phone)
     # Only match on email when one was actually supplied — otherwise
@@ -643,7 +648,7 @@ async def _create_user_and_login(
         phone=normalized_phone,
         phone_verified_at=datetime.now(timezone.utc) if phone_verified else None,
         email=request.email,
-        password_hash=_hash_password(request.password),
+        password_hash=None if passwordless else _hash_password(request.password),
         avatar_url=None,
         language=request.language,
         agreement_accepted=request.agreement_accepted,
@@ -667,6 +672,8 @@ async def _create_user_and_login(
     await db.refresh(user)
     await _maybe_promote_master_role(db, user)
     await _log_action(db, str(user.id), "register", "users", str(user.id))
+    if passwordless:
+        return await _issue_account_session(user, http_request, db)
     return await login(LoginV2Request(phone=normalized_phone, password=request.password), http_request, db)
 
 
@@ -690,7 +697,7 @@ async def register_request_sms(
     return await _request_phone_code(request.phone, http_request, db)
 
 
-async def _request_phone_code(phone, http_request, db, *, allow_existing=False):
+async def _request_phone_code(phone, http_request, db, *, allow_existing=False, purpose="verify"):
     normalized_phone = _normalize_phone(phone)
     if not normalized_phone or not _is_valid_kz_phone(normalized_phone):
         raise HTTPException(status_code=400, detail="Invalid phone")
@@ -700,6 +707,9 @@ async def _request_phone_code(phone, http_request, db, *, allow_existing=False):
     if active_row and active_row.created_at:
         age_seconds = (datetime.now(timezone.utc) - _as_aware_utc(active_row.created_at)).total_seconds()
         if age_seconds < SMS_RESEND_COOLDOWN_SECONDS:
+            stored_purpose = active_row.code_hash.split(":", 1)[0] if ":" in active_row.code_hash else "verify"
+            if stored_purpose != purpose:
+                raise HTTPException(409, "Код уже запрошен для другого действия. Дождитесь повторной отправки.")
             return _existing_code_response(active_row)
 
     client_ip = http_request.client.host if http_request.client else "unknown"
@@ -737,7 +747,7 @@ async def _request_phone_code(phone, http_request, db, *, allow_existing=False):
     db.add(
         PhoneVerification(
             phone=normalized_phone,
-            code_hash=_hash_sms_code(normalized_phone, code),
+            code_hash=(f"{purpose}:" if purpose != "verify" else "") + _hash_sms_code(normalized_phone, code),
             pending_code=None,
             is_verified=False,
             attempts=0,
@@ -806,7 +816,7 @@ async def register_confirm(
     )
 
 
-async def _consume_phone_code(db, phone, code):
+async def _consume_phone_code(db, phone, code, *, purpose="verify"):
     normalized_phone = _normalize_phone(phone)
     if not normalized_phone or not _is_valid_kz_phone(normalized_phone):
         raise HTTPException(status_code=400, detail="Invalid phone")
@@ -818,6 +828,7 @@ async def _consume_phone_code(db, phone, code):
             .where(PhoneVerification.phone == normalized_phone, PhoneVerification.is_verified == False)
             .order_by(desc(PhoneVerification.id))
             .limit(1)
+            .with_for_update()
         )
     ).scalar_one_or_none()
     if not row:
@@ -830,7 +841,8 @@ async def _consume_phone_code(db, phone, code):
         raise HTTPException(status_code=429, detail="Слишком много попыток ввода кода. Запросите новый SMS-код.")
 
     row.attempts += 1
-    if row.code_hash != _hash_sms_code(normalized_phone, code.strip()):
+    expected_hash = (f"{purpose}:" if purpose != "verify" else "") + _hash_sms_code(normalized_phone, code.strip())
+    if not hmac.compare_digest(row.code_hash, expected_hash):
         await db.commit()
         raise HTTPException(status_code=400, detail="Invalid SMS code")
 
@@ -895,9 +907,94 @@ async def login(
     return await _issue_account_session(user, http_request, db)
 
 
+class PhoneSignInConfirm(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    phone: str = Field(max_length=32)
+    code: str = Field(pattern=r"^[0-9]{6}$")
+    language: Literal["ru", "kz"] = "ru"
+    agreement_accepted: bool = False
+    privacy_accepted: bool = False
+
+
+@router.post("/signin/request-sms", response_model=RequestSmsCodeResponse)
+async def signin_request_sms(body: RequestSmsCodeRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
+    return await _request_phone_code(body.phone, http_request, db, allow_existing=True, purpose="signin")
+
+
+@router.post("/signin/confirm", response_model=AuthV2Response)
+async def signin_confirm(body: PhoneSignInConfirm, http_request: Request, db: AsyncSession = Depends(get_db)):
+    phone = _normalize_phone(body.phone)
+    from services import crm
+    await crm.lock(db)
+    user = (await db.execute(select(User).where(User.phone == phone).with_for_update())).scalar_one_or_none()
+    if user and (user.status != "active" or not user.is_active):
+        raise HTTPException(403, "User is blocked")
+    if user and user.role in {"admin", "superadmin", "moderator", "courier", "driver"}:
+        raise HTTPException(403, "Для рабочего кабинета используйте вход по паролю.")
+    if not user and not (body.agreement_accepted and body.privacy_accepted):
+        raise HTTPException(400, "Agreement and privacy acceptance required")
+    await _consume_phone_code(db, phone, body.code, purpose="signin")
+    if not user:
+        # Reuse registration/CRM handling without creating a usable password.
+        return await _create_user_and_login(RegisterV2Request(
+            name="Пользователь" if body.language == "ru" else "Пайдаланушы",
+            phone=phone, password=secrets.token_urlsafe(32), language=body.language,
+            agreement_accepted=True, privacy_accepted=True,
+        ), http_request, db, phone_verified=True, passwordless=True)
+    user.phone_verified_at = user.phone_verified_at or datetime.now(timezone.utc)
+    await crm.for_account(db, user)
+    await db.commit()
+    await _log_action(db, str(user.id), "login_sms", "users", str(user.id))
+    return await _issue_account_session(user, http_request, db)
+
+
 @router.get("/google/status")
 async def google_status():
     return {"enabled": google_oauth_enabled()}
+
+
+@router.post("/google/link/start")
+async def google_link_start(request: Request, authorization: str | None = Header(None), db: AsyncSession = Depends(get_db)):
+    user = await _current_user(db, authorization)
+    if not google_oauth_enabled():
+        raise HTTPException(503, "Google вход не настроен на сервере")
+    if user.google_sub:
+        raise HTTPException(409, "Google уже подключён")
+    state = generate_state()
+    context = json.dumps({"language": user.language, "link_user": str(user.id)})
+    await AuthService(db).store_oidc_state(state, "google_account", context)
+    return {"url": build_google_authorization_url(state=state, redirect_uri=_google_callback_url(request))}
+
+
+@router.post("/phone/link/request-sms", response_model=RequestSmsCodeResponse)
+async def phone_link_request(body: RequestSmsCodeRequest, request: Request, authorization: str | None = Header(None), db: AsyncSession = Depends(get_db)):
+    user = await _current_user(db, authorization)
+    phone = _normalize_phone(body.phone)
+    if user.phone and user.phone != phone:
+        raise HTTPException(409, "Смена подтверждённого номера выполняется через поддержку.")
+    owner = (await db.execute(select(User).where(User.phone == phone))).scalar_one_or_none()
+    if owner and owner.id != user.id:
+        raise HTTPException(409, "Этот номер уже связан с другим кабинетом. Если Google ещё не подключён к отдельному аккаунту, войдите по телефону и подключите Google в настройках. Если уже созданы два кабинета, обратитесь в поддержку для проверки и объединения. Заказы и бонусы не переносились.")
+    return await _request_phone_code(phone, request, db, allow_existing=True, purpose="attach")
+
+
+@router.post("/phone/link/confirm")
+async def phone_link_confirm(body: PhoneSignInConfirm, authorization: str | None = Header(None), db: AsyncSession = Depends(get_db)):
+    user = await _current_user(db, authorization)
+    phone = _normalize_phone(body.phone)
+    from services import crm
+    await crm.lock(db)
+    if user.phone and user.phone != phone:
+        raise HTTPException(409, "Смена подтверждённого номера выполняется через поддержку.")
+    owner = (await db.execute(select(User).where(User.phone == phone).with_for_update())).scalar_one_or_none()
+    if owner and owner.id != user.id:
+        raise HTTPException(409, "Номер уже связан с другим кабинетом.")
+    await _consume_phone_code(db, phone, body.code, purpose="attach")
+    user.phone = phone
+    user.phone_verified_at = datetime.now(timezone.utc)
+    await crm.for_account(db, user)
+    await db.commit()
+    return {"verified": True}
 
 
 @router.get("/google/start")
@@ -905,13 +1002,16 @@ async def google_start(
     request: Request,
     db: AsyncSession = Depends(get_db),
     language: str = "ru",
+    agreement_accepted: bool = False,
+    privacy_accepted: bool = False,
 ):
     if not google_oauth_enabled():
         raise HTTPException(status_code=503, detail="Google вход не настроен на сервере")
 
     state = generate_state()
     auth_service = AuthService(db)
-    await auth_service.store_oidc_state(state, "google_account", language if language in {"ru", "kz"} else "ru")
+    context = json.dumps({"language": language if language in {"ru", "kz"} else "ru", "accepted": agreement_accepted and privacy_accepted})
+    await auth_service.store_oidc_state(state, "google_account", context)
 
     redirect_uri = _google_callback_url(request)
     auth_url = build_google_authorization_url(state=state, redirect_uri=redirect_uri)
@@ -942,20 +1042,37 @@ async def google_callback(
     if not temp or temp.get("nonce") != "google_account":
         return redirect_error("Сессия Google устарела. Попробуйте снова.")
 
-    language = str(temp.get("code_verifier") or "ru")
+    context_raw = str(temp.get("code_verifier") or "ru")
+    try:
+        context = json.loads(context_raw)
+    except ValueError:
+        context = {"language": context_raw, "accepted": False}
+    if not isinstance(context, dict):
+        return redirect_error("Сессия Google устарела. Попробуйте снова.")
+    language = context.get("language", "ru")
 
     try:
         redirect_uri = _google_callback_url(request)
         tokens = await exchange_google_code(code=code, redirect_uri=redirect_uri)
         profile = await fetch_google_userinfo(tokens["access_token"])
-        user, _created = await _get_or_create_google_user(
-            db,
-            google_sub=str(profile["sub"]),
-            email=profile.get("email"),
-            name=profile.get("name"),
-            avatar=profile.get("picture"),
-            language=language,
-        )
+        if context.get("link_user"):
+            user = await db.get(User, context["link_user"])
+            if not user or user.status != "active" or not user.is_active:
+                raise GoogleOAuthError("Кабинет недоступен")
+            owner = (await db.execute(select(User).where(User.google_sub == str(profile["sub"])))).scalar_one_or_none()
+            if owner and owner.id != user.id:
+                raise GoogleOAuthError("Этот Google уже связан с другим кабинетом. Объединение выполняется через поддержку.")
+            if user.google_sub and user.google_sub != str(profile["sub"]):
+                raise GoogleOAuthError("В кабинете уже подключён другой Google")
+            user.google_sub = str(profile["sub"])
+            await db.commit()
+            await _log_action(db, str(user.id), "google_linked", "users", str(user.id))
+        else:
+            user, _created = await _get_or_create_google_user(
+                db, google_sub=str(profile["sub"]), email=profile.get("email"),
+                name=profile.get("name"), avatar=profile.get("picture"), language=language,
+                agreements_accepted=bool(context.get("accepted")),
+            )
         session = await _issue_account_session(user, request, db)
     except GoogleOAuthError as exc:
         logger.warning("[google_callback] %s", exc)

@@ -18,6 +18,7 @@ SMS_SENDER = os.getenv("MOBIZON_SENDER", "").strip()
 
 # Mobizon campaign status: 1 = awaiting moderation
 MOBIZON_CAMPAIGN_MODERATION = 1
+MOBIZON_FAILED_STATUSES = {"UNDELIV", "REJECTD", "EXPIRED", "DELETED"}
 
 
 class SMSDeliveryError(Exception):
@@ -30,6 +31,7 @@ class SMSDeliveryResult:
     pending_moderation: bool
     message_id: str | None = None
     provider_message: str = ""
+    provider_status: str = ""
 
 
 def _digits_only(phone: str) -> str:
@@ -63,7 +65,7 @@ async def send_verification_code(phone: str, code: str) -> SMSDeliveryResult:
             provider_message="external_side_effects_disabled",
         )
     provider = _provider()
-    # Short text passes Mobizon moderation faster.
+    # Keep this exact text aligned with the provider-approved OTP template.
     text = f"Sortirovka24 kod: {code}"
 
     if provider == "mobizon":
@@ -87,24 +89,34 @@ async def _mobizon_post(path: str, *, params: dict[str, Any] | None = None, data
     if not api_key:
         raise SMSDeliveryError("MOBIZON_API_KEY is not set")
 
-    query = {"output": "json", "api": "v1", "apiKey": api_key, **(params or {})}
+    form = {**(params or {}), **(data or {}), "output": "json", "api": "v1", "apiKey": api_key}
     url = f"{MOBIZON_API_BASE}{path}"
 
     async with httpx.AsyncClient(timeout=20.0) as client:
-        response = await client.post(url, params=query, data=data or {})
+        # Mobizon accepts POST parameters. Keep credentials out of request URLs
+        # which HTTP clients and proxies commonly log.
+        response = await client.post(url, data=form)
         response.raise_for_status()
-        payload = response.json()
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            raise SMSDeliveryError("SMS-сервис вернул некорректный ответ") from exc
 
-    api_code = payload.get("code")
-    if api_code not in (0, "0", None):
-        message = payload.get("message") or payload.get("data") or "Unknown Mobizon error"
-        raise SMSDeliveryError(str(message))
+    if not isinstance(payload, dict) or payload.get("code") is None:
+        raise SMSDeliveryError("Mobizon returned invalid response")
+    api_code = str(payload["code"])
+    if api_code != "0":
+        safe_code = api_code if api_code.isdecimal() else "unknown"
+        logger.warning("[SMS] Mobizon API error code=%s", safe_code)
+        # Provider diagnostics may contain the recipient, message or API key.
+        # Only a bounded error code may reach the browser.
+        raise SMSDeliveryError(f"Mobizon отклонил запрос (код {safe_code}).")
     return payload
 
 
 async def _send_mobizon(phone: str, text: str) -> SMSDeliveryResult:
     recipient = _digits_only(phone)
-    if len(recipient) < 11:
+    if len(recipient) != 11 or not recipient.startswith("7") or not recipient.isascii():
         raise SMSDeliveryError("Invalid phone number for SMS")
 
     payload: dict[str, Any] = {}
@@ -124,6 +136,7 @@ async def _send_mobizon(phone: str, text: str) -> SMSDeliveryResult:
     message_id = str(data.get("messageId") or data.get("message_id") or "")
     campaign_status = data.get("status")
     pending_moderation = campaign_status in (MOBIZON_CAMPAIGN_MODERATION, "1", 1)
+    status_name = ""
 
     if message_id:
         try:
@@ -133,32 +146,37 @@ async def _send_mobizon(phone: str, text: str) -> SMSDeliveryResult:
             )
             status_rows = status_payload.get("data")
             row = None
-            if isinstance(status_rows, list) and status_rows:
-                row = status_rows[0]
+            if isinstance(status_rows, list):
+                row = next((item for item in status_rows if isinstance(item, dict) and str(item.get("id")) == message_id), None)
             elif isinstance(status_rows, dict):
-                row = status_rows.get(message_id) or next(iter(status_rows.values()), None)
+                row = status_rows.get(message_id)
+                if row is None:
+                    row = next((item for item in status_rows.values() if isinstance(item, dict) and str(item.get("id")) == message_id), None)
             if isinstance(row, dict):
                 status_name = str(row.get("status") or "").upper()
-                if status_name in {"MODERATION", "PENDING", "NEW", "QUEUED"}:
-                    pending_moderation = True
-                if status_name in {"DELIVERED", "SENT"}:
+                if status_name in {"DELIVRD", "ENQUEUD", "ACCEPTD", "PDLIVRD"}:
                     pending_moderation = False
         except Exception as exc:
             logger.warning("[SMS] Could not fetch Mobizon status for %s: %s", message_id, type(exc).__name__)
-            pending_moderation = True
     else:
         # Mobizon accepted the request but delivery is not confirmed yet.
         pending_moderation = True
 
+    if status_name in MOBIZON_FAILED_STATUSES:
+        logger.warning("[SMS] Mobizon messageId=%s delivery_status=%s", message_id, status_name)
+        raise SMSDeliveryError(f"SMS не доставлено (статус {status_name}).")
+
     logger.info(
-        "[SMS] Mobizon messageId=%s recipient=%s pending_moderation=%s",
+        "[SMS] Mobizon messageId=%s recipient_suffix=%s status=%s pending_moderation=%s",
         message_id or "n/a",
-        recipient,
+        recipient[-4:],
+        status_name or "unconfirmed",
         pending_moderation,
     )
     return SMSDeliveryResult(
-        delivered=not pending_moderation,
+        delivered=status_name == "DELIVRD",
         pending_moderation=pending_moderation,
         message_id=message_id or None,
         provider_message=str(payload.get("message") or ""),
+        provider_status=status_name,
     )

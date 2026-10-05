@@ -105,8 +105,13 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 export const accountApi = {
   bonusRules: () => api<{ enabled: boolean; tenge_rate: number; max_order_percent: number }>("/api/v1/account/bonus-rules"),
   googleStatus: () => api<{ enabled: boolean }>("/api/v1/account/google/status"),
-  googleStartUrl: (language: string = "ru") =>
-    `${apiBase()}/api/v1/account/google/start?language=${encodeURIComponent(language)}`,
+  googleLinkStart: () => api<{ url: string }>("/api/v1/account/google/link/start", { method: "POST" }),
+  requestPhoneLinkCode: (phone: string) => api<{ ttl_seconds: number; resend_after_seconds: number }>("/api/v1/account/phone/link/request-sms", { method: "POST", body: JSON.stringify({ phone }) }),
+  confirmPhoneLinkCode: (phone: string, code: string) => api<{ verified: boolean }>("/api/v1/account/phone/link/confirm", { method: "POST", body: JSON.stringify({ phone, code }) }),
+  googleStartUrl: (language: string = "ru", accepted = false) =>
+    `${apiBase()}/api/v1/account/google/start?language=${encodeURIComponent(language)}&agreement_accepted=${accepted}&privacy_accepted=${accepted}`,
+  requestSignInCode: (phone: string) => api<{ success: boolean; ttl_seconds: number; resend_after_seconds: number; sms_pending_moderation?: boolean; on_screen_code_hint?: string }>("/api/v1/account/signin/request-sms", { method: "POST", body: JSON.stringify({ phone }) }),
+  confirmSignInCode: (body: { phone: string; code: string; language: string; agreement_accepted: boolean; privacy_accepted: boolean }) => api<{ token: string; user_id: string; role: AccountRole }>("/api/v1/account/signin/confirm", { method: "POST", body: JSON.stringify(body) }),
   requestSmsCode: (body: { phone: string }) => api<{ success: boolean; ttl_seconds: number; resend_after_seconds: number; debug_code?: string; sms_pending_moderation?: boolean; on_screen_code_hint?: string }>("/api/v1/account/register/request-sms", { method: "POST", body: JSON.stringify(body) }),
   confirmRegistration: (body: any) => api<{ token: string; user_id: string; role: AccountRole }>("/api/v1/account/register/confirm", { method: "POST", body: JSON.stringify(body) }),
   register: (body: any) => api<{ token: string; user_id: string; role: AccountRole }>("/api/v1/account/register", { method: "POST", body: JSON.stringify(body) }),

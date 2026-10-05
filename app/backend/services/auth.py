@@ -97,7 +97,7 @@ class AuthService:
         await self.db.execute(delete(OIDCState).where(OIDCState.expires_at < datetime.now(timezone.utc)))
 
         # Find and validate state
-        result = await self.db.execute(select(OIDCState).where(OIDCState.state == state))
+        result = await self.db.execute(select(OIDCState).where(OIDCState.state == state).with_for_update())
         oidc_state = result.scalar_one_or_none()
 
         if not oidc_state:

@@ -96,6 +96,8 @@ async def fetch_google_userinfo(access_token: str) -> dict[str, Any]:
         raise GoogleOAuthError("Google не вернул профиль пользователя")
 
     profile = response.json()
-    if not profile.get("sub"):
+    if not isinstance(profile, dict) or not profile.get("sub"):
         raise GoogleOAuthError("Некорректный ответ Google")
+    if profile.get("email") and profile.get("email_verified") is not True:
+        raise GoogleOAuthError("Подтвердите email в аккаунте Google")
     return profile
