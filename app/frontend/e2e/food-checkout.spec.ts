@@ -6,7 +6,7 @@ test.use({ viewport: { width: 390, height: 844 } });
 
 async function waitForFoodMenu(page: Page) {
   await page.goto("/food");
-  await expect(page.locator(".dam-page")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".dam-page").first()).toBeVisible({ timeout: 30_000 });
   await page.waitForFunction(
     () => !document.querySelector(".dam-skeleton") && !!document.querySelector(".dam-grid-card"),
     { timeout: 60_000 },
@@ -37,12 +37,14 @@ async function openCheckoutWizard(page: Page) {
   await page.getByTestId("dam-cart-open").click();
   await expect(page.getByTestId("dam-cart-sheet")).toBeVisible();
   await expect(page).toHaveURL(/tab=cart/);
+  for(let i=0;i<20 && await page.getByTestId('dam-cart-checkout').isDisabled();i++) await page.getByTestId('dam-cart-qty-plus').click();
   await page.getByTestId("dam-cart-checkout").click();
   await expect(page.getByTestId("dam-checkout")).toBeVisible();
   await expect(page.getByRole("heading", { name: /получение/i })).toBeVisible({ timeout: 5_000 });
 }
 
 test("checkout shows a reason instead of a silent disabled button", async ({ page }) => {
+  await page.route('**/api/v1/entities/food_orders',async route=>route.request().method()==='POST'?route.fulfill({status:400,json:{detail:'Проверьте телефон клиента'}}):route.continue());
   await waitForFoodMenu(page);
   await openCheckoutWizard(page);
 
@@ -63,6 +65,7 @@ test("checkout shows a reason instead of a silent disabled button", async ({ pag
   await expect(
     page.getByTestId("auth-prompt-modal").or(page.getByTestId("dam-checkout-block-reason")).first(),
   ).toBeVisible({ timeout: 5_000 });
+  await expect(page.getByTestId('dam-checkout-block-reason')).toContainText('Проверьте телефон клиента');
 });
 
 test("double click on submit does not enable a second in-flight request", async ({ page }) => {

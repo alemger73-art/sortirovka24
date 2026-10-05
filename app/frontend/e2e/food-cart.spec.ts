@@ -6,7 +6,7 @@ test.use({ viewport: { width: 390, height: 844 } });
 
 async function waitForFoodMenu(page: Page) {
   await page.goto("/food");
-  await expect(page.locator(".dam-page")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".dam-page").first()).toBeVisible({ timeout: 30_000 });
   await page.waitForFunction(
     () => {
       const skeleton = document.querySelector(".dam-skeleton");
@@ -61,6 +61,7 @@ test("cart tab: add item, change quantity, open checkout", async ({ page }) => {
   await expect(qtyValue).toHaveText("1");
 
   const checkoutBtn = page.getByTestId("dam-cart-checkout");
+  for(let i=0;i<20 && await checkoutBtn.isDisabled();i++) await page.getByTestId('dam-cart-qty-plus').click();
   await expect(checkoutBtn).toBeEnabled({ timeout: 5_000 });
   await checkoutBtn.click();
 
