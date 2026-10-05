@@ -27,7 +27,7 @@ test("user can register and reach the personal cabinet", async ({ page }) => {
   await page.getByRole("button", { name: "Получить SMS-код" }).click();
 
   // Step 2: SMS code (auto-filled from the on-screen debug code)
-  const codeInput = page.getByPlaceholder("• • • •");
+  const codeInput = page.getByPlaceholder("• • • • • •");
   await expect(codeInput).toBeVisible();
   await expect(codeInput).not.toHaveValue("", { timeout: 10_000 });
   await page.getByRole("button", { name: "Подтвердить код" }).click();
