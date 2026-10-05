@@ -68,7 +68,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [ui, crm, payment, menu, cart, checkout, client, receipt]
+        suite: [ui, auth, crm, payment, menu, cart, checkout, client, receipt]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -90,12 +90,13 @@ jobs:
           pip install -r requirements.txt
 
       - name: Start backend (DEBUG, SMS code exposed)
-        if: matrix.suite == 'ui'
+        if: matrix.suite == 'ui' || matrix.suite == 'auth'
         working-directory: app/backend
         env:
           DEBUG: "1"
           ENVIRONMENT: dev
           SMS_EXPOSE_CODE: "1"
+          EXTERNAL_SIDE_EFFECTS: disabled
           DATABASE_URL: ""
         run: |
           nohup python -m uvicorn main:app --host 127.0.0.1 --port 8000 > backend.log 2>&1 &

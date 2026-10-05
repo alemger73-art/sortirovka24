@@ -5,9 +5,11 @@ const suite=process.env.E2E_SUITE || 'ui';
 const live=['crm-live.spec.ts','payment-live.spec.ts','menu-live.spec.ts','food-cart.spec.ts','food-checkout.spec.ts','dam-client-ux.spec.ts'];
 const liveSuites:Record<string,string>={crm:live[0],payment:live[1],menu:live[2],cart:live[3],checkout:live[4],client:live[5]};
 const isLive=!!liveSuites[suite];
+// Auth owns an isolated API process so unrelated tests cannot exhaust its SMS/IP window.
+const auth=['login.spec.ts','registration.spec.ts'];
 export default defineConfig(suite==='receipt' ? receipt : {
  testDir:'./e2e',forbidOnly:true,workers:suite==='ui'?4:1,retries:0,timeout:isLive?150000:45000,reporter:'list',
- ...(isLive?{testMatch:liveSuites[suite]}:{testIgnore:[...live,'receipt-58.spec.ts']}),
+ ...(isLive?{testMatch:liveSuites[suite]}:suite==='auth'?{testMatch:auth}:{testIgnore:[...live,...auth,'receipt-58.spec.ts']}),
  projects:[{name:'chromium'}],
  use:{baseURL:isLive?'http://127.0.0.1:3187':'http://127.0.0.1:3180',channel:'chrome',serviceWorkers:'block',screenshot:'only-on-failure'},
  webServer:isLive?[
