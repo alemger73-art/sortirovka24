@@ -110,6 +110,12 @@ async def test_preorder_full_lifecycle_and_shift_window(env,source,fulfillment):
             'delivery_method':fulfillment,'delivery_address':'Street 1' if fulfillment=='delivery' else '',
             'order_items':json.dumps([{'id':2,'quantity':3,'price':300}]),'payment_method':'cash',
             'total_amount':900,'scheduled_for':scheduled.isoformat()})
+        if fulfillment == 'dine_in':
+            assert response.status_code == 400, response.text
+            assert 'оформляет сотрудник' in response.json()['detail']
+            async with maker() as db:
+                assert await db.scalar(select(func.count()).select_from(Food_orders)) == 1
+            return
         assert response.status_code==201,response.text
         order=response.json()
     oid=order['id']

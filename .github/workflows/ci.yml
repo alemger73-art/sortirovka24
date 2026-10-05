@@ -63,8 +63,12 @@ jobs:
       - run: pnpm build
 
   e2e:
-    name: E2E (Playwright)
+    name: E2E (Playwright, ${{ matrix.suite }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [ui, live, receipt]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -86,6 +90,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Start backend (DEBUG, SMS code exposed)
+        if: matrix.suite == 'ui'
         working-directory: app/backend
         env:
           DEBUG: "1"
@@ -109,5 +114,16 @@ jobs:
 
       - name: Run E2E
         working-directory: app/frontend
-        # Backend is already running, so Playwright reuses it (reuseExistingServer).
-        run: pnpm exec playwright test
+        env:
+          E2E_SUITE: ${{ matrix.suite }}
+        run: |
+          pnpm exec vite build --config vite.food-test.config.ts
+          pnpm exec playwright test --config playwright.ci.config.ts
+      - name: Preserve failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-${{ matrix.suite }}-diagnostics
+          path: |
+            app/frontend/test-results
+            app/backend/backend.log
