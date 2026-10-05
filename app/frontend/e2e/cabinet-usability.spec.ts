@@ -167,6 +167,7 @@ test('legacy PIN no longer blocks profile or orders and migration preserves acco
     localStorage.setItem('saved_cart_test', 'keep');
   });
   await page.goto('/cabinet?tab=settings');
+  await page.getByText('Настроить категории уведомлений', {exact:true}).click();
   await expect(page.getByRole('switch', {name:'Заказы (еда, магазины)',exact:true})).not.toBeChecked();
   await expect(page.getByPlaceholder('Придумайте PIN')).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => localStorage.getItem('cabinet_security_v1'))).toBeNull();
@@ -185,6 +186,7 @@ test('removing the local PIN does not bypass account login',async({page})=>{
 test('password validation prevents invalid requests and clears successful form', async ({ page }) => {
   const state = await setup(page);
   await page.goto('/cabinet?tab=settings');
+  await page.getByText('Настроить категории уведомлений', {exact:true}).click();
   await page.getByPlaceholder('Текущий пароль').fill('OldPassword1');
   await page.getByPlaceholder('Новый пароль (мин. 8 символов)').fill('NewPassword1');
   await page.getByPlaceholder('Повторите новый пароль').fill('different');
@@ -229,6 +231,7 @@ test('avatar upload preserves unsaved text and removal updates the header', asyn
 test('device preference save errors are visible and logout clears session', async ({ page }) => {
   await setup(page);
   await page.goto('/cabinet?tab=settings');
+  await page.getByText('Настроить категории уведомлений', {exact:true}).click();
   await page.evaluate(() => {
     const original = Storage.prototype.setItem;
     Storage.prototype.setItem = function(key, value) {
@@ -252,6 +255,7 @@ test('narrow native screen fits profile and settings with enlarged text', async 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect((await page.locator('.site-header > div').boundingBox())!.y).toBeGreaterThanOrEqual(32);
   await page.getByRole('navigation', {name:'Разделы личного кабинета'}).getByRole('button',{name:'Настройки',exact:true}).click();
+  await page.getByText('Настроить категории уведомлений', {exact:true}).click();
   await expect(page.getByRole('switch',{name:'Заказы (еда, магазины)',exact:true})).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: info.outputPath('cabinet-native-320.png'), fullPage: true });
@@ -301,6 +305,7 @@ for (const failCleanup of [false,true]) test(`Android Preferences migration keep
     }};
   },failCleanup);
   await page.goto('/cabinet?tab=settings');
+  await page.getByText('Настроить категории уведомлений', {exact:true}).click();
   await expect(page.getByRole('switch',{name:'Заказы (еда, магазины)',exact:true})).not.toBeChecked();
   await expect.poll(()=>page.evaluate(()=>(window as any).removedPrefs)).toEqual(['cabinet_security_v1']);
   expect(await page.evaluate(()=>(window as any).nativePrefs.unrelated)).toBe('keep');
@@ -322,6 +327,7 @@ test('disabled services stay hidden even with old history and approved roles', a
  await expect(page.getByRole('button',{name:'Поездки такси',exact:true})).toHaveCount(0);
  await expect(page.getByRole('button',{name:'Заявки мастерам',exact:true})).toHaveCount(0);
  await page.goto('/cabinet?tab=settings');
+  await page.getByText('Настроить категории уведомлений', {exact:true}).click();
  await expect(page.getByRole('switch',{name:/Такси/})).toHaveCount(0);
  flags.masters=true;
  await page.evaluate(()=>window.dispatchEvent(new Event('s24-modules-updated')));
