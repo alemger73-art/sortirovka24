@@ -3,13 +3,15 @@ import { emptyDirectory } from '../src/lib/inspectorDirectory';
 const tabs = ['dashboard','news','banners','complaints','history','announcements','real-estate','jobs','masters','salons','master-requests','become-master','dam-alem','park-points','park-orders','directory','inspectors','taxi','logistics','transport','partners-business','partners-gastronom','partners-volna','partners-prorab','partners-pharmacy','modules','stats','categories','support','push','account-settings'];
 const counters = { master_requests_new:0, become_master_pending:0, announcements_pending:0, complaints_new:0, real_estate_pending:0, jobs_pending:0, food_orders_new:0, park_orders_active:0, taxi_applications_pending:0, courier_applications_pending:0, business_partner_new:0 };
 async function setup(page: Page) {
-  const state = { failSummary:false, failModules:false, writes:0, summary:{...counters,total_pending:0,updated_at:'2026-09-13T10:00:00Z',recent:[]} };
+  const state = { failSummary:false, failModules:false, writes:0, writePaths:[] as string[], summary:{...counters,total_pending:0,updated_at:'2026-09-13T10:00:00Z',recent:[]} };
   await page.addInitScript(() => {localStorage.setItem('_sp924_token','test-admin');localStorage.setItem('token','test-admin');localStorage.setItem('app_lang','ru');});
   await page.route('**/*', r => new URL(r.request().url()).hostname === '127.0.0.1' ? r.continue() : r.abort());
   await page.routeWebSocket('**/ws/**', ws => ws.close());
   await page.route('**/api/**', async r => {
     const p=new URL(r.request().url()).pathname;
-    if (!['GET','OPTIONS'].includes(r.request().method()) && !p.includes('verify-session')) state.writes++;
+    // These POST endpoints only validate a session or resolve an image URL.
+    const readOnlyPost=p.includes('verify-session')||p.endsWith('/storage/public/download-url');
+    if (!['GET','OPTIONS'].includes(r.request().method()) && !readOnlyPost) {state.writes++;state.writePaths.push(p);}
     if ((p.endsWith('/admin/summary') && state.failSummary) || (p.endsWith('/modules/admin/settings') && state.failModules)) return r.fulfill({status:503,json:{detail:'Test outage'}});
     let json:unknown={items:[],total:0};
     if(p.includes('verify-session'))json={valid:true,username:'test'};
@@ -80,7 +82,7 @@ test('failed visibility load cannot save defaults',async({page})=>{
   const s=await setup(page);s.failModules=true;await page.goto('/admin?tab=modules');
   await expect(page.getByRole('alert')).toContainText('Не удалось загрузить видимость');
   await expect(page.getByRole('button',{name:'Сохранить изменения'})).toHaveCount(0);
-  expect(s.writes).toBe(0);
+  expect(s.writes,JSON.stringify(s.writePaths)).toBe(0);
   s.failModules=false;await page.getByRole('button',{name:'Повторить загрузку'}).click();
   await expect(page.getByRole('button',{name:'Сохранить изменения'})).toBeVisible();
 });
@@ -110,5 +112,5 @@ test('content editors fit the viewport and can be cancelled without writes',asyn
     expect(await dialog.evaluate(e=>e.scrollWidth<=e.clientWidth+1),`${tab}: dialog content overflow`).toBe(true);
     await page.keyboard.press('Escape');await expect(dialog).toHaveCount(0);
   }
-  expect(s.writes).toBe(0);
+  expect(s.writes,JSON.stringify(s.writePaths)).toBe(0);
 });
