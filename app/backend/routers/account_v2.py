@@ -62,6 +62,7 @@ from schemas.account_v2 import (
     UserV2UpdateRequest,
 )
 from schemas.storage import FileUpDownRequest, FileUpDownResponse
+from schemas.customer_order_receipt import CustomerReceiptChange
 from services.account_profile import AvatarValidationError, normalize_avatar_url
 from services.gastronom_delivery import geocode_address, reverse_geocode
 from services.cabinet_history import owns_content, list_owned_history, legacy_food_id
@@ -1478,7 +1479,9 @@ async def cabinet(
 
 
 def _serialize_food_order_detail(row: Food_orders) -> dict:
+    from services.customer_order_receipt import customer_order_receipt
     return {
+        "receipt": customer_order_receipt(row),
         "id": f"food_{row.id}",
         "type": "food",
         "status": row.status,
@@ -1524,12 +1527,17 @@ async def cabinet_order_detail(
         data = _serialize_food_order_detail(row)
         from models.food_operations import FoodOrderEvent
         from services.dam_order_workflow import paid
+        from services.customer_order_receipt import customer_edit_allowed, public_receipt_event
+        from services.food_operations import is_dam_order
         data.update(receipt_revision=row.receipt_revision or 0, receipt_updated_at=row.receipt_updated_at,
             payment_status=row.payment_status, paid_amount=float(paid(row)), version=row.version or 0,
             cash_given_amount=row.cash_given_amount, change_amount=row.change_amount)
         events = (await db.scalars(select(FoodOrderEvent).where(FoodOrderEvent.order_id == row.id,
-            FoodOrderEvent.public_data.isnot(None)).order_by(FoodOrderEvent.id.desc()))).all() if row.receipt_revision else []
-        data['receipt_changes'] = [{'created_at': e.created_at, **json.loads(e.public_data)} for e in events]
+            FoodOrderEvent.public_data.isnot(None)).order_by(FoodOrderEvent.id.desc()))).all()
+        data['receipt_changes'] = [public for event in events if (public := public_receipt_event(event))]
+        dam = await is_dam_order(db, row)
+        data['can_edit_receipt'] = dam and await customer_edit_allowed(db, row)
+        data['can_request_receipt_change'] = dam and row.status in ('new', 'confirmed', 'preparing', 'ready')
         return data
 
     for type_key, label, store_path, model in STORE_ORDER_SOURCES:
@@ -1545,6 +1553,82 @@ async def cabinet_order_detail(
         return _store_order_summary(type_key, label, store_path, row)
 
     raise HTTPException(status_code=404, detail="Unknown order source")
+
+
+async def _owned_dam_receipt_order(db, authorization, order_id):
+    from services.cabinet_modules import availability, source_visible
+    from services.crm import owns_order
+    from services.food_operations import is_dam_order
+    user = await _current_user(db, authorization)
+    if not source_visible('food', await availability(db)):
+        raise HTTPException(404, 'Module is disabled')
+    row = await db.scalar(select(Food_orders).where(Food_orders.id == order_id).with_for_update())
+    if not row or not await owns_order(db, user, row) or not await is_dam_order(db, row):
+        raise HTTPException(404, 'Order not found')
+    return row
+
+
+@router.get('/orders/food/{order_id}/receipt/catalog')
+async def customer_receipt_catalog(order_id: int, authorization: str | None = Header(default=None), db: AsyncSession = Depends(get_db)):
+    row = await _owned_dam_receipt_order(db, authorization, order_id)
+    from services.menu_configuration import catalog
+    current = await catalog(db)
+    return {**current, 'products': [p for p in current['products'] if p['sellable'] and p['restaurant_id'] == row.restaurant_id]}
+
+
+@router.post('/orders/food/{order_id}/receipt/quote')
+async def customer_receipt_quote(order_id: int, body: CustomerReceiptChange, authorization: str | None = Header(default=None), db: AsyncSession = Depends(get_db)):
+    row = await _owned_dam_receipt_order(db, authorization, order_id)
+    from services.dam_order_workflow import quote_change
+    from services.customer_order_receipt import customer_order_receipt
+    from types import SimpleNamespace
+    quote = await quote_change(db, row, body)
+    receipt = customer_order_receipt(SimpleNamespace(total_amount=quote['total_amount'], pricing_snapshot=quote['pricing_snapshot']))
+    # Never return the internal pricing snapshot, promo settings or staff data.
+    return {**{key: quote[key] for key in ('items', 'total_amount', 'previous_total', 'paid_amount', 'amount_due', 'refund_due', 'gift_choices', 'gift_required')},
+            'receipt': receipt, **(receipt or {})}
+
+
+@router.post('/orders/food/{order_id}/receipt')
+async def customer_receipt_save(order_id: int, body: CustomerReceiptChange, authorization: str | None = Header(default=None), db: AsyncSession = Depends(get_db)):
+    from services.food_preorders import lock_dam_operations
+    from services.dam_order_workflow import amend
+    try:
+        await lock_dam_operations(db)
+        row = await _owned_dam_receipt_order(db, authorization, order_id)
+        await amend(db, row, body, 'Клиент', customer=True)
+        return await cabinet_order_detail('food', order_id, authorization, db)
+    except Exception:
+        await db.rollback()
+        raise
+
+
+@router.post('/orders/food/{order_id}/receipt/request')
+async def customer_receipt_request(order_id: int, body: CustomerReceiptChange, authorization: str | None = Header(default=None), db: AsyncSession = Depends(get_db)):
+    from services.food_preorders import lock_dam_operations
+    from services.dam_order_workflow import claim, quote_change, money
+    from services.food_operations import add_event
+    from services.customer_order_receipt import receipt_snapshot, customer_order_receipt
+    from types import SimpleNamespace
+    try:
+        await lock_dam_operations(db)
+        row = await _owned_dam_receipt_order(db, authorization, order_id)
+        quote = await quote_change(db, row, body)
+        if quote['gift_required'] or body.quoted_total is None or money(body.quoted_total) != money(quote['total_amount']):
+            raise HTTPException(409, 'Расчёт изменился. Проверьте новую сумму и подарок.')
+        if len(body.reason.strip()) < 3:
+            raise HTTPException(422, 'Укажите причину изменения')
+        await claim(db, row, body.expected_version)
+        summary = '; '.join(f"{line['name']} × {line['quantity']}" for line in quote['items'])
+        event = add_event(db, row, f"Клиент просит изменить состав (заказ пока не изменён): {summary}. Предложенная сумма: {quote['total_amount']} ₸. {body.reason.strip()}", 'Клиент')
+        event.public_data = json.dumps({'kind': 'receipt_change_requested', 'revision': row.receipt_revision or 0,
+            'actor_role': 'customer', 'reason': body.reason.strip(), 'before': receipt_snapshot(row),
+            'after': {'items': quote['items'], 'total_amount': quote['total_amount'], 'receipt': customer_order_receipt(SimpleNamespace(total_amount=quote['total_amount'], pricing_snapshot=quote['pricing_snapshot']))}}, ensure_ascii=False)
+        await db.commit()
+        return await cabinet_order_detail('food', order_id, authorization, db)
+    except Exception:
+        await db.rollback()
+        raise
 
 
 @router.get("/master/cabinet")

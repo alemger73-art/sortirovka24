@@ -134,6 +134,8 @@ export const accountApi = {
   cabinet: () => api<any>("/api/v1/account/cabinet"),
   orderDetail: (source: string, orderId: number | string) =>
     api<any>(`/api/v1/account/orders/${encodeURIComponent(source)}/${orderId}`),
+  receiptCommand: <T,>(orderId: number | string, command: string, method = 'GET', body?: unknown) =>
+    api<T>(`/api/v1/account/orders/food/${orderId}/receipt${command ? `/${command}` : ''}`, {method, ...(body ? {body: JSON.stringify(body)} : {})}),
   listAddresses: () => api<SavedAddress[]>("/api/v1/account/me/addresses"),
   geocodeAddress: (address: string) =>
     api<{ found: boolean; lat?: number | null; lng?: number | null; display_address?: string | null; detected_city?: string | null }>(
