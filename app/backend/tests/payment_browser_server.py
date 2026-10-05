@@ -49,6 +49,7 @@ async def main():
             # Browser checkout must not depend on the wall-clock time of the
             # test run. This setting belongs only to the disposable fixture DB.
             db.add(Food_settings(setting_key='working_hours', setting_value='00:00-23:59'))
+            db.add(Food_settings(setting_key='delivery_price', setting_value='500'))
             for product in (await db.scalars(select(Food_items).where(Food_items.restaurant_id==1))).all(): product.business_id='dam_alem'
             db.add(Food_categories(id=1,restaurant_id=1,name='Основное меню',is_active=True,sort_order=1))
             (await db.get(Food_items,1)).category_id=1
@@ -67,6 +68,9 @@ async def main():
             from tests.test_loyalty import order
             from datetime import timedelta
             user=User(id='a',phone='+77000000000',name='Тестовый клиент',phone_verified_at=L.now(),is_active=True,status='active')
+            # Synthetic password login for checkout return regressions; no SMS.
+            from routers.account_v2 import _hash_password as hash_account_password
+            user.password_hash = hash_account_password('LocalCheckoutOnly2026!')
             db.add(user)
             db.add(UserSession(user_id='a',token_jti='local-crm-session',is_active=True,expires_at=L.now()+timedelta(days=1)))
             await db.flush()
