@@ -3,7 +3,12 @@
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
+from core.database import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime, timezone
+from models.crm_delivery import FeedbackRequest
+from services.crm_delivery import enabled, enqueue
 from pydantic import BaseModel, Field
 
 from services.telegram import notify_app_issue
@@ -30,7 +35,7 @@ class ReportIssueResponse(BaseModel):
 
 
 @router.post("/report", response_model=ReportIssueResponse)
-async def report_issue(body: ReportIssueRequest, request: Request):
+async def report_issue(body: ReportIssueRequest, request: Request, db: AsyncSession = Depends(get_db)):
     check_ip_rate_limit(
         request,
         key_prefix="feedback_report",
@@ -48,6 +53,13 @@ async def report_issue(body: ReportIssueRequest, request: Request):
         "user_agent": (body.user_agent or "").strip(),
         "screenshot_url": (body.screenshot_url or "").strip(),
     }
+
+    if enabled():
+        row = FeedbackRequest(**payload, status="new", created_at=datetime.now(timezone.utc).isoformat())
+        db.add(row)
+        await enqueue(db, "feedback", row)
+        await db.commit()
+        return ReportIssueResponse(success=True, message="Сообщение принято. Спасибо, мы разберёмся!")
 
     try:
         sent = await notify_app_issue(payload)

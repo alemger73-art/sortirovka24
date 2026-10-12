@@ -242,7 +242,10 @@ async def create_become_master_requests(
             raise HTTPException(status_code=400, detail="Failed to create become_master_requests")
         
         try:
-            await notify_new_become_master(payload)
+            from services.crm_delivery import enabled
+
+            if not enabled():
+                await notify_new_become_master(payload)
         except Exception as notify_err:
             logger.warning(f"Telegram notify skipped: {notify_err}")
 

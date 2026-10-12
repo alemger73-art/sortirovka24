@@ -1,0 +1,40 @@
+name: S24 CRM delivery tests
+on:
+  pull_request:
+    paths:
+      - 'app/backend/**'
+      - '.github/workflows/s24-crm-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  crm:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: crm_test
+          POSTGRES_PASSWORD: local_ci_only
+          POSTGRES_DB: s24_crm_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: app/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - run: pytest -q tests/test_s24_crm_delivery.py tests/test_s24_crm_postgres.py tests/test_migration_upgrade.py tests/test_deploy_safety.py
+        env:
+          EXTERNAL_SIDE_EFFECTS: disabled
+          S24_CRM_ENABLED: 'false'
+          DATABASE_URL: sqlite+aiosqlite:///./crm_ci.db
+          S24_CRM_TEST_POSTGRES_URL: postgresql+asyncpg://crm_test:local_ci_only@127.0.0.1:5432/s24_crm_test

@@ -22,6 +22,9 @@ class Become_master_requestsService:
             _allowed = set(Become_master_requests.__table__.columns.keys())
             obj = Become_master_requests(**{k: v for k, v in data.items() if k in _allowed})
             self.db.add(obj)
+            from services.crm_delivery import enqueue
+
+            await enqueue(self.db, "become_master", obj)
             await self.db.commit()
             await self.db.refresh(obj)
             logger.info(f"Created become_master_requests with id: {obj.id}")

@@ -84,6 +84,9 @@ async def apply_for_partnership(
         created_at=now,
     )
     db.add(row)
+    from services.crm_delivery import enqueue
+
+    await enqueue(db, "business", row)
     await db.commit()
     await db.refresh(row)
 
@@ -97,7 +100,10 @@ async def apply_for_partnership(
     }
 
     try:
-        await notify_new_business_partner(payload)
+        from services.crm_delivery import enabled
+
+        if not enabled():
+            await notify_new_business_partner(payload)
     except Exception as exc:
         logger.warning("Business partner Telegram notify failed: %s", exc)
 

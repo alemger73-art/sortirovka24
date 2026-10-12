@@ -223,15 +223,18 @@ async def create_master_requests(
             raise HTTPException(status_code=400, detail="Failed to create master_requests")
         
         try:
-            await notify_new_master_request({
-                "category": payload.get("category"),
-                "problem_description": payload.get("problem_description"),
-                "address": payload.get("address"),
-                "phone": payload.get("phone"),
-                "client_name": payload.get("client_name"),
-                "master_id": master_id,
-                "master_name": master_name,
-            })
+            from services.crm_delivery import enabled
+
+            if not enabled():
+                await notify_new_master_request({
+                    "category": payload.get("category"),
+                    "problem_description": payload.get("problem_description"),
+                    "address": payload.get("address"),
+                    "phone": payload.get("phone"),
+                    "client_name": payload.get("client_name"),
+                    "master_id": master_id,
+                    "master_name": master_name,
+                })
         except Exception as notify_err:
             logger.warning(f"Telegram notify skipped: {notify_err}")
 
