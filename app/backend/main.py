@@ -184,6 +184,16 @@ async def _run_startup_initialization():
                     await maybe_sync_menu_on_startup(session)
         except Exception as e:
             logger.warning(f"FrontPad startup tasks failed: {e}")
+
+        try:
+            from services.wazzup_bot.client import WazzupClient
+            from services.wazzup_bot.config import get_wazzup_config
+
+            wazzup_cfg = get_wazzup_config()
+            if wazzup_cfg.ready and wazzup_cfg.webhook_url:
+                await WazzupClient(wazzup_cfg).register_webhook(wazzup_cfg.webhook_url)
+        except Exception as e:
+            logger.warning(f"Wazzup webhook registration failed: {e}")
     else:
         logger.warning("Skipping post-DB initialization steps (mock data, admin, buckets)")
     # MODULE_STARTUP_END

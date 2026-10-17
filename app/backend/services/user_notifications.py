@@ -234,6 +234,14 @@ async def notify_food_order_status(db: AsyncSession, order: Any, old_status: str
         entity_type="food_orders",
         entity_id=str(order_id),
     )
+    if getattr(order, "order_source", None) in ("whatsapp", "instagram"):
+        try:
+            from services.wazzup_bot.notify import send_order_status
+
+            if await send_order_status(db, order_id, f"{title}\n\n{name} · заказ №{order_id}. {body}"):
+                return
+        except Exception as exc:
+            logger.warning("[Notify] Wazzup status skipped (%s): %s", new_status, exc)
     if getattr(order, "order_source", None) == "whatsapp":
         try:
             from services.whatsapp_ai_bot.cloud_api import WhatsAppCloudClient

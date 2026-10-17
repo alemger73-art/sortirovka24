@@ -26,14 +26,19 @@ class VerifiedSender:
     customer_id:str
     # This value is supplied only by the future signature-validating adapter.
     provider_account:str
+    # Messenger the order came from; stored as Food_orders.order_source.
+    channel:str='whatsapp'
 
-async def resolve_sender(db, *, business_id, phone, provider_account, signature_verified=False):
+CHANNELS={'whatsapp','instagram'}
+
+async def resolve_sender(db, *, business_id, phone, provider_account, signature_verified=False, channel='whatsapp'):
     if not signature_verified or not provider_account:
         raise HTTPException(401,'Требуется проверенный контекст провайдера')
+    if channel not in CHANNELS:raise HTTPException(422,'Канал не поддерживается')
     business=await db.get(Business,business_id)
     if not business or not business.active:raise HTTPException(404,'Бизнес не подключён')
-    customer=await crm.resolve(db,phone,'',business_id=business_id,source='whatsapp')
-    return VerifiedSender(business_id,customer.id,provider_account)
+    customer=await crm.resolve(db,phone,'',business_id=business_id,source=channel)
+    return VerifiedSender(business_id,customer.id,provider_account,channel)
 
 class Empty(BaseModel):
     model_config=ConfigDict(extra='forbid')
@@ -73,7 +78,7 @@ async def calculate(db,ctx,draft):
     payload=draft.model_dump(exclude={'items','bonus_points_to_use'},mode='json')
     payload.update(customer_phone=c.normalized_phone,order_items=json.dumps(draft.items),total_amount=0)
     data,_,_=await validate_food_order(db,payload,account_user=c,bonus_points_to_use=draft.bonus_points_to_use,server_pricing=True)
-    data['order_source']='whatsapp'
+    data['order_source']=ctx.channel
     return data
 
 async def confirmation(db,ctx,cid):
@@ -135,5 +140,6 @@ async def tool(db,ctx,name,args,*,message_id=None):
     data=await calculate(db,ctx,Draft.model_validate(row.payload['draft']))
     if fingerprint(data)!=row.quote_hash:raise HTTPException(409,'Цена или условия изменились. Нужен новый расчёт и подтверждение')
     from services.food_orders import Food_ordersService
-    order=await Food_ordersService(db).create(data,request_key='whatsapp:'+row.id,request_hash=row.quote_hash,actor='WhatsApp: подтверждено клиентом',channel_confirmation=row)
+    label='Instagram' if ctx.channel=='instagram' else 'WhatsApp'
+    order=await Food_ordersService(db).create(data,request_key='whatsapp:'+row.id,request_hash=row.quote_hash,actor=label+': подтверждено клиентом',channel_confirmation=row)
     return crm.order_view(order)
