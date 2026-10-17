@@ -11,6 +11,10 @@ from main import app
 from services.sms import SMSDeliveryResult
 
 
+
+from core.legal import LEGAL_VERSION
+LEGAL_FIELDS = {"agreement_accepted": True, "privacy_accepted": True, "legal_version": LEGAL_VERSION, "legal_subject_name": "Тест Тестов"}
+
 @pytest.fixture
 async def client(monkeypatch):
     monkeypatch.setenv("DEBUG", "1")
@@ -29,7 +33,7 @@ async def client(monkeypatch):
 async def _register(client: AsyncClient) -> tuple[str, str]:
     phone = f"+7{random.randint(1_000_000_000, 9_999_999_999)}"
     password = "TestPass123!"
-    sms = await client.post("/api/v1/account/register/request-sms", json={"phone": phone})
+    sms = await client.post("/api/v1/account/register/request-sms", json={"phone": phone, **LEGAL_FIELDS})
     code = sms.json()["debug_code"]
     reg = await client.post(
         "/api/v1/account/register/confirm",
@@ -41,6 +45,7 @@ async def _register(client: AsyncClient) -> tuple[str, str]:
             "agreement_accepted": True,
             "privacy_accepted": True,
             "sms_code": code,
+            **LEGAL_FIELDS,
         },
     )
     return reg.json()["token"], reg.json()["user_id"]

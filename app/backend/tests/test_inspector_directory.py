@@ -42,10 +42,9 @@ async def test_inspector_coverage_and_photo_validation_roundtrip():
     from models.inspectors import Inspectors
     from services.inspectors import InspectorsService
     from routers.inspectors import InspectorsData, InspectorsUpdateData, InspectorsResponse
-    with pytest.raises(ValidationError):
-        InspectorsData(full_name='Тестовый инспектор')
-    with pytest.raises(ValidationError):
-        InspectorsUpdateData(photo_url='')
+    # Build 56: a photo is optional; an empty value is normalised, not rejected.
+    assert InspectorsData(full_name='Тестовый инспектор').photo_url is None
+    assert InspectorsUpdateData(photo_url=' ').photo_url == ''
     with pytest.raises(ValidationError):
         InspectorsUpdateData(coverage='not-json')
     coverage=json.dumps([{'street':'Абая','houses':'2–40 (четные)'}],ensure_ascii=False)

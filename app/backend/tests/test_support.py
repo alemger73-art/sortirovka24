@@ -20,9 +20,9 @@ async def test_support_settings_public(client: AsyncClient):
     response = await client.get("/api/v1/support/settings")
     assert response.status_code == 200
     data = response.json()
-    assert data["promo_enabled"] is True
-    assert data["recipient"]
-    assert data["iban"]
+    assert data["promo_enabled"] is False  # build 56 default: promo block off until the owner enables it
+    # Payment details stay empty until the owner enters and verifies them.
+    assert "recipient" in data and "iban" in data
     assert data["contact_email"]
     assert "kaspi_qr_url" in data
 
