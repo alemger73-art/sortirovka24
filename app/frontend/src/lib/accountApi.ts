@@ -24,6 +24,10 @@ export interface SavedAddress {
   created_at?: string | null;
 }
 
+export interface DeletionRequest {
+  id: string; status: 'pending' | 'completed'; requested_at: string; due_at: string; completed_at?: string | null;
+}
+
 export interface SavedAddressInput {
   label?: string;
   address?: string;
@@ -104,6 +108,8 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const accountApi = {
+  deletionStatus: () => api<{ request: DeletionRequest | null }>("/api/v1/account-deletion/me"),
+  requestDeletion: (password?: string) => api<{ request: DeletionRequest }>("/api/v1/account-deletion/me", { method: "POST", body: JSON.stringify({ confirmed: true, password }) }),
   bonusRules: () => api<{ enabled: boolean; tenge_rate: number; max_order_percent: number }>("/api/v1/account/bonus-rules"),
   googleStatus: () => api<{ enabled: boolean }>("/api/v1/account/google/status"),
   googleLinkStart: () => api<{ url: string }>("/api/v1/account/google/link/start", { method: "POST" }),

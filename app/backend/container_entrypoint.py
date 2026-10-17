@@ -23,6 +23,10 @@ async def verify_schema_revision(expected: str) -> None:
             revisions = await connection.fetch('SELECT version_num FROM alembic_version')
             if [row['version_num'] for row in revisions] != [expected]:
                 raise RuntimeError('Database revision differs from the code-only release; no migrations executed')
+            columns = await connection.fetch("SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='account_deletion_requests'")
+            required = {'id','user_id','status','requested_at','due_at','completed_at','processed_by','processing_evidence','retained_records'}
+            if {r['column_name'] for r in columns} != required:
+                raise RuntimeError('Account deletion schema is missing or incompatible; apply the explicit additive migration first')
     finally:
         await connection.close()
 

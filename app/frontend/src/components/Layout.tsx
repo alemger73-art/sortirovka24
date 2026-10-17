@@ -104,9 +104,7 @@ export default function Layout({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold">С</span>
-                </div>
+                <img src="/icon-192-v4.png" alt="S24" className="w-8 h-8 rounded-lg object-cover" />
                 <span className="font-bold text-gray-900 dark:text-white">{t('footer.portalTitle')}</span>
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400">

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
 const SITE_URL = 'https://www.sortirovka24.kz';
-const FALLBACK_IMAGE = `${SITE_URL}/icon-512.png`;
+const FALLBACK_IMAGE = `${SITE_URL}/icon-512-v4.png`;
 
 type PageSeo = {
   title?: string;

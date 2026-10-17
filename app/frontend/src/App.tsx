@@ -18,6 +18,8 @@ import { refreshAccountProfile } from "@/lib/localAuth";
 // Critical path — loaded eagerly (homepage)
 import Index from "./pages/Index";
 
+const DeleteAccount = lazy(() => import('./pages/DeleteAccount'));
+
 // Lazy-loaded pages via named export wrappers
 const MastersCatalog = lazy(() => import("./pages/Masters").then(m => ({ default: m.MastersCatalog })));
 const MasterDetail = lazy(() => import("./pages/Masters").then(m => ({ default: m.MasterDetail })));
@@ -92,7 +94,7 @@ function PageLoader() {
   if (native) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#0B0F19] to-[#111827] flex flex-col items-center justify-center gap-3">
-        <img src="/icon-192.png" alt="" width={56} height={56} className="rounded-xl opacity-90" />
+        <img src="/icon-192-v4.png" alt="" width={56} height={56} className="rounded-xl opacity-90" />
         <div className="h-1 w-24 overflow-hidden rounded-full bg-white/10">
           <div className="h-full w-1/3 animate-pulse rounded-full bg-yellow-400" />
         </div>
@@ -222,6 +224,7 @@ function App() {
               <Route path="/partners" element={<ModuleRoute module="business"><PartnersPage /></ModuleRoute>} />
               <Route path="/partners/:slug" element={<ModuleRoute module="business"><PartnersPage /></ModuleRoute>} />
               <Route path="/support" element={<SupportPage />} />
+              <Route path="/delete-account" element={<DeleteAccount />} />
               <Route path="/report-problem" element={<ReportProblemPage />} />
 
               {/* Admin panel — accessible via /admin */}

@@ -60,7 +60,7 @@ export default function AppWelcomeSplash({ onHidden }: Props) {
         <div className="app-welcome-splash__logo-wrap">
           <div className="app-welcome-splash__logo-glow" aria-hidden />
           <img
-            src="/icon-192.png"
+            src="/icon-192-v4.png"
             alt=""
             width={96}
             height={96}

@@ -798,7 +798,7 @@ export function AnnouncementDetail() {
       '@type': 'Product',
       name: item.title,
       description: announcementDescription,
-      image: item.image_url || '/icon-512.png',
+      image: item.image_url || '/icon-512-v4.png',
       offers: item.price ? { '@type': 'Offer', price: String(item.price), priceCurrency: 'KZT', availability: 'https://schema.org/InStock' } : undefined,
     } : null,
   });

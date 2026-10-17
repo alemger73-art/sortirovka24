@@ -396,6 +396,8 @@ def _collect_route_paths(routes, prefix: str = "") -> set[str]:
 
 # Fail fast: auth/account endpoints must be registered in production startup.
 required_paths = {
+    "/api/v1/account-deletion/me",
+    "/api/v1/account-deletion/admin",
     "/api/v1/account/register/request-sms",
     "/api/v1/account/register/confirm",
     "/api/v1/account/login",

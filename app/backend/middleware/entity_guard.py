@@ -118,6 +118,8 @@ class EntityWriteGuardMiddleware(BaseHTTPMiddleware):
         # generic entity API, including when generic write protection is disabled.
         if path.startswith(_ENTITIES_PREFIX) and _entity_name(path) == 'push_devices':
             return JSONResponse(status_code=403, content={'detail': 'Используйте защищённый API уведомлений.'})
+        if path.startswith(_ENTITIES_PREFIX) and _entity_name(path) == 'account_deletion_requests':
+            return JSONResponse(status_code=403, content={'detail': 'Используйте защищённый API удаления аккаунта.'})
         dam_actor = None
 
         if path.startswith('/api/v1/') and not path.endswith('/login'):

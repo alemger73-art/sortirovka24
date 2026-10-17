@@ -336,7 +336,7 @@ export function MasterDetail() {
       '@type': 'ProfessionalService',
       name: master.name,
       description: master.description,
-      image: master.photo_url || '/icon-512.png',
+      image: master.photo_url || '/icon-512-v4.png',
       areaServed: master.district || 'Сортировка, Караганда',
     } : null,
   });

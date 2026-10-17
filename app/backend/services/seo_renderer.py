@@ -130,6 +130,13 @@ def _facts(values: list[tuple[str, Any]]) -> str:
 
 
 def _base_page(path: str) -> SeoPage:
+    if path == "/delete-account":
+        return SeoPage(
+            "Удаление аккаунта и данных | Сортировка 24",
+            "Запрос удаления аккаунта Sortirovka24 и связанных личных данных. Обработка — до 30 календарных дней.",
+            path, "Удаление аккаунта и данных", "Начать удаление можно после входа в свой аккаунт. Поддержка: srt-group.24@mail.ru.",
+            robots="noindex, follow",
+        )
     if path in PUBLIC_PAGES:
         title, description, heading = PUBLIC_PAGES[path]
         page = SeoPage(title, description, path, heading, description)

@@ -15,3 +15,5 @@ from models.loyalty import BonusPolicy, BonusLot, BonusAllocation, BonusMember, 
 
 
 from models.crm import Business, Customer, CustomerIdentity, BusinessCustomer, CustomerNote, BusinessLocation, CustomerMigrationIssue, ChannelConfirmation
+
+from models.account_deletion import AccountDeletionRequest  # noqa: F401

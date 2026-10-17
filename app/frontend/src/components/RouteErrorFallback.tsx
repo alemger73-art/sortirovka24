@@ -16,7 +16,7 @@ export default function RouteErrorFallback({ error, onRetry }: Props) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0B0F19] via-[#111827] to-[#1a2744] flex flex-col items-center justify-center px-6 text-center text-white">
       <img
-        src="/icon-192.png"
+        src="/icon-192-v4.png"
         alt=""
         width={72}
         height={72}

@@ -1,4 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import AdminDeletionRequests from '@/components/cabinet/AdminDeletionRequests';
 import { useState } from 'react';
 import { Eye, EyeOff, Save, Loader2, CheckCircle2, AlertCircle, KeyRound, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -236,6 +237,7 @@ export default function AdminAccountSettings() {
           </form>
         </CardContent>
       </Card>
+      <AdminDeletionRequests />
     </div>
   );
 }

@@ -42,7 +42,7 @@ export default function InstallAppBanner({ manual = false }: { manual?: boolean 
   return <>
     <div data-install-banner data-ready={ready} className={manual ? '' : 'fixed inset-x-0 z-[45] p-3 bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] md:bottom-3'}>
       <div className="mx-auto flex max-w-lg gap-3 rounded-2xl border border-blue-200 bg-white p-4 shadow-lg dark:border-blue-900 dark:bg-gray-900">
-        <img src="/icon-192-v2.png" alt="" className="h-12 w-12 rounded-xl" />
+        <img src="/icon-192-v4.png" alt="" className="h-12 w-12 rounded-xl" />
         <div className="min-w-0 flex-1"><p className="font-semibold">Установить Sortirovka 24</p>
           <p className="mt-1 text-sm text-gray-500">S24 появится на главном экране и будет открываться как приложение.</p>
           <button disabled={busy} onClick={() => void install()} className="mt-3 flex min-h-11 items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-white"><Download size={18} />{busy ? 'Открываем…' : 'Установить Sortirovka 24'}</button>

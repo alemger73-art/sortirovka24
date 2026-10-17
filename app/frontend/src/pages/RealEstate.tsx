@@ -333,7 +333,7 @@ export function RealEstateDetail() {
       '@type': 'Residence',
       name: item.title,
       description: seoDescription,
-      image: item.image_url || '/icon-512.png',
+      image: item.image_url || '/icon-512-v4.png',
       address: item.address ? { '@type': 'PostalAddress', streetAddress: item.address, addressLocality: 'Караганда', addressCountry: 'KZ' } : undefined,
     } : null,
   });

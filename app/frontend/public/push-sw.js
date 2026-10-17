@@ -6,7 +6,7 @@ function safePath(raw) {
 const OFFLINE_CACHE = 's24-offline-v1';
 const CLICK_CACHE = 's24-pwa-click-v1';
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(OFFLINE_CACHE).then(cache => cache.addAll(['/offline.html', '/icon-192-v2.png'])));
+  event.waitUntil(caches.open(OFFLINE_CACHE).then(cache => cache.addAll(['/offline.html', '/icon-192-v4.png'])));
 });
 // All navigations reach the server for current SEO/status codes. Only genuine
 // network failure gets an explicit offline document, never cached order data.
@@ -34,8 +34,8 @@ self.addEventListener('push', (event) => {
   const path = safePath(rawPath);
   event.waitUntil(self.registration.showNotification(title, {
     body,
-    icon: '/icon-192-v2.png',
-    badge: '/icon-maskable-192-v2.png',
+    icon: '/icon-192-v4.png',
+    badge: '/icon-maskable-192-v4.png',
     data: { path },
     tag: payload.data && payload.data.event_key ? String(payload.data.event_key) : undefined,
   }));

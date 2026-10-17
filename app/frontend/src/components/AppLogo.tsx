@@ -19,7 +19,7 @@ export default function AppLogo({ className, size = 'md', showText = false }: Ap
   return (
     <div className={cn('flex items-center gap-2.5', className)}>
       <img
-        src="/icon-192.png"
+        src="/icon-192-v4.png"
         alt="Sortirovka24"
         className={cn('rounded-2xl shadow-sm object-cover', sizes[size])}
       />

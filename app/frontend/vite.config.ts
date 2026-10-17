@@ -7,7 +7,7 @@ import { atoms } from '@metagptx/web-sdk/plugins';
 
 process.env.VITE_APP_TITLE ??= process.env.OVERVIEW_TITLE ?? 'Сортировка 24 — цифровой портал района';
 process.env.VITE_APP_DESCRIPTION ??= process.env.OVERVIEW_DESCRIPTION ?? 'Новости района Сортировка в Караганде, объявления, работа, полезный справочник, расписание транспорта и доставка еды DÄM ALEM.';
-process.env.VITE_APP_LOGO_URL ??= process.env.OVERVIEW_LOGO_URL ?? '/icon-192-v2.png';
+process.env.VITE_APP_LOGO_URL ??= process.env.OVERVIEW_LOGO_URL ?? '/icon-192-v4.png';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -25,11 +25,11 @@ export default defineConfig(({ mode }) => ({
       injectRegister: null,
       registerType: 'prompt',
       includeAssets: [
-        'icon-192-v2.png',
-        'icon-512-v2.png',
-        'icon-maskable-192-v3.png',
-        'icon-maskable-512-v3.png',
-        'apple-touch-icon-v2.png',
+        'icon-192-v4.png',
+        'icon-512-v4.png',
+        'icon-maskable-192-v4.png',
+        'icon-maskable-512-v4.png',
+        'apple-touch-icon-v4.png',
       ],
       manifest: false,
       workbox: {

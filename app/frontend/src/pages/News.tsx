@@ -53,7 +53,7 @@ export function NewsDetail() {
   return()=>{active=false;};
  },[id,retry]);
  const title=item?localized(item,'title'):'';const body=splitNewsContent(item?localized(item,'content')||localized(item,'short_description')||'':'');const lead=item?localized(item,'short_description'):'';const video=youtubeVideo(item?.youtube_url);const minutes=Math.max(1,Math.ceil(body.content.split(/\s+/).filter(Boolean).length/180));
- usePageSeo({title,description:lead||body.content.slice(0,160),image:item?.image_url,type:'article',structuredData:item?{'@context':'https://schema.org','@type':'NewsArticle',headline:title,datePublished:item.created_at,author:{'@type':'Organization',name:'Сортировка 24'},image:item.image_url||'/icon-512.png'}:null});
+ usePageSeo({title,description:lead||body.content.slice(0,160),image:item?.image_url,type:'article',structuredData:item?{'@context':'https://schema.org','@type':'NewsArticle',headline:title,datePublished:item.created_at,author:{'@type':'Organization',name:'Сортировка 24'},image:item.image_url||'/icon-512-v4.png'}:null});
  async function share(){try{const url=new URL(`/news/${id}`,window.location.origin).href;if(navigator.share)await navigator.share({title,url});else{await navigator.clipboard.writeText(url);toast.success(text.copied);}}catch(e){if((e as Error)?.name!=='AbortError')toast.error(text.error);}}
  return <Layout><div className="news-surface"><div className="news-shell"><Link to="/news" className="news-back"><ChevronLeft size={18}/>{text.back}</Link>
  {state!=='ready'?<div className="news-state" role={state==='error'?'alert':'status'}><h1>{state==='loading'?text.loading:state==='missing'?text.notFound:text.error}</h1>{state==='error'&&<button onClick={()=>setRetry(x=>x+1)}>{text.retry}</button>}</div>:item&&<>

@@ -12,28 +12,28 @@
   "prefer_related_applications": false,
   "categories": ["lifestyle", "food", "social"],
   "lang": "ru",
-  "shortcuts": [{"name":"Курьер DÄM ALEM","short_name":"Курьер","url":"/food/courier","icons":[{"src":"/icon-192-v2.png","sizes":"192x192","type":"image/png"}]}],
+  "shortcuts": [{"name":"Курьер DÄM ALEM","short_name":"Курьер","url":"/food/courier","icons":[{"src":"/icon-192-v4.png","sizes":"192x192","type":"image/png"}]}],
   "icons": [
     {
-      "src": "/icon-192-v2.png",
+      "src": "/icon-192-v4.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-maskable-192-v3.png",
+      "src": "/icon-maskable-192-v4.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/icon-512-v2.png",
+      "src": "/icon-512-v4.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-maskable-512-v3.png",
+      "src": "/icon-maskable-512-v4.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

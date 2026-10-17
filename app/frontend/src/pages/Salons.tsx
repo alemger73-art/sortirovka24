@@ -360,7 +360,7 @@ export function SalonDetail() {
       '@type': 'LocalBusiness',
       name: salon.name,
       description: salon.description,
-      image: salon.photo_url || '/icon-512.png',
+      image: salon.photo_url || '/icon-512-v4.png',
       telephone: salon.phone,
       address: salon.address ? { '@type': 'PostalAddress', streetAddress: salon.address, addressLocality: 'Караганда', addressCountry: 'KZ' } : undefined,
     } : null,
