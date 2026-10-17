@@ -49,6 +49,7 @@ async def env(monkeypatch, tmp_path):
         db.add_all([Food_items(id=1,restaurant_id=1,name='Pizza',price=1500,is_active=True,available=True),Food_items(id=2,restaurant_id=1,name='Drink',price=300,is_active=True,available=True),Food_items(id=3,restaurant_id=9,name='Other',price=1,is_active=True)])
         db.add(Food_settings(setting_key='loyalty_enabled',setting_value='0'))
         db.add(Food_settings(setting_key='service_fee_rate',setting_value='0'))
+        db.add(Food_settings(setting_key='courier_payout',setting_value='0'))  # Explicit fixture tariff, never a delivery-price fallback.
         db.add(Food_orders(id=1,restaurant_id=1,restaurant_name='DAM ALEM 2.0',customer_name='Client',customer_phone='+77000000000',delivery_method='delivery',delivery_address='Test street 1',status='new',version=0,payment_status='paid',total_amount=1200,order_items=json.dumps([{'id':1,'name':'Pizza','price':1000,'quantity':1,'modTotal':0,'sum':1000}])))
         db.add(User(id='courier',name='Courier',phone='+77001111111',role='courier'))
         db.add(CourierProfile(user_id='courier',is_verified=True,is_online=True,deliveries_count=0,balance=0))
@@ -64,7 +65,7 @@ async def env(monkeypatch, tmp_path):
         courier=await db.get(CourierProfile,'courier')
         courier.pin_hash=hash_courier_pin('2954')
         await open_shift(db,staff_type='courier',staff_id='courier',staff_name='Courier',role='courier',stored_pin=courier.pin_hash,pin='2954')
-    for target in ['services.courier_notifications.notify_courier_task','services.food_orders.link_food_order_to_user','services.food_orders.push_food_order_to_frontpad','services.admin_alerts.alert_new_food_order','services.user_notifications.notify_food_order_created','services.user_notifications.notify_food_order_status','services.user_notifications.notify_logistics_task_status','services.user_notifications.notify_user_by_phone','services.bonus_rewards.handle_food_order_status_bonus']:
+    for target in ['services.courier_notifications.notify_courier_task','services.food_orders.link_food_order_to_user','services.admin_alerts.alert_new_food_order','services.user_notifications.notify_food_order_created','services.user_notifications.notify_food_order_status','services.user_notifications.notify_logistics_task_status','services.user_notifications.notify_user_by_phone','services.bonus_rewards.handle_food_order_status_bonus']:
         monkeypatch.setattr(target,AsyncMock(return_value=None))
     async def courier_profile(db,user):
         return await db.scalar(select(CourierProfile).where(CourierProfile.user_id==user.id))
@@ -157,7 +158,7 @@ async def test_manual_order_idempotency_and_server_prices(env):
 @pytest.mark.asyncio
 async def test_operator_selects_delivery_fee_without_geocoding(env):
     client, maker, headers, monkeypatch = env
-    zones = [{'id': 'near', 'name': 'Ближняя зона', 'price': 600, 'polygon': [[49.9, 73.1], [50.0, 73.1], [50.0, 73.3], [49.9, 73.3]]}]
+    zones = [{'id': 'near', 'name': 'Ближняя зона', 'price': 600, 'courier_payout': 800, 'polygon': [[49.9, 73.1], [50.0, 73.1], [50.0, 73.3], [49.9, 73.3]]}]
     async with maker() as db:
         db.add(Food_settings(setting_key='delivery_zones', setting_value=json.dumps(zones)))
         await db.commit()
@@ -165,7 +166,7 @@ async def test_operator_selects_delivery_fee_without_geocoding(env):
     monkeypatch.setattr('services.food_order_validation.geocode_address', geocode)
 
     catalog = (await client.get(BASE + '/catalog', headers=headers)).json()
-    assert {option['price'] for option in catalog['delivery_options']} >= {0, 600, 800, 1200}
+    assert [(option['id'],option['price']) for option in catalog['delivery_options']]==[('near',600)]
 
     body = {
         'request_key': '12345678-1234-1234-1234-123456789077',
@@ -174,13 +175,14 @@ async def test_operator_selects_delivery_fee_without_geocoding(env):
         'delivery_method': 'delivery',
         'delivery_address': 'Локомотивная 13',
         'delivery_fee': 800,
+        'delivery_zone_id':'near',
         'items': [{'id': 1, 'quantity': 1}],
     }
     quote = await client.post(BASE + '/manual/quote', headers=headers, json=body)
     assert quote.status_code == 200, quote.text
-    assert quote.json()['delivery_fee'] == 800
-    assert quote.json()['total_amount'] == 2300
-    created = await client.post(BASE + '/manual', headers=headers, json={**body, 'quoted_total': 2300})
+    assert quote.json()['delivery_fee'] == 600
+    assert quote.json()['total_amount'] == 2100
+    created = await client.post(BASE + '/manual', headers=headers, json={**body, 'quoted_total': 2100})
     assert created.status_code == 201, created.text
     assert created.json()['delivery_address'] == 'Локомотивная 13'
     assert geocode.await_count == 0
@@ -190,7 +192,7 @@ async def test_operator_selects_delivery_fee_without_geocoding(env):
 async def test_customer_retry_returns_same_order_and_changed_payload_is_rejected(env):
     import asyncio
     client,maker,_,_=env
-    body={'request_key':'customer-retry-1234567890','restaurant_id':1,'customer_name':'Client',
+    body={'request_key':'customer-retry-1234567890','restaurant_id':1,'customer_name':'Client Test','legal_version':'2026-10-09','legal_accepted':True,
         'customer_phone':'+77003333333','delivery_method':'pickup','payment_method':'cash',
         'order_items':json.dumps([{'id':2,'quantity':2,'price':300}]),'total_amount':600}
     async def send():

@@ -25,7 +25,10 @@ async def list_owned_history(db, model, user, *, phone_field='phone', limit=100)
     if model.__tablename__ == 'food_orders':
         from models.crm import Customer
         c = await db.scalar(select(Customer).where(Customer.user_id==str(user.id)))
-        clauses = [cast(model.user_id, String)==str(user.id)]
+        from models.food_payment import FoodPayment
+        clauses = [cast(model.user_id, String)==str(user.id),
+            select(FoodPayment.id).where(FoodPayment.order_id==model.id,
+                FoodPayment.user_id==str(user.id)).exists()]
         if c and c.verified_at and user.phone_verified_at:
             clauses.append(model.customer_id==c.id)
         # Unlinked historical phone records require SMS proof; migration normally

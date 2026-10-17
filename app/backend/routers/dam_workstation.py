@@ -10,7 +10,7 @@ from core.database import get_db
 from core.food_staff_guard import food_owner
 from models.partner_auth import PartnerCredentials
 from routers.partner_auth import _create_partner_jwt
-from services.food_shifts import active_shift, open_shift, shift_view
+from services.food_shifts import active_shift, open_shift, shift_view, record_action
 from utils.courier_pin import verify_courier_pin
 from utils.rate_limit import check_keyed_rate_limit
 
@@ -27,6 +27,12 @@ async def authorize(db:AsyncSession=Depends(get_db),claims=Depends(food_owner)):
 class Entry(BaseModel):
     pin:str=Field(pattern=r'^\d{4}$')
 
+@router.post('/pin-login')
+async def pin_login(body:Entry,request:Request,db:AsyncSession=Depends(get_db)):
+    host=request.client.host if request.client else 'unknown'
+    check_keyed_rate_limit('dam-operator-pin:'+host,window_seconds=900,max_hits=6,message='Слишком много попыток PIN. Повторите через 15 минут.')
+    return await operator_entry(db,body.pin)
+
 @router.post('/enter')
 async def enter(body:Entry,request:Request,db:AsyncSession=Depends(get_db)):
     try:
@@ -39,19 +45,31 @@ async def enter(body:Entry,request:Request,db:AsyncSession=Depends(get_db)):
     except Exception:
         raise HTTPException(401,'Рабочее место нужно снова подключить владельцу') from None
     check_keyed_rate_limit('dam-workstation:'+claims['device_id'],window_seconds=900,max_hits=20,message='Слишком много попыток. Повторите через 15 минут.')
+    return await operator_entry(db,body.pin)
+
+async def operator_entry(db:AsyncSession,pin:str):
     rows=(await db.scalars(select(PartnerCredentials).where(PartnerCredentials.partner_type=='dam_alem',PartnerCredentials.is_active==True,PartnerCredentials.access_role=='operator',PartnerCredentials.pin_hash.isnot(None)))).all()
-    matches=[r for r in rows if verify_courier_pin(r.pin_hash,body.pin)]
+    matches=[r for r in rows if verify_courier_pin(r.pin_hash,pin)]
     if not matches: raise HTTPException(403,'Неверный PIN или оператор отключён')
     if len(matches)!=1: raise HTTPException(409,'У сотрудников совпадают PIN. Владелец должен назначить разные PIN.')
     row=matches[0]
+    employee_id=row.id
+    from services.food_preorders import lock_dam_operations
+    await lock_dam_operations(db)
+    row=await db.scalar(select(PartnerCredentials).where(PartnerCredentials.id==employee_id).with_for_update().execution_options(populate_existing=True))
+    if not row or not row.is_active or row.partner_type!='dam_alem' or row.access_role!='operator' or not verify_courier_pin(row.pin_hash,pin):
+        raise HTTPException(403,'Неверный PIN или оператор отключён')
     shift=await active_shift(db,'partner',row.id)
     resumed=bool(shift)
     if not shift:
         try:
-            shift=await open_shift(db,staff_type='partner',staff_id=row.id,staff_name=row.display_name or row.email,role='operator',stored_pin=row.pin_hash,pin=body.pin)
+            shift=await open_shift(db,staff_type='partner',staff_id=row.id,staff_name=row.display_name or row.email,role='operator',stored_pin=row.pin_hash,pin=pin,commit=False)
         except HTTPException as exc:
             if exc.status_code!=409: raise
-            shift=await active_shift(db,'partner',row.id)
+            shift=await active_shift(db,'partner',employee_id)
             if not shift: raise
+            row=await db.get(PartnerCredentials,employee_id)
             resumed=True
-    return {'token':_create_partner_jwt(row.id,'dam_alem',row.email or row.phone,row.display_name or row.email),'name':row.display_name or row.email,'shift':shift_view(shift),'resumed':resumed}
+    record_action(db,shift,'operator_pin_login',details={'resumed':resumed})
+    await db.commit()
+    return {'token':_create_partner_jwt(row.id,'dam_alem',row.email or row.phone,row.display_name or row.email,pin_version=hashlib.sha256(row.pin_hash.encode()).hexdigest()[:16]),'name':row.display_name or row.email,'shift':shift_view(shift),'resumed':resumed}

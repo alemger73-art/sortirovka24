@@ -1,4 +1,5 @@
 """A paginated view of existing business records; never a second event store."""
+from datetime import datetime
 from sqlalchemy import select, literal, cast, String, func, union_all, or_, and_
 from models.crm import BusinessCustomer, CustomerNote
 from models.food_orders import Food_orders
@@ -25,4 +26,9 @@ async def history(db, business_id, customer_id, offset=0, limit=20):
     ]
     merged=union_all(*queries).subquery()
     rows=(await db.execute(select(merged).order_by(merged.c.at.desc(),merged.c.kind,merged.c.id.desc()).offset(offset).limit(limit+1))).mappings().all()
-    return {'items':[dict(x) for x in rows[:limit]],'next_offset':offset+limit if len(rows)>limit else None}
+    items = [dict(x) for x in rows[:limit]]
+    for item in items:
+        # PostgreSQL text timestamps can end in +00; browsers require +00:00.
+        if item['at']:
+            item['at'] = datetime.fromisoformat(item['at']).isoformat()
+    return {'items':items,'next_offset':offset+limit if len(rows)>limit else None}

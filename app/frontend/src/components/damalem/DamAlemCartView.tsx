@@ -139,7 +139,7 @@ export default function DamAlemCartView({
   const itemCount = lines.reduce((sum, line) => sum + line.quantity, 0);
   const canCheckout = minOrder <= 0 || subtotal >= minOrder;
   const hasActivePromo = !!appliedPromo && !appliedPromo.pending;
-  const showBonusBlock = loggedIn && bonusBalance > 0 && !hasActivePromo;
+  const showBonusBlock = loggedIn && bonusBalance > 0;
   const payTotal = Math.max(0, total - (useBonuses ? bonusDiscount : 0));
 
   return (
@@ -299,7 +299,7 @@ export default function DamAlemCartView({
           ) : null}
 
           {loggedIn && bonusBalance > 0 && hasActivePromo ? (
-            <p className="dam-cart-hint">{st("Бонусы и промокод вместе не суммируются — выберите одно.")}</p>
+            <p className="dam-cart-hint">{st("Лимит бонусов рассчитывается от стоимости блюд после скидки по промокоду. Доставка оплачивается отдельно.")}</p>
           ) : null}
 
           <div className="dam-cart-totals">

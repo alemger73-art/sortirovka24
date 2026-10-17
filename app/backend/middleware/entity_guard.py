@@ -141,7 +141,8 @@ class EntityWriteGuardMiddleware(BaseHTTPMiddleware):
                                 dam_actor = staff
                             break
                     if staff['access_role'] == 'operator':
-                        allowed = path.startswith('/api/v1/dam-alem/') or path.startswith('/api/v1/partner-auth/dam_alem/')
+                        # CRM handlers enforce staff/owner roles and tenant scope.
+                        allowed = path.startswith('/api/v1/dam-alem/') or path.startswith('/api/v1/partner-auth/dam_alem/') or path.startswith('/api/v1/crm/businesses/dam_alem/')
                         public_menu = method in ('GET', 'HEAD') and path.startswith(_ENTITIES_PREFIX) and _entity_name(path) in {'food_items', 'food_categories', 'food_restaurants', 'food_modifiers', 'item_modifier_groups', 'food_item_modifiers'}
                         if not (allowed or public_menu):
                             return JSONResponse(status_code=403, content={'detail': 'Оператору доступны заказы и доступность блюд.'})

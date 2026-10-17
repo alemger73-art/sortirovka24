@@ -1,4 +1,4 @@
-"""Transaction-only payment commands. No client redirects or staff payment bypass."""
+"""Transaction-only payment commands with explicit staff confirmation offline."""
 import hashlib
 import json
 from uuid import uuid4
@@ -13,6 +13,44 @@ from services.food_preorders import lock_dam_operations
 PROVIDERS = {'cash': 'CASH', 'kaspi_qr': 'KASPI', 'halyk_qr': 'HALYK'}
 
 
+def manual_confirmation_allowed(method):
+    if method == 'cash':
+        return True
+    if method not in ('kaspi_qr', 'halyk_qr'):
+        return False
+    from services.payment_providers import configured_adapter
+    try:
+        configured_adapter()
+    except HTTPException as exc:
+        if exc.status_code == 503:
+            return True
+        raise
+    return False
+
+
+async def synchronize_staff_confirmation(db, order, actor):
+    if order.payment_method == 'cash':
+        return await synchronize_cash(db, order, actor)
+    row = await current_payment(db, order)
+    if paid(order) < money(order.total_amount):
+        return
+    if not row:
+        row = FoodPayment(id=str(uuid4()), order_id=order.id,
+            user_id=str(order.user_id) if order.user_id is not None else None,
+            provider=PROVIDERS[order.payment_method], amount=money(order.total_amount),
+            currency='KZT',status='WAITING',created_at=now(),metadata_json={})
+        db.add(row)
+    if row.status == 'PAID':
+        return
+    old = row.status
+    row.status, row.paid_at = 'PAID', now()
+    row.metadata_json = {**(row.metadata_json or {}), 'confirmation_source':'staff',
+        'confirmed_by':actor, 'confirmed_amount':str(paid(order))}
+    emit(db, order, 'PAYMENT_CONFIRMED', actor, key=f'payment:{row.id}:paid',
+        old_status=old, new_status='PAID', amount=str(paid(order)),
+        provider=row.provider, source='staff')
+
+
 def cash_values(total, given=None):
     total = money(total)
     given = total if given is None else money(given)
@@ -22,7 +60,7 @@ def cash_values(total, given=None):
 
 
 def emit(db, order, kind, actor, *, key=None, **data):
-    labels = {'PAYMENT_CONFIRMED':'Оплата подтверждена','SENT_TO_KITCHEN':'Передан на кухню','ORDER_READY':'Заказ готов','HANDED_TO_COURIER':'Передан курьеру','COURIER_ON_THE_WAY':'Курьер выехал','DELIVERED':'Доставлено','DELIVERY_STATUS_CHANGED':'Этап доставки изменён','ORDER_CANCELLED':'Заказ отменён','PAYMENT_STATUS_CHANGED':'Статус оплаты изменён','PAYMENT_REFUNDED':'Возврат отмечен'}
+    labels = {'DEBT_CREATED':'Задолженность — ожидается оплата','COURIER_TARIFF_FIXED':'Вознаграждение курьеру зафиксировано','PAYMENT_CONFIRMED':'Оплата подтверждена','SENT_TO_KITCHEN':'Передан на кухню','ORDER_READY':'Заказ готов','HANDED_TO_COURIER':'Передан курьеру','COURIER_ON_THE_WAY':'Курьер выехал','DELIVERED':'Доставлено','DELIVERY_STATUS_CHANGED':'Этап доставки изменён','ORDER_CANCELLED':'Заказ отменён','PAYMENT_STATUS_CHANGED':'Статус оплаты изменён','PAYMENT_REFUNDED':'Фактический возврат денег подтверждён'}
     event = add_event(db, order, labels.get(kind, kind), actor, notify=False)
     event.event_type = kind
     event.event_key = key or f'{kind}:{order.id}:{order.version or 0}'
@@ -35,13 +73,18 @@ async def current_payment(db, order):
         .order_by(FoodPayment.created_at.desc(), FoodPayment.id.desc()).limit(1))
 
 
-async def create_payment(db, order):
+async def create_payment(db, order, *, allow_manual=False):
     provider = PROVIDERS.get(order.payment_method)
     if not provider:
         return None  # unrelated/legacy payment method
     if provider != 'CASH':
         from services.payment_providers import configured_adapter
-        adapter = configured_adapter()
+        try:
+            adapter = configured_adapter()
+        except HTTPException as exc:
+            if not allow_manual or exc.status_code != 503:
+                raise
+            adapter = None
     row = FoodPayment(id=str(uuid4()), order_id=order.id,
         user_id=str(order.user_id) if order.user_id is not None else None,
         provider=provider, amount=money(order.total_amount), currency='KZT',
@@ -50,9 +93,11 @@ async def create_payment(db, order):
         order.cash_given_amount, order.change_amount = cash_values(order.total_amount, order.cash_given_amount)
     else:
         order.cash_given_amount = order.change_amount = None
-    if provider != 'CASH':
+    if provider != 'CASH' and adapter is not None:
         initiation = await adapter.initiate(row)
         row.external_id = initiation['external_id']
+    elif provider != 'CASH':
+        row.metadata_json = {'confirmation_mode': 'staff', 'bank_initiated': False}
     db.add(row)
     return row
 

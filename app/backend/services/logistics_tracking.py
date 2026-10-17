@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
+from datetime import datetime, timezone
 
 from models.logistics import CourierProfile, LogisticsTask
 from services.taxi_routing import road_eta_minutes
@@ -34,6 +35,19 @@ async def build_task_tracking(
     if task.status not in ('assigned', 'picked_up', 'on_the_way', 'arrived'):
         return tracking
 
+    # Do not present an old or incomplete GPS fix as a live courier position.
+    if not courier or courier.current_lat is None or courier.current_lng is None:
+        return tracking
+    try:
+        updated = datetime.fromisoformat((courier.location_updated_at or '').replace('Z', '+00:00'))
+        if updated.tzinfo is None:
+            return tracking
+        age = (datetime.now(timezone.utc) - updated).total_seconds()
+        if age < -30 or age > 120:
+            return tracking
+    except (ValueError, TypeError):
+        return tracking
+
     if courier and courier.current_lat is not None and courier.current_lng is not None:
         tracking["courier_lat"] = courier.current_lat
         tracking["courier_lng"] = courier.current_lng
@@ -41,7 +55,7 @@ async def build_task_tracking(
     if task.status in ("assigned", "picked_up", "on_the_way", "arrived") and courier:
         target_lat = task.dropoff_lat if task.status in ("picked_up", "on_the_way", "arrived") else task.pickup_lat
         target_lng = task.dropoff_lng if task.status in ("picked_up", "on_the_way", "arrived") else task.pickup_lng
-        if target_lat is not None and courier.current_lat is not None:
+        if target_lat is not None and target_lng is not None:
             eta, _ = await road_eta_minutes(courier.current_lat, courier.current_lng, target_lat, target_lng)
             tracking["eta_minutes"] = eta
             if task.status == "assigned":

@@ -1,3 +1,4 @@
+import { humanizeApiError } from '@/lib/apiErrors';
 import KzPhoneInput from '@/components/KzPhoneInput';
 import { formatPublicText } from '@/i18n/publicLocale';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -7,7 +8,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Check, Eye, EyeOff } from "lucide-react";
 import Layout from "@/components/Layout";
 import LegalDocModal from "@/components/LegalDocModal";
-import { PRIVACY_POLICY, USER_AGREEMENT } from "@/content/legal";
+import { getLegalDocuments, LEGAL_VERSION } from "@/content/legal";
 import { accountApi, setAccountToken } from "@/lib/accountApi";
 import { linkPushTokenToAccount, syncWebPushSubscriptionToAccount } from "@/lib/pushNotifications";
 import { cacheAccountProfile } from "@/lib/localAuth";
@@ -88,9 +89,8 @@ function StepIndicator({ step }: { step: RegStep }) {
 }
 
 function PasswordAccountAuth() {
-  const { t: publicT } = useLanguage();
-  const USER_AGREEMENT = { title: publicT('public.legal.USER_AGREEMENT.title'), updated: publicT('public.legal.USER_AGREEMENT.updated'), sections: Array.from({ length: 7 }, (_, i) => ({ heading: publicT(`public.legal.USER_AGREEMENT.${i}.heading`), body: publicT(`public.legal.USER_AGREEMENT.${i}.body`) })) };
-  const PRIVACY_POLICY = { title: publicT('public.legal.PRIVACY_POLICY.title'), updated: publicT('public.legal.PRIVACY_POLICY.updated'), sections: Array.from({ length: 8 }, (_, i) => ({ heading: publicT(`public.legal.PRIVACY_POLICY.${i}.heading`), body: publicT(`public.legal.PRIVACY_POLICY.${i}.body`) })) };
+  const { t: publicT, lang } = useLanguage();
+  const { terms: USER_AGREEMENT, consent: PRIVACY_POLICY } = getLegalDocuments(lang);
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo = useMemo(() => {
@@ -136,13 +136,14 @@ function PasswordAccountAuth() {
     return () => window.clearInterval(timer);
   }, [resendSeconds > 0]);
 
-  function startGoogleAuth() {
+  async function startGoogleAuth() {
     setError("");
     if (!isLogin && !agreementsOk) {
       setError(publicT("public.AccountAuth.text5"));
       return;
     }
-    window.location.href = accountApi.googleStartUrl(form.language, agreementsOk);
+    try { const result = await accountApi.startGoogle(form.language, agreementsOk, form.name.trim()); window.location.assign(result.url); }
+    catch (e) { setError(humanizeApiError(e)); }
   }
 
   function resetRegistration() {
@@ -174,7 +175,11 @@ function PasswordAccountAuth() {
       if (!form.name.trim() || form.name.trim().length < 2) throw new Error(publicT("public.AccountAuth.text6"));
       if (!form.phone.trim()) throw new Error(publicT("public.AccountAuth.text7"));
       if (!agreementsOk) throw new Error(publicT("public.AccountAuth.text5"));
-      const res = await accountApi.requestSmsCode({ phone: form.phone });
+      const res = await accountApi.requestSmsCode({ phone: form.phone, legal_version: LEGAL_VERSION,
+        legal_subject_name: form.name.trim(), language: form.language,
+        agreement_accepted: termsAccepted, privacy_accepted: privacyAccepted });
+      setOnScreenCode('');
+      setSmsCode('');
       setRegStep(2);
       setResendSeconds(Math.max(0, res.resend_after_seconds || 60));
       if (res.on_screen_code_hint) {
@@ -249,6 +254,8 @@ function PasswordAccountAuth() {
         language: form.language,
         agreement_accepted: true,
         privacy_accepted: true,
+        legal_version: LEGAL_VERSION,
+        legal_subject_name: form.name.trim(),
         sms_code: smsCode.trim(),
       });
       setAccountToken(res.token);
@@ -365,9 +372,12 @@ function PasswordAccountAuth() {
             {/* ── REG STEP 1: данные + соглашения ── */}
             {!isLogin && regStep === 1 ? (
               <>
+                <label htmlFor="register-name" className="block text-sm font-medium text-gray-700 dark:text-gray-200">{lang === 'kz' ? 'Тегі, аты, әкесінің аты (болса)' : 'Фамилия, имя, отчество (при наличии)'}</label>
                 <input
                   className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
-                  placeholder={publicT("realestate.form.author")}
+                  placeholder={lang === 'kz' ? 'Тегі, аты, әкесінің аты (болса)' : 'Фамилия, имя, отчество (при наличии)'}
+                  aria-label={lang === 'kz' ? 'Тегі, аты, әкесінің аты (болса)' : 'Фамилия, имя, отчество (при наличии)'}
+                  autoComplete="name"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />
@@ -395,12 +405,12 @@ function PasswordAccountAuth() {
                       onClick={() => setShowPrivacyModal(true)}
                       className="flex-1 rounded-lg border border-blue-200 bg-white px-3 py-2 text-left text-sm text-blue-700 hover:bg-blue-50 dark:border-blue-900 dark:bg-gray-900 dark:text-blue-300"
                     >
-                      {privacyAccepted ? "✓ " : ""}{publicT("public.AccountAuth.text22")} </button>
+                      {privacyAccepted ? "✓ " : ""}{PRIVACY_POLICY.title} </button>
                   </div>
                   <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    {publicT("public.AccountAuth.text23")}{" "}
-                    <Link to="/legal/terms" className="text-blue-600 hover:underline" target="_blank">
-                      {publicT("public.AccountAuth.text24")} </Link>
+                    {lang === 'kz' ? 'Құпиялылық саясаты:' : 'Политика конфиденциальности:'}{" "}
+                    <Link to="/legal/privacy" className="text-blue-600 hover:underline" target="_blank">
+                      {lang === 'kz' ? 'Оқу' : 'Прочитать'} </Link>
                   </p>
                   {agreementsOk ? (
                     <p className="mt-2 text-xs font-medium text-green-600 dark:text-green-400">{publicT("public.AccountAuth.text25")}</p>

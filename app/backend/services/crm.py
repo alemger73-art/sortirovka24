@@ -197,6 +197,13 @@ def order_view(x):
 
 
 async def owns_order(db, user, order):
+    # Checkout identity is authoritative even when the delivery phone belongs
+    # to someone else; this grants no access to their CRM/loyalty account.
+    from models.food_payment import FoodPayment
+    if await db.scalar(select(FoodPayment.id).where(FoodPayment.order_id==order.id,
+            FoodPayment.user_id==str(user.id)).limit(1)):
+        return True
+
     if order.customer_id:
         c = await db.get(Customer, order.customer_id)
         return bool(c and c.user_id == str(user.id) and c.verified_at and user.phone_verified_at)

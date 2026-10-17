@@ -12,7 +12,7 @@ async def notify_courier_task(db, task, kind, *, version='', courier_id=None):
         profile = await db.get(CourierProfile, user_id)
         if not profile or not profile.is_verified:
             return
-        titles = {'assigned':'Новая доставка', 'reassigned':'Доставка переназначена',
+        titles = {'assigned':'Новая доставка', 'ready':'Заказ готов к выдаче', 'reassigned':'Доставка переназначена',
                   'cancelled':'Доставка отменена', 'issue_resolved':'Проблема доставки решена'}
         await send_user_notification(db, user_id=user_id, category='logistics',
             event_key='courier:'+hashlib.sha256(f'{kind}:{task.id}:{version}:{user_id}'.encode()).hexdigest(),

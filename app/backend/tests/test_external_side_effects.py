@@ -11,6 +11,11 @@ from services.telegram import send_telegram_message
 
 
 class ExternalSideEffectTests(unittest.IsolatedAsyncioTestCase):
+    async def test_frontpad_cannot_be_reenabled_by_production_flags(self):
+        with patch.dict(os.environ, {"ENVIRONMENT": "production", "EXTERNAL_SIDE_EFFECTS": "enabled", "FRONTPAD_AUTO_PUSH_ORDERS": "true"}, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "integration has been removed"):
+                await call_frontpad("unused-secret", "new_order")
+
     async def test_production_debug_does_not_fake_sms_delivery(self):
         with patch.dict(os.environ, {"ENVIRONMENT": "production", "DEBUG": "true", "EXTERNAL_SIDE_EFFECTS": "enabled"}, clear=True):
             with self.assertRaises(SMSDeliveryError):

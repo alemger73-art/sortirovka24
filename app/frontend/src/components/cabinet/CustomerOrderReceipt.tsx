@@ -9,6 +9,8 @@ type ReceiptOrder = {
   store_label?: string;
   receipt?: { subtotal: number; service_fee: number; delivery_fee: number; discount: number } | null;
   paid_amount?: number;
+  payment_status?: string; settlement_state?: string; is_debt?: boolean; debt_amount?: number; refund_due?: number;
+  payment_method?: string;
   cash_given_amount?: number | null;
   change_amount?: number | null;
   status?: string;
@@ -50,10 +52,15 @@ export default function CustomerOrderReceipt({ order }: { order: ReceiptOrder })
       </> : <p className="text-xs text-muted-foreground">{label('Для этого заказа подробный расчёт не сохранён. Показана сохранённая итоговая сумма.', 'Бұл тапсырыстың толық есебі сақталмаған. Сақталған қорытынды сома көрсетілген.')}</p>}
       <div className="border-t border-dashed pt-3 text-lg font-bold">{row(label('Итого', 'Барлығы'), money(order.amount))}</div>
       {typeof order.paid_amount === 'number' && row(label('Получено в оплату', 'Төлем қабылданды'), money(order.paid_amount))}
-      {order.status !== 'cancelled' && typeof order.paid_amount === 'number' && order.paid_amount < Number(order.amount) && row(label('Осталось оплатить', 'Төлеу қалды'), money(Number(order.amount) - order.paid_amount))}
+      {order.is_debt&&<p className="font-semibold text-amber-700">{label('Заказ доставлен — задолженность / ожидается оплата','Тапсырыс жеткізілді — төлем күтілуде')}</p>}
+      {order.status !== 'cancelled' && !['paid','refunded'].includes(order.payment_status||'') && typeof order.paid_amount === 'number' && order.paid_amount < Number(order.amount) && row(label('Осталось оплатить', 'Төлеу қалды'), money(Number(order.amount) - order.paid_amount))}
+      {order.settlement_state==='REFUND_REQUIRED'&&row(label('Ожидается фактический возврат','Ақшаны қайтару күтілуде'),money(order.refund_due||0))}
+      {order.settlement_state==='REFUNDED'&&<p>{label('Фактический возврат денег подтверждён','Ақшаны қайтару расталды')}</p>}
+      {order.settlement_state==='PARTIALLY_REFUNDED'&&<p>{label('Часть оплаты возвращена','Төлемнің бір бөлігі қайтарылды')}</p>}
       {typeof order.paid_amount === 'number' && order.paid_amount > Number(order.amount) && row(label('К возврату', 'Қайтарылатын сома'), money(order.paid_amount - Number(order.amount)))}
-      {order.cash_given_amount != null && row(label('Наличными передано', 'Қолма-қол берілді'), money(order.cash_given_amount))}
-      {order.change_amount != null && row(label('Сдача', 'Қайтарым'), money(order.change_amount))}
+      {order.payment_method === 'cash' && order.cash_given_amount != null && order.cash_given_amount < Number(order.amount || 0) && <p className="rounded-lg bg-amber-50 p-3 text-amber-950">{label('После изменения состава прежней суммы наличных недостаточно. Согласуйте новую сумму с оператором. Сдача пока не рассчитана.', 'Құрам өзгергеннен кейін бұрынғы қолма-қол ақша жеткіліксіз. Жаңа соманы оператормен келісіңіз.')}</p>}
+      {order.payment_method === 'cash' && order.cash_given_amount != null && row(label('Наличные для расчёта', 'Есеп айырысуға арналған қолма-қол ақша'), money(order.cash_given_amount))}
+      {order.payment_method === 'cash' && order.change_amount != null && row(label('Сдача', 'Қайтарым'), money(order.change_amount))}
     </div>
   </section>;
 }

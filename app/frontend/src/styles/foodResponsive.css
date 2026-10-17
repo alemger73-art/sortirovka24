@@ -86,3 +86,54 @@ html.native-app .dam-page {
 }
 @media(prefers-reduced-motion:reduce) { .dam-page a.dam-market-offer--compact, .dam-page .dam-category-pill { transition: none; } }
 
+/* Checkout sheets are portals and need their own insets and foreground. */
+.dam-checkout-overlay {
+  --dam-safe-top: env(safe-area-inset-top, 0px);
+  --dam-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+html.native-app .dam-checkout-overlay {
+  --dam-safe-top: max(32px, env(safe-area-inset-top, 0px));
+  --dam-safe-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+}
+.dam-checkout-fullscreen {
+  background: var(--app-raised, #f6f1ea);
+  color: var(--app-ink, #18181b);
+  padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
+}
+.dam-checkout-fullscreen .dam-sheet-header {
+  padding-top: calc(.75rem + var(--dam-safe-top));
+  border-radius: 0;
+  gap: .5rem;
+}
+.dam-checkout-fullscreen .dam-sheet-header button { min-width: 44px; min-height: 44px; }
+.dam-checkout-fullscreen .dam-sheet-body { min-height: 0; overscroll-behavior: contain; }
+.dam-checkout-fullscreen .dam-sheet-footer {
+  padding: .75rem 1rem max(.75rem, var(--dam-safe-bottom));
+  border-radius: 0;
+  background: var(--app-surface, #fff);
+}
+.dam-checkout-cta { background: #b93624; }
+.dam-checkout-cta:focus-visible { outline: 3px solid var(--app-ink, #18181b); outline-offset: 3px; }
+.dam-sheet-bare { position: relative; z-index: 1; overflow-y: auto; overscroll-behavior: contain; color: var(--app-ink, #18181b); }
+.dam-success-modal { padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px)); }
+html.native-app .dam-success-modal { padding-bottom: max(24px, env(safe-area-inset-bottom, 0px)); }
+.dam-cart .dam-btn-primary:not(:disabled), .dam-success-modal a[href^="/delivery/food/"], .dam-success-modal .dam-btn-primary { background: #b93624; }
+.dam-cart .dam-btn-primary:active:not(:disabled), .dam-success-modal .dam-btn-primary:active { background: #9f2d1e; }
+.dam-cart .dam-btn-primary:focus-visible, .dam-success-modal a:focus-visible { outline: 3px solid var(--app-ink, #18181b); outline-offset: 3px; }
+@media (max-width: 639px) {
+  .dam-checkout-fullscreen .dam-checkout-total-chip { display: none; }
+  .dam-checkout-fullscreen .dam-market-checkout-progress { flex-wrap: wrap; }
+}
+@media (max-height: 500px) {
+  .dam-checkout-fullscreen .dam-sheet-header { padding-bottom: .5rem; }
+  .dam-checkout-fullscreen .dam-sheet-footer { padding-top: .5rem; }
+}
+@media (max-height: 400px) {
+  .dam-checkout-fullscreen .dam-sheet-header { padding-top: max(.5rem, var(--dam-safe-top)); }
+  .dam-checkout-fullscreen .dam-market-checkout-progress { display: none; }
+  .dam-checkout-fullscreen .dam-sheet-footer > p:last-child { display: none; }
+}
+@media (max-width: 1023px) and (max-height: 600px) {
+  .dam-page .dam-market-header { position: relative; }
+  .dam-page #dam-market-categories.dam-sticky-pills { top: 0; }
+}

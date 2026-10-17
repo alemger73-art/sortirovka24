@@ -7,7 +7,7 @@ import { foodShifts } from '@/lib/foodOperations';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export interface DamShift {
-  closing_summary?: {orders:number; delivered:number; cancelled:number; sales:number; receipts:number; refunds:number; payment_methods:Record<string,number>; unresolved:number; orders_scope:string; money_scope:string} | null;
+  closing_summary?: {deliveries?:number;earned?:number;collected?:number;handed_over?:number;cash_balance?:number;payout_due?:number;orders:number; delivered:number; cancelled:number; sales:number; receipts:number; refunds:number; payment_methods:Record<string,number>; unresolved:number; orders_scope:string; money_scope:string} | null;
   id: number; staff_name: string; role: string; opened_at: string; closed_at?: string | null;
   duration_seconds?: number | null; active: boolean;
 }
@@ -26,10 +26,10 @@ export default function DamShiftPanel({ onChange, onLock }: { onChange?: (shift:
   }, [onChange]);
   useEffect(() => { void load(); const timer=window.setInterval(()=>{if(!document.hidden)void load();},15000); return ()=>window.clearInterval(timer); }, [load]);
   async function mutate(action: 'open' | 'close') {
-    if (!/^\d{4}$/.test(pin) || busy) return;
+    if (busy || (action==='open' && !/^\d{4}$/.test(pin))) return;
     if(action==='close' && state?.shift && state.staff.role==='operator'){setClosing(true);return;}
     setBusy(true); setError('');
-    try { await foodShifts(`/${action}`, 'POST', { pin }); setPin(''); await load(); }
+    try { await foodShifts(`/${action}`, 'POST', action==='open'?{pin}:{shift_id:state?.shift?.id}); setPin(''); await load(); if(action==='close')onLock?.(); }
     catch (e) { setError((e as Error).message); }
     finally { setBusy(false); }
   }
@@ -44,11 +44,11 @@ export default function DamShiftPanel({ onChange, onLock }: { onChange?: (shift:
       </div>
       {onLock && <Button variant="outline" onClick={onLock}>Заблокировать рабочее место</Button>}
       {state?.staff.id && state.staff.pin_set && <div className="flex w-full gap-2 md:w-auto">
-        <div className="relative flex-1 md:w-36"><KeyRound className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input type="password" inputMode="numeric" autoComplete="off" maxLength={4} aria-label={t('dam.shift.pin')} placeholder="••••" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} className="pl-9 text-center tracking-[.4em]" /></div>
-        <Button disabled={busy || pin.length !== 4} onClick={() => void mutate(state.shift ? 'close' : 'open')} variant={state.shift ? 'outline' : 'default'}>{state.shift ? <LogOut className="mr-2 h-4 w-4" /> : <LogIn className="mr-2 h-4 w-4" />}{state.shift ? t('dam.shift.close') : t('dam.shift.open')}</Button>
+        {!state.shift&&<div className="relative flex-1 md:w-36"><KeyRound className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input type="password" inputMode="numeric" autoComplete="off" maxLength={4} aria-label={t('dam.shift.pin')} placeholder="••••" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} className="pl-9 text-center tracking-[.4em]" /></div>}
+        <Button disabled={busy || (!state.shift&&pin.length !== 4)} onClick={() => void mutate(state.shift ? 'close' : 'open')} variant={state.shift ? 'outline' : 'default'}>{state.shift ? <LogOut className="mr-2 h-4 w-4" /> : <LogIn className="mr-2 h-4 w-4" />}{state.shift ? t('dam.shift.close') : t('dam.shift.open')}</Button>
       </div>}
     </div>
-    {closing && state?.shift && <ShiftCloseDialog shiftId={state.shift.id} pin={pin} onClose={()=>setClosing(false)} onClosed={()=>{setClosing(false);setPin('');void load();}}/>}
+    {closing && state?.shift && <ShiftCloseDialog shiftId={state.shift.id} onClose={()=>setClosing(false)} onClosed={()=>{setClosing(false);setPin('');void load();onLock?.();}}/>}
     {error && <p role="alert" className="mt-3 text-sm font-medium text-red-700 dark:text-red-300">{error}</p>}
   </section>;
 }

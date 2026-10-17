@@ -428,8 +428,8 @@ export default function AdminFood({ damAlemMode = false, initialSection, hideSub
                   </div>
                 </div>
                 <div className="flex gap-1">
-                  <Button size="sm" variant="ghost" onClick={() => setEditingCat(cat)}><Pencil className="w-4 h-4" /></Button>
-                  <Button size="sm" variant="ghost" className="text-red-500" onClick={() => deleteCat(cat.id)}><Trash2 className="w-4 h-4" /></Button>
+                  <Button size="sm" variant="ghost" aria-label={`${adminT("admin.ui.0177")}: ${cat.name}`} title={adminT("admin.ui.0177")} onClick={() => setEditingCat(cat)}><Pencil className="w-4 h-4" /></Button>
+                  <Button size="sm" variant="ghost" className="text-red-500" aria-label={`${adminT("admin.ui.0190")}: ${cat.name}`} title={adminT("admin.ui.0190")} onClick={() => deleteCat(cat.id)}><Trash2 className="w-4 h-4" /></Button>
                 </div>
               </div>
             ))}

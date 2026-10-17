@@ -22,13 +22,14 @@ export function PartnerCard({ profile: p }: { profile: PartnerProfile }) {
   </Link>;
 }
 
-export default function PartnerCards() {
+export default function PartnerCards({ excludeSlug }: { excludeSlug?: string }) {
   const { lang } = useLanguage();
   const [items, setItems] = useState<PartnerProfile[]>([]);
   useEffect(() => { let live = true; partnerProfiles.list().then(r => { if(live) setItems(r.items); }).catch(() => {}); return () => {live = false;}; }, []);
-  if (!items.length) return null;
+  const visible = items.filter(p => p.slug !== excludeSlug);
+  if (!visible.length) return null;
   return <section aria-label="Партнёры района" className="space-y-5">
     <div className="flex items-end justify-between gap-4"><div><p className="mb-1 text-xs font-semibold uppercase tracking-widest text-emerald-600">{lang === 'kz' ? 'Жақын жердегі бизнес' : 'Местный бизнес'}</p><h2 className="text-2xl font-bold">{lang === 'kz' ? 'Аудан серіктестері' : 'Партнёры района'}</h2></div><Link to="/partners" className="shrink-0 text-sm font-semibold text-emerald-600">{lang === 'kz' ? 'Барлығы →' : 'Все партнёры →'}</Link></div>
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{items.slice(0,3).map(p => <PartnerCard key={p.slug} profile={p} />)}</div>
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{visible.slice(0,3).map(p => <PartnerCard key={p.slug} profile={p} />)}</div>
   </section>;
 }

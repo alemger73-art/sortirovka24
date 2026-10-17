@@ -56,12 +56,12 @@ async def claim(db, order, version, *, customer=False):
     order.version = version + 1
 
 
-async def sync_task(db, order):
+async def sync_task(db, order, *, prepare_assignment=False):
     """Must run inside the order transaction; never commits or calls external services."""
     if order.delivery_method not in ('delivery', 'доставка'):
         return
     task = await task_for(db, order)
-    if not task and order.status == 'ready':
+    if not task and (order.status == 'ready' or prepare_assignment and order.status == 'preparing'):
         from models.logistics import LogisticsSettings
         from services.logistics_service import DEFAULT_LOGISTICS_SETTINGS
         cfg = dict(DEFAULT_LOGISTICS_SETTINGS)
@@ -73,7 +73,7 @@ async def sync_task(db, order):
         except (TypeError, ValueError):
             pass
         from services.logistics_service import resolve_courier_payout
-        courier_payout = await resolve_courier_payout(db, customer_delivery_fee)
+        courier_payout = await resolve_courier_payout(db, customer_delivery_fee, order=order)
         task = LogisticsTask(vertical='food', source_type='food_orders', source_id=order.id,
             pickup_address=cfg.get('pickup_address') or order.restaurant_name or 'DAM ALEM 2.0', pickup_lat=float(cfg['pickup_lat']), pickup_lng=float(cfg['pickup_lng']), dropoff_address=order.delivery_address or '',
             customer_name=order.customer_name, customer_phone=order.customer_phone,
@@ -157,13 +157,13 @@ async def quote_change(db, order, body):
     total = after_subtotal + adjustment
     promo_discount = money(order.promo_discount_amount)
     snapshot = None
-    if order.pricing_snapshot:
+    if order.pricing_snapshot and 'settings' in json.loads(order.pricing_snapshot):
         try:
             snapshot = json.loads(order.pricing_snapshot)
             cfg = snapshot['settings']
             from services.food_order_validation import _apply_free_delivery_threshold, _resolve_promo, expected_apartment_fee
             service = (after_subtotal * Decimal(str(snapshot['service_rate']))).quantize(Decimal('1'), rounding=ROUND_HALF_UP)
-            delivery = money(_apply_free_delivery_threshold(float(after_subtotal), snapshot['base_delivery_fee'], cfg))
+            delivery = money(snapshot['base_delivery_fee'] if snapshot.get('staff_delivery_fee') else _apply_free_delivery_threshold(float(after_subtotal), snapshot['base_delivery_fee'], cfg))
             free = False
             promo_discount = Decimal(0)
             if snapshot.get('promo_code'):
@@ -242,7 +242,15 @@ async def amend(db, order, body, actor, *, customer=False):
     if order.payment_method == 'cash':
         # Exact cash follows the revised total; an explicit larger note stays fixed.
         given = None if order.cash_given_amount is None or money(order.cash_given_amount) == money(before['total_amount']) else order.cash_given_amount
-        order.cash_given_amount, order.change_amount = cash_values(order.total_amount, given)
+        if not customer and 'cash_given_amount' in body.model_fields_set:
+            # An explicit operator agreement is validated; omitted means retain it.
+            given = body.cash_given_amount
+            order.cash_given_amount, order.change_amount = cash_values(order.total_amount, given)
+        elif given is not None and money(given) < money(order.total_amount):
+            # Keep the previously agreed note for history, but do not invent change.
+            order.cash_given_amount, order.change_amount = float(money(given)), None
+        else:
+            order.cash_given_amount, order.change_amount = cash_values(order.total_amount, given)
         if payment:
             payment.amount = money(order.total_amount)
     order.receipt_revision = (order.receipt_revision or 0) + 1
@@ -274,9 +282,23 @@ async def manual_quote(db, body):
     restaurant = next((r for r in restaurants if brand(r.name, r.merchant_key)), None)
     if not restaurant:
         raise HTTPException(409, 'Сначала заполните профиль DAM ALEM')
+    apartment = body.apartment.strip()
+    if body.delivery_method == 'delivery' and body.deliver_to_apartment and not apartment:
+        raise HTTPException(400, 'Укажите квартиру для доставки до двери')
+    address = body.delivery_address.strip()
+    if body.delivery_method == 'delivery':
+        if body.entrance.strip():
+            address += ', подъезд ' + body.entrance.strip()
+        if apartment:
+            address += ', кв. ' + apartment
+        if body.deliver_to_apartment:
+            address += ', до квартиры'
+    if len(address) > 1000:
+        raise HTTPException(400, 'Адрес с квартирой должен быть не длиннее 1000 символов')
     payload = {'restaurant_id': restaurant.id, 'restaurant_name': restaurant.name,
         'customer_name': body.customer_name.strip(), 'customer_phone': body.customer_phone.strip(),
-        'delivery_address': body.delivery_address.strip(), 'delivery_method': body.delivery_method,
+        'delivery_address': address, 'delivery_method': body.delivery_method,
+        'deliver_to_apartment': body.delivery_method == 'delivery' and body.deliver_to_apartment,
         'payment_method': body.payment_method, 'comment': body.comment,
         'cash_given_amount': body.cash_given_amount,
         'promo_code': body.promo_code, 'scheduled_for': body.scheduled_for,
@@ -293,6 +315,7 @@ async def manual_quote(db, body):
             account_user=bonus_customer,
             bonus_points_to_use=body.bonus_points_to_use,
             staff_delivery_fee=body.delivery_fee,
+            staff_delivery_zone_id=body.delivery_zone_id,
         )
     except HTTPException as exc:
         if exc.status_code == 400 and isinstance(exc.detail, str) and (
@@ -313,6 +336,7 @@ async def manual_quote(db, body):
     data['order_source'] = 'operator'
     return data, {'items': lines, 'total_amount': total, 'promo_code': body.promo_code,
         'loyalty': data.get('loyalty_snapshot'),
+        'delivery_tariff':json.loads(data['pricing_snapshot']).get('delivery_tariff'),
         **json.loads(data['pricing_snapshot'])['breakdown'], 'gift_choices': choices,
         'gift_required': bool(choices and not any(x.get('is_gift') for x in lines))}
 
@@ -333,14 +357,15 @@ def gift_line(gift):
         'gift_threshold': gift['min_amount'], 'product_id': gift.get('product_id')}
 
 
-async def lock_courier_order(db, task, *, require_ready=False):
+async def lock_courier_order(db, task, *, require_ready=False, allow_preparing=False):
     if task.source_type != 'food_orders':
         return None
     order = await db.scalar(select(Food_orders).where(Food_orders.id == task.source_id).with_for_update())
     from services.food_operations import is_dam_order
     if not order or not await is_dam_order(db, order):
         return None
-    if order.status in ('done', 'cancelled') or (require_ready and order.status not in ('ready', 'in_progress')):
+    allowed = ('preparing', 'ready', 'in_progress') if allow_preparing else ('ready', 'in_progress')
+    if order.status in ('done', 'cancelled') or (require_ready and order.status not in allowed):
         raise ValueError('Заказ ещё не готов или уже закрыт. Обновите кабинет.')
     await claim(db, order, order.version or 0)
     return order

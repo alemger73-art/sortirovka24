@@ -37,6 +37,11 @@ class CashBody(BaseModel):
 async def view(db:AsyncSession=Depends(get_db), claims=Depends(food_staff)):
     return await cashbox.snapshot(db)
 
+@router.get('/dashboard')
+async def operator_dashboard(db:AsyncSession=Depends(get_db), claims=Depends(food_staff)):
+    from services.operator_money_dashboard import dashboard
+    return await dashboard(db,claims)
+
 
 @router.post('/entries')
 async def enter(body:CashBody, db:AsyncSession=Depends(get_db), claims=Depends(food_staff)):

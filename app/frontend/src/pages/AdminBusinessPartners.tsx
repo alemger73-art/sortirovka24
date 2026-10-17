@@ -69,6 +69,9 @@ export default function AdminBusinessPartners() {
 
   return (
     <div className="space-y-4 max-w-3xl">
+      <a href="https://docs.google.com/spreadsheets/d/1APRUw5AXQfxNdILZyFd8WE3453Q3iLLhc3L228imeT4/edit#gid=1000102026" target="_blank" rel="noopener noreferrer" className="inline-flex rounded-lg border border-gray-200 px-3 py-2 text-sm text-blue-700 dark:border-gray-700 dark:text-blue-300">
+        {lang === 'kz' ? 'Google кестесіндегі бизнес өтінімдері ↗' : 'Заявки бизнеса в Google-таблице ↗'}
+      </a>
       <div className="flex flex-wrap items-center gap-2">
         {(['new', 'in_progress', 'done', 'rejected', 'all'] as const).map((s) => (
           <Button

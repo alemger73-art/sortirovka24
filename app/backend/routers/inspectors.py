@@ -46,16 +46,14 @@ class InspectorFields(BaseModel):
 
     @field_validator('photo_url', check_fields=False)
     @classmethod
-    def required_photo(cls, value):
-        if not value or not value.strip():
-            raise ValueError('Добавьте фотографию сотрудника')
-        return value.strip()
+    def normalize_photo(cls, value):
+        return value.strip() if value is not None else None
 
 class InspectorsData(InspectorFields):
     """Entity data schema (for create/update)"""
     full_name: str = None
     position: str = None
-    photo_url: str = Field(min_length=1, max_length=2000)
+    photo_url: Optional[str] = Field(default=None, max_length=2000)
     precinct_number: str = None
     district: str = None
     address: str = None
@@ -65,8 +63,8 @@ class InspectorsData(InspectorFields):
     coverage: Optional[str] = None
     streets: str = None
     description: str = None
-    lat: float = None
-    lng: float = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
     boundary_coords: str = None
     is_leadership: bool = None
     leadership_order: int = None

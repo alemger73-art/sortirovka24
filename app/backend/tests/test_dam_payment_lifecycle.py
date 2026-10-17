@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import json
 import pytest
+from unittest.mock import AsyncMock
 from sqlalchemy import select, func
 from models.food_payment import FoodPayment
 from models.food_operations import FoodOrderEvent
@@ -52,7 +53,9 @@ async def change(env, oid, **values):
 @pytest.mark.asyncio
 @pytest.mark.parametrize('method',['kaspi_qr','halyk_qr'])
 async def test_bank_confirmation_is_server_only_and_never_cooks(env,method):
-    from services.food_orders import push_food_order_to_frontpad
+    mp = env[3]
+    fp_send = AsyncMock()
+    mp.setattr("services.frontpad_order_push.push_food_order_to_frontpad", fp_send)
     client,maker,operator,mp=env
     o=await create(env,method)
     assert (await change(env,o['id'],payment_status='paid')).status_code==403
@@ -63,12 +66,11 @@ async def test_bank_confirmation_is_server_only_and_never_cooks(env,method):
     current=(await client.get(BASE+f"/orders/{o['id']}",headers=operator)).json()['order']
     assert current['status']=='new' and current['payment_status']=='paid'
     assert current['paid_amount']==7800
-    push_food_order_to_frontpad.assert_not_awaited()
-    # Existing Frontpad transport stays mocked; permit dispatch only for the
-    # explicit kitchen transition, never for the bank confirmation above.
+    fp_send.assert_not_awaited()
+    # Kitchen transitions must work without the retired integration.
     mp.setattr('core.deploy_safety.external_side_effects_allowed', lambda: True)
     assert (await change(env,o['id'],status='preparing')).status_code==200
-    push_food_order_to_frontpad.assert_awaited_once()
+    fp_send.assert_not_awaited()
     async with maker() as db:
         events=(await db.scalars(select(FoodOrderEvent).where(FoodOrderEvent.order_id==o['id']))).all()
         assert len([e for e in events if e.event_type=='PAYMENT_CONFIRMED'])==1
@@ -217,7 +219,8 @@ async def test_shift_blocks_active_and_unpaid_then_closes_with_saved_summary(env
     for state in ('preparing','ready','done'):
         assert (await change(env,o['id'],status=state)).status_code==200
     r=await client.get('/api/v1/dam-alem/shifts/close-preview',headers=operator)
-    assert not r.json()['can_close']
+    assert r.json()['can_close']  # Completed unpaid orders are nonblocking debts.
+    assert r.json()['debts'][0]['id']==o['id']
     assert (await change(env,o['id'],payment_status='paid')).status_code==200
     closed=await client.post('/api/v1/dam-alem/shifts/close',headers=operator,json=body)
     assert closed.status_code==200,closed.text

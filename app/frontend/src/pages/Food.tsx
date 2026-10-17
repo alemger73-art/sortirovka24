@@ -1,3 +1,4 @@
+import { LEGAL_OPERATOR, LEGAL_VERSION } from '@/content/legal';
 import MenuSelectionDialog from '@/components/damalem/MenuSelection';
 import {publicMenu, needsSelection, type MenuProduct, type MenuCatalog, type MenuSelection} from '@/lib/damMenu';
 import PickupCard from '@/components/damalem/PickupCard';
@@ -23,7 +24,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { getAccountPrefill, isLoggedIn, pushCabinetItem, requireAuthDialog } from '@/lib/localAuth';
+import { getAccountPrefill, isLoggedIn, pushCabinetItem, openAuthPrompt } from '@/lib/localAuth';
+import { saveFoodCheckoutReturn, takeFoodCheckoutReturn } from '@/lib/foodCheckoutReturn';
 import { accountApi, getAccountToken } from '@/lib/accountApi';
 import { fetchFoodRestaurantsList } from '@/lib/foodAdminApi';
 import { apiUrl } from '@/lib/config';
@@ -216,7 +218,7 @@ export default function Food() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = parseDamTab(searchParams.get('tab'));
-  const { t, localized } = useLanguage();
+  const { t, localized, lang } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [categories, setCategories] = useState<FoodCategory[]>([]);
@@ -244,6 +246,7 @@ export default function Food() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartAvailabilityNotice, setCartAvailabilityNotice] = useState('');
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [legalAccepted, setLegalAccepted] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<1 | 2 | 3>(1);
   const [lastOrderPreview, setLastOrderPreview] = useState<{
     label: string;
@@ -304,8 +307,34 @@ export default function Food() {
   const [bonusRules, setBonusRules] = useState({ enabled: false, tenge_rate: 1, max_order_percent: 0 });
   const BONUS_MAX_PERCENT = bonusRules.max_order_percent;
   const checkoutAttempt = useRef<{ fingerprint: string; key: string } | null>(null);
+  const returnDeliveryAddress = useRef<string | null>(null);
 
   useEffect(() => { loadData(); }, []);
+
+  useEffect(() => {
+    if (searchParams.get('checkout') !== 'resume' || !isLoggedIn() || loading || cart.length === 0) return;
+    const form = takeFoodCheckoutReturn();
+    if (form) {
+      setDeliveryMethod(form.deliveryMethod);
+      setCustomerName(form.customerName);
+      setCustomerPhone(form.customerPhone);
+      setDeliveryAddress(form.deliveryAddress);
+      returnDeliveryAddress.current = form.deliveryMethod === 'delivery' ? form.deliveryAddress : null;
+      setApartment(form.apartment);
+      setDeliverToApartment(form.deliverToApartment);
+      setComment(form.comment);
+      setPreorder(form.preorder);
+      setSchedule(form.schedule);
+      setCashGiven(form.cashGiven);
+      setPayment(form.payment);
+      setSelectedGiftId(form.selectedGiftId);
+      setCheckoutStep(form.step);
+      setCheckoutOpen(true);
+    }
+    const params = new URLSearchParams(searchParams);
+    params.delete('checkout');
+    setSearchParams(params, { replace: true });
+  }, [searchParams, setSearchParams, loading, cart.length]);
 
   useEffect(() => {
     try {
@@ -686,11 +715,17 @@ export default function Food() {
   const showRecommendations = settings.show_recommendations !== 'false';
 
   const menuCategorySections = useMemo(() => {
-    const combos=poolItems.filter(item=>item.is_combo).sort((a,b)=>(a.sort_order || 0)-(b.sort_order || 0));
-    const sections=categories.map(category=>({category,items:poolItems.filter(item=>item.category_id===category.id&&!item.is_combo).sort((a,b)=>(a.sort_order || 0)-(b.sort_order || 0))})).filter(section=>section.items.length>0);
-    if(combos.length) sections.unshift({category:{id:-1,name:'Комбо',slug:'combo',icon:'',sort_order:-1,is_active:true},items:combos});
-    return sections;
-  },[categories,poolItems]);
+    const dishPriority = (name: string) => /лагман|лағман/i.test(name) ? 0 : /манты|манти|мәнті/i.test(name) ? 1 : 2;
+    const compareDishes = (a: FoodItem, b: FoodItem) => dishPriority(a.name) - dishPriority(b.name) || (a.sort_order || 0) - (b.sort_order || 0);
+    const combos = poolItems.filter(item => item.is_combo).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    const sections = categories.map(category => ({
+      category,
+      items: poolItems.filter(item => item.category_id === category.id && !item.is_combo).sort(compareDishes),
+    })).filter(section => section.items.length > 0);
+    if (combos.length) sections.push({ category: { id: -1, name: 'Комбо', slug: 'combo', icon: '', sort_order: -1, is_active: true }, items: combos });
+    const sectionPriority = (section: typeof sections[number]) => /горячие\s+блюда|ыстық\s+тағам|вторые\s+блюда/i.test(section.category.name) || section.items.some(item => dishPriority(item.name) < 2) ? 0 : section.category.id === -1 ? 1 : 2;
+    return sections.sort((a, b) => sectionPriority(a) - sectionPriority(b) || (a.category.sort_order || 0) - (b.category.sort_order || 0));
+  }, [categories, poolItems]);
   const categoryPills = useMemo(
     () => menuCategorySections.map(({ category }) => ({ id: String(category.id), label: category.name })),
     [menuCategorySections],
@@ -944,6 +979,13 @@ export default function Food() {
     if (addr) setDeliveryAddress(addr);
     void runDeliveryQuote({ address: target }, { notify: true });
   }, [st, effectiveAddress, runDeliveryQuote]);
+
+  useEffect(() => {
+    const address = returnDeliveryAddress.current;
+    if (!address || loading || cart.length === 0) return;
+    returnDeliveryAddress.current = null;
+    void runDeliveryQuote({ address });
+  }, [loading, cart.length, runDeliveryQuote]);
 
   const requestGeolocation = useCallback(async () => {
     setDeliveryQuoteLoading(true);
@@ -1258,7 +1300,22 @@ export default function Food() {
     setCart(prev => prev.filter((_, i) => i !== index));
   }
 
+  function promptCheckoutAuth() {
+    saveFoodCheckoutReturn({
+      step: checkoutStep, deliveryMethod, customerName, customerPhone,
+      deliveryAddress, apartment, deliverToApartment, comment, preorder,
+      schedule, cashGiven, payment, selectedGiftId,
+    });
+    const params = new URLSearchParams(searchParams);
+    params.set('tab', 'cart');
+    params.set('checkout', 'resume');
+    if (appliedPromo?.code) params.set('promo', appliedPromo.code);
+    openAuthPrompt(`/account?redirect=${encodeURIComponent(`/food?${params}`)}`);
+  }
+
   async function submitOrder() {
+    if (customerName.trim().split(/\s+/).length < 2) { toast.error(lang === 'kz' ? 'Тегіңіз бен атыңызды көрсетіңіз' : 'Укажите фамилию и имя'); setCheckoutStep(2); return; }
+    if (!legalAccepted) { toast.error(lang === 'kz' ? 'Тапсырыс шарттарын және деректерді өңдеуге келісімді растаңыз' : 'Подтвердите условия заказа и согласие на обработку данных'); return; }
     if(preorder && !scheduleISO(schedule)){toast.error('Выберите дату и время предзаказа');return;}
     if (submittingRef.current) return;
     if (payment === 'cash' && cashGiven !== '' && (!Number.isFinite(Number(cashGiven)) || Number(cashGiven) < checkoutGrandTotal)) {toast.error('Проверьте сумму наличных для сдачи'); return;}
@@ -1286,10 +1343,10 @@ export default function Food() {
     }, st);
     if (block) {
       toast.error(block);
-      if (!isLoggedIn()) requireAuthDialog(navigate);
+      if (!isLoggedIn()) promptCheckoutAuth();
       return;
     }
-    if (!requireAuthDialog(navigate)) return;
+    if (!isLoggedIn()) { promptCheckoutAuth(); return; }
 
     const aptPart = apartment.trim() ? `, кв. ${apartment.trim()}` : '';
     const toAptNote = deliverToApartment ? ' (до квартиры)' : ' (до подъезда)';
@@ -1310,6 +1367,9 @@ export default function Food() {
     setSubmitting(true);
     try {
       const orderData = {
+            legal_accepted: legalAccepted,
+            legal_version: LEGAL_VERSION,
+            legal_language: lang,
             scheduled_for:preorder?scheduleISO(schedule):undefined,
             restaurant_id: damAlemRestaurantId ?? 1,
             restaurant_name: settings.hero_banner_title || brandProfile?.name || DAM_ALEM_BRAND,
@@ -1344,6 +1404,7 @@ export default function Food() {
       try { sessionStorage.setItem('dam-checkout-attempt', JSON.stringify(checkoutAttempt.current)); } catch { /* Keep the in-memory retry key. */ }
       const created = await client.entities.food_orders.create({ data: { ...orderData, request_key: checkoutAttempt.current.key } });
       checkoutAttempt.current = null;
+      setLegalAccepted(false);
       try { sessionStorage.removeItem('dam-checkout-attempt'); } catch { /* Order is already saved. */ }
       const createdAny = created as { data?: { id?: number }; id?: number } | undefined;
       const orderId = Number(createdAny?.data?.id ?? createdAny?.id ?? 0);
@@ -2387,9 +2448,9 @@ export default function Food() {
                   <div className="dam-field-grid dam-field-grid--2">
                   <div className="dam-field">
                     <label className="mb-1.5 block">
-                      {t('food.yourName')} *
+                      {lang === 'kz' ? 'Тегі, аты, әкесінің аты (болса)' : 'Фамилия, имя, отчество (при наличии)'} *
                     </label>
-                    <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder={st("Введите имя")} className="dam-input" />
+                    <Input maxLength={120} value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder={lang === 'kz' ? 'Тегі және аты' : 'Фамилия и имя'} className="dam-input" />
                   </div>
                   <div className="dam-field">
                     <label className="mb-1.5 block">{t('food.phone')} *</label>
@@ -2623,6 +2684,13 @@ export default function Food() {
               </div>
 
               <div className="dam-sheet-footer dam-sheet-footer--premium">
+                {checkoutStep === 3 && <div className="mb-3 space-y-2 text-xs text-gray-600 dark:text-gray-300">
+                  <p>{LEGAL_OPERATOR.name} · <a href={`tel:${LEGAL_OPERATOR.phoneHref}`} className="underline">{LEGAL_OPERATOR.phone}</a></p>
+                  <label className="flex items-start gap-2">
+                    <input type="checkbox" checked={legalAccepted} onChange={e => setLegalAccepted(e.target.checked)} className="mt-1" />
+                    <span>{lang === 'kz' ? 'Тапсырыс және жеткізу ' : 'Принимаю '}<Link to="/legal/food-terms" target="_blank" rel="noopener noreferrer" className="underline">{lang === 'kz' ? 'шарттарын' : 'условия заказа и доставки'}</Link>{lang === 'kz' ? ' қабылдаймын және ' : ' и даю '}<Link to="/legal/consent" target="_blank" rel="noopener noreferrer" className="underline">{lang === 'kz' ? 'деректерді өңдеуге келісім' : 'согласие на обработку данных'}</Link>{lang === 'kz' ? ' беремін. ' : '. '}<Link to="/legal/privacy" target="_blank" rel="noopener noreferrer" className="underline">{lang === 'kz' ? 'Құпиялылық саясаты' : 'Политика конфиденциальности'}</Link></span>
+                  </label>
+                </div>}
                 {checkoutStep === 3 && checkoutFinalBlockReason && !submitting ? (
                   <p
                     role="alert"
@@ -2657,6 +2725,10 @@ export default function Food() {
                         toast.error(st("Укажите имя и телефон"));
                         return;
                       }
+                      if (payment === 'cash' && cashGiven !== '' && (!Number.isFinite(Number(cashGiven)) || Number(cashGiven) < checkoutGrandTotal)) {
+                        toast.error(st("Проверьте сумму наличных для сдачи"));
+                        return;
+                      }
                       if (giftSelectionRequired) {
                         toast.error(st("Выберите один бесплатный подарок"));
                         requestAnimationFrame(() => document.getElementById('dam-checkout-gift-choice')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
@@ -2670,12 +2742,8 @@ export default function Food() {
                   <>
                     <DamAlemCheckoutButton
                       label={submitting ? st("Отправляем заказ…") : st("Оформить заказ")}
-                      sublabel={
-                        checkoutFinalBlockReason && !submitting
-                          ? checkoutFinalBlockReason
-                          : formatPrice(checkoutGrandTotal)
-                      }
-                      disabled={submitting}
+                      sublabel={formatPrice(checkoutGrandTotal)}
+                      disabled={submitting || !legalAccepted}
                       loading={submitting}
                       onClick={submitOrder}
                       testId="dam-checkout-submit"

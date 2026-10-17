@@ -31,7 +31,9 @@ export default function AccountIdentitySettings() {
       }
       if (kind === 'send') {
         const r = await accountApi.requestPhoneLinkCode(phone); setSent(true); setCode(''); setCooldown(r.resend_after_seconds);
-        setMessage(text('Код отправлен. Проверьте также папку «Спам».', 'Код жіберілді. «Спам» қалтасын да тексеріңіз.'));
+        setMessage(r.sms_pending_moderation
+          ? text('SMS принято сервисом и ожидает отправки. Доставка может занять несколько минут. Если код не пришёл, запросите новый после окончания таймера.', 'SMS сервиске қабылданды және жіберілуді күтуде. Жеткізу бірнеше минут алуы мүмкін. Код келмесе, таймер аяқталған соң жаңасын сұраңыз.')
+          : text('SMS передано сервису отправки. Проверьте сообщения и папку «Спам».', 'SMS жіберу сервисіне берілді. Хабарламалар мен «Спам» қалтасын тексеріңіз.'));
       } else {
         await accountApi.confirmPhoneLinkCode(phone, code); setProfile(await accountApi.me()); setSent(false);
         setMessage(text('Телефон подтверждён. Заказы и бонусы остаются в этом кабинете.', 'Телефон расталды. Тапсырыстар мен бонустар осы кабинетте қалады.'));
@@ -42,14 +44,19 @@ export default function AccountIdentitySettings() {
   return <section className="mb-6 space-y-3 rounded-xl border border-gray-200 p-4 dark:border-gray-700">
     <h3 className="font-semibold text-gray-900 dark:text-white">{text('Способы входа', 'Кіру тәсілдері')}</h3>
     {profile && <>
-      <p className="text-sm text-gray-600 dark:text-gray-300">{profile.phone_verified ? `${text('Телефон подтверждён', 'Телефон расталған')}: ${profile.phone}` : text('Добавьте и подтвердите телефон, когда понадобится связь по заказу.', 'Тапсырыс бойынша байланыс қажет болғанда телефонды қосып, растаңыз.')}</p>
+      {profile.google_linked && <p className="text-sm text-gray-600 dark:text-gray-300">{text('Вы вошли через Google. Аккаунт полноценный: новые заказы, их история, уведомления и 300 бонусов за новую регистрацию доступны без SMS. Телефон для связи можно указать при заказе.', 'Google арқылы кірдіңіз. Аккаунт толыққанды: жаңа тапсырыстар, тарих, хабарламалар және жаңа тіркелуге 300 бонус SMS-сіз қолжетімді. Байланыс телефонын тапсырыс кезінде көрсетуге болады.')}</p>}
+      <p className="text-sm text-gray-600 dark:text-gray-300">{profile.phone_verified ? `${text('Телефон для входа подтверждён', 'Кіру телефоны расталған')}: ${profile.phone}` : text('Вход по телефону можно добавить по желанию. SMS подтверждает, что номер принадлежит вам, и не требуется для заказов через Google.', 'Телефон арқылы кіруді қалауыңызша қосуға болады. SMS нөмірдің сізге тиесілі екенін растайды; Google арқылы тапсырыс беру үшін қажет емес.')}</p>
       {!profile.phone_verified && <>
+        <details className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+        <summary className="cursor-pointer text-sm font-medium">{text('Добавить вход по SMS — необязательно', 'SMS арқылы кіруді қосу — міндетті емес')}</summary>
+        <div className="mt-3 space-y-3">
         <KzPhoneInput aria-label={text('Телефон для подтверждения, код страны +7', 'Растауға арналған телефон, ел коды +7')} value={phone} readOnly={Boolean(profile.phone) || sent} disabled={busy} onChange={setPhone} />
-        <p className="text-xs text-gray-500">{text('Введите 10 цифр; номер с 8 или +7 можно вставить целиком. После подтверждения Google и телефон будут открывать этот кабинет.', '10 цифр енгізіңіз; 8 немесе +7 нөмірін толық қоюға болады. Растаудан кейін Google және телефон осы кабинетке кіреді.')}</p>
+        <p className="text-xs text-gray-500">{text('Введите 10 цифр; номер с 8 или +7 можно вставить целиком. Если номер свободен, после подтверждения он будет открывать этот кабинет. Если у номера уже есть отдельный кабинет, его заказы и бонусы автоматически не переносятся.', '10 цифр енгізіңіз; 8 немесе +7 нөмірін толық қоюға болады. Нөмір бос болса, растаудан кейін осы кабинетке кіреді. Нөмірге басқа кабинет тіркелсе, оның тапсырыстары мен бонустары автоматты түрде көшірілмейді.')}</p>
         {sent && <input aria-label={text('SMS-код', 'SMS коды')} inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} className="w-full rounded-lg border p-2 dark:border-gray-700 dark:bg-gray-950 dark:text-white" />}
         {sent && <button type="button" disabled={busy || code.length !== 6} onClick={() => void action('confirm')} className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white disabled:opacity-50">{text('Подтвердить телефон', 'Телефонды растау')}</button>}
         <button type="button" disabled={busy || !isCompleteKzPhone(phone) || cooldown > 0} onClick={() => void action('send')} className="block text-sm text-blue-600 disabled:text-gray-400">{cooldown > 0 ? `${text('Повторить через', 'Қайталау')} ${cooldown} с` : text('Получить SMS-код', 'SMS кодын алу')}</button>
         {sent && !profile.phone && <button type="button" disabled={busy} onClick={() => { setSent(false); setCode(''); }} className="text-sm text-gray-500">{text('Изменить номер', 'Нөмірді өзгерту')}</button>}
+        </div></details>
       </>}
       {profile.google_linked ? <p className="text-sm text-green-600">{text('Google подключён', 'Google қосылған')}</p> : google && <button type="button" disabled={busy} onClick={() => void action('google')} className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-blue-600 dark:border-gray-700">{text('Подключить Google к этому кабинету', 'Google аккаунтын осы кабинетке қосу')}</button>}
     </>}

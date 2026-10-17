@@ -130,9 +130,12 @@ function LegacyCourier({ standalone = false, onLogout }: { standalone?: boolean;
     if (!data?.profile.online) return;
 
     let cancelled = false;
+    let locating = false;
     let interval: ReturnType<typeof setInterval> | undefined;
 
     const tick = async () => {
+      if (cancelled || locating) return;
+      locating = true;
       try {
         const coords = await requestCurrentPosition({
           enableHighAccuracy: true,
@@ -144,6 +147,8 @@ function LegacyCourier({ standalone = false, onLogout }: { standalone?: boolean;
         }
       } catch {
         /* GPS optional */
+      } finally {
+        locating = false;
       }
     };
 
@@ -151,6 +156,7 @@ function LegacyCourier({ standalone = false, onLogout }: { standalone?: boolean;
       await ensureLocationPermission();
       if (cancelled) return;
       await tick();
+      if (cancelled) return;
       interval = setInterval(() => void tick(), data?.active_task || data?.offered_task ? 10000 : 20000);
     })();
 
@@ -158,7 +164,7 @@ function LegacyCourier({ standalone = false, onLogout }: { standalone?: boolean;
       cancelled = true;
       if (interval) clearInterval(interval);
     };
-  }, [data?.profile.online, data?.active_task, data?.offered_task]);
+  }, [data?.profile.online, data?.active_task?.id, data?.offered_task?.id]);
 
   async function toggleOnline() {
     if (!data) return;

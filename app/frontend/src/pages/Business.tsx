@@ -1,253 +1,58 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { submitBusinessApplication } from '@/lib/businessApi';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { toast } from 'sonner';
-import {
-  Users, FileText, BookOpen, Utensils, ShoppingBag,
-  Wrench, Building2, ArrowRight, CheckCircle2, Send,
-  ChevronRight
-} from 'lucide-react';
+import { ArrowUpRight, ArrowRight, Building2, MapPin, Phone, MessageCircle, Check, CheckCircle2, Users, Wrench, Newspaper, Gift, ShieldCheck, Loader2 } from 'lucide-react';
+import '@/styles/business.css';
 
 export default function BusinessPage() {
-  const { t: publicT } = useLanguage();
-  const { t } = useLanguage();
-  const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({
-    name: '',
-    phone: '',
-    whatsapp: '',
-    activity: '',
-    description: '',
-  });
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      await submitBusinessApplication({
-        name: form.name,
-        phone: form.phone,
-        whatsapp: form.whatsapp || undefined,
-        activity: form.activity,
-        description: form.description || undefined,
-      });
-      setSubmitted(true);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : publicT("public.Business.text38"));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const benefits = [
-    { icon: Users, title: t('business.clientFlow'), desc: t('business.clientFlowDesc'), color: 'bg-blue-500' },
-    { icon: FileText, title: t('business.applications'), desc: t('business.applicationsDesc'), color: 'bg-emerald-500' },
-    { icon: BookOpen, title: t('business.catalogPlacement'), desc: t('business.catalogPlacementDesc'), color: 'bg-purple-500' },
-  ];
-
-  const whoFits = [
-    { icon: Utensils, title: t('business.foodDelivery'), desc: t('business.foodDeliveryDesc'), color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/20' },
-    { icon: ShoppingBag, title: t('business.shops'), desc: t('business.shopsDesc'), color: 'text-pink-500', bg: 'bg-pink-50 dark:bg-pink-900/20' },
-    { icon: Wrench, title: t('business.mastersServices'), desc: t('business.mastersServicesDesc'), color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-    { icon: Building2, title: t('business.localBusiness'), desc: t('business.localBusinessDesc'), color: 'text-teal-500', bg: 'bg-teal-50 dark:bg-teal-900/20' },
-  ];
-
-  const steps = [
-    { num: '1', title: t('business.step1'), desc: t('business.step1Desc') },
-    { num: '2', title: t('business.step2'), desc: t('business.step2Desc') },
-    { num: '3', title: t('business.step3'), desc: t('business.step3Desc') },
-  ];
-
-  const examples = [
-    { title: t('business.exDelivery'), desc: t('business.exDeliveryDesc'), emoji: '🍕' },
-    { title: t('business.exMaster'), desc: t('business.exMasterDesc'), emoji: '🔧' },
-    { title: t('business.exShop'), desc: t('business.exShopDesc'), emoji: '🏪' },
-  ];
-
-  return (
-    <Layout>
-      {/* Hero */}
-      <section className="bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 py-16 md:py-24">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <span className="text-xs font-bold text-emerald-300 bg-emerald-500/20 backdrop-blur-sm px-4 py-1.5 rounded-full inline-block mb-6">
-            💼 {t('banner.forBusiness')}
-          </span>
-          <h1 className="text-3xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
-            {t('business.title')}
-          </h1>
-          <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto">
-            {t('business.subtitle')}
-          </p>
-        </div>
-      </section>
-
-      <div className="bg-[#f5f5f7] dark:bg-gray-950">
-        <div className="max-w-5xl mx-auto px-4 py-12 space-y-16">
-
-          {/* Что вы получите */}
-          <section>
-            <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-8 text-center">{t('business.whatYouGet')}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {benefits.map(b => (
-                <div key={b.title} className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 text-center">
-                  <div className={`${b.color} w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg`}>
-                    <b.icon className="w-7 h-7 text-white" />
-                  </div>
-                  <h3 className="font-bold text-gray-900 dark:text-white text-lg mb-2">{b.title}</h3>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">{b.desc}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Кому подходит */}
-          <section>
-            <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-8 text-center">{t('business.whoFits')}</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {whoFits.map(w => (
-                <div key={w.title} className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 flex items-start gap-4">
-                  <div className={`${w.bg} w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0`}>
-                    <w.icon className={`w-6 h-6 ${w.color}`} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900 dark:text-white text-sm">{w.title}</h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">{w.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Как это работает */}
-          <section>
-            <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-8 text-center">{t('business.howItWorks')}</h2>
-            <div className="flex flex-col md:flex-row gap-4 md:gap-6">
-              {steps.map((s, i) => (
-                <div key={s.num} className="flex-1 relative">
-                  <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 text-center h-full">
-                    <div className="w-10 h-10 rounded-full bg-blue-600 text-white font-extrabold text-lg flex items-center justify-center mx-auto mb-4">
-                      {s.num}
-                    </div>
-                    <h3 className="font-bold text-gray-900 dark:text-white text-base mb-2">{s.title}</h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">{s.desc}</p>
-                  </div>
-                  {i < steps.length - 1 && (
-                    <div className="hidden md:flex absolute top-1/2 -right-5 -translate-y-1/2 z-10">
-                      <ChevronRight className="w-6 h-6 text-gray-300 dark:text-gray-600" />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Примеры */}
-          <section>
-            <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-8 text-center">{t('business.examples')}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {examples.map(ex => (
-                <div key={ex.title} className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
-                  <span className="text-3xl block mb-3">{ex.emoji}</span>
-                  <h3 className="font-bold text-gray-900 dark:text-white text-base mb-2">{ex.title}</h3>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">{ex.desc}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Форма заявки */}
-          <section id="form">
-            <div className="max-w-lg mx-auto">
-              <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-8 text-center">{t('business.formTitle')}</h2>
-
-              {submitted ? (
-                <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-gray-800 text-center">
-                  <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
-                  <p className="text-xl font-bold text-gray-900 dark:text-white">{t('business.thankYou')}</p>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100 dark:border-gray-800 space-y-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">{t('business.formName')} *</label>
-                    <input
-                      type="text"
-                      name="name"
-                      required
-                      value={form.name}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">{t('business.formPhone')} *</label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      required
-                      value={form.phone}
-                      onChange={handleChange}
-                      placeholder="+7 (___) ___-__-__"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">WhatsApp</label>
-                    <input
-                      type="tel"
-                      name="whatsapp"
-                      value={form.whatsapp}
-                      onChange={handleChange}
-                      placeholder="+7 (___) ___-__-__"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">{t('business.formActivity')} *</label>
-                    <select
-                      name="activity"
-                      required
-                      value={form.activity}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                    >
-                      <option value="">—</option>
-                      <option value="food">{t('business.foodDelivery')}</option>
-                      <option value="shop">{t('business.shops')}</option>
-                      <option value="master">{t('business.mastersServices')}</option>
-                      <option value="local">{t('business.localBusiness')}</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">{t('business.formDescription')}</label>
-                    <textarea
-                      name="description"
-                      rows={4}
-                      value={form.description}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 text-sm min-h-[48px]"
-                  >
-                    <Send className="w-4 h-4" />
-                    {submitting ? publicT("report.submitting") : t('business.submit')}
-                  </button>
-                </form>
-              )}
-            </div>
-          </section>
-
-        </div>
-      </div>
-    </Layout>
-  );
+ const {lang}=useLanguage(); const kz=lang==='kz'; const s=(ru:string,kk:string)=>kz?kk:ru;
+ const [form,setForm]=useState({name:'',contact:'',phone:'',activity:'',coverage:'',website:'',description:'',consent:false});
+ const [busy,setBusy]=useState(false); const lock=useRef(false); const [error,setError]=useState(''); const [receipt,setReceipt]=useState<number|null>(null);
+ const field=(key:string,value:string|boolean)=>setForm(f=>({...f,[key]:value}));
+ async function submit(e:React.FormEvent<HTMLFormElement>){
+  e.preventDefault(); if(lock.current)return; setError('');
+  let digits=form.phone.replace(/\D/g,''); if(digits.length===10)digits='7'+digits; if(digits.length===11&&digits[0]==='8')digits='7'+digits.slice(1);
+  if(!/^7\d{10}$/.test(digits)){setError(s('Укажите номер WhatsApp в формате +7 7XX XXX XX XX.','WhatsApp нөмірін +7 7XX XXX XX XX пішімінде енгізіңіз.'));return;}
+  if(form.name.trim().length<2||form.contact.trim().length<2){setError(s('Укажите название и имя контактного лица.','Компания атауын және байланыс тұлғасының атын енгізіңіз.'));return;}
+  if(!form.consent){setError(s('Подтвердите согласие на обработку данных и связь по заявке.','Деректерді өңдеуге және өтінім бойынша байланысуға келісіміңізді растаңыз.'));return;}
+  lock.current=true;setBusy(true);
+  try{const result=await submitBusinessApplication({name:form.name.trim(),phone:'+'+digits,whatsapp:'+'+digits,activity:form.activity,contact_name:form.contact.trim(),coverage:form.coverage,website:form.website.trim()||undefined,description:form.description.trim()||undefined,consent:true});setReceipt(result.id);}
+  catch(err){setError(err instanceof Error?err.message:s('Не удалось отправить заявку. Попробуйте ещё раз.','Өтінім жіберілмеді. Қайта көріңіз.'));}
+  finally{lock.current=false;setBusy(false);}
+ }
+ const benefits=[
+  [MapPin,s('Жителям — услуги рядом','Тұрғындарға — жақын қызметтер'),s('Меньше поиска: чем занимается компания, где находится и как связаться.','Компанияның қызметі, мекенжайы және байланысы бір жерде.')],
+  [ShieldCheck,s('Жителям — понятный выбор','Тұрғындарға — түсінікті таңдау'),s('Описание услуг, примеры работ и условия предложений без лишних звонков.','Қызметтер, жұмыс үлгілері және ұсыныс шарттары қолжетімді.')],
+  [Users,s('Бизнесу — местная аудитория','Бизнеске — аудан аудиториясы'),s('Расскажите о себе людям, которые живут рядом или ищут услуги в Сортировке.','Сортировкада тұратын немесе қызмет іздейтін адамдарға өзіңізді таныстырыңыз.')],
+  [MessageCircle,s('Бизнесу — прямая связь','Бизнеске — тікелей байланыс'),s('После согласования разместим удобные контакты: звонок, WhatsApp и ваш сайт.','Келісілгеннен кейін телефон, WhatsApp және сайтты көрсетеміз.')],
+ ] as const;
+ const formats=[
+  [Building2,s('Карточка компании','Компания карточкасы'),s('Услуги, адрес, фотографии и контакты. Чтобы вас было легко найти.','Қызметтер, мекенжай, суреттер және байланыс. Сізді табу оңай болады.')],
+  [Newspaper,s('Публикация о вашем деле','Кәсібіңіз туралы жарияланым'),s('Знакомство с командой, примеры работ или рассказ о полезной услуге.','Командамен танысу, жұмыс үлгілері немесе пайдалы қызмет туралы әңгіме.')],
+  [Gift,s('Предложение для района','Ауданға арналған ұсыныс'),s('Акция, специальное условие или совместный проект для жителей.','Тұрғындарға арналған акция, арнайы шарт немесе ортақ жоба.')],
+ ] as const;
+ return <Layout><main className="business-page">
+  <section className="business-hero"><div className="business-width business-hero-grid">
+   <div><span className="business-eyebrow"><Building2 size={16}/>{s('Сортировка 24 · для бизнеса','Сортировка 24 · бизнеске')}</span><h1>{s('Ваш бизнес.','Сіздің бизнесіңіз.')}<br/><em>{s('Рядом с районом.','Ауданға жақын.')}</em></h1><p>{s('Помогайте жителям находить нужные услуги. Расскажите о своём деле на портале Сортировки.','Тұрғындарға қажетті қызметтерді табуға көмектесіңіз. Сортировка порталында кәсібіңізді таныстырыңыз.')}</p><a href="#application" className="business-button">{s('Оставить заявку','Өтінім қалдыру')}<ArrowUpRight size={19}/></a><small>{s('Для компаний и частных мастеров. Без создания аккаунта.','Компаниялар мен жеке шеберлерге. Аккаунт ашу қажет емес.')}</small></div>
+   <div className="business-preview" aria-label={s('Пример размещения компании','Компанияны орналастыру үлгісі')}><div className="business-preview-top"><span className="business-preview-dot"/>{s('Так вас увидят жители','Тұрғындар сізді осылай көреді')}<span>{s('Пример','Үлгі')}</span></div><div className="business-preview-art"><Wrench size={42}/><span><MapPin size={15}/>{s('Сортировка','Сортировка')}</span></div><div className="business-preview-body"><span className="business-eyebrow">{s('Услуги рядом с домом','Үйге жақын қызметтер')}</span><h2>{s('Ваша компания','Сіздің компанияңыз')}</h2><p>{s('Что вы делаете, чем можете помочь и как с вами связаться.','Қандай қызмет көрсетесіз, қалай көмектесесіз және сізбен қалай байланысуға болады.')}</p><div className="business-preview-tags"><span>{s('Услуги','Қызметтер')}</span><span>{s('Примеры работ','Жұмыс үлгілері')}</span></div><div className="business-preview-actions" aria-hidden="true"><span><Phone size={16}/>{s('Позвонить','Қоңырау шалу')}</span><span><MessageCircle size={16}/>WhatsApp</span></div></div></div>
+  </div></section>
+  <div className="business-width business-content">
+   <section aria-labelledby="business-benefits"><div className="business-section-head"><span className="business-eyebrow">{s('Польза для обеих сторон','Екі тарапқа да пайдалы')}</span><h2 id="business-benefits">{s('Район находит помощь.','Аудан көмек табады.')}<br/>{s('Бизнес становится ближе.','Бизнес жақындай түседі.')}</h2></div><div className="business-benefits">{benefits.map(([Icon,title,desc],i)=><article key={i}><div className="business-icon"><Icon size={22}/></div><h3>{title as string}</h3><p>{desc as string}</p></article>)}</div></section>
+   <section aria-labelledby="business-formats"><div className="business-section-head"><span className="business-eyebrow">{s('Варианты сотрудничества','Ынтымақтастық нұсқалары')}</span><h2 id="business-formats">{s('Выберем формат под ваше дело','Кәсібіңізге сай формат таңдаймыз')}</h2><p>{s('Обсудим задачу, подготовим предложение и согласуем условия до размещения.','Мақсатты талқылап, ұсыныс дайындаймыз және жариялаудан бұрын шарттарды келісеміз.')}</p></div><div className="business-formats">{formats.map(([Icon,title,desc],i)=><article key={i}><Icon size={26}/><span>0{i+1}</span><h3>{title as string}</h3><p>{desc as string}</p></article>)}</div></section>
+   <section className="business-steps" aria-label={s('Как начать','Қалай бастауға болады')}>{[[s('Оставьте заявку','Өтінім қалдырыңыз'),s('Расскажите о своём деле и укажите WhatsApp.','Кәсібіңізді сипаттап, WhatsApp нөмірін қалдырыңыз.')],[s('Получите предложение','Ұсыныс алыңыз'),s('Свяжемся в WhatsApp и обсудим подходящий вариант.','WhatsApp арқылы байланысып, қолайлы нұсқаны талқылаймыз.')],[s('Согласуйте размещение','Орналастыруды келісіңіз'),s('Проверим материалы и опубликуем после вашего согласия.','Материалдарды тексеріп, келісіміңізден кейін жариялаймыз.')]].map(([title,desc],i)=><div key={i}><b>{i+1}</b><div><h3>{title}</h3><p>{desc}</p></div></div>)}</section>
+   <section id="application" className="business-application"><div className="business-application-copy"><span className="business-eyebrow">{s('Начнём знакомство','Танысудан бастайық')}</span><h2>{s('Давайте делать район удобнее','Ауданды бірге жайлы етейік')}</h2><p>{s('Вы работаете в Сортировке или выезжаете сюда? Оставьте контакты — мы предложим варианты сотрудничества.','Сортировкада жұмыс істейсіз бе немесе ауданға келіп қызмет көрсетесіз бе? Байланысыңызды қалдырыңыз — ынтымақтастық нұсқаларын ұсынамыз.')}</p><ul>{[s('Мастера и услуги для дома','Шеберлер және үй қызметтері'),s('Ремонт техники и автомобилей','Техника және көлік жөндеу'),s('Образование, кружки и спорт','Білім, үйірмелер және спорт'),s('Интернет, связь и другие полезные услуги','Интернет, байланыс және басқа пайдалы қызметтер')].map(v=><li key={v}><Check size={17}/>{v}</li>)}</ul><div className="business-reassurance"><ShieldCheck size={21}/><p>{s('Заявка не обязывает покупать размещение. Стоимость и условия обсудим лично.','Өтінім ақылы орналастыруға міндеттемейді. Құны мен шарттарын жеке талқылаймыз.')}</p></div></div>
+   <div className="business-form-card">{receipt!==null?<div className="business-success" role="status"><CheckCircle2 size={48}/><span className="business-eyebrow">{s(`Заявка №${receipt}`,`№${receipt} өтінім`)}</span><h2>{s('Спасибо! Вы на связи.','Рақмет! Өтінім қабылданды.')}</h2><p>{s('Мы получили заявку и свяжемся с вами в WhatsApp, чтобы обсудить условия сотрудничества.','Өтініміңізді алдық. Ынтымақтастық шарттарын талқылау үшін WhatsApp арқылы хабарласамыз.')}</p><Link to="/" className="business-button">{s('На главную','Басты бетке')}<ArrowRight size={18}/></Link></div>:<form onSubmit={submit}><span className="business-eyebrow">{s('Заявка на сотрудничество','Ынтымақтастыққа өтінім')}</span><h2>{s('Расскажите о себе','Өзіңіз туралы айтыңыз')}</h2><p className="business-form-note">{s('Поля со звёздочкой обязательны.','Жұлдызшалы өрістер міндетті.')}</p>
+    <label htmlFor="business-name">{s('Название компании или имя мастера','Компания атауы немесе шебер аты')} *</label><input id="business-name" autoComplete="organization" value={form.name} onChange={e=>field('name',e.target.value)} required minLength={2} maxLength={120} placeholder={s('Например, мастерская или ИП','Мысалы, шеберхана немесе ЖК')}/>
+    <div className="business-form-row"><div><label htmlFor="business-contact">{s('Как к вам обращаться','Сізге қалай жүгінуге болады')} *</label><input id="business-contact" autoComplete="name" value={form.contact} onChange={e=>field('contact',e.target.value)} required minLength={2} maxLength={80}/></div><div><label htmlFor="business-phone">WhatsApp *</label><input id="business-phone" autoComplete="tel" inputMode="tel" type="tel" value={form.phone} onChange={e=>field('phone',e.target.value)} required maxLength={32} placeholder="+7 7XX XXX XX XX"/></div></div>
+    <div className="business-form-row"><div><label htmlFor="business-activity">{s('Ваше направление','Қызмет бағытыңыз')} *</label><select id="business-activity" value={form.activity} onChange={e=>field('activity',e.target.value)} required><option value="">{s('Выберите','Таңдаңыз')}</option>{[['Услуги для дома','Үй қызметтері'],['Ремонт техники','Техника жөндеу'],['Автоуслуги','Автокөлік қызметтері'],['Образование и спорт','Білім және спорт'],['Интернет и связь','Интернет және байланыс'],['Медицина','Медицина'],['Юридические услуги','Заңгерлік қызметтер'],['Другое','Басқа']].map(([ru,kk])=><option key={ru} value={ru}>{s(ru,kk)}</option>)}</select></div><div><label htmlFor="business-coverage">{s('Работа в Сортировке','Сортировкадағы жұмыс')} *</label><select id="business-coverage" value={form.coverage} onChange={e=>field('coverage',e.target.value)} required><option value="">{s('Выберите','Таңдаңыз')}</option>{[['Находимся в районе','Ауданда орналасқанбыз'],['Выезжаем в район','Ауданға келіп қызмет көрсетеміз'],['Планируем работать здесь','Осында жұмыс істеуді жоспарлаймыз']].map(([ru,kk])=><option key={ru} value={ru}>{s(ru,kk)}</option>)}</select></div></div>
+    <label htmlFor="business-website">{s('Сайт, Instagram или 2ГИС','Сайт, Instagram немесе 2ГИС')} <span>{s('необязательно','міндетті емес')}</span></label><input id="business-website" type="url" inputMode="url" value={form.website} onChange={e=>field('website',e.target.value)} placeholder="https://" maxLength={500}/>
+    <label htmlFor="business-description">{s('Чем вы можете быть полезны жителям','Тұрғындарға қалай көмектесе аласыз')} <span>{s('необязательно','міндетті емес')}</span></label><textarea id="business-description" rows={3} value={form.description} onChange={e=>field('description',e.target.value)} maxLength={1000} placeholder={s('Услуги, особенности или идея сотрудничества','Қызметтер, ерекшеліктер немесе ынтымақтастық идеясы')}/>
+    <label className="business-consent"><input type="checkbox" checked={form.consent} onChange={e=>field('consent',e.target.checked)} required/><span>{s('Согласен на обработку данных заявки и связь в WhatsApp по вопросу сотрудничества.','Өтінім деректерін өңдеуге және ынтымақтастық бойынша WhatsApp арқылы байланысуға келісемін.')} <Link to="/legal/consent" target="_blank">{s('Согласие','Келісім')}</Link> · <Link to="/legal/privacy" target="_blank">{s('Политика конфиденциальности','Құпиялылық саясаты')}</Link></span></label>
+    {error&&<p className="business-form-error" role="alert">{error}</p>}<button disabled={busy} className="business-button" type="submit">{busy?<><Loader2 className="animate-spin" size={18}/>{s('Отправляем…','Жіберілуде…')}</>:<>{s('Отправить заявку','Өтінім жіберу')}<ArrowUpRight size={18}/></>}</button><p className="business-form-note">{s('Контакты из заявки не публикуются на сайте.','Өтінімдегі байланыс деректері сайтта жарияланбайды.')}</p>
+   </form>}</div></section>
+   <section className="business-faq"><h2>{s('Перед отправкой заявки','Өтінімді жібермес бұрын')}</h2>{[[s('Это платно?','Бұл ақылы ма?'),s('Отправить заявку бесплатно. Формат, стоимость и условия размещения согласуем отдельно.','Өтінім тегін. Формат, орналастыру құны мен шарттары бөлек келісіледі.')],[s('Можно подать заявку частному мастеру?','Жеке шебер өтінім бере ала ма?'),s('Да. Укажите своё имя, направление работы и доступный номер WhatsApp.','Иә. Атыңызды, қызмет бағытын және WhatsApp нөмірін көрсетіңіз.')],[s('Заявка сразу появится на сайте?','Өтінім бірден сайтта пайда бола ма?'),s('Сначала обсудим предложение и материалы. Публичное размещение — после согласования.','Алдымен ұсыныс пен материалдарды талқылаймыз. Келісілгеннен кейін жариялаймыз.')]].map(([q,a])=><details key={q}><summary>{q}<span>+</span></summary><p>{a}</p></details>)}</section>
+  </div>
+ </main></Layout>;
 }

@@ -25,6 +25,81 @@ class ManualDelivery(BaseModel):
     amount: float | None = Field(None, ge=0, allow_inf_nan=False)
     comment: str = Field('', max_length=1000)
 
+class CourierTariffSnapshot(BaseModel):
+    model_config={'extra':'forbid'}
+    expected_version:int=Field(ge=0)
+
+@router.post('/orders/{order_id}/courier-payout')
+async def fix_courier_tariff(order_id:int,body:CourierTariffSnapshot,request:Request,db:AsyncSession=Depends(get_db)):
+    await lock_dam_operations(db)
+    claims=await food_staff(request,db);shift=await require_partner_shift(db,claims)
+    order=await order_for_panel(db,order_id)
+    from services.dam_order_workflow import task_for,claim
+    from services.logistics_service import resolve_courier_payout, validate_courier_payout_snapshot
+    from services.dam_payment_flow import emit
+    task=await task_for(db,order)
+    if not task or task.status in ('delivered','cancelled'):raise HTTPException(409,'Нет незавершённой доставки')
+    if task.courier_payout is not None:
+        try:validate_courier_payout_snapshot(task.courier_payout)
+        except ValueError as exc:raise HTTPException(409,str(exc)) from None
+        return {'courier_payout':task.courier_payout}
+    amount=await resolve_courier_payout(db, order=order)
+    await claim(db,order,body.expected_version)
+    task.courier_payout=amount
+    emit(db,order,'COURIER_TARIFF_FIXED',claims.get('display_name') or 'Оператор',amount=amount)
+    record_action(db,shift,'courier_tariff_fixed',claims=claims,entity_type='order',entity_id=order.id,details={'amount':amount,'task_id':task.id})
+    await db.commit();return {'courier_payout':amount}
+
+class DeliveryZoneChoice(BaseModel):
+    model_config={'extra':'forbid'}
+    expected_version:int=Field(ge=0)
+    zone_id:str=Field(min_length=1,max_length=100)
+
+@router.post('/orders/{order_id}/delivery-zone')
+async def fix_delivery_zone(order_id:int,body:DeliveryZoneChoice,request:Request,db:AsyncSession=Depends(get_db)):
+    await lock_dam_operations(db)
+    claims=await food_staff(request,db);shift=await require_partner_shift(db,claims)
+    order=await order_for_panel(db,order_id)
+    if order.status in ('done','cancelled') or order.delivery_method not in ('delivery','доставка'):
+        raise HTTPException(409,'Зону можно уточнить только для незавершённой доставки')
+    from services.dam_order_workflow import task_for,claim
+    from services.dam_zone_tariffs import zone_tariff,saved_tariff
+    from services.food_settings import Food_settingsService
+    from services.dam_payment_flow import emit
+    task=await task_for(db,order)
+    existing=saved_tariff(order)
+    if existing is not None:
+        if existing['zone_id']!=body.zone_id:raise HTTPException(409,'Зона и тариф уже зафиксированы; изменение требует согласования нового расчёта')
+        if existing.get('courier_payout') is not None:return {'delivery_tariff':existing}
+    if task and task.courier_payout is not None:raise HTTPException(409,'Выплата за эту доставку уже зафиксирована')
+    tariff=zone_tariff(await Food_settingsService(db).get_all_as_dict(),body.zone_id)
+    await claim(db,order,body.expected_version)
+    snapshot=json.loads(order.pricing_snapshot or '{}')
+    snapshot['delivery_tariff']=tariff;order.pricing_snapshot=json.dumps(snapshot,ensure_ascii=False)
+    if task:task.courier_payout=tariff['courier_payout']
+    emit(db,order,'COURIER_TARIFF_FIXED',claims.get('display_name') or 'Оператор',amount=tariff['courier_payout'],zone_id=tariff['zone_id'],zone_name=tariff['zone_name'],customer_price_unchanged=True)
+    record_action(db,shift,'delivery_zone_fixed',claims=claims,entity_type='order',entity_id=order.id,details=tariff)
+    await db.commit();return {'delivery_tariff':tariff}
+
+@router.post('/orders/{order_id}/delivery-issue')
+async def operator_delivery_issue(order_id:int,body:dict,request:Request,db:AsyncSession=Depends(get_db)):
+    from routers.logistics import DeliveryIssueRequest
+    from pydantic import ValidationError
+    try:parsed=DeliveryIssueRequest.model_validate(body)
+    except ValidationError:raise HTTPException(422,'Выберите причину проблемы и проверьте комментарий') from None
+    await lock_dam_operations(db)
+    claims=await food_staff(request,db);await require_partner_shift(db,claims)
+    order=await order_for_panel(db,order_id)
+    from services.dam_order_workflow import task_for
+    from services.courier_issues import create_issue
+    from models.auth import User
+    task=await task_for(db,order)
+    if not task or not task.courier_id:raise HTTPException(409,'Заказ ещё не передан курьеру')
+    courier=await db.get(User,task.courier_id)
+    if not courier:raise HTTPException(409,'Курьер не найден')
+    issue=await create_issue(db,task.id,courier,parsed,claims=claims)
+    await db.commit();return {'id':issue.id,'status':issue.status}
+
 
 @router.post('/orders/{order_id}/manual-delivery')
 async def manual_delivery(order_id: int, body: ManualDelivery, request: Request, db: AsyncSession = Depends(get_db)):
@@ -43,8 +118,6 @@ async def manual_delivery(order_id: int, body: ManualDelivery, request: Request,
     if (order.version or 0) != body.expected_version:
         raise HTTPException(409, 'Заказ изменён. Обновите карточку')
     outstanding = max(money(0), money(order.total_amount)-paid(order))
-    if order.payment_method == 'cash' and outstanding > 0 and body.cash_received is None:
-        raise HTTPException(422, 'Укажите, получены ли деньги')
     if order.payment_method != 'cash' and (body.cash_received is not None or body.amount is not None):
         raise HTTPException(422, 'Онлайн-оплату подтверждает только провайдер')
     amount = outstanding if body.amount is None else money(body.amount)
@@ -121,6 +194,8 @@ def serialize(row):
         from services.dam_payment_flow import workflow_state, payment_state
         data['workflow_state'] = workflow_state(row)
         data['payment_state'] = payment_state(row)
+        from services.dam_settlement import settlement_view
+        data.update(settlement_view(row))
     return data
 
 async def order_for_panel(db, order_id):
@@ -135,9 +210,12 @@ async def orders(q: str = Query('', max_length=100), status: str = '', source: s
     conditions = [await scope(db)]
     if status == 'preorders':
         conditions.append(future_condition(settings))
-    elif status and status not in ('done', 'cancelled'):
+    elif status and status not in ('done', 'cancelled', 'debt'):
         conditions.append(current_condition(settings))
-    if status == 'active':
+    if status == 'debt':
+        from services.dam_settlement import debt_condition
+        conditions.append(debt_condition())
+    elif status == 'active':
         conditions.append(Food_orders.status.notin_(['done', 'cancelled']))
     elif status == 'working':
         conditions.append(Food_orders.status.in_(['confirmed', 'preparing']))
@@ -202,6 +280,8 @@ async def order_counts(db: AsyncSession = Depends(get_db)):
     result['preorders'] = int(await db.scalar(select(func.count()).select_from(Food_orders).where(await scope(db), future_condition(settings))))
     result['all'] += result['preorders']
     result['courier_assigned'] = int(assigned or 0)
+    from services.dam_settlement import debt_condition
+    result['debt']=int(await db.scalar(select(func.count()).select_from(Food_orders).where(await scope(db),debt_condition())))
     return result
 
 @router.get('/deliveries')
@@ -224,7 +304,7 @@ async def deliveries(db: AsyncSession = Depends(get_db)):
         'total_amount': order.total_amount,
         'amount_due': max(0, float(order.total_amount or 0) - float(order.paid_amount if order.paid_amount is not None else order.total_amount if order.payment_status == 'paid' else 0)),
         'customer_delivery_fee': (task.customer_delivery_fee if task and task.customer_delivery_fee is not None else task.delivery_fee if task else 0),
-        'courier_payout': (task.courier_payout if task and task.courier_payout is not None else task.delivery_fee if task else 0),
+        'courier_payout': task.courier_payout if task else None,
         'courier_name': courier.name if courier else None,
         'courier_phone': (profile.phone or courier.phone) if profile and courier else courier.phone if courier else None,
     } for order, task, courier, profile in rows]}
@@ -265,10 +345,11 @@ async def detail(order_id: int, db: AsyncSession = Depends(get_db)):
             'handed_at': task.handed_at, 'departed_at': task.departed_at, 'arrived_at': task.arrived_at,
             'picked_up_at': task.picked_up_at,
             'delivered_at': task.delivered_at,
+            'courier_payout':task.courier_payout,
         }
-    from services.dam_payment_flow import current_payment, payment_state, workflow_state
+    from services.dam_payment_flow import current_payment, payment_state, workflow_state, manual_confirmation_allowed
     payment = await current_payment(db, obj)
-    payment_view = {'payment_state':payment_state(obj, payment),
+    payment_view = {'payment_state':payment_state(obj, payment), 'manual_payment_confirmation':manual_confirmation_allowed(obj.payment_method),
         'workflow_state':workflow_state(obj, delivery_data['status'] if delivery_data else None)}
     if payment:
         payment_view['payment_id'] = payment.id
@@ -320,8 +401,8 @@ async def couriers(db: AsyncSession = Depends(get_db)):
 async def assign_courier(order_id: int, body: CourierAssignment, request: Request, db: AsyncSession = Depends(get_db)):
     await lock_dam_operations(db)
     order = await order_for_panel(db, order_id)
-    if order.delivery_method not in ('delivery', 'доставка') or order.status != 'ready':
-        raise HTTPException(409, 'Сначала отметьте заказ как готовый')
+    if order.delivery_method not in ('delivery', 'доставка') or order.status not in ('preparing', 'ready'):
+        raise HTTPException(409, 'Сначала передайте заказ на кухню')
     actor = await food_staff(request, db)
     shift = await require_partner_shift(db, actor)
     from models.auth import User
@@ -334,7 +415,7 @@ async def assign_courier(order_id: int, body: CourierAssignment, request: Reques
         raise HTTPException(404, 'Курьер не найден или не подтверждён')
     task = await task_for(db, order)
     if not task:
-        await sync_task(db, order)
+        await sync_task(db, order, prepare_assignment=True)
         await db.flush()
         task = await task_for(db, order)
     if not task:
@@ -354,7 +435,8 @@ async def change(order_id: int, body: OrderChange, request: Request, db: AsyncSe
     order = await order_for_panel(db, order_id)
     actor = await food_staff(request, db)
     values = body.model_dump(exclude_none=True, exclude_unset=True)
-    if actor['access_role'] == 'operator' and order.status in ('done', 'cancelled') and not (order.status == 'done' and order.payment_method == 'cash' and set(values) <= {'expected_version', 'payment_status'} and body.payment_status == 'paid'):
+    from services.dam_payment_flow import manual_confirmation_allowed
+    if actor['access_role'] == 'operator' and order.status in ('done', 'cancelled') and not (order.status == 'done' and manual_confirmation_allowed(order.payment_method) and set(values) <= {'expected_version', 'payment_status'} and body.payment_status == 'paid'):
         raise HTTPException(409, 'Завершённый заказ доступен оператору только для просмотра')
     shift = await require_partner_shift(db, actor)
     version = values.pop('expected_version')
@@ -438,6 +520,7 @@ class ReceiptLine(BaseModel):
     choices: list[dict] = Field(default_factory=list, max_length=30)
 
 class ReceiptChange(BaseModel):
+    cash_given_amount: float | None = Field(None, ge=0, le=100000000, allow_inf_nan=False)
     selected_gift_id: str | None = Field(None, max_length=100)
     expected_version: int = Field(ge=0)
     items: list[ReceiptLine] = Field(min_length=1, max_length=100)
@@ -445,6 +528,10 @@ class ReceiptChange(BaseModel):
     quoted_total: float | None = Field(None, ge=0, allow_inf_nan=False)
 
 class ManualOrder(BaseModel):
+    entrance: str = Field('', max_length=50)
+    apartment: str = Field('', max_length=50)
+    deliver_to_apartment: bool = False
+    delivery_zone_id: str | None = Field(None, max_length=100)
     bonus_points_to_use: float = Field(0, ge=0, le=100000000, allow_inf_nan=False)
     scheduled_for: str | None = Field(None, max_length=40)
     promo_code: str = Field('', max_length=80)
@@ -481,27 +568,28 @@ async def operator_catalog(db: AsyncSession = Depends(get_db)):
     categories = (await db.scalars(select(Food_categories).where(or_(Food_categories.restaurant_id.in_(ids), Food_categories.restaurant_id.is_(None)), Food_categories.is_active.is_not(False)).order_by(Food_categories.sort_order, Food_categories.id))).all()
     settings = await Food_settingsService(db).get_all_as_dict()
     configured = []
-    for zone in parse_delivery_zones(settings):
-        price = float(zone['price'])
-        if not any(abs(option['price'] - price) < 0.01 for option in configured):
-            configured.append({'id': zone['id'], 'name': zone['name'], 'price': price})
-    try:
-        fallback = float(settings.get('delivery_price') or settings.get('delivery_fee') or 0)
-    except (TypeError, ValueError):
-        fallback = 0.0
-    if fallback > 0 and not any(abs(option['price'] - fallback) < 0.01 for option in configured):
-        configured.append({'id': 'standard', 'name': 'Стандартная доставка', 'price': fallback})
-    quick_prices = [0.0, 600.0, 800.0, 1200.0]
-    for price in quick_prices:
-        if not any(abs(option['price'] - price) < 0.01 for option in configured):
-            configured.append({'id': f'quick-{int(price)}', 'name': 'Бесплатно' if price == 0 else f'Доставка {int(price)} ₸', 'price': price})
+    zones=parse_delivery_zones(settings)
+    for zone in zones:
+        configured.append({'id':zone['id'],'name':zone['name'],'price':float(zone['price']),
+            'courier_payout':zone.get('courier_payout')})
+    if not zones:
+        try:
+            fallback = float(settings.get('delivery_price') or settings.get('delivery_fee') or 0)
+        except (TypeError, ValueError):
+            fallback = 0.0
+        if fallback > 0 and not any(abs(option['price'] - fallback) < 0.01 for option in configured):
+            configured.append({'id': 'standard', 'name': 'Стандартная доставка', 'price': fallback})
+        quick_prices = [0.0, 600.0, 800.0, 1200.0]
+        for price in quick_prices:
+            if not any(abs(option['price'] - price) < 0.01 for option in configured):
+                configured.append({'id': f'quick-{int(price)}', 'name': 'Бесплатно' if price == 0 else f'Доставка {int(price)} ₸', 'price': price})
     from services.menu_configuration import catalog
     current = await catalog(db)
     # Compatibility with legacy test/unscoped restaurant fixtures. Real migrated
     # restaurants carry business_id and use the common scoped catalog.
     if current['restaurant_id'] is not None:
-        return {**current, 'products': [p for p in current['products'] if p['sellable']], 'delivery_options': configured}
-    return {'categories': [serialize(x) for x in categories], 'products': [serialize(x) for x in products], 'groups': [serialize(x) for x in groups], 'options': [serialize(x) for x in options], 'links': [serialize(x) for x in links], 'delivery_options': configured}
+        return {**current, 'products': [p for p in current['products'] if p['sellable']], 'delivery_options': configured, 'zone_tariffs_required':bool(zones)}
+    return {'categories': [serialize(x) for x in categories], 'products': [serialize(x) for x in products], 'groups': [serialize(x) for x in groups], 'options': [serialize(x) for x in options], 'links': [serialize(x) for x in links], 'delivery_options': configured, 'zone_tariffs_required':bool(zones)}
 
 @router.post('/manual/quote')
 async def quote_manual(body: ManualOrder, db: AsyncSession = Depends(get_db)):

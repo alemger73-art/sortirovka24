@@ -110,7 +110,7 @@ async def test_terminal_tracking_has_no_live_coordinates(env,status):
 async def test_cash_custody_handover_earnings_and_owner_payout(env):
     client,maker,operator,_=env
     async with maker() as db:
-        db.add(Food_settings(setting_key='courier_payout',setting_value='800'))
+        (await db.scalar(select(Food_settings).where(Food_settings.setting_key=='courier_payout'))).setting_value='800'
         await db.commit()
     tid=await assigned(env)
     auth=await login(client)
@@ -250,7 +250,7 @@ async def test_terminal_delivery_closes_open_issue(env,terminal):
 async def test_payout_snapshot_partial_cash_and_current_shift(env,client_fee):
     client,maker,operator,_=env
     async with maker() as db:
-        db.add(Food_settings(setting_key='courier_payout',setting_value='800'))
+        (await db.scalar(select(Food_settings).where(Food_settings.setting_key=='courier_payout'))).setting_value='800'
         order=await db.get(Food_orders,1)
         order.pricing_snapshot=json.dumps({'breakdown':{'delivery_fee':client_fee}})
         await db.commit()

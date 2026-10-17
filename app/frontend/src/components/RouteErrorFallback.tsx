@@ -1,6 +1,7 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { applyWebAppUpdate } from '@/lib/pwaUpdates';
 
 type Props = {
   error?: Error | null;
@@ -8,8 +9,9 @@ type Props = {
 };
 
 export default function RouteErrorFallback({ error, onRetry }: Props) {
-  const { t: publicT } = useLanguage();
-  const retry = onRetry ?? (() => window.location.reload());
+  const { t: publicT, lang } = useLanguage();
+  const retry = onRetry ?? applyWebAppUpdate;
+  const staleRelease = /Failed to fetch dynamically imported module|Importing a module script failed|ChunkLoadError|Loading chunk .+ failed/i.test(error?.message || '');
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0B0F19] via-[#111827] to-[#1a2744] flex flex-col items-center justify-center px-6 text-center text-white">
@@ -20,10 +22,10 @@ export default function RouteErrorFallback({ error, onRetry }: Props) {
         height={72}
         className="mb-5 rounded-2xl shadow-lg shadow-blue-500/30"
       />
-      <h1 className="text-xl font-bold">{publicT("public.RouteErrorFallback.text351")}</h1>
+      <h1 className="text-xl font-bold">{staleRelease ? (lang === 'kz' ? 'Қолданбаны жаңарту қажет' : 'Нужно обновить приложение') : publicT("public.RouteErrorFallback.text351")}</h1>
       <p className="mt-2 max-w-sm text-sm text-white/70">
-        {publicT("public.extra.34")} </p>
-      {error?.message && (
+        {staleRelease ? (lang === 'kz' ? 'Жаңа нұсқаны жүктеу үшін «Жаңарту» түймесін басыңыз.' : 'Нажмите «Обновить», чтобы загрузить новую версию.') : publicT("public.extra.34")} </p>
+      {import.meta.env.DEV && error?.message && (
         <p className="mt-3 max-w-sm truncate text-xs text-white/40">{error.message}</p>
       )}
       <Button

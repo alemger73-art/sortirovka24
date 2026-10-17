@@ -66,27 +66,29 @@ async def assign_dam_delivery(db: AsyncSession, task: LogisticsTask, courier_use
     # is informative. Verification, active access and a personal shift are required.
     from services.dam_order_workflow import lock_courier_order
     from services.food_operations import add_event, LABELS
-    order = await lock_courier_order(db, task, require_ready=True)
+    order = await lock_courier_order(db, task, require_ready=True, allow_preparing=True)
     if not order:
         raise ValueError("Назначение доступно только для заказов DAM ALEM")
+    validate_courier_payout_snapshot(task.courier_payout)
     result = await db.execute(update(LogisticsTask).where(
         LogisticsTask.id == task.id,
-        LogisticsTask.status.in_(("ready", "assigned")),
+        LogisticsTask.status.in_(("pending", "ready", "assigned")),
     ).values(
         courier_id=str(courier_user.id), status="assigned",
         handed_at=_now_iso(), offered_courier_id=None, offer_expires_at=None,
-        order_status="in_progress",
+        order_status=order.status if order.status == 'preparing' else "in_progress",
     ))
     if not result.rowcount:
         raise ValueError("Доставка уже изменена. Обновите заказ")
     old_status = order.status
-    order.status = "in_progress"
+    if order.status != 'preparing':
+        order.status = "in_progress"
     order.version = int(order.version or 0) + 1
     add_event(db, order,
-        f"Статус: {LABELS.get(old_status, old_status)} → {LABELS['in_progress']}. Курьер: {courier_user.name or profile.phone or 'Курьер'}",
+        f"Курьер назначен: {courier_user.name or profile.phone or 'Курьер'}. Статус: {LABELS.get(order.status, order.status)}",
         "Оператор")
     from services.dam_payment_flow import emit
-    emit(db, order, 'HANDED_TO_COURIER', 'Оператор', courier_id=str(courier_user.id), source='operator')
+    emit(db, order, 'COURIER_ASSIGNED' if order.status == 'preparing' else 'HANDED_TO_COURIER', 'Оператор', courier_id=str(courier_user.id), source='operator')
     await db.commit()
     await db.refresh(task)
     from services.user_notifications import notify_food_order_status
@@ -123,24 +125,36 @@ async def ensure_logistics_settings(db: AsyncSession) -> None:
         await db.commit()
 
 
-async def resolve_courier_payout(db: AsyncSession, customer_delivery_fee: float = 0) -> float:
-    """Resolve courier compensation without coupling it to the customer's delivery discount."""
-    rows = (
-        await db.execute(
-            select(Food_settings).where(Food_settings.setting_key.in_(("courier_payout", "delivery_price")))
-        )
-    ).scalars().all()
-    values = {row.setting_key: row.setting_value for row in rows if row.setting_key}
-    for raw in (values.get("courier_payout"), values.get("delivery_price"), customer_delivery_fee):
-        if raw is None or str(raw).strip() == "":
-            continue
-        try:
-            amount = float(raw)
-        except (TypeError, ValueError):
-            continue
-        if 0 <= amount <= 50_000:
-            return round(amount, 2)
-    return 0.0
+async def resolve_courier_payout(db: AsyncSession, customer_delivery_fee: float = 0, *, order=None) -> float:
+    """Only an explicitly configured courier tariff can become a task snapshot."""
+    from decimal import Decimal, InvalidOperation
+    from fastapi import HTTPException
+    if order is not None:
+        from services.dam_zone_tariffs import saved_tariff, amount
+        snapshot=saved_tariff(order)
+        if snapshot is not None:return amount(snapshot.get('courier_payout'),'Зафиксированный тариф курьера')
+        from services.food_settings import Food_settingsService
+        from services.gastronom_delivery import parse_delivery_zones
+        if parse_delivery_zones(await Food_settingsService(db).get_all_as_dict()):
+            raise HTTPException(409,'В заказе не зафиксирована зона доставки. Согласуйте зону с клиентом и владельцем.')
+    row = await db.scalar(select(Food_settings).where(Food_settings.setting_key=='courier_payout'))
+    try:
+        amount=Decimal(row.setting_value if row else '')
+        if not amount.is_finite() or not 0 <= amount <= 50000 or amount.as_tuple().exponent < -2:
+            raise ValueError()
+    except (InvalidOperation, ValueError, TypeError):
+        raise HTTPException(409,'Тариф курьера не настроен или некорректен. Владелец должен задать вознаграждение курьеру.') from None
+    return float(amount)
+
+def validate_courier_payout_snapshot(value):
+    from decimal import Decimal,InvalidOperation
+    try:
+        amount=Decimal(str(value))
+        if not amount.is_finite() or not 0 <= amount <= 50000 or amount.as_tuple().exponent < -2:
+            raise ValueError()
+    except (InvalidOperation,ValueError,TypeError):
+        raise ValueError('Вознаграждение курьеру не зафиксировано или некорректно. Оператор должен зафиксировать тариф в карточке заказа.') from None
+    return float(amount)
 
 
 async def get_logistics_settings(db: AsyncSession) -> Dict[str, str]:
@@ -258,7 +272,7 @@ async def create_task_from_food_order(db: AsyncSession, order: Food_orders, *, d
         logger.warning("Geocode dropoff failed: %s", exc)
 
     customer_fee = max(0, round(float(delivery_fee or 0), 2))
-    courier_payout = await resolve_courier_payout(db, customer_fee)
+    courier_payout = await resolve_courier_payout(db, customer_fee, order=order)
     task = LogisticsTask(
         vertical="food",
         source_type="food_orders",
@@ -395,11 +409,17 @@ async def advance_task_status(db: AsyncSession, task: LogisticsTask, courier_use
     from services.food_operations import is_dam_order
     candidate = await db.get(Food_orders, task.source_id) if task.source_type == 'food_orders' else None
     dam = candidate and await is_dam_order(db, candidate)
+    if dam and new_status == 'delivered' and candidate.status not in ('ready', 'in_progress'):
+        raise ValueError('Кухня ещё не отметила заказ как готовый')
     expected = (('arrived', 'На месте') if task.status == 'on_the_way' else ('delivered', 'Доставлено') if task.status == 'arrived' else COURIER_STATUS_FLOW.get(task.status)) if dam else COURIER_STATUS_FLOW.get(task.status)
+    if dam and new_status == 'delivered' and task.status in ('picked_up', 'on_the_way', 'arrived'):
+        expected = ('delivered', 'Доставлено')
     if manual_claims and new_status == 'delivered' and task.status in ('assigned', 'picked_up', 'on_the_way', 'arrived'):
         expected = ('delivered', 'Доставлено')
     if not expected or expected[0] != new_status:
         raise ValueError(f"Нельзя перейти из {task.status} в {new_status}")
+    if new_status == 'delivered':
+        validate_courier_payout_snapshot(task.courier_payout)
 
     from services.dam_order_workflow import lock_courier_order
     from services.food_operations import add_event, LABELS
@@ -415,8 +435,9 @@ async def advance_task_status(db: AsyncSession, task: LogisticsTask, courier_use
         else:
             courier_shift = await require_courier_shift(db, profile)
         from services.dam_order_workflow import paid, money
-        if new_status == 'delivered' and food.payment_method == 'cash' and paid(food) < money(food.total_amount) and cash_received is None:
-            raise ValueError('Подтвердите, получены ли наличные: да или нет')
+        if new_status == 'delivered' and food.payment_method == 'cash' and cash_received is None:
+            # Completing delivery does not acknowledge money; the operator does that separately.
+            cash_received = False
         if cash_received:
             await collect_cash(db, task, food, courier_user, courier_shift, amount=cash_amount,
                 actor_name=manual_claims.get('display_name') if manual_claims else None,
@@ -458,6 +479,9 @@ async def advance_task_status(db: AsyncSession, task: LogisticsTask, courier_use
             reason=manual_reason, comment=manual_comment, amount=cash_amount,
             source='operator_manual' if manual_claims else 'courier')
         emit(db, food, kind, actor_name, **details)
+        from services.dam_settlement import is_debt,settlement_view
+        if new_status=='delivered' and is_debt(food):
+            emit(db,food,'DEBT_CREATED',actor_name,**settlement_view(food))
         audit_shift = await require_partner_shift(db, manual_claims) if manual_claims else courier_shift
         record_action(db, audit_shift, 'manual_delivered' if manual_claims else 'delivery_status_changed',
             claims=claims, staff_type='partner' if manual_claims else 'courier', entity_type='order', entity_id=food.id, details=details)
@@ -465,12 +489,6 @@ async def advance_task_status(db: AsyncSession, task: LogisticsTask, courier_use
         await settle_food_order_bonus(db, food)
     if new_status == 'delivered':
         payout = task.courier_payout
-        if payout is None:
-            payout = await resolve_courier_payout(
-                db,
-                float(task.customer_delivery_fee if task.customer_delivery_fee is not None else task.delivery_fee or 0),
-            )
-            task.courier_payout = payout
         await db.execute(update(CourierProfile).where(CourierProfile.user_id == task.courier_id).values(
             deliveries_count=CourierProfile.deliveries_count + 1,
             balance=CourierProfile.balance + max(0, float(payout or 0))))

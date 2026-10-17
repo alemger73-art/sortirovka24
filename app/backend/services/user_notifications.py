@@ -168,6 +168,22 @@ async def notify_user_by_id(
 
 # ── Food (DAM ALEM) ──────────────────────────────────────────────────────────
 
+async def notify_food_order_customer(db: AsyncSession, *, order_id: int, phone: str | None, **message) -> None:
+    """Use the authenticated checkout owner; contact phone is only a guest fallback."""
+    from models.food_payment import FoodPayment
+
+    owners = (await db.scalars(select(FoodPayment.user_id).where(
+        FoodPayment.order_id == order_id, FoodPayment.user_id.is_not(None)
+    ).distinct())).all()
+    if owners:
+        # Conflicting legacy ownership must not expose an order to either account.
+        if len(owners) != 1:
+            logger.warning("[Notify] conflicting checkout owners for food order %s", order_id)
+            return
+        await notify_user_by_id(db, user_id=owners[0], **message)
+        return
+    await notify_user_by_phone(db, phone=phone, **message)
+
 FOOD_STATUS_MESSAGES: dict[str, tuple[str, str]] = {
     "confirmed": ("Заказ подтверждён", "Оператор принял заказ"),
     "preparing": ("Заказ передан на кухню", "Кухня приступила к приготовлению"),
@@ -183,8 +199,9 @@ async def notify_food_order_created(db: AsyncSession, order: Any) -> None:
     name = (getattr(order, "restaurant_name", None) or "DAM ALEM 2.0").strip()
     total = getattr(order, "total_amount", None)
     amount_txt = f" · {int(total):,} ₸".replace(",", " ") if total else ""
-    await notify_user_by_phone(
+    await notify_food_order_customer(
         db,
+        order_id=order_id,
         phone=getattr(order, "customer_phone", None),
         category="food",
         event_key=f"food:created:{order_id}",
@@ -204,6 +221,9 @@ async def notify_food_order_status(db: AsyncSession, order: Any, old_status: str
         return
     order_id = int(order.id)
     title, body = tpl
+    from services.dam_settlement import is_debt,settlement_view
+    if new_status=='done' and is_debt(order):
+        body=f"Заказ доставлен. Ожидается оплата {settlement_view(order)['debt_amount']:g} ₸."
     if new_status == "done" and getattr(order, "delivery_method", None) in ("pickup", "dine_in"):
         title = "Ваш заказ выдан"
     name = (getattr(order, "restaurant_name", None) or "DAM ALEM 2.0").strip()
@@ -223,8 +243,9 @@ async def notify_food_order_status(db: AsyncSession, order: Any, old_status: str
             courier_phone = (profile.phone if profile else None) or courier.phone or "не указан"
             body = (f"Ваш заказ передан курьеру. Ваш курьер: {courier_name}. "
                     f"Телефон: {courier_phone}. Можете держать связь с курьером.")
-    await notify_user_by_phone(
+    await notify_food_order_customer(
         db,
+        order_id=order_id,
         phone=getattr(order, "customer_phone", None),
         category="food",
         event_key=f"food:status:{order_id}:{new_status}",
@@ -272,8 +293,10 @@ async def notify_logistics_task_status(db: AsyncSession, task: Any, old_status: 
     merchant = (getattr(task, "merchant_name", None) or "").strip()
     if merchant:
         body = f"{merchant}. {body}"
-    await notify_user_by_phone(
+    recipient = notify_food_order_customer if getattr(task, "source_type", None) == "food_orders" else notify_user_by_phone
+    await recipient(
         db,
+        **({"order_id": source_id} if getattr(task, "source_type", None) == "food_orders" else {}),
         phone=getattr(task, "customer_phone", None),
         category="logistics",
         event_key=f"logistics:{task.id}:{new_status}",

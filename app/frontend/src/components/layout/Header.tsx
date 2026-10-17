@@ -2,6 +2,8 @@ import { useState, useCallback, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Globe, Moon, Sun } from 'lucide-react';
 import AppLogo from '@/components/AppLogo';
+import { useModules } from '@/hooks/useModules';
+import { moduleForPath } from '@/config/modules';
 import PlatformCartDrawer, { PlatformCartButton } from '@/components/PlatformCartDrawer';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -13,6 +15,7 @@ const NAV_ITEMS = [
   { path: '/masters', key: 'nav.masters' },
   { path: '/announcements', key: 'nav.announcements' },
   { path: '/news', key: 'nav.news' },
+  { path: '/business', key: 'banner.forBusiness' },
   { path: '/jobs', key: 'nav.jobs' },
   { path: '/complaints', key: 'nav.complaints' },
   { path: '/food', key: 'nav.food' },
@@ -25,6 +28,11 @@ export default function Header() {
   const location = useLocation();
   const { lang, setLang, t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
+  const { isEnabled } = useModules();
+  const navItems = NAV_ITEMS.filter(item => {
+    const module = moduleForPath(item.path);
+    return !module || isEnabled(module);
+  });
 
   const toggleLang = () => setLang(lang === 'ru' ? 'kz' : 'ru');
 
@@ -58,7 +66,7 @@ export default function Header() {
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const active = isActivePath(item.path);
             return (
               <Link
@@ -68,8 +76,8 @@ export default function Header() {
                 onFocus={() => handlePrefetch(item.path)}
                 className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   active
-                    ? 'text-yellow-300'
-                    : 'text-gray-700 hover:text-yellow-600 dark:text-white dark:hover:text-yellow-200'
+                    ? 'text-blue-700 dark:text-blue-300'
+                    : 'text-gray-700 hover:text-blue-700 dark:text-white dark:hover:text-blue-300'
                 }`}
               >
                 {t(item.key)}
@@ -133,7 +141,7 @@ export default function Header() {
       {mobileOpen && (
         <div className="border-t border-gray-200 bg-white px-4 py-3 transition-colors dark:border-[#1A2233] dark:bg-[#0B0F19] lg:hidden">
           <nav className="space-y-1">
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const active = isActivePath(item.path);
               return (
                 <Link
@@ -144,8 +152,8 @@ export default function Header() {
                   onFocus={() => handlePrefetch(item.path)}
                   className={`block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                     active
-                      ? 'text-yellow-300'
-                      : 'text-gray-700 hover:text-yellow-600 dark:text-white dark:hover:text-yellow-200'
+                      ? 'text-blue-700 dark:text-blue-300'
+                      : 'text-gray-700 hover:text-blue-700 dark:text-white dark:hover:text-blue-300'
                   }`}
                 >
                   {t(item.key)}

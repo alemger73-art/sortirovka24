@@ -33,11 +33,13 @@ export async function foodOperations<T>(path: string, method = 'GET', body?: unk
 }
 
 export interface OperatorOrder {
+  manual_payment_confirmation?: boolean;
   loyalty_snapshot?: Record<string,unknown>|null; pickup_snapshot?: import('@/components/damalem/PreorderFields').PickupLocation|null;
   cash_given_amount?: number | null; change_amount?: number | null; workflow_state?: string; payment_state?: string;
   preorder_bucket?: string; scheduled_for?: string | null; is_future_preorder?: boolean; preparation_due_at?: string | null; pricing_snapshot?: string;
   order_source?: string | null;
   paid_amount?: number | null; receipt_revision?: number;
+  settlement_state?: string; is_debt?: boolean; debt_amount?: number; refund_due?: number;
   id: number; version: number | null; status: string; customer_name: string; customer_phone: string;
   delivery_method: string; delivery_address: string; order_items: string; total_amount: number;
   payment_method: string; payment_status: string; comment: string; created_at: string;
@@ -45,6 +47,7 @@ export interface OperatorOrder {
 }
 export interface OrderEvent { id: number; actor: string; message: string; created_at: string; notification: string; error: string | null; public_data?: string | null }
 export interface OrderDelivery {
+  courier_payout?: number | null;
   id: number; status: string; courier_name: string | null; courier_phone: string | null;
   picked_up_at: string | null; delivered_at: string | null;
 }

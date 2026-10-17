@@ -80,6 +80,7 @@ def parse_delivery_zones(settings: Dict[str, str]) -> List[Dict[str, Any]]:
             "id": str(item.get("id") or f"zone-{idx + 1}"),
             "name": str(item.get("name") or f"Зона {idx + 1}"),
             "price": _parse_float(item.get("price"), 0),
+            "courier_payout": item.get("courier_payout"),
             "color": str(item.get("color") or ZONE_COLORS[idx % len(ZONE_COLORS)]),
             "sort_order": int(item.get("sort_order") or idx + 1),
             "polygon": coords,

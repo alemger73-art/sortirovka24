@@ -22,10 +22,24 @@ def test_settings_to_dict_merges_defaults():
 
 def test_public_settings_payload_shape():
     payload = public_settings_payload(DEFAULT_SUPPORT_SETTINGS)
-    assert payload["promo_enabled"] is True
-    assert payload["recipient"]
+    assert payload["promo_enabled"] is False
+    assert payload["recipient"] == ""
+    assert payload["payment_details_verified"] is False
     assert payload["kaspi_qr_url"] == ""
     assert "iban" in payload
+
+
+def test_unverified_saved_details_are_not_published():
+    settings={**DEFAULT_SUPPORT_SETTINGS,'recipient':'Legacy recipient','iban':'KZ00000000000000000000','kaspi_qr_url':'https://example.test/qr'}
+    payload=public_settings_payload(settings)
+    assert all(payload[key]=='' for key in ('recipient','iban','kaspi_qr_url'))
+
+
+def test_verified_details_remain_private_by_owner_instruction():
+    settings={**DEFAULT_SUPPORT_SETTINGS,'payment_details_verified':'true','recipient':'Verified recipient','kaspi_phone':'+77001112233'}
+    payload=public_settings_payload(settings)
+    assert payload['payment_details_verified'] is False
+    assert payload['recipient']==''
 
 
 def test_public_settings_promo_disabled():

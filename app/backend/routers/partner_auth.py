@@ -83,7 +83,10 @@ def _normalize_login(login: str) -> tuple[str, str]:
     phone = _normalize_phone(raw)
     # Legacy DAM accounts used a short username in the email column. Keep
     # those accounts usable while treating actual phone-shaped input as phone.
-    if len(phone) >= 10:
+    # A permitted username may contain eight or nine digits. Normalization
+    # adds '+' and a country code; those characters do not make it a phone.
+    digits = ''.join(ch for ch in raw if ch in '0123456789')
+    if not any(ch.isalpha() for ch in raw) and len(digits) >= 10:
         return "phone", phone
     return "email", raw.lower()
 
@@ -98,7 +101,7 @@ def _default_name(partner_type: str) -> str:
     return PARTNER_DEFAULT_NAMES.get(partner_type, partner_type)
 
 
-def _create_partner_jwt(partner_id: int, partner_type: str, login: str, display_name: str = "") -> str:
+def _create_partner_jwt(partner_id: int, partner_type: str, login: str, display_name: str = "", *, pin_version: str | None = None) -> str:
     return create_access_token(
         claims={
             "sub": f"partner:{partner_type}:{partner_id}",
@@ -108,6 +111,7 @@ def _create_partner_jwt(partner_id: int, partner_type: str, login: str, display_
             "login": login,
             "display_name": display_name or "",
             "type": "partner_session",
+            **({"pin_version": pin_version} if pin_version else {}),
         },
         expires_minutes=SESSION_EXPIRY_HOURS * 60,
     )

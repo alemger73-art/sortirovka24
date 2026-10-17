@@ -47,7 +47,10 @@ async def summary(db, shift):
         else:
             method = data.get('method') if data.get('method') in methods else 'unknown'
             methods[method] = methods.get(method, money(0)) + amount
+    from services.dam_settlement import is_debt, settlement_view
+    debts=[{'id':o.id, **settlement_view(o)} for o in orders if is_debt(o)]
     return {'orders':len(orders), 'delivered':sum(o.status == 'done' for o in orders),
+        'debts':debts,'debt_total':sum(x['debt_amount'] for x in debts),
         'cancelled':sum(o.status == 'cancelled' for o in orders),
         'sales':float(sum((money(o.total_amount) for o in orders if o.status == 'done'), money(0))),
         'receipts':float(sum(methods.values())), 'refunds':float(refunds),

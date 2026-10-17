@@ -1,786 +1,103 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Bell,
-  History,
-  MapPin,
-  Phone,
-  RefreshCw,
-  Truck,
-  UserRound,
-  Wallet,
-} from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import PrintReceiptButton from '@/components/PrintReceiptButton';
-import {
-  logisticsApi,
-  formatTenge,
-  COURIER_STATUS_FLOW,
-  type CourierCabinet,
-  type LogisticsTask,
-} from "@/lib/logisticsApi";
-import { parseOrderItems, orderLineQuantity } from "@/lib/orderRoutes";
-import { requestCurrentPosition } from "@/lib/geolocation";
-import { playTaxiNewOrderSound, unlockTaxiSound } from "@/lib/taxiDriverSound";
+import {useCallback,useEffect,useRef,useState} from 'react';
+import {Truck,Wallet,History,UserRound,RefreshCw,Phone,MessageCircle,CheckCircle2,WifiOff} from 'lucide-react';
+import {toast} from 'sonner';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from '@/components/ui/dialog';
+import {useLanguage} from '@/contexts/LanguageContext';
+import {useStoreTranslations} from '@/i18n/storeTranslations';
+import {logisticsApi,formatTenge,type CourierCabinet,type LogisticsTask,type CourierShiftSummary} from '@/lib/logisticsApi';
+import {courierAction,courierPhone} from '@/lib/courierWorkspace';
+import {playTaxiNewOrderSound,unlockTaxiSound} from '@/lib/taxiDriverSound';
+import CourierTaskCard from './CourierTaskCard';
+import CourierNotifications from './CourierNotifications';
+import CourierHistory from './CourierHistory';
+import '@/styles/dam-mobile.css';
 
-const tabs = [
-  { id: "deliveries", title: "Доставки", icon: Truck },
-  { id: "money", title: "Деньги", icon: Wallet },
-  { id: "history", title: "История", icon: History },
-  { id: "profile", title: "Профиль", icon: UserRound },
-] as const;
-type Tab = (typeof tabs)[number]["id"];
-const DAM_FLOW = {...COURIER_STATUS_FLOW, assigned:{next:'picked_up',label:'Принял заказ'}, picked_up:{next:'on_the_way',label:'Выехал'}, on_the_way:{next:'arrived',label:'На месте'}, arrived:{next:'delivered',label:'Доставлено'}};
-const reasons = {
-  no_answer: "Клиент не отвечает",
-  wrong_address: "Неверный адрес",
-  refused: "Клиент отказался",
-  payment: "Проблема с оплатой",
-  transport: "Проблема с транспортом",
-  other: "Другое",
-};
-
-export default function DamCourierWorkplace({
-  onLogout,
-}: {
-  onLogout?: () => void;
-}) {
-  const [data, setData] = useState<CourierCabinet | null>(null);
-  const [tab, setTab] = useState<Tab>("deliveries");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const lock = useRef(false),
-    alive = useRef(true),
-    generation = useRef(0);
-  const seen = useRef(new Set<number>());
-  const [pin, setPin] = useState(""),
-    [phone, setPhone] = useState(""),
-    [vehicle, setVehicle] = useState("bike");
-  const dirty = useRef(false);
-  const [gps, setGps] = useState("GPS выключен");
-  const [lastGps, setLastGps] = useState<number | null>(null);
-  const lastGpsRef = useRef(0);
-  const [confirm, setConfirm] = useState<LogisticsTask | null>(null);
-  const [issue, setIssue] = useState<LogisticsTask | null>(null);
-  const [reason, setReason] = useState("no_answer"),
-    [comment, setComment] = useState("");
-  const [closePreview, setClosePreview] = useState(false);
-  const tasks =
-    data?.active_tasks ?? (data?.active_task ? [data.active_task] : []);
-  const load = useCallback(async () => {
-    const version = ++generation.current;
+const tabs=[{id:'deliveries',ru:'Задания',kz:'Тапсырмалар',icon:Truck},{id:'money',ru:'Заработок',kz:'Табыс',icon:Wallet},{id:'history',ru:'История',kz:'Тарих',icon:History},{id:'profile',ru:'Смена',kz:'Ауысым',icon:UserRound}] as const;
+type Tab=typeof tabs[number]['id'];
+export default function DamCourierWorkplace({onLogout}:{onLogout?:()=>void}) {
+  const {lang,setLang}=useLanguage();const st=useStoreTranslations();const say=(ru:string,kz:string)=>lang==='kz'?kz:ru;
+  const locale=lang==='kz'?'kk-KZ':'ru-KZ';
+  const [data,setData]=useState<CourierCabinet|null>(null),[tab,setTab]=useState<Tab>('deliveries');
+  const [selected,setSelected]=useState<number|null>(null);
+  const [error,setError]=useState(''),[busy,setBusy]=useState(false),[refreshing,setRefreshing]=useState(false);
+  const [online,setOnline]=useState(()=>navigator.onLine),[synced,setSynced]=useState<number|null>(null);
+  const [phone,setPhone]=useState(''),[vehicle,setVehicle]=useState('bike');
+  const [issue,setIssue]=useState<LogisticsTask|null>(null),[reason,setReason]=useState('no_answer'),[comment,setComment]=useState('');
+  const [closePreview,setClosePreview]=useState(false),[closedSummary,setClosedSummary]=useState<CourierShiftSummary|null>(null);
+  const alive=useRef(true),generation=useRef(0),pending=useRef(false),saving=useRef(false),dirty=useRef(false);
+  const controller=useRef<AbortController|null>(null),seen=useRef<Set<number>|null>(null);
+  const language=useRef(lang);language.current=lang;
+  const tasks=data?.active_tasks??(data?.active_task?[data.active_task]:[]);
+  const focused=tasks.find(t=>t.id===selected);
+  const money=data?.money;
+  const connectionReady=online&&!error&&!!data;
+  const contact=courierPhone(data?.dispatch_contact?.phone);
+  const reasons={no_answer:st('Клиент не отвечает'),wrong_address:st('Неверный адрес'),refused:st('Клиент отказался'),payment:st('Проблема с оплатой'),transport:st('Проблема с транспортом'),other:st('Другое')};
+  const load=useCallback(async(force=false)=>{
+    if(pending.current&&!force)return;
+    if(force)controller.current?.abort();
+    const id=++generation.current;pending.current=true;controller.current=new AbortController();setRefreshing(true);
     try {
-      const next = await logisticsApi.courierCabinet();
-      if (!alive.current || version !== generation.current) return;
-      setData(next);
-      setError("");
-      const activeIds = new Set((next.active_tasks ?? (next.active_task ? [next.active_task] : [])).map(t => t.id));
-      setConfirm(current => current && !activeIds.has(current.id) ? null : current);
-      setIssue(current => current && !activeIds.has(current.id) ? null : current);
-      if (!dirty.current) {
-        setPhone(next.profile.phone || "");
-        setVehicle(next.profile.vehicle_type || "bike");
+      const next=await logisticsApi.courierCabinet(controller.current.signal);
+      if(!alive.current||id!==generation.current)return;
+      const active=next.active_tasks??(next.active_task?[next.active_task]:[]);
+      if(seen.current)for(const task of active)if(!seen.current.has(task.id)) {
+        playTaxiNewOrderSound();navigator.vibrate?.([180,80,180]);
+        toast(language.current==='kz'?`Жаңа жеткізу №${task.source_id}`:`Новая доставка №${task.source_id}`,{description:task.dropoff_address});
       }
-      for (const task of next.active_tasks ??
-        (next.active_task ? [next.active_task] : [])) {
-        if (!seen.current.has(task.id)) {
-          seen.current.add(task.id);
-          playTaxiNewOrderSound();
-          navigator.vibrate?.([180, 80, 180]);
-          toast("Новая доставка №" + task.source_id, {
-            description: `${formatTenge(task.amount_due)} · ${task.dropoff_address}`,
-            action: {
-              label: "Открыть",
-              onClick: () => {
-                setTab("deliveries");
-                document
-                  .getElementById(`delivery-${task.id}`)
-                  ?.scrollIntoView({ behavior: "smooth" });
-              },
-            },
-          });
-        }
-      }
-    } catch (e) {
-      if (alive.current && version === generation.current)
-        setError(
-          (e as Error).message || "Нет соединения. Повторите обновление.",
-        );
-    }
-  }, []);
-  useEffect(() => {
-    alive.current = true;
-    void load();
-    const timer = setInterval(() => {
-      if (!document.hidden) void load();
-    }, 5000);
-    const refresh = () => void load();
-    window.addEventListener("focus", refresh);
-    window.addEventListener("online", refresh);
-    return () => {
-      alive.current = false;
-      clearInterval(timer);
-      window.removeEventListener("focus", refresh);
-      window.removeEventListener("online", refresh);
-    };
-  }, [load]);
-  useEffect(() => {
-    if (!data?.shift) {
-      setGps("GPS выключен");
-      return;
-    }
-    let stopped = false,
-      pending = false;
-    const tick = async () => {
-      if (pending || document.hidden) return;
-      pending = true;
-      try {
-        const p = await requestCurrentPosition({
-          enableHighAccuracy: true,
-          maximumAge: 30000,
-          timeout: 12000,
-        });
-        if (stopped) return;
-        await logisticsApi.updateLocation(p.lat, p.lng);
-        if (!stopped) {
-          lastGpsRef.current = Date.now();
-          setLastGps(lastGpsRef.current);
-          setGps("GPS активен");
-        }
-      } catch (e) {
-        if (!stopped)
-          setGps(
-            (e as { code?: string }).code === 'denied'
-              ? "Нет разрешения GPS"
-              : "Координаты давно не обновлялись",
-          );
-      } finally {
-        pending = false;
-      }
-    };
-    void tick();
-    const onFocus = () => {
-      if (lastGpsRef.current && Date.now()-lastGpsRef.current > 90000) setGps("Координаты давно не обновлялись");
-      void tick();
-    };
-    window.addEventListener('focus', onFocus);
-    const timer = setInterval(() => void tick(), 20000);
-    return () => {
-      stopped = true;
-      clearInterval(timer);
-      window.removeEventListener('focus', onFocus);
-    };
-  }, [data?.shift?.id]);
-  async function run(action: () => Promise<unknown>, success: string) {
-    if (lock.current) return;
-    lock.current = true;
-    setBusy(true);
-    try {
-      await action();
-      toast.success(success);
-      setConfirm(null);
-      setIssue(null);
-    } catch (e) {
-      toast.error(
-        (e as Error).message ||
-          "Не удалось сохранить. Проверяем результат на сервере.",
-      );
-    } finally {
-      await load();
-      lock.current = false;
-      setBusy(false);
-    }
+      seen.current=new Set(active.map(t=>t.id));
+      setData(next);setSynced(Date.now());setError('');
+      setSelected(current=>current&&!active.some(t=>t.id===current)?null:current);
+      setIssue(current=>current&&!active.some(t=>t.id===current.id)?null:current);
+      if(!dirty.current){setPhone(next.profile.phone||'');setVehicle(next.profile.vehicle_type||'bike');}
+    } catch(e) {if(alive.current&&id===generation.current)setError((e as Error).message);}
+    finally{if(alive.current&&id===generation.current){pending.current=false;setRefreshing(false);}}
+  },[]);
+  useEffect(()=>{
+    alive.current=true;void load();
+    const timer=window.setInterval(()=>{if(!document.hidden&&!saving.current)void load();},5000);
+    const focus=()=>{if(!saving.current)void load();};
+    const visibility=()=>{if(!document.hidden)focus();};
+    const network=()=>{setOnline(navigator.onLine);if(navigator.onLine)focus();};
+    window.addEventListener('focus',focus);window.addEventListener('online',network);window.addEventListener('offline',network);document.addEventListener('visibilitychange',visibility);
+    return()=>{alive.current=false;generation.current++;controller.current?.abort();clearInterval(timer);window.removeEventListener('focus',focus);window.removeEventListener('online',network);window.removeEventListener('offline',network);document.removeEventListener('visibilitychange',visibility);};
+  },[load]);
+  async function run(action:()=>Promise<unknown>,success:string) {
+    if(saving.current||!connectionReady)return;
+    saving.current=true;setBusy(true);
+    try {await action();toast.success(success);setIssue(null);}
+    catch(e){toast.error((e as Error).message||say('Не удалось сохранить. Обновляем данные с сервера.','Сақтау мүмкін болмады. Сервер деректері жаңартылуда.'));}
+    finally{await load(true);saving.current=false;if(alive.current)setBusy(false);}
   }
-  function advance(task: LogisticsTask) {
-    if (
-      task.status === "arrived" &&
-      task.payment_method === "cash" &&
-      Number(task.amount_due) > 0
-    ) {
-      setConfirm(task);
-      return;
-    }
-    const next = DAM_FLOW[task.status]?.next;
-    if (next)
-      void run(
-        () => logisticsApi.updateTaskStatus(task.id, next),
-        "Статус сохранён",
-      );
+  function advance(task:LogisticsTask) {
+    const next=courierAction(task).next;
+    if(next)void run(()=>logisticsApi.updateTaskStatus(task.id,next),next==='delivered'?st('Доставлено'):st('Принял заказ'));
   }
-  const money = data?.money;
-  return (
-    <main
-      className="min-h-dvh bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-100"
-      onPointerDown={() => void unlockTaxiSound()}
-    >
-      <div className="mx-auto max-w-3xl px-3 pt-4 pb-28 sm:px-6">
-        <header className="mb-4 flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-xs font-bold tracking-widest text-orange-600 dark:text-orange-400">
-              DÄM ALEM
-            </p>
-            <h1 className="truncate text-xl font-bold">
-              {data?.profile.name ||
-                data?.shift?.staff_name ||
-                "Кабинет курьера"}
-            </h1>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              {data?.shift
-                ? `Смена с ${new Date(data.shift.opened_at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`
-                : data ? "Смена не открыта" : "Проверяем смену…"}
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            className="h-12 w-12 shrink-0"
-            onClick={() => void load()}
-            aria-label="Обновить"
-          >
-            <RefreshCw className="h-5 w-5" />
-          </Button>
-        </header>
-        {error && (
-          <div
-            role="alert"
-            className="mb-4 rounded-xl border border-amber-400 p-3 text-sm"
-          >
-            {error}
-            <Button
-              variant="outline"
-              className="mt-2 h-12 w-full"
-              onClick={() => void load()}
-            >
-              Повторить загрузку
-            </Button>
-          </div>
-        )}
-        {!data && !error && <p role="status">Загружаем доставки…</p>}
-        {data && tab === "deliveries" && (
-          <section>
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-lg font-bold">
-                Мои доставки — {tasks.length}
-              </h2>
-              <span className="text-xs text-slate-500 dark:text-slate-400">
-                {gps}
-              </span>
-            </div>
-            {!data.shift && (
-              <Button
-                className="mb-3 h-12 w-full"
-                onClick={() => setTab("profile")}
-              >
-                Открыть смену
-              </Button>
-            )}
-            {tasks.length === 0 && (
-              <div className="rounded-2xl border bg-white p-6 dark:bg-slate-900">
-                <h3 className="font-semibold">Назначенных доставок пока нет</h3>
-                <p className="mt-2 text-sm text-slate-500">
-                  Новые доставки появятся здесь автоматически.
-                </p>
-              </div>
-            )}
-            <div className="space-y-4">
-              {tasks.map((task) => (
-                <article
-                  id={`delivery-${task.id}`}
-                  key={task.id}
-                  className="rounded-2xl border bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
-                >
-                  <div className="flex justify-between gap-2">
-                    <h3 className="font-bold">Заказ №{task.source_id}</h3>
-                    <span className="text-sm text-orange-700 dark:text-orange-300">
-                      {({assigned:'Передан курьеру',picked_up:'Принят курьером',on_the_way:'В пути',arrived:'На месте'} as Record<string,string>)[task.status] || task.status}
-                    </span>
-                  </div>
-                  <p className="mt-2 break-words text-lg font-semibold leading-snug">
-                    {task.dropoff_address}
-                  </p>
-                  <p className="mt-2 text-sm">
-                    {task.customer_name || "Клиент"}
-                    {task.customer_phone && ` · ${task.customer_phone}`}
-                  </p>
-                  <div className="my-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
-                    <p className="text-sm">
-                      {task.payment_method === "cash"
-                        ? "Наличные"
-                        : task.payment_method?.toLowerCase().includes("halyk")
-                          ? "Halyk"
-                          : "Kaspi"}
-                    </p>
-                    <p className="font-bold">
-                      {Number(task.amount_due) > 0
-                        ? `Получить у клиента: ${formatTenge(task.amount_due)}`
-                        : "Оплата подтверждена"}
-                    </p>
-                    {task.payment_method === 'cash' && <p className="font-semibold">Клиент даст: {task.cash_given_amount == null ? 'уточните' : formatTenge(task.cash_given_amount)}<br/>Сдача: {task.change_amount == null ? 'уточните' : formatTenge(task.change_amount)}</p>}
-                    {task.payment_method !== "cash" &&
-                      Number(task.amount_due) > 0 && (
-                        <p className="mt-1 text-xs">
-                          Банковская оплата ещё не подтверждена оператором
-                        </p>
-                      )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {task.customer_phone ? (
-                      <a
-                        className="flex min-h-12 items-center justify-center gap-2 rounded-xl border font-semibold"
-                        href={`tel:${task.customer_phone}`}
-                      >
-                        <Phone className="h-4 w-4" />
-                        Позвонить
-                      </a>
-                    ) : (
-                      <span className="flex min-h-12 items-center justify-center text-sm">
-                        Телефон не указан
-                      </span>
-                    )}
-                    <a
-                      className="flex min-h-12 items-center justify-center gap-2 rounded-xl border font-semibold"
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(task.dropoff_lat != null && task.dropoff_lng != null ? `${task.dropoff_lat},${task.dropoff_lng}` : task.dropoff_address)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <MapPin className="h-4 w-4" />
-                      Маршрут
-                    </a>
-                  </div>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <Button
-                      variant="outline"
-                      className="h-12"
-                      disabled={busy || !data.shift}
-                      onClick={() => {
-                        setIssue(task);
-                        setReason("no_answer");
-                        setComment("");
-                      }}
-                    >
-                      Проблема
-                    </Button>
-                    <Button
-                      className="h-12 bg-orange-600 text-white hover:bg-orange-700"
-                      disabled={busy || !data.shift}
-                      onClick={() => advance(task)}
-                    >
-                      {DAM_FLOW[task.status]?.label || "Доставлено"}
-                    </Button>
-                  </div>
-                  <details className="mt-3 text-sm">
-                    <summary className="flex min-h-12 cursor-pointer items-center font-medium">
-                      Состав заказа и детали
-                    </summary>
-                    {parseOrderItems(task.order_items).map((line, i) => (
-                      <p key={i}>
-                        {String(line.name || "Позиция")} ×{" "}
-                        {orderLineQuantity(line)}
-                      </p>
-                    ))}
-                    {task.comment && (
-                      <p className="mt-2 whitespace-pre-wrap">{task.comment}</p>
-                    )}
-                    <p className="mt-2">
-                      Сумма заказа: {formatTenge(task.total_amount)}
-                    </p>
-                    {task.courier_payout != null && (
-                      <p>
-                        Вознаграждение курьера:{" "}
-                        {formatTenge(task.courier_payout)}
-                      </p>
-                    )}
-                    <div className="mt-3"><PrintReceiptButton loadOrder={() => logisticsApi.courierReceipt(task.id)} /></div>
-                  </details>
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
-        {data && tab === "money" && (
-          <section className="space-y-4">
-            <h2 className="text-xl font-bold">Деньги</h2>
-            <p className="text-sm">
-              {data.shift ? "За текущую смену" : "Последняя смена"}
-            </p>
-            {money ? (
-              <>
-                <dl className="space-y-3 rounded-2xl border bg-white p-4 dark:bg-slate-900">
-                  {[
-                    ["Наличные получено", money.collected],
-                    ["Передано", money.handed_over],
-                    ["У вас", money.cash_balance],
-                    ["Заработано за смену", money.earned],
-                    ["К выплате за все смены", money.payout_due],
-                  ].map(([label, value]) => (
-                    <div
-                      key={String(label)}
-                      className="flex justify-between gap-2"
-                    >
-                      <dt>{label}</dt>
-                      <dd className="font-semibold">
-                        {formatTenge(Number(value))}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-                <Button
-                  className="h-12 w-full"
-                  disabled={
-                    busy ||
-                    Number(money.cash_balance) <= 0 ||
-                    Boolean(money.pending_handover)
-                  }
-                  onClick={() =>
-                    void run(
-                      () => logisticsApi.requestHandover(),
-                      "Передача ожидает подтверждения оператора",
-                    )
-                  }
-                >
-                  {money.pending_handover
-                    ? "Ожидаем подтверждение оператора"
-                    : "Передать наличные"}
-                </Button>
-                <p className="text-sm text-slate-500">
-                  Деньги клиентов и ваше вознаграждение учитываются отдельно.
-                </p>
-                <details>
-                  <summary className="min-h-12 py-3 font-semibold">
-                    История денег
-                  </summary>
-                  {money.events.map((e) => (
-                    <p key={e.id} className="border-b py-3 text-sm">
-                      {e.label} · {formatTenge(e.amount)}
-                      <br />
-                      {new Date(e.created_at).toLocaleString("ru-RU")} ·{" "}
-                      {e.actor}
-                    </p>
-                  ))}
-                </details>
-              </>
-            ) : (
-              <p>Начислено за смену: {formatTenge(data.earnings)}</p>
-            )}
-          </section>
-        )}
-        {data && tab === "history" && (
-          <section>
-            <h2 className="mb-4 text-xl font-bold">История доставок</h2>
-            {!data.task_history.some(t => ['delivered', 'cancelled'].includes(t.status)) && <p className="rounded-xl border bg-card p-4 text-muted-foreground">Доставок пока нет. Здесь появятся завершённые и отменённые доставки.</p>}
-            {data.task_history
-              .filter((t) => ["delivered", "cancelled"].includes(t.status))
-              .map((t) => (
-                <article key={t.id} className="mb-3 rounded-xl border p-4">
-                  <p className="font-semibold">
-                    №{t.source_id} ·{" "}
-                    {t.status === "delivered" ? "Доставлено" : "Отменено"}
-                  </p>
-                  <p className="mt-1 text-sm">{t.dropoff_address}</p>
-                  <p className="mt-1 text-sm">
-                    Вознаграждение:{" "}
-                    {formatTenge(
-                      t.status === "delivered" ? t.courier_payout : 0,
-                    )}
-                  </p>
-                </article>
-              ))}
-          </section>
-        )}
-        {data && tab === "profile" && (
-          <section className="space-y-4">
-            <h2 className="text-xl font-bold">Профиль и смена</h2>
-            <p>{gps}{lastGps && ` · Обновлено ${new Date(lastGps).toLocaleTimeString('ru-RU')}`}</p>
-            {gps === 'Нет разрешения GPS' && <p className="text-sm text-muted-foreground">Разрешите доступ к геолокации для этого сайта в настройках браузера или телефона, затем обновите страницу.</p>}
-            <Button
-              variant="outline"
-              className="h-12 w-full"
-              onClick={() =>
-                void run(
-                  () => logisticsApi.enableCourierPush(),
-                  "Уведомления включены",
-                )
-              }
-            >
-              <Bell className="mr-2 h-4 w-4" />
-              Включить уведомления
-            </Button>
-            <label className="block">
-              Телефон
-              <Input
-                className="mt-1 h-12"
-                value={phone}
-                onChange={(e) => {
-                  dirty.current = true;
-                  setPhone(e.target.value);
-                }}
-              />
-            </label>
-            <label className="block">
-              Транспорт
-              <select
-                aria-label="Транспорт"
-                className="mt-1 h-12 w-full rounded-lg border bg-background px-3"
-                value={vehicle}
-                onChange={(e) => {
-                  dirty.current = true;
-                  setVehicle(e.target.value);
-                }}
-              >
-                <option value="bike">Велосипед</option>
-                <option value="car">Авто</option>
-                <option value="foot">Пешком</option>
-              </select>
-            </label>
-            <Button
-              variant="outline"
-              className="h-12 w-full"
-              disabled={busy}
-              onClick={() =>
-                void run(async () => {
-                  await logisticsApi.updateProfile({
-                    phone,
-                    vehicle_type: vehicle,
-                  });
-                  dirty.current = false;
-                }, "Профиль сохранён")
-              }
-            >
-              Сохранить профиль
-            </Button>
-            <label className="block">
-              PIN для смены
-              <Input
-                className="mt-1 h-12"
-                type="password"
-                inputMode="numeric"
-                maxLength={4}
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-              />
-            </label>
-            <Button
-              className="h-12 w-full"
-              disabled={busy || pin.length !== 4}
-              onClick={() =>
-                data.shift
-                  ? setClosePreview(true)
-                  : void run(async () => {
-                      await logisticsApi.openShift(pin);
-                      await logisticsApi.setOnline(true);
-                      setPin("");
-                      setTab("deliveries");
-                    }, "Смена открыта")
-              }
-            >
-              {data.shift ? "Закрыть смену" : "Открыть смену"}
-            </Button>
-            <Button
-              variant="outline"
-              className="h-12 w-full"
-              onClick={onLogout}
-            >
-              Выйти из кабинета
-            </Button>
-            <p className="text-sm text-slate-500">Выход не закрывает смену.</p>
-          </section>
-        )}
-      </div>
-      <nav
-        aria-label="Кабинет курьера"
-        className="fixed inset-x-0 bottom-0 z-30 border-t bg-white pb-[env(safe-area-inset-bottom)] dark:border-slate-800 dark:bg-slate-950"
-      >
-        <div className="mx-auto grid max-w-3xl grid-cols-4">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              aria-current={tab === t.id ? "page" : undefined}
-              className={`flex min-h-16 flex-col items-center justify-center gap-1 text-xs ${tab === t.id ? "font-bold text-orange-600 dark:text-orange-400" : "text-slate-500"}`}
-              onClick={() => {
-                setTab(t.id);
-                window.scrollTo(0, 0);
-              }}
-            >
-              <t.icon className="h-5 w-5" />
-              {t.title}
-              {t.id === 'deliveries' && tasks.length > 0 ? ` (${tasks.length})` : ''}
-            </button>
-          ))}
-        </div>
-      </nav>
-      {(confirm || issue || closePreview) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3">
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-label={
-              issue
-                ? "Проблема доставки"
-                : confirm
-                  ? "Завершить доставку"
-                  : "Закрытие смены"
-            }
-            className="max-h-[90dvh] w-full max-w-md space-y-4 overflow-auto rounded-2xl bg-white p-5 dark:bg-slate-900"
-          >
-            {confirm && (
-              <>
-                <h2 className="text-lg font-bold">
-                  Заказ №{confirm.source_id}
-                </h2>
-                <p>Получено от клиента: {formatTenge(confirm.amount_due)}</p>
-                <Button
-                  className="h-auto min-h-12 w-full whitespace-normal"
-                  disabled={busy}
-                  onClick={() =>
-                    void run(
-                      () =>
-                        logisticsApi.updateTaskStatus(
-                          confirm.id,
-                          "delivered",
-                          true,
-                        ),
-                      "Доставка и получение наличных сохранены",
-                    )
-                  }
-                >
-                  Подтвердить получение и доставку
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-12 w-full"
-                  disabled={busy}
-                  onClick={() =>
-                    void run(
-                      () =>
-                        logisticsApi.updateTaskStatus(
-                          confirm.id,
-                          "delivered",
-                          false,
-                        ),
-                      "Доставлено. Оплата остаётся неподтверждённой",
-                    )
-                  }
-                >
-                  Не получил оплату
-                </Button>
-              </>
-            )}
-            {issue && (
-              <>
-                <h2 className="text-lg font-bold">
-                  Проблема доставки №{issue.source_id}
-                </h2>
-                <select
-                  aria-label="Причина проблемы"
-                  className="h-12 w-full rounded-lg border bg-background px-2"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                >
-                  {Object.entries(reasons).map(([id, label]) => (
-                    <option value={id} key={id}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-                <label className="block">
-                  Комментарий
-                  <textarea
-                    className="mt-1 min-h-24 w-full rounded-lg border bg-background p-3"
-                    maxLength={1000}
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                  />
-                </label>
-                <Button
-                  className="h-12 w-full"
-                  disabled={busy || (reason === "other" && !comment.trim())}
-                  onClick={() =>
-                    void run(
-                      () => logisticsApi.reportIssue(issue.id, reason, comment),
-                      "Проблема передана оператору",
-                    )
-                  }
-                >
-                  Сообщить оператору
-                </Button>
-              </>
-            )}
-            {closePreview && (
-              <>
-                <h2 className="text-lg font-bold">
-                  {tasks.length ? "Смену нельзя закрыть" : "Итоги смены"}
-                </h2>
-                {tasks.length ? (
-                  <>
-                    <p>Сначала завершите или передайте доставки оператору.</p>
-                    {tasks.map((t) => (
-                      <p key={t.id}>№{t.source_id} — в пути</p>
-                    ))}
-                    <Button
-                      className="h-12 w-full"
-                      onClick={() => {
-                        setClosePreview(false);
-                        setTab("deliveries");
-                      }}
-                    >
-                      К доставкам
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <p>Доставок: {money?.deliveries ?? 0}</p>
-                    <p>
-                      Заработано: {formatTenge(money?.earned ?? data?.earnings)}
-                    </p>
-                    <p>
-                      Получено: {formatTenge(money?.collected)} · Передано:{" "}
-                      {formatTenge(money?.handed_over)}
-                    </p>
-                    <p>Наличные у вас: {formatTenge(money?.cash_balance)}</p>
-                    {Number(money?.cash_balance) > 0 ? (
-                      <Button
-                        className="h-12 w-full"
-                        onClick={() => {
-                          setTab("money");
-                          setClosePreview(false);
-                        }}
-                      >
-                        Передать наличные
-                      </Button>
-                    ) : (
-                      <Button
-                        className="h-12 w-full"
-                        disabled={busy}
-                        onClick={() =>
-                          void run(async () => {
-                            await logisticsApi.closeShift(pin);
-                            setClosePreview(false);
-                            setPin("");
-                          }, "Смена закрыта")
-                        }
-                      >
-                        Подтвердить закрытие смены
-                      </Button>
-                    )}
-                  </>
-                )}
-              </>
-            )}
-            <Button
-              variant="outline"
-              className="h-12 w-full"
-              disabled={busy}
-              onClick={() => {
-                setConfirm(null);
-                setIssue(null);
-                setClosePreview(false);
-              }}
-            >
-              Назад
-            </Button>
-          </section>
-        </div>
-      )}
-    </main>
-  );
+  const blocked=busy||!connectionReady||!data?.shift;
+  const kitchen=tasks.filter(t=>courierAction(t).phase==='kitchen');
+  const ready=tasks.filter(t=>courierAction(t).phase==='ready');
+  const underway=tasks.filter(t=>courierAction(t).phase==='delivery');
+  const changeTab=(id:Tab)=>{setTab(id);window.scrollTo(0,0);};
+  const dispatch=<section className="rounded-2xl border bg-card p-4"><div className="flex items-center justify-between gap-2"><h2 className="font-bold">{say('Связь с DAM ALEM','DAM ALEM-мен байланыс')}</h2><span className="text-xs text-muted-foreground">{say('Диспетчерская','Диспетчер')}</span></div>{contact?<div className="mt-3 grid grid-cols-2 gap-2"><a className="courier-link" href={contact.tel}><Phone className="h-4 w-4"/>{say('Позвонить','Қоңырау шалу')}</a><a className="courier-link" href={contact.whatsapp} target="_blank" rel="noopener noreferrer"><MessageCircle className="h-4 w-4"/>WhatsApp</a></div>:<p className="mt-2 text-sm text-muted-foreground">{say('Номер заведения пока не указан. По заказу используйте «Сообщить о проблеме» — оператор увидит обращение.','Мекеме нөмірі көрсетілмеген. Тапсырыста «Мәселе туралы хабарлау» таңдаңыз — оператор өтінішті көреді.')}</p>}</section>;
+  return <main className="dam-mobile-courier min-h-dvh bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-100" onPointerDown={()=>void unlockTaxiSound()}>
+    <div className={`mx-auto max-w-3xl px-3 pt-4 sm:px-6 ${focused&&tab==='deliveries'?'pb-48':'pb-28'}`}>
+      <header className="mb-4 rounded-2xl bg-slate-950 p-4 text-white"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-bold uppercase tracking-widest text-orange-400">DAM ALEM · {say('Курьер','Курьер')}</p><h1 className="mt-1 break-words text-xl font-bold">{data?.profile.name||data?.shift?.staff_name||say('Мой кабинет','Менің кабинетім')}</h1><p className="mt-2 text-sm text-slate-300">{data?.shift?say('Смена открыта с ','Ауысым ашылды: ')+new Date(data.shift.opened_at).toLocaleTimeString(locale,{hour:'2-digit',minute:'2-digit'}):data?say('Смена закрыта','Ауысым жабық'):say('Проверяем смену…','Ауысым тексерілуде…')}</p></div><Button variant="ghost" className="h-12 w-12 shrink-0 text-white hover:bg-white/10 hover:text-white" disabled={refreshing||busy} onClick={()=>void load(true)} aria-label={say('Обновить','Жаңарту')}><RefreshCw className={`h-5 w-5 ${refreshing?'animate-spin':''}`}/></Button></div><p role="status" className="mt-3 flex items-center gap-2 border-t border-white/10 pt-3 text-xs text-slate-300"><span className={`h-2 w-2 rounded-full ${connectionReady?'bg-emerald-400':'bg-amber-400'}`}/>{!online?say('Нет интернета','Интернет жоқ'):error?say('Нет связи с сервером','Сервермен байланыс жоқ'):synced?say('Обновлено в ','Жаңартылды: ')+new Date(synced).toLocaleTimeString(locale,{hour:'2-digit',minute:'2-digit',second:'2-digit'}):say('Подключаемся…','Қосылуда…')}</p></header>
+      {(!online||error)&&<div role="alert" className="mb-4 space-y-2 rounded-xl border border-amber-300 bg-amber-50 p-4 dark:bg-amber-950/30"><p className="flex items-center gap-2 font-semibold"><WifiOff className="h-4 w-4"/>{say('Данные могут быть устаревшими','Деректер ескірген болуы мүмкін')}</p><p className="text-sm">{error||say('Статусы можно менять после восстановления интернета.','Интернет қалпына келген соң күйлерді өзгертуге болады.')}</p><Button variant="outline" disabled={refreshing} onClick={()=>void load(true)}>{say('Проверить связь','Байланысты тексеру')}</Button></div>}
+      {!data&&!error&&<p role="status">{say('Загружаем кабинет…','Кабинет жүктелуде…')}</p>}
+      {data&&tab==='deliveries'&&<section className="space-y-4">{focused?<><Button variant="outline" className="min-h-12" onClick={()=>{setSelected(null);window.scrollTo(0,0);}}>{say('← К списку заданий','← Тапсырмалар тізіміне')}</Button><CourierTaskCard task={focused} hideActions/>{dispatch}</>:<><div className="grid grid-cols-3 gap-2">{[[say('В работе','Жұмыста'),tasks.length],[say('Доставлено за смену','Ауысымда жеткізілді'),money?.deliveries??0],[say('Заработано','Табыс'),formatTenge(money?.earned??data.earnings)]].map(([label,value])=><div key={String(label)} className="rounded-xl border bg-card p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 break-words text-lg font-bold">{value}</p></div>)}</div>{dispatch}{!data.shift&&<div className="rounded-xl border border-amber-300 p-4"><p>{say('Чтобы работать, войдите по личному PIN и откройте смену.','Жұмыс істеу үшін жеке PIN арқылы кіріп, ауысымды ашыңыз.')}</p><Button className="mt-3 min-h-12 w-full" onClick={onLogout}>{say('Войти и открыть смену','Кіру және ауысымды ашу')}</Button></div>}{!tasks.length&&<div className="rounded-2xl border bg-card p-6 text-center"><Truck className="mx-auto mb-3 h-10 w-10 text-orange-500"/><h2 className="text-lg font-bold">{say('Ожидаем назначения','Тағайындауды күтеміз')}</h2><p className="mt-2 text-sm text-muted-foreground">{say('Оператор назначит заказ — он появится здесь автоматически. Держите уведомления включёнными.','Оператор тапсырысты тағайындағанда, ол осы жерде автоматты түрде пайда болады. Хабарландыруларды қосыңыз.')}</p><Button variant="outline" className="mt-4 min-h-12" onClick={()=>changeTab('profile')}>{say('Настроить уведомления','Хабарландыруларды баптау')}</Button></div>}{[{title:say('Сейчас доставляете','Қазір жеткізілуде'),list:underway},{title:say('Готовы — заберите на кухне','Дайын — асүйден алыңыз'),list:ready},{title:say('Ожидают готовности кухни','Асүйдің дайындығы күтілуде'),list:kitchen}].filter(g=>g.list.length).map(g=><section key={g.title} className="space-y-3"><h2 className="text-lg font-bold">{g.title} · {g.list.length}</h2>{g.list.map(task=><button key={task.id} className="w-full space-y-2 rounded-2xl border bg-card p-4 text-left shadow-sm hover:border-orange-400" onClick={()=>{setSelected(task.id);window.scrollTo(0,0);}}><span className="flex items-center justify-between gap-3"><strong>№{task.source_id}</strong><strong className="text-emerald-700 dark:text-emerald-400">{task.courier_payout==null?say('Тариф уточнить','Тарифті нақтылау'):formatTenge(task.courier_payout)}</strong></span><span className="block break-words font-semibold">{task.dropoff_address}</span>{task.delivery_issues?.some(i=>i.status==='open')&&<span className="block text-sm text-amber-700">{say('Ожидаем ответ оператора','Оператор жауабы күтілуде')}</span>}<span className="block text-xs text-muted-foreground">{say('Открыть заказ →','Тапсырысты ашу →')}</span></button>)}</section>)}</>}</section>}
+      {data&&tab==='money'&&<section className="space-y-4"><h2 className="text-xl font-bold">{say('Мой заработок','Менің табысым')}</h2><div className="rounded-2xl bg-emerald-700 p-5 text-white"><p className="text-sm text-emerald-100">{data.shift?say('Начислено за текущую смену','Ағымдағы ауысым үшін есептелді'):say('Начислено за последнюю смену','Соңғы ауысым үшін есептелді')}</p><p className="mt-2 text-3xl font-black">{formatTenge(money?.earned??data.earnings)}</p><p className="mt-2 text-sm">{say('Завершено доставок','Аяқталған жеткізулер')}: {money?.deliveries??0}</p></div><dl className="space-y-3 rounded-2xl border bg-card p-4"><div className="flex justify-between gap-3"><dt>{say('К выплате за все смены','Барлық ауысым бойынша төленуге тиіс')}</dt><dd className="font-bold">{formatTenge(money?.payout_due)}</dd></div></dl><p className="text-sm text-muted-foreground">{say('Начисление за доставку и фактическая выплата — разные события. Оплаты клиентов подтверждает оператор.','Жеткізу үшін есептеу мен нақты төлем — бөлек оқиғалар. Клиент төлемдерін оператор растайды.')}</p><details className="rounded-2xl border bg-card px-4"><summary className="flex min-h-14 cursor-pointer items-center font-semibold">{say('Деньги клиентов · учёт оператора','Клиент ақшасы · оператор есебі')}</summary><dl className="space-y-2 pb-4">{[[say('Получено за смену','Ауысымда алынды'),money?.collected],[say('Принято оператором за смену','Ауысымда оператор қабылдады'),money?.handed_over],[say('Остаток у курьера за всё время','Курьердегі жалпы қалдық'),money?.cash_balance]].map(([label,value])=><div key={String(label)} className="flex justify-between gap-3 text-sm"><dt>{label}</dt><dd className="font-semibold">{formatTenge(Number(value||0))}</dd></div>)}<p className="text-xs text-muted-foreground">{say('Остаток не считается зарплатой. Курьеру не нужно подтверждать передачу денег в приложении.','Қалдық жалақы болып саналмайды. Курьер қолданбада ақшаны тапсыруды растамайды.')}</p></dl></details><details className="rounded-2xl border bg-card px-4"><summary className="flex min-h-14 cursor-pointer items-center font-semibold">{say('Журнал начислений и денег','Табыс пен ақша журналы')}</summary>{!money?.events.length&&<p className="pb-4 text-sm text-muted-foreground">{say('Операций пока нет.','Әзірге операциялар жоқ.')}</p>}{money?.events.map(e=><div key={e.id} className="border-t py-3 text-sm"><div className="flex justify-between gap-3"><p>{st(e.label)}</p><strong>{formatTenge(e.amount)}</strong></div><p className="mt-1 text-xs text-muted-foreground">{new Date(e.created_at).toLocaleString(locale)} · {e.actor}</p></div>)}</details></section>}
+      {data&&tab==='history'&&<CourierHistory/>}
+      {data&&tab==='profile'&&<section className="space-y-4"><h2 className="text-xl font-bold">{say('Моя смена','Менің ауысымым')}</h2><div role="group" aria-label={say('Язык приложения','Қолданба тілі')} className="flex gap-2"><Button className="min-h-11 min-w-14" variant={lang==='ru'?'default':'outline'} onClick={()=>setLang('ru')}>RU</Button><Button className="min-h-11 min-w-14" variant={lang==='kz'?'default':'outline'} onClick={()=>setLang('kz')}>KZ</Button></div><div className="rounded-2xl border bg-card p-4"><p className="font-bold">{data.shift?say('Вы на смене','Сіз ауысымдасыз'):say('Смена закрыта','Ауысым жабық')}</p><p className="mt-2 text-sm text-muted-foreground">{say('Вход по PIN открывает смену. Для закрытия повторный PIN не нужен.','PIN арқылы кіру ауысымды ашады. Жабу үшін PIN қайта қажет емес.')}</p><Button className="mt-4 h-12 w-full" disabled={busy||!connectionReady} onClick={()=>data.shift?setClosePreview(true):onLogout?.()}>{data.shift?say('Закрыть смену','Ауысымды жабу'):say('Войти по PIN и открыть смену','PIN арқылы кіру және ауысымды ашу')}</Button></div><CourierNotifications/>{dispatch}<details className="rounded-2xl border bg-card px-4"><summary className="flex min-h-14 cursor-pointer items-center font-semibold">{say('Мои данные','Менің деректерім')}</summary><div className="space-y-4 pb-4"><label className="block text-sm">{st('Телефон')}<Input className="mt-2 h-12" type="tel" value={phone} onChange={e=>{dirty.current=true;setPhone(e.target.value);}}/></label><label className="block text-sm">{st('Транспорт')}<select className="mt-2 h-12 w-full rounded-xl border bg-background px-3" value={vehicle} onChange={e=>{dirty.current=true;setVehicle(e.target.value);}}><option value="bike">{st('Велосипед')}</option><option value="car">{st('Авто')}</option><option value="foot">{st('Пешком')}</option></select></label><Button variant="outline" className="h-12 w-full" disabled={busy||!connectionReady} onClick={()=>void run(async()=>{await logisticsApi.updateProfile({phone,vehicle_type:vehicle});dirty.current=false;},st('Профиль сохранён'))}>{st('Сохранить профиль')}</Button></div></details><Button variant="outline" className="h-12 w-full" disabled={busy} onClick={onLogout}>{say('Заблокировать кабинет','Кабинетті бұғаттау')}</Button><p className="text-xs text-muted-foreground">{say('Блокировка и выход сохраняют открытую смену. Чтобы закончить работу, закройте смену.','Бұғаттау және шығу ашық ауысымды сақтайды. Жұмысты аяқтау үшін ауысымды жабыңыз.')}</p></section>}
+    </div>
+    {focused&&tab==='deliveries'&&<div className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-20 border-t bg-white p-3 dark:border-slate-800 dark:bg-slate-950"><div className="mx-auto flex max-w-3xl gap-2"><Button className="h-14 flex-1 rounded-xl bg-orange-600 text-base font-bold text-white hover:bg-orange-700" disabled={blocked||!courierAction(focused).next} onClick={()=>advance(focused)}>{st(courierAction(focused).label)}</Button><Button variant="outline" className="h-14 rounded-xl" disabled={blocked} onClick={()=>{setIssue(focused);setReason('no_answer');setComment('');}}>{say('Проблема','Мәселе')}</Button></div></div>}
+    <nav aria-label={say('Кабинет курьера','Курьер кабинеті')} className="fixed inset-x-0 bottom-0 z-30 border-t bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-slate-800 dark:bg-slate-950/95"><div className="mx-auto grid max-w-3xl grid-cols-4">{tabs.map(t=><button key={t.id} aria-current={tab===t.id?'page':undefined} className={`flex min-h-16 flex-col items-center justify-center gap-1 px-1 text-xs font-medium ${tab===t.id?'text-orange-600 dark:text-orange-400':'text-slate-500'}`} onClick={()=>changeTab(t.id)}><t.icon className="h-5 w-5"/>{lang==='kz'?t.kz:t.ru}{t.id==='deliveries'&&tasks.length>0?` (${tasks.length})`:''}</button>)}</div></nav>
+    <Dialog open={Boolean(issue||closePreview||closedSummary)} onOpenChange={open=>{if(!open&&!busy){setIssue(null);setClosePreview(false);setClosedSummary(null);}}}><DialogContent className="dam-mobile-dialog max-w-md max-h-[90dvh] space-y-4 overflow-auto"><DialogHeader className="sr-only"><DialogTitle>{issue?say('Проблема доставки','Жеткізу мәселесі'):say('Закрытие смены','Ауысымды жабу')}</DialogTitle><DialogDescription>{say('Действия курьера и связь с оператором','Курьер әрекеттері және оператормен байланыс')}</DialogDescription></DialogHeader>
+      {issue&&<><h2 className="text-xl font-bold">{say('Сообщить оператору','Операторға хабарлау')} · №{issue.source_id}</h2><p className="text-sm text-muted-foreground">{say('Оператор увидит причину и комментарий. Решение появится в карточке заказа.','Оператор себеп пен түсініктемені көреді. Шешім тапсырыс карточкасында пайда болады.')}</p><label className="block text-sm">{say('Причина','Себеп')}<select className="mt-2 h-12 w-full rounded-xl border bg-background px-3" value={reason} onChange={e=>setReason(e.target.value)}>{Object.entries(reasons).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></label><label className="block text-sm">{st('Комментарий')}<textarea className="mt-2 min-h-28 w-full rounded-xl border bg-background p-3" value={comment} maxLength={1000} onChange={e=>setComment(e.target.value)} placeholder={say('Что случилось и какая помощь нужна?','Не болды және қандай көмек қажет?')}/></label><Button className="h-12 w-full" disabled={blocked||(reason==='other'&&!comment.trim())} onClick={()=>void run(()=>logisticsApi.reportIssue(issue.id,reason,comment),say('Проблема отправлена оператору','Мәселе операторға жіберілді'))}>{say('Отправить оператору','Операторға жіберу')}</Button></>}
+      {closePreview&&<><h2 className="text-xl font-bold">{tasks.length?say('Сначала завершите доставки','Алдымен жеткізулерді аяқтаңыз'):say('Итоги смены','Ауысым қорытындысы')}</h2>{tasks.length?<><p>{say('Смена остаётся открытой, пока есть задания. Завершите их или обратитесь к оператору для переназначения.','Тапсырмалар бар кезде ауысым ашық қалады. Оларды аяқтаңыз немесе қайта тағайындау үшін операторға хабарласыңыз.')}</p>{tasks.map(t=><p key={t.id}>№{t.source_id} · {t.dropoff_address}</p>)}<Button className="h-12 w-full" onClick={()=>{setClosePreview(false);changeTab('deliveries');}}>{say('Вернуться к заданиям','Тапсырмаларға оралу')}</Button></>:<><div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800"><p>{say('Доставок за смену','Ауысымдағы жеткізулер')}: <strong>{money?.deliveries??0}</strong></p><p className="mt-2">{say('Начислено','Есептелді')}: <strong>{formatTenge(money?.earned??data?.earnings)}</strong></p></div><p className="text-sm text-muted-foreground">{say('Итог сохранится у владельца. Закрытие не подтверждает получение оплаты, передачу наличных или выплату зарплаты.','Қорытынды иесінде сақталады. Жабу төлем алуды, қолма-қол ақшаны тапсыруды немесе жалақы төлеуді растамайды.')}</p><Button className="h-12 w-full bg-orange-600 font-bold hover:bg-orange-700" disabled={busy||!connectionReady} onClick={()=>void run(async()=>{if(!data?.shift)return;const result=await logisticsApi.closeShift(data.shift.id);setClosePreview(false);setClosedSummary(result.shift?.closing_summary||null);},say('Смена закрыта','Ауысым жабылды'))}>{say('Закрыть смену','Ауысымды жабу')}</Button></>}</>}
+      {closedSummary&&<><CheckCircle2 className="h-10 w-10 text-emerald-600"/><h2 className="text-xl font-bold">{say('Смена закрыта','Ауысым жабылды')}</h2><p>{say('Доставок','Жеткізулер')}: <strong>{closedSummary.deliveries}</strong></p><p>{say('Заработано','Табыс')}: <strong>{formatTenge(closedSummary.earned)}</strong></p><p className="text-sm text-muted-foreground">{say('Начисление сохранено. Фактическая выплата учитывается отдельно.','Есептелген сома сақталды. Нақты төлем бөлек есепке алынады.')}</p><Button className="h-12 w-full" onClick={onLogout}>{say('Выйти из кабинета','Кабинеттен шығу')}</Button></>}
+      <Button variant="outline" className="h-12 w-full" disabled={busy} onClick={()=>{setIssue(null);setClosePreview(false);setClosedSummary(null);}}>{closedSummary?say('Готово','Дайын'):say('Назад','Артқа')}</Button>
+    </DialogContent></Dialog>
+  </main>;
 }

@@ -9,15 +9,16 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 DEFAULT_SUPPORT_SETTINGS: Dict[str, str] = {
-    "promo_enabled": "true",
-    "recipient": "ИП / ФО «Сортировка 24»",
-    "bank": "АО «Kaspi Bank»",
-    "iban": "KZ000000000000000000",
-    "bin": "000000000000",
-    "kaspi_phone": "+7 (700) 123-45-67",
+    "payment_details_verified": "false",
+    "promo_enabled": "false",
+    "recipient": "",
+    "bank": "",
+    "iban": "",
+    "bin": "",
+    "kaspi_phone": "",
     "kaspi_qr_url": "",
     "purpose": "Добровольная поддержка проекта Sortirovka24",
-    "contact_email": "sortirovka.portal@mail.ru",
+    "contact_email": "srt-group.24@mail.ru",
 }
 
 PUBLIC_KEYS = (
@@ -42,8 +43,10 @@ def settings_to_dict(rows: List[SupportSettings]) -> Dict[str, str]:
 
 
 def public_settings_payload(settings: Dict[str, str]) -> Dict[str, Any]:
-    return {
-        "promo_enabled": settings.get("promo_enabled", "true") == "true",
+    verified = False  # Owner explicitly declined publication of transfer details.
+    payload = {
+        "payment_details_verified": verified,
+        "promo_enabled": False,
         "recipient": settings.get("recipient", ""),
         "bank": settings.get("bank", ""),
         "iban": settings.get("iban", ""),
@@ -51,8 +54,12 @@ def public_settings_payload(settings: Dict[str, str]) -> Dict[str, Any]:
         "kaspi_phone": settings.get("kaspi_phone", ""),
         "kaspi_qr_url": settings.get("kaspi_qr_url", ""),
         "purpose": settings.get("purpose", ""),
-        "contact_email": settings.get("contact_email", ""),
+        "contact_email": "srt-group.24@mail.ru",
     }
+    if not verified:
+        for key in ('recipient','bank','iban','bin','kaspi_phone','kaspi_qr_url','purpose'):
+            payload[key] = ''
+    return payload
 
 
 async def ensure_support_settings(db: AsyncSession) -> None:

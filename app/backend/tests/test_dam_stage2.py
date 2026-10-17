@@ -106,7 +106,8 @@ async def test_preorder_full_lifecycle_and_shift_window(env,source,fulfillment):
         order=await manual(client,headers,fulfillment,scheduled_for=scheduled.isoformat())
     else:
         response=await client.post('/api/v1/entities/food_orders',json={
-            'restaurant_id':1,'customer_name':'Client','customer_phone':'+77003333333',
+            'legal_version':'2026-10-09','legal_accepted':True,
+            'restaurant_id':1,'customer_name':'Client Test','customer_phone':'+77003333333',
             'delivery_method':fulfillment,'delivery_address':'Street 1' if fulfillment=='delivery' else '',
             'order_items':json.dumps([{'id':2,'quantity':3,'price':300}]),'payment_method':'cash',
             'total_amount':900,'scheduled_for':scheduled.isoformat()})
@@ -145,7 +146,9 @@ async def test_preorder_full_lifecycle_and_shift_window(env,source,fulfillment):
     else:
         response=await client.patch(BASE+f'/orders/{oid}',headers=headers,json={'expected_version':3,'status':'done'})
     assert response.status_code==200,response.text
-    assert not (await client.get(SHIFTS+'/close-preview',headers=headers)).json()['can_close']  # terminal unpaid now blocks closing
+    preview=(await client.get(SHIFTS+'/close-preview',headers=headers)).json()
+    assert preview['can_close']  # Completed debt is retained without blocking closure.
+    assert any(o['id']==oid for o in preview['debts'])
     detail=(await client.get(BASE+f'/orders/{oid}',headers=owner_headers())).json()['order']
     assert detail['status']=='done' and detail['order_source']==source and detail['delivery_method']==fulfillment
     assert detail['payment_status']!='paid'

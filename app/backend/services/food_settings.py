@@ -10,6 +10,19 @@ logger = logging.getLogger(__name__)
 
 
 def validate_setting(key, value):
+    if key == 'delivery_zones':
+        import json
+        from fastapi import HTTPException
+        from services.dam_zone_tariffs import zone_tariff
+        try:
+            zones=json.loads(value)
+            if not isinstance(zones,list):raise ValueError()
+            ids=[str(z.get('id') or f'zone-{i+1}') for i,z in enumerate(zones)]
+            if len(ids)!=len(set(ids)):raise ValueError()
+            for zone_id in ids:zone_tariff({'delivery_zones':value},zone_id)
+        except (ValueError,TypeError,AttributeError,StopIteration,HTTPException):
+            raise HTTPException(422,'Для каждой зоны задайте уникальный ID, границы, цену клиенту и полную выплату курьеру от 0 до 50 000 ₸.') from None
+
     if key == 'courier_payout':
         from decimal import Decimal, InvalidOperation
         try:

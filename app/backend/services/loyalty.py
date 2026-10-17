@@ -205,7 +205,7 @@ async def expire(db, user, at=None):
     await db.flush()
 
 
-async def summary(db, user_id, business_id=DAM):
+async def business_summary(db, user_id, business_id=DAM):
     await policy(db, lock=True, business_id=business_id)
     user = await account(db, user_id, business_id=business_id)
     await expire(db, user)
@@ -217,6 +217,32 @@ async def summary(db, user_id, business_id=DAM):
         'expires': [{'amount': l.remaining, 'at': l.expires_at} for l in lots if l.expires_at],
         'history': [{'id': e.id, 'kind': e.kind, 'amount': e.points, 'reason': e.reason, 'order_id': e.order_id,
             'created_at': e.created_at, 'expires_at': e.expires_at, 'balance_after': e.balance_after} for e in entries]}
+
+
+async def summary(db, user_id, business_id=DAM):
+    """Combine authenticated welcome credit with proven business membership."""
+    auth_user = await db.get(User, str(user_id))
+    if auth_user is None:
+        return await business_summary(db, user_id, business_id)
+    if auth_user.phone_verified_at:
+        data = await business_summary(db, user_id, business_id)
+    else:
+        data = {'business_id': business_id, 'customer_id': None, 'balance': ZERO,
+            'debt': ZERO, 'rules': await rules(db, business_id), 'referral_code': '',
+            'enrolled': True, 'expires': [], 'history': []}
+    from services.registration_bonus import balance, KINDS
+    welcome = await balance(db, auth_user.id, business_id)
+    rows = (await db.scalars(select(Bonus).where(Bonus.user_id == str(auth_user.id),
+        Bonus.business_id == business_id, Bonus.kind.in_(KINDS)).order_by(Bonus.id.desc()).limit(200))).all()
+    data = {**data, 'balance': amount(data['balance']) + welcome,
+        'registration_balance': welcome, 'business_balance': data['balance'],
+        'phone_verification_required_for_business': not bool(auth_user.phone_verified_at)}
+    data['history'] = sorted(data['history'] + [{'id': e.id, 'kind': e.kind,
+        'amount': e.points, 'reason': e.reason, 'order_id': e.order_id,
+        'created_at': e.created_at, 'expires_at': e.expires_at,
+        'balance_after': e.balance_after, 'wallet': 'registration'} for e in rows],
+        key=lambda entry: entry['id'], reverse=True)[:200]
+    return data
 
 
 def quote(policy_data, food_after_discounts, requested, balance):
@@ -234,8 +260,12 @@ def quote(policy_data, food_after_discounts, requested, balance):
 async def price_snapshot(db, *, food, promo, delivery, service, requested=0, user=None, business_id=DAM):
     p = await rules(db, business_id)
     balance = ZERO
+    auth_user = user if isinstance(user, User) else None
+    from services.registration_bonus import balance as registration_balance
+    welcome = await registration_balance(db, auth_user.id, business_id) if auth_user else ZERO
     if user and isinstance(user, User) and not user.phone_verified_at:
-        if amount(requested): raise HTTPException(409,'Подтвердите телефон для списания бонусов')
+        if amount(requested) > welcome:
+            raise HTTPException(409, 'Подтвердите телефон для списания бонусов за покупки. Бонусы Сортировка24 доступны без SMS.')
         user = None
     if user:
         await policy(db, lock=True, business_id=business_id)
@@ -246,18 +276,33 @@ async def price_snapshot(db, *, food, promo, delivery, service, requested=0, use
                 raise HTTPException(409, 'Телефон связан с другим бонусным аккаунтом. Обратитесь к владельцу.')
         elif user.enabled:
             balance = amount(user.bonus_balance)
-    spent, maximum = quote(p, max(ZERO, amount(food)-amount(promo)), requested, balance)
+    spent, maximum = quote(p, max(ZERO, amount(food)-amount(promo)), requested, balance + welcome)
     eligible = max(ZERO, amount(food)-amount(promo)-spent)
     return {'version': 1, 'business_id': business_id, 'policy': p, 'food_amount': str(amount(food)), 'promo_discount': str(amount(promo)),
         'eligible_amount': str(eligible), 'bonus_rate': str(p['cashback_rate']), 'bonus_spent': str(spent),
         'delivery_fee': str(amount(delivery)), 'service_fee': str(amount(service)),
         'total_amount': str(eligible+amount(delivery)+amount(service)), 'maximum_spend': str(maximum),
-        'bonus_earned': '0', 'paid_amount': '0', 'finalized': False}
+        'bonus_earned': '0', 'paid_amount': '0', 'finalized': False,
+        'registration_spent': str(min(spent, welcome)),
+        'registration_user_id': str(auth_user.id) if auth_user and min(spent, welcome) > 0 else None}
 
 
-async def spend(db, user, order):
+async def spend(db, user, order, *, authenticated_user=None):
     business_id = order.business_id or DAM
     await policy(db, lock=True, business_id=business_id)
+    snap = order.loyalty_snapshot
+    if not snap:
+        raise HTTPException(409, 'Пересчитайте заказ перед списанием бонусов')
+    from services.registration_bonus import spend as registration_spend
+    if authenticated_user is None and isinstance(user, User):
+        authenticated_user = user
+    welcome_spent = amount(snap.get('registration_spent'))
+    await registration_spend(db, order, authenticated_user)
+    business_spent = amount(order.bonus_points_used) - welcome_spent
+    if business_spent < 0 or amount(snap['bonus_spent']) != amount(order.bonus_points_used):
+        raise HTTPException(409, 'Сумма списания изменилась')
+    if not business_spent:
+        return
     user = await account(db, order.customer_id or user.id, business_id=business_id)
     if not user.enabled or not await identity(db, user):
         raise HTTPException(409, 'Бонусный аккаунт не активен или требует проверки')
@@ -265,13 +310,9 @@ async def spend(db, user, order):
     key = f'spend:{order.id}'
     if await db.scalar(select(Bonus.id).where(Bonus.idempotency_key == key)):
         return
-    snap = order.loyalty_snapshot
-    if not snap:
-        raise HTTPException(409, 'Пересчитайте заказ перед списанием бонусов')
     quantity, _ = quote(snap['policy'], amount(snap['food_amount'])-amount(snap['promo_discount']),
-        order.bonus_points_used, user.bonus_balance)
-    if quantity != amount(snap['bonus_spent']):
-        raise HTTPException(409, 'Сумма списания изменилась')
+        order.bonus_points_used, amount(user.bonus_balance) + welcome_spent)
+    quantity = business_spent
     order.customer_id = str(user.customer_id)
     if quantity:
         entry = await post(db, user, 'SPEND', -quantity, key, f'Списание за заказ №{order.id}', order_id=order.id)
@@ -280,6 +321,8 @@ async def spend(db, user, order):
 
 
 async def restore_spend(db, user, order):
+    from services.registration_bonus import restore as registration_restore
+    await registration_restore(db, order)
     original = await db.scalar(select(Bonus).where(Bonus.idempotency_key == f'spend:{order.id}'))
     if not original:
         # Historical records remain supported; never invent a spend from a client field.

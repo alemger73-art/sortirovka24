@@ -9,7 +9,8 @@ const isLive=!!liveSuites[suite];
 const auth=['login.spec.ts','registration.spec.ts'];
 export default defineConfig(suite==='receipt' ? receipt : {
  testDir:'./e2e',forbidOnly:true,workers:suite==='ui'?4:1,retries:0,timeout:isLive?150000:45000,reporter:'list',
- ...(isLive?{testMatch:liveSuites[suite]}:suite==='auth'?{testMatch:auth}:{testIgnore:[...live,...auth,'receipt-58.spec.ts']}),
+ // Mobile checkout runs in its own CI job with viewport projects and a disposable API.
+ ...(isLive?{testMatch:liveSuites[suite]}:suite==='auth'?{testMatch:auth}:{testIgnore:[...live,...auth,'receipt-58.spec.ts','checkout-mobile.spec.ts']}),
  projects:[{name:'chromium'}],
  use:{baseURL:isLive?'http://127.0.0.1:3187':'http://127.0.0.1:3180',channel:'chrome',serviceWorkers:'block',screenshot:'only-on-failure'},
  webServer:isLive?[

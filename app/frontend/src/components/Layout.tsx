@@ -1,3 +1,4 @@
+import { getLegalDocuments, LEGAL_OPERATOR } from '@/content/legal';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Wrench, Newspaper, AlertTriangle, BookOpen, Megaphone, Briefcase, HelpCircle, Utensils, Bus, Car, Heart, Bug, Shield } from 'lucide-react';
@@ -42,7 +43,7 @@ export default function Layout({
   hideFooter?: boolean;
   hideBottomNav?: boolean;
 }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const taxiEnabled = useTaxiEnabled();
@@ -56,6 +57,9 @@ export default function Layout({
     return isEnabled(moduleForPath(item.path));
   });
   const showBottomNav = !hideBottomNav && shouldShowBottomNav(pathname);
+  const showInstallBanner = !['/more', '/cabinet', '/account', '/login', '/register', '/partner', '/admin', '/food'].some(
+    path => pathname === path || pathname.startsWith(`${path}/`),
+  );
 
   /** Prefetch page data on link hover/focus for instant transitions */
   const handlePrefetch = useCallback((path: string) => {
@@ -155,8 +159,10 @@ export default function Layout({
             <div>
               <h4 className="font-semibold text-gray-900 dark:text-white mb-3">{t('footer.contacts')}</h4>
               <div className="space-y-2 text-sm text-gray-500 dark:text-gray-400">
-                <p>{t('footer.address')}</p>
-                <p>sortirovka.portal@mail.ru</p>
+                <p>{LEGAL_OPERATOR.name}</p>
+                <a className="block" href={`tel:${LEGAL_OPERATOR.phoneHref}`}>{LEGAL_OPERATOR.phone}</a>
+                <a className="block" href={`mailto:${LEGAL_OPERATOR.email}`}>{LEGAL_OPERATOR.email}</a>
+                {Object.entries(getLegalDocuments(lang)).map(([key, item]) => <Link key={key} className="block underline" to={`/legal/${key}`}>{item.title}</Link>)}
               </div>
             </div>
           </div>
@@ -167,7 +173,7 @@ export default function Layout({
       </footer>}
 
       {showBottomNav && <MobileBottomNav />}
-      {window.location.pathname !== '/more' && <InstallAppBanner />}
+      {showInstallBanner && <InstallAppBanner />}
     </div>
   );
 }

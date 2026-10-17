@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { foodOperations } from "@/lib/foodOperations";
 import { formatTenge } from "@/lib/logisticsApi";
 import { Button } from "@/components/ui/button";
+import {useLanguage} from '@/contexts/LanguageContext';
+import {useStoreTranslations} from '@/i18n/storeTranslations';
 const labels: Record<string, string> = {
   no_answer: "Клиент не отвечает",
   wrong_address: "Неверный адрес",
@@ -25,6 +27,8 @@ export default function CourierControlPanel({
 }: {
   openOrder: (id: number) => void;
 }) {
+  const {lang}=useLanguage();const st=useStoreTranslations();const say=(ru:string,kz:string)=>lang==='kz'?kz:ru;
+  const [replyTo,setReplyTo]=useState<number|null>(null),[reply,setReply]=useState('');
   const [data, setData] = useState<Work>({ handovers: [], issues: [] }),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
@@ -52,6 +56,7 @@ export default function CourierControlPanel({
     try {
       await foodOperations(path, "POST", body);
       await load();
+      setReplyTo(null);setReply('');
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -65,7 +70,7 @@ export default function CourierControlPanel({
       aria-label="Требует внимания по доставкам"
       className="space-y-3 rounded-xl border border-orange-300 bg-orange-50 p-4 dark:bg-orange-950/20"
     >
-      <h3 className="font-bold">Курьеры: требует внимания</h3>
+      <h3 className="font-bold">{say('Курьеры: требует внимания','Курьерлер: назар аудару қажет')}</h3>
       {error && <p role="alert">{error}</p>}
       {data.handovers.map((h) => (
         <div
@@ -73,48 +78,33 @@ export default function CourierControlPanel({
           className="flex flex-wrap items-center justify-between gap-3"
         >
           <p>
-            Принять деньги от {h.name} ·{" "}
+            Ранее учтённая передача: {h.name} ·{" "}
             <strong>{formatTenge(h.amount)}</strong>
           </p>
-          <Button
-            disabled={busy}
-            onClick={() => {
-              if (
-                window.confirm(
-                  `Вы получили ${formatTenge(h.amount)} от ${h.name}?`,
-                )
-              )
-                void act(`/cash-handovers/${h.id}/confirm`);
-            }}
-          >
-            Подтвердить получение
-          </Button>
+
         </div>
       ))}
       {data.issues.map((i) => (
         <div className="rounded-lg border bg-background p-3" key={i.id}>
           <p className="font-semibold">
-            Проблема доставки №{i.order_id} · {i.name}
+            {say('Проблема доставки','Жеткізу мәселесі')} №{i.order_id} · {i.name}
           </p>
           <p className="text-sm">
-            {labels[i.reason] || i.reason} · {i.comment}
+            {st(labels[i.reason] || i.reason)} · {i.comment}
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => openOrder(i.order_id)}>
-              Открыть заказ
+              {say('Открыть заказ','Тапсырысты ашу')}
             </Button>
             <Button
               disabled={busy}
               variant="outline"
-              onClick={() => {
-                const resolution = window.prompt("Как решена проблема?");
-                if (resolution?.trim())
-                  void act(`/delivery-issues/${i.id}/resolve`, { resolution });
-              }}
+              onClick={() => {setReplyTo(i.id);setReply('');}}
             >
-              Отметить решённой
+              {say('Ответить курьеру','Курьерге жауап беру')}
             </Button>
           </div>
+          {replyTo===i.id&&<div className="mt-3 space-y-3"><label className="block text-sm font-semibold">{say('Решение для курьера','Курьерге арналған шешім')}<textarea className="mt-2 min-h-24 w-full rounded-xl border bg-background p-3 text-base font-normal" value={reply} onChange={e=>setReply(e.target.value)} maxLength={1000}/></label><p className="text-xs text-muted-foreground">{say('Ответ появится в карточке доставки курьера.','Жауап курьердің жеткізу карточкасында пайда болады.')}</p><div className="flex flex-wrap gap-2"><Button disabled={busy||!reply.trim()} onClick={()=>void act(`/delivery-issues/${i.id}/resolve`,{resolution:reply.trim()})}>{say('Отправить ответ и решить проблему','Жауап жіберу және мәселені шешу')}</Button><Button variant="outline" disabled={busy} onClick={()=>setReplyTo(null)}>{say('Назад','Артқа')}</Button></div></div>}
         </div>
       ))}
     </section>

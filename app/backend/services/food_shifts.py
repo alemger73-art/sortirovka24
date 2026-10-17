@@ -71,6 +71,7 @@ async def open_shift(
     role: str,
     stored_pin: str | None,
     pin: str,
+    commit: bool = True,
 ) -> FoodShift:
     if not PIN_PATTERN.fullmatch(pin or "") or not verify_courier_pin(stored_pin, pin):
         raise HTTPException(401, "Неверный PIN-код")
@@ -93,8 +94,11 @@ async def open_shift(
         await db.rollback()
         raise HTTPException(409, "Смена уже открыта") from None
     record_action(db, row, "shift_opened", entity_type="shift", entity_id=str(row.id))
-    await db.commit()
-    await db.refresh(row)
+    if commit:
+        await db.commit()
+        await db.refresh(row)
+    else:
+        await db.flush()
     return row
 
 
@@ -103,12 +107,14 @@ async def close_shift(
     *,
     staff_type: str,
     staff_id: str | int,
-    stored_pin: str | None,
-    pin: str,
+    stored_pin: str | None = None,
+    pin: str = '',
+    authenticated: bool = False,
+    commit: bool = True,
     report=None,
     shift_id: int | None = None,
 ) -> FoodShift:
-    if not PIN_PATTERN.fullmatch(pin or "") or not verify_courier_pin(stored_pin, pin):
+    if not authenticated and (not PIN_PATTERN.fullmatch(pin or "") or not verify_courier_pin(stored_pin, pin)):
         raise HTTPException(401, "Неверный PIN-код")
     from services.food_preorders import lock_dam_operations
     await lock_dam_operations(db)
@@ -128,13 +134,13 @@ async def close_shift(
         if tasks:
             numbers = ', '.join(f'№{task.source_id} — в работе' for task in tasks)
             raise HTTPException(409, f'Смену нельзя закрыть. У вас остаются доставки: {numbers}. Сначала завершите или передайте доставки оператору.')
-        from services.courier_money import totals, cash_balance
-        balance = cash_balance(await totals(db, str(staff_id)))
-        if balance > 0:
-            raise HTTPException(409, f'Сначала передайте наличные {balance} ₸ и дождитесь подтверждения оператора.')
+        from services.courier_money import view as money_view
+        money = await money_view(db, str(staff_id))
+        row.closing_summary = {key: money[key] for key in ('deliveries', 'earned', 'collected', 'handed_over', 'cash_balance', 'payout_due')}
+        row.closing_summary['money_scope'] = 'Начисления и доставки за эту смену. Остаток наличных и долг по выплате — за всё время; закрытие не означает передачу денег или выплату.'
     if staff_type == 'partner' and row.role == 'operator':
         from services.food_procurement import assert_can_close, enqueue_report, ProcurementReport
-        await assert_can_close(db)
+        closing_readiness = await assert_can_close(db)
         if report is None:
             raise HTTPException(422, 'Заполните закупной отчёт перед закрытием смены')
         report = ProcurementReport.model_validate(report)
@@ -145,10 +151,18 @@ async def close_shift(
     if staff_type == "partner" and row.role == "operator":
         from services.dam_shift_summary import summary
         row.closing_summary = await summary(db, row)
+        row.closing_summary['refunds_pending'] = closing_readiness['refunds_pending']
+        row.closing_summary['refunds_pending_total'] = closing_readiness['refunds_pending_total']
+        if closing_readiness['refunds_pending']:
+            record_action(db,row,'refunds_pending_at_close',entity_type='shift',entity_id=str(row.id),
+                details={'owner_action_required':True,'refunds_pending':closing_readiness['refunds_pending']})
     row.active_key = None
     record_action(db, row, "shift_closed", entity_type="shift", entity_id=str(row.id))
-    await db.commit()
-    await db.refresh(row)
+    if commit:
+        await db.commit()
+        await db.refresh(row)
+    else:
+        await db.flush()
     return row
 
 

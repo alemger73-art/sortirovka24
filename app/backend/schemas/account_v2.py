@@ -14,6 +14,8 @@ class RegisterV2Request(BaseModel):
     language: Literal["ru", "kz"] = "ru"
     agreement_accepted: bool
     privacy_accepted: bool
+    legal_version: Optional[str] = Field(None, max_length=32)
+    legal_subject_name: Optional[str] = Field(None, max_length=255)
 
 
 class LoginV2Request(BaseModel):
@@ -132,6 +134,11 @@ class DashboardStatsResponse(BaseModel):
 
 
 class RequestSmsCodeRequest(BaseModel):
+    legal_version: Optional[str] = Field(None, max_length=32)
+    legal_subject_name: Optional[str] = Field(None, max_length=120)
+    agreement_accepted: bool = False
+    privacy_accepted: bool = False
+    language: Literal["ru", "kz"] = "ru"
     phone: str
 
 

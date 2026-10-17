@@ -15,6 +15,7 @@ async def test_business_apply_creates_request():
                 "phone": "+77001234567",
                 "activity": "food",
                 "description": "pytest",
+                "consent": True,
             },
         )
     assert response.status_code == 200, response.text

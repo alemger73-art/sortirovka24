@@ -5,9 +5,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import {scheduleLabel} from './PreorderFields';
 import { Input } from '@/components/ui/input';
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 
 type Item = {name: string; quantity: string; unit: string; comment: string};
-type Preview = {future_preorders?:{id:number;scheduled_for:string;payment_status:string;total_amount:number}[];can_close: boolean; orders: {id: number; status: string; label: string; courier?: string; reasons?: string[]; amount_due?: number; payment_method?: string}[]; summary?: {orders:number; delivered:number; cancelled:number; sales:number; receipts:number; refunds:number; payment_methods:Record<string,number>; money_scope:string; orders_scope:string; unresolved:number}; counts: Record<string,number>};
+type RefundPreview = {refunds_pending?: {id:number;refund_due:number}[];refunds_pending_total?:number};
+type Preview = {debts?:{id:number;debt_amount:number}[];debt_total?:number;future_preorders?:{id:number;scheduled_for:string;payment_status:string;total_amount:number}[];can_close: boolean; orders: {id: number; status: string; label: string; courier?: string; reasons?: string[]; amount_due?: number; payment_method?: string}[]; summary?: {orders:number; delivered:number; cancelled:number; sales:number; receipts:number; refunds:number; payment_methods:Record<string,number>; money_scope:string; orders_scope:string; unresolved:number}; counts: Record<string,number>};
 export interface ProcurementView {
   shift_id: number; staff_name: string; created_at: string; opened_at: string; closed_at: string;
   items: {name: string; quantity: number; unit: string; comment: string}[];
@@ -15,9 +17,10 @@ export interface ProcurementView {
 }
 const blank = (): Item => ({name:'',quantity:'',unit:'кг',comment:''});
 
-export default function ShiftCloseDialog({shiftId, pin, onClose, onClosed}: {shiftId: number; pin: string; onClose: () => void; onClosed: () => void}) {
+export default function ShiftCloseDialog({shiftId, onClose, onClosed}: {shiftId: number; onClose: () => void; onClosed: () => void}) {
   const navigate = useNavigate();
-  const [preview, setPreview] = useState<Preview | null>(null), [error,setError] = useState(''), [busy,setBusy] = useState(false);
+  const st=useStoreTranslations();
+  const [preview, setPreview] = useState<(Preview & RefundPreview) | null>(null), [error,setError] = useState(''), [busy,setBusy] = useState(false);
   const [items,setItems] = useState<Item[]>([blank()]), [notRequired,setNotRequired] = useState(false);
   const [reason,setReason] = useState(''), [comment,setComment] = useState('');
   const [attempt,setAttempt] = useState(0);
@@ -26,13 +29,15 @@ export default function ShiftCloseDialog({shiftId, pin, onClose, onClosed}: {shi
   async function closeShift() {
     if(busy || !valid) return;
     setBusy(true);setError('');
-    try {await foodShifts('/close','POST',{pin,shift_id:shiftId,procurement:{not_required:notRequired,reason:notRequired?reason.trim():'',comment:comment.trim(),items:notRequired?[]:items.map(i=>({...i,quantity:Number(i.quantity)}))}});onClosed();}
+    try {await foodShifts('/close','POST',{shift_id:shiftId,procurement:{not_required:notRequired,reason:notRequired?reason.trim():'',comment:comment.trim(),items:notRequired?[]:items.map(i=>({...i,quantity:Number(i.quantity)}))}});onClosed();}
     catch(e){const err=e as FoodApiError;setError(err.message);if(err.detail?.code==='active_orders')setPreview(err.detail as unknown as Preview);}
     finally{setBusy(false);}
   }
   return <Dialog open onOpenChange={open=>{if(!open&&!busy)onClose();}}><DialogContent className="max-w-3xl max-h-[90dvh] overflow-y-auto"><DialogHeader><DialogTitle>{preview && !preview.can_close?'Смену пока нельзя закрыть':'Закуп на следующую смену'}</DialogTitle></DialogHeader>
     {!preview && <p>Проверяем заказы…</p>}
     {error && <p role="alert" className="text-destructive">{error}</p>}
+    {!!preview?.refunds_pending?.length&&<section className="rounded-xl border border-amber-300 p-3"><h3 className="font-semibold">{st('Возвраты — задача владельца')} · {preview.refunds_pending_total} ₸</h3><p className="text-sm">{st('Эти вопросы не мешают закрыть смену. Деньги считаются возвращёнными только после отдельной операции владельца.')}</p>{preview.refunds_pending.map(o=><p key={o.id}>№{o.id} · {o.refund_due} ₸</p>)}</section>}
+    {!!preview?.debts?.length&&<section className="rounded-xl border border-amber-300 p-3"><h3 className="font-semibold">Задолженность / ожидается оплата · {preview.debt_total} ₸</h3><p className="text-sm">Доставки завершены. Эти долги сохраняются в системе и не мешают закрыть смену.</p>{preview.debts.map(o=><p key={o.id}>№{o.id} · {o.debt_amount} ₸</p>)}</section>}
     {!!preview?.future_preorders?.length&&<section className="rounded-xl border p-3"><h3 className="font-semibold">Передать следующей смене</h3><p className="text-sm text-muted-foreground">Будущие предзаказы остаются в системе и не мешают закрыть текущую смену.</p>{preview.future_preorders.map(o=><p key={o.id} className="mt-2 text-sm">№{o.id} · {scheduleLabel(o.scheduled_for)} · {o.total_amount} ₸ · {o.payment_status==='paid'?'Оплачен':'Ожидает оплаты'}</p>)}</section>}
     {preview && !preview.can_close ? <div className="space-y-4"><p>В работе остаются заказы:</p><div className="flex flex-wrap gap-2">{Object.entries(preview.counts).map(([s,n])=><span key={s} className="rounded-lg bg-muted p-2">{orderLabels[s]||s}: {n}</span>)}</div><ul className="max-h-60 overflow-y-auto space-y-2">{preview.orders.map(o=><li key={o.id}><button className="text-left underline" onClick={()=>{onClose();navigate(`?section=orders&status=${o.status}&order=${o.id}`);}}>№{o.id} — {o.label}{o.courier?` — курьер ${o.courier}`:''}</button>{o.reasons?.map(r=><p key={r} className="text-sm text-amber-700">{r}</p>)}{Number(o.amount_due)>0&&<p>{o.payment_method}: к оплате {o.amount_due} ₸</p>}</li>)}</ul><Button onClick={()=>{onClose();navigate('?section=orders&status=active');}}>Перейти к заказам</Button><Button variant="outline" onClick={()=>setAttempt(v=>v+1)}>Проверить снова</Button></div> : preview && <fieldset disabled={busy} className="min-w-0 space-y-4">
       {preview.summary && <section className="rounded-xl border p-3 space-y-2"><h3 className="font-semibold">Итог смены</h3><p>{preview.summary.orders_scope}</p><p>Заказов: {preview.summary.orders} · Завершено: {preview.summary.delivered} · Отменено: {preview.summary.cancelled}</p><p>Выручка: {preview.summary.sales} ₸</p><p className="text-sm">{preview.summary.money_scope}</p><p>Получено: {preview.summary.receipts} ₸ · Возвраты: {preview.summary.refunds} ₸</p><p>Kaspi: {preview.summary.payment_methods.kaspi_qr} ₸ · Halyk: {preview.summary.payment_methods.halyk_qr} ₸ · Наличные: {preview.summary.payment_methods.cash} ₸</p>{Number(preview.summary.payment_methods.unknown)>0&&<p>Способ не указан в старых данных: {preview.summary.payment_methods.unknown} ₸</p>}<p>Незакрытые вопросы: {preview.summary.unresolved}</p></section>}

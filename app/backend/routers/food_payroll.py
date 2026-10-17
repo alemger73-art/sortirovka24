@@ -114,7 +114,7 @@ async def close_day(day:date,body:Close,db:AsyncSession=Depends(get_db),claims=D
     result=await calculate(db,key)
     if result['fingerprint']!=body.fingerprint:raise HTTPException(409,'Продажи или ставки изменились. Проверьте новый расчёт.')
     if not result['rows']:raise HTTPException(422,'Отметьте работавших сотрудников')
-    if result['pending_orders']:raise HTTPException(409,'Есть незавершённые или неоплаченные заказы за этот день')
+    if result['pending_orders']:raise HTTPException(409,'Есть незавершённые заказы за этот день. Завершённые задолженности учитываются отдельно.')
     if result['unassigned'] and any(x['basis']!='all' for x in result['rows']):raise HTTPException(409,'Распределите проданные позиции между кухней и баром')
     period.closed_json=json.dumps(result,ensure_ascii=False);period.closed_at=now();record_action(db,shift,'payroll_day_closed',claims=claims,entity_type='payroll_day',entity_id=key);await db.commit();return await report(db,key)
 

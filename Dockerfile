@@ -18,10 +18,12 @@ RUN pnpm install --frozen-lockfile
 
 # Build the production bundle into /app/frontend/dist.
 COPY app/frontend/ ./
+COPY app/backend/core/legal-archive/ /app/backend/core/legal-archive/
+RUN node scripts/generate-legal.mjs --check
 # Railway injects RAILWAY_GIT_COMMIT_SHA as a build arg when available.
 ARG RAILWAY_GIT_COMMIT_SHA=unknown
-ENV APP_BUILD_ID=crm-bonus-search-20261005-1
-# vite build only — tsc is enforced in CI; keeps Railway deploys resilient
+ENV APP_BUILD_ID=dam-operator-ui-20261016-52
+# vite build only РІР‚вЂќ tsc is enforced in CI; keeps Railway deploys resilient
 RUN pnpm exec vite build
 
 # ---- Stage 2: backend runtime ----
@@ -33,7 +35,8 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     S24_SCHEMA_VERIFY_ONLY=dam20261006_pwa_preferences \
-    APP_BUILD_ID=crm-bonus-search-20261005-1
+    S24_STAGING_SCHEMA_VERIFY_ONLY=dam20261005_menu_configuration \
+    APP_BUILD_ID=dam-operator-ui-20261016-52
 
 WORKDIR /app/backend
 

@@ -132,7 +132,7 @@ export function renderReceiptHtml(data: ReceiptData): string {
     <hr class="rule">${row('ИТОГО', data.total, 'total')}</section>
     <section class="payment"><p>Оплата: <b>${e(data.methodName)}</b></p><p>Статус: <b>${e(data.paymentLabel)}</b></p>
     ${data.paid > 0 ? row('Оплачено', data.paid) : ''}${row('К ПОЛУЧЕНИЮ', data.due, 'due')}
-    ${data.cashGiven !== undefined ? row('Клиент даст', data.cashGiven) : ''}${data.change !== undefined ? row('ПОДГОТОВИТЬ СДАЧУ', data.change) : ''}
+    ${data.cashGiven !== undefined ? row(data.cashGiven < data.total ? 'ПРЕЖНИЕ НАЛИЧНЫЕ — УТОЧНИТЬ' : 'Клиент даст', data.cashGiven) : ''}${data.cashGiven !== undefined && data.cashGiven < data.total ? '<p><strong>Сумма наличных недостаточна. Сдачу уточнить у оператора.</strong></p>' : data.change !== undefined ? row('ПОДГОТОВИТЬ СДАЧУ', data.change) : ''}
     ${data.overpaid > 0 ? row('Переплата', data.overpaid) : ''}</section><hr class="rule">
     <footer class="footer">${data.loyaltyEarned ? `<p>Начислено: +${escapePrint(data.loyaltyEarned)} бонусов</p>` : ''}${data.loyaltySpent ? `<p>Списано: −${escapePrint(data.loyaltySpent)} бонусов</p>` : ''}${data.loyaltyEarned && data.loyaltyBalance !== undefined ? `<p>Баланс после начисления: ${escapePrint(data.loyaltyBalance)} бонусов</p>` : ''}<p><b>Спасибо за ваш заказ!</b><br>Приятного аппетита!</p><div class="qr">${createReceiptQr()}</div>
     <p class="qr-caption">Сканируйте QR-код,<br>чтобы заказать снова</p><p class="footer-brand">${DAM_ALEM_BRAND}</p><p>sortirovka24.kz</p>

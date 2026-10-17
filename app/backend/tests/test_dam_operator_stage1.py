@@ -15,12 +15,12 @@ from tests.test_dam_order_workflow import env, BASE, owner_headers
 @pytest.mark.parametrize('fulfillment', ['delivery', 'pickup', 'dine_in'])
 async def test_source_and_fulfillment_are_independent(env, source, fulfillment):
     client, maker, operator, _ = env
-    body = dict(restaurant_id=1, restaurant_name='DAM ALEM 2.0', customer_name='Test',
+    body = dict(restaurant_id=1, restaurant_name='DAM ALEM 2.0', customer_name='Test Client',
         customer_phone='+77003333333', delivery_address='Test street 1' if fulfillment == 'delivery' else '',
         delivery_method=fulfillment, payment_method='cash', payment_status='pending',
         order_items=json.dumps([{'id':2,'quantity':2,'price':300}]), total_amount=600)
     if source == 'app':
-        result = await client.post('/api/v1/entities/food_orders', json=body)
+        result = await client.post('/api/v1/entities/food_orders', json={**body, 'legal_accepted': True, 'legal_version': '2026-10-09'})
         if fulfillment == 'dine_in':
             assert result.status_code == 400, result.text
             assert 'оформляет сотрудник' in result.json()['detail']
@@ -178,7 +178,7 @@ async def test_customer_message_matches_fulfillment(monkeypatch, fulfillment, ti
     from unittest.mock import AsyncMock
     from services.user_notifications import notify_food_order_status
     send=AsyncMock()
-    monkeypatch.setattr('services.user_notifications.notify_user_by_phone',send)
+    monkeypatch.setattr('services.user_notifications.notify_food_order_customer',send)
     order=SimpleNamespace(id=1,restaurant_name='DAM ALEM',customer_phone='+77000000000',delivery_method=fulfillment,order_source='app')
     await notify_food_order_status(None,order,'ready','done')
     assert send.await_args.kwargs['title']==title

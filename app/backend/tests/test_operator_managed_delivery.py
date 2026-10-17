@@ -13,7 +13,7 @@ from utils.courier_pin import hash_courier_pin
 async def test_operator_delivery_preserves_payout_and_rejects_replay(env):
     client, maker, headers, _ = env
     async with maker() as db:
-        db.add(Food_settings(setting_key='courier_payout', setting_value='800'))
+        (await db.scalar(select(Food_settings).where(Food_settings.setting_key=='courier_payout'))).setting_value='800'
         await db.commit()
     for version, status in enumerate(['confirmed', 'preparing', 'ready']):
         body = {'expected_version': version, 'status': status}

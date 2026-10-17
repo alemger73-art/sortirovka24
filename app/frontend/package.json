@@ -9,8 +9,8 @@
   "scripts": {
     "dev": "vite",
     "typecheck": "tsc -b",
-    "build": "tsc -b && vite build",
-    "build:mobile": "vite build --mode mobile",
+    "build": "node scripts/generate-legal.mjs --check && tsc -b && vite build",
+    "build:mobile": "node scripts/generate-legal.mjs --check && vite build --mode mobile",
     "build:android": "powershell -ExecutionPolicy Bypass -File scripts/build-android.ps1",
     "build:android:release": "powershell -ExecutionPolicy Bypass -File scripts/build-android-release.ps1",
     "setup:play-keystore": "powershell -ExecutionPolicy Bypass -File scripts/setup-play-keystore.ps1",
@@ -29,11 +29,13 @@
     "store:prep": "node scripts/store-prep.mjs",
     "prepare:store-screenshots": "node scripts/prepare-store-screenshots.mjs",
     "export:play-keystore": "powershell -ExecutionPolicy Bypass -File scripts/export-play-keystore-base64.ps1",
-    "build:admin": "vite build --config vite.admin.config.ts --mode mobile && node -e \"require('fs').copyFileSync('dist-admin/admin.html','dist-admin/index.html')\"",
+    "build:admin": "node scripts/generate-legal.mjs --check && vite build --config vite.admin.config.ts --mode mobile && node -e \"require('fs').copyFileSync('dist-admin/admin.html','dist-admin/index.html')\"",
     "dev:admin": "vite --config vite.admin.config.ts",
     "build:store": "node scripts/build-store-web.mjs",
     "check:i18n": "node scripts/check-i18n.mjs",
-    "test:locale-theme": "npm run typecheck && npm run build:mobile && playwright test --config playwright.locale-theme.config.ts"
+    "test:locale-theme": "npm run typecheck && npm run build:mobile && playwright test --config playwright.locale-theme.config.ts",
+    "legal:generate": "node scripts/generate-legal.mjs",
+    "legal:check": "node scripts/generate-legal.mjs --check"
   },
   "dependencies": {
     "@aparajita/capacitor-biometric-auth": "^9.0.0",

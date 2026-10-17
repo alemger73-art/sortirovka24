@@ -2,6 +2,8 @@ import { type FormEvent, useEffect, useState } from "react";
 import { Bike, Delete, Loader2, LockKeyhole, LogIn } from "lucide-react";
 import { toast } from "sonner";
 
+import {useLanguage} from '@/contexts/LanguageContext';
+import CourierInstall from "@/components/damalem/CourierInstall";
 import CabinetCourier from "@/pages/CabinetCourier";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +14,7 @@ import {
 import { logisticsApi } from "@/lib/logisticsApi";
 
 export default function DamAlemCourier() {
+  const {lang,setLang}=useLanguage();const say=(ru:string,kz:string)=>lang==='kz'?kz:ru;
   const [authenticated, setAuthenticated] = useState(() =>
     Boolean(getCourierToken()),
   );
@@ -36,25 +39,15 @@ export default function DamAlemCourier() {
     try {
       const session = await logisticsApi.courierPinLogin(pin);
       setCourierToken(session.token);
-      let cabinet = await logisticsApi.courierCabinet();
-      if (!cabinet.shift) {
-        try {
-          await logisticsApi.openShift(pin);
-        } catch (error) {
-          // Another device may have opened the same employee's shift.
-          if (!(await logisticsApi.courierCabinet()).shift) throw error;
-        }
-        cabinet = await logisticsApi.courierCabinet();
-      }
-      if (!cabinet.profile.online) await logisticsApi.setOnline(true);
-      await logisticsApi.courierCabinet();
+      const cabinet=await logisticsApi.courierCabinet();
+      if(!cabinet.shift)throw new Error(say('Смена не открылась. Повторите вход по PIN.','Ауысым ашылмады. PIN арқылы қайта кіріңіз.'));
       setAuthenticated(true);
-      toast.success(`Смена открыта: ${session.name}`);
+      toast.success(say('Смена открыта: ','Ауысым ашылды: ')+session.name);
       setPin("");
     } catch (error) {
       clearCourierToken();
       setAuthenticated(false);
-      toast.error(String((error as Error)?.message || "Не удалось войти"));
+      toast.error(String((error as Error)?.message || say("Не удалось войти","Кіру мүмкін болмады")));
     } finally {
       setBusy(false);
     }
@@ -67,12 +60,13 @@ export default function DamAlemCourier() {
   }
 
   if (authenticated && !busy) {
-    return <CabinetCourier key={sessionKey} standalone onLogout={logout} />;
+    return <><CourierInstall /><CabinetCourier key={sessionKey} standalone onLogout={logout} /></>;
   }
 
   return (
     <main className="min-h-[100dvh] bg-[#090f1d] text-white flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm"><div className="mb-4 flex justify-end gap-2"><Button variant="ghost" className="min-h-11 min-w-14 text-white" onClick={()=>setLang('ru')}>RU</Button><Button variant="ghost" className="min-h-11 min-w-14 text-white" onClick={()=>setLang('kz')}>KZ</Button></div>
+        <CourierInstall />
         <div className="mb-6 text-center">
           <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-orange-500 to-red-600 shadow-2xl shadow-orange-950/40">
             <Bike className="h-10 w-10" />
@@ -80,9 +74,9 @@ export default function DamAlemCourier() {
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-orange-400">
             DÄM ALEM
           </p>
-          <h1 className="mt-2 text-3xl font-black">Кабинет курьера</h1>
+          <h1 className="mt-2 text-3xl font-black">{say("Кабинет курьера","Курьер кабинеті")}</h1>
           <p className="mt-2 text-sm text-slate-400">
-            Введите личный PIN, выданный владельцем
+            {say("Введите личный PIN — вход откроет смену","Жеке PIN енгізіңіз — кіру ауысымды ашады")}
           </p>
         </div>
 
@@ -99,7 +93,7 @@ export default function DamAlemCourier() {
               inputMode="numeric"
               pattern="[0-9]*"
               maxLength={4}
-              aria-label="PIN курьера"
+              aria-label={say("PIN курьера","Курьер PIN коды")}
               value={pin}
               onChange={(event) =>
                 setPin(event.target.value.replace(/\D/g, "").slice(0, 4))
@@ -111,7 +105,7 @@ export default function DamAlemCourier() {
               type="button"
               onClick={() => setPin("")}
               className="rounded-xl p-2 text-slate-500 hover:bg-white/5 hover:text-white"
-              aria-label="Очистить PIN"
+              aria-label={say("Очистить PIN","PIN тазалау")}
             >
               <Delete className="h-5 w-5" />
             </button>
@@ -127,12 +121,11 @@ export default function DamAlemCourier() {
             ) : (
               <LogIn className="mr-2 h-5 w-5" />
             )}
-            Войти и начать смену
+            {say("Войти и начать смену","Кіру және ауысымды бастау")}
           </Button>
 
           <p className="mt-4 text-center text-xs leading-relaxed text-slate-500">
-            После входа курьер увидит только назначенные доставки, адрес, оплату
-            и действия по заказу.
+            {say("Ваши задания, связь с оператором и заработок — в одном кабинете.","Тапсырмалар, оператормен байланыс және табыс — бір кабинетте.")}
           </p>
         </form>
       </div>

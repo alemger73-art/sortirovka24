@@ -2,7 +2,7 @@ import CustomerOrderReceipt from './CustomerOrderReceipt';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getPublicLocale } from '@/i18n/publicLocale';
 
-type Snapshot = {items?: unknown; total_amount?: number; receipt?: {subtotal: number; service_fee: number; delivery_fee: number; discount: number} | null};
+type Snapshot = {cash_given_amount?: number | null; change_amount?: number | null; items?: unknown; total_amount?: number; receipt?: {subtotal: number; service_fee: number; delivery_fee: number; discount: number} | null};
 type Change = {kind?: string; revision?: number; actor_role?: string; created_at?: string; reason?: string; before?: Snapshot; after?: Snapshot};
 
 export default function CustomerReceiptHistory({changes, orderNumber}: {changes: Change[]; orderNumber: number}) {
@@ -24,7 +24,7 @@ export default function CustomerReceiptHistory({changes, orderNumber}: {changes:
           const snapshot = change[side];
           if (!snapshot) return null;
           return <div key={side}><p className="mb-2 text-sm font-semibold">{created ? label('При оформлении', 'Рәсімдеу кезінде') : side === 'before' ? label('До изменения', 'Өзгеріске дейін') : requested ? label('Предложенный состав', 'Ұсынылған құрам') : label('После изменения', 'Өзгерістен кейін')}</p>
-            <CustomerOrderReceipt order={{order_number: orderNumber, order_items: snapshot.items, amount: snapshot.total_amount, receipt: snapshot.receipt}} />
+            <CustomerOrderReceipt order={{order_number: orderNumber, order_items: snapshot.items, amount: snapshot.total_amount, receipt: snapshot.receipt, payment_method: snapshot.cash_given_amount != null ? "cash" : undefined, cash_given_amount: snapshot.cash_given_amount, change_amount: snapshot.change_amount}} />
           </div>;
         })}</div>
       </details>;

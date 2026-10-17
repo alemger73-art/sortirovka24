@@ -7,7 +7,7 @@ import Layout from '@/components/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { client, withRetry, warmupBackend, resetWarmup, STATUS_LABELS, timeAgo, formatDate } from '@/lib/api';
 import { fetchWithCache } from '@/lib/cache';
-import { whatsappUrl } from '@/lib/config';
+import { LEGAL_OPERATOR } from '@/content/legal';
 import { preloadCriticalImages, preloadImagesOnIdle, extractImageUrls } from '@/lib/imageCache';
 import { resolveImageSrc } from '@/lib/storage';
 import { prefetchFromIndex } from '@/lib/prefetch';
@@ -15,12 +15,13 @@ import {
   Wrench, AlertTriangle, Megaphone, ChevronRight,
   MapPin, Phone as PhoneIcon, Clock, Briefcase,
   Home, ShoppingBag, Utensils, FileText, BookOpen,
-  ArrowRight, Send, Building2, HardHat, Users, Coffee,
+  ArrowRight, ArrowUpRight, Send, Building2, HardHat, Users, Coffee,
   Shield, Heart, Siren, Landmark, Store, Cross, Scissors, Wine
 } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
 import PromoBannerMedia from '@/components/PromoBannerMedia';
-import PartnerCards from '@/components/PartnerCards';
+import PartnerSpotlight from '@/components/PartnerSpotlight';
+import '@/styles/portal-public.css';
 import { moduleForPath } from '@/config/modules';
 import VolnaImage from '@/components/volna/VolnaImage';
 import { VOLNA_INDEX_IMAGE } from '@/lib/volnaImages';
@@ -88,7 +89,7 @@ function SectionHeader({ title, accentColor = 'from-blue-500 to-indigo-600', lin
 
 export default function Index() {
   const { t: publicT } = useLanguage();
-  const { t, lang } = useLanguage();
+  const { t, lang, localized } = useLanguage();
   const { promoEnabled: supportPromoEnabled } = useSupportSettings();
   const { isEnabled } = useModules();
 
@@ -227,9 +228,9 @@ export default function Index() {
     { icon: Cross, labelKey: 'quick.pharmacy', to: '/apteka', color: 'bg-teal-600', lightBg: 'bg-teal-50 dark:bg-teal-900/20', module: 'pharmacy' },
     { icon: Wrench, labelKey: 'quick.findMaster', to: '/masters', color: 'bg-blue-500', lightBg: 'bg-blue-50 dark:bg-blue-900/20', module: 'masters' },
     { icon: Scissors, labelKey: 'quick.salons', to: '/salons', color: 'bg-pink-500', lightBg: 'bg-pink-50 dark:bg-pink-900/20', module: 'salons' },
-    { icon: Shield, labelKey: 'quick.findInspector', to: '/inspectors', color: 'bg-indigo-500', lightBg: 'bg-indigo-50 dark:bg-indigo-900/20', module: 'inspectors' },
+    { icon: FileText, labelKey: 'nav.news', to: '/news', color: 'bg-blue-500', lightBg: 'bg-blue-50 dark:bg-blue-900/20', module: 'news' },
     { icon: AlertTriangle, labelKey: 'quick.fileComplaint', to: '/complaints/new', color: 'bg-red-500', lightBg: 'bg-red-50 dark:bg-red-900/20', module: 'complaints' },
-    { icon: Megaphone, labelKey: 'quick.postAd', to: '/announcements', color: 'bg-amber-500', lightBg: 'bg-amber-50 dark:bg-amber-900/20', module: 'announcements' },
+    { icon: Megaphone, labelKey: 'quick.postAd', to: '/announcements/new', color: 'bg-amber-500', lightBg: 'bg-amber-50 dark:bg-amber-900/20', module: 'announcements' },
     { icon: Briefcase, labelKey: 'quick.findJob', to: '/jobs', color: 'bg-purple-500', lightBg: 'bg-purple-50 dark:bg-purple-900/20', module: 'jobs' },
     { icon: BookOpen, labelKey: 'quick.openDirectory', to: '/directory', color: 'bg-teal-500', lightBg: 'bg-teal-50 dark:bg-teal-900/20', module: 'directory' },
   ] as { icon: typeof Utensils; labelKey: string; to: string; color: string; lightBg: string; module: ModuleKey }[]).filter(a => isEnabled(a.module));
@@ -247,10 +248,16 @@ export default function Index() {
 
   return (
     <Layout>
-      <Hero />
+      <div className="portal-home"><Hero />
 
       <div className="bg-[#f5f5f7] dark:bg-gray-950 transition-colors duration-300">
         <div className="max-w-6xl mx-auto px-4 py-10 space-y-12">
+
+          {isEnabled('news') && <section className="home-news" aria-label={lang === 'kz' ? 'Аудан жаңалықтары' : 'Новости района'}>
+            <div className="public-section-head"><div><span className="public-kicker">{lang === 'kz' ? 'Аудан өмірі' : 'Жизнь района'}</span><h2>{lang === 'kz' ? 'Аудан жаңалықтары' : 'Новости района'}</h2></div><Link to="/news">{lang === 'kz' ? 'Барлық жаңалықтар' : 'Все новости'}<ArrowRight size={18} /></Link></div>
+            {news.length ? <div className="home-news-grid">{news.slice(0,3).map(item => <Link key={item.id} to={`/news/${item.id}`} className="home-news-card"><div className="home-news-image">{item.image_url ? <StorageImg objectKey={item.image_url} alt="" className="h-full w-full object-cover" /> : <FileText size={36} />}</div><div className="home-news-copy"><div className="home-news-meta"><span>{getPublicCategoryLabel(item.category,t)}</span><time>{formatDate(item.created_at,lang)}</time></div><h3>{localized(item,'title')}</h3>{item.short_description && <p>{localized(item,'short_description')}</p>}<span className="home-news-read">{lang === 'kz' ? 'Жаңалықты оқу' : 'Читать'}<ArrowUpRight size={17} /></span></div></Link>)}</div> : <p className="home-news-empty">{loading ? (lang === 'kz' ? 'Жаңалықтар жүктелуде…' : 'Новости загружаются…') : (lang === 'kz' ? 'Әзірге жаңалық жоқ.' : 'Новые публикации скоро появятся здесь.')}</p>}
+          </section>}
+          {isEnabled('business') && <PartnerSpotlight />}
 
           {/* ═══════════════════════════════════════════
               1b. МАГАЗИНЫ РАЙОНА — DAM ALEM 2.0 рядом с остальными
@@ -373,30 +380,7 @@ export default function Index() {
           </section>
           )}
 
-          {isEnabled('news') && (
-            <section aria-label={lang === 'kz' ? 'Аудан жаңалықтары' : 'Новости района'} className="rounded-2xl border border-blue-100 bg-white p-4 sm:p-5 dark:border-blue-900/50 dark:bg-gray-900">
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <h2 className="flex items-center gap-2 text-base sm:text-lg font-bold text-gray-900 dark:text-white"><FileText className="w-5 h-5 shrink-0 text-blue-500" />{lang === 'kz' ? 'Аудан жаңалықтары' : 'Новости района'}</h2>
-                <Link to="/news" className="flex min-h-[44px] shrink-0 items-center gap-1 text-sm font-semibold text-blue-600 dark:text-blue-400">{lang === 'kz' ? 'Барлығы' : 'Все новости'}<ChevronRight className="w-4 h-4" /></Link>
-              </div>
-              {news.length > 0 ? (
-                <Link to={`/news/${news[0].id}`} className="group flex items-center gap-3 sm:gap-4 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">
-                  <div className="h-20 w-20 sm:h-24 sm:w-24 shrink-0 overflow-hidden rounded-xl bg-blue-50 dark:bg-blue-950">
-                    {news[0].image_url ? <StorageImg objectKey={news[0].image_url} alt="" className="h-full w-full object-cover" /> : <FileText className="mx-auto h-full w-8 text-blue-400" />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{formatDate(news[0].created_at)}</p>
-                    <h3 className="mt-1 text-sm sm:text-base font-semibold text-gray-900 dark:text-white line-clamp-2 group-hover:text-blue-600">{news[0].title}</h3>
-                    <span className="mt-1 inline-block text-xs font-medium text-blue-600 dark:text-blue-400">{lang === 'kz' ? 'Оқу →' : 'Читать →'}</span>
-                  </div>
-                </Link>
-              ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">{loading ? (lang === 'kz' ? 'Жаңалықтар жүктелуде…' : 'Новости загружаются…') : (lang === 'kz' ? 'Аудан оқиғалары мен тұрғындарға маңызды ақпарат.' : 'События района и важная информация для жителей.')}</p>
-              )}
-            </section>
-          )}
 
-          {isEnabled('business') && <PartnerCards />}
 
           {/* ═══════════════════════════════════════════
               4. Акции: только актуальные предложения включённых сервисов
@@ -571,17 +555,18 @@ export default function Index() {
       </div>
 
       {/* ═══════════════════════════════════════════
-          FIXED WhatsApp Button
+          Support telephone
       ═══════════════════════════════════════════ */}
       <a
-        href={whatsappUrl()}
+        href={`tel:${LEGAL_OPERATOR.phoneHref}`}
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 md:bottom-6 md:right-6 z-40 bg-green-500 hover:bg-green-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-all duration-300 group"
-        title={t('common.whatsapp')}
+        title={t('footer.contacts')}
       >
-        <Send className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+        <PhoneIcon className="w-6 h-6 transition-transform" />
       </a>
+      </div>
     </Layout>
   );
 }

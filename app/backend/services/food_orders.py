@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.food_orders import Food_orders
 from services.bonus_rewards import link_food_order_to_user
 from services.telegram import notify_food_order_status as notify_telegram_order_status
-from services.frontpad_order_push import push_food_order_to_frontpad
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +21,7 @@ class Food_ordersService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create(self, data: Dict[str, Any], account_user=None, *, request_key=None, request_hash=None, actor="Система", staff_action=None, channel_confirmation=None) -> Optional[Food_orders]:
+    async def create(self, data: Dict[str, Any], account_user=None, *, request_key=None, request_hash=None, actor="Система", staff_action=None, channel_confirmation=None, legal_receipt=None) -> Optional[Food_orders]:
         """Create a new food_orders"""
         try:
             from services.food_preorders import lock_dam_operations
@@ -38,7 +37,7 @@ class Food_ordersService:
             customer = await attach_order(self.db,obj,account_user)
             if bonus_points > 0:
                 from services.loyalty import spend
-                await spend(self.db, customer, obj)
+                await spend(self.db, customer, obj, authenticated_user=account_user)
 
             if request_key:
                 from models.food_operations import FoodOrderRequest
@@ -54,7 +53,12 @@ class Food_ordersService:
                 # Acceptance is an explicit staff action, never a side effect of creation.
                 obj.status = 'new'
                 from services.dam_payment_flow import create_payment
-                await create_payment(self.db, obj)
+                payment = await create_payment(self.db, obj, allow_manual=staff_action is not None)
+                # UUID account identity must not be coerced into the legacy integer
+                # food_orders.user_id. Capture authenticated checkout ownership in
+                # the existing string payment owner column, independently of SMS.
+                if payment is not None and account_user is not None:
+                    payment.user_id = str(account_user.id)
                 from services.customer_order_receipt import receipt_snapshot
                 created = add_event(self.db, obj, "Заказ создан", actor)
                 created.public_data = json.dumps({'kind': 'receipt_created', 'revision': 0,
@@ -64,6 +68,9 @@ class Food_ordersService:
                 # Link the employee audit before the same commit as the order,
                 # request key and payment. A crash cannot leave an orphan audit.
                 staff_action.entity_type, staff_action.entity_id = 'order', str(obj.id)
+            from core.legal import add_acceptance
+            add_acceptance(self.db, getattr(account_user, 'id', None), legal_receipt,
+                           entity='food_orders', entity_id=obj.id)
             await self.db.commit()
             await self.db.refresh(obj)
             try:
@@ -90,14 +97,6 @@ class Food_ordersService:
                 await alert_new_food_order(self.db, obj)
             except Exception as admin_err:
                 logger.warning("[Admin] Food order push skipped: %s", admin_err)
-            try:
-                fp_num = await push_food_order_to_frontpad(self.db, obj) if not dam_order else None
-                if fp_num:
-                    obj.frontpad_order_number = fp_num
-                    await self.db.commit()
-                    await self.db.refresh(obj)
-            except Exception as fp_err:
-                logger.warning("[FrontPad] Auto push skipped: %s", fp_err)
             try:
                 from services.user_notifications import notify_food_order_created
 
@@ -187,13 +186,13 @@ class Food_ordersService:
                     raise HTTPException(409, "Закрытый заказ нельзя изменять")
                 if obj.payment_status == 'paid' and update_data.get('payment_status', 'paid') != 'paid':
                     raise HTTPException(422, 'Полученную оплату нельзя стереть. Возврат отмечается владельцем отдельно.')
-                from services.dam_payment_flow import emit, synchronize_cash
+                from services.dam_payment_flow import emit, manual_confirmation_allowed, synchronize_staff_confirmation
                 from services.dam_order_workflow import paid, money
                 if 'payment_method' in update_data and update_data['payment_method'] != obj.payment_method:
                     raise HTTPException(422, 'Способ оплаты зафиксирован: отмените неоплаченный заказ и оформите новый')
-                if update_data.get('payment_status') == 'paid' and obj.payment_method != 'cash':
+                if update_data.get('payment_status') == 'paid' and not manual_confirmation_allowed(obj.payment_method):
                     raise HTTPException(403, 'Kaspi/Halyk подтверждает только платёжный провайдер')
-                if update_data.get('payment_status') == 'paid' and obj.delivery_method in ('delivery', 'доставка') and obj.status == 'in_progress':
+                if update_data.get('payment_status') == 'paid' and obj.payment_method == 'cash' and obj.delivery_method in ('delivery', 'доставка') and obj.status == 'in_progress':
                     raise HTTPException(409, 'Получение денег у курьера отметьте через завершение доставки')
                 target = update_data.get('status', old_status)
                 if target == 'preparing' and target != old_status and obj.payment_method != 'cash' and paid(obj) < money(obj.total_amount):
@@ -235,7 +234,7 @@ class Food_ordersService:
                 if update_data.get('payment_status') == 'paid' and obj.payment_status != 'paid':
                     from services.food_payments import receive_outstanding
                     await receive_outstanding(self.db, obj, actor)
-                    await synchronize_cash(self.db, obj, actor)
+                    await synchronize_staff_confirmation(self.db, obj, actor)
                 if target == 'done' and old_status != 'done':
                     obj.completed_at = now()
                 if target == 'cancelled' and old_status != 'cancelled':
@@ -284,27 +283,12 @@ class Food_ordersService:
             await self.db.commit()
             await self.db.refresh(obj)
             if "status" in update_data and update_data["status"] != old_status:
-                if dam_order and obj.status == 'preparing':
-                    # Keep the existing kitchen integration, but dispatch only
-                    # after the operator's committed decision, never checkout/payment.
-                    from core.deploy_safety import external_side_effects_allowed
-                    if external_side_effects_allowed() and not obj.frontpad_order_number:
-                        try:
-                            fp_num = await push_food_order_to_frontpad(self.db, obj)
-                            if fp_num:
-                                obj.frontpad_order_number = fp_num
-                                add_event(self.db, obj, 'Заказ передан в Frontpad', actor, notify=False)
-                                await self.db.commit()
-                        except Exception:
-                            await self.db.rollback()
-                            await self.db.refresh(obj)
-                            logger.warning('[Frontpad] Kitchen dispatch not confirmed for order %s', obj.id)
-                if dam_order and obj.status == 'cancelled':
+                if dam_order and obj.status in ('ready','cancelled'):
                     from services.dam_order_workflow import task_for
                     from services.courier_notifications import notify_courier_task
                     task = await task_for(self.db, obj)
-                    if task:
-                        await notify_courier_task(self.db, task, 'cancelled', version=obj.version)
+                    if task and (obj.status=='cancelled' or task.courier_id and task.status=='assigned'):
+                        await notify_courier_task(self.db, task, 'cancelled' if obj.status=='cancelled' else 'ready', version=obj.version)
                 try:
                     if not dam_order:
                         await notify_telegram_order_status({

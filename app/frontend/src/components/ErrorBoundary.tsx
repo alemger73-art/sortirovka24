@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import RouteErrorFallback from '@/components/RouteErrorFallback';
+import { applyWebAppUpdate } from '@/lib/pwaUpdates';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -33,10 +34,6 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     });
   }
 
-  private handleRetry = () => {
-    this.setState({ hasError: false, error: null });
-  };
-
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
@@ -44,8 +41,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         <RouteErrorFallback
           error={this.state.error}
           onRetry={() => {
-            this.handleRetry();
-            window.location.reload();
+            applyWebAppUpdate();
           }}
         />
       );

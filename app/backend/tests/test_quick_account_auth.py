@@ -9,6 +9,9 @@ from sqlalchemy import select
 from routers import account_v2 as account
 from models.auth import User, OIDCState
 from models.user_management import PhoneVerification, UserSession, UserAction
+from models.user_management import Bonus
+from models.crm import Business
+from models.user_notifications import UserNotification
 from services.sms import SMSDeliveryResult
 
 
@@ -16,7 +19,7 @@ class QuickAccountAuthTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.engine = create_async_engine('sqlite+aiosqlite:///:memory:')
         async with self.engine.begin() as connection:
-            for model in [User, OIDCState, PhoneVerification, UserSession, UserAction]:
+            for model in [User, OIDCState, PhoneVerification, UserSession, UserAction, Business, Bonus, UserNotification]:
                 await connection.run_sync(model.__table__.create)
         self.sessions = async_sessionmaker(self.engine, expire_on_commit=False)
         async def database():
@@ -41,12 +44,17 @@ class QuickAccountAuthTests(unittest.IsolatedAsyncioTestCase):
         for p in reversed(self.patches): p.stop()
 
     async def request_code(self, phone='+77001234567', path='signin'):
-        r = await self.client.post(f'/api/v1/account/{path}/request-sms', json={'phone':phone})
+        r = await self.client.post(f'/api/v1/account/{path}/request-sms', json={
+            'phone':phone, 'legal_version':'2026-10-09', 'legal_subject_name':'Тест Тестов',
+            'agreement_accepted':True, 'privacy_accepted':True})
         self.assertEqual(r.status_code, 200, r.text)
         self.assertIsNone(r.json().get('debug_code'))
         return self.codes[phone]
     async def confirm(self, code, phone='+77001234567', accepted=True):
-        return await self.client.post('/api/v1/account/signin/confirm',json={'phone':phone,'code':code,'agreement_accepted':accepted,'privacy_accepted':accepted})
+        body = {'phone':phone,'code':code,'agreement_accepted':accepted,'privacy_accepted':accepted}
+        if accepted:
+            body.update(legal_version='2026-10-09', legal_subject_name='Тест Тестов')
+        return await self.client.post('/api/v1/account/signin/confirm',json=body)
 
     async def test_passwordless_registration_and_code_replay(self):
         code = await self.request_code()
@@ -105,7 +113,8 @@ class QuickAccountAuthTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_google_callback_consent_and_single_use_state(self):
         with patch.object(account,'google_oauth_enabled',return_value=True), patch.object(account,'exchange_google_code',AsyncMock(return_value={'access_token':'test'})), patch.object(account,'fetch_google_userinfo',AsyncMock(return_value={'sub':'google-owner','email':'google@example.com','email_verified':True})), patch.object(account,'build_google_authorization_url',return_value='https://accounts.google.com/test'):
-            await self.client.get('/api/v1/account/google/start?agreement_accepted=true&privacy_accepted=true')
+            started = await self.client.post('/api/v1/account/google/start', json={'accepted':True,'legal_version':'2026-10-09','legal_subject_name':'Тест Тестов'})
+            self.assertEqual(started.status_code,200,started.text)
             async with self.sessions() as db:
                 state=(await db.execute(select(OIDCState))).scalar_one().state
             r=await self.client.get('/api/v1/account/google/callback',params={'state':state,'code':'test'})

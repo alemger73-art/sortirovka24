@@ -207,6 +207,39 @@ export default function Cabinet() {
       }
   };
   useEffect(() => { void loadCabinet(); }, []);
+  // Refresh history independently, so profile/address drafts are never replaced.
+  useEffect(() => {
+    if (activeTab !== 'orders') return;
+    let stopped = false;
+    let pending = false;
+    const refreshOrders = async () => {
+      if (stopped || pending || document.hidden || !getAccountToken()) return;
+      pending = true;
+      try {
+        const data = await accountApi.cabinet();
+        if (!stopped && Array.isArray(data?.orders)) {
+          setCabinet((previous: any) => previous ? {...previous, orders: data.orders} : previous);
+        }
+      } catch {
+        // Keep the existing history during an intermittent connection failure.
+      } finally {
+        pending = false;
+      }
+    };
+    void refreshOrders();
+    const timer = window.setInterval(() => void refreshOrders(), 10000);
+    const visible = () => { if (!document.hidden) void refreshOrders(); };
+    window.addEventListener('focus', visible);
+    window.addEventListener('online', visible);
+    document.addEventListener('visibilitychange', visible);
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+      window.removeEventListener('focus', visible);
+      window.removeEventListener('online', visible);
+      document.removeEventListener('visibilitychange', visible);
+    };
+  }, [activeTab]);
   const saveProfile = async () => {
     if (savingProfile || avatarUploading) return;
     if (!profileForm.name.trim()) { setError(t("cabinet.nameRequired")); return; }
@@ -1091,6 +1124,7 @@ export default function Cabinet() {
                       ))}
                     </div>
                   </div>
+                  {cabinet.profile?.google_linked && !cabinet.profile?.phone_verified && filteredOrders.length === 0 && <div className="mb-4 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm"><p>Вы вошли через Google, телефон ещё не подтверждён. Старые заказы, оформленные по номеру телефона, появятся после подтверждения номера или входа в прежний аккаунт.</p><Link to="/cabinet?tab=settings" className="mt-2 inline-block font-semibold underline">Подтвердить телефон в настройках</Link></div>}
                   <div className="space-y-3">
                     {filteredOrders.map((o: CabinetOrderRow) => {
                       const detail = orderDetailId(o);

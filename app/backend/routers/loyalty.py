@@ -117,6 +117,9 @@ async def dashboard(start: date | None = None, end: date | None = None, db=Depen
     grouped = (await db.execute(select(Bonus.kind, func.sum(Bonus.points)).where(Bonus.business_id == DAM, Bonus.created_at >= begin, Bonus.created_at < finish).group_by(Bonus.kind))).all()
     totals = {kind: value for kind, value in grouped}
     liability = await db.scalar(select(func.coalesce(func.sum(BonusMember.bonus_balance), 0)).where(BonusMember.business_id==DAM))
+    from services.registration_bonus import KINDS
+    registration_liability = await db.scalar(select(func.coalesce(func.sum(Bonus.points), 0)).where(Bonus.business_id==DAM, Bonus.kind.in_(KINDS)))
+    liability += registration_liability
     customers = await db.scalar(select(func.count()).select_from(BusinessCustomer).where(BusinessCustomer.business_id==DAM))
     with_balance = await db.scalar(select(func.count()).select_from(BonusMember).where(BonusMember.business_id==DAM,BonusMember.bonus_balance > 0))
     reviews = (await db.scalars(select(BonusReview).join(BonusMember,BonusMember.id==BonusReview.account_id).where(BonusMember.business_id==DAM,BonusReview.status == 'REVIEW').order_by(BonusReview.id.desc()).limit(100))).all()
@@ -148,27 +151,28 @@ async def settings_history(db=Depends(get_db), _=Depends(food_owner)):
 async def history(start: date | None = None, end: date | None = None, offset: int = Query(0, ge=0),
         limit: int = Query(100, ge=1, le=500), customer_id: str | None = None, db=Depends(get_db), _=Depends(food_owner)):
     begin, finish = bounds(start, end)
-    query = select(Bonus, Customer).join(Customer, Customer.id == Bonus.customer_id).where(Bonus.business_id == DAM, Bonus.created_at >= begin, Bonus.created_at < finish)
+    query = select(Bonus, Customer, User).outerjoin(Customer, Customer.id == Bonus.customer_id).outerjoin(User, User.id == Bonus.user_id).where(Bonus.business_id == DAM, Bonus.created_at >= begin, Bonus.created_at < finish)
     if customer_id:
         query = query.where(Bonus.customer_id == customer_id)
     rows = (await db.execute(query.order_by(Bonus.id.desc()).offset(offset).limit(limit))).all()
-    return [{'id': b.id, 'date': b.created_at, 'customer': u.name or u.id, 'customer_id': u.id,
-        'phone': ('***'+u.normalized_phone[-4:]) if u.normalized_phone else '', 'type': b.kind, 'amount': b.points, 'order': b.order_id,
-        'reason': b.reason, 'expires': b.expires_at, 'actor': b.created_by, 'balance': b.balance_after} for b, u in rows]
+    return [{'id': b.id, 'date': b.created_at, 'customer': (a.name if b.kind.startswith('REGISTRATION') and a else (u.name if u else (a.name if a else 'Клиент'))), 'customer_id': u.id if u else None,
+        'phone': ('***'+u.normalized_phone[-4:]) if u and u.normalized_phone else '', 'type': b.kind, 'amount': b.points, 'order': b.order_id,
+        'reason': b.reason, 'expires': b.expires_at, 'actor': b.created_by, 'balance': b.balance_after} for b, u, a in rows]
 
 
 @router.get('/owner/export')
 async def export(start: date | None = None, end: date | None = None, db=Depends(get_db), claims=Depends(food_owner)):
     begin, finish = bounds(start, end)
-    rows = (await db.execute(select(Bonus, Customer).join(Customer, Customer.id == Bonus.customer_id)
+    rows = (await db.execute(select(Bonus, Customer, User).outerjoin(Customer, Customer.id == Bonus.customer_id).outerjoin(User, User.id == Bonus.user_id)
         .where(Bonus.business_id == DAM, Bonus.created_at >= begin, Bonus.created_at < finish).order_by(Bonus.id))).all()
     out = io.StringIO(); writer = csv.writer(out)
     writer.writerow(['Дата', 'Клиент', 'Телефон', 'Тип', 'Сумма', 'Заказ', 'Причина', 'Срок', 'Автор'])
     def cell(value):
         value = str(value or '')
         return "'"+value if value[:1] in ('=', '+', '-', '@', '\t', '\r') else value
-    for b, u in rows:
-        writer.writerow([cell(x) for x in (b.created_at, u.name, '***'+(u.normalized_phone or '')[-4:], b.kind, b.points, b.order_id, b.reason, b.expires_at, b.created_by)])
+    for b, u, a in rows:
+        name = a.name if b.kind.startswith('REGISTRATION') and a else (u.name if u else (a.name if a else 'Клиент'))
+        writer.writerow([cell(x) for x in (b.created_at, name, '***'+u.normalized_phone[-4:] if u and u.normalized_phone else '', b.kind, b.points, b.order_id, b.reason, b.expires_at, b.created_by)])
     service.audit(db, 'loyalty_export', actor(claims), 'bonuses', 'export', {'start': begin, 'end': finish, 'count': len(rows)})
     await db.commit()
     return Response('\ufeff'+out.getvalue(), media_type='text/csv; charset=utf-8', headers={'Content-Disposition': 'attachment; filename="dam-loyalty.csv"'})

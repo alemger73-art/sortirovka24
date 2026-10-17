@@ -82,12 +82,10 @@ export function ThemeProvider({
 
   const toggleTheme = useCallback(() => {
     if (forcedTheme) return;
-    setThemeState((prev) => {
-      const next = prev === 'light' ? 'dark' : 'light';
-      try { setCurrentUserTheme(next); } catch { /* Apply for this session when storage is unavailable. */ }
-      return next;
-    });
-  }, [forcedTheme]);
+    const next = theme === 'light' ? 'dark' : 'light';
+    setThemeState(next);
+    try { setCurrentUserTheme(next); } catch { /* Apply for this session when storage is unavailable. */ }
+  }, [forcedTheme, theme]);
 
   const activeTheme = forcedTheme ?? theme;
 

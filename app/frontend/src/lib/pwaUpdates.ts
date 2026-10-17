@@ -4,6 +4,13 @@ import { getPublicLanguage } from '@/i18n/publicLocale';
 
 const UPDATE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 let initialized = false;
+let applyPendingUpdate: (() => void) | undefined;
+
+/** Apply a waiting worker before retrying a route that belongs to an older release. */
+export function applyWebAppUpdate(): void {
+  if (applyPendingUpdate) applyPendingUpdate();
+  else window.location.reload();
+}
 
 /** Refresh the same SW scope without deleting sessions, drafts or push subscriptions. */
 export function initWebAppUpdates(): void {
@@ -29,12 +36,7 @@ export function initWebAppUpdates(): void {
       description: kz ? 'Өзгерістерді сақтап, жаңартуды басыңыз.' : 'Сохраните изменения и нажмите «Обновить».',
       action: {
         label: kz ? 'Жаңарту' : 'Обновить',
-        onClick: () => {
-          if (registration.waiting) {
-            applying = true;
-            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-          } else reload();
-        },
+        onClick: applyWebAppUpdate,
       },
     });
   };
@@ -46,6 +48,13 @@ export function initWebAppUpdates(): void {
     scope: '/', updateViaCache: 'none',
   }).then(reg => {
     registration = reg;
+    applyPendingUpdate = () => {
+      if (applying || reloading) return;
+      if (registration.waiting) {
+        applying = true;
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+      } else reload();
+    };
     const checkWaiting = () => {
       if (reg.waiting && navigator.serviceWorker.controller) offerUpdate();
     };

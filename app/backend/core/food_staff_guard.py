@@ -11,6 +11,10 @@ async def food_staff(request: Request, db: AsyncSession = Depends(get_db)):
     row = await db.get(PartnerCredentials, claims.get('partner_id')) if claims.get('partner_id') else None
     if not row or not row.is_active or row.partner_type != 'dam_alem':
         raise HTTPException(403, 'Войдите в действующую учётную запись DAM ALEM')
+    if claims.get('pin_version'):
+        import hashlib
+        if not row.pin_hash or hashlib.sha256(row.pin_hash.encode()).hexdigest()[:16] != claims['pin_version']:
+            raise HTTPException(401, 'PIN изменён. Войдите заново.')
     if row.access_role not in (None, 'owner', 'operator'):
         raise HTTPException(403, 'Проверьте роль сотрудника у владельца')
     return {**claims, 'access_role': row.access_role or 'owner', 'display_name': row.display_name or row.email or row.phone, 'staff_id': row.id}

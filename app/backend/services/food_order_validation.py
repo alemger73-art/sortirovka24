@@ -483,6 +483,7 @@ async def validate_food_order(
     staff_quote: bool = False,
     server_pricing: bool = False,
     staff_delivery_fee: Optional[float] = None,
+    staff_delivery_zone_id: Optional[str] = None,
     catalog_only: bool = False,
 ) -> Tuple[Dict[str, Any], List[dict], float]:
     """
@@ -660,6 +661,13 @@ async def validate_food_order(
         if not math.isfinite(manual_delivery_fee) or manual_delivery_fee < 0 or manual_delivery_fee > 50_000:
             raise HTTPException(status_code=400, detail="Стоимость доставки должна быть от 0 до 50 000 ₸")
 
+    delivery_tariff = None
+    zones = parse_delivery_zones(settings)
+    if staff_quote and delivery_method == 'delivery' and zones:
+        from services.dam_zone_tariffs import zone_tariff
+        delivery_tariff = zone_tariff(settings, staff_delivery_zone_id, require_payout=False)
+        manual_delivery_fee = delivery_tariff['customer_fee']
+
     client_lat = _parse_coord(data.get("delivery_lat"))
     client_lng = _parse_coord(data.get("delivery_lng"))
     lat, lng = client_lat, client_lng
@@ -675,6 +683,10 @@ async def validate_food_order(
     delivery_fee = manual_delivery_fee if manual_delivery_fee is not None else _server_delivery_fee(
         delivery_method, settings, lat, lng, marketplace_no_fee_hints=marketplace_no_fee_hints,
     )
+    if delivery_method == 'delivery' and zones and delivery_tariff is None:
+        from services.dam_zone_tariffs import zone_tariff
+        zone_quote = resolve_delivery_quote(settings, lat, lng)
+        delivery_tariff = zone_tariff(settings, zone_quote.get('zone_id'), require_payout=False)
     if selected_gift and (selected_gift.get('product_id') or selected_gift.get('product_name')):
         gift_product = next((p for p in products_by_id.values() if
             (p.id == selected_gift.get('product_id') if selected_gift.get('product_id') else p.name == selected_gift.get('product_name'))
@@ -694,7 +706,7 @@ async def validate_food_order(
         if promo_free_delivery:
             delivery_fee = 0.0
 
-    requested_apartment = manual_delivery_fee is None and requests_apartment_delivery(data, delivery_address)
+    requested_apartment = requests_apartment_delivery(data, delivery_address)
     apartment_fee = expected_apartment_fee(
         delivery_method=delivery_method,
         subtotal=subtotal,
@@ -732,11 +744,12 @@ async def validate_food_order(
     requested_bonus = bonus_amount(bonus_points_to_use)
     if requested_bonus and not account_user:
         raise HTTPException(401, "Войдите в аккаунт, чтобы списать бонусы")
-    if requested_bonus and not _phones_match(account_user.phone, customer_phone):
-        raise HTTPException(400, "Телефон заказа должен совпадать с аккаунтом")
     loyalty = await price_snapshot(db, food=subtotal, promo=promo_discount,
         delivery=delivery_fee+apartment_fee, service=expected_service,
         requested=requested_bonus, user=account_user, business_id=(getattr(rest,'business_id',None) or ('dam_alem' if brand(getattr(rest,'name',''),getattr(rest,'merchant_key',None)) else f'restaurant-{restaurant_id}')))
+    if (requested_bonus > bonus_amount(loyalty.get('registration_spent'))
+            and not _phones_match(account_user.phone, customer_phone)):
+        raise HTTPException(400, "Телефон заказа должен совпадать с аккаунтом для списания бонусов за покупки")
     bonus_points_used = float(loyalty['bonus_spent'])
     bonus_discount = bonus_points_used
     expected_total = float(loyalty['total_amount'])
@@ -815,6 +828,7 @@ async def validate_food_order(
     sanitized['pricing_snapshot'] = json.dumps({
         'breakdown': {'subtotal': subtotal, 'delivery_fee': delivery_fee + apartment_fee, 'service_fee': expected_service, 'discount': promo_discount + bonus_discount},
         'version': 1, 'service_rate': fee_rate if expected_service or (not marketplace_no_fee_hints and delivery_method != 'dine_in') else 0,
+        'delivery_tariff': delivery_tariff,
         'base_delivery_fee': base_delivery_fee, 'requested_apartment': requested_apartment,
         'staff_delivery_fee': manual_delivery_fee is not None,
         'promo_code': promo_code,

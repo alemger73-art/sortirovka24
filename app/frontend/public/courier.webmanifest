@@ -1,0 +1,22 @@
+{
+  "id": "/food/courier",
+  "name": "DAM ALEM Курьер",
+  "short_name": "DAM Курьер",
+  "start_url": "/food/courier",
+  "scope": "/food/courier",
+  "display": "standalone",
+  "background_color": "#090f1d",
+  "theme_color": "#090f1d",
+  "icons": [
+    {
+      "src": "/icon-192-v2.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512-v2.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

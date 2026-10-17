@@ -36,21 +36,14 @@ def migration_strategy() -> str:
 def main() -> None:
     validate_runtime_safety()
 
-    strategy = migration_strategy()
-    if strategy == "alembic":
-        if environment_name() in {'production','prod'}:
-            if not os.getenv('DATABASE_URL','').startswith(('postgres://','postgresql://','postgresql+asyncpg://')):
-                raise RuntimeError('Production migration requires PostgreSQL')
-            expected = os.getenv('S24_SCHEMA_VERIFY_ONLY', '').strip()
-            if expected:
-                asyncio.run(verify_schema_revision(expected))
-                print(f'Code-only release: schema {expected} verified; migrations disabled', flush=True)
-            else:
-                subprocess.run(['alembic','upgrade','head'],check=True)
-        else:
-            subprocess.run(["alembic", "upgrade", "head"], check=True)
-    else:
-        print("Staging schema strategy: isolated ORM bootstrap", flush=True)
+    guard_name = 'S24_STAGING_SCHEMA_VERIFY_ONLY' if environment_name() in {'stage', 'staging'} else 'S24_SCHEMA_VERIFY_ONLY'
+    expected = os.getenv(guard_name, '').strip()
+    if not expected:
+        raise RuntimeError('This code-only release requires S24_SCHEMA_VERIFY_ONLY; migrations are prohibited')
+    if not os.getenv('DATABASE_URL', '').startswith(('postgres://', 'postgresql://', 'postgresql+asyncpg://')):
+        raise RuntimeError('Code-only schema verification requires PostgreSQL')
+    asyncio.run(verify_schema_revision(expected))
+    print(f'Code-only release: schema {expected} verified; migrations disabled', flush=True)
 
     port = os.getenv("PORT", "8000")
     os.execvp(

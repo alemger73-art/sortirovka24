@@ -24,7 +24,9 @@ def receipt_snapshot(order):
     except (ValueError, TypeError):
         lines = []
     return {'items': lines if isinstance(lines, list) else [], 'total_amount': order.total_amount,
-            'receipt': customer_order_receipt(order)}
+            'receipt': customer_order_receipt(order),
+            'cash_given_amount': getattr(order, 'cash_given_amount', None),
+            'change_amount': getattr(order, 'change_amount', None)}
 
 
 async def customer_edit_allowed(db, order):

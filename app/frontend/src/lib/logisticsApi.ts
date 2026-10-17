@@ -4,6 +4,7 @@ import { getAPIBaseURL } from '@/lib/config';
 import { humanizeApiError } from '@/lib/apiErrors';
 import type { PrintableOrder } from './damReceipt';
 import { Capacitor } from '@capacitor/core';
+import { enableCourierWebPush } from './courierWebPush';
 
 function apiBase(): string {
   return getAPIBaseURL().replace(/\/$/, '');
@@ -83,6 +84,9 @@ export interface LogisticsTracking {
 }
 
 export interface LogisticsTask {
+  earned_payout?: number | null;
+  delivery_issues?: Array<{id:number;reason:string;comment:string;status:string;resolution?:string|null;resolved_by?:string|null;created_at?:string|null;resolved_at?:string|null}>;
+  delivered_at?: string | null; cancelled_at?: string | null; picked_up_at?: string | null;
   id: number;
   vertical: string;
   source_type: string;
@@ -158,6 +162,8 @@ export interface CourierProfile {
 }
 
 export interface CourierCabinet {
+  dispatch_contact?: {name:string;phone?:string|null};
+  server_time?: string;
   money?: CourierMoney;
   profile: CourierProfile;
   offered_task: LogisticsTask | null;
@@ -168,8 +174,10 @@ export interface CourierCabinet {
   earnings: number;
   status_flow: Record<string, [string, string]>;
   pin_set: boolean;
-  shift: { id: number; staff_name: string; opened_at: string; closed_at?: string | null; active: boolean } | null;
+  shift: { id: number; staff_name: string; opened_at: string; closed_at?: string | null; active: boolean; closing_summary?: CourierShiftSummary | null } | null;
 }
+
+export interface CourierShiftSummary {deliveries:number;earned:number;collected:number;handed_over:number;cash_balance:number;payout_due:number}
 
 export interface CourierMoney {
   collected: number; handed_over: number; cash_balance: number; earned: number;
@@ -220,11 +228,12 @@ export const logisticsApi = {
     vehicle_photo_url?: string;
   }) => api<CourierApplication>('/api/v1/logistics/courier/application', { method: 'POST', body: JSON.stringify(body) }),
 
-  courierCabinet: () => courierApi<CourierCabinet>('/api/v1/logistics/courier/cabinet'),
+  courierCabinet: (signal?:AbortSignal) => courierApi<CourierCabinet>('/api/v1/logistics/courier/cabinet',{signal}),
+  courierHistory: (beforeId?:number,signal?:AbortSignal) => courierApi<{items:LogisticsTask[];has_more:boolean;next_cursor:number|null}>(`/api/v1/logistics/courier/history${beforeId?`?before_id=${beforeId}`:''}`,{signal}),
 
   openShift: (pin: string) => courierApi<{ shift: CourierCabinet['shift'] }>('/api/v1/logistics/courier/shift/open', { method: 'POST', body: JSON.stringify({ pin }) }),
 
-  closeShift: (pin: string) => courierApi<{ shift: CourierCabinet['shift']; online: boolean }>('/api/v1/logistics/courier/shift/close', { method: 'POST', body: JSON.stringify({ pin }) }),
+  closeShift: (shiftId: number | string) => courierApi<{ shift: CourierCabinet['shift']; online: boolean }>('/api/v1/logistics/courier/shift/close', { method: 'POST', body: JSON.stringify(typeof shiftId==='number'?{shift_id:shiftId}:{pin:shiftId}) }),
 
   setOnline: (online: boolean) =>
     courierApi<{ online: boolean }>('/api/v1/logistics/courier/online', { method: 'PUT', body: JSON.stringify({ online }) }),
@@ -251,14 +260,10 @@ export const logisticsApi = {
       if (state !== 'enabled') throw new Error('Разрешите уведомления в настройках приложения');
       return;
     }
-    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) throw new Error('Push не поддерживается этим браузером');
-    if (await Notification.requestPermission() !== 'granted') throw new Error('Разрешите уведомления в настройках браузера');
-    const key = await api<{enabled:boolean;public_key:string}>('/api/v1/push/web-key');
-    if (!key.enabled || !key.public_key) throw new Error('Push пока не настроен на сервере');
-    const registration = await Promise.race([navigator.serviceWorker.ready,new Promise<never>((_,reject)=>setTimeout(()=>reject(new Error('Установите приложение или обновите страницу')),8000))]);
-    const binary=atob((key.public_key+'='.repeat((4-key.public_key.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/'));
-    const subscription=await registration.pushManager.getSubscription() || await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:Uint8Array.from(binary,c=>c.charCodeAt(0))});
-    await courierApi('/api/v1/push/register-web',{method:'POST',body:JSON.stringify({subscription:subscription.toJSON()})});
+    await enableCourierWebPush(
+      () => api<{enabled:boolean;public_key:string}>('/api/v1/push/web-key'),
+      subscription => courierApi('/api/v1/push/register-web',{method:'POST',body:JSON.stringify({subscription})}),
+    );
   },
 
   getTask: (id: number) => api<LogisticsTask>(`/api/v1/logistics/tasks/${id}`),

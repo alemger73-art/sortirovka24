@@ -12,6 +12,7 @@ from uuid import uuid4
 
 from core.auth import create_access_token, decode_access_token, generate_state
 from core.config import settings
+from core.legal import acceptance_payload, add_acceptance
 from core.database import get_db
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse
@@ -522,6 +523,7 @@ async def _get_or_create_google_user(
     avatar: str | None,
     language: str = "ru",
     agreements_accepted: bool = False,
+    legal_receipt: dict | None = None,
 ) -> tuple[User, bool]:
     user = (
         await db.execute(select(User).where(User.google_sub == google_sub))
@@ -567,6 +569,10 @@ async def _get_or_create_google_user(
             user.avatar_url = avatar
         user.last_login = datetime.now(timezone.utc)
 
+    if created:
+        from services.registration_bonus import grant
+        await grant(db, user)
+    add_acceptance(db, user.id, legal_receipt)
     await db.commit()
     await db.refresh(user)
     if created:
@@ -627,6 +633,8 @@ async def _create_user_and_login(
     phone_verified=False,
     passwordless=False,
 ):
+    receipt = acceptance_payload(request.legal_version, accepted=request.agreement_accepted and request.privacy_accepted,
+                                 language=request.language, channel='sms_registration', subject_name=request.legal_subject_name or request.name)
     normalized_phone = _normalize_phone(request.phone)
     # Only match on email when one was actually supplied — otherwise
     # `User.email == None` becomes `email IS NULL` and matches every existing
@@ -665,9 +673,12 @@ async def _create_user_and_login(
         _apply_avatar_update(user, request.avatar)
     except AvatarValidationError as exc:
         raise _avatar_http_error(exc) from exc
+    add_acceptance(db, user.id, receipt)
     if phone_verified:
         from services.crm import for_account
         await for_account(db,user)
+    from services.registration_bonus import grant
+    await grant(db, user)
     await db.commit()
     await db.refresh(user)
     await _maybe_promote_master_role(db, user)
@@ -694,10 +705,12 @@ async def register_request_sms(
     http_request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    return await _request_phone_code(request.phone, http_request, db)
+    receipt = acceptance_payload(request.legal_version, accepted=request.agreement_accepted and request.privacy_accepted,
+                                 language=request.language, channel='sms_request', subject_name=request.legal_subject_name)
+    return await _request_phone_code(request.phone, http_request, db, legal_receipt=receipt)
 
 
-async def _request_phone_code(phone, http_request, db, *, allow_existing=False, purpose="verify"):
+async def _request_phone_code(phone, http_request, db, *, allow_existing=False, purpose="verify", legal_receipt=None):
     normalized_phone = _normalize_phone(phone)
     if not normalized_phone or not _is_valid_kz_phone(normalized_phone):
         raise HTTPException(status_code=400, detail="Invalid phone")
@@ -710,6 +723,8 @@ async def _request_phone_code(phone, http_request, db, *, allow_existing=False, 
             stored_purpose = active_row.code_hash.split(":", 1)[0] if ":" in active_row.code_hash else "verify"
             if stored_purpose != purpose:
                 raise HTTPException(409, "Код уже запрошен для другого действия. Дождитесь повторной отправки.")
+            add_acceptance(db, None, legal_receipt, entity='phone_verifications', entity_id=normalized_phone, action='legal_sms_consent')
+            await db.commit()
             return _existing_code_response(active_row)
 
     client_ip = http_request.client.host if http_request.client else "unknown"
@@ -754,6 +769,7 @@ async def _request_phone_code(phone, http_request, db, *, allow_existing=False, 
             expires_at=expires_at,
         )
     )
+    add_acceptance(db, None, legal_receipt, entity='phone_verifications', entity_id=normalized_phone, action='legal_sms_consent')
     await db.commit()
     await _log_action(db, None, "sms_verification_requested", "phone_verifications", normalized_phone)
 
@@ -797,6 +813,8 @@ async def register_confirm(
     http_request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    acceptance_payload(request.legal_version, accepted=request.agreement_accepted and request.privacy_accepted,
+                       language=request.language, channel='sms_registration', subject_name=request.legal_subject_name or request.name)
     normalized_phone = await _consume_phone_code(db, request.phone, request.sms_code)
     await db.commit()
     return await _create_user_and_login(
@@ -809,6 +827,8 @@ async def register_confirm(
             language=request.language,
             agreement_accepted=request.agreement_accepted,
             privacy_accepted=request.privacy_accepted,
+            legal_version=request.legal_version,
+            legal_subject_name=request.legal_subject_name,
         ),
         http_request=http_request,
         db=db,
@@ -914,11 +934,15 @@ class PhoneSignInConfirm(BaseModel):
     language: Literal["ru", "kz"] = "ru"
     agreement_accepted: bool = False
     privacy_accepted: bool = False
+    legal_version: str | None = Field(None, max_length=32)
+    legal_subject_name: str | None = Field(None, max_length=255)
 
 
 @router.post("/signin/request-sms", response_model=RequestSmsCodeResponse)
 async def signin_request_sms(body: RequestSmsCodeRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
-    return await _request_phone_code(body.phone, http_request, db, allow_existing=True, purpose="signin")
+    receipt = acceptance_payload(body.legal_version, accepted=body.agreement_accepted and body.privacy_accepted,
+                                 language=body.language, channel='sms_request', subject_name=body.legal_subject_name)
+    return await _request_phone_code(body.phone, http_request, db, allow_existing=True, purpose="signin", legal_receipt=receipt)
 
 
 @router.post("/signin/confirm", response_model=AuthV2Response)
@@ -927,6 +951,9 @@ async def signin_confirm(body: PhoneSignInConfirm, http_request: Request, db: As
     from services import crm
     await crm.lock(db)
     user = (await db.execute(select(User).where(User.phone == phone).with_for_update())).scalar_one_or_none()
+    receipt = acceptance_payload(body.legal_version, accepted=body.agreement_accepted and body.privacy_accepted,
+                                 language=body.language, channel='sms_signin', subject_name=body.legal_subject_name,
+                                 allow_legacy=user is not None)
     if user and (user.status != "active" or not user.is_active):
         raise HTTPException(403, "User is blocked")
     if user and user.role in {"admin", "superadmin", "moderator", "courier", "driver"}:
@@ -937,11 +964,12 @@ async def signin_confirm(body: PhoneSignInConfirm, http_request: Request, db: As
     if not user:
         # Reuse registration/CRM handling without creating a usable password.
         return await _create_user_and_login(RegisterV2Request(
-            name="Пользователь" if body.language == "ru" else "Пайдаланушы",
+            name=body.legal_subject_name or ("Пользователь" if body.language == "ru" else "Пайдаланушы"),
             phone=phone, password=secrets.token_urlsafe(32), language=body.language,
-            agreement_accepted=True, privacy_accepted=True,
+            agreement_accepted=True, privacy_accepted=True, legal_version=body.legal_version, legal_subject_name=body.legal_subject_name,
         ), http_request, db, phone_verified=True, passwordless=True)
     user.phone_verified_at = user.phone_verified_at or datetime.now(timezone.utc)
+    add_acceptance(db, user.id, receipt)
     await crm.for_account(db, user)
     await db.commit()
     await _log_action(db, str(user.id), "login_sms", "users", str(user.id))
@@ -1004,18 +1032,36 @@ async def google_start(
     language: str = "ru",
     agreement_accepted: bool = False,
     privacy_accepted: bool = False,
+    legal_version: str | None = None,
+    legal_subject_name: str | None = None,
 ):
+    acceptance_payload(legal_version, accepted=agreement_accepted and privacy_accepted, language=language, channel="google", subject_name=legal_subject_name, allow_legacy=not (agreement_accepted and privacy_accepted))
     if not google_oauth_enabled():
         raise HTTPException(status_code=503, detail="Google вход не настроен на сервере")
 
     state = generate_state()
     auth_service = AuthService(db)
-    context = json.dumps({"language": language if language in {"ru", "kz"} else "ru", "accepted": agreement_accepted and privacy_accepted})
+    context = json.dumps({"language": language if language in {"ru", "kz"} else "ru", "accepted": agreement_accepted and privacy_accepted, "legal_version": legal_version, "legal_subject_name": legal_subject_name}, ensure_ascii=False)
     await auth_service.store_oidc_state(state, "google_account", context)
 
     redirect_uri = _google_callback_url(request)
     auth_url = build_google_authorization_url(state=state, redirect_uri=redirect_uri)
     return RedirectResponse(url=auth_url, status_code=status.HTTP_302_FOUND)
+
+
+class GoogleLegalStart(BaseModel):
+    language: Literal["ru", "kz"] = "ru"
+    accepted: bool = False
+    legal_version: str | None = Field(None, max_length=32)
+    legal_subject_name: str | None = Field(None, max_length=255)
+
+
+@router.post("/google/start")
+async def google_start_post(body: GoogleLegalStart, request: Request, db: AsyncSession = Depends(get_db)):
+    response = await google_start(request, db, language=body.language,
+                                  agreement_accepted=body.accepted, privacy_accepted=body.accepted,
+                                  legal_version=body.legal_version, legal_subject_name=body.legal_subject_name)
+    return {"url": response.headers["location"]}
 
 
 @router.get("/google/callback")
@@ -1052,6 +1098,10 @@ async def google_callback(
     language = context.get("language", "ru")
 
     try:
+        receipt = None
+        if not context.get("link_user"):
+            receipt = acceptance_payload(context.get("legal_version"), accepted=bool(context.get("accepted")),
+                                         language=language, channel='google', subject_name=context.get('legal_subject_name'), allow_legacy=not context.get('accepted'))
         redirect_uri = _google_callback_url(request)
         tokens = await exchange_google_code(code=code, redirect_uri=redirect_uri)
         profile = await fetch_google_userinfo(tokens["access_token"])
@@ -1070,8 +1120,9 @@ async def google_callback(
         else:
             user, _created = await _get_or_create_google_user(
                 db, google_sub=str(profile["sub"]), email=profile.get("email"),
-                name=profile.get("name"), avatar=profile.get("picture"), language=language,
+                name=context.get("legal_subject_name") or profile.get("name"), avatar=profile.get("picture"), language=language,
                 agreements_accepted=bool(context.get("accepted")),
+                legal_receipt=receipt,
             )
         session = await _issue_account_session(user, request, db)
     except GoogleOAuthError as exc:
@@ -1140,6 +1191,7 @@ async def bonus_rules(
     from services.loyalty import rules as loyalty_rules
     values = await loyalty_rules(db)
     rules = {"enabled": values['spending_enabled'], "tenge_rate": 1, "max_order_percent": values['max_spend_percent'],
+        "registration": {"points": 300, "issuer": "sortirovka24", "redeemable_in": "dam_alem", "funded_by": "dam_alem", "once_per_account": True},
         "earn": {"percent": values['cashback_rate'], "welcome_points": values['welcome_amount'], "award_on_status": "done"},
         "spend": {"login_required": True, "exclusive_with_promo": False, "applies_to": "food_after_discounts"}}
     await db.commit()
@@ -1642,6 +1694,8 @@ async def cabinet_order_detail(
         if not row or not await owns_order(db,user,row):
             raise HTTPException(status_code=404, detail="Order not found")
         data = _serialize_food_order_detail(row)
+        from services.dam_settlement import settlement_view
+        data.update(settlement_view(row))
         from models.food_operations import FoodOrderEvent
         from services.dam_order_workflow import paid
         from services.customer_order_receipt import customer_edit_allowed, public_receipt_event
@@ -2636,7 +2690,7 @@ async def admin_registrations(
     admin = await _current_user(db, authorization)
     _assert_admin(admin)
     rows = (
-        await db.execute(select(UserAction).where(UserAction.action == "register").order_by(desc(UserAction.id)).limit(200))
+        await db.execute(select(UserAction).where(UserAction.action.in_(["register", "register_google"])).order_by(desc(UserAction.id)).limit(200))
     ).scalars().all()
     return [{"id": r.id, "user_id": r.user_id, "created_at": r.created_at.isoformat() if r.created_at else None} for r in rows]
 

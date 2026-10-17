@@ -40,6 +40,9 @@ class Food_ordersData(BaseModel):
     user_id: Optional[int] = None
     scheduled_for: Optional[str] = Field(None, max_length=40)
     request_key: Optional[str] = Field(None, min_length=16, max_length=64, pattern=r'^[a-zA-Z0-9-]+$')
+    legal_version: Optional[str] = Field(None, max_length=32)
+    legal_accepted: bool = False
+    legal_language: str = Field('ru', pattern=r'^(ru|kz)$')
     deliver_to_apartment: bool = False
     restaurant_id: Optional[int] = None
     restaurant_name: Optional[str] = None
@@ -254,6 +257,9 @@ async def create_food_orders(
     """Create a new food_orders"""
     logger.debug(f"Creating new food_orders with data: {data}")
     _check_order_rate_limit(request)
+    from core.legal import acceptance_payload
+    legal_receipt = acceptance_payload(data.legal_version, accepted=data.legal_accepted,
+                                       language=data.legal_language, channel='food_checkout', order=True, subject_name=data.customer_name)
 
     from services.bonus_spending import resolve_optional_account_user
 
@@ -274,6 +280,8 @@ async def create_food_orders(
 
     payload = data.model_dump()
     payload.pop('request_key', None)
+    for field in ('legal_version', 'legal_accepted', 'legal_language'):
+        payload.pop(field, None)
     delivery_fee = payload.pop("delivery_fee", None)
     service_fee = payload.pop("service_fee", None)
     zone_name = payload.pop("delivery_zone", None)
@@ -298,7 +306,7 @@ async def create_food_orders(
     service = Food_ordersService(db)
     try:
         try:
-            result = await service.create(payload, account_user=account_user, request_key=request_key, request_hash=request_hash)
+            result = await service.create(payload, account_user=account_user, request_key=request_key, request_hash=request_hash, legal_receipt=legal_receipt)
         except IntegrityError:
             await db.rollback()
             previous = await db.get(FoodOrderRequest, request_key) if request_key else None

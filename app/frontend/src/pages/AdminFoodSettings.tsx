@@ -1,5 +1,6 @@
 import CheckoutSettings from '@/components/damalem/CheckoutSettings';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { useState, useEffect } from 'react';
 
 import { client, withRetry } from '@/lib/api';
@@ -41,6 +42,7 @@ import {
   parseDeliveryZones,
 
   serializeDeliveryZones,
+  deliveryZoneGeometryError,
 
 } from '@/lib/gastronomDelivery';
 
@@ -120,7 +122,7 @@ function getSETTING_FIELDS(adminT: (key: string) => string) {
   { key: 'min_order_amount', label: adminT("admin.ui.0554"), icon: DollarSign, placeholder: '2000', description: adminT("admin.ui.0555"), type: 'text' as const },
 
   { key: 'delivery_price', label: adminT("admin.ui.0556"), icon: Truck, placeholder: '500', description: adminT("admin.ui.0557"), type: 'text' as const },
-  { key: 'courier_payout', label: 'Оплата курьеру за доставку', icon: Truck, placeholder: '800', description: 'Вознаграждение курьеру за завершённую доставку. Не зависит от бесплатной доставки клиенту. Фиксируется при подготовке задания.', type: 'text' as const },
+  { key: 'courier_payout', label: 'Оплата курьеру за доставку', icon: Truck, placeholder: '800', description: 'Обязательный явный тариф: без него нельзя подготовить доставку. Фиксируется для заказа; изменение настройки влияет только на новые задания. Бесплатная доставка клиенту не уменьшает выплату курьеру.', type: 'text' as const },
 
   { key: 'free_delivery_from', label: adminT("admin.ui.0558"), icon: Truck, placeholder: '15000', description: adminT("admin.ui.0559"), type: 'text' as const },
 
@@ -185,6 +187,7 @@ const EXTRA_KEYS = [
 
 export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSettingsProps) {
   const { t: adminT, lang } = useLanguage();
+  const st = useStoreTranslations();
   const adminLocale = lang === 'kz' ? 'kk-KZ' : 'ru-RU';
   const SETTING_FIELDS = getSETTING_FIELDS(adminT);
 
@@ -230,7 +233,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
   useEffect(() => { loadSettings(); }, []);
   useEffect(() => {
-    client.entities.food_items.query({query: {is_active: true}, limit: 3000}).then(res => setGiftProducts(res?.data?.items || [])).catch(() => setGiftProducts([]));
+    client.entities.food_items.query({query: {is_active: true}, limit: 2000}).then(res => setGiftProducts(res?.data?.items || [])).catch(() => setGiftProducts([]));
   }, []);
 
 
@@ -323,7 +326,43 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
 
 
+  function zoneGeometryReady() {
+    for (const zone of deliveryZones) {
+      const error=deliveryZoneGeometryError(zone.polygon);
+      if(error) {toast.error(`${zone.name}: ${st(error)}`); return false;}
+    }
+    return true;
+  }
+  async function saveZoneTariffs() {
+    if (!zoneGeometryReady()) return;
+    if (!Number.isFinite(storeLat) || !Number.isFinite(storeLng) || Math.abs(storeLat) > 90 || Math.abs(storeLng) > 180) {
+      toast.error(st('Проверьте координаты заведения.')); return;
+    }
+    if(deliveryZones.some(z=>!Number.isFinite(z.price)||z.price<0||z.price>50000||z.courier_payout==null||!Number.isFinite(z.courier_payout)||z.courier_payout<0||z.courier_payout>50000)) {
+      toast.error('Укажите цену клиенту и полную выплату курьеру для каждой зоны.');return;
+    }
+    setSaving(true);
+    try {
+      const zoneValues={delivery_zones:serializeDeliveryZones(deliveryZones),store_lat:String(storeLat),store_lng:String(storeLng)};
+      const current=await client.entities.food_settings.query({limit:100});
+      const rows=current?.data?.items || settingsRows;
+      for (const [setting_key,setting_value] of Object.entries(zoneValues)) {
+        const existing=rows.find(row=>row.setting_key===setting_key);
+        if(existing) await client.entities.food_settings.update({id:String(existing.id),data:{setting_value}});
+        else await client.entities.food_settings.create({data:{setting_key,setting_value,is_active:true}});
+      }
+      const refreshed=await client.entities.food_settings.query({limit:100});
+      setSettingsRows(refreshed?.data?.items || settingsRows);
+      toast.success(st('Зоны, тарифы и точка заведения сохранены. Уже зафиксированные выплаты не изменены.'));
+    } catch(e) {toast.error((e as Error).message || 'Не удалось сохранить тарифы зон.');}
+    finally {setSaving(false);}
+  }
+
   async function saveSettings() {
+    if (!zoneGeometryReady()) return;
+    if(deliveryZones.some(z=>!Number.isFinite(z.price)||z.price<0||z.price>50000||z.courier_payout==null||!Number.isFinite(z.courier_payout)||z.courier_payout<0||z.courier_payout>50000)) {
+      toast.error('В каждой зоне укажите цену клиенту и полную выплату курьеру от 0 до 50 000 ₸.');return;
+    }
     const numericKeys = [
       'min_order_amount',
       'delivery_price',
@@ -391,7 +430,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
 
 
-      const allKeys = [...SETTING_FIELDS.map(f => f.key), ...EXTRA_KEYS];
+      const allKeys = [...SETTING_FIELDS.map(f => f.key), ...EXTRA_KEYS].filter(key=>key!== 'courier_payout' || deliveryZones.length===0);
 
 
 
@@ -544,6 +583,14 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
     <div className="space-y-6">
 
+      {deliveryZones.some(zone => zone.courier_payout == null || !Number.isFinite(zone.courier_payout) || zone.courier_payout < 0) && (
+        <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+          <p className="font-semibold">Доставка требует настройки тарифа курьера</p>
+          <p className="mt-1 text-sm">Не настроены зоны: {deliveryZones.filter(zone => zone.courier_payout == null || !Number.isFinite(zone.courier_payout) || zone.courier_payout < 0).map(zone => zone.name).join(', ')}. Заказы можно принимать, но передать их курьеру без тарифа нельзя. Укажите полную выплату курьеру и сохраните зоны.</p>
+          <button type="button" onClick={() => setSettingsTab('zones')} className="mt-2 text-sm font-semibold underline">Настроить доставку</button>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
 
         <h3 className="font-bold text-lg">{damAlemMode ? adminT("admin.ui.0603") : adminT("admin.ui.0604")}</h3>
@@ -581,7 +628,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
             <p className="mt-1 text-orange-900/80">
               {adminT("admin.ui.0612")} </p>
           </div>
-          {SETTING_FIELDS.filter(field => DELIVERY_KEYS.includes(field.key)).map(field => {
+          {SETTING_FIELDS.filter(field => DELIVERY_KEYS.includes(field.key) && (field.key !== "courier_payout" || deliveryZones.length === 0)).map(field => {
             const Icon = field.icon;
             return (
               <div key={field.key} className="bg-white rounded-xl border p-4">
@@ -677,7 +724,7 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
 
               {adminT("admin.ui.0625")} </p>
 
-            <DeliveryZoneEditor
+            <DeliveryZoneEditor courierTariffs
 
               zones={deliveryZones}
 
@@ -690,6 +737,8 @@ export default function AdminFoodSettings({ damAlemMode = false }: AdminFoodSett
               onStoreChange={(lat, lng) => { setStoreLat(lat); setStoreLng(lng); }}
 
             />
+            <Button className="mt-4" disabled={saving} onClick={()=>void saveZoneTariffs()}>{st('Сохранить тарифы зон')}</Button>
+            <p className="mt-2 text-xs text-muted-foreground">{st('Сохраняет границы зон, тарифы и точку заведения на карте. Проверьте их перед сохранением.')}</p>
 
           </div>
 

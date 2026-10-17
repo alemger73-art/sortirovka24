@@ -25,7 +25,8 @@ class PinBody(BaseModel):
 from services.food_procurement import ProcurementReport, close_blockers, report_view
 
 
-class CloseShiftBody(PinBody):
+class CloseShiftBody(BaseModel):
+    pin: str | None = Field(None, pattern=r'^\d{4}$')  # Older clients may still send it.
     shift_id: int | None = Field(None, gt=0)
     procurement: ProcurementReport | None = None
 
@@ -106,7 +107,8 @@ async def close_my_shift(body: CloseShiftBody, request: Request, db: AsyncSessio
         staff_type="partner",
         staff_id=staff_id,
         stored_pin=credentials.pin_hash,
-        pin=body.pin,
+        pin=body.pin or '',
+        authenticated=True,
         report=body.procurement,
         shift_id=body.shift_id,
     )

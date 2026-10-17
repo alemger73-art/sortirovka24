@@ -26,15 +26,15 @@ export async function quoteMenuLine(product: MenuProduct, selection: MenuSelecti
   if (!r.ok) throw new Error(typeof v.detail === 'string' ? v.detail : 'Проверьте состав заказа');
   return v.item;
 }
-export function selectionErrors(p: MenuProduct, selection: MenuSelection): string[] {
+export function selectionErrors(p: MenuProduct, selection: MenuSelection, translate: (source:string, values:readonly (string|number)[])=>string = (source, values)=>source.replace(/\{(\d+)\}/g,(_,index)=>String(values[Number(index)]))): string[] {
   const errors: string[] = [];
   activeGroups(p).forEach(g => {
     const count = selection.modifiers.filter(m => g.options.some(o => o.id === m.option_id && o.is_active !== false && !o.archived_at)).reduce((a,m) => a + (m.quantity || 1), 0);
-    if (count < Math.max(g.min_select || 0, g.is_required ? 1 : 0) || count > g.max_select) errors.push(`${g.name}: выберите от ${Math.max(g.min_select || 0, g.is_required ? 1 : 0)} до ${g.max_select}`);
+    if (count < Math.max(g.min_select || 0, g.is_required ? 1 : 0) || count > g.max_select) errors.push(translate('{0}: выберите от {1} до {2}', [g.name, Math.max(g.min_select || 0, g.is_required ? 1 : 0), g.max_select]));
   });
   (p.combo?.groups || []).forEach(g => {
     const count = selection.choices.filter(c => c.group_id === g.id && g.options.some(o => o.item_id === c.item_id && o.available !== false)).length;
-    if (count < g.min_select || count > g.max_select) errors.push(`${g.name}: выберите от ${g.min_select} до ${g.max_select}`);
+    if (count < g.min_select || count > g.max_select) errors.push(translate('{0}: выберите от {1} до {2}', [g.name, g.min_select, g.max_select]));
   });
   return errors;
 }

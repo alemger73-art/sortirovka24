@@ -29,7 +29,7 @@ async def calculate(db, day):
     sales={'kitchen':Decimal(0),'bar':Decimal(0),'unassigned':Decimal(0)}
     order_ids=[];pending=0
     for order in orders:
-        if order.status not in ('done','cancelled') or (order.status=='done' and order.payment_status!='paid'):
+        if order.status not in ('done','cancelled'):
             if local_day(order.created_at)==day: pending+=1
             continue
         if order.status!='done' or order.payment_status!='paid': continue

@@ -37,6 +37,7 @@ export default function FoodPromoCodesEditor({ codes, onChange }: Props) {
                 className="h-9 font-mono uppercase"
               />
               <select
+                aria-label={st("Тип скидки")}
                 value={code.type}
                 onChange={(e) => update(idx, { type: e.target.value as FoodPromoCode['type'] })}
                 className="h-9 rounded-md border border-input bg-background px-2 text-sm"
@@ -47,9 +48,17 @@ export default function FoodPromoCodesEditor({ codes, onChange }: Props) {
               </select>
             </div>
             <div className="grid grid-cols-2 gap-2">
+              {code.type !== 'free_delivery' && <span className="text-xs text-gray-500">{code.type === 'percent' ? st("Скидка, %") : st("Скидка, ₸")}</span>}
+              <span className="text-xs text-gray-500">{st("Мин. заказ ₸")}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
               {code.type !== 'free_delivery' && (
                 <Input
                   type="number"
+                  aria-label={code.type === 'percent' ? st("Скидка, %") : st("Скидка, ₸")}
+                  title={code.type === 'percent' ? st("Скидка, %") : st("Скидка, ₸")}
+                  min={0}
+                  max={code.type === 'percent' ? 100 : undefined}
                   value={code.value || ''}
                   onChange={(e) => update(idx, { value: Number(e.target.value) || 0 })}
                   placeholder={code.type === 'percent' ? '10' : '500'}
@@ -58,6 +67,9 @@ export default function FoodPromoCodesEditor({ codes, onChange }: Props) {
               )}
               <Input
                 type="number"
+                aria-label={st("Мин. заказ ₸")}
+                title={st("Мин. заказ ₸")}
+                min={0}
                 value={code.min_order ?? ''}
                 onChange={(e) => update(idx, { min_order: Number(e.target.value) || 0 })}
                 placeholder={st("Мин. заказ ₸")}
@@ -65,14 +77,18 @@ export default function FoodPromoCodesEditor({ codes, onChange }: Props) {
               />
             </div>
             {code.type === 'percent' && (
+              <label className="block text-xs text-gray-500">{st("Максимальная скидка, ₸ (без лимита)")}
               <Input
                 type="number"
                 min={0}
+                aria-label={st("Максимальная скидка, ₸ (без лимита)")}
+                title={st("Максимальная скидка, ₸ (без лимита)")}
                 value={code.max_discount ?? ''}
                 onChange={(e) => update(idx, { max_discount: Number(e.target.value) || undefined })}
                 placeholder={st("Максимальная скидка, ₸ (без лимита)")}
                 className="h-9"
               />
+              </label>
             )}
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <label className="text-[11px] text-gray-500">
@@ -106,7 +122,7 @@ export default function FoodPromoCodesEditor({ codes, onChange }: Props) {
                   onChange={(e) => update(idx, { active: e.target.checked })}
                 />
                  {st("Активен")} </label>
-              <Button type="button" size="sm" variant="ghost" className="text-red-600 h-8" onClick={() => onChange(codes.filter((_, i) => i !== idx))}>
+              <Button type="button" size="sm" variant="ghost" aria-label={`${st("Удалить промокод")} ${code.code}`} title={st("Удалить промокод")} className="text-red-600 h-8" onClick={() => onChange(codes.filter((_, i) => i !== idx))}>
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>

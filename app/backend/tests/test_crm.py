@@ -125,7 +125,7 @@ async def test_paginated_timeline_is_business_scoped(store):
     async with store() as db:
         c=await crm.resolve(db,'+77007778899','History',business_id=crm.DAM)
         await crm.membership(db,c,'other')
-        own=Food_orders(restaurant_id=1,business_id=crm.DAM,customer_id=c.id,created_at=L.now().isoformat())
+        own=Food_orders(restaurant_id=1,business_id=crm.DAM,customer_id=c.id,created_at='2026-10-06T06:00:00+00')
         foreign=Food_orders(restaurant_id=9,business_id='other',customer_id=c.id,created_at=L.now().isoformat())
         db.add_all([own,foreign]);await db.flush()
         db.add_all([FoodOrderEvent(order_id=own.id,actor='operator',message='Our kitchen',created_at=L.now().isoformat()),FoodOrderEvent(order_id=foreign.id,actor='operator',message='Foreign secret',created_at=L.now().isoformat())])
@@ -137,3 +137,5 @@ async def test_paginated_timeline_is_business_scoped(store):
         assert 'Our kitchen' in [x['title'] for x in all_items]
         assert 'Foreign secret' not in str(all_items)
         assert len({(x['kind'],x['id']) for x in all_items})==len(all_items)
+        own_created = next(x for x in all_items if x['kind']=='order' and x['order_id']==str(own.id))
+        assert own_created['at']=='2026-10-06T06:00:00+00:00'

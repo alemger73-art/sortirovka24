@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Literal
 
 from core.auth import create_access_token, decode_access_token
 from core.database import get_db
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Query
 from models.auth import User
 from models.logistics import CourierProfile, LogisticsTask
 from pydantic import BaseModel, Field
@@ -188,6 +188,29 @@ async def courier_pin_login(
     user = await db.get(User, profile.user_id)
     if not user or not user.is_active or user.status != "active":
         raise HTTPException(status_code=403, detail="Доступ курьера отключён")
+    # Authentication starts (or resumes) exactly one personal shift.
+    from services.food_preorders import lock_dam_operations
+    await lock_dam_operations(db)
+    # A close or PIN change may have committed while this login waited for the lock.
+    profile = await db.scalar(select(CourierProfile).where(CourierProfile.user_id==str(user.id))
+        .with_for_update().execution_options(populate_existing=True))
+    user = await db.get(User, user.id, populate_existing=True)
+    if not profile or not profile.is_verified or not user or not user.is_active or user.status!='active' or not verify_courier_pin(profile.pin_hash,body.pin):
+        raise HTTPException(status_code=403, detail='PIN изменён или доступ курьера отключён. Войдите заново.')
+    shift = await active_shift(db, 'courier', str(user.id))
+    if not shift:
+        courier_id=str(user.id)
+        try:
+            shift = await open_shift(db, staff_type='courier', staff_id=courier_id,
+                staff_name=user.name or profile.phone or 'Курьер', role='courier',
+                stored_pin=profile.pin_hash, pin=body.pin, commit=False)
+        except HTTPException as exc:
+            if exc.status_code != 409: raise
+            shift=await active_shift(db,'courier',courier_id)
+            if not shift: raise
+            user=await db.get(User,courier_id)
+            profile=await db.scalar(select(CourierProfile).where(CourierProfile.user_id==courier_id))
+    profile.is_online = True
     token = create_access_token(
         {
             "sub": str(user.id),
@@ -197,8 +220,7 @@ async def courier_pin_login(
         },
         expires_minutes=12 * 60,
     )
-    record_action(db,None,'courier_pin_login',staff_type='courier',staff_id=str(user.id),
-                  staff_name=user.name or 'Курьер',role='courier')
+    record_action(db,shift,'courier_pin_login')
     await db.commit()
     return CourierPinLoginResponse(token=token, name=user.name or profile.phone or "Курьер")
 
@@ -287,16 +309,10 @@ async def courier_cabinet(
         LogisticsTask.courier_id == str(user.id),
         LogisticsTask.status.in_(('assigned', 'picked_up', 'on_the_way', 'arrived'))
     ).order_by(LogisticsTask.id))).all()
-    active_tasks = [task_to_dict(task) for task in active_rows]
-    from models.food_orders import Food_orders
-    order_ids = [t['source_id'] for t in active_tasks if t['source_type'] == 'food_orders']
-    orders = {o.id: o for o in (await db.scalars(select(Food_orders).where(Food_orders.id.in_(order_ids)))).all()}
-    for task in active_tasks:
-        food_order = orders.get(task['source_id']) if task['source_type'] == 'food_orders' else None
-        if food_order:
-            task.update(payment_method=food_order.payment_method, payment_status=food_order.payment_status,
-                        order_source=food_order.order_source or 'app',
-                        cash_given_amount=food_order.cash_given_amount, change_amount=food_order.change_amount)
+    from services.courier_cabinet import task_cards, dispatch_contact
+    cards=await task_cards(db,{t.id:t for t in [*active_rows,*history]}.values(),str(user.id))
+    by_id={c['id']:c for c in cards}
+    active_tasks=[by_id[t.id] for t in active_rows]
     active = active_tasks[0] if active_tasks else None
 
     return {
@@ -305,13 +321,29 @@ async def courier_cabinet(
         "available_tasks": broadcast,
         "active_task": active,
         "active_tasks": active_tasks,
-        "task_history": [task_to_dict(t) for t in history],
+        "task_history": [by_id[t.id] for t in history],
+        "dispatch_contact": await dispatch_contact(db),
+        "server_time": datetime.now(timezone.utc).isoformat(),
         "earnings": earnings,
         "money": money,
         "status_flow": COURIER_STATUS_FLOW,
         "pin_set": bool(profile.pin_hash),
         "shift": shift_view(shift),
     }
+
+
+@router.get('/courier/history')
+async def courier_history(before_id: int | None=Query(None,gt=0),limit:int=Query(30,ge=1,le=50),
+    authorization:str|None=Header(None),db:AsyncSession=Depends(get_db)):
+    user=await _courier_user(db,authorization)
+    await assert_courier_cabinet_access(db,user)
+    query=select(LogisticsTask).where(LogisticsTask.courier_id==str(user.id),
+        LogisticsTask.status.in_(('delivered','cancelled')))
+    if before_id is not None:query=query.where(LogisticsTask.id<before_id)
+    rows=(await db.scalars(query.order_by(LogisticsTask.id.desc()).limit(limit+1))).all()
+    from services.courier_cabinet import task_cards
+    items=await task_cards(db,rows[:limit],str(user.id))
+    return {'items':items,'has_more':len(rows)>limit,'next_cursor':rows[limit-1].id if len(rows)>limit else None}
 
 
 def _courier_pin_limit(request: Request, user_id: str) -> None:
@@ -340,20 +372,27 @@ async def open_courier_shift(
     return {"shift": shift_view(row)}
 
 
+class CourierCloseShiftRequest(BaseModel):
+    pin: str | None = Field(None, pattern=r'^\d{4}$')
+    shift_id: int | None = Field(None, gt=0)
+
+
 @router.post("/courier/shift/close")
 async def close_courier_shift(
-    body: CourierPinRequest,
+    body: CourierCloseShiftRequest,
     request: Request,
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ):
     user = await _courier_user(db, authorization)
     profile = await assert_courier_cabinet_access(db, user)
-    _courier_pin_limit(request, str(user.id))
-    row = await close_shift(db, staff_type="courier", staff_id=str(user.id), stored_pin=profile.pin_hash, pin=body.pin)
-    profile.is_online = False
+    row = await close_shift(db, staff_type="courier", staff_id=str(user.id), authenticated=True,
+        shift_id=body.shift_id, commit=False)
+    current = await active_shift(db, 'courier', str(user.id))
+    if not current or current.id == row.id:
+        profile.is_online = False
     await db.commit()
-    return {"shift": shift_view(row), "online": False}
+    return {"shift": shift_view(row), "online": profile.is_online}
 
 
 @router.put("/courier/online")
@@ -463,6 +502,12 @@ async def update_task_status(
             raise HTTPException(status_code=404, detail="Задача не найдена")
         if task.courier_id != str(user.id):
             raise HTTPException(404, 'Доставка не найдена')
+        if body.cash_received is True and task.source_type == 'food_orders':
+            from models.food_orders import Food_orders
+            from services.food_operations import is_dam_order
+            order = await db.get(Food_orders, task.source_id)
+            if order and await is_dam_order(db, order):
+                raise HTTPException(403, 'Оплату DAM ALEM подтверждает оператор')
         if task.status == body.status == 'delivered':
             return await get_task_with_courier(db, task.id)
         shift = await require_courier_shift(db, profile)

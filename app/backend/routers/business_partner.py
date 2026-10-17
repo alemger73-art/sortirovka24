@@ -1,13 +1,17 @@
 """Public business partner application form + admin moderation."""
 
 import logging
+import json
 from datetime import datetime, timezone
 
 from core.admin_guard import require_panel_admin
 from core.database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Request
 from models.business_partner_requests import Business_partner_requests
-from pydantic import BaseModel, Field
+from models.user_management import UserAction
+from pydantic import BaseModel, Field, field_validator
+from typing import Literal
+from urllib.parse import urlsplit
 from services.telegram import notify_new_business_partner
 from sqlalchemy import desc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +29,27 @@ class BusinessApplyRequest(BaseModel):
     whatsapp: str | None = Field(default=None, max_length=32)
     activity: str = Field(..., min_length=2, max_length=64)
     description: str | None = Field(default=None, max_length=2000)
+    contact_name: str | None = Field(default=None, min_length=2, max_length=80)
+    coverage: str | None = Field(default=None, max_length=80)
+    website: str | None = Field(default=None, max_length=500)
+    consent: Literal[True]
+
+    @field_validator('name', 'activity', 'contact_name')
+    @classmethod
+    def nonblank(cls, value):
+        if value is None: return value
+        if len(value.strip()) < 2: raise ValueError('Заполните поле')
+        return value.strip()
+
+    @field_validator('website')
+    @classmethod
+    def website_url(cls, value):
+        if not value: return None
+        value=value.strip(); url=urlsplit(value)
+        if url.scheme not in ('http','https') or not url.hostname or url.username or url.password:
+            raise ValueError('Укажите полную ссылку на сайт')
+        return value
+
 
 
 class BusinessApplyResponse(BaseModel):
@@ -72,18 +97,29 @@ async def apply_for_partnership(
         raise HTTPException(status_code=400, detail="Invalid phone")
 
     whatsapp = normalize_phone(body.whatsapp) if body.whatsapp else None
+    if body.whatsapp and not whatsapp:
+        raise HTTPException(status_code=400, detail="Укажите корректный номер WhatsApp")
     now = datetime.now(timezone.utc).isoformat()
+    details = []
+    if body.contact_name: details.append("Контактное лицо: " + body.contact_name)
+    if body.coverage: details.append("Работа в Сортировке: " + body.coverage)
+    if body.website: details.append("Сайт / 2ГИС: " + body.website)
+    if body.description: details.append(body.description.strip())
 
     row = Business_partner_requests(
         name=body.name.strip(),
         phone=phone,
         whatsapp=whatsapp,
         activity=body.activity.strip(),
-        description=(body.description or "").strip() or None,
+        description="\n".join(details) or None,
         status="new",
         created_at=now,
     )
     db.add(row)
+    await db.flush()
+    db.add(UserAction(action='partner_lead_created', entity='business_partner_requests', entity_id=str(row.id),
+        payload=json.dumps({'actor':{'role':'public'},'source':'partnership_form','consent':{'accepted':True,
+            'version':'business-partnership-20261010','at':now,'purpose':'Обработка заявки и связь в WhatsApp по сотрудничеству'}})))
     await db.commit()
     await db.refresh(row)
 

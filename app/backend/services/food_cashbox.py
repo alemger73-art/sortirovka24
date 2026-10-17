@@ -63,8 +63,10 @@ async def manual(db, body, claims, shift):
     reason = body.reason.strip()
     if not reason or (body.kind in ('expense','withdrawal','deposit') and not recipient):
         raise HTTPException(422, 'Укажите получателя / от кого деньги и назначение')
-    if body.kind in ('opening','correction') and claims['access_role'] != 'owner':
-        raise HTTPException(403, 'Начальный остаток и пересчёт доступны владельцу')
+    if claims['access_role'] not in ('owner', 'operator'):
+        raise HTTPException(403, 'Операции с кассой доступны владельцу и оператору')
+    if claims['access_role'] == 'operator' and shift is None:
+        raise HTTPException(409, 'Для операций с кассой откройте свою смену')
     signed = -amount if body.kind in ('expense','withdrawal') else amount
     previous = await db.get(FoodCashEntry, str(body.id))
     if previous:
@@ -82,7 +84,7 @@ async def manual(db, body, claims, shift):
         if start:
             raise HTTPException(409, 'Начальный остаток уже задан. Используйте корректировку по пересчёту.')
     elif not start:
-        raise HTTPException(409, 'Владелец должен сначала указать фактический начальный остаток кассы')
+        raise HTTPException(409, 'Сначала пересчитайте наличные и укажите фактический начальный остаток кассы')
     if body.kind in ('expense','withdrawal') and amount > await balance(db):
         raise HTTPException(409, 'В кассе недостаточно денег. Проверьте остаток и поступления.')
     if body.kind == 'correction' and await balance(db) + amount < 0:

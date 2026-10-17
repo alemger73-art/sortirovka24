@@ -55,23 +55,7 @@ async def call_frontpad(
 ) -> Dict[str, Any]:
     if not external_side_effects_allowed():
         raise RuntimeError("FrontPad integration is disabled in this environment")
-    url = f"{FRONTPAD_API_BASE}?{method}"
-    data: Dict[str, Any] = {"secret": secret}
-    if extra_params:
-        data.update(extra_params)
-
-    logger.info("[FrontPad API] method=%s", method)
-
-    async with httpx.AsyncClient(timeout=60.0) as http_client:
-        response = await http_client.post(url, data=data)
-        response.raise_for_status()
-        try:
-            result = response.json()
-        except Exception as exc:
-            raise ValueError(f"Невалидный JSON ответ от FrontPad: {response.text[:200]}") from exc
-        if isinstance(result, dict) and result.get("error"):
-            logger.warning("[FrontPad API] error=%s", result.get("error"))
-        return result
+    raise RuntimeError("FrontPad integration has been removed")
 
 
 def api_error_message(result: Any) -> Optional[str]:

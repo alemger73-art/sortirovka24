@@ -2,6 +2,7 @@ export interface DeliveryZone {
   id: string;
   name: string;
   price: number;
+  courier_payout?: number | null;
   color: string;
   sort_order: number;
   polygon: [number, number][];
@@ -54,6 +55,7 @@ export function parseDeliveryZones(
           id: String(item.id || `zone-${idx + 1}`),
           name: String(item.name || `Зона ${idx + 1}`),
           price: Number(item.price) || 0,
+          courier_payout: item.courier_payout == null || item.courier_payout === "" ? null : Number(item.courier_payout),
           color: String(item.color || ZONE_COLORS[idx % ZONE_COLORS.length]),
           sort_order: Number(item.sort_order) || idx + 1,
           polygon,
@@ -80,12 +82,39 @@ function circlePolygon(lat: number, lng: number, radiusKm: number, points = 24):
 }
 
 export function serializeDeliveryZones(zones: DeliveryZone[]): string {
+  for (const zone of zones) {
+    const error = deliveryZoneGeometryError(zone.polygon);
+    if (error) throw new Error(`${zone.name}: ${error}`);
+  }
   return JSON.stringify(
     zones.map((z, idx) => ({
       ...z,
       sort_order: z.sort_order || idx + 1,
     }))
   );
+}
+
+/** A delivery boundary must be a simple, non-degenerate ring. */
+export function deliveryZoneGeometryError(polygon: [number, number][]): string | null {
+  const equal = (a: number[], b: number[]) => a[0] === b[0] && a[1] === b[1];
+  const points = polygon.length > 1 && equal(polygon[0], polygon[polygon.length - 1]) ? polygon.slice(0, -1) : polygon;
+  if (points.length < 3) return 'Нужно минимум 3 точки границы.';
+  if (points.some(p => !Number.isFinite(p[0]) || !Number.isFinite(p[1]) || Math.abs(p[0]) > 90 || Math.abs(p[1]) > 180)) return 'Проверьте координаты границы.';
+  const cross = (a: number[], b: number[], c: number[]) => (b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
+  const epsilon = 1e-12;
+  const onSegment = (a: number[], b: number[], p: number[]) => Math.abs(cross(a,b,p)) <= epsilon && p[0] >= Math.min(a[0],b[0])-epsilon && p[0] <= Math.max(a[0],b[0])+epsilon && p[1] >= Math.min(a[1],b[1])-epsilon && p[1] <= Math.max(a[1],b[1])+epsilon;
+  for (let i=0;i<points.length;i++) {
+    const a=points[i], b=points[(i+1)%points.length];
+    if (equal(a,b)) return 'Уберите повторяющиеся точки границы.';
+    for (let j=i+1;j<points.length;j++) {
+      if (j===i+1 || (i===0 && j===points.length-1)) continue;
+      const c=points[j], d=points[(j+1)%points.length];
+      const first=cross(a,b,c), second=cross(a,b,d), third=cross(c,d,a), fourth=cross(c,d,b);
+      if ((first*second < -epsilon*epsilon && third*fourth < -epsilon*epsilon) || onSegment(a,b,c) || onSegment(a,b,d) || onSegment(c,d,a) || onSegment(c,d,b)) return 'Граница пересекает сама себя. Передвиньте точки или нарисуйте заново.';
+    }
+  }
+  const area=points.reduce((sum,p,i)=>{const next=points[(i+1)%points.length];return sum+p[0]*next[1]-next[0]*p[1];},0);
+  return Math.abs(area) <= epsilon ? 'Точки границы не должны лежать на одной линии.' : null;
 }
 
 export function newZone(index: number, center: [number, number]): DeliveryZone {

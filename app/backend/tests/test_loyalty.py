@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from core.database import Base
 from models.auth import User
 from models.food_orders import Food_orders
+from models.food_payment import FoodPayment
 from models.food_operations import FoodOrderEvent
 from models.food_shifts import FoodShift
 from models.food_restaurants import Food_restaurants
@@ -38,7 +39,7 @@ async def store(tmp_path):
     else:
         engine = create_async_engine('sqlite+aiosqlite:///'+(tmp_path/'loyalty.db').as_posix(), connect_args={'timeout': 30})
     async with engine.begin() as c:
-        await c.run_sync(lambda conn: Base.metadata.create_all(conn, tables=[t for name,t in Base.metadata.tables.items() if name in ('users','bonuses','user_actions','food_orders','food_restaurants','food_order_events','food_shifts','user_notifications','businesses','customers','customer_identities','business_customers','customer_notes','business_locations','customer_migration_issues','channel_confirmations') or name.startswith('bonus_')]))
+        await c.run_sync(lambda conn: Base.metadata.create_all(conn, tables=[t for name,t in Base.metadata.tables.items() if name in ('users','bonuses','user_actions','food_orders','food_payments','food_restaurants','food_order_events','food_shifts','user_notifications','businesses','customers','customer_identities','business_customers','customer_notes','business_locations','customer_migration_issues','channel_confirmations') or name.startswith('bonus_')]))
     maker = async_sessionmaker(engine, expire_on_commit=False)
     async with maker() as db:
         db.add(Food_restaurants(id=1, name='DAM ALEM 2.0', merchant_key='dam_alem'))

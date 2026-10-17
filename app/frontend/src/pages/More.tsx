@@ -1,3 +1,4 @@
+import { getLegalDocuments } from '@/content/legal';
 import { Link } from 'react-router-dom';
 import {
   User, Bus, BookOpen, Car, Newspaper, AlertTriangle, Briefcase, HelpCircle,
@@ -124,6 +125,9 @@ export default function More() {
             );
           })}
         </div>
+        <nav className="mt-6 space-y-3 border-t pt-4 text-sm" aria-label={lang === 'kz' ? 'Құжаттар' : 'Документы'}>
+          {Object.entries(getLegalDocuments(lang)).map(([key, item]) => <Link key={key} className="block text-blue-600 underline" to={`/legal/${key}`}>{item.title}</Link>)}
+        </nav>
       </div>
     </Layout>
   );

@@ -57,17 +57,25 @@ async def close_blockers(db):
         FoodPayment.status.in_(('CREATED', 'WAITING'))))).all())
     issues = set((await db.scalars(select(CourierDeliveryIssue.order_id).where(CourierDeliveryIssue.status == 'open'))).all())
     items = {}
+    from services.dam_settlement import is_debt, settlement_view
+    debts=[]
+    refunds_pending=[]
     for o in current:
         reasons = []
         amount_due = max(money(0), money(o.total_amount)-paid(o))
         if o.status in ACTIVE_STATUSES:
             reasons.append(f'Предзаказ на {o.scheduled_for} требует завершения' if o.scheduled_for else 'Заказ не завершён')
-        if o.status != 'cancelled' and amount_due > 0:
+        if is_debt(o):
+            debts.append({'id':o.id, **settlement_view(o)})
+        if o.status not in ('done','cancelled') and amount_due > 0:
             reasons.append('Наличные не подтверждены' if o.payment_method == 'cash' else 'Онлайн-оплата не подтверждена')
-        if o.id in waiting:
+        if o.id in waiting and o.status not in ('done','cancelled'):
             reasons.append('Ожидается результат онлайн-платежа')
-        if o.status == 'cancelled' and paid(o) > 0 or paid(o) > money(o.total_amount):
-            reasons.append('Владелец должен оформить возврат')
+        settlement = settlement_view(o)
+        if settlement['refund_due'] > 0:
+            # Owner refund work is independent of operator shift completion.
+            # No payment, refund or cash ledger is changed by this classification.
+            refunds_pending.append({'id':o.id,'status':o.status,'refund_due':settlement['refund_due']})
         if o.id in issues:
             reasons.append('Не решена проблема доставки')
         if reasons:
@@ -83,13 +91,16 @@ async def close_blockers(db):
         counts[item['status']] = counts.get(item['status'], 0) + 1
     from services.food_preorders import future_condition
     future = (await db.scalars(select(Food_orders).where(await scope(db), future_condition(settings)).order_by(Food_orders.scheduled_for))).all()
-    return {'can_close': not items, 'orders': list(items.values()), 'counts': counts, 'future_preorders': [{'id':o.id,'scheduled_for':o.scheduled_for,'payment_status':o.payment_status,'total_amount':o.total_amount} for o in future]}
+    return {'can_close': not items, 'orders': list(items.values()), 'counts': counts, 'debts':debts,
+            'refunds_pending':refunds_pending,'refunds_pending_total':float(sum((money(x['refund_due']) for x in refunds_pending),money(0))),
+            'debt_total':float(sum((money(x['debt_amount']) for x in debts),money(0))), 'future_preorders': [{'id':o.id,'scheduled_for':o.scheduled_for,'payment_status':o.payment_status,'total_amount':o.total_amount} for o in future]}
 
 
 async def assert_can_close(db):
     result = await close_blockers(db)
     if not result['can_close']:
         raise HTTPException(409, {'code': 'active_orders', 'message': 'Смену пока нельзя закрыть', **result})
+    return result
 
 
 def enqueue_report(db, shift, report):

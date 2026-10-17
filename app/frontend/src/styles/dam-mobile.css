@@ -1,0 +1,39 @@
+/* Scoped to DAM workspaces; public checkout and other businesses stay independent. */
+.dam-mobile-cabinet,.dam-mobile-courier{min-width:0;}
+.courier-link{display:flex;min-height:48px;align-items:center;justify-content:center;gap:6px;border:1px solid hsl(var(--border));border-radius:12px;font-size:13px;font-weight:600;text-align:center;padding:8px;overflow-wrap:anywhere;}
+.dam-mobile-courier article .courier-link{flex-direction:column;min-height:56px;gap:4px;font-size:12px;line-height:16px;overflow-wrap:normal;}
+.dam-mobile-cabinet :where(section,article,fieldset,dl,dd),.dam-mobile-courier :where(section,article,fieldset,dl,dd){min-width:0;overflow-wrap:anywhere;}
+@media(max-width:1279px){
+ body:has(.dam-mobile-cabinet) header button{min-height:44px;min-width:44px;touch-action:manipulation;}
+ .dam-mobile-cabinet :where(input:not([type=checkbox]):not([type=radio]),select,textarea),.dam-mobile-courier :where(input:not([type=checkbox]):not([type=radio]),select,textarea),.dam-mobile-dialog :where(input:not([type=checkbox]):not([type=radio]),select,textarea){font-size:16px;min-height:44px;max-width:100%;min-width:0;}
+ .dam-mobile-cabinet button,.dam-mobile-courier button,.dam-mobile-dialog button{min-height:44px;white-space:normal;overflow-wrap:anywhere;}
+ .dam-mobile-cabinet :where(button,a),.dam-mobile-courier :where(button,a){touch-action:manipulation;}
+ .dam-mobile-cabinet table{display:block;max-width:100%;overflow-x:auto;}
+ .dam-mobile-cabinet dl>div{min-width:0;}
+ .dam-mobile-dialog{width:calc(100% - 16px);max-height:calc(100dvh - 16px);padding:16px;border-radius:16px;scroll-padding-block:64px;}
+ .dam-mobile-dialog>button:last-child{width:44px;height:44px;right:4px;top:4px;}
+ .dam-mobile-dialog :where(h2,h3){padding-right:28px;}
+ .dam-mobile-courier{padding-bottom:env(safe-area-inset-bottom,0px);}
+ .dam-mobile-courier nav{padding-bottom:env(safe-area-inset-bottom,0px);}
+ .dam-mobile-courier nav button{min-height:56px;}
+ .dam-mobile-cabinet{padding-bottom:16px;}
+}
+@media(max-width:1279px){
+ .dam-orders[data-selected=true] .dam-orders-list,.dam-orders[data-selected=true] .dam-orders-filters{display:none;}
+}
+
+/* Operator order editor: one content scroller and persistent save controls. */
+.dam-mobile-dialog.dam-operator-receipt{display:flex;flex-direction:column;height:95dvh;overflow:hidden;gap:16px;}
+.dam-operator-receipt>header,.dam-operator-receipt>div:first-child{flex-shrink:0;}
+.dam-operator-receipt .dam-operator-receipt-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scroll-padding-block:16px;padding:2px 4px;}
+.dam-operator-receipt-footer{flex-shrink:0;border-top:1px solid hsl(var(--border));padding-top:12px;padding-bottom:env(safe-area-inset-bottom,0px);background:hsl(var(--background));}
+.dam-operator-receipt-footer>p{margin-bottom:8px;overflow-wrap:anywhere;}
+.dam-operator-receipt-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:stretch;}
+.dam-operator-receipt .dam-operator-receipt-actions button{min-height:52px;}
+.dam-operator-receipt-actions>button:last-child{min-width:88px;}
+@media(max-width:639px){
+ .dam-operator-receipt{gap:12px;}
+ .dam-operator-receipt-actions{gap:8px;}
+ .dam-operator-receipt-actions>button:last-child{min-width:76px;}
+ .dam-operator-receipt-footer>p{font-size:12px;line-height:16px;}
+}
