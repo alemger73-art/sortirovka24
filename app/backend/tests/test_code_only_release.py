@@ -12,7 +12,10 @@ async def test_schema_verification_is_read_only_and_rejects_drift(monkeypatch, m
     transaction.__aenter__ = AsyncMock()
     transaction.__aexit__ = AsyncMock(return_value=False)
     connection.transaction = MagicMock(return_value=transaction)
-    connection.fetch.return_value = [{'version_num': 'expected' if matches else 'unexpected'}]
+    deletion_columns = [{'column_name': c} for c in ('id', 'user_id', 'status', 'requested_at', 'due_at',
+        'completed_at', 'processed_by', 'processing_evidence', 'retained_records')]
+    # First read: Alembic revision; second read: account deletion table shape (build 56).
+    connection.fetch.side_effect = [[{'version_num': 'expected' if matches else 'unexpected'}], deletion_columns]
     monkeypatch.setattr(asyncpg, 'connect', AsyncMock(return_value=connection))
     monkeypatch.setenv('DATABASE_URL', 'postgresql://local-test/database')
     if matches:
@@ -23,6 +26,22 @@ async def test_schema_verification_is_read_only_and_rejects_drift(monkeypatch, m
     connection.transaction.assert_called_once_with(readonly=True)
     connection.execute.assert_not_called()
     connection.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_schema_verification_rejects_missing_account_deletion_table(monkeypatch):
+    import asyncpg
+    connection = AsyncMock()
+    transaction = MagicMock()
+    transaction.__aenter__ = AsyncMock()
+    transaction.__aexit__ = AsyncMock(return_value=False)
+    connection.transaction = MagicMock(return_value=transaction)
+    connection.fetch.side_effect = [[{'version_num': 'expected'}], []]
+    monkeypatch.setattr(asyncpg, 'connect', AsyncMock(return_value=connection))
+    monkeypatch.setenv('DATABASE_URL', 'postgresql://local-test/database')
+    with pytest.raises(RuntimeError, match='Account deletion schema'):
+        await entry.verify_schema_revision('expected')
+    connection.execute.assert_not_called()
 
 
 def test_code_only_production_start_never_calls_alembic(monkeypatch):

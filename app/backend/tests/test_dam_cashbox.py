@@ -88,12 +88,14 @@ async def test_operator_needs_shift_and_cannot_change_opening(registration):
     async with maker() as db:
         staff=await db.get(PartnerCredentials,2)
         await open_shift(db,staff_type='partner',staff_id=2,staff_name='Operator',role='operator',stored_pin=staff.pin_hash,pin='4321')
-    for kind in ['opening','correction']:
-        assert (await client.post(BASE+'/entries',headers=operator,json=body(kind,'500'))).status_code==403
+    # Build 56: the opening count cannot be replaced, but an operator on shift may
+    # record a recount correction (owner decision pending, see audit 2026-10-18).
+    assert (await client.post(BASE+'/entries',headers=operator,json=body('opening','500'))).status_code==409
+    assert (await client.post(BASE+'/entries',headers=operator,json=body('correction','-100'))).status_code==200
     expense=body('expense','500')
     assert (await client.post(BASE+'/entries',headers=operator,json=expense)).status_code==200
     owner_snapshot=(await client.get(BASE,headers=owner)).json()
-    assert owner_snapshot['balance']==9500
+    assert owner_snapshot['balance']==9400
     assert any(e['actor']=='Operator' and e['shift_id'] for e in owner_snapshot['entries'])
     assert (await client.get('/api/v1/dam-alem/business/overview',headers=operator)).status_code==403
     assert (await client.get(BASE)).status_code==403

@@ -14,6 +14,11 @@ from services.account_profile import AvatarValidationError, normalize_avatar_url
 from services.sms import SMSDeliveryResult
 
 
+
+from core.legal import LEGAL_VERSION
+# Current registration requires a versioned legal receipt.
+LEGAL_FIELDS = {"agreement_accepted": True, "privacy_accepted": True, "legal_version": LEGAL_VERSION, "legal_subject_name": "Тест Тестов"}
+
 @pytest.fixture
 async def client(monkeypatch):
     monkeypatch.setenv("DEBUG", "1")
@@ -53,7 +58,7 @@ async def _register_test_user(client: AsyncClient) -> tuple[str, str]:
     phone = f"+7{suffix}"
     password = "TestPass123!"
 
-    sms = await client.post("/api/v1/account/register/request-sms", json={"phone": phone})
+    sms = await client.post("/api/v1/account/register/request-sms", json={"phone": phone, **LEGAL_FIELDS})
     assert sms.status_code == 200, sms.text
     code = sms.json().get("debug_code")
     assert code, "Expected debug_code in test mode"
@@ -68,6 +73,7 @@ async def _register_test_user(client: AsyncClient) -> tuple[str, str]:
             "agreement_accepted": True,
             "privacy_accepted": True,
             "sms_code": code,
+            **LEGAL_FIELDS,
         },
     )
     assert reg.status_code == 200, reg.text
@@ -78,14 +84,14 @@ async def _register_test_user(client: AsyncClient) -> tuple[str, str]:
 @pytest.mark.asyncio
 async def test_registration_uses_six_digit_code_and_resend_cooldown(client: AsyncClient):
     phone = f"+7{random.randint(1_000_000_000, 9_999_999_999)}"
-    first = await client.post("/api/v1/account/register/request-sms", json={"phone": phone})
+    first = await client.post("/api/v1/account/register/request-sms", json={"phone": phone, **LEGAL_FIELDS})
     assert first.status_code == 200, first.text
     body = first.json()
     assert body["debug_code"].isdigit()
     assert len(body["debug_code"]) == 6
     assert body["resend_after_seconds"] >= 30
 
-    second = await client.post("/api/v1/account/register/request-sms", json={"phone": phone})
+    second = await client.post("/api/v1/account/register/request-sms", json={"phone": phone, **LEGAL_FIELDS})
     assert second.status_code == 200, second.text
     assert second.json()["debug_code"] is None
     assert second.json()["resend_after_seconds"] > 0

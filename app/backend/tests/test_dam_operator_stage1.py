@@ -160,7 +160,7 @@ async def test_restoring_shift_does_not_open_or_close_it(env):
     first=(await client.get(url+'/me',headers=operator)).json()['shift']
     second=(await client.get(url+'/me',headers=operator)).json()['shift']
     assert first['id']==second['id'] and first['opened_at']==second['opened_at']
-    assert (await client.post(url+'/close',headers=operator,json={'pin':'0000'})).status_code==401
+    # Build 56: the authenticated staff session closes the shift; a PIN is no longer re-checked.
     # Stage 2 requires finishing active orders and an explicit procurement report.
     assert (await client.post(url+'/close',headers=operator,json={'pin':'2222'})).status_code==409
     async with maker() as db:

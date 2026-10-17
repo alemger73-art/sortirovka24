@@ -169,19 +169,20 @@ async def assigned(env):
 @pytest.mark.asyncio
 async def test_courier_cash_complete_and_duplicate_no_second_credit(env):
     from models.courier_workflow import CourierLedger
-    client,maker,_,_=env
+    client,maker,operator,_=env
     o,tid=await assigned(env)
-    from tests.test_dam_courier_workflow import login
+    from tests.test_dam_courier_workflow import login, operator_collects
     headers=await login(client)
     for state in ('picked_up','on_the_way','arrived'):
         response=await client.post(f'/api/v1/logistics/tasks/{tid}/status',headers=headers,json={'status':state})
         assert response.status_code==200,response.text
         current=(await client.get(BASE+f"/orders/{o['id']}",headers=env[2])).json()['order']
         assert current['workflow_state']==('HANDED_TO_COURIER' if state=='picked_up' else 'COURIER_ON_THE_WAY')
-    missing=await client.post(f'/api/v1/logistics/tasks/{tid}/status',headers=headers,json={'status':'delivered'})
-    assert missing.status_code==400
+    # Build 56: the courier cannot confirm DAM cash; the operator does.
+    denied=await client.post(f'/api/v1/logistics/tasks/{tid}/status',headers=headers,json={'status':'delivered','cash_received':True})
+    assert denied.status_code==403
     for _ in range(2):
-        r=await client.post(f'/api/v1/logistics/tasks/{tid}/status',headers=headers,json={'status':'delivered','cash_received':True})
+        r=await operator_collects(client,operator,maker,order_id=o['id'])
         assert r.status_code==200,r.text
     async with maker() as db:
         row=await db.get(Food_orders,o['id'])

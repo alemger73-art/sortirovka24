@@ -41,6 +41,13 @@ async def arrive(client, tid, auth):
         result=await client.post(f'/api/v1/logistics/tasks/{tid}/status',headers=auth,json={'status':stage})
         assert result.status_code==200,result.text
 
+async def operator_collects(client, operator, maker, order_id=1, **extra):
+    """Build 56: DAM cash is confirmed by the operator, never by the courier app."""
+    async with maker() as db:
+        version=(await db.get(Food_orders,order_id)).version
+    body={'expected_version':version,'reason':'courier','cash_received':True,**extra}
+    return await client.post(f'/api/v1/dam-alem/operations/orders/{order_id}/manual-delivery',headers=operator,json=body)
+
 async def assigned(env, payment='cash'):
     client, maker, headers, _ = env
     async with maker() as db:
@@ -115,9 +122,11 @@ async def test_cash_custody_handover_earnings_and_owner_payout(env):
     tid=await assigned(env)
     auth=await login(client)
     url=f'/api/v1/logistics/tasks/{tid}/status'
-    result=await client.post(url,headers=auth,json={'status':'delivered','cash_received':True})
+    denied=await client.post(url,headers=auth,json={'status':'delivered','cash_received':True})
+    assert denied.status_code==403,denied.text
+    result=await operator_collects(client,operator,maker)
     assert result.status_code==200,result.text
-    assert (await client.post(url,headers=auth,json={'status':'delivered','cash_received':True})).status_code==200
+    assert (await operator_collects(client,operator,maker)).status_code==200
     money=(await client.get(COURIER+'/cabinet',headers=auth)).json()['money']
     assert money['cash_balance']==1200 and money['earned']==800 and money['payout_due']==800
     assert money['deliveries']==1
@@ -125,7 +134,8 @@ async def test_cash_custody_handover_earnings_and_owner_payout(env):
         order=await db.get(Food_orders,1)
         assert order.payment_status=='paid' and order.paid_amount==1200
         assert await db.scalar(select(func.count()).select_from(CourierLedger))==2
-    assert (await client.post(COURIER+'/shift/close',headers=auth,json={'pin':'2954'})).status_code==409
+    # Build 56 lets a courier close a shift while holding cash (recorded in the closing
+    # summary); not exercised here so the handover below happens on the open shift.
     handover=await client.post(COURIER+'/cash-handover',headers=auth)
     assert handover.status_code==200,handover.text
     hid=handover.json()['id']
@@ -144,7 +154,7 @@ async def test_cash_custody_handover_earnings_and_owner_payout(env):
     assert final['cash_balance']==0 and final['handed_over']==1200 and final['payout_due']==0
     assert (await client.post(COURIER+'/shift/close',headers=auth,json={'pin':'2954'})).status_code==200
     # Lost response retry remains safe even after shift closes.
-    assert (await client.post(url,headers=auth,json={'status':'delivered','cash_received':True})).status_code==200
+    assert (await operator_collects(client,operator,maker)).status_code==200
     async with maker() as db:
         assert await db.scalar(select(func.count()).select_from(CourierLedger))==4
 
@@ -157,7 +167,7 @@ async def test_delivered_unpaid_is_independent_and_bank_cannot_be_forged(env,met
     url=f'/api/v1/logistics/tasks/{tid}/status'
     if method!='cash':
         bad=await client.post(url,headers=auth,json={'status':'delivered','cash_received':True})
-        assert bad.status_code==422,bad.text
+        assert bad.status_code==403,bad.text
     result=await client.post(url,headers=auth,json={'status':'delivered','cash_received':False})
     assert result.status_code==200,result.text
     async with maker() as db:
@@ -196,7 +206,8 @@ async def test_issue_lifecycle_reassignment_and_old_courier_loses_access(env):
     cid=created.json()['id']
     session=await client.post(COURIER+'/pin-login',json={'pin':'7148'})
     new_auth={'Authorization':'Bearer '+session.json()['token']}
-    assert (await client.post(COURIER+'/shift/open',headers=new_auth,json={'pin':'7148'})).status_code==200
+    # PIN login already starts the personal shift; a second open is a conflict.
+    assert (await client.post(COURIER+'/shift/open',headers=new_auth,json={'pin':'7148'})).status_code==409
     path=f'/api/v1/logistics/tasks/{tid}/issue'
     assert (await client.post(path,headers=new_auth,json={'reason':'other','comment':'Not mine'})).status_code==404
     assert (await client.post(path,headers=old_auth,json={'reason':'other'})).status_code==422
@@ -262,8 +273,8 @@ async def test_payout_snapshot_partial_cash_and_current_shift(env,client_fee):
         (await db.scalar(select(Food_settings).where(Food_settings.setting_key=='courier_payout'))).setting_value='900'
         await db.commit()
     route=f'/api/v1/logistics/tasks/{tid}/status'
-    assert (await client.post(route,headers=auth,json={'status':'delivered','cash_received':True,'amount':1})).status_code==422
-    result=await client.post(route,headers=auth,json={'status':'delivered','cash_received':True})
+    assert (await operator_collects(client,operator,maker,amount=1)).status_code==422  # partial cash needs a comment
+    result=await operator_collects(client,operator,maker)
     assert result.status_code==200,result.text
     values=(await client.get(COURIER+'/cabinet',headers=auth)).json()['money']
     assert values['cash_balance']==1000 and values['earned']==800

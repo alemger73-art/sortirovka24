@@ -71,8 +71,9 @@ async def test_legacy_task_requires_explicit_snapshot_before_collecting_cash(env
         (await db.get(LogisticsTask,tid)).courier_payout=None
         (await db.scalar(select(Food_settings).where(Food_settings.setting_key=='courier_payout'))).setting_value='650'
         await db.commit()
-    result=await client.post(f'/api/v1/logistics/tasks/{tid}/status',headers=auth,json={'status':'delivered','cash_received':True})
-    assert result.status_code==400
+    from tests.test_dam_courier_workflow import operator_collects
+    result=await operator_collects(client,operator,maker)
+    assert result.status_code==409,result.text
     async with maker() as db:assert await db.scalar(select(func.count()).select_from(CourierLedger))==0
     current=(await client.get(BASE+'/orders/1',headers=operator)).json()['order']
     body={'expected_version':current['version']}
@@ -83,7 +84,7 @@ async def test_legacy_task_requires_explicit_snapshot_before_collecting_cash(env
     async with maker() as db:
         (await db.scalar(select(Food_settings).where(Food_settings.setting_key=='courier_payout'))).setting_value='900'
         await db.commit()
-    assert (await client.post(f'/api/v1/logistics/tasks/{tid}/status',headers=auth,json={'status':'delivered','cash_received':True})).status_code==200
+    assert (await operator_collects(client,operator,maker)).status_code==200
     async with maker() as db:
         earnings=await db.scalar(select(CourierLedger).where(CourierLedger.event_type=='earning'))
         assert earnings.amount==650
