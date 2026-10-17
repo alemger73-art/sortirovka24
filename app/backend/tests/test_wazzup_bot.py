@@ -205,3 +205,22 @@ def test_quote_summary_and_yes_parsing():
     assert "Доставка и сбор: 500 ₸" in text and "Итого: 2 900 ₸" in text and "Kaspi QR" in text
     assert A.is_explicit_yes("Да, подтверждаю") and A.is_explicit_yes("ок")
     assert not A.is_explicit_yes("да, но без лука") and not A.is_explicit_yes("нет")
+
+
+@pytest.mark.asyncio
+async def test_prompt_caching_and_haiku_default(env, monkeypatch):
+    from services.wazzup_bot.config import get_wazzup_config
+    from services.wazzup_bot.llm import with_cache_breakpoint
+
+    monkeypatch.delenv("ANTHROPIC_MODEL", raising=False)
+    assert get_wazzup_config().anthropic_model == "claude-haiku-5-5"
+    msgs = [{"role": "user", "content": "привет"}]
+    marked = with_cache_breakpoint(msgs)
+    assert marked[-1]["content"][-1]["cache_control"] == {"type": "ephemeral"}
+    assert msgs[-1]["content"] == "привет"  # history itself is not mutated
+    _, maker, _, _ = env
+    llm = ScriptedClaude(say("Здравствуйте!"))
+    async with maker() as db:
+        await run(db, message("привет", mid="c1"), llm, FakeWazzup())
+    system = llm.calls[0]["system"]
+    assert system[0]["cache_control"] and "Сейчас" not in system[0]["text"] and "Сейчас" in system[1]["text"]

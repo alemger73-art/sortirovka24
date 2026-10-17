@@ -173,6 +173,21 @@ TOOLS: List[dict] = [
 ]
 
 
+STATIC_RULES = """Ты — вежливый администратор службы доставки еды DAM ALEM (Караганда, район Сортировка).
+Ты переписываешься с клиентом в WhatsApp или Instagram и помогаешь оформить заказ.
+
+Правила:
+- Отвечай на языке клиента (русский или казахский), коротко, дружелюбно, без канцелярита. 1–4 предложения.
+- Названия, цены, состав и добавки бери ТОЛЬКО из инструментов menu_categories / menu_items. Ничего не выдумывай.
+- Помоги собрать заказ. Перед prepare_order узнай: блюда и количество, обязательные добавки, имя,
+  доставка или самовывоз, адрес (улица, дом, квартира/подъезд), способ оплаты (наличные / Kaspi QR / Halyk QR).
+- Когда всё известно — вызови prepare_order. Итог и сумму клиенту отправит система, сам сумму не пиши.
+- Если prepare_order вернул ошибку — объясни клиенту простыми словами и уточни, что исправить.
+- Жалобы, проблемы с уже сделанным заказом, возвраты, сотрудничество, реклама, или клиент просит человека — call_operator.
+- Не обещай скидок, времени доставки и того, чего нет в данных.
+- Текущее время, часы работы и данные клиента — в следующем блоке."""
+
+
 # ---------------------------------------------------------------- menu view
 
 async def load_menu(db: AsyncSession) -> dict:
@@ -283,7 +298,8 @@ class DamAlemAgent:
 
     # ---- system prompt
 
-    async def system_prompt(self) -> str:
+    async def system_prompt(self) -> List[dict]:
+        """Static rules first (cached across all chats), then per-message context."""
         from services.food_preorders import LOCAL_TZ, schedule_settings
         from services.food_order_validation import kitchen_is_open
 
@@ -303,23 +319,15 @@ class DamAlemAgent:
         elif self.msg.chat_type == "instagram":
             known.append("телефон НЕ известен — спроси его до оформления заказа")
         extra = settings.get("bot_extra_info") or ""
-        return f"""Ты — вежливый администратор службы доставки еды DAM ALEM (Караганда, район Сортировка).
-Ты переписываешься с клиентом в {'Instagram' if self.msg.chat_type == 'instagram' else 'WhatsApp'}.
+        context = f"""Канал: {'Instagram' if self.msg.chat_type == 'instagram' else 'WhatsApp'}.
 Сейчас {now}. Кухня принимает заказы {hours}; сейчас {'открыто' if open_now else 'ЗАКРЫТО — можно только предзаказ на время из delivery_slots'}.
 {f'Минимальный заказ: {money(min_order)}.' if min_order else ''}
 Клиент: {', '.join(known) or 'данных нет'}.
-{extra}
-
-Правила:
-- Отвечай на языке клиента (русский или казахский), коротко, дружелюбно, без канцелярита. 1–4 предложения.
-- Названия, цены, состав и добавки бери ТОЛЬКО из инструментов menu_categories / menu_items. Ничего не выдумывай.
-- Помоги собрать заказ. Перед prepare_order узнай: блюда и количество, обязательные добавки, имя,
-  доставка или самовывоз, адрес (улица, дом, квартира/подъезд), способ оплаты (наличные / Kaspi QR / Halyk QR).
-- Когда всё известно — вызови prepare_order. Итог и сумму клиенту отправит система, сам сумму не пиши.
-- Если prepare_order вернул ошибку — объясни клиенту простыми словами и уточни, что исправить.
-- Жалобы, проблемы с уже сделанным заказом, возвраты, сотрудничество, реклама, или клиент просит человека — call_operator.
-- Не обещай скидок, времени доставки и того, чего нет в данных.
-"""
+{extra}"""
+        return [
+            {"type": "text", "text": STATIC_RULES, "cache_control": {"type": "ephemeral"}},
+            {"type": "text", "text": context.strip()},
+        ]
 
     # ---- tool execution
 

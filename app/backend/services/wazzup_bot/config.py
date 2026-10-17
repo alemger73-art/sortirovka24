@@ -71,7 +71,7 @@ def get_wazzup_config() -> WazzupBotConfig:
         channel_ids=channels,
         public_base_url=_env("WAZZUP_PUBLIC_BASE_URL") or _env("PUBLIC_BACKEND_URL"),
         anthropic_api_key=_env("ANTHROPIC_API_KEY"),
-        anthropic_model=_env("ANTHROPIC_MODEL", "claude-sonnet-5-5"),
+        anthropic_model=_env("ANTHROPIC_MODEL", "claude-haiku-5-5"),
         anthropic_base_url=_env("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
         human_pause_minutes=_env_int("WAZZUP_HUMAN_PAUSE_MINUTES", 30),
         session_ttl_seconds=_env_int("WAZZUP_SESSION_TTL_SECONDS", 6 * 3600),

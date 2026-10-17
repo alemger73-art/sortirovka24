@@ -13,6 +13,23 @@ from services.wazzup_bot.config import WazzupBotConfig
 logger = logging.getLogger(__name__)
 
 
+def with_cache_breakpoint(messages: List[dict]) -> List[dict]:
+    """Mark the newest turn so the conversation prefix (incl. menu tool results)
+    is read from cache on the next tool round instead of billed in full."""
+    if not messages:
+        return messages
+    out = [dict(m) for m in messages]
+    last = out[-1]
+    content = last.get("content")
+    if isinstance(content, str):
+        content = [{"type": "text", "text": content}]
+    if isinstance(content, list) and content:
+        content = [dict(b) for b in content]
+        content[-1]["cache_control"] = {"type": "ephemeral"}
+        last["content"] = content
+    return out
+
+
 class LLMError(RuntimeError):
     pass
 
@@ -21,14 +38,14 @@ class ClaudeClient:
     def __init__(self, config: WazzupBotConfig):
         self.config = config
 
-    async def create(self, *, system: str, messages: List[dict], tools: List[dict], max_tokens: int = 1200) -> Dict[str, Any]:
+    async def create(self, *, system, messages: List[dict], tools: List[dict], max_tokens: int = 1200) -> Dict[str, Any]:
         if not self.config.anthropic_api_key:
             raise LLMError("ANTHROPIC_API_KEY is not set")
         body = {
             "model": self.config.anthropic_model,
             "max_tokens": max_tokens,
             "system": system,
-            "messages": messages,
+            "messages": with_cache_breakpoint(messages),
             "tools": tools,
         }
         headers = {
