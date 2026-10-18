@@ -200,6 +200,22 @@ async def _run_dispatch_loop() -> None:
         await asyncio.sleep(5)
 
 
+async def _run_news_agent() -> None:
+    """News agent: Karaganda news → Telegram approval → site (off unless NEWS_AGENT_ENABLED)."""
+    logger = logging.getLogger(__name__)
+    from core.database import db_manager
+    from services.news_agent import run_forever
+
+    while not (db_manager._initialized and db_manager.async_session_maker):
+        await asyncio.sleep(5)
+    try:
+        await run_forever(db_manager.async_session_maker)
+    except asyncio.CancelledError:
+        raise
+    except Exception as exc:
+        logger.warning("News agent stopped: %s", exc)
+
+
 async def _run_admin_summary_watch() -> None:
     """Broadcast admin dashboard updates to WebSocket clients."""
     logger = logging.getLogger(__name__)
@@ -231,10 +247,14 @@ async def lifespan(app: FastAPI):
     app.state._startup_task = asyncio.create_task(_run_startup_initialization())
     app.state._taxi_dispatch_task = asyncio.create_task(_run_dispatch_loop())
     app.state._admin_summary_task = asyncio.create_task(_run_admin_summary_watch())
+    app.state._news_agent_task = asyncio.create_task(_run_news_agent())
 
     logger.info("=== Application startup completed (initialization running in background) ===")
     yield
 
+    news_task = getattr(app.state, "_news_agent_task", None)
+    if news_task:
+        news_task.cancel()
     food_task = getattr(app.state, "_food_notifications_task", None)
     if food_task:
         food_task.cancel()

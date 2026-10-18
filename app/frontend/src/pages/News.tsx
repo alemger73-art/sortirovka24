@@ -59,7 +59,7 @@ export function NewsDetail() {
  {state!=='ready'?<div className="news-state" role={state==='error'?'alert':'status'}><h1>{state==='loading'?text.loading:state==='missing'?text.notFound:text.error}</h1>{state==='error'&&<button onClick={()=>setRetry(x=>x+1)}>{text.retry}</button>}</div>:item&&<>
  <article className="news-article"><header><span className="news-category">{getPublicCategoryLabel(item.category,t)}</span><h1>{title}</h1><div className="news-meta"><span>{text.author}</span><time>{item.created_at?formatDate(item.created_at,lang):''}</time><span><Clock size={15}/>{minutes} {text.minutes}</span><button onClick={share}><Share2 size={17}/>{text.share}</button></div>{lead&&<p className="news-lead">{lead}</p>}</header>
  {item.image_url&&<StorageImg objectKey={item.image_url} alt={title} className="news-cover"/>}
- <div className="news-body">{body.content.split(/\n+/).filter(Boolean).map((line,i)=><p key={i}>{line}</p>)}</div>
+ <div className="news-body">{body.content.split(/\n+/).filter(Boolean).map((line,i)=>{const src=line.match(/^Источник: (.+?) — (https?:\/\/\S+)$/);return src?<p key={i} className="news-source">Источник: <a href={src[2]} target="_blank" rel="noopener noreferrer nofollow">{src[1]}</a></p>:<p key={i}>{line}</p>;})}</div>
  {item.gallery_images&&<div className="news-gallery"><StorageGallery keys={item.gallery_images}/></div>}
  {video&&<iframe src={video} title="YouTube" className="news-video" loading="lazy" allowFullScreen/>}
  {body.instagram&&<aside className="news-instagram"><Instagram size={28}/><div><p>{text.source}</p><a href={body.instagram} target="_blank" rel="noopener noreferrer">{text.instagram}<ArrowUpRight size={18}/></a></div></aside>}
