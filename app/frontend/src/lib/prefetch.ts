@@ -6,13 +6,14 @@
  */
 
 import { appCache } from './cache';
+import { moduleEnabled } from '@/hooks/useModules';
+import type { ModuleKey } from '@/config/modules';
 import { client, withRetry } from './api';
 import { apiUrl } from './config';
 import { resolveImageSrc } from './storage';
 import {
   extractImageUrls,
   preloadImagesOnIdle,
-  preloadCriticalImages,
 } from './imageCache';
 
 const prefetched = new Set<string>();
@@ -52,9 +53,11 @@ async function prefetchOne(
   cacheKey: string,
   fetcher: () => Promise<any>,
   ttl: number,
-  preloadImgs = true
+  preloadImgs = true,
+  module?: ModuleKey,
 ): Promise<void> {
   if (prefetched.has(cacheKey)) return;
+  if (module && !(await moduleEnabled(module))) return;
   if (appCache.isFresh(cacheKey)) {
     prefetched.add(cacheKey);
     if (preloadImgs) {
@@ -88,22 +91,22 @@ async function prefetchOne(
 const CACHE_5M = 5 * 60 * 1000;
 
 function prefetchGastronom(): void {
-  prefetchOne('gastronom_catalog', () => fetch(apiUrl('/api/v1/gastronom/catalog')).then(r => r.json()), CACHE_5M, false);
+  prefetchOne('gastronom_catalog', () => fetch(apiUrl('/api/v1/gastronom/catalog')).then(r => r.json()), CACHE_5M, false, 'gastronom');
 }
 
 function prefetchFood(): void {
   prefetchOne('food_categories', () => withRetry(() =>
     client.entities.food_categories.query({ sort: 'sort_order', limit: 50 })
-  ), CACHE_5M);
+  ), CACHE_5M, true, 'food');
   prefetchOne('food_items', () => withRetry(() =>
     client.entities.food_items.query({ sort: 'sort_order', limit: 200 })
-  ), CACHE_5M);
+  ), CACHE_5M, true, 'food');
 }
 
 function prefetchMasters(): void {
   prefetchOne('masters_list_all', () => withRetry(() =>
     client.entities.masters.query({ sort: '-rating', limit: 200 })
-  ), CACHE_5M);
+  ), CACHE_5M, true, 'masters');
 }
 
 function prefetchAnnouncements(): void {
@@ -113,49 +116,49 @@ function prefetchAnnouncements(): void {
       sort: '-created_at',
       limit: 50,
     })
-  ), CACHE_5M);
+  ), CACHE_5M, true, 'announcements');
 }
 
 function prefetchComplaints(): void {
   prefetchOne('complaints_list', () => withRetry(() =>
     client.entities.complaints.query({ sort: '-created_at', limit: 50 })
-  ), CACHE_5M);
+  ), CACHE_5M, true, 'complaints');
 }
 
 function prefetchNews(): void {
   prefetchOne('news_list_all', () => withRetry(() =>
     client.entities.news.query({ query: { published: true }, sort: '-created_at', limit: 50 })
-  ), CACHE_5M);
+  ), CACHE_5M, true, 'news');
 }
 
 function prefetchJobs(): void {
   prefetchOne('jobs_list_all', () => withRetry(() =>
     client.entities.jobs.query({ query: { active: true }, sort: '-created_at', limit: 50 })
-  ), CACHE_5M);
+  ), CACHE_5M, true, 'jobs');
 }
 
 function prefetchInspectors(): void {
   prefetchOne('inspectors_list_v2', () => withRetry(() =>
     client.entities.inspectors.query({ sort: 'precinct_number', limit: 100 })
-  ), CACHE_5M);
+  ), CACHE_5M, true, 'inspectors');
 }
 
 function prefetchDirectory(): void {
   prefetchOne('directory_entries_v2', () => withRetry(() =>
     client.entities.directory_entries.query({ sort: 'sort_order', limit: 200 })
-  ), CACHE_5M);
+  ), CACHE_5M, true, 'directory');
 }
 
 function prefetchRealEstate(): void {
   prefetchOne('real_estate_list', () => withRetry(() =>
     client.entities.real_estate.query({ sort: '-created_at', limit: 100 })
-  ), CACHE_5M);
+  ), CACHE_5M, true, 'real_estate');
 }
 
 function prefetchTransport(): void {
   prefetchOne('bus_routes', () => withRetry(() =>
     client.entities.bus_routes.query({ sort: 'sort_order', limit: 50 })
-  ), CACHE_5M);
+  ), CACHE_5M, true, 'transport');
 }
 
 /**
@@ -164,10 +167,6 @@ function prefetchTransport(): void {
  */
 export function prefetchFromIndex(): void {
   if (!shouldPrefetch()) return;
-
-  preloadCriticalImages([
-    'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/ad8caa55-9593-448b-8f7a-39be84ed5053.png',
-  ]);
 
   onIdle(() => {
     prefetchGastronom();

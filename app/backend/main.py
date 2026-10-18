@@ -299,7 +299,8 @@ if _cors_env:
 else:
     app.add_middleware(
         CORSMiddleware,
-        allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$|^https://([a-z0-9-]+\.)*up\.railway\.app$|^capacitor://localhost$|^ionic://localhost$|^https://localhost$",
+        # Only our own sites: any *.up.railway.app app could otherwise call the API from a browser.
+        allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$|^https://(www\.)?sortirovka24\.kz$|^https://sortirovka24[a-z0-9-]*\.up\.railway\.app$|^capacitor://localhost$|^ionic://localhost$|^https://localhost$",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -315,6 +316,14 @@ app.add_middleware(SDKCompatMiddleware)
 # Disable instantly via ENTITY_WRITE_PROTECTION=off if ever needed.
 from middleware.entity_guard import EntityWriteGuardMiddleware
 app.add_middleware(EntityWriteGuardMiddleware)
+
+# Browser hardening headers on every response (HSTS, no MIME sniffing, no framing).
+from middleware.security_headers import SecurityHeadersMiddleware
+app.add_middleware(SecurityHeadersMiddleware)
+
+# Outermost: resolve the real visitor IP (Cloudflare -> Railway) before any per-IP limit.
+from core.client_ip import RealClientIPMiddleware
+app.add_middleware(RealClientIPMiddleware)
 
 @app.middleware('http')
 async def canonical_pwa_origin(request: Request, call_next):

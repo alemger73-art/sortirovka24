@@ -27,7 +27,7 @@ import VolnaImage from '@/components/volna/VolnaImage';
 import { VOLNA_INDEX_IMAGE } from '@/lib/volnaImages';
 import Hero from '@/components/landing/Hero';
 import { useSupportSettings } from '@/hooks/useSupportSettings';
-import { useModules } from '@/hooks/useModules';
+import { useModules, moduleEnabled } from '@/hooks/useModules';
 import type { ModuleKey } from '@/config/modules';
 
 /* ─── CDN Images ─── */
@@ -150,8 +150,9 @@ export default function Index() {
       // Load all data in parallel — no gate, no sequential fallback
       const results = await Promise.allSettled([
         cachedQuery('news', () => client.entities.news.query({ query: { published: true }, sort: '-created_at', limit: 6 })),
-        cachedQuery('complaints', () => client.entities.complaints.query({ sort: '-created_at', limit: 3 })),
-        cachedQuery('jobs', () => client.entities.jobs.query({ query: { active: true }, sort: '-created_at', limit: 3 })),
+        // Disabled modules are not requested at all (avoids 404 noise and wasted traffic).
+        moduleEnabled('complaints').then(on => on ? cachedQuery('complaints', () => client.entities.complaints.query({ sort: '-created_at', limit: 3 })) : { items: [] }),
+        moduleEnabled('jobs').then(on => on ? cachedQuery('jobs', () => client.entities.jobs.query({ query: { active: true }, sort: '-created_at', limit: 3 })) : { items: [] }),
         cachedQuery('banners', () => client.entities.banners.query({ query: { active: true }, sort: '-created_at', limit: 50 })),
       ]);
 

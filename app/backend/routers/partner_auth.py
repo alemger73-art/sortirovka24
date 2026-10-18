@@ -63,15 +63,8 @@ def _verify_password(password: str, password_hash: str) -> bool:
 
 
 def _get_client_ip(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    real_ip = request.headers.get("x-real-ip")
-    if real_ip:
-        return real_ip
-    if request.client:
-        return request.client.host
-    return "unknown"
+    # Resolved by core.client_ip.RealClientIPMiddleware; raw forwarding headers are spoofable.
+    return request.client.host if request.client else "unknown"
 
 
 def _normalize_login(login: str) -> tuple[str, str]:

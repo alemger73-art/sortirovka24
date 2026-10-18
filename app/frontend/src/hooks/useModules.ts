@@ -20,6 +20,16 @@ export async function fetchModules(): Promise<ModulesMap> {
   return pending;
 }
 
+/** True only when the server confirms the module is on; disabled modules are never requested. */
+export async function moduleEnabled(key: ModuleKey): Promise<boolean> {
+  try {
+    const data = await fetchModules();
+    return data[key] === true;
+  } catch {
+    return false;
+  }
+}
+
 /** Invalidate the cache after the admin toggles modules on/off. */
 export function invalidateModulesCache() {
   cached = null;

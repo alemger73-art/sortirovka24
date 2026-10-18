@@ -3,7 +3,7 @@ import logging
 from typing import List, Optional
 
 
-from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -101,9 +101,23 @@ class ComplaintsBatchDeleteRequest(BaseModel):
     ids: List[int]
 
 
+
+def _public_view(result, request: Request):
+    """Complainants' phone numbers and account IDs are visible only to admins."""
+    from middleware.entity_guard import _is_admin
+    if _is_admin(request):
+        return result
+    def strip(item):
+        data = item if isinstance(item, dict) else {k: getattr(item, k, None) for k in ComplaintsResponse.model_fields}
+        return {**data, 'phone': None, 'user_id': None}
+    if isinstance(result, dict) and 'items' in result:
+        return {**result, 'items': [strip(i) for i in result['items']]}
+    return strip(result)
+
 # ---------- Routes ----------
 @router.get("", response_model=ComplaintsListResponse)
 async def query_complaintss(
+    request: Request,
     query: str = Query(None, description="Query conditions (JSON string)"),
     sort: str = Query(None, description="Sort field (prefix with '-' for descending)"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
@@ -131,7 +145,7 @@ async def query_complaintss(
             sort=sort,
         )
         logger.debug(f"Found {result['total']} complaintss")
-        return result
+        return _public_view(result, request)
     except HTTPException:
         raise
     except Exception as e:
@@ -141,6 +155,7 @@ async def query_complaintss(
 
 @router.get("/all", response_model=ComplaintsListResponse)
 async def query_complaintss_all(
+    request: Request,
     query: str = Query(None, description="Query conditions (JSON string)"),
     sort: str = Query(None, description="Sort field (prefix with '-' for descending)"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
@@ -168,7 +183,7 @@ async def query_complaintss_all(
             sort=sort
         )
         logger.debug(f"Found {result['total']} complaintss")
-        return result
+        return _public_view(result, request)
     except HTTPException:
         raise
     except Exception as e:
@@ -178,6 +193,7 @@ async def query_complaintss_all(
 
 @router.get("/{id}", response_model=ComplaintsResponse)
 async def get_complaints(
+    request: Request,
     id: int,
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
@@ -192,7 +208,7 @@ async def get_complaints(
             logger.warning(f"Complaints with id {id} not found")
             raise HTTPException(status_code=404, detail="Complaints not found")
         
-        return result
+        return _public_view(result, request)
     except HTTPException:
         raise
     except Exception as e:

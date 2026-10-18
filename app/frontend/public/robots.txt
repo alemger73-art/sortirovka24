@@ -8,7 +8,6 @@ Disallow: /cabinet
 Disallow: /account
 Disallow: /login
 Disallow: /register
-Disallow: /system-portal-924
 Disallow: /operator
 Disallow: /orders
 Disallow: /checkout

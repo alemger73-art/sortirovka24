@@ -39,7 +39,7 @@ async def create_bucket(request: BucketRequest, _current_user: UserResponse = De
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to create bucket: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка хранилища. Попробуйте ещё раз.")
 
 
 @router.get("/list-buckets", response_model=BucketListResponse)
@@ -55,7 +55,7 @@ async def list_buckets(_current_user: UserResponse = Depends(get_admin_user)):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to list buckets: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка хранилища. Попробуйте ещё раз.")
 
 
 @router.get("/list-objects", response_model=ObjectListResponse)
@@ -71,7 +71,7 @@ async def list_objects(request: OSSBaseModel = Depends(), _current_user: UserRes
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to list objects: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка хранилища. Попробуйте ещё раз.")
 
 
 @router.get("/get-object-info", response_model=ObjectInfo)
@@ -87,7 +87,7 @@ async def get_object_info(request: ObjectRequest = Depends(), _current_user: Use
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to get object metadata: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка хранилища. Попробуйте ещё раз.")
 
 
 @router.post("/rename-object", response_model=RenameResponse)
@@ -103,7 +103,7 @@ async def rename_object(request: RenameRequest, _current_user: UserResponse = De
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to rename object: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка хранилища. Попробуйте ещё раз.")
 
 
 @router.delete("/delete-object", response_model=DeleteResponse)
@@ -119,7 +119,7 @@ async def delete_object(request: ObjectRequest, _current_user: UserResponse = De
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to delete object: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка хранилища. Попробуйте ещё раз.")
 
 
 @router.post("/upload-url", response_model=FileUpDownResponse)
@@ -142,7 +142,7 @@ async def upload_file(request: FileUpDownRequest, _current_user: UserResponse = 
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to generate upload URL: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка хранилища. Попробуйте ещё раз.")
 
 
 @router.post("/download-url", response_model=FileUpDownResponse)
@@ -158,7 +158,7 @@ async def download_file(request: FileUpDownRequest, _current_user: UserResponse 
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to generate download URL: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка хранилища. Попробуйте ещё раз.")
 
 
 # ─── Public endpoints (no auth required) ─────────────────────────
@@ -188,12 +188,12 @@ async def public_download_file(request: FileUpDownRequest):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to generate public download URL: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка хранилища. Попробуйте ещё раз.")
 
 
 # ─── Allowed MIME types for public uploads ────────────────────────
 ALLOWED_UPLOAD_EXTENSIONS = {
-    "jpg", "jpeg", "png", "gif", "webp", "bmp", "svg",
+    "jpg", "jpeg", "png", "gif", "webp", "bmp",  # no SVG: it can carry scripts
     "mp4", "webm", "mov", "avi",
     "pdf",
 }
@@ -247,7 +247,7 @@ async def public_upload_file(request: FileUpDownRequest, http_request: Request):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to generate public upload URL: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка хранилища. Попробуйте ещё раз.")
 
 
 @router.put("/upload-proxy/{token}", response_model=UploadImageResponse)
@@ -277,4 +277,4 @@ async def upload_via_proxy(token: str, request: Request):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.error(f"Failed upload proxy to Cloudinary: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка хранилища. Попробуйте ещё раз.")

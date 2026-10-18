@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { client, withRetry } from '@/lib/api';
 import { fetchWithCache } from '@/lib/cache';
+import { moduleEnabled } from '@/hooks/useModules';
 
 export interface HeroStatItem {
   value: number;
@@ -61,7 +62,7 @@ export function useHomepageHeroStats() {
 
         if (isAuto) {
           const [mastersRes, cafesRes] = await Promise.allSettled([
-            fetchWithCache('hero_stats_masters', () => withRetry(() => client.entities.masters.query({ limit: 1 })), CACHE_TTL),
+            moduleEnabled('masters').then(on => on ? fetchWithCache('hero_stats_masters', () => withRetry(() => client.entities.masters.query({ limit: 1 })), CACHE_TTL) : ({ data: { total: 0 } } as any)),
             fetchWithCache('hero_stats_cafes', () => withRetry(() => client.entities.food_categories.query({ limit: 1 })), CACHE_TTL),
           ]);
           if (cancelled) return;

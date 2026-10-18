@@ -129,6 +129,34 @@ def _facts(values: list[tuple[str, Any]]) -> str:
     return f"<ul>{items}</ul>" if items else ""
 
 
+# Public sections owned by an admin-toggleable module (see services/module_settings.py).
+PATH_MODULE = {
+    "/news": "news", "/announcements": "announcements", "/real-estate": "real_estate",
+    "/jobs": "jobs", "/food": "food", "/directory": "directory", "/transport": "transport",
+    "/inspectors": "inspectors", "/business": "business", "/masters": "masters",
+    "/salons": "salons", "/questions": "questions", "/complaints": "complaints",
+}
+
+
+def _module_for(path: str) -> str | None:
+    for prefix, key in PATH_MODULE.items():
+        if path == prefix or path.startswith(prefix + "/"):
+            return key
+    return None
+
+
+async def _disabled_modules() -> set[str]:
+    """Modules switched off by the owner; empty on any database problem (fail open)."""
+    if not db_manager.async_session_maker:
+        return set()
+    try:
+        async with db_manager.async_session_maker() as session:
+            from services.module_settings import get_settings_dict
+            return {key for key, value in (await get_settings_dict(session)).items() if value == "false"}
+    except Exception:
+        return set()
+
+
 def _base_page(path: str) -> SeoPage:
     if path == "/delete-account":
         return SeoPage(
@@ -175,17 +203,24 @@ async def build_seo_page(path: str) -> SeoPage:
     if path == "/partners" or path.startswith("/partners/"):
         return await _partner_seo_page(path)
     page = _base_page(path)
+    disabled = await _disabled_modules()
+    if _module_for(path) in disabled:
+        # A switched-off section must not be indexed or linked as if it worked.
+        return SeoPage("Раздел временно недоступен | Sortirovka 24", "Раздел временно отключён.", path,
+                       "Раздел временно недоступен", "Вернитесь на главную страницу Sortirovka 24.",
+                       robots="noindex, follow", status_code=404)
     dynamic_match = DYNAMIC_PUBLIC_ROUTE.fullmatch(path)
     if page.status_code == 404 or (page.robots.startswith("noindex") and not dynamic_match):
         return page
 
     if path == "/":
+        sections = [(p, n) for p, n in (("/news", "Новости"), ("/announcements", "Объявления"),
+            ("/real-estate", "Недвижимость"), ("/jobs", "Работа"), ("/food", "DÄM ALEM"),
+            ("/directory", "Справочник"), ("/transport", "Транспорт")) if PATH_MODULE[p] not in disabled]
         page.body = (
-            "<section><h2>Вся Сортировка в одном месте</h2><p>Новости района, объявления, "
-            "недвижимость, вакансии, доставка еды, расписание транспорта и полезные контакты.</p>"
-            '<nav aria-label="Основные разделы"><a href="/news">Новости</a> · <a href="/announcements">Объявления</a> · '
-            '<a href="/real-estate">Недвижимость</a> · <a href="/jobs">Работа</a> · <a href="/food">DÄM ALEM</a> · '
-            '<a href="/directory">Справочник</a></nav></section>'
+            "<section><h2>Вся Сортировка в одном месте</h2><p>Новости района, полезные контакты "
+            "и повседневные сервисы для жителей Сортировки.</p>"
+            '<nav aria-label="Основные разделы">' + " · ".join(f'<a href="{p}">{n}</a>' for p, n in sections) + "</nav></section>"
         )
         page.schemas.append(_website_schema())
         page.schemas.append({
@@ -358,7 +393,8 @@ def render_html(document: str, page: SeoPage) -> str:
 
 async def build_sitemap_xml() -> str:
     """Build a sitemap from public routes and currently published records."""
-    urls: dict[str, str | None] = {path: None for path in PUBLIC_PAGES}
+    disabled = await _disabled_modules()
+    urls: dict[str, str | None] = {path: None for path in PUBLIC_PAGES if _module_for(path) not in disabled}
     if db_manager.async_session_maker:
         try:
             async with db_manager.async_session_maker() as session:
@@ -397,6 +433,7 @@ async def build_sitemap_xml() -> str:
         except Exception:
             pass
 
+    urls = {path: lastmod for path, lastmod in urls.items() if _module_for(path) not in disabled}
     entries = []
     for path, lastmod in urls.items():
         loc = xml_escape(f"{SITE_URL}{path if path != '/' else '/'}")

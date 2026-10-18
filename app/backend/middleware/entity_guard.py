@@ -61,6 +61,8 @@ ADMIN_READ_ENTITIES = {
     "become_master_requests",
     "frontpad_settings",
     "couriers",
+    "park_orders",       # customer names and phones
+    "user_preferences",  # per-account data, never a public list
 }
 
 # Entities whose UPDATE (PUT/PATCH) is performed by a public client.

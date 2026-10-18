@@ -5,7 +5,7 @@ Telegram integration API routes with category-based routing.
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
 from services.telegram import (
@@ -19,6 +19,7 @@ from services.telegram import (
     get_routing_info,
 )
 from utils.rate_limit import check_ip_rate_limit
+from dependencies.auth import get_admin_user
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +116,9 @@ async def notify_master_request(data: MasterRequestNotify, request: Request):
 
 
 @router.post("/notify/complaint", response_model=NotifyResponse)
-async def notify_complaint(data: ComplaintNotify):
+async def notify_complaint(data: ComplaintNotify, request: Request):
+    # Public forms trigger these; limit so nobody can flood the owner's Telegram chat.
+    check_ip_rate_limit(request, key_prefix="telegram_complaint", max_hits=10)
     try:
         success = await notify_new_complaint(data.model_dump())
         return NotifyResponse(
@@ -142,7 +145,9 @@ async def notify_become_master(data: BecomeMasterNotify, request: Request):
 
 
 @router.post("/notify/announcement", response_model=NotifyResponse)
-async def notify_announcement(data: AnnouncementNotify):
+async def notify_announcement(data: AnnouncementNotify, request: Request):
+    # Public forms trigger these; limit so nobody can flood the owner's Telegram chat.
+    check_ip_rate_limit(request, key_prefix="telegram_announcement", max_hits=10)
     try:
         success = await notify_new_announcement(data.model_dump())
         return NotifyResponse(
@@ -155,7 +160,9 @@ async def notify_announcement(data: AnnouncementNotify):
 
 
 @router.post("/notify/job", response_model=NotifyResponse)
-async def notify_job(data: JobNotify):
+async def notify_job(data: JobNotify, request: Request):
+    # Public forms trigger these; limit so nobody can flood the owner's Telegram chat.
+    check_ip_rate_limit(request, key_prefix="telegram_job", max_hits=10)
     try:
         success = await notify_new_job(data.model_dump())
         return NotifyResponse(
@@ -168,7 +175,7 @@ async def notify_job(data: JobNotify):
 
 
 @router.post("/test", response_model=NotifyResponse)
-async def send_test_message():
+async def send_test_message(_admin=Depends(get_admin_user)):
     if not _is_configured():
         return NotifyResponse(
             success=False,
