@@ -418,14 +418,58 @@ async def decide(db: AsyncSession, news_id: int, publish: bool) -> tuple[str, Op
     return "Отклонено", None
 
 
+def channel_post_text(news: News) -> str:
+    e = html.escape
+    body = " ".join(x for x in (news.short_description, _body(news.content or "")) if x)
+    if len(body) > 700:
+        body = short_lead(body, 700)
+    return f"<b>{e(news.title or '')}</b>\n\n{e(body)}\n\n👉 <a href=\"{SITE}/news/{news.id}\">Читать на «Сортировка 24»</a>"
+
+
+async def post_to_channel(db: AsyncSession, client: httpx.AsyncClient, news: News) -> Optional[str]:
+    """Post a published news item to the bound Telegram channel/group. Returns its title or None."""
+    _, state = await load_state(db)
+    await db.commit()
+    channel = state.get("channel") or {}
+    if not channel.get("id"):
+        return None
+    await tg(client, "sendMessage", {"chat_id": channel["id"], "text": channel_post_text(news), "parse_mode": "HTML"})
+    return channel.get("title") or "канал"
+
+
+async def bind_channel(db: AsyncSession, client: httpx.AsyncClient, member: dict[str, Any]) -> None:
+    """The owner added the bot to a channel/group as admin → news also go there."""
+    chat = member.get("chat") or {}
+    actor = str((member.get("from") or {}).get("id", ""))
+    status = (member.get("new_chat_member") or {}).get("status")
+    if chat.get("type") not in ("channel", "group", "supergroup") or actor != approval_chat():
+        return
+    row, state = await load_state(db)
+    title = chat.get("title") or "канал"
+    if status in ("administrator", "member", "creator"):
+        state["channel"] = {"id": chat.get("id"), "title": title}
+        text = (f"Канал «{title}» подключён. Новости, которые вы одобрите, будут публиковаться и там."
+                if status != "member" or chat.get("type") != "channel" else
+                f"Меня добавили в «{title}», но не админом — сделайте меня администратором, чтобы я мог публиковать.")
+    else:
+        if (state.get("channel") or {}).get("id") == chat.get("id"):
+            state.pop("channel", None)
+        text = f"Меня убрали из «{title}». Новости туда больше не публикуются."
+    save_state(row, state)
+    await db.commit()
+    await tg(client, "sendMessage", {"chat_id": approval_chat(), "text": text})
+
+
 async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dict[str, Any]) -> None:
+    if isinstance(update.get("my_chat_member"), dict):
+        await bind_channel(db, client, update["my_chat_member"])
+        return
     message = update.get("message")
     if isinstance(message, dict):
         chat = message.get("chat") or {}
         if chat.get("type") == "private" and str(message.get("text") or "").strip().split("@")[0] in ("/start", "/id"):
             await tg(client, "sendMessage", {"chat_id": chat.get("id"), "text":
-                     f"Бот новостей «Сортировка 24».\nНомер этого чата: {chat.get('id')}\n"
-                     "Сюда будут приходить новости на согласование."})
+                     f"Бот «Сортировка 24»: новости и заявки партнёров.\nНомер этого чата: {chat.get('id')}"})
         return
     callback = update.get("callback_query")
     if not isinstance(callback, dict):
@@ -437,12 +481,27 @@ async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dic
     sender = str((callback.get("from") or {}).get("id", ""))
     allowed = bool(approval_chat()) and chat_id == approval_chat() and (
         sender in admin_ids() if admin_ids() else sender == chat_id)
-    match = re.fullmatch(r"nw:([pr]):(\d+)", data)
-    if not allowed or not match:
+    news_match = re.fullmatch(r"nw:([pr]):(\d+)", data)
+    lead_match = re.fullmatch(r"pl:([wndr]):(\d+)", data)
+    if not allowed or not (news_match or lead_match):
         await tg(client, "answerCallbackQuery", {"callback_query_id": callback_id,
                  "text": "Нет доступа" if not allowed else "Готово"})
         return
-    answer, news = await decide(db, int(match.group(2)), match.group(1) == "p")
+    if lead_match:
+        from services import partner_agent
+        answer = await partner_agent.handle_callback(db, client, lead_match.group(1), int(lead_match.group(2)),
+                                                     chat_id, msg.get("message_id"))
+        await tg(client, "answerCallbackQuery", {"callback_query_id": callback_id, "text": answer})
+        return
+    answer, news = await decide(db, int(news_match.group(2)), news_match.group(1) == "p")
+    if news and answer == "Опубликовано на сайте":
+        try:
+            where = await post_to_channel(db, client, news)
+            if where:
+                answer = f"Опубликовано на сайте и в «{where}»"
+        except Exception as exc:
+            logger.warning("[NewsAgent] channel post failed: %s", exc)
+            answer = "Опубликовано на сайте (в канал не получилось)"
     button = ({"text": "✅ Опубликовано — открыть", "url": f"{SITE}/news/{news.id}"} if news
               else {"text": f"• {answer}", "callback_data": "nw:x"})
     try:
@@ -567,20 +626,35 @@ async def _collect(db: AsyncSession, client: httpx.AsyncClient, report: dict[str
 # ── background loop ─────────────────────────────────────────────────────────
 
 async def run_forever(session_maker) -> None:
-    """Long-polls the bot for decisions and runs collection when due."""
+    """One bot, one loop: news collection, partner leads, and the owner's button taps."""
+    from core.deploy_safety import external_side_effects_allowed
+    from services import partner_agent
+
     await asyncio.sleep(20)
     offset: Optional[int] = None
+    next_reminder = 0.0
     async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}) as client:
         while True:
             try:
-                if not enabled() or not bot_token():
+                if not bot_token() or not approval_chat() or not external_side_effects_allowed():
                     await asyncio.sleep(300)
                     continue
                 async with session_maker() as db:
-                    report = await collect(db, client)
-                    if report:
-                        logger.info("[NewsAgent] run: %s", report)
-                    params: dict[str, Any] = {"timeout": 25, "allowed_updates": ["callback_query", "message"]}
+                    if enabled():
+                        report = await collect(db, client)
+                        if report:
+                            logger.info("[NewsAgent] run: %s", report)
+                    if partner_agent.enabled():
+                        try:
+                            await partner_agent.process_new(db, client)
+                            if asyncio.get_running_loop().time() >= next_reminder:
+                                next_reminder = asyncio.get_running_loop().time() + 600
+                                await partner_agent.remind(db, client)
+                        except Exception as exc:
+                            await db.rollback()
+                            logger.warning("[PartnerAgent] pass failed: %s", exc)
+                    params: dict[str, Any] = {"timeout": 25,
+                                              "allowed_updates": ["callback_query", "message", "my_chat_member"]}
                     if offset is not None:
                         params["offset"] = offset
                     data = await tg(client, "getUpdates", params, timeout=35)

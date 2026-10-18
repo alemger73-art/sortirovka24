@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field, field_validator
 from typing import Literal
 from urllib.parse import urlsplit
 from services.telegram import notify_new_business_partner
+from services import partner_crm
 from sqlalchemy import desc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from utils.phone import normalize_phone
@@ -67,6 +68,11 @@ class BusinessPartnerItem(BaseModel):
     description: str | None = None
     status: str | None = None
     created_at: str | None = None
+    category: str | None = None
+    duplicate_of: int | None = None
+    next_contact: str | None = None
+    last_note: str | None = None
+    last_activity_at: str | None = None
 
 
 class BusinessPartnerListResponse(BaseModel):
@@ -75,7 +81,25 @@ class BusinessPartnerListResponse(BaseModel):
 
 
 class BusinessPartnerUpdateRequest(BaseModel):
-    status: str = Field(..., pattern="^(new|in_progress|done|rejected)$")
+    status: str = Field(..., pattern=partner_crm.STAGE_PATTERN)
+
+
+class PartnerNoteRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=2000)
+
+
+class PartnerNextContactRequest(BaseModel):
+    at: str | None = Field(default=None, max_length=40)
+
+
+class PartnerTimelineItem(BaseModel):
+    id: int
+    kind: str
+    title: str
+    text: str | None = None
+    actor: str | None = None
+    via: str | None = None
+    at: str | None = None
 
 
 @router.post("/apply", response_model=BusinessApplyResponse)
@@ -151,7 +175,7 @@ async def apply_for_partnership(
     )
 
 
-def _to_item(row: Business_partner_requests) -> BusinessPartnerItem:
+def _to_item(row: Business_partner_requests, crm: dict | None = None) -> BusinessPartnerItem:
     return BusinessPartnerItem(
         id=row.id,
         name=row.name or "",
@@ -161,7 +185,27 @@ def _to_item(row: Business_partner_requests) -> BusinessPartnerItem:
         description=row.description,
         status=row.status,
         created_at=row.created_at,
+        **(crm or {}),
     )
+
+
+def _admin_name(payload: dict) -> str:
+    return str(payload.get("username") or "admin")
+
+
+async def _lead(db: AsyncSession, request_id: int) -> Business_partner_requests:
+    row = await db.get(Business_partner_requests, request_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+    return row
+
+
+def _refresh_admin() -> None:
+    try:
+        from services.admin_event_hub import admin_event_hub
+        admin_event_hub.request_refresh("business_partner_update")
+    except Exception:
+        pass
 
 
 @router.get("/admin/requests", response_model=BusinessPartnerListResponse)
@@ -184,7 +228,8 @@ async def admin_list_partner_requests(
         else:
             query = query.where(Business_partner_requests.status == status)
     rows = (await db.execute(query)).scalars().all()
-    items = [_to_item(r) for r in rows]
+    history = await partner_crm.events(db, [r.id for r in rows])
+    items = [_to_item(r, partner_crm.summary(history.get(r.id, []))) for r in rows]
     return BusinessPartnerListResponse(items=items, total=len(items))
 
 
@@ -195,21 +240,50 @@ async def admin_update_partner_request(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    require_panel_admin(request)
-    row = (
-        await db.execute(
-            select(Business_partner_requests).where(Business_partner_requests.id == request_id)
-        )
-    ).scalar_one_or_none()
-    if not row:
-        raise HTTPException(status_code=404, detail="Заявка не найдена")
-    row.status = body.status
+    admin = require_panel_admin(request)
+    row = await _lead(db, request_id)
+    partner_crm.set_stage(db, row, body.status, _admin_name(admin), "admin")
     await db.commit()
     await db.refresh(row)
-    try:
-        from services.admin_event_hub import admin_event_hub
+    _refresh_admin()
+    history = await partner_crm.events(db, [row.id])
+    return _to_item(row, partner_crm.summary(history.get(row.id, [])))
 
-        admin_event_hub.request_refresh("business_partner_update")
-    except Exception:
-        pass
-    return _to_item(row)
+
+@router.get("/admin/requests/{request_id}/timeline", response_model=list[PartnerTimelineItem])
+async def admin_partner_timeline(request_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    require_panel_admin(request)
+    await _lead(db, request_id)
+    history = await partner_crm.events(db, [request_id])
+    return [partner_crm.timeline_item(r) for r in reversed(history.get(request_id, []))]
+
+
+@router.post("/admin/requests/{request_id}/notes", response_model=PartnerTimelineItem)
+async def admin_partner_note(request_id: int, body: PartnerNoteRequest, request: Request,
+                             db: AsyncSession = Depends(get_db)):
+    admin = require_panel_admin(request)
+    await _lead(db, request_id)
+    text = body.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Пустая заметка")
+    row = partner_crm.record(db, request_id, "partner_lead_note", {"text": text, "actor": _admin_name(admin), "via": "admin"})
+    await db.commit()
+    await db.refresh(row)
+    _refresh_admin()
+    return partner_crm.timeline_item(row)
+
+
+@router.post("/admin/requests/{request_id}/next-contact", response_model=PartnerTimelineItem)
+async def admin_partner_next_contact(request_id: int, body: PartnerNextContactRequest, request: Request,
+                                     db: AsyncSession = Depends(get_db)):
+    admin = require_panel_admin(request)
+    await _lead(db, request_id)
+    try:
+        at = partner_crm.parse_next_contact(body.at)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    row = partner_crm.record(db, request_id, "partner_lead_next_contact", {"at": at, "actor": _admin_name(admin), "via": "admin"})
+    await db.commit()
+    await db.refresh(row)
+    _refresh_admin()
+    return partner_crm.timeline_item(row)

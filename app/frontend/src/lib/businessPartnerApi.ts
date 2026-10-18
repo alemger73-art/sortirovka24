@@ -11,6 +11,21 @@ export interface BusinessPartnerRequest {
   description?: string | null;
   status?: string | null;
   created_at?: string | null;
+  category?: string | null;
+  duplicate_of?: number | null;
+  next_contact?: string | null;
+  last_note?: string | null;
+  last_activity_at?: string | null;
+}
+
+export interface PartnerTimelineItem {
+  id: number;
+  kind: string;
+  title: string;
+  text?: string | null;
+  actor?: string | null;
+  via?: string | null;
+  at?: string | null;
 }
 
 function readToken(): string | null {
@@ -50,4 +65,12 @@ export const businessPartnerApi = {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     }),
+
+  timeline: (id: number) => api<PartnerTimelineItem[]>(`/api/v1/business/admin/requests/${id}/timeline`),
+
+  addNote: (id: number, text: string) =>
+    api<PartnerTimelineItem>(`/api/v1/business/admin/requests/${id}/notes`, { method: 'POST', body: JSON.stringify({ text }) }),
+
+  setNextContact: (id: number, at: string | null) =>
+    api<PartnerTimelineItem>(`/api/v1/business/admin/requests/${id}/next-contact`, { method: 'POST', body: JSON.stringify({ at }) }),
 };
