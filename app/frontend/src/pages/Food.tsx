@@ -1318,7 +1318,9 @@ export default function Food() {
     params.set('tab', 'cart');
     params.set('checkout', 'resume');
     if (appliedPromo?.code) params.set('promo', appliedPromo.code);
-    openAuthPrompt(`/account?redirect=${encodeURIComponent(`/food?${params}`)}`);
+    openAuthPrompt(`/account?redirect=${encodeURIComponent(`/food?${params}`)}`, lang === 'kz'
+      ? { title: 'Тапсырыс беру үшін кіріңіз', text: 'Телефон нөміріңізбен кіріңіз — себет сақталады, тапсырысты бірден жалғастырасыз. Бонустар да есептеледі.' }
+      : { title: 'Войдите, чтобы оформить заказ', text: 'Войдите по номеру телефона — корзина сохранится, и вы сразу продолжите оформление. Бонусы тоже начислятся.' });
   }
 
   async function submitOrder() {

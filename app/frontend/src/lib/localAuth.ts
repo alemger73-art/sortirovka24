@@ -168,10 +168,10 @@ export function pushCabinetItem(
   // no-op — history is loaded from /api/v1/account/cabinet
 }
 
-export function openAuthPrompt(redirectTo = '/account') {
+export function openAuthPrompt(redirectTo = '/account', message?: { title: string; text: string }) {
   window.dispatchEvent(
     new CustomEvent(AUTH_PROMPT_EVENT, {
-      detail: { redirectTo },
+      detail: { redirectTo, message },
     }),
   );
 }

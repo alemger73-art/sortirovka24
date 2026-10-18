@@ -5,9 +5,10 @@ interface AuthPromptModalProps {
   open: boolean;
   onClose: () => void;
   onAuth: () => void;
+  message?: { title: string; text: string } | null;
 }
 
-export default function AuthPromptModal({ open, onClose, onAuth }: AuthPromptModalProps) {
+export default function AuthPromptModal({ open, onClose, onAuth, message }: AuthPromptModalProps) {
   const { t: publicT } = useLanguage();
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -38,9 +39,9 @@ export default function AuthPromptModal({ open, onClose, onAuth }: AuthPromptMod
           if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
         }}
       >
-        <h3 id={titleId} className="text-xl font-bold">{publicT("public.AuthPromptModal.text359")}</h3>
+        <h3 id={titleId} className="text-xl font-bold">{message?.title || publicT("public.AuthPromptModal.text359")}</h3>
         <p className="mt-2 text-sm text-gray-600 dark:text-white/70">
-          {publicT("public.AuthPromptModal.text360")} </p>
+          {message?.text || publicT("public.AuthPromptModal.text360")} </p>
         <div className="mt-5 flex items-center gap-3">
           <button
             type="button"

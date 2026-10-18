@@ -78,9 +78,17 @@ export default function CourierControlPanel({
           className="flex flex-wrap items-center justify-between gap-3"
         >
           <p>
-            Ранее учтённая передача: {h.name} ·{" "}
+            {say('Курьер сдаёт наличные','Курьер қолма-қол ақша тапсырады')}: {h.name} ·{" "}
             <strong>{formatTenge(h.amount)}</strong>
           </p>
+          <button
+            type="button"
+            disabled={busy}
+            className="min-h-11 rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white disabled:opacity-50"
+            onClick={() => { if (window.confirm(say(`Получили от ${h.name} ${formatTenge(h.amount)} наличными?`, `${h.name} курьерінен ${formatTenge(h.amount)} қолма-қол алдыңыз ба?`))) void act(`/cash-handovers/${h.id}/confirm`); }}
+          >
+            {say('Принять в кассу','Кассаға қабылдау')}
+          </button>
 
         </div>
       ))}

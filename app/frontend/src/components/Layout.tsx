@@ -51,6 +51,7 @@ export default function Layout({
   const { isEnabled } = useModules();
   const [authPromptOpen, setAuthPromptOpen] = useState(false);
   const [authRedirectTo, setAuthRedirectTo] = useState('/login');
+  const [authMessage, setAuthMessage] = useState<{ title: string; text: string } | null>(null);
 
   const navItems = NAV_KEYS.filter((item) => {
     if (item.path === '/taxi') return taxiEnabled === true;
@@ -69,8 +70,9 @@ export default function Layout({
 
   useEffect(() => {
     const onPrompt = (event: Event) => {
-      const detail = (event as CustomEvent<{ redirectTo?: string }>).detail;
+      const detail = (event as CustomEvent<{ redirectTo?: string; message?: { title: string; text: string } }>).detail;
       setAuthRedirectTo(detail?.redirectTo || '/login');
+      setAuthMessage(detail?.message || null);
       setAuthPromptOpen(true);
     };
     window.addEventListener(AUTH_PROMPT_EVENT, onPrompt as EventListener);
@@ -92,6 +94,7 @@ export default function Layout({
       <AuthPromptModal
         open={authPromptOpen}
         onClose={() => setAuthPromptOpen(false)}
+        message={authMessage}
         onAuth={() => {
           setAuthPromptOpen(false);
           navigate(authRedirectTo);
