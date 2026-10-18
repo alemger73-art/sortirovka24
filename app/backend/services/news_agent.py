@@ -76,7 +76,7 @@ CITY_RE = re.compile(r"караганд|қарағанд", re.I)
 CATEGORY_RULES = [
     ("Происшествия", re.compile(r"дтп|пожар|авари|погиб|задерж|спасател|\bчс\b|утонул|травм", re.I)),
     ("ЖКХ", re.compile(r"отоплен|теплосет|горяч\w* вод|водоснаб|электроснаб|отключ|жкх|коммунал|мусор|канализ", re.I)),
-    ("Дороги", re.compile(r"дорог|улиц\w* ремонт|ремонт улиц|трасс|автобус|маршрут|проезд|светофор|развязк", re.I)),
+    ("Дороги", re.compile(r"дорог|улиц\w* ремонт|ремонт улиц|автотрасс|трасс[аеуы] (?:караганд|астан|алмат|республ)|автобус|маршрут|проезд|светофор|развязк", re.I)),
     ("Инфраструктура", re.compile(r"строител|строят|построят|построен|капремонт|реконструк|благоустр|сквер|подстанц|котельн|"
                                    r"газифик|новая школа|новую школу|новой школ|детск\w* сад|поликлиник|больниц", re.I)),
 ]
@@ -345,7 +345,8 @@ COVER_SLUGS = {"Происшествия": "proisshestviya", "События р�
 def cover_for(category: str, url: str) -> str:
     """Our own cover per category (two variants, picked by the article URL)."""
     variant = 1 + int(url_id(url), 16) % 2
-    return f"/news-covers/{COVER_SLUGS.get(category, 'sobytiya')}-{variant}.jpg"
+    # Absolute URL: the mobile app bundles an older copy of the site, so a relative path would break there.
+    return f"{SITE}/news-covers/{COVER_SLUGS.get(category, 'sobytiya')}-{variant}.jpg"
 
 
 async def enrich(client: httpx.AsyncClient, candidates: list[dict[str, Any]], top: int = 10) -> list[dict[str, Any]]:

@@ -110,7 +110,7 @@ async def test_collect_creates_drafts_and_asks_for_approval(maker):
         # Article text is read from the page; the site's photo is not reused, our cover is.
         assert "По сообщению InKaraganda: Ремонт улицы Защитной" in (news[0].short_description or "") + news[0].content
         assert "Подпишитесь" not in news[0].content
-        assert news[0].image_url.startswith("/news-covers/")
+        assert news[0].image_url.startswith("https://www.sortirovka24.kz/news-covers/")
         methods = [m for m, _ in sent]
         assert methods == ["sendPhoto", "sendPhoto"]
         assert sent[0][1]["chat_id"] == "555" and "Новость на согласование" in sent[0][1]["caption"]
