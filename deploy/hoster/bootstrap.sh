@@ -18,7 +18,7 @@ sed -i 's/^#\?PasswordAuthentication .*/PasswordAuthentication no/' /etc/ssh/ssh
 sed -i 's/^#\?PermitRootLogin .*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
 # Ubuntu cloud images re-enable passwords in sshd_config.d; files are read in order, first value wins.
 printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\nPermitRootLogin prohibit-password\n' > /etc/ssh/sshd_config.d/00-s24.conf
-sshd -t
+mkdir -p /run/sshd && sshd -t
 systemctl reload ssh || systemctl reload sshd || true
 systemctl enable --now fail2ban
 
