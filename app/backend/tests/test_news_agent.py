@@ -53,9 +53,18 @@ async def maker(monkeypatch):
     await engine.dispose()
 
 
+ARTICLE = """<html><head><meta property="og:image" content="https://inkaraganda.kz/photo.jpg"></head><body>
+<nav><p>Меню сайта и ссылки на все разделы портала новостей</p></nav><article>
+<p>Ремонт улицы Защитной в Сортировке начнётся в понедельник, сообщили в отделе ЖКХ акимата района.</p>
+<p>Движение будет ограничено на две недели, объезд организуют по улицам Ленина и Мира. Автобусы №12 и №45 пойдут в объезд.</p>
+<p>Подпишитесь на наш Telegram-канал, чтобы не пропускать новости.</p></article></body></html>"""
+
+
 def transport(sent: list):
     def handler(request: httpx.Request) -> httpx.Response:
         url = str(request.url)
+        if url.endswith("/a1") or url.endswith("/x2"):
+            return httpx.Response(200, text=ARTICLE, headers={"content-type": "text/html"})
         if "inkaraganda" in url:
             return httpx.Response(200, content=LOCAL_FEED.encode())
         if "tengrinews" in url:
@@ -98,9 +107,14 @@ async def test_collect_creates_drafts_and_asks_for_approval(maker):
         assert all(n.published is False and n.status == agent.PENDING for n in news)
         assert "Источник: InKaraganda — https://inkaraganda.kz/a1" in news[0].content
         assert news[1].category == "ЖКХ"
+        # Article text is read from the page; the site's photo is not reused, our cover is.
+        assert "По сообщению InKaraganda: Ремонт улицы Защитной" in (news[0].short_description or "") + news[0].content
+        assert "Подпишитесь" not in news[0].content
+        assert news[0].image_url.startswith("/news-covers/")
         methods = [m for m, _ in sent]
-        assert methods == ["sendMessage", "sendMessage"]
-        assert sent[0][1]["chat_id"] == "555" and "Новость на согласование" in sent[0][1]["text"]
+        assert methods == ["sendPhoto", "sendPhoto"]
+        assert sent[0][1]["chat_id"] == "555" and "Новость на согласование" in sent[0][1]["caption"]
+        assert sent[0][1]["photo"].startswith("https://www.sortirovka24.kz/news-covers/")
         assert sent[0][1]["reply_markup"]["inline_keyboard"][0][0]["callback_data"].startswith("nw:p:")
 
         # A second pass proposes nothing new.
@@ -186,3 +200,47 @@ def test_lead_is_not_repeated_in_body():
     lead, body = agent.split_lead("Ремонт начнётся в понедельник. Движение по улице ограничат на две недели.")
     assert lead == "Ремонт начнётся в понедельник." and body.startswith("Движение")
     assert agent.split_lead("Подробности — по ссылке на источник ниже.") == (None, "Подробности — по ссылке на источник ниже.")
+
+
+async def test_owner_reply_with_photo_sets_news_picture(maker, monkeypatch):
+    sent: list = []
+    base = transport(sent)
+
+    def handler(request):
+        url = str(request.url)
+        if url.endswith("/getFile"):
+            sent.append(("getFile", {}))
+            return httpx.Response(200, json={"ok": True, "result": {"file_path": "photos/p.jpg"}})
+        if "/file/bot" in url:
+            return httpx.Response(200, content=b"\xff\xd8jpegbytes")
+        return base.handle_request(request)
+
+    class FakeStorage:
+        def _make_upload_token(self, bucket, key, thumbnail_key=None, is_image=False):
+            return key
+
+        async def upload_via_token(self, token, data, content_type=None):
+            assert data.startswith(b"\xff\xd8")
+            return {"object_key": token}
+
+    import services.storage as storage_module
+    monkeypatch.setattr(storage_module, "StorageService", FakeStorage)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client, maker() as db:
+        await agent.collect(db, client, force=True)
+        card = next(p for m, p in sent if m == "sendPhoto")
+        card_id = sent.index(("sendPhoto", card)) + 1  # mock message_id = position
+        news_id = int(card["reply_markup"]["inline_keyboard"][0][0]["callback_data"].split(":")[2])
+        photo_reply = {"message": {"message_id": 99, "chat": {"id": 555, "type": "private"}, "from": {"id": 555},
+                                   "photo": [{"file_id": "a", "file_size": 10}, {"file_id": "b", "file_size": 900}],
+                                   "reply_to_message": {"message_id": card_id}}}
+        await agent.handle_update(db, client, photo_reply)
+        news = await db.get(News, news_id)
+        assert news.image_url.startswith("news/") and news.image_url.endswith(".webp") or news.image_url.startswith("news/")
+        assert "Фото добавлено" in sent[-1][1]["text"]
+
+        # A stranger's photo reply changes nothing.
+        before = news.image_url
+        photo_reply["message"]["from"]["id"] = 999
+        photo_reply["message"]["chat"]["id"] = 999
+        await agent.handle_update(db, client, photo_reply)
+        assert (await db.get(News, news_id)).image_url == before

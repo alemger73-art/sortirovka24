@@ -77,7 +77,8 @@ CATEGORY_RULES = [
     ("Происшествия", re.compile(r"дтп|пожар|авари|погиб|задерж|спасател|\bчс\b|утонул|травм", re.I)),
     ("ЖКХ", re.compile(r"отоплен|теплосет|горяч\w* вод|водоснаб|электроснаб|отключ|жкх|коммунал|мусор|канализ", re.I)),
     ("Дороги", re.compile(r"дорог|улиц\w* ремонт|ремонт улиц|трасс|автобус|маршрут|проезд|светофор|развязк", re.I)),
-    ("Инфраструктура", re.compile(r"строит|школ|больниц|поликлиник|парк|сквер|благоустр|детск\w* сад", re.I)),
+    ("Инфраструктура", re.compile(r"строител|строят|построят|построен|капремонт|реконструк|благоустр|сквер|подстанц|котельн|"
+                                   r"газифик|новая школа|новую школу|новой школ|детск\w* сад|поликлиник|больниц", re.I)),
 ]
 
 
@@ -264,7 +265,7 @@ async def fetch_all(client: httpx.AsyncClient) -> list[dict[str, Any]]:
 AI_PROMPT = """Ты редактор районного портала «Сортировка 24» (район Сортировка, город Караганда, Казахстан).
 Ниже свежие новости из разных источников. Выбери не больше {limit}, которые действительно интересны и полезны жителям Караганды и особенно района Сортировка: жизнь города, ЖКХ, отключения, дороги, транспорт, стройки, благоустройство, события, решения акимата, важные происшествия в городе.
 Не бери: новости без связи с Карагандой, общую политику, рекламу, слухи, повторы одной темы, подробности о частных лицах.
-Для каждой выбранной напиши своими словами короткую заметку на русском (2–4 предложения), нейтрально, только по фактам из текста ниже, ничего не придумывай. Заголовок до 100 символов.
+Для каждой выбранной напиши своими словами информативную заметку на русском (4–6 предложений): что произошло, где именно, когда, и что это значит для жителей (адреса, сроки, куда обращаться, как объехать) — если это есть в тексте. Нейтрально, только по фактам из текста ниже, ничего не придумывай, не копируй фразы дословно. Заголовок до 100 символов, понятный без контекста.
 Категория — одна из: {categories}.
 Ответь только JSON-массивом без пояснений: [{{"index": номер, "title": "...", "text": "...", "category": "..."}}]. Если ничего подходящего нет — [].
 
@@ -282,7 +283,8 @@ async def ai_select(client: httpx.AsyncClient, candidates: list[dict[str, Any]],
     if not key or not candidates:
         return None
     listing = "\n".join(
-        f"{i}. [{c['source']}] {c['title']}\n   {short_lead(c.get('summary') or '', 400)}" for i, c in enumerate(candidates)
+        f"{i}. [{c['source']}] {c['title']}\n   {short_lead(c.get('text') or c.get('summary') or '', 1200)}"
+        for i, c in enumerate(candidates)
     )
     prompt = AI_PROMPT.format(limit=limit, categories=", ".join(CATEGORIES), items=listing)
     try:
@@ -321,14 +323,52 @@ async def ai_select(client: httpx.AsyncClient, candidates: list[dict[str, Any]],
 
 
 def plain_select(candidates: list[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
+    """Without AI: a short quote of the article's opening, clearly attributed to the source."""
     drafts = []
     for c in candidates[:limit]:
-        lead = short_lead(c.get("summary") or "")
+        lead = short_lead(c.get("text") or c.get("summary") or "", 600)
         if len(lead) < 60 or title_key(lead) == title_key(c["title"]):
             lead = "Подробности — по ссылке на источник ниже."
+        else:
+            lead = f"По сообщению {c['source'] or 'источника'}: {lead}"
         drafts.append({**c, "draft_title": c["title"][:160], "draft_text": lead,
-                       "category": guess_category(f"{c['title']} {c.get('summary', '')}")})
+                       "category": guess_category(f"{c['title']} {c.get('text') or c.get('summary', '')}")})
     return drafts
+
+
+# ── article text and pictures ───────────────────────────────────────────────
+
+COVER_SLUGS = {"Происшествия": "proisshestviya", "События района": "sobytiya", "ЖКХ": "zhkh", "Дороги": "dorogi",
+               "Инфраструктура": "infra", "Объявления": "obyavleniya", "Важная информация": "vazhno"}
+
+
+def cover_for(category: str, url: str) -> str:
+    """Our own cover per category (two variants, picked by the article URL)."""
+    variant = 1 + int(url_id(url), 16) % 2
+    return f"/news-covers/{COVER_SLUGS.get(category, 'sobytiya')}-{variant}.jpg"
+
+
+async def enrich(client: httpx.AsyncClient, candidates: list[dict[str, Any]], top: int = 10) -> list[dict[str, Any]]:
+    """Open the best candidates' pages for real text; drop items with nothing to tell."""
+    from services import news_article
+
+    gate = asyncio.Semaphore(4)
+
+    async def one(c: dict[str, Any]) -> None:
+        async with gate:
+            info = await news_article.fetch(client, c["url"])
+        if not info:
+            return
+        c["article_url"] = info.get("url") or c["url"]
+        c["text"] = " ".join(info.get("paragraphs") or []) or info.get("description") or ""
+        if info.get("image") and news_article.is_government(c["article_url"]):
+            c["image"] = info["image"]  # government press photos may be reused with attribution
+
+    head = candidates[:top]
+    await asyncio.gather(*(one(c) for c in head))
+    useful = [c for c in head if len(c.get("text") or "") >= 200 or len(c.get("summary") or "") >= 100
+              or c.get("score", 0) >= 100]
+    return useful
 
 
 # ── state (no extra tables: one JSON row in module_settings) ────────────────
@@ -555,6 +595,20 @@ async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dic
         await bind_channel(db, client, update["my_chat_member"])
         return
     message = update.get("message")
+    if isinstance(message, dict) and message.get("photo") and message.get("reply_to_message"):
+        chat_id = str((message.get("chat") or {}).get("id", ""))
+        sender = str((message.get("from") or {}).get("id", ""))
+        if await may_decide(client, db, chat_id, sender):
+            try:
+                answer = await attach_photo(db, client, message)
+            except Exception as exc:
+                logger.warning("[NewsAgent] photo attach failed: %s", exc)
+                answer = "Не получилось сохранить фото, попробуйте ещё раз."
+            if answer:
+                await tg(client, "sendMessage", {"chat_id": chat_id, "text": answer,
+                         "reply_to_message_id": message.get("message_id"),
+                         **({"message_thread_id": message["message_thread_id"]} if message.get("message_thread_id") else {})})
+        return
     if isinstance(message, dict):
         chat = message.get("chat") or {}
         if chat.get("type") == "private" and str(message.get("text") or "").strip().split("@")[0] in ("/start", "/id"):
@@ -680,19 +734,23 @@ async def _collect(db: AsyncSession, client: httpx.AsyncClient, report: dict[str
 
     chosen: list[dict[str, Any]] = []
     if limit and candidates:
-        chosen = await ai_select(client, candidates, limit)
+        readable = await enrich(client, candidates)
+        chosen = await ai_select(client, readable, limit) if readable else []
         if chosen is None:
-            chosen = plain_select(candidates, limit)
+            chosen = plain_select(readable, limit)
 
-    # Remember every candidate so nothing is proposed twice, chosen or not.
-    state.setdefault("urls", []).extend(url_id(c["url"]) for c in candidates)
-    state.setdefault("keys", []).extend(c["title_key"] for c in candidates)
+    # Remember every candidate that was looked at, so nothing is proposed twice, chosen or not.
+    examined = candidates[:10] if limit else []
+    state.setdefault("urls", []).extend(url_id(c["url"]) for c in examined)
+    state.setdefault("keys", []).extend(c["title_key"] for c in examined)
     drafts = []
     for c in chosen:
         lead, text_body = split_lead(c["draft_text"])
+        link = c.get("article_url") or c["url"]
         news = News(title=c["draft_title"], short_description=lead,
-                    content=f"{text_body}\n\nИсточник: {c['source'] or 'оригинал'} — {c['url']}",
-                    category=c["category"], published=False, status=PENDING, created_at=_now_iso())
+                    content=f"{text_body}\n\nИсточник: {c['source'] or 'оригинал'} — {link}",
+                    category=c["category"], image_url=c.get("image") or cover_for(c["category"], link),
+                    published=False, status=PENDING, created_at=_now_iso())
         db.add(news)
         drafts.append((news, c))
     state["sent_day"], state["sent_count"] = today, sent_today + len(drafts)
@@ -701,15 +759,73 @@ async def _collect(db: AsyncSession, client: httpx.AsyncClient, report: dict[str
 
     for news, c in drafts:
         try:
-            await tg(client, "sendMessage", {
-                **(await destination(db, "news")), "text": approval_text(news, c["source"], c["url"]), "parse_mode": "HTML",
-                "disable_web_page_preview": True, "reply_markup": approval_keyboard(news.id),
-            })
+            message_id = await send_approval(client, db, news, c["source"], c.get("article_url") or c["url"])
+            await remember_message(db, message_id, news.id)
             report["sent"] += 1
         except Exception as exc:
             # The draft stays on the site under «Черновики»; the owner can publish it there.
             logger.warning("[NewsAgent] Telegram send failed: %s", exc)
             report["error"] = f"Telegram: {exc}"[:500]
+
+
+async def send_approval(client: httpx.AsyncClient, db: AsyncSession, news: News, source: str, url: str) -> int:
+    """Approval card with the picture; falls back to plain text if Telegram can't fetch the photo."""
+    target = await destination(db, "news")
+    text = approval_text(news, source, url)
+    photo = news.image_url or ""
+    if photo.startswith("/"):
+        photo = SITE + photo
+    if photo.startswith("http"):
+        caption = text if len(text) <= 1000 else text[:990].rsplit(" ", 1)[0] + "…"
+        try:
+            data = await tg(client, "sendPhoto", {**target, "photo": photo, "caption": caption, "parse_mode": "HTML",
+                                                  "reply_markup": approval_keyboard(news.id)})
+            return int(data["result"]["message_id"])
+        except Exception as exc:
+            logger.info("[NewsAgent] photo card failed, sending text: %s", exc)
+    data = await tg(client, "sendMessage", {**target, "text": text, "parse_mode": "HTML",
+                                            "disable_web_page_preview": True, "reply_markup": approval_keyboard(news.id)})
+    return int(data["result"]["message_id"])
+
+
+async def remember_message(db: AsyncSession, message_id: int, news_id: int) -> None:
+    row, state = await load_state(db)
+    msgs = state.setdefault("msgs", {})
+    msgs[str(message_id)] = news_id
+    if len(msgs) > 300:
+        for key in sorted(msgs, key=int)[:-300]:
+            msgs.pop(key, None)
+    save_state(row, state)
+    await db.commit()
+
+
+async def attach_photo(db: AsyncSession, client: httpx.AsyncClient, message: dict[str, Any]) -> Optional[str]:
+    """The owner replied to an approval card with a photo → it becomes the news picture."""
+    reply = message.get("reply_to_message") or {}
+    photos = message.get("photo") or []
+    if not photos or not reply:
+        return None
+    _, state = await load_state(db)
+    await db.commit()
+    news_id = (state.get("msgs") or {}).get(str(reply.get("message_id")))
+    if not news_id:
+        return None
+    news = await db.get(News, int(news_id))
+    if not news:
+        return "Эта новость уже удалена."
+    best = max(photos, key=lambda p: p.get("file_size") or p.get("width", 0))
+    info = await tg(client, "getFile", {"file_id": best["file_id"]})
+    resp = await client.get(f"https://api.telegram.org/file/bot{bot_token()}/{info['result']['file_path']}", timeout=60)
+    resp.raise_for_status()
+    from uuid import uuid4
+    from services.storage import StorageService, _build_image_keys
+    storage = StorageService()
+    image_key, thumb_key = _build_image_keys(f"news/{uuid4().hex}.jpg")
+    token = storage._make_upload_token("portal-images", image_key, thumbnail_key=thumb_key, is_image=True)
+    saved = await storage.upload_via_token(token, resp.content, "image/jpeg")
+    news.image_url = saved["object_key"]
+    await db.commit()
+    return f"📷 Фото добавлено к новости «{news.title}»." + (" Она уже на сайте." if news.published else "")
 
 
 # ── background loop ─────────────────────────────────────────────────────────
