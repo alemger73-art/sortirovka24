@@ -140,10 +140,13 @@ class RequestSmsCodeRequest(BaseModel):
     privacy_accepted: bool = False
     language: Literal["ru", "kz"] = "ru"
     phone: str
+    # Where the code goes; empty = first configured channel.
+    channel: Optional[Literal["whatsapp", "telegram", "sms"]] = None
 
 
 class RequestSmsCodeResponse(BaseModel):
     success: bool
+    channel: Optional[str] = None
     ttl_seconds: int
     resend_after_seconds: int = 60
     debug_code: Optional[str] = None

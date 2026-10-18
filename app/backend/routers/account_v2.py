@@ -76,7 +76,7 @@ from services.google_oauth import (
     fetch_google_userinfo,
     google_oauth_enabled,
 )
-from services.sms import SMSDeliveryError, send_verification_code, should_expose_code_on_screen
+from services.sms import SMSDeliveryError, available_channels, send_verification_code, should_expose_code_on_screen
 from services.storage import StorageService
 from sqlalchemy import and_, desc, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -514,6 +514,10 @@ async def _issue_account_session(user: User, http_request: Request, db: AsyncSes
     return AuthV2Response(token=token, user_id=str(user.id), role=user.role)  # type: ignore[arg-type]
 
 
+def _google_signup_enabled() -> bool:
+    return os.getenv("GOOGLE_SIGNUP_ENABLED", "").strip().lower() in ("1", "true", "yes", "on")
+
+
 async def _get_or_create_google_user(
     db: AsyncSession,
     *,
@@ -538,6 +542,11 @@ async def _get_or_create_google_user(
 
     created = False
     if not user:
+        # New accounts are created by phone (code in WhatsApp/Telegram): Google
+        # gives no phone, and couriers and bonuses need one. Existing Google
+        # accounts keep signing in.
+        if not _google_signup_enabled():
+            raise GoogleOAuthError("Регистрация через Google закрыта. Войдите по номеру телефона — код придёт в WhatsApp или Telegram.")
         if not agreements_accepted:
             raise GoogleOAuthError("Для создания аккаунта подтвердите соглашение и политику конфиденциальности.")
         created = True
@@ -699,6 +708,12 @@ async def register(
     )
 
 
+@router.get("/otp-channels")
+async def otp_channels():
+    """Messengers that can deliver the login code right now (WhatsApp, Telegram, SMS)."""
+    return {"channels": available_channels()}
+
+
 @router.post("/register/request-sms", response_model=RequestSmsCodeResponse)
 async def register_request_sms(
     request: RequestSmsCodeRequest,
@@ -707,10 +722,10 @@ async def register_request_sms(
 ):
     receipt = acceptance_payload(request.legal_version, accepted=request.agreement_accepted and request.privacy_accepted,
                                  language=request.language, channel='sms_request', subject_name=request.legal_subject_name)
-    return await _request_phone_code(request.phone, http_request, db, legal_receipt=receipt)
+    return await _request_phone_code(request.phone, http_request, db, legal_receipt=receipt, channel=request.channel)
 
 
-async def _request_phone_code(phone, http_request, db, *, allow_existing=False, purpose="verify", legal_receipt=None):
+async def _request_phone_code(phone, http_request, db, *, allow_existing=False, purpose="verify", legal_receipt=None, channel=None):
     normalized_phone = _normalize_phone(phone)
     if not normalized_phone or not _is_valid_kz_phone(normalized_phone):
         raise HTTPException(status_code=400, detail="Invalid phone")
@@ -774,7 +789,7 @@ async def _request_phone_code(phone, http_request, db, *, allow_existing=False, 
     await _log_action(db, None, "sms_verification_requested", "phone_verifications", normalized_phone)
 
     try:
-        delivery = await send_verification_code(normalized_phone, code)
+        delivery = await (send_verification_code(normalized_phone, code, channel) if channel else send_verification_code(normalized_phone, code))
     except SMSDeliveryError as exc:
         failed_row = await _active_phone_verification(db, normalized_phone)
         if failed_row:
@@ -783,7 +798,7 @@ async def _request_phone_code(phone, http_request, db, *, allow_existing=False, 
         logger_msg = str(exc)
         raise HTTPException(
             status_code=502,
-            detail=f"Не удалось отправить SMS. {logger_msg}",
+            detail=logger_msg if channel in ("whatsapp", "telegram") else f"Не удалось отправить код. {logger_msg}",
         ) from exc
 
     expose_code = should_expose_code_on_screen(delivery)
@@ -804,6 +819,7 @@ async def _request_phone_code(phone, http_request, db, *, allow_existing=False, 
         debug_code=stored_code,
         sms_pending_moderation=delivery.pending_moderation,
         on_screen_code_hint=on_screen_hint,
+        channel=getattr(delivery, "provider_message", None) if getattr(delivery, "provider_message", None) in ("whatsapp", "telegram") else (channel or None),
     )
 
 
@@ -872,12 +888,12 @@ async def _consume_phone_code(db, phone, code, *, purpose="verify"):
 
 
 @router.post("/phone/request-sms", response_model=RequestSmsCodeResponse)
-async def verify_own_phone_request(http_request: Request, authorization: str | None = Header(None), db: AsyncSession = Depends(get_db)):
+async def verify_own_phone_request(http_request: Request, authorization: str | None = Header(None), channel: Literal["whatsapp", "telegram", "sms"] | None = None, db: AsyncSession = Depends(get_db)):
     user = await _current_user(db, authorization)
     if user.phone_verified_at:
         raise HTTPException(409, "Телефон уже подтверждён")
     # The destination comes from the authenticated account, never from a caller.
-    return await _request_phone_code(user.phone, http_request, db, allow_existing=True)
+    return await _request_phone_code(user.phone, http_request, db, allow_existing=True, channel=channel)
 
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -942,7 +958,7 @@ class PhoneSignInConfirm(BaseModel):
 async def signin_request_sms(body: RequestSmsCodeRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
     receipt = acceptance_payload(body.legal_version, accepted=body.agreement_accepted and body.privacy_accepted,
                                  language=body.language, channel='sms_request', subject_name=body.legal_subject_name)
-    return await _request_phone_code(body.phone, http_request, db, allow_existing=True, purpose="signin", legal_receipt=receipt)
+    return await _request_phone_code(body.phone, http_request, db, allow_existing=True, purpose="signin", legal_receipt=receipt, channel=body.channel)
 
 
 @router.post("/signin/confirm", response_model=AuthV2Response)
@@ -978,7 +994,7 @@ async def signin_confirm(body: PhoneSignInConfirm, http_request: Request, db: As
 
 @router.get("/google/status")
 async def google_status():
-    return {"enabled": google_oauth_enabled()}
+    return {"enabled": google_oauth_enabled(), "signup": google_oauth_enabled() and _google_signup_enabled()}
 
 
 @router.post("/google/link/start")
@@ -1003,7 +1019,7 @@ async def phone_link_request(body: RequestSmsCodeRequest, request: Request, auth
     owner = (await db.execute(select(User).where(User.phone == phone))).scalar_one_or_none()
     if owner and owner.id != user.id:
         raise HTTPException(409, "Этот номер уже связан с другим кабинетом. Если Google ещё не подключён к отдельному аккаунту, войдите по телефону и подключите Google в настройках. Если уже созданы два кабинета, обратитесь в поддержку для проверки и объединения. Заказы и бонусы не переносились.")
-    return await _request_phone_code(phone, request, db, allow_existing=True, purpose="attach")
+    return await _request_phone_code(phone, request, db, allow_existing=True, purpose="attach", channel=body.channel)
 
 
 @router.post("/phone/link/confirm")

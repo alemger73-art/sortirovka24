@@ -1,3 +1,4 @@
+export type OtpChannel = 'whatsapp' | 'telegram' | 'sms';
 import { LEGAL_VERSION } from '@/content/legal';
 import { getAPIBaseURL } from "@/lib/config";
 import { humanizeApiError } from "@/lib/apiErrors";
@@ -111,14 +112,15 @@ export const accountApi = {
   deletionStatus: () => api<{ request: DeletionRequest | null }>("/api/v1/account-deletion/me"),
   requestDeletion: (password?: string) => api<{ request: DeletionRequest }>("/api/v1/account-deletion/me", { method: "POST", body: JSON.stringify({ confirmed: true, password }) }),
   bonusRules: () => api<{ enabled: boolean; tenge_rate: number; max_order_percent: number }>("/api/v1/account/bonus-rules"),
-  googleStatus: () => api<{ enabled: boolean }>("/api/v1/account/google/status"),
+  googleStatus: () => api<{ enabled: boolean; signup?: boolean }>("/api/v1/account/google/status"),
   googleLinkStart: () => api<{ url: string }>("/api/v1/account/google/link/start", { method: "POST" }),
   requestPhoneLinkCode: (phone: string) => api<{ ttl_seconds: number; resend_after_seconds: number; sms_pending_moderation?: boolean; on_screen_code_hint?: string }>("/api/v1/account/phone/link/request-sms", { method: "POST", body: JSON.stringify({ phone }) }),
   confirmPhoneLinkCode: (phone: string, code: string) => api<{ verified: boolean }>("/api/v1/account/phone/link/confirm", { method: "POST", body: JSON.stringify({ phone, code }) }),
   startGoogle: (language: string, accepted: boolean, subjectName?: string) => api<{ url: string }>("/api/v1/account/google/start", { method: "POST", body: JSON.stringify({ language, accepted, legal_version: accepted ? LEGAL_VERSION : undefined, legal_subject_name: accepted ? subjectName : undefined }) }),
   googleStartUrl: (language: string = "ru", accepted = false) =>
     `${apiBase()}/api/v1/account/google/start?language=${encodeURIComponent(language)}&agreement_accepted=${accepted}&privacy_accepted=${accepted}`,
-  requestSignInCode: (phone: string, subjectName: string, language: string) => api<{ success: boolean; ttl_seconds: number; resend_after_seconds: number; sms_pending_moderation?: boolean; on_screen_code_hint?: string }>("/api/v1/account/signin/request-sms", { method: "POST", body: JSON.stringify({ phone, legal_version: LEGAL_VERSION, legal_subject_name: subjectName, language, agreement_accepted: true, privacy_accepted: true }) }),
+  requestSignInCode: (phone: string, subjectName: string, language: string, channel?: OtpChannel) => api<{ success: boolean; ttl_seconds: number; resend_after_seconds: number; sms_pending_moderation?: boolean; on_screen_code_hint?: string; channel?: OtpChannel }>("/api/v1/account/signin/request-sms", { method: "POST", body: JSON.stringify({ phone, legal_version: LEGAL_VERSION, legal_subject_name: subjectName, language, agreement_accepted: true, privacy_accepted: true, ...(channel ? { channel } : {}) }) }),
+  otpChannels: () => api<{ channels: OtpChannel[] }>("/api/v1/account/otp-channels"),
   confirmSignInCode: (body: { phone: string; code: string; language: string; agreement_accepted: boolean; privacy_accepted: boolean; legal_version?: string; legal_subject_name?: string }) => api<{ token: string; user_id: string; role: AccountRole }>("/api/v1/account/signin/confirm", { method: "POST", body: JSON.stringify(body) }),
   requestSmsCode: (body: { phone: string; legal_version?: string; legal_subject_name?: string; language?: string; agreement_accepted?: boolean; privacy_accepted?: boolean }) => api<{ success: boolean; ttl_seconds: number; resend_after_seconds: number; debug_code?: string; sms_pending_moderation?: boolean; on_screen_code_hint?: string }>("/api/v1/account/register/request-sms", { method: "POST", body: JSON.stringify(body) }),
   confirmRegistration: (body: any) => api<{ token: string; user_id: string; role: AccountRole }>("/api/v1/account/register/confirm", { method: "POST", body: JSON.stringify(body) }),

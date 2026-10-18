@@ -25,3 +25,11 @@ def _reset_account_rate_limiters():
     account_v2.SMS_REQUEST_ATTEMPTS.clear()
     rate_limit._RATE_BUCKETS.clear()
     food_orders_router._ORDER_RATE.clear()
+
+
+@pytest.fixture(autouse=True)
+def _google_signup_for_legacy_tests(monkeypatch, request):
+    """Production closes new Google sign-ups; older tests exercise the full Google
+    flow, so they run with it switched on. test_google_signup_closed checks the default."""
+    if "google_signup_closed" not in request.node.name:
+        monkeypatch.setenv("GOOGLE_SIGNUP_ENABLED", "1")

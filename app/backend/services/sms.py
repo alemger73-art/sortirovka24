@@ -1,4 +1,4 @@
-"""SMS delivery for phone verification (Mobizon.kz)."""
+"""Phone verification code delivery: Telegram Gateway, WhatsApp Cloud API, SMS (Mobizon)."""
 
 import logging
 import os
@@ -55,7 +55,100 @@ def _expose_code_enabled() -> bool:
     return os.getenv("SMS_EXPOSE_CODE", "").strip().lower() in ("1", "true", "yes", "on")
 
 
-async def send_verification_code(phone: str, code: str) -> SMSDeliveryResult:
+OTP_CHANNEL_ORDER = ("whatsapp", "telegram", "sms")
+
+
+def _telegram_ready() -> bool:
+    return bool(os.getenv("TELEGRAM_GATEWAY_TOKEN", "").strip())
+
+
+def _whatsapp_ready() -> bool:
+    return bool(os.getenv("WHATSAPP_ACCESS_TOKEN", "").strip() and os.getenv("WHATSAPP_PHONE_NUMBER_ID", "").strip()
+                and os.getenv("WHATSAPP_OTP_TEMPLATE", "").strip())
+
+
+def _sms_ready() -> bool:
+    return _provider() == "mobizon" and bool(os.getenv("MOBIZON_API_KEY", "").strip())
+
+
+def available_channels() -> list[str]:
+    """Channels a customer can pick for the login code, in display order."""
+    ready = {"whatsapp": _whatsapp_ready(), "telegram": _telegram_ready(), "sms": _sms_ready()}
+    return [c for c in OTP_CHANNEL_ORDER if ready[c]]
+
+
+async def send_verification_code(phone: str, code: str, channel: str | None = None) -> SMSDeliveryResult:
+    """Send a login code to *phone* through the chosen messenger (or the first one configured)."""
+    channels = available_channels()
+    if channel and channel not in channels:
+        raise SMSDeliveryError("Этот способ получения кода сейчас недоступен. Выберите другой.")
+    chosen = channel or (channels[0] if channels else None)
+    if chosen in ("whatsapp", "telegram"):
+        if not external_side_effects_allowed():
+            logger.info("OTP side effects disabled. Skipping %s message.", chosen)
+            return SMSDeliveryResult(delivered=False, pending_moderation=False, provider_message="external_side_effects_disabled")
+        if chosen == "telegram":
+            return await _send_telegram_gateway(phone, code)
+        return await _send_whatsapp_template(phone, code)
+    return await _send_sms_code(phone, code)
+
+
+async def _send_telegram_gateway(phone: str, code: str) -> SMSDeliveryResult:
+    """Telegram Gateway: the code arrives in the official «Verification Codes» chat.
+    Undelivered codes are refunded by Telegram, so a number without Telegram costs nothing."""
+    token = os.getenv("TELEGRAM_GATEWAY_TOKEN", "").strip()
+    recipient = "+" + _digits_only(phone)
+    base = os.getenv("TELEGRAM_GATEWAY_URL", "https://gatewayapi.telegram.org").rstrip("/")
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.post(f"{base}/sendVerificationMessage",
+                headers={"Authorization": f"Bearer {token}"},
+                json={"phone_number": recipient, "code": code, "ttl": 300})
+            payload = response.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        raise SMSDeliveryError("Telegram сейчас недоступен. Попробуйте WhatsApp.") from exc
+    if not isinstance(payload, dict) or not payload.get("ok"):
+        error = str((payload or {}).get("error") or "") if isinstance(payload, dict) else ""
+        logger.warning("[OTP] Telegram Gateway error=%s", error[:60])
+        if "PHONE_NUMBER" in error.upper() or "NOT_FOUND" in error.upper():
+            raise SMSDeliveryError("У этого номера нет Telegram. Выберите WhatsApp.")
+        raise SMSDeliveryError("Не удалось отправить код в Telegram. Попробуйте WhatsApp.")
+    result = payload.get("result") or {}
+    return SMSDeliveryResult(delivered=True, pending_moderation=False, message_id=str(result.get("request_id") or ""), provider_message="telegram")
+
+
+async def _send_whatsapp_template(phone: str, code: str) -> SMSDeliveryResult:
+    """WhatsApp Cloud API authentication template with a copy-code button."""
+    token = os.getenv("WHATSAPP_ACCESS_TOKEN", "").strip()
+    number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "").strip()
+    template = os.getenv("WHATSAPP_OTP_TEMPLATE", "").strip()
+    language = os.getenv("WHATSAPP_OTP_LANGUAGE", "ru").strip() or "ru"
+    version = os.getenv("WHATSAPP_API_VERSION", "v21.0").strip() or "v21.0"
+    base = os.getenv("WHATSAPP_GRAPH_BASE_URL", "https://graph.facebook.com").rstrip("/")
+    body = {
+        "messaging_product": "whatsapp", "to": _digits_only(phone), "type": "template",
+        "template": {"name": template, "language": {"code": language}, "components": [
+            {"type": "body", "parameters": [{"type": "text", "text": code}]},
+            {"type": "button", "sub_type": "url", "index": "0", "parameters": [{"type": "text", "text": code}]},
+        ]},
+    }
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.post(f"{base}/{version}/{number_id}/messages",
+                headers={"Authorization": f"Bearer {token}"}, json=body)
+            payload = response.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        raise SMSDeliveryError("WhatsApp сейчас недоступен. Попробуйте Telegram.") from exc
+    if response.status_code >= 400 or not isinstance(payload, dict) or not payload.get("messages"):
+        err = (payload.get("error") or {}) if isinstance(payload, dict) else {}
+        logger.warning("[OTP] WhatsApp error code=%s", str(err.get("code", ""))[:12])
+        if str(err.get("code")) in ("131026", "131030"):
+            raise SMSDeliveryError("На этом номере нет WhatsApp. Выберите Telegram.")
+        raise SMSDeliveryError("Не удалось отправить код в WhatsApp. Попробуйте Telegram.")
+    return SMSDeliveryResult(delivered=True, pending_moderation=False, message_id=str(payload["messages"][0].get("id", "")), provider_message="whatsapp")
+
+
+async def _send_sms_code(phone: str, code: str) -> SMSDeliveryResult:
     """Send a registration verification code to *phone*."""
     if not external_side_effects_allowed():
         logger.info("SMS side effects disabled. Skipping verification message.")
