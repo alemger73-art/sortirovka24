@@ -108,3 +108,33 @@ def check_ip_rate_limit(
         max_hits=max_hits,
         message=message,
     )
+
+
+def _failure_count(bucket_key: str, window_seconds: float) -> int:
+    client = _get_redis()
+    if client:
+        try:
+            return int(client.get(bucket_key) or 0)
+        except Exception as exc:
+            logger.warning("Redis rate limit error: %s", exc)
+            return 0
+    now = time.time()
+    hits = [t for t in _RATE_BUCKETS.get(bucket_key, []) if now - t < window_seconds]
+    _RATE_BUCKETS[bucket_key] = hits
+    return len(hits)
+
+
+def ensure_failures_below(key: str, *, window_seconds: float, max_failures: int, message: str) -> None:
+    """Refuse further attempts once `max_failures` wrong attempts happened in the window.
+
+    Unlike check_keyed_rate_limit, successful attempts are not counted: staff who
+    refresh the page or unlock the screen several times must not lock themselves out.
+    """
+    if _failure_count(f"rlf:{key}", window_seconds) >= max_failures:
+        raise HTTPException(status_code=429, detail=message)
+
+
+def register_failure(key: str, *, window_seconds: float) -> None:
+    bucket_key = f"rlf:{key}"
+    if not _redis_hit(bucket_key, window_seconds=window_seconds, max_hits=10**9) and _get_redis() is None:
+        _memory_hit(bucket_key, window_seconds=window_seconds, max_hits=10**9)

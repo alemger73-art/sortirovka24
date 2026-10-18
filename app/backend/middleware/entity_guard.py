@@ -62,7 +62,8 @@ ADMIN_READ_ENTITIES = {
     "frontpad_settings",
     "couriers",
     "park_orders",       # customer names and phones
-    "user_preferences",  # per-account data, never a public list
+    # user_preferences is not listed: its router already requires a session and
+    # returns only the caller's own rows (guarding it here broke signed-in users).
 }
 
 # Entities whose UPDATE (PUT/PATCH) is performed by a public client.

@@ -365,6 +365,9 @@ class OrderChange(BaseModel):
     cancellation_reason: str | None = Field(None, max_length=500)
     delivery_address: str | None = Field(None, max_length=1000)
     payment_status: Literal['pending', 'paid'] | None = None
+    # Where the cash physically is right now: 'courier' keeps it on the courier's
+    # balance until the courier hands it over; default 'cashbox' keeps old behaviour.
+    cash_location: Literal['cashbox', 'courier'] | None = None
 
 class CourierAssignment(BaseModel):
     courier_id: str = Field(min_length=1, max_length=255)
@@ -435,13 +438,17 @@ async def change(order_id: int, body: OrderChange, request: Request, db: AsyncSe
     order = await order_for_panel(db, order_id)
     actor = await food_staff(request, db)
     values = body.model_dump(exclude_none=True, exclude_unset=True)
+    cash_location = values.pop('cash_location', None) or 'cashbox'
+    if cash_location == 'courier' and body.payment_status != 'paid':
+        raise HTTPException(422, 'Укажите подтверждение оплаты')
     from services.dam_payment_flow import manual_confirmation_allowed
     if actor['access_role'] == 'operator' and order.status in ('done', 'cancelled') and not (order.status == 'done' and manual_confirmation_allowed(order.payment_method) and set(values) <= {'expected_version', 'payment_status'} and body.payment_status == 'paid'):
         raise HTTPException(409, 'Завершённый заказ доступен оператору только для просмотра')
     shift = await require_partner_shift(db, actor)
     version = values.pop('expected_version')
     record_action(db, shift, 'order_updated', claims=actor, entity_type='order', entity_id=order_id, details={'source':'operator','before':{k:getattr(order,k,None) for k in values},'after':values})
-    result = await Food_ordersService(db).update(order_id, values, expected_version=version, actor=str(actor.get('display_name') or actor.get('username') or actor.get('sub') or actor.get('partner_type') or 'Оператор'))
+    result = await Food_ordersService(db).update(order_id, values, expected_version=version, actor=str(actor.get('display_name') or actor.get('username') or actor.get('sub') or actor.get('partner_type') or 'Оператор'),
+        cash_location=cash_location, actor_id=str(actor.get('staff_id') or actor.get('sub') or 'operator'))
     return serialize(result)
 
 @router.post('/orders/{order_id}/notifications/{event_id}/retry')

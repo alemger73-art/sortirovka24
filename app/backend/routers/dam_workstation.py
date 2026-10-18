@@ -12,7 +12,7 @@ from models.partner_auth import PartnerCredentials
 from routers.partner_auth import _create_partner_jwt
 from services.food_shifts import active_shift, open_shift, shift_view, record_action
 from utils.courier_pin import verify_courier_pin
-from utils.rate_limit import check_keyed_rate_limit
+from utils.rate_limit import check_keyed_rate_limit, ensure_failures_below, register_failure
 
 router=APIRouter(prefix='/api/v1/dam-alem/workstation',tags=['DAM workstation'])
 def version(row): return hashlib.sha256(row.password_hash.encode()).hexdigest()[:24]
@@ -30,8 +30,13 @@ class Entry(BaseModel):
 @router.post('/pin-login')
 async def pin_login(body:Entry,request:Request,db:AsyncSession=Depends(get_db)):
     host=request.client.host if request.client else 'unknown'
-    check_keyed_rate_limit('dam-operator-pin:'+host,window_seconds=900,max_hits=6,message='Слишком много попыток PIN. Повторите через 15 минут.')
-    return await operator_entry(db,body.pin)
+    key='dam-operator-pin:'+host
+    ensure_failures_below(key,window_seconds=900,max_failures=6,message='Слишком много неверных PIN. Повторите через 15 минут.')
+    try:
+        return await operator_entry(db,body.pin)
+    except HTTPException as exc:
+        if exc.status_code==403: register_failure(key,window_seconds=900)
+        raise
 
 @router.post('/enter')
 async def enter(body:Entry,request:Request,db:AsyncSession=Depends(get_db)):
@@ -44,8 +49,13 @@ async def enter(body:Entry,request:Request,db:AsyncSession=Depends(get_db)):
         if not owner or not owner.is_active or owner.partner_type!='dam_alem' or (owner.access_role or 'owner')!='owner' or version(owner)!=claims.get('password_version'): raise ValueError()
     except Exception:
         raise HTTPException(401,'Рабочее место нужно снова подключить владельцу') from None
-    check_keyed_rate_limit('dam-workstation:'+claims['device_id'],window_seconds=900,max_hits=20,message='Слишком много попыток. Повторите через 15 минут.')
-    return await operator_entry(db,body.pin)
+    key='dam-workstation:'+claims['device_id']
+    ensure_failures_below(key,window_seconds=900,max_failures=20,message='Слишком много неверных PIN. Повторите через 15 минут.')
+    try:
+        return await operator_entry(db,body.pin)
+    except HTTPException as exc:
+        if exc.status_code==403: register_failure(key,window_seconds=900)
+        raise
 
 async def operator_entry(db:AsyncSession,pin:str):
     rows=(await db.scalars(select(PartnerCredentials).where(PartnerCredentials.partner_type=='dam_alem',PartnerCredentials.is_active==True,PartnerCredentials.access_role=='operator',PartnerCredentials.pin_hash.isnot(None)))).all()

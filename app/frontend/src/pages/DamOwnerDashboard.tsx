@@ -60,6 +60,9 @@ interface Finance {
     expenses_total: number;
     refunds: number;
     cash_difference: number;
+    courier_accrued?: number;
+    courier_unbooked?: number;
+    result_after_couriers?: number;
     refunds_needed: {
         id: number;
         amount: number;
@@ -114,9 +117,9 @@ export default function DamOwnerDashboard({ navigate }: {
         ...(summary.notification_errors ? [{ key: 'notifications', text: `Ошибки уведомлений: ${summary.notification_errors}`, section: 'orders', order_id: undefined }] : []),
     ];
     const working = overview.team.filter(p => p.shift && p.active);
-    const stats = [[st("Выручка сегодня"), money(finance.sales), st("Завершённые заказы")], [st("Заказов сегодня"), summary.daily.created, st("Созданы сегодня")], [st("Средний чек"), money(finance.average), st('Завершено: {0}', [String(finance.completed)])], [st("Получено денег"), money(finance.receipts), st("По дате поступления")], [st("Расходы"), money(finance.expenses_total), st("Учтённые расходы")], [st("Возвраты"), money(finance.refunds), st("По дате возврата")], [st("Результат дня"), money(finance.cash_difference), st("Поступления − возвраты − расходы")]];
+    const stats = [[st("Выручка сегодня"), money(finance.sales), st("Завершённые заказы")], [st("Заказов сегодня"), summary.daily.created, st("Созданы сегодня")], [st("Средний чек"), money(finance.average), st('Завершено: {0}', [String(finance.completed)])], [st("Получено денег"), money(finance.receipts), st("По дате поступления")], [st("Расходы"), money(finance.expenses_total), st("Учтённые расходы")], [st("Возвраты"), money(finance.refunds), st("По дате возврата")], [st("Результат дня"), money(finance.result_after_couriers ?? finance.cash_difference), Number(finance.courier_unbooked || 0) > 0 ? `Поступления − возвраты − расходы − курьерам ${money(Number(finance.courier_unbooked))}` : st("Поступления − возвраты − расходы")]];
     return <div className="space-y-6">
-    <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-xl font-semibold">{st("Сегодня,")}{new Date(summary.day + 'T12:00:00Z').toLocaleDateString(locale, { day: 'numeric', month: 'long' })}</h3><p className="text-sm text-muted-foreground">{st("Показатели по времени Караганды · обновление каждые 15 секунд")}</p></div><Button variant="outline" onClick={() => void load()}>{st("Обновить")}</Button></div>
+    <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-xl font-semibold">{st("Сегодня,")} {new Date(summary.day + 'T12:00:00Z').toLocaleDateString(locale, { day: 'numeric', month: 'long' })}</h3><p className="text-sm text-muted-foreground">{st("Показатели по времени Караганды · обновление каждые 15 секунд")}</p></div><Button variant="outline" onClick={() => void load()}>{st("Обновить")}</Button></div>
     {error && <p role="alert" className="rounded-xl border border-amber-300 p-3 text-sm">{st("Не удалось обновить:")}{error}{st(". Показаны последние полученные данные.")}</p>}
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{stats.map(([label, value, hint]) => <section key={st(String(label))} className="min-w-0 rounded-2xl border bg-card p-4"><p className="text-sm text-muted-foreground">{st(String(label))}</p><strong className="mt-2 block break-words text-2xl tracking-tight">{value}</strong><p className="mt-2 text-xs text-muted-foreground">{hint}</p></section>)}<button className="rounded-2xl border bg-muted/40 p-4 text-left text-sm font-medium hover:bg-muted" onClick={() => navigate('sales')}>{st("Финансы за другой период →")}<span className="mt-2 block text-xs font-normal text-muted-foreground">{st("Результат дня — движение денег, не бухгалтерская прибыль.")}</span></button></div>
     <section className="rounded-2xl border bg-card p-4"><h3 className="mb-3 font-semibold">{st("Заказы сейчас")}</h3><div className="grid grid-cols-2 gap-2 md:grid-cols-5">{['new', 'confirmed', 'preparing', 'ready', 'in_progress'].map(status => <button key={status} onClick={() => navigate('orders', undefined, status === 'ready' ? 'ready_all' : status)} className="rounded-xl bg-muted/50 p-3 text-left hover:bg-muted"><span className="text-sm text-muted-foreground">{st(labels[status])}</span><strong className="mt-1 block text-2xl">{summary.counts[status] || 0}</strong></button>)}</div></section>

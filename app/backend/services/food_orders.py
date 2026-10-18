@@ -165,7 +165,7 @@ class Food_ordersService:
             logger.error(f"Error fetching food_orders list: {str(e)}")
             raise
 
-    async def update(self, obj_id: int, update_data: Dict[str, Any], *, expected_version=None, actor="Система") -> Optional[Food_orders]:
+    async def update(self, obj_id: int, update_data: Dict[str, Any], *, expected_version=None, actor="Система", cash_location: str = "cashbox", actor_id: str | None = None) -> Optional[Food_orders]:
         """Update food_orders"""
         try:
             from services.food_preorders import lock_dam_operations
@@ -232,9 +232,29 @@ class Food_ordersService:
                     raise HTTPException(409, "Заказ изменён другим оператором. Обновите карточку.")
                 obj.version = version + 1
                 if update_data.get('payment_status') == 'paid' and obj.payment_status != 'paid':
-                    from services.food_payments import receive_outstanding
-                    await receive_outstanding(self.db, obj, actor)
-                    await synchronize_staff_confirmation(self.db, obj, actor)
+                    if cash_location == 'courier':
+                        # Cash a courier collected stays on the courier until a confirmed
+                        # handover moves it into the cashbox (never straight to the cashbox).
+                        from services.dam_order_workflow import task_for
+                        from services.courier_money import lock_wallet, collect_cash
+                        from services.food_shifts import active_shift
+                        from models.auth import User
+                        delivery = await task_for(self.db, obj)
+                        if (obj.payment_method != 'cash' or obj.delivery_method not in ('delivery', 'доставка')
+                                or not delivery or not delivery.courier_id):
+                            raise HTTPException(409, 'Отметка «деньги у курьера» доступна только для доставки за наличные с курьером')
+                        courier = await self.db.get(User, delivery.courier_id)
+                        if not courier:
+                            raise HTTPException(409, 'Курьер не найден')
+                        await lock_wallet(self.db, str(courier.id))
+                        courier_shift = await active_shift(self.db, 'courier', str(courier.id))
+                        await collect_cash(self.db, delivery, obj, courier, courier_shift,
+                                           actor_name=actor, actor_id=actor_id or actor)
+                        update_data['payment_status'] = obj.payment_status
+                    else:
+                        from services.food_payments import receive_outstanding
+                        await receive_outstanding(self.db, obj, actor)
+                        await synchronize_staff_confirmation(self.db, obj, actor)
                 if target == 'done' and old_status != 'done':
                     obj.completed_at = now()
                 if target == 'cancelled' and old_status != 'cancelled':

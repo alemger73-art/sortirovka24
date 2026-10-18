@@ -358,6 +358,7 @@ def _fallback_delivery_price(settings: Dict[str, str]) -> float:
 
 _DELIVERY_NOTE_RE = re.compile(r"\s*\((?:до квартиры|до подъезда)\)\s*$", re.IGNORECASE)
 _APT_SUFFIX_RE = re.compile(r",?\s*кв\.?\s*.*$", re.IGNORECASE)
+_CLIENT_POINT_TRUST_KM = 1.0
 _CLIENT_GEOCODE_MAX_KM = 2.0
 
 
@@ -398,16 +399,30 @@ async def _resolve_trusted_delivery_coords(
     if len(cleaned) >= 5:
         geocoded = await geocode_address(cleaned, settings=settings)
 
+    has_client = client_lat is not None and client_lng is not None
     if geocoded:
         g_lat, g_lng = geocoded
-        if client_lat is not None and client_lng is not None:
+        if has_client:
             drift = haversine_km(g_lat, g_lng, client_lat, client_lng)
+            # A phone GPS point is more precise than the geocoder's house match
+            # (it often lands on the wrong house of a long street); trust it when
+            # it is close to the address the customer typed.
+            if drift <= _CLIENT_POINT_TRUST_KM:
+                return client_lat, client_lng
             if drift > _CLIENT_GEOCODE_MAX_KM:
                 logger.warning(
                     "Client delivery coords diverge from geocoded address by %.1f km; using geocode",
                     drift,
                 )
         return g_lat, g_lng
+
+    # The geocoder does not know many Sortirovka addresses. A point the customer
+    # picked (GPS or map) that lies inside a delivery zone is enough to price
+    # and deliver; refusing it lost real orders.
+    if has_client and parse_delivery_zones(settings):
+        quote = resolve_delivery_quote(settings, client_lat, client_lng)
+        if quote.get('zone_id'):
+            return client_lat, client_lng
 
     if require_server_geocode:
         raise HTTPException(

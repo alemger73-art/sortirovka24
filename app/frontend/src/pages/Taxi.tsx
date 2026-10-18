@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const FROM_EXAMPLES = [{ value: "ул. Жекибаева 129", labelKey: 'public.taxi.addressExample.zhekibayev' }, { value: "мкр. Сортировка, дом 5", labelKey: 'public.taxi.addressExample.sortirovka' }, { value: "пер. Урановый 10", labelKey: 'public.taxi.addressExample.uranovy' }];
+const FROM_EXAMPLES = [{ value: "ул. Жекибаева 129", labelKey: 'public.taxi.addressExample.zhekibayev' }, { value: "пер. Урановый 10", labelKey: 'public.taxi.addressExample.uranovy' }];
 const TO_EXAMPLES = [{ value: "Центр Караганды", labelKey: 'public.taxi.addressExample.centre' }, { value: "Ж/Д вокзал", labelKey: 'public.taxi.addressExample.station' }, { value: "уранова 10", labelKey: 'public.taxi.addressExample.uranova' }];
 
 type PointKind = 'from' | 'to';

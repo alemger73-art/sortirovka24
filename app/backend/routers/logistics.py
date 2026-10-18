@@ -44,7 +44,7 @@ from services.food_shifts import (
     require_courier_shift,
     shift_view,
 )
-from utils.rate_limit import check_keyed_rate_limit
+from utils.rate_limit import check_keyed_rate_limit, ensure_failures_below, register_failure
 from utils.courier_pin import verify_courier_pin
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -165,12 +165,9 @@ async def courier_pin_login(
     db: AsyncSession = Depends(get_db),
 ):
     host = request.client.host if request.client else "unknown"
-    check_keyed_rate_limit(
-        f"dam-courier-pin-login:{host}",
-        window_seconds=15 * 60,
-        max_hits=6,
-        message="Слишком много попыток PIN. Повторите через 15 минут.",
-    )
+    pin_key = f"dam-courier-pin-login:{host}"
+    ensure_failures_below(pin_key, window_seconds=15 * 60, max_failures=6,
+        message="Слишком много неверных PIN. Повторите через 15 минут.")
     profiles = (
         await db.execute(
             select(CourierProfile).where(
@@ -181,6 +178,7 @@ async def courier_pin_login(
     ).scalars().all()
     matches = [profile for profile in profiles if verify_courier_pin(profile.pin_hash, body.pin)]
     if not matches:
+        register_failure(pin_key, window_seconds=15 * 60)
         raise HTTPException(status_code=401, detail="Неверный PIN")
     if len(matches) > 1:
         raise HTTPException(status_code=409, detail="PIN назначен нескольким курьерам. Обратитесь к владельцу.")

@@ -7,7 +7,6 @@ import type { DeliveryQuote } from '@/lib/gastronomDelivery';
 const ADDRESS_EXAMPLES = [
   'ул. Жекибаева 129',
   'пер. Урановый 10',
-  'мкр. Сортировка, дом 5',
 ];
 
 function formatMoney(n: number) {

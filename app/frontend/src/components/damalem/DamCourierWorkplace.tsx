@@ -73,6 +73,7 @@ export default function DamCourierWorkplace({onLogout}:{onLogout?:()=>void}) {
   }
   function advance(task:LogisticsTask) {
     const next=courierAction(task).next;
+    if(next==='delivered'&&!window.confirm(say(`Заказ №${task.source_id} передан клиенту?`,`№${task.source_id} тапсырыс клиентке берілді ме?`)))return;
     if(next)void run(()=>logisticsApi.updateTaskStatus(task.id,next),next==='delivered'?st('Доставлено'):st('Принял заказ'));
   }
   const blocked=busy||!connectionReady||!data?.shift;

@@ -130,7 +130,18 @@ async def report(start:date, end:date, db:AsyncSession=Depends(get_db),claims=De
     candidates=(await db.scalars(select(Food_orders).where(await scope(db),~Food_orders.id.in_(select(FoodRefund.order_id))).order_by(Food_orders.id.desc()))).all()
     needs_refund=[{'id':o.id,'amount':float(max(Decimal(0), paid(o) - (Decimal(0) if o.status == 'cancelled' else money(o.total_amount))))} for o in candidates]
     needs_refund=[r for r in needs_refund if r['amount'] > 0]
-    return {'start':str(start),'end':str(end),'sales':sales,'completed':completed,'created':created,'cancelled':cancelled,'average':sales/completed if completed else 0,'receipts':receipts,'refunds':returned,'expenses_total':spent,'cash_difference':receipts-returned-spent,'bonuses':bonuses,'promo_discounts':promos,'untracked_promos':untracked_promos,'payment_methods':methods,'sources':sources,'fulfillment':fulfillment,'undated_paid':undated_paid,'undated_done':undated_done,'products':[{'name':k,**v} for k,v in sorted(products.items(),key=lambda kv:kv[1]['quantity'],reverse=True)[:20]],'days':[{'day':k,**v} for k,v in days.items()],'expenses':[{'id':e.id,'day':e.day,'amount':e.amount,'category':e.category,'note':e.note,'voided':e.voided,'void_reason':e.void_reason} for e in expenses],'refunds_needed':needs_refund}
+    # Courier fees accrued for deliveries in the period. They are a cost even before
+    # the payout; payouts the owner already booked as 'couriers' expenses are not
+    # subtracted twice.
+    from models.courier_workflow import CourierLedger
+    courier_accrued=Decimal(0)
+    for row in (await db.scalars(select(CourierLedger).where(CourierLedger.event_type=='earning'))).all():
+        stamp=row.created_at.isoformat() if hasattr(row.created_at,'isoformat') else row.created_at
+        if inside(day_of(stamp)): courier_accrued+=money(row.amount)
+    courier_booked=sum((e.amount for e in expenses if not e.voided and e.category=='couriers'),Decimal(0))
+    courier_unbooked=max(Decimal(0),courier_accrued-courier_booked)
+    return {'start':str(start),'end':str(end),'sales':sales,'completed':completed,'created':created,'cancelled':cancelled,'average':sales/completed if completed else 0,'receipts':receipts,'refunds':returned,'expenses_total':spent,'cash_difference':receipts-returned-spent,
+        'courier_accrued':courier_accrued,'courier_unbooked':courier_unbooked,'result_after_couriers':receipts-returned-spent-courier_unbooked,'bonuses':bonuses,'promo_discounts':promos,'untracked_promos':untracked_promos,'payment_methods':methods,'sources':sources,'fulfillment':fulfillment,'undated_paid':undated_paid,'undated_done':undated_done,'products':[{'name':k,**v} for k,v in sorted(products.items(),key=lambda kv:kv[1]['quantity'],reverse=True)[:20]],'days':[{'day':k,**v} for k,v in days.items()],'expenses':[{'id':e.id,'day':e.day,'amount':e.amount,'category':e.category,'note':e.note,'voided':e.voided,'void_reason':e.void_reason} for e in expenses],'refunds_needed':needs_refund}
 
 class ExpenseBody(BaseModel):
     id:UUID

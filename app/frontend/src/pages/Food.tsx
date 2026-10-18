@@ -17,7 +17,7 @@ import {
   X, Truck, Store,
   MapPin, MessageSquare,
   ArrowLeft, ArrowRight, Check, CheckCircle2,
-  AlertCircle, Smartphone, Banknote, Coins, RotateCcw,
+  AlertCircle, Banknote, Coins, RotateCcw,
   Search, ShoppingCart, Clock, LayoutGrid, Heart, User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -1118,9 +1118,16 @@ export default function Food() {
     ? st("Выберите один бесплатный подарок")
     : checkoutBlockReason;
 
+  const promptCheckoutAuthRef = useRef<(() => void) | null>(null);
   const openCheckout = useCallback(() => {
     if (deliveryMethod !== 'dine_in' && minOrder > 0 && cartTotal < minOrder) {
       toast.error(st("Минимальная сумма заказа — {0} ₸", [minOrder.toLocaleString('ru-RU')]));
+      return;
+    }
+    if (!isLoggedIn()) {
+      // Ask to sign in before the customer fills address and payment, not after.
+      // The cart and the form are kept and checkout resumes after sign-in.
+      promptCheckoutAuthRef.current?.();
       return;
     }
     setCheckoutStep(1);
@@ -1300,6 +1307,7 @@ export default function Food() {
     setCart(prev => prev.filter((_, i) => i !== index));
   }
 
+  promptCheckoutAuthRef.current = promptCheckoutAuth;
   function promptCheckoutAuth() {
     saveFoodCheckoutReturn({
       step: checkoutStep, deliveryMethod, customerName, customerPhone,
@@ -2525,8 +2533,6 @@ export default function Food() {
                     {(
                       [
                         { id: 'cash' as const, label: st("Наличные"), Icon: Banknote },
-                        { id: 'kaspi_qr' as const, label: 'Kaspi', Icon: Smartphone },
-                        { id: 'halyk_qr' as const, label: 'Halyk', Icon: Smartphone },
                       ] as const
                     ).map(({ id, label, Icon }) => (
                       <button
@@ -2550,7 +2556,7 @@ export default function Food() {
                 </>
                 ) : null}
 
-                {checkoutStep === 2 && <div className="space-y-3"><p className="text-sm text-muted-foreground">Автоматическая оплата Kaspi/Halyk пока не подключена. Сейчас доступна оплата наличными.</p>{payment === 'cash' && <CashAmount total={checkoutGrandTotal} value={cashGiven} onChange={setCashGiven}/>}</div>}
+                {checkoutStep === 2 && <div className="space-y-3">{payment === 'cash' && <CashAmount total={checkoutGrandTotal} value={cashGiven} onChange={setCashGiven}/>}</div>}
                 {checkoutStep === 3 ? (
                   <div className="dam-checkout-section space-y-3 lg:hidden">
                     <div className="dam-checkout-section__title">{st("Проверьте заказ")}</div>
@@ -2601,10 +2607,10 @@ export default function Food() {
                       <span className="text-gray-500">{t('food.subtotal')}</span>
                       <span className="font-semibold text-gray-900">{formatPrice(cartTotal)}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
+                    {serviceFeeAmount > 0 && <div className="flex justify-between text-sm">
                       <span className="text-gray-500">{serviceFeeLabel}</span>
                       <span className="font-semibold text-gray-900">{formatPrice(serviceFeeAmount)}</span>
-                    </div>
+                    </div>}
                     {deliveryMethod === 'delivery' && deliverToApartment && (
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-500">{st("До квартиры")}</span>

@@ -222,7 +222,9 @@ async def notify_food_order_status(db: AsyncSession, order: Any, old_status: str
     order_id = int(order.id)
     title, body = tpl
     from services.dam_settlement import is_debt,settlement_view
-    if new_status=='done' and is_debt(order):
+    # Cash is handed to the courier at the door; "payment expected" there only
+    # alarmed customers who had already paid. Keep it for unpaid online methods.
+    if new_status=='done' and is_debt(order) and getattr(order, 'payment_method', None) != 'cash':
         body=f"Заказ доставлен. Ожидается оплата {settlement_view(order)['debt_amount']:g} ₸."
     if new_status == "done" and getattr(order, "delivery_method", None) in ("pickup", "dine_in"):
         title = "Ваш заказ выдан"
@@ -287,6 +289,8 @@ async def notify_logistics_task_status(db: AsyncSession, task: Any, old_status: 
     tpl = LOGISTICS_STATUS_MESSAGES.get(new_status)
     if not tpl:
         return
+    if new_status == "delivered" and getattr(task, "source_type", None) == "food_orders":
+        return  # the food order's own "доставлен" message already tells the customer
     title, body = tpl
     source_id = int(task.source_id)
     path = f"/delivery/food/{source_id}" if getattr(task, "vertical", "food") == "food" else "/cabinet?tab=orders"
