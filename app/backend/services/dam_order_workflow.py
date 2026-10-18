@@ -79,6 +79,12 @@ async def sync_task(db, order, *, prepare_assignment=False):
             customer_name=order.customer_name, customer_phone=order.customer_phone,
             merchant_name=order.restaurant_name, prep_minutes=0, delivery_fee=customer_delivery_fee,
             customer_delivery_fee=customer_delivery_fee, courier_payout=courier_payout, status='ready')
+        try:
+            point = (json.loads(order.pricing_snapshot or '{}') or {}).get('dropoff_point') or {}
+            if point.get('lat') is not None and point.get('lng') is not None:
+                task.dropoff_lat, task.dropoff_lng = float(point['lat']), float(point['lng'])
+        except (TypeError, ValueError):
+            pass
         db.add(task)
     if not task:
         return

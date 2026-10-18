@@ -847,6 +847,8 @@ async def validate_food_order(
         'base_delivery_fee': base_delivery_fee, 'requested_apartment': requested_apartment,
         'staff_delivery_fee': manual_delivery_fee is not None,
         'promo_code': promo_code,
+        # The point the price was computed for; the courier navigates to it.
+        'dropoff_point': {'lat': lat, 'lng': lng} if delivery_method == 'delivery' and lat is not None and lng is not None else None,
         'settings': {key: settings[key] for key in ('free_delivery_from', 'apartment_free_from', 'apartment_delivery_price', 'promo_codes') if key in settings},
     }, ensure_ascii=False)
     if bonus_points_used > 0:
