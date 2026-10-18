@@ -1,0 +1,63 @@
+# Sortirovka24 on a Kazakhstan VPS (Hoster.kz). One host: Caddy -> app -> PostgreSQL.
+# Secrets live only in /opt/s24/.env on the server (never in git).
+name: s24
+
+services:
+  db:
+    image: postgres:18.0
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-railway}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-railway}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+
+  app:
+    image: s24-app:${APP_TAG:-current}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-railway}
+      PORT: "8000"
+      ENVIRONMENT: production
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/health/ready',timeout=5)\""]
+      interval: 15s
+      timeout: 8s
+      retries: 8
+      start_period: 60s
+    networks: [internal, web]
+
+  caddy:
+    image: caddy:2.10
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [app]
+    networks: [web]
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  internal:
+    internal: true
+  web:

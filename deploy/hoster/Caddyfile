@@ -1,0 +1,24 @@
+# Cloudflare stays in front (SSL mode "Full (strict)"). The origin uses a
+# Cloudflare Origin Certificate (SSL/TLS -> Origin Server), stored on the server
+# as /opt/s24/certs/origin.pem and origin-key.pem (never in git).
+{
+	auto_https disable_certs
+}
+
+www.sortirovka24.kz, sortirovka24.kz {
+	tls /certs/origin.pem /certs/origin-key.pem
+	encode zstd gzip
+	request_body {
+		max_size 25MB
+	}
+	reverse_proxy app:8000 {
+		health_uri /health
+		health_interval 15s
+	}
+	log {
+		output file /data/access.log {
+			roll_size 50MiB
+			roll_keep 10
+		}
+	}
+}
