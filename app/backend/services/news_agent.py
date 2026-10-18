@@ -427,37 +427,127 @@ def channel_post_text(news: News) -> str:
 
 
 async def post_to_channel(db: AsyncSession, client: httpx.AsyncClient, news: News) -> Optional[str]:
-    """Post a published news item to the bound Telegram channel/group. Returns its title or None."""
+    """Post a published news item to the bound public Telegram channel. Returns its title or None."""
     _, state = await load_state(db)
     await db.commit()
     channel = state.get("channel") or {}
-    if not channel.get("id"):
+    if not channel.get("id") or channel.get("type") != "channel":
         return None
     await tg(client, "sendMessage", {"chat_id": channel["id"], "text": channel_post_text(news), "parse_mode": "HTML"})
     return channel.get("title") or "канал"
 
 
+# The owner's working group: approvals go into its topics instead of the private chat.
+TOPICS = {"news": "📰 Новости на согласование", "leads": "🤝 Заявки партнёров"}
+
+
+async def destination(db: AsyncSession, kind: str) -> dict[str, Any]:
+    """sendMessage target for approvals of `kind` ("news" or "leads")."""
+    _, state = await load_state(db)
+    await db.commit()
+    ws = state.get("workspace") or {}
+    if ws.get("id"):
+        target: dict[str, Any] = {"chat_id": ws["id"]}
+        thread = (ws.get("topics") or {}).get(kind)
+        if thread:
+            target["message_thread_id"] = thread
+        return target
+    return {"chat_id": approval_chat()}
+
+
+async def ensure_topics(db: AsyncSession, client: httpx.AsyncClient) -> Optional[str]:
+    """Create missing topics in a forum workspace. Returns an error text for the owner, or None."""
+    row, state = await load_state(db)
+    ws = state.get("workspace") or {}
+    if not ws.get("id") or not ws.get("forum"):
+        await db.commit()
+        return None
+    topics = ws.setdefault("topics", {})
+    problem = None
+    for kind, name in TOPICS.items():
+        if topics.get(kind):
+            continue
+        try:
+            data = await tg(client, "createForumTopic", {"chat_id": ws["id"], "name": name})
+            topics[kind] = data["result"]["message_thread_id"]
+        except Exception as exc:
+            problem = f"Не получилось создать тему «{name}»: дайте мне право «Управление темами». ({exc})"
+            break
+    state["workspace"] = ws
+    save_state(row, state)
+    await db.commit()
+    return problem
+
+
 async def bind_channel(db: AsyncSession, client: httpx.AsyncClient, member: dict[str, Any]) -> None:
-    """The owner added the bot to a channel/group as admin → news also go there."""
+    """The owner added the bot somewhere:
+    a channel → approved news are also posted there;
+    a group → it becomes the working group (approvals arrive in its topics)."""
     chat = member.get("chat") or {}
     actor = str((member.get("from") or {}).get("id", ""))
     status = (member.get("new_chat_member") or {}).get("status")
-    if chat.get("type") not in ("channel", "group", "supergroup") or actor != approval_chat():
+    kind = chat.get("type")
+    if kind not in ("channel", "group", "supergroup") or actor != approval_chat():
         return
     row, state = await load_state(db)
-    title = chat.get("title") or "канал"
-    if status in ("administrator", "member", "creator"):
-        state["channel"] = {"id": chat.get("id"), "title": title}
-        text = (f"Канал «{title}» подключён. Новости, которые вы одобрите, будут публиковаться и там."
-                if status != "member" or chat.get("type") != "channel" else
-                f"Меня добавили в «{title}», но не админом — сделайте меня администратором, чтобы я мог публиковать.")
+    title = chat.get("title") or "чат"
+    key = "channel" if kind == "channel" else "workspace"
+    if (state.get("channel") or {}).get("id") == chat.get("id") and key == "workspace":
+        state.pop("channel", None)  # an older version stored the group as the channel
+    active = status in ("administrator", "creator") or (status == "member" and kind != "channel")
+    if active:
+        current = state.get(key) or {}
+        entry = {"id": chat.get("id"), "title": title, "type": kind, "forum": bool(chat.get("is_forum"))}
+        if current.get("id") == chat.get("id"):
+            entry["topics"] = current.get("topics") or {}
+        state[key] = entry
+        text = (f"Канал «{title}» подключён: одобренные новости будут выходить и там." if key == "channel" else
+                f"Группа «{title}» подключена: новости на согласование и заявки партнёров будут приходить туда.")
     else:
-        if (state.get("channel") or {}).get("id") == chat.get("id"):
-            state.pop("channel", None)
-        text = f"Меня убрали из «{title}». Новости туда больше не публикуются."
+        if (state.get(key) or {}).get("id") == chat.get("id"):
+            state.pop(key, None)
+        text = (f"Меня убрали из «{title}»." if status in ("left", "kicked") else
+                f"В «{title}» сделайте меня администратором, чтобы я мог публиковать.")
     save_state(row, state)
     await db.commit()
+    if active and key == "workspace":
+        problem = await ensure_topics(db, client)
+        if problem:
+            text += "\n" + problem
+        elif state[key].get("forum"):
+            text += " Темы «Новости» и «Заявки партнёров» готовы."
+        else:
+            text += " Совет: включите в группе «Темы», и я разложу новости и заявки по отдельным темам."
     await tg(client, "sendMessage", {"chat_id": approval_chat(), "text": text})
+
+
+_ADMIN_CACHE: dict[tuple[str, str], tuple[float, bool]] = {}
+
+
+async def may_decide(client: httpx.AsyncClient, db: AsyncSession, chat_id: str, sender: str) -> bool:
+    """Owner (and NEWS_TELEGRAM_ADMIN_IDS) anywhere we post; in the working group also its admins."""
+    if not approval_chat():
+        return False
+    trusted = admin_ids() | {approval_chat()}
+    if chat_id == approval_chat():
+        return sender in trusted
+    _, state = await load_state(db)
+    await db.commit()
+    if str((state.get("workspace") or {}).get("id", "")) != chat_id:
+        return False
+    if sender in trusted:
+        return True
+    import time
+    cached = _ADMIN_CACHE.get((chat_id, sender))
+    if cached and time.monotonic() - cached[0] < 300:
+        return cached[1]
+    try:
+        data = await tg(client, "getChatMember", {"chat_id": chat_id, "user_id": int(sender)})
+        ok = data["result"].get("status") in ("creator", "administrator")
+    except Exception:
+        ok = False
+    _ADMIN_CACHE[(chat_id, sender)] = (time.monotonic(), ok)
+    return ok
 
 
 async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dict[str, Any]) -> None:
@@ -479,8 +569,7 @@ async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dic
     msg = callback.get("message") if isinstance(callback.get("message"), dict) else {}
     chat_id = str((msg.get("chat") or {}).get("id", ""))
     sender = str((callback.get("from") or {}).get("id", ""))
-    allowed = bool(approval_chat()) and chat_id == approval_chat() and (
-        sender in admin_ids() if admin_ids() else sender == chat_id)
+    allowed = await may_decide(client, db, chat_id, sender)
     news_match = re.fullmatch(r"nw:([pr]):(\d+)", data)
     lead_match = re.fullmatch(r"pl:([wndr]):(\d+)", data)
     if not allowed or not (news_match or lead_match):
@@ -613,7 +702,7 @@ async def _collect(db: AsyncSession, client: httpx.AsyncClient, report: dict[str
     for news, c in drafts:
         try:
             await tg(client, "sendMessage", {
-                "chat_id": approval_chat(), "text": approval_text(news, c["source"], c["url"]), "parse_mode": "HTML",
+                **(await destination(db, "news")), "text": approval_text(news, c["source"], c["url"]), "parse_mode": "HTML",
                 "disable_web_page_preview": True, "reply_markup": approval_keyboard(news.id),
             })
             report["sent"] += 1

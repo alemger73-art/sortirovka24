@@ -130,3 +130,59 @@ def test_category_and_dates():
     assert partner_crm.parse_next_contact("2026-10-20") == "2026-10-20"
     with pytest.raises(ValueError):
         partner_crm.parse_next_contact("завтра")
+
+
+async def test_working_group_topics_route_news_and_leads(maker):
+    sent = []
+
+    def handler(request):
+        method = str(request.url).rsplit("/", 1)[-1]
+        body = json.loads(request.content or b"{}")
+        sent.append((method, body))
+        if method == "createForumTopic":
+            return httpx.Response(200, json={"ok": True, "result": {"message_thread_id": 100 + len(sent)}})
+        if method == "getChatMember":
+            status = "administrator" if body["user_id"] == 777 else "member"
+            return httpx.Response(200, json={"ok": True, "result": {"status": status}})
+        return httpx.Response(200, json={"ok": True, "result": {"message_id": len(sent)}})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client, maker() as db:
+        # Old version had stored the group as a "channel".
+        row, state = await news_agent.load_state(db)
+        state["channel"] = {"id": -100555, "title": "S24"}
+        news_agent.save_state(row, state)
+        await db.commit()
+        await news_agent.handle_update(db, client, {"my_chat_member": {
+            "chat": {"id": -100555, "title": "S24", "type": "supergroup", "is_forum": True}, "from": {"id": 555},
+            "new_chat_member": {"status": "administrator"}}})
+        _, state = await news_agent.load_state(db)
+        assert "channel" not in state
+        topics = state["workspace"]["topics"]
+        assert set(topics) == {"news", "leads"} and topics["news"] != topics["leads"]
+        assert "Темы «Новости» и «Заявки партнёров» готовы" in sent[-1][1]["text"]
+
+        assert await news_agent.destination(db, "leads") == {"chat_id": -100555, "message_thread_id": topics["leads"]}
+
+        db.add(lead(name="Новая"))
+        await db.commit()
+        await partner_agent.process_new(db, client)  # first start: remember history
+        db.add(lead(name="Ещё", phone="+77001230000"))
+        await db.commit()
+        await partner_agent.process_new(db, client)
+        msg = [p for m, p in sent if m == "sendMessage"][-1]
+        assert msg["chat_id"] == -100555 and msg["message_thread_id"] == topics["leads"]
+
+        # Group admin may press; a plain member may not.
+        def tap(sender):
+            return {"callback_query": {"id": "cb", "data": "pl:w:2", "from": {"id": sender},
+                                       "message": {"message_id": 5, "chat": {"id": -100555}}}}
+        await news_agent.handle_update(db, client, tap(888))
+        assert (await db.get(Lead, 2)).status == "new"
+        await news_agent.handle_update(db, client, tap(777))
+        assert (await db.get(Lead, 2)).status == "in_progress"
+
+        # Published news are not re-posted into the working group.
+        news = News(title="Т", content="Текст", published=False, status=news_agent.PENDING)
+        db.add(news)
+        await db.commit()
+        assert await news_agent.post_to_channel(db, client, news) is None

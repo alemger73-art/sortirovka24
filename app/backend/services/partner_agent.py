@@ -21,7 +21,7 @@ from models.business_partner_requests import Business_partner_requests
 from models.module_settings import ModuleSettings
 from models.user_management import UserAction
 from services import partner_crm
-from services.news_agent import SITE, TZ, approval_chat, tg
+from services.news_agent import SITE, TZ, approval_chat, destination, tg
 
 STATE_KEY = "partner_agent_state"
 BUTTON_STAGES = {"w": "in_progress", "n": "negotiation", "d": "done", "r": "rejected"}
@@ -111,7 +111,7 @@ async def process_new(db: AsyncSession, client: httpx.AsyncClient) -> int:
         row.value = json.dumps(state)
         await db.commit()  # the CRM record stands even if Telegram is down
         try:
-            await tg(client, "sendMessage", {"chat_id": approval_chat(), "text": lead_text(lead, category, duplicate),
+            await tg(client, "sendMessage", {**(await destination(db, "leads")), "text": lead_text(lead, category, duplicate),
                      "parse_mode": "HTML", "disable_web_page_preview": True, "reply_markup": keyboard(lead)})
         except Exception:
             pass
@@ -158,7 +158,7 @@ async def remind(db: AsyncSession, client: httpx.AsyncClient, now: Optional[date
         partner_crm.record(db, lead.id, "partner_lead_reminder", {"reason": reason, "key": key, "via": "agent"})
         await db.commit()
         try:
-            await tg(client, "sendMessage", {"chat_id": approval_chat(), "parse_mode": "HTML",
+            await tg(client, "sendMessage", {**(await destination(db, "leads")), "parse_mode": "HTML",
                      "disable_web_page_preview": True, "reply_markup": keyboard(lead),
                      "text": lead_text(lead, info["category"] or partner_crm.category_of(lead.activity or ""), None,
                                        header=f"⏰ <b>{html.escape(reason)}</b>\nЗаявка")})
