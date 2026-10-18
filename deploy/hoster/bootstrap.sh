@@ -6,14 +6,19 @@ ROLE="${1:-main}"
 export DEBIAN_FRONTEND=noninteractive
 
 apt-get update -y
-apt-get upgrade -y
+apt-get -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold upgrade -y
 apt-get install -y ca-certificates curl gnupg ufw fail2ban unattended-upgrades git rsync age
 dpkg-reconfigure -f noninteractive unattended-upgrades
 timedatectl set-timezone Asia/Almaty || true
 
 # SSH: keys only, no root password login.
+# Refuse to lock ourselves out: a key must already be installed.
+[ -s /root/.ssh/authorized_keys ] || { echo "no authorized_keys, aborting" >&2; exit 1; }
 sed -i 's/^#\?PasswordAuthentication .*/PasswordAuthentication no/' /etc/ssh/sshd_config
 sed -i 's/^#\?PermitRootLogin .*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
+# Ubuntu cloud images re-enable passwords in sshd_config.d; files are read in order, first value wins.
+printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\nPermitRootLogin prohibit-password\n' > /etc/ssh/sshd_config.d/00-s24.conf
+sshd -t
 systemctl reload ssh || systemctl reload sshd || true
 systemctl enable --now fail2ban
 
