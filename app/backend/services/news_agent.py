@@ -419,8 +419,8 @@ def approval_text(news: News, source: str, url: str) -> str:
     e = html.escape
     full = " ".join(x for x in (news.short_description, _body(news.content or "")) if x)
     return (f"📰 <b>Новость на согласование</b>\n\n<b>{e(news.title or '')}</b>\n\n{e(full)}\n\n"
-            f"Источник: <a href=\"{e(url, quote=True)}\">{e(source or 'открыть')}</a>\n"
-            f"Раздел: {e(news.category or '')}")
+            + (f"Источник: <a href=\"{e(url, quote=True)}\">{e(source or 'открыть')}</a>\n" if url else "Ваша новость\n")
+            + f"Раздел: {e(news.category or '')}")
 
 
 def approval_keyboard(news_id: int) -> dict[str, Any]:
@@ -596,25 +596,39 @@ async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dic
         await bind_channel(db, client, update["my_chat_member"])
         return
     message = update.get("message")
-    if isinstance(message, dict) and message.get("photo") and message.get("reply_to_message"):
-        chat_id = str((message.get("chat") or {}).get("id", ""))
-        sender = str((message.get("from") or {}).get("id", ""))
-        if await may_decide(client, db, chat_id, sender):
-            try:
-                answer = await attach_photo(db, client, message)
-            except Exception as exc:
-                logger.warning("[NewsAgent] photo attach failed: %s", exc)
-                answer = "Не получилось сохранить фото, попробуйте ещё раз."
-            if answer:
-                await tg(client, "sendMessage", {"chat_id": chat_id, "text": answer,
-                         "reply_to_message_id": message.get("message_id"),
-                         **({"message_thread_id": message["message_thread_id"]} if message.get("message_thread_id") else {})})
-        return
     if isinstance(message, dict):
         chat = message.get("chat") or {}
         if chat.get("type") == "private" and str(message.get("text") or "").strip().split("@")[0] in ("/start", "/id"):
             await tg(client, "sendMessage", {"chat_id": chat.get("id"), "text":
-                     f"Бот «Сортировка 24»: новости и заявки партнёров.\nНомер этого чата: {chat.get('id')}"})
+                     f"Бот «Сортировка 24»: новости и заявки партнёров.\nНомер этого чата: {chat.get('id')}\n\n"
+                     "Чтобы опубликовать свою новость, пришлите сюда текст (первая строка — заголовок) "
+                     "и, если хотите, фото с подписью."})
+            return
+        if not (message.get("photo") or message.get("text") or message.get("caption")):
+            return
+        chat_id = str(chat.get("id", ""))
+        sender = str((message.get("from") or {}).get("id", ""))
+        if not await may_decide(client, db, chat_id, sender):
+            return
+        reply = message.get("reply_to_message") or {}
+        # In a forum topic every message "replies" to the topic's first message; that is not a real reply.
+        real_reply = bool(reply) and not reply.get("forum_topic_created") and \
+            reply.get("message_id") != message.get("message_thread_id")
+        answer = None
+        try:
+            if real_reply:
+                if message.get("photo"):
+                    answer = await attach_photo(db, client, message)
+            elif await is_own_post_place(db, message):
+                answer = await create_own_news(db, client, message)
+        except Exception as exc:
+            await db.rollback()
+            logger.warning("[NewsAgent] owner message failed: %s", exc)
+            answer = "Не получилось обработать сообщение, попробуйте ещё раз."
+        if answer:
+            await tg(client, "sendMessage", {"chat_id": chat_id, "text": answer,
+                     "reply_to_message_id": message.get("message_id"),
+                     **({"message_thread_id": message["message_thread_id"]} if message.get("message_thread_id") else {})})
         return
     callback = update.get("callback_query")
     if not isinstance(callback, dict):
@@ -800,6 +814,67 @@ async def remember_message(db: AsyncSession, message_id: int, news_id: int) -> N
     await db.commit()
 
 
+async def upload_telegram_photo(client: httpx.AsyncClient, photos: list[dict[str, Any]]) -> str:
+    """Download the biggest size of a Telegram photo and store it like admin uploads. Returns the object key."""
+    best = max(photos, key=lambda p: p.get("file_size") or p.get("width", 0))
+    info = await tg(client, "getFile", {"file_id": best["file_id"]})
+    resp = await client.get(f"https://api.telegram.org/file/bot{bot_token()}/{info['result']['file_path']}", timeout=60)
+    resp.raise_for_status()
+    from uuid import uuid4
+    from services.storage import StorageService, _build_image_keys
+    storage = StorageService()
+    image_key, thumb_key = _build_image_keys(f"news/{uuid4().hex}.jpg")
+    token = storage._make_upload_token("portal-images", image_key, thumbnail_key=thumb_key, is_image=True)
+    saved = await storage.upload_via_token(token, resp.content, "image/jpeg")
+    return saved["object_key"]
+
+
+def split_own_post(text: str) -> tuple[str, str]:
+    """First line → title, the rest → body. A one-paragraph post uses its first sentence as the title."""
+    text = text.strip()
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    if len(lines) >= 2 and len(lines[0]) <= 160:
+        return lines[0].rstrip("."), "\n".join(lines[1:])
+    parts = re.split(r"(?<=[.!?…])\s+", text, maxsplit=1)
+    if len(parts) == 2 and len(parts[0]) <= 160:
+        return parts[0].rstrip("."), parts[1]
+    return (text[:100].rsplit(" ", 1)[0] + "…"), text
+
+
+async def is_own_post_place(db: AsyncSession, message: dict[str, Any]) -> bool:
+    """Owner's own news go in the private chat with the bot or in the news topic of the working group."""
+    chat = message.get("chat") or {}
+    if chat.get("type") == "private":
+        return True
+    _, state = await load_state(db)
+    await db.commit()
+    ws = state.get("workspace") or {}
+    if str(ws.get("id", "")) != str(chat.get("id", "")):
+        return False
+    news_topic = (ws.get("topics") or {}).get("news")
+    return not news_topic or message.get("message_thread_id") == news_topic
+
+
+async def create_own_news(db: AsyncSession, client: httpx.AsyncClient, message: dict[str, Any]) -> Optional[str]:
+    """The owner wrote a news item (text, optionally with a photo) → draft + approval card."""
+    text = (message.get("caption") or message.get("text") or "").strip()
+    if text.startswith("/") or len(text) < 20:
+        return ("Чтобы сделать новость, напишите текст: первая строка — заголовок, дальше — сама новость. "
+                "Можно приложить фото.") if message.get("photo") else None
+    title, body = split_own_post(text)
+    category = guess_category(text)
+    image = await upload_telegram_photo(client, message["photo"]) if message.get("photo") else None
+    lead, rest = split_lead(body)
+    news = News(title=title[:160], short_description=lead, content=rest, category=category,
+                image_url=image or cover_for(category, f"own:{message.get('message_id')}:{title}"),
+                published=False, status=PENDING, created_at=_now_iso())
+    db.add(news)
+    await db.commit()
+    message_id = await send_approval(client, db, news, "", "")
+    await remember_message(db, message_id, news.id)
+    return None
+
+
 async def attach_photo(db: AsyncSession, client: httpx.AsyncClient, message: dict[str, Any]) -> Optional[str]:
     """The owner replied to an approval card with a photo → it becomes the news picture."""
     reply = message.get("reply_to_message") or {}
@@ -814,17 +889,7 @@ async def attach_photo(db: AsyncSession, client: httpx.AsyncClient, message: dic
     news = await db.get(News, int(news_id))
     if not news:
         return "Эта новость уже удалена."
-    best = max(photos, key=lambda p: p.get("file_size") or p.get("width", 0))
-    info = await tg(client, "getFile", {"file_id": best["file_id"]})
-    resp = await client.get(f"https://api.telegram.org/file/bot{bot_token()}/{info['result']['file_path']}", timeout=60)
-    resp.raise_for_status()
-    from uuid import uuid4
-    from services.storage import StorageService, _build_image_keys
-    storage = StorageService()
-    image_key, thumb_key = _build_image_keys(f"news/{uuid4().hex}.jpg")
-    token = storage._make_upload_token("portal-images", image_key, thumbnail_key=thumb_key, is_image=True)
-    saved = await storage.upload_via_token(token, resp.content, "image/jpeg")
-    news.image_url = saved["object_key"]
+    news.image_url = await upload_telegram_photo(client, photos)
     await db.commit()
     return f"📷 Фото добавлено к новости «{news.title}»." + (" Она уже на сайте." if news.published else "")
 

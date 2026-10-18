@@ -244,3 +244,63 @@ async def test_owner_reply_with_photo_sets_news_picture(maker, monkeypatch):
         photo_reply["message"]["chat"]["id"] = 999
         await agent.handle_update(db, client, photo_reply)
         assert (await db.get(News, news_id)).image_url == before
+
+
+async def test_owner_posts_own_news_from_telegram(maker, monkeypatch):
+    sent: list = []
+    base = transport(sent)
+
+    def handler(request):
+        url = str(request.url)
+        if url.endswith("/getFile"):
+            return httpx.Response(200, json={"ok": True, "result": {"file_path": "photos/p.jpg"}})
+        if "/file/bot" in url:
+            return httpx.Response(200, content=b"\xff\xd8jpeg")
+        return base.handle_request(request)
+
+    class FakeStorage:
+        def _make_upload_token(self, bucket, key, thumbnail_key=None, is_image=False):
+            return key
+
+        async def upload_via_token(self, token, data, content_type=None):
+            return {"object_key": token}
+
+    import services.storage as storage_module
+    monkeypatch.setattr(storage_module, "StorageService", FakeStorage)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client, maker() as db:
+        # Text in the private chat: first line is the title.
+        await agent.handle_update(db, client, {"message": {"message_id": 1, "chat": {"id": 555, "type": "private"},
+            "from": {"id": 555}, "text": "Во дворе на Защитной починили освещение\nЖители благодарят акимат района за быстрый ремонт фонарей."}})
+        news = (await db.scalars(select(News))).all()
+        assert len(news) == 1 and news[0].title == "Во дворе на Защитной починили освещение"
+        assert news[0].status == agent.PENDING and not news[0].published
+        assert news[0].image_url.startswith("https://www.sortirovka24.kz/news-covers/")
+        card = sent[-1][1]
+        assert "Ваша новость" in card["caption"] and card["reply_markup"]["inline_keyboard"][0][0]["callback_data"] == f"nw:p:{news[0].id}"
+
+        # Working group with topics: a photo with a caption in the news topic.
+        row, state = await agent.load_state(db)
+        state["workspace"] = {"id": -100555, "title": "S24", "type": "supergroup", "forum": True, "topics": {"news": 7, "leads": 8}}
+        agent.save_state(row, state)
+        await db.commit()
+        await agent.handle_update(db, client, {"message": {"message_id": 30, "chat": {"id": -100555, "type": "supergroup"},
+            "from": {"id": 555}, "message_thread_id": 7, "is_topic_message": True,
+            "reply_to_message": {"message_id": 7, "forum_topic_created": {"name": "Новости"}},
+            "photo": [{"file_id": "p", "file_size": 5}], "caption": "Субботник в сквере Сортировки. Приходите в субботу в 10:00 с перчатками."}})
+        latest = (await db.scalars(select(News).order_by(News.id.desc()))).first()
+        assert latest.title == "Субботник в сквере Сортировки" and latest.image_url.startswith("news/")
+        assert sent[-1][1]["message_thread_id"] == 7
+
+        count = len((await db.scalars(select(News))).all())
+        # Chatter in another topic and messages from non-admins create nothing.
+        await agent.handle_update(db, client, {"message": {"message_id": 31, "chat": {"id": -100555, "type": "supergroup"},
+            "from": {"id": 555}, "message_thread_id": 8, "text": "Это сообщение в теме заявок, не новость вовсе"}})
+        await agent.handle_update(db, client, {"message": {"message_id": 32, "chat": {"id": 999, "type": "private"},
+            "from": {"id": 999}, "text": "Чужой человек пишет боту длинный текст новости"}})
+        assert len((await db.scalars(select(News))).all()) == count
+
+
+def test_split_own_post():
+    assert agent.split_own_post("Заголовок\nТекст") == ("Заголовок", "Текст")
+    title, body = agent.split_own_post("Первое предложение новости. Второе предложение.")
+    assert title == "Первое предложение новости" and body == "Второе предложение."
