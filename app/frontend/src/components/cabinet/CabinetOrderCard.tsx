@@ -4,6 +4,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Link, useNavigate } from "react-router-dom";
 import {
   ChevronRight, MapPin, RotateCcw, Store, Truck, UtensilsCrossed, Wine,
+  Wallet,
 } from "lucide-react";
 import FoodOrderStatusBar from "@/components/damalem/FoodOrderStatusBar";
 import { parseOrderItems, orderLineQuantity, type CabinetOrderRow } from "@/lib/orderRoutes";
@@ -99,6 +100,14 @@ function orderTitle(o: CabinetOrderRow, t: (key: string) => string) {
 function orderSubtitle(o: CabinetOrderRow, t: (key: string) => string) {
   const items = parseOrderItems(o.order_items);
   if (items.length > 0) {
+    const names = items
+      .map((it) => {
+        const name = String(it.name ?? it.title ?? "").trim();
+        const qty = orderLineQuantity(it);
+        return name ? (qty > 1 ? `${name} ×${qty}` : name) : "";
+      })
+      .filter(Boolean);
+    if (names.length > 0) return names.join(", ");
     const qty = items.reduce((s, it) => s + orderLineQuantity(it), 0);
     return `${qty} ${t("public.order.items")}`;
   }
@@ -173,16 +182,16 @@ export default function CabinetOrderCard({ order: o, detailPath, t }: Props) {
                 <Store className="h-3 w-3" /> {t("cabinet.deliveryMethod.pickup")}
               </span>
             ) : null}
-            {payLabel ? <span>· {payLabel}</span> : null}
+            {payLabel ? <span className="inline-flex items-center gap-1"><Wallet className="h-3 w-3" /> {payLabel}</span> : null}
             {isFood && o.delivery_address ? (
-              <span className="inline-flex min-w-0 items-center gap-1 truncate">
-                · <MapPin className="h-3 w-3 shrink-0" />
+              <span className="flex w-full min-w-0 items-center gap-1">
+                <MapPin className="h-3 w-3 shrink-0" />
                 <span className="truncate">{o.delivery_address}</span>
               </span>
             ) : null}
             {isStore && o.customer_address ? (
-              <span className="inline-flex min-w-0 items-center gap-1 truncate">
-                · <MapPin className="h-3 w-3 shrink-0" />
+              <span className="flex w-full min-w-0 items-center gap-1">
+                <MapPin className="h-3 w-3 shrink-0" />
                 <span className="truncate">{o.customer_address}</span>
               </span>
             ) : null}
@@ -193,7 +202,7 @@ export default function CabinetOrderCard({ order: o, detailPath, t }: Props) {
           ) : null}
 
           {isFood && o.order_number ? (
-            <div className="mt-3 flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
+            <div className="mt-3 flex flex-wrap gap-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
               {o.delivery_method === "delivery" && !["done", "cancelled", "delivered"].includes(String(o.status)) ? (
                 <Link
                   to={`/delivery/food/${o.order_number}`}

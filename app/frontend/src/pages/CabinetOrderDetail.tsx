@@ -179,7 +179,7 @@ export default function CabinetOrderDetail() {
                   to={storePath}
                   className="inline-flex items-center gap-1.5 rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
-                  <Store className="h-4 w-4" /> {publicT("public.CabinetOrderDetail.text45")} </Link>
+                  <Store className="h-4 w-4" /> {isFood ? label('В меню', 'Мәзірге') : publicT("public.CabinetOrderDetail.text45")} </Link>
                 {items.length > 0 && ['food', 'volna', 'gastronom', 'pharmacy', 'prorab'].includes(type) ? (
                   <button
                     type="button"
@@ -193,9 +193,9 @@ export default function CabinetOrderDetail() {
             </div>
 
             {isFood && <div className="rounded-2xl border bg-card p-4 space-y-3">
-              <p className="text-sm text-muted-foreground">{t('workflow.live')}</p>
+              {!['done', 'cancelled'].includes(String(order.status)) && <p className="text-sm text-muted-foreground">{t('workflow.live')}</p>}
               {!!order.receipt_revision && <p className="font-semibold text-orange-700 dark:text-orange-300">{t('workflow.changed')} · {formatOrderDate(order.receipt_updated_at)}</p>}
-              {order.paid_amount > 0 && <><p>{t('workflow.received')}: {order.paid_amount} ₸</p><p>{t(order.paid_amount > order.amount ? 'workflow.refund' : 'workflow.due')}: {Math.abs(order.amount - order.paid_amount)} ₸</p></>}
+              {order.paid_amount > 0 && <><p>{t('workflow.received')}: {Number(order.paid_amount).toLocaleString('ru-RU')} ₸</p>{order.amount !== order.paid_amount && <p className="font-semibold">{t(order.paid_amount > order.amount ? 'workflow.refund' : 'workflow.due')}: {Math.abs(order.amount - order.paid_amount).toLocaleString('ru-RU')} ₸</p>}</>}
               {(order.can_edit_receipt || order.can_request_receipt_change) && <button type="button" className="rounded-xl border px-4 py-3 font-semibold hover:bg-muted" onClick={() => setEditor({mode: order.can_edit_receipt ? 'edit' : 'request', order: {...order, id: Number(order.food_order_id || order.order_number || orderId), total_amount: order.amount}})}>{order.can_edit_receipt ? label('Изменить состав заказа', 'Тапсырыс құрамын өзгерту') : label('Запросить изменение', 'Өзгертуге өтініш')}</button>}
               {order.can_edit_receipt && <p className="text-xs text-muted-foreground">{label('Доступно до принятия оператором. Новую сумму покажем перед сохранением.', 'Оператор қабылдағанға дейін қолжетімді. Сақтамас бұрын жаңа сома көрсетіледі.')}</p>}
               {order.can_edit_receipt && order.can_request_receipt_change && <button type="button" className="text-sm underline" onClick={() => setEditor({mode: 'request', order: {...order, id: Number(order.food_order_id || order.order_number || orderId), total_amount: order.amount}})}>{label('Попросить оператора изменить заказ', 'Оператордан тапсырысты өзгертуді сұрау')}</button>}

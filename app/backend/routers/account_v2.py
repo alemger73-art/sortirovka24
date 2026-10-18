@@ -432,7 +432,7 @@ def _existing_code_response(row: PhoneVerification) -> RequestSmsCodeResponse:
         resend_after_seconds=resend_after,
         debug_code=None,
         sms_pending_moderation=False,
-        on_screen_code_hint="Код уже отправлен. Проверьте SMS или дождитесь повторной отправки.",
+        on_screen_code_hint="Код уже отправлен. Проверьте WhatsApp или Telegram (или SMS) и введите его. Новый код можно запросить через минуту.",
     )
 
 

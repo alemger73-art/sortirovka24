@@ -289,8 +289,8 @@ async def notify_logistics_task_status(db: AsyncSession, task: Any, old_status: 
     tpl = LOGISTICS_STATUS_MESSAGES.get(new_status)
     if not tpl:
         return
-    if new_status == "delivered" and getattr(task, "source_type", None) == "food_orders":
-        return  # the food order's own "доставлен" message already tells the customer
+    if new_status in {"picked_up", "delivered"} and getattr(task, "source_type", None) == "food_orders":
+        return  # the food order's own "передан курьеру"/"доставлен" message already tells the customer
     title, body = tpl
     source_id = int(task.source_id)
     path = f"/delivery/food/{source_id}" if getattr(task, "vertical", "food") == "food" else "/cabinet?tab=orders"

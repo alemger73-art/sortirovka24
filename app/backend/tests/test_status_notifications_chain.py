@@ -60,5 +60,7 @@ async def test_kitchen_assignment_completion_inbox_without_gps(env, completed_by
             rows=[r for r in inbox if r.event_key==f'food:status:1:{status}']
             assert len(rows)==1,(status,[r.event_key for r in inbox])
             assert rows[0].path=='/cabinet/orders/food/1'
+        # The food status "передан курьеру"/"доставлен" already covers pickup and delivery.
+        assert not [r for r in inbox if r.event_key.endswith((':picked_up',':delivered')) and r.event_key.startswith('logistics:')]
         ledger=(await db.scalars(select(CourierLedger).where(CourierLedger.task_id==tid))).all()
         assert len([r for r in ledger if r.event_type=='earning'])==1

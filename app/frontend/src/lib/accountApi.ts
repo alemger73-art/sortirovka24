@@ -114,7 +114,7 @@ export const accountApi = {
   bonusRules: () => api<{ enabled: boolean; tenge_rate: number; max_order_percent: number }>("/api/v1/account/bonus-rules"),
   googleStatus: () => api<{ enabled: boolean; signup?: boolean }>("/api/v1/account/google/status"),
   googleLinkStart: () => api<{ url: string }>("/api/v1/account/google/link/start", { method: "POST" }),
-  requestPhoneLinkCode: (phone: string) => api<{ ttl_seconds: number; resend_after_seconds: number; sms_pending_moderation?: boolean; on_screen_code_hint?: string }>("/api/v1/account/phone/link/request-sms", { method: "POST", body: JSON.stringify({ phone }) }),
+  requestPhoneLinkCode: (phone: string, channel?: OtpChannel) => api<{ ttl_seconds: number; resend_after_seconds: number; sms_pending_moderation?: boolean; on_screen_code_hint?: string; channel?: OtpChannel }>("/api/v1/account/phone/link/request-sms", { method: "POST", body: JSON.stringify({ phone, ...(channel ? { channel } : {}) }) }),
   confirmPhoneLinkCode: (phone: string, code: string) => api<{ verified: boolean }>("/api/v1/account/phone/link/confirm", { method: "POST", body: JSON.stringify({ phone, code }) }),
   startGoogle: (language: string, accepted: boolean, subjectName?: string) => api<{ url: string }>("/api/v1/account/google/start", { method: "POST", body: JSON.stringify({ language, accepted, legal_version: accepted ? LEGAL_VERSION : undefined, legal_subject_name: accepted ? subjectName : undefined }) }),
   googleStartUrl: (language: string = "ru", accepted = false) =>

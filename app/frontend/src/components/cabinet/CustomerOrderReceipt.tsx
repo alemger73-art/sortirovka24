@@ -46,7 +46,7 @@ export default function CustomerOrderReceipt({ order }: { order: ReceiptOrder })
     <div className="space-y-2 border-t border-dashed pt-4 text-sm">
       {totals ? <>
         {row(label('Товары', 'Тауарлар'), money(totals.subtotal))}
-        {row(label('Сервисный сбор', 'Қызмет ақысы'), money(totals.service_fee))}
+        {Number(totals.service_fee) > 0 && row(label('Сервисный сбор', 'Қызмет ақысы'), money(totals.service_fee))}
         {row(label('Доставка', 'Жеткізу'), money(totals.delivery_fee))}
         {totals.discount > 0 && row(label('Скидки и бонусы', 'Жеңілдіктер мен бонустар'), `−${money(totals.discount)}`)}
       </> : <p className="text-xs text-muted-foreground">{label('Для этого заказа подробный расчёт не сохранён. Показана сохранённая итоговая сумма.', 'Бұл тапсырыстың толық есебі сақталмаған. Сақталған қорытынды сома көрсетілген.')}</p>}

@@ -1,4 +1,5 @@
 import ClientLoyalty from '@/components/damalem/ClientLoyalty';
+import { bonusNumber, clientLoyalty, type MyLoyalty } from '@/lib/loyalty';
 import AccountIdentitySettings from '@/components/cabinet/AccountIdentitySettings';
 import AccountDeletion from '@/components/cabinet/AccountDeletion';
 import '@/styles/realEstate.css';
@@ -106,7 +107,7 @@ export default function Cabinet() {
   const { t: publicT } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { t, setLang } = useLanguage();
+  const { t, setLang, lang } = useLanguage();
   const taxiEnabled = useTaxiEnabled();
   const { modules, isEnabled, loading: modulesLoading } = useModules();
   const initialTab = searchParams.get("tab");
@@ -146,6 +147,14 @@ export default function Cabinet() {
   const [orderFilter, setOrderFilter] = useState<"all" | "food" | "store">("all");
   const [notifications, setNotifications] = useState<UserNotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [bonusPill, setBonusPill] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    clientLoyalty<MyLoyalty>('/me').then((d) => {
+      if (alive && !d.phone_verification_required_for_business) setBonusPill(String(bonusNumber(d.balance)));
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
   const [notificationError, setNotificationError] = useState("");
   const readingNotifications = useRef(new Set<number>());
@@ -805,7 +814,7 @@ export default function Cabinet() {
               masterApplicationPending={masterApplicationPending}
               masterNewRequests={masterNewRequests}
               logoutLabel={t("cabinet.logout")}
-              bonusLabel={t("cabinet.bonusShort")}
+              bonusLabel={bonusPill !== null ? `${bonusPill} ${t("cabinet.bonusShort")}` : (lang === "kz" ? "Бонустар" : "Бонусы")}
               notificationsLabel={t("cabinet.tab.notifications")}
               onLogout={() => {
                 logoutLocalUser();
@@ -1462,7 +1471,6 @@ export default function Cabinet() {
                   <h2 className={`mb-4 ${sectionTitleClass}`}>{t("cabinet.tab.settings")}</h2>
                   <AccountIdentitySettings />
                   <CabinetNotificationSettings t={t} />
-                  <AccountDeletion />
                   <div className="my-6 border-t border-gray-200 dark:border-[#26324a]" />
                   <div className="mb-6 space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-[#2a3347] dark:bg-[#0f172a]">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{hasPassword ? t("cabinet.changePassword") : t("cabinet.setPassword")}</h3>
@@ -1510,6 +1518,10 @@ export default function Cabinet() {
                   >
                     {t("cabinet.logoutAccount")}
                   </button>
+                  <details className="mt-8 rounded-xl border border-gray-200 p-3 text-sm dark:border-[#2a3347]">
+                    <summary className="cursor-pointer font-medium text-gray-500 dark:text-slate-400">{lang === "kz" ? "Аккаунтты жою" : "Удалить аккаунт"}</summary>
+                    <div className="mt-3"><AccountDeletion /></div>
+                  </details>
                 </DarkCard>
               )}
             </fieldset>
