@@ -76,7 +76,8 @@ from services.google_oauth import (
     fetch_google_userinfo,
     google_oauth_enabled,
 )
-from services.sms import SMSDeliveryError, available_channels, send_verification_code, should_expose_code_on_screen
+from services import telegram_login
+from services.sms import SMSDeliveryError, available_channels, send_verification_code, should_expose_code_on_screen, telegram_bot_mode
 from services.storage import StorageService
 from sqlalchemy import and_, desc, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -725,6 +726,17 @@ async def register_request_sms(
     return await _request_phone_code(request.phone, http_request, db, legal_receipt=receipt, channel=request.channel)
 
 
+async def _with_bot_link(response: RequestSmsCodeResponse) -> RequestSmsCodeResponse:
+    link = await telegram_login.bot_link()
+    if not link:
+        raise HTTPException(502, "Telegram сейчас недоступен. Выберите другой способ.")
+    response.channel = "telegram"
+    response.bot_url = link
+    response.on_screen_code_hint = ("Откройте нашего бота в Telegram, нажмите «Старт», затем «Поделиться номером» — "
+                                    "бот пришлёт код. Введите его здесь.")
+    return response
+
+
 async def _request_phone_code(phone, http_request, db, *, allow_existing=False, purpose="verify", legal_receipt=None, channel=None):
     normalized_phone = _normalize_phone(phone)
     if not normalized_phone or not _is_valid_kz_phone(normalized_phone):
@@ -740,7 +752,10 @@ async def _request_phone_code(phone, http_request, db, *, allow_existing=False, 
                 raise HTTPException(409, "Код уже запрошен для другого действия. Дождитесь повторной отправки.")
             add_acceptance(db, None, legal_receipt, entity='phone_verifications', entity_id=normalized_phone, action='legal_sms_consent')
             await db.commit()
-            return _existing_code_response(active_row)
+            response = _existing_code_response(active_row)
+            if channel == "telegram" and telegram_bot_mode():
+                response = await _with_bot_link(response)
+            return response
 
     client_ip = http_request.client.host if http_request.client else "unknown"
     window_sec = SMS_REQUEST_WINDOW.total_seconds()
@@ -811,6 +826,10 @@ async def _request_phone_code(phone, http_request, db, *, allow_existing=False, 
         on_screen_hint = "Код для регистрации — введите его с экрана."
 
     stored_code = code if expose_code else None
+
+    if getattr(delivery, "provider_message", None) == "telegram_bot":
+        return await _with_bot_link(RequestSmsCodeResponse(
+            success=True, ttl_seconds=SMS_CODE_TTL_MINUTES * 60, resend_after_seconds=SMS_RESEND_COOLDOWN_SECONDS))
 
     return RequestSmsCodeResponse(
         success=True,

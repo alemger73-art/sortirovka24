@@ -58,8 +58,20 @@ def _expose_code_enabled() -> bool:
 OTP_CHANNEL_ORDER = ("whatsapp", "telegram", "sms")
 
 
-def _telegram_ready() -> bool:
+def _telegram_gateway_ready() -> bool:
     return bool(os.getenv("TELEGRAM_GATEWAY_TOKEN", "").strip())
+
+
+def telegram_bot_mode() -> bool:
+    """No paid Gateway: codes come from our own bot after the person shares the number."""
+    if _telegram_gateway_ready():
+        return False
+    from services import telegram_login
+    return telegram_login.enabled()
+
+
+def _telegram_ready() -> bool:
+    return _telegram_gateway_ready() or telegram_bot_mode()
 
 
 def _whatsapp_ready() -> bool:
@@ -88,6 +100,8 @@ async def send_verification_code(phone: str, code: str, channel: str | None = No
             logger.info("OTP side effects disabled. Skipping %s message.", chosen)
             return SMSDeliveryResult(delivered=False, pending_moderation=False, provider_message="external_side_effects_disabled")
         if chosen == "telegram":
+            if telegram_bot_mode():
+                return SMSDeliveryResult(delivered=False, pending_moderation=False, provider_message="telegram_bot")
             return await _send_telegram_gateway(phone, code)
         return await _send_whatsapp_template(phone, code)
     return await _send_sms_code(phone, code)

@@ -31,6 +31,7 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [hint, setHint] = useState('');
+  const [botUrl, setBotUrl] = useState('');
   const [cooldown, setCooldown] = useState(0);
   const [expires, setExpires] = useState(0);
   const field = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-white';
@@ -60,7 +61,7 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
     try {
       const r = await accountApi.requestSignInCode(phone, subjectName.trim(), lang, channel);
       const via = (r.channel || channel || null) as OtpChannel | null;
-      setSentVia(via);
+      setSentVia(via); setBotUrl(r.bot_url || '');
       setCode(''); setStep('code'); setCooldown(r.resend_after_seconds); setExpires(r.ttl_seconds);
       setHint(r.on_screen_code_hint || (r.sms_pending_moderation
         ? text('Сообщение ожидает отправки. Это может занять несколько минут.', 'Хабарлама жіберілуді күтуде. Бұл бірнеше минут алуы мүмкін.')
@@ -118,6 +119,8 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
       </form>}
       {step === 'code' && <form className="mt-5 space-y-3" onSubmit={e => { e.preventDefault(); void confirm(); }}>
         <p className="text-sm dark:text-white">{sentVia === 'whatsapp' ? text('Код из WhatsApp для', 'WhatsApp коды, нөмір') : sentVia === 'telegram' ? text('Код из Telegram для', 'Telegram коды, нөмір') : text('Код для', 'Код, нөмір')} <strong>{phone}</strong></p>
+        {botUrl && sentVia === 'telegram' && <a href={botUrl} target="_blank" rel="noopener noreferrer" className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2a8bd3] px-4 py-3 font-semibold text-white hover:bg-[#2278b8]"><Send className="h-4 w-4" />{text('Открыть бота и получить код', 'Ботты ашып, код алу')}</a>}
+        {botUrl && sentVia === 'telegram' && <p className="text-xs text-gray-500">{text('В боте нажмите «Старт», затем «📱 Поделиться номером» — код придёт сразу.', 'Ботта «Старт», содан кейін «📱 Нөмірмен бөлісу» басыңыз — код бірден келеді.')}</p>}
         <label htmlFor="quick-code" className="sr-only">{text('Код из 6 цифр', '6 цифрдан тұратын код')}</label>
         <input id="quick-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} className={`${field} text-center text-2xl tracking-[0.35em]`} placeholder="••••••" autoFocus />
         <p role="status" className="text-xs text-gray-500">{hint} {expires === 0 ? text('Код истёк. Запросите новый.', 'Код мерзімі аяқталды. Жаңасын сұратыңыз.') : `${text('Действует ещё', 'Жарамдылық мерзімі')} ${Math.floor(expires / 60)}:${String(expires % 60).padStart(2, '0')}`}</p>

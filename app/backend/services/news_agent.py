@@ -598,6 +598,16 @@ async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dic
     message = update.get("message")
     if isinstance(message, dict):
         chat = message.get("chat") or {}
+        from services import telegram_login
+        if await telegram_login.handle_message(db, client, message):
+            return
+        sender_id = str((message.get("from") or {}).get("id", ""))
+        if chat.get("type") == "private" and str(message.get("text") or "").strip() == "/start" \
+                and sender_id != approval_chat() and sender_id not in admin_ids():
+            # A customer who opened the bot without the login link.
+            await tg(client, "sendMessage", {"chat_id": chat.get("id"), "text": telegram_login.ASK_TEXT,
+                     "reply_markup": telegram_login.contact_keyboard()})
+            return
         if chat.get("type") == "private" and str(message.get("text") or "").strip().split("@")[0] in ("/start", "/id"):
             await tg(client, "sendMessage", {"chat_id": chat.get("id"), "text":
                      f"Бот «Сортировка 24»: новости и заявки партнёров.\nНомер этого чата: {chat.get('id')}\n\n"
@@ -896,6 +906,16 @@ async def attach_photo(db: AsyncSession, client: httpx.AsyncClient, message: dic
 
 # ── background loop ─────────────────────────────────────────────────────────
 
+async def _collect_once(session_maker, client: httpx.AsyncClient) -> None:
+    try:
+        async with session_maker() as db:
+            report = await collect(db, client)
+            if report:
+                logger.info("[NewsAgent] run: %s", report)
+    except Exception as exc:
+        logger.warning("[NewsAgent] collect failed: %s", exc)
+
+
 async def run_forever(session_maker) -> None:
     """One bot, one loop: news collection, partner leads, and the owner's button taps."""
     from core.deploy_safety import external_side_effects_allowed
@@ -904,17 +924,17 @@ async def run_forever(session_maker) -> None:
     await asyncio.sleep(20)
     offset: Optional[int] = None
     next_reminder = 0.0
+    collecting: Optional[asyncio.Task] = None
     async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}) as client:
         while True:
             try:
                 if not bot_token() or not approval_chat() or not external_side_effects_allowed():
                     await asyncio.sleep(300)
                     continue
+                if enabled() and (collecting is None or collecting.done()):
+                    # Collection reads many sites; it runs aside so login codes and taps stay instant.
+                    collecting = asyncio.create_task(_collect_once(session_maker, client))
                 async with session_maker() as db:
-                    if enabled():
-                        report = await collect(db, client)
-                        if report:
-                            logger.info("[NewsAgent] run: %s", report)
                     if partner_agent.enabled():
                         try:
                             await partner_agent.process_new(db, client)

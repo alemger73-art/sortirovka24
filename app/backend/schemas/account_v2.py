@@ -152,6 +152,8 @@ class RequestSmsCodeResponse(BaseModel):
     debug_code: Optional[str] = None
     sms_pending_moderation: bool = False
     on_screen_code_hint: Optional[str] = None
+    # Telegram without the paid Gateway: open this bot link to receive the code.
+    bot_url: Optional[str] = None
 
 
 class ConfirmRegistrationRequest(RegisterV2Request):
