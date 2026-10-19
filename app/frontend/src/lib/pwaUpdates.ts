@@ -1,6 +1,4 @@
 import { Capacitor } from '@capacitor/core';
-import { toast } from 'sonner';
-import { getPublicLanguage } from '@/i18n/publicLocale';
 
 const UPDATE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 let initialized = false;
@@ -29,17 +27,20 @@ export function initWebAppUpdates(): void {
     reloading = true;
     window.location.reload();
   };
-  const offerUpdate = () => {
-    const kz = getPublicLanguage() === 'kz';
-    toast(kz ? 'Қолданбаның жаңа нұсқасы дайын' : 'Доступна новая версия приложения', {
-      id: 'app-update', duration: Infinity,
-      description: kz ? 'Өзгерістерді сақтап, жаңартуды басыңыз.' : 'Сохраните изменения и нажмите «Обновить».',
-      action: {
-        label: kz ? 'Жаңарту' : 'Обновить',
-        onClick: applyWebAppUpdate,
-      },
-    });
-  };
+  // No pop-ups: a waiting version is applied silently on the next in-app navigation
+  // (the page changes anyway, so nothing typed is lost).
+  let pending = false;
+  const offerUpdate = () => { pending = true; };
+  const onNavigate = () => { if (pending && applyPendingUpdate) applyPendingUpdate(); };
+  for (const method of ['pushState', 'replaceState'] as const) {
+    const original = history[method].bind(history);
+    history[method] = ((...args: Parameters<History['pushState']>) => {
+      const before = location.pathname;
+      original(...args);
+      if (method === 'pushState' && location.pathname !== before) onNavigate();
+    }) as History['pushState'];
+  }
+  window.addEventListener('popstate', onNavigate);
 
   // A release-specific URL also bypasses an older worker cached at the CDN.
   // The scope stays '/', so existing push subscriptions remain on the registration.

@@ -29,7 +29,12 @@ export default function InstallAppBanner({ manual = false }: { manual?: boolean 
     if (busy) return;
     pwaEvent('pwa_install_cta_clicked');
     const prompt = takeInstallPrompt();
-    if (!prompt) { setHelp(true); return; }
+    if (!prompt) {
+      // Android: the browser here cannot install (Yandex, in-app WhatsApp/Telegram tab…) — hand over to Chrome,
+      // which shows its own one-tap «Установить». iPhone: Apple allows only the Share-sheet route.
+      if (environment.platform === 'android') { pwaEvent('pwa_open_in_chrome'); window.location.href = chromeIntentUrl(); return; }
+      setHelp(true); return;
+    }
     setBusy(true);
     try {
       pwaEvent('pwa_install_prompt_shown'); await prompt.prompt();
@@ -54,14 +59,14 @@ export default function InstallAppBanner({ manual = false }: { manual?: boolean 
         {!manual && <button aria-label="Закрыть предложение установки" className="self-start p-2" onClick={() => { try { localStorage.setItem('s24_install_dismissed_at', String(Date.now())); } catch { /* storage optional */ } setDismissed(true); }}><X size={20} /></button>}
       </div>
     </div>
-    <Dialog open={help} onOpenChange={setHelp}><DialogContent className="max-h-[85dvh] overflow-y-auto rounded-2xl bg-white text-slate-900 dark:bg-slate-950 dark:text-white">
-      <DialogTitle>Установите Сортировка 24</DialogTitle><DialogDescription>Установка займёт несколько секунд. Используйте меню самого браузера.</DialogDescription>
-      {environment.embedded ? <p>Откройте сайт в {environment.ios ? 'Safari' : 'Chrome'} через меню этого браузера. Встроенные браузеры мессенджеров могут не поддерживать установку.</p>
-      : environment.ios ? <><p>{environment.browser === 'chrome' ? 'В Chrome на iPhone нажмите значок «Поделиться» справа от адресной строки.' : environment.browser === 'safari' ? 'В Safari нажмите «Поделиться» (или откройте меню «⋯», затем «Поделиться»).' : 'Для надёжной установки откройте этот адрес в Safari. Если ваш браузер предлагает «Добавить на экран Домой» в меню «Поделиться», можно использовать его.'}</p>
-        <ol className="list-decimal space-y-3 pl-6"><li><Share className="inline h-5 w-5" /> Откройте «Поделиться» в браузере.</li><li>Выберите «Добавить на экран Домой». Если пункта нет в Safari: «Изменить действия» → добавьте его.</li><li>Если есть переключатель «Открывать как веб-приложение», включите его.</li><li>Нажмите «Добавить» и запустите «Сортировка 24» с новой иконки.</li></ol></>
-      : <><p>{environment.browser === 'samsung' ? 'В Samsung Internet откройте меню ☰ → «Добавить страницу в» → «Главный экран». Выберите установку приложения, если браузер предлагает её.' : 'В Chrome/Edge откройте меню ⋮ → «Установить Сортировка 24» или «Установить приложение». На компьютере также доступен значок установки в адресной строке.'}</p><p>Если браузер предлагает только ссылку на сайт, откройте HTTPS-адрес ниже в актуальном Chrome, дождитесь загрузки и повторите. Системная установка недоступна в некоторых встроенных браузерах.</p></>}
-      <p className="break-all rounded-xl bg-blue-50 p-3 text-blue-900">https://www.sortirovka24.kz/</p>
-      <button className="min-h-11 rounded-xl border px-4" onClick={() => void navigator.clipboard?.writeText('https://www.sortirovka24.kz/')}>Скопировать адрес</button>
+    <Dialog open={help} onOpenChange={setHelp}><DialogContent className="rounded-2xl bg-white text-slate-900 dark:bg-slate-950 dark:text-white">
+      <DialogTitle>Установить «Сортировка 24»</DialogTitle>
+      {environment.ios ? <DialogDescription asChild><div className="space-y-4 text-base text-slate-700 dark:text-slate-200">
+        <p className="flex items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950"><Share size={20} /></span>Нажмите «Поделиться» внизу экрана</p>
+        <p className="flex items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-xl font-bold text-blue-600 dark:bg-blue-950">+</span>Выберите «На экран „Домой“»</p>
+        {environment.browser !== 'safari' && <p className="text-sm text-slate-500">Если пункта нет — откройте сайт в Safari.</p>}
+      </div></DialogDescription>
+      : <DialogDescription>Откройте меню браузера ⋮ и выберите «Установить приложение».</DialogDescription>}
     </DialogContent></Dialog>
   </>;
 }

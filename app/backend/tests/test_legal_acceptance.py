@@ -29,10 +29,12 @@ class LegalPayloadTests(unittest.TestCase):
         self.assertFalse(receipt['marketing_consent'])
         self.assertTrue(all(len(digest) == 64 for digest in receipt['documents'].values()))
 
-    def test_current_consent_requires_subject_full_name(self):
+    def test_current_consent_requires_a_name(self):
+        # The consent receipt carries the person's own name next to the verified phone.
         with self.assertRaises(HTTPException) as error:
-            acceptance_payload(LEGAL_VERSION, accepted=True, subject_name='Пользователь')
+            acceptance_payload(LEGAL_VERSION, accepted=True, subject_name=' ')
         self.assertEqual(error.exception.status_code, 400)
+        self.assertEqual(acceptance_payload(LEGAL_VERSION, accepted=True, subject_name='Асия')['subject_name'], 'Асия')
 
     def test_transfer_details_remain_private_even_if_old_admin_setting_verified(self):
         public = public_settings_payload({'payment_details_verified':'true','promo_enabled':'true',

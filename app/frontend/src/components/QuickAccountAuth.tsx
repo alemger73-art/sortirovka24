@@ -12,28 +12,47 @@ import { humanizeApiError } from '@/lib/apiErrors';
 import { cacheAccountProfile } from '@/lib/localAuth';
 import { linkPushTokenToAccount, syncWebPushSubscriptionToAccount } from '@/lib/pushNotifications';
 
+type Draft = { name: string; phone: string; accepted: boolean; step: 'phone' | 'code'; sentVia: OtpChannel | null; botUrl: string; expiresAt: number; cooldownUntil: number; savedAt?: number };
+const DRAFT_KEY = 's24_login_draft';
+function loadDraft(): Draft | null {
+  try {
+    const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null') as Draft | null;
+    if (!d || Date.now() - (d.savedAt || 0) > 15 * 60_000) return null;
+    if (d.step === 'code' && d.expiresAt < Date.now()) d.step = 'phone';
+    return d;
+  } catch { return null; }
+}
+function saveDraft(d: Draft) { try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...d, savedAt: Date.now() })); } catch { /* optional */ } }
+export function clearLoginDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch { /* optional */ } }
+
 export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin: () => void }) {
   const { lang } = useLanguage();
   const kz = lang === 'kz';
   const text = (ru: string, kk: string) => kz ? kk : ru;
   const location = useLocation();
   const navigate = useNavigate();
+  const [draft] = useState(loadDraft);
   const [google, setGoogle] = useState(false);
-  const [step, setStep] = useState<'phone' | 'code'>('phone');
+  const [step, setStep] = useState<'phone' | 'code'>(draft?.step || 'phone');
   const [channels, setChannels] = useState<OtpChannel[]>([]);
-  const [sentVia, setSentVia] = useState<OtpChannel | null>(null);
-  const [subjectName, setSubjectName] = useState('');
-  const nameReady = subjectName.trim().split(/\s+/).length >= 2;
-  const [phone, setPhone] = useState('');
+  const [sentVia, setSentVia] = useState<OtpChannel | null>(draft?.sentVia || null);
+  const [subjectName, setSubjectName] = useState(draft?.name || '');
+  const nameReady = subjectName.trim().length >= 2;
+  const [phone, setPhone] = useState(draft?.phone || '');
   const [code, setCode] = useState('');
-  const [accepted, setAccepted] = useState(false);
-  const [dataAccepted, setDataAccepted] = useState(false);
+  const [accepted, setAccepted] = useState(!!draft?.accepted);
+  const [dataAccepted, setDataAccepted] = useState(!!draft?.accepted);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [hint, setHint] = useState('');
-  const [botUrl, setBotUrl] = useState('');
-  const [cooldown, setCooldown] = useState(0);
-  const [expires, setExpires] = useState(0);
+  const [botUrl, setBotUrl] = useState(draft?.botUrl || '');
+  const [cooldown, setCooldown] = useState(draft ? Math.max(0, Math.round((draft.cooldownUntil - Date.now()) / 1000)) : 0);
+  const [expires, setExpires] = useState(draft ? Math.max(0, Math.round((draft.expiresAt - Date.now()) / 1000)) : 0);
+  // Keep what the person typed if the page reloads while they are in WhatsApp/Telegram.
+  useEffect(() => { saveDraft({ name: subjectName, phone, accepted: accepted && dataAccepted, step, sentVia, botUrl,
+    expiresAt: Date.now() + expires * 1000, cooldownUntil: Date.now() + cooldown * 1000 }); },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [subjectName, phone, accepted, dataAccepted, step, sentVia, botUrl]);
   const field = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-white';
   const button = 'w-full rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50';
   useEffect(() => { accountApi.googleStatus().then(r => setGoogle(r.enabled)).catch(() => setGoogle(false)); }, []);
@@ -55,7 +74,7 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
 
   async function sendCode(channel?: OtpChannel) {
     if (busy || (cooldown > 0 && channel === sentVia)) return;
-    const missing = !nameReady ? text('Укажите фамилию и имя через пробел, например: Касымова Асия.', 'Тегіңіз бен атыңызды бос орын арқылы жазыңыз, мысалы: Қасымова Әсия.')
+    const missing = !nameReady ? text('Напишите ваше имя.', 'Атыңызды жазыңыз.')
       : !isCompleteKzPhone(phone) ? text('Введите номер телефона полностью: +7 и 10 цифр.', 'Телефон нөмірін толық енгізіңіз: +7 және 10 цифр.')
       : !accepted || !dataAccepted ? text('Отметьте обе галочки согласия ниже — без них мы не можем создать кабинет.', 'Төмендегі екі келісімді белгілеңіз — оларсыз кабинет ашу мүмкін емес.')
       : '';
@@ -82,7 +101,7 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
     setBusy(true); setError('');
     try {
       const r = await accountApi.confirmSignInCode({ phone, code, language: lang, agreement_accepted: accepted, privacy_accepted: dataAccepted, legal_version: LEGAL_VERSION, legal_subject_name: subjectName.trim() });
-      setAccountToken(r.token);
+      setAccountToken(r.token); clearLoginDraft();
       void linkPushTokenToAccount(); void syncWebPushSubscriptionToAccount();
       try { const me = await accountApi.me(); cacheAccountProfile({ id: me.id, name: me.name, phone: me.phone, email: me.email, avatar: me.avatar }); } catch { /* Cabinet can retry its profile fetch. */ }
       const target = new URLSearchParams(location.search).get('redirect');
@@ -101,9 +120,8 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{text('Вход в «Сортировка 24»', '«Сортировка 24» жүйесіне кіру')}</h1>
       <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{text('Вход и регистрация по номеру телефона. Код придёт в WhatsApp или Telegram.', 'Телефон нөмірі арқылы кіру және тіркелу. Код WhatsApp немесе Telegram-ға келеді.')}</p>
       {step !== 'code' && <div className="mt-4 space-y-2">
-        <label htmlFor="legal-subject-name" className="block text-sm dark:text-white">{text('Фамилия, имя, отчество (при наличии)', 'Тегі, аты, әкесінің аты (болса)')}</label>
-        <input id="legal-subject-name" autoComplete="name" maxLength={120} value={subjectName} onChange={e => { setSubjectName(e.target.value); setError(''); }} placeholder={text('Например: Касымова Асия', 'Мысалы: Қасымова Әсия')} className={field} />
-        {subjectName.trim() && !nameReady && <p className="text-xs text-amber-600 dark:text-amber-300">{text('Нужны фамилия и имя — допишите через пробел.', 'Тегі мен аты қажет — бос орын арқылы жазыңыз.')}</p>}
+        <label htmlFor="legal-subject-name" className="block text-sm dark:text-white">{text('Ваше имя', 'Атыңыз')}</label>
+        <input id="legal-subject-name" autoComplete="given-name" maxLength={120} value={subjectName} onChange={e => { setSubjectName(e.target.value); setError(''); }} placeholder={text('Например: Асия', 'Мысалы: Әсия')} className={field} />
       </div>}
       {step === 'phone' && <form className="mt-4 space-y-3" onSubmit={e => { e.preventDefault(); void sendCode(); }}>
         <label htmlFor="quick-phone" className="block text-sm font-medium dark:text-white">{text('Номер телефона', 'Телефон нөмірі')}</label>

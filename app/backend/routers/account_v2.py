@@ -104,7 +104,7 @@ SMS_RESEND_COOLDOWN_SECONDS = max(30, int(os.getenv("SMS_RESEND_COOLDOWN_SECONDS
 SMS_REQUEST_ATTEMPTS: dict[str, list[datetime]] = {}
 SMS_REQUEST_WINDOW = timedelta(minutes=max(1, int(os.getenv("SMS_REQUEST_WINDOW_MINUTES", "15"))))
 MAX_SMS_REQUESTS_PER_WINDOW = max(1, int(os.getenv("SMS_MAX_REQUESTS_PER_WINDOW", "6")))
-SESSION_EXPIRY_DAYS = max(1, int(os.getenv("ACCOUNT_SESSION_DAYS", "30")))
+SESSION_EXPIRY_DAYS = max(1, int(os.getenv("ACCOUNT_SESSION_DAYS", "180")))  # people stay signed in for half a year
 WELCOME_BONUS_POINTS = float(os.getenv("WELCOME_BONUS_POINTS", "300"))
 _SMS_HASH_FALLBACK_SECRET = secrets.token_bytes(32)
 

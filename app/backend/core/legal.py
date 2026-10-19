@@ -27,8 +27,8 @@ def acceptance_payload(version, *, accepted, language="ru", channel="account", o
     if not accepted:
         raise HTTPException(400, "Подтвердите условия и согласие на обработку данных.")
     subject_name = ' '.join((subject_name or '').split())
-    if len(subject_name) > 120 or len(subject_name.split()) < 2:
-        raise HTTPException(400, "Укажите фамилию, имя и отчество (при наличии) для согласия на обработку данных.")
+    if len(subject_name) > 120 or len(subject_name) < 2:
+        raise HTTPException(400, "Укажите ваше имя для согласия на обработку данных.")
     language = "kz" if language == "kz" else "ru"
     keys = ("food-terms", "consent", "privacy") if order else ("terms", "consent", "privacy")
     return {"version": version, "language": language, "channel": channel, "subject_name": subject_name,
