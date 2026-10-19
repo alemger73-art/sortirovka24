@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Download, Share, X } from 'lucide-react';
 import { isNativeApp } from '@/lib/native';
-import { currentInstallPrompt, takeInstallPrompt, isPwaStandalone, pwaEvent, pwaPlatform } from '@/lib/pwa';
+import { currentInstallPrompt, takeInstallPrompt, isPwaStandalone, pwaEvent, pwaPlatform, needsChromeForInstall, chromeIntentUrl } from '@/lib/pwa';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 export default function InstallAppBanner({ manual = false }: { manual?: boolean }) {
@@ -13,7 +13,8 @@ export default function InstallAppBanner({ manual = false }: { manual?: boolean 
   const [installed, setInstalled] = useState(isPwaStandalone);
   const [busy, setBusy] = useState(false);
   const environment = pwaPlatform();
-  const visible = !isNativeApp() && !installed && (manual || (!dismissed && (environment.ios || !!currentInstallPrompt())));
+  const viaChrome = needsChromeForInstall();
+  const visible = !isNativeApp() && !installed && (manual || (!dismissed && (environment.ios || viaChrome || !!currentInstallPrompt())));
   useEffect(() => {
     const refresh = () => setReady(n => n + 1);
     const installedNow = () => setInstalled(true);
@@ -45,7 +46,10 @@ export default function InstallAppBanner({ manual = false }: { manual?: boolean 
         <img src="/icon-192-v4.png" alt="" className="h-12 w-12 rounded-xl" />
         <div className="min-w-0 flex-1"><p className="font-semibold">Установить Сортировка 24</p>
           <p className="mt-1 text-sm text-gray-500">«Сортировка 24» появится на главном экране и будет открываться как приложение.</p>
-          <button disabled={busy} onClick={() => void install()} className="mt-3 flex min-h-11 items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-white"><Download size={18} />{busy ? 'Открываем…' : 'Установить Сортировка 24'}</button>
+          {viaChrome ? <>
+            <p className="mt-1 text-sm text-gray-500">Установите через Chrome — тогда будет настоящее приложение со своей иконкой, без значка браузера.</p>
+            <a href={chromeIntentUrl()} onClick={() => pwaEvent('pwa_open_in_chrome')} className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-white"><Download size={18} />Открыть в Chrome и установить</a>
+          </> : <button disabled={busy} onClick={() => void install()} className="mt-3 flex min-h-11 items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-white"><Download size={18} />{busy ? 'Открываем…' : 'Установить Сортировка 24'}</button>}
         </div>
         {!manual && <button aria-label="Закрыть предложение установки" className="self-start p-2" onClick={() => { try { localStorage.setItem('s24_install_dismissed_at', String(Date.now())); } catch { /* storage optional */ } setDismissed(true); }}><X size={20} /></button>}
       </div>
