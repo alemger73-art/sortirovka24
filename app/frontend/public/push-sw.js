@@ -28,7 +28,7 @@ self.addEventListener('message', event => {
 self.addEventListener('push', (event) => {
   let payload = {};
   try { payload = event.data ? event.data.json() : {}; } catch { payload = {}; }
-  const title = typeof payload.title === 'string' ? payload.title : 'Sortirovka 24';
+  const title = typeof payload.title === 'string' ? payload.title : 'Сортировка 24';
   const body = typeof payload.body === 'string' ? payload.body : 'У вас новое уведомление';
   const rawPath = payload.data && typeof payload.data.path === 'string' ? payload.data.path : '/cabinet?tab=notifications';
   const path = safePath(rawPath);

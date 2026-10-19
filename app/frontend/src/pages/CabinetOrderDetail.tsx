@@ -6,6 +6,7 @@ import { foodOrderStatusKey } from '@/lib/foodOrderStatus';
 import { getPublicLocale } from '@/i18n/publicLocale';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import PushPromptCard from '@/components/PushPromptCard';
 import Layout from '@/components/Layout';
 import { accountApi } from '@/lib/accountApi';
 import { humanizeApiError } from '@/lib/apiErrors';
@@ -137,6 +138,7 @@ export default function CabinetOrderDetail() {
           <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">{error}</div>
         ) : order ? (
           <div className="space-y-4">
+            {!['delivered', 'completed', 'cancelled', 'canceled'].includes(String((order as { status?: string }).status || '')) && <PushPromptCard reason="order" />}
             <div className="rounded-2xl border bg-white p-6 shadow-sm dark:bg-gray-900 dark:border-gray-800">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">

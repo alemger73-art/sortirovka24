@@ -38,6 +38,8 @@ export default defineConfig(({ mode }) => ({
         clientsClaim: true,
         skipWaiting: false,
         globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
+        // Photos load when viewed; installing the app should not download every cover.
+        globIgnores: ['news-covers/**', 'partners/**', 'food-hero-reference.png', '**/*-v2.png', '**/*-v3.png', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
         navigateFallback: undefined,
         // Public pages must reach the server so every navigation receives
         // route-specific metadata and the server-rendered SEO shell.

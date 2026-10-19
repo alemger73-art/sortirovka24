@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Sortirovka 24",
-  "short_name": "S24",
-  "description": "Вся Сортировка в одном месте",
+  "name": "Сортировка 24",
+  "short_name": "Сортировка",
+  "description": "Вся Сортировка в одном месте: доставка DÄM ALEM, объявления, мастера, такси, новости района",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
@@ -10,9 +10,26 @@
   "theme_color": "#2563EB",
   "orientation": "any",
   "prefer_related_applications": false,
-  "categories": ["lifestyle", "food", "social"],
+  "categories": [
+    "lifestyle",
+    "food",
+    "social"
+  ],
   "lang": "ru",
-  "shortcuts": [{"name":"Курьер DÄM ALEM","short_name":"Курьер","url":"/food/courier","icons":[{"src":"/icon-192-v4.png","sizes":"192x192","type":"image/png"}]}],
+  "shortcuts": [
+    {
+      "name": "Курьер DÄM ALEM",
+      "short_name": "Курьер",
+      "url": "/food/courier",
+      "icons": [
+        {
+          "src": "/icon-192-v4.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
   "icons": [
     {
       "src": "/icon-192-v4.png",

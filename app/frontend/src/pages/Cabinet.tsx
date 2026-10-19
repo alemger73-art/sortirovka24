@@ -9,6 +9,7 @@ import { formatDate, getStatusLabel } from '@/lib/api';
 import { getPublicLocale } from '@/i18n/publicLocale';
 import { useEffect, useMemo, useState, useRef } from "react";
 import Layout from "@/components/Layout";
+import PushPromptCard from '@/components/PushPromptCard';
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Camera, Save, UserCircle2, Wrench, MapPin, Plus, Trash2, Star, Pencil, X, Loader2, CheckCircle2, AlertCircle, Search, Megaphone, EyeOff, Home } from "lucide-react";
 import CabinetNav from "@/components/cabinet/CabinetNav";
@@ -804,6 +805,7 @@ export default function Cabinet() {
     <Layout>
       <div className="cabinet-page min-h-screen bg-gray-50 px-4 py-8 text-gray-900 dark:bg-[#0B0F19] dark:text-white">
         <div className="mx-auto max-w-7xl">
+          {activeTab !== 'profile' && <PushPromptCard reason="cabinet" className="mb-4" />}
           {activeTab !== 'profile' && <div className="mb-6">
             <CabinetHeader
               profile={cabinet?.profile}
