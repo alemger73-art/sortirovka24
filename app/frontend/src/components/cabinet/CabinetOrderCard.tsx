@@ -149,7 +149,7 @@ export default function CabinetOrderCard({ order: o, detailPath, t }: Props) {
       }`}
     >
       <div className="flex items-start gap-3">
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${iconTone}`}>
+        <div className={`hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl sm:flex ${iconTone}`}>
           <Icon className="h-5 w-5" />
         </div>
 
@@ -201,20 +201,23 @@ export default function CabinetOrderCard({ order: o, detailPath, t }: Props) {
             <FoodOrderStatusBar status={o.status || "new"} deliveryMethod={o.delivery_method} />
           ) : null}
 
+          {detailPath ? <p className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-orange-700 dark:text-orange-300">{lang === 'kz' ? 'Толығырақ' : 'Подробнее и чек'}<ChevronRight className="h-4 w-4" /></p> : null}
+
           {isFood && o.order_number ? (
             <div className="mt-3 flex flex-wrap gap-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
               {o.delivery_method === "delivery" && !["done", "cancelled", "delivered"].includes(String(o.status)) ? (
-                <Link
-                  to={`/delivery/food/${o.order_number}`}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-orange-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-orange-700"
+                <button
+                  type="button"
+                  onClick={() => navigate(`/delivery/food/${o.order_number}`)}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-orange-600 px-3 py-2 text-xs font-semibold text-white hover:bg-orange-700"
                 >
-                  <MapPin className="h-3 w-3" /> {publicT("public.CabinetOrderDetail.text47")} </Link>
+                  <MapPin className="h-3.5 w-3.5" /> {publicT("public.CabinetOrderDetail.text47")} </button>
               ) : null}
-              {o.order_items ? (
+              {o.order_items && ["done", "delivered", "completed", "cancelled"].includes(String(o.status)) ? (
                 <button
                   type="button"
                   onClick={() => repeatFoodOrder(o, navigate)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-orange-300 bg-orange-50 px-3 py-1.5 text-[11px] font-semibold text-orange-700 hover:bg-orange-100 dark:border-orange-500/40 dark:bg-orange-500/10 dark:text-orange-200 dark:hover:bg-orange-500/20"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-orange-300 bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-700 hover:bg-orange-100 dark:border-orange-500/40 dark:bg-orange-500/10 dark:text-orange-200 dark:hover:bg-orange-500/20"
                 >
                   <RotateCcw className="h-3 w-3" /> {publicT("public.CabinetOrderDetail.text46")} </button>
               ) : null}
@@ -222,9 +225,7 @@ export default function CabinetOrderCard({ order: o, detailPath, t }: Props) {
           ) : null}
         </div>
 
-        {detailPath ? (
-          <div className="shrink-0 text-right">{isFood && <span className="text-xs font-semibold text-orange-700 dark:text-orange-300">{lang === 'kz' ? 'Чекті ашу' : 'Открыть чек'}</span>}<ChevronRight className="ml-auto mt-3 h-5 w-5 text-gray-300 transition group-hover:text-amber-500 dark:text-slate-600" /></div>
-        ) : null}
+
       </div>
     </div>
   );

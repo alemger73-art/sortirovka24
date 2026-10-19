@@ -163,10 +163,10 @@ export default function CabinetOrderDetail() {
                 {order.created_at ? <p>{formatOrderDate(order.created_at)}</p> : null}
                 {order.customer_name ? <p>{order.customer_name}</p> : null}
                 {order.customer_phone ? (
-                  <p className="inline-flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" />{order.customer_phone}</p>
+                  <p className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 shrink-0" />{order.customer_phone}</p>
                 ) : null}
                 {address ? (
-                  <p className="inline-flex items-start gap-1.5"><MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0" />{address}</p>
+                  <p className="flex items-start gap-1.5"><MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0" />{address}</p>
                 ) : null}
                 {payKey ? <p>{t(payKey)}</p> : null}
                 {order.comment ? <p className="text-gray-500 italic">{order.comment}</p> : null}
@@ -182,7 +182,7 @@ export default function CabinetOrderDetail() {
                   className="inline-flex items-center gap-1.5 rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   <Store className="h-4 w-4" /> {isFood ? label('В меню', 'Мәзірге') : publicT("public.CabinetOrderDetail.text45")} </Link>
-                {items.length > 0 && ['food', 'volna', 'gastronom', 'pharmacy', 'prorab'].includes(type) ? (
+                {items.length > 0 && ['food', 'volna', 'gastronom', 'pharmacy', 'prorab'].includes(type) && ['done', 'delivered', 'completed', 'cancelled'].includes(String(order.status)) ? (
                   <button
                     type="button"
                     onClick={repeatOrder}

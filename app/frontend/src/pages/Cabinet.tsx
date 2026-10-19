@@ -113,7 +113,7 @@ export default function Cabinet() {
   const { modules, isEnabled, loading: modulesLoading } = useModules();
   const initialTab = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState<TabId>(
-    isCabinetTabId(initialTab) ? initialTab : "profile",
+    isCabinetTabId(initialTab) ? initialTab : "orders",
   );
   const [loading, setLoading] = useState(true);
   const [cabinet, setCabinet] = useState<any>(null);
@@ -166,7 +166,7 @@ export default function Cabinet() {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    setActiveTab(isCabinetTabId(tab) ? tab : "profile");
+    setActiveTab(isCabinetTabId(tab) ? tab : "orders");
   }, [searchParams]);
 
   const loadMasterNewRequests = async (role?: string) => {
@@ -686,12 +686,13 @@ export default function Cabinet() {
 
   const tabs = useMemo(() => {
     const base: { id: TabId; label: string }[] = [
-      { id: "profile", label: t("cabinet.tab.profile") },
-      { id: "work", label: t("cabinet.tab.work") },
-      { id: "addresses", label: t("cabinet.tab.addresses") },
+      // Most used first: on phones the first row of tiles is what people see.
+      { id: "orders", label: t("cabinet.tab.orders") },
       { id: "bonuses", label: t("cabinet.tab.bonuses") },
       { id: "notifications", label: t("cabinet.tab.notifications") },
-      { id: "orders", label: t("cabinet.tab.orders") },
+      { id: "addresses", label: t("cabinet.tab.addresses") },
+      { id: "profile", label: t("cabinet.tab.profile") },
+      { id: "work", label: t("cabinet.tab.work") },
       { id: "masterRequests", label: t("cabinet.tab.masterRequests") },
       { id: "taxi", label: t("cabinet.tab.taxi") },
       { id: "complaints", label: t("cabinet.tab.complaints") },
@@ -715,6 +716,11 @@ export default function Cabinet() {
     const timer = window.setInterval(() => { if (!document.hidden) refresh(); }, 15000);
     return () => { alive = false; clearInterval(timer); };
   }, [taxiEnabled, deliveryEnabled]);
+
+  // A link to a hidden section (module switched off) opens the first available one instead of an empty page.
+  useEffect(() => {
+    if (!modulesLoading && tabs.length && !tabs.some(tab => tab.id === activeTab)) setActiveTab(tabs[0].id);
+  }, [modulesLoading, tabs, activeTab]);
 
   const switchTab = (tab: TabId) => {
     setError("");
@@ -805,8 +811,8 @@ export default function Cabinet() {
     <Layout>
       <div className="cabinet-page min-h-screen bg-gray-50 px-4 py-8 text-gray-900 dark:bg-[#0B0F19] dark:text-white">
         <div className="mx-auto max-w-7xl">
-          {activeTab !== 'profile' && <PushPromptCard reason="cabinet" className="mb-4" />}
-          {activeTab !== 'profile' && <div className="mb-6">
+          {activeTab === 'orders' && <PushPromptCard reason="cabinet" className="mb-4" />}
+          <div className="mb-4">
             <CabinetHeader
               profile={cabinet?.profile}
               ordersCount={(rows.orders || []).length}
@@ -838,9 +844,9 @@ export default function Cabinet() {
               }}
               roleVisibility={{ master: false, driver: false, courier: false, becomeDriver: false, becomeCourier: false, becomeMaster: false }}
             />
-          </div>}
+          </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-6">
             <CabinetNav tabs={tabsWithBadges} activeTab={activeTab} onTabChange={switchTab} />
 
             <fieldset disabled={contentBusy} className="cabinet-content min-w-0 space-y-4" id="cabinet-panel" hidden={!tabs.some(tab => tab.id === activeTab)}>
@@ -902,7 +908,7 @@ export default function Cabinet() {
                         <button onClick={saveProfile} disabled={savingProfile || avatarUploading} className="inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-[#0B0F19] disabled:opacity-60">
                           <Save className="h-4 w-4" /> {savingProfile ? t("cabinet.saving") : t("cabinet.saveProfile")}
                         </button>
-                        <button type="button" onClick={() => { logoutLocalUser(); navigate('/account'); }} className="rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold dark:border-[#2a3347]">{t("cabinet.logout")}</button>
+
                       </div>
                     </div>
                   </div>
@@ -1115,7 +1121,8 @@ export default function Cabinet() {
                 <DarkCard>
                   <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className={sectionTitleClass}>{t("cabinet.tab.orders")}</h2>
-                    <div className="flex flex-wrap gap-2">
+                    {/* Filters only make sense when both food and shop orders are possible. */}
+                    {isEnabled('food') && ['gastronom', 'volna', 'pharmacy', 'prorab'].some(key => isEnabled(key as ModuleKey)) && <div className="flex flex-wrap gap-2">
                       {([
                         ["all", t("cabinet.orders.filterAll")],
                         ["food", t("cabinet.orders.filterFood")],
@@ -1134,7 +1141,7 @@ export default function Cabinet() {
                           {label}
                         </button>
                       ))}
-                    </div>
+                    </div>}
                   </div>
                   {cabinet.profile?.google_linked && !cabinet.profile?.phone_verified && filteredOrders.length === 0 && <div className="mb-4 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm"><p>Вы вошли через Google, телефон ещё не подтверждён. Старые заказы, оформленные по номеру телефона, появятся после подтверждения номера или входа в прежний аккаунт.</p><Link to="/cabinet?tab=settings" className="mt-2 inline-block font-semibold underline">Подтвердить телефон в настройках</Link></div>}
                   <div className="space-y-3">
@@ -1511,7 +1518,6 @@ export default function Cabinet() {
                       {changingPassword ? t("cabinet.saving") : hasPassword ? t("cabinet.changePassword") : t("cabinet.setPassword")}
                     </button>
                   </div>}
-                  <p className="mb-5 text-sm text-gray-600 dark:text-slate-300">{t("cabinet.langHint")}</p>
                   <button
                     onClick={() => {
                       logoutLocalUser();

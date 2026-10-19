@@ -65,9 +65,12 @@ test('all resident tabs fit, preserve URL and navigate back', async ({ page }, i
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/cabinet');
   const nav = page.getByRole('navigation', { name: 'Разделы личного кабинета' });
+  // The cabinet opens on order history; the compact header with the name is shown on every tab.
+  await expect(nav.locator('button[aria-current=page]')).toContainText('История заказов');
+  await page.goto('/cabinet?tab=profile');
   await expect(page.getByLabel('Имя', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Личные данные', exact: true })).toHaveCount(1);
-  await expect(page.getByRole('heading', { name: profile.name, exact: true })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: profile.name, exact: true })).toHaveCount(1);
   await expect(nav.getByRole('combobox')).toHaveCount(0);
   await page.screenshot({ path: info.outputPath('cabinet-profile.png'), fullPage: true });
   const choose = async (label: string) => {
@@ -91,7 +94,7 @@ test('all resident tabs fit, preserve URL and navigate back', async ({ page }, i
 
 test('profile clears email, validates fields, preserves successful save', async ({ page }) => {
   const state = await setup(page);
-  await page.goto('/cabinet');
+  await page.goto('/cabinet?tab=profile');
   await page.getByLabel('Имя', { exact: true }).fill('');
   await page.getByRole('button', { name: 'Сохранить изменения' }).click();
   await expect(page.getByRole('alert')).toContainText('Укажите имя');
@@ -185,6 +188,7 @@ test('removing the local PIN does not bypass account login',async({page})=>{
 
 test('password validation prevents invalid requests and clears successful form', async ({ page }) => {
   const state = await setup(page);
+  state.profile.role = 'admin'; // passwords are kept only for staff accounts
   await page.goto('/cabinet?tab=settings');
   await page.getByText('Настроить категории уведомлений', {exact:true}).click();
   await page.getByPlaceholder('Текущий пароль').fill('OldPassword1');
@@ -214,7 +218,7 @@ test('avatar upload preserves unsaved text and removal updates the header', asyn
   const gate = new Promise<void>(resolve => release = resolve);
   await page.route('**/account/me/avatar-upload-url', route => route.fulfill({ json: { upload_url: 'http://127.0.0.1:3174/api/avatar-test' } }));
   await page.route('**/api/avatar-test', async route => { await gate; await route.fulfill({ json: { image_url: image } }); });
-  await page.goto('/cabinet');
+  await page.goto('/cabinet?tab=profile');
   try {
     await page.locator('input[type=file]').setInputFiles('public/food-hero-reference.png');
     await expect(page.getByRole('button', { name: 'Сохранить изменения' })).toBeDisabled();
@@ -241,7 +245,7 @@ test('device preference save errors are visible and logout clears session', asyn
   });
   await page.getByRole('switch',{name:'Заказы (еда, магазины)',exact:true}).click();
   await expect(page.getByRole('alert').first()).toContainText('Не удалось сохранить');
-  await page.getByRole('button', { name: 'Выход', exact: true }).click();
+  await page.getByRole('button', { name: 'Выйти из аккаунта', exact: true }).click();
   await expect(page).toHaveURL(/\/account/);
   expect(await page.evaluate(() => localStorage.getItem('account_token') || localStorage.getItem('s24_account_token_v1') || sessionStorage.getItem('s24_account_token_v1'))).toBeNull();
 });
@@ -249,7 +253,7 @@ test('device preference save errors are visible and logout clears session', asyn
 test('narrow native screen fits profile and settings with enlarged text', async ({ page }, info) => {
   await setup(page);
   await page.setViewportSize({ width: 320, height: 740 });
-  await page.goto('/cabinet');
+  await page.goto('/cabinet?tab=profile');
   await page.getByLabel('Имя', { exact: true }).fill('Очень длинное имя пользователя без потери информации');
   await page.evaluate(() => { document.documentElement.classList.add('native-app'); document.documentElement.style.fontSize = '18px'; (document.activeElement as HTMLElement)?.blur(); window.scrollTo(0, 0); });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

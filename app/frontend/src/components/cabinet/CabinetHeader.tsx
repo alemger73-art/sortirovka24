@@ -95,21 +95,21 @@ export default function CabinetHeader({
   return (
     <div className="relative overflow-hidden rounded-3xl border border-gray-200/80 bg-white shadow-sm dark:border-[#1f2a3f] dark:bg-[#111827]">
       <div className="absolute inset-0 bg-gradient-to-br from-amber-400/15 via-transparent to-orange-500/10 dark:from-amber-500/10 dark:to-orange-600/5" />
-      <div className="relative flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="relative flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-4">
           {profile?.avatar ? (
             <img
               src={profile.avatar}
               alt=""
-              className="h-16 w-16 shrink-0 rounded-2xl object-cover ring-2 ring-amber-400/60 shadow-md"
+              className="h-12 w-12 shrink-0 rounded-2xl object-cover ring-2 ring-amber-400/60 shadow-md"
             />
           ) : (
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-300 shadow-md">
-              <UserCircle2 className="h-9 w-9 text-[#0B0F19]/70" />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-300 shadow-md">
+              <UserCircle2 className="h-7 w-7 text-[#0B0F19]/70" />
             </div>
           )}
           <div className="min-w-0">
-            <h1 className="break-words text-xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-2xl">
+            <h1 className="break-words text-lg font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-2xl">
               {profile?.name || "—"}
             </h1>
             <p className="truncate text-sm text-gray-500 dark:text-slate-300">{profile?.phone}</p>
@@ -143,15 +143,7 @@ export default function CabinetHeader({
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
-          <button
-            type="button"
-            onClick={onLogout}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-[#2a3347] dark:bg-[#0f172a] dark:text-white dark:hover:bg-[#1a2336]"
-          >
-            <LogOut className="h-4 w-4" />
-            {logoutLabel}
-          </button>
+        <div className="flex shrink-0 flex-col items-stretch gap-2 empty:hidden sm:items-end">
           {roleVisibility?.courier && roleVisibility?.courier && courierAccess?.status === "pending" && links.courierPending ? (
             <p className="text-xs text-amber-600 dark:text-amber-400">{links.courierPending}</p>
           ) : null}
