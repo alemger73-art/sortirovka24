@@ -93,11 +93,37 @@ async def test_auth_confirmation_and_private_status(context):
     uid, headers = await identity(maker)
     assert (await client.post("/api/v1/account-deletion/me", json={"confirmed": True})).status_code == 401
     assert (await client.post("/api/v1/account-deletion/me", headers=headers, json={"confirmed": False})).status_code == 422
-    assert (await client.post("/api/v1/account-deletion/me", headers=headers, json={"confirmed": True, "password": "wrong"})).status_code == 403
+    # Staff keep the password check; an old session of a regular user needs a messenger code.
+    _, staff = await identity(maker, role="admin")
+    assert (await client.post("/api/v1/account-deletion/me", headers=staff, json={"confirmed": True, "password": "wrong"})).status_code == 403
+    _, stale = await identity(maker, old=True)
+    assert (await client.post("/api/v1/account-deletion/me", headers=stale, json={"confirmed": True, "password": "DeletionTest123!"})).status_code == 403
+    assert (await client.post("/api/v1/account-deletion/me", headers=stale, json={"confirmed": True, "code": "000000"})).status_code == 400
     response = await client.get("/api/v1/account-deletion/me", headers=headers)
     assert response.json() == {"request": None}
     assert response.headers["cache-control"] == "no-store"
     assert (await client.get("/api/v1/account-deletion/admin", headers=headers)).status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_messenger_code_confirms_deletion(context, monkeypatch):
+    from routers import account_v2
+    from services.sms import SMSDeliveryResult
+    client, maker = context
+    sent = {}
+
+    async def fake_send(phone, code, channel=None):
+        sent[phone] = code
+        return SMSDeliveryResult(delivered=True, pending_moderation=False, provider_message="whatsapp")
+    monkeypatch.setattr(account_v2, "send_verification_code", fake_send)
+    monkeypatch.setenv("JWT_SECRET_KEY", "test-only-deletion-secret")
+    uid, headers = await identity(maker, old=True, password=False)
+    r = await client.post("/api/v1/account-deletion/me/code", headers=headers, json={"channel": "whatsapp"})
+    assert r.status_code == 200, r.text
+    code = next(iter(sent.values()))
+    r = await client.post("/api/v1/account-deletion/me", headers=headers, json={"confirmed": True, "code": code})
+    assert r.status_code == 202, r.text
+    assert r.json()["request"]["status"] == "pending"
 
 
 @pytest.mark.asyncio

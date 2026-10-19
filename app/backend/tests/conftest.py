@@ -33,3 +33,11 @@ def _google_signup_for_legacy_tests(monkeypatch, request):
     flow, so they run with it switched on. test_google_signup_closed checks the default."""
     if "google_signup_closed" not in request.node.name:
         monkeypatch.setenv("GOOGLE_SIGNUP_ENABLED", "1")
+
+
+@pytest.fixture(autouse=True)
+def _customer_password_login_for_legacy_tests(monkeypatch, request):
+    """Production allows password login only for staff; older tests sign customers in
+    with a password as a shortcut. test_customer_password_login_closed checks the default."""
+    if "customer_password_login_closed" not in request.node.name:
+        monkeypatch.setenv("CUSTOMER_PASSWORD_LOGIN", "1")

@@ -5,7 +5,7 @@ from typing import Literal
 import bcrypt
 from core.auth import decode_access_token
 from core.database import get_db
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field, SecretStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,9 +43,18 @@ def no_cache(response: Response):
 router = APIRouter(prefix="/api/v1/account-deletion", tags=["account-deletion"], dependencies=[Depends(no_cache)])
 
 
+STAFF_ROLES = {"admin", "superadmin", "moderator"}
+
+
 class DeletionInput(BaseModel):
     confirmed: Literal[True]
     password: SecretStr | None = Field(None, max_length=128)
+    # Everyone who signs in with a messenger code confirms deletion with a fresh code too.
+    code: str | None = Field(None, pattern=r"^\d{6}$")
+
+
+class DeletionCodeInput(BaseModel):
+    channel: Literal["whatsapp", "telegram", "sms"] | None = None
 
 
 class RetainedRecord(BaseModel):
@@ -93,7 +102,12 @@ async def submit_deletion(body: DeletionInput, authorization: str | None = Heade
     existing = await db.scalar(select(AccountDeletionRequest).where(AccountDeletionRequest.user_id == user.id))
     if existing:
         return public_status(existing)
-    if user.password_hash:
+    if body.code:
+        if not user.phone:
+            raise HTTPException(400, "К аккаунту не привязан телефон.")
+        from routers.account_v2 import _consume_phone_code
+        await _consume_phone_code(db, user.phone, body.code, purpose="delete")
+    elif user.password_hash and user.role in STAFF_ROLES:
         supplied = body.password.get_secret_value() if body.password else ""
         try:
             valid = bool(supplied) and bcrypt.checkpw(supplied.encode("utf-8"), user.password_hash.encode("utf-8"))
@@ -106,8 +120,19 @@ async def submit_deletion(body: DeletionInput, authorization: str | None = Heade
         session = await db.scalar(select(UserSession).where(UserSession.user_id == user.id, UserSession.token_jti == payload.get("jti")))
         created = as_aware_utc(session.created_at) if session else None
         if not created or created < datetime.now(timezone.utc) - timedelta(minutes=10):
-            raise HTTPException(403, "Для удаления выйдите из аккаунта и войдите заново через SMS или Google.")
+            raise HTTPException(403, "Подтвердите удаление кодом из WhatsApp или Telegram.")
     return public_status(await request_deletion(db, user))
+
+
+@router.post("/me/code")
+async def deletion_code(body: DeletionCodeInput, http_request: Request, authorization: str | None = Header(None),
+                        db: AsyncSession = Depends(get_db)):
+    """Send a confirmation code for account deletion to the account's own phone."""
+    user = await current_user(db, authorization)
+    if not user.phone:
+        raise HTTPException(400, "К аккаунту не привязан телефон. Напишите на srt-group.24@mail.ru.")
+    from routers.account_v2 import _request_phone_code
+    return await _request_phone_code(user.phone, http_request, db, allow_existing=True, purpose="delete", channel=body.channel)
 
 
 @router.get("/admin")

@@ -110,7 +110,8 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const accountApi = {
   deletionStatus: () => api<{ request: DeletionRequest | null }>("/api/v1/account-deletion/me"),
-  requestDeletion: (password?: string) => api<{ request: DeletionRequest }>("/api/v1/account-deletion/me", { method: "POST", body: JSON.stringify({ confirmed: true, password }) }),
+  requestDeletion: (confirm: { password?: string; code?: string }) => api<{ request: DeletionRequest }>("/api/v1/account-deletion/me", { method: "POST", body: JSON.stringify({ confirmed: true, ...confirm }) }),
+  requestDeletionCode: (channel?: OtpChannel) => api<{ ttl_seconds: number; resend_after_seconds: number; channel?: OtpChannel; bot_url?: string; on_screen_code_hint?: string }>("/api/v1/account-deletion/me/code", { method: "POST", body: JSON.stringify(channel ? { channel } : {}) }),
   bonusRules: () => api<{ enabled: boolean; tenge_rate: number; max_order_percent: number }>("/api/v1/account/bonus-rules"),
   googleStatus: () => api<{ enabled: boolean; signup?: boolean }>("/api/v1/account/google/status"),
   googleLinkStart: () => api<{ url: string }>("/api/v1/account/google/link/start", { method: "POST" }),

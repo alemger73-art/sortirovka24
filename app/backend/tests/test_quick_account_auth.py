@@ -99,6 +99,19 @@ class QuickAccountAuthTests(unittest.IsolatedAsyncioTestCase):
             result = await self.confirm(await self.request_code(phone),phone)
             self.assertEqual(result.status_code,403)
 
+    async def test_customer_password_login_closed(self):
+        import bcrypt
+        os.environ.pop('CUSTOMER_PASSWORD_LOGIN', None)
+        hashed = bcrypt.hashpw(b'Secret12345', bcrypt.gensalt(rounds=4)).decode()
+        async with self.sessions() as db:
+            db.add(User(id='cust', phone='+77001230001', role='driver', status='active', is_active=True, password_hash=hashed))
+            db.add(User(id='adm', phone='+77001230002', role='admin', status='active', is_active=True, password_hash=hashed))
+            await db.commit()
+        r = await self.client.post('/api/v1/account/login', json={'phone': '+77001230001', 'password': 'Secret12345'})
+        self.assertEqual(r.status_code, 403, r.text)
+        r = await self.client.post('/api/v1/account/login', json={'phone': '+77001230002', 'password': 'Secret12345'})
+        self.assertEqual(r.status_code, 200, r.text)
+
     async def test_driver_and_courier_sign_in_with_code(self):
         for role, phone in [('driver', '+77001234570'), ('courier', '+77001234571')]:
             async with self.sessions() as db:

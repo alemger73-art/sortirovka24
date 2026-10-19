@@ -1474,7 +1474,8 @@ export default function Cabinet() {
                   <AccountIdentitySettings />
                   <CabinetNotificationSettings t={t} />
                   <div className="my-6 border-t border-gray-200 dark:border-[#26324a]" />
-                  <div className="mb-6 space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-[#2a3347] dark:bg-[#0f172a]">
+                  {/* Passwords only for staff; everyone else signs in with a WhatsApp/Telegram code. */}
+                  {['admin', 'superadmin', 'moderator'].includes(String(cabinet?.profile?.role || '')) && <div className="mb-6 space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-[#2a3347] dark:bg-[#0f172a]">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{hasPassword ? t("cabinet.changePassword") : t("cabinet.setPassword")}</h3>
                     {hasPassword ? (
                       <input
@@ -1509,7 +1510,7 @@ export default function Cabinet() {
                     >
                       {changingPassword ? t("cabinet.saving") : hasPassword ? t("cabinet.changePassword") : t("cabinet.setPassword")}
                     </button>
-                  </div>
+                  </div>}
                   <p className="mb-5 text-sm text-gray-600 dark:text-slate-300">{t("cabinet.langHint")}</p>
                   <button
                     onClick={() => {

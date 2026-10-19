@@ -962,6 +962,9 @@ async def login(
     ).scalar_one_or_none()
     if not user or not user.password_hash or not _verify_password(request.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    if (user.role or "user") not in {"admin", "superadmin", "moderator"} and os.getenv("CUSTOMER_PASSWORD_LOGIN", "").strip().lower() not in {"1", "true", "yes", "on"}:
+        # Customers, couriers, drivers and masters sign in only with a WhatsApp/Telegram code.
+        raise HTTPException(status_code=403, detail="Вход по паролю — только для сотрудников. Войдите по коду из WhatsApp или Telegram.")
     if user.status == "blocked" or not user.is_active:
         raise HTTPException(status_code=403, detail="User is blocked")
 
