@@ -38,6 +38,25 @@ services:
       start_period: 60s
     networks: [internal, web]
 
+  # WhatsApp gateway (WAHA, GOWS engine, no browser) for the portal's own number: login codes and the bot.
+  # Not published to the internet: only the app talks to it, with WAHA_API_KEY from .env.
+  waha:
+    image: devlikeapro/waha@sha256:1ae3c6a994ee97e5039bf41103193d7bf9175f1a31db73ba89bdeed6277901bc
+    restart: unless-stopped
+    environment:
+      WHATSAPP_DEFAULT_ENGINE: GOWS
+      WAHA_API_KEY: ${WAHA_API_KEY:-}
+      WHATSAPP_START_SESSION: default
+      WHATSAPP_RESTART_ALL_SESSIONS: "True"
+      WAHA_DASHBOARD_ENABLED: "False"
+      WHATSAPP_SWAGGER_ENABLED: "False"
+      WAHA_PRINT_QR: "False"
+      TZ: Asia/Almaty
+    volumes:
+      - waha-sessions:/app/.sessions
+    mem_limit: 768m
+    networks: [web]
+
   caddy:
     image: caddy:2.10
     restart: unless-stopped
@@ -53,6 +72,7 @@ services:
     networks: [web]
 
 volumes:
+  waha-sessions:
   db-data:
   caddy-data:
   caddy-config:

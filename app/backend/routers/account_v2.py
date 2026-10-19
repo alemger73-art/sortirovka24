@@ -712,6 +712,8 @@ async def register(
 @router.get("/otp-channels")
 async def otp_channels():
     """Messengers that can deliver the login code right now (WhatsApp, Telegram, SMS)."""
+    from services.sms import refresh_waha_status
+    await refresh_waha_status()
     return {"channels": available_channels()}
 
 

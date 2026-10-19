@@ -74,12 +74,78 @@ def _telegram_ready() -> bool:
     return _telegram_gateway_ready() or telegram_bot_mode()
 
 
+# ── WhatsApp through our own WAHA (portal number +7 700 428 02 80) ──────────
+_waha_state: dict[str, Any] = {"working": False, "checked": 0.0}
+
+
+def _waha_configured() -> bool:
+    return bool(os.getenv("WAHA_URL", "").strip() and os.getenv("WAHA_API_KEY", "").strip())
+
+
+def _waha_ready() -> bool:
+    return _waha_configured() and bool(_waha_state["working"])
+
+
+def _waha_session() -> str:
+    return os.getenv("WAHA_SESSION", "default").strip() or "default"
+
+
+async def refresh_waha_status(force: bool = False) -> bool:
+    """Is the WhatsApp session connected? Cached for a minute so the login page stays fast."""
+    import time
+    if not _waha_configured():
+        _waha_state["working"] = False
+        return False
+    if not force and time.monotonic() - _waha_state["checked"] < 60:
+        return bool(_waha_state["working"])
+    base = os.getenv("WAHA_URL", "").rstrip("/")
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            r = await client.get(f"{base}/api/sessions/{_waha_session()}",
+                                 headers={"X-Api-Key": os.getenv("WAHA_API_KEY", "").strip()})
+        _waha_state["working"] = r.status_code == 200 and (r.json() or {}).get("status") == "WORKING"
+    except (httpx.HTTPError, ValueError):
+        _waha_state["working"] = False
+    _waha_state["checked"] = time.monotonic()
+    return bool(_waha_state["working"])
+
+
+async def _send_waha(phone: str, code: str) -> SMSDeliveryResult:
+    base = os.getenv("WAHA_URL", "").rstrip("/")
+    headers = {"X-Api-Key": os.getenv("WAHA_API_KEY", "").strip()}
+    digits = _digits_only(phone)
+    text = (f"Ваш код для входа на «Сортировка 24»: {code}\n\n"
+            "Никому не сообщайте этот код. Если вы не запрашивали код — просто проигнорируйте сообщение.")
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            check = await client.get(f"{base}/api/contacts/check-exists",
+                                     params={"phone": digits, "session": _waha_session()}, headers=headers)
+            info = check.json() if check.status_code == 200 else {}
+            if check.status_code == 200 and info.get("numberExists") is False:
+                raise SMSDeliveryError("На этом номере нет WhatsApp. Выберите Telegram.")
+            chat_id = info.get("chatId") or f"{digits}@c.us"
+            response = await client.post(f"{base}/api/sendText", headers=headers,
+                                         json={"session": _waha_session(), "chatId": chat_id, "text": text})
+            payload = response.json() if response.content else {}
+    except (httpx.HTTPError, ValueError) as exc:
+        _waha_state["checked"] = 0.0  # re-check the session next time
+        raise SMSDeliveryError("WhatsApp сейчас недоступен. Попробуйте Telegram.") from exc
+    if response.status_code in (200, 201):
+        message_id = payload.get("id") if isinstance(payload, dict) else None
+        if isinstance(message_id, dict):
+            message_id = message_id.get("_serialized") or message_id.get("id")
+        return SMSDeliveryResult(delivered=True, pending_moderation=False, message_id=str(message_id or ""), provider_message="whatsapp")
+    logger.warning("[OTP] WAHA send status=%s", response.status_code)
+    _waha_state["checked"] = 0.0
+    raise SMSDeliveryError("Не удалось отправить код в WhatsApp. Попробуйте Telegram.")
+
+
 def _wazzup_ready() -> bool:
     return bool(os.getenv("WAZZUP_API_KEY", "").strip())
 
 
 def _whatsapp_ready() -> bool:
-    return _wazzup_ready() or bool(os.getenv("WHATSAPP_ACCESS_TOKEN", "").strip() and os.getenv("WHATSAPP_PHONE_NUMBER_ID", "").strip()
+    return _waha_ready() or _wazzup_ready() or bool(os.getenv("WHATSAPP_ACCESS_TOKEN", "").strip() and os.getenv("WHATSAPP_PHONE_NUMBER_ID", "").strip()
                 and os.getenv("WHATSAPP_OTP_TEMPLATE", "").strip())
 
 
@@ -95,6 +161,7 @@ def available_channels() -> list[str]:
 
 async def send_verification_code(phone: str, code: str, channel: str | None = None) -> SMSDeliveryResult:
     """Send a login code to *phone* through the chosen messenger (or the first one configured)."""
+    await refresh_waha_status()
     channels = available_channels()
     if channel and channel not in channels:
         raise SMSDeliveryError("Этот способ получения кода сейчас недоступен. Выберите другой.")
@@ -107,6 +174,8 @@ async def send_verification_code(phone: str, code: str, channel: str | None = No
             if telegram_bot_mode():
                 return SMSDeliveryResult(delivered=False, pending_moderation=False, provider_message="telegram_bot")
             return await _send_telegram_gateway(phone, code)
+        if _waha_ready():
+            return await _send_waha(phone, code)
         if _wazzup_ready():
             return await _send_wazzup(phone, code)
         return await _send_whatsapp_template(phone, code)
