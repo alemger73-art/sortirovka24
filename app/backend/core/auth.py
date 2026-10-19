@@ -9,8 +9,11 @@ from typing import Any, Dict, Optional
 
 import httpx
 from core.config import settings
-from jose import JWTError, jwt
-from jose.exceptions import ExpiredSignatureError, JWSSignatureError, JWTClaimsError
+import jwt
+from jwt.exceptions import ExpiredSignatureError
+from jwt.exceptions import InvalidAudienceError, InvalidIssuerError
+from jwt.exceptions import InvalidSignatureError as JWSSignatureError
+from jwt.exceptions import PyJWTError as JWTError
 
 logger = logging.getLogger(__name__)
 
@@ -240,7 +243,7 @@ async def validate_id_token(id_token: str) -> Optional[Dict[str, Any]]:
             )
             raise IDTokenValidationError("Authentication key validation failed", "key_not_found")
 
-        # Convert JWK to PEM format for jose library
+        # Convert JWK to PEM format for the JWT library
         import base64
 
         from cryptography.hazmat.primitives import serialization
@@ -290,15 +293,16 @@ async def validate_id_token(id_token: str) -> Optional[Dict[str, Any]]:
         except JWSSignatureError:
             logger.error("JWT validation failed: Invalid JWT signature")
             raise IDTokenValidationError("Token signature verification failed", "invalid_signature")
-        except JWTClaimsError as e:
-            # JWTClaimsError covers issuer, audience, and other claims validation
+        except InvalidIssuerError as e:
             logger.error(f"JWT validation failed: Claims validation error: {e}")
-            if "iss" in str(e).lower() or "issuer" in str(e).lower():
-                raise IDTokenValidationError("Token issuer validation failed", "invalid_issuer")
-            elif "aud" in str(e).lower() or "audience" in str(e).lower():
-                raise IDTokenValidationError("Token audience validation failed", "invalid_audience")
-            else:
-                raise IDTokenValidationError("Token claims validation failed", "invalid_claims")
+            raise IDTokenValidationError("Token issuer validation failed", "invalid_issuer")
+        except InvalidAudienceError as e:
+            logger.error(f"JWT validation failed: Claims validation error: {e}")
+            raise IDTokenValidationError("Token audience validation failed", "invalid_audience")
+        except JWTError as e:
+            # Any other claims problem (nbf, iat, missing required claim, ...)
+            logger.error(f"JWT validation failed: Claims validation error: {e}")
+            raise IDTokenValidationError("Token claims validation failed", "invalid_claims")
 
     except IDTokenValidationError:
         # Re-raise our custom exceptions
