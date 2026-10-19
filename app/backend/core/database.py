@@ -638,6 +638,9 @@ async def get_db() -> AsyncSession:
             try:
                 yield session
             except Exception as e:
+                from fastapi import HTTPException as _HTTPException
+                if isinstance(e, _HTTPException) and e.status_code < 500:
+                    raise  # an ordinary 4xx answer (e.g. a disabled module), not a server error
                 logger.error(f"Database session error: {e}", exc_info=True)
                 # Don't manually rollback here - AsyncSession.__aexit__ will automatically rollback on exception
                 # Manual rollback would cause "cannot switch to state 15" error due to double rollback
@@ -646,6 +649,9 @@ async def get_db() -> AsyncSession:
                 logger.debug(f"[DB_OP] Database session cleanup after {time.time() - start_time:.4f}s")
                 # Session is automatically closed by the async context manager when exiting 'async with'
     except Exception as e:
+        from fastapi import HTTPException as _HTTPException
+        if isinstance(e, _HTTPException) and e.status_code < 500:
+            raise
         logger.error(f"Failed to create database session: {e}", exc_info=True)
         raise
 

@@ -86,7 +86,7 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
   }
 
   return <Layout><div className="mx-auto max-w-md px-4 py-10">
-    <p className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">{text('При первой регистрации — 300 бонусов Сортировка24. Потратить можно только в DAM ALEM, 1 бонус = 1 ₸ скидки. Код для входа придёт в WhatsApp или Telegram.', 'Алғашқы тіркелуде — Сортировка24-тің 300 бонусы. Тек DAM ALEM-де жұмсауға болады, 1 бонус = 1 ₸ жеңілдік. Кіру коды WhatsApp немесе Telegram-ға келеді.')}</p>
+    <p className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">{text('При первой регистрации — 300 бонусов Сортировка24. Потратить можно только в DAM ALEM, 1 бонус = 1 ₸ скидки. ', 'Алғашқы тіркелуде — Сортировка24-тің 300 бонусы. Тек DAM ALEM-де жұмсауға болады, 1 бонус = 1 ₸ жеңілдік. ')}{channels.length > 0 && text(`Код для входа придёт ${channels.map(c => c === 'whatsapp' ? 'в WhatsApp' : c === 'telegram' ? 'в Telegram' : 'по SMS').join(' или ')}.`, `Кіру коды ${channels.map(c => c === 'whatsapp' ? 'WhatsApp' : c === 'telegram' ? 'Telegram' : 'SMS').join(' немесе ')} арқылы келеді.`)}</p>
     <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950"><ShieldCheck /></div>
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{text('Войти в Sortirovka24', 'Sortirovka24 жүйесіне кіру')}</h1>
