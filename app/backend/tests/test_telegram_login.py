@@ -20,6 +20,9 @@ class TelegramBotLoginTests(base.QuickAccountAuthTests):
 
     async def asyncSetUp(self):
         await super().asyncSetUp()
+        from models.module_settings import ModuleSettings
+        async with self.engine.begin() as connection:
+            await connection.run_sync(ModuleSettings.__table__.create)
         for p in self.patches:
             if getattr(p, "attribute", None) == "send_verification_code":
                 p.stop()
@@ -81,3 +84,20 @@ class TelegramBotLoginTests(base.QuickAccountAuthTests):
             await news_agent.handle_update(db, self.tg, {"message": {
                 "message_id": 1, "chat": {"id": 42, "type": "private"}, "from": {"id": 42}, "text": "/start"}})
         self.assertIn("Поделиться номером", self.sent[-1][1]["text"])
+
+    async def test_second_login_code_arrives_by_itself(self):
+        await self.ask()
+        await self.share()
+        first = await self.confirm(re.search(r"<b>(\d{6})</b>", self.sent[-1][1]["text"]).group(1))
+        self.assertEqual(first.status_code, 200, first.text)
+        direct = []
+
+        async def fake_tg(client, method, payload, timeout=20):
+            direct.append(payload)
+            return {"ok": True}
+        with patch.object(news_agent, "tg", fake_tg):
+            body = await self.ask()
+        self.assertIsNone(body["bot_url"])
+        self.assertEqual(direct[-1]["chat_id"], 42)
+        code = re.search(r"<b>(\d{6})</b>", direct[-1]["text"]).group(1)
+        self.assertEqual((await self.confirm(code)).status_code, 200)

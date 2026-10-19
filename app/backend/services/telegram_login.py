@@ -26,6 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 logger = logging.getLogger(__name__)
 
 START_PAYLOAD = "code"
+LINKS_KEY = "telegram_login_links"  # module_settings row: {"+7700…": telegram_user_id}
 _username: dict[str, Any] = {"value": None, "at": 0.0}
 
 
@@ -94,6 +95,57 @@ async def handle_message(db: AsyncSession, client: httpx.AsyncClient, message: d
     return True
 
 
+async def _links(db: AsyncSession, lock: bool = False):
+    import json
+    from models.module_settings import ModuleSettings
+    query = select(ModuleSettings).where(ModuleSettings.key == LINKS_KEY)
+    row = await db.scalar(query.with_for_update() if lock else query)
+    try:
+        data = json.loads(row.value or "{}") if row else {}
+    except ValueError:
+        data = {}
+    return row, data if isinstance(data, dict) else {}
+
+
+async def remember(db: AsyncSession, phone: str, telegram_user: Any) -> None:
+    """After a verified contact share the bot may send this number's codes by itself."""
+    import json
+    from models.module_settings import ModuleSettings
+    row, data = await _links(db, lock=True)
+    if not row:
+        row = ModuleSettings(key=LINKS_KEY, value="{}")
+        db.add(row)
+    for other in [p for p, uid in data.items() if uid == telegram_user and p != phone]:
+        data.pop(other)  # one Telegram account ↔ one number
+    data[phone] = telegram_user
+    row.value = json.dumps(data)
+
+
+async def linked_chat(db: AsyncSession, phone: str) -> Optional[Any]:
+    _, data = await _links(db)
+    return data.get(phone)
+
+
+async def send_code_directly(db: AsyncSession, phone: str, code: str) -> bool:
+    """Known number: the bot sends the code right away. False when it cannot (unknown or blocked bot)."""
+    from services.news_agent import tg
+    chat = await linked_chat(db, phone)
+    if not chat:
+        return False
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            await tg(client, "sendMessage", {"chat_id": chat, "parse_mode": "HTML", "text": code_text(code)}, timeout=15)
+        return True
+    except Exception as exc:
+        logger.info("[TelegramLogin] direct send failed for ***%s: %s", phone[-4:], exc)
+        return False
+
+
+def code_text(code: str) -> str:
+    return (f"Ваш код для входа на «Сортировка 24»: <b>{code}</b>\n\n"
+            "Введите его на сайте. Никому не сообщайте этот код — сотрудники его никогда не спрашивают.")
+
+
 async def issue_code(db: AsyncSession, raw_phone: str, telegram_user: Any) -> str:
     from models.user_management import PhoneVerification
     from routers.account_v2 import MAX_SMS_VERIFY_ATTEMPTS, _as_aware_utc, _hash_sms_code
@@ -120,7 +172,7 @@ async def issue_code(db: AsyncSession, raw_phone: str, telegram_user: Any) -> st
     code = f"{secrets.randbelow(1_000_000):06d}"
     prefix = row.code_hash.split(":", 1)[0] + ":" if ":" in row.code_hash else ""
     row.code_hash = prefix + _hash_sms_code(phone, code)
+    await remember(db, phone, telegram_user)
     await db.commit()
     logger.info("[TelegramLogin] code issued for ***%s", phone[-4:])
-    return (f"Ваш код для входа на «Сортировка 24»: <b>{code}</b>\n\n"
-            "Введите его на сайте. Никому не сообщайте этот код — сотрудники его никогда не спрашивают.")
+    return code_text(code) + "\n\nВ следующий раз код придёт сюда сам — делиться номером больше не нужно."

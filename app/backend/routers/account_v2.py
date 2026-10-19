@@ -828,6 +828,10 @@ async def _request_phone_code(phone, http_request, db, *, allow_existing=False, 
     stored_code = code if expose_code else None
 
     if getattr(delivery, "provider_message", None) == "telegram_bot":
+        if await telegram_login.send_code_directly(db, normalized_phone, code):
+            return RequestSmsCodeResponse(success=True, ttl_seconds=SMS_CODE_TTL_MINUTES * 60,
+                resend_after_seconds=SMS_RESEND_COOLDOWN_SECONDS, channel="telegram",
+                on_screen_code_hint="Код отправлен в Telegram — в чат с ботом «Сортировка 24».")
         return await _with_bot_link(RequestSmsCodeResponse(
             success=True, ttl_seconds=SMS_CODE_TTL_MINUTES * 60, resend_after_seconds=SMS_RESEND_COOLDOWN_SECONDS))
 
