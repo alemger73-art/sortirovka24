@@ -3,7 +3,7 @@ import KzPhoneInput from '@/components/KzPhoneInput';
 import { isCompleteKzPhone } from '@/lib/kzPhone';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MessageCircle, Send, ShieldCheck, Smartphone } from 'lucide-react';
+import { ArrowLeft, Gift, MessageCircle, Send, ShieldCheck, Smartphone } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { accountApi, setAccountToken, type OtpChannel } from '@/lib/accountApi';
@@ -54,7 +54,12 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
   }
 
   async function sendCode(channel?: OtpChannel) {
-    if (busy || (cooldown > 0 && channel === sentVia) || !accepted || !dataAccepted || !nameReady) return;
+    if (busy || (cooldown > 0 && channel === sentVia)) return;
+    const missing = !nameReady ? text('Укажите фамилию и имя через пробел, например: Касымова Асия.', 'Тегіңіз бен атыңызды бос орын арқылы жазыңыз, мысалы: Қасымова Әсия.')
+      : !isCompleteKzPhone(phone) ? text('Введите номер телефона полностью: +7 и 10 цифр.', 'Телефон нөмірін толық енгізіңіз: +7 және 10 цифр.')
+      : !accepted || !dataAccepted ? text('Отметьте обе галочки согласия ниже — без них мы не можем создать кабинет.', 'Төмендегі екі келісімді белгілеңіз — оларсыз кабинет ашу мүмкін емес.')
+      : '';
+    if (missing) { setError(missing); return; }
     const digits = phone.replace(/\D/g, '');
     if (!/^(?:[78]\d{10}|\d{10})$/.test(digits)) { setError(text('Введите номер +7 и 10 цифр.', '+7 және 10 цифрдан тұратын нөмірді енгізіңіз.')); return; }
     setBusy(true); setError('');
@@ -87,30 +92,37 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
   }
 
   return <Layout><div className="mx-auto max-w-md px-4 py-10">
-    <p className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">{text('При первой регистрации — 300 бонусов Сортировка24. Потратить можно только в DAM ALEM, 1 бонус = 1 ₸ скидки. ', 'Алғашқы тіркелуде — Сортировка24-тің 300 бонусы. Тек DAM ALEM-де жұмсауға болады, 1 бонус = 1 ₸ жеңілдік. ')}{channels.length > 0 && text(`Код для входа придёт ${channels.map(c => c === 'whatsapp' ? 'в WhatsApp' : c === 'telegram' ? 'в Telegram' : 'по SMS').join(' или ')}.`, `Кіру коды ${channels.map(c => c === 'whatsapp' ? 'WhatsApp' : c === 'telegram' ? 'Telegram' : 'SMS').join(' немесе ')} арқылы келеді.`)}</p>
+    <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+      <Gift className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-300" />
+      <p><strong>{text('300 бонусов за регистрацию.', 'Тіркелгені үшін 300 бонус.')}</strong> {text('Тратятся в DAM ALEM: 1 бонус = 1 ₸ скидки.', 'DAM ALEM-де жұмсалады: 1 бонус = 1 ₸ жеңілдік.')}</p>
+    </div>
     <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950"><ShieldCheck /></div>
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{text('Войти в Sortirovka24', 'Sortirovka24 жүйесіне кіру')}</h1>
-      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{text('Первый раз? Создадим кабинет при входе. Пароль не нужен.', 'Алғаш рет пе? Кіру кезінде жеке кабинет ашылады. Құпиясөз қажет емес.')}</p>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{text('Вход в «Сортировка 24»', '«Сортировка 24» жүйесіне кіру')}</h1>
+      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{text('Пароль не нужен — пришлём код в WhatsApp или Telegram. Если вы у нас впервые, кабинет создастся сам.', 'Құпиясөз қажет емес — кодты WhatsApp немесе Telegram-ға жібереміз. Алғаш рет болсаңыз, кабинет өзі ашылады.')}</p>
       {step !== 'code' && <div className="mt-4 space-y-2">
         <label htmlFor="legal-subject-name" className="block text-sm dark:text-white">{text('Фамилия, имя, отчество (при наличии)', 'Тегі, аты, әкесінің аты (болса)')}</label>
-        <input id="legal-subject-name" autoComplete="name" maxLength={120} value={subjectName} onChange={e => setSubjectName(e.target.value)} className={field} />
+        <input id="legal-subject-name" autoComplete="name" maxLength={120} value={subjectName} onChange={e => { setSubjectName(e.target.value); setError(''); }} placeholder={text('Например: Касымова Асия', 'Мысалы: Қасымова Әсия')} className={field} />
+        {subjectName.trim() && !nameReady && <p className="text-xs text-amber-600 dark:text-amber-300">{text('Нужны фамилия и имя — допишите через пробел.', 'Тегі мен аты қажет — бос орын арқылы жазыңыз.')}</p>}
       </div>}
-      {step !== 'code' && <label className="my-5 flex items-start gap-3 text-sm text-gray-600 dark:text-gray-300">
-        <input type="checkbox" checked={accepted} onChange={e => setAccepted(e.target.checked)} className="mt-1 h-4 w-4" />
-        <span>{text('Принимаю ', 'Мен ')}<Link to="/legal/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{text('пользовательское соглашение', 'пайдаланушы келісімін')}</Link>{kz && ' қабылдаймын'}</span>
-      </label>}
-      {step !== 'code' && <label className="mb-5 flex items-start gap-3 text-sm text-gray-600 dark:text-gray-300">
-        <input type="checkbox" checked={dataAccepted} onChange={e => setDataAccepted(e.target.checked)} className="mt-1 h-4 w-4" />
-        <span>{text('Даю ', 'Мен ')}<Link to="/legal/consent" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{text('согласие на сбор и обработку данных', 'деректерді жинауға және өңдеуге келісім')}</Link>{text(' и ознакомился с ', ' беремін және ')}<Link to="/legal/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{text('политикой конфиденциальности', 'құпиялылық саясатымен')}</Link>{kz && ' таныстым'}</span>
-      </label>}
-      {step === 'phone' && <form className="space-y-3" onSubmit={e => { e.preventDefault(); void sendCode(); }}>
+      {step === 'phone' && <form className="mt-4 space-y-3" onSubmit={e => { e.preventDefault(); void sendCode(); }}>
         <label htmlFor="quick-phone" className="block text-sm font-medium dark:text-white">{text('Номер телефона', 'Телефон нөмірі')}</label>
         <KzPhoneInput id="quick-phone" aria-label={text("Номер телефона, код страны +7", "Телефон нөмірі, ел коды +7")} value={phone} onChange={setPhone} autoFocus />
         <p className="text-xs text-gray-500">{text("Введите 10 цифр. Номер с 8 или +7 можно вставить целиком.", "10 цифр енгізіңіз. 8 немесе +7 нөмірін толық қоюға болады.")}</p>
+        <div className="space-y-3 pt-2">
+        <label className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-300">
+          <input type="checkbox" checked={accepted} onChange={e => { setAccepted(e.target.checked); setError(''); }} className="mt-0.5 h-5 w-5 shrink-0 accent-blue-600" />
+          <span>{text('Принимаю ', 'Мен ')}<Link to="/legal/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{text('пользовательское соглашение', 'пайдаланушы келісімін')}</Link>{kz && ' қабылдаймын'}</span>
+        </label>
+        <label className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-300">
+          <input type="checkbox" checked={dataAccepted} onChange={e => { setDataAccepted(e.target.checked); setError(''); }} className="mt-0.5 h-5 w-5 shrink-0 accent-blue-600" />
+          <span>{text('Даю ', 'Мен ')}<Link to="/legal/consent" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{text('согласие на сбор и обработку данных', 'деректерді жинауға және өңдеуге келісім')}</Link>{text(' и ознакомился с ', ' беремін және ')}<Link to="/legal/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{text('политикой конфиденциальности', 'құпиялылық саясатымен')}</Link>{kz && ' таныстым'}</span>
+        </label>
+        </div>
+        {error && step === 'phone' && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-200">{error}</p>}
         {channels.length === 0 && <p className="text-sm text-amber-700">{text('Отправка кода временно недоступна. Попробуйте позже.', 'Код жіберу уақытша қолжетімсіз. Кейінірек көріңіз.')}</p>}
         <div className="grid gap-2">
-          {channels.map(ch => <button key={ch} type="button" onClick={() => void sendCode(ch)} disabled={busy || !accepted || !dataAccepted || !nameReady || !isCompleteKzPhone(phone)}
+          {channels.map(ch => <button key={ch} type="button" onClick={() => void sendCode(ch)} disabled={busy}
             className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 ${ch === 'whatsapp' ? 'bg-[#1f9d55] hover:bg-[#17864a]' : ch === 'telegram' ? 'bg-[#2a8bd3] hover:bg-[#2278b8]' : 'bg-gray-700 hover:bg-gray-800'}`}>
             {ch === 'whatsapp' ? <MessageCircle className="h-4 w-4" /> : ch === 'telegram' ? <Send className="h-4 w-4" /> : <Smartphone className="h-4 w-4" />}
             {ch === 'whatsapp' ? text('Получить код в WhatsApp', 'Кодты WhatsApp-қа алу') : ch === 'telegram' ? text('Получить код в Telegram', 'Кодты Telegram-ға алу') : text('Получить код по SMS', 'Кодты SMS арқылы алу')}
@@ -128,7 +140,7 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
         <button type="button" disabled={busy || cooldown > 0} onClick={() => void sendCode(sentVia || undefined)} className="w-full py-2 text-sm text-blue-600 disabled:text-gray-400">{cooldown > 0 ? `${text('Повторить через', 'Қайталау')} ${cooldown} с` : text('Отправить код ещё раз', 'Кодты қайта жіберу')}</button>
         {channels.filter(ch => ch !== sentVia).map(ch => <button key={ch} type="button" disabled={busy} onClick={() => void sendCode(ch)} className="w-full py-1 text-sm text-gray-600 underline dark:text-gray-300">{text('Не пришёл? Отправить в ', 'Келмеді ме? Жіберу: ')}{ch === 'whatsapp' ? 'WhatsApp' : ch === 'telegram' ? 'Telegram' : 'SMS'}</button>)}
       </form>}
-      {error && <p role="alert" className="mt-4 text-sm text-red-600">{error}</p>}
+      {error && step !== 'phone' && <p role="alert" className="mt-4 text-sm text-red-600">{error}</p>}
       {step === 'code' && <button type="button" disabled={busy} onClick={() => { setStep('phone'); setCode(''); setError(''); }} className="mt-4 flex items-center gap-1 text-sm text-gray-500"><ArrowLeft size={16} />{text('Изменить номер', 'Нөмірді өзгерту')}</button>}
       {google && step === 'phone' && <button type="button" disabled={!accepted || !dataAccepted || !nameReady || busy} onClick={googleLogin} className="mt-4 w-full text-sm text-gray-500 underline disabled:opacity-50">{text('Уже входили через Google? Войти через Google', 'Бұрын Google арқылы кірдіңіз бе? Google арқылы кіру')}</button>}
       <button type="button" disabled={busy} onClick={onPasswordLogin} className="mt-5 w-full text-sm text-blue-600">{text('Уже есть пароль? Войти по паролю', 'Құпиясөз бар ма? Құпиясөз арқылы кіру')}</button>
