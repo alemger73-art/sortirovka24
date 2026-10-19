@@ -99,6 +99,14 @@ class QuickAccountAuthTests(unittest.IsolatedAsyncioTestCase):
             result = await self.confirm(await self.request_code(phone),phone)
             self.assertEqual(result.status_code,403)
 
+    async def test_driver_and_courier_sign_in_with_code(self):
+        for role, phone in [('driver', '+77001234570'), ('courier', '+77001234571')]:
+            async with self.sessions() as db:
+                db.add(User(id=phone, phone=phone, role=role, status='active', is_active=True)); await db.commit()
+            result = await self.confirm(await self.request_code(phone), phone, accepted=False)
+            self.assertEqual(result.status_code, 200, result.text)
+            self.assertEqual(result.json()['user_id'], phone)
+
     async def test_google_email_does_not_silently_merge_accounts(self):
         async with self.sessions() as db:
             db.add(User(id='old',email='owner@example.com'));await db.commit()

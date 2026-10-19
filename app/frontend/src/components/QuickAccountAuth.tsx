@@ -70,8 +70,8 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
       setCode(''); setStep('code'); setCooldown(r.resend_after_seconds); setExpires(r.ttl_seconds);
       setHint(r.on_screen_code_hint || (r.sms_pending_moderation
         ? text('Сообщение ожидает отправки. Это может занять несколько минут.', 'Хабарлама жіберілуді күтуде. Бұл бірнеше минут алуы мүмкін.')
-        : via === 'whatsapp' ? text('Код отправлен в WhatsApp. Откройте чат и скопируйте код.', 'Код WhatsApp-қа жіберілді. Чатты ашып, кодты көшіріңіз.')
-        : via === 'telegram' ? text('Код отправлен в Telegram, в чат «Verification Codes».', 'Код Telegram-ға, «Verification Codes» чатына жіберілді.')
+        : via === 'whatsapp' ? text('Код пришёл в WhatsApp от «Сортировка 24» (+7 700 428 02 80).', 'Код WhatsApp-қа «Сортировка 24»-тен (+7 700 428 02 80) келді.')
+        : via === 'telegram' ? text('Код пришёл в Telegram.', 'Код Telegram-ға келді.')
         : text('Код отправлен по SMS.', 'Код SMS арқылы жіберілді.')));
     } catch (e) { setError(humanizeApiError(e)); }
     finally { setBusy(false); }
@@ -99,7 +99,7 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
     <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950"><ShieldCheck /></div>
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{text('Вход в «Сортировка 24»', '«Сортировка 24» жүйесіне кіру')}</h1>
-      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{text('Пароль не нужен — пришлём код в WhatsApp или Telegram. Если вы у нас впервые, кабинет создастся сам.', 'Құпиясөз қажет емес — кодты WhatsApp немесе Telegram-ға жібереміз. Алғаш рет болсаңыз, кабинет өзі ашылады.')}</p>
+      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{text('Вход и регистрация по номеру телефона. Код придёт в WhatsApp или Telegram.', 'Телефон нөмірі арқылы кіру және тіркелу. Код WhatsApp немесе Telegram-ға келеді.')}</p>
       {step !== 'code' && <div className="mt-4 space-y-2">
         <label htmlFor="legal-subject-name" className="block text-sm dark:text-white">{text('Фамилия, имя, отчество (при наличии)', 'Тегі, аты, әкесінің аты (болса)')}</label>
         <input id="legal-subject-name" autoComplete="name" maxLength={120} value={subjectName} onChange={e => { setSubjectName(e.target.value); setError(''); }} placeholder={text('Например: Касымова Асия', 'Мысалы: Қасымова Әсия')} className={field} />
@@ -143,7 +143,7 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
       {error && step !== 'phone' && <p role="alert" className="mt-4 text-sm text-red-600">{error}</p>}
       {step === 'code' && <button type="button" disabled={busy} onClick={() => { setStep('phone'); setCode(''); setError(''); }} className="mt-4 flex items-center gap-1 text-sm text-gray-500"><ArrowLeft size={16} />{text('Изменить номер', 'Нөмірді өзгерту')}</button>}
       {google && step === 'phone' && <button type="button" disabled={!accepted || !dataAccepted || !nameReady || busy} onClick={googleLogin} className="mt-4 w-full text-sm text-gray-500 underline disabled:opacity-50">{text('Уже входили через Google? Войти через Google', 'Бұрын Google арқылы кірдіңіз бе? Google арқылы кіру')}</button>}
-      <button type="button" disabled={busy} onClick={onPasswordLogin} className="mt-5 w-full text-sm text-blue-600">{text('Уже есть пароль? Войти по паролю', 'Құпиясөз бар ма? Құпиясөз арқылы кіру')}</button>
+      <button type="button" disabled={busy} onClick={onPasswordLogin} className="mt-6 w-full text-xs text-gray-400 underline dark:text-gray-500">{text('Вход для сотрудников', 'Қызметкерлерге арналған кіру')}</button>
     </div><Link to="/" className="mt-5 block text-center text-sm text-gray-500">{text('Продолжить без входа', 'Кірусіз жалғастыру')}</Link>
   </div></Layout>;
 }

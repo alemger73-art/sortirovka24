@@ -997,8 +997,10 @@ async def signin_confirm(body: PhoneSignInConfirm, http_request: Request, db: As
                                  allow_legacy=user is not None)
     if user and (user.status != "active" or not user.is_active):
         raise HTTPException(403, "User is blocked")
-    if user and user.role in {"admin", "superadmin", "moderator", "courier", "driver"}:
-        raise HTTPException(403, "Для рабочего кабинета используйте вход по паролю.")
+    # Couriers and taxi drivers sign in with the messenger code like everyone else;
+    # only accounts with access to the whole site keep the password login.
+    if user and user.role in {"admin", "superadmin", "moderator"}:
+        raise HTTPException(403, "Это служебный аккаунт администратора — войдите через «Вход для сотрудников» внизу страницы.")
     if not user and not (body.agreement_accepted and body.privacy_accepted):
         raise HTTPException(400, "Agreement and privacy acceptance required")
     await _consume_phone_code(db, phone, body.code, purpose="signin")
