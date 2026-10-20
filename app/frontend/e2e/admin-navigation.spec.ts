@@ -9,8 +9,8 @@ async function setup(page: Page) {
   await page.routeWebSocket('**/ws/**', ws => ws.close());
   await page.route('**/api/**', async r => {
     const p=new URL(r.request().url()).pathname;
-    // These POST endpoints only validate a session or resolve an image URL.
-    const readOnlyPost=p.includes('verify-session')||p.endsWith('/storage/public/download-url');
+    // These POST endpoints only validate a session, resolve an image URL or count anonymous visits.
+    const readOnlyPost=p.includes('verify-session')||p.endsWith('/storage/public/download-url')||p.includes('/site-analytics/');
     if (!['GET','OPTIONS'].includes(r.request().method()) && !readOnlyPost) {state.writes++;state.writePaths.push(p);}
     if ((p.endsWith('/admin/summary') && state.failSummary) || (p.endsWith('/modules/admin/settings') && state.failModules)) return r.fulfill({status:503,json:{detail:'Test outage'}});
     let json:unknown={items:[],total:0};
