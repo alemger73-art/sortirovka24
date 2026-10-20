@@ -598,13 +598,28 @@ def _location_from(p: dict[str, Any]) -> Optional[dict[str, Any]]:
     return {"lat": lat, "lng": lng, "desc": desc[:200], "at": time.time()}
 
 
+def _kz_phone(raw: str) -> str:
+    """Any WhatsApp id/number → +7XXXXXXXXXX, or '' when it is not a Kazakhstan mobile."""
+    raw = str(raw or "").split("@")[0].split(":")[0]  # drop «@c.us» and the «:12» device suffix
+    digits = re.sub(r"\D", "", raw)
+    if len(digits) == 11 and digits[0] in "78":
+        return "+7" + digits[1:]
+    if len(digits) == 10 and digits[0] == "7":
+        return "+7" + digits
+    return ""
+
+
 def _phone_from(chat_id: str, payload: dict[str, Any]) -> str:
-    num = chat_id.split("@")[0]
-    if chat_id.endswith("@c.us") and num.isdigit():
-        return "+" + num
-    alt = str((payload.get("_data") or {}).get("Info", {}).get("SenderAlt") or "")
-    digits = re.sub(r"\D", "", alt.split("@")[0])
-    return "+" + digits if len(digits) >= 10 else ""
+    if chat_id.endswith("@c.us"):
+        phone = _kz_phone(chat_id)
+        if phone:
+            return phone
+    info = (payload.get("_data") or {}).get("Info") or {}
+    for cand in (info.get("SenderAlt"), info.get("Sender"), info.get("Chat"), payload.get("from")):
+        phone = _kz_phone(str(cand or ""))
+        if phone:
+            return phone
+    return ""
 
 
 async def handle_event(event: dict[str, Any], client: httpx.AsyncClient) -> Outcome:
@@ -693,9 +708,9 @@ async def _handle(db, chat: Chat, chat_id: str, p: dict[str, Any], client: httpx
     if True:
         # No phone (hidden WhatsApp id): ask for it once, then use it as the customer identity.
         if not chat.phone:
-            digits = re.sub(r"\D", "", text)
-            if 10 <= len(digits) <= 12:
-                chat.phone = "+7" + digits[-10:]
+            typed = _kz_phone(text)
+            if typed:
+                chat.phone = typed
                 text = "Мой номер " + chat.phone
             else:
                 chat.turns.append({"role": "user", "content": text[:2000]})
@@ -703,8 +718,16 @@ async def _handle(db, chat: Chat, chat_id: str, p: dict[str, Any], client: httpx
                 chat.turns.append({"role": "assistant", "content": reply})
                 await send_text(client, chat_id, reply, chat)
                 return Outcome("asked_phone", reply)
-        ctx = await C.resolve_sender(db, business_id=crm.DAM, phone=chat.phone, provider_account=PROVIDER, signature_verified=True)
-        await db.commit()
+        try:
+            ctx = await C.resolve_sender(db, business_id=crm.DAM, phone=chat.phone, provider_account=PROVIDER, signature_verified=True)
+            await db.commit()
+        except Exception as exc:  # never stay silent: ask for the number instead
+            await db.rollback()
+            logger.warning("[DamWA] customer phone not accepted: %s", getattr(exc, "detail", exc))
+            chat.phone = ""
+            reply = "Здравствуйте! Это DAM ALEM 2.0 🍔\n\nЧтобы принять заказ, напишите, пожалуйста, ваш номер телефона, например *8 700 123 45 67*."
+            await send_text(client, chat_id, reply, chat)
+            return Outcome("asked_phone", reply)
 
         # The customer's own «да» to the last calculation creates the order. The AI cannot do this.
         if chat.pending and YES_RE.match(text) and now - chat.pending["at"] < 10 * 60:
