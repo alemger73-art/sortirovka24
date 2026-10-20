@@ -199,11 +199,11 @@ export function dealTypeForReType(reType?: string | null): 'sell' | 'rent' | 'ne
 export const RE_QUICK_FILTER_KEYS = ['', 'sell_apartment', 'sell_house', 'rent_apartment', 'commercial'] as const;
 
 export const RE_FALLBACK_IMAGES = [
-  'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-22/c83eeaff-9091-405e-9032-5908700e9593.png',
-  'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-22/6f4290d1-fefd-4261-982d-94ebf83e72a4.png',
-  'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-22/082ab9a3-356f-48e7-92b4-61c3affe5cd6.png',
+  'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505709/legacy-images/76d827d366ea494ffc1f.png',
+  'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505707/legacy-images/cceac9863abba38cf841.png',
+  'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505704/legacy-images/124d54748dc40bd4579a.png',
 ];
 
-export const RE_HERO_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-22/239eba9e-e793-4adc-a70a-f2cad35db132.png';
+export const RE_HERO_IMG = 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505705/legacy-images/e0c2784a0aa9a99f2cba.png';
 
 export { formatExpiryLabel } from '@/lib/announcements';

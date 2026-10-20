@@ -6,7 +6,7 @@ import { useModules } from '@/hooks/useModules';
 import { useHomepageHeroStats, type HeroStatItem } from '@/hooks/useHomepageHeroStats';
 import WeatherWidget from '@/components/landing/WeatherWidget';
 import '@/styles/portal-public.css';
-const image='https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/ad8caa55-9593-448b-8f7a-39be84ed5053.png';
+const image='https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505696/legacy-images/9ee7277f8db9a4a5521e.png';
 const icons:Record<HeroStatItem['labelKey'],typeof Users>={'hero.mastersShort':Users,'hero.cafesShort':Coffee,'hero.residentsShort':ShieldCheck};
 export default function Hero(){
  const {t,lang}=useLanguage();const kz=lang==='kz';const {isEnabled}=useModules();const taxi=useTaxiEnabled();const {visible,items}=useHomepageHeroStats();

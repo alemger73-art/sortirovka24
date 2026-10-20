@@ -35,9 +35,9 @@ const PHOTOS = {
 /** Project CDN — always available, used as last-resort fallback */
 export const DAM_ALEM_CDN = {
   hero: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1920&h=820&q=90',
-  food: 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/8455d66f-e18f-4075-9b91-972d3002381b.png',
-  pizza: 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/2034a1d7-1c57-40c0-8145-23816557ba5c.png',
-  combo: 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/e1e63b15-29d2-4b2e-b1b5-919722b3b1b9.png',
+  food: 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505694/legacy-images/0bdca3ab9d92dc7a772a.png',
+  pizza: 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505690/legacy-images/b820ecce8f5f9e2bf0c7.png',
+  combo: 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505701/legacy-images/a867ffe78770fa826fe1.png',
 } as const;
 
 /** Wide appetizing hero — grilled spread, warm tones (Unsplash) */
@@ -49,7 +49,7 @@ export const DAM_ALEM_HERO_ALT =
 
 /** Old blurry logo banners — replace with food photography */
 const LEGACY_HERO_URLS = new Set([
-  'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-15/fe194ca1-0095-44bf-a906-e50cb844ad56.png',
+  'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505689/legacy-images/31bd55ae04440f30db2c.png',
 ]);
 
 function isLegacyHeroUrl(url: string): boolean {

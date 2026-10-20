@@ -31,12 +31,12 @@ import { useModules, moduleEnabled } from '@/hooks/useModules';
 import type { ModuleKey } from '@/config/modules';
 
 /* ─── CDN Images ─── */
-const HERO_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/ad8caa55-9593-448b-8f7a-39be84ed5053.png';
-const FOOD_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/8455d66f-e18f-4075-9b91-972d3002381b.png';
-const MASTERS_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/b909034d-586a-4902-99f3-2abcf2e3c7d8.png';
-const REALESTATE_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/d9cdc63f-9e09-4de5-b2eb-1c2ef0cb55ad.png';
-const ANNOUNCEMENTS_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/802ce8b1-e55e-42b0-8b26-3ec0b903e7e7.png';
-const JOBS_IMG = 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-31/8bf31dae-761d-4fac-b012-f7172de4c9c1.png';
+const HERO_IMG = 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505696/legacy-images/9ee7277f8db9a4a5521e.png';
+const FOOD_IMG = 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505694/legacy-images/0bdca3ab9d92dc7a772a.png';
+const MASTERS_IMG = 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505698/legacy-images/e9af3e8091e7803d0d09.png';
+const REALESTATE_IMG = 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505700/legacy-images/4bc25cf2db9751b93b92.png';
+const ANNOUNCEMENTS_IMG = 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505692/legacy-images/743b887a044471e15970.png';
+const JOBS_IMG = 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505712/legacy-images/9988f5adf2ac15925759.png';
 const GASTRONOM_IMG = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&h=800&fit=crop';
 const PRORAB_IMG = 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&h=800&fit=crop';
 const SALONS_IMG = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&h=800&fit=crop';

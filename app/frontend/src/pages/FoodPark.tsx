@@ -24,8 +24,8 @@ interface FoodItem { id: number; category_id: number; name: string; description:
 interface CartItem { item: FoodItem; quantity: number; }
 
 const FALLBACK_IMAGES = [
-  'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/2034a1d7-1c57-40c0-8145-23816557ba5c.png',
-  'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/e1e63b15-29d2-4b2e-b1b5-919722b3b1b9.png',
+  'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505690/legacy-images/b820ecce8f5f9e2bf0c7.png',
+  'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505701/legacy-images/a867ffe78770fa826fe1.png',
 ];
 
 /* ─── Order status labels ─── */

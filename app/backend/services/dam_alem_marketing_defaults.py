@@ -5,19 +5,18 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List
 
-# Project CDN — stable delivery in KZ / mobile / Yandex Browser (no Unsplash)
-_CDN = "https://mgx-backend-cdn.metadl.com/generate/images/1029162"
+# Our own image storage (Cloudinary); the old builder CDN is no longer used.
 _IMG = {
-    "pizza": f"{_CDN}/2026-03-21/2034a1d7-1c57-40c0-8145-23816557ba5c.png",
-    "doner": f"{_CDN}/2026-03-15/fe194ca1-0095-44bf-a906-e50cb844ad56.png",
-    "burger": f"{_CDN}/2026-03-21/8455d66f-e18f-4075-9b91-972d3002381b.png",
-    "combo": f"{_CDN}/2026-03-21/e1e63b15-29d2-4b2e-b1b5-919722b3b1b9.png",
-    "shake": f"{_CDN}/2026-03-31/5007abb2-2c10-46e9-9721-c83a5b9a7265.png",
-    "fries": f"{_CDN}/2026-03-21/8455d66f-e18f-4075-9b91-972d3002381b.png",
-    "lemonade": f"{_CDN}/2026-03-21/e1e63b15-29d2-4b2e-b1b5-919722b3b1b9.png",
-    "family": f"{_CDN}/2026-03-21/e1e63b15-29d2-4b2e-b1b5-919722b3b1b9.png",
-    "hero": f"{_CDN}/2026-03-15/fe194ca1-0095-44bf-a906-e50cb844ad56.png",
-    "gift": f"{_CDN}/2026-03-21/8455d66f-e18f-4075-9b91-972d3002381b.png",
+    "pizza": "https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505690/legacy-images/b820ecce8f5f9e2bf0c7.png",
+    "doner": "https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505689/legacy-images/31bd55ae04440f30db2c.png",
+    "burger": "https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505694/legacy-images/0bdca3ab9d92dc7a772a.png",
+    "combo": "https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505701/legacy-images/a867ffe78770fa826fe1.png",
+    "shake": "https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505711/legacy-images/cdf3da78dd1bdb839c30.png",
+    "fries": "https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505694/legacy-images/0bdca3ab9d92dc7a772a.png",
+    "lemonade": "https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505701/legacy-images/a867ffe78770fa826fe1.png",
+    "family": "https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505701/legacy-images/a867ffe78770fa826fe1.png",
+    "hero": "https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505689/legacy-images/31bd55ae04440f30db2c.png",
+    "gift": "https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505694/legacy-images/0bdca3ab9d92dc7a772a.png",
 }
 
 PROMO_CODES: List[Dict[str, Any]] = [

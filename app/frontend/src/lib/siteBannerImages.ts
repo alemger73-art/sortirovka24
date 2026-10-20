@@ -2,16 +2,16 @@ import { DAM_ALEM_CDN } from '@/lib/damAlemImages';
 
 /** Homepage promo banners — project CDN only (stable in KZ / Yandex Browser). */
 export const SITE_BANNER_IMAGES = {
-  foodDelivery: 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/8455d66f-e18f-4075-9b91-972d3002381b.png',
+  foodDelivery: 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505694/legacy-images/0bdca3ab9d92dc7a772a.png',
   pizzaPromo: DAM_ALEM_CDN.pizza,
   lunchCombo: DAM_ALEM_CDN.combo,
-  familySet: 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/e1e63b15-29d2-4b2e-b1b5-919722b3b1b9.png',
-  giftPromo: 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/8455d66f-e18f-4075-9b91-972d3002381b.png',
+  familySet: 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505701/legacy-images/a867ffe78770fa826fe1.png',
+  giftPromo: 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505694/legacy-images/0bdca3ab9d92dc7a772a.png',
   donerHits: DAM_ALEM_CDN.hero,
-  masters: 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/b909034d-586a-4902-99f3-2abcf2e3c7d8.png',
-  directory: 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/802ce8b1-e55e-42b0-8b26-3ec0b903e7e7.png',
-  inspector: 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/d9cdc63f-9e09-4de5-b2eb-1c2ef0cb55ad.png',
-  business: 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-31/5007abb2-2c10-46e9-9721-c83a5b9a7265.png',
+  masters: 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505698/legacy-images/e9af3e8091e7803d0d09.png',
+  directory: 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505692/legacy-images/743b887a044471e15970.png',
+  inspector: 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505700/legacy-images/4bc25cf2db9751b93b92.png',
+  business: 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505711/legacy-images/cdf3da78dd1bdb839c30.png',
 } as const;
 
 export const SITE_BANNER_FALLBACKS = [

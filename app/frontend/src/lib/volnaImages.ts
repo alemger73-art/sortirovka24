@@ -18,9 +18,9 @@ const PHOTOS = {
 } as const;
 
 export const VOLNA_CDN = {
-  index: 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/e1e63b15-29d2-4b2e-b1b5-919722b3b1b9.png',
-  hero: 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-15/fe194ca1-0095-44bf-a906-e50cb844ad56.png',
-  promo: 'https://mgx-backend-cdn.metadl.com/generate/images/1029162/2026-03-21/2034a1d7-1c57-40c0-8145-23816557ba5c.png',
+  index: 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505701/legacy-images/a867ffe78770fa826fe1.png',
+  hero: 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505689/legacy-images/31bd55ae04440f30db2c.png',
+  promo: 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505690/legacy-images/b820ecce8f5f9e2bf0c7.png',
 } as const;
 
 export const VOLNA_INDEX_IMAGE = VOLNA_CDN.index;
