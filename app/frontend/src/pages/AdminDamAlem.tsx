@@ -136,7 +136,7 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
           </Link>
         </div>
       </div>}
-      {access === 'operator' && <DamAlemNewOrderAlert onOpen={() => navigate('orders', undefined, 'new')} />}
+      {(access === 'operator' || access === 'owner') && <DamAlemNewOrderAlert owner={access === 'owner'} onOpen={() => navigate('orders', undefined, 'new')} />}
       {access === 'operator' && <CourierIssueAlert onOpen={() => navigate('deliveries')} />}
 
       {access === 'operator' && <DamShiftPanel onChange={setActiveShift} onLock={onLock} />}

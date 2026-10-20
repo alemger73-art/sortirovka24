@@ -11,15 +11,20 @@ import PreorderNotice from './PreorderNotice';
 const SOUND_KEY = 'dam_alem_order_alert_sound';
 const TOAST_ID = 'dam-alem-new-orders';
 
-export default function DamAlemNewOrderAlert({onOpen}: {onOpen: () => void}) {
+export default function DamAlemNewOrderAlert({onOpen, owner = false}: {onOpen: () => void; owner?: boolean}) {
   const {t} = useLanguage();
   const [total, setTotal] = useState(0);
-  const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem(SOUND_KEY) !== 'off');
+  // Owner: sound off until switched on (the owner is often not at the kitchen). Operator: on by default.
+  const soundKey = owner ? `${SOUND_KEY}_owner` : SOUND_KEY;
+  const [soundEnabled, setSoundEnabled] = useState(() => { const v = localStorage.getItem(soundKey); return owner ? v === 'on' : v !== 'off'; });
   const options = useRef({soundEnabled, t});
   options.current = {soundEnabled, t};
+  const onOpenRef = useRef(onOpen);
+  onOpenRef.current = onOpen;
 
   useEffect(() => {
-    let alive = true, pending = false, initialized = false, highestId = 0;
+    let alive = true, pending = false, initialized = false, highestId = 0, lastReminder = 0;
+    const firstSeen = new Map<number, number>();
     const poll = async () => {
       if (pending) return;
       pending = true;
@@ -40,6 +45,17 @@ export default function DamAlemNewOrderAlert({onOpen}: {onOpen: () => void}) {
           if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
             try { new Notification(translate('dam.alert.title'), {body: message, tag: TOAST_ID}); } catch { /* Web push remains independent. */ }
           }
+        }
+        // Reminder: an order nobody accepted for 2+ minutes rings again every minute until it is taken.
+        const now = Date.now();
+        for (const order of data.items) if (!firstSeen.has(order.id)) firstSeen.set(order.id, initialized ? now : now - 60_000);
+        for (const id of [...firstSeen.keys()]) if (!data.items.some(order => order.id === id)) firstSeen.delete(id);
+        const oldest = Math.min(...[...firstSeen.values()], now);
+        if (initialized && data.total && now - oldest >= 120_000 && now - lastReminder >= 60_000) {
+          lastReminder = now;
+          const minutes = Math.floor((now - oldest) / 60_000);
+          toast.warning(`Заказ ждёт принятия уже ${minutes} мин`, {id: `${TOAST_ID}-wait`, duration: 8000, action: {label: 'Открыть', onClick: () => onOpenRef.current()}});
+          if (options.current.soundEnabled) void playDamOrderAlertSound().catch(() => {});
         }
         initialized = true;
         if (!data.total) toast.dismiss(TOAST_ID);
@@ -68,7 +84,7 @@ export default function DamAlemNewOrderAlert({onOpen}: {onOpen: () => void}) {
   function toggleSound() {
     const next = !soundEnabled;
     setSoundEnabled(next);
-    localStorage.setItem(SOUND_KEY, next ? 'on' : 'off');
+    localStorage.setItem(soundKey, next ? 'on' : 'off');
     if (next) void primeDamOrderAlertSound().catch(() => {});
   }
 
