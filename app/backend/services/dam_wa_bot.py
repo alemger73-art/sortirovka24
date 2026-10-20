@@ -59,11 +59,15 @@ class Chat:
     history: list[list[dict[str, Any]]] = field(default_factory=list)  # full AI exchanges incl. tool calls
     draft_note: str = ""  # last calculated order, shown to the AI every time
     location: Optional[dict[str, Any]] = None  # point the customer sent in WhatsApp (lat, lng, at)
+    last_in_ts: float = 0.0  # WhatsApp time of the customer's last message
+    staff_seen: Optional[dict[str, Any]] = None  # a message typed on the DAM ALEM phone, not yet classified
 
 
 _chats: dict[str, Chat] = {}
 _seen: dict[str, float] = {}
 _menu_cache: dict[str, Any] = {"at": 0.0, "text": "", "ids": set()}
+_auto_texts: set[str] = set()  # WhatsApp Business greeting / away messages learned on the fly
+AUTO_WINDOW = 15  # seconds: the Business app answers this fast only automatically
 
 
 def enabled() -> bool:
@@ -630,11 +634,25 @@ async def _handle(db, chat: Chat, chat_id: str, p: dict[str, Any], client: httpx
         if (str(p.get("source") or "").lower() == "api" or str(p.get("id") or "") in chat.sent_ids
                 or body.startswith("🔔") or any(norm == re.sub(r"\s+", " ", t) or (len(norm) > 40 and t.startswith(body[:40])) for t in chat.sent)):
             return Outcome("ignored")
-        chat.muted_until = now + MUTE_AFTER_STAFF  # a person from DAM ALEM answered from the phone
-        chat.pending = None
-        if body:
-            chat.turns.append({"role": "assistant", "content": body, "staff": True})
-        return Outcome("muted")
+        # Typed on the DAM ALEM phone. The Business app's own greeting/away message also lands here,
+        # within seconds of the customer's message — that one must not silence the bot.
+        ts = float(p.get("timestamp") or now)
+        if norm in _auto_texts or (chat.last_in_ts and abs(ts - chat.last_in_ts) <= AUTO_WINDOW):
+            _auto_texts.add(norm)
+            return Outcome("ignored")
+        chat.staff_seen = {"ts": ts, "text": body}
+        return Outcome("staff_seen")
+    ts = float(p.get("timestamp") or now)
+    if chat.staff_seen:
+        seen_msg, chat.staff_seen = chat.staff_seen, None
+        if abs(ts - seen_msg["ts"]) <= AUTO_WINDOW:
+            _auto_texts.add(re.sub(r"\s+", " ", seen_msg["text"]))  # automatic greeting, not a person
+        else:
+            chat.muted_until = seen_msg["ts"] + MUTE_AFTER_STAFF  # a person from DAM ALEM answered from the phone
+            chat.pending = None
+            if seen_msg["text"]:
+                chat.turns.append({"role": "assistant", "content": seen_msg["text"], "staff": True})
+    chat.last_in_ts = ts
     if now < chat.muted_until:
         if body:
             chat.turns.append({"role": "user", "content": body})

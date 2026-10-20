@@ -1,5 +1,6 @@
 """DAM ALEM WhatsApp sales bot: AI only quotes; the customer's «да» creates the order; staff takeover; no AI fallback."""
 import json
+import time
 
 import httpx
 import pytest
@@ -19,7 +20,7 @@ def msg(body, *, chat="77015556677@c.us", from_me=False, mid=None):
 @pytest.fixture
 def bot(env, monkeypatch):
     _, maker, _, _ = env
-    B._chats.clear(); B._seen.clear(); B._menu_cache.update(at=0.0, text=""); B._TABLE_READY = False
+    B._chats.clear(); B._seen.clear(); B._menu_cache.update(at=0.0, text=""); B._TABLE_READY = False; B._auto_texts.clear()
     monkeypatch.setenv("DAM_WA_ENABLED", "1"); monkeypatch.setenv("WAHA_API_KEY", "k")
     monkeypatch.setenv("NEWS_TELEGRAM_BOT_TOKEN", "1:t"); monkeypatch.setenv("NEWS_TELEGRAM_CHAT_ID", "555")
     monkeypatch.delenv("WHISPER_URL", raising=False)
@@ -86,9 +87,11 @@ async def test_yes_without_quote_does_not_order_and_staff_reply_mutes_bot(bot, m
         assert (await B.handle_event(msg(sent(log)[-1], from_me=True, mid="echo"), client)).action == "ignored"
         echo = msg("Что хотите  заказать? (изменённый текст)", from_me=True, mid="echo2"); echo["payload"]["source"] = "api"
         assert (await B.handle_event(echo, client)).action == "ignored"
-        # A DAM ALEM employee writes from the phone → the bot is silent in this chat.
-        assert (await B.handle_event(msg("Здравствуйте, это администратор", from_me=True), client)).action == "muted"
-        assert (await B.handle_event(msg("хочу пиццу"), client)).action == "muted"
+        # A DAM ALEM employee writes from the phone (minutes later) → the bot is silent in this chat.
+        staff = msg("Здравствуйте, это администратор", from_me=True); staff["payload"]["timestamp"] = time.time() + 120
+        assert (await B.handle_event(staff, client)).action == "staff_seen"
+        later = msg("хочу пиццу"); later["payload"]["timestamp"] = time.time() + 300
+        assert (await B.handle_event(later, client)).action == "muted"
     async with bot() as db:
         assert (await db.scalars(select(Food_orders).where(Food_orders.order_source == "whatsapp"))).all() == []
 
@@ -195,3 +198,21 @@ async def test_whatsapp_location_is_used_for_delivery(bot, monkeypatch):
     first = [b for u, b in log if "anthropic" in u][0]
     assert "геолокацию" in first["messages"][-1]["content"]
     assert captured["delivery_lat"] == 49.8301 and captured["delivery_lng"] == 73.0812
+
+
+async def test_business_app_greeting_does_not_silence_the_bot(bot, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+    log = []
+    script = [[{"type": "text", "text": "Здравствуйте! Что хотите заказать? 🍕"}], [{"type": "text", "text": "Отлично 👌"}]]
+    now = time.time()
+    greet = msg("Здравствуйте! Мы снова с вами — кухня возобновила работу!", from_me=True, mid="g1"); greet["payload"]["timestamp"] = now + 1
+    hello = msg("можно заказать?", mid="h1"); hello["payload"]["timestamp"] = now
+    async with httpx.AsyncClient(transport=transport(log, script)) as client:
+        # The greeting webhook may even arrive before the customer's message.
+        assert (await B.handle_event(greet, client)).action == "staff_seen"
+        assert (await B.handle_event(hello, client)).action == "replied"
+        # Learned: the same greeting in another chat is ignored right away.
+        other = msg("Здравствуйте! Мы снова с вами — кухня возобновила работу!", from_me=True, mid="g2", chat="77019990000@c.us")
+        assert (await B.handle_event(other, client)).action == "ignored"
+        nxt = msg("пиццу", mid="h2"); nxt["payload"]["timestamp"] = now + 30
+        assert (await B.handle_event(nxt, client)).action == "replied"
