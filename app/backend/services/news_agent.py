@@ -45,8 +45,11 @@ logger = logging.getLogger(__name__)
 TZ = ZoneInfo("Asia/Almaty")
 SITE = os.getenv("PUBLIC_SITE_URL", "https://www.sortirovka24.kz").rstrip("/")
 USER_AGENT = "Sortirovka24NewsBot/1.0 (+https://www.sortirovka24.kz)"
-CATEGORIES = ["Происшествия", "События района", "ЖКХ", "Дороги", "Инфраструктура", "Объявления", "Важная информация"]
-DEFAULT_CATEGORY = "События района"
+CATEGORIES = ["Караганда", "Сортировка", "Казахстан", "Происшествия", "ЖКХ", "Дороги", "Инфраструктура",
+              "Экономика", "Спорт", "Общество", "Мир", "Важная информация"]
+DEFAULT_CATEGORY = "Караганда"
+# Big national newsrooms: their items are welcome even without a Karaganda angle.
+NATIONAL_DOMAINS = ("tengrinews.kz", "kursiv.media", "inform.kz", "nur.kz")
 
 
 def _google_news(query: str) -> str:
@@ -77,6 +80,8 @@ CATEGORY_RULES = [
     ("Происшествия", re.compile(r"дтп|пожар|авари|погиб|задерж|спасател|\bчс\b|утонул|травм", re.I)),
     ("ЖКХ", re.compile(r"отоплен|теплосет|горяч\w* вод|водоснаб|электроснаб|отключ|жкх|коммунал|мусор|канализ", re.I)),
     ("Дороги", re.compile(r"дорог|улиц\w* ремонт|ремонт улиц|автотрасс|трасс[аеуы] (?:караганд|астан|алмат|республ)|автобус|маршрут|проезд|светофор|развязк", re.I)),
+    ("Спорт", re.compile(r"чемпион|турнир|матч|сборн\w+|олимпи|футбол|хокке|бокс|медал|спортсмен", re.I)),
+    ("Экономика", re.compile(r"тенге|курс\w* (?:доллар|валют)|инфляц|нацбанк|бюджет|налог|зарплат|пенси|цен[аыу] на|экономик|бизнес", re.I)),
     ("Инфраструктура", re.compile(r"строител|строят|построят|построен|капремонт|реконструк|благоустр|сквер|подстанц|котельн|"
                                    r"газифик|новая школа|новую школу|новой школ|детск\w* сад|поликлиник|больниц", re.I)),
 ]
@@ -219,6 +224,8 @@ def score(item: dict[str, Any]) -> int:
         points = 30
     if item.get("local"):
         points = max(points, 30)
+    if not points and any(d in (item.get("url") or "") for d in NATIONAL_DOMAINS):
+        points = 32  # national news: a reader of a city portal wants the main news of the country too
     return points
 
 
@@ -226,7 +233,11 @@ def guess_category(text_all: str) -> str:
     for name, rule in CATEGORY_RULES:
         if rule.search(text_all):
             return name
-    return DEFAULT_CATEGORY
+    if SORTIROVKA_RE.search(text_all):
+        return "Сортировка"
+    if CITY_RE.search(text_all) or DISTRICT_RE.search(text_all):
+        return "Караганда"
+    return "Казахстан"
 
 
 def short_lead(summary: str, limit: int = 500) -> str:
@@ -262,12 +273,13 @@ async def fetch_all(client: httpx.AsyncClient) -> list[dict[str, Any]]:
 
 # ── AI selection (optional) ─────────────────────────────────────────────────
 
-AI_PROMPT = """Ты редактор районного портала «Сортировка 24» (район Сортировка, город Караганда, Казахстан).
-Ниже свежие новости из разных источников. Выбери не больше {limit}, которые действительно интересны и полезны жителям Караганды и особенно района Сортировка: жизнь города, ЖКХ, отключения, дороги, транспорт, стройки, благоустройство, события, решения акимата, важные происшествия в городе.
-Не бери: новости без связи с Карагандой, общую политику, рекламу, слухи, повторы одной темы, подробности о частных лицах.
-Для каждой выбранной напиши своими словами информативную заметку на русском (4–6 предложений): что произошло, где именно, когда, и что это значит для жителей (адреса, сроки, куда обращаться, как объехать) — если это есть в тексте. Нейтрально, только по фактам из текста ниже, ничего не придумывай, не копируй фразы дословно. Заголовок до 100 символов, понятный без контекста.
+AI_PROMPT = """Ты редактор городского портала «Сортировка 24» (Караганда, Казахстан). Раздел называется просто «Новости».
+Ниже свежие новости из разных источников. Выбери не больше {limit} самых интересных и полезных для жителей Караганды. Нужна живая разнообразная лента: в первую очередь Караганда и район Сортировка (город, ЖКХ, отключения, дороги, транспорт, стройки, события, решения акимата, важные происшествия), а также главные новости Казахстана (законы и решения, которые касаются людей, деньги и цены, спорт, заметные события). Разные темы, не две новости про одно и то же.
+Не бери: рекламу, слухи, скандалы о частных лицах, жестокие подробности, мелкую политическую борьбу.
+Для каждой выбранной напиши своими словами информативную заметку на русском (4–6 предложений): что произошло, где, когда, и что это значит для людей — если это есть в тексте. Нейтрально, только по фактам из текста ниже, ничего не придумывай, не копируй фразы дословно. Заголовок до 100 символов, понятный без контекста.
 Категория — одна из: {categories}.
-Ответь только JSON-массивом без пояснений: [{{"index": номер, "title": "...", "text": "...", "category": "..."}}]. Если ничего подходящего нет — [].
+Ещё дай image_prompt — 1–2 предложения на английском, мирная сцена-иллюстрация к теме (обстановка, предметы, городской пейзаж Караганды/Казахстана), без текста, без реальных узнаваемых людей, без крови и аварий крупным планом.
+Ответь только JSON-массивом без пояснений: [{{"index": номер, "title": "...", "text": "...", "category": "...", "image_prompt": "..."}}]. Если ничего подходящего нет — [].
 
 Новости:
 {items}"""
@@ -316,7 +328,8 @@ async def ai_select(client: httpx.AsyncClient, candidates: list[dict[str, Any]],
         used.add(index)
         category = pick.get("category") if pick.get("category") in CATEGORIES else guess_category(body)
         drafts.append({**candidates[index], "draft_title": clean_text(str(pick.get("title") or ""))[:160] or candidates[index]["title"],
-                       "draft_text": body, "category": category})
+                       "draft_text": body, "category": category,
+                       "image_prompt": clean_text(str(pick.get("image_prompt") or ""))[:600]})
         if len(drafts) >= limit:
             break
     return drafts
@@ -339,7 +352,8 @@ def plain_select(candidates: list[dict[str, Any]], limit: int) -> list[dict[str,
 # ── article text and pictures ───────────────────────────────────────────────
 
 COVER_SLUGS = {"Происшествия": "proisshestviya", "События района": "sobytiya", "ЖКХ": "zhkh", "Дороги": "dorogi",
-               "Инфраструктура": "infra", "Объявления": "obyavleniya", "Важная информация": "vazhno"}
+               "Инфраструктура": "infra", "Объявления": "obyavleniya", "Важная информация": "vazhno",
+               "Сортировка": "sobytiya", "Караганда": "sobytiya", "Общество": "sobytiya"}
 
 
 def cover_for(category: str, url: str) -> str:
@@ -695,7 +709,7 @@ def run_due(state: dict[str, Any], now: Optional[datetime] = None) -> bool:
         last = datetime.fromisoformat(state["last_run"])
     except (KeyError, TypeError, ValueError):
         return True
-    return now - last >= timedelta(minutes=max(30, _int("NEWS_AGENT_INTERVAL_MINUTES", 120)))
+    return now - last >= timedelta(minutes=max(30, _int("NEWS_AGENT_INTERVAL_MINUTES", 90)))
 
 
 async def collect(db: AsyncSession, client: httpx.AsyncClient, force: bool = False) -> Optional[dict[str, Any]]:
@@ -722,8 +736,8 @@ async def collect(db: AsyncSession, client: httpx.AsyncClient, force: bool = Fal
 
 
 async def _collect(db: AsyncSession, client: httpx.AsyncClient, report: dict[str, Any], now: datetime) -> None:
-    max_age = timedelta(hours=_int("NEWS_AGENT_MAX_AGE_HOURS", 36))
-    per_run, daily_max = _int("NEWS_AGENT_PER_RUN", 3), _int("NEWS_AGENT_DAILY_MAX", 10)
+    max_age = timedelta(hours=_int("NEWS_AGENT_MAX_AGE_HOURS", 24))
+    per_run, daily_max = _int("NEWS_AGENT_PER_RUN", 3), _int("NEWS_AGENT_DAILY_MAX", 14)
 
     raw = await fetch_all(client)
     row, state = await load_state(db)
@@ -769,12 +783,17 @@ async def _collect(db: AsyncSession, client: httpx.AsyncClient, report: dict[str
     state.setdefault("urls", []).extend(url_id(c["url"]) for c in examined)
     state.setdefault("keys", []).extend(c["title_key"] for c in examined)
     drafts = []
+    from services.news_cover import make_cover
     for c in chosen:
         lead, text_body = split_lead(c["draft_text"])
         link = c.get("article_url") or c["url"]
+        # Own picture for every item: AI illustration (if configured) or a branded headline cover.
+        image = c.get("image") or await make_cover(client, title=c["draft_title"], category=c["category"],
+                                                   link=link, image_prompt=c.get("image_prompt", "")) \
+            or cover_for(c["category"], link)
         news = News(title=c["draft_title"], short_description=lead,
                     content=f"{text_body}\n\nИсточник: {c['source'] or 'оригинал'} — {link}",
-                    category=c["category"], image_url=c.get("image") or cover_for(c["category"], link),
+                    category=c["category"], image_url=image,
                     published=False, status=PENDING, created_at=_now_iso())
         db.add(news)
         drafts.append((news, c))

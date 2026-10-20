@@ -333,7 +333,8 @@ export const COMPLAINT_CATEGORIES = [
 ];
 
 export const NEWS_CATEGORIES = [
-  'Происшествия', 'События района', 'ЖКХ', 'Дороги', 'Инфраструктура', 'Объявления', 'Важная информация'
+  'Караганда', 'Сортировка', 'Казахстан', 'Происшествия', 'ЖКХ', 'Дороги', 'Инфраструктура',
+  'Экономика', 'Спорт', 'Общество', 'Мир', 'Важная информация', 'События района', 'Объявления'
 ];
 
 export const ANN_TYPES: Record<string, string> = {
@@ -482,6 +483,13 @@ const PUBLIC_CATEGORY_KEYS: Record<string, string> = {
   "Инфраструктура": "public.category.35",
   "Объявления": "public.category.36",
   "Важная информация": "public.category.37",
+  "Караганда": "public.category.news.karaganda",
+  "Сортировка": "public.category.news.sortirovka",
+  "Казахстан": "public.category.news.kazakhstan",
+  "Экономика": "public.category.news.economy",
+  "Спорт": "public.category.news.sport",
+  "Общество": "public.category.news.society",
+  "Мир": "public.category.news.world",
   "Продам": "public.category.38",
   "Куплю": "public.category.39",
   "Сдам": "public.category.40",

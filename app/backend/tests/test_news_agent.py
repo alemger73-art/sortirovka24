@@ -304,3 +304,14 @@ def test_split_own_post():
     assert agent.split_own_post("Заголовок\nТекст") == ("Заголовок", "Текст")
     title, body = agent.split_own_post("Первое предложение новости. Второе предложение.")
     assert title == "Первое предложение новости" and body == "Второе предложение."
+
+
+def test_national_news_and_new_categories():
+    from services import news_agent as agent
+    assert agent.score({"title": "Курс доллара вырос", "summary": "", "url": "https://tengrinews.kz/x"}) == 32
+    assert agent.score({"title": "Курс доллара вырос", "summary": "", "url": "https://other.site/x"}) == 0
+    assert agent.guess_category("сборная выиграла матч") == "Спорт"
+    assert agent.guess_category("Нацбанк изменил курс доллара") == "Экономика"
+    assert agent.guess_category("В Караганде открыли сквер") == "Инфраструктура"
+    assert agent.guess_category("В Караганде прошёл концерт") == "Караганда"
+    assert agent.guess_category("Сенат принял закон") == "Казахстан"

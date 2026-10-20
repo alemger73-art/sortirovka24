@@ -103,7 +103,7 @@ export default function CabinetNotificationSettings({ t }: Props) {
         <p className="mb-2 text-xs text-gray-500">{text('Статусы заказов и доставки, такси и бонусы. Новости и реклама включаются отдельно ниже.', 'Тапсырыс пен жеткізу мәртебелері, такси және бонустар. Жаңалықтар мен жарнама төменде бөлек қосылады.')}</p>
         <details className="mt-4">
           <summary className="cursor-pointer text-sm font-semibold text-sky-700 dark:text-sky-300">{text('Настроить категории уведомлений', 'Хабарландыру санаттарын баптау')}</summary>
-        <PrefRow label="Новости района" checked={notify.news} onCheckedChange={v => void persistNotify({ ...notify, news: v })} />
+        <PrefRow label="Новости" checked={notify.news} onCheckedChange={v => void persistNotify({ ...notify, news: v })} />
         <PrefRow label="Реклама и предложения" hint="Только с вашего согласия" checked={notify.marketing} onCheckedChange={v => void persistNotify({ ...notify, marketing: v })} />
 
         {delivery && <PrefRow

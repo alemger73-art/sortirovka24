@@ -1729,6 +1729,13 @@ export const publicTranslations: Translations = {
     "ru": "Важная информация",
     "kz": "Маңызды ақпарат"
   },
+  "public.category.news.karaganda": { "ru": "Караганда", "kz": "Қарағанды" },
+  "public.category.news.sortirovka": { "ru": "Сортировка", "kz": "Сортировка" },
+  "public.category.news.kazakhstan": { "ru": "Казахстан", "kz": "Қазақстан" },
+  "public.category.news.economy": { "ru": "Экономика", "kz": "Экономика" },
+  "public.category.news.sport": { "ru": "Спорт", "kz": "Спорт" },
+  "public.category.news.society": { "ru": "Общество", "kz": "Қоғам" },
+  "public.category.news.world": { "ru": "Мир", "kz": "Әлем" },
   "public.category.38": {
     "ru": "Продам",
     "kz": "Сатамын"
