@@ -31,8 +31,9 @@ logger = logging.getLogger(__name__)
 
 SITE = "https://www.sortirovka24.kz"
 PROVIDER = "waha-dam"
-HISTORY_TURNS = 16
-HISTORY_TTL = 12 * 3600
+HISTORY_TURNS = 30
+HISTORY_EXCHANGES = 14
+HISTORY_TTL = 48 * 3600
 MUTE_AFTER_STAFF = 6 * 3600
 MAX_PER_HOUR = 40
 MAX_TOOL_ROUNDS = 6
@@ -55,6 +56,8 @@ class Chat:
     pending: Optional[dict[str, Any]] = None  # last quote waiting for «да»
     last_order_id: Optional[int] = None
     handed_off_at: float = 0.0
+    history: list[list[dict[str, Any]]] = field(default_factory=list)  # full AI exchanges incl. tool calls
+    draft_note: str = ""  # last calculated order, shown to the AI every time
 
 
 _chats: dict[str, Chat] = {}
@@ -85,6 +88,79 @@ def _chat(chat_id: str) -> Chat:
         c.turns, c.pending = [], None
     c.updated = now
     return c
+
+
+_TABLE_READY = False
+
+
+async def _ensure_table(db) -> None:
+    """Small own table for chat memory (survives restarts). Created on first use; no ORM model needed."""
+    global _TABLE_READY
+    if _TABLE_READY:
+        return
+    from sqlalchemy import text
+    await db.execute(text("CREATE TABLE IF NOT EXISTS dam_wa_chats (chat_id VARCHAR(120) PRIMARY KEY, data TEXT NOT NULL, updated_at VARCHAR(40))"))
+    await db.commit()
+    _TABLE_READY = True
+
+
+async def load_chat(db, chat_id: str) -> Chat:
+    """Memory first, then the DB (after a restart). Old chats start fresh."""
+    if chat_id in _chats:
+        return _chat(chat_id)
+    try:
+        from sqlalchemy import text
+        await _ensure_table(db)
+        raw = await db.scalar(text("SELECT data FROM dam_wa_chats WHERE chat_id = :c"), {"c": chat_id})
+        if raw:
+            data = json.loads(raw)
+            known = {k: v for k, v in data.items() if k in Chat.__dataclass_fields__}
+            _chats[chat_id] = Chat(**known)
+    except Exception as exc:
+        logger.warning("[DamWA] memory load failed: %s", exc)
+        await db.rollback()
+    return _chat(chat_id)
+
+
+async def save_chat(db, chat_id: str, chat: Chat) -> None:
+    try:
+        from dataclasses import asdict
+        from datetime import datetime, timezone
+        from sqlalchemy import text
+        await _ensure_table(db)
+        data = asdict(chat)
+        data["recent"] = []
+        payload = json.dumps(data, ensure_ascii=False, default=str)
+        await db.execute(text("DELETE FROM dam_wa_chats WHERE chat_id = :c"), {"c": chat_id})
+        await db.execute(text("INSERT INTO dam_wa_chats (chat_id, data, updated_at) VALUES (:c, :d, :u)"),
+                         {"c": chat_id, "d": payload, "u": datetime.now(timezone.utc).isoformat()})
+        await db.commit()
+    except Exception as exc:
+        logger.warning("[DamWA] memory save failed: %s", exc)
+        await db.rollback()
+
+
+async def customer_profile(db, ctx) -> str:
+    """What we know about this customer from past orders — lets the bot say «как в прошлый раз?»."""
+    try:
+        from sqlalchemy import select
+        from models.food_orders import Food_orders
+        rows = (await db.scalars(select(Food_orders).where(Food_orders.customer_id == ctx.customer_id,
+                                                           Food_orders.status != "cancelled").order_by(Food_orders.id.desc()).limit(3))).all()
+    except Exception:
+        return ""
+    if not rows:
+        return "Новый клиент, заказов ещё не было."
+    out = []
+    for r in rows:
+        try:
+            items = json.loads(r.order_items or "[]")
+        except ValueError:
+            items = []
+        names = ", ".join(f"{i.get('name')} ×{i.get('quantity')}" for i in items if not i.get("is_gift"))[:200]
+        where = "самовывоз" if r.delivery_method == "pickup" else (r.delivery_address or "")[:120]
+        out.append(f"№{r.id} ({str(r.created_at)[:10]}): {names}; {where}; {money(r.total_amount)}")
+    return "Постоянный клиент. Последние заказы: " + " | ".join(out)
 
 
 def _duplicate(message_id: str) -> bool:
@@ -179,7 +255,7 @@ async def store_facts(db) -> str:
     return text
 
 
-def system_prompt(facts: str, name: str) -> str:
+def system_prompt(facts: str, name: str, memory: str = "") -> str:
     return f"""Ты — продавец-консультант доставки еды DAM ALEM 2.0 (район Сортировка, Караганда) в WhatsApp.
 Пиши на языке клиента (русский или казахский), тепло, живо и по-доброму, как приветливый официант.
 Клиент: {name or 'имя пока неизвестно'}.
@@ -221,9 +297,15 @@ def system_prompt(facts: str, name: str) -> str:
 - Сам ты заказ не создаёшь: его создаст система, когда клиент ответит «Да». Не пиши «заказ оформлен», пока система этого не сообщила.
 - Если quote_order вернул ошибку (адрес не найден, минимальная сумма, кухня закрыта) — объясни простыми словами и предложи решение.
 - Статус уже сделанного заказа — get_my_last_order. Бонусы — get_bonus_balance.
+- ОПЛАТА: ты не видишь деньги. Никогда не пиши «оплата прошла / получена», пока get_my_last_order не покажет «ОПЛАЧЕН». Если клиент пишет «оплатил» — поблагодари и скажи, что сотрудник проверит поступление и сразу начнём готовить; при необходимости вызови call_operator.
+- Не путай заказы: говори о заказе с номером из этого чата (он есть в памяти ниже), не выдумывай номера.
 - Если клиент просит живого человека, жалуется, проблема с оплатой или ты не можешь помочь — вызови call_operator и скажи, что сотрудник скоро напишет здесь.
 - Не обсуждай посторонние темы. Никогда не проси коды из СМС, пароли и данные карт.
-- Меню на сайте с фото: {SITE}/food"""
+- Меню на сайте с фото: {SITE}/food
+- Помни весь разговор: не переспрашивай то, что клиент уже сказал (имя, адрес, оплату, блюда). Если клиент меняет заказ — пересчитай quote_order с учётом изменений.
+- Если клиент уже заказывал — можно предложить «как в прошлый раз» и подставить прошлый адрес (уточни, актуален ли он).
+
+{memory}"""
 
 
 TOOLS = [
@@ -284,11 +366,19 @@ async def run_tool(db, ctx, chat: Chat, name: str, args: dict[str, Any], message
         if name == "get_my_last_order":
             from sqlalchemy import select
             from models.food_orders import Food_orders
-            row = await db.scalar(select(Food_orders).where(Food_orders.customer_id == ctx.customer_id).order_by(Food_orders.id.desc()).limit(1))
+            # The order made in this chat comes first; otherwise the customer's latest one.
+            row = await db.get(Food_orders, chat.last_order_id) if chat.last_order_id else None
+            if not row or row.customer_id != ctx.customer_id:
+                row = await db.scalar(select(Food_orders).where(Food_orders.customer_id == ctx.customer_id).order_by(Food_orders.id.desc()).limit(1))
             if not row:
                 return "У клиента ещё нет заказов."
+            paid = str(row.payment_status or "") in ("paid", "succeeded", "completed")
+            if row.payment_method == "cash":
+                pay = "наличными при получении"
+            else:
+                pay = "ОПЛАЧЕН (подтверждено сотрудником)" if paid else "ЕЩЁ НЕ ОПЛАЧЕН — сотрудник выставляет счёт и сам подтверждает поступление"
             return json.dumps({"номер": row.id, "статус": STATUS_RU.get(row.status, row.status), "сумма": money(row.total_amount),
-                               "оплата": row.payment_status}, ensure_ascii=False)
+                               "оплата": pay, "создан": str(row.created_at)[:16], "предзаказ_на": row.scheduled_for}, ensure_ascii=False)
         if name == "call_operator":
             await notify_owner(client, chat_id, chat, str(args.get("reason") or ""))
             chat.muted_until = time.time() + 30 * 60  # give the human time; the bot stays quiet meanwhile
@@ -304,7 +394,8 @@ async def run_tool(db, ctx, chat: Chat, name: str, args: dict[str, Any], message
             q = await C.tool(db, ctx, "quote", draft, message_id=message_id)
             await db.commit()
             chat.pending = {"id": q["confirmation_id"], "total": q.get("total_amount"), "payment": q.get("payment_method"), "at": time.time()}
-            return "Расчёт готов. Покажи клиенту и попроси ответить «Да»: " + _quote_view(q)
+            chat.draft_note = _quote_view(q)
+            return "Расчёт готов. Покажи клиенту и попроси ответить «Да»: " + chat.draft_note
         return "Неизвестный инструмент"
     except HTTPException as exc:
         await db.rollback()
@@ -315,34 +406,63 @@ async def run_tool(db, ctx, chat: Chat, name: str, args: dict[str, Any], message
         return f"Ошибка: не получилось ({type(exc).__name__}). Проверь данные и попробуй ещё раз."
 
 
-async def ask_ai(client: httpx.AsyncClient, db, ctx, chat: Chat, message_id: str, chat_id: str) -> Optional[str]:
+def _compact(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Keep tool calls in memory but shrink the big menu dumps."""
+    out = []
+    for m in messages:
+        if m["role"] == "user" and isinstance(m.get("content"), list):
+            content = []
+            for b in m["content"]:
+                if b.get("type") == "tool_result" and len(str(b.get("content", ""))) > 800 and "₸" in str(b.get("content", "")) and "Расчёт" not in str(b.get("content", "")):
+                    b = {**b, "content": "(меню было получено; если нужно — вызови get_menu снова)"}
+                content.append(b)
+            m = {**m, "content": content}
+        out.append(m)
+    return out
+
+
+async def ask_ai(client: httpx.AsyncClient, db, ctx, chat: Chat, text: str, message_id: str, chat_id: str) -> Optional[str]:
     key = (os.getenv("ANTHROPIC_API_KEY") or "").strip()
     if not key:
         return None
     facts = await store_facts(db)
-    messages = list(chat.turns[-HISTORY_TURNS:])
-    while messages and messages[0]["role"] != "user":
-        messages.pop(0)
+    memory_parts = [await customer_profile(db, ctx)]
+    if chat.draft_note:
+        memory_parts.append("Последний расчёт заказа в этом чате: " + chat.draft_note
+                            + (" — ждёт ответа «Да» от клиента." if chat.pending else " — уже не активен (заказ оформлен или изменён)."))
+    if chat.last_order_id:
+        memory_parts.append(f"В этом чате уже оформлен заказ №{chat.last_order_id}.")
+    staff = [t for t in chat.turns[-10:] if t.get("staff")]
+    if staff:
+        memory_parts.append("Сотрудник DAM ALEM писал клиенту сам: " + " | ".join(str(t["content"])[:200] for t in staff[-3:]))
+    memory = "Память о клиенте:\n- " + "\n- ".join(p for p in memory_parts if p)
+    history = [m for ex in chat.history[-HISTORY_EXCHANGES:] for m in ex]
+    exchange: list[dict[str, Any]] = [{"role": "user", "content": text[:2000]}]
+    reply: Optional[str] = None
     for _ in range(MAX_TOOL_ROUNDS):
         resp = await client.post(
             "https://api.anthropic.com/v1/messages",
             headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
             json={"model": os.getenv("DAM_WA_MODEL", "claude-haiku-5-5"), "max_tokens": 900,
-                  "system": system_prompt(facts, chat.name), "tools": TOOLS, "messages": messages},
+                  "system": system_prompt(facts, chat.name, memory), "tools": TOOLS, "messages": history + exchange},
             timeout=60)
         resp.raise_for_status()
-        data = resp.json()
-        content = data.get("content", [])
-        messages.append({"role": "assistant", "content": content})
+        content = resp.json().get("content", [])
+        exchange.append({"role": "assistant", "content": content})
         uses = [b for b in content if b.get("type") == "tool_use"]
         if not uses:
-            return "".join(b.get("text", "") for b in content if b.get("type") == "text").strip()
+            reply = "".join(b.get("text", "") for b in content if b.get("type") == "text").strip()
+            break
         results = []
         for u in uses:
             out = await run_tool(db, ctx, chat, u["name"], u.get("input") or {}, message_id, client, chat_id)
             results.append({"type": "tool_result", "tool_use_id": u["id"], "content": out[:6000]})
-        messages.append({"role": "user", "content": results})
-    return "Секунду, уточняю детали — сотрудник подключится, если понадобится 🙏"
+        exchange.append({"role": "user", "content": results})
+    if reply is None:
+        reply = "Секунду, уточняю детали — сотрудник подключится, если понадобится 🙏"
+        exchange.append({"role": "assistant", "content": reply})
+    chat.history = (chat.history + [_compact(exchange)])[-HISTORY_EXCHANGES:]
+    return reply
 
 
 # ── WhatsApp I/O ────────────────────────────────────────────────────────────
@@ -423,7 +543,16 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient) -> Outc
         return Outcome("ignored")
     if _duplicate(str(p.get("id") or "")):
         return Outcome("ignored")
-    chat = _chat(chat_id)
+    from core.database import db_manager
+    async with db_manager.async_session_maker() as db:
+        chat = await load_chat(db, chat_id)
+        try:
+            return await _handle(db, chat, chat_id, p, client)
+        finally:
+            await save_chat(db, chat_id, chat)
+
+
+async def _handle(db, chat: Chat, chat_id: str, p: dict[str, Any], client: httpx.AsyncClient) -> Outcome:
     now = time.time()
     body = str(p.get("body") or "").strip()
     if p.get("fromMe"):
@@ -435,7 +564,7 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient) -> Outc
         chat.muted_until = now + MUTE_AFTER_STAFF  # a person from DAM ALEM answered from the phone
         chat.pending = None
         if body:
-            chat.turns.append({"role": "assistant", "content": body})
+            chat.turns.append({"role": "assistant", "content": body, "staff": True})
         return Outcome("muted")
     if now < chat.muted_until:
         if body:
@@ -467,9 +596,8 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient) -> Outc
     if not text:
         return Outcome("ignored")
 
-    from core.database import db_manager
     from services import business_channel as C, crm
-    async with db_manager.async_session_maker() as db:
+    if True:
         # No phone (hidden WhatsApp id): ask for it once, then use it as the customer identity.
         if not chat.phone:
             digits = re.sub(r"\D", "", text)
@@ -506,6 +634,7 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient) -> Outc
             reply = (f"✅ *Заказ №{order.get('id')} оформлен!*\n\n💰 Сумма: *{money(order.get('total_amount'))}*\n{pay_line}\n\n"
                      f"📲 Статус заказа будем присылать сюда.\nСпасибо, что выбрали DAM ALEM 2.0 🧡")
             chat.turns += [{"role": "user", "content": text}, {"role": "assistant", "content": reply}]
+            chat.history = (chat.history + [[{"role": "user", "content": text}, {"role": "assistant", "content": reply}]])[-HISTORY_EXCHANGES:]
             await send_text(client, chat_id, reply, chat)
             return Outcome("order_created", reply)
         if chat.pending and NO_RE.match(text):
@@ -516,7 +645,7 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient) -> Outc
             await notify_owner(client, chat_id, chat, text)
         reply: Optional[str] = None
         try:
-            reply = await ask_ai(client, db, ctx, chat, str(p.get("id") or f"t{now}"), chat_id)
+            reply = await ask_ai(client, db, ctx, chat, text, str(p.get("id") or f"t{now}"), chat_id)
         except Exception as exc:
             logger.warning("[DamWA] AI failed: %s", exc)
         if not reply:

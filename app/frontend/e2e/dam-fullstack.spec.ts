@@ -154,3 +154,28 @@ test.describe('statistics and error watch', () => {
     await page.screenshot({ path: info.outputPath('7-admin-errors.png'), fullPage: true });
   });
 });
+
+test('operator in the browser: Kaspi invoice → «деньги пришли» → can start cooking', async ({ page, browser }, info) => {
+  await toCheckout(page, 'Пепперони');
+  await page.getByTestId('dam-checkout-overlay').getByText('Самовывоз', { exact: true }).click();
+  await page.getByTestId('dam-checkout-next').click();
+  await page.getByRole('button', { name: 'Kaspi', exact: true }).click();
+  await page.getByTestId('dam-checkout-next').click();
+  const id = await placedOrderId(page);
+
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const op = await ctx.newPage();
+  await op.addInitScript(t => { localStorage.setItem('app_lang', 'ru'); localStorage.setItem('_partner_token_dam_alem', t); localStorage.setItem('_dam_alem_partner_token', t); sessionStorage.setItem('s24_welcome_done', '1'); }, tokens.operator);
+  await op.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
+  op.on('dialog', d => void d.accept());
+  await op.goto(`/partner/dam-alem?section=orders&order=${id}`);
+  await op.getByRole('button', { name: /Счёт выставлен/ }).click();
+  await expect(op.getByText(/Счёт выставлен в/)).toBeVisible();
+  await op.getByTestId('confirm-bank-payment').click();
+  await expect(op.getByRole('heading', { name: /Оплата · Оплачено/ })).toBeVisible();
+  await expect(op.getByTestId('confirm-bank-payment')).toHaveCount(0);
+  await op.screenshot({ path: info.outputPath('operator-kaspi-paid.png'), fullPage: true });
+  const start = op.getByRole('button', { name: /Передать на кухню/ }).first();
+  await expect(start).toBeEnabled();
+  await ctx.close();
+});

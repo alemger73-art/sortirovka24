@@ -19,7 +19,7 @@ def msg(body, *, chat="77015556677@c.us", from_me=False, mid=None):
 @pytest.fixture
 def bot(env, monkeypatch):
     _, maker, _, _ = env
-    B._chats.clear(); B._seen.clear(); B._menu_cache.update(at=0.0, text="")
+    B._chats.clear(); B._seen.clear(); B._menu_cache.update(at=0.0, text=""); B._TABLE_READY = False
     monkeypatch.setenv("DAM_WA_ENABLED", "1"); monkeypatch.setenv("WAHA_API_KEY", "k")
     monkeypatch.setenv("NEWS_TELEGRAM_BOT_TOKEN", "1:t"); monkeypatch.setenv("NEWS_TELEGRAM_CHAT_ID", "555")
     monkeypatch.delenv("WHISPER_URL", raising=False)
@@ -109,3 +109,41 @@ async def test_disabled_and_groups_are_ignored(bot, monkeypatch):
         monkeypatch.setenv("DAM_WA_ENABLED", "0")
         assert (await B.handle_event(msg("привет"), client)).action == "ignored"
     assert log == []
+
+
+async def test_memory_survives_restart_and_keeps_tool_calls(bot, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+    script = [
+        [{"type": "tool_use", "id": "m1", "name": "get_menu", "input": {}}],
+        [{"type": "text", "text": "Советую пиццу 🍕 На сколько человек?"}],
+        [{"type": "text", "text": "Отлично, на двоих — Пепперони 👌"}],
+    ]
+    log = []
+    async with httpx.AsyncClient(transport=transport(log, script)) as client:
+        await B.handle_event(msg("хочу пиццу"), client)
+        B._chats.clear()  # server restart: memory comes back from the DB
+        await B.handle_event(msg("на двоих"), client)
+    last = [b for u, b in log if "anthropic" in u][-1]
+    texts = json.dumps(last["messages"], ensure_ascii=False)
+    assert "хочу пиццу" in texts and "На сколько человек" in texts and "tool_use" in texts
+    assert last["messages"][-1] == {"role": "user", "content": "на двоих"}
+    assert "Память о клиенте" in last["system"]
+
+
+async def test_last_order_never_claims_payment_without_staff(bot, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+    order = {"items": [{"id": 2, "quantity": 2}], "customer_name": "Айгерим", "delivery_method": "pickup", "payment_method": "kaspi_qr"}
+    script = [
+        [{"type": "tool_use", "id": "q", "name": "quote_order", "input": order}],
+        [{"type": "text", "text": "Итого 600 ₸. Ответьте Да"}],
+        [{"type": "tool_use", "id": "s", "name": "get_my_last_order", "input": {}}],
+        [{"type": "text", "text": "Ждём оплату"}],
+    ]
+    log = []
+    async with httpx.AsyncClient(transport=transport(log, script)) as client:
+        await B.handle_event(msg("2 штуки, самовывоз, каспи"), client)
+        out = await B.handle_event(msg("да"), client)
+        assert out.action == "order_created" and "Kaspi" in out.reply
+        await B.handle_event(msg("я оплатил"), client)
+    status = [b for u, b in log if "anthropic" in u][-1]["messages"][-1]["content"][0]["content"]
+    assert "ЕЩЁ НЕ ОПЛАЧЕН" in status
