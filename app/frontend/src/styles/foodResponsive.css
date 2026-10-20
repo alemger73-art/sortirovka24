@@ -54,7 +54,11 @@ html.native-app .dam-page {
   .dam-page .dam-market-offer { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'copy' 'action' 'photo'; gap: 1.25rem; }
   .dam-market-offer__photo { min-height: 170px; max-height: 220px; aspect-ratio: 2 / 1; width: 100%; }
   .dam-page .dam-market-header__meta { font-size: .7rem; }
-  .dam-page .dam-market-header__meta span:first-child { flex-basis: 100%; }
+  /* One compact line on phones: address … · time. Free-delivery threshold is shown in the cart. */
+  .dam-page .dam-market-header__meta { flex-wrap: nowrap; padding-block: .45rem; }
+  .dam-page .dam-market-header__meta span:first-child { flex: 1 1 0; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .dam-page .dam-market-header__meta span:first-child svg { display: inline; vertical-align: -3px; margin-right: 4px; }
+  .dam-page .dam-market-header__meta span:nth-child(3) { display: none; }
 }
 
 /* Compact, fully clickable menu entry. No stock food imagery. */

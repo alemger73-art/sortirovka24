@@ -23,7 +23,7 @@ export default function DamAlemStatusStrip({
     return (
       <div className="dam-status-strip dam-status-strip--closed" role="status">
         <UtensilsCrossed className="h-4 w-4 shrink-0" />
-        <p className="min-w-0 truncate text-sm font-semibold">
+        <p className="min-w-0 text-[13px] font-semibold leading-snug">
           {kitchenMessage || st("Кухня закрыта · приём заказов недоступен")}
         </p>
       </div>

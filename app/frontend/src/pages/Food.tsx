@@ -231,6 +231,7 @@ export default function Food() {
   const { t, localized, lang } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const lastChipTap = useRef(0);
   const [categories, setCategories] = useState<FoodCategory[]>([]);
   const [items, setItems] = useState<FoodItem[]>([]);
   const [modGroups, setModGroups] = useState<ModifierGroup[]>([]);
@@ -666,6 +667,8 @@ export default function Food() {
       const rawBanners = extract(results[3]) as Array<FoodBanner & { link_url?: string; banner_type?: string; active?: boolean }>;
       setPromoBanners(rawBanners
         .filter(b => b.active !== false && isFoodBanner(b))
+        // The portal's «DAM ALEM — Доставка еды» shop card only links back here: not needed on this page.
+        .filter(b => b.banner_type !== 'shop')
         .map(b => ({
           id: b.id, title: b.title, subtitle: b.subtitle, banner_text: b.banner_text,
           image_url: b.image_url, button_text: b.button_text, button_url: b.button_url || b.link_url,
@@ -813,17 +816,26 @@ export default function Food() {
     const sections = menuCategorySections
       .map(({ category }) => document.getElementById(`dam-category-${category.id}`))
       .filter(Boolean) as HTMLElement[];
-    const observer = new IntersectionObserver(
-      entries => {
-        const visible = entries
-          .filter(entry => entry.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        if (visible) setSelectedCategoryId(Number(visible.target.id.replace('dam-category-', '')));
-      },
-      { rootMargin: '-160px 0px -65% 0px', threshold: 0 },
-    );
-    sections.forEach(section => observer.observe(section));
-    return () => observer.disconnect();
+    // The highlighted chip is the last section whose title has passed under the sticky header + chips.
+    // (lastChipTap: a chip tapped by the person stays highlighted while the page scrolls to it.)
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      if (Date.now() - lastChipTap.current < 1200) return;
+      const pills = document.getElementById('dam-market-categories');
+      const line = (pills ? pills.getBoundingClientRect().bottom : 200) + 16;
+      let current = sections[0];
+      for (const section of sections) {
+        if (section.getBoundingClientRect().top <= line) current = section; else break;
+      }
+      // At the very bottom a short last section never reaches the line.
+      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+      if (atBottom) current = sections[sections.length - 1];
+      if (current) setSelectedCategoryId(Number(current.id.replace('dam-category-', '')));
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(update); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => { window.removeEventListener('scroll', onScroll); if (frame) cancelAnimationFrame(frame); };
   }, [activeTab, menuCategorySections, searchQuery]);
 
   // Get modifier groups for a food item
@@ -962,9 +974,23 @@ export default function Food() {
 
   const kitchenStatus = useMemo(() => {
     const status = isKitchenOpen(settings);
-    return { ...status, message: status.open ? undefined : st('Приём заказов с {0} до {1}', [status.opensAt, status.closesAt]) };
+    return { ...status, message: status.open ? undefined : st('Сейчас закрыто · принимаем заказы с {0} до {1} · можно оформить заранее', [status.opensAt, status.closesAt]) };
   }, [settings, st]);
-  const deliveryTimeLabel = settings.delivery_time || brandProfile?.delivery_time || st("35–45 мин");
+  const deliveryTimeLabel = useMemo(() => {
+    const raw = String(settings.delivery_time || brandProfile?.delivery_time || '').trim();
+    if (!raw) return st("35–45 мин");
+    // «20-30» → «20–30 мин»: a bare range is unclear to customers.
+    return /^\d+\s*[-–]\s*\d+$/.test(raw) ? `${raw.replace(/\s*[-–]\s*/, '–')} ${st('мин')}` : raw;
+  }, [settings.delivery_time, brandProfile?.delivery_time, st]);
+
+  // Kitchen closed: the order can only be prepared later, so start with «Выбрать дату и время».
+  useEffect(() => { if (checkoutOpen && !kitchenStatus.open) setPreorder(true); }, [checkoutOpen, kitchenStatus.open]);
+  // Switching between menu / cart / favourites starts at the top, not where the previous tab was scrolled.
+  const firstTabRender = useRef(true);
+  useEffect(() => {
+    if (firstTabRender.current) { firstTabRender.current = false; return; }
+    window.scrollTo({ top: 0 });
+  }, [activeTab]);
 
   const promoDiscountAmount = appliedPromo?.discount ?? 0;
   const promoFreeDelivery = appliedPromo?.free_delivery ?? false;
@@ -2069,25 +2095,7 @@ export default function Food() {
                 <span className="dam-market-offer__cta">{st("Выбрать блюда")} <ArrowRight className="h-4 w-4" aria-hidden="true" /></span>
               </a>
 
-              <section className="dam-market-benefits" aria-label={st("Преимущества {0}", [DAM_ALEM_BRAND])}>
-                <article>
-                  <span><CheckCircle2 className="h-4 w-4" /></span>
-                  <div><strong>{st("Готовим после заказа")}</strong><p>{st("Не держим блюда на витрине")}</p></div>
-                </article>
-                <article>
-                  <span><Clock className="h-4 w-4" /></span>
-                  <div><strong>{deliveryTimeLabel}</strong><p>{st("Покажем статус после оформления")}</p></div>
-                </article>
-                <article>
-                  <span><Truck className="h-4 w-4" /></span>
-                  <div>
-                    <strong>{freeDeliveryFrom > 0 ? st("Бесплатно от {0}", [formatPrice(freeDeliveryFrom)]) : st("Доставка по району")}</strong>
-                    <p>{st("Стоимость видна до оплаты")}</p>
-                  </div>
-                </article>
-              </section>
-
-              <div className="mt-4">
+              <div className="mt-3">
                 <DamAlemPromoStrip
                   promos={configuredPromos}
                   freeDeliveryFrom={0}
@@ -2140,7 +2148,7 @@ export default function Food() {
                 id="dam-market-categories"
                 pills={categoryPills}
                 activeId={String(selectedCategoryId ?? menuCategorySections[0]?.category.id ?? '')}
-                onSelect={id => openCatalog(Number(id))}
+                onSelect={id => { lastChipTap.current = Date.now(); openCatalog(Number(id)); }}
               />
             ) : null}
 
@@ -2170,7 +2178,6 @@ export default function Food() {
                   <section key={category.id} id={`dam-category-${category.id}`} className="dam-market-category">
                     <div className="dam-market-section-head">
                       <div>
-                        <span>{st("Блюд:")} {sectionItems.length}</span>
                         <h2>{category.name}</h2>
                       </div>
                     </div>

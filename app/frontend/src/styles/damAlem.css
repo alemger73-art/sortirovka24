@@ -981,10 +981,12 @@ body.dam-sheet-open [data-bottom-nav] {
 }
 
 .dam-status-strip--closed {
-  background: #78350f;
-  color: #fffbeb;
+  background: #fef3c7;
+  color: #78350f;
   white-space: normal;
+  border-bottom: 1px solid #fde68a;
 }
+.dark .dam-status-strip--closed { background: #3b2a0a; color: #fde68a; border-color: #5b4210; }
 
 .dam-status-strip__dot {
   width: 0.5rem;

@@ -106,7 +106,7 @@ export default function DamAlemPromoBanners({ banners, onAction, products = [], 
           return <FoodBannerCard key={banner.id} banner={banner} onAction={onAction} product={product} formatPrice={formatPrice} />;
         })}
       </div>
-      {banners.length > 1 && <p className="food-campaigns__hint">{st("Наборов:")} {banners.length}  {st("· нажмите на карточку, чтобы добавить в корзину")}</p>}
+
     </section>
   );
 }
