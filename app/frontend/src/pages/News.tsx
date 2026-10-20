@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import PromoSlot from '@/components/PromoSlot';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Newspaper, Search, ArrowUpRight, ChevronLeft, Share2, Clock, Instagram } from 'lucide-react';
 import { toast } from 'sonner';
@@ -40,7 +41,7 @@ export function NewsList() {
  }
  return <Layout><div className="news-surface"><div className="news-shell"><header className="news-header"><p className="news-eyebrow">СОРТИРОВКА 24 · {text.latest}</p><h1>{text.title}</h1><p>{text.intro}</p></header>
   <section className="news-tools" aria-label={text.search}><label className="news-search"><Search size={20}/><input aria-label={text.search} placeholder={text.search} value={search} maxLength={200} onChange={e=>setSearch(e.target.value)}/></label><div className="news-topics"><button aria-pressed={!category} onClick={()=>setCategory('')}>{t('common.all')}</button>{NEWS_CATEGORIES.map(c=><button key={c} aria-pressed={category===c} onClick={()=>setCategory(c)}>{getPublicCategoryLabel(c,t)}</button>)}</div></section>
-  {items.length>0&&<div className="news-grid">{items.map((item,i)=><NewsCard key={item.id} item={item} featured={i===0&&!category&&!term}/>)}</div>}
+  {items.length>0&&<div className="news-grid">{items.map((item,i)=><Fragment key={item.id}><NewsCard item={item} featured={i===0&&!category&&!term}/>{i===4&&<div style={{gridColumn:'1/-1'}}><PromoSlot placement="news_list" context={category+' '+term}/></div>}</Fragment>)}</div>}
   {loading&&<p role="status" className="news-state">{text.loading}</p>}
   {error&&<div role="alert" className="news-state"><h2>{text.error}</h2><button onClick={()=>items.length?load(items.length):setRetry(x=>x+1)}>{text.retry}</button></div>}
   {!loading&&!error&&!items.length&&<div className="news-state"><Newspaper size={44}/><h2>{category||term?text.noResults:text.empty}</h2>{(category||term)&&<><p>{text.hint}</p><button onClick={()=>{setCategory('');setSearch('');setTerm('');}}>{text.reset}</button></>}</div>}
@@ -66,6 +67,7 @@ export function NewsDetail() {
  {video&&<iframe src={video} title="YouTube" className="news-video" loading="lazy" allowFullScreen/>}
  {body.instagram&&<aside className="news-instagram"><Instagram size={28}/><div><p>{text.source}</p><a href={body.instagram} target="_blank" rel="noopener noreferrer">{text.instagram}<ArrowUpRight size={18}/></a></div></aside>}
  <footer className="news-article-end"><p>{text.end}</p><button onClick={share}><Share2 size={17}/>{text.share}</button><Link to="/news">{text.back}</Link></footer></article>
+ <PromoSlot placement="news_detail" context={`${title} ${item.category||''}`} className="mt-6"/>
  {related.length>0&&<section className="news-related"><h2>{text.related}</h2><div className="news-grid">{related.map(x=><NewsCard key={x.id} item={x}/>)}</div></section>}
  </>}
  </div></div></Layout>;

@@ -3,7 +3,7 @@
  * New ads go to the owner's Telegram for one-tap approval (backend: services/ad_moderation.py);
  * the author gets a notice in the cabinet and WhatsApp. Posting is free.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -22,6 +22,7 @@ import { accountApi } from '@/lib/accountApi';
 import { getAccountPrefill, getCurrentUser, onAuthChanged, pushCabinetItem } from '@/lib/localAuth';
 import { track } from '@/lib/analytics';
 import { usePageSeo } from '@/hooks/usePageSeo';
+import PromoSlot from '@/components/PromoSlot';
 import {
   type AnnCategory, fetchAnnouncementCategories, filterPublicAnnouncements, getAnnouncementCover,
   loadAnnFavorites, sortAnnouncements, toggleAnnFavorite,
@@ -458,8 +459,11 @@ export function AdsList() {
           <>
             <p className="mt-3 text-sm text-gray-500 dark:text-slate-400" aria-live="polite">{shown.length} {tx('объявл.', 'хабарл.')}</p>
             <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-              {shown.slice(0, visible).map((ad) => (
-                <AdCard key={ad.id} ad={ad} favorite={favorites.includes(ad.id)} onFavorite={(e) => { e.preventDefault(); e.stopPropagation(); setFavorites(toggleAnnFavorite(ad.id)); }} />
+              {shown.slice(0, visible).map((ad, i) => (
+                <Fragment key={ad.id}>
+                  <AdCard ad={ad} favorite={favorites.includes(ad.id)} onFavorite={(e) => { e.preventDefault(); e.stopPropagation(); setFavorites(toggleAnnFavorite(ad.id)); }} />
+                  {(i === 5 || (shown.length <= 6 && i === shown.length - 1)) && <div className="col-span-full"><PromoSlot placement="ads_list" context={`${query} ${filter}`} prefer={filter === 'services' || /кровл|крыш|ремонт|строит/i.test(query) ? 'partner' : undefined} /></div>}
+                </Fragment>
               ))}
             </div>
             {shown.length > visible && <div className="mt-6 text-center"><button type="button" onClick={() => setVisible((v) => v + 24)} className="rounded-xl border border-gray-200 bg-white px-6 py-3 font-medium dark:border-slate-700 dark:bg-slate-900">{tx('Показать ещё', 'Тағы көрсету')}</button></div>}
@@ -630,6 +634,8 @@ export function AdDetail() {
             )}
           </div>
         </div>
+
+        {!isOwner && <PromoSlot placement="ad_detail" context={`${ad.title} ${ad.description || ''}`} prefer={ad.ann_type === 'services' ? 'partner' : undefined} className="mt-6" />}
 
         {similar.length > 0 && (
           <section className="mt-8">
