@@ -385,8 +385,8 @@ async def run_tool(db, ctx, chat: Chat, name: str, args: dict[str, Any], message
                                "оплата": pay, "создан": str(row.created_at)[:16], "предзаказ_на": row.scheduled_for}, ensure_ascii=False)
         if name == "call_operator":
             await notify_owner(client, chat_id, chat, str(args.get("reason") or ""))
-            chat.muted_until = time.time() + 30 * 60  # give the human time; the bot stays quiet meanwhile
-            return "Сотрудник уведомлён. Скажи клиенту, что сотрудник скоро напишет здесь."
+            # The bot keeps helping until a person really writes in the chat (that mutes it automatically).
+            return "Сотрудник уведомлён (ночью может ответить позже). Скажи клиенту, что сотрудник подключится, а пока ты продолжаешь помогать."
         if name == "quote_order":
             draft = {k: v for k, v in args.items() if v not in (None, "")}
             from services.menu_configuration import restaurants
@@ -409,8 +409,10 @@ async def run_tool(db, ctx, chat: Chat, name: str, args: dict[str, Any], message
     except HTTPException as exc:
         await db.rollback()
         detail = str(exc.detail)
+        logger.info("[DamWA] tool %s refused: %s | args=%s", name, detail[:200], json.dumps({k: v for k, v in args.items() if k != "items"}, ensure_ascii=False)[:300])
         if "адрес" in detail.lower() and ("карт" in detail.lower() or "определить" in detail.lower()):
-            return ("Ошибка: адрес не найден на карте. Попроси клиента отправить геолокацию: 📎 → «Местоположение» → "
+            return ("Ошибка: адрес не найден на карте. Сначала сам попробуй ещё раз с другим написанием: только «улица дом, Караганда» без лишних слов; "
+                    "замени «ул.» на «пер.»/«мкр» или поправь окончание названия (например «Уранова» → «Урановый»). Если снова не найден — попроси клиента отправить геолокацию: 📎 → «Местоположение» → "
                     "«Отправить моё текущее местоположение» (если он дома) или выбрать точку своего дома на карте. "
                     "Как только точка придёт, ты её получишь — сразу пересчитай заказ. Подъезд и квартиру добавь в адрес текстом.")
         if "зон" in detail.lower() and "доставк" in detail.lower():
