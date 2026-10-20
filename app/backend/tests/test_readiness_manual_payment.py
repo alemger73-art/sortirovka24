@@ -10,9 +10,10 @@ from services.food_payments import movement
 
 @pytest.mark.parametrize('method',['kaspi_qr','halyk_qr'])
 @pytest.mark.asyncio
-async def test_unconfigured_bank_does_not_silently_enable_public_payment(env, method):
+async def test_unconfigured_bank_with_invoice_mode_off_does_not_enable_public_payment(env, method):
     from fastapi import HTTPException
     env[3].delenv('PAYMENT_TEST_SECRET', raising=False)
+    env[3].setenv('DAM_BANK_INVOICE', 'off')
     async with env[1]() as db:
         order = await db.get(Food_orders, 1)
         order.payment_method = method

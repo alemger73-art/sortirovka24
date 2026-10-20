@@ -56,6 +56,8 @@ class Food_ordersData(BaseModel):
     delivery_method: str = None
     cash_given_amount: Optional[float] = Field(None, ge=0, le=100000000, allow_inf_nan=False)
     payment_method: Optional[str] = None
+    # Kaspi/Halyk number the operator issues the invoice to (not a column; kept in the payment row).
+    payment_phone: Optional[str] = Field(None, max_length=30)
     payment_status: Optional[str] = None
     status: str = None
     created_at: str = None

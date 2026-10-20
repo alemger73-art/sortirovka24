@@ -347,12 +347,13 @@ async def detail(order_id: int, db: AsyncSession = Depends(get_db)):
             'delivered_at': task.delivered_at,
             'courier_payout':task.courier_payout,
         }
-    from services.dam_payment_flow import current_payment, payment_state, workflow_state, manual_confirmation_allowed
+    from services.dam_payment_flow import current_payment, payment_state, workflow_state, manual_confirmation_allowed, invoice_view
     payment = await current_payment(db, obj)
     payment_view = {'payment_state':payment_state(obj, payment), 'manual_payment_confirmation':manual_confirmation_allowed(obj.payment_method),
         'workflow_state':workflow_state(obj, delivery_data['status'] if delivery_data else None)}
     if payment:
         payment_view['payment_id'] = payment.id
+    payment_view.update(invoice_view(payment))
     return {'order': {**serialize(obj), **payment_view, **schedule_view(obj, await schedule_settings(db))}, 'events': [serialize(e) for e in events], 'delivery': delivery_data}
 
 class OrderChange(BaseModel):
@@ -450,6 +451,23 @@ async def change(order_id: int, body: OrderChange, request: Request, db: AsyncSe
     result = await Food_ordersService(db).update(order_id, values, expected_version=version, actor=str(actor.get('display_name') or actor.get('username') or actor.get('sub') or actor.get('partner_type') or 'Оператор'),
         cash_location=cash_location, actor_id=str(actor.get('staff_id') or actor.get('sub') or 'operator'))
     return serialize(result)
+
+@router.post('/orders/{order_id}/invoice-sent')
+async def invoice_sent(order_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    """The operator issued the Kaspi/Halyk invoice by hand; the customer is told at once."""
+    await lock_dam_operations(db)
+    order = await order_for_panel(db, order_id)
+    actor = await food_staff(request, db)
+    shift = await require_partner_shift(db, actor)
+    from services.dam_payment_flow import mark_invoice_sent
+    name = str(actor.get('display_name') or actor.get('username') or 'Оператор')
+    row, first = await mark_invoice_sent(db, order, name)
+    record_action(db, shift, 'invoice_sent', claims=actor, entity_type='order', entity_id=order_id,
+        details={'phone': (row.metadata_json or {}).get('invoice_phone'), 'amount': str(row.amount)})
+    await db.commit()
+    from services.customer_payment_notice import invoice_notice
+    await invoice_notice(db, order, row, repeat=not first)
+    return {'ok': True, 'invoice_sent_at': (row.metadata_json or {}).get('invoice_sent_at')}
 
 @router.post('/orders/{order_id}/notifications/{event_id}/retry')
 async def retry(order_id: int, event_id: int, request: Request, db: AsyncSession = Depends(get_db)):

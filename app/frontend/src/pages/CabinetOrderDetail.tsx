@@ -159,6 +159,20 @@ export default function CabinetOrderDetail() {
                 </div>
               ) : null}
 
+              {isFood && ['kaspi_qr', 'halyk_qr'].includes(String(order.payment_method)) && order.status !== 'cancelled' && (() => {
+                const bank = order.payment_method === 'kaspi_qr' ? 'Kaspi' : 'Halyk';
+                const due = Math.max(0, Number(order.amount || 0) - Number(order.paid_amount || 0));
+                if (order.payment_status === 'paid' || due <= 0) return <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">✓ {label(`Оплачено через ${bank}`, `${bank} арқылы төленді`)}</p>;
+                return <div aria-live="polite" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-50">
+                  <p className="font-semibold">{order.invoice_sent_at
+                    ? label(`Счёт ждёт вас в ${bank}: ${due.toLocaleString('ru-RU')} ₸`, `Шот ${bank}-та күтіп тұр: ${due.toLocaleString('ru-RU')} ₸`)
+                    : label(`Готовим счёт в ${bank} на ${due.toLocaleString('ru-RU')} ₸`, `${bank}-қа ${due.toLocaleString('ru-RU')} ₸ шот дайындап жатырмыз`)}</p>
+                  <p className="mt-1">{order.invoice_sent_at
+                    ? label(`Откройте приложение ${bank} — уведомление «Оплатить» на номере ${order.invoice_phone || order.customer_phone}. После оплаты начнём готовить.`, `${bank} қосымшасын ашыңыз — ${order.invoice_phone || order.customer_phone} нөміріндегі «Төлеу» хабарламасы. Төлемнен кейін дайындаймыз.`)
+                    : label(`Оператор выставит счёт на номер ${order.invoice_phone || order.customer_phone}, обычно за 1–3 минуты. Эта страница обновится сама.`, `Оператор шотты ${order.invoice_phone || order.customer_phone} нөміріне 1–3 минутта жібереді. Бет өзі жаңарады.`)}</p>
+                </div>;
+              })()}
+
               <div className="mt-4 space-y-2 text-sm text-gray-600 dark:text-slate-300">
                 {order.created_at ? <p>{formatOrderDate(order.created_at)}</p> : null}
                 {order.customer_name ? <p>{order.customer_name}</p> : null}

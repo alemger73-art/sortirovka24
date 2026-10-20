@@ -1,6 +1,7 @@
 """Transaction-only payment commands with explicit staff confirmation offline."""
 import hashlib
 import json
+import os
 from uuid import uuid4
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -11,6 +12,36 @@ from services.food_operations import now, add_event
 from services.food_preorders import lock_dam_operations
 
 PROVIDERS = {'cash': 'CASH', 'kaspi_qr': 'KASPI', 'halyk_qr': 'HALYK'}
+BANK_LABELS = {'kaspi_qr': 'Kaspi', 'halyk_qr': 'Halyk'}
+
+
+def bank_invoice_mode() -> bool:
+    """Without a bank API the operator issues the invoice by hand in Kaspi Pay /
+    Halyk on the number the customer gave, then confirms the money. On by default;
+    DAM_BANK_INVOICE=off hides bank payment from customers."""
+    return os.getenv('DAM_BANK_INVOICE', 'manual').strip().lower() not in ('off', '0', 'false', 'no')
+
+
+def invoice_phone(raw, fallback=''):
+    """+77XXXXXXXXX or a clear error: the invoice goes to this Kaspi/Halyk number."""
+    from utils.phone import normalize_phone
+    phone = normalize_phone(str(raw or fallback or ''))
+    if not (len(phone) == 12 and phone.startswith('+77')):
+        raise HTTPException(422, 'Укажите номер телефона, на который выставить счёт: +7 7XX XXX XX XX')
+    return phone
+
+
+def _soft_phone(raw, fallback):
+    try:
+        return invoice_phone(raw, fallback)
+    except HTTPException:
+        return None
+
+
+def invoice_view(payment):
+    meta = (payment.metadata_json or {}) if payment else {}
+    return {'invoice_phone': meta.get('invoice_phone'), 'invoice_sent_at': meta.get('invoice_sent_at'),
+            'invoice_mode': meta.get('confirmation_mode') == 'staff'}
 
 
 def manual_confirmation_allowed(method):
@@ -60,7 +91,7 @@ def cash_values(total, given=None):
 
 
 def emit(db, order, kind, actor, *, key=None, **data):
-    labels = {'DEBT_CREATED':'Задолженность — ожидается оплата','COURIER_TARIFF_FIXED':'Вознаграждение курьеру зафиксировано','PAYMENT_CONFIRMED':'Оплата подтверждена','SENT_TO_KITCHEN':'Передан на кухню','ORDER_READY':'Заказ готов','HANDED_TO_COURIER':'Передан курьеру','COURIER_ON_THE_WAY':'Курьер выехал','DELIVERED':'Доставлено','DELIVERY_STATUS_CHANGED':'Этап доставки изменён','ORDER_CANCELLED':'Заказ отменён','PAYMENT_STATUS_CHANGED':'Статус оплаты изменён','PAYMENT_REFUNDED':'Фактический возврат денег подтверждён'}
+    labels = {'DEBT_CREATED':'Задолженность — ожидается оплата','COURIER_TARIFF_FIXED':'Вознаграждение курьеру зафиксировано','PAYMENT_CONFIRMED':'Оплата подтверждена','SENT_TO_KITCHEN':'Передан на кухню','ORDER_READY':'Заказ готов','HANDED_TO_COURIER':'Передан курьеру','COURIER_ON_THE_WAY':'Курьер выехал','DELIVERED':'Доставлено','DELIVERY_STATUS_CHANGED':'Этап доставки изменён','ORDER_CANCELLED':'Заказ отменён','PAYMENT_STATUS_CHANGED':'Статус оплаты изменён','PAYMENT_REFUNDED':'Фактический возврат денег подтверждён','INVOICE_SENT':'Счёт на оплату выставлен'}
     event = add_event(db, order, labels.get(kind, kind), actor, notify=False)
     event.event_type = kind
     event.event_key = key or f'{kind}:{order.id}:{order.version or 0}'
@@ -73,7 +104,7 @@ async def current_payment(db, order):
         .order_by(FoodPayment.created_at.desc(), FoodPayment.id.desc()).limit(1))
 
 
-async def create_payment(db, order, *, allow_manual=False):
+async def create_payment(db, order, *, allow_manual=False, phone=None):
     provider = PROVIDERS.get(order.payment_method)
     if not provider:
         return None  # unrelated/legacy payment method
@@ -82,7 +113,7 @@ async def create_payment(db, order, *, allow_manual=False):
         try:
             adapter = configured_adapter()
         except HTTPException as exc:
-            if not allow_manual or exc.status_code != 503:
+            if exc.status_code != 503 or not (allow_manual or bank_invoice_mode()):
                 raise
             adapter = None
     row = FoodPayment(id=str(uuid4()), order_id=order.id,
@@ -97,7 +128,8 @@ async def create_payment(db, order, *, allow_manual=False):
         initiation = await adapter.initiate(row)
         row.external_id = initiation['external_id']
     elif provider != 'CASH':
-        row.metadata_json = {'confirmation_mode': 'staff', 'bank_initiated': False}
+        row.metadata_json = {'confirmation_mode': 'staff', 'bank_initiated': False,
+                             'invoice_phone': _soft_phone(phone, order.customer_phone)}
     db.add(row)
     return row
 
@@ -208,3 +240,30 @@ def workflow_state(order, delivery_status=None):
         return 'COURIER_ON_THE_WAY'
     return {'preparing':'COOKING', 'ready':'READY', 'in_progress':'HANDED_TO_COURIER',
             'done':'DELIVERED', 'cancelled':'CANCELLED'}.get(order.status, 'NEW')
+
+
+async def mark_invoice_sent(db, order, actor):
+    """Operator says: the invoice is issued in the bank app. Customer sees it at once."""
+    if order.payment_method not in BANK_LABELS:
+        raise HTTPException(409, 'Счёт выставляется только для Kaspi или Halyk')
+    if order.status == 'cancelled' or paid(order) >= money(order.total_amount):
+        raise HTTPException(409, 'Заказ уже оплачен или отменён')
+    row = await current_payment(db, order)
+    if not row:
+        row = FoodPayment(id=str(uuid4()), order_id=order.id,
+            user_id=str(order.user_id) if order.user_id is not None else None,
+            provider=PROVIDERS[order.payment_method], amount=money(order.total_amount),
+            currency='KZT', status='WAITING', created_at=now(),
+            metadata_json={'confirmation_mode': 'staff', 'bank_initiated': False})
+        db.add(row)
+    meta = dict(row.metadata_json or {})
+    if not meta.get('invoice_phone'):
+        meta['invoice_phone'] = _soft_phone(None, order.customer_phone)
+    first = not meta.get('invoice_sent_at')
+    stamp = now()
+    meta['invoice_sent_at'] = stamp if isinstance(stamp, str) else stamp.isoformat()
+    meta['invoice_sent_by'] = actor
+    row.metadata_json = meta
+    emit(db, order, 'INVOICE_SENT', actor, key=f'payment:{row.id}:invoice:{meta["invoice_sent_at"]}',
+         phone=meta.get('invoice_phone'), amount=str(row.amount), provider=row.provider)
+    return row, first

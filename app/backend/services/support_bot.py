@@ -244,7 +244,7 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient, modules
     now = time.time()
     if p.get("fromMe"):
         body = str(p.get("body") or "").strip()
-        if body.startswith("Ваш код для входа") or body in chat.sent:
+        if body.startswith(("Ваш код для входа", "🔔 Сортировка 24")) or body in chat.sent:
             return Outcome("ignored")  # our own login code or bot reply echoed back
         # The owner wrote from the phone: the human takes over this chat for a while.
         chat.muted_until = now + MUTE_AFTER_OWNER

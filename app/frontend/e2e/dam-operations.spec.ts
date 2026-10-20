@@ -64,3 +64,22 @@ test('late automatic refresh cannot overwrite an operator draft or its version',
  await page.getByRole('button',{name:'Сохранить изменения',exact:true}).click();
  expect((await request).postDataJSON().expected_version).toBe(0);
 });
+test('kaspi order: operator copies number, marks invoice sent, then confirms money',async({page},info)=>{
+ const s=await setup(page);
+ Object.assign(s.order,{payment_method:'kaspi_qr',invoice_phone:'+77015556677',invoice_sent_at:null,manual_payment_confirmation:true,payment_state:'WAITING'});
+ let sent=0;
+ await page.route('**/operations/orders/71/invoice-sent',async r=>{sent++;Object.assign(s.order,{invoice_sent_at:'2026-10-20T05:42:00Z'});await r.fulfill({json:{ok:true}});});
+ await page.goto('/partner/dam-alem?section=orders&order=71');
+ await expect(page.getByText('1. Выставьте счёт в Kaspi Pay')).toBeVisible();
+ await expect(page.getByText('+77015556677')).toBeVisible();
+ await expect(page.getByRole('button',{name:'Передать на кухню',exact:true})).toBeDisabled();
+ await page.getByRole('button',{name:'2. Счёт выставлен — сообщить клиенту'}).click();
+ await expect.poll(()=>sent).toBe(1);
+ await expect(page.getByText(/Счёт выставлен в .* — ждём оплату/)).toBeVisible();
+ await page.getByText(/ждём оплату/).scrollIntoViewIfNeeded();await page.screenshot({path:info.outputPath('kaspi-waiting.png')});
+ page.once('dialog',dialog=>dialog.accept());
+ await page.getByRole('button',{name:'Подтвердить получение оплаты'}).click();
+ await expect.poll(()=>s.order.payment_status).toBe('paid');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:info.outputPath('kaspi.png'),fullPage:true});
+});

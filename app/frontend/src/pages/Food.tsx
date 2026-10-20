@@ -17,7 +17,7 @@ import {
   X, Truck, Store,
   MapPin, MessageSquare,
   ArrowLeft, ArrowRight, Check, CheckCircle2,
-  AlertCircle, Banknote, Coins, RotateCcw,
+  AlertCircle, Banknote, Coins, RotateCcw, Smartphone,
   Search, ShoppingCart, Clock, LayoutGrid, Heart, User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -142,6 +142,15 @@ interface OrderSuccessInfo {
   phone: string;
   address: string;
   deliveryMethod: 'delivery' | 'pickup' | 'dine_in';
+  invoicePhone?: string;
+}
+
+/** +7 7XX XXX XX XX for a Kaspi/Halyk invoice, or '' when the number is incomplete. */
+function invoicePhoneValue(raw: string): string {
+  let d = raw.replace(/\D/g, '');
+  if (d.length === 11 && d.startsWith('8')) d = '7' + d.slice(1);
+  if (d.length === 10) d = '7' + d;
+  return d.length === 11 && d.startsWith('77') ? `+${d}` : '';
 }
 
 const PAYMENT_LABELS: Record<'cash' | 'kaspi_qr' | 'halyk_qr', string> = {
@@ -272,6 +281,7 @@ export default function Food() {
   const [preorder,setPreorder]=useState(false),[schedule,setSchedule]=useState('');
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup' | 'dine_in'>('delivery');
   const [cashGiven, setCashGiven] = useState('');
+  const [invoicePhone, setInvoicePhone] = useState('');
   const [payment, setPayment] = useState<'cash' | 'kaspi_qr' | 'halyk_qr'>('cash');
   const [orderSuccess, setOrderSuccess] = useState<OrderSuccessInfo | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -1329,6 +1339,7 @@ export default function Food() {
     if(preorder && !scheduleISO(schedule)){toast.error('Выберите дату и время предзаказа');return;}
     if (submittingRef.current) return;
     if (payment === 'cash' && cashGiven !== '' && (!Number.isFinite(Number(cashGiven)) || Number(cashGiven) < checkoutGrandTotal)) {toast.error('Проверьте сумму наличных для сдачи'); return;}
+    if (payment !== 'cash' && !invoicePhoneValue(invoicePhone || customerPhone)) {toast.error(st('Укажите номер, на который выставить счёт в ') + PAYMENT_LABELS[payment]); return;}
     if (giftSelectionRequired) {
       toast.error(st("Выберите один бесплатный подарок"));
       setCheckoutStep(2);
@@ -1404,6 +1415,7 @@ export default function Food() {
             delivery_method: deliveryMethod,
             payment_method: payment,
             cash_given_amount: payment === 'cash' && cashGiven !== '' ? Number(cashGiven) : undefined,
+            payment_phone: payment !== 'cash' ? invoicePhoneValue(invoicePhone || customerPhone) : undefined,
       };
       const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(orderData)));
       const fingerprint = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
@@ -1468,6 +1480,7 @@ export default function Food() {
         phone: customerPhone,
         address: deliveryMethod === 'delivery' ? fullAddress : deliveryMethod === 'dine_in' ? 'В заведении' : 'Самовывоз',
         deliveryMethod,
+        invoicePhone: payment !== 'cash' ? invoicePhoneValue(invoicePhone || customerPhone) : undefined,
       });
       setCustomerName('');
       setCustomerPhone('');
@@ -1476,7 +1489,7 @@ export default function Food() {
       setDeliveryQuote(null);
       setComment('');
       setDeliverToApartment(false);
-      setPayment('cash');setCashGiven('');
+      setPayment('cash');setCashGiven('');setInvoicePhone('');
     } catch (e) {
       console.error('Error creating order:', e);
       toast.error(publicOrderErrorMessage(e, st));
@@ -1899,6 +1912,12 @@ export default function Food() {
               <div className="mt-4 dam-card p-4">
                 <FoodOrderStatusBar status="new" deliveryMethod={orderSuccess.deliveryMethod} />
               </div>
+              {orderSuccess.paymentMethod !== 'cash' && (
+                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+                  <p className="font-semibold">{st('Ожидайте счёт в')} {PAYMENT_LABELS[orderSuccess.paymentMethod]}</p>
+                  <p className="mt-1">{st('Оператор выставит счёт на')} {orderSuccess.invoicePhone || orderSuccess.phone} {st('— обычно за 1–3 минуты. Откройте приложение и оплатите. Статус оплаты — в «Мои заказы».')}</p>
+                </div>
+              )}
               <div className="mt-4 space-y-2 dam-card p-4 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-500">{st("Сумма")}</span>
@@ -2535,13 +2554,14 @@ export default function Food() {
                     {(
                       [
                         { id: 'cash' as const, label: st("Наличные"), Icon: Banknote },
+                        { id: 'kaspi_qr' as const, label: 'Kaspi', Icon: Smartphone },
+                        { id: 'halyk_qr' as const, label: 'Halyk', Icon: Smartphone },
                       ] as const
                     ).map(({ id, label, Icon }) => (
                       <button
                         key={id}
                         type="button"
-                        disabled={id !== 'cash'}
-                        title={id !== 'cash' ? 'Автоматическая оплата пока не подключена' : undefined}
+                        aria-pressed={payment === id}
                         onClick={() => setPayment(id)}
                         className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition ${
                           payment === id
@@ -2558,7 +2578,14 @@ export default function Food() {
                 </>
                 ) : null}
 
-                {checkoutStep === 2 && <div className="space-y-3">{payment === 'cash' && <CashAmount total={checkoutGrandTotal} value={cashGiven} onChange={setCashGiven}/>}</div>}
+                {checkoutStep === 2 && <div className="space-y-3">{payment === 'cash' && <CashAmount total={checkoutGrandTotal} value={cashGiven} onChange={setCashGiven}/>}
+                  {payment !== 'cash' && <div className="dam-checkout-section space-y-2">
+                    <label className="dam-checkout-section__title block" htmlFor="dam-invoice-phone">{st('Номер для счёта в')} {PAYMENT_LABELS[payment]}</label>
+                    <Input id="dam-invoice-phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 7XX XXX XX XX"
+                      value={invoicePhone || customerPhone} onChange={e => setInvoicePhone(e.target.value)} className="h-12 rounded-xl" />
+                    <p className="text-xs leading-relaxed text-gray-500">{st('На этот номер придёт счёт в приложении')} {PAYMENT_LABELS[payment]} {st('— на точную сумму заказа')} ({formatPrice(checkoutGrandTotal)}). {st('Откройте уведомление и оплатите. Готовить начнём сразу после оплаты.')}</p>
+                  </div>}
+                </div>}
                 {checkoutStep === 3 ? (
                   <div className="dam-checkout-section space-y-3 lg:hidden">
                     <div className="dam-checkout-section__title">{st("Проверьте заказ")}</div>

@@ -793,6 +793,12 @@ async def validate_food_order(
     for owned_key in SERVER_OWNED_FIELDS:
         sanitized.pop(owned_key, None)
     sanitized["payment_method"] = payment_method
+    sanitized.pop("payment_phone", None)
+    if payment_method in ("kaspi_qr", "halyk_qr"):
+        from services.dam_payment_flow import bank_invoice_mode, invoice_phone
+        if bank_invoice_mode():
+            # The operator issues the Kaspi/Halyk invoice on this number.
+            sanitized["payment_phone"] = invoice_phone(data.get("payment_phone"), data.get("customer_phone"))
     sanitized['restaurant_id'] = restaurant_id
     sanitized['restaurant_name'] = getattr(rest, 'name', '') or ''
     sanitized['delivery_method'] = delivery_method

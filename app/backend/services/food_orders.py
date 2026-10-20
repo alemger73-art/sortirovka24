@@ -53,7 +53,7 @@ class Food_ordersService:
                 # Acceptance is an explicit staff action, never a side effect of creation.
                 obj.status = 'new'
                 from services.dam_payment_flow import create_payment
-                payment = await create_payment(self.db, obj, allow_manual=staff_action is not None)
+                payment = await create_payment(self.db, obj, allow_manual=staff_action is not None, phone=data.get('payment_phone'))
                 # UUID account identity must not be coerced into the legacy integer
                 # food_orders.user_id. Capture authenticated checkout ownership in
                 # the existing string payment owner column, independently of SMS.

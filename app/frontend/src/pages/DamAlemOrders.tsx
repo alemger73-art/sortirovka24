@@ -157,6 +157,18 @@ export default function DamAlemOrders({ operatorMode = false }: { operatorMode?:
     } catch (e) { toast.error((e as Error).message); }
     finally { lock.current = false; setBusy(false); }
   }
+  async function invoiceSent() {
+    if (!detail || lock.current) return;
+    lock.current = true; setBusy(true);
+    try {
+      await foodOperations(`/orders/${detail.order.id}/invoice-sent`, 'POST');
+      await refreshDetail(); toast.success('Клиенту сообщили: счёт ждёт его в приложении банка');
+    } catch (e) { toast.error((e as Error).message); }
+    finally { lock.current = false; setBusy(false); }
+  }
+  function copy(value: string, label: string) {
+    void navigator.clipboard?.writeText(value).then(() => toast.success(`${label} скопирован`), () => toast.error('Не удалось скопировать — выделите вручную'));
+  }
   async function retry(eventId: number, unknown: boolean) {
     if (lock.current) return;
     if (unknown && !window.confirm(adminT('admin.dam.final.136'))) return;
@@ -242,7 +254,14 @@ export default function DamAlemOrders({ operatorMode = false }: { operatorMode?:
             <p>Способ: {({cash:'Наличные',kaspi_qr:'Kaspi',halyk_qr:'Halyk'} as Record<string,string>)[order.payment_method] || order.payment_method || 'Не указан'}</p>
             <dl className="grid grid-cols-3 gap-2 text-sm"><div><dt>Сумма</dt><dd className="font-bold">{money(order.total_amount)}</dd></div><div><dt>Получено</dt><dd className="font-bold">{money(received)}</dd></div><div><dt>Остаток</dt><dd className="font-bold">{money(remaining)}</dd></div></dl>
             {order.payment_method === 'cash' && <p className="rounded-lg bg-amber-50 p-3 text-amber-950">{order.cash_given_amount != null && order.cash_given_amount < order.total_amount ? 'Прежняя сумма недостаточна — уточните наличные: ' : 'Клиент даст: '}{order.cash_given_amount == null ? 'не уточнено' : money(order.cash_given_amount)} · Подготовить сдачу: {order.change_amount == null ? 'уточните' : money(order.change_amount)}</p>}
-            {!closed && order.payment_method !== 'cash' && order.payment_status !== 'paid' && <p className="text-sm text-amber-700">{canConfirmPayment ? (lang === 'kz' ? 'Банк интеграциясы қосылмаған. Ақшаның түскенін тексеріп, төлемді растаңыз.' : 'Банковская интеграция не подключена. Проверьте поступление денег и подтвердите оплату вручную.') : 'Ожидается подтверждение банка. Ручное подтверждение недоступно.'}</p>}
+            {!closed && order.payment_method !== 'cash' && order.payment_status !== 'paid' && <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-3 space-y-2 text-amber-950 dark:bg-amber-950/30 dark:text-amber-50">
+              <p className="font-semibold">{order.invoice_sent_at ? `Счёт выставлен в ${new Date(order.invoice_sent_at).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})} — ждём оплату` : `1. Выставьте счёт в ${order.payment_method === 'kaspi_qr' ? 'Kaspi Pay' : 'Halyk'}`}</p>
+              <div className="flex flex-wrap items-center gap-2"><span>Номер:</span><b className="font-mono text-base">{order.invoice_phone || order.customer_phone}</b><Button size="sm" variant="outline" onClick={() => copy(String(order.invoice_phone || order.customer_phone || '').replace(/^\+7/, ''), 'Номер')}>Копировать</Button></div>
+              <div className="flex flex-wrap items-center gap-2"><span>Сумма:</span><b className="text-base">{money(remaining)}</b><Button size="sm" variant="outline" onClick={() => copy(String(Math.round(remaining)), 'Сумма')}>Копировать</Button></div>
+              {!order.invoice_sent_at ? <Button className="min-h-11 w-full" disabled={busy} onClick={() => void invoiceSent()}>2. Счёт выставлен — сообщить клиенту</Button>
+                : <div className="flex flex-wrap gap-2 text-sm"><span>3. Когда деньги придут — нажмите «{adminT('admin.dam.final.169')}» ниже.</span><button type="button" className="underline" disabled={busy} onClick={() => void invoiceSent()}>Напомнить клиенту ещё раз</button></div>}
+            </div>}
+            {!closed && order.payment_method !== 'cash' && order.payment_status !== 'paid' && !order.invoice_phone && <p className="text-sm text-amber-700">{canConfirmPayment ? (lang === 'kz' ? 'Банк интеграциясы қосылмаған. Ақшаның түскенін тексеріп, төлемді растаңыз.' : 'Банковская интеграция не подключена. Проверьте поступление денег и подтвердите оплату вручную.') : 'Ожидается подтверждение банка. Ручное подтверждение недоступно.'}</p>}
             {received > order.total_amount && <p>К возврату: {money(received-order.total_amount)}</p>}
             {historyOnly && order.status === 'done' && remaining > 0 && <p className="text-sm text-muted-foreground">Заказ завершён без подтверждения денег. {canConfirmPayment ? 'Подтвердите оплату только после проверки фактического получения денег.' : 'Онлайн-оплату подтверждает банк; при проблеме обратитесь к владельцу.'}</p>}
           </section>

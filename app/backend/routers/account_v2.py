@@ -1752,6 +1752,8 @@ async def cabinet_order_detail(
         events = (await db.scalars(select(FoodOrderEvent).where(FoodOrderEvent.order_id == row.id,
             FoodOrderEvent.public_data.isnot(None)).order_by(FoodOrderEvent.id.desc()))).all()
         data['receipt_changes'] = [public for event in events if (public := public_receipt_event(event))]
+        from services.dam_payment_flow import current_payment, invoice_view
+        data.update(invoice_view(await current_payment(db, row)))
         dam = await is_dam_order(db, row)
         data['can_edit_receipt'] = dam and await customer_edit_allowed(db, row)
         data['can_request_receipt_change'] = dam and row.status in ('new', 'confirmed', 'preparing', 'ready')

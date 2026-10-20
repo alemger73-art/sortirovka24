@@ -34,6 +34,8 @@ export async function foodOperations<T>(path: string, method = 'GET', body?: unk
 
 export interface OperatorOrder {
   manual_payment_confirmation?: boolean;
+  invoice_phone?: string | null;
+  invoice_sent_at?: string | null;
   loyalty_snapshot?: Record<string,unknown>|null; pickup_snapshot?: import('@/components/damalem/PreorderFields').PickupLocation|null;
   cash_given_amount?: number | null; change_amount?: number | null; workflow_state?: string; payment_state?: string;
   preorder_bucket?: string; scheduled_for?: string | null; is_future_preorder?: boolean; preparation_due_at?: string | null; pricing_snapshot?: string;
