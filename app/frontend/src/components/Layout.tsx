@@ -9,7 +9,7 @@ import { AUTH_PROMPT_EVENT } from '@/lib/localAuth';
 import AuthPromptModal from '@/components/ui/AuthPromptModal';
 import { useTaxiEnabled } from '@/hooks/useTaxiEnabled';
 
-import InstallAppBanner from '@/components/InstallAppBanner';
+import InstallAppBanner, { InstallFromLink } from '@/components/InstallAppBanner';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import OfflineBanner from '@/components/OfflineBanner';
 import SafetyTipBar from '@/components/SafetyTipBar';
@@ -175,6 +175,7 @@ export default function Layout({
 
       {showBottomNav && <MobileBottomNav />}
       {showInstallBanner && <InstallAppBanner />}
+      <InstallFromLink />
     </div>
   );
 }

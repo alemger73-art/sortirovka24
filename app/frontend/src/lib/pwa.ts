@@ -9,15 +9,38 @@ export function pwaPlatform() {
     : /FxiOS|Firefox/i.test(ua) ? 'firefox' : /Safari/i.test(ua) ? 'safari' : 'other';
   return { platform, browser, ios, embedded: /Instagram|FBAN|FBAV|; wv\)|Telegram/i.test(ua) };
 }
-/** Android browsers other than Chrome/Samsung add a home-screen shortcut with their own badge
- *  (e.g. Yandex). Only Chrome builds a real app (WebAPK): own icon, no badge, listed among apps. */
+/** Major version of the current browser (diagnostics only). */
+export function browserVersion(): string | undefined {
+  const ua = navigator.userAgent;
+  for (const token of ['YaBrowser', 'OPR', 'SamsungBrowser', 'EdgA', 'Edg', 'Firefox', 'MiuiBrowser', 'HuaweiBrowser', 'CriOS', 'Chrome', 'Version']) {
+    const m = ua.match(new RegExp(`${token}/(\\d{1,4})`));
+    if (m) return m[1];
+  }
+  return undefined;
+}
+/** Android: only Chrome builds a real app (own icon, no badge, listed among apps) with one tap.
+ *  Any other browser (Yandex, Opera, Xiaomi, Firefox, in-app windows) is sent to Chrome. */
 export function needsChromeForInstall() {
   const env = pwaPlatform();
-  return env.platform === 'android' && (env.embedded || !['chrome', 'samsung'].includes(env.browser));
+  return env.platform === 'android' && (env.embedded || env.browser !== 'chrome');
 }
+const INSTALL_PARAM = 's24install';
+/** Opens this page in Chrome with an install sheet; without Chrome it comes back here with instructions. */
 export function chromeIntentUrl() {
-  const { host, pathname, search } = window.location;
-  return `intent://${host}${pathname}${search}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent('https://play.google.com/store/apps/details?id=com.android.chrome')};end`;
+  const url = new URL(window.location.href);
+  url.searchParams.set(INSTALL_PARAM, '1');
+  const back = new URL(window.location.href);
+  back.searchParams.set(INSTALL_PARAM, 'nochrome');
+  return `intent://${url.host}${url.pathname}${url.search}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(back.toString())};end`;
+}
+/** 'chrome' = arrived from another browser to install; 'nochrome' = Chrome is missing. Clears the mark. */
+export function takeInstallLinkMark(): '1' | 'nochrome' | null {
+  const url = new URL(window.location.href);
+  const mark = url.searchParams.get(INSTALL_PARAM);
+  if (mark !== '1' && mark !== 'nochrome') return null;
+  url.searchParams.delete(INSTALL_PARAM);
+  window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+  return mark;
 }
 export function isPwaStandalone() {
   return window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches
@@ -29,8 +52,8 @@ export function safeInternalPath(path: unknown, fallback = '/cabinet?tab=notific
   catch { return fallback; }
 }
 export function pwaEvent(event: string) {
-  const { platform, browser } = pwaPlatform();
-  const detail = { event, platform, browser, source: isPwaStandalone() ? 'pwa' : 'browser' };
+  const { platform, browser, embedded } = pwaPlatform();
+  const detail = { event, platform, browser, source: isPwaStandalone() ? 'pwa' : 'browser', embedded, prompt: !!currentInstallPrompt(), version: browserVersion() };
   window.dispatchEvent(new CustomEvent('s24:pwa-analytics', { detail }));
   void fetch('/api/v1/push/analytics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(detail), keepalive: true }).catch(() => {});
 }

@@ -191,17 +191,22 @@ async def diagnostics_access(request: Request, db: AsyncSession = Depends(get_db
 
 
 class PwaEvent(BaseModel):
-    event: str = Field(pattern='^(pwa_install_cta_shown|pwa_install_cta_clicked|pwa_install_prompt_shown|pwa_install_accepted|pwa_install_dismissed|pwa_appinstalled|pwa_standalone_open|push_prompt_shown|push_permission_granted|push_permission_denied|push_subscription_created|push_notification_clicked)$')
+    event: str = Field(pattern='^(pwa_install_cta_shown|pwa_install_cta_clicked|pwa_install_prompt_shown|pwa_install_accepted|pwa_install_dismissed|pwa_appinstalled|pwa_standalone_open|push_prompt_shown|push_permission_granted|push_permission_denied|push_subscription_created|push_notification_clicked|pwa_open_in_chrome|pwa_install_help_shown|pwa_chrome_missing)$')
     platform: str = Field(pattern='^(ios|android|desktop)$')
-    browser: str = Field(pattern='^(chrome|safari|samsung|edge|firefox|other)$')
+    browser: str = Field(pattern='^(chrome|safari|samsung|edge|firefox|yandex|opera|vendor|other)$')
     source: str = Field(pattern='^(pwa|browser)$')
+    # Install diagnostics, no identity: in-app window?, one-tap install offered?, browser major version.
+    embedded: bool | None = None
+    prompt: bool | None = None
+    version: str | None = Field(None, pattern=r'^[0-9]{1,4}$')
 
 
 @router.post('/analytics', status_code=202)
 async def pwa_analytics(body: PwaEvent, request: Request):
     check_keyed_rate_limit(f'pwa-analytics:{request.client.host if request.client else "unknown"}', window_seconds=60, max_hits=60)
     # Structured server logs; no persistent fingerprint, raw UA or query string.
-    logging.getLogger('pwa.analytics').info('pwa_event %s', json.dumps(body.model_dump(), sort_keys=True))
+    # print: app logs run at WARNING, and these lines are read back for install statistics.
+    print('pwa_event ' + json.dumps(body.model_dump(exclude_none=True), sort_keys=True), flush=True)
     return {'accepted': True}
 
 

@@ -32,7 +32,7 @@ class WebPushSubscription(BaseModel):
 
 class WebPushRegisterRequest(BaseModel):
     subscription: WebPushSubscription
-    browser: str | None = Field(None, pattern='^(chrome|safari|samsung|edge|firefox|other)$')
+    browser: str | None = Field(None, pattern='^(chrome|safari|samsung|edge|firefox|yandex|opera|vendor|other)$')
     device_platform: str | None = Field(None, pattern='^(ios|android|desktop)$')
     preferences: PushPreferences = Field(default_factory=PushPreferences)
 

@@ -170,3 +170,12 @@ async def test_generic_entity_api_never_exposes_subscription_material(monkeypatc
         response = await client.get('/api/v1/entities/push_devices')
         assert response.status_code == 403
         assert 'must-not-be-returned' not in response.text
+
+
+@pytest.mark.parametrize('browser', ['yandex', 'opera', 'vendor'])
+async def test_install_events_accept_android_browsers_with_diagnostics(web_push_env, browser):
+    client, _, _ = web_push_env
+    body = {'event': 'pwa_open_in_chrome', 'platform': 'android', 'browser': browser, 'source': 'browser',
+            'embedded': False, 'prompt': False, 'version': '25'}
+    assert (await client.post('/api/v1/push/analytics', json=body)).status_code == 202
+    assert (await client.post('/api/v1/push/analytics', json={**body, 'version': 'Mozilla/5.0 x'})).status_code == 422
