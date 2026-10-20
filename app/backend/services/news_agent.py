@@ -665,6 +665,11 @@ async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dic
     allowed = await may_decide(client, db, chat_id, sender)
     news_match = re.fullmatch(r"nw:([pr]):(\d+)", data)
     lead_match = re.fullmatch(r"pl:([wndr]):(\d+)", data)
+    if allowed and data.startswith("ad:") and data != "ad:x":
+        from services import ad_moderation
+        answer = await ad_moderation.handle_callback(db, client, data, chat_id, msg) or "Готово"
+        await tg(client, "answerCallbackQuery", {"callback_query_id": callback_id, "text": answer[:190]})
+        return
     if not allowed or not (news_match or lead_match):
         await tg(client, "answerCallbackQuery", {"callback_query_id": callback_id,
                  "text": "Нет доступа" if not allowed else "Готово"})

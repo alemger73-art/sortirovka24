@@ -5,7 +5,7 @@ import logging
 from typing import List, Optional
 
 
-from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -279,6 +279,8 @@ async def create_announcements(
                 raise HTTPException(401, 'Войдите в аккаунт, чтобы разместить объявление')
             payload['phone'] = payload.get('phone') or account_user.phone
             payload = validate_announcement_fields(payload)
+            from services.ad_moderation import check_limits
+            await check_limits(db, str(account_user.id))
             payload.update(status="pending", active=True, user_id=None,
                            created_at=datetime.now(timezone.utc).isoformat(),
                            promotion_tier=None, promoted_until=None, views_count=0, expires_at=None)
@@ -301,6 +303,13 @@ async def create_announcements(
                 await alert_new_announcement(db, payload)
             except Exception as admin_push_err:
                 logger.warning(f"Admin push notify skipped: {admin_push_err}")
+            # The owner approves in Telegram with one tap.
+            from services.ad_moderation import send_for_moderation
+            try:
+                await db.refresh(result)
+            except Exception:
+                pass
+            await send_for_moderation(result)
         return result
     except HTTPException:
         raise
@@ -310,6 +319,27 @@ async def create_announcements(
     except Exception as e:
         logger.error(f"Error creating announcements: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+class AnnouncementReport(BaseModel):
+    reason: str
+
+
+@router.post("/{id}/report", status_code=202)
+async def report_announcement(id: int, body: AnnouncementReport, request: Request, db: AsyncSession = Depends(get_db)):
+    """Visitor complaint about a published ad → owner's Telegram with a «remove» button."""
+    from utils.rate_limit import check_ip_rate_limit
+    check_ip_rate_limit(request, key_prefix="ad_report", max_hits=5)
+    reason = " ".join(str(body.reason or "").split())[:300]
+    if len(reason) < 3:
+        raise HTTPException(422, "Напишите, что не так с объявлением")
+    from models.announcements import Announcements
+    ann = await db.get(Announcements, id)
+    if not ann or ann.status not in ("approved", "published"):
+        raise HTTPException(404, "Объявление не найдено")
+    from services.ad_moderation import report_to_owner
+    await report_to_owner(ann, reason)
+    return {"ok": True}
 
 
 @router.post("/batch", response_model=List[AnnouncementsResponse], status_code=201, dependencies=[Depends(require_announcement_admin)])

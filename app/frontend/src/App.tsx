@@ -31,17 +31,15 @@ const NewsList = lazy(() => import("./pages/Content").then(m => ({ default: m.Ne
 const NewsDetail = lazy(() => import("./pages/Content").then(m => ({ default: m.NewsDetail })));
 const ComplaintsList = lazy(() => import("./pages/Content").then(m => ({ default: m.ComplaintsList })));
 const NewComplaintForm = lazy(() => import("./pages/Content").then(m => ({ default: m.NewComplaintForm })));
-const AnnouncementsList = lazy(() => import("./pages/Content").then(m => ({ default: m.AnnouncementsList })));
-const AnnouncementDetail = lazy(() => import("./pages/Content").then(m => ({ default: m.AnnouncementDetail })));
-const NewAnnouncementForm = lazy(() => import("./pages/Content").then(m => ({ default: m.NewAnnouncementForm })));
+const AnnouncementsList = lazy(() => import("./pages/Announcements").then(m => ({ default: m.AdsList })));
+const AnnouncementDetail = lazy(() => import("./pages/Announcements").then(m => ({ default: m.AdDetail })));
+const NewAnnouncementForm = lazy(() => import("./pages/Announcements").then(m => ({ default: m.NewAdWizard })));
 const EditAnnouncementForm = lazy(() => import("./pages/Content").then(m => ({ default: m.EditAnnouncementForm })));
 const RealEstateList = lazy(() => import("./pages/RealEstate").then(m => ({ default: m.RealEstateList })));
 const RealEstateDetail = lazy(() => import("./pages/RealEstate").then(m => ({ default: m.RealEstateDetail })));
 const NewRealEstateForm = lazy(() => import("./pages/RealEstate").then(m => ({ default: m.NewRealEstateForm })));
 const EditRealEstateForm = lazy(() => import("./pages/RealEstate").then(m => ({ default: m.EditRealEstateForm })));
-const JobsList = lazy(() => import("./pages/Content").then(m => ({ default: m.JobsList })));
 const JobDetail = lazy(() => import("./pages/Content").then(m => ({ default: m.JobDetail })));
-const NewJobForm = lazy(() => import("./pages/Content").then(m => ({ default: m.NewJobForm })));
 const QuestionsList = lazy(() => import("./pages/Content").then(m => ({ default: m.QuestionsList })));
 const QuestionDetail = lazy(() => import("./pages/Content").then(m => ({ default: m.QuestionDetail })));
 const NewQuestionForm = lazy(() => import("./pages/Content").then(m => ({ default: m.NewQuestionForm })));
@@ -193,9 +191,10 @@ function App() {
               <Route path="/real-estate/new" element={<ModuleRoute module="real_estate"><RequireUserAuth><NewRealEstateForm /></RequireUserAuth></ModuleRoute>} />
               <Route path="/real-estate/:id/edit" element={<ModuleRoute module="real_estate"><RequireUserAuth><EditRealEstateForm /></RequireUserAuth></ModuleRoute>} />
               <Route path="/real-estate/:id" element={<ModuleRoute module="real_estate"><RealEstateDetail /></ModuleRoute>} />
-              <Route path="/jobs" element={<ModuleRoute module="jobs"><JobsList /></ModuleRoute>} />
+              {/* Work lives inside «Объявления»: vacancies and job seekers. */}
+              <Route path="/jobs" element={<Navigate to="/announcements?type=job" replace />} />
               <Route path="/jobs/:id" element={<ModuleRoute module="jobs"><JobDetail /></ModuleRoute>} />
-              <Route path="/jobs/new" element={<ModuleRoute module="jobs"><NewJobForm /></ModuleRoute>} />
+              <Route path="/jobs/new" element={<Navigate to="/announcements/new?type=job" replace />} />
               <Route path="/questions" element={<ModuleRoute module="questions"><QuestionsList /></ModuleRoute>} />
               <Route path="/questions/new" element={<ModuleRoute module="questions"><NewQuestionForm /></ModuleRoute>} />
               <Route path="/questions/:id" element={<ModuleRoute module="questions"><QuestionDetail /></ModuleRoute>} />

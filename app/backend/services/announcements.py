@@ -53,6 +53,9 @@ ANN_TYPE_SLUG = {
     "rent": "sdam",
     "services": "uslugi-ann",
     "free": "otdam-besplatno",
+    "job": "rabota-vakansii",
+    "seek": "ishchu-rabotu",
+    "lost": "poteryal-nashel",
 }
 
 
