@@ -37,7 +37,7 @@ HISTORY_TTL = 48 * 3600
 MUTE_AFTER_STAFF = 6 * 3600
 MAX_PER_HOUR = 40
 MAX_TOOL_ROUNDS = 6
-MAX_REPLY_CHARS = 1500
+MAX_REPLY_CHARS = 3500
 YES_RE = re.compile(r"^\s*(да|ага|угу|давай(те)?|подтверждаю|подтвердить|всё верно|все верно|верно|ок|окей|ok|okay|yes|иә|ия|иа|йа|жарайды|дұрыс|оформляй(те)?|заказываю|го)\b[\s!.)👍]*$", re.I)
 NO_RE = re.compile(r"^\s*(нет|не надо|отмена|отменить|стоп|жоқ|жок|no)\b", re.I)
 HUMAN_RE = re.compile(r"(оператор|живой|человек|менеджер|администратор|позвоните|жалоба)", re.I)
@@ -283,7 +283,8 @@ def system_prompt(facts: str, name: str, memory: str = "") -> str:
 🍕 Пепперони × 1 — 3 200 ₸
 🥤 Coca-Cola 1 л × 1 — 800 ₸
 
-🚚 Доставка: ул. ..., кв. ... (или 🏃 Самовывоз)
+🚚 Доставка: ул. ..., кв. ... — 500 ₸ (или «бесплатно»; при самовывозе 🏃 Самовывоз)
+🏷️ Промокод PIZZA500: −500 ₸ (если есть)
 💳 Оплата: наличными / Kaspi / Halyk
 💰 *Итого: 4 000 ₸*
 
@@ -300,7 +301,7 @@ def system_prompt(facts: str, name: str, memory: str = "") -> str:
   Пример: «К пицце отлично зайдёт *Сырный соус* (+300 ₸) и холодная *Coca-Cola 1 л* (800 ₸) 🥤 Добавить?»
 - Следи за суммой блюд. Если до подарка или бесплатной доставки осталось немного (до ~3 000 ₸) — скажи сколько и что можно добавить: «Ещё 1 200 ₸ — и *подарок* 🎁 бесплатно!»
 - Если сумма уже дотягивает до подарка — обязательно скажи о нём и спроси, какой подарок выбрать (selected_gift_id в quote_order).
-- Если подходит промокод — предложи его и подставь в promo_code.
+- Если подходит промокод — применяй самый выгодный для клиента сам (подставь в promo_code) и скажи об этом.
 - Блюда, цены и варианты бери ТОЛЬКО из get_menu. Никогда не выдумывай блюда, цены, скидки и сроки.
 - Если у блюда есть обязательный выбор (размер, количество, состав комбо) — уточни у клиента.
 - Для заказа нужны: блюда и количество, имя, доставка (адрес: улица и дом, подъезд/квартира) или самовывоз, оплата: наличными (спроси, с какой суммы сдача), Kaspi или Halyk (счёт придёт в приложение банка на номер клиента). Спрашивай недостающее по одному вопросу.
@@ -310,6 +311,8 @@ def system_prompt(facts: str, name: str, memory: str = "") -> str:
 - Геолокацию из WhatsApp ты получаешь автоматически: когда клиент её отправит, в чате будет «(клиент отправил геолокацию…)» — сразу пересчитай заказ с доставкой. Не говори, что не можешь принять геолокацию.
 - Статус уже сделанного заказа — get_my_last_order. Бонусы — get_bonus_balance.
 - ОПЛАТА: ты не видишь деньги. Никогда не пиши «оплата прошла / получена», пока get_my_last_order не покажет «ОПЛАЧЕН». Если клиент пишет «оплатил» — поблагодари и скажи, что сотрудник проверит поступление и сразу начнём готовить; при необходимости вызови call_operator.
+- Сообщение «✅ Заказ №… оформлен!» отправляет система после «Да» клиента — это правда, заказ создан. Никогда не опровергай его.
+- В итоге показывай строки из расчёта: позиции, доставку (сумму или «бесплатно»), скидку и промокод, если есть, и итог. Не пиши, что промокод «не применился», если в расчёте он есть.
 - Не путай заказы: говори о заказе с номером из этого чата (он есть в памяти ниже), не выдумывай номера.
 - Если клиент просит живого человека, жалуется, проблема с оплатой или ты не можешь помочь — вызови call_operator и скажи, что сотрудник скоро напишет здесь.
 - Всё, что ты пишешь, сразу видит КЛИЕНТ. Никогда не пиши черновики, «варианты ответа», пояснения для оператора, рассуждения о своих инструментах и проверках. Только живое сообщение клиенту.
@@ -348,7 +351,7 @@ TOOLS = [
      "input_schema": {"type": "object", "required": ["reason"], "properties": {"reason": {"type": "string"}}}},
 ]
 
-STATUS_RU = {"new": "принят, ждёт подтверждения", "accepted": "подтверждён", "preparing": "готовится", "ready": "готов",
+STATUS_RU = {"new": "оформлен, ждёт подтверждения сотрудника", "accepted": "подтверждён", "preparing": "готовится", "ready": "готов",
              "in_progress": "в пути", "done": "выполнен", "cancelled": "отменён"}
 
 
@@ -361,9 +364,21 @@ def _quote_view(q: dict[str, Any]) -> str:
     for it in items:
         mods = ", ".join(m.get("name", "") for m in it.get("modifiers") or [])
         rows.append(f"{it.get('name')} × {it.get('quantity')}" + (f" ({mods})" if mods else "") + f" — {money(it.get('sum', 0))}" + (" 🎁" if it.get("is_gift") else ""))
-    return json.dumps({"позиции": rows, "к_оплате": money(q.get("total_amount")), "способ": q.get("delivery_method"),
-                       "оплата": q.get("payment_method"), "предзаказ_на": q.get("scheduled_for"),
-                       "сдача_с": q.get("cash_given_amount"), "комментарий": q.get("comment")}, ensure_ascii=False)
+    try:
+        snap = json.loads(q.get("pricing_snapshot") or "{}") if isinstance(q.get("pricing_snapshot"), str) else (q.get("pricing_snapshot") or {})
+    except ValueError:
+        snap = {}
+    b = snap.get("breakdown") or {}
+    view = {"позиции": rows, "сумма_блюд": money(b.get("subtotal")) if b else None,
+            "доставка": (money(b.get("delivery_fee")) if float(b.get("delivery_fee") or 0) else "бесплатно") if q.get("delivery_method") == "delivery" else "самовывоз",
+            "зона_доставки": (snap.get("delivery_tariff") or {}).get("zone_name", "").strip() or None,
+            "адрес": q.get("delivery_address"),
+            "скидка": money(b.get("discount")) if float(b.get("discount") or 0) else None,
+            "промокод": snap.get("promo_code") or None,
+            "к_оплате": money(q.get("total_amount")), "оплата": q.get("payment_method"),
+            "предзаказ_на": q.get("scheduled_for"), "сдача_с": q.get("cash_given_amount"), "сдача": q.get("change_amount"),
+            "комментарий": q.get("comment")}
+    return json.dumps({k: v for k, v in view.items() if v not in (None, "", [])}, ensure_ascii=False)
 
 
 async def run_tool(db, ctx, chat: Chat, name: str, args: dict[str, Any], message_id: str, client: httpx.AsyncClient, chat_id: str) -> str:

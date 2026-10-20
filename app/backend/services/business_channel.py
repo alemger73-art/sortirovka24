@@ -121,7 +121,7 @@ async def tool(db,ctx,name,args,*,message_id=None):
             if old.payload['draft']!=payload:raise HTTPException(409,'Повтор сообщения с другим содержимым')
             return {'confirmation_id':old.id,**old.payload['quote']}
         data=await calculate(db,ctx,draft)
-        view={k:data.get(k) for k in ('total_amount','order_items','payment_method','cash_given_amount','change_amount','delivery_method','scheduled_for','comment','pickup_snapshot')}
+        view={k:data.get(k) for k in ('total_amount','order_items','payment_method','cash_given_amount','change_amount','delivery_method','scheduled_for','comment','pickup_snapshot','delivery_address','pricing_snapshot')}
         row=ChannelConfirmation(id=secrets.token_urlsafe(24),business_id=ctx.business_id,customer_id=ctx.customer_id,
             message_key=message_key,quote_hash=fingerprint(data),payload={'draft':payload,'quote':view},expires_at=L.now()+timedelta(minutes=10))
         db.add(row);await db.flush()
