@@ -22,6 +22,7 @@ import AdminCategories from './AdminCategories';
 import AdminDamAlem from './AdminDamAlem';
 import AdminInspectors from './AdminInspectors';
 import AdminStats from './AdminStats';
+import AdminAnalytics from './AdminAnalytics';
 import AdminHistory from './AdminHistory';
 import AdminTransport from './AdminTransport';
 import AdminTaxi from './AdminTaxi';
@@ -346,6 +347,7 @@ function AdminPanelContent({
       case 'dashboard': return <AdminDashboard onNavigate={setTab} />;
       case 'modules': return <AdminModules />;
       case 'stats': return <AdminStats />;
+      case 'analytics': return <AdminAnalytics />;
       case 'categories': return <AdminCategories />;
       case 'news': return <AdminNews />;
       case 'complaints': return <AdminComplaints />;

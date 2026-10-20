@@ -8,6 +8,7 @@ import { initMonitoring } from './lib/monitoring';
 import { initNativeShell, isNativeApp } from './lib/native';
 import { initWebAppUpdates } from './lib/pwaUpdates';
 import { initPwaInstall } from './lib/pwa';
+import { initAnalytics } from './lib/analytics';
 import { restoreAccountSession, scheduleNativeSessionHydration } from './lib/sessionStore';
 
 // ─── Intercept SDK's postMessage error reporting ─────────────────
@@ -87,6 +88,7 @@ initMonitoring();
 installProductionErrorHandlers();
 initWebAppUpdates();
 if (!isNativeApp()) initPwaInstall();
+initAnalytics();
 
 warmupBackend();
 

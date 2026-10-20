@@ -27,6 +27,7 @@ import { toast } from 'sonner';
 import { getAccountPrefill, isLoggedIn, pushCabinetItem, openAuthPrompt, onAuthChanged, cacheAccountProfile } from '@/lib/localAuth';
 import { saveFoodCheckoutReturn, takeFoodCheckoutReturn } from '@/lib/foodCheckoutReturn';
 import { accountApi, getAccountToken } from '@/lib/accountApi';
+import { track } from '@/lib/analytics';
 import { fetchFoodRestaurantsList } from '@/lib/foodAdminApi';
 import { apiUrl } from '@/lib/config';
 import { DAM_ALEM_BRAND, DAM_ALEM_TAGLINE, findDamAlemRestaurantId } from '@/lib/damAlem';
@@ -694,6 +695,19 @@ export default function Food() {
   );
   const hasDeliveryZones = mapDeliveryZones.length > 0;
 
+  useEffect(() => { track('food_view'); }, []);
+  // What people look for in the menu (and don't find) — sent once typing stops.
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < 2) return;
+    const timer = window.setTimeout(() => {
+      const low = q.toLowerCase();
+      const results = items.filter(i => `${i.name} ${i.description || ''}`.toLowerCase().includes(low)).length;
+      track('search', { area: 'меню', q: q.slice(0, 60), results });
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [searchQuery, items]);
+
   const poolItems = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return items;
@@ -1155,6 +1169,7 @@ export default function Food() {
     }
     setCheckoutStep(1);
     setCheckoutOpen(true);
+    track('checkout_open', { items: cart.length, total: cartTotal });
     setAddressFormCollapsed(deliveryReady);
     const addr = effectiveAddress.trim();
     if (deliveryMethod === 'delivery' && addr.length >= 5 && !deliveryQuote && !deliveryQuoteLoading) {
@@ -1274,6 +1289,7 @@ export default function Food() {
 
   function addToCart(item: FoodItem, selections: CartItemSelection = {}) {
     if (item.is_active === false || item.available === false) return;
+    track('add_to_cart', { name: item.name, price: item.price });
     setCart(prev => {
       const key = selectionsKey(selections);
       const existing = prev.find(ci => ci.item.id === item.id && selectionsKey(ci.selections) === key);
@@ -1292,6 +1308,7 @@ export default function Food() {
   }
 
   async function openItemModal(item: FoodItem) {
+    track('dish_view', { name: item.name });
     await loadModifiers();
     setSelectedItem(item);
   }
@@ -1441,6 +1458,7 @@ export default function Food() {
       try { sessionStorage.removeItem('dam-checkout-attempt'); } catch { /* Order is already saved. */ }
       const createdAny = created as { data?: { id?: number }; id?: number } | undefined;
       const orderId = Number(createdAny?.data?.id ?? createdAny?.id ?? 0);
+      track('order_placed', { total: checkoutGrandTotal, payment, method: deliveryMethod, items: cart.length });
       const orderItemsSnapshot = JSON.stringify(
         cart.map(ci => ({
           id: ci.item.id,
@@ -1506,6 +1524,7 @@ export default function Food() {
     } catch (e) {
       console.error('Error creating order:', e);
       toast.error(publicOrderErrorMessage(e, st));
+      track('order_failed', { reason: publicOrderErrorMessage(e, st).slice(0, 150), payment, method: deliveryMethod });
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -2773,6 +2792,7 @@ export default function Food() {
                           return;
                         }
                         setCheckoutStep(2);
+                        track('checkout_step2', { method: deliveryMethod });
                         return;
                       }
                       if (!customerName.trim() || !customerPhone.trim()) {
@@ -2789,6 +2809,7 @@ export default function Food() {
                         return;
                       }
                       setCheckoutStep(3);
+                      track('checkout_step3', { payment });
                     }}
                     testId="dam-checkout-next"
                   />

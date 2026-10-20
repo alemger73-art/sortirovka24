@@ -56,6 +56,8 @@ async def main():
         app.include_router(cashbox)
         from routers.account_v2 import router as account_router
         app.include_router(account_router)
+        from routers.site_analytics import router as analytics_router
+        app.include_router(analytics_router)
         async with maker() as db:
             from models.food_items import Food_items
             from models.food_categories import Food_categories
@@ -101,7 +103,9 @@ async def main():
 
         @app.get('/__test__/sessions')
         async def sessions():
-            return {'operator':operator['Authorization'][7:], 'owner':owner_headers()['Authorization'][7:], 'client':client_token}
+            from core.auth import create_access_token as _cat
+            return {'operator':operator['Authorization'][7:], 'owner':owner_headers()['Authorization'][7:], 'client':client_token,
+                    'admin':_cat({'sub':'admin','role':'admin','username':'admin'})}
 
         @app.post('/__test__/reset-rate-limits')
         async def reset_limits():

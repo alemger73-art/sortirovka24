@@ -1,3 +1,4 @@
+import { track } from '@/lib/analytics';
 import { LEGAL_VERSION } from '@/content/legal';
 import KzPhoneInput from '@/components/KzPhoneInput';
 import { isCompleteKzPhone } from '@/lib/kzPhone';
@@ -57,6 +58,7 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
   const button = 'w-full rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50';
   useEffect(() => { accountApi.googleStatus().then(r => setGoogle(r.enabled)).catch(() => setGoogle(false)); }, []);
   useEffect(() => { accountApi.otpChannels().then(r => setChannels(r.channels)).catch(() => setChannels([])); }, []);
+  useEffect(() => { track('login_open'); }, []);
   useEffect(() => {
     const timer = window.setInterval(() => { setCooldown(v => Math.max(0, v - 1)); setExpires(v => Math.max(0, v - 1)); }, 1000);
     return () => window.clearInterval(timer);
@@ -85,6 +87,7 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
     try {
       const r = await accountApi.requestSignInCode(phone, subjectName.trim(), lang, channel);
       const via = (r.channel || channel || null) as OtpChannel | null;
+      track('login_code_requested', { channel: via || 'sms' });
       setSentVia(via); setBotUrl(r.bot_url || '');
       setCode(''); setStep('code'); setCooldown(r.resend_after_seconds); setExpires(r.ttl_seconds);
       setHint(r.on_screen_code_hint || (r.sms_pending_moderation
@@ -102,6 +105,7 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
     try {
       const r = await accountApi.confirmSignInCode({ phone, code, language: lang, agreement_accepted: accepted, privacy_accepted: dataAccepted, legal_version: LEGAL_VERSION, legal_subject_name: subjectName.trim() });
       setAccountToken(r.token); clearLoginDraft();
+      track('login_success');
       void linkPushTokenToAccount(); void syncWebPushSubscriptionToAccount();
       try { const me = await accountApi.me(); cacheAccountProfile({ id: me.id, name: me.name, phone: me.phone, email: me.email, avatar: me.avatar }); } catch { /* Cabinet can retry its profile fetch. */ }
       const target = new URLSearchParams(location.search).get('redirect');

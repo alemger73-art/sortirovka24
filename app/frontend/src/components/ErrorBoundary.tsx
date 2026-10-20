@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import RouteErrorFallback from '@/components/RouteErrorFallback';
 import { applyWebAppUpdate } from '@/lib/pwaUpdates';
+import { reportError } from '@/lib/analytics';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -27,6 +28,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    reportError(error, (errorInfo.componentStack || '').trim().split('\n')[0]?.trim().slice(0, 120));
     console.error('[ErrorBoundary] Caught runtime error:', {
       message: error.message,
       stack: error.stack?.split('\n').slice(0, 5).join('\n'),

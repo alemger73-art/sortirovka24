@@ -2,6 +2,7 @@ import CabinetPreferencesMigration from '@/components/cabinet/CabinetPreferences
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { trackPageView } from "@/lib/analytics";
 import { Toaster } from "@/components/ui/sonner";
 import AppWelcomeSplash from "@/components/AppWelcomeSplash";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -89,6 +90,13 @@ const DamOperatorDesktop = lazy(() => import("./pages/DamOperatorDesktop"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Minimal skeleton loading fallback
+/** Statistics: one page view per route change (path without hash). */
+function PageViewTracker() {
+  const location = useLocation();
+  useEffect(() => { trackPageView(location.pathname + location.search); }, [location.pathname, location.search]);
+  return null;
+}
+
 function PageLoader() {
   const native = Capacitor.isNativePlatform();
   if (native) {
@@ -154,6 +162,7 @@ function App() {
         {showWelcome && <AppWelcomeSplash onHidden={dismissWelcome} />}
         <BrowserRouter>
           <SeoManager />
+          <PageViewTracker />
           <Toaster position="top-center" richColors />
           <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>

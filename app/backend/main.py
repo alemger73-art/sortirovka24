@@ -216,6 +216,21 @@ async def _run_news_agent() -> None:
         logger.warning("News agent stopped: %s", exc)
 
 
+async def _run_site_report() -> None:
+    """Daily visit report to the owner's Telegram + cleanup of old analytics events."""
+    from core.database import db_manager
+    from services.site_analytics import run_forever
+
+    while not (db_manager._initialized and db_manager.async_session_maker):
+        await asyncio.sleep(5)
+    try:
+        await run_forever(db_manager.async_session_maker)
+    except asyncio.CancelledError:
+        raise
+    except Exception as exc:
+        logging.getLogger(__name__).warning("Site report stopped: %s", exc)
+
+
 async def _run_admin_summary_watch() -> None:
     """Broadcast admin dashboard updates to WebSocket clients."""
     logger = logging.getLogger(__name__)
@@ -248,6 +263,7 @@ async def lifespan(app: FastAPI):
     app.state._taxi_dispatch_task = asyncio.create_task(_run_dispatch_loop())
     app.state._admin_summary_task = asyncio.create_task(_run_admin_summary_watch())
     app.state._news_agent_task = asyncio.create_task(_run_news_agent())
+    app.state._site_report_task = asyncio.create_task(_run_site_report())
 
     logger.info("=== Application startup completed (initialization running in background) ===")
     yield
@@ -437,6 +453,34 @@ if missing_paths:
     raise RuntimeError(f"Critical account routes are missing: {missing_paths}")
 
 
+_server_error_tasks: set = set()
+
+
+def _watch_server_error(request: Request, message: str, stack: str) -> None:
+    """Error watch: remember the server error and alert the owner once (never breaks the response)."""
+    async def save() -> None:
+        try:
+            from core.database import db_manager
+            from services import site_analytics as sa
+            if not db_manager.async_session_maker:
+                return
+            async with db_manager.async_session_maker() as db:
+                row, new = await sa.record_error(db, source="server", message=message, stack=stack,
+                                                 path=f"{request.method} {request.url.path}")
+                if new or not row.notified:
+                    row.notified = True
+                    await db.commit()
+                    await sa.alert_new_error(row)
+        except Exception:
+            logging.getLogger(__name__).warning("error watch failed", exc_info=True)
+    try:
+        task = asyncio.get_running_loop().create_task(save())
+        _server_error_tasks.add(task)
+        task.add_done_callback(_server_error_tasks.discard)
+    except RuntimeError:
+        pass
+
+
 # Add exception handler for all exceptions except HTTPException
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
@@ -455,6 +499,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 
     # Log full error details regardless of environment
     logger.error(f"Exception: {error_type}: {error_message}\n{traceback.format_exc()}")
+    _watch_server_error(request, f"{error_type}: {error_message}", traceback.format_exc())
 
     # Determine if we're in dev environment
     is_dev = not is_production()

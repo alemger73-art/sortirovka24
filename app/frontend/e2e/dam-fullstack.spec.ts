@@ -3,7 +3,7 @@ import { test, expect, type Page, type APIRequestContext } from '@playwright/tes
 // Real API and database (disposable). Only the geocoder is fake. Customer orders in the browser,
 // the operator works the order through the real operations API, the customer sees each step.
 const OPS = '/api/v1/dam-alem/operations';
-let tokens: { operator: string; client: string };
+let tokens: { operator: string; client: string; admin: string };
 
 test.beforeAll(async ({ request }) => {
   tokens = await (await request.get('/__test__/sessions')).json();
@@ -114,4 +114,43 @@ test('second order: name and phone are still filled, no re-entry', async ({ page
   await page.getByTestId('dam-checkout-overlay').getByText('Самовывоз', { exact: true }).click();
   await page.getByTestId('dam-checkout-next').click();
   await expect(page.getByTestId('dam-contact-card')).toContainText('+77000000000');
+});
+
+test.describe('statistics and error watch', () => {
+  // A real phone browser (the statistics ignore headless robots on purpose).
+  test.use({ userAgent: 'Mozilla/5.0 (Linux; Android 14; SM-A546B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Mobile Safari/537.36' });
+
+  test('a visit, a search, an order and a broken page reach the owner\'s statistics', async ({ page, request }, info) => {
+    const admin = { Authorization: `Bearer ${tokens.admin}` };
+    const before = await (await request.get('/api/v1/site-analytics/summary?days=1', { headers: admin })).json();
+    // Request interception would cancel the beacons sent while a page closes; real browsers deliver them.
+    await page.unrouteAll();
+    await toCheckout(page, 'Пепперони');
+    await page.keyboard.press('Escape');
+    await page.goto('/food');
+    await page.getByPlaceholder('Найти блюдо').first().fill('шаурма');
+    await page.waitForTimeout(2000);
+    await page.evaluate(() => { setTimeout(() => { throw new Error('Synthetic e2e failure 4821'); }, 0); });
+    await page.goto('/news');                       // leaving the page flushes the queue
+    await expect.poll(async () => {
+      const s = await (await request.get('/api/v1/site-analytics/summary?days=1', { headers: admin })).json();
+      return s.pageviews > before.pageviews && s.searches_without_results.some((x: { name: string }) => x.name === 'меню: шаурма')
+        && s.funnel[1].visitors >= 1 && s.funnel[2].visitors >= 1;
+    }, { timeout: 20000 }).toBe(true);
+    await expect.poll(async () => (await (await request.get('/api/v1/site-analytics/errors', { headers: admin })).json())
+      .items.some((e: { message: string; source: string }) => e.source === 'client' && e.message.includes('Synthetic e2e failure')), { timeout: 15000 }).toBe(true);
+
+    // The owner's page in the admin panel shows it.
+    await page.addInitScript(t => { localStorage.setItem('_sp924_token', t); localStorage.setItem('token', t); }, tokens.admin);
+    // The admin login service is not part of this test server; the statistics API itself checks the admin token.
+    await page.route('**/api/v1/admin-auth/verify-session', r => r.fulfill({ json: { valid: true, username: 'admin' } }));
+    await page.route('**/api/v1/admin/**', r => r.fulfill({ json: {} }));
+    await page.goto('/admin?tab=analytics');
+    await expect(page.locator('h2', { hasText: 'Посещаемость и ошибки' })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText('меню: шаурма').first()).toBeVisible();
+    await page.screenshot({ path: info.outputPath('6-admin-stats.png'), fullPage: true });
+    await page.getByRole('button', { name: /^Ошибки/ }).click();
+    await expect(page.getByText(/Synthetic e2e failure/).first()).toBeVisible();
+    await page.screenshot({ path: info.outputPath('7-admin-errors.png'), fullPage: true });
+  });
 });

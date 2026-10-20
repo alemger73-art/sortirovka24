@@ -9,12 +9,13 @@ import { client, NEWS_CATEGORIES, getPublicCategoryLabel, formatDate } from '@/l
 import { splitNewsContent, youtubeVideo } from '@/lib/news';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePageSeo } from '@/hooks/usePageSeo';
+import { track } from '@/lib/analytics';
 import '@/styles/news.css';
 
 type NewsItem = { id:number; title:string; content?:string; short_description?:string; category:string; image_url?:string; gallery_images?:string; youtube_url?:string; published?:boolean; created_at?:string };
 const copy = {
- ru: { title:'Новости Сортировки', intro:'Что происходит рядом: события, важные объявления и истории нашего района.', latest:'Последние события', search:'Поиск по новостям', empty:'Новостей пока нет', noResults:'Ничего не найдено', hint:'Попробуйте другую тему или поисковый запрос.', error:'Не удалось загрузить новости', retry:'Повторить', more:'Показать ещё', read:'Читать новость', share:'Поделиться', copied:'Ссылка скопирована', minutes:'мин. чтения', author:'Редакция Сортировка 24', related:'Читайте также', instagram:'Открыть публикацию в Instagram', back:'Все новости', reset:'Сбросить', notFound:'Новость не найдена или снята с публикации', lead:'В центре внимания', end:'Вы прочитали новость', source:'Эта новость также опубликована в Instagram.', loading:'Загружаем новости…' },
- kz: { title:'Сұрыптау жаңалықтары', intro:'Ауданымыздың оқиғалары, маңызды хабарландырулары және тұрғындардың әңгімелері.', latest:'Соңғы оқиғалар', search:'Жаңалықтардан іздеу', empty:'Әзірге жаңалық жоқ', noResults:'Ештеңе табылмады', hint:'Басқа тақырыпты немесе іздеу сөзін таңдаңыз.', error:'Жаңалықтарды жүктеу мүмкін болмады', retry:'Қайталау', more:'Тағы көрсету', read:'Жаңалықты оқу', share:'Бөлісу', copied:'Сілтеме көшірілді', minutes:'мин. оқу', author:'Сұрыптау 24 редакциясы', related:'Сондай-ақ оқыңыз', instagram:'Instagram жарияланымын ашу', back:'Барлық жаңалықтар', reset:'Тазарту', notFound:'Жаңалық табылмады немесе жариялаудан алынды', lead:'Назарда', end:'Жаңалықты оқып шықтыңыз', source:'Бұл жаңалық Instagram-да да жарияланған.', loading:'Жаңалықтар жүктелуде…' },
+ ru: { title:'Новости', intro:'Караганда, наш район и главное по Казахстану — коротко и по делу.', latest:'Последние события', search:'Поиск по новостям', empty:'Новостей пока нет', noResults:'Ничего не найдено', hint:'Попробуйте другую тему или поисковый запрос.', error:'Не удалось загрузить новости', retry:'Повторить', more:'Показать ещё', read:'Читать новость', share:'Поделиться', copied:'Ссылка скопирована', minutes:'мин. чтения', author:'Редакция Сортировка 24', related:'Читайте также', instagram:'Открыть публикацию в Instagram', back:'Все новости', reset:'Сбросить', notFound:'Новость не найдена или снята с публикации', lead:'В центре внимания', end:'Вы прочитали новость', source:'Эта новость также опубликована в Instagram.', loading:'Загружаем новости…' },
+ kz: { title:'Жаңалықтар', intro:'Қарағанды, ауданымыз және Қазақстанның басты жаңалықтары — қысқа әрі нақты.', latest:'Соңғы оқиғалар', search:'Жаңалықтардан іздеу', empty:'Әзірге жаңалық жоқ', noResults:'Ештеңе табылмады', hint:'Басқа тақырыпты немесе іздеу сөзін таңдаңыз.', error:'Жаңалықтарды жүктеу мүмкін болмады', retry:'Қайталау', more:'Тағы көрсету', read:'Жаңалықты оқу', share:'Бөлісу', copied:'Сілтеме көшірілді', minutes:'мин. оқу', author:'Сұрыптау 24 редакциясы', related:'Сондай-ақ оқыңыз', instagram:'Instagram жарияланымын ашу', back:'Барлық жаңалықтар', reset:'Тазарту', notFound:'Жаңалық табылмады немесе жариялаудан алынды', lead:'Назарда', end:'Жаңалықты оқып шықтыңыз', source:'Бұл жаңалық Instagram-да да жарияланған.', loading:'Жаңалықтар жүктелуде…' },
 };
 function useNewsText() { const language=useLanguage(); return { ...language, text:copy[language.lang === 'kz' ? 'kz' : 'ru'] }; }
 function NewsCard({item,featured=false}:{item:NewsItem;featured?:boolean}) {
@@ -28,6 +29,7 @@ function NewsCard({item,featured=false}:{item:NewsItem;featured?:boolean}) {
 export function NewsList() {
  const {text,t}=useNewsText(); const [items,setItems]=useState<NewsItem[]>([]);const [category,setCategory]=useState('');const [search,setSearch]=useState('');const [term,setTerm]=useState('');const [loading,setLoading]=useState(true);const [error,setError]=useState(false);const [total,setTotal]=useState(0);const [retry,setRetry]=useState(0);const generation=useRef(0);const busy=useRef(false);
  useEffect(()=>{const timer=setTimeout(()=>setTerm(search.trim()),300);return()=>clearTimeout(timer);},[search]);
+ useEffect(()=>{if(term.length<2)return;const timer=setTimeout(()=>track('search',{area:'новости',q:term.slice(0,60),results:items.length}),1500);return()=>clearTimeout(timer);},[term,items.length]);
  useEffect(()=>{ const version=++generation.current;setItems([]);setTotal(0);void load(0,version);return()=>{generation.current++;}; },[category,term,retry]);
  async function load(skip:number,version=generation.current) {
   busy.current=true;setLoading(true);setError(false);
@@ -48,7 +50,7 @@ export function NewsList() {
 export function NewsDetail() {
  const {id}=useParams();const {text,localized,t,lang}=useNewsText();const [item,setItem]=useState<NewsItem|null>(null);const [related,setRelated]=useState<NewsItem[]>([]);const [state,setState]=useState('loading');const [retry,setRetry]=useState(0);
  useEffect(()=>{let active=true;setItem(null);setRelated([]);setState('loading');
-  client.entities.news.get({id:id!}).then(res=>{if(!active)return;if(!res.data?.published){setState('missing');return;}setItem(res.data);setState('ready');}).catch((e:any)=>{if(active)setState(e?.response?.status===404?'missing':'error');});
+  client.entities.news.get({id:id!}).then(res=>{if(!active)return;if(!res.data?.published){setState('missing');return;}setItem(res.data);setState('ready');track('news_read',{id:res.data.id,title:String(res.data.title||'').slice(0,120),category:res.data.category});}).catch((e:any)=>{if(active)setState(e?.response?.status===404?'missing':'error');});
   client.entities.news.query({query:{published:true},sort:'-created_at',limit:4}).then(res=>{if(active)setRelated((res.data?.items||[]).filter((x:NewsItem)=>String(x.id)!==id).slice(0,3));}).catch(()=>{});
   return()=>{active=false;};
  },[id,retry]);
