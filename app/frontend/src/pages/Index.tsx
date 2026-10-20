@@ -27,6 +27,7 @@ import VolnaImage from '@/components/volna/VolnaImage';
 import { VOLNA_INDEX_IMAGE } from '@/lib/volnaImages';
 import Hero from '@/components/landing/Hero';
 import HomeAds from '@/components/HomeAds';
+import HomeFood from '@/components/HomeFood';
 import { useSupportSettings } from '@/hooks/useSupportSettings';
 import { useModules, moduleEnabled } from '@/hooks/useModules';
 import type { ModuleKey } from '@/config/modules';
@@ -99,7 +100,7 @@ export default function Index() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [banners, setBanners] = useState<any[]>([]);
   const visibleOffers = banners.filter(b => {
-    if (!['promo', 'food_delivery'].includes(b.banner_type)) return false;
+    if (b.banner_type !== 'promo') return false; // food offers live in the «Доставка еды» row
     const target = String(b.button_url || b.link_url || '');
     const module = moduleForPath(target);
     return (!module || isEnabled(module)) && (b.banner_type !== 'food_delivery' || isEnabled('food'));
@@ -221,6 +222,8 @@ export default function Index() {
 
   const dateLocale = lang === 'kz' ? 'kk-KZ' : 'ru-RU';
 
+  // These sections are already in the hero tiles / bottom menu: do not repeat them lower on the page.
+  const inHero = new Set<string>(['news', 'announcements', 'directory', 'food', 'masters', 'gastronom']);
   /* ─── Quick Actions config (filtered by enabled modules) ─── */
   const quickActions = ([
     { icon: Utensils, labelKey: 'quick.orderFood', to: '/food', color: 'bg-orange-500', lightBg: 'bg-orange-50 dark:bg-orange-900/20', module: 'food' },
@@ -235,7 +238,7 @@ export default function Index() {
     { icon: Megaphone, labelKey: 'quick.postAd', to: '/announcements/new', color: 'bg-amber-500', lightBg: 'bg-amber-50 dark:bg-amber-900/20', module: 'announcements' },
     { icon: Briefcase, labelKey: 'quick.findJob', to: '/jobs', color: 'bg-purple-500', lightBg: 'bg-purple-50 dark:bg-purple-900/20', module: 'jobs' },
     { icon: BookOpen, labelKey: 'quick.openDirectory', to: '/directory', color: 'bg-teal-500', lightBg: 'bg-teal-50 dark:bg-teal-900/20', module: 'directory' },
-  ] as { icon: typeof Utensils; labelKey: string; to: string; color: string; lightBg: string; module: ModuleKey }[]).filter(a => isEnabled(a.module));
+  ] as { icon: typeof Utensils; labelKey: string; to: string; color: string; lightBg: string; module: ModuleKey }[]).filter(a => isEnabled(a.module) && !inHero.has(a.module));
 
   /* ─── Popular Categories config (filtered by enabled modules) ─── */
   const popularCategories = ([
@@ -244,7 +247,7 @@ export default function Index() {
     { labelKey: 'categories.realEstate', to: '/real-estate', img: REALESTATE_IMG, module: 'real_estate' },
     { labelKey: 'categories.announcements', to: '/announcements', img: ANNOUNCEMENTS_IMG, module: 'announcements' },
     { labelKey: 'categories.jobs', to: '/jobs', img: JOBS_IMG, module: 'jobs' },
-  ] as { labelKey: string; to: string; img: string; module: ModuleKey }[]).filter(c => isEnabled(c.module));
+  ] as { labelKey: string; to: string; img: string; module: ModuleKey }[]).filter(c => isEnabled(c.module) && !inHero.has(c.module));
 
 
 
@@ -260,29 +263,16 @@ export default function Index() {
             {news.length ? <div className="home-news-grid">{news.slice(0,3).map(item => <Link key={item.id} to={`/news/${item.id}`} className="home-news-card"><div className="home-news-image">{item.image_url ? <StorageImg objectKey={item.image_url} alt="" className="h-full w-full object-cover" /> : <FileText size={36} />}</div><div className="home-news-copy"><div className="home-news-meta"><span>{getPublicCategoryLabel(item.category,t)}</span><time>{formatDate(item.created_at,lang)}</time></div><h3>{localized(item,'title')}</h3>{item.short_description && <p>{localized(item,'short_description')}</p>}<span className="home-news-read">{lang === 'kz' ? 'Жаңалықты оқу' : 'Читать'}<ArrowUpRight size={17} /></span></div></Link>)}</div> : <p className="home-news-empty">{loading ? (lang === 'kz' ? 'Жаңалықтар жүктелуде…' : 'Новости загружаются…') : (lang === 'kz' ? 'Әзірге жаңалық жоқ.' : 'Новые публикации скоро появятся здесь.')}</p>}
           </section>}
           {isEnabled('announcements') && <HomeAds />}
+          {isEnabled('food') && <HomeFood banners={banners} heroImage={FOOD_IMG} />}
           {isEnabled('business') && <PartnerSpotlight />}
 
           {/* ═══════════════════════════════════════════
               1b. МАГАЗИНЫ РАЙОНА — DAM ALEM 2.0 рядом с остальными
           ═══════════════════════════════════════════ */}
-          {(isEnabled('food') || isEnabled('gastronom') || isEnabled('volna') || isEnabled('prorab') || isEnabled('pharmacy')) && (
+          {(isEnabled('gastronom') || isEnabled('volna') || isEnabled('prorab') || isEnabled('pharmacy')) && (
           <section>
             <SectionHeader title={t('shops.title')} accentColor="from-orange-500 to-red-600" />
             <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4">
-              {isEnabled('food') && (
-                <Link
-                  to="/food"
-                  className="group relative col-span-2 overflow-hidden rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 min-h-[168px] md:min-h-[200px] flex items-end"
-                >
-                  <img src={FOOD_IMG} alt={t('shops.alemFood')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
-                  <div className="relative z-10 p-4 md:p-5 w-full">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-orange-200 bg-orange-500/40 backdrop-blur-sm px-2.5 py-1 rounded-full">{t('shops.alemFoodTag')}</span>
-                    <h3 className="mt-2 text-xl md:text-2xl font-black text-white tracking-tight">{t('shops.alemFood')}</h3>
-                    <p className="mt-1 text-sm text-white/80">{t('shops.alemFoodDesc')}</p>
-                  </div>
-                </Link>
-              )}
               {isEnabled('gastronom') && (
                 <Link to="/gastronom" className="group relative overflow-hidden rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 min-h-[168px] md:min-h-[200px] flex items-end">
                   <img src={GASTRONOM_IMG} alt={t('categories.gastronom')} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />

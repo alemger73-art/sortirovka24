@@ -7,17 +7,27 @@ const ads = [
 for (const [name, w, h] of [['mobile', 390, 844], ['desktop', 1280, 900]] as const) {
   test(`home shows ads ${name}`, async ({ page }, info) => {
     await page.setViewportSize({ width: w, height: h });
-    await page.addInitScript(() => { localStorage.setItem('app_lang', 'ru'); sessionStorage.setItem('s24_welcome_done', '1'); });
+    await page.addInitScript(() => { localStorage.setItem('sortirovka-theme', 'dark'); localStorage.setItem('app_lang', 'ru'); sessionStorage.setItem('s24_welcome_done', '1'); });
     await page.route('**/api/**', (route) => {
       const path = new URL(route.request().url()).pathname;
       if (path.endsWith('/modules')) return route.fulfill({ json: { news: true, announcements: true, food: true, directory: true } });
       if (path.endsWith('/entities/announcements')) return route.fulfill({ json: { items: ads, total: 3 } });
+      if (path.endsWith('/entities/banners')) return route.fulfill({ json: { items: [
+        { id: 12, banner_type: 'food_delivery', active: true, title: 'Орбита Чикен', button_text: 'В корзину', button_url: '/food#product=217' },
+        { id: 1, banner_type: 'shop', active: true, title: 'DAM ALEM — Доставка еды', button_url: '/food' }], total: 2 } });
+      if (path.endsWith('/entities/food_items/217')) return route.fulfill({ json: { id: 217, name: 'Орбита Чикен', price: 3700, is_active: true, available: true } });
       return route.fulfill({ json: { items: [], total: 0 } });
     });
     await page.goto('/');
     await expect(page.locator('.portal-hero-links a[href="/announcements"]')).toBeVisible();
     await expect(page.getByTestId('home-ad-post')).toBeVisible();
     await expect(page.getByText('Требуется продавец')).toBeVisible();
+    await expect(page.locator('.home-food')).toContainText('3 700 ₸');
+    // No repeated blocks: hero already has these sections.
+    await expect(page.getByRole('heading', { name: 'Популярные категории' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Быстрые действия' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Магазины района' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Спецпредложения' })).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: info.outputPath(`home-${name}.png`), fullPage: true });
   });
