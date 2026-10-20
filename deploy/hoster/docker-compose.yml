@@ -28,6 +28,7 @@ services:
       PORT: "8000"
       ENVIRONMENT: production
       WHISPER_URL: http://whisper:9000
+      WAHA_DAM_URL: http://waha-dam:3000
     depends_on:
       db:
         condition: service_healthy
@@ -63,6 +64,29 @@ services:
     mem_limit: 768m
     networks: [web]
 
+  # Second WhatsApp gateway for the DAM ALEM business number (sales bot). Linked as a device
+  # of the WhatsApp Business app (QR), so the phone keeps working. Sends replies only when DAM_WA_ENABLED=1.
+  waha-dam:
+    image: devlikeapro/waha@sha256:1ae3c6a994ee97e5039bf41103193d7bf9175f1a31db73ba89bdeed6277901bc
+    restart: unless-stopped
+    environment:
+      WHATSAPP_DEFAULT_ENGINE: GOWS
+      WAHA_API_KEY: ${WAHA_API_KEY:-}
+      WHATSAPP_START_SESSION: default
+      WHATSAPP_RESTART_ALL_SESSIONS: "True"
+      WAHA_DASHBOARD_ENABLED: "False"
+      WHATSAPP_SWAGGER_ENABLED: "False"
+      WAHA_PRINT_QR: "False"
+      WHATSAPP_HOOK_URL: http://app:8000/api/v1/dam-wa/waha?key=${WAHA_API_KEY:-}
+      WHATSAPP_HOOK_EVENTS: message.any
+      WHATSAPP_DOWNLOAD_MEDIA: "True"
+      WAHA_EVENTS_DOWNLOAD_MEDIA: "True"
+      TZ: Asia/Almaty
+    volumes:
+      - waha-dam-sessions:/app/.sessions
+    mem_limit: 512m
+    networks: [web]
+
   # Speech-to-text for voice notes to the support bot (Whisper on CPU, not exposed).
   whisper:
     image: onerahmet/openai-whisper-asr-webservice@sha256:0616c3d5fc6924e9d59aa8a7a3a944fbe8f3a5d701e5fc1fa2ce5b933dfecb73
@@ -92,6 +116,7 @@ services:
 
 volumes:
   waha-sessions:
+  waha-dam-sessions:
   whisper-models:
   db-data:
   caddy-data:
