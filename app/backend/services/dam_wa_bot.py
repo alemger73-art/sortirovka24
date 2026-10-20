@@ -58,6 +58,7 @@ class Chat:
     handed_off_at: float = 0.0
     history: list[list[dict[str, Any]]] = field(default_factory=list)  # full AI exchanges incl. tool calls
     draft_note: str = ""  # last calculated order, shown to the AI every time
+    location: Optional[dict[str, Any]] = None  # point the customer sent in WhatsApp (lat, lng, at)
 
 
 _chats: dict[str, Chat] = {}
@@ -298,6 +299,7 @@ def system_prompt(facts: str, name: str, memory: str = "") -> str:
 - Когда всё собрано — вызови quote_order. Покажи клиенту итог из ответа инструмента по образцу выше (блюда, доставка, оплата, итого) и попроси ответить «Да».
 - Сам ты заказ не создаёшь: его создаст система, когда клиент ответит «Да». Не пиши «заказ оформлен», пока система этого не сообщила.
 - Если quote_order вернул ошибку (адрес не найден, минимальная сумма, кухня закрыта) — объясни простыми словами и предложи решение.
+- Геолокацию из WhatsApp ты получаешь автоматически: когда клиент её отправит, в чате будет «(клиент отправил геолокацию…)» — сразу пересчитай заказ с доставкой. Не говори, что не можешь принять геолокацию.
 - Статус уже сделанного заказа — get_my_last_order. Бонусы — get_bonus_balance.
 - ОПЛАТА: ты не видишь деньги. Никогда не пиши «оплата прошла / получена», пока get_my_last_order не покажет «ОПЛАЧЕН». Если клиент пишет «оплатил» — поблагодари и скажи, что сотрудник проверит поступление и сразу начнём готовить; при необходимости вызови call_operator.
 - Не путай заказы: говори о заказе с номером из этого чата (он есть в памяти ниже), не выдумывай номера.
@@ -393,6 +395,11 @@ async def run_tool(db, ctx, chat: Chat, name: str, args: dict[str, Any], message
             for it in draft.get("items", []):
                 it.setdefault("modifiers", [])
                 it.setdefault("choices", [])
+            if draft.get("delivery_method") == "delivery" and chat.location and time.time() - chat.location.get("at", 0) < 24 * 3600:
+                draft.setdefault("delivery_lat", chat.location["lat"])
+                draft.setdefault("delivery_lng", chat.location["lng"])
+                if not draft.get("delivery_address"):
+                    draft["delivery_address"] = chat.location.get("desc") or "Точка на карте (геолокация из WhatsApp)"
             q = await C.tool(db, ctx, "quote", draft, message_id=message_id)
             await db.commit()
             chat.pending = {"id": q["confirmation_id"], "total": q.get("total_amount"), "payment": q.get("payment_method"), "at": time.time()}
@@ -401,7 +408,14 @@ async def run_tool(db, ctx, chat: Chat, name: str, args: dict[str, Any], message
         return "Неизвестный инструмент"
     except HTTPException as exc:
         await db.rollback()
-        return f"Ошибка: {exc.detail}"
+        detail = str(exc.detail)
+        if "адрес" in detail.lower() and ("карт" in detail.lower() or "определить" in detail.lower()):
+            return ("Ошибка: адрес не найден на карте. Попроси клиента отправить геолокацию: 📎 → «Местоположение» → "
+                    "«Отправить моё текущее местоположение» (если он дома) или выбрать точку своего дома на карте. "
+                    "Как только точка придёт, ты её получишь — сразу пересчитай заказ. Подъезд и квартиру добавь в адрес текстом.")
+        if "зон" in detail.lower() and "доставк" in detail.lower():
+            return f"Ошибка: {detail}. Скажи клиенту, что по этому адресу доставка не работает, предложи самовывоз."
+        return f"Ошибка: {detail}"
     except Exception as exc:  # validation errors etc.
         await db.rollback()
         logger.warning("[DamWA] tool %s failed: %s", name, exc)
@@ -558,6 +572,26 @@ class Outcome:
     reply: str = ""
 
 
+def _location_from(p: dict[str, Any]) -> Optional[dict[str, Any]]:
+    """WhatsApp «Местоположение» (one-time or live) → lat/lng, whatever shape WAHA uses."""
+    loc = p.get("location") if isinstance(p.get("location"), dict) else None
+    if not loc:
+        m = ((p.get("_data") or {}).get("Message") or (p.get("_data") or {}).get("message") or {})
+        loc = m.get("locationMessage") or m.get("liveLocationMessage") if isinstance(m, dict) else None
+    if not isinstance(loc, dict):
+        return None
+    lat = loc.get("latitude", loc.get("degreesLatitude"))
+    lng = loc.get("longitude", loc.get("degreesLongitude"))
+    try:
+        lat, lng = float(lat), float(lng)
+    except (TypeError, ValueError):
+        return None
+    if not (-90 <= lat <= 90 and -180 <= lng <= 180) or (lat == 0 and lng == 0):
+        return None
+    desc = str(loc.get("description") or loc.get("name") or loc.get("address") or "").strip()
+    return {"lat": lat, "lng": lng, "desc": desc[:200], "at": time.time()}
+
+
 def _phone_from(chat_id: str, payload: dict[str, Any]) -> str:
     num = chat_id.split("@")[0]
     if chat_id.endswith("@c.us") and num.isdigit():
@@ -612,6 +646,11 @@ async def _handle(db, chat: Chat, chat_id: str, p: dict[str, Any], client: httpx
     chat.phone = chat.phone or _phone_from(chat_id, p)
 
     text = body
+    point = _location_from(p)
+    if point:
+        chat.location = point
+        text = (f"(клиент отправил геолокацию в WhatsApp: {point['lat']:.5f}, {point['lng']:.5f}"
+                + (f", {point['desc']}" if point["desc"] else "") + ". Используй её для доставки — пересчитай заказ quote_order.)")
     media = p.get("media") if isinstance(p.get("media"), dict) else {}
     if p.get("hasMedia") and str(media.get("mimetype") or "").startswith("audio"):
         heard = None
@@ -624,9 +663,10 @@ async def _handle(db, chat: Chat, chat_id: str, p: dict[str, Any], client: httpx
             await send_text(client, chat_id, reply, chat)
             return Outcome("replied", reply)
         text = heard
-    elif p.get("hasMedia") and not text:
+    elif p.get("hasMedia") and not text and not point:
         text = "(прислал фото или файл)"
     if not text:
+        logger.info("[DamWA] empty message, payload keys: %s", sorted(k for k in p.keys() if not k.startswith("_"))[:20])
         return Outcome("ignored")
 
     from services import business_channel as C, crm

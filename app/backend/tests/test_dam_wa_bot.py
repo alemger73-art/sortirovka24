@@ -170,3 +170,28 @@ async def test_thinking_is_not_stored_and_bad_memory_is_retried(bot, monkeypatch
     stored = json.dumps(B._chats["77015556677@c.us"].history, ensure_ascii=False)
     assert "thinking" not in stored and calls[0]["max_tokens"] >= 3000
     assert calls[2]["messages"][:2] == [{"role": "user", "content": "привет"}, {"role": "assistant", "content": "Ответ 1 🍕"}]
+
+
+async def test_whatsapp_location_is_used_for_delivery(bot, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+    captured = {}
+    from services import business_channel as C
+    real_tool = C.tool
+
+    async def spy(db, ctx, name, args, **kw):
+        if name == "quote":
+            captured.update(args)
+        return await real_tool(db, ctx, name, args, **kw)
+    monkeypatch.setattr(C, "tool", spy)
+    order = {"items": [{"id": 2, "quantity": 2}], "customer_name": "Айгерим", "delivery_method": "delivery",
+             "delivery_address": "ул. Уранова 10, кв 5", "payment_method": "cash"}
+    script = [[{"type": "tool_use", "id": "q", "name": "quote_order", "input": order}], [{"type": "text", "text": "Пересчитал 👌"}]]
+    log = []
+    event = msg("", mid="loc1")
+    event["payload"].update(hasMedia=False, location={"latitude": 49.8301, "longitude": 73.0812, "description": ""})
+    async with httpx.AsyncClient(transport=transport(log, script)) as client:
+        out = await B.handle_event(event, client)
+    assert out.action == "replied"
+    first = [b for u, b in log if "anthropic" in u][0]
+    assert "геолокацию" in first["messages"][-1]["content"]
+    assert captured["delivery_lat"] == 49.8301 and captured["delivery_lng"] == 73.0812
