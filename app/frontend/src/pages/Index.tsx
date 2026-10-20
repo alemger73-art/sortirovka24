@@ -26,6 +26,7 @@ import { moduleForPath } from '@/config/modules';
 import VolnaImage from '@/components/volna/VolnaImage';
 import { VOLNA_INDEX_IMAGE } from '@/lib/volnaImages';
 import Hero from '@/components/landing/Hero';
+import HomeAds from '@/components/HomeAds';
 import { useSupportSettings } from '@/hooks/useSupportSettings';
 import { useModules, moduleEnabled } from '@/hooks/useModules';
 import type { ModuleKey } from '@/config/modules';
@@ -258,6 +259,7 @@ export default function Index() {
             <div className="public-section-head"><div><span className="public-kicker">{lang === 'kz' ? 'Жаңасы' : 'Свежее'}</span><h2>{lang === 'kz' ? 'Жаңалықтар' : 'Новости'}</h2></div><Link to="/news">{lang === 'kz' ? 'Барлық жаңалықтар' : 'Все новости'}<ArrowRight size={18} /></Link></div>
             {news.length ? <div className="home-news-grid">{news.slice(0,3).map(item => <Link key={item.id} to={`/news/${item.id}`} className="home-news-card"><div className="home-news-image">{item.image_url ? <StorageImg objectKey={item.image_url} alt="" className="h-full w-full object-cover" /> : <FileText size={36} />}</div><div className="home-news-copy"><div className="home-news-meta"><span>{getPublicCategoryLabel(item.category,t)}</span><time>{formatDate(item.created_at,lang)}</time></div><h3>{localized(item,'title')}</h3>{item.short_description && <p>{localized(item,'short_description')}</p>}<span className="home-news-read">{lang === 'kz' ? 'Жаңалықты оқу' : 'Читать'}<ArrowUpRight size={17} /></span></div></Link>)}</div> : <p className="home-news-empty">{loading ? (lang === 'kz' ? 'Жаңалықтар жүктелуде…' : 'Новости загружаются…') : (lang === 'kz' ? 'Әзірге жаңалық жоқ.' : 'Новые публикации скоро появятся здесь.')}</p>}
           </section>}
+          {isEnabled('announcements') && <HomeAds />}
           {isEnabled('business') && <PartnerSpotlight />}
 
           {/* ═══════════════════════════════════════════

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, BookOpen, Car, Newspaper, ShoppingBag, Utensils, Wrench, Users, Coffee, ShieldCheck } from 'lucide-react';
+import { ArrowUpRight, BookOpen, Megaphone, Car, Newspaper, ShoppingBag, Utensils, Wrench, Users, Coffee, ShieldCheck } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTaxiEnabled } from '@/hooks/useTaxiEnabled';
 import { useModules } from '@/hooks/useModules';
@@ -12,6 +12,7 @@ export default function Hero(){
  const {t,lang}=useLanguage();const kz=lang==='kz';const {isEnabled}=useModules();const taxi=useTaxiEnabled();const {visible,items}=useHomepageHeroStats();
  const links=[
   {to:'/news',icon:Newspaper,label:kz?'Жаңалықтар':'Новости',detail:kz?'Ауданда не болып жатыр':'Что происходит в районе',enabled:isEnabled('news')},
+  {to:'/announcements',icon:Megaphone,label:kz?'Хабарландырулар':'Объявления',detail:kz?'Сату, сатып алу, жұмыс — тегін':'Продать, купить, работа — бесплатно',enabled:isEnabled('announcements')},
   {to:'/directory',icon:BookOpen,label:kz?'АНЫҚТАМАЛЫҚ':'СПРАВОЧНИК',detail:kz?'Учаскелік инспекторлар және автобус кестелері':'Участковые и расписание автобусов',enabled:isEnabled('directory')},
   {to:'/food',icon:Utensils,label:t('hero.food'),detail:t('hero.foodDesc'),enabled:isEnabled('food')},
   {to:'/masters',icon:Wrench,label:t('hero.mastersBtn'),detail:t('hero.mastersDesc'),enabled:isEnabled('masters')},
