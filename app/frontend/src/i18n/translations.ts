@@ -706,8 +706,8 @@ const translations: Translations = {
   'store.prorab': { ru: 'Прораб', kz: 'Прораб' },
   'store.park': { ru: 'Фуд-парк', kz: 'Фуд-парк' },
   'payment.cash': { ru: 'Наличные', kz: 'Қолма-қол' },
-  'payment.kaspiQr': { ru: 'Kaspi QR', kz: 'Kaspi QR' },
-  'payment.halykQr': { ru: 'Halyk QR', kz: 'Halyk QR' },
+  'payment.kaspiQr': { ru: 'Kaspi', kz: 'Kaspi' },
+  'payment.halykQr': { ru: 'Halyk', kz: 'Halyk' },
 
   /* ─── Cabinet: partner ─── */
   'cabinetPartner.shopProfile': { ru: 'Профиль магазина', kz: 'Дүкен профилі' },
