@@ -3,6 +3,11 @@ import { saveFoodCheckoutReturn, takeFoodCheckoutReturn, type FoodCheckoutReturn
 
 test.beforeEach(async ({ page, request }, info) => {
   await request.post('/__test__/reset-rate-limits');
+  // Checkout needs a signed-in customer (asked before address and payment); the guest test checks that prompt.
+  if (!info.title.includes('guest')) {
+    const sessions = await (await request.get('/__test__/sessions')).json();
+    await page.addInitScript(token => { localStorage.setItem('account_token', token); localStorage.setItem('s24_account_token_v1', token); }, sessions.client);
+  }
   await page.addInitScript(theme => {
     localStorage.setItem('app_lang', 'ru');
     localStorage.setItem('sortirovka-theme', theme);
@@ -24,6 +29,7 @@ async function mockCatalog(page: Page) {
     const path = new URL(route.request().url()).pathname;
     let json: unknown = { items: [], total: 0 };
     if (path.endsWith('/modules')) json = { food: true, account: true };
+    if (path.endsWith('/account/me')) json = { id: 'a', name: 'Синтетический клиент', phone: '+77000000000' };
     if (path.includes('food_restaurants')) json = { items: [{ id: 1, name: 'DAM ALEM 2.0', min_order: 0 }] };
     if (path.endsWith('/menu/catalog')) json = {
       business_id: 'dam_alem', restaurant_id: 1,
@@ -52,8 +58,8 @@ async function checkout(page: Page, mock = false, pickup = true) {
 
 async function contacts(page: Page) {
   await page.getByTestId('dam-checkout-next').click();
-  await page.getByPlaceholder('Введите имя').fill('Синтетический клиент');
-  await page.getByPlaceholder('+7 (___) ___-__-__').fill('+77000000000');
+  // Signed-in customer: name and phone come from the account, shown as a card.
+  await expect(page.getByTestId('dam-contact-card')).toContainText('+77000000000');
 }
 
 async function geometry(page: Page) {
@@ -96,7 +102,7 @@ test('mock: opaque cash states, unchanged change calculation and short-screen ge
   await cash.scrollIntoViewIfNeeded();
   await contrast(cash);
   for (const button of await cash.getByRole('button').all()) await contrast(button);
-  await expect(cash.getByRole('button', { name: '5 000 ₸' })).toBeDisabled();
+  await expect(cash.getByRole('button', { name: '5 000 ₸', exact: true })).toHaveCount(0); // bills smaller than the order are not offered
   const bill = cash.getByRole('button', { name: '10 000 ₸' });
   await bill.click();
   await expect(bill).toHaveAttribute('aria-pressed', 'true');
@@ -128,12 +134,11 @@ test('mock: opaque cash states, unchanged change calculation and short-screen ge
   await expect(page.getByTestId('dam-checkout-submit')).toBeInViewport();
 });
 
-test('local API: ordinary auth clicks retain pickup, contacts, cash and checkout; save one synthetic order', async ({ page }, info) => {
-  await checkout(page);
-  await contacts(page);
-  await page.locator('.dam-cash-amount').getByRole('button', { name: '10 000 ₸' }).click();
-  await page.getByTestId('dam-checkout-next').click();
-  await page.getByTestId('dam-checkout-submit').click();
+test('guest is asked to sign in before checkout, keyboard-accessible prompt', async ({ page }) => {
+  await page.goto('/food');
+  await page.locator('.dam-grid-card').filter({ hasText: 'Пепперони' }).first().getByRole('button', { name: 'В корзину', exact: true }).click();
+  await page.getByTestId('dam-cart-open').click();
+  await page.getByTestId('dam-cart-checkout').click();
   const prompt = page.getByTestId('auth-prompt-modal');
   await expect(prompt).toBeVisible();
   await expect(prompt.getByRole('button').first()).toBeFocused();
@@ -141,20 +146,15 @@ test('local API: ordinary auth clicks retain pickup, contacts, cash and checkout
   await expect(page.getByTestId('auth-prompt-modal-login')).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(prompt).toBeHidden();
-  await expect(page.getByTestId('dam-checkout')).toBeVisible();
-  await page.getByTestId('dam-checkout-submit').click();
+  await page.getByTestId('dam-cart-checkout').click();
   await page.getByTestId('auth-prompt-modal-login').click();
   await expect(page).toHaveURL(/\/account\?redirect=/);
-  await page.getByRole('button', { name: 'Уже есть пароль? Войти по паролю' }).click();
-  await page.locator('input[type="tel"]').fill('+77000000000');
-  await page.getByPlaceholder('Пароль', { exact: true }).fill('LocalCheckoutOnly2026!');
-  await page.getByRole('button', { name: 'Войти', exact: true }).click();
-  await expect(page).toHaveURL(/\/food\?tab=cart$/);
-  await expect(page.getByTestId('dam-checkout-submit')).toBeVisible();
-  await expect(page.getByTestId('dam-checkout')).toContainText('Самовывоз');
-  await page.getByRole('button', { name: 'Назад', exact: true }).click();
-  await expect(page.getByPlaceholder('Введите имя')).toHaveValue('Синтетический клиент');
-  await expect(page.locator('.dam-cash-amount').getByRole('button', { name: '10 000 ₸' })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('local API: pickup, contacts from the account, cash with change; save one synthetic order', async ({ page }, info) => {
+  await checkout(page);
+  await contacts(page);
+  await page.locator('.dam-cash-amount').getByRole('button', { name: '10 000 ₸' }).click();
   await expect(page.locator('.dam-cash-amount')).toContainText('Сдача: 6 800 ₸');
   await page.getByTestId('dam-checkout-next').click();
   await geometry(page);
@@ -175,8 +175,6 @@ test('local API: ordinary auth clicks retain pickup, contacts, cash and checkout
 });
 
 test('local API: synthetic delivery order success scrolls to tracking link on short screen', async ({ page, request }, info) => {
-  const sessions = await (await request.get('/__test__/sessions')).json();
-  await page.addInitScript(token => localStorage.setItem('account_token', token), sessions.client);
   await checkout(page, false, false);
   const address = page.getByPlaceholder('Например: пер. Урановый 10');
   await address.fill('пер. Урановый 10');

@@ -94,3 +94,4 @@ Thumbs.db
 # ---- Misc temp ----
 *.tmp
 .cache/
+work/

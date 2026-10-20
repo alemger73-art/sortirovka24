@@ -3,6 +3,13 @@ import { test, expect, type APIRequestContext, type Page } from "@playwright/tes
 // Customers sign in only with a WhatsApp/Telegram code (passwords are for staff),
 // so the session is created through the same code flow the site uses.
 async function signInWithCode(page: Page, request: APIRequestContext, name: string) {
+  // Disposable test server (dam-fullstack / payment browser server): a ready customer session.
+  const synthetic = await request.get("/__test__/sessions").catch(() => null);
+  if (synthetic?.ok()) {
+    const { client } = await synthetic.json();
+    await page.addInitScript(t => { localStorage.setItem("account_token", t); localStorage.setItem("s24_account_token_v1", t); }, client);
+    return "+77000000000";
+  }
   const phone = `+7701${Math.floor(1_000_000 + Math.random() * 8_999_999)}`;
   const legal = { legal_version: "2026-10-19", legal_subject_name: name, agreement_accepted: true, privacy_accepted: true, language: "ru" };
   const sms = await request.post("/api/v1/account/signin/request-sms", { data: { phone, ...legal } });

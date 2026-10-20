@@ -4,7 +4,7 @@ import { defineConfig } from '@playwright/test';
 // the customer sees every status. Run: npm run build:mobile && npx playwright test -c playwright.dam-fullstack.config.ts
 export default defineConfig({
   testDir: './e2e',
-  testMatch: 'dam-fullstack.spec.ts',
+  testMatch: ['dam-fullstack.spec.ts', 'food-cart.spec.ts', 'dam-client-ux.spec.ts', 'food-checkout.spec.ts', 'cabinet.spec.ts'],
   workers: 1,
   retries: 0,
   timeout: 90000,

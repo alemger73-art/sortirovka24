@@ -2760,10 +2760,9 @@ export default function Food() {
               </div>
 
               <div className="dam-sheet-footer dam-sheet-footer--premium">
-                {checkoutStep === 3 && <div className="mb-3 space-y-2 text-xs text-gray-600 dark:text-gray-300">
-                  <p>{LEGAL_OPERATOR.name} · <a href={`tel:${LEGAL_OPERATOR.phoneHref}`} className="underline">{LEGAL_OPERATOR.phone}</a></p>
-                  <p>{lang === 'kz' ? '«Тапсырыс беру» батырмасын басу арқылы сіз ' : 'Нажимая «Оформить заказ», вы принимаете '}<Link to="/legal/food-terms" target="_blank" rel="noopener noreferrer" className="underline">{lang === 'kz' ? 'тапсырыс және жеткізу шарттарын' : 'условия заказа и доставки'}</Link>{lang === 'kz' ? ' қабылдайсыз. ' : '. '}<Link to="/legal/privacy" target="_blank" rel="noopener noreferrer" className="underline">{lang === 'kz' ? 'Құпиялылық саясаты' : 'Политика конфиденциальности'}</Link></p>
-                </div>}
+                {checkoutStep === 3 && <p className="mb-2 text-[11px] leading-snug text-gray-600 dark:text-gray-300">
+                  {lang === 'kz' ? '«Тапсырыс беру» батырмасын басу арқылы сіз ' : 'Нажимая «Оформить заказ», вы принимаете '}<Link to="/legal/food-terms" target="_blank" rel="noopener noreferrer" className="underline">{lang === 'kz' ? 'тапсырыс шарттарын' : 'условия заказа'}</Link>{lang === 'kz' ? ' қабылдайсыз' : ''} · <Link to="/legal/privacy" target="_blank" rel="noopener noreferrer" className="underline">{lang === 'kz' ? 'Құпиялылық' : 'Конфиденциальность'}</Link> · {LEGAL_OPERATOR.name}, <a href={`tel:${LEGAL_OPERATOR.phoneHref}`} className="underline whitespace-nowrap">{LEGAL_OPERATOR.phone}</a>
+                </p>}
                 {checkoutStep === 3 && checkoutFinalBlockReason && !submitting ? (
                   <p
                     role="alert"
@@ -2823,7 +2822,7 @@ export default function Food() {
                       onClick={submitOrder}
                       testId="dam-checkout-submit"
                     />
-                    <p className="mt-2.5 text-center text-[11px] text-gray-400">
+                    <p className="mt-2.5 text-center text-[11px] text-gray-400 [@media(max-height:560px)]:hidden">
                        {st("Заказ сохранится в системе. WhatsApp — по желанию после оформления.")} </p>
                   </>
                 )}

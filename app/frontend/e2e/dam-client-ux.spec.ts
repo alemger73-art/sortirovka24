@@ -4,7 +4,7 @@ test('client pickup excludes dine-in and delivery upsells and explains unavailab
   const sessions = await (await request.get('/__test__/sessions')).json();
   const headers = {Authorization:`Bearer ${sessions.operator}`};
   await request.patch('/api/v1/dam-alem/business/availability/4',{headers,data:{available:true}});
-  await page.addInitScript(() => {localStorage.setItem('app_lang','ru');sessionStorage.setItem('s24_welcome_done','1');});
+  await page.addInitScript(token => {localStorage.setItem('app_lang','ru');sessionStorage.setItem('s24_welcome_done','1');localStorage.setItem('account_token',token);localStorage.setItem('s24_account_token_v1',token);},sessions.client);
   await page.goto('/food');
   await page.getByRole('button',{name:'Пепперони',exact:true}).click();
   await page.getByRole('button',{name:/Добавить в корзину/}).click();

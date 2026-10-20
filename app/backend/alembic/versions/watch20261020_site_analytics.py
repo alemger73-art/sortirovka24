@@ -1,4 +1,8 @@
-"""Own anonymous site statistics and the error watch."""
+"""Own anonymous site statistics and the error watch.
+
+Production (Hoster) keeps its schema by hand (S24_SCHEMA_VERIFY_ONLY=dam20261006_pwa_preferences);
+there these two tables were added with CREATE TABLE IF NOT EXISTS (kit/add-watch-tables.sh), not by Alembic.
+"""
 from alembic import op
 import sqlalchemy as sa
 

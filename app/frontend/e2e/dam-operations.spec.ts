@@ -34,15 +34,16 @@ test('operator pickup lifecycle, payment and responsive layout',async({page},inf
 });
 test('search and conflict never show false success',async({page})=>{
  const s=await setup(page);
- await page.goto('/partner/dam-alem?section=orders&order=71');
+ await page.goto('/partner/dam-alem?section=orders');
  await page.getByLabel('Поиск заказов').fill('несуществующий');
  await expect(page.getByText('По выбранному фильтру заказов нет.')).toBeVisible();
  expect(s.query).toContain('q=');s.conflict=true;
+ await page.goto('/partner/dam-alem?section=orders&order=71');
  await page.getByRole('button',{name:'Передать на кухню',exact:true}).click();
  await expect(page.getByText('Заказ уже изменён другим оператором. Обновите карточку.')).toBeVisible();
  expect(s.order.status).toBe('new');expect(s.writes).toBe(1);
 });
-test('cancellation requires reason and settings hide token after save',async({page})=>{const s=await setup(page,'owner');await page.goto('/partner/dam-alem?section=orders&order=71');await page.getByRole('button',{name:'Отменить заказ',exact:true}).click();await expect(page.getByRole('button',{name:'Подтвердить отмену'})).toBeDisabled();await page.getByLabel('Причина отмены',{exact:true}).fill('Клиент передумал');await page.getByRole('button',{name:'Подтвердить отмену'}).click();expect(s.order.cancellation_reason).toBe('Клиент передумал');await page.getByRole('navigation',{name:'Разделы кабинета'}).getByRole('button',{name:'Настройки',exact:true}).click();await page.getByRole('button',{name:'Telegram',exact:true}).click();await page.getByLabel('Токен бота',{exact:true}).fill('123456:fake-test-token');await page.getByLabel('Канал или группа',{exact:true}).fill('-100123456');await page.getByRole('button',{name:'Сохранить настройки',exact:true}).click();await expect(page.getByLabel('Токен бота',{exact:true})).toHaveValue('');await expect(page.getByRole('status')).toContainText('Настройки сохранены');expect(s.settings.enabled).toBe(false);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);});
+test('cancellation requires reason and settings hide token after save',async({page})=>{const s=await setup(page,'owner');await page.goto('/partner/dam-alem?section=orders&order=71');await page.getByRole('button',{name:'Отменить заказ',exact:true}).click();await expect(page.getByRole('button',{name:'Подтвердить отмену'})).toBeDisabled();await page.getByLabel('Причина отмены',{exact:true}).fill('Клиент передумал');await page.getByRole('button',{name:'Подтвердить отмену'}).click();expect(s.order.cancellation_reason).toBe('Клиент передумал');const sections=page.getByRole('navigation',{name:'Разделы кабинета'});if(await sections.isVisible())await sections.getByRole('button',{name:'Настройки',exact:true}).click();else await page.getByRole('combobox',{name:'Разделы кабинета'}).selectOption({label:'Настройки'});await page.getByRole('button',{name:'Telegram',exact:true}).click();await page.getByLabel('Токен бота',{exact:true}).fill('123456:fake-test-token');await page.getByLabel('Канал или группа',{exact:true}).fill('-100123456');await page.getByRole('button',{name:'Сохранить настройки',exact:true}).click();await expect(page.getByLabel('Токен бота',{exact:true})).toHaveValue('');await expect(page.getByRole('status')).toContainText('Настройки сохранены');expect(s.settings.enabled).toBe(false);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);});
 
 test('late automatic refresh cannot overwrite an operator draft or its version',async({page})=>{
  const s=await setup(page);await page.clock.install();

@@ -43,28 +43,16 @@ async function openCheckoutWizard(page: Page) {
   await expect(page.getByRole("heading", { name: /получение/i })).toBeVisible({ timeout: 5_000 });
 }
 
-test("checkout shows a reason instead of a silent disabled button", async ({ page }) => {
+test("guest is asked to sign in before checkout instead of a silent disabled button", async ({ page }) => {
   await waitForFoodMenu(page);
-  await openCheckoutWizard(page);
-
-  await page.getByTestId('dam-checkout-overlay').getByText('Самовывоз',{exact:true}).click();
-  await page.getByTestId("dam-checkout-next").click();
-
-  await expect(page.getByRole("heading", { name: /контакт/i })).toBeVisible({ timeout: 5_000 });
-  await page.getByPlaceholder("Введите имя").fill("Тест");
-  await page.getByPlaceholder("+7 (___) ___-__-__").fill("+77001234567");
-  await page.getByTestId("dam-checkout-next").click();
-
-  await expect(page.getByRole("heading", { name: /подтверждение/i })).toBeVisible({ timeout: 5_000 });
-  const submit = page.getByTestId("dam-checkout-submit");
-  await expect(submit).toBeEnabled();
-  await submit.click();
-
-  // Either (or both) may appear when guest checkout is blocked.
-  await expect(
-    page.getByTestId("auth-prompt-modal").or(page.getByTestId("dam-checkout-block-reason")).first(),
-  ).toBeVisible({ timeout: 5_000 });
-  await expect(page.getByTestId('dam-checkout-block-reason')).toContainText('Войдите, чтобы оформить заказ');
+  await addItemToCart(page);
+  await page.getByTestId("dam-cart-open").click();
+  for(let i=0;i<20 && await page.getByTestId('dam-cart-checkout').isDisabled();i++) await page.getByTestId('dam-cart-qty-plus').click();
+  await page.getByTestId("dam-cart-checkout").click();
+  // Sign-in is asked before address and payment, with an explanation.
+  await expect(page.getByTestId("auth-prompt-modal")).toBeVisible({ timeout: 5_000 });
+  await expect(page.getByTestId("auth-prompt-modal")).toContainText(/Войдите/);
+  await expect(page.getByTestId("dam-checkout")).toHaveCount(0);
 });
 
 test("double click on submit does not enable a second in-flight request", async ({ page, request }) => {
@@ -98,8 +86,7 @@ test("double click on submit does not enable a second in-flight request", async 
   await openCheckoutWizard(page);
   await page.getByTestId('dam-checkout-overlay').getByText('Самовывоз',{exact:true}).click();
   await page.getByTestId("dam-checkout-next").click();
-  await page.getByPlaceholder("Введите имя").fill("Тест");
-  await page.getByPlaceholder("+7 (___) ___-__-__").fill("+77001234567");
+  await expect(page.getByTestId("dam-contact-card")).toBeVisible();
   await page.getByTestId("dam-checkout-next").click();
 
   const submit = page.getByTestId("dam-checkout-submit");
