@@ -34,6 +34,7 @@ MUTE_AFTER_OWNER = 12 * 3600
 MAX_PER_HOUR = 30
 HANDOFF_TAG = "[ОПЕРАТОР]"
 MAX_REPLY_CHARS = 1200
+OWN_NUMBERS = {"+77470304096"}  # DAM ALEM sales bot number
 
 
 @dataclass
@@ -241,6 +242,10 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient, modules
     if not chat_id or not re.search(r"@(c\.us|s\.whatsapp\.net|lid)$", chat_id) or chat_id.startswith("status@"):
         return Outcome("ignored")
     if _duplicate(str(p.get("id") or "")):
+        return Outcome("ignored")
+    # Never talk to another bot of ours (DAM ALEM sales number), whatever id format WhatsApp uses.
+    from services.dam_wa_bot import _phone_from
+    if _phone_from(chat_id, p) in OWN_NUMBERS:
         return Outcome("ignored")
     chat = _chat(chat_id)
     now = time.time()

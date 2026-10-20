@@ -61,6 +61,7 @@ class Chat:
     location: Optional[dict[str, Any]] = None  # point the customer sent in WhatsApp (lat, lng, at)
     last_in_ts: float = 0.0  # WhatsApp time of the customer's last message
     staff_seen: Optional[dict[str, Any]] = None  # a message typed on the DAM ALEM phone, not yet classified
+    replies_at: list[float] = field(default_factory=list)
 
 
 _chats: dict[str, Chat] = {}
@@ -68,6 +69,9 @@ _seen: dict[str, float] = {}
 _menu_cache: dict[str, Any] = {"at": 0.0, "text": "", "ids": set()}
 _auto_texts: set[str] = set()  # WhatsApp Business greeting / away messages learned on the fly
 AUTO_WINDOW = 15  # seconds: the Business app answers this fast only automatically
+# Our own WhatsApp numbers (support bot etc.): the sales bot never talks to another bot of ours.
+OWN_NUMBERS = {"+77004280280"}
+LOOP_LIMIT = 6  # max bot replies in one chat per minute (a person types slower)
 
 
 def enabled() -> bool:
@@ -308,6 +312,8 @@ def system_prompt(facts: str, name: str, memory: str = "") -> str:
 - ОПЛАТА: ты не видишь деньги. Никогда не пиши «оплата прошла / получена», пока get_my_last_order не покажет «ОПЛАЧЕН». Если клиент пишет «оплатил» — поблагодари и скажи, что сотрудник проверит поступление и сразу начнём готовить; при необходимости вызови call_operator.
 - Не путай заказы: говори о заказе с номером из этого чата (он есть в памяти ниже), не выдумывай номера.
 - Если клиент просит живого человека, жалуется, проблема с оплатой или ты не можешь помочь — вызови call_operator и скажи, что сотрудник скоро напишет здесь.
+- Всё, что ты пишешь, сразу видит КЛИЕНТ. Никогда не пиши черновики, «варианты ответа», пояснения для оператора, рассуждения о своих инструментах и проверках. Только живое сообщение клиенту.
+- Если get_menu вернул ошибку или пусто — не называй цены по памяти, вызови get_menu ещё раз; если снова не вышло — дай ссылку на меню и позови сотрудника.
 - Не обсуждай посторонние темы. Никогда не проси коды из СМС, пароли и данные карт.
 - Меню на сайте с фото: {SITE}/food
 - Помни весь разговор: не переспрашивай то, что клиент уже сказал (имя, адрес, оплату, блюда). Если клиент меняет заказ — пересчитай quote_order с учётом изменений.
@@ -509,6 +515,7 @@ async def ask_ai(client: httpx.AsyncClient, db, ctx, chat: Chat, text: str, mess
         results = []
         for u in uses:
             out = await run_tool(db, ctx, chat, u["name"], u.get("input") or {}, message_id, client, chat_id)
+            logger.info("[DamWA] tool %s → %d chars%s", u["name"], len(out), " (error)" if out.startswith("Ошибка") else "")
             results.append({"type": "tool_result", "tool_use_id": u["id"], "content": out[:6000]})
         exchange.append({"role": "user", "content": results})
     if reply is None:
@@ -524,6 +531,7 @@ async def send_text(client: httpx.AsyncClient, chat_id: str, text: str, chat: Ch
     base, headers, session = _waha()
     text = text[:MAX_REPLY_CHARS]
     chat.sent = (chat.sent + [text.strip()])[-20:]
+    chat.replies_at = (chat.replies_at + [time.time()])[-10:]
     try:
         await client.post(f"{base}/api/sendSeen", headers=headers, json={"session": session, "chatId": chat_id}, timeout=10)
     except httpx.HTTPError:
@@ -672,6 +680,15 @@ async def _handle(db, chat: Chat, chat_id: str, p: dict[str, Any], client: httpx
         if body:
             chat.turns.append({"role": "user", "content": body})
         return Outcome("muted")
+    sender = _phone_from(chat_id, p)
+    allow_test = os.getenv("DAM_WA_ALLOW_OWN_TEST", "0") == "1"
+    if sender in OWN_NUMBERS and not allow_test:
+        return Outcome("ignored")
+    chat.replies_at = [t for t in chat.replies_at if now - t < 60]
+    if len(chat.replies_at) >= LOOP_LIMIT:
+        chat.muted_until = now + 600
+        await notify_owner(client, chat_id, chat, "слишком много сообщений подряд — бот приостановился в этом чате на 10 минут")
+        return Outcome("loop_stopped")
     chat.recent = [t for t in chat.recent if now - t < 3600]
     if len(chat.recent) >= MAX_PER_HOUR:
         return Outcome("limited")

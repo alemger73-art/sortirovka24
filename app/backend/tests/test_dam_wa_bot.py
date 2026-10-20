@@ -216,3 +216,23 @@ async def test_business_app_greeting_does_not_silence_the_bot(bot, monkeypatch):
         assert (await B.handle_event(other, client)).action == "ignored"
         nxt = msg("пиццу", mid="h2"); nxt["payload"]["timestamp"] = now + 30
         assert (await B.handle_event(nxt, client)).action == "replied"
+
+
+async def test_bots_never_talk_to_each_other_and_loop_guard(bot, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+    from services import support_bot
+    support_bot._chats.clear(); support_bot._seen_ids.clear()
+    log = []
+    async with httpx.AsyncClient(transport=transport(log, [])) as client:
+        # Support number writes to DAM (even as a hidden @lid id) → DAM bot ignores it.
+        e = msg("привет", chat="99887766@lid"); e["payload"]["_data"] = {"Info": {"SenderAlt": "77004280280:3@s.whatsapp.net"}}
+        assert (await B.handle_event(e, client)).action == "ignored"
+        # DAM number writes to the support bot → ignored too.
+        s = {"event": "message.any", "payload": {"id": "x1", "from": "55443322@lid", "to": "77004280280@c.us", "fromMe": False,
+             "body": "Здравствуйте! Это DAM ALEM", "_data": {"Info": {"SenderAlt": "77470304096@s.whatsapp.net"}}}}
+        assert (await support_bot.handle_event(s, client, {"food": True})).action == "ignored"
+    assert log == []
+    # Loop guard: a chat that already got 4 bot replies within a minute is stopped.
+    chat = B._chat("77015556677@c.us"); chat.replies_at = [time.time()] * 6
+    async with httpx.AsyncClient(transport=transport(log, [])) as client:
+        assert (await B.handle_event(msg("ещё"), client)).action == "loop_stopped"
