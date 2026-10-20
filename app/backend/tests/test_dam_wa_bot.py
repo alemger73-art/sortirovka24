@@ -147,3 +147,26 @@ async def test_last_order_never_claims_payment_without_staff(bot, monkeypatch):
         await B.handle_event(msg("я оплатил"), client)
     status = [b for u, b in log if "anthropic" in u][-1]["messages"][-1]["content"][0]["content"]
     assert "ЕЩЁ НЕ ОПЛАЧЕН" in status
+
+
+async def test_thinking_is_not_stored_and_bad_memory_is_retried(bot, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+    calls = []
+
+    def handler(request):
+        url = str(request.url)
+        body = json.loads(request.content) if request.content else {}
+        if "anthropic" in url:
+            calls.append(body)
+            if len(calls) == 2:  # the API rejects the request with memory → bot retries with plain text memory
+                return httpx.Response(400, json={"error": {"message": "bad history"}})
+            return httpx.Response(200, json={"stop_reason": "end_turn", "content": [
+                {"type": "thinking", "thinking": "думаю…", "signature": "s"}, {"type": "text", "text": f"Ответ {len(calls)} 🍕"}]})
+        return httpx.Response(200, json={"ok": True, "result": {"message_id": 1}})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        assert (await B.handle_event(msg("привет"), client)).reply == "Ответ 1 🍕"
+        assert (await B.handle_event(msg("пиццу на пятерых"), client)).reply == "Ответ 3 🍕"
+    stored = json.dumps(B._chats["77015556677@c.us"].history, ensure_ascii=False)
+    assert "thinking" not in stored and calls[0]["max_tokens"] >= 3000
+    assert calls[2]["messages"][:2] == [{"role": "user", "content": "привет"}, {"role": "assistant", "content": "Ответ 1 🍕"}]

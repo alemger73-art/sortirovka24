@@ -115,7 +115,9 @@ async def load_chat(db, chat_id: str) -> Chat:
         if raw:
             data = json.loads(raw)
             known = {k: v for k, v in data.items() if k in Chat.__dataclass_fields__}
-            _chats[chat_id] = Chat(**known)
+            chat = Chat(**known)
+            chat.history = [_compact(ex) for ex in chat.history if isinstance(ex, list)]
+            _chats[chat_id] = chat
     except Exception as exc:
         logger.warning("[DamWA] memory load failed: %s", exc)
         await db.rollback()
@@ -407,9 +409,12 @@ async def run_tool(db, ctx, chat: Chat, name: str, args: dict[str, Any], message
 
 
 def _compact(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Keep tool calls in memory but shrink the big menu dumps."""
+    """Keep tool calls in memory but shrink the big menu dumps and drop the model's private reasoning."""
     out = []
     for m in messages:
+        if m["role"] == "assistant" and isinstance(m.get("content"), list):
+            kept = [b for b in m["content"] if b.get("type") in ("text", "tool_use") and (b.get("type") != "text" or b.get("text"))]
+            m = {**m, "content": kept or [{"type": "text", "text": "…"}]}
         if m["role"] == "user" and isinstance(m.get("content"), list):
             content = []
             for b in m["content"]:
@@ -418,6 +423,21 @@ def _compact(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 content.append(b)
             m = {**m, "content": content}
         out.append(m)
+    return out
+
+
+def _text_only(exchanges: list[list[dict[str, Any]]]) -> list[dict[str, Any]]:
+    """Fallback memory: only what was said, as alternating user/assistant text."""
+    out: list[dict[str, Any]] = []
+    for ex in exchanges[-HISTORY_EXCHANGES:]:
+        user = next((m["content"] for m in ex if m["role"] == "user" and isinstance(m.get("content"), str)), "")
+        said = ""
+        for m in ex:
+            if m["role"] == "assistant":
+                c = m.get("content")
+                said = c if isinstance(c, str) else "".join(b.get("text", "") for b in c if b.get("type") == "text") or said
+        if user and said:
+            out += [{"role": "user", "content": user}, {"role": "assistant", "content": said}]
     return out
 
 
@@ -439,15 +459,28 @@ async def ask_ai(client: httpx.AsyncClient, db, ctx, chat: Chat, text: str, mess
     history = [m for ex in chat.history[-HISTORY_EXCHANGES:] for m in ex]
     exchange: list[dict[str, Any]] = [{"role": "user", "content": text[:2000]}]
     reply: Optional[str] = None
-    for _ in range(MAX_TOOL_ROUNDS):
-        resp = await client.post(
+    async def call(msgs: list[dict[str, Any]]) -> httpx.Response:
+        return await client.post(
             "https://api.anthropic.com/v1/messages",
             headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-            json={"model": os.getenv("DAM_WA_MODEL", "claude-haiku-5-5"), "max_tokens": 900,
-                  "system": system_prompt(facts, chat.name, memory), "tools": TOOLS, "messages": history + exchange},
-            timeout=60)
+            json={"model": os.getenv("DAM_WA_MODEL", "claude-haiku-5-5"), "max_tokens": 4000,
+                  "system": system_prompt(facts, chat.name, memory), "tools": TOOLS, "messages": msgs},
+            timeout=90)
+
+    for _ in range(MAX_TOOL_ROUNDS):
+        resp = await call(history + exchange)
+        if resp.status_code == 400 and history:
+            # Broken old memory must never break the conversation: retry with plain-text memory only.
+            logger.warning("[DamWA] AI 400 with memory, retrying with text-only memory: %s", resp.text[:300])
+            history = _text_only(chat.history)
+            resp = await call(history + exchange)
+        if resp.status_code >= 400:
+            logger.warning("[DamWA] AI error %s: %s", resp.status_code, resp.text[:300])
         resp.raise_for_status()
-        content = resp.json().get("content", [])
+        data = resp.json()
+        content = data.get("content", [])
+        if data.get("stop_reason") == "max_tokens" and not any(b.get("type") == "tool_use" for b in content):
+            logger.warning("[DamWA] reply hit max_tokens")
         exchange.append({"role": "assistant", "content": content})
         uses = [b for b in content if b.get("type") == "tool_use"]
         if not uses:
