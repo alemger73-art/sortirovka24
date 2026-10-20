@@ -37,15 +37,17 @@ export function pwaEvent(event: string) {
 export type InstallEvent = Event & { prompt(): Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> };
 let prompt: InstallEvent | null = null;
 let initialized = false;
-export const currentInstallPrompt = () => prompt;
-export function takeInstallPrompt() { const event = prompt; prompt = null; return event; }
+type EarlyWindow = Window & { __s24InstallPrompt?: InstallEvent | null };
+// The event may have arrived before this module loaded (caught by the inline script in index.html).
+const early = () => (window as EarlyWindow).__s24InstallPrompt || null;
+export const currentInstallPrompt = () => prompt || early();
+export function takeInstallPrompt() { const event = prompt || early(); prompt = null; (window as EarlyWindow).__s24InstallPrompt = null; return event; }
 export function initPwaInstall() {
   if (initialized) return;
   initialized = true;
   if (isPwaStandalone()) { document.documentElement.classList.add('pwa-standalone'); pwaEvent('pwa_standalone_open'); }
   window.addEventListener('beforeinstallprompt', event => {
     event.preventDefault(); prompt = event as InstallEvent;
-    window.dispatchEvent(new Event('s24:install-ready'));
   });
   window.addEventListener('appinstalled', () => {
     prompt = null; pwaEvent('pwa_appinstalled'); window.dispatchEvent(new Event('s24:install-ready'));

@@ -18,6 +18,11 @@
     <meta name="application-name" content="Сортировка 24" />
     <link rel="manifest" href="/manifest.json" />
     <script>
+      // Chrome announces «can be installed» right after load — before the app bundle runs. Keep it for the Install button.
+      window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); window.__s24InstallPrompt = e; window.dispatchEvent(new Event('s24:install-ready')); });
+      window.addEventListener('appinstalled', function () { window.__s24InstallPrompt = null; });
+    </script>
+    <script>
       if (['/food/courier', '/dam-alem/courier', '/courier'].includes(location.pathname.replace(/\/$/, ''))) {
         document.querySelector('link[rel="manifest"]').href = '/courier.webmanifest';
         document.querySelector('meta[name="apple-mobile-web-app-title"]').content = 'DAM ALEM Курьер';
