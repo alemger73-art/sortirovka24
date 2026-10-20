@@ -51,6 +51,7 @@ class Chat:
     name: str = ""
     phone: str = ""
     sent: list[str] = field(default_factory=list)
+    sent_ids: list[str] = field(default_factory=list)
     pending: Optional[dict[str, Any]] = None  # last quote waiting for «да»
     last_order_id: Optional[int] = None
     handed_off_at: float = 0.0
@@ -157,7 +158,25 @@ async def store_facts(db) -> str:
         parts.append(f"Бесплатная доставка от {money(s.get('free_delivery_from'))}")
     if not open_now:
         parts.append("Когда кухня закрыта, можно оформить предзаказ: вызови get_preorder_slots и предложи время.")
-    return ". ".join(parts) + "."
+    text = ". ".join(parts) + "."
+    from services.food_order_validation import _parse_loyalty_gifts, _parse_promo_codes
+    gifts = _parse_loyalty_gifts(s)
+    if gifts:
+        by_sum: dict[float, list[str]] = {}
+        for g in gifts:
+            by_sum.setdefault(g["min_amount"], []).append(g["title"] + (f" (selected_gift_id «{g['id']}»)"))
+        text += "\nПодарки к заказу (бесплатно, клиент выбирает один из уровня по сумме блюд): " + "; ".join(
+            f"от {money(k)} — " + " или ".join(v) for k, v in sorted(by_sum.items()))
+    promos = []
+    for pr in _parse_promo_codes(s.get("promo_codes") or "[]"):
+        if not isinstance(pr, dict) or pr.get("active") is False or str(pr.get("active", "")).lower() in ("0", "false", "no", "off"):
+            continue
+        kind = {"percent": f"−{pr.get('value')}%", "fixed": f"−{money(pr.get('value'))}", "free_delivery": "бесплатная доставка"}.get(str(pr.get("type") or "percent"), "скидка")
+        promos.append(f"{str(pr.get('code', '')).upper()}: {kind}" + (f" от {money(pr.get('min_order'))}" if float(pr.get("min_order") or 0) else "")
+                      + (f" ({pr.get('label')})" if pr.get("label") else ""))
+    if promos:
+        text += "\nДействующие промокоды (предлагай подходящий по сумме и подставляй в promo_code): " + "; ".join(promos[:8])
+    return text
 
 
 def system_prompt(facts: str, name: str) -> str:
@@ -185,8 +204,16 @@ def system_prompt(facts: str, name: str) -> str:
 
 Сейчас: {facts}
 
-Как продавать:
-- Помогай выбрать: спроси, на сколько человек и что любят; предлагай хиты и комбо; к бургерам и пицце мягко предложи напиток или закуску (один раз, без давления).
+Как продавать (ты продавец, твоя цель — вкусный и выгодный для клиента заказ на хорошую сумму):
+- Узнай, на сколько человек и что любят. Сразу предлагай 2–3 конкретных блюда или комбо с ценой — не перечисляй всё меню.
+- Обязательно, до расчёта, сделай одно дружелюбное допредложение (один раз, без давления):
+  • к пицце и бургерам — соус (если у блюда есть соусы в меню) и напиток 🥤;
+  • к одному блюду — закуску: картофель фри, наггетсы, луковые кольца 🍟;
+  • если людей несколько — комбо или вторую пиццу.
+  Пример: «К пицце отлично зайдёт *Сырный соус* (+300 ₸) и холодная *Coca-Cola 1 л* (800 ₸) 🥤 Добавить?»
+- Следи за суммой блюд. Если до подарка или бесплатной доставки осталось немного (до ~3 000 ₸) — скажи сколько и что можно добавить: «Ещё 1 200 ₸ — и *подарок* 🎁 бесплатно!»
+- Если сумма уже дотягивает до подарка — обязательно скажи о нём и спроси, какой подарок выбрать (selected_gift_id в quote_order).
+- Если подходит промокод — предложи его и подставь в promo_code.
 - Блюда, цены и варианты бери ТОЛЬКО из get_menu. Никогда не выдумывай блюда, цены, скидки и сроки.
 - Если у блюда есть обязательный выбор (размер, количество, состав комбо) — уточни у клиента.
 - Для заказа нужны: блюда и количество, имя, доставка (адрес: улица и дом, подъезд/квартира) или самовывоз, оплата: наличными (спроси, с какой суммы сдача), Kaspi или Halyk (счёт придёт в приложение банка на номер клиента). Спрашивай недостающее по одному вопросу.
@@ -330,6 +357,14 @@ async def send_text(client: httpx.AsyncClient, chat_id: str, text: str, chat: Ch
         pass
     r = await client.post(f"{base}/api/sendText", headers=headers, json={"session": session, "chatId": chat_id, "text": text}, timeout=20)
     r.raise_for_status()
+    try:
+        data = r.json()
+        mid = data.get("id") if isinstance(data, dict) else None
+        mid = mid.get("_serialized") if isinstance(mid, dict) else mid
+        if mid:
+            chat.sent_ids = (chat.sent_ids + [str(mid)])[-30:]
+    except ValueError:
+        pass
 
 
 async def transcribe(client: httpx.AsyncClient, media: dict[str, Any]) -> Optional[str]:
@@ -392,7 +427,10 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient) -> Outc
     now = time.time()
     body = str(p.get("body") or "").strip()
     if p.get("fromMe"):
-        if body in chat.sent or body.startswith("🔔"):
+        # Our own API messages come back as fromMe too: recognise them by source / id / text, never mute on them.
+        norm = re.sub(r"\s+", " ", body)
+        if (str(p.get("source") or "").lower() == "api" or str(p.get("id") or "") in chat.sent_ids
+                or body.startswith("🔔") or any(norm == re.sub(r"\s+", " ", t) or (len(norm) > 40 and t.startswith(body[:40])) for t in chat.sent)):
             return Outcome("ignored")
         chat.muted_until = now + MUTE_AFTER_STAFF  # a person from DAM ALEM answered from the phone
         chat.pending = None

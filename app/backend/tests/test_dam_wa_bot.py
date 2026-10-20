@@ -60,6 +60,7 @@ async def test_quote_then_customer_yes_creates_whatsapp_order(bot, monkeypatch):
         assert out.action == "replied" and "Да" in out.reply
         ai_calls = [b for u, b in log if "anthropic" in u]
         assert ai_calls[0]["tools"][0]["name"] == "get_menu" and "DAM ALEM" in ai_calls[0]["system"]
+        assert "допредложение" in ai_calls[0]["system"] and "промокод" in ai_calls[0]["system"]
         menu_result = ai_calls[1]["messages"][-1]["content"][0]["content"]
         assert "#2" in menu_result and "₸" in menu_result
         assert B._chats["77015556677@c.us"].pending
@@ -81,8 +82,10 @@ async def test_yes_without_quote_does_not_order_and_staff_reply_mutes_bot(bot, m
     async with httpx.AsyncClient(transport=transport(log, script)) as client:
         out = await B.handle_event(msg("да"), client)
         assert out.action == "replied"
-        # Bot's own reply echoes back as fromMe: ignored.
+        # Bot's own reply echoes back as fromMe: ignored (by text, and by WAHA source=api even if the text differs).
         assert (await B.handle_event(msg(sent(log)[-1], from_me=True, mid="echo"), client)).action == "ignored"
+        echo = msg("Что хотите  заказать? (изменённый текст)", from_me=True, mid="echo2"); echo["payload"]["source"] = "api"
+        assert (await B.handle_event(echo, client)).action == "ignored"
         # A DAM ALEM employee writes from the phone → the bot is silent in this chat.
         assert (await B.handle_event(msg("Здравствуйте, это администратор", from_me=True), client)).action == "muted"
         assert (await B.handle_event(msg("хочу пиццу"), client)).action == "muted"
