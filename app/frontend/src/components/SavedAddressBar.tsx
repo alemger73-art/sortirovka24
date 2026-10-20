@@ -69,8 +69,10 @@ export default function SavedAddressBar({ currentAddress, onSelect, accent = 'em
     let active = true;
     accountApi
       .listAddresses()
-      .then((list) => {
+      .then((raw) => {
         if (!active) return;
+        // A bad or unexpected answer must never break checkout: no list = no quick choice.
+        const list = Array.isArray(raw) ? raw : [];
         setAddresses(list);
         if (autoApplyDefault && !autoApplied.current && !currentAddress.trim()) {
           autoApplied.current = true;

@@ -24,7 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { getAccountPrefill, isLoggedIn, pushCabinetItem, openAuthPrompt } from '@/lib/localAuth';
+import { getAccountPrefill, isLoggedIn, pushCabinetItem, openAuthPrompt, onAuthChanged, cacheAccountProfile } from '@/lib/localAuth';
 import { saveFoodCheckoutReturn, takeFoodCheckoutReturn } from '@/lib/foodCheckoutReturn';
 import { accountApi, getAccountToken } from '@/lib/accountApi';
 import { fetchFoodRestaurantsList } from '@/lib/foodAdminApi';
@@ -255,7 +255,8 @@ export default function Food() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartAvailabilityNotice, setCartAvailabilityNotice] = useState('');
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [legalAccepted, setLegalAccepted] = useState(false);
+  // Consent to data processing is given once at sign-in; the order button itself accepts the order terms (notice above it).
+  const [editContacts, setEditContacts] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<1 | 2 | 3>(1);
   const [lastOrderPreview, setLastOrderPreview] = useState<{
     label: string;
@@ -441,10 +442,22 @@ export default function Food() {
     });
   }, [items]);
 
+  // A signed-in customer is never asked for name and phone again: they come from the account.
   useEffect(() => {
-    const prefill = getAccountPrefill();
-    if (prefill.name) setCustomerName((v) => v || prefill.name);
-    if (prefill.phone) setCustomerPhone((v) => v || prefill.phone);
+    const apply = () => {
+      const prefill = getAccountPrefill();
+      if (prefill.name) setCustomerName((v) => v || prefill.name);
+      if (prefill.phone) setCustomerPhone((v) => v || prefill.phone);
+      return prefill;
+    };
+    const first = apply();
+    if ((!first.name || !first.phone) && getAccountToken()) {
+      accountApi.me().then(me => {
+        if (me?.id) cacheAccountProfile({ id: me.id, name: me.name, phone: me.phone, email: me.email, avatar: me.avatar });
+        apply();
+      }).catch(() => { /* the fields stay editable */ });
+    }
+    return onAuthChanged(() => { apply(); });
   }, []);
 
   useEffect(() => () => {
@@ -1334,8 +1347,7 @@ export default function Food() {
   }
 
   async function submitOrder() {
-    if (customerName.trim().split(/\s+/).length < 2) { toast.error(lang === 'kz' ? 'Тегіңіз бен атыңызды көрсетіңіз' : 'Укажите фамилию и имя'); setCheckoutStep(2); return; }
-    if (!legalAccepted) { toast.error(lang === 'kz' ? 'Тапсырыс шарттарын және деректерді өңдеуге келісімді растаңыз' : 'Подтвердите условия заказа и согласие на обработку данных'); return; }
+    if (customerName.trim().length < 2 || !customerPhone.trim()) { toast.error(st('Укажите имя и телефон')); setEditContacts(true); setCheckoutStep(2); return; }
     if(preorder && !scheduleISO(schedule)){toast.error('Выберите дату и время предзаказа');return;}
     if (submittingRef.current) return;
     if (payment === 'cash' && cashGiven !== '' && (!Number.isFinite(Number(cashGiven)) || Number(cashGiven) < checkoutGrandTotal)) {toast.error('Проверьте сумму наличных для сдачи'); return;}
@@ -1388,7 +1400,7 @@ export default function Food() {
     setSubmitting(true);
     try {
       const orderData = {
-            legal_accepted: legalAccepted,
+            legal_accepted: true,
             legal_version: LEGAL_VERSION,
             legal_language: lang,
             scheduled_for:preorder?scheduleISO(schedule):undefined,
@@ -1426,7 +1438,6 @@ export default function Food() {
       try { sessionStorage.setItem('dam-checkout-attempt', JSON.stringify(checkoutAttempt.current)); } catch { /* Keep the in-memory retry key. */ }
       const created = await client.entities.food_orders.create({ data: { ...orderData, request_key: checkoutAttempt.current.key } });
       checkoutAttempt.current = null;
-      setLegalAccepted(false);
       try { sessionStorage.removeItem('dam-checkout-attempt'); } catch { /* Order is already saved. */ }
       const createdAny = created as { data?: { id?: number }; id?: number } | undefined;
       const orderId = Number(createdAny?.data?.id ?? createdAny?.id ?? 0);
@@ -1482,8 +1493,10 @@ export default function Food() {
         deliveryMethod,
         invoicePhone: payment !== 'cash' ? invoicePhoneValue(invoicePhone || customerPhone) : undefined,
       });
-      setCustomerName('');
-      setCustomerPhone('');
+      // Keep the account name and phone for the next order.
+      setCustomerName(getAccountPrefill().name || customerName);
+      setCustomerPhone(getAccountPrefill().phone || customerPhone);
+      setEditContacts(false);
       setApartment('');
       setDeliveryAddress('');
       setDeliveryQuote(null);
@@ -2474,16 +2487,24 @@ export default function Food() {
                 {/* Contact info */}
                 <div className="dam-checkout-section">
                   <div className="dam-checkout-section__title">{st("Контактные данные")}</div>
+                  {!editContacts && customerName.trim().length >= 2 && customerPhone.trim() ? (
+                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3" data-testid="dam-contact-card">
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-zinc-900">{customerName}</p>
+                        <p className="text-sm text-gray-500">{customerPhone}</p>
+                      </div>
+                      <button type="button" onClick={() => setEditContacts(true)} className="shrink-0 rounded-xl px-3 py-2 text-sm font-semibold text-[#FF3B30] hover:bg-red-50">{st('Изменить')}</button>
+                    </div>
+                  ) : (
                   <div className="dam-field-grid dam-field-grid--2">
                   <div className="dam-field">
-                    <label className="mb-1.5 block">
-                      {lang === 'kz' ? 'Тегі, аты, әкесінің аты (болса)' : 'Фамилия, имя, отчество (при наличии)'} *
-                    </label>
-                    <Input maxLength={120} value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder={lang === 'kz' ? 'Тегі және аты' : 'Фамилия и имя'} className="dam-input" />
+                    <label className="mb-1.5 block" htmlFor="dam-customer-name">{st('Ваше имя')} *</label>
+                    <Input id="dam-customer-name" maxLength={120} autoComplete="name" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder={st('Например, Алия')} className="dam-input" />
                   </div>
                   <div className="dam-field">
-                    <label className="mb-1.5 block">{t('food.phone')} *</label>
+                    <label className="mb-1.5 block" htmlFor="dam-customer-phone">{t('food.phone')} *</label>
                     <Input
+                      id="dam-customer-phone"
                       type="tel"
                       inputMode="tel"
                       autoComplete="tel"
@@ -2494,6 +2515,7 @@ export default function Food() {
                     />
                   </div>
                   </div>
+                  )}
 
                   <div className="dam-field mt-3">
                     <label className="mb-1.5 block">{t('food.comment')}</label>
@@ -2721,10 +2743,7 @@ export default function Food() {
               <div className="dam-sheet-footer dam-sheet-footer--premium">
                 {checkoutStep === 3 && <div className="mb-3 space-y-2 text-xs text-gray-600 dark:text-gray-300">
                   <p>{LEGAL_OPERATOR.name} · <a href={`tel:${LEGAL_OPERATOR.phoneHref}`} className="underline">{LEGAL_OPERATOR.phone}</a></p>
-                  <label className="flex items-start gap-2">
-                    <input type="checkbox" checked={legalAccepted} onChange={e => setLegalAccepted(e.target.checked)} className="mt-1" />
-                    <span>{lang === 'kz' ? 'Тапсырыс және жеткізу ' : 'Принимаю '}<Link to="/legal/food-terms" target="_blank" rel="noopener noreferrer" className="underline">{lang === 'kz' ? 'шарттарын' : 'условия заказа и доставки'}</Link>{lang === 'kz' ? ' қабылдаймын және ' : ' и даю '}<Link to="/legal/consent" target="_blank" rel="noopener noreferrer" className="underline">{lang === 'kz' ? 'деректерді өңдеуге келісім' : 'согласие на обработку данных'}</Link>{lang === 'kz' ? ' беремін. ' : '. '}<Link to="/legal/privacy" target="_blank" rel="noopener noreferrer" className="underline">{lang === 'kz' ? 'Құпиялылық саясаты' : 'Политика конфиденциальности'}</Link></span>
-                  </label>
+                  <p>{lang === 'kz' ? '«Тапсырыс беру» батырмасын басу арқылы сіз ' : 'Нажимая «Оформить заказ», вы принимаете '}<Link to="/legal/food-terms" target="_blank" rel="noopener noreferrer" className="underline">{lang === 'kz' ? 'тапсырыс және жеткізу шарттарын' : 'условия заказа и доставки'}</Link>{lang === 'kz' ? ' қабылдайсыз. ' : '. '}<Link to="/legal/privacy" target="_blank" rel="noopener noreferrer" className="underline">{lang === 'kz' ? 'Құпиялылық саясаты' : 'Политика конфиденциальности'}</Link></p>
                 </div>}
                 {checkoutStep === 3 && checkoutFinalBlockReason && !submitting ? (
                   <p
@@ -2778,7 +2797,7 @@ export default function Food() {
                     <DamAlemCheckoutButton
                       label={submitting ? st("Отправляем заказ…") : st("Оформить заказ")}
                       sublabel={formatPrice(checkoutGrandTotal)}
-                      disabled={submitting || !legalAccepted}
+                      disabled={submitting}
                       loading={submitting}
                       onClick={submitOrder}
                       testId="dam-checkout-submit"

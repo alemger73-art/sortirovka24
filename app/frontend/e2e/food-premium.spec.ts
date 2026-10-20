@@ -2,11 +2,18 @@ import { test, expect } from '@playwright/test';
 
 // Deterministic catalog: every API request is intercepted; no live orders.
 async function mockCatalog(page: import('@playwright/test').Page) {
+  // Checkout needs a signed-in customer (sign-in happens before address and payment).
+  await page.addInitScript(() => {
+    localStorage.setItem('account_token', 'test-account-token');
+    localStorage.setItem('s24_account_token_v1', 'test-account-token');
+    localStorage.setItem('account_user_profile', JSON.stringify({ id: 'u1', name: 'Тест', phone: '+77001234567', password: '' }));
+  });
   await page.route('**/*', route => { const url = new URL(route.request().url()); return url.hostname === '127.0.0.1' || url.pathname.includes('/api/') ? route.continue() : route.abort(); });
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
     let body: unknown = { items: [], total: 0 };
     if (path.endsWith('/modules')) body = { food: true };
+    if (path.endsWith('/account/me')) body = { id: 'u1', name: 'Тест', phone: '+77001234567' };
     if (path.includes('food_restaurants')) body = { items: [{ id: 1, name: 'DAM ALEM 2.0' }] };
     if (path === '/api/categories') body = { categories: [{ id: 1, name: 'Пицца', slug: 'pizza' }, { id: 2, name: 'Напитки', slug: 'napitki' }] };
     if (path === '/api/v1/dam-alem/menu/catalog') body = {business_id:'dam_alem',restaurant_id:1,categories:[{id:1,name:'Пицца',slug:'pizza'},{id:2,name:'Напитки',slug:'napitki'}],products:[{id:1,restaurant_id:1,category_id:1,name:'Маргарита',description:'Томаты, моцарелла, базилик',image_url:'/food-hero-reference.png',price:2500,available:true,is_active:true,sellable:true,modifiers_enabled:false,modifier_groups:[]},{id:2,restaurant_id:1,category_id:2,name:'Лимонад',price:600,available:true,is_active:true,sellable:true,modifiers_enabled:false,modifier_groups:[]},{id:3,restaurant_id:1,category_id:2,name:'Нет в наличии',price:500,available:false,is_active:true,sellable:false,modifier_groups:[]}],groups:[],options:[],links:[]};
@@ -113,8 +120,7 @@ test('checkout shows every eligible gift and requires an explicit choice', async
   const giftChoice = page.locator('#dam-checkout-gift-choice');
   await expect(giftChoice.getByText('Выберите один подарок бесплатно', { exact: true })).toBeVisible();
   await expect(giftChoice.getByRole('button')).toHaveCount(2);
-  await page.getByPlaceholder('Введите имя').fill('Алемгер');
-  await page.getByPlaceholder('+7 (___) ___-__-__').fill('+77004280280');
+  await expect(page.getByTestId('dam-contact-card')).toContainText('Тест');  // from the account, not typed again
   await page.getByTestId('dam-checkout-next').click();
   await expect(page.getByText('Выберите один бесплатный подарок', { exact: true }).last()).toBeVisible();
   await expect(page.getByText('Контактные данные', { exact: true })).toBeVisible();
