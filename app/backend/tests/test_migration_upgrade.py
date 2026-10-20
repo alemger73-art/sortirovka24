@@ -17,14 +17,15 @@ def configuration():
 
 def test_all_legacy_revisions_resolve():
     scripts=ScriptDirectory.from_config(configuration())
-    assert scripts.get_heads()==['delete20261016_requests']
+    assert scripts.get_heads()==['watch20261020_site_analytics']
+    assert scripts.get_revision('watch20261020_site_analytics').down_revision == 'delete20261016_requests'
     assert scripts.get_revision('dam20261001_payment_lifecycle').down_revision == 'dam20260930_shared_cashbox'
     assert scripts.get_revision('dam20260930_shared_cashbox').down_revision == 'dam20260929_courier_workflow'
     assert scripts.get_revision('dam20260929_courier_workflow').down_revision == 'dam20260928_operator_workflow'
     assert scripts.get_revision('dam20260928_operator_workflow').down_revision == 'pp20260927_partner_profiles'
     assert scripts.get_revision('pp20260927_partner_profiles').down_revision == 'm20260927_merge_legacy_heads'
     revisions=list(scripts.walk_revisions())
-    assert len(revisions)==72
+    assert len(revisions)==73
     for rev in ['r6s7t8u9v0w1','r6s7t8u9v0w1_add_partner_credentials',
                 's7t8u9v0w1x2','s7t8u9v0w1x2_food_order_bonus_columns',
                 'x2y3z4a5b6c7','x2y3z4a5b6c7_repair_banners_columns','a5b6c7d8e9f0']:
@@ -58,7 +59,8 @@ def test_upgrade_existing_head_preserves_listing_and_custom_banner(tmp_path,monk
     command.upgrade(configuration(),'head')
     command.upgrade(configuration(),'head')
     with engine.connect() as conn:
-        assert conn.scalar(sa.text('SELECT version_num FROM alembic_version'))=='delete20261016_requests'
+        assert conn.scalar(sa.text('SELECT version_num FROM alembic_version'))=='watch20261020_site_analytics'
+        assert sa.inspect(conn).has_table('site_events') and sa.inspect(conn).has_table('site_errors')
         assert conn.scalar(sa.text('SELECT token FROM push_devices')) == 'existing-device'
         assert {'browser', 'device_platform', 'preferences', 'last_used_at'} <= {c['name'] for c in sa.inspect(conn).get_columns('push_devices')}
         assert sa.inspect(conn).has_table('food_payments')

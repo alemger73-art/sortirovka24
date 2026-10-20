@@ -36,4 +36,4 @@ def test_revision_is_resolvable_from_current_chain():
     config.set_main_option("script_location", str(root / "alembic"))
     scripts = ScriptDirectory.from_config(config)
     assert scripts.get_revision("delete20261016_requests").down_revision == "dam20261006_pwa_preferences"
-    assert "delete20261016_requests" in scripts.get_heads()
+    assert scripts.get_revision("watch20261020_site_analytics").down_revision == "delete20261016_requests"
