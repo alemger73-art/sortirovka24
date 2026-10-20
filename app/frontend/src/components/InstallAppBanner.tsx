@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Download, Share, X } from 'lucide-react';
 import { isNativeApp } from '@/lib/native';
-import { currentInstallPrompt, takeInstallPrompt, isPwaStandalone, pwaEvent, pwaPlatform } from '@/lib/pwa';
+import { currentInstallPrompt, takeInstallPrompt, isPwaStandalone, pwaEvent, pwaPlatform, chromeIntentUrl } from '@/lib/pwa';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 export default function InstallAppBanner({ manual = false }: { manual?: boolean }) {
@@ -57,13 +57,17 @@ export default function InstallAppBanner({ manual = false }: { manual?: boolean 
         <p className="flex items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-xl font-bold text-blue-600 dark:bg-blue-950">+</span>Выберите «На экран „Домой“»</p>
         {environment.browser !== 'safari' && <p className="text-sm text-slate-500">Если пункта нет — откройте сайт в Safari.</p>}
       </div></DialogDescription>
+      : environment.platform === 'android' && environment.browser !== 'samsung' && environment.browser !== 'yandex' ? <DialogDescription asChild><div className="space-y-4 text-base text-slate-700 dark:text-slate-200">
+        {/* Links from Telegram/WhatsApp open in an in-app Chrome window where installing is impossible. */}
+        <p>Установка работает в самом браузере Chrome. Откройте сайт в Chrome — там нажмите «Установить».</p>
+        <a href={chromeIntentUrl()} onClick={() => pwaEvent('pwa_open_in_chrome')} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white"><Download size={18} />Открыть в Chrome</a>
+        <p className="text-sm text-slate-500">Уже в Chrome? Меню ⋮ вверху → «Установить приложение».</p>
+      </div></DialogDescription>
       : <DialogDescription asChild><div className="flex items-center gap-3 text-base text-slate-700 dark:text-slate-200">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-xl font-bold text-blue-600 dark:bg-blue-950">⋮</span>
-        <p>{environment.embedded ? 'Откройте меню ⋮ вверху и выберите «Открыть в браузере» — там нажмите «Установить».'
-          : environment.browser === 'yandex' ? 'Откройте меню ⋮ (или ☰) и выберите «Добавить ярлык на экран».'
+        <p>{environment.browser === 'yandex' ? 'Откройте меню ⋮ (или ☰) и выберите «Добавить ярлык на экран».'
           : environment.browser === 'samsung' ? 'Откройте меню ☰ внизу и выберите «Добавить страницу на» → «Главный экран».'
-          : environment.platform === 'desktop' ? 'Нажмите значок установки в адресной строке или меню ⋮ → «Установить приложение».'
-          : 'Откройте меню ⋮ вверху и выберите «Установить приложение» или «Добавить на главный экран».'}</p>
+          : 'Нажмите значок установки в адресной строке или меню ⋮ → «Установить приложение».'}</p>
       </div></DialogDescription>}
     </DialogContent></Dialog>
   </>;
