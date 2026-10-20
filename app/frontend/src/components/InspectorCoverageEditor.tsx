@@ -1,3 +1,4 @@
+import '@/i18n/adminTranslations'; // staff UI words (loaded only with this page)
 import { useLanguage } from '@/contexts/LanguageContext';
 import { coverageRows, type Inspector, type Coverage } from '@/lib/inspectorDirectory';
 import { Input } from '@/components/ui/input';

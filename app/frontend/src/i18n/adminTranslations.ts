@@ -1,4 +1,5 @@
 import type { Translations } from './translations';
+import { registerTranslations } from './extraTranslations';
 
 /** Admin/partner UI only. Merge into the central dictionary in the parent integration. */
 export const adminTranslations: Translations = {
@@ -1849,6 +1850,8 @@ export const adminTranslations: Translations = {
   "admin.dam.queue.courierPhone": {"ru":"Телефон курьера","kz":"Курьер телефоны"},
 };
 
+// Loaded only with admin/partner/courier pages; registers itself for t().
+registerTranslations(adminTranslations);
 export default adminTranslations;
 
 const adminMetadataKeys: Record<string, string> = {

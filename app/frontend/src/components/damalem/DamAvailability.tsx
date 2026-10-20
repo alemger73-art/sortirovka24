@@ -1,3 +1,4 @@
+import '@/i18n/adminTranslations'; // staff UI words (loaded only with this page)
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {Loader2, RefreshCw, Search} from 'lucide-react';
 import {toast} from 'sonner';

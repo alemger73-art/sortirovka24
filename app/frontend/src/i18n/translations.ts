@@ -1,4 +1,3 @@
-import { adminTranslations } from './adminTranslations';
 import { publicTranslations } from './publicTranslations';
 export type Lang = 'ru' | 'kz';
 
@@ -1171,4 +1170,4 @@ import { workflowTranslations } from './workflowTranslations';
 
 import { payrollTranslations } from './payrollTranslations';
 
-export default { ...payrollTranslations, ...workflowTranslations, ...translations, ...publicTranslations, ...adminTranslations } satisfies Translations;
+export default { ...payrollTranslations, ...workflowTranslations, ...translations, ...publicTranslations } satisfies Translations;

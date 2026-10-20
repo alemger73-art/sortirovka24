@@ -1,3 +1,4 @@
+import '@/i18n/adminTranslations'; // staff UI words (loaded only with this page)
 import PrintReceiptButton from '@/components/PrintReceiptButton';
 import DamCourierWorkplace from '@/components/damalem/DamCourierWorkplace';
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';

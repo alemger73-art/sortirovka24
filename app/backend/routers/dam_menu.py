@@ -7,10 +7,36 @@ from services import menu_configuration as menu
 router = APIRouter(prefix='/api/v1/dam-alem/menu', tags=['dam-menu'])
 
 
+import os
+import time
+
+_catalog_cache: dict = {'at': 0.0, 'data': None}
+
+
+def _catalog_ttl() -> float:
+    # Many visitors open the menu at once: build it at most once per few seconds.
+    if os.getenv('APP_ENV') == 'test' or os.getenv('ENVIRONMENT') == 'test':
+        return 0.0
+    try:
+        return max(0.0, min(60.0, float(os.getenv('MENU_CACHE_SECONDS', '10'))))
+    except ValueError:
+        return 10.0
+
+
+def forget_catalog() -> None:
+    _catalog_cache['at'], _catalog_cache['data'] = 0.0, None
+
+
 @router.get('/catalog')
 async def public_catalog(response: Response, db=Depends(get_db)):
     response.headers['Cache-Control'] = 'no-store'
-    return await menu.catalog(db)
+    ttl = _catalog_ttl()
+    if ttl and _catalog_cache['data'] is not None and time.monotonic() - _catalog_cache['at'] < ttl:
+        return _catalog_cache['data']
+    data = await menu.catalog(db)
+    if ttl:
+        _catalog_cache['at'], _catalog_cache['data'] = time.monotonic(), data
+    return data
 
 
 @router.get('/manage')

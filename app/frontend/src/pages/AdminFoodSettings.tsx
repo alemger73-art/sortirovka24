@@ -1,3 +1,4 @@
+import '@/i18n/adminTranslations'; // staff UI words (loaded only with this page)
 import CheckoutSettings from '@/components/damalem/CheckoutSettings';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useStoreTranslations } from '@/i18n/storeTranslations';

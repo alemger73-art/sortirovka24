@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import translations, { Lang } from '@/i18n/translations';
+import { extraTranslations } from '@/i18n/extraTranslations';
 
 interface LanguageContextType {
   lang: Lang;
@@ -50,7 +51,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const t = useCallback((key: string): string => {
     const entry = Object.prototype.hasOwnProperty.call(translations, key)
       ? translations[key]
-      : undefined;
+      : Object.prototype.hasOwnProperty.call(extraTranslations, key) ? extraTranslations[key] : undefined;
     if (!entry) {
       console.warn(`[i18n] Missing translation key: "${key}"`);
       return key;

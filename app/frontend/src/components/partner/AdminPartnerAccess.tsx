@@ -1,3 +1,4 @@
+import '@/i18n/adminTranslations'; // staff UI words (loaded only with this page)
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useMemo, useState } from 'react';
 import { Copy, ExternalLink, Eye, EyeOff, Plus, RefreshCw, Save, Shield, Trash2, UserCog } from 'lucide-react';

@@ -1,3 +1,4 @@
+import '@/i18n/adminTranslations'; // staff UI words (loaded only with this page)
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Phone, RefreshCw, Truck } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';

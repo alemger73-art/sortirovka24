@@ -1,3 +1,4 @@
+import '@/i18n/adminTranslations'; // staff UI words (loaded only with this page)
 import AppearanceControls from '@/components/AppearanceControls';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Component, type ReactNode, useState, useEffect, useCallback } from 'react';

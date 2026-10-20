@@ -1,3 +1,4 @@
+import '@/i18n/adminTranslations'; // staff UI words (loaded only with this page)
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getPublicLocale } from '@/i18n/publicLocale';
 import { useEffect, useRef, useState } from 'react';

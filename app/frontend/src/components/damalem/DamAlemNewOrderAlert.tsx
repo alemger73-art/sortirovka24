@@ -1,3 +1,4 @@
+import '@/i18n/adminTranslations'; // staff UI words (loaded only with this page)
 import { useEffect, useRef, useState } from 'react';
 import { BellRing, Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';

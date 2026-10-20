@@ -1,3 +1,4 @@
+import '@/i18n/adminTranslations'; // staff UI words (loaded only with this page)
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useState } from 'react';
 import { type Journey, type DirectionKey, type DayKey, type DaySchedule } from '@/lib/transportSchedule';

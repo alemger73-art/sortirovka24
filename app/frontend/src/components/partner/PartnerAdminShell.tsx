@@ -1,3 +1,4 @@
+import '@/i18n/adminTranslations'; // staff UI words (loaded only with this page)
 import { PasswordInput } from '@/components/ui/password-input';
 import AppearanceControls from '@/components/AppearanceControls';
 import { useLanguage } from '@/contexts/LanguageContext';

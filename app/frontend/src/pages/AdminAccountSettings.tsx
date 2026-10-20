@@ -1,3 +1,4 @@
+import '@/i18n/adminTranslations'; // staff UI words (loaded only with this page)
 import { useLanguage } from '@/contexts/LanguageContext';
 import AdminDeletionRequests from '@/components/cabinet/AdminDeletionRequests';
 import { useState } from 'react';

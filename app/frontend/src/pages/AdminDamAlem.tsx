@@ -1,3 +1,4 @@
+import '@/i18n/adminTranslations'; // staff UI words (loaded only with this page)
 import OwnerMenu from '@/components/damalem/OwnerMenu';
 import OwnerCRM from '@/components/damalem/OwnerCRM';
 import OwnerLoyalty from '@/components/damalem/OwnerLoyalty';

@@ -1,3 +1,4 @@
+import '@/i18n/adminTranslations'; // staff UI words (loaded only with this page)
 import {MenuSelectionFields} from './MenuSelection';
 import {estimateSelection,selectionErrors,type MenuProduct,type MenuSelection,type ModifierGroup} from '@/lib/damMenu';
 import {CRMSearch} from './OwnerCRM';

@@ -1,3 +1,4 @@
+import '@/i18n/adminTranslations'; // staff UI words (loaded only with this page)
 import DeliveryZoneDialog from '@/components/damalem/DeliveryZoneDialog';
 import ManualDeliveryDialog from '@/components/damalem/ManualDeliveryDialog';
 import DeliveryIssueDialog from '@/components/damalem/DeliveryIssueDialog';

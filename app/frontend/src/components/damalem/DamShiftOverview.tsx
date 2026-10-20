@@ -1,3 +1,4 @@
+import '@/i18n/adminTranslations'; // staff UI words (loaded only with this page)
 import type {ProcurementView} from './ShiftCloseDialog';
 import { useCallback, useEffect, useState } from 'react';
 import { Activity, RefreshCw, Users } from 'lucide-react';

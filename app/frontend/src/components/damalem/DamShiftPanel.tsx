@@ -1,3 +1,4 @@
+import '@/i18n/adminTranslations'; // staff UI words (loaded only with this page)
 import ShiftCloseDialog from './ShiftCloseDialog';
 import { useCallback, useEffect, useState } from 'react';
 import { Clock3, KeyRound, LogIn, LogOut } from 'lucide-react';
