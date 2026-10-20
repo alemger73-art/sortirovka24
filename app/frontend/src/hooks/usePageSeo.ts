@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
 const SITE_URL = 'https://www.sortirovka24.kz';
-const FALLBACK_IMAGE = `${SITE_URL}/icon-512-v4.png`;
+const FALLBACK_IMAGE = `${SITE_URL}/og-cover-v1.jpg`;
 
 type PageSeo = {
   title?: string;
@@ -27,7 +27,7 @@ export function usePageSeo({ title, description, image, type = 'website', struct
   useEffect(() => {
     if (!title || !description) return;
     const canonical = `${SITE_URL}${window.location.pathname.replace(/\/+$/, '') || '/'}`;
-    const fullTitle = title.includes('Sortirovka 24') ? title : `${title} | Sortirovka 24`;
+    const fullTitle = /Sortirovka 24|Сортировка 24/.test(title) ? title : `${title} | Сортировка 24`;
     const resolvedImage = absoluteImage(image);
 
     document.title = fullTitle;

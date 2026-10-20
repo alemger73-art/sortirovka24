@@ -32,7 +32,10 @@ from services.module_settings import is_module_enabled
 
 SITE_URL = "https://www.sortirovka24.kz"
 SITE_NAME = "Сортировка 24"
-FALLBACK_IMAGE = f"{SITE_URL}/icon-512.png"
+FALLBACK_IMAGE = f"{SITE_URL}/og-cover-v1.jpg"  # 1200×630 card for link previews
+LOGO_IMAGE = f"{SITE_URL}/icon-512-v4.png"
+PHONE = "+77004280280"
+EMAIL = "srt-group.24@mail.ru"
 
 
 @dataclass
@@ -58,22 +61,22 @@ PUBLIC_PAGES: dict[str, tuple[str, str, str]] = {
     "/": (
         "Сортировка Караганда — новости и сервисы района | Сортировка 24",
         "Новости района Сортировка в Караганде, объявления, работа, полезный справочник, расписание транспорта и доставка еды DÄM ALEM.",
-        "Sortirovka 24 — всё о Сортировке в одном месте",
+        "Сортировка 24 — всё о Сортировке в одном месте",
     ),
-    "/news": ("Новости Сортировки Караганда | Sortirovka 24", "Новости, события и важная информация района Сортировка в Караганде.", "Новости Сортировки"),
-    "/announcements": ("Объявления Сортировки Караганда | Sortirovka 24", "Объявления жителей района Сортировка: товары, услуги и полезные предложения.", "Объявления Сортировки"),
-    "/real-estate": ("Недвижимость в Сортировке Караганда | Sortirovka 24", "Квартиры, дома и коммерческая недвижимость в районе Сортировка Караганды: продажа и аренда.", "Недвижимость в Сортировке"),
-    "/jobs": ("Работа в Сортировке Караганда — вакансии | Sortirovka 24", "Свежие вакансии и предложения работы в районе Сортировка и Караганде.", "Работа и вакансии в Сортировке"),
-    "/food": ("DÄM ALEM — доставка еды по Сортировке, Караганда | Sortirovka 24", "Меню DÄM ALEM: UFO-бургеры, пицца, закуски и напитки с доставкой по району Сортировка в Караганде.", "DÄM ALEM — доставка еды в Сортировке"),
-    "/directory": ("Полезный справочник Сортировки Караганда | Sortirovka 24", "Телефоны экстренных служб, организаций и полезные контакты района Сортировка.", "Полезный справочник Сортировки"),
-    "/transport": ("Автобусы Сортировки — маршруты и остановки | Sortirovka 24", "Маршруты, остановки и расписание общественного транспорта района Сортировка.", "Автобусы и остановки Сортировки"),
-    "/inspectors": ("Участковые инспекторы Сортировки | Sortirovka 24", "Контакты участковых инспекторов и отделов полиции района Сортировка в Караганде.", "Участковые инспекторы Сортировки"),
-    "/business": ("Бизнес и услуги Сортировки Караганда | Sortirovka 24", "Местные компании, магазины, заведения и услуги района Сортировка.", "Бизнес района Сортировка"),
-    "/masters": ("Мастера в Сортировке Караганда | Sortirovka 24", "Каталог мастеров и бытовых услуг в районе Сортировка Караганды.", "Мастера и услуги в Сортировке"),
-    "/salons": ("Салоны и заведения Сортировки Караганда | Sortirovka 24", "Салоны, заведения и локальные услуги района Сортировка в Караганде.", "Салоны и заведения Сортировки"),
-    "/support": ("Поддержать проект Sortirovka 24", "Поддержите развитие полезного цифрового портала района Сортировка.", "Поддержать Sortirovka 24"),
-    "/questions": ("Вопросы жителей Сортировки | Sortirovka 24", "Вопросы и ответы жителей района Сортировка в Караганде.", "Вопросы жителей"),
-    "/complaints": ("Обращения жителей Сортировки | Sortirovka 24", "Обращения жителей о проблемах района Сортировка в Караганде.", "Обращения жителей"),
+    "/news": ("Новости Сортировки Караганда | Сортировка 24", "Новости, события и важная информация района Сортировка в Караганде.", "Новости Сортировки"),
+    "/announcements": ("Объявления Сортировки Караганда | Сортировка 24", "Объявления жителей района Сортировка: товары, услуги и полезные предложения.", "Объявления Сортировки"),
+    "/real-estate": ("Недвижимость в Сортировке Караганда | Сортировка 24", "Квартиры, дома и коммерческая недвижимость в районе Сортировка Караганды: продажа и аренда.", "Недвижимость в Сортировке"),
+    "/jobs": ("Работа в Сортировке Караганда — вакансии | Сортировка 24", "Свежие вакансии и предложения работы в районе Сортировка и Караганде.", "Работа и вакансии в Сортировке"),
+    "/food": ("DÄM ALEM — доставка еды по Сортировке, Караганда | Сортировка 24", "Меню DÄM ALEM: UFO-бургеры, пицца, закуски и напитки с доставкой по району Сортировка в Караганде.", "DÄM ALEM — доставка еды в Сортировке"),
+    "/directory": ("Полезный справочник Сортировки Караганда | Сортировка 24", "Телефоны экстренных служб, организаций и полезные контакты района Сортировка.", "Полезный справочник Сортировки"),
+    "/transport": ("Автобусы Сортировки — маршруты и остановки | Сортировка 24", "Маршруты, остановки и расписание общественного транспорта района Сортировка.", "Автобусы и остановки Сортировки"),
+    "/inspectors": ("Участковые инспекторы Сортировки | Сортировка 24", "Контакты участковых инспекторов и отделов полиции района Сортировка в Караганде.", "Участковые инспекторы Сортировки"),
+    "/business": ("Бизнес и услуги Сортировки Караганда | Сортировка 24", "Местные компании, магазины, заведения и услуги района Сортировка.", "Бизнес района Сортировка"),
+    "/masters": ("Мастера в Сортировке Караганда | Сортировка 24", "Каталог мастеров и бытовых услуг в районе Сортировка Караганды.", "Мастера и услуги в Сортировке"),
+    "/salons": ("Салоны и заведения Сортировки Караганда | Сортировка 24", "Салоны, заведения и локальные услуги района Сортировка в Караганде.", "Салоны и заведения Сортировки"),
+    "/support": ("Поддержать проект Сортировка 24", "Поддержите развитие полезного цифрового портала района Сортировка.", "Поддержать Сортировка 24"),
+    "/questions": ("Вопросы жителей Сортировки | Сортировка 24", "Вопросы и ответы жителей района Сортировка в Караганде.", "Вопросы жителей"),
+    "/complaints": ("Обращения жителей Сортировки | Сортировка 24", "Обращения жителей о проблемах района Сортировка в Караганде.", "Обращения жителей"),
 }
 
 PRIVATE_PREFIXES = (
@@ -169,15 +172,15 @@ def _base_page(path: str) -> SeoPage:
         title, description, heading = PUBLIC_PAGES[path]
         page = SeoPage(title, description, path, heading, description)
     elif any(path == prefix or path.startswith(prefix + "/") for prefix in PRIVATE_PREFIXES):
-        page = SeoPage(SITE_NAME, "Служебная страница Sortirovka 24.", path, SITE_NAME, "", robots="noindex, nofollow")
+        page = SeoPage(SITE_NAME, "Служебная страница Сортировка 24.", path, SITE_NAME, "", robots="noindex, nofollow")
     elif DYNAMIC_PUBLIC_ROUTE.fullmatch(path):
         # The database-backed metadata is filled below. Keep the fallback out
         # of the index if the database is temporarily unavailable.
-        page = SeoPage(SITE_NAME, "Материал Sortirovka 24.", path, SITE_NAME, "", robots="noindex, follow")
+        page = SeoPage(SITE_NAME, "Материал Сортировка 24.", path, SITE_NAME, "", robots="noindex, follow")
     elif any(re.fullmatch(pattern, path) for pattern in NOINDEX_CLIENT_ROUTES):
         page = SeoPage(SITE_NAME, "Городской сервис района Сортировка в Караганде.", path, SITE_NAME, "", robots="noindex, follow")
     else:
-        page = SeoPage("Страница не найдена | Sortirovka 24", "Запрашиваемая страница не найдена.", path, "Страница не найдена", "Вернитесь на главную страницу Sortirovka 24.", robots="noindex, follow", status_code=404)
+        page = SeoPage("Страница не найдена | Сортировка 24", "Запрашиваемая страница не найдена.", path, "Страница не найдена", "Вернитесь на главную страницу Сортировка 24.", robots="noindex, follow", status_code=404)
     return page
 
 
@@ -185,7 +188,7 @@ def _website_schema() -> dict[str, Any]:
     return {
         "@context": "https://schema.org", "@type": "WebSite", "name": SITE_NAME,
         "alternateName": "Sortirovka24", "url": f"{SITE_URL}/", "inLanguage": ["ru", "kk"],
-        "publisher": {"@type": "Organization", "name": SITE_NAME, "url": f"{SITE_URL}/", "logo": FALLBACK_IMAGE},
+        "publisher": {"@type": "Organization", "name": SITE_NAME, "url": f"{SITE_URL}/", "logo": LOGO_IMAGE},
     }
 
 
@@ -206,8 +209,8 @@ async def build_seo_page(path: str) -> SeoPage:
     disabled = await _disabled_modules()
     if _module_for(path) in disabled:
         # A switched-off section must not be indexed or linked as if it worked.
-        return SeoPage("Раздел временно недоступен | Sortirovka 24", "Раздел временно отключён.", path,
-                       "Раздел временно недоступен", "Вернитесь на главную страницу Sortirovka 24.",
+        return SeoPage("Раздел временно недоступен | Сортировка 24", "Раздел временно отключён.", path,
+                       "Раздел временно недоступен", "Вернитесь на главную страницу Сортировка 24.",
                        robots="noindex, follow", status_code=404)
     dynamic_match = DYNAMIC_PUBLIC_ROUTE.fullmatch(path)
     if page.status_code == 404 or (page.robots.startswith("noindex") and not dynamic_match):
@@ -224,8 +227,14 @@ async def build_seo_page(path: str) -> SeoPage:
         )
         page.schemas.append(_website_schema())
         page.schemas.append({
-            "@context": "https://schema.org", "@type": "Organization", "name": SITE_NAME,
-            "url": f"{SITE_URL}/", "logo": FALLBACK_IMAGE,
+            "@context": "https://schema.org", "@type": "Organization", "@id": f"{SITE_URL}/#organization",
+            "name": SITE_NAME, "alternateName": ["Sortirovka24", "Сортировка24", "S24"],
+            "url": f"{SITE_URL}/", "logo": {"@type": "ImageObject", "url": LOGO_IMAGE, "width": 512, "height": 512},
+            "image": FALLBACK_IMAGE, "email": EMAIL, "telephone": PHONE,
+            "description": "Цифровой портал района Сортировка в Караганде: новости, справочник, транспорт, бизнес и доставка еды.",
+            "address": {"@type": "PostalAddress", "addressLocality": "Караганда", "addressRegion": "Карагандинская область", "addressCountry": "KZ"},
+            "contactPoint": {"@type": "ContactPoint", "telephone": PHONE, "contactType": "customer support",
+                             "areaServed": "KZ", "availableLanguage": ["Russian", "Kazakh"]},
             "areaServed": {"@type": "AdministrativeArea", "name": "район Сортировка, Караганда"},
         })
 
@@ -288,10 +297,10 @@ async def build_seo_page(path: str) -> SeoPage:
                     row = await session.get(model, int(raw_id))
                     visible = row is not None and (_visible(getattr(row, "published", getattr(row, "active", True)), getattr(row, "status", None)))
                     if not visible:
-                        return SeoPage("Материал не найден | Sortirovka 24", "Материал удалён или ещё не опубликован.", path, "Материал не найден", "", robots="noindex, follow", status_code=404)
+                        return SeoPage("Материал не найден | Сортировка 24", "Материал удалён или ещё не опубликован.", path, "Материал не найден", "", robots="noindex, follow", status_code=404)
                     title_value = _text(getattr(row, "title", None) or getattr(row, "job_title", None) or getattr(row, "name", None), 100)
                     content = _text(getattr(row, "short_description", None) or getattr(row, "description", None) or getattr(row, "content", None), 155)
-                    page.title = f"{title_value} | Sortirovka 24"
+                    page.title = f"{title_value} | Сортировка 24"
                     page.description = content or f"{title_value} — информация для жителей района Сортировка."
                     page.heading = title_value
                     page.intro = page.description
@@ -323,7 +332,7 @@ async def build_seo_page(path: str) -> SeoPage:
                     else:
                         page.body = f"<article><p>{html.escape(_text(row.description, 4000))}</p>" + _facts([("Категория", row.category), ("Услуги", row.services), ("Адрес", row.address), ("Время работы", row.working_hours), ("Цена от", row.price_from)]) + "</article>"
                     if kind == "news":
-                        page.schemas.append({"@context": "https://schema.org", "@type": "NewsArticle", "headline": title_value, "description": page.description, "image": [page.image], "datePublished": _text(getattr(row, "created_at", None), 40), "author": {"@type": "Organization", "name": SITE_NAME}, "publisher": {"@type": "Organization", "name": SITE_NAME, "logo": {"@type": "ImageObject", "url": FALLBACK_IMAGE}}, "mainEntityOfPage": page.canonical})
+                        page.schemas.append({"@context": "https://schema.org", "@type": "NewsArticle", "headline": title_value, "description": page.description, "image": [page.image], "datePublished": _text(getattr(row, "created_at", None), 40), "author": {"@type": "Organization", "name": SITE_NAME}, "publisher": {"@type": "Organization", "name": SITE_NAME, "logo": {"@type": "ImageObject", "url": LOGO_IMAGE}}, "mainEntityOfPage": page.canonical})
                     elif kind == "announcements":
                         product_schema = {"@context": "https://schema.org", "@type": "Product", "name": title_value, "description": page.description, "image": page.image}
                         price = _text(getattr(row, "price", None), 40)
@@ -386,7 +395,7 @@ def render_html(document: str, page: SeoPage) -> str:
     body = (
         '<main id="seo-prerender" style="max-width:1180px;margin:0 auto;padding:24px;font-family:system-ui,sans-serif">'
         f'<h1>{html.escape(page.heading)}</h1><p>{html.escape(page.intro)}</p>{page.body}'
-        '<p><a href="/">Sortirovka 24 — главная</a></p></main>'
+        '<p><a href="/">Сортировка 24 — главная</a></p></main>'
     )
     return document.replace('<div id="root"></div>', f'<div id="root">{body}</div>', 1)
 
