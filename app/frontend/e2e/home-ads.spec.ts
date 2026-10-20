@@ -15,6 +15,11 @@ for (const [name, w, h] of [['mobile', 390, 844], ['desktop', 1280, 900]] as con
       if (path.endsWith('/entities/banners')) return route.fulfill({ json: { items: [
         { id: 12, banner_type: 'food_delivery', active: true, title: 'Орбита Чикен', button_text: 'В корзину', button_url: '/food#product=217' },
         { id: 1, banner_type: 'shop', active: true, title: 'DAM ALEM — Доставка еды', button_url: '/food' }], total: 2 } });
+      if (path.endsWith('/entities/food_categories')) return route.fulfill({ json: { items: [{ id: 31, slug: 'ufo', name: 'UFO Бургеры', is_active: true }, { id: 10, slug: 'pizza-30', name: 'Пиццы', is_active: true }], total: 2 } });
+      if (path.endsWith('/entities/food_items')) return route.fulfill({ json: { items: [
+        { id: 187, name: 'Пепперони', price: 3200, category_id: 10, is_active: true, image_url: 'food/p.webp' },
+        { id: 217, name: 'Орбита Чикен', price: 3700, category_id: 31, is_active: true, image_url: 'food/o.webp' },
+        { id: 225, name: 'UFO Дуэт Комбо', price: 7200, category_id: 31, is_active: true, image_url: 'food/c.webp' }], total: 3 } });
       if (path.endsWith('/entities/food_items/217')) return route.fulfill({ json: { id: 217, name: 'Орбита Чикен', price: 3700, is_active: true, available: true } });
       return route.fulfill({ json: { items: [], total: 0 } });
     });
@@ -23,6 +28,11 @@ for (const [name, w, h] of [['mobile', 390, 844], ['desktop', 1280, 900]] as con
     await expect(page.getByTestId('home-ad-post')).toBeVisible();
     await expect(page.getByText('Требуется продавец')).toBeVisible();
     await expect(page.locator('.home-food')).toContainText('3 700 ₸');
+    await expect(page.locator('.home-food nav')).toContainText('Пиццы');
+    await expect(page.locator('.home-food a[href="/food?category=pizza-30"]')).toBeVisible();
+    // Banner dish first, then combo, then the rest of the menu.
+    expect(await page.locator('.home-food a[href^="/food#product="]').evaluateAll((a) => a.map((x) => x.getAttribute('href')))).toEqual(['/food#product=217', '/food#product=225', '/food#product=187']);
+    await expect(page.locator('.home-ads nav a')).toHaveCount(4);
     // No repeated blocks: hero already has these sections.
     await expect(page.getByRole('heading', { name: 'Популярные категории' })).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Быстрые действия' })).toHaveCount(0);

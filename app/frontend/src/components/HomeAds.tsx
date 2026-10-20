@@ -10,7 +10,11 @@ import { filterPublicAnnouncements, getAnnouncementCover } from '@/lib/announcem
 import { AD_FILTERS, formatAdPrice, kindOf } from '@/lib/adKinds';
 import { track } from '@/lib/analytics';
 
-const QUICK = ['sell', 'job', 'services', 'free'];
+const TONES: Record<string, string> = {
+  sell: 'bg-amber-100 dark:bg-amber-500/20', job: 'bg-sky-100 dark:bg-sky-500/20',
+  services: 'bg-violet-100 dark:bg-violet-500/20', free: 'bg-emerald-100 dark:bg-emerald-500/20',
+};
+const TILES = AD_FILTERS.filter((f) => TONES[f.key]).map((f) => ({ ...f, tone: TONES[f.key] }));
 
 export default function HomeAds() {
   const { lang } = useLanguage();
@@ -32,6 +36,14 @@ export default function HomeAds() {
         <div><span className="public-kicker">{tx('Барахолка района', 'Аудан базары')}</span><h2>{tx('Объявления', 'Хабарландырулар')}</h2></div>
         <Link to="/announcements">{tx('Все объявления', 'Барлығы')}<ArrowRight size={18} /></Link>
       </div>
+      <nav aria-label={tx('Разделы объявлений', 'Хабарландыру бөлімдері')} className="mb-4 grid grid-cols-4 gap-2">
+        {TILES.map((f) => (
+          <Link key={f.key} to={`/announcements?type=${f.key}`} className="group flex flex-col items-center gap-1.5 rounded-2xl py-1 text-center">
+            <span className={`flex h-14 w-14 items-center justify-center rounded-2xl text-[26px] shadow-sm ring-1 ring-black/5 transition group-hover:-translate-y-0.5 group-hover:shadow-md ${f.tone}`} aria-hidden>{f.emoji}</span>
+            <span className="text-[13px] font-medium leading-tight text-gray-800 dark:text-slate-200">{kz ? f.title.kz : f.title.ru}</span>
+          </Link>
+        ))}
+      </nav>
       <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
         <Link to="/announcements/new" onClick={() => track('ad_home_post')} data-testid="home-ad-post"
           className="flex w-[150px] shrink-0 flex-col justify-between rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 p-4 text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md md:w-[190px]">
@@ -63,13 +75,6 @@ export default function HomeAds() {
             {tx('Здесь появятся объявления соседей. Станьте первым!', 'Мұнда көршілердің хабарландырулары шығады. Бірінші болыңыз!')}
           </div>
         )}
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {AD_FILTERS.filter((f) => QUICK.includes(f.key)).map((f) => (
-          <Link key={f.key} to={`/announcements?type=${f.key}`} className="rounded-full border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 hover:border-amber-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
-            {f.emoji} {kz ? f.title.kz : f.title.ru}
-          </Link>
-        ))}
       </div>
     </section>
   );
