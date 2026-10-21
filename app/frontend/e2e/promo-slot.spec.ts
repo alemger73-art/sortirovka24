@@ -53,11 +53,11 @@ test('food card shows a real dish with price; news list has exactly one promo', 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('home: news strip like the ads strip, with «Все новости» at the end', async ({ page }) => {
+test('home: the 4 latest news as a calm list with a rubric and «Все»', async ({ page }) => {
   await setup(page);
   await page.goto('/');
   const strip = page.locator('.home-news');
   await expect(strip.getByRole('link', { name: /Ремонт кровли школы начался/ })).toBeVisible();
-  await expect(strip.locator('a[href^="/news/"]')).toHaveCount(8);
-  await expect(strip.locator('a[href="/news"]').last()).toContainText('Все новости');
+  await expect(strip.locator('a[href^="/news/"]')).toHaveCount(4);
+  await expect(strip.locator('a[href="/news"]')).toContainText('Все');
 });

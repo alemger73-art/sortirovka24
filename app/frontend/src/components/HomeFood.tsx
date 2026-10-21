@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ShoppingBag } from 'lucide-react';
+import { ArrowRight, Plus } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { client, withRetry } from '@/lib/api';
@@ -27,12 +27,25 @@ const CATS: { slug: string; ru: string; kz: string }[] = [
 const HIT_CATS = ['ufo', 'pizza-30', 'vtorye-blyuda', 'zakuski'];
 const money = (v: number) => `${v.toLocaleString('ru-RU').replace(/,/g, ' ')} ₸`;
 
+const minutes = (hm: string) => { const m = /^(\d{1,2}):(\d{2})/.exec(hm.trim()); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
+/** «11:00 – 22:30» → is the kitchen open now (Karaganda time) and until when. */
+function kitchenNow(hours: string): { open: boolean; from: string; to: string } | null {
+  const [from, to] = String(hours || '').split(/[–—-]/).map((x) => x.trim());
+  const a = from ? minutes(from) : null, b = to ? minutes(to) : null;
+  if (a == null || b == null) return null;
+  const d = new Date(Date.now() + (new Date().getTimezoneOffset() + 300) * 60000);
+  const now = d.getHours() * 60 + d.getMinutes();
+  return { open: a < b ? now >= a && now < b : now >= a || now < b, from, to };
+}
+
 export default function HomeFood({ banners, heroImage }: { banners: any[]; heroImage: string }) {
   const { lang } = useLanguage();
   const kz = lang === 'kz';
   const tx = (ru: string, k: string) => (kz ? k : ru);
   const [cats, setCats] = useState<Cat[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
+  const [combo, setCombo] = useState<Dish & { desc: string } | null>(null);
+  const [settings, setSettings] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -40,8 +53,11 @@ export default function HomeFood({ banners, heroImage }: { banners: any[]; heroI
     Promise.all([
       fetchWithCache('index_food_cats', () => withRetry(() => client.entities.food_categories.query({ query: { is_active: true }, sort: 'sort_order', limit: 100 })), ttl),
       fetchWithCache('index_food_items', () => withRetry(() => client.entities.food_items.query({ query: { is_active: true }, sort: 'sort_order', limit: 300 })), ttl),
-    ]).then(([catRes, itemRes]: any[]) => {
+      fetchWithCache('index_food_settings', () => withRetry(() => client.entities.food_settings.query({ limit: 100 })), ttl).catch(() => null),
+    ]).then(([catRes, itemRes, setRes]: any[]) => {
       if (cancelled) return;
+      const rows: any[] = setRes?.data?.items ?? setRes?.items ?? [];
+      setSettings(Object.fromEntries(rows.map((r) => [r.setting_key, String(r.setting_value ?? '')])));
       const catRows: any[] = catRes?.data?.items ?? catRes?.items ?? [];
       const items: any[] = (itemRes?.data?.items ?? itemRes?.items ?? []).filter((i: any) => i.is_active !== false && i.available !== false && i.image_url && Number(i.price) > 0);
       const bySlug = new Map(catRows.filter((c) => c.is_active !== false && c.slug).map((c) => [c.slug, c]));
@@ -57,9 +73,12 @@ export default function HomeFood({ banners, heroImage }: { banners: any[]; heroI
       const bannerIds = banners.filter((b) => b.banner_type === 'food_delivery')
         .map((b) => Number(/product=(\d+)/.exec(String(b.button_url || b.link_url || ''))?.[1])).filter(Boolean);
       const hitCatIds = new Set(HIT_CATS.map(catOf).filter(Boolean));
+      const combos = items.filter((i) => i.is_combo || /комбо|набор|сет/i.test(i.name));
+      const big = combos.find((i) => /дуэт|семейн|на двоих/i.test(i.name)) || combos[0];
+      setCombo(big ? { id: big.id, name: String(big.name).trim(), price: Number(big.price), image: big.image_url, to: `/food#product=${big.id}`, desc: String(big.description || '').split(/[.—]/)[0].trim().slice(0, 70) } : null);
       const ordered = [
         ...bannerIds.map((id) => items.find((i) => i.id === id)).filter(Boolean),
-        ...items.filter((i) => /комбо|набор|сет/i.test(i.name)),
+        ...combos,
         ...items.filter((i) => hitCatIds.has(i.category_id)),
       ];
       const seen = new Set<number>();
@@ -70,56 +89,54 @@ export default function HomeFood({ banners, heroImage }: { banners: any[]; heroI
         hits.push({ id: i.id, name: String(i.name).trim(), price: Number(i.price), image: i.image_url, to: `/food#product=${i.id}` });
       }
       setDishes(hits);
-    }).catch(() => { /* the section still shows the «Заказать» card */ });
+    }).catch(() => { /* the block still offers «Открыть всё меню» */ });
     return () => { cancelled = true; };
   }, [banners, kz]);
 
+  const kitchen = kitchenNow(settings.working_hours || '');
+  const time = String(settings.delivery_time || '').trim();
   return (
-    <section className="home-food" aria-label={tx('Доставка еды', 'Тамақ жеткізу')}>
-      <div className="public-section-head">
-        <div><span className="public-kicker">DAM ALEM 2.0</span><h2>{tx('Доставка еды', 'Тамақ жеткізу')}</h2></div>
-        <Link to="/food">{tx('Всё меню', 'Барлық мәзір')}<ArrowRight size={18} /></Link>
+    <section className="home-food h2-food" aria-label={tx('Доставка еды DAM ALEM', 'DAM ALEM тамақ жеткізу')}>
+      <div className="h2-food-in">
+        <div className="h2-food-top">
+          <span className="h2-brand">DAM ALEM 2.0</span>
+          {kitchen && <span className="h2-status"><i className={kitchen.open ? '' : 'off'} />{kitchen.open ? tx(`Открыто до ${kitchen.to}`, `${kitchen.to} дейін ашық`) : tx(`Закрыто · откроемся в ${kitchen.from}`, `Жабық · ${kitchen.from}-де ашамыз`)}</span>}
+        </div>
+        <h2>{tx('Доставка еды', 'Тамақ жеткізу')}</h2>
+        <p className="h2-food-sub">{tx('Готовим после заказа', 'Тапсырыстан кейін дайындаймыз')}{time ? ` · ${time.replace(/\s*-\s*/, '–')}${/мин/.test(time) ? '' : tx(' мин', ' мин')}` : ''} · {tx('по Сортировке', 'Сортировка бойынша')}</p>
       </div>
-
       {cats.length > 0 && (
-        <nav aria-label={tx('Категории меню', 'Мәзір санаттары')} className="no-scrollbar -mx-4 mb-4 flex gap-3 overflow-x-auto px-4 md:mx-0 md:px-0">
+        <nav aria-label={tx('Категории меню', 'Мәзір санаттары')} className="h2-scroll">
           {cats.map((c) => (
-            <Link key={c.slug} to={`/food?category=${c.slug}`} className="group flex w-[72px] shrink-0 flex-col items-center gap-1.5 text-center">
-              <span className="h-[68px] w-[68px] overflow-hidden rounded-full bg-orange-50 ring-2 ring-orange-200 transition group-hover:ring-orange-400 dark:bg-slate-800 dark:ring-orange-500/40">
-                <StorageImg objectKey={c.image} alt="" className="h-full w-full object-cover" />
-              </span>
-              <span className="text-[12px] font-medium leading-tight text-gray-800 dark:text-slate-200">{c.name}</span>
+            <Link key={c.slug} to={`/food?category=${c.slug}`} className="h2-cat">
+              <span><StorageImg objectKey={c.image} alt="" className="h-full w-full object-cover" /></span>
+              <small>{c.name}</small>
             </Link>
           ))}
         </nav>
       )}
-
-      <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
-        <Link to="/food" className="relative flex w-[220px] shrink-0 items-end overflow-hidden rounded-2xl shadow-sm md:w-[300px]" style={{ minHeight: 236 }}>
-          <img src={heroImage} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
-          <div className="relative p-4 text-white">
-            <p className="text-lg font-extrabold leading-tight">{tx('Готовим после заказа', 'Тапсырыстан кейін дайындаймыз')}</p>
-            <p className="mt-1 text-xs text-white/85">{tx('Привозим горячим по Сортировке', 'Сортировка бойынша ыстықтай жеткіземіз')}</p>
-            <span className="mt-3 inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold"><ShoppingBag className="h-4 w-4" />{tx('Заказать', 'Тапсырыс беру')}</span>
-          </div>
-        </Link>
-        {dishes.map((d) => (
-          <Link key={d.id} to={d.to} className="flex w-[150px] shrink-0 flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 md:w-[180px]">
-            <div className="aspect-[1/1] bg-orange-50 dark:bg-slate-800"><StorageImg objectKey={d.image} alt={d.name} className="h-full w-full object-cover" /></div>
-            <div className="flex flex-1 flex-col p-3">
-              <p className="line-clamp-2 text-sm font-semibold leading-snug text-gray-900 dark:text-slate-100">{d.name}</p>
-              <div className="mt-auto flex items-center justify-between gap-2 pt-2">
-                <span className="text-sm font-bold text-gray-900 dark:text-slate-100">{money(d.price)}</span>
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-lg font-bold leading-none text-white" aria-hidden>+</span>
-              </div>
-            </div>
+      {combo && (
+        <div className="h2-food-in">
+          <Link to={combo.to} className="h2-combo">
+            <StorageImg objectKey={combo.image} alt={combo.name} className="h-full w-full object-cover" />
+            <span className="h2-combo-copy">
+              <span><em>{tx('Выгодный набор', 'Тиімді жиынтық')}</em><strong>{combo.name}</strong></span>
+              <span className="h2-combo-btn">{money(combo.price)} · {tx('Заказать', 'Тапсырыс')}</span>
+            </span>
+          </Link>
+        </div>
+      )}
+      <div className="h2-scroll">
+        {dishes.filter((d) => d.id !== combo?.id).map((d) => (
+          <Link key={d.id} to={d.to} className="h2-dish">
+            <span className="h2-dish-img"><StorageImg objectKey={d.image} alt={d.name} className="h-full w-full object-cover" /></span>
+            <span className="h2-dish-name">{d.name}</span>
+            <span className="h2-dish-row"><b>{money(d.price)}</b><span className="h2-plus" aria-hidden><Plus size={16} strokeWidth={2.4} /></span></span>
           </Link>
         ))}
-        <Link to="/food" className="flex w-[130px] shrink-0 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-orange-300 bg-orange-50/60 p-4 text-center text-sm font-semibold text-orange-700 dark:border-orange-500/40 dark:bg-slate-900 dark:text-orange-300">
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-500 text-white"><ArrowRight className="h-5 w-5" /></span>
-          {tx('Всё меню', 'Барлық мәзір')}
-        </Link>
+      </div>
+      <div className="h2-food-in">
+        <Link to="/food" className="h2-food-all">{tx('Открыть всё меню', 'Барлық мәзірді ашу')}<ArrowRight size={16} /></Link>
       </div>
     </section>
   );

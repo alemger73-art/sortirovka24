@@ -4,10 +4,10 @@ const ads = [
   { id: 9, title: 'Требуется продавец', ann_type: 'job', price: '250000', status: 'approved', active: true, created_at: '2026-10-20T10:00:00Z', expires_at: '2099-01-01T00:00:00Z' },
   { id: 10, title: 'Отдам котёнка', ann_type: 'free', price: 'Бесплатно', status: 'approved', active: true, created_at: '2026-10-20T10:00:00Z', expires_at: '2099-01-01T00:00:00Z' },
 ];
-for (const [name, w, h] of [['mobile', 390, 844], ['desktop', 1280, 900]] as const) {
+for (const [name, w, h, theme] of [['mobile', 390, 844, 'dark'], ['mobile-light', 390, 844, 'light'], ['desktop', 1280, 900, 'dark'], ['desktop-light', 1280, 900, 'light']] as const) {
   test(`home shows ads ${name}`, async ({ page }, info) => {
     await page.setViewportSize({ width: w, height: h });
-    await page.addInitScript(() => { localStorage.setItem('sortirovka-theme', 'dark'); localStorage.setItem('app_lang', 'ru'); sessionStorage.setItem('s24_welcome_done', '1'); });
+    await page.addInitScript((theme) => { localStorage.setItem('sortirovka-theme', theme); localStorage.setItem('app_lang', 'ru'); sessionStorage.setItem('s24_welcome_done', '1'); }, theme);
     await page.route('**/api/**', (route) => {
       const path = new URL(route.request().url()).pathname;
       if (path.endsWith('/modules')) return route.fulfill({ json: { news: true, announcements: true, food: true, directory: true } });
@@ -24,14 +24,17 @@ for (const [name, w, h] of [['mobile', 390, 844], ['desktop', 1280, 900]] as con
       return route.fulfill({ json: { items: [], total: 0 } });
     });
     await page.goto('/');
-    await expect(page.locator('.portal-hero-links a[href="/announcements"]')).toBeVisible();
+    await expect(page.locator('.h2-tiles a[href="/announcements"]')).toBeVisible();
+    await expect(page.locator('.h2-tiles a')).toHaveCount(3);
     await expect(page.getByTestId('home-ad-post')).toBeVisible();
     await expect(page.getByText('Требуется продавец')).toBeVisible();
     await expect(page.locator('.home-food')).toContainText('3 700 ₸');
     await expect(page.locator('.home-food nav')).toContainText('Пиццы');
     await expect(page.locator('.home-food a[href="/food?category=pizza-30"]')).toBeVisible();
-    // Banner dish first, then combo, then the rest of the menu.
-    expect(await page.locator('.home-food a[href^="/food#product="]').evaluateAll((a) => a.map((x) => x.getAttribute('href')))).toEqual(['/food#product=217', '/food#product=225', '/food#product=187']);
+    // The combo is the big card; then the banner dish, then the rest of the menu.
+    expect(await page.locator('.home-food a[href^="/food#product="]').evaluateAll((a) => a.map((x) => x.getAttribute('href')))).toEqual(['/food#product=225', '/food#product=217', '/food#product=187']);
+    // No floating call button over the content any more.
+    await expect(page.locator('a.fixed[href^="tel:"]')).toHaveCount(0);
     await expect(page.locator('.home-ads nav a')).toHaveCount(4);
     // No repeated blocks: hero already has these sections.
     await expect(page.getByRole('heading', { name: 'Популярные категории' })).toHaveCount(0);

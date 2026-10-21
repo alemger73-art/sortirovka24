@@ -50,6 +50,7 @@
     "@capacitor/push-notifications": "^7.0.6",
     "@capacitor/splash-screen": "^7.0.1",
     "@capacitor/status-bar": "^7.0.1",
+    "@fontsource-variable/onest": "^5.2.5",
     "@hookform/resolvers": "^3.9.0",
     "@metagptx/vite-plugin-source-locator": "0.0.14",
     "@metagptx/web-sdk": "^0.0.68",

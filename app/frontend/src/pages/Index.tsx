@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
 import PromoBannerMedia from '@/components/PromoBannerMedia';
-import PartnerSpotlight from '@/components/PartnerSpotlight';
+import HomePartners from '@/components/HomePartners';
 import '@/styles/portal-public.css';
 import { moduleForPath } from '@/config/modules';
 import VolnaImage from '@/components/volna/VolnaImage';
@@ -253,18 +253,18 @@ export default function Index() {
 
   return (
     <Layout>
-      <div className="portal-home"><Hero />
+      <div className="home2">
+      <div>
+        <div className="h2-wrap">
+          <Hero />
 
-      <div className="bg-[#f5f5f7] dark:bg-gray-950 transition-colors duration-300">
-        <div className="max-w-6xl mx-auto px-4 py-10 space-y-12">
-
-          {isEnabled('news') && <section className="home-news" aria-label={lang === 'kz' ? 'Жаңалықтар' : 'Новости'}>
-            <div className="public-section-head"><div><span className="public-kicker">{lang === 'kz' ? 'Жаңасы' : 'Свежее'}</span><h2>{lang === 'kz' ? 'Жаңалықтар' : 'Новости'}</h2></div><Link to="/news">{lang === 'kz' ? 'Барлық жаңалықтар' : 'Все новости'}<ArrowRight size={18} /></Link></div>
-            {news.length ? <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">{news.slice(0,8).map(item => <Link key={item.id} to={`/news/${item.id}`} className="flex w-[240px] shrink-0 flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 md:w-[280px]"><div className="aspect-[16/10] overflow-hidden bg-slate-100 dark:bg-slate-800">{item.image_url ? <StorageImg objectKey={item.image_url} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-slate-400"><FileText size={36} /></div>}</div><div className="flex flex-1 flex-col p-3"><time className="text-[11px] text-gray-400">{formatDate(item.created_at,lang)}</time><h3 className="mt-1 line-clamp-3 text-[15px] font-semibold leading-snug text-gray-900 dark:text-slate-100">{localized(item,'title')}</h3></div></Link>)}<Link to="/news" className="flex w-[130px] shrink-0 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-blue-300 bg-blue-50/60 p-4 text-center text-sm font-semibold text-blue-700 dark:border-blue-500/40 dark:bg-slate-900 dark:text-blue-300"><span className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-white"><ArrowRight size={20} /></span>{lang === 'kz' ? 'Барлық жаңалықтар' : 'Все новости'}</Link></div> : <p className="home-news-empty">{loading ? (lang === 'kz' ? 'Жаңалықтар жүктелуде…' : 'Новости загружаются…') : (lang === 'kz' ? 'Әзірге жаңалық жоқ.' : 'Новые публикации скоро появятся здесь.')}</p>}
+          {isEnabled('news') && <section className="home-news h2-section" aria-label={lang === 'kz' ? 'Жаңалықтар' : 'Новости'}>
+            <div className="h2-head"><h2>{lang === 'kz' ? 'Жаңалықтар' : 'Новости'}</h2><Link to="/news" className="h2-more">{lang === 'kz' ? 'Барлығы' : 'Все'}<ChevronRight size={16} /></Link></div>
+            {news.length ? <div className="h2-card h2-news">{news.slice(0, 4).map(item => <Link key={item.id} to={`/news/${item.id}`}><div className="h2-meta">{item.category && <span className="h2-pill">{getPublicCategoryLabel(item.category, t)}</span>}<time>{formatDate(item.created_at, lang)}</time></div><h3>{localized(item, 'title')}</h3></Link>)}</div> : <p className="h2-empty">{loading ? (lang === 'kz' ? 'Жаңалықтар жүктелуде…' : 'Новости загружаются…') : (lang === 'kz' ? 'Әзірге жаңалық жоқ.' : 'Новые публикации скоро появятся здесь.')}</p>}
           </section>}
           {isEnabled('announcements') && <HomeAds />}
           {isEnabled('food') && <HomeFood banners={banners} heroImage={FOOD_IMG} />}
-          {isEnabled('business') && <PartnerSpotlight />}
+          {isEnabled('business') && <HomePartners />}
 
           {/* ═══════════════════════════════════════════
               1b. МАГАЗИНЫ РАЙОНА — DAM ALEM 2.0 рядом с остальными
@@ -547,18 +547,6 @@ export default function Index() {
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════
-          Support telephone
-      ═══════════════════════════════════════════ */}
-      <a
-        href={`tel:${LEGAL_OPERATOR.phoneHref}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 md:bottom-6 md:right-6 z-40 bg-green-500 hover:bg-green-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-all duration-300 group"
-        title={t('footer.contacts')}
-      >
-        <PhoneIcon className="w-6 h-6 transition-transform" />
-      </a>
       </div>
     </Layout>
   );
