@@ -38,6 +38,14 @@ MUTE_AFTER_STAFF = 6 * 3600
 MAX_PER_HOUR = 40
 MAX_TOOL_ROUNDS = 6
 MAX_REPLY_CHARS = 3500
+def is_yes(text: str) -> bool:
+    """«Да» alone, or a longer message whose last line is a plain «Да» / «подтверждаю»."""
+    if YES_RE.match(text or ""):
+        return True
+    lines = [l for l in (text or "").strip().splitlines() if l.strip()]
+    return len(lines) > 1 and bool(YES_RE.match(lines[-1])) and not NO_RE.search(lines[-1])
+
+
 YES_RE = re.compile(r"^\s*(да|ага|угу|давай(те)?|подтверждаю|подтвердить|всё верно|все верно|верно|ок|окей|ok|okay|yes|иә|ия|иа|йа|жарайды|дұрыс|оформляй(те)?|заказываю|го)\b[\s!.)👍]*$", re.I)
 NO_RE = re.compile(r"^\s*(нет|не надо|отмена|отменить|стоп|жоқ|жок|no)\b", re.I)
 HUMAN_RE = re.compile(r"(оператор|живой|человек|менеджер|администратор|позвоните|жалоба)", re.I)
@@ -248,7 +256,13 @@ async def store_facts(db) -> str:
     from services.food_order_validation import kitchen_is_open
     s = await Food_settingsService(db).get_all_as_dict()
     open_now, opens, closes = kitchen_is_open(s)
+    from datetime import datetime, timedelta, timezone
+    local = datetime.now(timezone(timedelta(hours=5)))  # Караганда, UTC+5
+    days = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота", "воскресенье"]
+    months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"]
     parts = [
+        f"Сегодня {days[local.weekday()]}, {local.day} {months[local.month - 1]}, местное время {local:%H:%M}"
+        " (если кухня ещё откроется сегодня — предлагай сегодня, а не «завтра»)",
         f"Кухня сейчас {'ОТКРЫТА' if open_now else 'ЗАКРЫТА'}" + (f", принимаем заказы с {opens} до {closes}" if opens else ""),
         f"Время доставки: {s.get('delivery_time') or '35–45'} мин",
     ]
@@ -311,6 +325,7 @@ def system_prompt(facts: str, name: str, memory: str = "", menu: str = "") -> st
 - Обязательно, до расчёта, сделай одно дружелюбное допредложение (один раз, без давления):
   • к пицце и бургерам — соус (если у блюда есть соусы в меню) и напиток 🥤;
   • к одному блюду — закуску: картофель фри, наггетсы, луковые кольца 🍟;
+  • к мантам и горячему — соус из вариантов блюда, к обеду — напиток или кофе ☕;
   • если людей несколько — комбо или вторую пиццу.
   Пример: «К пицце отлично зайдёт *Сырный соус* (+300 ₸) и холодная *Coca-Cola 1 л* (800 ₸) 🥤 Добавить?»
 - Следи за суммой блюд. Если до подарка или бесплатной доставки осталось немного (до ~3 000 ₸) — скажи сколько и что можно добавить: «Ещё 1 200 ₸ — и *подарок* 🎁 бесплатно!»
@@ -322,6 +337,7 @@ def system_prompt(facts: str, name: str, memory: str = "", menu: str = "") -> st
 - Для заказа нужны: блюда и количество, имя, доставка (адрес: улица и дом, подъезд/квартира) или самовывоз, оплата: наличными (спроси, с какой суммы сдача), Kaspi или Halyk (счёт придёт в приложение банка на номер клиента). Спрашивай недостающее по одному вопросу.
 - Когда всё собрано — вызови quote_order. Покажи клиенту итог из ответа инструмента по образцу выше (блюда, доставка, оплата, итого) и попроси ответить «Да».
 - Сам ты заказ не создаёшь: его создаст система, когда клиент ответит «Да». Не пиши «заказ оформлен», пока система этого не сообщила.
+  Если клиент согласился, но заказ не оформился (система не прислала «✅ Заказ №… оформлен!»), не пиши «система сейчас оформит» — попроси ответить одним словом *Да*.
 - Если quote_order вернул ошибку (адрес не найден, минимальная сумма, кухня закрыта) — объясни простыми словами и предложи решение.
 - Геолокацию из WhatsApp ты получаешь автоматически: когда клиент её отправит, в чате будет «(клиент отправил геолокацию в WhatsApp: …)» — сразу пересчитай заказ с доставкой. Не говори, что не можешь принять геолокацию.
   Пока такой строки нет — геолокация НЕ пришла; не пиши «получила», а подскажи, как отправить.
@@ -782,7 +798,7 @@ async def _handle(db, chat: Chat, chat_id: str, p: dict[str, Any], client: httpx
             return Outcome("asked_phone", reply)
 
         # The customer's own «да» to the last calculation creates the order. The AI cannot do this.
-        if chat.pending and YES_RE.match(text) and now - chat.pending["at"] < 10 * 60:
+        if chat.pending and is_yes(text) and now - chat.pending["at"] < 10 * 60:
             pending, chat.pending = chat.pending, None
             try:
                 await C.confirm_customer_reply(db, ctx, pending["id"], explicit_confirmation=True)

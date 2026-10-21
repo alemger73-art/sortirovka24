@@ -236,3 +236,11 @@ async def test_bots_never_talk_to_each_other_and_loop_guard(bot, monkeypatch):
     chat = B._chat("77015556677@c.us"); chat.replies_at = [time.time()] * 6
     async with httpx.AsyncClient(transport=transport(log, [])) as client:
         assert (await B.handle_event(msg("ещё"), client)).action == "loop_stopped"
+
+
+def test_is_yes_last_line():
+    from services.dam_wa_bot import is_yes
+    assert is_yes("Да")
+    assert is_yes("Всё верно, проверила.\n\nДа")
+    assert not is_yes("Да, но уберите лагман")
+    assert not is_yes("нет")
