@@ -51,12 +51,56 @@ function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch { /* s
 const field = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-900 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-amber-900/40';
 const chip = (on: boolean) => `rounded-full border px-3.5 py-2 text-sm font-medium transition ${on ? 'border-amber-500 bg-amber-500 text-white' : 'border-gray-200 bg-white text-gray-700 hover:border-amber-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200'}`;
 
-/* ======================= NEW AD: 3 STEPS ======================= */
-export function NewAdWizard() {
+/** A saved ad → the form's draft (the work-schedule line goes back into its chip). */
+function draftFromAd(a: any): Draft {
+  const kind = (AD_KIND_MAP[String(a.ann_type || '')] ? a.ann_type : '') as AdKind | '';
+  const info = kind ? AD_KIND_MAP[kind] : undefined;
+  let description = String(a.description || '');
+  let extra = '';
+  if (info?.extra) {
+    const prefix = `${info.extra.label.ru}: `;
+    const first = description.split('\n')[0];
+    if (first.startsWith(prefix) && info.extra.options.some((o) => o.ru === first.slice(prefix.length))) {
+      extra = first.slice(prefix.length);
+      description = description.split('\n').slice(1).join('\n');
+    }
+  }
+  const phone = String(a.phone || '');
+  const wa = String(a.whatsapp || '');
+  const same = !wa || normalizeKzPhone(wa) === normalizeKzPhone(phone);
+  return {
+    kind, title: String(a.title || ''), description, extra,
+    price: kind === 'free' ? '' : String(a.price || ''), address: String(a.address || ''),
+    photos: String(a.gallery_images || a.image_url || ''), name: String(a.author_name || ''), phone,
+    whatsappSame: same, whatsapp: same ? '' : wa,
+  };
+}
+
+/* ======================= NEW / EDIT AD: 3 STEPS ======================= */
+export function NewAdWizard() { return <AdWizard />; }
+
+export function EditAdWizard() {
+  const { tx } = useTx();
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [initial, setInitial] = useState<{ draft: Draft; status: string } | null>(null);
+  useEffect(() => {
+    if (!id) return;
+    accountApi.getMyAnnouncement(Number(id))
+      .then((a: any) => setInitial({ draft: draftFromAd(a), status: String(a.status || '') }))
+      .catch(() => { toast.error(tx('Не удалось открыть объявление', 'Хабарландыру ашылмады')); navigate('/cabinet?tab=announcements'); });
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!initial) return <Layout hideBottomNav hideFooter><div className="flex justify-center py-24 text-gray-400"><Loader2 className="h-7 w-7 animate-spin" /></div></Layout>;
+  return <AdWizard editId={Number(id)} initial={initial.draft} />;
+}
+
+function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}) {
   const { tx, bi } = useTx();
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  const editing = Boolean(editId);
   const [draft, setDraft] = useState<Draft>(() => {
+    if (initial) return initial;
     const d = loadDraft();
     const preset = params.get('type');
     return preset && AD_KIND_MAP[preset] && !d.kind ? { ...d, kind: preset as AdKind } : d;
@@ -70,7 +114,7 @@ export function NewAdWizard() {
   const info = draft.kind ? AD_KIND_MAP[draft.kind] : undefined;
 
   const set = (patch: Partial<Draft>) => {
-    setDraft((d) => { const next = { ...d, ...patch }; saveDraft(next); return next; });
+    setDraft((d) => { const next = { ...d, ...patch }; if (!editing) saveDraft(next); return next; });
     setErrors((e) => (Object.keys(patch).some((k) => e[k]) ? Object.fromEntries(Object.entries(e).filter(([k]) => !(k in patch))) : e));
   };
 
@@ -124,6 +168,19 @@ export function NewAdWizard() {
   async function submit() {
     if (sending || !checkStep2() || !checkStep3()) return;
     setSending(true);
+    if (editId) {
+      try {
+        await accountApi.updateMyAnnouncement(editId, buildPayload() as any);
+        invalidateAllCaches();
+        track('ad_edit', { kind: draft.kind });
+        toast.success(tx('Сохранено. Объявление снова на проверке — обычно это до часа.', 'Сақталды. Хабарландыру қайта тексерілуде — әдетте бір сағатқа дейін.'));
+        navigate('/cabinet?tab=announcements');
+      } catch (err: any) {
+        const detail = err?.response?.data?.detail || err?.data?.detail || err?.detail;
+        toast.error(typeof detail === 'string' ? detail : tx('Не получилось сохранить. Проверьте интернет и попробуйте ещё раз.', 'Сақталмады. Интернетті тексеріп, қайталаңыз.'));
+      } finally { setSending(false); }
+      return;
+    }
     try {
       const res: any = await client.entities.announcements.create({ data: buildPayload() });
       invalidateAllCaches();
@@ -164,12 +221,13 @@ export function NewAdWizard() {
     <Layout hideBottomNav hideFooter>
       <div ref={topRef} className="mx-auto max-w-xl px-4 pb-32 pt-5 scroll-mt-20">
         <div className="mb-4 flex items-center justify-between">
-          <button type="button" onClick={() => (step === 1 ? navigate('/announcements') : setStep((s) => (s - 1) as 1 | 2))} className="inline-flex items-center gap-1 text-sm font-medium text-gray-500 dark:text-slate-400">
-            <ChevronLeft className="h-4 w-4" /> {step === 1 ? tx('Объявления', 'Хабарландырулар') : tx('Назад', 'Артқа')}
+          <button type="button" onClick={() => (editing && step <= 2 ? navigate('/cabinet?tab=announcements') : step === 1 ? navigate('/announcements') : setStep((s) => (s - 1) as 1 | 2))} className="inline-flex items-center gap-1 text-sm font-medium text-gray-500 dark:text-slate-400">
+            <ChevronLeft className="h-4 w-4" /> {editing && step <= 2 ? tx('Мои объявления', 'Менің хабарландыруларым') : step === 1 ? tx('Объявления', 'Хабарландырулар') : tx('Назад', 'Артқа')}
           </button>
           <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-300">{tx('Бесплатно', 'Тегін')}</span>
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{tx('Подать объявление', 'Хабарландыру беру')}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{editing ? tx('Изменить объявление', 'Хабарландыруды өзгерту') : tx('Подать объявление', 'Хабарландыру беру')}</h1>
+        {editing && <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">{tx('После сохранения объявление снова пройдёт быструю проверку.', 'Сақтағаннан кейін хабарландыру қайта жылдам тексеріледі.')}</p>}
         <ol className="mt-4 grid grid-cols-3 gap-2" aria-label={tx('Шаги', 'Қадамдар')}>
           {steps.map((label, i) => (
             <li key={label} aria-current={step === i + 1 ? 'step' : undefined}>
@@ -318,7 +376,7 @@ export function NewAdWizard() {
               <button type="button" data-testid="ad-next" onClick={() => { if (checkStep2()) setStep(3); }} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-amber-500 font-semibold text-white hover:bg-amber-600">{tx('Дальше', 'Әрі қарай')} <ArrowRight className="h-5 w-5" /></button>
             ) : (
               <button type="button" data-testid="ad-submit" disabled={sending} onClick={() => void submit()} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-green-600 font-semibold text-white hover:bg-green-700 disabled:opacity-60">
-                {sending ? <><Loader2 className="h-5 w-5 animate-spin" />{tx('Отправляем…', 'Жіберілуде…')}</> : <><Check className="h-5 w-5" />{tx('Опубликовать', 'Жариялау')}</>}
+                {sending ? <><Loader2 className="h-5 w-5 animate-spin" />{tx('Отправляем…', 'Жіберілуде…')}</> : <><Check className="h-5 w-5" />{editing ? tx('Сохранить', 'Сақтау') : tx('Опубликовать', 'Жариялау')}</>}
               </button>
             )}
           </div>

@@ -65,30 +65,40 @@ test('all resident tabs fit, preserve URL and navigate back', async ({ page }, i
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/cabinet');
   const nav = page.getByRole('navigation', { name: 'Разделы личного кабинета' });
-  // The cabinet opens on order history; the compact header with the name is shown on every tab.
-  await expect(nav.locator('button[aria-current=page]')).toContainText('История заказов');
+  const back = page.getByTestId('cabinet-back');
+  const wide = (page.viewportSize()?.width || 0) >= 1024;
+  // Wide screens open on order history with a sidebar; phones and tablets open a hub of section tiles.
+  if (wide) await expect(nav.locator('button[aria-current=page]')).toContainText('История заказов');
+  else { await expect(nav).toBeVisible(); await expect(page.locator('#cabinet-panel')).toBeHidden(); }
   await page.goto('/cabinet?tab=profile');
   await expect(page.getByLabel('Имя', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Личные данные', exact: true })).toHaveCount(1);
+  // The name card is on every tab of a wide screen and on the hub of a phone.
+  if (!wide) await back.click();
   await expect(page.getByRole('heading', { name: profile.name, exact: true })).toHaveCount(1);
-  await expect(nav.getByRole('combobox')).toHaveCount(0);
+  if (!wide) await page.goBack();
   await page.screenshot({ path: info.outputPath('cabinet-profile.png'), fullPage: true });
   const choose = async (label: string) => {
-    const select = nav.getByRole('combobox');
-    if (await select.isVisible()) await select.selectOption({ label });
-    else await nav.getByRole('button', { name: label }).click();
+    if (!wide) { await back.click(); await expect(page.locator('#cabinet-panel')).toBeHidden(); }
+    await nav.getByRole('button', { name: label }).click();
   };
-  for (const label of ['Работа и роли', 'Адреса доставки', 'Бонусы', 'Уведомления', 'История заказов', 'Заявки мастерам', 'Поездки такси', 'История жалоб', 'Мои объявления', 'Моя недвижимость', 'Настройки']) {
+  const tabs: Record<string, string> = { 'Работа и роли': 'work', 'Адреса доставки': 'addresses', 'Бонусы': 'bonuses', 'Уведомления': 'notifications', 'История заказов': 'orders', 'Заявки мастерам': 'masterRequests', 'Поездки такси': 'taxi', 'История жалоб': 'complaints', 'Мои объявления': 'announcements', 'Моя недвижимость': 'realEstate', 'Настройки': 'settings' };
+  for (const [label, tab] of Object.entries(tabs)) {
     await choose(label);
-    await expect(nav.locator('button[aria-current=page]')).toContainText(label);
+    await expect(page).toHaveURL(new RegExp(`tab=${tab}`));
+    if (wide) await expect(nav.locator('button[aria-current=page]')).toContainText(label);
+    else await expect(back).toBeVisible();
     await expect(page.locator('#cabinet-panel')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
   await page.reload();
-  await expect(nav.locator('button[aria-current=page]')).toHaveText('Настройки');
+  await expect(page).toHaveURL(/tab=settings/);
+  await expect(page.locator('#cabinet-panel')).toBeVisible();
   await choose('Профиль');
+  await expect(page).toHaveURL(/tab=profile/);
   await page.goBack();
-  await expect(nav.locator('button[aria-current=page]')).toHaveText('Настройки');
+  if (!wide) await page.goBack();
+  await expect(page).toHaveURL(/tab=settings/);
   expect(errors).toEqual([]);
 });
 
@@ -258,6 +268,7 @@ test('narrow native screen fits profile and settings with enlarged text', async 
   await page.evaluate(() => { document.documentElement.classList.add('native-app'); document.documentElement.style.fontSize = '18px'; (document.activeElement as HTMLElement)?.blur(); window.scrollTo(0, 0); });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect((await page.locator('.site-header > div').boundingBox())!.y).toBeGreaterThanOrEqual(32);
+  await page.getByTestId('cabinet-back').click();
   await page.getByRole('navigation', {name:'Разделы личного кабинета'}).getByRole('button',{name:'Настройки',exact:true}).click();
   await page.getByText('Настроить категории уведомлений', {exact:true}).click();
   await expect(page.getByRole('switch',{name:'Заказы (еда, магазины)',exact:true})).toBeVisible();
@@ -279,15 +290,20 @@ test('own listings handle failed writes and can be hidden and deleted', async ({
       return route.fulfill({ json: { success: true } });
     });
     await page.goto(`/cabinet?tab=${tab}`);
-    page.once('dialog', dialog => dialog.accept());
-    await page.getByRole('button', { name: 'Снять', exact: true }).click();
+    // Ads keep rare actions under «Ещё»; real estate shows them as buttons.
+    const ads = tab === 'announcements';
+    const unpublish = ads ? 'Снять с публикации' : 'Снять';
+    const action = async (name: string) => {
+      if (ads) await page.getByTestId('my-ad').locator('summary').click();
+      page.once('dialog', dialog => dialog.accept());
+      await page.getByRole('button', { name, exact: true }).click();
+    };
+    await action(unpublish);
     await expect(page.getByRole('alert')).toContainText('Ошибка сохранения');
     expect(writes).toBe(1);
-    page.once('dialog', dialog => dialog.accept());
-    await page.getByRole('button', { name: 'Снять', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Снять', exact: true })).toHaveCount(0);
-    page.once('dialog', dialog => dialog.accept());
-    await page.getByRole('button', { name: 'Удалить', exact: true }).click();
+    await action(unpublish);
+    await expect(page.getByRole('button', { name: unpublish, exact: true })).toHaveCount(0);
+    await action('Удалить');
     await expect(page.getByText('Тестовая публикация', { exact: true })).toHaveCount(0);
     expect(writes).toBe(3);
   }
@@ -335,6 +351,7 @@ test('disabled services stay hidden even with old history and approved roles', a
  await expect(page.getByRole('switch',{name:/Такси/})).toHaveCount(0);
  flags.masters=true;
  await page.evaluate(()=>window.dispatchEvent(new Event('s24-modules-updated')));
+ if (await page.getByTestId('cabinet-back').isVisible()) await page.getByTestId('cabinet-back').click();
  await expect(page.locator('nav[aria-label="Разделы личного кабинета"] button').filter({hasText:'Заявки мастерам'})).toHaveCount(1, {timeout:20000});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });

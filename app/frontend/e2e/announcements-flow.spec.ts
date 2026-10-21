@@ -176,11 +176,15 @@ test('owner editing retains a legacy cover and explains resubmission', async ({ 
     return route.fulfill({ json: { ...entries[0], user_id: 'alice', status: 'hidden', image_url: 'https://example.test/cover.jpg', gallery_images: null } });
   });
   await page.goto('/announcements/1/edit');
-  await expect(page.getByText(/После сохранения объявление отправится на проверку/)).toBeVisible();
-  await expect(page.locator('form select')).toHaveValue('sell');
-  await page.locator('form button[type=submit]').click();
+  // Editing opens the same friendly form as a new ad, already filled, and says it will be checked again.
+  await expect(page.getByRole('heading', { name: 'Изменить объявление' })).toBeVisible();
+  await expect(page.getByText(/снова пройдёт быструю проверку/)).toBeVisible();
+  await expect(page.locator('#ad-title')).toHaveValue(entries[0].title);
+  await page.getByTestId('ad-next').click();
+  await page.getByTestId('ad-submit').click();
   await expect.poll(() => saved?.gallery_images).toBe('https://example.test/cover.jpg');
   expect(saved.ann_type).toBe('sell');
+  await expect(page).toHaveURL(/\/cabinet\?tab=announcements/);
 });
 
 test('moderator can find and approve an announcement', async ({ page }, info) => {

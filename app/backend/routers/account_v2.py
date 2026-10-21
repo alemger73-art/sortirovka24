@@ -2034,6 +2034,12 @@ async def update_my_announcement(
             await alert_new_announcement(db, _announcement_to_dict(row))
         except Exception:
             logger.warning('Announcement moderation alert failed', exc_info=True)
+        try:  # back to the owner's Telegram for one-tap approval, like a new ad
+            from services.ad_moderation import send_for_moderation
+            await db.refresh(row)
+            await send_for_moderation(row)
+        except Exception:
+            logger.warning('Announcement was not sent to Telegram moderation', exc_info=True)
     return {"success": True, "announcement": _announcement_to_dict(row)}
 
 
@@ -2104,6 +2110,12 @@ async def extend_my_announcement(
             await alert_new_announcement(db, _announcement_to_dict(row))
         except Exception:
             logger.warning('Announcement moderation alert failed', exc_info=True)
+        try:  # back to the owner's Telegram for one-tap approval, like a new ad
+            from services.ad_moderation import send_for_moderation
+            await db.refresh(row)
+            await send_for_moderation(row)
+        except Exception:
+            logger.warning('Announcement was not sent to Telegram moderation', exc_info=True)
     return {"success": True, "announcement": _announcement_to_dict(row)}
 
 

@@ -34,7 +34,7 @@ const NewComplaintForm = lazy(() => import("./pages/Content").then(m => ({ defau
 const AnnouncementsList = lazy(() => import("./pages/Announcements").then(m => ({ default: m.AdsList })));
 const AnnouncementDetail = lazy(() => import("./pages/Announcements").then(m => ({ default: m.AdDetail })));
 const NewAnnouncementForm = lazy(() => import("./pages/Announcements").then(m => ({ default: m.NewAdWizard })));
-const EditAnnouncementForm = lazy(() => import("./pages/Content").then(m => ({ default: m.EditAnnouncementForm })));
+const EditAnnouncementForm = lazy(() => import("./pages/Announcements").then(m => ({ default: m.EditAdWizard })));
 const RealEstateList = lazy(() => import("./pages/RealEstate").then(m => ({ default: m.RealEstateList })));
 const RealEstateDetail = lazy(() => import("./pages/RealEstate").then(m => ({ default: m.RealEstateDetail })));
 const NewRealEstateForm = lazy(() => import("./pages/RealEstate").then(m => ({ default: m.NewRealEstateForm })));

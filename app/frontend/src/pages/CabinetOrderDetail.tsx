@@ -138,7 +138,7 @@ export default function CabinetOrderDetail() {
           <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">{error}</div>
         ) : order ? (
           <div className="space-y-4">
-            {!['delivered', 'completed', 'cancelled', 'canceled'].includes(String((order as { status?: string }).status || '')) && <PushPromptCard reason="order" />}
+            {!['done', 'delivered', 'completed', 'cancelled', 'canceled'].includes(String((order as { status?: string }).status || '')) && <PushPromptCard reason="order" />}
             <div className="rounded-2xl border bg-white p-6 shadow-sm dark:bg-gray-900 dark:border-gray-800">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
@@ -208,7 +208,7 @@ export default function CabinetOrderDetail() {
               </div>
             </div>
 
-            {isFood && <div className="rounded-2xl border bg-card p-4 space-y-3">
+            {isFood && (!['done', 'cancelled'].includes(String(order.status)) || !!order.receipt_revision || order.paid_amount > 0 || order.can_edit_receipt || order.can_request_receipt_change) && <div className="rounded-2xl border bg-card p-4 space-y-3">
               {!['done', 'cancelled'].includes(String(order.status)) && <p className="text-sm text-muted-foreground">{t('workflow.live')}</p>}
               {!!order.receipt_revision && <p className="font-semibold text-orange-700 dark:text-orange-300">{t('workflow.changed')} · {formatOrderDate(order.receipt_updated_at)}</p>}
               {order.paid_amount > 0 && <><p>{t('workflow.received')}: {Number(order.paid_amount).toLocaleString('ru-RU')} ₸</p>{order.amount !== order.paid_amount && <p className="font-semibold">{t(order.paid_amount > order.amount ? 'workflow.refund' : 'workflow.due')}: {Math.abs(order.amount - order.paid_amount).toLocaleString('ru-RU')} ₸</p>}</>}
