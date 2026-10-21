@@ -196,35 +196,48 @@ def money(v: Any) -> str:
 # ── menu & facts for the AI ─────────────────────────────────────────────────
 
 async def menu_text(db) -> str:
-    """Compact menu with ids, prices and required choices — the only source of dishes for the AI."""
+    """The whole menu, compact enough to always fit: dishes with ids and prices; option groups listed once.
+    Only what a customer can really order now (active dish in an active category)."""
     if time.time() - _menu_cache["at"] < 60 and _menu_cache["text"]:
         return _menu_cache["text"]
     from services.menu_configuration import catalog
     cur = await catalog(db)
-    cats = {c["id"]: c["name"] for c in cur.get("categories", [])}
-    lines, ids = [], set()
+    cats = {c["id"]: c["name"] for c in cur.get("categories", [])}  # active categories only
+    groups: dict[Any, dict] = {}
     by_cat: dict[str, list[dict]] = {}
     for p in cur.get("products", []):
         if not p.get("sellable"):
             continue
+        if p.get("category_id") and p["category_id"] not in cats and not p.get("is_combo"):
+            continue  # the category is switched off by the owner
         by_cat.setdefault(cats.get(p.get("category_id"), "Комбо" if p.get("is_combo") else "Другое"), []).append(p)
+    lines, ids = [], set()
     for cat, items in by_cat.items():
         lines.append(f"\n[{cat}]")
         for p in items:
             ids.add(p["id"])
             desc = re.sub(r"\s+", " ", str(p.get("description") or "")).strip()
-            lines.append(f"#{p['id']} {p['name']} — {money(p['price'])}" + (f" ({desc[:110]})" if desc else ""))
+            if "фирменное блюдо DAM ALEM" in desc:
+                desc = ""  # template text, says nothing
+            extra = []
             for g in p.get("modifier_groups") or []:
-                opts = ", ".join(f"option_id {o['id']}: {o['name']}" + (f" +{money(o.get('price'))}" if float(o.get('price') or 0) else "")
-                                 for o in g.get("options", []) if o.get("is_active", True) is not False)
-                lower = max(int(g.get("min_select") or 0), 1 if g.get("is_required") else 0)
-                rule = "обязательно выбрать 1" if lower and g.get("type") == "single" else (f"выбрать от {lower}" if lower else "по желанию")
-                lines.append(f"   • {g['name']} ({rule}): {opts}")
+                groups[g["id"]] = g
+                extra.append(f"G{g['id']}")
+            line = f"#{p['id']} {p['name']} — {money(p['price'])}" + (f" · {desc[:70]}" if desc else "") + (f" [варианты: {', '.join(extra)}]" if extra else "")
+            lines.append(line)
             combo = p.get("combo") or {}
             for g in combo.get("groups") or []:
-                opts = ", ".join(f"item_id {o['item_id']}: {o.get('name', '')}" + (f" +{money(o.get('surcharge'))}" if float(o.get('surcharge') or 0) else "")
+                opts = ", ".join(f"{o['item_id']}={o.get('name', '')}" + (f" +{money(o.get('surcharge'))}" if float(o.get('surcharge') or 0) else "")
                                  for o in g.get("options", []) if o.get("available"))
-                lines.append(f"   • в комбо «{g['name']}» (group_id {g['id']}, выбрать {g.get('min_select', 1)}): {opts}")
+                lines.append(f"   в комбо «{g['name']}» (choices: group_id {g['id']}, выбрать {g.get('min_select', 1)}): {opts}")
+    if groups:
+        lines.append("\n[Варианты и добавки — передавай в modifiers как option_id]")
+        for gid, g in groups.items():
+            opts = ", ".join(f"{o['id']}={o['name']}" + (f" +{money(o.get('price'))}" if float(o.get('price') or 0) else "")
+                             for o in g.get("options", []) if o.get("is_active", True) is not False)
+            lower = max(int(g.get("min_select") or 0), 1 if g.get("is_required") else 0)
+            rule = "обязательно 1" if lower and g.get("type") == "single" else (f"минимум {lower}" if lower else "по желанию")
+            lines.append(f"G{gid} «{g['name']}» ({rule}): {opts}")
     text = "\n".join(lines).strip() or "Меню сейчас пустое."
     _menu_cache.update(at=time.time(), text=text, ids=ids)
     return text
@@ -266,9 +279,10 @@ async def store_facts(db) -> str:
     return text
 
 
-def system_prompt(facts: str, name: str, memory: str = "") -> str:
+def system_prompt(facts: str, name: str, memory: str = "", menu: str = "") -> str:
     return f"""Ты — продавец-консультант доставки еды DAM ALEM 2.0 (район Сортировка, Караганда) в WhatsApp.
-Пиши на языке клиента (русский или казахский), тепло, живо и по-доброму, как приветливый официант.
+Пиши на языке клиента (русский или казахский), тепло, живо и уверенно — от имени заведения DAM ALEM: «мы», «у нас», «рекомендуем», «посчитали», «приготовим».
+Не говори о себе в первом лице с родом («я бы взяла», «посчитала», «записал») и не пиши «я бы посоветовала» — говори уверенно: «Рекомендуем…», «Для компании из 10 человек отлично подойдёт…».
 Клиент: {name or 'имя пока неизвестно'}.
 
 Оформление сообщений (это WhatsApp):
@@ -302,7 +316,8 @@ def system_prompt(facts: str, name: str, memory: str = "") -> str:
 - Следи за суммой блюд. Если до подарка или бесплатной доставки осталось немного (до ~3 000 ₸) — скажи сколько и что можно добавить: «Ещё 1 200 ₸ — и *подарок* 🎁 бесплатно!»
 - Если сумма уже дотягивает до подарка — обязательно скажи о нём и спроси, какой подарок выбрать (selected_gift_id в quote_order).
 - Если подходит промокод — применяй самый выгодный для клиента сам (подставь в promo_code) и скажи об этом.
-- Блюда, цены и варианты бери ТОЛЬКО из get_menu. Никогда не выдумывай блюда, цены, скидки и сроки.
+- Блюда, цены и варианты бери ТОЛЬКО из меню ниже (это всё актуальное меню целиком). Никогда не выдумывай блюда, цены, скидки и сроки.
+  Если блюда нет в меню ниже — значит, сейчас его нет; предложи похожее.
 - Если у блюда есть обязательный выбор (размер, количество, состав комбо) — уточни у клиента.
 - Для заказа нужны: блюда и количество, имя, доставка (адрес: улица и дом, подъезд/квартира) или самовывоз, оплата: наличными (спроси, с какой суммы сдача), Kaspi или Halyk (счёт придёт в приложение банка на номер клиента). Спрашивай недостающее по одному вопросу.
 - Когда всё собрано — вызови quote_order. Покажи клиенту итог из ответа инструмента по образцу выше (блюда, доставка, оплата, итого) и попроси ответить «Да».
@@ -323,11 +338,14 @@ def system_prompt(facts: str, name: str, memory: str = "") -> str:
 - Помни весь разговор: не переспрашивай то, что клиент уже сказал (имя, адрес, оплату, блюда). Если клиент меняет заказ — пересчитай quote_order с учётом изменений.
 - Если клиент уже заказывал — можно предложить «как в прошлый раз» и подставить прошлый адрес (уточни, актуален ли он).
 
-{memory}"""
+{memory}
+
+АКТУАЛЬНОЕ МЕНЮ DAM ALEM (id, цены, варианты):
+{menu}"""
 
 
 TOOLS = [
-    {"name": "get_menu", "description": "Актуальное меню DAM ALEM: id блюд, цены, обязательные варианты (option_id) и состав комбо (group_id/item_id).",
+    {"name": "get_menu", "description": "Обновить меню (оно уже есть в инструкции; вызывай, только если клиент сомневается в наличии).",
      "input_schema": {"type": "object", "properties": {}}},
     {"name": "get_preorder_slots", "description": "Свободное время для предзаказа (когда кухня закрыта или клиент хочет к определённому времени).",
      "input_schema": {"type": "object", "properties": {}}},
@@ -488,6 +506,7 @@ async def ask_ai(client: httpx.AsyncClient, db, ctx, chat: Chat, text: str, mess
     if not key:
         return None
     facts = await store_facts(db)
+    menu = await menu_text(db)
     memory_parts = [await customer_profile(db, ctx)]
     if chat.draft_note:
         memory_parts.append("Последний расчёт заказа в этом чате: " + chat.draft_note
@@ -506,7 +525,7 @@ async def ask_ai(client: httpx.AsyncClient, db, ctx, chat: Chat, text: str, mess
             "https://api.anthropic.com/v1/messages",
             headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
             json={"model": os.getenv("DAM_WA_MODEL", "claude-haiku-5-5"), "max_tokens": 4000,
-                  "system": system_prompt(facts, chat.name, memory), "tools": TOOLS, "messages": msgs},
+                  "system": system_prompt(facts, chat.name, memory, menu), "tools": TOOLS, "messages": msgs},
             timeout=90)
 
     for _ in range(MAX_TOOL_ROUNDS):
@@ -532,7 +551,7 @@ async def ask_ai(client: httpx.AsyncClient, db, ctx, chat: Chat, text: str, mess
         for u in uses:
             out = await run_tool(db, ctx, chat, u["name"], u.get("input") or {}, message_id, client, chat_id)
             logger.info("[DamWA] tool %s → %d chars%s", u["name"], len(out), " (error)" if out.startswith("Ошибка") else "")
-            results.append({"type": "tool_result", "tool_use_id": u["id"], "content": out[:6000]})
+            results.append({"type": "tool_result", "tool_use_id": u["id"], "content": out[:15000]})
         exchange.append({"role": "user", "content": results})
     if reply is None:
         reply = "Секунду, уточняю детали — сотрудник подключится, если понадобится 🙏"
