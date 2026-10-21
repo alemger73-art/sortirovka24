@@ -816,7 +816,7 @@ export default function Food() {
       if (settle && tries < 10) window.setTimeout(go, tries < 4 ? 200 : 400);
       else if (settle) { window.removeEventListener('wheel', stop); window.removeEventListener('touchstart', stop); }
     };
-    requestAnimationFrame(go);
+    window.setTimeout(go, 30); // not requestAnimationFrame: it never fires in background or embedded views
   }, []);
 
   const openCatalog = useCallback((categoryId?: number | null, settle = false) => {
