@@ -17,16 +17,16 @@ const sizes = {
 export default function AppLogo({ className, size = 'md', showText = false }: AppLogoProps) {
   const { t: publicT } = useLanguage();
   return (
-    <div className={cn('flex items-center gap-2.5', className)}>
+    <div className={cn('flex min-w-0 items-center gap-2.5', className)}>
       <img
         src="/icon-192-v4.png"
         alt="Sortirovka24"
-        className={cn('rounded-2xl shadow-sm object-cover', sizes[size])}
+        className={cn('shrink-0 rounded-2xl shadow-sm object-cover', sizes[size])}
       />
       {showText && (
-        <div className="leading-tight">
-          <p className="text-base font-bold text-gray-900 dark:text-white">Сортировка 24</p>
-          <p className="text-xs text-gray-500 dark:text-white/60">{publicT("header.portalDesc")}</p>
+        <div className="min-w-0 leading-tight">
+          <p className="truncate text-base font-bold text-gray-900 dark:text-white">Сортировка 24</p>
+          <p className="truncate text-xs text-gray-500 dark:text-white/60 max-[389px]:hidden">{publicT("header.portalDesc")}</p>
         </div>
       )}
     </div>
