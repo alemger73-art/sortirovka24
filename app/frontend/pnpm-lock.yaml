@@ -38,6 +38,9 @@ dependencies:
   '@capacitor/status-bar':
     specifier: ^7.0.1
     version: 7.0.6(@capacitor/core@7.6.9)
+  '@fontsource-variable/onest':
+    specifier: ^5.2.5
+    version: 5.3.1
   '@hookform/resolvers':
     specifier: ^3.9.0
     version: 3.10.0(react-hook-form@7.71.1)
@@ -2061,6 +2064,10 @@ packages:
 
   /@floating-ui/utils@0.2.10:
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
+    dev: false
+
+  /@fontsource-variable/onest@5.3.1:
+    resolution: {integrity: sha512-xaaw6G4HDB2/RczsWLD/2bnib4ykmQlTlBUN3GOEOiyErilZukQWVJG95h9zwAy0i8KY+QzDa+COPfqhI72Acw==}
     dev: false
 
   /@hookform/resolvers@3.10.0(react-hook-form@7.71.1):
