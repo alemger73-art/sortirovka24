@@ -1,4 +1,5 @@
 import { client, withRetry, ANN_TYPES } from '@/lib/api';
+import { adSaved } from '@/lib/adStats';
 
 export const ANN_FAV_KEY = 'ann_favorites';
 export const ANN_VISIBLE_STATUSES = ['approved', 'published'];
@@ -48,6 +49,7 @@ export function toggleAnnFavorite(id: number): number[] {
   const prev = loadAnnFavorites();
   const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
   saveAnnFavorites(next);
+  adSaved(id, next.includes(id)); // «сохранили» in the owner's statistics
   return next;
 }
 

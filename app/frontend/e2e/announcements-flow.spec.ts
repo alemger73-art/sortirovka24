@@ -23,6 +23,8 @@ async function setup(page: Page, options: { fail?: boolean; categories?: boolean
         body = { items: entries.slice(skip, skip + limit), total: entries.length };
       }
     }
+    if (path.endsWith('/announcements/events')) { writes.push({ events: req.postDataJSON() }); return route.fulfill({ status: 202, json: { ok: true } }); }
+    if (/\/announcements\/\d+\/save$/.test(path)) { writes.push({ save: path, body: req.postDataJSON() }); return route.fulfill({ status: 202, json: { ok: true } }); }
     if (path.endsWith('/announcements/3/report')) { writes.push({ report: req.postDataJSON() }); return route.fulfill({ status: 202, json: { accepted: true } }); }
     if (path.endsWith('/announcements/3')) body = { ...entries[2], user_id: 'bob', phone: '87011112233', whatsapp: '+77011112233', gallery_images: '' };
     if (path.endsWith('/announcements/1')) body = { ...entries[0], status: 'pending', user_id: 'alice', active: true, expires_at: null };
@@ -123,7 +125,7 @@ test('detail: call and WhatsApp bar, share, report goes to the owner', async ({ 
   await page.getByRole('button', { name: 'Мошенник, просит предоплату' }).click();
   await page.getByRole('button', { name: 'Отправить жалобу' }).click();
   await expect(page.getByText('Спасибо! Мы проверим объявление.')).toBeVisible();
-  expect(writes).toEqual([{ report: { reason: 'Мошенник, просит предоплату' } }]);
+  expect(writes.filter((w: any) => w.report)).toEqual([{ report: { reason: 'Мошенник, просит предоплату' } }]);
   expect(await noOverflow(page)).toBe(true);
 });
 
@@ -209,4 +211,33 @@ test('moderator can find and approve an announcement', async ({ page }, info) =>
   await page.getByRole('button', { name: 'Одобрить', exact: true }).click();
   await expect.poll(() => approved).toBe(true);
   await expect(page.getByRole('heading', { name: 'Объявление 1' })).toHaveCount(0);
+});
+
+test('real statistics: list impressions, one view, call, WhatsApp and saves are reported; the owner is not counted', async ({ page }) => {
+  const writes = await setup(page);
+  const events = async () => writes.filter((w: any) => w.events).flatMap((w: any) => w.events.events.map((e: any) => `${e.id}:${e.kind}`));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/announcements');
+  await expect(page.getByText('205 объявл.')).toBeVisible();
+  await page.getByRole('button', { name: 'В избранное' }).first().click();
+  await expect.poll(() => writes.find((w: any) => w.save)?.body?.saved).toBe(true);
+  // Cards that stayed on screen are reported as «показы» in a small batch.
+  await expect.poll(async () => (await events()).some((e: string) => e.endsWith(':impression')), { timeout: 8000 }).toBe(true);
+  await page.goto('/announcements/3');
+  await expect(page.getByRole('link', { name: 'Позвонить' })).toBeVisible();
+  await page.evaluate(() => { document.querySelectorAll('a[href^="tel:"], a[href*="wa.me"]').forEach((a) => a.addEventListener('click', (e) => e.preventDefault())); });
+  await page.getByRole('link', { name: 'Позвонить' }).click();
+  await page.getByRole('link', { name: 'WhatsApp' }).click();
+  await expect.poll(events).toEqual(expect.arrayContaining(['3:view', '3:phone', '3:whatsapp']));
+  const visitors = new Set(writes.filter((w: any) => w.events).map((w: any) => w.events.visitor));
+  expect(visitors.size).toBe(1);
+  expect((await events()).filter((e: string) => e === '3:view')).toHaveLength(1);
+});
+
+test('owner opening own ad does not send a view', async ({ page }) => {
+  const writes = await setup(page, { auth: true });
+  await page.goto('/announcements/1');
+  await expect(page.getByText(/проверке/).first()).toBeVisible();
+  await page.waitForTimeout(2500);
+  expect(writes.filter((w: any) => w.events)).toHaveLength(0);
 });

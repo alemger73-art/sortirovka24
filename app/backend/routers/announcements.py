@@ -245,13 +245,7 @@ async def get_announcements(
             logger.warning(f"Announcements with id {id} not found")
             raise HTTPException(status_code=404, detail="Announcements not found")
 
-        try:
-            if not admin and await service.get_by_id(id, public_only=True):
-                await service.increment_views(id)
-                await db.refresh(result)
-        except Exception:
-            logger.warning(f"Failed to increment views for announcement {id}", exc_info=True)
-
+        # Views are counted by POST /events (once per person per day, without bots and the owner).
         return result
     except HTTPException:
         raise
@@ -323,6 +317,66 @@ async def create_announcements(
 
 class AnnouncementReport(BaseModel):
     reason: str
+
+
+class AdEvent(BaseModel):
+    id: int
+    kind: str
+
+
+class AdEventsBody(BaseModel):
+    visitor: Optional[str] = None
+    events: List[AdEvent] = []
+
+
+class AdSaveBody(BaseModel):
+    visitor: Optional[str] = None
+    saved: bool = True
+
+
+def _ad_visitor(request: Request, raw: str | None) -> str | None:
+    from services import ad_stats
+    agent = request.headers.get("user-agent", "")
+    if ad_stats.is_bot(agent):
+        return None
+    ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "")
+    return ad_stats.visitor_key(raw, ip, agent)
+
+
+@router.post("/events", status_code=202)
+async def ad_events(body: AdEventsBody, request: Request,
+                    authorization: str | None = Header(default=None, alias="Authorization"),
+                    db: AsyncSession = Depends(get_db)):
+    """Real statistics: list impressions, opens, calls, WhatsApp, shares — once per person per day."""
+    from utils.rate_limit import check_ip_rate_limit
+    from services import ad_stats
+    check_ip_rate_limit(request, key_prefix="ad_events", window_seconds=60, max_hits=60)
+    visitor = _ad_visitor(request, body.visitor)
+    events = [(int(e.id), e.kind) for e in body.events[:80] if e.kind in ad_stats.KINDS and 0 < int(e.id) < 2**31]
+    if not visitor or not events:
+        return {"ok": True, "counted": 0}
+    user = await resolve_account_user(db, authorization) if authorization else None
+    mine = await ad_stats.owned_ids(db, sorted({i for i, _ in events}), user)
+    counted = await ad_stats.record(db, [(i, k) for i, k in events if i not in mine], visitor)
+    return {"ok": True, "counted": counted}
+
+
+@router.post("/{id}/save", status_code=202)
+async def ad_save(id: int, body: AdSaveBody, request: Request,
+                  authorization: str | None = Header(default=None, alias="Authorization"),
+                  db: AsyncSession = Depends(get_db)):
+    """❤ in the list or on the ad page: «сохранили» in the owner's statistics."""
+    from utils.rate_limit import check_ip_rate_limit
+    from services import ad_stats
+    check_ip_rate_limit(request, key_prefix="ad_save", window_seconds=60, max_hits=30)
+    visitor = _ad_visitor(request, body.visitor)
+    if not visitor:
+        return {"ok": True}
+    user = await resolve_account_user(db, authorization) if authorization else None
+    if id in await ad_stats.owned_ids(db, [id], user):
+        return {"ok": True}
+    await ad_stats.set_saved(db, id, visitor, body.saved)
+    return {"ok": True}
 
 
 @router.post("/{id}/report", status_code=202)

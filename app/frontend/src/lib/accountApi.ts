@@ -188,6 +188,7 @@ export const accountApi = {
       body: JSON.stringify({ status }),
     }),
   getMyAnnouncement: (id: number) => api<any>(`/api/v1/account/me/announcements/${id}`),
+  myAnnouncementStats: (id: number) => api<any>(`/api/v1/account/me/announcements/${id}/stats`),
   updateMyAnnouncement: (id: number, body: Record<string, unknown>) =>
     api<{ success: boolean; announcement: any }>(`/api/v1/account/me/announcements/${id}`, {
       method: "PUT",

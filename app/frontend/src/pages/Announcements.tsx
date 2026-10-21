@@ -23,6 +23,7 @@ import { getAccountPrefill, getCurrentUser, onAuthChanged, pushCabinetItem } fro
 import { track } from '@/lib/analytics';
 import { usePageSeo } from '@/hooks/usePageSeo';
 import PromoSlot from '@/components/PromoSlot';
+import { adEvent, observeImpression } from '@/lib/adStats';
 import {
   type AnnCategory, fetchAnnouncementCategories, filterPublicAnnouncements, getAnnouncementCover,
   loadAnnFavorites, sortAnnouncements, toggleAnnFavorite,
@@ -389,6 +390,11 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
 /* ======================= CARD ======================= */
 function AdCard({ ad, preview, favorite, onFavorite }: { ad: any; preview?: boolean; favorite?: boolean; onFavorite?: (e: React.MouseEvent) => void }) {
   const { tx, bi } = useTx();
+  const seenRef = useRef<HTMLAnchorElement>(null);
+  useEffect(() => {
+    if (preview || !seenRef.current || ownsAd(ad)) return;
+    return observeImpression(seenRef.current, () => adEvent(ad.id, 'impression'));
+  }, [ad.id, preview]); // eslint-disable-line react-hooks/exhaustive-deps
   const k = kindOf(ad);
   const cover = getAnnouncementCover(ad);
   const price = formatAdPrice(ad.price);
@@ -413,7 +419,7 @@ function AdCard({ ad, preview, favorite, onFavorite }: { ad: any; preview?: bool
   );
   const cls = 'block overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition dark:border-slate-800 dark:bg-slate-900';
   if (preview) return <div className={`${cls} mx-auto max-w-[260px]`}>{body}</div>;
-  return <Link to={`/announcements/${ad.id}`} className={`${cls} hover:-translate-y-0.5 hover:shadow-md`}>{body}</Link>;
+  return <Link ref={seenRef} to={`/announcements/${ad.id}`} className={`${cls} hover:-translate-y-0.5 hover:shadow-md`}>{body}</Link>;
 }
 
 /* ======================= LIST ======================= */
@@ -595,6 +601,8 @@ export function AdDetail() {
 
   const isOwner = ad ? ownsAd(ad) : false;
   const isPublic = ad ? filterPublicAnnouncements([ad]).length > 0 : false;
+  // A real view for the owner's statistics (not the owner, once per person per day — the server checks too).
+  useEffect(() => { if (ad && isPublic && !isOwner) adEvent(ad.id, 'view', true); }, [ad?.id, isPublic, isOwner]); // eslint-disable-line react-hooks/exhaustive-deps
   const phoneDigits = normalizeKzPhone(ad?.phone || '');
   const waDigits = normalizeKzPhone(ad?.whatsapp || '');
   const waText = encodeURIComponent(tx(`Здравствуйте! Пишу по объявлению «${ad?.title || ''}» на Сортировка 24`, `Сәлеметсіз бе! Сортировка 24-тегі «${ad?.title || ''}» хабарландыруы бойынша жазып отырмын`));
@@ -602,6 +610,7 @@ export function AdDetail() {
   async function share() {
     const url = `${location.origin}/announcements/${ad.id}`;
     track('ad_share', { id: ad.id });
+    if (!isOwner) adEvent(ad.id, 'share', true);
     try {
       if (navigator.share) { await navigator.share({ title: ad.title, text: formatAdPrice(ad.price) || ad.title, url }); return; }
       await navigator.clipboard.writeText(url); toast.success(tx('Ссылка скопирована', 'Сілтеме көшірілді'));
@@ -706,8 +715,8 @@ export function AdDetail() {
       {!isOwner && isPublic && phoneDigits.length >= 11 && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur dark:border-slate-700 dark:bg-slate-950/95">
           <div className="mx-auto flex max-w-3xl gap-3">
-            <a href={`tel:+${phoneDigits}`} onClick={() => track('ad_contact', { id: ad.id, way: 'call', kind: ad.ann_type })} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-amber-500 font-semibold text-white"><Phone className="h-5 w-5" />{tx('Позвонить', 'Қоңырау шалу')}</a>
-            {waDigits.length >= 11 && <a href={`https://wa.me/${waDigits}?text=${waText}`} target="_blank" rel="noopener noreferrer" onClick={() => track('ad_contact', { id: ad.id, way: 'whatsapp', kind: ad.ann_type })} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-green-600 font-semibold text-white"><MessageCircle className="h-5 w-5" />WhatsApp</a>}
+            <a href={`tel:+${phoneDigits}`} onClick={() => { track('ad_contact', { id: ad.id, way: 'call', kind: ad.ann_type }); adEvent(ad.id, 'phone', true); }} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-amber-500 font-semibold text-white"><Phone className="h-5 w-5" />{tx('Позвонить', 'Қоңырау шалу')}</a>
+            {waDigits.length >= 11 && <a href={`https://wa.me/${waDigits}?text=${waText}`} target="_blank" rel="noopener noreferrer" onClick={() => { track('ad_contact', { id: ad.id, way: 'whatsapp', kind: ad.ann_type }); adEvent(ad.id, 'whatsapp', true); }} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-green-600 font-semibold text-white"><MessageCircle className="h-5 w-5" />WhatsApp</a>}
           </div>
         </div>
       )}

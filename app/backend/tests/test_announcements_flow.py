@@ -29,8 +29,9 @@ async def test_complete_announcement_lifecycle(security_env):
     expires = datetime.fromisoformat(r.json()['expires_at'])
     assert timedelta(days=29) < expires - datetime.now(timezone.utc) <= timedelta(days=30)
     assert (await client.get(BASE)).json()['total'] == 1
+    # Opening the page does not count by itself; the page reports a real view once per person per day.
     first = (await client.get(path)).json()['views_count']
-    assert (await client.get(path)).json()['views_count'] == first + 1
+    assert (await client.get(path)).json()['views_count'] == first
     assert (await client.put(own, headers=headers['bob'], json={'title': 'Чужое'})).status_code == 404
     assert (await client.put(own, headers=headers['alice'], json={'title': 'Исправлено'})).status_code == 200
     assert (await client.get(BASE)).json()['total'] == 0
@@ -102,3 +103,41 @@ async def test_category_consistency_and_invalid_gallery(security_env):
     assert r.status_code == 200 and r.json()['category_id'] == 102
     r = await client.put(path, headers=headers['panel'], json={'expires_at': 'broken date'})
     assert r.status_code == 400
+
+
+UA = {'User-Agent': 'Mozilla/5.0 (Linux; Android 14) Chrome/130 Mobile'}
+
+
+async def test_real_ad_statistics_for_owner(security_env):
+    client, maker, headers = security_env
+    async with maker() as db:
+        row = Announcements(**BODY, user_id='alice', active=True, status='approved',
+                            expires_at=(datetime.now(timezone.utc) + timedelta(days=10)).isoformat())
+        db.add(row)
+        await db.commit()
+        ad = row.id
+    ev = lambda visitor, *kinds: client.post(f'{BASE}/events', headers=UA, json={'visitor': visitor, 'events': [{'id': ad, 'kind': k} for k in kinds]})
+    assert (await ev('visitor-aaaa-1111', 'impression', 'view', 'phone')).json()['counted'] == 3
+    # The same person again the same day is not counted twice.
+    assert (await ev('visitor-aaaa-1111', 'view', 'phone')).json()['counted'] == 0
+    assert (await ev('visitor-bbbb-2222', 'view', 'whatsapp', 'share', 'unknown')).json()['counted'] == 3
+    # Bots and the owner's own clicks do not count.
+    r = await client.post(f'{BASE}/events', headers={'User-Agent': 'Googlebot/2.1'}, json={'visitor': 'visitor-cccc-3333', 'events': [{'id': ad, 'kind': 'view'}]})
+    assert r.json()['counted'] == 0
+    r = await client.post(f'{BASE}/events', headers={**UA, **headers['alice']}, json={'visitor': 'visitor-dddd-4444', 'events': [{'id': ad, 'kind': 'view'}]})
+    assert r.json()['counted'] == 0
+    for v in ('visitor-aaaa-1111', 'visitor-bbbb-2222'):
+        assert (await client.post(f'{BASE}/{ad}/save', headers=UA, json={'visitor': v, 'saved': True})).status_code == 202
+    await client.post(f'{BASE}/{ad}/save', headers=UA, json={'visitor': 'visitor-bbbb-2222', 'saved': False})
+
+    assert (await client.get(f'{ACCOUNT}/{ad}/stats', headers=headers['bob'])).status_code == 404
+    stats = (await client.get(f'{ACCOUNT}/{ad}/stats', headers=headers['alice'])).json()
+    t = stats['totals']
+    assert (t['view'], t['people'], t['phone'], t['whatsapp'], t['share'], t['impression'], t['saves'], t['contacted']) == (2, 2, 1, 1, 1, 1, 1, 2)
+    assert len(stats['days']) == 14 and stats['days'][-1]['views'] == 2 and stats['days'][-1]['contacts'] == 2
+    from routers.account_v2 import _announcements_with_stats
+    async with maker() as db:
+        row = await db.get(Announcements, ad)
+        mine = (await _announcements_with_stats(db, [row]))[0]
+    assert mine['stats'] == {'views': 2, 'people': 2, 'saves': 1, 'contacts': 2, 'impressions': 1}
+    assert mine['views_count'] == 2

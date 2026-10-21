@@ -268,6 +268,19 @@ def _announcement_to_dict(row: Announcements) -> dict:
     }
 
 
+async def _announcements_with_stats(db: AsyncSession, rows: list) -> list[dict]:
+    items = [_announcement_to_dict(a) for a in rows]
+    try:
+        from services.ad_stats import summaries
+        stats = await summaries(db, [int(i["id"]) for i in items])
+        for item in items:
+            item["stats"] = stats.get(int(item["id"]))
+    except Exception:
+        await db.rollback()
+        logger.warning("Ad statistics are unavailable", exc_info=True)
+    return items
+
+
 async def _get_owned_announcement(db: AsyncSession, user: User, announcement_id: int) -> Announcements:
     row = (
         await db.execute(select(Announcements).where(Announcements.id == announcement_id))
@@ -1666,7 +1679,7 @@ async def cabinet(
         "bonuses": [{"id": b.id, "points": b.points, "reason": b.reason if all(modules.values()) else (("Бонус есептелді" if b.points >= 0 else "Бонус жұмсалды") if user.language == "kz" else ("Начисление бонусов" if b.points >= 0 else "Списание бонусов")), "created_at": b.created_at.isoformat() if b.created_at else None} for b in bonus_rows],
         "orders": merged_orders[:100],
         "complaints": [{"id": c.id, "category": c.category, "status": c.status, "description": c.description} for c in complaint_rows[:100]],
-        "announcements": [_announcement_to_dict(a) for a in announcement_rows[:100]],
+        "announcements": await _announcements_with_stats(db, announcement_rows[:100]),
         "real_estate": [_real_estate_to_dict(r) for r in real_estate_rows[:100]],
         "master_requests": [
             {
@@ -1959,6 +1972,20 @@ async def get_my_announcement(
     user = await _current_user(db, authorization)
     row = await _get_owned_announcement(db, user, announcement_id)
     return _announcement_to_dict(row)
+
+
+@router.get("/me/announcements/{announcement_id}/stats")
+async def my_announcement_stats(
+    announcement_id: int,
+    days: int = Query(14, ge=7, le=60),
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Owner's statistics: people who saw it in the list, opened it, saved it, called or wrote."""
+    user = await _current_user(db, authorization)
+    row = await _get_owned_announcement(db, user, announcement_id)
+    from services.ad_stats import details
+    return {"id": row.id, "title": row.title, "created_at": row.created_at, **await details(db, row.id, days)}
 
 
 @router.put("/me/announcements/{announcement_id}")

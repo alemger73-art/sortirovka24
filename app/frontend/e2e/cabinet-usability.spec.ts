@@ -369,3 +369,23 @@ test('legacy courier URL opens independent PIN access, not the customer session'
  await expect(page.getByLabel('PIN курьера')).toBeVisible();
  expect(applicationReads).toBe(0);
 });
+
+test('my ad shows real statistics with a chart and a tip', async ({ page }, info) => {
+  await setup(page);
+  const ad = { id: 5, title: 'Продам диван', status: 'approved', active: true, ann_type: 'sell', price: '30000', expires_at: '2099-01-01T00:00:00Z', stats: { views: 40, people: 31, saves: 4, contacts: 3, impressions: 520 } };
+  await page.route('**/account/cabinet', route => route.fulfill({ json: { profile, orders: [], announcements: [ad] } }));
+  const days = Array.from({ length: 14 }, (_, i) => ({ day: new Date(Date.now() - (13 - i) * 864e5).toISOString().slice(0, 10), views: i, contacts: i % 4 === 0 ? 1 : 0, impressions: i * 10 }));
+  await page.route('**/account/me/announcements/5/stats', route => route.fulfill({ json: { id: 5, totals: { impression: 520, view: 40, phone: 2, whatsapp: 1, share: 1, people: 31, contacted: 3, saves: 4 }, days } }));
+  await page.goto('/cabinet?tab=announcements');
+  const toggle = page.getByTestId('ad-stats-toggle');
+  await expect(toggle).toContainText('31');
+  await expect(toggle).toContainText('4');
+  await toggle.click();
+  const panel = page.getByTestId('ad-stats');
+  await expect(panel).toContainText('Показы в ленте');
+  await expect(panel).toContainText('520');
+  await expect(panel).toContainText('Связались');
+  await expect(panel).toContainText('Из каждых 100 открывших связываются 10');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByTestId('my-ad').screenshot({ path: info.outputPath('ad-stats.png') });
+});

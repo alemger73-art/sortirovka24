@@ -9,6 +9,15 @@ import { fetchWithCache } from '@/lib/cache';
 import { filterPublicAnnouncements, getAnnouncementCover } from '@/lib/announcements';
 import { AD_FILTERS, formatAdPrice, kindOf } from '@/lib/adKinds';
 import { track } from '@/lib/analytics';
+import { adEvent, observeImpression } from '@/lib/adStats';
+
+const watched = new WeakSet<Element>();
+/** «Показы» for the owner's statistics: the card was really on screen. */
+const seen = (id: number) => (el: HTMLAnchorElement | null) => {
+  if (!el || watched.has(el)) return;
+  watched.add(el);
+  observeImpression(el, () => adEvent(id, 'impression'));
+};
 
 const TONES: Record<string, string> = {
   sell: 'bg-amber-100 dark:bg-amber-500/20', job: 'bg-sky-100 dark:bg-sky-500/20',
@@ -58,7 +67,7 @@ export default function HomeAds() {
           const cover = getAnnouncementCover(ad);
           const price = formatAdPrice(ad.price);
           return (
-            <Link key={ad.id} to={`/announcements/${ad.id}`} className="w-[150px] shrink-0 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 md:w-[190px]">
+            <Link key={ad.id} ref={seen(Number(ad.id))} to={`/announcements/${ad.id}`} className="w-[150px] shrink-0 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 md:w-[190px]">
               <div className="relative aspect-[1/1] bg-amber-50 dark:bg-slate-800">
                 {cover ? <StorageImg objectKey={cover} alt={ad.title} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-4xl opacity-70" aria-hidden>{k?.emoji || '📢'}</div>}
                 {k && <span className="absolute left-2 top-2 rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-semibold text-gray-800">{k.emoji} {kz ? k.title.kz : k.title.ru}</span>}

@@ -2,8 +2,10 @@
  * «Мои объявления» in the personal cabinet: the same look as the public ads (photo, price, kind),
  * a clear status and the main actions in one row; rare actions are under «Ещё».
  */
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Eye, Megaphone, MoreHorizontal, Pencil, RefreshCw, Rocket, Trash2, EyeOff } from 'lucide-react';
+import AdStatsPanel from '@/components/cabinet/AdStatsPanel';
+import { BarChart3, ChevronDown, Eye, Heart, Megaphone, MoreHorizontal, Pencil, Phone, RefreshCw, Rocket, Trash2, EyeOff } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
 import { formatAdPrice, kindOf } from '@/lib/adKinds';
 import { isAnnouncementExpired, isAnnouncementPromoted } from '@/lib/announcements';
@@ -42,6 +44,7 @@ export function adState(a: Ad): { key: 'live' | 'pending' | 'rejected' | 'hidden
 
 export default function MyAdsList({ items, busy, kz, onBoost, onUnpublish, onExtend, onDelete }: Props) {
   const tx = (ru: string, k: string) => (kz ? k : ru);
+  const [open, setOpen] = useState<number | null>(null);
   if (!items.length) {
     return (
       <div className="rounded-2xl bg-gray-50 px-6 py-10 text-center dark:bg-[#0f172a]">
@@ -76,12 +79,19 @@ export default function MyAdsList({ items, busy, kz, onBoost, onUnpublish, onExt
                 <span className="mt-1 block line-clamp-2 text-[15px] font-semibold leading-snug text-gray-900 dark:text-white">{a.title || tx('Без названия', 'Атаусыз')}</span>
                 {price ? <span className="mt-0.5 block text-[15px] font-bold text-gray-900 dark:text-white">{price}</span> : null}
                 <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-400">
-                  <span className="inline-flex items-center gap-1"><Eye className="h-3.5 w-3.5" />{Number(a.views_count || 0)}</span>
                   {st.key === 'live' && a.expires_at ? <span>{tx('до', '')} {shortDate(a.expires_at)}{kz ? ' дейін' : ''}</span> : null}
                   {st.key === 'pending' ? <span>{tx('Обычно до 1 часа', 'Әдетте 1 сағатқа дейін')}</span> : null}
                 </span>
               </span>
             </Link>
+            <button type="button" onClick={() => setOpen(open === id ? null : id)} aria-expanded={open === id} data-testid="ad-stats-toggle"
+              className="mt-3 flex w-full items-center gap-3 rounded-xl bg-gray-50 px-3 py-2.5 text-left text-sm text-gray-700 dark:bg-[#0f172a] dark:text-slate-200">
+              <span className="inline-flex items-center gap-1" title={tx('Открыли', 'Ашқандар')}><Eye className="h-4 w-4 text-gray-400" /><b>{Number(a.stats?.people ?? a.views_count ?? 0)}</b></span>
+              <span className="inline-flex items-center gap-1" title={tx('Сохранили', 'Сақтағандар')}><Heart className="h-4 w-4 text-rose-400" /><b>{Number(a.stats?.saves ?? 0)}</b></span>
+              <span className="inline-flex items-center gap-1" title={tx('Связались', 'Хабарласқандар')}><Phone className="h-4 w-4 text-emerald-500" /><b>{Number(a.stats?.contacts ?? 0)}</b></span>
+              <span className="ml-auto inline-flex items-center gap-1 text-[13px] font-semibold text-amber-700 dark:text-amber-300"><BarChart3 className="h-4 w-4" />{tx('Статистика', 'Статистика')}<ChevronDown className={`h-4 w-4 transition ${open === id ? 'rotate-180' : ''}`} /></span>
+            </button>
+            {open === id ? <div className="mt-3"><AdStatsPanel id={id} kz={kz} hasPhoto={Boolean(a.image_url)} live={st.key === 'live'} /></div> : null}
             <div className="mt-3 flex items-center gap-2 border-t border-gray-100 pt-3 dark:border-[#26324a]">
               <Link to={`/announcements/${a.id}/edit`} className={`${btn} flex-1 bg-gray-100 text-gray-800 dark:bg-[#1a2336] dark:text-slate-100`}><Pencil className="h-4 w-4" />{tx('Изменить', 'Өзгерту')}</Link>
               {st.key === 'expired' || st.key === 'hidden' ? (
