@@ -125,7 +125,7 @@ export default function Header() {
             aria-label={t('lang.switch')}
             title={lang === 'ru' ? t('lang.kz') : t('lang.ru')}
           >
-            <Globe className="h-4 w-4" />
+            <Globe className="hidden h-4 w-4 sm:block" />
             {lang === 'ru' ? 'KZ' : 'RU'}
           </button>
           <button
