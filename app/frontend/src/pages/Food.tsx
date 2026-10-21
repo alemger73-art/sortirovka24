@@ -790,26 +790,53 @@ export default function Food() {
     }, replace);
   }, [patchSearch]);
 
-  const openCatalog = useCallback((categoryId?: number | null) => {
+  /** Puts a menu section right under the sticky header and chips. With `settle`, keeps it there while
+   *  photos and banners above finish loading (the page grows), unless the person starts scrolling. */
+  const scrollToSection = useCallback((categoryId: number, settle = false) => {
+    let tries = 0;
+    let stopped = false;
+    const stop = () => { stopped = true; };
+    if (settle) {
+      window.addEventListener('wheel', stop, { once: true, passive: true });
+      window.addEventListener('touchstart', stop, { once: true, passive: true });
+    }
+    const go = () => {
+      if (stopped) return;
+      const el = document.getElementById(`dam-category-${categoryId}`);
+      if (el) {
+        lastChipTap.current = Date.now(); // keep this chip highlighted while the page moves
+        const pills = document.getElementById('dam-market-categories');
+        // Where the sticky chips end once they are stuck: their own `top` + height.
+        const stickyTop = pills ? (parseFloat(getComputedStyle(pills).top) || 0) : 0;
+        const offset = (pills ? stickyTop + pills.getBoundingClientRect().height : 120) + 12;
+        const top = Math.max(0, el.getBoundingClientRect().top + window.scrollY - offset);
+        if (Math.abs(window.scrollY - top) > 4) window.scrollTo({ top, behavior: tries === 0 && !settle ? 'smooth' : 'auto' });
+      }
+      tries += 1;
+      if (settle && tries < 10) window.setTimeout(go, tries < 4 ? 200 : 400);
+      else if (settle) { window.removeEventListener('wheel', stop); window.removeEventListener('touchstart', stop); }
+    };
+    requestAnimationFrame(go);
+  }, []);
+
+  const openCatalog = useCallback((categoryId?: number | null, settle = false) => {
     setSelectedCategoryId(categoryId === undefined ? selectedCategoryId : categoryId);
     setActiveTab('menu');
-    if (categoryId != null) {
-      requestAnimationFrame(() => {
-        document.getElementById(`dam-category-${categoryId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    }
-  }, [selectedCategoryId, setActiveTab]);
+    if (categoryId != null) scrollToSection(categoryId, settle);
+  }, [selectedCategoryId, setActiveTab, scrollToSection]);
+  // /food?category=pizza-30 (home page circles, banners): open exactly that section.
+  // Wait until the section really exists — categories arrive before the dishes.
   const categoryDeepLinkRef = useRef('');
   useEffect(() => {
-    if (categories.length === 0 || typeof window === 'undefined') return;
+    if (menuCategorySections.length === 0 || typeof window === 'undefined') return;
     const hash = new URLSearchParams(window.location.hash.replace(/^#\??/, ''));
     const slug = (searchParams.get('category') || hash.get('category') || hash.get('cat') || '').trim();
     if (!slug || categoryDeepLinkRef.current === slug) return;
-    const category = categories.find((candidate) => categorySlugOf(candidate) === slug);
-    if (!category) return;
+    const section = menuCategorySections.find(({ category }) => categorySlugOf(category) === slug || (slug === 'combo' && category.id === -1));
+    if (!section) return;
     categoryDeepLinkRef.current = slug;
-    openCatalog(category.id);
-  }, [categories, openCatalog, searchParams]);
+    openCatalog(section.category.id, true);
+  }, [menuCategorySections, openCatalog, searchParams]);
 
   useEffect(() => {
     if (activeTab !== 'menu' || searchQuery.trim() || menuCategorySections.length === 0) return;
