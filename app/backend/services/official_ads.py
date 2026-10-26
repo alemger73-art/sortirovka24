@@ -60,6 +60,16 @@ async def ensure_tables(db) -> None:
     key = id(getattr(db, "bind", None))
     if key in _ready:
         return
+    try:
+        await _create_tables(db)
+    except Exception:
+        # Two first requests at the same moment: the other one created the tables — just try once more.
+        await db.rollback()
+        await _create_tables(db)
+    _ready.add(key)
+
+
+async def _create_tables(db) -> None:
     dialect = getattr(getattr(db, "bind", None), "dialect", None)
     pk = "SERIAL PRIMARY KEY" if getattr(dialect, "name", "") == "postgresql" else "INTEGER PRIMARY KEY AUTOINCREMENT"
     await db.execute(text(
@@ -69,7 +79,6 @@ async def ensure_tables(db) -> None:
     await db.execute(text("CREATE INDEX IF NOT EXISTS official_requests_user ON official_requests (user_id)"))
     await db.execute(text("CREATE TABLE IF NOT EXISTS official_settings (key VARCHAR(40) PRIMARY KEY, value TEXT)"))
     await db.commit()
-    _ready.add(key)
 
 
 # ---------------- settings ----------------

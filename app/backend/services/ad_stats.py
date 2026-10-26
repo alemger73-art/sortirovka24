@@ -26,6 +26,16 @@ async def ensure_tables(db) -> None:
     key = id(getattr(db, "bind", None))
     if key in _ready:
         return
+    try:
+        await _create_tables(db)
+    except Exception:
+        # Two first requests at the same moment: the other one created the tables — just try once more.
+        await db.rollback()
+        await _create_tables(db)
+    _ready.add(key)
+
+
+async def _create_tables(db) -> None:
     await db.execute(text(
         "CREATE TABLE IF NOT EXISTS ad_events (ann_id INTEGER NOT NULL, kind VARCHAR(16) NOT NULL, "
         "visitor VARCHAR(64) NOT NULL, day VARCHAR(10) NOT NULL, created_at VARCHAR(32))"))
@@ -35,7 +45,6 @@ async def ensure_tables(db) -> None:
         "CREATE TABLE IF NOT EXISTS ad_saves (ann_id INTEGER NOT NULL, visitor VARCHAR(64) NOT NULL, created_at VARCHAR(32))"))
     await db.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ad_saves_once ON ad_saves (ann_id, visitor)"))
     await db.commit()
-    _ready.add(key)
 
 
 def is_bot(user_agent: str | None) -> bool:
