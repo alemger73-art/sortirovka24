@@ -20,8 +20,6 @@ export default {
       },
     },
     extend: {
-      // Onest: a modern sans with full Cyrillic and Kazakh letters (self-hosted, no Google request).
-      fontFamily: { sans: ['"Onest Variable"', 'Onest', 'system-ui', '-apple-system', '"Segoe UI"', 'Roboto', 'sans-serif'] },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',

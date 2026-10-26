@@ -24,15 +24,15 @@ for (const [name, w, h, theme] of [['mobile', 390, 844, 'dark'], ['mobile-light'
       return route.fulfill({ json: { items: [], total: 0 } });
     });
     await page.goto('/');
-    await expect(page.locator('.h2-tiles a[href="/announcements"]')).toBeVisible();
-    await expect(page.locator('.h2-tiles a')).toHaveCount(3);
+    await expect(page.locator('.a-hero-tiles a')).toHaveCount(2);
+    await expect(page.locator('.a-hero-tiles a[href="/food"]')).toBeVisible();
     await expect(page.getByTestId('home-ad-post')).toBeVisible();
     await expect(page.getByText('Требуется продавец')).toBeVisible();
     await expect(page.locator('.home-food')).toContainText('3 700 ₸');
     await expect(page.locator('.home-food nav')).toContainText('Пиццы');
     await expect(page.locator('.home-food a[href="/food?category=pizza-30"]')).toBeVisible();
-    // The combo is the big card; then the banner dish, then the rest of the menu.
-    expect(await page.locator('.home-food a[href^="/food#product="]').evaluateAll((a) => a.map((x) => x.getAttribute('href')))).toEqual(['/food#product=225', '/food#product=217', '/food#product=187']);
+    // Banner dish first, then combo, then the rest of the menu.
+    expect(await page.locator('.home-food a[href^="/food#product="]').evaluateAll((a) => a.map((x) => x.getAttribute('href')))).toEqual(['/food#product=217', '/food#product=225', '/food#product=187']);
     // No floating call button over the content any more.
     await expect(page.locator('a.fixed[href^="tel:"]')).toHaveCount(0);
     await expect(page.locator('.home-ads nav a')).toHaveCount(4);

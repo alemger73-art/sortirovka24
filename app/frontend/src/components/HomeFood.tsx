@@ -44,7 +44,6 @@ export default function HomeFood({ banners, heroImage }: { banners: any[]; heroI
   const tx = (ru: string, k: string) => (kz ? k : ru);
   const [cats, setCats] = useState<Cat[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
-  const [combo, setCombo] = useState<Dish & { desc: string } | null>(null);
   const [settings, setSettings] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -74,8 +73,6 @@ export default function HomeFood({ banners, heroImage }: { banners: any[]; heroI
         .map((b) => Number(/product=(\d+)/.exec(String(b.button_url || b.link_url || ''))?.[1])).filter(Boolean);
       const hitCatIds = new Set(HIT_CATS.map(catOf).filter(Boolean));
       const combos = items.filter((i) => i.is_combo || /комбо|набор|сет/i.test(i.name));
-      const big = combos.find((i) => /дуэт|семейн|на двоих/i.test(i.name)) || combos[0];
-      setCombo(big ? { id: big.id, name: String(big.name).trim(), price: Number(big.price), image: big.image_url, to: `/food#product=${big.id}`, desc: String(big.description || '').split(/[.—]/)[0].trim().slice(0, 70) } : null);
       const ordered = [
         ...bannerIds.map((id) => items.find((i) => i.id === id)).filter(Boolean),
         ...combos,
@@ -94,49 +91,36 @@ export default function HomeFood({ banners, heroImage }: { banners: any[]; heroI
   }, [banners, kz]);
 
   const kitchen = kitchenNow(settings.working_hours || '');
-  const time = String(settings.delivery_time || '').trim();
   return (
-    <section className="home-food h2-food" aria-label={tx('Доставка еды DAM ALEM', 'DAM ALEM тамақ жеткізу')}>
-      <div className="h2-food-in">
-        <div className="h2-food-top">
-          <span className="h2-brand">DAM ALEM 2.0</span>
-          {kitchen && <span className="h2-status"><i className={kitchen.open ? '' : 'off'} />{kitchen.open ? tx(`Открыто до ${kitchen.to}`, `${kitchen.to} дейін ашық`) : tx(`Закрыто · откроемся в ${kitchen.from}`, `Жабық · ${kitchen.from}-де ашамыз`)}</span>}
+    <section className="home-food a-section a-food" aria-label={tx('Доставка еды DAM ALEM', 'DAM ALEM тамақ жеткізу')}>
+      <div className="a-head">
+        <div>
+          <span className="a-kicker">DAM ALEM 2.0{kitchen ? ` · ${kitchen.open ? tx(`открыто до ${kitchen.to}`, `${kitchen.to} дейін ашық`) : tx(`откроемся в ${kitchen.from}`, `${kitchen.from}-де ашамыз`)}` : ''}</span>
+          <h2>{tx('Доставка еды', 'Тамақ жеткізу')}</h2>
         </div>
-        <h2>{tx('Доставка еды', 'Тамақ жеткізу')}</h2>
-        <p className="h2-food-sub">{tx('Готовим после заказа', 'Тапсырыстан кейін дайындаймыз')}{time ? ` · ${time.replace(/\s*-\s*/, '–')}${/мин/.test(time) ? '' : tx(' мин', ' мин')}` : ''} · {tx('по Сортировке', 'Сортировка бойынша')}</p>
+        <Link to="/food" className="a-more">{tx('Всё меню', 'Барлық мәзір')}<ArrowRight size={15} /></Link>
       </div>
       {cats.length > 0 && (
-        <nav aria-label={tx('Категории меню', 'Мәзір санаттары')} className="h2-scroll">
+        <nav aria-label={tx('Категории меню', 'Мәзір санаттары')} className="a-scroll a-cats">
           {cats.map((c) => (
-            <Link key={c.slug} to={`/food?category=${c.slug}`} className="h2-cat">
+            <Link key={c.slug} to={`/food?category=${c.slug}`} className="a-cat">
               <span><StorageImg objectKey={c.image} alt="" className="h-full w-full object-cover" /></span>
               <small>{c.name}</small>
             </Link>
           ))}
         </nav>
       )}
-      {combo && (
-        <div className="h2-food-in">
-          <Link to={combo.to} className="h2-combo">
-            <StorageImg objectKey={combo.image} alt={combo.name} className="h-full w-full object-cover" />
-            <span className="h2-combo-copy">
-              <span><em>{tx('Выгодный набор', 'Тиімді жиынтық')}</em><strong>{combo.name}</strong></span>
-              <span className="h2-combo-btn">{money(combo.price)} · {tx('Заказать', 'Тапсырыс')}</span>
+      <div className="a-scroll">
+        {dishes.map((d) => (
+          <Link key={d.id} to={d.to} className="a-card a-dish">
+            <span className="a-dish-img"><StorageImg objectKey={d.image} alt={d.name} className="h-full w-full object-cover" /></span>
+            <span className="a-dish-body">
+              <span className="a-dish-name">{d.name}</span>
+              <span className="a-dish-row"><b>{money(d.price)}</b><span className="a-plus" aria-hidden><Plus size={16} strokeWidth={2.4} /></span></span>
             </span>
           </Link>
-        </div>
-      )}
-      <div className="h2-scroll">
-        {dishes.filter((d) => d.id !== combo?.id).map((d) => (
-          <Link key={d.id} to={d.to} className="h2-dish">
-            <span className="h2-dish-img"><StorageImg objectKey={d.image} alt={d.name} className="h-full w-full object-cover" /></span>
-            <span className="h2-dish-name">{d.name}</span>
-            <span className="h2-dish-row"><b>{money(d.price)}</b><span className="h2-plus" aria-hidden><Plus size={16} strokeWidth={2.4} /></span></span>
-          </Link>
         ))}
-      </div>
-      <div className="h2-food-in">
-        <Link to="/food" className="h2-food-all">{tx('Открыть всё меню', 'Барлық мәзірді ашу')}<ArrowRight size={16} /></Link>
+        {dishes.length === 0 && <Link to="/food" className="a-empty" style={{ flex: 'none', width: 220 }}>{tx('Откройте меню DAM ALEM', 'DAM ALEM мәзірін ашыңыз')}</Link>}
       </div>
     </section>
   );

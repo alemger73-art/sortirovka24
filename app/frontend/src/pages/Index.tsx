@@ -89,6 +89,10 @@ function SectionHeader({ title, accentColor = 'from-blue-500 to-indigo-600', lin
   );
 }
 
+/** Calm cover colour per news rubric (no duplicated headline on the picture). */
+const NEWS_COVERS: Record<string, string> = { 'Общество': '#3b2e7e', 'Дороги': '#7a4a12', 'Происшествия': '#7a1f2b', 'Сортировка': '#1f4f8a', 'Караганда': '#1d5f6b', 'Казахстан': '#1f5e3a', 'Экономика': '#4b3f12', 'Спорт': '#0f5e5a', 'Мир': '#3a3f4b', 'ЖКХ': '#5a3d7a', 'Важная информация': '#8a2d12', 'События района': '#24508f' };
+function newsCover(category?: string | null) { return NEWS_COVERS[String(category || '')] || '#26324a'; }
+
 export default function Index() {
   const { t: publicT } = useLanguage();
   const { t, lang, localized } = useLanguage();
@@ -253,14 +257,13 @@ export default function Index() {
 
   return (
     <Layout>
-      <div className="home2">
+      <div className="homeA">
+      <Hero />
       <div>
-        <div className="h2-wrap">
-          <Hero />
-
-          {isEnabled('news') && <section className="home-news h2-section" aria-label={lang === 'kz' ? 'Жаңалықтар' : 'Новости'}>
-            <div className="h2-head"><h2>{lang === 'kz' ? 'Жаңалықтар' : 'Новости'}</h2><Link to="/news" className="h2-more">{lang === 'kz' ? 'Барлығы' : 'Все'}<ChevronRight size={16} /></Link></div>
-            {news.length ? <div className="h2-card h2-news">{news.slice(0, 4).map(item => <Link key={item.id} to={`/news/${item.id}`}><div className="h2-meta">{item.category && <span className="h2-pill">{getPublicCategoryLabel(item.category, t)}</span>}<time>{formatDate(item.created_at, lang)}</time></div><h3>{localized(item, 'title')}</h3></Link>)}</div> : <p className="h2-empty">{loading ? (lang === 'kz' ? 'Жаңалықтар жүктелуде…' : 'Новости загружаются…') : (lang === 'kz' ? 'Әзірге жаңалық жоқ.' : 'Новые публикации скоро появятся здесь.')}</p>}
+        <div className="a-wrap">
+          {isEnabled('news') && <section className="home-news a-section" aria-label={lang === 'kz' ? 'Жаңалықтар' : 'Новости'}>
+            <div className="a-head"><div><span className="a-kicker">{lang === 'kz' ? 'Жаңасы' : 'Свежее'}</span><h2>{lang === 'kz' ? 'Жаңалықтар' : 'Новости'}</h2></div><Link to="/news" className="a-more">{lang === 'kz' ? 'Барлық жаңалықтар' : 'Все новости'}<ArrowRight size={15} /></Link></div>
+            {news.length ? <div className="a-scroll">{news.slice(0, 8).map(item => <Link key={item.id} to={`/news/${item.id}`} className="a-card a-news"><span className="a-news-cover" style={{ background: newsCover(item.category) }}><span>{item.category ? getPublicCategoryLabel(item.category, t) : (lang === 'kz' ? 'Жаңалық' : 'Новости')}</span><span>S24 · {lang === 'kz' ? 'жаңалықтар' : 'новости'}</span></span><span className="a-news-body"><time>{formatDate(item.created_at, lang)}</time><h3>{localized(item, 'title')}</h3></span></Link>)}</div> : <p className="a-empty">{loading ? (lang === 'kz' ? 'Жаңалықтар жүктелуде…' : 'Новости загружаются…') : (lang === 'kz' ? 'Әзірге жаңалық жоқ.' : 'Новые публикации скоро появятся здесь.')}</p>}
           </section>}
           {isEnabled('announcements') && <HomeAds />}
           {isEnabled('food') && <HomeFood banners={banners} heroImage={FOOD_IMG} />}
