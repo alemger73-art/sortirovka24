@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdStatsPanel from '@/components/cabinet/AdStatsPanel';
-import { BarChart3, ChevronDown, Eye, Heart, Megaphone, MoreHorizontal, Pencil, Phone, RefreshCw, Rocket, Trash2, EyeOff } from 'lucide-react';
+import { BadgeCheck, BarChart3, ChevronDown, Eye, Heart, Megaphone, MoreHorizontal, Pencil, Phone, RefreshCw, Rocket, Trash2, EyeOff } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
 import { formatAdPrice, kindOf } from '@/lib/adKinds';
 import { isAnnouncementExpired, isAnnouncementPromoted } from '@/lib/announcements';
@@ -56,6 +56,11 @@ export default function MyAdsList({ items, busy, kz, onBoost, onUnpublish, onExt
     );
   }
   return (
+    <>
+    <Link to="/announcements/official" data-testid="cabinet-official" className="mb-3 flex items-center gap-3 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm dark:border-sky-900/60 dark:bg-sky-950/40">
+      <BadgeCheck className="h-5 w-5 shrink-0 text-sky-600" />
+      <span className="flex-1 text-gray-700 dark:text-slate-200"><b className="text-gray-900 dark:text-white">Sortirovka Official</b> · {tx('покажите объявление 30 000 жителям; здесь же статус заявок', 'хабарландыруды 30 000 тұрғынға көрсетіңіз')}</span>
+    </Link>
     <ul className="space-y-3">
       {items.map((a) => {
         const id = Number(a.id);
@@ -104,6 +109,7 @@ export default function MyAdsList({ items, busy, kz, onBoost, onUnpublish, onExt
                 <div className="absolute bottom-full right-0 z-20 mb-2 w-52 overflow-hidden rounded-2xl border border-gray-100 bg-white py-1 shadow-xl dark:border-[#26324a] dark:bg-[#111827]">
                   {st.key === 'live' ? <button type="button" disabled={busy} onClick={(e) => { closeMenu(e); onExtend(id); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-[#1a2336]"><RefreshCw className="h-4 w-4 text-emerald-600" />{tx('Продлить срок', 'Мерзімін ұзарту')}</button> : null}
                   {st.key === 'live' ? <button type="button" disabled={busy} onClick={(e) => { closeMenu(e); onUnpublish(id); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-[#1a2336]"><EyeOff className="h-4 w-4 text-gray-500" />{tx('Снять с публикации', 'Жарияланымнан алу')}</button> : null}
+                  <Link to={`/announcements/official?ad=${id}`} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-[#1a2336]"><BadgeCheck className="h-4 w-4 text-sky-600" />{tx('В Sortirovka Official', 'Sortirovka Official-ға')}</Link>
                   <button type="button" disabled={busy} onClick={(e) => { closeMenu(e); onDelete(id); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10"><Trash2 className="h-4 w-4" />{tx('Удалить', 'Жою')}</button>
                 </div>
               </details>
@@ -112,5 +118,6 @@ export default function MyAdsList({ items, busy, kz, onBoost, onUnpublish, onExt
         );
       })}
     </ul>
+    </>
   );
 }

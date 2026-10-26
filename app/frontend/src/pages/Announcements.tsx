@@ -7,8 +7,8 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, ArrowRight, Camera, Check, ChevronLeft, Clock, EyeOff, Flag, Heart, Loader2, MapPin, Megaphone,
-  MessageCircle, Pencil, Phone, Plus, Search, Share2, ShieldCheck, Trash2, X,
+  ArrowLeft, ArrowRight, BadgeCheck, BarChart3, Camera, Check, ChevronLeft, Clock, Eye, EyeOff, Flag, Heart, Loader2, MapPin, Megaphone,
+  Lightbulb, MessageCircle, Pencil, Phone, Plus, Search, Share2, ShieldCheck, Trash2, X,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import StorageImg from '@/components/StorageImg';
@@ -206,6 +206,7 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
           <p className="font-semibold">{tx('Объявление бесплатное и висит 30 дней.', 'Хабарландыру тегін, 30 күн тұрады.')}</p>
           <p className="mt-1">{tx('Снять, изменить или продлить можно в личном кабинете.', 'Жеке кабинетте алып тастауға, өзгертуге болады.')}</p>
         </div>
+        <div className="mt-4"><OfficialPromo adId={done.id} /></div>
         <div className="mt-6 grid gap-3">
           <Link to="/cabinet?tab=announcements" className="rounded-xl bg-amber-500 px-5 py-3.5 font-semibold text-white hover:bg-amber-600">{tx('Мои объявления', 'Менің хабарландыруларым')}</Link>
           <button type="button" onClick={() => { setDraft({ ...EMPTY, name: draft.name, phone: draft.phone }); setDone(null); setStep(1); }} className="rounded-xl border border-gray-200 px-5 py-3.5 font-semibold text-gray-800 dark:border-slate-700 dark:text-slate-100">{tx('Подать ещё одно', 'Тағы біреуін беру')}</button>
@@ -387,6 +388,38 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
   );
 }
 
+/* ======================= SORTIROVKA OFFICIAL (paid channel) ======================= */
+function OfficialPromo({ adId, compact }: { adId?: number; compact?: boolean }) {
+  const { tx } = useTx();
+  const to = `/announcements/official${adId ? `?ad=${adId}` : ''}`;
+  return (
+    <Link to={to} data-testid="official-promo" onClick={() => track('official_promo', { from: adId ? 'ad' : 'list' })}
+      className="group flex items-center gap-3 rounded-2xl border border-sky-200 bg-gradient-to-r from-sky-50 to-cyan-50 p-4 text-left transition hover:shadow-md dark:border-sky-900 dark:from-sky-950/50 dark:to-cyan-950/30">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-600 text-white"><BadgeCheck className="h-6 w-6" /></span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold text-gray-900 dark:text-slate-100">{adId ? tx('Покажите его 30 000 жителям', 'Оны 30 000 тұрғынға көрсетіңіз') : tx('Разместить в Sortirovka Official', 'Sortirovka Official-да орналастыру')}</span>
+        <span className="block text-sm text-gray-600 dark:text-slate-300">{compact ? tx('Telegram-канал района · от 1 500 тг', 'Аудан Telegram-арнасы · 1 500 тг-ден') : tx('30 000 подписчиков — жители Сортировки. От 1 500 тг, оплата после проверки.', '30 000 жазылушы — Сортировка тұрғындары. 1 500 тг-ден, төлем тексерістен кейін.')}</span>
+      </span>
+      <ArrowRight className="h-5 w-5 shrink-0 text-sky-600 transition group-hover:translate-x-0.5" />
+    </Link>
+  );
+}
+
+const TIP_KEY = 's24_ads_tip_v1';
+function GentleTip() {
+  const { tx } = useTx();
+  const [hidden, setHidden] = useState(() => { try { return localStorage.getItem(TIP_KEY) === '1'; } catch { return false; } });
+  if (hidden) return null;
+  const close = () => { setHidden(true); try { localStorage.setItem(TIP_KEY, '1'); } catch { /* storage off */ } };
+  return (
+    <div data-testid="ads-tip" className="mt-3 flex items-start gap-2.5 rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
+      <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+      <p className="flex-1">{tx('Подсказка: нажмите ❤, чтобы сохранить объявление, а в своих объявлениях в кабинете видно, сколько людей их посмотрели и позвонили.', 'Кеңес: хабарландыруды сақтау үшін ❤ басыңыз, ал кабинетте өз хабарландыруыңызды қанша адам қарағаны көрінеді.')}</p>
+      <button type="button" onClick={close} aria-label={tx('Понятно', 'Түсінікті')} className="-m-1 p-1 text-amber-700 hover:text-amber-900 dark:text-amber-300"><X className="h-4 w-4" /></button>
+    </div>
+  );
+}
+
 /* ======================= CARD ======================= */
 function AdCard({ ad, preview, favorite, onFavorite }: { ad: any; preview?: boolean; favorite?: boolean; onFavorite?: (e: React.MouseEvent) => void }) {
   const { tx, bi } = useTx();
@@ -413,7 +446,10 @@ function AdCard({ ad, preview, favorite, onFavorite }: { ad: any; preview?: bool
       <div className="p-3">
         {price && <p className="text-base font-bold text-gray-900 dark:text-slate-100">{price}</p>}
         <h3 className="mt-0.5 line-clamp-2 text-sm font-medium leading-snug text-gray-800 dark:text-slate-200">{ad.title || tx('Заголовок', 'Тақырып')}</h3>
-        <p className="mt-1.5 truncate text-xs text-gray-400">{[ad.address, ad.created_at ? timeAgo(ad.created_at) : ''].filter(Boolean).join(' · ')}</p>
+        <p className="mt-1.5 flex items-center gap-2 text-xs text-gray-400">
+          <span className="min-w-0 flex-1 truncate">{[ad.address, ad.created_at ? timeAgo(ad.created_at) : ''].filter(Boolean).join(' · ')}</span>
+          {!preview && Number(ad.views_count) > 0 && <span className="inline-flex shrink-0 items-center gap-0.5" title={tx('Просмотры', 'Қаралым')}><Eye className="h-3.5 w-3.5" />{ad.views_count}</span>}
+        </p>
       </div>
     </>
   );
@@ -479,15 +515,25 @@ export function AdsList() {
   return (
     <Layout>
       <div className="mx-auto max-w-6xl px-4 pb-24 pt-5">
-        <div className="rounded-3xl bg-gradient-to-br from-amber-400 to-orange-500 p-5 text-white shadow-sm sm:p-7">
-          <h1 className="text-2xl font-bold sm:text-3xl">{tx('Объявления', 'Хабарландырулар')}</h1>
-          <p className="mt-1 text-sm text-white/90 sm:text-base">{tx('Продать, купить, найти работу или мастера — рядом с домом', 'Сату, сатып алу, жұмыс не шебер табу — үйдің жанынан')}</p>
-          <Link to={postLink} data-testid="ad-post" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 font-semibold text-orange-600 shadow hover:bg-orange-50">
-            <Plus className="h-5 w-5" /> {tx('Подать бесплатно', 'Тегін беру')}
-          </Link>
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-400 via-orange-500 to-orange-600 p-5 text-white shadow-sm sm:p-7">
+          <div className="absolute -right-12 -top-12 h-44 w-44 rounded-full bg-white/10" aria-hidden />
+          <div className="relative">
+            <h1 className="text-2xl font-bold sm:text-3xl">{tx('Объявления', 'Хабарландырулар')}</h1>
+            <p className="mt-1 text-sm text-white/90 sm:text-base">{tx('Продать, купить, найти работу или мастера — рядом с домом', 'Сату, сатып алу, жұмыс не шебер табу — үйдің жанынан')}</p>
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-medium text-white/90">
+              <span className="inline-flex items-center gap-1"><Check className="h-3.5 w-3.5" />{tx('Бесплатно, 30 дней', 'Тегін, 30 күн')}</span>
+              <span className="inline-flex items-center gap-1"><ShieldCheck className="h-3.5 w-3.5" />{tx('Каждое проверяем вручную', 'Әрқайсысын қолмен тексереміз')}</span>
+              <span className="inline-flex items-center gap-1"><BarChart3 className="h-3.5 w-3.5" />{tx('Видно, сколько посмотрели', 'Қанша адам қарағаны көрінеді')}</span>
+            </div>
+            <Link to={postLink} data-testid="ad-post" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 font-semibold text-orange-600 shadow hover:bg-orange-50">
+              <Plus className="h-5 w-5" /> {tx('Подать бесплатно', 'Тегін беру')}
+            </Link>
+          </div>
         </div>
+        <div className="mt-3"><OfficialPromo /></div>
 
-        <div className="sticky top-14 z-20 -mx-4 mt-4 bg-gray-50/95 px-4 pb-2 pt-2 backdrop-blur dark:bg-slate-950/95">
+        <GentleTip />
+        <div className="sticky top-14 z-20 -mx-4 mt-3 bg-gray-50/95 px-4 pb-2 pt-2 backdrop-blur dark:bg-slate-950/95">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
             <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} aria-label={tx('Поиск по объявлениям', 'Хабарландырулардан іздеу')} placeholder={tx('Что ищете? Например, велосипед', 'Не іздейсіз? Мысалы, велосипед')} className={`${field} pl-11`} />
@@ -680,7 +726,7 @@ export function AdDetail() {
             <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
               {k && <span className="rounded-full bg-amber-50 px-2 py-0.5 font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">{k.emoji} {bi(k.title)}</span>}
               {ad.created_at && <span>{formatDate(ad.created_at)}</span>}
-              {ad.views_count ? <span>· {ad.views_count} {tx('просмотров', 'қаралым')}</span> : null}
+              {Number(ad.views_count) > 0 && <span className="inline-flex items-center gap-1">· <Eye className="h-3.5 w-3.5" />{ad.views_count} {tx('просмотров', 'қаралым')}</span>}
             </div>
             <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-slate-100">{ad.title}</h1>
             {ad.price && <p className="mt-1 text-2xl font-bold text-orange-600">{formatAdPrice(ad.price)}</p>}
@@ -690,13 +736,21 @@ export function AdDetail() {
 
             <div className="mt-5"><SafetyAlert variant="announcement_detail" /></div>
 
-            {isOwner ? (
+            {isOwner ? (<>
+              <div className="mt-5 space-y-3">
+                <Link to="/cabinet?tab=announcements" className="flex items-center gap-3 rounded-2xl bg-gray-50 p-3 text-sm dark:bg-slate-800/60">
+                  <BarChart3 className="h-5 w-5 shrink-0 text-amber-600" />
+                  <span className="flex-1 text-gray-700 dark:text-slate-200">{tx('Посмотрели: ', 'Қарады: ')}<b>{Number(ad.views_count) || 0}</b>{tx(' · подробная статистика — в кабинете', ' · толық статистика — кабинетте')}</span>
+                  <ArrowRight className="h-4 w-4 text-gray-400" />
+                </Link>
+                <OfficialPromo adId={Number(ad.id)} compact />
+              </div>
               <div className="mt-5 flex flex-wrap gap-2 border-t border-gray-100 pt-4 dark:border-slate-800">
                 <Link to={`/announcements/${ad.id}/edit`} className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white"><Pencil className="h-4 w-4" />{tx('Изменить', 'Өзгерту')}</Link>
                 {isPublic && <button type="button" disabled={busy} onClick={() => void unpublish()} className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold dark:border-slate-700"><EyeOff className="h-4 w-4" />{tx('Снять с сайта', 'Сайттан алу')}</button>}
                 <button type="button" disabled={busy} onClick={() => void remove()} className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600"><Trash2 className="h-4 w-4" />{tx('Удалить', 'Жою')}</button>
               </div>
-            ) : (
+            </>) : (
               <button type="button" onClick={() => setReportOpen(true)} className="mt-5 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-600 dark:text-slate-400"><Flag className="h-4 w-4" />{tx('Пожаловаться', 'Шағымдану')}</button>
             )}
           </div>

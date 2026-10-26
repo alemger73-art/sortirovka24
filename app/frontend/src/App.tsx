@@ -35,6 +35,7 @@ const NewComplaintForm = lazyRetry(() => import("./pages/Content").then(m => ({ 
 const AnnouncementsList = lazyRetry(() => import("./pages/Announcements").then(m => ({ default: m.AdsList })));
 const AnnouncementDetail = lazyRetry(() => import("./pages/Announcements").then(m => ({ default: m.AdDetail })));
 const NewAnnouncementForm = lazyRetry(() => import("./pages/Announcements").then(m => ({ default: m.NewAdWizard })));
+const OfficialAdPage = lazyRetry(() => import("./pages/OfficialAd"));
 const EditAnnouncementForm = lazyRetry(() => import("./pages/Announcements").then(m => ({ default: m.EditAdWizard })));
 const RealEstateList = lazyRetry(() => import("./pages/RealEstate").then(m => ({ default: m.RealEstateList })));
 const RealEstateDetail = lazyRetry(() => import("./pages/RealEstate").then(m => ({ default: m.RealEstateDetail })));
@@ -185,6 +186,7 @@ function App() {
               <Route path="/complaints" element={<ModuleRoute module="complaints"><ComplaintsList /></ModuleRoute>} />
               <Route path="/complaints/new" element={<ModuleRoute module="complaints"><RequireUserAuth><NewComplaintForm /></RequireUserAuth></ModuleRoute>} />
               <Route path="/announcements" element={<ModuleRoute module="announcements"><AnnouncementsList /></ModuleRoute>} />
+              <Route path="/announcements/official" element={<ModuleRoute module="announcements"><OfficialAdPage /></ModuleRoute>} />
               <Route path="/announcements/new" element={<ModuleRoute module="announcements"><RequireUserAuth><NewAnnouncementForm /></RequireUserAuth></ModuleRoute>} />
               <Route path="/announcements/:id/edit" element={<ModuleRoute module="announcements"><RequireUserAuth><EditAnnouncementForm /></RequireUserAuth></ModuleRoute>} />
               <Route path="/announcements/:id" element={<ModuleRoute module="announcements"><AnnouncementDetail /></ModuleRoute>} />
