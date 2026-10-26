@@ -70,6 +70,7 @@ test('ads list and own ad show the Official offer and real views', async ({ page
   await setup(page);
   await page.goto('/announcements');
   await expect(page.getByTestId('official-promo')).toHaveAttribute('href', '/announcements/official');
+  await expect(page.getByTestId('official-hero-link')).toHaveAttribute('href', '/announcements/official');
   await expect(page.getByTestId('ads-tip')).toBeVisible();
   await page.getByRole('button', { name: 'Понятно' }).click();
   await expect(page.getByTestId('ads-tip')).toHaveCount(0);

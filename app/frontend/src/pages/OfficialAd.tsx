@@ -11,6 +11,7 @@ import {
   Send, Store, Users,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
+import '@/styles/ads.css';
 import MultiImageUpload from '@/components/MultiImageUpload';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { accountApi, getAccountToken } from '@/lib/accountApi';
@@ -24,7 +25,7 @@ import {
 } from '@/lib/officialAds';
 
 const ICONS: Record<string, typeof Store> = { business: Store, services: Home, private: Briefcase };
-const field = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-900 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-sky-900/40';
+const field = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-900 outline-none transition focus:border-[#3864ed] focus:ring-4 focus:ring-[#3864ed]/15 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-[#3864ed]/30';
 
 
 export default function OfficialAd() {
@@ -93,7 +94,7 @@ export default function OfficialAd() {
   if (done) return (
     <Layout>
       <div className="mx-auto max-w-md px-4 py-14 text-center">
-        <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-sky-100 dark:bg-sky-900/40"><Send className="h-9 w-9 text-sky-600" /></div>
+        <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-[#eef3ff] dark:bg-[#1c2f50]"><Send className="h-9 w-9 text-[#3864ed]" /></div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{tx('Заявка отправлена', 'Өтінім жіберілді')}</h1>
         <p className="mt-3 text-gray-600 dark:text-slate-300">{tx('Мы проверим объявление и определим категорию. В WhatsApp на номер ', 'Хабарландыруды тексеріп, санатын анықтаймыз. WhatsApp-қа ')}<b>{formatKzPhone(done.phone || phone)}</b>{tx(' придёт сумма и ссылка на оплату через Kaspi.', ' сома мен Kaspi сілтемесі келеді.')}</p>
         <ol className="mt-6 space-y-2 text-left text-sm">
@@ -106,8 +107,8 @@ export default function OfficialAd() {
         </ol>
         <p className="mt-4 text-xs text-gray-500 dark:text-slate-400">{tx('Обычно отвечаем в течение пары часов днём. Статус заявки виден на этой странице.', 'Әдетте күндіз бірнеше сағатта жауап береміз.')}</p>
         <div className="mt-6 grid gap-3">
-          <button type="button" onClick={() => { setDone(null); setBody(''); setPhotos(''); setWish(''); }} className="rounded-xl bg-sky-600 px-5 py-3.5 font-semibold text-white hover:bg-sky-700">{tx('Мои заявки', 'Менің өтінімдерім')}</button>
-          <Link to="/announcements" className="py-2 text-sm font-medium text-sky-700 dark:text-sky-300">{tx('К объявлениям', 'Хабарландыруларға')}</Link>
+          <button type="button" onClick={() => { setDone(null); setBody(''); setPhotos(''); setWish(''); }} className="rounded-xl bg-[#3864ed] px-5 py-3.5 font-semibold text-white hover:bg-[#2c55d6]">{tx('Мои заявки', 'Менің өтінімдерім')}</button>
+          <Link to="/announcements" className="py-2 text-sm font-medium text-[#3864ed] dark:text-[#9ab8ff]">{tx('К объявлениям', 'Хабарландыруларға')}</Link>
         </div>
       </div>
     </Layout>
@@ -115,11 +116,11 @@ export default function OfficialAd() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-3xl px-4 pb-24 pt-4">
+      <div className="ads-surface"><div className="ads-shell pb-24 pt-4">
         <Link to="/announcements" className="mb-3 inline-flex items-center gap-1 text-sm font-medium text-gray-500 dark:text-slate-400"><ChevronLeft className="h-4 w-4" />{tx('Объявления', 'Хабарландырулар')}</Link>
 
         {/* Why it pays off */}
-        <section data-testid="official-hero" className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky-700 via-sky-600 to-cyan-500 p-5 text-white shadow-sm sm:p-7">
+        <section data-testid="official-hero" className="relative overflow-hidden rounded-3xl bg-[radial-gradient(ellipse_at_88%_5%,#345dac_0%,transparent_48%),linear-gradient(120deg,#101d36,#172d52)] p-6 text-white shadow-sm sm:p-9">
           <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10" aria-hidden />
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold"><BadgeCheck className="h-4 w-4" />{cfg.channel}</span>
           <p className="mt-4 text-5xl font-black leading-none tracking-tight sm:text-6xl">{cfg.subscribers}</p>
@@ -134,6 +135,8 @@ export default function OfficialAd() {
 
         {mine.length > 0 && <MyRequests items={mine} cfg={cfg} kz={kz} />}
 
+        <div className="grid items-start gap-x-8 lg:grid-cols-[minmax(0,1fr)_440px]">
+        <div className="min-w-0">
         {/* Prices */}
         <section className="mt-7" aria-labelledby="official-prices">
           <h2 id="official-prices" className="text-xl font-bold text-gray-900 dark:text-slate-100">{tx('Выберите категорию', 'Санатты таңдаңыз')}</h2>
@@ -144,25 +147,25 @@ export default function OfficialAd() {
               const on = wish === c.code;
               return (
                 <button key={c.code} type="button" data-testid={`official-cat-${c.code}`} aria-pressed={on} onClick={() => pick(c.code)}
-                  className={`flex flex-col rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${on ? 'border-sky-500 bg-sky-50 ring-2 ring-sky-200 dark:bg-sky-900/20 dark:ring-sky-800' : 'border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-900'}`}>
+                  className={`flex flex-col rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${on ? 'border-[#3864ed] bg-[#eef3ff] ring-2 ring-[#c9d8ff] dark:bg-[#1c2f50] dark:ring-[#3864ed]/40' : 'border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-900'}`}>
                   <span className="flex w-full items-start justify-between gap-2">
-                    <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${on ? 'bg-sky-600 text-white' : 'bg-sky-50 text-sky-700 dark:bg-slate-800 dark:text-sky-300'}`}><Icon className="h-5 w-5" /></span>
-                    {on && <Check className="h-5 w-5 text-sky-600" />}
+                    <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${on ? 'bg-[#3864ed] text-white' : 'bg-[#eef3ff] text-[#3864ed] dark:bg-[#1c2f50] dark:text-[#9ab8ff]'}`}><Icon className="h-5 w-5" /></span>
+                    {on && <Check className="h-5 w-5 text-[#3864ed]" />}
                   </span>
                   <span className="mt-3 font-semibold text-gray-900 dark:text-slate-100">{c.title}</span>
-                  <span className="mt-1 text-2xl font-black text-sky-700 dark:text-sky-300">{tenge(c.price)}</span>
+                  <span className="mt-1 text-2xl font-black text-[#3864ed] dark:text-[#9ab8ff]">{tenge(c.price)}</span>
                   <span className="mt-2 text-xs leading-relaxed text-gray-500 dark:text-slate-400">{c.description}</span>
                 </button>
               );
             })}
           </div>
-          <p className="mt-3 flex items-start gap-2 rounded-xl bg-gray-100 px-3 py-2.5 text-sm text-gray-600 dark:bg-slate-900 dark:text-slate-300"><Info className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />{tx('Сомневаетесь, какую выбрать? Выберите ближе всего — после проверки мы сами подтвердим категорию и сумму. Платить нужно только после этого.', 'Қайсысын таңдарыңызды білмесеңіз — ең жақынын таңдаңыз. Тексерген соң санат пен соманы өзіміз растаймыз.')}</p>
+          <p className="mt-3 flex items-start gap-2 rounded-xl bg-gray-100 px-3 py-2.5 text-sm text-gray-600 dark:bg-slate-900 dark:text-slate-300"><Info className="mt-0.5 h-4 w-4 shrink-0 text-[#3864ed]" />{tx('Сомневаетесь, какую выбрать? Выберите ближе всего — после проверки мы сами подтвердим категорию и сумму. Платить нужно только после этого.', 'Қайсысын таңдарыңызды білмесеңіз — ең жақынын таңдаңыз. Тексерген соң санат пен соманы өзіміз растаймыз.')}</p>
         </section>
 
         {/* How it works */}
         <section className="mt-7" aria-labelledby="official-how">
           <h2 id="official-how" className="text-xl font-bold text-gray-900 dark:text-slate-100">{tx('Как это работает', 'Қалай жұмыс істейді')}</h2>
-          <ol className="mt-3 grid gap-2 sm:grid-cols-4">
+          <ol className="mt-3 grid gap-2 sm:grid-cols-2">
             {[
               { i: Send, t: tx('Отправляете текст и фото', 'Мәтін мен фото жібересіз') },
               { i: Clock, t: tx('Проверяем и подбираем категорию', 'Тексеріп, санатын таңдаймыз') },
@@ -170,24 +173,25 @@ export default function OfficialAd() {
               { i: BadgeCheck, t: tx('После оплаты публикуем в канале', 'Төлемнен кейін арнада жариялаймыз') },
             ].map(({ i: Icon, t }, n) => (
               <li key={t} className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 sm:flex-col sm:items-start">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-50 text-sky-700 dark:bg-slate-800 dark:text-sky-300"><Icon className="h-4 w-4" /></span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#eef3ff] text-[#3864ed] dark:bg-[#1c2f50] dark:text-[#9ab8ff]"><Icon className="h-4 w-4" /></span>
                 <span className="text-sm text-gray-700 dark:text-slate-200"><b className="text-gray-400">{n + 1}.</b> {t}</span>
               </li>
             ))}
           </ol>
         </section>
 
+        </div>
         {/* Form */}
-        <section ref={formRef} className="mt-7 scroll-mt-20 rounded-3xl border border-gray-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900" aria-labelledby="official-form">
+        <section ref={formRef} className="mt-7 scroll-mt-20 lg:sticky lg:top-20 rounded-3xl border border-gray-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900" aria-labelledby="official-form">
           <h2 id="official-form" className="text-xl font-bold text-gray-900 dark:text-slate-100">{tx('Ваше объявление', 'Сіздің хабарландыруыңыз')}</h2>
           {chosen
-            ? <p className="mt-1 text-sm text-gray-600 dark:text-slate-300">{tx('Категория: ', 'Санат: ')}<b>{chosen.title}</b> · {tenge(chosen.price)} <button type="button" onClick={() => setWish('')} className="ml-1 text-sky-700 underline dark:text-sky-300">{tx('изменить', 'өзгерту')}</button></p>
+            ? <p className="mt-1 text-sm text-gray-600 dark:text-slate-300">{tx('Категория: ', 'Санат: ')}<b>{chosen.title}</b> · {tenge(chosen.price)} <button type="button" onClick={() => setWish('')} className="ml-1 text-[#3864ed] underline dark:text-[#9ab8ff]">{tx('изменить', 'өзгерту')}</button></p>
             : <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">{tx('Категорию можно не выбирать — подберём сами.', 'Санатты таңдамауға болады — өзіміз таңдаймыз.')}</p>}
 
           {!authed ? (
-            <div className="mt-4 rounded-2xl bg-sky-50 p-4 text-sm text-sky-900 dark:bg-sky-900/20 dark:text-sky-100">
+            <div className="mt-4 rounded-2xl bg-[#eef3ff] p-4 text-sm text-[#1e3a8a] dark:bg-[#1c2f50] dark:text-[#c7d7ff]">
               <p>{tx('Чтобы отправить заявку и видеть её статус, войдите в аккаунт — это минута.', 'Өтінім жіберу үшін аккаунтқа кіріңіз.')}</p>
-              <Link to={`/account?redirect=${encodeURIComponent(`/announcements/official${adId ? `?ad=${adId}` : ''}`)}`} data-testid="official-login" className="mt-3 inline-flex rounded-xl bg-sky-600 px-5 py-3 font-semibold text-white">{tx('Войти и продолжить', 'Кіріп жалғастыру')}</Link>
+              <Link to={`/account?redirect=${encodeURIComponent(`/announcements/official${adId ? `?ad=${adId}` : ''}`)}`} data-testid="official-login" className="mt-3 inline-flex rounded-xl bg-[#3864ed] px-5 py-3 font-semibold text-white">{tx('Войти и продолжить', 'Кіріп жалғастыру')}</Link>
             </div>
           ) : (
             <div className="mt-4 space-y-5">
@@ -201,7 +205,7 @@ export default function OfficialAd() {
                 <p className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-gray-800 dark:text-slate-200"><Camera className="h-4 w-4" />{tx('Фото', 'Фото')} <span className="font-normal text-gray-400">· {tx('до 10 шт., необязательно', '10 данаға дейін')}</span></p>
                 <MultiImageUpload value={photos} onChange={(v: string) => setPhotos(v)} folder="announcements" maxImages={10} />
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                 <div>
                   <label htmlFor="of-phone" className="mb-1.5 block text-sm font-medium text-gray-800 dark:text-slate-200">{tx('WhatsApp для ответа', 'Жауапқа WhatsApp')}</label>
                   <input id="of-phone" type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+7 700 123 45 67" className={field} />
@@ -212,13 +216,14 @@ export default function OfficialAd() {
                 </div>
               </div>
               <p className="flex items-start gap-2 text-xs leading-relaxed text-gray-500 dark:text-slate-400"><CreditCard className="mt-0.5 h-4 w-4 shrink-0" />{tx('Сейчас ничего платить не нужно. Оплата — только после проверки, по ссылке Kaspi, которая придёт в WhatsApp от Сортировка 24.', 'Қазір төлеудің қажеті жоқ. Төлем тек тексерістен кейін, WhatsApp-қа келетін Kaspi сілтемесі арқылы.')}</p>
-              <button type="button" data-testid="official-submit" disabled={sending || !cfg.enabled} onClick={() => void submit()} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-sky-600 font-semibold text-white hover:bg-sky-700 disabled:opacity-60">
+              <button type="button" data-testid="official-submit" disabled={sending || !cfg.enabled} onClick={() => void submit()} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#3864ed] font-semibold text-white hover:bg-[#2c55d6] disabled:opacity-60">
                 {sending ? <><Loader2 className="h-5 w-5 animate-spin" />{tx('Отправляем…', 'Жіберілуде…')}</> : <><Send className="h-5 w-5" />{cfg.enabled ? tx('Отправить на проверку', 'Тексеруге жіберу') : tx('Приём временно закрыт', 'Қабылдау уақытша жабық')}</>}
               </button>
             </div>
           )}
         </section>
-      </div>
+        </div>
+      </div></div>
     </Layout>
   );
 }

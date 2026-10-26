@@ -98,7 +98,7 @@ export default function More() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-lg space-y-5 px-4 pb-10 pt-5 md:max-w-3xl md:pt-8">
+      <div className="mx-auto max-w-lg space-y-5 px-4 pb-10 pt-5 md:max-w-3xl md:pt-8 lg:max-w-5xl">
         <h1 className="px-1 text-2xl font-bold text-gray-900 dark:text-white">{tx('Ещё', 'Тағы')}</h1>
         {/* Account */}
         <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 to-blue-900 p-5 text-white shadow-sm">
@@ -135,7 +135,7 @@ export default function More() {
         {visibleTiles.length > 0 && (
           <section>
             <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">{tx('Сервисы', 'Қызметтер')}</h2>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
               {visibleTiles.map((i) => {
                 const Icon = i.icon;
                 return (
@@ -151,8 +151,10 @@ export default function More() {
           </section>
         )}
 
-        {group(tx('Ещё в районе', 'Аудандағы басқалар'), rest)}
-        {group(tx('Помощь и проект', 'Көмек және жоба'), help)}
+        <div className="space-y-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-5 lg:space-y-0">
+          {group(tx('Ещё в районе', 'Аудандағы басқалар'), rest)}
+          {group(tx('Помощь и проект', 'Көмек және жоба'), help)}
+        </div>
 
         <a href={SUPPORT_WA} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-2xl border border-green-200 bg-green-50 p-4 dark:border-green-900 dark:bg-green-950/40">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-600 text-white"><MessageCircle className="h-5 w-5" aria-hidden /></span>

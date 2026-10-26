@@ -7,9 +7,11 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, ArrowRight, BadgeCheck, BarChart3, Camera, Check, ChevronLeft, Clock, Eye, EyeOff, Flag, Heart, Loader2, MapPin, Megaphone,
-  Lightbulb, MessageCircle, Pencil, Phone, Plus, Search, Share2, ShieldCheck, Trash2, X,
+  ArrowLeft, ArrowRight, BadgeCheck, BarChart3, Briefcase, Camera, Check, ChevronLeft, ChevronRight, Clock, Eye, EyeOff, Flag, Gift, Heart,
+  KeyRound, LayoutGrid, Lightbulb, Loader2, MapPin, Megaphone, MessageCircle, Pencil, Phone, Plus, Search, Share2, ShieldCheck,
+  ShoppingCart, Tag, Trash2, UserRound, Wrench, X, type LucideIcon,
 } from 'lucide-react';
+import '@/styles/ads.css';
 import Layout from '@/components/Layout';
 import StorageImg from '@/components/StorageImg';
 import MultiImageUpload from '@/components/MultiImageUpload';
@@ -49,8 +51,8 @@ function loadDraft(): Draft {
 function saveDraft(d: Draft) { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch { /* storage off */ } }
 function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch { /* storage off */ } }
 
-const field = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-900 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-amber-900/40';
-const chip = (on: boolean) => `rounded-full border px-3.5 py-2 text-sm font-medium transition ${on ? 'border-amber-500 bg-amber-500 text-white' : 'border-gray-200 bg-white text-gray-700 hover:border-amber-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200'}`;
+const field = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-900 outline-none transition focus:border-[#3864ed] focus:ring-4 focus:ring-[#3864ed]/15 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-[#3864ed]/30';
+const chip = (on: boolean) => `rounded-full border px-3.5 py-2 text-sm font-medium transition ${on ? 'border-[#3864ed] bg-[#3864ed] text-white' : 'border-gray-200 bg-white text-gray-700 hover:border-[#9ab8ff] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200'}`;
 
 /** A saved ad → the form's draft (the work-schedule line goes back into its chip). */
 function draftFromAd(a: any): Draft {
@@ -202,15 +204,15 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
         <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40"><Check className="h-10 w-10 text-green-600" /></div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{tx('Объявление отправлено!', 'Хабарландыру жіберілді!')}</h1>
         <p className="mt-3 text-gray-600 dark:text-slate-300">{tx('Мы проверим его в ближайшее время — обычно в течение часа днём. Как только оно появится на сайте, придёт сообщение в WhatsApp и в личный кабинет.', 'Біз оны жақын арада тексереміз — әдетте күндіз бір сағат ішінде. Сайтқа шыққанда WhatsApp пен жеке кабинетке хабар келеді.')}</p>
-        <div className="mt-5 rounded-2xl bg-amber-50 p-4 text-left text-sm text-amber-900 dark:bg-amber-900/20 dark:text-amber-200">
+        <div className="mt-5 rounded-2xl bg-[#eef3ff] p-4 text-left text-sm text-[#1e3a8a] dark:bg-[#1c2f50] dark:text-[#c7d7ff]">
           <p className="font-semibold">{tx('Объявление бесплатное и висит 30 дней.', 'Хабарландыру тегін, 30 күн тұрады.')}</p>
           <p className="mt-1">{tx('Снять, изменить или продлить можно в личном кабинете.', 'Жеке кабинетте алып тастауға, өзгертуге болады.')}</p>
         </div>
         <div className="mt-4"><OfficialPromo adId={done.id} /></div>
         <div className="mt-6 grid gap-3">
-          <Link to="/cabinet?tab=announcements" className="rounded-xl bg-amber-500 px-5 py-3.5 font-semibold text-white hover:bg-amber-600">{tx('Мои объявления', 'Менің хабарландыруларым')}</Link>
+          <Link to="/cabinet?tab=announcements" className="rounded-xl bg-[#3864ed] px-5 py-3.5 font-semibold text-white hover:bg-[#2c55d6]">{tx('Мои объявления', 'Менің хабарландыруларым')}</Link>
           <button type="button" onClick={() => { setDraft({ ...EMPTY, name: draft.name, phone: draft.phone }); setDone(null); setStep(1); }} className="rounded-xl border border-gray-200 px-5 py-3.5 font-semibold text-gray-800 dark:border-slate-700 dark:text-slate-100">{tx('Подать ещё одно', 'Тағы біреуін беру')}</button>
-          <Link to="/announcements" className="py-2 text-sm font-medium text-amber-700">{tx('Все объявления', 'Барлық хабарландырулар')}</Link>
+          <Link to="/announcements" className="py-2 text-sm font-medium text-[#3864ed] dark:text-[#9ab8ff]">{tx('Все объявления', 'Барлық хабарландырулар')}</Link>
         </div>
       </div>
     </Layout>
@@ -221,19 +223,19 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
 
   return (
     <Layout hideBottomNav hideFooter>
-      <div ref={topRef} className="mx-auto max-w-xl px-4 pb-32 pt-5 scroll-mt-20">
+      <div ref={topRef} className="mx-auto max-w-3xl px-4 pb-32 pt-5 scroll-mt-20 sm:pt-8">
         <div className="mb-4 flex items-center justify-between">
           <button type="button" onClick={() => (editing && step <= 2 ? navigate('/cabinet?tab=announcements') : step === 1 ? navigate('/announcements') : setStep((s) => (s - 1) as 1 | 2))} className="inline-flex items-center gap-1 text-sm font-medium text-gray-500 dark:text-slate-400">
             <ChevronLeft className="h-4 w-4" /> {editing && step <= 2 ? tx('Мои объявления', 'Менің хабарландыруларым') : step === 1 ? tx('Объявления', 'Хабарландырулар') : tx('Назад', 'Артқа')}
           </button>
           <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-300">{tx('Бесплатно', 'Тегін')}</span>
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{editing ? tx('Изменить объявление', 'Хабарландыруды өзгерту') : tx('Подать объявление', 'Хабарландыру беру')}</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-slate-100 sm:text-3xl">{editing ? tx('Изменить объявление', 'Хабарландыруды өзгерту') : tx('Подать объявление', 'Хабарландыру беру')}</h1>
         {editing && <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">{tx('После сохранения объявление снова пройдёт быструю проверку.', 'Сақтағаннан кейін хабарландыру қайта жылдам тексеріледі.')}</p>}
         <ol className="mt-4 grid grid-cols-3 gap-2" aria-label={tx('Шаги', 'Қадамдар')}>
           {steps.map((label, i) => (
             <li key={label} aria-current={step === i + 1 ? 'step' : undefined}>
-              <div className={`h-1.5 rounded-full ${step > i ? 'bg-amber-500' : 'bg-gray-200 dark:bg-slate-700'}`} />
+              <div className={`h-1.5 rounded-full ${step > i ? 'bg-[#3864ed]' : 'bg-gray-200 dark:bg-slate-700'}`} />
               <p className={`mt-1.5 text-xs ${step === i + 1 ? 'font-semibold text-gray-900 dark:text-slate-100' : 'text-gray-400'}`}>{i + 1}. {label}</p>
             </li>
           ))}
@@ -242,11 +244,11 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
         {step === 1 && (
           <section className="mt-6">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100">{tx('Что хотите разместить?', 'Не орналастырғыңыз келеді?')}</h2>
-            <div className="mt-3 grid grid-cols-2 gap-3">
+            <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
               {AD_KINDS.map((k) => (
                 <button key={k.kind} type="button" data-kind={k.kind} onClick={() => chooseKind(k.kind)}
-                  className={`flex min-h-[112px] flex-col items-start rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${draft.kind === k.kind ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200 dark:bg-amber-900/20' : 'border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-900'}`}>
-                  <span className="text-3xl leading-none" aria-hidden>{k.emoji}</span>
+                  className={`flex min-h-[112px] flex-col items-start rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${draft.kind === k.kind ? 'border-[#3864ed] bg-[#eef3ff] ring-2 ring-[#c9d8ff] dark:bg-[#1c2f50] dark:ring-[#3864ed]/40' : 'border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-900'}`}>
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#eef3ff] text-[#3864ed] dark:bg-[#1c2f50] dark:text-[#9ab8ff]" aria-hidden>{(() => { const I = kindIcon(k.kind); return <I className="h-5 w-5" />; })()}</span>
                   <span className="mt-2 font-semibold text-gray-900 dark:text-slate-100">{bi(k.title)}</span>
                   <span className="mt-0.5 text-xs leading-snug text-gray-500 dark:text-slate-400">{bi(k.hint)}</span>
                 </button>
@@ -258,8 +260,8 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
 
         {step === 2 && info && (
           <section className="mt-6 space-y-5">
-            <button type="button" onClick={() => setStep(1)} className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
-              <span aria-hidden>{info.emoji}</span>{bi(info.title)}<Pencil className="h-3.5 w-3.5 opacity-60" />
+            <button type="button" onClick={() => setStep(1)} className="inline-flex items-center gap-2 rounded-full bg-[#eef3ff] px-3 py-1.5 text-sm font-semibold text-[#2747b8] dark:bg-[#1c2f50] dark:text-[#9ab8ff]">
+              {(() => { const I = kindIcon(info.kind); return <I className="h-4 w-4" aria-hidden />; })()}{bi(info.title)}<Pencil className="h-3.5 w-3.5 opacity-60" />
             </button>
 
             {info.extra && (
@@ -328,7 +330,7 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
                     <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">{draft.whatsappSame ? tx('WhatsApp на этом же номере', 'WhatsApp осы нөмірде') : draft.whatsapp ? `WhatsApp: ${formatKzPhone(draft.whatsapp)}` : tx('Без WhatsApp', 'WhatsApp жоқ')}</p>
                   </>}
                 </div>
-                {!editingContacts && <button type="button" onClick={() => setEditingContacts(true)} className="text-sm font-semibold text-amber-700">{tx('Изменить', 'Өзгерту')}</button>}
+                {!editingContacts && <button type="button" onClick={() => setEditingContacts(true)} className="text-sm font-semibold text-[#3864ed] dark:text-[#9ab8ff]">{tx('Изменить', 'Өзгерту')}</button>}
               </div>
               {editingContacts && (
                 <div className="mt-3 space-y-3">
@@ -342,7 +344,7 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
                     {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
                   </div>
                   <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-200">
-                    <input type="checkbox" checked={draft.whatsappSame} onChange={(e) => set({ whatsappSame: e.target.checked })} className="h-5 w-5 rounded accent-amber-500" />
+                    <input type="checkbox" checked={draft.whatsappSame} onChange={(e) => set({ whatsappSame: e.target.checked })} className="h-5 w-5 rounded accent-[#3864ed]" />
                     {tx('WhatsApp на этом же номере', 'WhatsApp осы нөмірде')}
                   </label>
                   {!draft.whatsappSame && (
@@ -352,7 +354,7 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
                       {errors.whatsapp && <p className="mt-1 text-sm text-red-600">{errors.whatsapp}</p>}
                     </div>
                   )}
-                  <button type="button" onClick={() => { if (normalizeKzPhone(draft.phone).length >= 11) { setErrors({}); setEditingContacts(false); } else checkStep3(); }} className="text-sm font-semibold text-amber-700">{tx('Готово', 'Дайын')}</button>
+                  <button type="button" onClick={() => { if (normalizeKzPhone(draft.phone).length >= 11) { setErrors({}); setEditingContacts(false); } else checkStep3(); }} className="text-sm font-semibold text-[#3864ed] dark:text-[#9ab8ff]">{tx('Готово', 'Дайын')}</button>
                 </div>
               )}
             </div>
@@ -372,12 +374,12 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
 
       {step > 1 && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur dark:border-slate-700 dark:bg-slate-950/95">
-          <div className="mx-auto flex max-w-xl gap-3">
+          <div className="mx-auto flex max-w-3xl gap-3">
             <button type="button" onClick={() => setStep((s) => (s - 1) as 1 | 2)} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-gray-200 text-gray-700 dark:border-slate-700 dark:text-slate-200" aria-label={tx('Назад', 'Артқа')}><ArrowLeft className="h-5 w-5" /></button>
             {step === 2 ? (
-              <button type="button" data-testid="ad-next" onClick={() => { if (checkStep2()) setStep(3); }} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-amber-500 font-semibold text-white hover:bg-amber-600">{tx('Дальше', 'Әрі қарай')} <ArrowRight className="h-5 w-5" /></button>
+              <button type="button" data-testid="ad-next" onClick={() => { if (checkStep2()) setStep(3); }} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#3864ed] font-semibold text-white hover:bg-[#2c55d6]">{tx('Дальше', 'Әрі қарай')} <ArrowRight className="h-5 w-5" /></button>
             ) : (
-              <button type="button" data-testid="ad-submit" disabled={sending} onClick={() => void submit()} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-green-600 font-semibold text-white hover:bg-green-700 disabled:opacity-60">
+              <button type="button" data-testid="ad-submit" disabled={sending} onClick={() => void submit()} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#3864ed] font-semibold text-white hover:bg-[#2c55d6] disabled:opacity-60">
                 {sending ? <><Loader2 className="h-5 w-5 animate-spin" />{tx('Отправляем…', 'Жіберілуде…')}</> : <><Check className="h-5 w-5" />{editing ? tx('Сохранить', 'Сақтау') : tx('Опубликовать', 'Жариялау')}</>}
               </button>
             )}
@@ -388,19 +390,25 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
   );
 }
 
+/* ======================= ICONS (line icons, like the home page) ======================= */
+const KIND_ICONS: Record<string, LucideIcon> = {
+  '': LayoutGrid, sell: Tag, buy: ShoppingCart, job: Briefcase, seek: UserRound, services: Wrench, rent: KeyRound, free: Gift, lost: Search,
+};
+const kindIcon = (kind?: string | null): LucideIcon => KIND_ICONS[String(kind || '')] || Megaphone;
+
 /* ======================= SORTIROVKA OFFICIAL (paid channel) ======================= */
 function OfficialPromo({ adId, compact }: { adId?: number; compact?: boolean }) {
   const { tx } = useTx();
   const to = `/announcements/official${adId ? `?ad=${adId}` : ''}`;
   return (
     <Link to={to} data-testid="official-promo" onClick={() => track('official_promo', { from: adId ? 'ad' : 'list' })}
-      className="group flex items-center gap-3 rounded-2xl border border-sky-200 bg-gradient-to-r from-sky-50 to-cyan-50 p-4 text-left transition hover:shadow-md dark:border-sky-900 dark:from-sky-950/50 dark:to-cyan-950/30">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-600 text-white"><BadgeCheck className="h-6 w-6" /></span>
+      className="group flex items-center gap-3 rounded-2xl border border-[var(--ads-line)] bg-[var(--ads-panel)] p-4 text-left transition hover:border-[#3864ed] hover:shadow-md">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#3864ed] text-white"><BadgeCheck className="h-6 w-6" /></span>
       <span className="min-w-0 flex-1">
-        <span className="block font-semibold text-gray-900 dark:text-slate-100">{adId ? tx('Покажите его 30 000 жителям', 'Оны 30 000 тұрғынға көрсетіңіз') : tx('Разместить в Sortirovka Official', 'Sortirovka Official-да орналастыру')}</span>
-        <span className="block text-sm text-gray-600 dark:text-slate-300">{compact ? tx('Telegram-канал района · от 1 500 тг', 'Аудан Telegram-арнасы · 1 500 тг-ден') : tx('30 000 подписчиков — жители Сортировки. От 1 500 тг, оплата после проверки.', '30 000 жазылушы — Сортировка тұрғындары. 1 500 тг-ден, төлем тексерістен кейін.')}</span>
+        <span className="block font-semibold">{adId ? tx('Покажите его 30 000 жителям', 'Оны 30 000 тұрғынға көрсетіңіз') : tx('Разместить в Sortirovka Official', 'Sortirovka Official-да орналастыру')}</span>
+        <span className="block text-sm text-[var(--ads-muted)]">{compact ? tx('Telegram-канал района · от 1 500 тг', 'Аудан Telegram-арнасы · 1 500 тг-ден') : tx('30 000 подписчиков — жители Сортировки. От 1 500 тг, оплата после проверки.', '30 000 жазылушы — Сортировка тұрғындары. 1 500 тг-ден, төлем тексерістен кейін.')}</span>
       </span>
-      <ArrowRight className="h-5 w-5 shrink-0 text-sky-600 transition group-hover:translate-x-0.5" />
+      <ArrowRight className="h-5 w-5 shrink-0 text-[var(--ads-accent)] transition group-hover:translate-x-0.5" />
     </Link>
   );
 }
@@ -412,10 +420,10 @@ function GentleTip() {
   if (hidden) return null;
   const close = () => { setHidden(true); try { localStorage.setItem(TIP_KEY, '1'); } catch { /* storage off */ } };
   return (
-    <div data-testid="ads-tip" className="mt-3 flex items-start gap-2.5 rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
-      <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-      <p className="flex-1">{tx('Подсказка: нажмите ❤, чтобы сохранить объявление, а в своих объявлениях в кабинете видно, сколько людей их посмотрели и позвонили.', 'Кеңес: хабарландыруды сақтау үшін ❤ басыңыз, ал кабинетте өз хабарландыруыңызды қанша адам қарағаны көрінеді.')}</p>
-      <button type="button" onClick={close} aria-label={tx('Понятно', 'Түсінікті')} className="-m-1 p-1 text-amber-700 hover:text-amber-900 dark:text-amber-300"><X className="h-4 w-4" /></button>
+    <div data-testid="ads-tip" className="flex items-start gap-2.5 rounded-2xl border border-[var(--ads-line)] bg-[var(--ads-accent-soft)] px-4 py-3 text-sm">
+      <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-[var(--ads-accent)]" />
+      <p className="flex-1">{tx('Подсказка: нажмите ♡, чтобы сохранить объявление, а в своих объявлениях в кабинете видно, сколько людей их посмотрели и позвонили.', 'Кеңес: хабарландыруды сақтау үшін ♡ басыңыз, ал кабинетте өз хабарландыруыңызды қанша адам қарағаны көрінеді.')}</p>
+      <button type="button" onClick={close} aria-label={tx('Понятно', 'Түсінікті')} className="-m-1 p-1 text-[var(--ads-muted)] hover:text-[var(--ads-ink)]"><X className="h-4 w-4" /></button>
     </div>
   );
 }
@@ -429,33 +437,33 @@ function AdCard({ ad, preview, favorite, onFavorite }: { ad: any; preview?: bool
     return observeImpression(seenRef.current, () => adEvent(ad.id, 'impression'));
   }, [ad.id, preview]); // eslint-disable-line react-hooks/exhaustive-deps
   const k = kindOf(ad);
+  const Icon = kindIcon(ad.ann_type);
   const cover = getAnnouncementCover(ad);
   const price = formatAdPrice(ad.price);
   const body = (
     <>
-      <div className="relative aspect-[4/3] overflow-hidden bg-amber-50 dark:bg-slate-800">
+      <div className="relative aspect-[4/3] overflow-hidden bg-[var(--ads-soft)]">
         {cover ? <StorageImg objectKey={cover} alt={ad.title} className="h-full w-full object-cover" />
-          : <div className="flex h-full w-full items-center justify-center text-5xl opacity-70" aria-hidden>{k?.emoji || '📢'}</div>}
-        {k && <span className="absolute left-2 top-2 rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-semibold text-gray-800 shadow-sm">{k.emoji} {bi(k.title)}</span>}
+          : <div className="ads-noimg" aria-hidden><Icon className="h-12 w-12" strokeWidth={1.5} /></div>}
+        {k && <span className="ads-tag absolute left-2.5 top-2.5"><Icon className="h-3.5 w-3.5" />{bi(k.title)}</span>}
         {onFavorite && (
-          <button type="button" onClick={onFavorite} aria-pressed={favorite} aria-label={tx('В избранное', 'Таңдаулыға')} className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 shadow">
-            <Heart className={`h-4 w-4 ${favorite ? 'fill-red-500 text-red-500' : 'text-gray-500'}`} />
+          <button type="button" onClick={onFavorite} aria-pressed={favorite} aria-label={tx('В избранное', 'Таңдаулыға')} className="absolute right-2.5 top-2.5 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 shadow">
+            <Heart className={`h-4 w-4 ${favorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
           </button>
         )}
       </div>
-      <div className="p-3">
-        {price && <p className="text-base font-bold text-gray-900 dark:text-slate-100">{price}</p>}
-        <h3 className="mt-0.5 line-clamp-2 text-sm font-medium leading-snug text-gray-800 dark:text-slate-200">{ad.title || tx('Заголовок', 'Тақырып')}</h3>
-        <p className="mt-1.5 flex items-center gap-2 text-xs text-gray-400">
+      <div className="flex flex-1 flex-col p-3.5 sm:p-4">
+        {price && <p className="text-[17px] font-extrabold tracking-tight">{price}</p>}
+        <h3 className="mt-0.5 line-clamp-2 text-sm font-medium leading-snug sm:text-[15px]">{ad.title || tx('Заголовок', 'Тақырып')}</h3>
+        <p className="mt-auto flex items-center gap-2 pt-2 text-xs text-[var(--ads-muted)]">
           <span className="min-w-0 flex-1 truncate">{[ad.address, ad.created_at ? timeAgo(ad.created_at) : ''].filter(Boolean).join(' · ')}</span>
           {!preview && Number(ad.views_count) > 0 && <span className="inline-flex shrink-0 items-center gap-0.5" title={tx('Просмотры', 'Қаралым')}><Eye className="h-3.5 w-3.5" />{ad.views_count}</span>}
         </p>
       </div>
     </>
   );
-  const cls = 'block overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition dark:border-slate-800 dark:bg-slate-900';
-  if (preview) return <div className={`${cls} mx-auto max-w-[260px]`}>{body}</div>;
-  return <Link ref={seenRef} to={`/announcements/${ad.id}`} className={`${cls} hover:-translate-y-0.5 hover:shadow-md`}>{body}</Link>;
+  if (preview) return <div className="ads-card mx-auto max-w-[280px]">{body}</div>;
+  return <Link ref={seenRef} to={`/announcements/${ad.id}`} className="ads-card">{body}</Link>;
 }
 
 /* ======================= LIST ======================= */
@@ -511,75 +519,88 @@ export function AdsList() {
   }, [items, filter, query, favOnly, favorites]);
 
   const postLink = filter === 'job' ? '/announcements/new?type=job' : filter && AD_KIND_MAP[filter] ? `/announcements/new?type=${filter}` : '/announcements/new';
+  const grid = 'grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4';
 
   return (
     <Layout>
-      <div className="mx-auto max-w-6xl px-4 pb-24 pt-5">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-400 via-orange-500 to-orange-600 p-5 text-white shadow-sm sm:p-7">
-          <div className="absolute -right-12 -top-12 h-44 w-44 rounded-full bg-white/10" aria-hidden />
-          <div className="relative">
-            <h1 className="text-2xl font-bold sm:text-3xl">{tx('Объявления', 'Хабарландырулар')}</h1>
-            <p className="mt-1 text-sm text-white/90 sm:text-base">{tx('Продать, купить, найти работу или мастера — рядом с домом', 'Сату, сатып алу, жұмыс не шебер табу — үйдің жанынан')}</p>
-            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-medium text-white/90">
-              <span className="inline-flex items-center gap-1"><Check className="h-3.5 w-3.5" />{tx('Бесплатно, 30 дней', 'Тегін, 30 күн')}</span>
-              <span className="inline-flex items-center gap-1"><ShieldCheck className="h-3.5 w-3.5" />{tx('Каждое проверяем вручную', 'Әрқайсысын қолмен тексереміз')}</span>
-              <span className="inline-flex items-center gap-1"><BarChart3 className="h-3.5 w-3.5" />{tx('Видно, сколько посмотрели', 'Қанша адам қарағаны көрінеді')}</span>
+      <div className="ads-surface pb-20">
+        <header className="ads-hero">
+          <div className="ads-shell relative">
+            <span className="ads-kicker">{tx('Сортировка 24 · Барахолка района', 'Сортировка 24 · Аудан базары')}</span>
+            <h1>{tx('Объявления', 'Хабарландырулар')}</h1>
+            <p>{tx('Продать, купить, найти работу или мастера — рядом с домом. Каждое объявление проверяем вручную.', 'Сату, сатып алу, жұмыс не шебер табу — үйдің жанынан. Әр хабарландыруды қолмен тексереміз.')}</p>
+            <div className="ads-hero-facts">
+              <span><Check className="h-4 w-4" />{tx('Бесплатно, 30 дней', 'Тегін, 30 күн')}</span>
+              <span><ShieldCheck className="h-4 w-4" />{tx('Без спама и мошенников', 'Спамсыз, алаяқсыз')}</span>
+              <span><BarChart3 className="h-4 w-4" />{tx('Видно, сколько посмотрели', 'Қанша адам қарағаны көрінеді')}</span>
             </div>
-            <Link to={postLink} data-testid="ad-post" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 font-semibold text-orange-600 shadow hover:bg-orange-50">
-              <Plus className="h-5 w-5" /> {tx('Подать бесплатно', 'Тегін беру')}
-            </Link>
-          </div>
-        </div>
-        <div className="mt-3"><OfficialPromo /></div>
-
-        <GentleTip />
-        <div className="sticky top-14 z-20 -mx-4 mt-3 bg-gray-50/95 px-4 pb-2 pt-2 backdrop-blur dark:bg-slate-950/95">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-            <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} aria-label={tx('Поиск по объявлениям', 'Хабарландырулардан іздеу')} placeholder={tx('Что ищете? Например, велосипед', 'Не іздейсіз? Мысалы, велосипед')} className={`${field} pl-11`} />
-          </div>
-          <div className="no-scrollbar -mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1">
-            {AD_FILTERS.map((f) => (
-              <button key={f.key || 'all'} type="button" aria-pressed={filter === f.key && !favOnly} onClick={() => { setFavOnly(false); const p = new URLSearchParams(params); if (f.key) p.set('type', f.key); else p.delete('type'); setParams(p, { replace: true }); }}
-                className={`${chip(filter === f.key && !favOnly)} shrink-0 whitespace-nowrap`}>
-                {f.emoji} {bi(f.title)}{counts[f.key] ? <span className="ml-1 opacity-70">{counts[f.key]}</span> : null}
-              </button>
-            ))}
-            <button type="button" aria-pressed={favOnly} onClick={() => setFavOnly((v) => !v)} className={`${chip(favOnly)} shrink-0 whitespace-nowrap`}>❤️ {tx('Избранное', 'Таңдаулы')}{favorites.length ? ` ${favorites.length}` : ''}</button>
-          </div>
-        </div>
-
-        {loadError ? (
-          <div role="alert" className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-6 text-center dark:border-red-900 dark:bg-red-950/40">
-            <p>{tx('Не удалось загрузить объявления.', 'Хабарландырулар жүктелмеді.')}</p>
-            <button type="button" onClick={() => void load()} className="mt-3 rounded-xl bg-amber-500 px-4 py-2 font-medium text-white">{tx('Повторить', 'Қайталау')}</button>
-          </div>
-        ) : loading ? (
-          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4" aria-busy="true">
-            {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-60 animate-pulse rounded-2xl bg-gray-200 dark:bg-slate-800" />)}
-          </div>
-        ) : shown.length === 0 ? (
-          <div className="mt-10 text-center">
-            <Megaphone className="mx-auto h-12 w-12 text-amber-300" />
-            <p className="mt-3 font-semibold text-gray-800 dark:text-slate-100">{query || filter || favOnly ? tx('Ничего не нашлось', 'Ештеңе табылмады') : tx('Пока объявлений нет', 'Әзірге хабарландыру жоқ')}</p>
-            <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">{tx('Станьте первым — это бесплатно и занимает минуту.', 'Бірінші болыңыз — тегін және бір минут қана.')}</p>
-            <Link to={postLink} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-3 font-semibold text-white"><Plus className="h-5 w-5" />{tx('Подать объявление', 'Хабарландыру беру')}</Link>
-          </div>
-        ) : (
-          <>
-            <p className="mt-3 text-sm text-gray-500 dark:text-slate-400" aria-live="polite">{shown.length} {tx('объявл.', 'хабарл.')}</p>
-            <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-              {shown.slice(0, visible).map((ad, i) => (
-                <Fragment key={ad.id}>
-                  <AdCard ad={ad} favorite={favorites.includes(ad.id)} onFavorite={(e) => { e.preventDefault(); e.stopPropagation(); setFavorites(toggleAnnFavorite(ad.id)); }} />
-                  {(i === 5 || (shown.length <= 6 && i === shown.length - 1)) && <div className="col-span-full"><PromoSlot placement="ads_list" context={`${query} ${filter}`} prefer={filter === 'services' || /кровл|крыш|ремонт|строит/i.test(query) ? 'partner' : undefined} /></div>}
-                </Fragment>
-              ))}
+            <div className="ads-hero-actions">
+              <Link to={postLink} data-testid="ad-post" className="ads-btn ads-btn-primary"><Plus className="h-5 w-5" />{tx('Подать бесплатно', 'Тегін беру')}</Link>
+              <Link to="/announcements/official" data-testid="official-hero-link" onClick={() => track('official_promo', { from: 'hero' })} className="ads-btn ads-btn-glass"><BadgeCheck className="h-5 w-5" />Sortirovka Official <small>· 30 000</small></Link>
             </div>
-            {shown.length > visible && <div className="mt-6 text-center"><button type="button" onClick={() => setVisible((v) => v + 24)} className="rounded-xl border border-gray-200 bg-white px-6 py-3 font-medium dark:border-slate-700 dark:bg-slate-900">{tx('Показать ещё', 'Тағы көрсету')}</button></div>}
-          </>
-        )}
-        <Link to="/cabinet?tab=announcements" className="mt-8 block text-center text-sm font-medium text-amber-700">{tx('Мои объявления', 'Менің хабарландыруларым')} →</Link>
+          </div>
+        </header>
+
+        <div className="ads-shell">
+          <div className="sticky top-14 z-20 -mx-4 bg-[var(--ads-bg)]/95 px-4 pb-3 pt-4 backdrop-blur sm:-mx-6 sm:px-6">
+            <div className="flex flex-col gap-3">
+              <label className="relative block lg:max-w-[560px]">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--ads-muted)]" />
+                <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} aria-label={tx('Поиск по объявлениям', 'Хабарландырулардан іздеу')} placeholder={tx('Что ищете? Например, велосипед', 'Не іздейсіз? Мысалы, велосипед')}
+                  className="h-12 w-full rounded-2xl border border-[var(--ads-line)] bg-[var(--ads-panel)] pl-12 pr-4 text-base outline-none transition focus:border-[#3864ed] focus:ring-4 focus:ring-[#3864ed]/15" />
+              </label>
+              <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 lg:mx-0 lg:flex-wrap lg:px-0">
+                {AD_FILTERS.map((f) => {
+                  const Icon = kindIcon(f.key);
+                  return (
+                    <button key={f.key || 'all'} type="button" aria-pressed={filter === f.key && !favOnly} className="ads-pill"
+                      onClick={() => { setFavOnly(false); const p = new URLSearchParams(params); if (f.key) p.set('type', f.key); else p.delete('type'); setParams(p, { replace: true }); }}>
+                      <Icon className="h-4 w-4" />{bi(f.title)}{counts[f.key] ? <em>{counts[f.key]}</em> : null}
+                    </button>
+                  );
+                })}
+                <button type="button" aria-pressed={favOnly} onClick={() => setFavOnly((v) => !v)} className="ads-pill"><Heart className="h-4 w-4" />{tx('Избранное', 'Таңдаулы')}{favorites.length ? <em>{favorites.length}</em> : null}</button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-2 grid gap-3 lg:grid-cols-2">
+            <div className="hidden lg:block"><OfficialPromo /></div>
+            <GentleTip />
+          </div>
+
+          {loadError ? (
+            <div role="alert" className="ads-panel mt-6 p-8 text-center">
+              <p>{tx('Не удалось загрузить объявления.', 'Хабарландырулар жүктелмеді.')}</p>
+              <button type="button" onClick={() => void load()} className="ads-btn ads-btn-primary mt-4">{tx('Повторить', 'Қайталау')}</button>
+            </div>
+          ) : loading ? (
+            <div className={`mt-6 ${grid}`} aria-busy="true">
+              {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-64 animate-pulse rounded-[20px] bg-[var(--ads-soft)]" />)}
+            </div>
+          ) : shown.length === 0 ? (
+            <div className="ads-panel mt-6 px-6 py-12 text-center">
+              <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--ads-accent-soft)] text-[var(--ads-accent)]"><Megaphone className="h-7 w-7" /></span>
+              <p className="mt-4 text-lg font-bold">{query || filter || favOnly ? tx('Ничего не нашлось', 'Ештеңе табылмады') : tx('Пока объявлений нет', 'Әзірге хабарландыру жоқ')}</p>
+              <p className="mt-1 text-sm text-[var(--ads-muted)]">{tx('Станьте первым — это бесплатно и занимает минуту.', 'Бірінші болыңыз — тегін және бір минут қана.')}</p>
+              <Link to={postLink} className="ads-btn ads-btn-primary mt-5"><Plus className="h-5 w-5" />{tx('Подать объявление', 'Хабарландыру беру')}</Link>
+            </div>
+          ) : (
+            <>
+              <p className="mt-6 text-sm text-[var(--ads-muted)]" aria-live="polite">{shown.length} {tx('объявл.', 'хабарл.')}</p>
+              <div className={`mt-3 ${grid}`}>
+                {shown.slice(0, visible).map((ad, i) => (
+                  <Fragment key={ad.id}>
+                    <AdCard ad={ad} favorite={favorites.includes(ad.id)} onFavorite={(e) => { e.preventDefault(); e.stopPropagation(); setFavorites(toggleAnnFavorite(ad.id)); }} />
+                    {(i === 7 || (shown.length <= 8 && i === shown.length - 1)) && <div className="col-span-full"><PromoSlot placement="ads_list" context={`${query} ${filter}`} prefer={filter === 'services' || /кровл|крыш|ремонт|строит/i.test(query) ? 'partner' : undefined} /></div>}
+                  </Fragment>
+                ))}
+              </div>
+              {shown.length > visible && <div className="mt-8 text-center"><button type="button" onClick={() => setVisible((v) => v + 24)} className="ads-btn border border-[var(--ads-line)] bg-[var(--ads-panel)]">{tx('Показать ещё', 'Тағы көрсету')}</button></div>}
+            </>
+          )}
+          <Link to="/cabinet?tab=announcements" className="mt-10 flex items-center justify-center gap-1 text-sm font-semibold text-[var(--ads-accent)]">{tx('Мои объявления', 'Менің хабарландыруларым')}<ArrowRight className="h-4 w-4" /></Link>
+        </div>
       </div>
     </Layout>
   );
@@ -617,6 +638,7 @@ export function AdDetail() {
   const [busy, setBusy] = useState(false);
   const [similar, setSimilar] = useState<any[]>([]);
   const k = ad ? kindOf(ad) : undefined;
+  const KindIcon = kindIcon(ad?.ann_type);
   const photos: string[] = ad ? Array.from(new Set([ad.image_url, ...String(ad.gallery_images || '').split(',')].map((s) => String(s || '').trim()).filter(Boolean))) : [];
   const description = ad ? String(ad.description || ad.title || '').replace(/\s+/g, ' ').trim().slice(0, 160) : '';
 
@@ -685,92 +707,126 @@ export function AdDetail() {
     catch { toast.error(tx('Не получилось. Попробуйте ещё раз.', 'Болмады. Қайталап көріңіз.')); } finally { setBusy(false); }
   }
 
-  if (loading) return <Layout><div className="mx-auto max-w-3xl px-4 py-6"><div className="aspect-[4/3] animate-pulse rounded-2xl bg-gray-200 dark:bg-slate-800" /><div className="mt-4 h-6 w-2/3 animate-pulse rounded bg-gray-200 dark:bg-slate-800" /></div></Layout>;
-  if (error) return <Layout><div role="alert" className="mx-auto max-w-3xl px-4 py-12 text-center"><p>{tx('Не удалось загрузить объявление.', 'Хабарландыру жүктелмеді.')}</p><button type="button" className="mt-3 rounded-xl border px-4 py-2" onClick={() => setRetry((v) => v + 1)}>{tx('Повторить', 'Қайталау')}</button></div></Layout>;
-  if (!ad || (!isPublic && !isOwner)) return <Layout><div className="mx-auto max-w-3xl px-4 py-14 text-center"><p className="text-5xl" aria-hidden>🔎</p><p className="mt-3 font-semibold text-gray-800 dark:text-slate-100">{tx('Объявление снято или ещё на проверке', 'Хабарландыру алынды немесе тексерілуде')}</p><Link to="/announcements" className="mt-4 inline-block font-medium text-amber-700">{tx('Все объявления', 'Барлық хабарландырулар')}</Link></div></Layout>;
+  const shell = (children: React.ReactNode) => <Layout><div className="ads-surface"><div className="ads-shell py-8">{children}</div></div></Layout>;
+  if (loading) return shell(<div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]"><div className="aspect-[4/3] animate-pulse rounded-[20px] bg-[var(--ads-soft)]" /><div className="h-72 animate-pulse rounded-[20px] bg-[var(--ads-soft)]" /></div>);
+  if (error) return shell(<div role="alert" className="ads-panel mx-auto max-w-lg p-10 text-center"><p>{tx('Не удалось загрузить объявление.', 'Хабарландыру жүктелмеді.')}</p><button type="button" className="ads-btn ads-btn-primary mt-4" onClick={() => setRetry((v) => v + 1)}>{tx('Повторить', 'Қайталау')}</button></div>);
+  if (!ad || (!isPublic && !isOwner)) return shell(<div className="ads-panel mx-auto max-w-lg px-6 py-12 text-center"><span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--ads-accent-soft)] text-[var(--ads-accent)]"><Search className="h-7 w-7" /></span><p className="mt-4 font-semibold">{tx('Объявление снято или ещё на проверке', 'Хабарландыру алынды немесе тексерілуде')}</p><Link to="/announcements" className="mt-4 inline-block font-semibold text-[var(--ads-accent)]">{tx('Все объявления', 'Барлық хабарландырулар')}</Link></div>);
 
   const statusText: Record<string, Bi> = { pending: { ru: 'на проверке — обычно до часа', kz: 'тексерілуде — әдетте бір сағатқа дейін' }, rejected: { ru: 'не прошло проверку — исправьте и сохраните', kz: 'тексеруден өтпеді — түзетіп, сақтаңыз' } };
+  const contactBar = !isOwner && isPublic && phoneDigits.length >= 11;
+  const callProps = { href: `tel:+${phoneDigits}`, onClick: () => { track('ad_contact', { id: ad.id, way: 'call', kind: ad.ann_type }); adEvent(ad.id, 'phone', true); } };
+  const waProps = { href: `https://wa.me/${waDigits}?text=${waText}`, target: '_blank', rel: 'noopener noreferrer', onClick: () => { track('ad_contact', { id: ad.id, way: 'whatsapp', kind: ad.ann_type }); adEvent(ad.id, 'whatsapp', true); } };
+  const iconBtn = 'flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-gray-700 shadow';
 
   return (
-    <Layout hideBottomNav={!isOwner && isPublic && phoneDigits.length >= 11}>
-      <div className="mx-auto max-w-3xl px-4 pb-32 pt-4">
-        <Link to={k ? `/announcements?type=${k.group === 'work' ? 'job' : k.kind}` : '/announcements'} className="mb-3 inline-flex items-center gap-1 text-sm font-medium text-gray-500 dark:text-slate-400"><ChevronLeft className="h-4 w-4" />{k ? bi(k.title) : tx('Объявления', 'Хабарландырулар')}</Link>
+    <Layout hideBottomNav={contactBar}>
+      <div className="ads-surface pb-32 lg:pb-16">
+        <div className="ads-shell pt-5">
+          <nav className="mb-4 flex items-center gap-1.5 text-sm text-[var(--ads-muted)]" aria-label={tx('Навигация', 'Навигация')}>
+            <Link to="/announcements" className="hover:text-[var(--ads-ink)]">{tx('Объявления', 'Хабарландырулар')}</Link>
+            {k && <><ChevronRight className="h-4 w-4" /><Link to={`/announcements?type=${k.group === 'work' ? 'job' : k.kind}`} className="hover:text-[var(--ads-ink)]">{bi(k.title)}</Link></>}
+          </nav>
 
-        {isOwner && !isPublic && (
-          <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
-            <Clock className="mt-0.5 h-4 w-4 shrink-0" /><span>{tx('Ваше объявление ', 'Сіздің хабарландыруыңыз ')}{bi(statusText[ad.status] || { ru: 'сейчас не показывается', kz: 'қазір көрсетілмейді' })}</span>
-          </div>
-        )}
-
-        <div className="overflow-hidden rounded-2xl bg-white shadow-sm dark:bg-slate-900">
-          <div className="relative aspect-[4/3] bg-amber-50 dark:bg-slate-800">
-            {photos.length ? <StorageImg objectKey={photos[photo]} alt={ad.title} className="h-full w-full object-contain" />
-              : <div className="flex h-full items-center justify-center text-7xl opacity-70" aria-hidden>{k?.emoji || '📢'}</div>}
-            {photos.length > 1 && <>
-              <button type="button" aria-label={tx('Предыдущее фото', 'Алдыңғы фото')} onClick={() => setPhoto((p) => (p - 1 + photos.length) % photos.length)} className="absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow"><ArrowLeft className="h-5 w-5" /></button>
-              <button type="button" aria-label={tx('Следующее фото', 'Келесі фото')} onClick={() => setPhoto((p) => (p + 1) % photos.length)} className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow"><ArrowRight className="h-5 w-5" /></button>
-              <span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white">{photo + 1}/{photos.length}</span>
-            </>}
-            <div className="absolute right-2 top-2 flex gap-2">
-              <button type="button" onClick={() => void share()} aria-label={tx('Поделиться', 'Бөлісу')} className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow"><Share2 className="h-5 w-5 text-gray-700" /></button>
-              <button type="button" onClick={() => { const next = toggleAnnFavorite(Number(ad.id)); setFav(next.includes(Number(ad.id))); }} aria-pressed={fav} aria-label={tx('В избранное', 'Таңдаулыға')} className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow"><Heart className={`h-5 w-5 ${fav ? 'fill-red-500 text-red-500' : 'text-gray-700'}`} /></button>
-            </div>
-          </div>
-          {photos.length > 1 && (
-            <div className="no-scrollbar flex gap-2 overflow-x-auto p-2">
-              {photos.map((p, i) => <button key={p} type="button" onClick={() => setPhoto(i)} aria-label={`${tx('Фото', 'Фото')} ${i + 1}`} className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 ${i === photo ? 'border-amber-500' : 'border-transparent'}`}><StorageImg objectKey={p} alt="" className="h-full w-full object-cover" /></button>)}
+          {isOwner && !isPublic && (
+            <div className="mb-4 flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+              <Clock className="mt-0.5 h-4 w-4 shrink-0" /><span>{tx('Ваше объявление ', 'Сіздің хабарландыруыңыз ')}{bi(statusText[ad.status] || { ru: 'сейчас не показывается', kz: 'қазір көрсетілмейді' })}</span>
             </div>
           )}
 
-          <div className="p-5">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
-              {k && <span className="rounded-full bg-amber-50 px-2 py-0.5 font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">{k.emoji} {bi(k.title)}</span>}
-              {ad.created_at && <span>{formatDate(ad.created_at)}</span>}
-              {Number(ad.views_count) > 0 && <span className="inline-flex items-center gap-1">· <Eye className="h-3.5 w-3.5" />{ad.views_count} {tx('просмотров', 'қаралым')}</span>}
+          <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-6">
+            {/* Left: photos and the text */}
+            <div className="min-w-0 space-y-5">
+              <div className="ads-panel overflow-hidden">
+                <div className="relative aspect-[4/3] bg-[var(--ads-soft)] lg:aspect-auto lg:h-[520px]">
+                  {photos.length ? <StorageImg objectKey={photos[photo]} alt={ad.title} className="h-full w-full object-contain" />
+                    : <div className="ads-noimg" aria-hidden><KindIcon className="h-20 w-20" strokeWidth={1.25} /></div>}
+                  {photos.length > 1 && <>
+                    <button type="button" aria-label={tx('Предыдущее фото', 'Алдыңғы фото')} onClick={() => setPhoto((p) => (p - 1 + photos.length) % photos.length)} className={`absolute left-3 top-1/2 -translate-y-1/2 ${iconBtn}`}><ArrowLeft className="h-5 w-5" /></button>
+                    <button type="button" aria-label={tx('Следующее фото', 'Келесі фото')} onClick={() => setPhoto((p) => (p + 1) % photos.length)} className={`absolute right-3 top-1/2 -translate-y-1/2 ${iconBtn}`}><ArrowRight className="h-5 w-5" /></button>
+                    <span className="absolute bottom-3 right-3 rounded-full bg-black/60 px-2.5 py-0.5 text-xs text-white">{photo + 1}/{photos.length}</span>
+                  </>}
+                  <div className="absolute right-3 top-3 flex gap-2 lg:hidden">
+                    <button type="button" onClick={() => void share()} aria-label={tx('Поделиться', 'Бөлісу')} className={iconBtn}><Share2 className="h-5 w-5" /></button>
+                    <button type="button" onClick={() => { const next = toggleAnnFavorite(Number(ad.id)); setFav(next.includes(Number(ad.id))); }} aria-pressed={fav} aria-label={tx('В избранное', 'Таңдаулыға')} className={iconBtn}><Heart className={`h-5 w-5 ${fav ? 'fill-red-500 text-red-500' : ''}`} /></button>
+                  </div>
+                </div>
+                {photos.length > 1 && (
+                  <div className="no-scrollbar flex gap-2 overflow-x-auto p-3">
+                    {photos.map((p, i) => <button key={p} type="button" onClick={() => setPhoto(i)} aria-label={`${tx('Фото', 'Фото')} ${i + 1}`} className={`h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 ${i === photo ? 'border-[#3864ed]' : 'border-transparent opacity-80 hover:opacity-100'}`}><StorageImg objectKey={p} alt="" className="h-full w-full object-cover" /></button>)}
+                  </div>
+                )}
+              </div>
+
+              {/* Mobile: the title block goes right under the photo */}
+              <div className="lg:hidden"><AdSummary ad={ad} k={k} KindIcon={KindIcon} /></div>
+
+              <section className="ads-panel p-5 sm:p-6">
+                <h2 className="text-lg font-bold">{tx('Описание', 'Сипаттама')}</h2>
+                <div className="mt-3 whitespace-pre-line leading-relaxed">{ad.description}</div>
+                {ad.author_name && <p className="mt-5 text-sm text-[var(--ads-muted)]">{tx('Автор', 'Автор')}: <span className="font-medium text-[var(--ads-ink)]">{ad.author_name}</span></p>}
+              </section>
+              <div className="lg:hidden"><SafetyAlert variant="announcement_detail" /></div>
             </div>
-            <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-slate-100">{ad.title}</h1>
-            {ad.price && <p className="mt-1 text-2xl font-bold text-orange-600">{formatAdPrice(ad.price)}</p>}
-            {ad.address && <p className="mt-2 flex items-center gap-1.5 text-sm text-gray-600 dark:text-slate-300"><MapPin className="h-4 w-4 text-gray-400" />{ad.address}</p>}
-            <div className="mt-4 whitespace-pre-line leading-relaxed text-gray-800 dark:text-slate-200">{ad.description}</div>
-            {ad.author_name && <p className="mt-5 text-sm text-gray-500 dark:text-slate-400">{tx('Автор', 'Автор')}: <span className="font-medium text-gray-800 dark:text-slate-200">{ad.author_name}</span></p>}
 
-            <div className="mt-5"><SafetyAlert variant="announcement_detail" /></div>
+            {/* Right: price, contacts and actions — stays in view on a wide screen */}
+            <aside className="space-y-4 lg:sticky lg:top-20">
+              <div className="ads-panel hidden p-5 lg:block">
+                <AdSummary ad={ad} k={k} KindIcon={KindIcon} />
+                {contactBar && (
+                  <div className="mt-5 grid gap-2">
+                    <a {...callProps} className="ads-btn ads-btn-primary w-full"><Phone className="h-5 w-5" />{tx('Позвонить', 'Қоңырау шалу')}</a>
+                    {waDigits.length >= 11 && <a {...waProps} className="ads-btn w-full bg-[#16a34a] text-white hover:bg-[#15803d]"><MessageCircle className="h-5 w-5" />WhatsApp</a>}
+                  </div>
+                )}
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => void share()} className="ads-btn min-h-[42px] border border-[var(--ads-line)] text-sm"><Share2 className="h-4 w-4" />{tx('Поделиться', 'Бөлісу')}</button>
+                  <button type="button" onClick={() => { const next = toggleAnnFavorite(Number(ad.id)); setFav(next.includes(Number(ad.id))); }} aria-pressed={fav} className="ads-btn min-h-[42px] border border-[var(--ads-line)] text-sm"><Heart className={`h-4 w-4 ${fav ? 'fill-red-500 text-red-500' : ''}`} />{fav ? tx('Сохранено', 'Сақталды') : tx('Сохранить', 'Сақтау')}</button>
+                </div>
+              </div>
 
-            {isOwner ? (<>
-              <div className="mt-5 space-y-3">
-                <Link to="/cabinet?tab=announcements" className="flex items-center gap-3 rounded-2xl bg-gray-50 p-3 text-sm dark:bg-slate-800/60">
-                  <BarChart3 className="h-5 w-5 shrink-0 text-amber-600" />
-                  <span className="flex-1 text-gray-700 dark:text-slate-200">{tx('Посмотрели: ', 'Қарады: ')}<b>{Number(ad.views_count) || 0}</b>{tx(' · подробная статистика — в кабинете', ' · толық статистика — кабинетте')}</span>
-                  <ArrowRight className="h-4 w-4 text-gray-400" />
-                </Link>
-                <OfficialPromo adId={Number(ad.id)} compact />
-              </div>
-              <div className="mt-5 flex flex-wrap gap-2 border-t border-gray-100 pt-4 dark:border-slate-800">
-                <Link to={`/announcements/${ad.id}/edit`} className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white"><Pencil className="h-4 w-4" />{tx('Изменить', 'Өзгерту')}</Link>
-                {isPublic && <button type="button" disabled={busy} onClick={() => void unpublish()} className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold dark:border-slate-700"><EyeOff className="h-4 w-4" />{tx('Снять с сайта', 'Сайттан алу')}</button>}
-                <button type="button" disabled={busy} onClick={() => void remove()} className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600"><Trash2 className="h-4 w-4" />{tx('Удалить', 'Жою')}</button>
-              </div>
-            </>) : (
-              <button type="button" onClick={() => setReportOpen(true)} className="mt-5 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-600 dark:text-slate-400"><Flag className="h-4 w-4" />{tx('Пожаловаться', 'Шағымдану')}</button>
-            )}
+              {isOwner ? (
+                <div className="ads-panel space-y-3 p-5">
+                  <p className="text-sm font-semibold">{tx('Это ваше объявление', 'Бұл сіздің хабарландыруыңыз')}</p>
+                  <Link to="/cabinet?tab=announcements" className="flex items-center gap-3 rounded-2xl bg-[var(--ads-soft)] p-3 text-sm">
+                    <BarChart3 className="h-5 w-5 shrink-0 text-[var(--ads-accent)]" />
+                    <span className="flex-1">{tx('Посмотрели: ', 'Қарады: ')}<b>{Number(ad.views_count) || 0}</b>{tx(' · статистика в кабинете', ' · статистика кабинетте')}</span>
+                    <ArrowRight className="h-4 w-4 text-[var(--ads-muted)]" />
+                  </Link>
+                  <OfficialPromo adId={Number(ad.id)} compact />
+                  <div className="flex flex-wrap gap-2 border-t border-[var(--ads-line)] pt-3">
+                    <Link to={`/announcements/${ad.id}/edit`} className="ads-btn ads-btn-primary min-h-[42px] px-4 text-sm"><Pencil className="h-4 w-4" />{tx('Изменить', 'Өзгерту')}</Link>
+                    {isPublic && <button type="button" disabled={busy} onClick={() => void unpublish()} className="ads-btn min-h-[42px] border border-[var(--ads-line)] px-4 text-sm"><EyeOff className="h-4 w-4" />{tx('Снять с сайта', 'Сайттан алу')}</button>}
+                    <button type="button" disabled={busy} onClick={() => void remove()} className="ads-btn min-h-[42px] border border-red-200 px-4 text-sm text-red-600 dark:border-red-900"><Trash2 className="h-4 w-4" />{tx('Удалить', 'Жою')}</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="hidden lg:block"><SafetyAlert variant="announcement_detail" /></div>
+                  <button type="button" onClick={() => setReportOpen(true)} className="inline-flex items-center gap-1.5 px-1 text-sm text-[var(--ads-muted)] hover:text-red-600"><Flag className="h-4 w-4" />{tx('Пожаловаться', 'Шағымдану')}</button>
+                </>
+              )}
+            </aside>
           </div>
+
+          {!isOwner && <PromoSlot placement="ad_detail" context={`${ad.title} ${ad.description || ''}`} prefer={ad.ann_type === 'services' ? 'partner' : undefined} className="mt-8" />}
+
+          {similar.length > 0 && (
+            <section className="mt-10">
+              <div className="mb-4 flex items-end justify-between gap-3">
+                <div><span className="block text-[11px] font-bold uppercase tracking-[.1em] text-[var(--ads-accent)]">{tx('Ещё рядом', 'Тағы жақын жерде')}</span><h2 className="mt-1 text-2xl font-bold tracking-tight">{tx('Похожие объявления', 'Ұқсас хабарландырулар')}</h2></div>
+                <Link to={k ? `/announcements?type=${k.group === 'work' ? 'job' : k.kind}` : '/announcements'} className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--ads-accent)]">{tx('Все', 'Барлығы')}<ArrowRight className="h-4 w-4" /></Link>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">{similar.map((s) => <AdCard key={s.id} ad={s} />)}</div>
+            </section>
+          )}
         </div>
-
-        {!isOwner && <PromoSlot placement="ad_detail" context={`${ad.title} ${ad.description || ''}`} prefer={ad.ann_type === 'services' ? 'partner' : undefined} className="mt-6" />}
-
-        {similar.length > 0 && (
-          <section className="mt-8">
-            <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-slate-100">{tx('Похожие объявления', 'Ұқсас хабарландырулар')}</h2>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">{similar.map((s) => <AdCard key={s.id} ad={s} />)}</div>
-          </section>
-        )}
       </div>
 
-      {!isOwner && isPublic && phoneDigits.length >= 11 && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur dark:border-slate-700 dark:bg-slate-950/95">
+      {contactBar && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur dark:border-slate-700 dark:bg-slate-950/95 lg:hidden">
           <div className="mx-auto flex max-w-3xl gap-3">
-            <a href={`tel:+${phoneDigits}`} onClick={() => { track('ad_contact', { id: ad.id, way: 'call', kind: ad.ann_type }); adEvent(ad.id, 'phone', true); }} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-amber-500 font-semibold text-white"><Phone className="h-5 w-5" />{tx('Позвонить', 'Қоңырау шалу')}</a>
-            {waDigits.length >= 11 && <a href={`https://wa.me/${waDigits}?text=${waText}`} target="_blank" rel="noopener noreferrer" onClick={() => { track('ad_contact', { id: ad.id, way: 'whatsapp', kind: ad.ann_type }); adEvent(ad.id, 'whatsapp', true); }} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-green-600 font-semibold text-white"><MessageCircle className="h-5 w-5" />WhatsApp</a>}
+            <a {...callProps} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#3864ed] font-semibold text-white"><Phone className="h-5 w-5" />{tx('Позвонить', 'Қоңырау шалу')}</a>
+            {waDigits.length >= 11 && <a {...waProps} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-green-600 font-semibold text-white"><MessageCircle className="h-5 w-5" />WhatsApp</a>}
           </div>
         </div>
       )}
@@ -788,5 +844,22 @@ export function AdDetail() {
         </div>
       )}
     </Layout>
+  );
+}
+
+/** Kind, date, views, title, price and address — under the photo on a phone, in the side panel on a PC. */
+function AdSummary({ ad, k, KindIcon }: { ad: any; k?: ReturnType<typeof kindOf>; KindIcon: LucideIcon }) {
+  const { tx, bi } = useTx();
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--ads-muted)]">
+        {k && <span className="ads-chip"><KindIcon className="h-3.5 w-3.5" />{bi(k.title)}</span>}
+        {ad.created_at && <span>{formatDate(ad.created_at)}</span>}
+        {Number(ad.views_count) > 0 && <span className="inline-flex items-center gap-1">· <Eye className="h-3.5 w-3.5" />{ad.views_count} {tx('просмотров', 'қаралым')}</span>}
+      </div>
+      <h1 className="mt-3 text-2xl font-extrabold leading-tight tracking-tight">{ad.title}</h1>
+      {ad.price && <p className="mt-2 text-[28px] font-extrabold tracking-tight">{formatAdPrice(ad.price)}</p>}
+      {ad.address && <p className="mt-2 flex items-center gap-1.5 text-sm text-[var(--ads-muted)]"><MapPin className="h-4 w-4" />{ad.address}</p>}
+    </div>
   );
 }
