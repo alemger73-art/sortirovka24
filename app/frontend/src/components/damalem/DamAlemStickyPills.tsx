@@ -40,8 +40,13 @@ export default function DamAlemStickyPills({
   const scrollerRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
 
+  // Centre the active chip inside the strip only. scrollIntoView would also move the whole page
+  // (on opening /food it jumped past the banner to bring the strip into view).
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    const scroller = scrollerRef.current, pill = activeRef.current;
+    if (!scroller || !pill) return;
+    const left = pill.offsetLeft - scroller.offsetLeft - (scroller.clientWidth - pill.offsetWidth) / 2;
+    scroller.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
   }, [activeId]);
 
   return (

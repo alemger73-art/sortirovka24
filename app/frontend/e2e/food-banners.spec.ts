@@ -199,5 +199,6 @@ test('responsive header, safe insets and compact banner fit all screen sizes', a
   // Banner remains readable without a photo dependency.
   await expect(page.locator('.dam-market-offer__photo img')).toHaveCount(0);
   await expect(page.locator('.dam-market-offer h1')).toBeVisible();
-  await expect(page.locator('.dam-market-offer')).toHaveCSS('background-color', 'rgb(250, 236, 224)');
+  // Warm dark banner with light text (2026-10 refresh).
+  await expect(page.locator('.dam-market-offer')).toHaveCSS('color', 'rgb(255, 247, 239)');
 });

@@ -1,0 +1,106 @@
+/* DAM ALEM 2.0 storefront, 2026-10 refresh: full-width header, a warm dark banner with a real dish,
+   the «closed» note out of the sticky area, ticket-style promo codes, calmer section heads. Loaded last. */
+
+/* Header spans the whole screen, not only the 1280px column. */
+.dam-page .dam-market-header {
+  border-bottom: 0;
+  box-shadow: 0 0 0 100vmax var(--app-glass, rgba(255, 255, 255, .97)), 0 1px 0 100vmax var(--app-border, #ece8e1);
+  clip-path: inset(0 -100vmax -1px);
+}
+/* Phones: the address line only when an address is known — the banner already shows time and delivery. */
+@media (max-width: 639px) {
+  .dam-page .dam-market-header__meta--empty { display: none; }
+}
+
+/* «Сейчас закрыто»: a calm note under the header that scrolls away. */
+.dam-page .dam-closed-note { margin-top: 12px; }
+.dam-page .dam-closed-note .dam-status-strip--closed {
+  margin: 0; border: 1px solid #f3dca4; border-radius: 14px; padding: 10px 14px;
+  background: #fff8e6; color: #7a4a0c; gap: 10px;
+}
+.dark .dam-page .dam-closed-note .dam-status-strip--closed { background: #2e2512; border-color: #4f3e18; color: #f6d892; }
+
+/* Top banner: warm dark card with a real dish photo on the right. */
+.dam-page a.dam-market-offer--compact {
+  position: relative; overflow: hidden; isolation: isolate;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 20px;
+  min-height: 210px; padding: 28px 32px; border-radius: 24px; border: 0;
+  background: radial-gradient(ellipse at 85% 10%, #7a2f1f 0%, transparent 55%), linear-gradient(120deg, #1f1915 0%, #2b211b 55%, #3a261d 100%);
+  color: #fff7ef; box-shadow: 0 14px 34px #2a14081f;
+}
+.dam-page a.dam-market-offer--compact:hover { box-shadow: 0 16px 40px #2a140833; border: 0; }
+.dam-page .dam-market-offer--compact .dam-market-offer__content { position: relative; z-index: 1; max-width: 560px; }
+.dam-page .dam-market-offer--compact .dam-market-offer__content > span { color: #f6b48a; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.dam-page .dam-market-offer--compact h1 { color: #fff; font-size: clamp(1.6rem, 3.2vw, 2.5rem); font-weight: 800; letter-spacing: -.035em; margin-top: 10px; }
+.dam-page .dam-market-offer--compact p { color: #e9d6c8; font-size: .9rem; margin-top: 6px; }
+.dam-page .dam-market-offer--compact .dam-market-offer__cta {
+  position: relative; z-index: 1; align-self: end; background: #ef3b2d; color: #fff; border-radius: 14px;
+  padding: 13px 18px; font-size: .85rem; font-weight: 700; box-shadow: 0 8px 20px #ef3b2d40;
+}
+.dam-hero-facts { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; padding: 0; list-style: none; }
+.dam-hero-facts li { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 999px; background: #ffffff14; border: 1px solid #ffffff22; color: #fbe9dc; font-size: .75rem; font-weight: 600; white-space: nowrap; }
+.dam-hero-facts li i { width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; box-shadow: 0 0 0 3px #f59e0b33; }
+.dam-hero-facts li.is-open i { background: #22c55e; box-shadow: 0 0 0 3px #22c55e33; }
+.dam-hero-dish { position: absolute; z-index: 0; inset: 0 0 0 auto; width: min(46%, 520px); opacity: 0; transition: opacity .4s; pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 45%); mask-image: linear-gradient(90deg, transparent 0%, #000 45%); }
+.dam-hero-dish.is-ready { opacity: .9; }
+.dam-hero-dish img { width: 100%; height: 100%; object-fit: cover; }
+.dark .dam-page a.dam-market-offer--compact { background: radial-gradient(ellipse at 85% 10%, #6b2a1c 0%, transparent 55%), linear-gradient(120deg, #191513 0%, #241c18 60%, #2f211a 100%); color: #fff7ef; }
+.dark .dam-page .dam-market-offer--compact p { color: #e3cfc0; }
+.dark .dam-page .dam-market-offer--compact .dam-market-offer__content > span { color: #f6b48a; }
+.dark .dam-page .dam-market-offer--compact .dam-market-offer__cta { background: #ef3b2d; color: #fff; }
+@media (max-width: 639px) {
+  .dam-page a.dam-market-offer--compact { display: flex; flex-direction: column; align-items: flex-start; min-height: 0; padding: 20px; gap: 14px; border-radius: 20px; }
+  .dam-page .dam-market-offer--compact h1 { font-size: 1.55rem; }
+  .dam-hero-facts { margin-top: 12px; gap: 6px; }
+  .dam-hero-facts li { padding: 5px 9px; font-size: .7rem; }
+  .dam-hero-dish { width: 58%; -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 70%); mask-image: linear-gradient(90deg, transparent 0%, #000 70%); }
+  .dam-hero-dish.is-ready { opacity: .45; }
+  .dam-page .dam-market-offer--compact .dam-market-offer__cta { padding: 11px 15px; }
+}
+
+/* Promo codes look like tickets: the code on the left, a dashed cut, the action on the right. */
+.dam-page .dam-promo-strip h2 { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--app-muted, #8a7f76); }
+.dam-page .dam-promo-chip { position: relative; min-height: 64px; padding: .7rem 1rem; border-radius: 16px; border: 1px solid var(--app-border, #ece3da); background: var(--app-surface, #fff); gap: 14px; }
+.dam-page .dam-promo-chip__body strong { color: #c2341f; font-size: .85rem; letter-spacing: .06em; }
+.dam-page .dam-promo-chip__action { padding-left: 14px; border-left: 1.5px dashed var(--app-border, #e6d8cb); color: var(--app-ink, #2b211b); align-self: stretch; }
+.dam-page .dam-promo-chip:hover { border-color: #f0b8a6; }
+.dam-page .dam-promo-chip--active { background: #fff3ee; border-color: #ef8b6f; }
+.dark .dam-page .dam-promo-chip { background: #1c2129; border-color: #343c48; }
+.dark .dam-page .dam-promo-chip__body strong { color: #ff9a85; }
+.dark .dam-page .dam-promo-chip--active { background: #3a221d; border-color: #a6513f; }
+
+/* Section heads: a quiet dish count next to the category name. */
+.dam-page .dam-market-count { margin-left: 8px; font-size: .8rem; font-weight: 600; color: var(--app-muted, #a0958b); vertical-align: middle; }
+
+/* Category strip: soft fade at the edges so it is clear the row scrolls. */
+.dam-page #dam-market-categories .no-scrollbar,
+.dam-page #dam-market-categories [class*="overflow-x"] {
+  -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 32px), transparent 100%);
+  mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 32px), transparent 100%);
+}
+
+/* Delivery conditions: a tidy card instead of a loose line. */
+.dam-page .dam-delivery-details { margin: 1.25rem 0 0; padding: .9rem 1.1rem; border: 1px solid var(--app-border, #ece8e1); border-radius: 16px; background: var(--app-surface, #fff); }
+.dam-page .dam-delivery-details summary { list-style: none; display: flex; align-items: center; justify-content: space-between; color: var(--app-ink, #2b211b); }
+.dam-page .dam-delivery-details summary::-webkit-details-marker { display: none; }
+.dam-page .dam-delivery-details summary::after { content: '+'; font-size: 1.1rem; font-weight: 500; color: var(--app-muted, #8a7f76); }
+.dam-page .dam-delivery-details[open] summary::after { content: '–'; }
+.dam-page .dam-delivery-details[open] summary { margin-bottom: .75rem; }
+
+@media (prefers-reduced-motion: reduce) { .dam-hero-dish { transition: none; } }
+
+/* The address/time line belongs to the same white header band. */
+.dam-page .dam-market-header__meta { background: transparent; border-top: 1px solid var(--app-border, #f0ece6); }
+.dam-page .dam-promo-chip__body > span { max-width: 36ch; }
+@media (max-width: 639px) {
+  /* Keep the banner compact on phones: facts in one scrollable line. */
+  .dam-hero-facts { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-right: -20px; padding-right: 20px; }
+  .dam-hero-facts::-webkit-scrollbar { display: none; }
+  .dam-page .dam-market-offer--compact p { font-size: .82rem; }
+  .dam-page a.dam-market-offer--compact { gap: 12px; padding: 18px 20px; }
+}
+@media (max-width: 639px) {
+  .dam-page .dam-market-offer--compact .dam-market-offer__content { min-width: 0; width: 100%; max-width: 100%; }
+  .dam-page a.dam-market-offer--compact { min-width: 0; max-width: 100%; }
+}

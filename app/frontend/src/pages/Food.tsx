@@ -56,6 +56,7 @@ import DamAlemProductCard from '@/components/damalem/DamAlemProductCard';
 import DamAlemStatusStrip from '@/components/damalem/DamAlemStatusStrip';
 import { resolveDamAlemItemImage } from '@/lib/damAlemImages';
 import DamAlemImage from '@/components/damalem/DamAlemImage';
+import DamAlemHeroDish from '@/components/damalem/DamAlemHeroDish';
 import DamAlemSheet from '@/components/damalem/DamAlemSheet';
 import DamAlemCheckoutButton from '@/components/damalem/DamAlemCheckoutButton';
 import DamAlemCartView from '@/components/damalem/DamAlemCartView';
@@ -74,6 +75,7 @@ import { resolveLoyaltyGifts, resolvePromoCodes, type FoodBannerAction } from '@
 import { isFoodBanner } from '@/lib/foodBannerActions';
 import '@/styles/damAlem.css';
 import '@/styles/foodResponsive.css';
+import '@/styles/damRefresh.css';
 
 /* ─── Types ─── */
 interface FoodCategory {
@@ -773,6 +775,14 @@ export default function Food() {
   const hitItems = useMemo(() => {
     const hits = items.filter(i => i.is_popular || i.is_recommended);
     return hits.slice(0, 12);
+  }, [items]);
+  // The banner shows a real dish from the menu: a hit first, otherwise a pizza or a burger.
+  const heroDishImage = useMemo(() => {
+    const withPhoto = items.filter(i => i.image_url);
+    const pick = withPhoto.find(i => i.is_popular || i.is_recommended)
+      || withPhoto.find(i => /пицц|бургер|комбо/i.test(i.name || ''))
+      || withPhoto[0];
+    return pick?.image_url || '';
   }, [items]);
 
   const patchSearch = useCallback((patch: (p: URLSearchParams) => void, replace = false) => {
@@ -2091,19 +2101,21 @@ export default function Food() {
               {cartCount > 0 ? <b>{cartCount}</b> : null}
             </button>
           </div>
-          <div className={`dam-market-header__meta ${PAGE_X}`}>
+          <div className={`dam-market-header__meta ${PAGE_X}${effectiveAddress ? '' : ' dam-market-header__meta--empty'}`}>
             <span><MapPin className="h-4 w-4" />{effectiveAddress || st("Укажите адрес при оформлении")}</span>
             <span><Clock className="h-4 w-4" />{deliveryTimeLabel}</span>
             {freeDeliveryFrom > 0 ? <span className="hidden sm:flex"><Truck className="h-4 w-4" />{st("Бесплатно от")} {formatPrice(freeDeliveryFrom)}</span> : null}
           </div>
-          {!kitchenStatus.open ? (
+        </FoodStoreHeader>
+        {!kitchenStatus.open ? (
+          <div className={`${PAGE_X} dam-closed-note`}>
             <DamAlemStatusStrip
               kitchenOpen={false}
               kitchenMessage={kitchenStatus.message}
               deliveryTime={deliveryTimeLabel}
             />
-          ) : null}
-        </FoodStoreHeader>
+          </div>
+        ) : null}
 
         {activeTab === 'menu' && (
           <main className="dam-market-menu">
@@ -2114,10 +2126,16 @@ export default function Food() {
                   event.preventDefault();
                   document.getElementById('dam-market-categories')?.scrollIntoView({behavior: 'smooth', block: 'start'});
                 }}>
+                <DamAlemHeroDish source={heroDishImage} />
                 <div className="dam-market-offer__content">
-                  <span>{DAM_ALEM_BRAND}</span>
+                  <span>{DAM_ALEM_BRAND} · {st("Сортировка")}</span>
                   <h1>{st("Горячее. Свежее. Ваше.")}</h1>
                   <p>{st("UFO-бургеры, пицца и любимые напитки")}</p>
+                  <ul className="dam-hero-facts">
+                    <li className={kitchenStatus.open ? 'is-open' : 'is-closed'}><i aria-hidden="true" />{kitchenStatus.open ? st("Открыто") : st("Закрыто")} · {String(settings.working_hours || `${kitchenStatus.opensAt} – ${kitchenStatus.closesAt}`)}</li>
+                    <li><Clock className="h-3.5 w-3.5" aria-hidden="true" />{deliveryTimeLabel}</li>
+                    {freeDeliveryFrom > 0 ? <li><Truck className="h-3.5 w-3.5" aria-hidden="true" />{st("Бесплатно от")} {formatPrice(freeDeliveryFrom)}</li> : null}
+                  </ul>
                 </div>
                 <span className="dam-market-offer__cta">{st("Выбрать блюда")} <ArrowRight className="h-4 w-4" aria-hidden="true" /></span>
               </a>
@@ -2138,7 +2156,7 @@ export default function Food() {
                 </div>
               ) : null}
 
-              {hitItems.length > 0 && !searchQuery.trim() ? (
+              {hitItems.length > 1 && !searchQuery.trim() ? (
                 <section id="alem-hits" className="dam-market-hits">
                   <div className="dam-market-section-head">
                     <div>
@@ -2205,7 +2223,7 @@ export default function Food() {
                   <section key={category.id} id={`dam-category-${category.id}`} className="dam-market-category">
                     <div className="dam-market-section-head">
                       <div>
-                        <h2>{category.name}</h2>
+                        <h2>{category.name} <small className="dam-market-count" aria-hidden="true">{sectionItems.length}</small></h2>
                       </div>
                     </div>
                     <div className="dam-product-grid">
