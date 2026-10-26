@@ -4,6 +4,7 @@ import App from './App.tsx';
 import './index.css';
 import { warmupBackend } from './lib/api';
 import { installProductionErrorHandlers } from './lib/errorHandlers';
+import { installChunkReload } from './lib/lazyRetry';
 import { initMonitoring } from './lib/monitoring';
 import { initNativeShell, isNativeApp } from './lib/native';
 import { initWebAppUpdates } from './lib/pwaUpdates';
@@ -86,6 +87,7 @@ import { restoreAccountSession, scheduleNativeSessionHydration } from './lib/ses
 
 initMonitoring();
 installProductionErrorHandlers();
+installChunkReload();
 initWebAppUpdates();
 if (!isNativeApp()) initPwaInstall();
 initAnalytics();
