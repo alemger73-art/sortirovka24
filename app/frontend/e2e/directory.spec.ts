@@ -22,24 +22,36 @@ test('search uses all words and telephone punctuation safely',()=>{
  expect(matchesEntry(contact,'служба водоснабжения')).toBe(true);expect(matchesEntry(contact,'служба электричества')).toBe(false);
  expect(matchesEntry(contact,'7212 11-22')).toBe(true);expect(phoneLink('8 (701) 111-22-33')).toBe('tel:+77011112233');expect(phoneLink('102, 103')).toBeUndefined();expect(whatsappLink('102')).toBeUndefined();expect(httpsLink('javascript:alert(1)')).toBeUndefined();expect(isLegacyDemo({...contact,entry_name:'Городская поликлиника №3',phone:'+77001234567',source_url:''})).toBe(true);expect(emergencyContacts.find(e=>e.number==='101')?.ru).toContain('Пожарные');
 });
-test('directory shows correct emergency numbers, all categories, and contact details',async({page},info)=>{
- await setup(page);await page.goto('/directory');await expect(page.getByRole('heading',{name:contact.entry_name})).toBeVisible();
- await expect(page.locator('.directory-emergency-grid a')).toHaveCount(5);await expect(page.locator('.directory-emergency-grid a[href="tel:101"]')).toContainText('Пожарные');await expect(page.locator('.directory-emergency-grid a[href="tel:104"]')).toContainText('газовая');
- await expect(page.getByRole('heading',{name:'Скрытый черновик'})).toHaveCount(0);await expect(page.getByRole('heading',{name:'Городская поликлиника №3'})).toHaveCount(0);await expect(page.getByRole('heading',{name:'Новая категория',exact:true})).toBeVisible();
- const card=page.locator('.directory-card').first();await expect(card.locator('a[href="tel:+77212112233"]')).toBeVisible();await expect(card.getByText('Пн–Пт 09:00–18:00')).toBeVisible();await expect(card.getByRole('link',{name:'Источник сведений'})).toHaveAttribute('href',contact.source_url);
+test('directory shows emergency numbers first, situations and compact contact rows',async({page},info)=>{
+ await setup(page);await page.setViewportSize({width:390,height:844});await page.goto('/directory');
+ await expect(page.getByRole('heading',{name:'Справочник Сортировки'})).toBeVisible();
+ await expect(page.locator('.dir-sos a')).toHaveCount(5);await expect(page.locator('.dir-sos a[href="tel:101"]')).toHaveAttribute('aria-label',/Пожарные/);await expect(page.locator('.dir-sos a[href="tel:104"]')).toBeInViewport();
+ await expect(page.getByText(contact.entry_name)).toBeVisible();await expect(page.getByText('Скрытый черновик')).toHaveCount(0);await expect(page.getByText('Городская поликлиника №3')).toHaveCount(0);
+ await expect(page.getByRole('heading',{name:'Другое',exact:true})).toBeVisible();
+ const row=page.getByTestId('dir-row').first();await expect(row.locator('a[href="tel:+77212112233"]')).toBeVisible();
+ await row.getByRole('button',{name:/Тестовая служба водоснабжения/}).click();await expect(row.getByText('Пн–Пт 09:00–18:00')).toBeVisible();await expect(row.getByRole('link',{name:'WhatsApp'})).toHaveAttribute('href','https://wa.me/77011112233');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('directory.png'),fullPage:true});
 });
-test('search and category survive reload and can be cleared',async({page})=>{
- await setup(page);await page.goto('/directory');const search=page.getByRole('textbox',{name:'Поиск по справочнику'});await search.fill('служба водоснабжения');await expect(page.locator('.directory-card')).toHaveCount(1);await page.reload();await expect(search).toHaveValue('служба водоснабжения');await search.fill('служба электричества');await expect(page.getByRole('heading',{name:'Ничего не найдено'})).toBeVisible();await page.getByRole('button',{name:'Сбросить фильтры'}).click();await expect(page.locator('.directory-card')).toHaveCount(2);await page.getByRole('button',{name:'Новая категория · 1'}).click();await expect(page.locator('.directory-card')).toHaveCount(1);
+test('«Что случилось?» shows the right contacts and gas shows 104 first',async({page})=>{
+ await setup(page);await page.goto('/directory');await page.locator('[data-sit=gas]').click();
+ const panel=page.locator('#dir-sit-panel');await expect(panel).toContainText('Почувствовали запах газа');await expect(panel.locator('a[href="tel:104"]')).toBeVisible();
+ await expect(page).toHaveURL(/s=gas/);await panel.getByRole('button',{name:'Закрыть'}).click();await expect(panel).toHaveCount(0);
+});
+test('search understands everyday words, survives reload and can be cleared',async({page})=>{
+ await setup(page);await page.goto('/directory');const search=page.getByRole('textbox',{name:'Поиск по справочнику'});
+ await search.fill('вода');await expect(page.getByTestId('dir-row')).toHaveCount(2);await search.fill('документов');await expect(page.getByTestId('dir-row')).toHaveCount(1);await search.fill('вода');
+ await page.reload();await expect(search).toHaveValue('вода');await search.fill('электричество');await expect(page.getByText('Ничего не найдено')).toBeVisible();
+ await page.getByRole('button',{name:'Показать все'}).click();await expect(page.getByTestId('dir-row')).toHaveCount(2);
+ await page.getByRole('button',{name:'Другое',exact:true}).click();await expect(page.getByTestId('dir-row')).toHaveCount(1);
 });
 test('empty directory keeps emergency calls and explains missing contacts',async({page})=>{
- const state=await setup(page);state.items=[];await page.goto('/directory');await expect(page.getByRole('heading',{name:'Местные контакты готовятся'})).toBeVisible();await expect(page.locator('a[href="tel:112"]')).toBeVisible();
+ const state=await setup(page);state.items=[];await page.goto('/directory');await expect(page.getByText('Контакты скоро появятся')).toBeVisible();await expect(page.locator('a[href="tel:112"]')).toBeVisible();
 });
 test('admin saves draft then publishes with source and date',async({page})=>{
  const state=await setup(page);await page.goto('/admin?tab=directory');await page.getByRole('button',{name:'Добавить',exact:true}).click();await page.getByLabel('Название организации *',{exact:true}).fill('Новая тестовая организация');await page.getByRole('button',{name:'Сохранить черновик'}).click();await expect(page.getByRole('status')).toContainText('Черновик сохранён');expect(state.writes).toBe(1);
  await page.getByRole('button',{name:'Редактировать Новая тестовая организация'}).click();await page.getByRole('checkbox').check();await page.getByRole('button',{name:'Сохранить и опубликовать'}).click();await expect(page.getByRole('alert')).toContainText('Для публикации');expect(state.writes).toBe(1);
- await page.getByLabel('Источник сведений',{exact:true}).fill('https://example.org/verified');await page.getByLabel('Дата проверки контактов',{exact:true}).fill('2026-09-12');await page.getByLabel('Телефон',{exact:true}).fill('+77011112233');await page.getByRole('button',{name:'Сохранить и опубликовать'}).click();await expect(page.getByRole('status')).toContainText('Запись сохранена');expect(state.writes).toBe(2);await page.goto('/directory');await expect(page.getByRole('heading',{name:'Новая тестовая организация'})).toBeVisible();
+ await page.getByLabel('Источник сведений',{exact:true}).fill('https://example.org/verified');await page.getByLabel('Дата проверки контактов',{exact:true}).fill('2026-09-12');await page.getByLabel('Телефон',{exact:true}).fill('+77011112233');await page.getByRole('button',{name:'Сохранить и опубликовать'}).click();await expect(page.getByRole('status')).toContainText('Запись сохранена');expect(state.writes).toBe(2);await page.goto('/directory');await expect(page.getByText('Новая тестовая организация')).toBeVisible();
 });
 test('dark mode and larger text stay inside viewport',async({page},info)=>{
- await setup(page);await page.goto('/directory');await expect(page.locator('.directory-card').first()).toBeVisible();await page.evaluate(()=>{document.documentElement.classList.add('dark');document.documentElement.style.fontSize='20px';});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('directory-dark.png'),fullPage:true});
+ await setup(page);await page.goto('/directory');await expect(page.getByTestId('dir-row').first()).toBeVisible();await page.evaluate(()=>{document.documentElement.classList.add('dark');document.documentElement.style.fontSize='20px';});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('directory-dark.png'),fullPage:true});
 });

@@ -1,117 +1,268 @@
-import { directoryPublicCopy } from '@/lib/directoryPublicCopy';
-import { directoryHelp, publicDirectorySource } from '@/lib/directoryHelp';
+/**
+ * «Справочник Сортировки» — made for one job: find the right number fast and call.
+ * Order: emergency numbers → «Что случилось?» situations → all contacts as compact rows (search with everyday words)
+ * → госуслуги online → district leadership. Contacts come from the admin (directory_entries).
+ */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Search, Phone, MapPin, Clock, ArrowUpRight, Copy, X, BookOpen, Building2, LifeBuoy, Users, ArrowRight, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  ArrowUpRight, Bus, ChevronDown, Clock, Copy, Droplets, Flame, Globe, HeartPulse, Landmark, MapPin, MessageCircle,
+  Phone, Search, ShieldCheck, Thermometer, Trash2, X, Zap, type LucideIcon,
+} from 'lucide-react';
 import Layout from '@/components/Layout';
-import { client, withRetry, sortDirectoryEntries, getDirectoryCategoryLabel } from '@/lib/api';
+import { client, withRetry, sortDirectoryEntries } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useModules } from '@/hooks/useModules';
-import { emergencyContacts, emergencySource, phoneLink, httpsLink, whatsappLink, readyForDirectory, matchesEntry, type DirectoryEntry } from '@/lib/directoryContent';
-import '@/styles/directory.css';
-import PartnerSpotlight from '@/components/PartnerSpotlight';
-import DirectoryContext from '@/components/DirectoryContext';
-import GovernmentServices from '@/components/GovernmentServices';
+import { emergencyContacts, phoneLink, httpsLink, whatsappLink, readyForDirectory, type DirectoryEntry } from '@/lib/directoryContent';
+import { directoryHelp, publicDirectorySource } from '@/lib/directoryHelp';
+import { directoryPublicCopy } from '@/lib/directoryPublicCopy';
+import { GROUPS, OTHER_GROUP, SITUATIONS, groupOf, smartMatch, type Situation } from '@/lib/directorySituations';
+import content from '@/content/directory-context';
+import '@/styles/dir.css';
+
+const SIT_ICONS: Record<string, LucideIcon> = { water: Droplets, power: Zap, heat: Thermometer, gas: Flame, trash: Trash2, police: ShieldCheck, doctor: HeartPulse, akimat: Landmark };
+const SOS_SHORT: Record<string, [string, string]> = { 112: ['Спасение', 'Құтқару'], 101: ['Пожар', 'Өрт'], 102: ['Полиция', 'Полиция'], 103: ['Скорая', 'Жедел'], 104: ['Газ', 'Газ'] };
+const GOV = [
+  { ru: 'Прикрепиться к поликлинике', kz: 'Емханаға тіркелу', href: 'https://beta.egov.kz/services/3176' },
+  { ru: 'Записаться в ЦОН', kz: 'ХҚКО-ға кезек брондау', href: 'https://beta.egov.kz/services/3134?lang=ru' },
+  { ru: 'Обращение в госорган — eOtinish', kz: 'Мемлекеттік органға өтініш — eOtinish', href: 'https://eotinish.kz/ru' },
+  { ru: 'Очередь в детский сад', kz: 'Балабақша кезегі', href: 'https://beta.egov.kz/services/3042' },
+  { ru: 'Проверить лицензию', kz: 'Лицензияны тексеру', href: 'https://beta.egov.kz/services/3173' },
+];
+
+function displayPhone(value = '') {
+  if (/^\+77212\d{6}$/.test(value)) return value.replace(/^\+7(\d{4})(\d{2})(\d{2})(\d{2})$/, '+7 ($1) $2-$3-$4');
+  if (/^\+7\d{10}$/.test(value)) return value.replace(/^\+7(\d{3})(\d{3})(\d{2})(\d{2})$/, '+7 ($1) $2-$3-$4');
+  return value;
+}
+function shortPhone(value = '') {
+  if (/^\+77212\d{6}$/.test(value)) return value.replace(/^\+77212(\d{2})(\d{2})(\d{2})$/, '$1-$2-$3');
+  return displayPhone(value);
+}
 
 export default function Directory() {
-  const { lang, t } = useLanguage(); const kz = lang === 'kz';
-  const say = (ru: string, kk: string) => kz ? kk : ru;
+  const { lang } = useLanguage();
+  const kz = lang === 'kz';
+  const say = (ru: string, kk: string) => (kz ? kk : ru);
   const { isEnabled } = useModules();
   const [params, setParams] = useSearchParams();
-  const query = params.get('q') || ''; const category = params.get('category') || '';
+  const query = params.get('q') || '';
+  const group = params.get('g') || '';
+  const sit = SITUATIONS.find((s) => s.id === params.get('s')) || null;
   const [entries, setEntries] = useState<DirectoryEntry[]>([]);
-  const [loading, setLoading] = useState(true); const [error, setError] = useState(false);
-  const section = params.get('section');
-  const view = section === 'guides' || section === 'leadership' || section === 'services' ? section : 'contacts';
-  const generation = useRef(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const gen = useRef(0);
+
   async function load() {
-    const version = ++generation.current; setLoading(true); setError(false);
+    const v = ++gen.current; setLoading(true); setError(false);
     try {
       const all: DirectoryEntry[] = [];
       for (let skip = 0; ; skip += 200) {
-        const result = await withRetry(() => client.entities.directory_entries.query({ sort: 'id', skip, limit: 200 }));
-        const page = result.data?.items || []; all.push(...page);
-        if (page.length < 200 || all.length >= (result.data?.total ?? Infinity)) break;
+        const res = await withRetry(() => client.entities.directory_entries.query({ sort: 'id', skip, limit: 200 }));
+        const page = res.data?.items || []; all.push(...page);
+        if (page.length < 200 || all.length >= (res.data?.total ?? Infinity)) break;
       }
-      if (version === generation.current) setEntries(sortDirectoryEntries(all.filter(readyForDirectory)));
-    } catch { if (version === generation.current) setError(true); }
-    finally { if (version === generation.current) setLoading(false); }
+      if (v === gen.current) setEntries(sortDirectoryEntries(all.filter(readyForDirectory)));
+    } catch { if (v === gen.current) setError(true); } finally { if (v === gen.current) setLoading(false); }
   }
-  useEffect(() => { void load(); return () => { generation.current++; }; }, []);
-  function filter(key: string, value: string) { const next = new URLSearchParams(params); if (value) next.set(key, value); else next.delete(key); setParams(next, { replace: true }); }
-  const categories = useMemo(() => [...new Set(entries.map(e => e.category || 'Прочее'))], [entries]);
-  const filtered = entries.filter(e => (!category || (e.category || 'Прочее') === category) && matchesEntry(e, query, getDirectoryCategoryLabel(e.category, t)));
-  const groups = [...new Set(filtered.map(e => e.category || 'Прочее'))];
-  return <Layout><div className="useful-directory">
-    <header className="directory-hero"><div className="directory-width">
-      <span className="directory-eyebrow"><BookOpen size={16} />{say('Сортировка · справочник района', 'Сортировка · аудан анықтамалығы')}</span>
-      <h1>{say('Нужная помощь.', 'Қажетті көмек.')}<br /><span>{say('Рядом с вами.', 'Сізге жақын.')}</span></h1>
-      <p>{say('Службы Сортировки, руководство района и ответы на повседневные вопросы — в одном месте.', 'Сортировка қызметтері, аудан басшылығы және күнделікті сұрақтарға жауаптар — бір жерде.')}</p>
-      {isEnabled('inspectors') && <Link to="/inspectors" className="directory-police-entry"><span className="directory-police-entry-icon"><ShieldCheck size={24}/></span><span><strong>{say('Полиция и участковые', 'Полиция және учаскелік инспекторлар')}</strong><small>{say('Контакты, участковые пункты и руководство', 'Байланыстар, учаскелік пункттер және басшылық')}</small></span><ArrowUpRight size={20}/></Link>}
-      <Link to="/directory?section=services#government-services" className="directory-gov-entry"><LifeBuoy size={18}/>{say('Госуслуги онлайн', 'Мемлекеттік қызметтер онлайн')}<ArrowUpRight size={17}/></Link>
-      <section id="directory-search" className="directory-global-search" aria-label={say('Поиск служб и руководства', 'Қызметтер мен басшылықты іздеу')}>
-        <label className="directory-search"><Search size={20} /><input aria-label={say('Поиск по справочнику', 'Анықтамалықтан іздеу')} placeholder={say('Служба, вопрос, фамилия, адрес или телефон', 'Қызмет, мәселе, тегі, мекенжай немесе телефон')} value={query} onChange={e => filter('q', e.target.value)} />{query && <button aria-label={say('Очистить поиск', 'Іздеуді тазалау')} onClick={() => filter('q', '')}><X size={18} /></button>}</label>
-      </section>
-      <div className="directory-popular"><span>{say('Часто ищут:', 'Жиі ізделеді:')}</span>{['Мусор', 'Вода', 'Поликлиника'].map((word, i) => <button key={word} onClick={() => filter('q', word.toLowerCase())}>{kz ? ['Қоқыс', 'Су', 'Емхана'][i] : word}<ArrowUpRight size={13} /></button>)}</div>
-    </div></header>
-    <div className="directory-width directory-body">
-      <section className="directory-emergency" aria-labelledby="emergency-heading">
-        <div className="directory-section-heading"><div><h2 id="emergency-heading">{say('Если нужна срочная помощь', 'Шұғыл көмек қажет болса')}</h2><p>{say('При угрозе жизни или безопасности звоните сразу.', 'Өмірге немесе қауіпсіздікке қауіп төнсе, дереу қоңырау шалыңыз.')}</p></div></div>
-        <div className="directory-emergency-grid">{emergencyContacts.map(e => <a key={e.number} href={`tel:${e.number}`} aria-label={`${e.number} ${kz ? e.kz : e.ru}`}><strong>{e.number}</strong><span className="directory-emergency-long">{kz ? e.kz : e.ru}</span><span className="directory-emergency-short">{({112: say("Спасение", "Құтқару"), 101: say("Пожар", "Өрт"), 102: say("Полиция", "Полиция"), 103: say("Скорая", "Жедел"), 104: say("Газ", "Газ")} as Record<string, string>)[e.number]}</span></a>)}</div>
-        <div className="directory-source"><span>{say('Сообщите адрес и что произошло. Отвечайте на вопросы диспетчера.', 'Мекенжайды және не болғанын айтыңыз. Диспетчердің сұрақтарына жауап беріңіз.')}</span><a href={emergencySource} target="_blank" rel="noopener noreferrer">{say('Источник: gov.kz', 'Дереккөз: gov.kz')} ↗</a></div>
-      </section>
+  useEffect(() => { void load(); return () => { gen.current++; }; }, []);
+  // Old links (?section=leadership / services / guides) still land on the right block.
+  useEffect(() => {
+    const target = { leadership: 'dir-leaders', services: 'dir-gov', guides: 'dir-situations' }[params.get('section') || ''];
+    if (target) window.setTimeout(() => document.getElementById(target)?.scrollIntoView({ block: 'start' }), 300);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const set = (key: string, value: string) => { const next = new URLSearchParams(params); next.delete('section'); if (value) next.set(key, value); else next.delete(key); setParams(next, { replace: true }); };
+  const intro = (e: DirectoryEntry) => (directoryHelp(e, kz).intro || directoryPublicCopy(e).intro || '').trim();
+  const haystack = (e: DirectoryEntry) => [e.entry_name, e.category, e.address, e.phone, intro(e)].join(' ');
+  const shown = entries.filter((e) => (!group || groupOf(e.category) === group) && smartMatch(haystack(e), query));
+  const groupsUsed = useMemo(() => [...GROUPS, OTHER_GROUP].filter((g) => entries.some((e) => groupOf(e.category) === g.id)), [entries]);
+  const sitEntries = sit ? entries.filter(sit.pick) : [];
 
-      <nav className="directory-section-nav" aria-label={say('Разделы справочника', 'Анықтамалық бөлімдері')}>
-        {([['contacts', Building2, say('Службы и контакты', 'Қызметтер мен байланыстар'), entries.length], ['guides', LifeBuoy, say('Куда обращаться', 'Қайда жүгіну керек'), 6], ['leadership', Users, say('Руководство района', 'Аудан басшылығы'), 5], ['services', LifeBuoy, say('Госуслуги онлайн', 'Мемлекеттік қызметтер онлайн'), 5]] as const).map(([id, Icon, label, count]) => <button key={id} aria-pressed={view === id && !query} onClick={() => { setParams(id === 'contacts' ? {} : {section: id}); }}><Icon size={19} /><span>{label}</span><small>{count}</small></button>)}
-      </nav>
-      {query && <p className="directory-search-note">{say('Поиск по всем разделам справочника', 'Анықтамалықтың барлық бөлімдерінен іздеу')}</p>}
+  function pickSituation(id: string) {
+    set('s', sit?.id === id ? '' : id);
+    if (sit?.id !== id) window.setTimeout(() => document.getElementById('dir-sit-panel')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 60);
+  }
 
-      {(view !== 'services' || !!query) && <DirectoryContext kz={kz} query={query} view={query ? "all" : view === "services" ? "contacts" : view} />}
-      {(view === 'services' || !!query) && <GovernmentServices kz={kz} query={query} autoScroll={view === 'services' && !query} />}
-      {isEnabled('business') && query.trim().length >= 3 && /(кровл|крыш|водосток|фасад|сайдинг|шатыр|қасбет|су ағар)/i.test(query) && <PartnerSpotlight compact />}
-      {(view === "contacts" || !!query) && <section id="directory-catalog" className="directory-catalog" aria-labelledby="catalog-heading">
-        <h2 id="catalog-heading">{say('Организации и службы', 'Ұйымдар мен қызметтер')}</h2>
+  return (
+    <Layout>
+      <div className="dir">
+        <header className="dir-hero">
+          <div className="dir-w">
+            <span className="dir-kicker">{say('Сортировка 24 · справочник', 'Сортировка 24 · анықтамалық')}</span>
+            <h1>{say('Справочник Сортировки', 'Сортировка анықтамалығы')}</h1>
+            <p>{say('Куда звонить, если нет воды, света или тепла, нужен врач или участковый.', 'Су, жарық не жылу болмаса, дәрігер не учаскелік керек болса — қайда қоңырау шалу керек.')}</p>
+            <div className="dir-sos" aria-label={say('Экстренные номера', 'Шұғыл нөмірлер')}>
+              {emergencyContacts.map((e) => (
+                <a key={e.number} href={`tel:${e.number}`} aria-label={`${e.number} — ${kz ? e.kz : e.ru}`}>
+                  <b>{e.number}</b><span className="dir-sos-long">{kz ? e.kz : e.ru}</span><span className="dir-sos-short">{SOS_SHORT[e.number]?.[kz ? 1 : 0]}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        </header>
 
-        {!!categories.length && <div className="directory-filters" aria-label={say('Категории', 'Санаттар')}><button aria-pressed={!category} onClick={() => filter('category', '')}>{say('Все', 'Барлығы')} · {entries.length}</button>{categories.map(c => <button key={c} aria-pressed={category === c} onClick={() => filter('category', c)}>{categoryLabel(c, kz, t)} · {entries.filter(e => (e.category || 'Прочее') === c).length}</button>)}</div>}
-        <div aria-live="polite">{loading ? <p className="directory-state">{t('common.loading')}</p> : error ? <div className="directory-state"><h3>{say('Не удалось загрузить контакты', 'Байланыстарды жүктеу мүмкін болмады')}</h3><p>{say('Экстренные номера выше доступны без загрузки справочника.', 'Жоғарыдағы шұғыл нөмірлер анықтамалықсыз да қолжетімді.')}</p><button onClick={() => void load()}>{say('Попробовать снова', 'Қайталап көру')}</button></div> : !filtered.length ? <div className="directory-state"><h3>{entries.length ? say('В каталоге организаций совпадений нет', 'Ұйымдар каталогында сәйкестік жоқ') : say('Контакты сейчас недоступны', 'Байланыстар қазір қолжетімсіз')}</h3><p>{entries.length ? say('Совпадения в руководстве и памятках показаны выше. Для служб попробуйте другой запрос или уберите категорию.', 'Басшылық пен нұсқаулықтардағы сәйкестіктер жоғарыда көрсетілген. Қызметтер үшін басқа сұрауды қолданыңыз немесе санатты алып тастаңыз.') : say('Для срочной помощи используйте экстренные номера выше.', 'Шұғыл көмек үшін жоғарыдағы нөмірлерді пайдаланыңыз.')}</p>{(query || category) && <button onClick={() => setParams({})}>{say('Сбросить фильтры', 'Сүзгілерді тазалау')}</button>}</div> : <>
-          <p className="directory-result-count">{say('Найдено контактов', 'Табылған байланыстар')}: {filtered.length}</p>
-          {groups.map(c => <section key={c} className="directory-group"><h3>{categoryLabel(c, kz, t)}</h3><div className="directory-card-grid">{filtered.filter(e => (e.category || 'Прочее') === c).map(entry => <DirectoryCard key={entry.id} entry={entry} kz={kz} />)}</div></section>)}
-        </>}</div>
-      </section>}
-      <nav className="directory-shortcuts" aria-label={say('Смежные разделы', 'Қатысты бөлімдер')}>
-        {isEnabled('transport') && <Link to="/transport"><span><strong>{say('Транспорт района', 'Аудан көлігі')}</strong><small>{say('Маршруты и остановки', 'Бағыттар мен аялдамалар')}</small></span><ArrowUpRight /></Link>}
-      </nav>
-      <aside className="directory-footer-note"><p>{say('Перед визитом уточните часы приёма и обслуживание вашего адреса.', 'Барар алдында қабылдау уақытын және мекенжайыңызға қызмет көрсетуді нақтылаңыз.')}</p><Link to="/report-problem">{say('Сообщить об ошибке в контактах', 'Байланыстардағы қате туралы хабарлау')} →</Link></aside>
+        <div className="dir-w dir-body">
+          <section id="dir-situations" aria-labelledby="dir-sit-h">
+            <h2 id="dir-sit-h">{say('Что случилось?', 'Не болды?')}</h2>
+            <div className="dir-sits">
+              {SITUATIONS.map((s) => {
+                const Icon = SIT_ICONS[s.id] || Phone;
+                return (
+                  <button key={s.id} type="button" data-sit={s.id} aria-pressed={sit?.id === s.id} onClick={() => pickSituation(s.id)}>
+                    <Icon size={22} aria-hidden="true" /><span>{kz ? s.title.kz : s.title.ru}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {sit && <SituationPanel sit={sit} rows={sitEntries} kz={kz} intro={intro} onClose={() => set('s', '')} inspectors={isEnabled('inspectors')} />}
+          </section>
+
+          <section id="dir-contacts" aria-labelledby="dir-all-h">
+            <div className="dir-head">
+              <h2 id="dir-all-h">{say('Все контакты', 'Барлық байланыстар')}</h2>
+              <label className="dir-search">
+                <Search size={18} aria-hidden="true" />
+                <input value={query} onChange={(e) => set('q', e.target.value)} aria-label={say('Поиск по справочнику', 'Анықтамалықтан іздеу')} placeholder={say('Например: вода, школа 46, почта', 'Мысалы: су, 46 мектеп, пошта')} />
+                {query && <button type="button" onClick={() => set('q', '')} aria-label={say('Очистить поиск', 'Іздеуді тазалау')}><X size={16} /></button>}
+              </label>
+            </div>
+            {groupsUsed.length > 1 && (
+              <div className="dir-chips" role="group" aria-label={say('Разделы', 'Бөлімдер')}>
+                <button type="button" aria-pressed={!group} onClick={() => set('g', '')}>{say('Все', 'Барлығы')}</button>
+                {groupsUsed.map((g) => <button key={g.id} type="button" aria-pressed={group === g.id} onClick={() => set('g', group === g.id ? '' : g.id)}>{kz ? g.kz : g.ru}</button>)}
+              </div>
+            )}
+            <div aria-live="polite">
+              {loading ? <p className="dir-state">{say('Загружаем контакты…', 'Байланыстар жүктелуде…')}</p>
+                : error ? (
+                  <div className="dir-state" role="alert">
+                    <b>{say('Не удалось загрузить контакты', 'Байланыстар жүктелмеді')}</b>
+                    <p>{say('Экстренные номера наверху работают всегда.', 'Жоғарыдағы шұғыл нөмірлер әрқашан жұмыс істейді.')}</p>
+                    <button type="button" onClick={() => void load()}>{say('Повторить', 'Қайталау')}</button>
+                  </div>
+                ) : !shown.length ? (
+                  <div className="dir-state">
+                    <b>{entries.length ? say('Ничего не найдено', 'Ештеңе табылмады') : say('Контакты скоро появятся', 'Байланыстар жақында пайда болады')}</b>
+                    {entries.length > 0 && <p>{say('Попробуйте другое слово или выберите ситуацию выше.', 'Басқа сөзді қолданыңыз немесе жоғарыдан жағдайды таңдаңыз.')}</p>}
+                    {(query || group) && <button type="button" onClick={() => setParams({}, { replace: true })}>{say('Показать все', 'Барлығын көрсету')}</button>}
+                  </div>
+                ) : (
+                  [...GROUPS, OTHER_GROUP].filter((g) => shown.some((e) => groupOf(e.category) === g.id)).map((g) => (
+                    <section key={g.id} className="dir-group" aria-label={kz ? g.kz : g.ru}>
+                      <h3>{kz ? g.kz : g.ru}</h3>
+                      <ul className="dir-rows">{shown.filter((e) => groupOf(e.category) === g.id).map((e) => <ContactRow key={e.id} e={e} kz={kz} intro={intro(e)} />)}</ul>
+                    </section>
+                  ))
+                )}
+            </div>
+          </section>
+
+          <section id="dir-gov" aria-labelledby="dir-gov-h">
+            <h2 id="dir-gov-h">{say('Госуслуги онлайн', 'Мемлекеттік қызметтер онлайн')}</h2>
+            <p className="dir-sub">{say('Открываются на официальных сайтах eGov и eOtinish. Помощь — единый контакт-центр 1414.', 'eGov және eOtinish ресми сайттарында ашылады. Көмек — 1414 бірыңғай байланыс орталығы.')}</p>
+            <ul className="dir-links">
+              {GOV.map((g) => <li key={g.href}><a href={g.href} target="_blank" rel="noopener noreferrer"><span>{kz ? g.kz : g.ru}</span><ArrowUpRight size={18} /></a></li>)}
+              <li><a href="tel:1414"><span>{say('Помощь с госуслугами — 1414', 'Мемлекеттік қызмет бойынша көмек — 1414')}</span><Phone size={18} /></a></li>
+            </ul>
+          </section>
+
+          <section id="dir-leaders" aria-labelledby="dir-lead-h">
+            <h2 id="dir-lead-h">{say('Руководство района Әлихан Бөкейхан', 'Әлихан Бөкейхан ауданының басшылығы')}</h2>
+            <p className="dir-sub">{say('Личный приём — Архитектурная, 13, 1 этаж. Запись через приёмную:', 'Жеке қабылдау — Архитектурная, 13, 1-қабат. Қабылдау бөлмесі арқылы жазылу:')} <a className="dir-inline-phone" href={phoneLink(content.leadership[0]?.phone)}>{displayPhone(content.leadership[0]?.phone)}</a></p>
+            <ul className="dir-leaders">
+              {content.leadership.map((p) => (
+                <li key={p.source_url}>
+                  <img src={p.photo_url} alt="" loading="lazy" referrerPolicy="no-referrer" width="56" height="56" onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
+                  <div>
+                    <small>{kz ? p.role_kk : p.role}</small>
+                    <b>{p.name}</b>
+                    <span>{say('Приём', 'Қабылдау')}: {kz ? p.reception_kk : p.reception}{p.duties ? ` · ${kz ? p.duties_kk : p.duties}` : ''}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <nav className="dir-foot" aria-label={say('Ещё', 'Тағы')}>
+            {isEnabled('transport') && <Link to="/transport"><Bus size={18} />{say('Автобусы и остановки', 'Автобустар мен аялдамалар')}</Link>}
+            {isEnabled('inspectors') && <Link to="/inspectors"><ShieldCheck size={18} />{say('Участковые по адресу', 'Мекенжай бойынша учаскелік')}</Link>}
+            <Link to="/report-problem"><MessageCircle size={18} />{say('Сообщить об ошибке в номере', 'Нөмірдегі қате туралы хабарлау')}</Link>
+          </nav>
+          <p className="dir-note">{say('Номера взяты с официальных сайтов и из 2ГИС. Перед визитом уточняйте часы приёма.', 'Нөмірлер ресми сайттардан және 2ГИС-тен алынған. Барар алдында қабылдау уақытын нақтылаңыз.')}</p>
+        </div>
+      </div>
+    </Layout>
+  );
+}
+
+function SituationPanel({ sit, rows, kz, intro, onClose, inspectors }: { sit: Situation; rows: DirectoryEntry[]; kz: boolean; intro: (e: DirectoryEntry) => string; onClose: () => void; inspectors: boolean }) {
+  const say = (ru: string, kk: string) => (kz ? kk : ru);
+  const links = (sit.links || []).filter((l) => l.href !== '/inspectors' || inspectors);
+  return (
+    <div id="dir-sit-panel" className="dir-sit-panel" role="region" aria-label={kz ? sit.title.kz : sit.title.ru}>
+      <div className="dir-sit-top">
+        <h3>{kz ? sit.title.kz : sit.title.ru}</h3>
+        <button type="button" onClick={onClose} aria-label={say('Закрыть', 'Жабу')}><X size={18} /></button>
+      </div>
+      <p>{kz ? sit.tip.kz : sit.tip.ru}</p>
+      <ul className="dir-rows">
+        {(sit.extra || []).map((x) => (
+          <li key={x.number} className="dir-row dir-row--sos">
+            <div className="dir-row-main"><span className="dir-row-text"><b>{kz ? x.label.kz : x.label.ru}</b></span>
+              <a className="dir-call" href={`tel:${x.number}`}><Phone size={16} />{x.number}</a></div>
+          </li>
+        ))}
+        {rows.map((e) => <ContactRow key={e.id} e={e} kz={kz} intro={intro(e)} />)}
+      </ul>
+      {links.length > 0 && (
+        <div className="dir-sit-links">
+          {links.map((l) => l.href.startsWith('/') ? <Link key={l.href} to={l.href}>{kz ? l.label.kz : l.label.ru}<ArrowUpRight size={15} /></Link>
+            : <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer">{kz ? l.label.kz : l.label.ru}<ArrowUpRight size={15} /></a>)}
+        </div>
+      )}
     </div>
-  </div></Layout>;
+  );
 }
 
-function DirectoryCard({ entry: e, kz }: { entry: DirectoryEntry; kz: boolean }) {
-  const say = (ru: string, kk: string) => kz ? kk : ru;
-  const help = directoryHelp(e, kz);
-  const description = help.intro || directoryPublicCopy(e).intro;
-  const phone = phoneLink(e.phone); const wa = whatsappLink(e.whatsapp);
-  const source = httpsLink(publicDirectorySource(e.source_url)); const map = httpsLink(e.map_url); const website = httpsLink(publicDirectorySource(e.website));
-  return <article className="directory-card">
-    <div className="directory-card-top"><span className="directory-card-category">{categoryLabel(e.category || '', kz)}</span></div>
-    <h4>{e.entry_name}</h4>
-    {description && <p className="directory-description">{description.trim().length > 155 ? description.trim().slice(0, 155) + '…' : description.trim()}</p>}
-    <dl>{e.address && <div><dt><MapPin size={17} /><span className="sr-only">{say('Адрес', 'Мекенжай')}</span></dt><dd>{e.address}</dd></div>}{e.opening_hours && <div><dt><Clock size={17} /><span className="sr-only">{say('Часы работы', 'Жұмыс уақыты')}</span></dt><dd>{e.opening_hours}</dd></div>}</dl>
-    {(map || website) && <div className="directory-text-links">{map && <a href={map} target="_blank" rel="noopener noreferrer">{map.includes('2gis.kz/') ? say('Карточка 2ГИС', '2GIS карточкасы') : say('На карте', 'Картада')} ↗</a>}{website && <a href={website} target="_blank" rel="noopener noreferrer">{say('Сайт организации', 'Ұйымның сайты')} ↗</a>}</div>}
-    <div className="directory-contact-actions">{phone ? <><a className="directory-call" href={phone}><Phone size={17} /><span>{displayPhone(e.phone || '')}</span></a><button aria-label={`${say('Скопировать телефон', 'Телефонды көшіру')} ${e.entry_name}`} onClick={async () => { try { await navigator.clipboard.writeText(e.phone!); toast.success(say('Номер скопирован', 'Нөмір көшірілді')); } catch { toast.error(say('Не удалось скопировать номер', 'Нөмірді көшіру мүмкін болмады')); } }}><Copy size={18} /></button></> : website ? <a className="directory-call" href={website} target="_blank" rel="noopener noreferrer">{say('Открыть сервис', 'Қызметті ашу')}<ArrowUpRight size={17} /></a> : <span>{say('Телефон уточняется', 'Телефон нақтылануда')}</span>}{wa && <a className="directory-whatsapp" href={wa} target="_blank" rel="noopener noreferrer">WhatsApp ↗</a>}</div>
-    {!!help.steps.length && <details className="directory-card-source directory-card-help"><summary>{say('Как обратиться', 'Қалай жүгіну керек')}<ArrowRight size={14} /></summary><div><ol>{help.steps.map(step => <li key={step}>{step}</li>)}</ol>{!!help.actions.length && <nav aria-label={say('Дополнительные контакты и услуги', 'Қосымша байланыстар мен қызметтер')}>{help.actions.map(a => a.href.startsWith('/') ? <Link key={a.href} to={a.href}>{a.label}<ArrowUpRight size={14}/></Link> : <a key={a.href} href={a.href} target={a.href.startsWith('https:') ? '_blank' : undefined} rel="noopener noreferrer">{a.label}<ArrowUpRight size={14}/></a>)}</nav>}</div></details>}
-    {source && source !== map && source !== website && <a className="directory-evidence-link" href={source} target="_blank" rel="noopener noreferrer">{say('Источник', 'Дереккөз')} · {new URL(source).hostname.replace(/^www\./, '')}<ArrowUpRight size={12}/></a>}
-  </article>;
+function ContactRow({ e, kz, intro }: { e: DirectoryEntry; kz: boolean; intro: string }) {
+  const say = (ru: string, kk: string) => (kz ? kk : ru);
+  const [open, setOpen] = useState(false);
+  const phone = phoneLink(e.phone);
+  const wa = whatsappLink(e.whatsapp);
+  const map = httpsLink(e.map_url);
+  const site = httpsLink(publicDirectorySource(e.website));
+  const steps = directoryHelp(e, kz).steps;
+  const hasMore = Boolean(e.address || e.opening_hours || wa || site || steps.length);
+  async function copy() {
+    try { await navigator.clipboard.writeText(e.phone || ''); toast.success(say('Номер скопирован', 'Нөмір көшірілді')); } catch { toast.error(say('Не удалось скопировать', 'Көшіру мүмкін болмады')); }
+  }
+  return (
+    <li className="dir-row" data-testid="dir-row">
+      <div className="dir-row-main">
+        <button type="button" className="dir-row-text" aria-expanded={hasMore ? open : undefined} onClick={() => hasMore && setOpen((v) => !v)} disabled={!hasMore}>
+          <b>{e.entry_name}</b>
+          {intro && <span>{intro}</span>}
+          {hasMore && <i className="dir-more">{open ? say('Скрыть', 'Жасыру') : say('Подробнее', 'Толығырақ')}<ChevronDown size={14} /></i>}
+        </button>
+        {phone ? <a className="dir-call" href={phone} aria-label={`${say('Позвонить', 'Қоңырау шалу')}: ${e.entry_name}, ${displayPhone(e.phone)}`}><Phone size={16} />{shortPhone(e.phone)}</a>
+          : site ? <a className="dir-call dir-call--site" href={site} target="_blank" rel="noopener noreferrer"><Globe size={16} />{say('Открыть', 'Ашу')}</a> : null}
+      </div>
+      {open && (
+        <div className="dir-row-more">
+          {e.address && <p><MapPin size={15} />{map ? <a href={map} target="_blank" rel="noopener noreferrer">{e.address}</a> : e.address}</p>}
+          {e.opening_hours && <p><Clock size={15} />{e.opening_hours}</p>}
+          {steps.length > 0 && <ul className="dir-steps">{steps.map((s) => <li key={s}>{s}</li>)}</ul>}
+          <div className="dir-row-actions">
+            {phone && <button type="button" onClick={() => void copy()}><Copy size={15} />{displayPhone(e.phone)}</button>}
+            {wa && <a href={wa} target="_blank" rel="noopener noreferrer"><MessageCircle size={15} />WhatsApp</a>}
+            {site && <a href={site} target="_blank" rel="noopener noreferrer"><Globe size={15} />{say('Сайт', 'Сайт')}</a>}
+            {map && <a href={map} target="_blank" rel="noopener noreferrer"><MapPin size={15} />2ГИС</a>}
+          </div>
+        </div>
+      )}
+    </li>
+  );
 }
-
-function displayPhone(value: string) {
-  if (value.startsWith('+77212')) return value.replace(/^\+7(\d{4})(\d{2})(\d{2})(\d{2})$/, '+7 ($1) $2-$3-$4');
-  return value.replace(/^\+7(\d{3})(\d{3})(\d{2})(\d{2})$/, '+7 ($1) $2-$3-$4');
-}
-function categoryLabel(value: string, kz: boolean, t?: (key: string) => string) {
-  const labels: Record<string,string> = {'Акимат района':'Аудан әкімдігі','Вывоз мусора':'Қоқыс шығару','Коммунальные службы':'Коммуналдық қызметтер','Обращения и помощь':'Өтініштер мен көмек','Полиция':'Полиция','Медицина':'Медицина','Государственные услуги':'Мемлекеттік қызметтер','Социальная помощь':'Әлеуметтік көмек','Аптеки':'Дәріханалар','Образование':'Білім беру','Детские сады':'Балабақшалар','Почта':'Пошта','Культура и досуг':'Мәдениет пен демалыс','Детский досуг и спорт':'Балаларға арналған демалыс пен спорт','Нотариусы':'Нотариустар','Прочее':'Басқа'};
-  return kz && labels[value] ? labels[value] : t ? getDirectoryCategoryLabel(value,t) : value;
-}
-
