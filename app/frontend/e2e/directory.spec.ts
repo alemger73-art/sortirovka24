@@ -32,6 +32,14 @@ test('directory shows emergency numbers first, situations and compact contact ro
  await row.getByRole('button',{name:/Тестовая служба водоснабжения/}).click();await expect(row.getByText('Пн–Пт 09:00–18:00')).toBeVisible();await expect(row.getByRole('link',{name:'WhatsApp'})).toHaveAttribute('href','https://wa.me/77011112233');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('directory.png'),fullPage:true});
 });
+test('section menu sits under emergency numbers: участковые, автобусы, руководство, госуслуги open in one tap',async({page})=>{
+ await setup(page);await page.setViewportSize({width:390,height:844});await page.goto('/directory');
+ const menu=page.locator('#dir-menu');await expect(menu.getByRole('link',{name:/Участковые/})).toHaveAttribute('href','/inspectors');await expect(menu.getByRole('link',{name:/Автобусы/})).toHaveAttribute('href','/transport');
+ await expect(menu.getByRole('button',{name:/Руководство района/})).toBeInViewport();
+ await menu.getByRole('button',{name:/Руководство района/}).click();await expect(page).toHaveURL(/section=leadership/);await expect(page.locator('#dir-leaders')).toBeVisible();await expect(page.getByText('Все контакты')).toHaveCount(0);
+ await menu.getByRole('button',{name:/Госуслуги онлайн/}).click();await expect(page.getByRole('link',{name:/Записаться в ЦОН/})).toBeVisible();
+ await menu.getByRole('button',{name:/Службы и контакты/}).click();await expect(page.getByText(contact.entry_name)).toBeVisible();
+});
 test('«Что случилось?» shows the right contacts and gas shows 104 first',async({page})=>{
  await setup(page);await page.goto('/directory');await page.locator('[data-sit=gas]').click();
  const panel=page.locator('#dir-sit-panel');await expect(panel).toContainText('Почувствовали запах газа');await expect(panel.locator('a[href="tel:104"]')).toBeVisible();

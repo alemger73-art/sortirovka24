@@ -1,14 +1,15 @@
 /**
  * «Справочник Сортировки» — made for one job: find the right number fast and call.
- * Order: emergency numbers → «Что случилось?» situations → all contacts as compact rows (search with everyday words)
- * → госуслуги online → district leadership. Contacts come from the admin (directory_entries).
+ * Top: emergency numbers, then a menu of all sections (contacts, участковые, автобусы, руководство, госуслуги, ошибка),
+ * so nothing has to be found by scrolling. Each section opens in place (?section=), the page stays short.
+ * Contacts come from the admin (directory_entries).
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  ArrowUpRight, Bus, ChevronDown, Clock, Copy, Droplets, Flame, Globe, HeartPulse, Landmark, MapPin, MessageCircle,
-  Phone, Search, ShieldCheck, Thermometer, Trash2, X, Zap, type LucideIcon,
+  ArrowUpRight, BookUser, Bus, ChevronDown, ChevronRight, Clock, Copy, Droplets, Flame, Globe, HeartPulse, Landmark, MapPin, MessageCircle,
+  Phone, Search, ShieldCheck, Thermometer, Trash2, Users, X, Zap, type LucideIcon,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { client, withRetry, sortDirectoryEntries } from '@/lib/api';
@@ -22,7 +23,7 @@ import content from '@/content/directory-context';
 import '@/styles/dir.css';
 
 const SIT_ICONS: Record<string, LucideIcon> = { water: Droplets, power: Zap, heat: Thermometer, gas: Flame, trash: Trash2, police: ShieldCheck, doctor: HeartPulse, akimat: Landmark };
-const SOS_SHORT: Record<string, [string, string]> = { 112: ['Спасение', 'Құтқару'], 101: ['Пожар', 'Өрт'], 102: ['Полиция', 'Полиция'], 103: ['Скорая', 'Жедел'], 104: ['Газ', 'Газ'] };
+const SOS_SHORT: Record<string, [string, string]> = { 112: ['Помощь', 'Көмек'], 101: ['Пожар', 'Өрт'], 102: ['Полиция', 'Полиция'], 103: ['Скорая', 'Жедел'], 104: ['Газ', 'Газ'] };
 const GOV = [
   { ru: 'Прикрепиться к поликлинике', kz: 'Емханаға тіркелу', href: 'https://beta.egov.kz/services/3176' },
   { ru: 'Записаться в ЦОН', kz: 'ХҚКО-ға кезек брондау', href: 'https://beta.egov.kz/services/3134?lang=ru' },
@@ -50,6 +51,8 @@ export default function Directory() {
   const query = params.get('q') || '';
   const group = params.get('g') || '';
   const sit = SITUATIONS.find((s) => s.id === params.get('s')) || null;
+  const rawSection = params.get('section') || '';
+  const view: View = rawSection === 'leadership' || rawSection === 'services' ? rawSection : 'contacts';
   const [entries, setEntries] = useState<DirectoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -68,18 +71,24 @@ export default function Directory() {
     } catch { if (v === gen.current) setError(true); } finally { if (v === gen.current) setLoading(false); }
   }
   useEffect(() => { void load(); return () => { gen.current++; }; }, []);
-  // Old links (?section=leadership / services / guides) still land on the right block.
+  // Old link ?section=guides lands on «Что случилось?».
   useEffect(() => {
-    const target = { leadership: 'dir-leaders', services: 'dir-gov', guides: 'dir-situations' }[params.get('section') || ''];
-    if (target) window.setTimeout(() => document.getElementById(target)?.scrollIntoView({ block: 'start' }), 300);
+    if (rawSection === 'guides') window.setTimeout(() => document.getElementById('dir-situations')?.scrollIntoView({ block: 'start' }), 300);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  function openView(next: View) {
+    const p = new URLSearchParams(); if (next !== 'contacts') p.set('section', next);
+    setParams(p, { replace: false });
+    const menu = document.getElementById('dir-menu');
+    if (menu && menu.getBoundingClientRect().top < 0) menu.scrollIntoView({ block: 'start' });
+  }
 
-  const set = (key: string, value: string) => { const next = new URLSearchParams(params); next.delete('section'); if (value) next.set(key, value); else next.delete(key); setParams(next, { replace: true }); };
+  const set = (key: string, value: string) => { const next = new URLSearchParams(params); if (rawSection === 'guides') next.delete('section'); if (value) next.set(key, value); else next.delete(key); setParams(next, { replace: true }); };
   const intro = (e: DirectoryEntry) => (directoryHelp(e, kz).intro || directoryPublicCopy(e).intro || '').trim();
   const haystack = (e: DirectoryEntry) => [e.entry_name, e.category, e.address, e.phone, intro(e)].join(' ');
   const shown = entries.filter((e) => (!group || groupOf(e.category) === group) && smartMatch(haystack(e), query));
   const groupsUsed = useMemo(() => [...GROUPS, OTHER_GROUP].filter((g) => entries.some((e) => groupOf(e.category) === g.id)), [entries]);
   const sitEntries = sit ? entries.filter(sit.pick) : [];
+  const akimat = entries.filter((e) => groupOf(e.category) === 'akimat');
 
   function pickSituation(id: string) {
     set('s', sit?.id === id ? '' : id);
@@ -105,6 +114,16 @@ export default function Directory() {
         </header>
 
         <div className="dir-w dir-body">
+          <nav id="dir-menu" className="dir-menu" aria-label={say('Разделы справочника', 'Анықтамалық бөлімдері')}>
+            <MenuTile icon={BookUser} active={view === 'contacts'} onClick={() => openView('contacts')} title={say('Службы и контакты', 'Байланыстар')} sub={entries.length ? say(`${entries.length} номеров: вода, свет, врачи, школы`, `${entries.length} нөмір: су, жарық, дәрігер, мектеп`) : say('Вода, свет, врачи, школы', 'Су, жарық, дәрігер, мектеп')} />
+            {isEnabled('inspectors') && <MenuTile icon={ShieldCheck} to="/inspectors" title={say('Участковые', 'Учаскелік')} sub={say('Найти своего по адресу', 'Мекенжай бойынша табу')} />}
+            {isEnabled('transport') && <MenuTile icon={Bus} to="/transport" title={say('Автобусы', 'Автобустар')} sub={say('Маршруты и остановки', 'Бағыттар мен аялдамалар')} />}
+            <MenuTile icon={Users} active={view === 'leadership'} onClick={() => openView('leadership')} title={say('Руководство района', 'Аудан басшылығы')} sub={say('Аким, заместители, приём', 'Әкім, орынбасарлар, қабылдау')} />
+            <MenuTile icon={Globe} active={view === 'services'} onClick={() => openView('services')} title={say('Госуслуги онлайн', 'Онлайн қызметтер')} sub={say('eGov, ЦОН, eOtinish, 1414', 'eGov, ХҚКО, eOtinish, 1414')} />
+            <MenuTile icon={MessageCircle} to="/report-problem" title={say('Сообщить о проблеме', 'Хабарлау')} sub={say('Или об ошибке в номере', 'Мәселе не нөмір қатесі')} />
+          </nav>
+
+          {view === 'contacts' && <>
           <section id="dir-situations" aria-labelledby="dir-sit-h">
             <h2 id="dir-sit-h">{say('Что случилось?', 'Не болды?')}</h2>
             <div className="dir-sits">
@@ -159,7 +178,9 @@ export default function Directory() {
                 )}
             </div>
           </section>
+          </>}
 
+          {view === 'services' && (
           <section id="dir-gov" aria-labelledby="dir-gov-h">
             <h2 id="dir-gov-h">{say('Госуслуги онлайн', 'Мемлекеттік қызметтер онлайн')}</h2>
             <p className="dir-sub">{say('Открываются на официальных сайтах eGov и eOtinish. Помощь — единый контакт-центр 1414.', 'eGov және eOtinish ресми сайттарында ашылады. Көмек — 1414 бірыңғай байланыс орталығы.')}</p>
@@ -168,7 +189,9 @@ export default function Directory() {
               <li><a href="tel:1414"><span>{say('Помощь с госуслугами — 1414', 'Мемлекеттік қызмет бойынша көмек — 1414')}</span><Phone size={18} /></a></li>
             </ul>
           </section>
+          )}
 
+          {view === 'leadership' && (
           <section id="dir-leaders" aria-labelledby="dir-lead-h">
             <h2 id="dir-lead-h">{say('Руководство района Әлихан Бөкейхан', 'Әлихан Бөкейхан ауданының басшылығы')}</h2>
             <p className="dir-sub">{say('Личный приём — Архитектурная, 13, 1 этаж. Запись через приёмную:', 'Жеке қабылдау — Архитектурная, 13, 1-қабат. Қабылдау бөлмесі арқылы жазылу:')} <a className="dir-inline-phone" href={phoneLink(content.leadership[0]?.phone)}>{displayPhone(content.leadership[0]?.phone)}</a></p>
@@ -184,18 +207,26 @@ export default function Directory() {
                 </li>
               ))}
             </ul>
+            {akimat.length > 0 && <>
+              <h3 className="dir-lead-sub">{say('Акимат района — телефоны', 'Аудан әкімдігі — телефондар')}</h3>
+              <ul className="dir-rows">{akimat.map((e) => <ContactRow key={e.id} e={e} kz={kz} intro={intro(e)} />)}</ul>
+            </>}
           </section>
+          )}
 
-          <nav className="dir-foot" aria-label={say('Ещё', 'Тағы')}>
-            {isEnabled('transport') && <Link to="/transport"><Bus size={18} />{say('Автобусы и остановки', 'Автобустар мен аялдамалар')}</Link>}
-            {isEnabled('inspectors') && <Link to="/inspectors"><ShieldCheck size={18} />{say('Участковые по адресу', 'Мекенжай бойынша учаскелік')}</Link>}
-            <Link to="/report-problem"><MessageCircle size={18} />{say('Сообщить об ошибке в номере', 'Нөмірдегі қате туралы хабарлау')}</Link>
-          </nav>
           <p className="dir-note">{say('Номера взяты с официальных сайтов и из 2ГИС. Перед визитом уточняйте часы приёма.', 'Нөмірлер ресми сайттардан және 2ГИС-тен алынған. Барар алдында қабылдау уақытын нақтылаңыз.')}</p>
         </div>
       </div>
     </Layout>
   );
+}
+
+type View = 'contacts' | 'leadership' | 'services';
+
+function MenuTile({ icon: Icon, title, sub, to, onClick, active }: { icon: LucideIcon; title: string; sub: string; to?: string; onClick?: () => void; active?: boolean }) {
+  const inner = <><span className="dir-menu-ic"><Icon size={22} aria-hidden="true" /></span><span className="dir-menu-tx"><b>{title}</b><small>{sub}</small></span><ChevronRight className="dir-menu-go" size={18} aria-hidden="true" /></>;
+  return to ? <Link to={to} className="dir-menu-tile">{inner}</Link>
+    : <button type="button" className="dir-menu-tile" aria-pressed={!!active} onClick={onClick}>{inner}</button>;
 }
 
 function SituationPanel({ sit, rows, kz, intro, onClose, inspectors }: { sit: Situation; rows: DirectoryEntry[]; kz: boolean; intro: (e: DirectoryEntry) => string; onClose: () => void; inspectors: boolean }) {

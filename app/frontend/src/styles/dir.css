@@ -19,10 +19,30 @@
 .dir-sos span { font-size: 12px; line-height: 1.25; color: #5b2a26; font-weight: 650; }
 .dir-sos-long { display: none; }
 
-.dir-body { display: flex; flex-direction: column; gap: 34px; padding-top: 26px; padding-bottom: 48px; }
+.dir-body { display: flex; flex-direction: column; gap: 30px; padding-top: 18px; padding-bottom: 48px; }
 .dir h2 { margin: 0 0 12px; font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
 .dir-sub { margin: -4px 0 12px; color: var(--muted); font-size: 14px; line-height: 1.55; }
 
+.dir-menu { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; scroll-margin-top: 72px; }
+.dir-menu-tile { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-height: 112px; padding: 14px 12px 12px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; text-align: left; text-decoration: none; cursor: pointer; transition: border-color .15s, box-shadow .15s; box-shadow: 0 1px 2px #16243b0d; }
+.dir-menu-tile:hover { border-color: var(--accent); }
+.dir-menu-tile[aria-pressed="true"] { border-color: var(--accent); background: var(--soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.dir-menu-ic { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--soft); color: var(--accent); }
+.dir-menu-tile[aria-pressed="true"] .dir-menu-ic { background: var(--accent); color: #fff; }
+.dark .dir-menu-tile[aria-pressed="true"] .dir-menu-ic { color: #101a2c; }
+.dir-menu-tx { overflow-wrap: break-word; hyphens: auto; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dir-menu-tx b { font-size: 15px; font-weight: 750; line-height: 1.25; }
+.dir-menu-tx small { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.dir-menu-go { position: absolute; top: 14px; right: 12px; color: var(--muted); }
+@media (max-width: 759px) {
+  .dir-menu { gap: 8px; }
+  .dir-menu-tile { flex-direction: row; align-items: center; gap: 10px; min-height: 72px; padding: 10px; border-radius: 16px; }
+  .dir-menu-ic { width: 36px; height: 36px; flex-shrink: 0; }
+  .dir-menu-tx b { font-size: 14px; }
+  .dir-menu-tx small { font-size: 11.5px; }
+  .dir-menu-go { display: none; }
+}
+.dir-lead-sub { margin: 22px 0 8px; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .dir-sits { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .dir-sits button { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 12px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 14px; font-weight: 650; text-align: left; cursor: pointer; transition: border-color .15s; }
 .dir-sits button svg { flex-shrink: 0; color: var(--accent); }
@@ -98,7 +118,7 @@
 .dir-foot { display: flex; flex-wrap: wrap; gap: 8px; }
 .dir-foot a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 14px; font-weight: 600; text-decoration: none; }
 .dir-foot a svg { color: var(--accent); }
-.dir-note { margin: -18px 0 0; font-size: 12px; color: var(--muted); }
+.dir-note { margin: -10px 0 0; font-size: 12px; color: var(--muted); }
 
 @media (min-width: 760px) {
   .dir-hero { padding: 40px 0 34px; }
@@ -107,15 +127,20 @@
   .dir-sos-long { display: block; }
   .dir-sos-short { display: none; }
   .dir-sits { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .dir-menu { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .dir-chips { margin: 0 0 6px; padding: 2px 0 6px; flex-wrap: wrap; }
   .dir-leaders { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dir-group { margin-top: 20px; }
 }
 @media (min-width: 1024px) {
+  .dir-menu { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   #dir-contacts .dir-group .dir-rows { columns: 2; column-gap: 0; }
   #dir-contacts .dir-group .dir-row { break-inside: avoid; border-top: 0; border-bottom: 1px solid var(--line); }
 }
 @media (max-width: 380px) {
+  .dir-menu-tile { gap: 8px; padding: 8px; }
+  .dir-menu-ic { width: 32px; height: 32px; }
+  .dir-menu-tx b { font-size: 13px; }
   .dir-sos { gap: 6px; }
   .dir-sos b { font-size: 22px; }
   .dir-sos span { font-size: 10px; }
