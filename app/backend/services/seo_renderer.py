@@ -77,6 +77,8 @@ PUBLIC_PAGES: dict[str, tuple[str, str, str]] = {
     "/support": ("Поддержать проект Сортировка 24", "Поддержите развитие полезного цифрового портала района Сортировка.", "Поддержать Сортировка 24"),
     "/questions": ("Вопросы жителей Сортировки | Сортировка 24", "Вопросы и ответы жителей района Сортировка в Караганде.", "Вопросы жителей"),
     "/complaints": ("Обращения жителей Сортировки | Сортировка 24", "Обращения жителей о проблемах района Сортировка в Караганде.", "Обращения жителей"),
+    "/announcements/official": ("Разместить в Sortirovka Official — 30 000 жителей Сортировки | Сортировка 24", "Покажем ваше объявление 30 000 подписчикам Sortirovka Official: бизнес, недвижимость и услуги, вакансии и частные объявления.", "Разместить в Sortirovka Official"),
+    "/toy": ("Электронное приглашение на той — свадьба, қыз ұзату, сүндет той | Сортировка 24", "Красивое приглашение на той на казахском и русском: дата, карта, программа и ответы гостей по одной ссылке для WhatsApp.", "Приглашение на той"),
 }
 
 PRIVATE_PREFIXES = (
@@ -90,6 +92,7 @@ NOINDEX_CLIENT_ROUTES = (
     r"/questions/(?:new|\d+)",
     r"/masters/(?:become|request|\d+)",
     r"/complaints/new",
+    r"/toy/(?:new|my|edit/\d+)",
     r"/food/(?:park|restaurants|courier)",
     r"/(?:more|history|taxi|legal|report-problem|gastronom|volna|prorab|apteka)(?:/.*)?",
 )
@@ -201,8 +204,40 @@ def _breadcrumb(path: str, name: str) -> dict[str, Any]:
     }
 
 
+TOY_ROUTE = re.compile(r"/toy/([a-z0-9-]{3,64})")
+
+
+async def _toy_seo_page(path: str, slug: str) -> SeoPage:
+    """A той invitation: real names in the WhatsApp preview, never indexed (it is a private family event)."""
+    missing = SeoPage("Шақыру табылмады | Сортировка 24", "Приглашение не найдено или ещё не опубликовано.", path,
+                      "Шақыру табылмады", "", robots="noindex, nofollow", status_code=404)
+    if not db_manager.async_session_maker:
+        return missing
+    try:
+        from sqlalchemy import text as sql_text
+        async with db_manager.async_session_maker() as session:
+            row = (await session.execute(sql_text("SELECT status, data FROM toy_invites WHERE slug = :s"), {"s": slug})).first()
+    except Exception:
+        return missing
+    if not row or row.status != "published":
+        return missing
+    try:
+        data = json.loads(row.data or "{}")
+    except ValueError:
+        data = {}
+    who = " и ".join(_text(v, 40) for v in (data.get("name1"), data.get("name2") if data.get("kind") == "wedding" else "") if v)
+    when = ".".join(reversed(str(data.get("date", "")).split("-")))
+    place = _text(data.get("place"), 80)
+    title = f"{who} — шақыру / приглашение на той"
+    description = " · ".join(p for p in (f"{when} {_text(data.get('time'), 5)}".strip(), place) if p) or "Приглашение на той"
+    return SeoPage(title, description, path, title, description, robots="noindex, nofollow")
+
+
 async def build_seo_page(path: str) -> SeoPage:
     path = "/" + path.strip("/") if path.strip("/") else "/"
+    toy = TOY_ROUTE.fullmatch(path)
+    if toy and toy.group(1) not in ("new", "my"):
+        return await _toy_seo_page(path, toy.group(1))
     if path == "/partners" or path.startswith("/partners/"):
         return await _partner_seo_page(path)
     page = _base_page(path)

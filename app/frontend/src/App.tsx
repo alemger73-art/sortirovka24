@@ -36,6 +36,10 @@ const AnnouncementsList = lazyRetry(() => import("./pages/Announcements").then(m
 const AnnouncementDetail = lazyRetry(() => import("./pages/Announcements").then(m => ({ default: m.AdDetail })));
 const NewAnnouncementForm = lazyRetry(() => import("./pages/Announcements").then(m => ({ default: m.NewAdWizard })));
 const OfficialAdPage = lazyRetry(() => import("./pages/OfficialAd"));
+const ToyLanding = lazyRetry(() => import("./pages/Toy").then(m => ({ default: m.ToyLanding })));
+const ToyBuilder = lazyRetry(() => import("./pages/Toy").then(m => ({ default: m.ToyBuilder })));
+const ToyMine = lazyRetry(() => import("./pages/Toy").then(m => ({ default: m.ToyMine })));
+const ToyPublic = lazyRetry(() => import("./pages/Toy").then(m => ({ default: m.ToyPublic })));
 const EditAnnouncementForm = lazyRetry(() => import("./pages/Announcements").then(m => ({ default: m.EditAdWizard })));
 const RealEstateList = lazyRetry(() => import("./pages/RealEstate").then(m => ({ default: m.RealEstateList })));
 const RealEstateDetail = lazyRetry(() => import("./pages/RealEstate").then(m => ({ default: m.RealEstateDetail })));
@@ -186,6 +190,11 @@ function App() {
               <Route path="/complaints" element={<ModuleRoute module="complaints"><ComplaintsList /></ModuleRoute>} />
               <Route path="/complaints/new" element={<ModuleRoute module="complaints"><RequireUserAuth><NewComplaintForm /></RequireUserAuth></ModuleRoute>} />
               <Route path="/announcements" element={<ModuleRoute module="announcements"><AnnouncementsList /></ModuleRoute>} />
+              <Route path="/toy" element={<ToyLanding />} />
+              <Route path="/toy/new" element={<ToyBuilder />} />
+              <Route path="/toy/edit/:id" element={<RequireUserAuth><ToyBuilder /></RequireUserAuth>} />
+              <Route path="/toy/my" element={<RequireUserAuth><ToyMine /></RequireUserAuth>} />
+              <Route path="/toy/:slug" element={<ToyPublic />} />
               <Route path="/announcements/official" element={<ModuleRoute module="announcements"><OfficialAdPage /></ModuleRoute>} />
               <Route path="/announcements/new" element={<ModuleRoute module="announcements"><RequireUserAuth><NewAnnouncementForm /></RequireUserAuth></ModuleRoute>} />
               <Route path="/announcements/:id/edit" element={<ModuleRoute module="announcements"><RequireUserAuth><EditAnnouncementForm /></RequireUserAuth></ModuleRoute>} />
