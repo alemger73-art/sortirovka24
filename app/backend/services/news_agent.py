@@ -680,6 +680,11 @@ async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dic
         answer = await toy_invites.handle_callback(db, client, data, chat_id, msg) or "Готово"
         await tg(client, "answerCallbackQuery", {"callback_query_id": callback_id, "text": answer[:190]})
         return
+    if allowed and data.startswith("nb:") and data != "nb:x":
+        from services import neighbors
+        answer = await neighbors.handle_callback(db, client, data, chat_id, msg) or "Готово"
+        await tg(client, "answerCallbackQuery", {"callback_query_id": callback_id, "text": answer[:190]})
+        return
     if not allowed or not (news_match or lead_match):
         await tg(client, "answerCallbackQuery", {"callback_query_id": callback_id,
                  "text": "Нет доступа" if not allowed else "Готово"})

@@ -39,6 +39,8 @@ const OfficialAdPage = lazyRetry(() => import("./pages/OfficialAd"));
 const ToyLanding = lazyRetry(() => import("./pages/Toy").then(m => ({ default: m.ToyLanding })));
 const ToyBuilder = lazyRetry(() => import("./pages/Toy").then(m => ({ default: m.ToyBuilder })));
 const ToyMine = lazyRetry(() => import("./pages/Toy").then(m => ({ default: m.ToyMine })));
+const NeighborsPage = lazyRetry(() => import("./pages/Neighbors").then(m => ({ default: m.NeighborsPage })));
+const NeighborPostPage = lazyRetry(() => import("./pages/Neighbors").then(m => ({ default: m.NeighborPostPage })));
 const ToyPublic = lazyRetry(() => import("./pages/Toy").then(m => ({ default: m.ToyPublic })));
 const EditAnnouncementForm = lazyRetry(() => import("./pages/Announcements").then(m => ({ default: m.EditAdWizard })));
 const RealEstateList = lazyRetry(() => import("./pages/RealEstate").then(m => ({ default: m.RealEstateList })));
@@ -190,6 +192,8 @@ function App() {
               <Route path="/complaints" element={<ModuleRoute module="complaints"><ComplaintsList /></ModuleRoute>} />
               <Route path="/complaints/new" element={<ModuleRoute module="complaints"><RequireUserAuth><NewComplaintForm /></RequireUserAuth></ModuleRoute>} />
               <Route path="/announcements" element={<ModuleRoute module="announcements"><AnnouncementsList /></ModuleRoute>} />
+              <Route path="/dom" element={<NeighborsPage />} />
+              <Route path="/dom/post/:id" element={<RequireUserAuth><NeighborPostPage /></RequireUserAuth>} />
               <Route path="/toy" element={<ToyLanding />} />
               <Route path="/toy/new" element={<ToyBuilder />} />
               <Route path="/toy/edit/:id" element={<RequireUserAuth><ToyBuilder /></RequireUserAuth>} />

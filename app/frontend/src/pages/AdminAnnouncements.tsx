@@ -17,6 +17,7 @@ import ImageUpload, { StorageImage } from '@/components/ImageUpload';
 import MultiImageUpload, { StorageGallery } from '@/components/MultiImageUpload';
 import AdminOfficialAds from '@/components/admin/AdminOfficialAds';
 import AdminToyInvites from '@/components/admin/AdminToyInvites';
+import AdminNeighbors from '@/components/admin/AdminNeighbors';
 
 interface Announcement {
   id: number;
@@ -188,6 +189,7 @@ export default function AdminAnnouncements() {
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{adminT('ann.adminGuide')}</div>
       <AdminOfficialAds />
       <AdminToyInvites />
+      <AdminNeighbors />
       <Input aria-label={adminT('public.Content.text76')} placeholder={adminT('public.Content.text76')} value={search} onChange={(e) => setSearch(e.target.value)} />
       <div className="flex items-center justify-between flex-wrap gap-2">
         <p className="text-sm text-gray-500">{filteredItems.length} {adminT("admin.ui.0056")}</p>

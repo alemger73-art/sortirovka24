@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 import {
   User, Bus, BookOpen, Car, Newspaper, AlertTriangle, HelpCircle, ShoppingBag, Shield, Heart, Landmark, Store,
   ChevronRight, LogIn, Cross, Wine, Bug, Megaphone, Package, Bell, Wrench, Scissors, Building2,
-  MessageCircle, Hammer, History, Mail,
+  MessageCircle, Hammer, History, Mail, Home as HomeIcon,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import InstallAppBanner from '@/components/InstallAppBanner';
@@ -37,6 +37,7 @@ export default function More() {
 
   // Main services: big tiles, two per row. DAM ALEM and «Объявления» are already in the bottom menu.
   const tiles: Item[] = [
+    { path: '/dom', icon: HomeIcon, tone: 'bg-indigo-600', ru: 'Мой дом', kz: 'Менің үйім', subRu: 'Соседи, аварии и объявления дома', subKz: 'Көршілер, апаттар, хабарландырулар' },
     { path: '/toy', icon: Mail, tone: 'bg-rose-600', ru: 'Приглашение на той', kz: 'Тойға шақыру', subRu: 'Красивое приглашение для WhatsApp', subKz: 'WhatsApp-қа әдемі шақыру' },
     { path: '/news', icon: Newspaper, tone: 'bg-sky-600', ru: 'Новости', kz: 'Жаңалықтар', subRu: 'Что происходит рядом', subKz: 'Маңайда не болып жатыр' },
     { path: '/transport', icon: Bus, tone: 'bg-emerald-600', ru: 'Транспорт', kz: 'Көлік', subRu: 'Автобусы и расписание', subKz: 'Автобустар мен кесте' },
