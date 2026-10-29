@@ -1,10 +1,11 @@
 """«Мой дом» — neighbours of one building (or one street for private houses) on Сортировка 24.
 
-A resident sets the address (street from the Sortirovka list, house, entrance; the flat number stays private).
-Until confirmed they only read the house feed. Confirmation: confirmed neighbours tap «Да, это мой сосед»
-(two are needed when the house has two or more confirmed residents, one when it has one, an elder alone is enough),
-or — for the first resident of a house — a photo of a utility receipt that the owner checks in Telegram/admin
-and which is deleted right after the decision.
+A resident sets the address (street from the Sortirovka list, house, entrance; the flat number stays private)
+and at once sees the neighbours and the house feed (open access, owner's decision 2026-10-29).
+Protection without paperwork: one address per account, at most MAX_MOVES different houses in 30 days (no walking
+from house to house to read who lives where), and «Это не мой сосед» — three marks from different neighbours
+(or one from the elder) hide the person from the house and tell the owner, who can restore them in the admin.
+The receipt / neighbour-confirmation code stays for a possible stricter mode later.
 
 The house feed is not a chat: posts (авария / вопрос / объявление / потеряно-найдено) with comments and «У меня тоже».
 Three reports from different neighbours hide a post or comment and tell the owner. Tables are created on first use.
@@ -30,6 +31,7 @@ CALLBACK_RE = re.compile(r"^nb:(a|r):(\d+)$")
 KINDS = ("alarm", "question", "notice", "lost")
 KIND_TITLES = {"alarm": "⚡ Авария", "question": "❓ Вопрос", "notice": "📢 Объявление", "lost": "🔍 Потеряно / найдено"}
 HIDE_AFTER_REPORTS = 3
+MAX_MOVES = 3
 FEED_DAYS = 60
 PAGE = 20
 POSTS_PER_HOUR = 8
@@ -143,6 +145,10 @@ async def _create_tables(db) -> None:
         "CREATE TABLE IF NOT EXISTS nb_reports (target VARCHAR(4) NOT NULL, target_id INTEGER NOT NULL, user_id VARCHAR(64) NOT NULL, "
         "created_at VARCHAR(32))",
         "CREATE UNIQUE INDEX IF NOT EXISTS nb_reports_once ON nb_reports (target, target_id, user_id)",
+        "CREATE TABLE IF NOT EXISTS nb_moves (user_id VARCHAR(64) NOT NULL, building VARCHAR(160) NOT NULL, created_at VARCHAR(32))",
+        "CREATE INDEX IF NOT EXISTS nb_moves_user ON nb_moves (user_id, created_at)",
+        # Open access: everyone who already waited for confirmation becomes a full member.
+        "UPDATE nb_members SET status = 'confirmed' WHERE status = 'pending'",
     ]
     for stmt in stmts:
         await db.execute(text(stmt))
@@ -193,15 +199,13 @@ def clean_address(raw: dict, account_name: str = "") -> dict:
         if not entrance or not 1 <= entrance <= 30:
             raise ValueError("Укажите номер подъезда")
     flat = re.sub(r"[^\dА-Яа-яA-Za-z/]", "", str(raw.get("flat") or ""))[:8]
-    if kind == "flat" and not flat:
-        raise ValueError("Укажите номер квартиры — его не увидит никто, кроме проверки")
     name = re.sub(r"\s+", " ", str(raw.get("display_name") or "")).strip()[:30]
     if not name:
         name = (account_name or "").split(" ")[0][:30]
     if len(name) < 2:
         raise ValueError("Напишите, как вас называть")
     if not raw.get("consent"):
-        raise ValueError("Нужно согласие на показ имени и подъезда соседям")
+        raise ValueError("Нужно согласие на показ имени и подъезда соседям по дому")
     return {"kind": kind, "street": street, "custom_street": 1 if custom else 0, "house": house, "entrance": entrance,
             "flat": flat, "display_name": name, "anonymous": 1 if raw.get("anonymous") else 0,
             "building": building_key(street, house, kind)}
@@ -236,28 +240,61 @@ async def confirmed_count(db, building: str) -> int:
 
 
 async def save_address(db, user_id: str, data: dict) -> dict:
-    """Creates or changes the address. Moving to another house means confirming again."""
+    """Creates or changes the address; the person is a full member of the house at once."""
     await ensure_tables(db)
     old = await member_of(db, user_id)
+    if old and old["status"] == "blocked":
+        raise PermissionError("Соседи отметили, что вы не живёте в этом доме. Напишите в поддержку — разберёмся")
     stamp = now_iso()
-    same_house = bool(old and old["building"] == data["building"] and old["status"] == "confirmed")
+    same_house = bool(old and old["building"] == data["building"])
+    if not same_house:
+        since = (now() - timedelta(days=30)).isoformat(timespec="seconds")
+        moves = {r[0] for r in (await db.execute(text(
+            "SELECT DISTINCT building FROM nb_moves WHERE user_id = :u AND created_at >= :s"), {"u": str(user_id), "s": since})).all()}
+        if data["building"] not in moves and len(moves) >= MAX_MOVES:
+            raise PermissionError("Адрес можно менять не чаще 3 раз в месяц. Если ошиблись — напишите в поддержку")
+        await db.execute(text("INSERT INTO nb_moves (user_id, building, created_at) VALUES (:u, :b, :t)"),
+                         {"u": str(user_id), "b": data["building"], "t": stamp})
     params = {**data, "u": str(user_id), "t": stamp}
     if old:
-        status = "confirmed" if same_house else "pending"
         await db.execute(text(
             "UPDATE nb_members SET building = :building, street = :street, house = :house, kind = :kind, entrance = :entrance, "
             "flat = :flat, display_name = :display_name, anonymous = :anonymous, custom_street = :custom_street, "
-            "status = :s, updated_at = :t, consent_at = :t" + ("" if same_house else ", proof = NULL, proof_at = NULL, confirmed_at = NULL, role = 'member'")
-            + " WHERE user_id = :u"), {**params, "s": status})
+            "status = 'confirmed', updated_at = :t, consent_at = :t" + ("" if same_house else ", role = 'member', confirmed_at = :t")
+            + " WHERE user_id = :u"), params)
         if not same_house:
-            await db.execute(text("DELETE FROM nb_confirms WHERE member_id = :m"), {"m": old["id"]})
+            await db.execute(text("DELETE FROM nb_reports WHERE target = 'memb' AND target_id = :m"), {"m": old["id"]})
     else:
         await db.execute(text(
             "INSERT INTO nb_members (user_id, building, street, house, kind, entrance, flat, display_name, anonymous, custom_street, "
-            "status, role, consent_at, created_at, updated_at, seen_at) VALUES (:u, :building, :street, :house, :kind, :entrance, "
-            ":flat, :display_name, :anonymous, :custom_street, 'pending', 'member', :t, :t, :t, :t)"), params)
+            "status, role, consent_at, created_at, updated_at, confirmed_at, seen_at) VALUES (:u, :building, :street, :house, :kind, "
+            ":entrance, :flat, :display_name, :anonymous, :custom_street, 'confirmed', 'member', :t, :t, :t, :t, :t)"), params)
     await db.commit()
     return await member_of(db, user_id)
+
+
+async def report_member(db, voter: dict, member_id: int) -> dict:
+    """«Это не мой сосед»: 3 marks from different neighbours (or the elder's one) hide the person from the house."""
+    target = await member_by_id(db, member_id)
+    if not target or target["building"] != voter["building"] or target["status"] != "confirmed":
+        raise LookupError("Сосед не найден")
+    if target["user_id"] == voter["user_id"]:
+        raise PermissionError("Себя отметить нельзя")
+    exists = (await db.execute(text("SELECT 1 FROM nb_reports WHERE target = 'memb' AND target_id = :i AND user_id = :u"),
+                               {"i": member_id, "u": voter["user_id"]})).first()
+    if not exists:
+        await db.execute(text("INSERT INTO nb_reports (target, target_id, user_id, created_at) VALUES ('memb', :i, :u, :c)"),
+                         {"i": member_id, "u": voter["user_id"], "c": now_iso()})
+    marks = int((await db.execute(text("SELECT COUNT(*) FROM nb_reports WHERE target = 'memb' AND target_id = :i"),
+                                  {"i": member_id})).scalar() or 0)
+    blocked = marks >= HIDE_AFTER_REPORTS or voter.get("role") == "elder"
+    if blocked:
+        await db.execute(text("UPDATE nb_members SET status = 'blocked', updated_at = :t WHERE id = :i"), {"t": now_iso(), "i": member_id})
+    await db.commit()
+    if blocked:
+        _spawn(_tell_owner(f"🚩 «Мой дом»: жителя №{member_id} ({target['display_name']}, {building_title(target)}) соседи отметили "
+                           f"«не живёт здесь» ({marks}). Он скрыт из дома. Вернуть — админка → Объявления → «Мой дом»."))
+    return {"blocked": blocked, "marks": marks}
 
 
 def needed_confirms(confirmed_in_house: int) -> int:
@@ -325,7 +362,11 @@ async def leave(db, user_id: str) -> None:
     await db.execute(text("DELETE FROM nb_confirms WHERE by_user = :u"), u)
     if m:
         await db.execute(text("DELETE FROM nb_confirms WHERE member_id = :m"), {"m": m["id"]})
-    await db.execute(text("DELETE FROM nb_members WHERE user_id = :u"), u)
+    if m and m["status"] == "blocked":
+        # The content is gone, but the mark stays — otherwise «delete and come back» would undo the neighbours' decision.
+        await db.execute(text("UPDATE nb_members SET display_name = '', anonymous = 1, flat = '' WHERE user_id = :u"), u)
+    else:
+        await db.execute(text("DELETE FROM nb_members WHERE user_id = :u"), u)
     await db.commit()
 
 
@@ -334,16 +375,14 @@ async def neighbours(db, m: dict) -> dict:
         "SELECT id, user_id, display_name, anonymous, entrance, status, role, confirmed_at FROM nb_members "
         "WHERE building = :b AND status IN ('confirmed', 'pending') ORDER BY entrance, confirmed_at, id"), {"b": m["building"]})).all()
     mine = {r[0] for r in (await db.execute(text(
-        "SELECT member_id FROM nb_confirms WHERE by_user = :u"), {"u": m["user_id"]})).all()}
+        "SELECT target_id FROM nb_reports WHERE target = 'memb' AND user_id = :u"), {"u": m["user_id"]})).all()}
     people, waiting = [], []
     for r in rows:
         d = _row(r)
         item = {"id": d["id"], "name": public_name(d), "entrance": d["entrance"], "elder": d["role"] == "elder",
                 "me": d["user_id"] == m["user_id"], "since": (d["confirmed_at"] or "")[:10]}
         if d["status"] == "confirmed":
-            people.append(item)
-        elif not item["me"]:
-            waiting.append(item | {"i_confirmed": d["id"] in mine})
+            people.append(item | {"i_reported": d["id"] in mine})
     entrances: dict[str, int] = {}
     for p in people:
         if p["entrance"]:
@@ -468,7 +507,8 @@ def _since() -> str:
 
 
 async def feed(db, m: dict, *, before: str = "", kind: str = "", my_entrance: bool = False) -> dict:
-    where = ["building = :b", "status = 'active'", "last_activity >= :since"]
+    where = ["building = :b", "status = 'active'", "last_activity >= :since",
+             "user_id NOT IN (SELECT user_id FROM nb_members WHERE status = 'blocked')"]
     params: dict[str, Any] = {"b": m["building"], "since": _since(), "lim": PAGE + 1}
     if kind in KINDS:
         where.append("kind = :k")
@@ -738,9 +778,12 @@ async def admin_overview(db) -> dict:
         "SELECT id, building, kind, body, reports, created_at FROM nb_posts WHERE status = 'hidden' ORDER BY id DESC LIMIT 50"))).all()]
     hidden_comments = [_row(r) for r in (await db.execute(text(
         "SELECT id, post_id, body, reports, created_at FROM nb_comments WHERE status = 'hidden' ORDER BY id DESC LIMIT 50"))).all()]
+    blocked = [_row(r) for r in (await db.execute(text(
+        "SELECT id, street, house, kind, entrance, flat, display_name, updated_at FROM nb_members WHERE status = 'blocked' "
+        "ORDER BY updated_at DESC LIMIT 50"))).all()]
     stats = await district_stats(db)
     pending = int((await db.execute(text("SELECT COUNT(*) FROM nb_members WHERE status = 'pending'"))).scalar() or 0)
-    return {"stats": stats | {"pending": pending}, "waiting": waiting, "houses": houses,
+    return {"stats": stats | {"pending": pending}, "waiting": waiting, "houses": houses, "blocked": blocked,
             "hidden_posts": hidden_posts, "hidden_comments": hidden_comments}
 
 
@@ -774,4 +817,10 @@ async def admin_restore(db, target: str, target_id: int, keep: bool) -> None:
         pid = (await db.execute(text("SELECT post_id FROM nb_comments WHERE id = :i"), {"i": target_id})).scalar()
         if pid:
             await _recount_comments(db, int(pid))
+    await db.commit()
+
+
+async def admin_unblock(db, member_id: int) -> None:
+    await db.execute(text("UPDATE nb_members SET status = 'confirmed' WHERE id = :i AND status = 'blocked'"), {"i": member_id})
+    await db.execute(text("DELETE FROM nb_reports WHERE target = 'memb' AND target_id = :i"), {"i": member_id})
     await db.commit()

@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, ArrowUpRight, Building2, Camera, Check, ChevronDown, Crown, Flag, Home, Loader2, Lock, MessageCircle,
+  ArrowLeft, ArrowUpRight, Building2, Check, Crown, Flag, Home, Loader2, Lock, MessageCircle,
   MoreHorizontal, Pin, Plus, RefreshCw, Send, Settings, ShieldCheck, Trash2, Users, X,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
@@ -16,8 +16,8 @@ import { timeAgo } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePageSeo } from '@/hooks/usePageSeo';
 import {
-  KINDS, helpFor, kindInfo, kzEntrance, nbApi, shrinkPhoto,
-  type NbAddress, type NbConfirm, type NbHouse, type NbKind, type NbMember, type NbPost, type NbPostFull,
+  KINDS, helpFor, kindInfo, kzEntrance, nbApi,
+  type NbAddress, type NbConfirm, type NbHouse, type NbPerson, type NbKind, type NbMember, type NbPost, type NbPostFull,
 } from '@/lib/neighbors';
 import '@/styles/dom.css';
 
@@ -62,7 +62,8 @@ export function NeighborsPage() {
       </Layout>
     );
   }
-  return <Layout><House member={state.member} confirm={state.confirm!} onChange={(r) => setState((s) => ({ ...s, ...r }))} reload={load} /></Layout>;
+  if (state.member.status === 'blocked') return <Layout><Blocked /></Layout>;
+  return <Layout><House member={state.member} /></Layout>;
 }
 
 /* ---------------- landing for guests ---------------- */
@@ -73,7 +74,7 @@ function Landing() {
   const points: [typeof Users, string, string][] = [
     [Users, say('Видно соседей по дому и подъезду', 'Үй мен кіреберіс бойынша көршілер көрінеді'), say('Только имя и подъезд. Телефон и квартира скрыты.', 'Тек аты мен кіреберіс. Телефон мен пәтер жасырын.')],
     [MessageCircle, say('Вопросы и аварии — не чат', 'Сұрақтар мен апаттар — чат емес'), say('«Почему нет света во 2 подъезде?» — и ответы под записью.', '«2-кіреберісте неге жарық жоқ?» — жауаптар жазба астында.')],
-    [ShieldCheck, say('Только настоящие жильцы', 'Тек нағыз тұрғындар'), say('Каждого подтверждают соседи или квитанция.', 'Әркімді көршілер немесе түбіртек растайды.')],
+    [ShieldCheck, say('Посторонних отмечают соседи', 'Бөтендерді көршілер белгілейді'), say('Три отметки «не живёт здесь» — и человек пропадает из дома.', '«Мұнда тұрмайды» деген үш белгі — адам үйден жоғалады.')],
   ];
   return (
     <div className="dom">
@@ -137,7 +138,6 @@ function AddressForm({ member, suggested, onSaved, onCancel, onLeft }: {
     if (!a.street.trim()) return setErr(say('Выберите улицу', 'Көшені таңдаңыз'));
     if (!a.house.trim()) return setErr(say('Укажите номер дома', 'Үй нөмірін жазыңыз'));
     if (flat && !a.entrance) return setErr(say('Укажите подъезд', 'Кіреберісті жазыңыз'));
-    if (flat && !a.flat) return setErr(say('Укажите квартиру — её никто не увидит', 'Пәтерді жазыңыз — оны ешкім көрмейді'));
     if (!a.consent) return setErr(say('Поставьте галочку согласия', 'Келісім белгісін қойыңыз'));
     setBusy(true);
     try { onSaved(await nbApi.save(a)); } catch (e) { setErr(errText(e)); } finally { setBusy(false); }
@@ -187,23 +187,23 @@ function AddressForm({ member, suggested, onSaved, onCancel, onLeft }: {
             <input id="dom-house" value={a.house} inputMode="text" placeholder="135" onChange={(e) => set('house', e.target.value)} /></label>
           {flat && <label className="dom-field"><span>{say('Подъезд', 'Кіреберіс')}</span>
             <input id="dom-entrance" value={a.entrance} inputMode="numeric" placeholder="3" onChange={(e) => set('entrance', e.target.value.replace(/\D/g, '').slice(0, 2))} /></label>}
-          {flat && <label className="dom-field"><span>{say('Квартира', 'Пәтер')} <Lock size={12} aria-label={say('скрыто', 'жасырын')} /></span>
+          {flat && <label className="dom-field"><span>{say('Кв.', 'Пәтер')} <small className="dom-opt">{say('не обяз.', 'міндетті емес')}</small></span>
             <input id="dom-flat" value={a.flat} inputMode="numeric" placeholder="41" onChange={(e) => set('flat', e.target.value.slice(0, 8))} /></label>}
         </div>
-        {flat && <p className="dom-hint"><Lock size={14} />{say('Номер квартиры видите только вы — он нужен для проверки, что вы живёте в этом доме.', 'Пәтер нөмірін тек сіз көресіз — ол тексеру үшін ғана керек.')}</p>}
+        {flat && <p className="dom-hint"><Lock size={14} />{say('Номер квартиры соседи не видят никогда.', 'Пәтер нөмірін көршілер ешқашан көрмейді.')}</p>}
 
         <label className="dom-field"><span>{say('Как вас называть соседям', 'Көршілерге атыңыз')}</span>
           <input id="dom-name" value={a.display_name} maxLength={30} placeholder={say('Например: Айгуль', 'Мысалы: Айгүл')} onChange={(e) => set('display_name', e.target.value)} /></label>
         <label className="dom-check"><input type="checkbox" checked={a.anonymous} onChange={(e) => set('anonymous', e.target.checked)} />
           <span>{say('Не показывать имя — писать как', 'Атымды көрсетпеу — былай жазу:')} «{flat ? say(`Сосед из ${a.entrance || 'N'} подъезда`, `${a.entrance || 'N'}-кіреберістің көршісі`) : say('Сосед с улицы', 'Көшедегі көрші')}»</span></label>
         <label className="dom-check"><input id="dom-consent" type="checkbox" checked={a.consent} onChange={(e) => set('consent', e.target.checked)} />
-          <span>{say('Согласен(на), чтобы подтверждённые соседи видели моё имя и подъезд. Адрес можно удалить в любой момент.', 'Расталған көршілер атым мен кіреберісімді көруіне келісемін. Мекенжайды кез келген уақытта жоюға болады.')}</span></label>
+          <span>{say('Согласен(на), чтобы соседи по дому видели моё имя и подъезд. Адрес можно удалить в любой момент.', 'Үй көршілері атым мен кіреберісімді көруіне келісемін. Мекенжайды кез келген уақытта жоюға болады.')}</span></label>
 
         {err && <p className="dom-err" role="alert">{err}</p>}
         <button className="dom-btn dom-btn--main" type="submit" disabled={busy} data-testid="dom-save">
           {busy ? <Loader2 className="dom-spin" size={18} /> : <Check size={18} />}{member ? say('Сохранить', 'Сақтау') : say('Готово — к моему дому', 'Дайын — үйіме')}
         </button>
-        {member && member.status === 'confirmed' && <p className="dom-note">{say('Если смените дом, соседям нужно будет подтвердить вас заново.', 'Үйді ауыстырсаңыз, көршілер сізді қайта растауы керек.')}</p>}
+        {member && <p className="dom-note">{say('Сменить дом можно не чаще 3 раз в месяц.', 'Үйді айына 3 реттен жиі ауыстыруға болмайды.')}</p>}
 
         {member && (
           <div className="dom-danger">
@@ -225,9 +225,7 @@ function AddressForm({ member, suggested, onSaved, onCancel, onLeft }: {
 }
 
 /* ---------------- the house ---------------- */
-function House({ member, confirm, onChange, reload }: {
-  member: NbMember; confirm: NbConfirm; onChange: (r: { member: NbMember; confirm: NbConfirm }) => void; reload: () => Promise<void>;
-}) {
+function House({ member }: { member: NbMember }) {
   const [say, kz] = useSay();
   const [params, setParams] = useSearchParams();
   const tab = params.get('tab') === 'people' ? 'people' : 'feed';
@@ -235,7 +233,6 @@ function House({ member, confirm, onChange, reload }: {
   const confirmed = member.status === 'confirmed';
   const loadHouse = useCallback(() => nbApi.house().then(setHouse).catch(() => {}), []);
   useEffect(() => { void loadHouse(); }, [loadHouse, member.status]);
-  const waiting = house?.waiting.filter((w) => !w.i_confirmed).length || 0;
 
   return (
     <div className="dom">
@@ -250,79 +247,20 @@ function House({ member, confirm, onChange, reload }: {
             {member.entrance ? <>{kzEntrance(member.entrance, kz)} · </> : null}
             {say('вы', 'сіз')}: {member.public_name}{member.role === 'elder' && <> · <Crown size={14} /> {say('старший по дому', 'үй ағасы')}</>}
           </p>
-          {house && <p className="dom-hero-count"><Users size={16} />{confirmed || house.total ? say(`${house.total} соседей на портале`, `Порталда ${house.total} көрші`) : ''}</p>}
+          {house && house.total > 0 && <p className="dom-hero-count"><Users size={16} />{say(`${house.total} ${plural(house.total, 'сосед', 'соседа', 'соседей')} на портале`, `Порталда ${house.total} көрші`)}</p>}
         </div>
       </header>
 
       <div className="dom-w dom-pad">
-        {!confirmed && <ConfirmCard member={member} confirm={confirm} onChange={onChange} reload={reload} />}
-
         <div className="dom-tabs" role="tablist">
           <button type="button" role="tab" aria-selected={tab === 'feed'} onClick={() => setParams({}, { replace: true })}>{say('Лента дома', 'Үй таспасы')}</button>
           <button type="button" role="tab" aria-selected={tab === 'people'} onClick={() => setParams({ tab: 'people' }, { replace: true })}>
-            {say('Соседи', 'Көршілер')}{house && house.total > 0 && <small>{house.total}</small>}{confirmed && waiting > 0 && <i className="dom-dot" aria-label={say('ждут подтверждения', 'растауды күтуде')}>{waiting}</i>}
+            {say('Соседи', 'Көршілер')}{house && house.total > 0 && <small>{house.total}</small>}
           </button>
         </div>
         {tab === 'feed' ? <Feed member={member} confirmed={confirmed} /> : <People member={member} house={house} confirmed={confirmed} reload={loadHouse} />}
       </div>
     </div>
-  );
-}
-
-function ConfirmCard({ member, confirm, onChange, reload }: {
-  member: NbMember; confirm: NbConfirm; onChange: (r: { member: NbMember; confirm: NbConfirm }) => void; reload: () => Promise<void>;
-}) {
-  const [say] = useSay();
-  const [busy, setBusy] = useState(false);
-  const [showProof, setShowProof] = useState(confirm.needed === 0);
-  const input = useRef<HTMLInputElement>(null);
-  const share = `https://wa.me/?text=${encodeURIComponent(inviteText(member.title))}`;
-  async function pick(file?: File) {
-    if (!file) return;
-    setBusy(true);
-    try {
-      const image = await shrinkPhoto(file);
-      onChange(await nbApi.proof(image));
-      toast.success(say('Квитанция отправлена на проверку', 'Түбіртек тексеруге жіберілді'));
-    } catch (e) { toast.error(errText(e)); } finally { setBusy(false); if (input.current) input.current.value = ''; }
-  }
-  const waitingProof = confirm.proof_waiting;
-  return (
-    <section className="dom-confirm" aria-labelledby="dom-confirm-h" data-testid="dom-confirm">
-      <h2 id="dom-confirm-h"><ShieldCheck size={20} />{say('Подтвердите, что живёте здесь', 'Осы жерде тұратыныңызды растаңыз')}</h2>
-      <p>{say('Пока можно только читать ленту. Писать и видеть соседей — после подтверждения: так в доме будут только свои.', 'Әзірге тек оқуға болады. Жазу және көршілерді көру — растаудан кейін.')}</p>
-      {confirm.needed > 0 && (
-        <div className="dom-confirm-way">
-          <b>{say('Способ 1. Соседи подтвердят', '1-тәсіл. Көршілер растайды')}</b>
-          <div className="dom-progress" aria-label={say(`Подтвердили ${confirm.got} из ${confirm.needed}`, `${confirm.needed}-ден ${confirm.got} растады`)}>
-            {Array.from({ length: confirm.needed }).map((_, i) => <span key={i} className={i < confirm.got ? 'is-on' : ''}><Check size={14} /></span>)}
-            <em>{say(`${confirm.got} из ${confirm.needed}`, `${confirm.needed}-ден ${confirm.got}`)}</em>
-          </div>
-          <p>{say('Соседи увидят вас во вкладке «Соседи» и нажмут «Да, это сосед». Напомните им:', 'Көршілер сізді «Көршілер» бөлімінен көріп, растайды. Еске салыңыз:')}</p>
-          <div className="dom-row-btns">
-            <a className="dom-btn dom-btn--wa" href={share} target="_blank" rel="noopener noreferrer"><MessageCircle size={18} />{say('Написать соседям в WhatsApp', 'WhatsApp-та жазу')}</a>
-            <button type="button" className="dom-btn dom-btn--ghost" onClick={() => void reload()}><RefreshCw size={16} />{say('Проверить', 'Тексеру')}</button>
-          </div>
-          {!showProof && <button type="button" className="dom-link" onClick={() => setShowProof(true)}>{say('Или подтвердить квитанцией', 'Немесе түбіртекпен растау')}<ChevronDown size={14} /></button>}
-        </div>
-      )}
-      {showProof && (
-        <div className="dom-confirm-way">
-          <b>{confirm.needed > 0 ? say('Способ 2. Фото квитанции', '2-тәсіл. Түбіртек фотосы') : say('Вы первый житель дома на портале — подтвердите квитанцией', 'Сіз порталдағы үйдің алғашқы тұрғынысыз — түбіртекпен растаңыз')}</b>
-          {waitingProof ? (
-            <p className="dom-ok"><Check size={16} />{say('Квитанция получена. Проверим в течение дня — придёт уведомление. Фото удалим сразу после проверки.', 'Түбіртек алынды. Бір күн ішінде тексереміз. Фото тексерістен кейін бірден жойылады.')}</p>
-          ) : (
-            <>
-              <p>{say('Квитанция за свет, воду или газ, где видны адрес и фамилия. Суммы можно закрыть пальцем. Фото видит только администратор и удаляет сразу после проверки.', 'Жарық, су немесе газ түбіртегі — мекенжай мен тегі көрінсін. Сомаларды жабуға болады. Фотоны тек әкімші көреді және тексерістен кейін жояды.')}</p>
-              <input ref={input} type="file" accept="image/*" hidden onChange={(e) => void pick(e.target.files?.[0])} data-testid="dom-proof-input" />
-              <button type="button" className="dom-btn dom-btn--main" disabled={busy} onClick={() => input.current?.click()}>
-                {busy ? <Loader2 className="dom-spin" size={18} /> : <Camera size={18} />}{say('Сфотографировать квитанцию', 'Түбіртекті суретке түсіру')}
-              </button>
-            </>
-          )}
-        </div>
-      )}
-    </section>
   );
 }
 
@@ -499,50 +437,78 @@ function PostCard({ post, confirmed, onChange, full = false }: { post: NbPost; c
 }
 
 /* ---------------- people ---------------- */
-function People({ member, house, confirmed, reload }: { member: NbMember; house: NbHouse | null; confirmed: boolean; reload: () => Promise<void> }) {
+function People({ member, house, reload }: { member: NbMember; house: NbHouse | null; confirmed: boolean; reload: () => Promise<void> }) {
   const [say, kz] = useSay();
-  const [busy, setBusy] = useState<number | null>(null);
   if (!house) return <div className="dom-list"><div className="dom-post dom-skel" /></div>;
-  if (!confirmed || house.locked) {
-    return <div className="dom-empty"><Lock size={22} /><b>{say('Соседей видно после подтверждения', 'Көршілер растаудан кейін көрінеді')}</b>
-      <p>{say(`В доме уже ${house.total} подтверждённых соседей. Так мы защищаем жильцов от посторонних.`, `Үйде ${house.total} расталған көрші бар. Осылай тұрғындарды бөтендерден қорғаймыз.`)}</p></div>;
-  }
-  async function confirmOne(id: number) {
-    setBusy(id);
-    try { const r = await nbApi.confirm(id); toast.success(r.confirmed ? say('Сосед подтверждён', 'Көрші расталды') : say('Спасибо! Нужно ещё одно подтверждение', 'Рахмет! Тағы бір растау керек')); await reload(); }
-    catch (e) { toast.error(errText(e)); } finally { setBusy(null); }
-  }
   const groups = new Map<string, typeof house.people>();
   for (const p of house.people) { const k = p.entrance ? String(p.entrance) : ''; groups.set(k, [...(groups.get(k) || []), p]); }
   const keys = [...groups.keys()].sort((a, b) => (a === String(member.entrance) ? -1 : b === String(member.entrance) ? 1 : Number(a) - Number(b)));
   return (
-    <section aria-label={say('Соседи', 'Көршілер')}>
-      {house.waiting.length > 0 && (
-        <div className="dom-waiting" data-testid="dom-waiting">
-          <h3>{say('Ждут подтверждения', 'Растауды күтуде')}</h3>
-          <p>{say('Подтверждайте только тех, кого знаете как соседа.', 'Тек көрші екенін білетіндерді растаңыз.')}</p>
-          <ul className="dom-people">
-            {house.waiting.map((w) => (
-              <li key={w.id}><span className="dom-av">{w.name.slice(0, 1)}</span><div><b>{w.name}</b><small>{kzEntrance(w.entrance, kz) || say('частный дом', 'жеке үй')}</small></div>
-                {w.i_confirmed ? <span className="dom-ok-chip"><Check size={14} />{say('Вы подтвердили', 'Растадыңыз')}</span>
-                  : <button type="button" className="dom-btn dom-btn--small" disabled={busy === w.id} onClick={() => void confirmOne(w.id)}>{busy === w.id ? <Loader2 className="dom-spin" size={14} /> : <Check size={14} />}{say('Да, это сосед', 'Иә, көршім')}</button>}
-              </li>
-            ))}
-          </ul>
+    <section aria-label={say('Соседи', 'Көршілер')} className="dom-list">
+      {house.total <= 1 && (
+        <div className="dom-empty">
+          <b>{say('Вы первый из этого дома на портале', 'Сіз бұл үйден порталдағы біріншісіз')}</b>
+          <p>{say('Позовите соседей — как только они укажут этот же адрес, сразу появятся здесь.', 'Көршілерді шақырыңыз — осы мекенжайды көрсеткенде бірден осында пайда болады.')}</p>
         </div>
       )}
       {keys.map((k) => (
         <div key={k || 'street'} className="dom-group">
           <h3>{k ? (k === String(member.entrance) ? say(`${k} подъезд — ваш`, `${k}-кіреберіс — сіздікі`) : kzEntrance(Number(k), kz)) : say('Соседи по улице', 'Көше көршілері')}<small>{groups.get(k)!.length}</small></h3>
-          <ul className="dom-people">
-            {groups.get(k)!.map((p) => <li key={p.id}><span className="dom-av">{p.name.slice(0, 1)}</span><div><b>{p.name}{p.me && <span className="dom-you">{say('вы', 'сіз')}</span>}</b>
-              <small>{p.elder ? say('Старший по дому', 'Үй ағасы') : say('Сосед', 'Көрші')}</small></div>{p.elder && <Crown size={16} className="dom-crown" />}</li>)}
-          </ul>
+          <ul className="dom-people">{groups.get(k)!.map((p) => <PersonRow key={p.id} p={p} reload={reload} />)}</ul>
         </div>
       ))}
+      {house.total > 1 && <p className="dom-note"><Flag size={14} />{say('Видите человека, который не живёт в доме? Нажмите флажок рядом с ним. После 3 отметок соседей он пропадёт из дома.', 'Үйде тұрмайтын адамды көрсеңіз, жанындағы жалаушаны басыңыз. 3 белгіден кейін ол үйден жоғалады.')}</p>}
       <a className="dom-btn dom-btn--wa dom-invite" href={`https://wa.me/?text=${encodeURIComponent(inviteText(member.title))}`} target="_blank" rel="noopener noreferrer"><MessageCircle size={18} />{say('Позвать соседей в WhatsApp', 'Көршілерді WhatsApp арқылы шақыру')}</a>
     </section>
   );
+}
+
+function PersonRow({ p, reload }: { p: NbPerson; reload: () => Promise<void> }) {
+  const [say] = useSay();
+  const [ask, setAsk] = useState(false);
+  const [busy, setBusy] = useState(false);
+  async function mark() {
+    setBusy(true);
+    try {
+      const r = await nbApi.reportMember(p.id);
+      toast.success(r.blocked ? say('Спасибо, человек скрыт из дома', 'Рахмет, адам үйден жасырылды') : say('Отметка принята. Решают 3 соседа', 'Белгі қабылданды. 3 көрші шешеді'));
+      setAsk(false); await reload();
+    } catch (e) { toast.error(errText(e)); } finally { setBusy(false); }
+  }
+  return (
+    <li data-testid="dom-person">
+      <span className="dom-av">{p.name.slice(0, 1)}</span>
+      <div><b>{p.name}{p.me && <span className="dom-you">{say('вы', 'сіз')}</span>}</b><small>{p.elder ? say('Старший по дому', 'Үй ағасы') : say('Сосед', 'Көрші')}</small></div>
+      {p.elder && <Crown size={16} className="dom-crown" />}
+      {!p.me && (p.i_reported ? <span className="dom-ok-chip dom-ok-chip--muted"><Flag size={13} />{say('Отмечен', 'Белгіленді')}</span>
+        : ask ? (
+          <span className="dom-ask">
+            <small>{say('Не живёт здесь?', 'Мұнда тұрмай ма?')}</small>
+            <button type="button" className="is-red" disabled={busy} onClick={() => void mark()}>{say('Да', 'Иә')}</button>
+            <button type="button" onClick={() => setAsk(false)}>{say('Нет', 'Жоқ')}</button>
+          </span>
+        ) : <button type="button" className="dom-icon-btn dom-icon-btn--plain" aria-label={say(`${p.name} — не мой сосед`, `${p.name} — менің көршім емес`)} onClick={() => setAsk(true)}><Flag size={16} /></button>)}
+    </li>
+  );
+}
+
+function Blocked() {
+  const [say] = useSay();
+  return (
+    <div className="dom"><div className="dom-w dom-pad">
+      <div className="dom-empty" role="alert">
+        <Lock size={22} />
+        <b>{say('Соседи отметили, что вы не живёте в этом доме', 'Көршілер сіздің бұл үйде тұрмайтыныңызды белгіледі')}</b>
+        <p>{say('Если это ошибка — напишите в поддержку, разберёмся и вернём доступ.', 'Қате болса — қолдау қызметіне жазыңыз, тексеріп, қайтарамыз.')}</p>
+        <Link className="dom-btn dom-btn--main" to="/support">{say('Написать в поддержку', 'Қолдауға жазу')}</Link>
+      </div>
+    </div></div>
+  );
+}
+
+function plural(n: number, one: string, few: string, many: string) {
+  const a = n % 10, b = n % 100;
+  return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many;
 }
 
 /* ============================== /dom/post/:id ============================== */

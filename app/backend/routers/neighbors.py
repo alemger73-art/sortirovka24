@@ -64,6 +64,8 @@ async def _member(db, authorization, confirmed: bool = False) -> dict:
     m = await svc.member_of(db, str(user.id))
     if not m:
         raise HTTPException(409, "Сначала укажите свой адрес")
+    if m["status"] == "blocked":
+        raise HTTPException(403, "Соседи отметили, что вы не живёте в этом доме. Напишите в поддержку — разберёмся")
     if confirmed and m["status"] != "confirmed":
         raise HTTPException(403, "Писать можно после подтверждения адреса")
     return m
@@ -97,9 +99,9 @@ async def save(body: AddressBody, request: Request, authorization: str | None = 
     user = await _user(db, authorization)
     try:
         data = svc.clean_address(body.model_dump(), getattr(user, "name", "") or "")
-    except ValueError as exc:
+        m = await svc.save_address(db, str(user.id), data)
+    except (ValueError, PermissionError) as exc:
         _fail(exc)
-    m = await svc.save_address(db, str(user.id), data)
     return {"member": _me(m), "confirm": await svc.confirm_state(db, m)}
 
 
@@ -137,6 +139,15 @@ async def confirm(member_id: int, authorization: str | None = Auth, db: AsyncSes
     m = await _member(db, authorization, confirmed=True)
     try:
         return await svc.confirm_neighbour(db, m, member_id)
+    except (LookupError, PermissionError) as exc:
+        _fail(exc)
+
+
+@router.post("/members/{member_id}/report")
+async def report_member(member_id: int, authorization: str | None = Auth, db: AsyncSession = Depends(get_db)):
+    m = await _member(db, authorization, confirmed=True)
+    try:
+        return await svc.report_member(db, m, member_id)
     except (LookupError, PermissionError) as exc:
         _fail(exc)
 
@@ -277,4 +288,10 @@ async def admin_moderate(body: RestoreBody, db: AsyncSession = Depends(get_db)):
     if body.target not in ("post", "comment"):
         raise HTTPException(400, "Неизвестная цель")
     await svc.admin_restore(db, body.target, body.id, body.keep)
+    return {"ok": True}
+
+
+@router.post("/admin/members/{member_id}/unblock", dependencies=[Depends(_admin)])
+async def admin_unblock(member_id: int, db: AsyncSession = Depends(get_db)):
+    await svc.admin_unblock(db, member_id)
     return {"ok": True}

@@ -2,13 +2,14 @@ import { test, expect, type Page } from '@playwright/test';
 
 const profile = { id: 'alice', name: 'Алия Сапарова', phone: '+77001234567', role: 'user' };
 const ago = (min: number) => new Date(Date.now() - min * 60000).toISOString();
-type Opts = { auth?: boolean; member?: 'none' | 'pending' | 'first' | 'confirmed'; lang?: string; dark?: boolean };
+type Opts = { auth?: boolean; member?: 'none' | 'confirmed' | 'blocked'; lang?: string; dark?: boolean };
 
 async function setup(page: Page, opts: Opts = {}) {
   const writes: any[] = [];
   const memberBase = { id: 5, kind: 'flat', street: 'Жекибаева', house: '135', entrance: 3, flat: '41', display_name: 'Алия', anonymous: false, role: 'member', custom_street: 0, title: 'ул. Жекибаева, 135', public_name: 'Алия' };
-  let member: any = opts.member === 'none' || !opts.member ? null : { ...memberBase, status: opts.member === 'confirmed' ? 'confirmed' : 'pending' };
-  let confirm = { confirmed_in_house: opts.member === 'first' ? 0 : 4, needed: opts.member === 'first' ? 0 : 2, got: 1, proof_sent: false, proof_waiting: false };
+  let member: any = opts.member === 'none' || !opts.member ? null : { ...memberBase, status: opts.member };
+  let confirm = { confirmed_in_house: 4, needed: 2, got: 0, proof_sent: false, proof_waiting: false };
+  const reported: number[] = [];
   let posts: any[] = [
     { id: 11, kind: 'alarm', body: 'В 3 подъезде с утра нет света, на площадке темно. Кто-нибудь звонил?', entrance: 3, pinned: false, me_too: 6, i_me_too: false, comments: 2, created_at: ago(14), last_activity: ago(3), author: { name: 'Ерлан', entrance: 3, elder: false }, mine: false, can_moderate: false },
     { id: 10, kind: 'notice', body: 'Собрание жильцов в субботу в 11:00 у первого подъезда. Обсуждаем ремонт крыши.', entrance: null, pinned: true, me_too: 12, i_me_too: true, comments: 4, created_at: ago(60 * 26), last_activity: ago(60 * 5), author: { name: 'Гульнар', entrance: 1, elder: true }, mine: false, can_moderate: false },
@@ -32,18 +33,19 @@ async function setup(page: Page, opts: Opts = {}) {
     if (path.endsWith('/neighbors/me') && m === 'GET') return json(member ? { member, confirm } : { member: null, suggested_name: 'Алия' });
     if (path.endsWith('/neighbors/me') && m === 'PUT') {
       const a = req.postDataJSON(); writes.push({ save: a });
-      member = { ...memberBase, street: a.street, house: a.house, entrance: Number(a.entrance), flat: a.flat, display_name: a.display_name, anonymous: a.anonymous, status: 'pending', title: `ул. ${a.street}, ${a.house}`, public_name: a.anonymous ? `Сосед из ${a.entrance} подъезда` : a.display_name };
+      member = { ...memberBase, street: a.street, house: a.house, entrance: Number(a.entrance), flat: a.flat, display_name: a.display_name, anonymous: a.anonymous, status: 'confirmed', title: `ул. ${a.street}, ${a.house}`, public_name: a.anonymous ? `Сосед из ${a.entrance} подъезда` : a.display_name };
       confirm = { confirmed_in_house: 0, needed: 0, got: 0, proof_sent: false, proof_waiting: false };
       return json({ member, confirm });
     }
     if (path.endsWith('/neighbors/me') && m === 'DELETE') { writes.push({ leave: true }); member = null; return json({ ok: true }); }
     if (path.endsWith('/neighbors/me/proof')) { writes.push({ proof: req.postDataJSON().image.slice(0, 23) }); confirm = { ...confirm, proof_sent: true, proof_waiting: true }; return json({ member, confirm }); }
     if (path.endsWith('/neighbors/house')) {
-      if (member?.status !== 'confirmed') return json({ people: [], waiting: [], entrances: {}, total: 4, locked: true });
-      return json({ total: 4, locked: false, entrances: { 1: 1, 3: 3 }, waiting: [{ id: 21, name: 'Сосед из 3 подъезда', entrance: 3, elder: false, me: false, since: '', i_confirmed: false }],
-        people: [{ id: 5, name: 'Алия', entrance: 3, elder: false, me: true, since: '2026-10-20' }, { id: 6, name: 'Ерлан', entrance: 3, elder: false, me: false, since: '' }, { id: 7, name: 'Марат', entrance: 3, elder: false, me: false, since: '' }, { id: 8, name: 'Гульнар', entrance: 1, elder: true, me: false, since: '' }] });
+      return json({ total: 4, locked: false, entrances: { 1: 1, 3: 3 }, waiting: [],
+        people: [{ id: 5, name: 'Алия', entrance: 3, elder: false, me: true, since: '2026-10-20' }, { id: 6, name: 'Ерлан', entrance: 3, elder: false, me: false, since: '' }, { id: 7, name: 'Марат', entrance: 3, elder: false, me: false, since: '' }, { id: 8, name: 'Гульнар', entrance: 1, elder: true, me: false, since: '' }]
+          .map((p) => ({ ...p, i_reported: reported.includes(p.id) })) });
     }
-    if (path.endsWith('/neighbors/confirm/21')) { writes.push({ confirm: 21 }); return json({ confirmed: false, got: 1, needed: 2 }); }
+    const rm = path.match(/\/neighbors\/members\/(\d+)\/report$/);
+    if (rm) { writes.push({ reportMember: Number(rm[1]) }); reported.push(Number(rm[1])); return json({ blocked: false, marks: 1 }); }
     if (path.endsWith('/neighbors/feed')) {
       const kind = url.searchParams.get('kind');
       return json({ items: posts.filter((p) => !kind || p.kind === kind), next: '' });
@@ -76,7 +78,7 @@ test('guest sees what «Мой дом» is and a login button that comes back to
   await page.screenshot({ path: info.outputPath('landing.png'), fullPage: true });
 });
 
-test('new resident: address form with street suggestions → first in house → receipt photo', async ({ page }, info) => {
+test('new resident: address form with street suggestions → straight into the house', async ({ page }, info) => {
   const writes = await setup(page, { auth: true, member: 'none' });
   await page.goto('/dom');
   await expect(page.getByRole('heading', { name: 'Где вы живёте?' })).toBeVisible();
@@ -88,38 +90,46 @@ test('new resident: address form with street suggestions → first in house → 
   await expect(page.locator('#dom-street')).toHaveValue('Жекибаева');
   await page.locator('#dom-house').fill('135');
   await page.locator('#dom-entrance').fill('3');
-  await page.locator('#dom-flat').fill('41');
   expect(await noOverflow(page)).toBe(true);
   await page.screenshot({ path: info.outputPath('form.png'), fullPage: true });
   await page.getByTestId('dom-save').click();
   await expect(page.getByRole('alert')).toHaveText('Поставьте галочку согласия');
   await page.locator('#dom-consent').check();
-  await page.getByTestId('dom-save').click();
+  await page.getByTestId('dom-save').click();   // flat number is optional
   await expect(page.getByRole('heading', { name: 'ул. Жекибаева, 135' })).toBeVisible();
-  expect(writes[0].save).toMatchObject({ street: 'Жекибаева', house: '135', entrance: '3', flat: '41', consent: true });
-  await expect(page.getByText('Вы первый житель дома на портале')).toBeVisible();
-  await expect(page.getByTestId('dom-write')).toHaveCount(0);
-  // a real (tiny) JPEG goes through the canvas shrink
-  const jpeg = Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA0JCgsKCA0LCgsODg0PEyAVExISEyccHhcgLikxMC4pLSwzOko+MzZGNywtQFdBRkxOUlNSMj5aYVpQYEpRUk//2wBDAQ4ODhMREyYVFSZPNS01T09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0//wAARCAAeACgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDtqKKK3MAooooAKKKKACiiigAooooAKKKKAP/Z', 'base64');
-  await page.getByTestId('dom-proof-input').setInputFiles({ name: 'receipt.jpg', mimeType: 'image/jpeg', buffer: jpeg });
-  await expect(page.getByText('Квитанция получена')).toBeVisible();
-  expect(writes.find((w) => w.proof).proof).toBe('data:image/jpeg;base64,');
+  expect(writes[0].save).toMatchObject({ street: 'Жекибаева', house: '135', entrance: '3', flat: '', consent: true });
+  await expect(page.getByTestId('dom-confirm')).toHaveCount(0);
+  await expect(page.getByTestId('dom-write')).toBeVisible();   // can write at once
   await page.getByRole('tab', { name: /Соседи/ }).click();
-  await expect(page.getByText('Соседей видно после подтверждения')).toBeVisible();
-  await page.screenshot({ path: info.outputPath('pending.png'), fullPage: true });
+  await expect(page.getByTestId('dom-person')).toHaveCount(4);   // sees neighbours at once
+  await page.screenshot({ path: info.outputPath('new-house.png'), fullPage: true });
 });
 
-test('pending resident with neighbours sees progress and a WhatsApp reminder', async ({ page }) => {
-  await setup(page, { auth: true, member: 'pending' });
+test('«не мой сосед»: two taps, then the mark is shown', async ({ page }) => {
+  const writes = await setup(page, { auth: true, member: 'confirmed' });
+  await page.goto('/dom?tab=people');
+  const me = page.getByTestId('dom-person').filter({ hasText: 'Алия' });
+  await expect(me.getByRole('button')).toHaveCount(0);   // no flag next to yourself
+  const marat = page.getByTestId('dom-person').filter({ hasText: 'Марат' });
+  await marat.getByRole('button', { name: 'Марат — не мой сосед' }).click();
+  await expect(marat.getByText('Не живёт здесь?')).toBeVisible();
+  await marat.getByRole('button', { name: 'Нет' }).click();
+  expect(writes.some((w) => w.reportMember)).toBe(false);
+  await marat.getByRole('button', { name: 'Марат — не мой сосед' }).click();
+  await marat.getByRole('button', { name: 'Да' }).click();
+  await expect(page.getByText('Отметка принята. Решают 3 соседа')).toBeVisible();
+  await expect(marat.getByText('Отмечен')).toBeVisible();
+  expect(writes.find((w) => w.reportMember).reportMember).toBe(7);
+});
+
+test('a person marked by neighbours sees a clear message', async ({ page }) => {
+  await setup(page, { auth: true, member: 'blocked' });
   await page.goto('/dom');
-  await expect(page.getByText('1 из 2')).toBeVisible();
-  await expect(page.getByRole('link', { name: /Написать соседям в WhatsApp/ })).toHaveAttribute('href', /wa\.me\/\?text=.*sortirovka24\.kz%2Fdom/);
-  await expect(page.getByTestId('dom-post')).toHaveCount(3);  // can read
-  await page.getByTestId('dom-metoo').first().click();
-  await expect(page.getByText('Отмечать можно после подтверждения адреса')).toBeVisible();
+  await expect(page.getByText('Соседи отметили, что вы не живёте в этом доме')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Написать в поддержку' })).toHaveAttribute('href', '/support');
 });
 
-test('confirmed resident: feed, filters, «У меня тоже», write a post, neighbours and confirm one', async ({ page }, info) => {
+test('resident: feed, filters, «У меня тоже», write a post, neighbours', async ({ page }, info) => {
   const writes = await setup(page, { auth: true, member: 'confirmed' });
   await page.goto('/dom');
   await expect(page.getByTestId('dom-post')).toHaveCount(3);
@@ -149,11 +159,8 @@ test('confirmed resident: feed, filters, «У меня тоже», write a post,
 
   await page.getByRole('tab', { name: /Соседи/ }).click();
   await expect(page.getByText('3 подъезд — ваш')).toBeVisible();
-  await expect(page.getByTestId('dom-waiting')).toBeVisible();
+  await expect(page.getByTestId('dom-person')).toHaveCount(4);
   await page.screenshot({ path: info.outputPath('people.png'), fullPage: true });
-  await page.getByRole('button', { name: 'Да, это сосед' }).click();
-  await expect(page.getByText('Нужно ещё одно подтверждение')).toBeVisible();
-  expect(writes.some((w) => w.confirm === 21)).toBe(true);
 });
 
 test('post page: comments, reply, report', async ({ page }, info) => {

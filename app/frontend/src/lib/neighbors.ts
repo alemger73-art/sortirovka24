@@ -5,7 +5,7 @@ import { getAccountToken } from '@/lib/accountApi';
 export type NbKind = 'alarm' | 'question' | 'notice' | 'lost';
 export type NbMember = {
   id: number; kind: 'flat' | 'private'; street: string; house: string; entrance: number | null; flat: string;
-  display_name: string; anonymous: boolean; status: 'pending' | 'confirmed'; role: 'member' | 'elder'; custom_street: number;
+  display_name: string; anonymous: boolean; status: 'pending' | 'confirmed' | 'blocked'; role: 'member' | 'elder'; custom_street: number;
   title: string; public_name: string;
 };
 export type NbConfirm = { confirmed_in_house: number; needed: number; got: number; proof_sent: boolean; proof_waiting: boolean };
@@ -16,7 +16,7 @@ export type NbPost = {
 };
 export type NbComment = { id: number; body: string; created_at: string; mine: boolean; author: NbAuthor; is_author: boolean };
 export type NbPostFull = NbPost & { hidden: boolean; thread: NbComment[] };
-export type NbPerson = { id: number; name: string; entrance: number | null; elder: boolean; me: boolean; since: string; i_confirmed?: boolean };
+export type NbPerson = { id: number; name: string; entrance: number | null; elder: boolean; me: boolean; since: string; i_confirmed?: boolean; i_reported?: boolean };
 export type NbHouse = { people: NbPerson[]; waiting: NbPerson[]; entrances: Record<string, number>; total: number; locked: boolean };
 export type NbAddress = { kind: 'flat' | 'private'; street: string; house: string; entrance: string; flat: string; display_name: string; anonymous: boolean; consent: boolean };
 
@@ -85,6 +85,7 @@ export type NbAdmin = {
   houses: { building: string; title: string; people: number }[];
   hidden_posts: { id: number; building: string; kind: NbKind; body: string; reports: number; created_at: string }[];
   hidden_comments: { id: number; post_id: number; body: string; reports: number; created_at: string }[];
+  blocked: { id: number; street: string; house: string; kind: string; entrance: number | null; flat: string; display_name: string; updated_at: string }[];
 };
 
 export const nbApi = {
@@ -94,6 +95,7 @@ export const nbApi = {
   leave: () => call<{ ok: boolean }>('/me', { method: 'DELETE' }),
   proof: (image: string) => call<{ member: NbMember; confirm: NbConfirm }>('/me/proof', post({ image })),
   house: () => call<NbHouse>('/house'),
+  reportMember: (id: number) => call<{ blocked: boolean; marks: number }>(`/members/${id}/report`, { method: 'POST' }),
   confirm: (id: number) => call<{ confirmed: boolean; got?: number; needed?: number }>(`/confirm/${id}`, { method: 'POST' }),
   feed: (q: { before?: string; kind?: string; entrance?: boolean }) => {
     const p = new URLSearchParams(); if (q.before) p.set('before', q.before); if (q.kind) p.set('kind', q.kind); if (q.entrance) p.set('entrance', 'true');
@@ -112,5 +114,6 @@ export const nbApi = {
   adminProof: (id: number) => call<{ image: string }>(`/admin/proof/${id}`, {}, adminToken()),
   adminDecide: (id: number, approve: boolean) => call<{ answer: string }>(`/admin/proof/${id}`, post({ approve }), adminToken()),
   adminRole: (id: number, role: 'member' | 'elder') => call<{ ok: boolean }>(`/admin/members/${id}/role`, post({ role }), adminToken()),
+  adminUnblock: (id: number) => call<{ ok: boolean }>(`/admin/members/${id}/unblock`, { method: 'POST' }, adminToken()),
   adminModerate: (target: 'post' | 'comment', id: number, keep: boolean) => call<{ ok: boolean }>('/admin/moderate', post({ target, id, keep }), adminToken()),
 };

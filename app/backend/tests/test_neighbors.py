@@ -81,45 +81,20 @@ async def test_full_flow(env):
     assert r.status_code == 400
     assert (await c.get(B + '/me')).status_code == 401
 
-    # first resident: nobody can confirm → receipt
-    r = await c.put(B + '/me', json=addr(), headers=h['alice'])
+    # open access: address → full member at once (flat number is optional and never shown)
+    r = await c.put(B + '/me', json=addr(flat=''), headers=h['alice'])
     body = r.json()
-    assert body['member']['status'] == 'pending' and body['member']['title'] == 'ул. Жекибаева, 135'
-    assert body['member']['display_name'] == 'Alice' and body['confirm']['needed'] == 0
-    assert (await c.post(B + '/posts', json={'kind': 'question', 'body': 'Когда дадут свет?'}, headers=h['alice'])).status_code == 403
-    assert (await c.get(B + '/house', headers=h['alice'])).json()['locked'] is True
-    r = await c.post(B + '/me/proof', json={'image': 'data:text/html;base64,AAAA'}, headers=h['alice'])
-    assert r.status_code == 400
-    r = await c.post(B + '/me/proof', json={'image': IMG}, headers=h['alice'])
-    assert r.json()['confirm']['proof_waiting'] is True
-    ov = (await c.get(B + '/admin', headers=h['panel'])).json()
-    assert ov['waiting'][0]['flat'] == '41'
+    assert body['member']['status'] == 'confirmed' and body['member']['title'] == 'ул. Жекибаева, 135'
+    assert body['member']['display_name'] == 'Alice'
     assert (await c.get(B + '/admin', headers=h['alice'])).status_code == 403
-    mid = ov['waiting'][0]['id']
-    assert (await c.get(B + f'/admin/proof/{mid}', headers=h['panel'])).json()['image'] == IMG
-    assert (await c.post(B + f'/admin/proof/{mid}', json={'approve': True}, headers=h['panel'])).json()['answer'] == 'Житель подтверждён'
-    me = (await c.get(B + '/me', headers=h['alice'])).json()
-    assert me['member']['status'] == 'confirmed'
-    assert (await c.get(B + f'/admin/proof/{mid}', headers=h['panel'])).json()['image'] == ''  # photo deleted
 
-    # second resident: one confirmed neighbour → one confirmation is enough; spelling «Жекебаева» meets in the same house
-    r = await c.put(B + '/me', json=addr(street='Жекебаева', entrance=1, flat='5', anonymous=True), headers=h['bob'])
-    assert r.json()['confirm'] == {'confirmed_in_house': 1, 'needed': 1, 'got': 0, 'proof_sent': False, 'proof_waiting': False}
-    house = (await c.get(B + '/house', headers=h['alice'])).json()
-    assert house['waiting'][0]['name'] == 'Сосед из 1 подъезда'
-    assert 'flat' not in str(house) and 'bob' not in str(house) and '+7700' not in str(house)  # privacy
-    bob_id = house['waiting'][0]['id']
-    assert (await c.post(B + f'/confirm/{bob_id}', headers=h['bob'])).status_code == 403  # not confirmed yet
-    assert (await c.post(B + f'/confirm/{bob_id}', headers=h['alice'])).json() == {'confirmed': True}
-
-    # third: two confirmed neighbours → needs two
+    # spelling «Жекебаева» meets in the same house; anonymous name
+    await c.put(B + '/me', json=addr(street='Жекебаева', entrance=1, flat='5', anonymous=True), headers=h['bob'])
     await c.put(B + '/me', json=addr(flat='77'), headers=h['carl'])
-    carl_id = (await c.get(B + '/me', headers=h['carl'])).json()['member']['id']
-    assert (await c.post(B + f'/confirm/{carl_id}', headers=h['alice'])).json()['confirmed'] is False
-    assert (await c.post(B + f'/confirm/{carl_id}', headers=h['alice'])).json()['got'] == 1  # same voter twice counts once
-    assert (await c.post(B + f'/confirm/{carl_id}', headers=h['bob'])).json()['confirmed'] is True
-    house = (await c.get(B + '/house', headers=h['carl'])).json()
-    assert house['total'] == 3 and house['entrances'] == {'3': 2, '1': 1}
+    house = (await c.get(B + '/house', headers=h['alice'])).json()
+    assert house['locked'] is False and house['total'] == 3 and house['entrances'] == {'3': 2, '1': 1}
+    assert 'Сосед из 1 подъезда' in [p['name'] for p in house['people']]
+    assert "'flat'" not in str(house) and 'bob' not in str(house) and '+7700' not in str(house)  # privacy
 
     # another house sees nothing of this one
     await c.put(B + '/me', json=addr(house='137'), headers=h['dina'])
@@ -153,15 +128,12 @@ async def test_full_flow(env):
     cid = d['thread'][0]['id']
     assert (await c.post(B + '/report', json={'target': 'comment', 'id': cid}, headers=h['carl'])).status_code == 403
     await c.put(B + '/me', json=addr(flat='90'), headers=h['eve'])
-    eve_id = (await c.get(B + '/me', headers=h['eve'])).json()['member']['id']
-    await c.post(B + f'/confirm/{eve_id}', headers=h['alice'])
-    await c.post(B + f'/confirm/{eve_id}', headers=h['bob'])
     for u in ('alice', 'bob'):
         assert (await c.post(B + '/report', json={'target': 'comment', 'id': cid}, headers=h[u])).json()['hidden'] is False
     assert (await c.post(B + '/report', json={'target': 'comment', 'id': cid}, headers=h['eve'])).json()['hidden'] is True
     assert (await c.get(B + f'/posts/{pid}', headers=h['alice'])).json()['comments'] == 0
     ov = (await c.get(B + '/admin', headers=h['panel'])).json()
-    assert ov['hidden_comments'][0]['id'] == cid and ov['stats']['neighbours'] == 4
+    assert ov['hidden_comments'][0]['id'] == cid and ov['stats']['neighbours'] == 5
     await c.post(B + '/admin/moderate', json={'target': 'comment', 'id': cid, 'keep': True}, headers=h['panel'])
     assert (await c.get(B + f'/posts/{pid}', headers=h['alice'])).json()['comments'] == 1
 
@@ -171,23 +143,69 @@ async def test_full_flow(env):
     await c.post(B + f'/admin/members/{alice_id}/role', json={'role': 'elder'}, headers=h['panel'])
     assert (await c.post(B + f'/posts/{pid}/pin', headers=h['alice'])).json() == {'pinned': True}
 
-    # moving to another house → confirm again; leaving deletes everything
+    # moving to another house: stays a member there, but not more than 3 houses a month
     r = await c.put(B + '/me', json=addr(house='139А'), headers=h['carl'])
-    assert r.json()['member']['status'] == 'pending'
+    assert r.json()['member']['status'] == 'confirmed' and r.json()['member']['title'] == 'ул. Жекибаева, 139А'
+    await c.put(B + '/me', json=addr(house='141'), headers=h['carl'])
+    r = await c.put(B + '/me', json=addr(house='143'), headers=h['carl'])
+    assert r.status_code == 403 and '3 раз в месяц' in r.json()['detail']
+    assert (await c.put(B + '/me', json=addr(house='135', display_name='Карл'), headers=h['carl'])).status_code == 200  # back home is fine
+
     assert (await c.delete(B + '/me', headers=h['alice'])).json() == {'ok': True}
     assert (await c.get(B + '/me', headers=h['alice'])).json()['member'] is None
     assert (await c.get(B + f'/posts/{pid}', headers=h['bob'])).status_code == 404
     stats = (await c.get(B + '/streets')).json()
-    assert 'Жекибаева' in stats['streets'] and stats['stats']['neighbours'] == 2
+    assert 'Жекибаева' in stats['streets'] and stats['stats']['neighbours'] == 4
 
 
 async def test_rate_limit_on_posts(env, monkeypatch):
     c, h = env
     monkeypatch.setattr(svc, 'POSTS_PER_HOUR', 2)
     await c.put(B + '/me', json=addr(), headers=h['alice'])
-    mid = (await c.get(B + '/me', headers=h['alice'])).json()['member']['id']
-    await c.post(B + f'/admin/proof/{mid}', json={'approve': True}, headers=h['panel'])
     for _ in range(2):
         assert (await c.post(B + '/posts', json={'kind': 'notice', 'body': 'Собрание жильцов в субботу'}, headers=h['alice'])).status_code == 201
     r = await c.post(B + '/posts', json={'kind': 'notice', 'body': 'Ещё одно объявление'}, headers=h['alice'])
     assert r.status_code == 403 and 'Слишком много' in r.json()['detail']
+
+
+async def test_not_my_neighbour(env):
+    c, h = env
+    for u in ('alice', 'bob', 'carl', 'dina', 'eve'):
+        await c.put(B + '/me', json=addr(display_name=u.title()), headers=h[u])
+    await c.put(B + '/me', json=addr(house='200'), headers=h['fox'])
+    eve = next(p for p in (await c.get(B + '/house', headers=h['alice'])).json()['people'] if p['name'] == 'Eve')
+    await c.post(B + '/posts', json={'kind': 'question', 'body': 'Продам гараж недорого'}, headers=h['eve'])
+    assert (await c.post(B + f'/members/{eve["id"]}/report', headers=h['eve'])).status_code == 403  # not yourself
+    assert (await c.post(B + f'/members/{eve["id"]}/report', headers=h['fox'])).status_code == 404  # other house
+    assert (await c.post(B + f'/members/{eve["id"]}/report', headers=h['alice'])).json() == {'blocked': False, 'marks': 1}
+    assert (await c.post(B + f'/members/{eve["id"]}/report', headers=h['alice'])).json()['marks'] == 1  # once per person
+    me = next(p for p in (await c.get(B + '/house', headers=h['alice'])).json()['people'] if p['name'] == 'Eve')
+    assert me['i_reported'] is True
+    await c.post(B + f'/members/{eve["id"]}/report', headers=h['bob'])
+    assert (await c.post(B + f'/members/{eve["id"]}/report', headers=h['carl'])).json()['blocked'] is True
+    assert (await c.get(B + '/me', headers=h['eve'])).json()['member']['status'] == 'blocked'
+    r = await c.get(B + '/feed', headers=h['eve'])
+    assert r.status_code == 403 and 'Соседи отметили' in r.json()['detail']
+    assert (await c.get(B + '/feed', headers=h['dina'])).json()['items'] == []  # her post disappears too
+    assert 'Eve' not in str((await c.get(B + '/house', headers=h['dina'])).json())
+    # «delete and come back» does not undo the neighbours' decision
+    await c.delete(B + '/me', headers=h['eve'])
+    assert (await c.put(B + '/me', json=addr(house='137'), headers=h['eve'])).status_code == 403
+    # owner restores
+    ov = (await c.get(B + '/admin', headers=h['panel'])).json()
+    assert ov['blocked'][0]['id'] == eve['id']
+    await c.post(B + f'/admin/members/{eve["id"]}/unblock', headers=h['panel'])
+    assert (await c.get(B + '/me', headers=h['eve'])).json()['member']['status'] == 'confirmed'
+
+
+async def test_old_pending_members_are_opened(env):
+    c, h = env
+    await c.put(B + '/me', json=addr(), headers=h['alice'])
+    from sqlalchemy import text
+    from routers import neighbors as r
+    async for db in c._transport.app.dependency_overrides[r.get_db]():
+        await db.execute(text("UPDATE nb_members SET status = 'pending'"))
+        await db.commit()
+        svc._ready.clear()
+        await svc.ensure_tables(db)
+    assert (await c.get(B + '/me', headers=h['alice'])).json()['member']['status'] == 'confirmed'

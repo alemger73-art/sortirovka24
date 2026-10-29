@@ -32,17 +32,17 @@ export default function AdminNeighbors() {
     <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 dark:border-indigo-900 dark:bg-indigo-950/30" data-testid="admin-neighbors">
       <button type="button" onClick={() => setOpen((v) => !v)} className="flex w-full items-center gap-2 p-4 text-left">
         <Home className="h-5 w-5 text-indigo-600" />
-        <span className="flex-1 font-semibold text-gray-900 dark:text-gray-100">Мой дом — соседи{data?.stats.pending ? ` · ждут: ${data.waiting.length}` : ''}</span>
+        <span className="flex-1 font-semibold text-gray-900 dark:text-gray-100">Мой дом — соседи{data?.blocked?.length ? ` · скрыто соседями: ${data.blocked.length}` : ''}</span>
         <ChevronDown className={`h-4 w-4 transition ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
         <div className="space-y-5 border-t border-indigo-200 p-4 text-sm dark:border-indigo-900">
           {!data ? <Loader2 className="h-5 w-5 animate-spin" /> : <>
-            <p className="text-gray-700 dark:text-gray-300">Подтверждено жителей: <b>{data.stats.neighbours}</b> · домов: <b>{data.stats.houses}</b> · ждут подтверждения: <b>{data.stats.pending}</b></p>
+            <p className="text-gray-700 dark:text-gray-300">Жителей: <b>{data.stats.neighbours}</b> · домов: <b>{data.stats.houses}</b></p>
 
-            <section>
+            {data.waiting.length > 0 && <section>
               <p className="mb-2 font-semibold">Квитанции на проверку</p>
-              {!data.waiting.length ? <p className="text-gray-500">Нет. Новые квитанции также приходят в Telegram с кнопками.</p> : (
+              {(
                 <ul className="space-y-2">
                   {data.waiting.map((w) => (
                     <li key={w.id} className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
@@ -52,6 +52,20 @@ export default function AdminNeighbors() {
                         <Button size="sm" disabled={busy === `a${w.id}`} onClick={() => void run(`a${w.id}`, () => nbApi.adminDecide(w.id, true))}>✅ Подтвердить</Button>
                         <Button size="sm" variant="ghost" disabled={busy === `r${w.id}`} onClick={() => void run(`r${w.id}`, () => nbApi.adminDecide(w.id, false))}>❌ Не совпадает</Button>
                       </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>}
+
+            <section>
+              <p className="mb-2 font-semibold">Скрыты соседями («не живёт здесь»)</p>
+              {!data.blocked?.length ? <p className="text-gray-500">Нет. О каждом таком случае приходит сообщение в Telegram.</p> : (
+                <ul className="space-y-2">
+                  {data.blocked.map((b) => (
+                    <li key={b.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
+                      <span className="flex-1">№{b.id} {b.display_name || 'без имени'} · ул. {b.street}, {b.house}{b.entrance ? `, подъезд ${b.entrance}` : ''}{b.flat ? `, кв. ${b.flat}` : ''}</span>
+                      <Button size="sm" variant="outline" disabled={busy === `u${b.id}`} onClick={() => void run(`u${b.id}`, () => nbApi.adminUnblock(b.id), 'Вернули в дом')}>Вернуть в дом</Button>
                     </li>
                   ))}
                 </ul>
