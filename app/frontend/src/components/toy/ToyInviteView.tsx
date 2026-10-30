@@ -71,7 +71,8 @@ function useMusic(track: string | undefined) {
   return { has: Boolean(src), playing, play, stop };
 }
 
-const PARTICLES = Array.from({ length: 16 }, (_, i) => ({ left: (i * 61) % 100, delay: (i * 1.7) % 11, dur: 9 + ((i * 7) % 8), size: 8 + ((i * 5) % 9), drift: (i % 2 ? 1 : -1) * (20 + (i * 13) % 50) }));
+/** One celebratory fall right after the envelope opens (about 15 seconds), then the page stays calm. */
+const PARTICLES = Array.from({ length: 22 }, (_, i) => ({ left: (i * 47) % 100, delay: (i * 0.37) % 5, dur: 8 + ((i * 7) % 6), size: 8 + ((i * 5) % 9), drift: (i % 2 ? 1 : -1) * (20 + (i * 13) % 50) }));
 function Particles({ effect }: { effect?: string }) {
   if (!effect || effect === 'none') return null;
   return (
@@ -122,7 +123,7 @@ export default function ToyInviteView({ data, onRsvp, previewNote, demo, startLa
     music.play();
     setOpening(true);
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    window.setTimeout(() => setOpened(true), reduce ? 10 : 2600);
+    window.setTimeout(() => setOpened(true), reduce ? 10 : 2450);
   }
   const [zoom, setZoom] = useState<string | null>(null);
 
@@ -206,9 +207,16 @@ export default function ToyInviteView({ data, onRsvp, previewNote, demo, startLa
       {music.has && opened && (
         <button type="button" className={`toy-music${music.playing ? ' is-on' : ''}`} onClick={() => (music.playing ? music.stop() : music.play())}
           aria-label={music.playing ? t.musicOff : t.musicOn} aria-pressed={music.playing} data-testid="toy-music">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 18.5a2.5 2.5 0 1 1-2-2.45V5.6l11-2.2v11.1a2.5 2.5 0 1 1-2-2.45V6.1l-7 1.4z" /></svg>
-          {!music.playing && <span>{t.musicOn}</span>}
+          {music.playing ? <span className="toy-eq" aria-hidden="true"><i /><i /><i /></span>
+            : <><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 18.5a2.5 2.5 0 1 1-2-2.45V5.6l11-2.2v11.1a2.5 2.5 0 1 1-2-2.45V6.1l-7 1.4z" /></svg><span>{t.musicOn}</span></>}
         </button>
+      )}
+
+      {!fixed && (
+        <div className="toy-lang toy-lang-float" role="group" aria-label="Тіл / Язык">
+          <button type="button" aria-pressed={lang === 'kz'} onClick={() => setLang('kz')}>ҚАЗ</button>
+          <button type="button" aria-pressed={lang === 'ru'} onClick={() => setLang('ru')}>РУС</button>
+        </div>
       )}
 
       {cover && (
@@ -227,12 +235,6 @@ export default function ToyInviteView({ data, onRsvp, previewNote, demo, startLa
         {(!fixed || demo) && !cover && (
           <div className="toy-top">
             {demo ? <span className="toy-demo">{lang === 'kz' ? 'Үлгі' : 'Пример'}</span> : <span />}
-          </div>
-        )}
-        {!fixed && (
-          <div className={`toy-lang toy-lang-float${cover ? ' on-cover' : ''}`} role="group" aria-label="Тіл / Язык">
-            <button type="button" aria-pressed={lang === 'kz'} onClick={() => setLang('kz')}>ҚАЗ</button>
-            <button type="button" aria-pressed={lang === 'ru'} onClick={() => setLang('ru')}>РУС</button>
           </div>
         )}
         {previewNote && <p className="toy-preview-note" role="status">{previewNote}</p>}
