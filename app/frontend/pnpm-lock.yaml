@@ -41,6 +41,12 @@ dependencies:
   '@fontsource-variable/onest':
     specifier: ^5.2.5
     version: 5.3.1
+  '@fontsource/cormorant-garamond':
+    specifier: ^5.3.0
+    version: 5.3.0
+  '@fontsource/montserrat':
+    specifier: ^5.3.0
+    version: 5.3.0
   '@hookform/resolvers':
     specifier: ^3.9.0
     version: 3.10.0(react-hook-form@7.71.1)
@@ -2068,6 +2074,14 @@ packages:
 
   /@fontsource-variable/onest@5.3.1:
     resolution: {integrity: sha512-xaaw6G4HDB2/RczsWLD/2bnib4ykmQlTlBUN3GOEOiyErilZukQWVJG95h9zwAy0i8KY+QzDa+COPfqhI72Acw==}
+    dev: false
+
+  /@fontsource/cormorant-garamond@5.3.0:
+    resolution: {integrity: sha512-weuGsCirGVWBWqpt6YUp0yLThTe4G8YO45noq8wxeJCRvEpq5lFrxNMFSTxcyOyV5k5otzJ8guDzYegdYlcLMQ==}
+    dev: false
+
+  /@fontsource/montserrat@5.3.0:
+    resolution: {integrity: sha512-iQPDtZOnmM5ih4JBGaMSXisRap0ixb9bAUw2hDtY7EjVfaqiiNlKtVuJl9XclxUwtwMMHNcWXfQR6zI9x05+Tg==}
     dev: false
 
   /@hookform/resolvers@3.10.0(react-hook-form@7.71.1):
