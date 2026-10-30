@@ -231,7 +231,9 @@ async def _toy_seo_page(path: str, slug: str) -> SeoPage:
     place = _text(data.get("place"), 80)
     title = f"{who} — шақыру / приглашение на той"
     description = " · ".join(p for p in (f"{when} {_text(data.get('time'), 5)}".strip(), place) if p) or "Приглашение на той"
-    return SeoPage(title, description, path, title, description, robots="noindex, nofollow")
+    photos = [k for k in (data.get("photos") or []) if isinstance(k, str) and re.fullmatch(r"[a-f0-9]{16}", k)]
+    image = f"{SITE_URL}/api/v1/toy/photos/{photos[0]}.jpg" if photos else FALLBACK_IMAGE
+    return SeoPage(title, description, path, title, description, robots="noindex, nofollow", image=image)
 
 
 async def build_seo_page(path: str) -> SeoPage:

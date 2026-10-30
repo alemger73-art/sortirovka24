@@ -24,7 +24,12 @@ KZ = timezone(timedelta(hours=5))
 SITE = os.getenv("PUBLIC_SITE_URL", "https://www.sortirovka24.kz").rstrip("/")
 CALLBACK_RE = re.compile(r"^ty:(p|r):(\d+)$")
 KINDS = ("wedding", "uzatu", "sundet", "tusau", "merey")
-THEMES = ("night", "ivory", "pomegranate", "sky")
+THEMES = ("night", "ivory", "pomegranate", "sky", "emerald", "rose")
+MUSIC = ("dombra", "waltz", "tender", "festive", "none")
+EFFECTS = ("petals", "sparkles", "none")
+MAX_PHOTOS = 6
+MAX_PHOTO_BYTES = 900_000
+PHOTO_KEY_RE = re.compile(r"^[a-f0-9]{16}$")
 STATUSES = ("draft", "pending", "published", "rejected", "archived")
 KIND_TITLES = {"wedding": "Үйлену тойы / Свадьба", "uzatu": "Қыз ұзату", "sundet": "Сүндет той",
                "tusau": "Тұсаукесер", "merey": "Мерейтой / Юбилей"}
@@ -65,6 +70,9 @@ async def _create_tables(db) -> None:
         "name VARCHAR(80), coming INTEGER, guests INTEGER, wish TEXT, created_at VARCHAR(32), updated_at VARCHAR(32))"))
     await db.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS toy_rsvps_once ON toy_rsvps (invite_id, visitor)"))
     await db.execute(text("CREATE TABLE IF NOT EXISTS toy_settings (key VARCHAR(40) PRIMARY KEY, value TEXT)"))
+    await db.execute(text(
+        "CREATE TABLE IF NOT EXISTS toy_photos (key VARCHAR(24) PRIMARY KEY, user_id VARCHAR(64), data TEXT, created_at VARCHAR(32))"))
+    await db.execute(text("CREATE INDEX IF NOT EXISTS toy_photos_user ON toy_photos (user_id, created_at)"))
     await db.commit()
 
 
@@ -145,6 +153,11 @@ def clean_data(raw: dict) -> dict:
     photo = _s(raw.get("photo"), 400)
     if photo and not photo.startswith("https://"):
         photo = ""
+    photos = [str(k) for k in (raw.get("photos") or []) if isinstance(k, str) and PHOTO_KEY_RE.match(k)][:MAX_PHOTOS]
+    photos = list(dict.fromkeys(photos))
+    music = raw.get("music") if raw.get("music") in MUSIC else DEFAULT_MUSIC.get(kind, "dombra")
+    effect = raw.get("effect") if raw.get("effect") in EFFECTS else "petals"
+    intro = raw.get("intro") is not False
     program = []
     for item in (raw.get("program") or [])[:8]:
         if not isinstance(item, dict):
@@ -159,8 +172,63 @@ def clean_data(raw: dict) -> dict:
         "date": d.isoformat(), "time": tm,
         "place": _s(raw.get("place"), 80), "address": _s(raw.get("address"), 160), "map_url": map_url,
         "hosts": _s(raw.get("hosts"), 120), "text_kz": _text(raw.get("text_kz"), 700), "text_ru": _text(raw.get("text_ru"), 700),
-        "program": program, "photo": photo,
+        "program": program, "photo": photo, "photos": photos, "music": music, "effect": effect, "intro": intro,
+        "story_kz": _text(raw.get("story_kz"), 600), "story_ru": _text(raw.get("story_ru"), 600),
     }
+
+
+DEFAULT_MUSIC = {"wedding": "waltz", "uzatu": "dombra", "sundet": "festive", "tusau": "tender", "merey": "festive"}
+
+
+# ---------------- photos ----------------
+def decode_photo(data_url: str) -> bytes:
+    import base64
+    match = re.match(r"^data:image/(jpeg|jpg|png|webp);base64,([A-Za-z0-9+/=]+)$", str(data_url or "").strip())
+    if not match:
+        raise ValueError("Пришлите фото (JPG или PNG)")
+    raw = base64.b64decode(match.group(2), validate=True)
+    if len(raw) > MAX_PHOTO_BYTES:
+        raise ValueError("Фото слишком большое")
+    if len(raw) < 1500:
+        raise ValueError("Фото не читается — попробуйте другое")
+    return raw
+
+
+async def save_photo(db, user_id: str, data_url: str) -> str:
+    raw = decode_photo(data_url)
+    await ensure_tables(db)
+    since = (datetime.now(KZ) - timedelta(days=1)).isoformat(timespec="seconds")
+    today = (await db.execute(text("SELECT COUNT(*) FROM toy_photos WHERE user_id = :u AND created_at >= :s"),
+                              {"u": user_id, "s": since})).scalar() or 0
+    if today >= 60:
+        raise PermissionError("Слишком много фото за сутки — попробуйте завтра")
+    import base64
+    key = secrets.token_hex(8)
+    await db.execute(text("INSERT INTO toy_photos (key, user_id, data, created_at) VALUES (:k, :u, :d, :t)"),
+                     {"k": key, "u": user_id, "d": base64.b64encode(raw).decode(), "t": now_iso()})
+    await db.commit()
+    return key
+
+
+async def photo_bytes(db, key: str) -> Optional[bytes]:
+    if not PHOTO_KEY_RE.match(key or ""):
+        return None
+    await ensure_tables(db)
+    value = (await db.execute(text("SELECT data FROM toy_photos WHERE key = :k"), {"k": key})).scalar()
+    if not value:
+        return None
+    import base64
+    return base64.b64decode(value)
+
+
+async def own_photos(db, user_id: str, keys: list[str]) -> list[str]:
+    """Only the person's own photos can go into their invitation."""
+    if not keys:
+        return []
+    marks = ", ".join(f":k{i}" for i in range(len(keys)))
+    rows = {r[0] for r in (await db.execute(text(f"SELECT key FROM toy_photos WHERE user_id = :u AND key IN ({marks})"),
+                                              {"u": user_id, **{f"k{i}": k for i, k in enumerate(keys)}})).all()}
+    return [k for k in keys if k in rows]
 
 
 _TRANSLIT = str.maketrans({"а": "a", "ә": "a", "б": "b", "в": "v", "г": "g", "ғ": "g", "д": "d", "е": "e", "ё": "e", "ж": "zh",

@@ -113,3 +113,28 @@ async def test_validation_messages(env):
     one = dict(DATA, kind='sundet', name1='Әлихан', name2='')
     r = await client.post(BASE + '/invites', json={'data': one}, headers=h['alice'])
     assert r.status_code == 201 and r.json()['slug'].startswith('alihan-')
+
+
+async def test_photos_music_and_effects(env):
+    import base64
+    client, h, _ = env
+    img = 'data:image/jpeg;base64,' + base64.b64encode(b'\xff\xd8\xff' + b'x' * 4000).decode()
+    assert (await client.post(BASE + '/photos', json={'image': img})).status_code == 401
+    assert (await client.post(BASE + '/photos', json={'image': 'data:text/html;base64,AAAA'}, headers=h['alice'])).status_code == 400
+    a1 = (await client.post(BASE + '/photos', json={'image': img}, headers=h['alice'])).json()['key']
+    a2 = (await client.post(BASE + '/photos', json={'image': img}, headers=h['alice'])).json()['key']
+    b1 = (await client.post(BASE + '/photos', json={'image': img}, headers=h['bob'])).json()['key']
+    r = await client.get(BASE + f'/photos/{a1}.jpg')
+    assert r.status_code == 200 and r.headers['content-type'] == 'image/jpeg' and 'immutable' in r.headers['cache-control']
+    assert r.content.startswith(b'\xff\xd8')
+    assert (await client.get(BASE + '/photos/0000000000000000.jpg')).status_code == 404
+    assert (await client.get(BASE + '/photos/..%2F.jpg')).status_code == 404
+    # only own photos stay; duplicates and junk are dropped; music/effect fall back to defaults
+    data = DATA | {'photos': [a2, a1, a1, b1, 'javascript:x'], 'music': 'evil', 'effect': 'sparkles', 'theme': 'emerald',
+                   'story_ru': 'Познакомились в 2019'}
+    inv = (await client.post(BASE + '/invites', json={'data': data}, headers=h['alice'])).json()
+    assert inv['data']['photos'] == [a2, a1]
+    assert inv['data']['music'] == 'waltz' and inv['data']['effect'] == 'sparkles' and inv['data']['theme'] == 'emerald'
+    assert inv['data']['intro'] is True and inv['data']['story_ru'] == 'Познакомились в 2019'
+    upd = (await client.put(BASE + f"/invites/{inv['id']}", json={'data': data | {'music': 'none', 'intro': False, 'photos': [b1]}}, headers=h['alice'])).json()
+    assert upd['data']['photos'] == [] and upd['data']['music'] == 'none' and upd['data']['intro'] is False

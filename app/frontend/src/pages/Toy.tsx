@@ -3,11 +3,11 @@
  * /toy — what it is and the price; /toy/new and /toy/edit/:id — builder; /toy/my — my invitations and guests;
  * /toy/:slug — the invitation guests open (no site header, made for WhatsApp links).
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, ArrowRight, Check, ChevronDown, Copy, Eye, Loader2, MessageCircle, Pencil, Plus, Send, Trash2, Users, X,
+  ArrowLeft, ArrowRight, Camera, Check, ChevronDown, Copy, Eye, Loader2, MessageCircle, Music2, Pause, Pencil, Play, Plus, Send, Sparkles, Trash2, Users, X,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import ToyInviteView from '@/components/toy/ToyInviteView';
@@ -15,9 +15,10 @@ import { getAccountToken } from '@/lib/accountApi';
 import { track, visitorId } from '@/lib/analytics';
 import { usePageSeo } from '@/hooks/usePageSeo';
 import {
-  KINDS, KIND_INFO, PROGRAMS, SAMPLE, TEXTS, emptyData, tenge, toyApi,
-  type ToyData, type ToyGuest, type ToyInvite, type ToyKind, type ToyTheme,
+  DEFAULT_MUSIC, KINDS, KIND_INFO, MUSIC_INFO, PROGRAMS, SAMPLE, TEXTS, emptyData, photoUrl, tenge, toyApi,
+  type ToyData, type ToyEffect, type ToyGuest, type ToyInvite, type ToyKind, type ToyMusic, type ToyTheme,
 } from '@/lib/toyInvites';
+import { shrinkPhoto } from '@/lib/photo';
 import '@/styles/ads.css';
 
 const THEMES: { id: ToyTheme; ru: string; swatch: [string, string] }[] = [
@@ -25,7 +26,15 @@ const THEMES: { id: ToyTheme; ru: string; swatch: [string, string] }[] = [
   { id: 'pomegranate', ru: 'Гранатовый', swatch: ['#3a0f17', '#e3b867'] },
   { id: 'ivory', ru: 'Светлый', swatch: ['#f7f3ea', '#a8823b'] },
   { id: 'sky', ru: 'Небесный', swatch: ['#eaf4fb', '#2b7bb9'] },
+  { id: 'emerald', ru: 'Изумрудный', swatch: ['#0c2a22', '#d8b46a'] },
+  { id: 'rose', ru: 'Розовое золото', swatch: ['#fbf1ee', '#b76e79'] },
 ];
+const EFFECTS: { id: ToyEffect; ru: string; hint: string }[] = [
+  { id: 'sparkles', ru: 'Золотые искры', hint: 'Мерцают и падают' },
+  { id: 'petals', ru: 'Лепестки', hint: 'Нежно кружатся' },
+  { id: 'none', ru: 'Без эффектов', hint: 'Строго и спокойно' },
+];
+const MAX_PHOTOS = 6;
 const STATUS: Record<string, { ru: string; cls: string }> = {
   draft: { ru: 'Черновик', cls: 'bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-300' },
   pending: { ru: 'Ждём оплату', cls: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' },
@@ -50,7 +59,7 @@ export function ToyLanding() {
   const steps = [
     { t: 'Выберите той', d: 'Свадьба, қыз ұзату, сүндет той, тұсаукесер или юбилей.' },
     { t: 'Заполните данные', d: 'Имена, дата, ресторан. Красивый текст на казахском и русском уже готов — его можно поправить.' },
-    { t: 'Выберите оформление', d: 'Четыре стиля, сразу видно, как увидят гости.' },
+    { t: 'Фото, музыка, стиль', d: 'Ваши фото в арке и галерее, музыка, шесть стилей, конверт с печатью, лепестки или золотые искры.' },
     { t: 'Оплатите и разошлите', d: 'После оплаты Kaspi вы получите ссылку для WhatsApp. Ответы гостей — у вас в кабинете.' },
   ];
   return (
@@ -61,10 +70,12 @@ export function ToyLanding() {
             <div className="min-w-0">
               <span className="ads-kicker">Сортировка 24 · Шақыру</span>
               <h1>Приглашение <span>на той</span></h1>
-              <p>Красивое электронное приглашение на казахском и русском. Гости открывают одну ссылку из WhatsApp: дата, обратный отсчёт, карта, программа — и сразу отвечают, придут ли.</p>
+              <p>Гость открывает ссылку из WhatsApp — и видит конверт с печатью. Нажимает — створки расходятся, играет музыка, падают лепестки. Внутри ваши фото, дата с обратным отсчётом, карта, программа и кнопка «Приду».</p>
               <div className="ads-hero-facts">
+                <span><Camera className="h-4 w-4" />Ваши фото</span>
+                <span><Music2 className="h-4 w-4" />Музыка</span>
+                <span><Sparkles className="h-4 w-4" />Анимация и конверт</span>
                 <span><Check className="h-4 w-4" />Ответы гостей у вас в кабинете</span>
-                <span><Check className="h-4 w-4" />Готово за 10 минут</span>
                 <span><Check className="h-4 w-4" />Оплата Kaspi</span>
               </div>
               <div className="ads-hero-actions">
@@ -73,7 +84,7 @@ export function ToyLanding() {
               </div>
               {price != null && <p className="mt-4 !text-sm">Стоимость — <b className="text-white">{tenge(price)}</b> за приглашение. Сделать и посмотреть можно бесплатно, платите только когда всё нравится.</p>}
             </div>
-            <div className="toy-phone hidden lg:block"><ToyInviteView data={SAMPLE} demo showFooter={false} /></div>
+            <div className="toy-phone hidden lg:block"><ToyInviteView data={SAMPLE} demo showFooter={false} contained /></div>
           </div>
         </header>
 
@@ -105,7 +116,8 @@ export function ToyLanding() {
 
           <section className="mt-10 lg:hidden">
             <h2 className="text-2xl font-bold tracking-tight">Так увидят гости</h2>
-            <div className="toy-phone mt-4"><ToyInviteView data={SAMPLE} demo showFooter={false} /></div>
+            <div className="toy-phone mt-4"><ToyInviteView data={SAMPLE} demo showFooter={false} contained /></div>
+            <p className="mt-3 text-center text-sm text-[var(--ads-muted)]">Нажмите на печать — так приглашение откроется у гостя.</p>
           </section>
         </div>
       </div>
@@ -133,7 +145,11 @@ export function ToyBuilder() {
   const [step, setStep] = useState(editId ? 2 : 1);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [uploading, setUploading] = useState(0);
+  const [listening, setListening] = useState<ToyMusic | null>(null);
+  const player = useRef<HTMLAudioElement | null>(null);
   usePageSeo({ title: 'Создать приглашение на той — Сортировка 24' });
+  useEffect(() => () => { player.current?.pause(); }, []);
 
   useEffect(() => {
     if (!editId) return;
@@ -147,9 +163,33 @@ export function ToyBuilder() {
   const info = KIND_INFO[data.kind];
   const set = (patch: Partial<ToyData>) => { setData((d) => (d ? { ...d, ...patch } : d)); setError(''); };
 
+  async function addPhotos(files: FileList | null) {
+    const room = MAX_PHOTOS - (data!.photos || []).length - uploading;
+    const list = Array.from(files || []).filter((f) => f.type.startsWith('image/')).slice(0, Math.max(0, room));
+    if (!list.length) return;
+    setUploading((n) => n + list.length);
+    for (const file of list) {
+      try {
+        const image = await shrinkPhoto(file, 1600, 0.82);
+        const { key } = await toyApi.uploadPhoto(image);
+        setData((d) => (d ? { ...d, photos: [...(d.photos || []), key].slice(0, MAX_PHOTOS) } : d));
+      } catch (e: any) { toast.error(e?.message || 'Фото не загрузилось'); } finally { setUploading((n) => n - 1); }
+    }
+  }
+  function stopListen() { player.current?.pause(); setListening(null); }
+  function listen(id: ToyMusic) {
+    if (listening === id) { stopListen(); return; }
+    player.current?.pause();
+    const m = MUSIC_INFO[id as keyof typeof MUSIC_INFO];
+    if (!m) return;
+    const a = new Audio(m.src); a.volume = 0.7; player.current = a;
+    a.onended = () => setListening(null);
+    void a.play().then(() => setListening(id)).catch(() => toast.error('Не получилось включить звук'));
+  }
+
   function chooseKind(kind: ToyKind) {
     const keepText = data!.text_kz !== TEXTS[data!.kind].kz || data!.text_ru !== TEXTS[data!.kind].ru;
-    set({ kind, theme: KIND_INFO[kind].theme, ...(keepText ? {} : { text_kz: TEXTS[kind].kz, text_ru: TEXTS[kind].ru }),
+    set({ kind, theme: KIND_INFO[kind].theme, music: DEFAULT_MUSIC[kind], ...(keepText ? {} : { text_kz: TEXTS[kind].kz, text_ru: TEXTS[kind].ru }),
       program: PROGRAMS[kind].map((p) => ({ ...p })), name2: KIND_INFO[kind].two ? data!.name2 : '' });
     setStep(2);
   }
@@ -173,7 +213,7 @@ export function ToyBuilder() {
       return saved;
     } catch (e: any) { setError(e?.message || 'Не получилось сохранить'); return null; } finally { setBusy(false); }
   }
-  async function saveAndFinish() { if (await save()) setStep(4); }
+  async function saveAndFinish() { if (await save()) setStep(5); }
   async function pay() {
     const saved = await save();
     if (!saved) return;
@@ -182,24 +222,24 @@ export function ToyBuilder() {
     catch (e: any) { setError(e?.message || 'Не получилось отправить'); } finally { setBusy(false); }
   }
 
-  const steps = ['Той', 'Данные', 'Оформление', 'Готово'];
-  const preview = <div className="toy-phone"><ToyInviteView key={`${data.theme}-${data.langs}`} data={data} demo showFooter={false} /></div>;
+  const steps = ['Той', 'Данные', 'Фото и музыка', 'Оформление', 'Готово'];
+  const preview = <div className="toy-phone"><ToyInviteView key={`${data.theme}-${data.langs}-${data.intro}-${data.music}`} data={data} demo showFooter={false} contained /></div>;
 
   return (
     <Layout hideBottomNav>
       <div className="ads-surface pb-28">
         <div className="ads-shell pt-5">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <button type="button" onClick={() => (step > 1 ? setStep(step - 1) : navigate('/toy'))} className="inline-flex items-center gap-1 text-sm font-medium text-[var(--ads-muted)]"><ArrowLeft className="h-4 w-4" />{step > 1 ? 'Назад' : 'Приглашения'}</button>
+            <button type="button" onClick={() => { stopListen(); if (step > 1) setStep(step - 1); else navigate('/toy'); }} className="inline-flex items-center gap-1 text-sm font-medium text-[var(--ads-muted)]"><ArrowLeft className="h-4 w-4" />{step > 1 ? 'Назад' : 'Приглашения'}</button>
             {price != null && <span className="ads-chip">{tenge(price)} · оплата после просмотра</span>}
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{editId ? 'Изменить приглашение' : 'Приглашение на той'}</h1>
-          <ol className="mt-4 grid grid-cols-4 gap-2" aria-label="Шаги">
+          <ol className="mt-4 grid grid-cols-5 gap-2" aria-label="Шаги">
             {steps.map((s, i) => (
               <li key={s} aria-current={step === i + 1 ? 'step' : undefined}>
-                <button type="button" disabled={i + 1 > step && !invite} onClick={() => setStep(i + 1)} className="w-full text-left">
+                <button type="button" disabled={i + 1 > step && !invite} onClick={() => { stopListen(); setStep(i + 1); }} className="w-full text-left">
                   <div className={`h-1.5 rounded-full ${step > i ? 'bg-[#3864ed]' : 'bg-[var(--ads-line)]'}`} />
-                  <p className={`mt-1.5 text-xs ${step === i + 1 ? 'font-semibold' : 'text-[var(--ads-muted)]'}`}>{i + 1}. {s}</p>
+                  <p className={`mt-1.5 text-[11px] leading-tight sm:text-xs ${step === i + 1 ? 'font-semibold' : 'text-[var(--ads-muted)]'}`}>{i + 1}. {s}</p>
                 </button>
               </li>
             ))}
@@ -262,14 +302,72 @@ export function ToyBuilder() {
                     <p className="mt-1 text-xs text-[var(--ads-muted)]">Стандартные пункты уже переведены на казахский. Свои пункты гости увидят как написано.</p>
                   </div>
                   {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
-                  <button type="button" data-testid="toy-next" onClick={() => { const p = checkDetails(); if (p) setError(p); else setStep(3); }} className="ads-btn ads-btn-primary w-full sm:w-auto">Дальше: оформление<ArrowRight className="h-5 w-5" /></button>
+                  <button type="button" data-testid="toy-next" onClick={() => { const p = checkDetails(); if (p) setError(p); else setStep(3); }} className="ads-btn ads-btn-primary w-full sm:w-auto">Дальше: фото и музыка<ArrowRight className="h-5 w-5" /></button>
                 </section>
               )}
 
               {step === 3 && (
+                <section className="space-y-7">
+                  <div>
+                    <h2 className="text-lg font-semibold">Фотографии</h2>
+                    <p className="mt-1 text-sm text-[var(--ads-muted)]">Первое фото будет главным — в красивой арке вверху приглашения. Остальные — в галерее. До {MAX_PHOTOS} фото.</p>
+                    <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4" data-testid="toy-photos">
+                      {(data.photos || []).map((key, i) => (
+                        <div key={key} className="relative overflow-hidden rounded-xl border border-[var(--ads-line)]" style={{ aspectRatio: '4 / 5' }}>
+                          <img src={photoUrl(key)} alt="" className="h-full w-full object-cover" />
+                          {i === 0 ? <span className="absolute left-1.5 top-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-semibold text-white">Главное</span>
+                            : <button type="button" onClick={() => set({ photos: [key, ...(data.photos || []).filter((k) => k !== key)] })} className="absolute bottom-1.5 left-1.5 right-1.5 rounded-full bg-white/90 px-2 py-1 text-[11px] font-semibold text-gray-900">Сделать главным</button>}
+                          <button type="button" aria-label="Убрать фото" onClick={() => set({ photos: (data.photos || []).filter((k) => k !== key) })} className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white"><X className="h-4 w-4" /></button>
+                        </div>
+                      ))}
+                      {Array.from({ length: uploading }).map((_, i) => <div key={`u${i}`} className="flex items-center justify-center rounded-xl border border-dashed border-[var(--ads-line)]" style={{ aspectRatio: '4 / 5' }}><Loader2 className="h-6 w-6 animate-spin text-[var(--ads-muted)]" /></div>)}
+                      {(data.photos || []).length + uploading < MAX_PHOTOS && (
+                        getAccountToken() ? (
+                          <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[var(--ads-line)] text-center text-sm font-semibold text-[var(--ads-accent)] hover:border-[#3864ed]" style={{ aspectRatio: '4 / 5' }}>
+                            <Camera className="h-6 w-6" />Добавить фото
+                            <input type="file" accept="image/*" multiple className="sr-only" data-testid="toy-photo-input" onChange={(e) => { void addPhotos(e.target.files); e.target.value = ''; }} />
+                          </label>
+                        ) : (
+                          <button type="button" onClick={() => navigate(`/account?redirect=${encodeURIComponent(location.pathname + location.search)}`)} className="flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[var(--ads-line)] p-2 text-center text-xs font-semibold text-[var(--ads-accent)]" style={{ aspectRatio: '4 / 5' }}>
+                            <Camera className="h-6 w-6" />Войти, чтобы добавить фото
+                          </button>
+                        )
+                      )}
+                    </div>
+                    <p className="mt-2 text-xs text-[var(--ads-muted)]">Без фото тоже красиво: вместо снимка будет золотой шаңырақ.</p>
+                  </div>
+
+                  <div>
+                    <h2 className="text-lg font-semibold">Музыка</h2>
+                    <p className="mt-1 text-sm text-[var(--ads-muted)]">Включится, когда гость откроет приглашение. Мелодии написаны специально для Сортировка 24.</p>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Музыка">
+                      {([...Object.entries(MUSIC_INFO), ['none', null]] as [ToyMusic, (typeof MUSIC_INFO)[keyof typeof MUSIC_INFO] | null][]).map(([id, m]) => (
+                        <div key={id} className={`ads-card !flex-row !items-center !justify-start gap-3 p-3 ${data.music === id ? '!border-[#3864ed] ring-2 ring-[#3864ed]/30' : ''}`}>
+                          <button type="button" role="radio" aria-checked={data.music === id} data-music={id} onClick={() => set({ music: id })} className="min-w-0 flex-1 text-left">
+                            <b className="block text-sm">{m ? m.ru : 'Без музыки'}</b>
+                            <span className="text-xs text-[var(--ads-muted)]">{m ? m.hint : 'Тихое приглашение'}</span>
+                          </button>
+                          {m && <button type="button" onClick={() => listen(id)} aria-label={listening === id ? 'Остановить' : `Послушать: ${m.ru}`} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--ads-accent-soft)] text-[var(--ads-accent)]">
+                            {listening === id ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}</button>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h2 className="text-lg font-semibold">Ваша история <span className="text-sm font-normal text-[var(--ads-muted)]">· необязательно</span></h2>
+                    <p className="mt-1 text-sm text-[var(--ads-muted)]">Пара тёплых строк: как познакомились, что значит этот день. Появится отдельным блоком.</p>
+                    {data.langs !== 'ru' && <textarea aria-label="История на казахском" className={`${field} mt-3 min-h-[90px]`} maxLength={600} value={data.story_kz || ''} onChange={(e) => set({ story_kz: e.target.value })} placeholder="Қазақша" />}
+                    {data.langs !== 'kz' && <textarea aria-label="История на русском" className={`${field} mt-3 min-h-[90px]`} maxLength={600} value={data.story_ru || ''} onChange={(e) => set({ story_ru: e.target.value })} placeholder="На русском" />}
+                  </div>
+                  <button type="button" data-testid="toy-next-media" onClick={() => { stopListen(); setStep(4); }} className="ads-btn ads-btn-primary w-full sm:w-auto">Дальше: оформление<ArrowRight className="h-5 w-5" /></button>
+                </section>
+              )}
+
+              {step === 4 && (
                 <section>
                   <h2 className="text-lg font-semibold">Оформление</h2>
-                  <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {THEMES.map((th) => (
                       <button key={th.id} type="button" aria-pressed={data.theme === th.id} data-theme-pick={th.id} onClick={() => set({ theme: th.id })}
                         className={`ads-card p-3 text-left ${data.theme === th.id ? '!border-[#3864ed] ring-2 ring-[#3864ed]/30' : ''}`}>
@@ -278,13 +376,26 @@ export function ToyBuilder() {
                       </button>
                     ))}
                   </div>
+                  <h3 className="mt-6 text-base font-semibold">Анимация</h3>
+                  <div className="mt-2 grid grid-cols-3 gap-2" role="radiogroup" aria-label="Анимация">
+                    {EFFECTS.map((ef) => (
+                      <button key={ef.id} type="button" role="radio" aria-checked={(data.effect || 'sparkles') === ef.id} data-effect={ef.id} onClick={() => set({ effect: ef.id })}
+                        className={`ads-card p-3 text-left ${(data.effect || 'sparkles') === ef.id ? '!border-[#3864ed] ring-2 ring-[#3864ed]/30' : ''}`}>
+                        <b className="text-sm">{ef.ru}</b><span className="text-xs text-[var(--ads-muted)]">{ef.hint}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--ads-line)] p-3">
+                    <input type="checkbox" className="mt-1 h-5 w-5 accent-[#3864ed]" checked={data.intro !== false} onChange={(e) => set({ intro: e.target.checked })} data-testid="toy-intro" />
+                    <span><b className="block text-sm">Конверт с печатью при открытии</b><span className="text-xs text-[var(--ads-muted)]">Гость нажимает на печать — створки расходятся и начинается музыка.</span></span>
+                  </label>
                   <div className="mt-6 lg:hidden">{preview}</div>
                   {error && <p className="mt-4 text-sm text-red-600" role="alert">{error}</p>}
                   <button type="button" data-testid="toy-save" disabled={busy} onClick={() => void saveAndFinish()} className="ads-btn ads-btn-primary mt-6 w-full sm:w-auto">{busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />}{getAccountToken() ? 'Сохранить' : 'Войти и сохранить'}</button>
                 </section>
               )}
 
-              {step === 4 && invite && (
+              {step === 5 && invite && (
                 <section className="ads-panel p-6">
                   {invite.status === 'published' ? <>
                     <h2 className="text-xl font-bold">Приглашение открыто для гостей 🎉</h2>

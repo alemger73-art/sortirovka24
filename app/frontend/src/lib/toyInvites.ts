@@ -3,12 +3,16 @@ import { getAPIBaseURL } from '@/lib/config';
 import { getAccountToken } from '@/lib/accountApi';
 
 export type ToyKind = 'wedding' | 'uzatu' | 'sundet' | 'tusau' | 'merey';
-export type ToyTheme = 'night' | 'ivory' | 'pomegranate' | 'sky';
+export type ToyTheme = 'night' | 'ivory' | 'pomegranate' | 'sky' | 'emerald' | 'rose';
+export type ToyMusic = 'dombra' | 'waltz' | 'tender' | 'festive' | 'none';
+export type ToyEffect = 'petals' | 'sparkles' | 'none';
 export type ToyLangs = 'both' | 'kz' | 'ru';
 export type ProgramItem = { time: string; kz: string; ru: string };
 export type ToyData = {
   kind: ToyKind; theme: ToyTheme; langs: ToyLangs; name1: string; name2: string; date: string; time: string;
   place: string; address: string; map_url: string; hosts: string; text_kz: string; text_ru: string; program: ProgramItem[]; photo?: string;
+  /** Uploaded photo keys (first is the cover) or local data: URLs before saving. */ photos?: string[];
+  music?: ToyMusic; effect?: ToyEffect; intro?: boolean; story_kz?: string; story_ru?: string;
 };
 export type ToyStatus = 'draft' | 'pending' | 'published' | 'rejected' | 'archived';
 export type ToyInvite = {
@@ -26,6 +30,21 @@ export const KIND_INFO: Record<ToyKind, { title: Bi; kicker: Bi; hint: Bi; two: 
   merey: { title: { kz: 'Мерейтой', ru: 'Юбилей' }, kicker: { kz: 'Мерейтой', ru: 'Юбилей' }, hint: { kz: 'Мерейтой, туған күн', ru: 'Юбилей, день рождения' }, two: false, name1: { kz: 'Мерейтой иесі', ru: 'Юбиляр' }, theme: 'pomegranate' },
 };
 export const KINDS = Object.keys(KIND_INFO) as ToyKind[];
+
+/** Original music written for Сортировка 24 — no rights of others involved. */
+export const MUSIC_INFO: Record<Exclude<ToyMusic, 'none'>, { ru: string; kz: string; hint: string; src: string }> = {
+  waltz: { ru: 'Свадебный вальс', kz: 'Той вальсі', hint: 'Фортепиано и струнные', src: '/toy/music/waltz.mp3' },
+  dombra: { ru: 'Домбыра әуені', kz: 'Домбыра әуені', hint: 'Домбра, казахский мотив', src: '/toy/music/dombra.mp3' },
+  tender: { ru: 'Нежная', kz: 'Нәзік әуен', hint: 'Музыкальная шкатулка', src: '/toy/music/tender.mp3' },
+  festive: { ru: 'Праздничная', kz: 'Мерекелік', hint: 'Весёлая, с ритмом', src: '/toy/music/festive.mp3' },
+};
+export const DEFAULT_MUSIC: Record<ToyKind, ToyMusic> = { wedding: 'waltz', uzatu: 'dombra', sundet: 'festive', tusau: 'tender', merey: 'festive' };
+
+/** Photo key → address; data: URLs (not uploaded yet) are shown as they are. */
+export function photoUrl(key: string): string {
+  if (/^(data:|https?:|blob:)/.test(key)) return key;
+  return `${getAPIBaseURL().replace(/\/$/, '')}/api/v1/toy/photos/${key}.jpg`;
+}
 
 const GREETING_KZ = 'Құрметті ағайын-туыс, құда-жекжат, дос-жарандар!';
 export const TEXTS: Record<ToyKind, Bi> = {
@@ -81,6 +100,7 @@ export function emptyData(kind: ToyKind = 'wedding'): ToyData {
   return {
     kind, theme: KIND_INFO[kind].theme, langs: 'both', name1: '', name2: '', date: iso, time: '18:00',
     place: '', address: '', map_url: '', hosts: '', text_kz: TEXTS[kind].kz, text_ru: TEXTS[kind].ru, program: PROGRAMS[kind].map((p) => ({ ...p })),
+    photos: [], music: DEFAULT_MUSIC[kind], effect: kind === 'tusau' || kind === 'uzatu' ? 'petals' : 'sparkles', intro: true, story_kz: '', story_ru: '',
   };
 }
 export const SAMPLE: ToyData = {
@@ -106,6 +126,7 @@ export const toyApi = {
   config: () => call<{ enabled: boolean; price: number }>('/config'),
   create: (data: ToyData) => call<ToyInvite>('/invites', { method: 'POST', body: JSON.stringify({ data }) }),
   update: (id: number, data: ToyData) => call<ToyInvite>(`/invites/${id}`, { method: 'PUT', body: JSON.stringify({ data }) }),
+  uploadPhoto: (image: string) => call<{ key: string }>('/photos', { method: 'POST', body: JSON.stringify({ image }) }),
   get: (id: number) => call<ToyInvite>(`/invites/${id}`),
   mine: () => call<{ items: ToyInvite[] }>('/invites/mine'),
   remove: (id: number) => call<{ ok: boolean }>(`/invites/${id}`, { method: 'DELETE' }),

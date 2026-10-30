@@ -612,7 +612,7 @@ if FRONTEND_DIR.is_dir():
             if full_path.startswith("assets/"):
                 # File names carry a content hash: a new release gets new names, so cache forever.
                 headers["Cache-Control"] = "public, max-age=31536000, immutable"
-            elif candidate.suffix in {".png", ".jpg", ".jpeg", ".webp", ".svg", ".ico", ".woff2"}:
+            elif candidate.suffix in {".png", ".jpg", ".jpeg", ".webp", ".svg", ".ico", ".woff2", ".mp3"}:
                 headers["Cache-Control"] = "public, max-age=86400"
             if candidate.name in {"index.html", "sw.js", "push-sw.js", "manifest.json", "operator.webmanifest", "offline.html"} or full_path == "":
                 headers["Cache-Control"] = "no-cache, no-store, must-revalidate"

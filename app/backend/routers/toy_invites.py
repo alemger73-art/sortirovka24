@@ -66,6 +66,7 @@ async def create(body: InviteBody, authorization: str | None = Header(default=No
     user = await _user(db, authorization)
     try:
         data = svc.clean_data(body.data)
+        data["photos"] = await svc.own_photos(db, str(user.id), data["photos"])
         inv = await svc.create(db, user_id=str(user.id), phone=_phone(user.phone), data=data)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from None
@@ -96,7 +97,36 @@ async def update(invite_id: int, body: InviteBody, authorization: str | None = H
         data = svc.clean_data(body.data)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from None
+    data["photos"] = await svc.own_photos(db, str(inv["user_id"]), data["photos"])
     return _for_owner(await svc.update_data(db, inv["id"], data))
+
+
+class PhotoBody(BaseModel):
+    image: str
+
+
+@router.post("/photos", status_code=201)
+async def upload_photo(body: PhotoBody, request: Request, authorization: str | None = Header(default=None, alias="Authorization"),
+                       db: AsyncSession = Depends(get_db)):
+    from utils.rate_limit import check_ip_rate_limit
+    check_ip_rate_limit(request, key_prefix="toy_photo", window_seconds=3600, max_hits=60)
+    user = await _user(db, authorization)
+    try:
+        return {"key": await svc.save_photo(db, str(user.id), body.image)}
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+    except PermissionError as exc:
+        raise HTTPException(429, str(exc)) from None
+
+
+@router.get("/photos/{key}.jpg")
+async def photo(key: str, db: AsyncSession = Depends(get_db)):
+    from fastapi.responses import Response
+    raw = await svc.photo_bytes(db, key)
+    if not raw:
+        raise HTTPException(404, "Фото не найдено")
+    kind = "image/png" if raw[:4] == b"\x89PNG" else "image/webp" if raw[8:12] == b"WEBP" else "image/jpeg"
+    return Response(raw, media_type=kind, headers={"Cache-Control": "public, max-age=31536000, immutable"})
 
 
 @router.delete("/invites/{invite_id}")
