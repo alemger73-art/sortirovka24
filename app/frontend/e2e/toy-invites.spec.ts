@@ -12,7 +12,7 @@ async function setup(page: Page, opts: { auth?: boolean } = {}) {
     if (auth) { localStorage.setItem('account_token', 'test-token'); localStorage.setItem('account_user_profile', JSON.stringify(profile)); }
   }, { profile, auth: opts.auth });
   await page.route('**/api/**', async (route) => {
-    const req = route.request(), path = new URL(req.url()).pathname, m = req.method();
+    const req = route.request(), url = new URL(req.url()), path = url.pathname, m = req.method();
     if (path.endsWith('/account/me') || path.endsWith('/auth/me')) return route.fulfill({ json: profile });
     if (path.endsWith('/toy/config')) return route.fulfill({ json: { enabled: true, price: 4990 } });
     if (path.endsWith('/toy/photos') && m === 'POST') { photoN += 1; return route.fulfill({ status: 201, json: { key: String(photoN).padStart(16, '0') } }); }
@@ -24,6 +24,8 @@ async function setup(page: Page, opts: { auth?: boolean } = {}) {
     if (path.endsWith('/toy/invites/7/guests')) return route.fulfill({ json: { items: [{ name: 'Ерлан', coming: true, guests: 3, wish: 'Бақытты болыңдар!' }, { name: 'Сауле', coming: false, guests: 0, wish: '' }], coming: 1, people: 3, declined: 1 } });
     if (path.endsWith('/toy/public/aibek-aruzhan-1a2b/rsvp')) { writes.push({ rsvp: req.postDataJSON() }); return route.fulfill({ json: { ok: true } }); }
     if (path.endsWith('/toy/public/aibek-aruzhan-1a2b')) return route.fulfill({ json: { slug: 'aibek-aruzhan-1a2b', status: 'published', preview: false, owner: false, data: { kind: 'wedding', theme: 'pomegranate', langs: 'both', name1: 'Айбек', name2: 'Аружан', date: day, time: '18:00', place: '«Мерей» мейрамханасы', address: 'Караганда, Сортировка', map_url: '', hosts: 'Нұрлан – Гүлнар', text_kz: 'Құрметті ағайын-туыс!', text_ru: 'Дорогие родные!', program: [{ time: '18:00', kz: 'Той басталады', ru: 'Начало' }] } } });
+    const light = path.match(/\/toy\/public\/light-(ivory|rose|sky)$/);
+    if (light) return route.fulfill({ json: { slug: `light-${light[1]}`, status: 'published', preview: false, owner: false, data: { kind: 'uzatu', theme: light[1], langs: 'kz', name1: 'Әсем', name2: '', date: day, time: '17:00', place: '«Нұр» тойханасы', address: 'Қарағанды', map_url: '', hosts: 'Ерлан – Гүлмира', text_kz: 'Құрметті ағайын-туыс! Сіздерді аяулы қызымыз Әсемнің ұзату тойына шақырамыз!', text_ru: '', program: [{ time: '17:00', kz: 'Қонақтарды қарсы алу', ru: '' }, { time: '18:00', kz: 'Тойдың басталуы', ru: '' }], music: 'dombra', effect: 'petals', intro: true } } });
     if (path.endsWith('/toy/public/premium-0001')) return route.fulfill({ json: { slug: 'premium-0001', status: 'published', preview: false, owner: false, data: { kind: 'wedding', theme: 'emerald', langs: 'both', name1: 'Айбек', name2: 'Аружан', date: day, time: '18:00', place: '«Мерей»', address: 'Караганда', map_url: '', hosts: '', text_kz: 'Құрметті ағайын!', text_ru: 'Дорогие родные!', program: [], photos: ['00000000000000a1', '00000000000000a2', '00000000000000a3'], music: 'waltz', effect: 'petals', intro: true, story_kz: '', story_ru: 'Мы познакомились в 2019 году на Сортировке.' } } });
     if (path.includes('/toy/public/')) return route.fulfill({ status: 404, json: { detail: 'not found' } });
     return route.fulfill({ json: { items: [], total: 0 } });
@@ -82,7 +84,7 @@ test('guest opens the invitation, switches language and answers', async ({ page 
   const writes = await setup(page);
   await page.goto('/toy/aibek-aruzhan-1a2b');
   await expect(page.getByTestId('toy-envelope')).toBeVisible();
-  await expect(page.locator('.toy-env-names')).toContainText('Айбек');
+  await expect(page.locator('.env-names')).toContainText('Айбек');
   await page.screenshot({ path: info.outputPath('envelope.png') });
   await page.getByTestId('toy-open').click({ force: true });
   await expect(page.getByTestId('toy-envelope')).toHaveCount(0, { timeout: 4000 });
@@ -132,7 +134,7 @@ test('premium: envelope opens and starts the music, photo in an arch, gallery, s
   await expect(music).toHaveAttribute('aria-pressed', 'true');   // the tap on the seal started it
   await music.click();
   await expect(music).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.locator('.toy-arch img')).toHaveAttribute('src', /\/api\/v1\/toy\/photos\/00000000000000a1\.jpg$/);
+  await expect(page.locator('.toy-cover img')).toHaveAttribute('src', /\/api\/v1\/toy\/photos\/00000000000000a1\.jpg$/);
   await page.getByRole('button', { name: 'РУС' }).first().click();
   await expect(page.getByText('Мы познакомились в 2019 году на Сортировке.')).toBeVisible();
   await expect(page.locator('.toy-shot')).toHaveCount(2);
@@ -156,4 +158,21 @@ test('no envelope when it is switched off; reduced motion shows everything at on
   await page.getByTestId('toy-open').click({ force: true });
   await expect(page.getByTestId('toy-envelope')).toHaveCount(0, { timeout: 1500 });
   await expect(page.locator('.toy-fx')).toBeHidden();
+});
+
+
+test('light themes: Kazakh letters, envelope and page look right', async ({ page }, info) => {
+  await setup(page);
+  for (const t of ['ivory', 'rose', 'sky']) {
+    await page.goto(`/toy/light-${t}`);
+    await expect(page.getByTestId('toy-envelope')).toBeVisible();
+    await page.screenshot({ path: info.outputPath(`${t}-envelope.png`) });
+    await page.getByTestId('toy-open').click({ force: true });
+    await page.waitForTimeout(1000);
+    await page.screenshot({ path: info.outputPath(`${t}-opening.png`) });
+    await expect(page.getByTestId('toy-envelope')).toHaveCount(0, { timeout: 4000 });
+    await expect(page.locator('.toy-names')).toContainText('Әсем');
+    expect(await noOverflow(page)).toBe(true);
+    await page.screenshot({ path: info.outputPath(`${t}-page.png`), fullPage: true });
+  }
 });

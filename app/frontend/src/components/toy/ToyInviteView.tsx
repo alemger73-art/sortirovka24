@@ -1,11 +1,18 @@
 /**
  * The invitation itself: what guests see. Used on the public page, in the builder preview and as examples.
  * Premium parts: an envelope that opens with a tap (and starts the music — browsers allow sound only after a tap),
- * original background music, falling petals / gold sparkles, photo in an arch + gallery, our story, add-to-calendar,
- * blocks that softly appear while scrolling. Everything respects «reduce motion».
+ * original background music, falling petals / gold sparkles, a full-screen cover photo, gallery, our story, add-to-calendar.
+ * The envelope is the one big moment: the flap opens, the card slides out and becomes the page. Everything respects «reduce motion».
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { KIND_INFO, MUSIC_INFO, dateParts, eventTime, kzAnd, photoUrl, type ToyData } from '@/lib/toyInvites';
+import { GoldDefs, OyuDivider, OyuFrame, Shanyrak } from '@/components/toy/ToyOrnaments';
+// Fonts ship with the site (both have Kazakh letters ә ғ қ ң ө ұ ү һ і) — no waiting for Google Fonts on a slow phone.
+import '@fontsource/cormorant-garamond/500.css';
+import '@fontsource/cormorant-garamond/500-italic.css';
+import '@fontsource/cormorant-garamond/600.css';
+import '@fontsource/montserrat/400.css';
+import '@fontsource/montserrat/600.css';
 import '@/styles/toy.css';
 
 type Lang = 'kz' | 'ru';
@@ -27,52 +34,6 @@ const UI: Record<Lang, Record<string, string>> = {
     invited: 'Вы приглашены на той', open: 'Открыть приглашение', tap: 'Нажмите на печать, чтобы открыть', withMusic: 'с музыкой', musicOn: 'Включить музыку', musicOff: 'Выключить музыку',
     gallery: 'Наши моменты', galleryOne: 'Фотографии', story: 'Наша история', calendar: 'Добавить в календарь', untilToy: 'До тоя', close: 'Закрыть' },
 };
-
-let fontsLoaded = false;
-function loadFonts() {
-  if (fontsLoaded || typeof document === 'undefined') return;
-  fontsLoaded = true;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Montserrat:wght@400;500;600&display=swap';
-  document.head.appendChild(link);
-}
-
-function Shanyrak({ className = 'toy-shanyrak' }: { className?: string }) {
-  const poles = [[120, 42, 120, 8], [120, 198, 120, 232], [42, 120, 8, 120], [198, 120, 232, 120], [65, 65, 41, 41], [175, 65, 199, 41], [65, 175, 41, 199], [175, 175, 199, 199],
-    [90, 48, 78, 16], [150, 48, 162, 16], [90, 192, 78, 224], [150, 192, 162, 224], [48, 90, 16, 78], [48, 150, 16, 162], [192, 90, 224, 78], [192, 150, 224, 162]];
-  return (
-    <svg className={className} viewBox="0 0 240 240" aria-hidden="true">
-      <g fill="none" stroke="currentColor">
-        <circle cx="120" cy="120" r="112" strokeOpacity=".25" />
-        <g className="spin"><circle cx="120" cy="120" r="96" strokeWidth="1.5" strokeDasharray="2 7" strokeOpacity=".7" /></g>
-        <circle className="draw" cx="120" cy="120" r="78" strokeWidth="2" pathLength={1} />
-        <circle cx="120" cy="120" r="70" strokeOpacity=".6" />
-        <path className="draw" pathLength={1} d="M120 50 Q 150 120 120 190 M120 50 Q 90 120 120 190 M50 120 Q 120 150 190 120 M50 120 Q 120 90 190 120" strokeWidth="2" />
-        <g strokeWidth="1.2" strokeOpacity=".75">{poles.map(([a, b, c, d]) => <line key={`${a}-${b}-${c}`} x1={a} y1={b} x2={c} y2={d} />)}</g>
-      </g>
-    </svg>
-  );
-}
-function Ornament() {
-  return (
-    <svg className="toy-orn" viewBox="0 0 180 28" aria-hidden="true"><g fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-      <path className="draw" pathLength={1} d="M90 22 C 90 10, 78 4, 70 9 C 63 13, 66 22, 73 20 C 78 18, 76 12, 72 13" />
-      <path className="draw" pathLength={1} d="M90 22 C 90 10, 102 4, 110 9 C 117 13, 114 22, 107 20 C 102 18, 104 12, 108 13" />
-      <path d="M8 22 H 60 M120 22 H 172" strokeOpacity=".5" />
-    </g></svg>
-  );
-}
-/** Corner ою for the envelope and the photo frame. */
-function Corner({ className }: { className: string }) {
-  return (
-    <svg className={className} viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-      <path d="M4 60 V 22 C 4 12, 12 4, 22 4 H 60" strokeOpacity=".7" />
-      <path d="M14 50 C 14 34, 22 26, 30 26 C 38 26, 40 34, 34 38 C 29 41, 25 36, 28 33" />
-      <path d="M50 14 C 34 14, 26 22, 26 30" />
-    </g></svg>
-  );
-}
 
 function useCountdown(target: Date) {
   const [now, setNow] = useState(() => Date.now());
@@ -110,18 +71,6 @@ function useMusic(track: string | undefined) {
   return { has: Boolean(src), playing, play, stop };
 }
 
-/** Blocks appear softly while scrolling. */
-function useReveal(root: React.RefObject<HTMLElement>, deps: unknown[]) {
-  useEffect(() => {
-    const el = root.current; if (!el) return undefined;
-    const items = Array.from(el.querySelectorAll<HTMLElement>('.toy-rv:not(.is-in)'));
-    if (!('IntersectionObserver' in window)) { items.forEach((i) => i.classList.add('is-in')); return undefined; }
-    const io = new IntersectionObserver((entries) => entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); } }), { threshold: 0.12 });
-    items.forEach((i) => io.observe(i));
-    return () => io.disconnect();
-  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
-}
-
 const PARTICLES = Array.from({ length: 16 }, (_, i) => ({ left: (i * 61) % 100, delay: (i * 1.7) % 11, dur: 9 + ((i * 7) % 8), size: 8 + ((i * 5) % 9), drift: (i % 2 ? 1 : -1) * (20 + (i * 13) % 50) }));
 function Particles({ effect }: { effect?: string }) {
   if (!effect || effect === 'none') return null;
@@ -146,7 +95,6 @@ export default function ToyInviteView({ data, onRsvp, previewNote, demo, startLa
   data: ToyData; onRsvp?: (p: RsvpPayload) => Promise<void>; previewNote?: string; demo?: boolean; startLang?: Lang; showFooter?: boolean;
   /** Inside a phone mock-up: overlays stay inside the frame. */ contained?: boolean; noIntro?: boolean;
 }) {
-  useEffect(loadFonts, []);
   const fixed: Lang | null = data.langs === 'kz' ? 'kz' : data.langs === 'ru' ? 'ru' : null;
   const [lang, setLang] = useState<Lang>(fixed || startLang || 'kz');
   useEffect(() => { if (fixed) setLang(fixed); }, [fixed]);
@@ -174,10 +122,8 @@ export default function ToyInviteView({ data, onRsvp, previewNote, demo, startLa
     music.play();
     setOpening(true);
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    window.setTimeout(() => setOpened(true), reduce ? 10 : 1500);
+    window.setTimeout(() => setOpened(true), reduce ? 10 : 2600);
   }
-  const root = useRef<HTMLDivElement>(null);
-  useReveal(root, [opened, lang, gallery.length, program.length]);
   const [zoom, setZoom] = useState<string | null>(null);
 
   const [copied, setCopied] = useState(false);
@@ -210,30 +156,50 @@ export default function ToyInviteView({ data, onRsvp, previewNote, demo, startLa
   }
   const mapHref = data.map_url || (data.address || data.place ? `https://2gis.kz/karaganda/search/${encodeURIComponent([data.place, data.address].filter(Boolean).join(' '))}` : '');
 
+  const names = (cls: string) => (
+    <p className={cls}>
+      <span>{who[0]}</span>
+      {who[1] && <><span className="amp">{and}</span><span>{who[1]}</span></>}
+    </p>
+  );
+  const dateBlock = (
+    <div className="toy-date" aria-label={`${dp.day} ${dp.monthGen} ${dp.year}, ${data.time}`}>
+      <span className="side">{dp.weekday}</span>
+      <span className="day">{dp.day}</span>
+      <span className="side">{dp.month}<br />{dp.year}</span>
+    </div>
+  );
+
   return (
-    <div ref={root} className={`toy-card${contained ? ' is-contained' : ''}${opened ? ' is-open' : ''}`} data-theme-name={data.theme} lang={lang === 'kz' ? 'kk' : 'ru'}>
-      <div className="toy-pattern" aria-hidden="true" />
+    <div className={`toy-card${contained ? ' is-contained' : ''}${opened ? ' is-open' : ''}`} data-theme-name={data.theme} lang={lang === 'kz' ? 'kk' : 'ru'}>
+      <GoldDefs />
       {opened && <Particles effect={data.effect} />}
 
       {!opened && (
-        <div className={`toy-envelope${opening ? ' is-opening' : ''}`} role="dialog" aria-label={t.invited} data-testid="toy-envelope">
-          <div className="toy-door l" aria-hidden="true"><Corner className="toy-corner tl" /><Corner className="toy-corner bl" /></div>
-          <div className="toy-door r" aria-hidden="true"><Corner className="toy-corner tr" /><Corner className="toy-corner br" /></div>
-          <div className="toy-env-body">
-            {!fixed && (
-              <div className="toy-lang toy-env-lang" role="group" aria-label="Тіл / Язык">
-                <button type="button" aria-pressed={lang === 'kz'} onClick={() => setLang('kz')}>ҚАЗ</button>
-                <button type="button" aria-pressed={lang === 'ru'} onClick={() => setLang('ru')}>РУС</button>
-              </div>
-            )}
-            <p className="toy-kicker">{t.invited}</p>
-            <p className="toy-env-names">{who[0]}{who[1] && <><span className="amp">{and}</span>{who[1]}</>}</p>
-            <p className="toy-env-date">{dp.day} {dp.monthGen} {dp.year}</p>
-            <button type="button" className="toy-seal" onClick={openEnvelope} aria-label={t.open} data-testid="toy-open">
-              <Shanyrak className="toy-seal-mark" />
+        <div className={`toy-stage${opening ? ' is-opening' : ''}`} role="dialog" aria-label={t.invited} data-testid="toy-envelope">
+          {!fixed && (
+            <div className="toy-lang toy-stage-lang" role="group" aria-label="Тіл / Язык">
+              <button type="button" aria-pressed={lang === 'kz'} onClick={() => setLang('kz')}>ҚАЗ</button>
+              <button type="button" aria-pressed={lang === 'ru'} onClick={() => setLang('ru')}>РУС</button>
+            </div>
+          )}
+          <p className="toy-stage-title">{t.invited}</p>
+          <div className="env">
+            <div className="env-back" />
+            <div className="env-card">
+              <OyuFrame className="env-card-frame">
+                <p className="toy-kicker">{info.kicker[lang]}</p>
+                {names('env-names')}
+                <p className="env-date">{dp.day} {dp.monthGen} {dp.year}</p>
+              </OyuFrame>
+            </div>
+            <div className="env-front" />
+            <div className="env-flap"><div className="env-flap-paper" /><div className="env-flap-liner" /></div>
+            <button type="button" className="env-seal" onClick={openEnvelope} aria-label={t.open} data-testid="toy-open">
+              <Shanyrak className="env-seal-mark" />
             </button>
-            <p className="toy-env-tap">{t.tap}{music.has ? <><br /><span>♪ {t.withMusic}</span></> : null}</p>
           </div>
+          <p className="toy-stage-hint">{t.tap}{music.has && <span> · ♪ {t.withMusic}</span>}</p>
         </div>
       )}
 
@@ -245,61 +211,71 @@ export default function ToyInviteView({ data, onRsvp, previewNote, demo, startLa
         </button>
       )}
 
+      {cover && (
+        <header className="toy-cover">
+          <img src={cover} alt="" />
+          <div className="toy-cover-text">
+            {demo && <span className="toy-demo">{lang === 'kz' ? 'Үлгі' : 'Пример'}</span>}
+            <p className="toy-kicker">{info.kicker[lang]}</p>
+            {names('toy-names')}
+            <p className="toy-cover-date">{dp.day} {dp.monthGen} {dp.year}</p>
+          </div>
+        </header>
+      )}
+
       <div className="toy-col">
-        <div className="toy-top">
-          {demo ? <span className="demo">{lang === 'kz' ? 'Үлгі' : 'Пример'} · Сортировка 24</span> : <span />}
-          {!fixed && (
-            <div className="toy-lang" role="group" aria-label="Тіл / Язык">
-              <button type="button" aria-pressed={lang === 'kz'} onClick={() => setLang('kz')}>ҚАЗ</button>
-              <button type="button" aria-pressed={lang === 'ru'} onClick={() => setLang('ru')}>РУС</button>
-            </div>
-          )}
-        </div>
+        {(!fixed || demo) && !cover && (
+          <div className="toy-top">
+            {demo ? <span className="toy-demo">{lang === 'kz' ? 'Үлгі' : 'Пример'}</span> : <span />}
+          </div>
+        )}
+        {!fixed && (
+          <div className={`toy-lang toy-lang-float${cover ? ' on-cover' : ''}`} role="group" aria-label="Тіл / Язык">
+            <button type="button" aria-pressed={lang === 'kz'} onClick={() => setLang('kz')}>ҚАЗ</button>
+            <button type="button" aria-pressed={lang === 'ru'} onClick={() => setLang('ru')}>РУС</button>
+          </div>
+        )}
         {previewNote && <p className="toy-preview-note" role="status">{previewNote}</p>}
 
-        <header className="toy-hero">
-          {cover ? (
-            <div className="toy-arch toy-rv">
-              <Corner className="toy-corner tl" /><Corner className="toy-corner tr" />
-              <div className="toy-arch-img"><img src={cover} alt="" /></div>
-            </div>
-          ) : <div className="toy-rv"><Shanyrak /></div>}
-          <p className="toy-kicker toy-rv">{info.kicker[lang]}</p>
-          <h1 className="toy-names toy-rv">
-            {who[0]}
-            {who[1] && <><span className="amp">{and}</span>{who[1]}</>}
-          </h1>
-          {lead && <p className="toy-lead toy-rv">{lead}</p>}
-          <div className="toy-rv"><Ornament /></div>
-          <div className="toy-date toy-rv" aria-label={`${dp.day} ${dp.monthGen} ${dp.year}, ${data.time}`}>
-            <div className="side">{dp.month}</div>
-            <div className="day">{dp.day}</div>
-            <div className="side">{dp.weekday} · {data.time}</div>
-          </div>
-          <p className="toy-until toy-rv">{t.untilToy}</p>
-          <div className="toy-count toy-rv" role="timer" aria-label={t.untilToy}>
+        {!cover && (
+          <OyuFrame className="toy-hero-frame">
+            <Shanyrak className="toy-emblem" />
+            <p className="toy-kicker">{info.kicker[lang]}</p>
+            {names('toy-names')}
+          </OyuFrame>
+        )}
+
+        <section className="toy-sheet toy-intro">
+          {lead && <p className="toy-lead">{lead}</p>}
+          <OyuDivider />
+          {dateBlock}
+          <p className="toy-time">{data.time}</p>
+          <div className="toy-count" role="timer" aria-label={t.untilToy}>
             <div><b>{left.d}</b><span>{t.days}</span></div>
+            <i aria-hidden="true" />
             <div><b>{pad(left.h)}</b><span>{t.hours}</span></div>
+            <i aria-hidden="true" />
             <div><b>{pad(left.m)}</b><span>{t.mins}</span></div>
+            <i aria-hidden="true" />
             <div><b>{pad(left.s)}</b><span>{t.secs}</span></div>
           </div>
-          <div className="toy-actions toy-center toy-rv"><button type="button" className="toy-btn" onClick={addToCalendar} data-testid="toy-calendar">
-            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" strokeWidth="1.8" d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4" /></svg>{t.calendar}</button></div>
-        </header>
+          <button type="button" className="toy-btn ghost" onClick={addToCalendar} data-testid="toy-calendar">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" strokeWidth="1.6" d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4" /></svg>{t.calendar}</button>
+        </section>
 
         {story && (
-          <section className="toy-sec toy-rv">
+          <section className="toy-sec">
             <h2>{t.story}</h2>
             <p className="toy-story">{story}</p>
           </section>
         )}
 
         {gallery.length > 0 && (
-          <section className="toy-sec toy-rv" aria-label={info.two ? t.gallery : t.galleryOne}>
+          <section className="toy-sec" aria-label={info.two ? t.gallery : t.galleryOne}>
             <h2>{info.two ? t.gallery : t.galleryOne}</h2>
-            <div className="toy-gallery">
+            <div className={`toy-gallery n${Math.min(gallery.length, 5)}`}>
               {gallery.map((src, i) => (
-                <button key={src} type="button" className="toy-shot" style={{ ['--i' as string]: i }} onClick={() => setZoom(src)} aria-label={`${i + 2}`}>
+                <button key={src} type="button" className="toy-shot" onClick={() => setZoom(src)} aria-label={`${i + 2}`}>
                   <img src={src} alt="" loading="lazy" />
                 </button>
               ))}
@@ -308,46 +284,44 @@ export default function ToyInviteView({ data, onRsvp, previewNote, demo, startLa
         )}
 
         {(data.place || data.address) && (
-          <section className="toy-sec toy-rv">
+          <section className="toy-sec">
             <h2>{t.place}</h2>
-            <div className="toy-panel toy-place">
+            <div className="toy-sheet toy-place">
               {data.place && <b>{data.place}</b>}
               {data.address && <p>{data.address}</p>}
               <div className="toy-actions">
                 {mapHref && <a className="toy-btn solid" href={mapHref} target="_blank" rel="noopener noreferrer">{t.map}</a>}
-                <button type="button" className="toy-btn" onClick={() => void copyAddress()}>{copied ? t.copied : t.copy}</button>
+                <button type="button" className="toy-btn ghost" onClick={() => void copyAddress()}>{copied ? t.copied : t.copy}</button>
               </div>
             </div>
           </section>
         )}
 
         {program.length > 0 && (
-          <section className="toy-sec toy-rv">
+          <section className="toy-sec">
             <h2>{t.program}</h2>
-            <div className="toy-panel">
-              <ol className="toy-program">
-                {program.map((p, i) => <li key={i}><time>{p.time}</time><span>{(lang === 'kz' ? p.kz : p.ru) || p.kz || p.ru}</span></li>)}
-              </ol>
-            </div>
+            <ol className="toy-program">
+              {program.map((p, i) => <li key={i}><time>{p.time}</time><span>{(lang === 'kz' ? p.kz : p.ru) || p.kz || p.ru}</span></li>)}
+            </ol>
           </section>
         )}
 
         {data.hosts && (
-          <section className="toy-sec toy-hosts toy-rv">
+          <section className="toy-sec toy-hosts">
             <h2>{t.hosts}</h2>
             <b>{data.hosts}</b>
           </section>
         )}
 
-        <section className="toy-sec toy-rv">
+        <section className="toy-sec">
           <h2>{t.rsvp}</h2>
-          <div className="toy-panel">
+          <div className="toy-sheet">
             {done ? (
               <div className="toy-thanks" role="status">
                 <b>{t.thanks}</b>
                 <p>{(coming ? t.yesText : t.noText).replace('{n}', name.trim()).replace('{g}', String(guests))}</p>
                 {!onRsvp && <p>{t.demoAnswer}</p>}
-                <div className="toy-actions" style={{ justifyContent: 'center' }}><button type="button" className="toy-btn" onClick={() => setDone(false)}>{t.again}</button></div>
+                <div className="toy-actions" style={{ justifyContent: 'center' }}><button type="button" className="toy-btn ghost" onClick={() => setDone(false)}>{t.again}</button></div>
               </div>
             ) : (
               <form className="toy-form" onSubmit={(e) => void submit(e)} noValidate>
@@ -360,7 +334,7 @@ export default function ToyInviteView({ data, onRsvp, previewNote, demo, startLa
                 </div>
                 {coming && (
                   <div className="toy-form-row">
-                    <span style={{ display: 'block', fontSize: 13, color: 'var(--t-mist)', marginBottom: 6 }}>{t.count}</span>
+                    <span className="toy-form-label">{t.count}</span>
                     <div className="toy-step">
                       <button type="button" aria-label="−" onClick={() => setGuests((g) => Math.max(1, g - 1))}>−</button>
                       <output aria-live="polite">{guests}</output>
@@ -378,9 +352,9 @@ export default function ToyInviteView({ data, onRsvp, previewNote, demo, startLa
           </div>
         </section>
 
+        <OyuDivider className="toy-end" />
         {showFooter && (
           <footer className="toy-foot">
-            <Ornament />
             <p>{t.foot}</p>
             <p><a href="/toy">{t.make}</a></p>
           </footer>
