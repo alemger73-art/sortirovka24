@@ -19,7 +19,11 @@ export function reloadForNewRelease(): boolean {
     if (Date.now() - last < 30_000) return false;
     sessionStorage.setItem(KEY, String(Date.now()));
   } catch { /* no storage: still try once */ }
-  window.location.reload();
+  // Refresh the browser's copy of the page first, so the reload cannot land on the same old page again.
+  const fresh = fetch(window.location.href, { cache: 'reload', credentials: 'same-origin' }).catch(() => undefined);
+  const worker = navigator.serviceWorker?.getRegistration().then((reg) => reg?.update()).catch(() => undefined);
+  const timeout = new Promise((resolve) => setTimeout(resolve, 2500));
+  void Promise.race([Promise.all([fresh, worker]), timeout]).then(() => window.location.reload());
   return true;
 }
 

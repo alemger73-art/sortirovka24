@@ -540,6 +540,8 @@ async def general_exception_handler(request: Request, exc: Exception):
 FRONTEND_DIR = Path(__file__).resolve().parent / "frontend_dist"
 _FRONTEND_INDEX = FRONTEND_DIR / "index.html"
 _RESERVED_PREFIXES = ("api", "health", "docs", "redoc", "openapi.json")
+# Pages are always re-checked: an old copy would ask for page parts that the last release removed.
+HTML_CACHE = "no-cache"
 
 
 @app.get("/")
@@ -551,7 +553,7 @@ async def root():
         document = _FRONTEND_INDEX.read_text(encoding="utf-8")
         return HTMLResponse(
             render_html(document, page),
-            headers={"Cache-Control": "public, max-age=60, stale-while-revalidate=300"},
+            headers={"Cache-Control": HTML_CACHE},
         )
     return {"message": "FastAPI Modular Template is running"}
 
@@ -646,7 +648,7 @@ if FRONTEND_DIR.is_dir():
         return HTMLResponse(
             render_html(document, page),
             status_code=page.status_code,
-            headers={"Cache-Control": "public, max-age=60, stale-while-revalidate=300"},
+            headers={"Cache-Control": HTML_CACHE},
         )
 
 
