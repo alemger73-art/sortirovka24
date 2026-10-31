@@ -6,7 +6,7 @@ import { viteSourceLocator } from '@metagptx/vite-plugin-source-locator';
 import { atoms } from '@metagptx/web-sdk/plugins';
 
 process.env.VITE_APP_TITLE ??= process.env.OVERVIEW_TITLE ?? 'Сортировка 24 — цифровой портал района';
-process.env.VITE_APP_DESCRIPTION ??= process.env.OVERVIEW_DESCRIPTION ?? 'Новости района Сортировка в Караганде, объявления, работа, полезный справочник, расписание транспорта и доставка еды DÄM ALEM.';
+process.env.VITE_APP_DESCRIPTION ??= process.env.OVERVIEW_DESCRIPTION ?? 'Район Сортировка в Караганде онлайн: доставка еды DÄM ALEM, справочник и телефоны служб, участковые, «Мой дом» для соседей, объявления и приглашения на той.';
 process.env.VITE_APP_LOGO_URL ??= process.env.OVERVIEW_LOGO_URL ?? '/icon-192-v4.png';
 
 // https://vitejs.dev/config/

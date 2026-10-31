@@ -59,8 +59,8 @@ class SeoPage:
 
 PUBLIC_PAGES: dict[str, tuple[str, str, str]] = {
     "/": (
-        "Сортировка Караганда — новости и сервисы района | Сортировка 24",
-        "Новости района Сортировка в Караганде, объявления, работа, полезный справочник, расписание транспорта и доставка еды DÄM ALEM.",
+        "Сортировка Караганда — сервисы района | Сортировка 24",
+        "Район Сортировка в Караганде онлайн: доставка еды DÄM ALEM, справочник и телефоны служб, участковые, «Мой дом» для соседей, объявления и приглашения на той.",
         "Сортировка 24 — всё о Сортировке в одном месте",
     ),
     "/news": ("Новости Караганды и Казахстана | Сортировка 24", "Свежие новости Караганды, района Сортировка и Казахстана: город, ЖКХ, дороги, экономика, спорт.", "Новости"),
@@ -269,7 +269,7 @@ async def build_seo_page(path: str) -> SeoPage:
             "name": SITE_NAME, "alternateName": ["Sortirovka24", "Сортировка24", "S24"],
             "url": f"{SITE_URL}/", "logo": {"@type": "ImageObject", "url": LOGO_IMAGE, "width": 512, "height": 512},
             "image": FALLBACK_IMAGE, "email": EMAIL, "telephone": PHONE,
-            "description": "Цифровой портал района Сортировка в Караганде: новости, справочник, транспорт, бизнес и доставка еды.",
+            "description": "Цифровой портал района Сортировка в Караганде: справочник, доставка еды, соседи, объявления и бизнес.",
             "address": {"@type": "PostalAddress", "addressLocality": "Караганда", "addressRegion": "Карагандинская область", "addressCountry": "KZ"},
             "contactPoint": {"@type": "ContactPoint", "telephone": PHONE, "contactType": "customer support",
                              "areaServed": "KZ", "availableLanguage": ["Russian", "Kazakh"]},

@@ -2,9 +2,9 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
 const SITE_URL = 'https://www.sortirovka24.kz';
-const DEFAULT_TITLE = 'Сортировка Караганда — новости и сервисы района | Сортировка 24';
+const DEFAULT_TITLE = 'Сортировка Караганда — сервисы района | Сортировка 24';
 const DEFAULT_DESCRIPTION =
-  'Новости района Сортировка в Караганде, объявления, работа, полезный справочник, расписание транспорта и доставка еды DÄM ALEM.';
+  'Район Сортировка в Караганде онлайн: доставка еды DÄM ALEM, справочник и телефоны служб, участковые, «Мой дом» для соседей, объявления и приглашения на той.';
 
 type PageMeta = { title: string; description: string };
 
