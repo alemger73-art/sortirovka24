@@ -648,7 +648,9 @@ async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dic
                 if message.get("photo"):
                     answer = await attach_photo(db, client, message)
             elif await is_own_post_place(db, message):
-                answer = await create_own_news(db, client, message)
+                from services.module_settings import is_module_enabled
+                answer = (await create_own_news(db, client, message) if await is_module_enabled(db, "news") else
+                          "Раздел «Новости» сейчас выключен в админке (Система → Модули). Включите его, и пришлите новость снова.")
         except Exception as exc:
             await db.rollback()
             logger.warning("[NewsAgent] owner message failed: %s", exc)
@@ -954,8 +956,11 @@ async def attach_photo(db: AsyncSession, client: httpx.AsyncClient, message: dic
 # ── background loop ─────────────────────────────────────────────────────────
 
 async def _collect_once(session_maker, client: httpx.AsyncClient) -> None:
+    from services.module_settings import is_module_enabled
     try:
         async with session_maker() as db:
+            if not await is_module_enabled(db, "news"):
+                return  # the owner switched the news section off: nothing to collect or offer for approval
             report = await collect(db, client)
             if report:
                 logger.info("[NewsAgent] run: %s", report)
