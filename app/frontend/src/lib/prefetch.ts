@@ -53,7 +53,7 @@ async function prefetchOne(
   cacheKey: string,
   fetcher: () => Promise<any>,
   ttl: number,
-  preloadImgs = true,
+  preloadImgs = false, // pictures of pages the visitor may never open cost them megabytes
   module?: ModuleKey,
 ): Promise<void> {
   if (prefetched.has(cacheKey)) return;

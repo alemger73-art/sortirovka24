@@ -8,9 +8,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { client, withRetry, warmupBackend, resetWarmup, STATUS_LABELS, timeAgo, formatDate } from '@/lib/api';
 import { fetchWithCache } from '@/lib/cache';
 import { LEGAL_OPERATOR } from '@/content/legal';
-import { preloadCriticalImages, preloadImagesOnIdle, extractImageUrls } from '@/lib/imageCache';
 import { optimizeImageUrl } from '@/lib/storage';
-import { resolveImageSrc } from '@/lib/storage';
 import { prefetchFromIndex } from '@/lib/prefetch';
 import {
   Wrench, AlertTriangle, Megaphone, ChevronRight,
@@ -34,7 +32,6 @@ import { useModules, moduleEnabled } from '@/hooks/useModules';
 import type { ModuleKey } from '@/config/modules';
 
 /* ─── CDN Images ─── */
-const HERO_IMG = optimizeImageUrl('https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505696/legacy-images/9ee7277f8db9a4a5521e.png');
 const FOOD_IMG = optimizeImageUrl('https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505694/legacy-images/0bdca3ab9d92dc7a772a.png');
 const MASTERS_IMG = optimizeImageUrl('https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505698/legacy-images/e9af3e8091e7803d0d09.png');
 const REALESTATE_IMG = 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505700/legacy-images/4bc25cf2db9751b93b92.png';
@@ -117,27 +114,12 @@ export default function Index() {
   const autoRetryCountRef = useRef(0);
   const autoRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Preload critical above-the-fold CDN images immediately
-  useEffect(() => {
-    preloadCriticalImages([HERO_IMG, FOOD_IMG, MASTERS_IMG]);
-  }, []);
-
   useEffect(() => {
     loadData();
     return () => {
       if (autoRetryTimerRef.current) clearTimeout(autoRetryTimerRef.current);
     };
   }, []);
-
-  // Preload dynamic images from API data (banners, news) during idle time
-  useEffect(() => {
-    const resolveUrl = (key: string) => resolveImageSrc(key);
-    const allItems = [...banners, ...news];
-    if (allItems.length > 0) {
-      const urls = extractImageUrls(allItems, resolveUrl);
-      if (urls.length > 0) preloadImagesOnIdle(urls, 3);
-    }
-  }, [banners, news]);
 
   const loadData = useCallback(async (isManualRetry = false) => {
     setLoading(true);

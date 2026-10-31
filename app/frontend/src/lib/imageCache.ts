@@ -9,6 +9,8 @@
  * - Connection-aware loading (skips on slow/save-data)
  */
 
+import { optimizeImageUrl } from '@/lib/storage';
+
 // ─── In-memory loaded image tracker ─────────────────────────────
 const loadedImages = new Set<string>();
 const loadingImages = new Map<string, Promise<void>>();
@@ -45,7 +47,8 @@ function shouldPreload(): boolean {
  * Uses Image() object which triggers browser caching.
  * Deduplicates concurrent requests for the same URL.
  */
-export function preloadImage(url: string): Promise<void> {
+export function preloadImage(raw: string): Promise<void> {
+  const url = raw ? optimizeImageUrl(raw) : raw; // the same compressed copy the page will show
   if (!url || loadedImages.has(url)) return Promise.resolve();
 
   // Deduplicate in-flight requests
