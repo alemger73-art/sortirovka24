@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { emptyDirectory } from '../src/lib/inspectorDirectory';
-const tabs = ['dashboard','news','banners','complaints','history','announcements','real-estate','jobs','masters','salons','master-requests','become-master','dam-alem','park-points','park-orders','directory','inspectors','taxi','logistics','transport','partners-business','partners-gastronom','partners-volna','partners-prorab','partners-pharmacy','modules','stats','categories','support','push','account-settings'];
+const tabs = ['dashboard','news','banners','complaints','history','announcements','real-estate','jobs','masters','salons','master-requests','become-master','dam-alem','park-points','park-orders','directory','inspectors','taxi','logistics','transport','partners-business','partners-gastronom','partners-volna','partners-prorab','partners-pharmacy','modules','stats','categories','support','push','payments','account-settings'];
 const counters = { master_requests_new:0, become_master_pending:0, announcements_pending:0, complaints_new:0, real_estate_pending:0, jobs_pending:0, food_orders_new:0, park_orders_active:0, taxi_applications_pending:0, courier_applications_pending:0, business_partner_new:0 };
 async function setup(page: Page) {
   const state = { failSummary:false, failModules:false, writes:0, writePaths:[] as string[], summary:{...counters,total_pending:0,updated_at:'2026-09-13T10:00:00Z',recent:[]} };
@@ -19,6 +19,7 @@ async function setup(page: Page) {
     if(p.endsWith('/inspector-directory'))json=emptyDirectory;
     if(p.includes('/modules'))json={};
     if(/\/(taxi|logistics)\/admin\/(applications|rides|drivers|couriers|tasks)$/.test(p))json=[];
+    if(p.endsWith('/paid-services'))json={items:[],today:'2026-09-13',chat:null,bot:true,monthly:[],cert:null,log:[]};
     if(p.endsWith('/business/me'))json={role:'owner',name:'Тестовый владелец'};
     if(p.endsWith('/business/overview'))json={team:[],attention:[],attention_total:0,recent_orders:[]};
     if(p.endsWith('/business/today'))json={day:'2026-09-13',daily:{created:0},counts:{},notification_errors:0,unpaid:0,new_orders:[]};
@@ -27,7 +28,7 @@ async function setup(page: Page) {
   });
   return state;
 }
-test('all 31 admin sections open without rendering crashes or horizontal overflow', async ({page},info) => {
+test('all 32 admin sections open without rendering crashes or horizontal overflow', async ({page},info) => {
   test.setTimeout(180000);
   await setup(page);
   const failures:string[]=[];

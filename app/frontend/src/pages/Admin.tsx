@@ -37,6 +37,7 @@ import AdminProrab from './AdminProrab';
 import AdminPharmacy from './AdminPharmacy';
 import AdminSupport from './AdminSupport';
 import AdminPush from './AdminPush';
+import AdminPaidServices from './AdminPaidServices';
 import AdminModules from './AdminModules';
 import AdminDashboard from './AdminDashboard';
 import AdminBusinessPartners from './AdminBusinessPartners';
@@ -377,6 +378,7 @@ function AdminPanelContent({
       case 'partners-pharmacy': return <AdminPharmacy />;
       case 'support': return <AdminSupport />;
       case 'push': return <AdminPush />;
+      case 'payments': return <AdminPaidServices />;
       default: return <AdminDashboard onNavigate={setTab} />;
     }
   };

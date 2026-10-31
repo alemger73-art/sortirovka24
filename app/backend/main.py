@@ -231,6 +231,21 @@ async def _run_site_report() -> None:
         logging.getLogger(__name__).warning("Site report stopped: %s", exc)
 
 
+async def _run_paid_services() -> None:
+    """Daily payment reminders for the paid services the site depends on."""
+    from core.database import db_manager
+    from services.paid_services import run_forever
+
+    while not (db_manager._initialized and db_manager.async_session_maker):
+        await asyncio.sleep(5)
+    try:
+        await run_forever(db_manager.async_session_maker)
+    except asyncio.CancelledError:
+        raise
+    except Exception as exc:
+        logging.getLogger(__name__).warning("Paid services reminders stopped: %s", exc)
+
+
 async def _run_admin_summary_watch() -> None:
     """Broadcast admin dashboard updates to WebSocket clients."""
     logger = logging.getLogger(__name__)
@@ -264,13 +279,15 @@ async def lifespan(app: FastAPI):
     app.state._admin_summary_task = asyncio.create_task(_run_admin_summary_watch())
     app.state._news_agent_task = asyncio.create_task(_run_news_agent())
     app.state._site_report_task = asyncio.create_task(_run_site_report())
+    app.state._paid_services_task = asyncio.create_task(_run_paid_services())
 
     logger.info("=== Application startup completed (initialization running in background) ===")
     yield
 
-    news_task = getattr(app.state, "_news_agent_task", None)
-    if news_task:
-        news_task.cancel()
+    for name in ("_news_agent_task", "_site_report_task", "_paid_services_task"):
+        task = getattr(app.state, name, None)
+        if task:
+            task.cancel()
     food_task = getattr(app.state, "_food_notifications_task", None)
     if food_task:
         food_task.cancel()
