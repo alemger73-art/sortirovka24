@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { UtensilsCrossed } from 'lucide-react';
 import { buildImageFallbackChain } from '@/lib/damAlemImages';
-import { resolveImageSrc, resolveImageUrl } from '@/lib/storage';
+import { optimizeImageUrl, resolveImageSrc, resolveImageUrl } from '@/lib/storage';
 
 interface Props {
   src: string;
@@ -9,10 +9,13 @@ interface Props {
   className?: string;
   loading?: 'lazy' | 'eager';
   fallbacks?: string[];
+  /** Largest width the photo is shown at; menu cards need far less than the 1200px default. */
+  width?: number;
 }
 
-export default function DamAlemImage({ src, alt = '', className, loading = 'lazy', fallbacks }: Props) {
-  const synchronousSource = resolveImageSrc(src) || '';
+export default function DamAlemImage({ src, alt = '', className, loading = 'lazy', fallbacks, width }: Props) {
+  const sized = (url: string) => (width ? optimizeImageUrl(url.replace(/\/f_auto,q_auto,c_limit,w_\d+\//, '/'), width) : url);
+  const synchronousSource = sized(resolveImageSrc(src) || '');
   const [resolvedSource, setResolvedSource] = useState(synchronousSource);
 
   useEffect(() => {
@@ -21,7 +24,7 @@ export default function DamAlemImage({ src, alt = '', className, loading = 'lazy
     if (!src || synchronousSource) return () => { active = false; };
 
     void resolveImageUrl(src).then((url) => {
-      if (active && url) setResolvedSource(url);
+      if (active && url) setResolvedSource(sized(url));
     });
     return () => { active = false; };
   }, [src, synchronousSource]);

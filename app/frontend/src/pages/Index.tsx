@@ -9,6 +9,7 @@ import { client, withRetry, warmupBackend, resetWarmup, STATUS_LABELS, timeAgo, 
 import { fetchWithCache } from '@/lib/cache';
 import { LEGAL_OPERATOR } from '@/content/legal';
 import { preloadCriticalImages, preloadImagesOnIdle, extractImageUrls } from '@/lib/imageCache';
+import { optimizeImageUrl } from '@/lib/storage';
 import { resolveImageSrc } from '@/lib/storage';
 import { prefetchFromIndex } from '@/lib/prefetch';
 import {
@@ -33,9 +34,9 @@ import { useModules, moduleEnabled } from '@/hooks/useModules';
 import type { ModuleKey } from '@/config/modules';
 
 /* ─── CDN Images ─── */
-const HERO_IMG = 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505696/legacy-images/9ee7277f8db9a4a5521e.png';
-const FOOD_IMG = 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505694/legacy-images/0bdca3ab9d92dc7a772a.png';
-const MASTERS_IMG = 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505698/legacy-images/e9af3e8091e7803d0d09.png';
+const HERO_IMG = optimizeImageUrl('https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505696/legacy-images/9ee7277f8db9a4a5521e.png');
+const FOOD_IMG = optimizeImageUrl('https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505694/legacy-images/0bdca3ab9d92dc7a772a.png');
+const MASTERS_IMG = optimizeImageUrl('https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505698/legacy-images/e9af3e8091e7803d0d09.png');
 const REALESTATE_IMG = 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505700/legacy-images/4bc25cf2db9751b93b92.png';
 const ANNOUNCEMENTS_IMG = 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505692/legacy-images/743b887a044471e15970.png';
 const JOBS_IMG = 'https://res.cloudinary.com/djpdmlkr9/image/upload/v1792505712/legacy-images/9988f5adf2ac15925759.png';

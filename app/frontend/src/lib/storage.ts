@@ -27,7 +27,31 @@ export function assertImageFileSize(file: File, maxBytes = MAX_IMAGE_UPLOAD_BYTE
 // ─── Cloudinary Image Base URL (auto-discovered) ─────────────────
 // For object keys we can construct permanent image URLs when the Cloudinary
 // cloud name is known from any returned download URL.
-let _cloudinaryImageBase: string | null = null;
+const IMAGE_BASE_KEY = 's24_img_base';
+let _cloudinaryImageBase: string | null = (() => {
+  try { const v = localStorage.getItem(IMAGE_BASE_KEY); return v && v.startsWith('https://res.cloudinary.com/') ? v : null; } catch { return null; }
+})();
+function rememberImageBase(base: string) {
+  if (_cloudinaryImageBase === base) return;
+  _cloudinaryImageBase = base;
+  try { localStorage.setItem(IMAGE_BASE_KEY, base); } catch { /* storage off */ }
+}
+
+/**
+ * Cloudinary serves the original upload (a phone photo or a 1.8 MB PNG) unless the URL asks otherwise.
+ * Ask for a modern format, automatic quality and at most `width` pixels — the same picture, many times lighter.
+ * URLs that already carry a transformation, SVGs and non-Cloudinary URLs are returned unchanged.
+ */
+export const DEFAULT_IMAGE_WIDTH = 1200;
+export function optimizeImageUrl(url: string, width = DEFAULT_IMAGE_WIDTH): string {
+  const marker = '/image/upload/';
+  const at = url.indexOf(marker);
+  if (at < 0 || !url.startsWith('https://res.cloudinary.com/')) return url;
+  const rest = url.slice(at + marker.length);
+  const first = rest.split('/')[0];
+  if (/(^|,)(w|h|c|q|f|e|t|ar|dpr)_/.test(first) || /\.svg($|\?)/i.test(rest)) return url;
+  return `${url.slice(0, at + marker.length)}f_auto,q_auto,c_limit,w_${Math.round(width)}/${rest}`;
+}
 
 function splitObjectKey(objectKey: string): { publicId: string; format: string | null } {
   const key = (objectKey || '').trim().replace(/^\/+/, '');
@@ -54,10 +78,10 @@ function extractCloudinaryBase(urlValue: string): string | null {
     // Prefer image base for news/announcements/gallery rendering.
     const base = `${url.protocol}//${url.hostname}/${cloudName}/${resourceType}/upload`;
     if (resourceType === 'image') {
-      _cloudinaryImageBase = base;
+      rememberImageBase(base);
     } else if (!_cloudinaryImageBase) {
       // Fallback if first discovered URL is non-image.
-      _cloudinaryImageBase = `${url.protocol}//${url.hostname}/${cloudName}/image/upload`;
+      rememberImageBase(`${url.protocol}//${url.hostname}/${cloudName}/image/upload`);
     }
     if (_cloudinaryImageBase) {
       return _cloudinaryImageBase;
@@ -99,8 +123,12 @@ export function isObjectKey(value: string): boolean {
 export function resolveImageSrc(value: string | null | undefined): string | null {
   if (!value) return null;
   if (value.startsWith('/') && !value.startsWith('//') && !value.includes('\\')) return value;
-  if (isDirectUrl(value)) return value;
-  return getPublicObjectUrl(value);
+  if (isDirectUrl(value)) {
+    if (!_cloudinaryImageBase && value.startsWith('https://res.cloudinary.com/')) extractCloudinaryBase(value);
+    return optimizeImageUrl(value);
+  }
+  const url = getPublicObjectUrl(value);
+  return url ? optimizeImageUrl(url) : null;
 }
 
 // ─── Bucket auto-creation (singleton) ───────────────────────────
@@ -203,17 +231,17 @@ export async function resolveImageUrl(
 ): Promise<string | null> {
   if (!objectKey) return null;
   if (objectKey.startsWith('/') && !objectKey.startsWith('//') && !objectKey.includes('\\')) return objectKey;
-  if (isDirectUrl(objectKey)) return objectKey;
+  if (isDirectUrl(objectKey)) return optimizeImageUrl(objectKey);
 
   // Check cache first
   const cached = getCachedUrl(objectKey);
-  if (cached) return cached;
+  if (cached) return optimizeImageUrl(cached);
 
   // Strategy 1: If Cloudinary base is known, construct direct URL
   const publicUrl = getPublicObjectUrl(objectKey);
   if (publicUrl) {
     setCachedUrl(objectKey, publicUrl);
-    return publicUrl;
+    return optimizeImageUrl(publicUrl);
   }
 
   // Strategy 2: Use backend public endpoint and cache discovered base.
@@ -227,7 +255,7 @@ export async function resolveImageUrl(
       extractStorageBase(url);
       const permanentUrl = getPublicObjectUrl(objectKey) || url;
       setCachedUrl(objectKey, permanentUrl);
-      return permanentUrl;
+      return optimizeImageUrl(permanentUrl);
     }
   } catch {
     // fall through
@@ -249,7 +277,7 @@ export async function resolveImageUrl(
       extractStorageBase(url);
       const permanentUrl = getPublicObjectUrl(objectKey) || url;
       setCachedUrl(objectKey, permanentUrl);
-      return permanentUrl;
+      return optimizeImageUrl(permanentUrl);
     }
     return url;
   } catch (err) {

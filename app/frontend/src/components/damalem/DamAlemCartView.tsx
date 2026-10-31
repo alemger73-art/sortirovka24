@@ -169,7 +169,7 @@ export default function DamAlemCartView({
           <div className="dam-cart__lines">
             {lines.map((line, index) => (
               <article key={line.key} className="dam-cart-line">
-                <DamAlemImage src={line.image} alt="" className="dam-cart-line__img" />
+                <DamAlemImage src={line.image} alt="" className="dam-cart-line__img" width={240} />
                 <div className="dam-cart-line__body">
                   <div className="dam-cart-line__top">
                     <div className="min-w-0">
@@ -204,7 +204,7 @@ export default function DamAlemCartView({
               <div className="dam-cart-upsell__row">
                 {suggestions.map(item => (
                   <article key={item.id} className="dam-cart-upsell__card">
-                    <DamAlemImage src={item.image} alt="" className="dam-cart-upsell__img" />
+                    <DamAlemImage src={item.image} alt="" className="dam-cart-upsell__img" width={320} />
                     <div className="min-w-0 flex-1">
                       <h4>{item.name}</h4>
                       <strong>{formatPrice(item.price)}</strong>

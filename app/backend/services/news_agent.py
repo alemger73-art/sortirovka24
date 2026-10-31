@@ -606,14 +606,18 @@ async def may_decide(client: httpx.AsyncClient, db: AsyncSession, chat_id: str, 
 
 
 async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dict[str, Any]) -> None:
+    from services import paid_services
     if isinstance(update.get("my_chat_member"), dict):
-        await bind_channel(db, client, update["my_chat_member"])
+        if not await paid_services.handle_member(db, client, update["my_chat_member"]):
+            await bind_channel(db, client, update["my_chat_member"])
         return
     message = update.get("message")
     if isinstance(message, dict):
         chat = message.get("chat") or {}
         from services import telegram_login
         if await telegram_login.handle_message(db, client, message):
+            return
+        if await paid_services.handle_message(db, client, message):
             return
         sender_id = str((message.get("from") or {}).get("id", ""))
         if chat.get("type") == "private" and str(message.get("text") or "").strip() == "/start" \
@@ -678,6 +682,10 @@ async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dic
     if allowed and data.startswith("ty:") and data != "ty:x":
         from services import toy_invites
         answer = await toy_invites.handle_callback(db, client, data, chat_id, msg) or "Готово"
+        await tg(client, "answerCallbackQuery", {"callback_query_id": callback_id, "text": answer[:190]})
+        return
+    if data.startswith("ps:") and data != "ps:x":
+        answer = await paid_services.handle_callback(db, client, data, chat_id, callback.get("from") or {}, msg) or "Готово"
         await tg(client, "answerCallbackQuery", {"callback_query_id": callback_id, "text": answer[:190]})
         return
     if allowed and data.startswith("nb:") and data != "nb:x":
@@ -983,6 +991,9 @@ async def run_forever(session_maker) -> None:
                         except Exception as exc:
                             await db.rollback()
                             logger.warning("[PartnerAgent] pass failed: %s", exc)
+                    # End the read transaction before the 25-second long poll: an idle open transaction
+                    # holds table locks and would make a migration or index build wait.
+                    await db.rollback()
                     params: dict[str, Any] = {"timeout": 25,
                                               "allowed_updates": ["callback_query", "message", "my_chat_member"]}
                     if offset is not None:

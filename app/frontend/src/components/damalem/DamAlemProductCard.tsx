@@ -47,7 +47,7 @@ export default function DamAlemProductCard({
         <div
           className="dam-product-card__media"
         >
-          <DamAlemImage src={imageUrl} alt="" className="h-full w-full object-cover" />
+          <DamAlemImage src={imageUrl} alt="" className="h-full w-full object-cover" width={640} />
           <button type="button" className="absolute inset-0 z-[1]" onClick={onOpen} aria-label={name} />
           {onToggleFavorite && (
             <button
@@ -89,7 +89,7 @@ export default function DamAlemProductCard({
       <div
         className="dam-grid-card__media"
       >
-        <DamAlemImage src={imageUrl} alt="" className="h-full w-full object-cover" />
+        <DamAlemImage src={imageUrl} alt="" className="h-full w-full object-cover" width={640} />
         <button type="button" className="absolute inset-0 z-[1]" onClick={onOpen} aria-label={name} />
         {badgeLabel ? <span className={`dam-grid-card__badge ${badgeClass}`}>{badgeLabel}</span> : null}
         {onToggleFavorite ? (

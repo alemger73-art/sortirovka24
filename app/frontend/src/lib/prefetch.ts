@@ -98,9 +98,10 @@ function prefetchFood(): void {
   prefetchOne('food_categories', () => withRetry(() =>
     client.entities.food_categories.query({ sort: 'sort_order', limit: 50 })
   ), CACHE_5M, true, 'food');
+  // Menu data only: downloading every dish photo in advance cost visitors several megabytes on the home page.
   prefetchOne('food_items', () => withRetry(() =>
     client.entities.food_items.query({ sort: 'sort_order', limit: 200 })
-  ), CACHE_5M, true, 'food');
+  ), CACHE_5M, false, 'food');
 }
 
 function prefetchMasters(): void {
