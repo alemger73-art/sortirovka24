@@ -1,0 +1,100 @@
+/* Опросы за бонусы. Portal style like «Мой дом»: navy hero, white cards, a warm gold for bonuses. */
+.sv {
+  --ink: #16243b; --muted: #66748a; --line: #e3e8f1; --surface: #fff; --bg: #f5f7fb; --soft: #eef3ff; --accent: #3864ed;
+  --gold: #a15c07; --gold-soft: #fff4dc; --ok: #067647; --bad: #b42318; --bad-soft: #fff1ef;
+  background: var(--bg); color: var(--ink); min-height: 80vh; overflow-wrap: break-word;
+}
+.dark .sv {
+  --ink: #eef2f8; --muted: #a9b6ca; --line: #2b3954; --surface: #172239; --bg: #101a2c; --soft: #1c2f50; --accent: #9ab8ff;
+  --gold: #f5c451; --gold-soft: #3a2c0c; --ok: #5fd49a; --bad: #ff8a7a; --bad-soft: #3a1d1d;
+}
+.sv-w { max-width: 640px; margin-left: auto; margin-right: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.sv-pad { padding-top: 18px; padding-bottom: 56px; display: flex; flex-direction: column; gap: 14px; }
+.sv :is(a, button, input, textarea):focus-visible { outline: 3px solid #82a4ff; outline-offset: 2px; }
+.sv h1, .sv h2, .sv h3 { margin: 0; }
+
+.sv-hero { color: #fff; padding: 30px 0 28px; background: radial-gradient(ellipse at 88% 5%, #8a5a12 0%, transparent 45%), linear-gradient(120deg, #101d36, #172d52); }
+.sv-kicker { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #f5c451; }
+.sv-hero h1 { margin: 6px 0 6px; font-size: clamp(26px, 5vw, 36px); font-weight: 800; letter-spacing: -.03em; line-height: 1.12; }
+.sv-hero p { margin: 0; color: #c2cde0; font-size: 15px; line-height: 1.55; }
+
+.sv-card { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 18px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface); color: inherit; text-decoration: none; box-shadow: 0 1px 2px #16243b0d; transition: transform .12s, box-shadow .15s; }
+.sv-card:hover { box-shadow: 0 8px 24px #16243b14; }
+.sv-card:active { transform: scale(.99); }
+.sv-card h2 { font-size: 19px; font-weight: 750; letter-spacing: -.01em; }
+.sv-card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.sv-card-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.sv-reward { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; padding: 6px 12px; border-radius: 999px; background: var(--gold-soft); color: var(--gold); font-size: 14px; font-weight: 800; }
+.sv-reward--off { background: var(--soft); color: var(--muted); font-weight: 650; }
+.sv-meta { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 13px; }
+.sv-left { color: var(--gold); font-size: 13px; font-weight: 650; }
+.sv-go { display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; color: var(--accent); font-weight: 700; font-size: 15px; }
+
+.sv-panel { display: flex; flex-direction: column; gap: 14px; padding: 20px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface); }
+.sv-center { align-items: center; text-align: center; padding: 30px 20px; }
+.sv-center > svg { color: var(--accent); }
+.sv-center h1 { font-size: 22px; font-weight: 800; }
+.sv-center p { margin: 0; color: var(--muted); line-height: 1.55; }
+.sv-title { font-size: 24px; font-weight: 800; letter-spacing: -.02em; line-height: 1.2; }
+.sv-intro { margin: 0; color: var(--muted); line-height: 1.55; }
+.sv-back { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+.sv-rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sv-rules li { display: flex; gap: 10px; align-items: flex-start; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.sv-rules svg { flex-shrink: 0; margin-top: 1px; color: var(--accent); }
+.sv-warn { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--gold-soft); color: var(--gold); font-size: 14px; line-height: 1.5; }
+.sv-warn a { color: inherit; font-weight: 700; }
+.sv-error { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--bad-soft); color: var(--bad); font-size: 14px; }
+
+.sv-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; padding: 0 20px; border-radius: 14px; border: 0; font: inherit; font-size: 16px; font-weight: 700; text-decoration: none; cursor: pointer; transition: transform .12s, opacity .15s; }
+.sv-btn:active { transform: scale(.98); }
+.sv-btn:disabled { opacity: .45; cursor: default; }
+.sv-btn--main { background: var(--accent); color: #fff; }
+.dark .sv-btn--main { color: #101a2c; }
+.sv-btn--ghost { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
+.sv-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.sv-spin { animation: sv-spin 1s linear infinite; }
+@keyframes sv-spin { to { transform: rotate(360deg); } }
+
+.sv-progress { height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.sv-progress span { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .25s ease; }
+.sv-step { margin: -4px 0 0; color: var(--muted); font-size: 13px; font-weight: 650; }
+.sv-q { font-size: 20px; font-weight: 750; line-height: 1.35; letter-spacing: -.01em; }
+.sv-optional { color: var(--muted); font-size: 14px; font-weight: 500; }
+.sv-hint { margin: -6px 0 0; color: var(--muted); font-size: 13px; }
+
+.sv-options { display: grid; gap: 8px; }
+.sv-option { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 10px 14px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 15px; text-align: left; cursor: pointer; transition: border-color .12s, background .12s; }
+.sv-option.is-on { border-color: var(--accent); background: var(--soft); font-weight: 650; }
+.sv-tick { display: grid; place-items: center; width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; border: 2px solid var(--line); color: #fff; }
+.sv-tick.is-square { border-radius: 6px; }
+.is-on .sv-tick { border-color: var(--accent); background: var(--accent); }
+.dark .is-on .sv-tick { color: #101a2c; }
+.sv-other, .sv-text { width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 16px; }
+.sv-text { resize: vertical; min-height: 110px; line-height: 1.5; }
+.sv-scale-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.sv-scale-row button { min-height: 54px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 18px; font-weight: 750; cursor: pointer; }
+.sv-scale-row button.is-on { border-color: var(--accent); background: var(--accent); color: #fff; }
+.dark .sv-scale-row button.is-on { color: #101a2c; }
+.sv-scale-ends { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; color: var(--muted); font-size: 13px; }
+.sv-scale-ends span:last-child { text-align: right; }
+.sv-nav { display: grid; grid-template-columns: auto 1fr; gap: 10px; }
+
+.sv-finish.is-bonus { background: linear-gradient(180deg, var(--gold-soft), var(--surface) 70%); }
+.sv-bonus-big { font-size: 54px; font-weight: 850; letter-spacing: -.04em; color: var(--gold); line-height: 1; animation: sv-pop .5s cubic-bezier(.2, 1.4, .4, 1); }
+@keyframes sv-pop { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.sv-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 34px 20px; border-radius: 18px; border: 1px dashed var(--line); text-align: center; color: var(--muted); }
+.sv-empty b { color: var(--ink); font-size: 17px; }
+.sv-empty p { margin: 0; font-size: 14px; line-height: 1.5; }
+.sv-done-list { display: grid; gap: 6px; }
+.sv-done-list h3 { font-size: 14px; color: var(--muted); font-weight: 650; }
+.sv-done-list p { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 15px; }
+.sv-done-list svg { color: var(--ok); flex-shrink: 0; }
+.sv-skel { display: grid; gap: 12px; }
+.sv-skel span { height: 130px; border-radius: 18px; background: linear-gradient(90deg, var(--line), var(--soft), var(--line)); background-size: 200% 100%; animation: sv-shine 1.2s infinite linear; }
+@keyframes sv-shine { to { background-position: -200% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-bonus-big, .sv-skel span, .sv-progress span { animation: none; transition: none; }
+}

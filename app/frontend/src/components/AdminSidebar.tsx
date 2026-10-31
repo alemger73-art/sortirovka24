@@ -3,7 +3,7 @@ import AppearanceControls from '@/components/AppearanceControls';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Activity, Shield, Newspaper, AlertTriangle, Wrench, BookOpen, Image, ClipboardList, UserPlus, LogOut, Home as HomeIcon, Lock, Megaphone, Briefcase, FolderTree, Building2, Utensils, BadgeCheck, BarChart3, Clock, Bus, TreePine, MapPin, ChevronDown, Menu, Store, Car, Heart, HardHat, Bell, Bike, Cross, Scissors, Power, Wine, LayoutDashboard, Handshake, Search, Wallet, type LucideIcon } from 'lucide-react';
+import { Activity, Shield, Newspaper, AlertTriangle, Wrench, BookOpen, Image, ClipboardList, UserPlus, LogOut, Home as HomeIcon, Lock, Megaphone, Briefcase, FolderTree, Building2, Utensils, BadgeCheck, BarChart3, Clock, Bus, TreePine, MapPin, ChevronDown, Menu, Store, Car, Heart, HardHat, Bell, Bike, Cross, Scissors, Power, Wine, LayoutDashboard, Handshake, Search, Wallet, ClipboardCheck, type LucideIcon } from 'lucide-react';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { DAM_ALEM_BRAND } from '@/lib/damAlem';
 import { getGroupBadgeCount, getTabBadgeCount, type AdminSummary } from '@/lib/adminSummaryApi';
@@ -38,6 +38,7 @@ const MENU_GROUPS: MenuGroup[] = [
       { id: 'banners', label: adminT("admin.ui.0244"), icon: Image },
       { id: 'complaints', label: adminT("admin.ui.0383"), icon: AlertTriangle },
       { id: 'history', label: adminT("admin.ui.1251"), icon: Clock },
+      { id: 'surveys', label: 'Опросы за бонусы', icon: ClipboardCheck },
     ],
   },
   {

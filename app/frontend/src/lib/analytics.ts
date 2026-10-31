@@ -60,9 +60,16 @@ function schedule() {
   timer = window.setTimeout(() => { timer = undefined; flush(); }, 4000);
 }
 
+const BOT = /bot|crawler|spider|HeadlessChrome|Lighthouse/i;
+/** The site's own staff: the admin panel, a browser signed in to it, or one marked with s24_staff (owner's checks). */
+function staff(path = location.pathname): boolean {
+  if (path.startsWith('/admin')) return true;
+  try { return Boolean(localStorage.getItem('_sp924_token') || localStorage.getItem('s24_staff')); } catch { return false; }
+}
+
 /** Record something a person did: track('add_to_cart', { name: 'Пепперони' }). */
 export function track(kind: string, props?: Record<string, unknown>) {
-  if (typeof window === 'undefined' || /bot|crawler|spider|HeadlessChrome|Lighthouse/i.test(navigator.userAgent)) return;
+  if (typeof window === 'undefined' || BOT.test(navigator.userAgent) || staff()) return;
   queue.push({ kind, path: location.pathname + location.search, props });
   if (queue.length >= 20) flush(); else schedule();
 }
@@ -72,7 +79,7 @@ export function trackPageView(path: string) {
   if (path === lastPath) return;
   const first = !lastPath;
   lastPath = path;
-  if (/bot|crawler|spider|HeadlessChrome|Lighthouse/i.test(navigator.userAgent)) return;
+  if (BOT.test(navigator.userAgent) || staff(path)) return;
   queue.push({ kind: 'page_view', path, referrer: first ? document.referrer : undefined });
   schedule();
 }

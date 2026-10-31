@@ -94,6 +94,7 @@ NOINDEX_CLIENT_ROUTES = (
     r"/complaints/new",
     r"/toy/(?:new|my|edit/\d+)",
     r"/dom(?:/.*)?",
+    r"/surveys(?:/.*)?",
     r"/food/(?:park|restaurants|courier)",
     r"/(?:more|history|taxi|legal|report-problem|gastronom|volna|prorab|apteka)(?:/.*)?",
 )

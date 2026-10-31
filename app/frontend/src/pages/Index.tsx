@@ -26,6 +26,7 @@ import VolnaImage from '@/components/volna/VolnaImage';
 import { VOLNA_INDEX_IMAGE } from '@/lib/volnaImages';
 import Hero from '@/components/landing/Hero';
 import HomeAds from '@/components/HomeAds';
+import HomeSurveys from '@/components/HomeSurveys';
 import HomeFood from '@/components/HomeFood';
 import { useSupportSettings } from '@/hooks/useSupportSettings';
 import { useModules, moduleEnabled } from '@/hooks/useModules';
@@ -248,6 +249,7 @@ export default function Index() {
             <div className="a-head"><div><span className="a-kicker">{lang === 'kz' ? 'Жаңасы' : 'Свежее'}</span><h2>{lang === 'kz' ? 'Жаңалықтар' : 'Новости'}</h2></div><Link to="/news" className="a-more">{lang === 'kz' ? 'Барлық жаңалықтар' : 'Все новости'}<ArrowRight size={15} /></Link></div>
             {news.length ? <div className="a-scroll">{news.slice(0, 8).map(item => <Link key={item.id} to={`/news/${item.id}`} className="a-card a-news"><span className="a-news-cover" style={{ background: newsCover(item.category) }}><span>{item.category ? getPublicCategoryLabel(item.category, t) : (lang === 'kz' ? 'Жаңалық' : 'Новости')}</span><span>S24 · {lang === 'kz' ? 'жаңалықтар' : 'новости'}</span></span><span className="a-news-body"><time>{formatDate(item.created_at, lang)}</time><h3>{localized(item, 'title')}</h3></span></Link>)}</div> : <p className="a-empty">{loading ? (lang === 'kz' ? 'Жаңалықтар жүктелуде…' : 'Новости загружаются…') : (lang === 'kz' ? 'Әзірге жаңалық жоқ.' : 'Новые публикации скоро появятся здесь.')}</p>}
           </section>}
+          <HomeSurveys />
           {isEnabled('announcements') && <HomeAds />}
           {isEnabled('food') && <HomeFood banners={banners} heroImage={FOOD_IMG} />}
           {isEnabled('business') && <HomePartners />}

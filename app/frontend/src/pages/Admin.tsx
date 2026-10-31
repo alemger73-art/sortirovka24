@@ -38,6 +38,7 @@ import AdminPharmacy from './AdminPharmacy';
 import AdminSupport from './AdminSupport';
 import AdminPush from './AdminPush';
 import AdminPaidServices from './AdminPaidServices';
+import AdminSurveys from './AdminSurveys';
 import AdminModules from './AdminModules';
 import AdminDashboard from './AdminDashboard';
 import AdminBusinessPartners from './AdminBusinessPartners';
@@ -379,6 +380,7 @@ function AdminPanelContent({
       case 'support': return <AdminSupport />;
       case 'push': return <AdminPush />;
       case 'payments': return <AdminPaidServices />;
+      case 'surveys': return <AdminSurveys />;
       default: return <AdminDashboard onNavigate={setTab} />;
     }
   };
