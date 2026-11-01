@@ -23,3 +23,29 @@ test('a missing page part after a release reloads once and opens the section', a
   expect(failed).toBe(1);
   await expect(page.getByText(/Что-то пошло не так|Бет жүктелмеді/)).toHaveCount(0);
 });
+
+// Error #6 (31.10.2026, /announcements): when Vite's 'vite:preloadError' is cancelled to reload the page, the
+// dynamic import resolves to an empty module and `m.AdsList` threw «Cannot read properties of undefined»,
+// so the visitor saw the error screen while the page was about to reload. It must wait quietly instead.
+test('an empty module during the release reload does not show the error screen', async ({ page }) => {
+  await page.addInitScript(() => { localStorage.setItem('app_lang', 'ru'); sessionStorage.setItem('s24_welcome_done', '1'); });
+  await page.route('**/api/**', (route) => route.fulfill({ json: { items: [], total: 0 } }));
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  const result = await page.evaluate(async () => {
+    const m = await import('/src/lib/lazyRetry.ts');
+    window.fetch = () => new Promise<Response>(() => { /* keep the reload waiting while we look */ });
+    sessionStorage.removeItem('s24_chunk_reload_at');
+    m.installChunkReload();
+    const ev = new Event('vite:preloadError', { cancelable: true });
+    window.dispatchEvent(ev);
+    // What Vite returns after a cancelled preload error: an undefined module.
+    const load = m.withChunkReload(() => Promise.resolve(undefined as any).then((mod: any) => ({ default: mod.AdsList })));
+    const outcome = await Promise.race([
+      load().then(() => 'loaded', (e: Error) => 'error: ' + e.message),
+      new Promise((r) => setTimeout(() => r('waiting'), 500)),
+    ]);
+    return { prevented: ev.defaultPrevented, outcome };
+  });
+  expect(result).toEqual({ prevented: true, outcome: 'waiting' });
+});
