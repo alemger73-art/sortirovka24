@@ -118,3 +118,19 @@ test('three assignments alert independently; mobile actions and refresh',async({
  await page.evaluate(()=>document.documentElement.classList.add('dark'));
  await page.screenshot({path:info.outputPath('deliveries-dark.png'),fullPage:true});
 });
+test('courier links Telegram from the profile and can unlink it',async({page})=>{
+ await setup(page);const tg={linked:false,unlinks:0};
+ await page.route('**/api/v1/logistics/courier/telegram',async r=>{
+  if(r.request().method()==='DELETE'){tg.linked=false;tg.unlinks++;return r.fulfill({json:{linked:false}});}
+  await r.fulfill({json:{linked:tg.linked,available:true,bot:'dam_test_bot',url:tg.linked?null:'https://t.me/dam_test_bot?start=cr_abc'}});
+ });
+ await page.goto('/food/courier');await page.getByRole('navigation',{name:'Кабинет курьера'}).getByRole('button',{name:'Смена',exact:true}).click();
+ const box=page.getByTestId('courier-telegram');
+ await expect(box).toContainText('Доставки в Телеграме');
+ await expect(page.getByTestId('courier-telegram-link')).toHaveAttribute('href','https://t.me/dam_test_bot?start=cr_abc');
+ tg.linked=true;await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+ await expect(box).toContainText('Подключён');await expect(box).toContainText('@dam_test_bot');
+ await box.getByRole('button',{name:'Отключить Телеграм'}).click();
+ await expect(page.getByTestId('courier-telegram-link')).toBeVisible();expect(tg.unlinks).toBe(1);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+});

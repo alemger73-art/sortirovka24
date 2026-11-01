@@ -12,6 +12,8 @@ async def notify_courier_task(db, task, kind, *, version='', courier_id=None):
         profile = await db.get(CourierProfile, user_id)
         if not profile or not profile.is_verified:
             return
+        from services.courier_telegram import notify as telegram_notify
+        telegram_notify(task.id, kind, user_id)
         titles = {'assigned':'Новая доставка', 'ready':'Заказ готов к выдаче', 'reassigned':'Доставка переназначена',
                   'cancelled':'Доставка отменена', 'issue_resolved':'Проблема доставки решена'}
         await send_user_notification(db, user_id=user_id, category='logistics',

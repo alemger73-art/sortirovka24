@@ -251,6 +251,8 @@ export const logisticsApi = {
   updateTaskStatus: (id: number, status: string, cash_received?: boolean) =>
     courierApi<LogisticsTask>(`/api/v1/logistics/tasks/${id}/status`, { method: 'POST', body: JSON.stringify({ status, cash_received }) }),
   requestHandover: () => courierApi('/api/v1/logistics/courier/cash-handover', {method:'POST'}),
+  courierTelegram: () => courierApi<{linked:boolean;available:boolean;bot:string|null;url:string|null}>('/api/v1/logistics/courier/telegram'),
+  unlinkCourierTelegram: () => courierApi<{linked:boolean}>('/api/v1/logistics/courier/telegram',{method:'DELETE'}),
   reportIssue: (id:number,reason:string,comment:string) => courierApi(`/api/v1/logistics/tasks/${id}/issue`,{method:'POST',body:JSON.stringify({reason,comment})}),
   enableCourierPush: async () => {
     if (Capacitor.isNativePlatform()) {

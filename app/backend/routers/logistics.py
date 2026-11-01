@@ -519,6 +519,23 @@ async def update_task_status(
 
 # ─── Customer tracking ─────────────────────────────────────────────
 
+@router.get('/courier/telegram')
+async def courier_telegram_status(authorization: str | None = Header(None), db: AsyncSession = Depends(get_db)):
+    """Is the courier's Telegram linked; if not, a one-time link that opens the bot and links it."""
+    user = await _courier_user(db, authorization)
+    await assert_courier_cabinet_access(db, user)
+    from services import courier_telegram
+    return await courier_telegram.status(db, str(user.id))
+
+
+@router.delete('/courier/telegram')
+async def courier_telegram_unlink(authorization: str | None = Header(None), db: AsyncSession = Depends(get_db)):
+    user = await _courier_user(db, authorization)
+    from services import courier_telegram
+    await courier_telegram.unlink(db, str(user.id))
+    return {'linked': False}
+
+
 @router.post('/courier/cash-handover')
 async def courier_request_handover(authorization: str | None = Header(None), db: AsyncSession = Depends(get_db)):
     user = await _courier_user(db, authorization)
