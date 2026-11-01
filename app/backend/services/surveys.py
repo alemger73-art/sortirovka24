@@ -29,8 +29,8 @@ REWARD = 500
 BONUS_DAYS = 30
 MAX_QUESTIONS = 25
 MAX_OPTIONS = 12
-SECONDS_PER_QUESTION = 3
-MIN_SECONDS = 20
+SECONDS_PER_QUESTION = 5  # a person who reads the questions needs about 5–7 s each
+MIN_SECONDS = 30
 STATE_KEY = "surveys_state"
 
 _ready: set[int] = set()
