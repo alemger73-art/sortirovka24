@@ -292,8 +292,12 @@ def _resolve_promo(
     code: str,
     subtotal: float,
     settings: Dict[str, str],
+    on: Optional[str] = None,
 ) -> Tuple[float, bool]:
-    """Return (discount, free_delivery) for a promo code."""
+    """Return (discount, free_delivery) for a promo code.
+
+    `on` is the Almaty date (YYYY-MM-DD) the promo is checked for: today for a new order,
+    the order's own date when an existing order is re-priced after an edit."""
     promos = _parse_promo_codes(settings.get("promo_codes") or "[]")
     matched = None
     for promo in promos:
@@ -308,7 +312,7 @@ def _resolve_promo(
     if not matched:
         raise HTTPException(status_code=400, detail="Промокод не найден или недействителен")
 
-    today = datetime.now(timezone(timedelta(hours=5))).date().isoformat()
+    today = on or datetime.now(timezone(timedelta(hours=5))).date().isoformat()
     valid_from = str(matched.get("valid_from") or "").strip()
     valid_until = str(matched.get("valid_until") or "").strip()
     if valid_from and today < valid_from:
@@ -710,7 +714,9 @@ async def validate_food_order(
             raise HTTPException(400, 'Выбранный подарок закончился. Выберите другой подарок.')
         selected_gift['product_id'] = gift_product.id
     base_delivery_fee = delivery_fee
-    if manual_delivery_fee is None:
+    # A fee the operator typed by hand stays as typed; a zone price follows the same «free from N ₸» rule as the site.
+    operator_typed_fee = manual_delivery_fee is not None and delivery_tariff is None
+    if not operator_typed_fee:
         delivery_fee = _apply_free_delivery_threshold(subtotal, delivery_fee, settings)
 
     promo_code = (data.get("promo_code") or "").strip().upper()
@@ -851,7 +857,7 @@ async def validate_food_order(
         'version': 1, 'service_rate': fee_rate if expected_service or (not marketplace_no_fee_hints and delivery_method != 'dine_in') else 0,
         'delivery_tariff': delivery_tariff,
         'base_delivery_fee': base_delivery_fee, 'requested_apartment': requested_apartment,
-        'staff_delivery_fee': manual_delivery_fee is not None,
+        'staff_delivery_fee': operator_typed_fee,
         'promo_code': promo_code,
         # The point the price was computed for; the courier navigates to it.
         'dropoff_point': {'lat': lat, 'lng': lng} if delivery_method == 'delivery' and lat is not None and lng is not None else None,

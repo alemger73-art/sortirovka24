@@ -83,7 +83,8 @@ async def collect_cash(db, task, order, courier, shift, *, amount=None, actor_na
     if collected <= 0 or collected > outstanding:
         raise HTTPException(422, 'Полученная сумма должна быть больше нуля и не больше остатка к оплате')
     await preserve_legacy_payment(db, order)
-    await record(db, order, collected, actor_name or courier.name or 'Курьер', cash_location='courier')
+    payment = await record(db, order, collected, actor_name or courier.name or 'Курьер', cash_location='courier')
+    await db.flush()
     order.paid_amount = float(paid(order) + collected)
     order.payment_status = 'paid' if paid(order) >= money(order.total_amount) else 'pending'
     if order.payment_status == 'paid':
@@ -92,7 +93,11 @@ async def collect_cash(db, task, order, courier, shift, *, amount=None, actor_na
     from services.dam_payment_flow import synchronize_cash
     await synchronize_cash(db, order, courier.name or 'Курьер')
     task.paid_amount=order.paid_amount
-    await add_entry(db,key=f'cash:{task.id}',courier_id=str(courier.id),shift=shift,
+    # One delivery can be paid in parts (e.g. 500 now, the rest later «у курьера»): every part is the courier's cash.
+    key=f'cash:{task.id}'
+    if await db.scalar(select(CourierLedger.id).where(CourierLedger.entry_key==key)):
+        key=f'cash:{task.id}:{payment.id}'
+    await add_entry(db,key=key,courier_id=str(courier.id),shift=shift,
         kind='cash_collected',amount=collected,actor=actor_name or courier.name or 'Курьер',actor_id=actor_id or courier.id,task=task)
 
 async def accrue(db, task, courier, shift, payout):

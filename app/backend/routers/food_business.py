@@ -231,7 +231,10 @@ async def refund(order_id:int,body:RefundBody,db:AsyncSession=Depends(get_db),cl
         amount = body.amount
     if amount <= 0: raise HTTPException(409,'Суммы к возврату нет или возврат уже отмечен')
     before_paid = paid(order)
-    timestamp = datetime.combine(body.day, datetime.min.time(), tzinfo=CITY).isoformat()
+    # A refund made today happens now — inside the open shift and its cash count. Only a refund recorded
+    # for an earlier day is dated to that day.
+    timestamp = (datetime.now(timezone.utc).isoformat() if body.day == city_today()
+                 else datetime.combine(body.day, datetime.min.time(), tzinfo=CITY).isoformat())
     event = await record(db, order, -amount, actor(claims), at=timestamp)
     event.message += ': ' + body.note.strip()
     order.paid_amount = float(paid(order) - amount)

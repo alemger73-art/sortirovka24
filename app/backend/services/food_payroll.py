@@ -26,6 +26,9 @@ async def calculate(db, day):
     upper=(date.fromisoformat(day)+timedelta(days=2)).isoformat()
     date_filter=or_(*[and_(field>=lower,field<upper) for field in (Food_orders.created_at,Food_orders.paid_at,Food_orders.completed_at)])
     orders=(await db.scalars(select(Food_orders).where(await scope(db),date_filter))).all()
+    from models.food_business import FoodRefund
+    refunds={r.order_id:money(r.amount) for r in (await db.scalars(select(FoodRefund).where(
+        FoodRefund.order_id.in_([o.id for o in orders]) if orders else False))).all()}
     sales={'kitchen':Decimal(0),'bar':Decimal(0),'unassigned':Decimal(0)}
     order_ids=[];pending=0
     for order in orders:
@@ -39,6 +42,8 @@ async def calculate(db, day):
         lines=items(order);gross=subtotal(lines)
         if gross<=0: continue
         net=max(Decimal(0),gross-money(order.promo_discount_amount)-money(order.bonus_discount_amount))
+        # Money returned to the customer (a missing dish) is not a sale the staff earn a percent on.
+        net=max(Decimal(0),net-refunds.get(order.id,Decimal(0)))
         order_ids.append(order.id)
         for line in lines:
             department=line.get('department') or catalog.get(line.get('id')) or 'unassigned'

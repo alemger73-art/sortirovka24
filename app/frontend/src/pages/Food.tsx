@@ -946,7 +946,8 @@ export default function Food() {
   const serviceFeeLabel = `${t('food.serviceFeeBase')} (${serviceFeePercent}%)`;
 
   const freeDeliveryFrom = useMemo(
-    () => Number(settings.free_delivery_from || 15000),
+    // Same as the server: an empty setting means there is no free-delivery threshold.
+    () => Math.max(0, Number(settings.free_delivery_from || 0)),
     [settings.free_delivery_from],
   );
   const apartmentDeliveryPrice = useMemo(
@@ -954,7 +955,7 @@ export default function Food() {
     [settings.apartment_delivery_price],
   );
   const apartmentFreeFrom = useMemo(
-    () => Math.max(0, Number(settings.apartment_free_from || settings.free_delivery_from || 15000)),
+    () => Math.max(0, Number(settings.apartment_free_from || settings.free_delivery_from || 0)),
     [settings.apartment_free_from, settings.free_delivery_from],
   );
   const loyaltyGifts = useMemo(
@@ -1155,7 +1156,7 @@ export default function Food() {
 
   const activeDeliveryPrice = useMemo(() => {
     if (deliveryMethod !== 'delivery') return 0;
-    if (promoFreeDelivery || cartTotal >= freeDeliveryFrom) return 0;
+    if (promoFreeDelivery || (freeDeliveryFrom > 0 && cartTotal >= freeDeliveryFrom)) return 0;
     if (hasDeliveryZones) {
       if (!deliveryQuote?.available) return 0;
       return Number(deliveryQuote.delivery_fee ?? 0);

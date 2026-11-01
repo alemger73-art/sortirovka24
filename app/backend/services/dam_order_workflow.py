@@ -37,6 +37,18 @@ def subtotal(lines):
     return sum((money(x.get('price')) + money(x.get('modTotal'))) * int(x.get('quantity') or 1) for x in lines)
 
 
+def order_day(order):
+    """The Almaty date the order was placed — promo dates are judged by it, not by the day of an edit."""
+    from datetime import datetime, timedelta, timezone
+    try:
+        created = datetime.fromisoformat(str(order.created_at).replace('Z', '+00:00'))
+    except (TypeError, ValueError):
+        return None
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
+    return created.astimezone(timezone(timedelta(hours=5))).date().isoformat()
+
+
 def paid(order):
     return money(order.paid_amount if order.paid_amount is not None else order.total_amount if order.payment_status == 'paid' else 0)
 
@@ -174,7 +186,7 @@ async def quote_change(db, order, body):
             promo_discount = Decimal(0)
             if snapshot.get('promo_code'):
                 try:
-                    discount, free = _resolve_promo(snapshot['promo_code'], float(after_subtotal), cfg)
+                    discount, free = _resolve_promo(snapshot['promo_code'], float(after_subtotal), cfg, on=order_day(order))
                     promo_discount = money(discount)
                 except HTTPException:
                     # The original promo no longer applies below its threshold.
