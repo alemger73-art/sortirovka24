@@ -154,6 +154,25 @@ def active(row):
     return bool(row) and getattr(row, 'is_active', None) is not False and getattr(row, 'available', None) is not False and not getattr(row, 'archived_at', None)
 
 
+STAFF_ONLY_KEY = 'staff_only_item_ids'
+
+
+def parse_staff_only(raw) -> set[int]:
+    """Items sold only by staff (hall / operator), never offered to delivery customers."""
+    import json
+    try:
+        values = json.loads(raw or '[]')
+        return {int(v) for v in values} if isinstance(values, list) else set()
+    except (ValueError, TypeError):
+        return set()
+
+
+async def staff_only_ids(db) -> set[int]:
+    from models.food_settings import Food_settings
+    raw = await db.scalar(select(Food_settings.setting_value).where(Food_settings.setting_key == STAFF_ONLY_KEY))
+    return parse_staff_only(raw)
+
+
 def scope_matches(row, business_id):
     return getattr(row, 'business_id', None) == business_id
 
@@ -271,6 +290,7 @@ async def catalog(db, business_id=DAM, *, owner=False):
     options = list((await db.scalars(select(Modifier_options).where(Modifier_options.business_id == business_id).order_by(Modifier_options.sort_order, Modifier_options.id))).all())
     links = list((await db.scalars(select(Item_modifier_groups).where(Item_modifier_groups.business_id == business_id))).all())
     cats = list((await db.scalars(select(Food_categories).where(Food_categories.restaurant_id.in_(ids)).order_by(Food_categories.sort_order, Food_categories.id))).all())
+    staff_only = await staff_only_ids(db)
     gs = []
     for group in groups:
         if not owner and not active(group):
@@ -297,7 +317,8 @@ async def catalog(db, business_id=DAM, *, owner=False):
                 reasons.append('В группе «' + group['name'] + '» недостаточно доступных добавок')
         rows.append({**serial(p), 'modifier_group_ids': [g['id'] for g in attached],
                      'modifier_groups': configured, 'combo': recipe if p.is_combo else None,
-                     'sellable': active(p) and not reasons, 'unavailable_reasons': reasons})
+                     'sellable': active(p) and not reasons, 'unavailable_reasons': reasons,
+                     'staff_only': p.id in staff_only})
     categories = [serial(c) for c in cats if owner or active(c)]
     if not owner and any(not p['category_id'] and not p['is_combo'] for p in rows):
         categories.append({'id': 0, 'name': 'Другие блюда', 'sort_order': 9999})

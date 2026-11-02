@@ -478,7 +478,7 @@ export default function Food() {
   function applyMenuCatalog(c:MenuCatalog) {
     installMenuModifiers(c);
     setCategories(c.categories.map(p=>({...p,icon:'🍽',is_active:true,sort_order:('sort_order' in p?Number(p.sort_order):0)})));
-    setItems(c.products.filter(p=>p.sellable!==false).map(p=>({...p,category_id:p.category_id || 0,description:p.description || '',image_url:p.image_url || '',is_active:p.is_active!==false,is_recommended:!!p.is_popular,weight:p.weight || '',sort_order:p.sort_order || 0})));
+    setItems(c.products.filter(p=>p.sellable!==false && !p.staff_only).map(p=>({...p,category_id:p.category_id || 0,description:p.description || '',image_url:p.image_url || '',is_active:p.is_active!==false,is_recommended:!!p.is_popular,weight:p.weight || '',sort_order:p.sort_order || 0})));
   }
   useEffect(()=>{
     const refresh=()=>{if(document.visibilityState==='visible')void publicMenu().then(applyMenuCatalog).catch(()=>{});};
@@ -593,7 +593,7 @@ export default function Food() {
           for (const c of mappedCats) slugById[c.id] = categorySlugOf(c);
           const rawProds = Array.isArray(pj.products) ? pj.products : [];
           foodItems = rawProds
-            .filter((p: any) => p.available !== false)
+            .filter((p: any) => p.available !== false && !p.staff_only)
             .map((p: any) => ({
               id: p.id,
               category_id: p.category_id,

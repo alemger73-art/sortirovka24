@@ -594,6 +594,8 @@ async def validate_food_order(
 
     validated_items: List[dict] = []
     subtotal = 0.0
+    from services.menu_configuration import STAFF_ONLY_KEY, parse_staff_only
+    staff_only = parse_staff_only(settings.get(STAFF_ONLY_KEY))
 
     for raw in raw_items:
         if not isinstance(raw, dict):
@@ -628,6 +630,9 @@ async def validate_food_order(
         if not product or product.is_active is False or getattr(product, "available", None) is False:
             label = raw.get("name") or prod_id or "?"
             raise HTTPException(status_code=400, detail=f"Блюдо «{label}» недоступно")
+
+        if not staff_quote and int(product.id) in staff_only:
+            raise HTTPException(status_code=400, detail=f"«{product.name}» продаётся только в зале")
 
         if getattr(product, "restaurant_id", None) != restaurant_id:
             raise HTTPException(status_code=400, detail=f"Блюдо «{product.name}» не относится к выбранному ресторану")
