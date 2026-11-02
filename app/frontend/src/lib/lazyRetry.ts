@@ -30,7 +30,16 @@ export function reloadForNewRelease(): boolean {
 }
 
 export function withChunkReload<T>(factory: () => Promise<{ default: T }>): () => Promise<{ default: T }> {
-  return () => factory().catch((err) => {
+  return () => factory().then((mod) => {
+    // Error #7: for a plain `() => import('./pages/Cabinet')` the cancelled preload error does not reject —
+    // the import resolves to `undefined`, and React's lazy then fails on `undefined.default`. Same as above:
+    // the page is reloading, so wait quietly.
+    if (mod == null) {
+      if (reloadPending || reloadForNewRelease()) return new Promise<{ default: T }>(() => { /* page is reloading */ });
+      throw new Error('Loading chunk failed: empty module');
+    }
+    return mod;
+  }, (err) => {
     // When the 'vite:preloadError' handler below cancels the error, Vite hands back an empty module, so
     // `m.AdsList` fails with «Cannot read properties of undefined». The page is already reloading: wait
     // quietly instead of showing the error screen.

@@ -49,3 +49,29 @@ test('an empty module during the release reload does not show the error screen',
   });
   expect(result).toEqual({ prevented: true, outcome: 'waiting' });
 });
+
+// Error #7 (02.11.2026, /cabinet, Safari iOS): a page loaded as `() => import('./pages/Cabinet')` gets an
+// undefined module (no rejection) after the cancelled preload error, and React's lazy failed with
+// «undefined is not an object (evaluating 'e._result.default')». It must wait for the reload instead.
+test('an undefined module from a plain page import waits for the reload', async ({ page }) => {
+  await page.addInitScript(() => { localStorage.setItem('app_lang', 'ru'); sessionStorage.setItem('s24_welcome_done', '1'); });
+  await page.route('**/api/**', (route) => route.fulfill({ json: { items: [], total: 0 } }));
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  const result = await page.evaluate(async () => {
+    const m = await import('/src/lib/lazyRetry.ts');
+    window.fetch = () => new Promise<Response>(() => { /* keep the reload waiting while we look */ });
+    sessionStorage.removeItem('s24_chunk_reload_at');
+    m.installChunkReload();
+    const ev = new Event('vite:preloadError', { cancelable: true });
+    window.dispatchEvent(ev);
+    // What a plain `import()` returns after a cancelled preload error: undefined itself.
+    const load = m.withChunkReload(() => Promise.resolve(undefined as any));
+    const outcome = await Promise.race([
+      load().then((mod: any) => (mod == null ? 'empty module' : 'loaded'), (e: Error) => 'error: ' + e.message),
+      new Promise((r) => setTimeout(() => r('waiting'), 500)),
+    ]);
+    return { prevented: ev.defaultPrevented, outcome };
+  });
+  expect(result).toEqual({ prevented: true, outcome: 'waiting' });
+});
