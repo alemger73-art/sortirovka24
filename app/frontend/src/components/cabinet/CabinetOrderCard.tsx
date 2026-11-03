@@ -16,6 +16,7 @@ const STORE_ORDER_LABELS: Record<string, string> = {
   pharmacy: "store.pharmacy",
   prorab: "store.prorab",
   park: "store.park",
+  shop: "store.shop",
 };
 
 const STORE_ACCENT: Record<string, string> = {
@@ -25,6 +26,7 @@ const STORE_ACCENT: Record<string, string> = {
   pharmacy: "border-l-sky-500 bg-sky-50/50 dark:bg-sky-500/5",
   prorab: "border-l-amber-500 bg-amber-50/50 dark:bg-amber-500/5",
   park: "border-l-lime-500 bg-lime-50/50 dark:bg-lime-500/5",
+  shop: "border-l-green-700 bg-green-50/50 dark:bg-green-500/5",
 };
 
 const FOOD_STATUS: Record<string, { key: string; badge: string }> = {
@@ -37,6 +39,7 @@ const FOOD_STATUS: Record<string, { key: string; badge: string }> = {
 const STORE_STATUS: Record<string, { key: string; badge: string }> = {
   new: { key: "cabinet.orderStatus.new", badge: "bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-200" },
   in_progress: { key: "cabinet.orderStatus.processing", badge: "bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200" },
+  accepted: { key: "cabinet.orderStatus.accepted", badge: "bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200" },
   processing: { key: "cabinet.orderStatus.processing", badge: "bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200" },
   done: { key: "cabinet.orderStatus.done", badge: "bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-200" },
   completed: { key: "cabinet.orderStatus.done", badge: "bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-200" },

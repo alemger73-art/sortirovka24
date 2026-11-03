@@ -231,3 +231,14 @@ async def test_shop_link_preview(env):
         assert (await build_seo_page('/shop/nope')).status_code == 404
         cabinet = await build_seo_page('/shop/cvety/cabinet')
         assert cabinet.status_code == 200 and cabinet.robots == 'noindex, nofollow'
+
+
+async def test_resident_order_reaches_personal_cabinet(env):
+    _, maker, _ = env
+    async with maker() as db:
+        mine = await svc.place_order(db, 'cvety', order(), user_id='user-7')
+        await svc.place_order(db, 'cvety', order(phone='8 701 111 11 11'))  # a guest order stays out of anyone's history
+        history = await svc.orders_of_user(db, 'user-7')
+    assert [h['order_number'] for h in history] == [mine['id']]
+    assert history[0]['store_label'] == 'Цветы' and history[0]['store_path'] == '/shop/cvety' and history[0]['amount'] == 11600
+    assert json.loads(history[0]['order_items'])[0] == {'name': 'Орхидея', 'quantity': 2, 'price': 4900}

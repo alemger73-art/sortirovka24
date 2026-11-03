@@ -1,7 +1,7 @@
 /** A partner's shop inside Сортировка 24: catalog with product cards, cart, order straight to the partner's Telegram. */
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Clock, Leaf, MessageCircle, Minus, Phone, Plus, Search, ShoppingBag, Truck, X } from 'lucide-react';
+import { ArrowLeft, Check, Leaf, MessageCircle, Minus, Phone, Plus, Search, ShoppingBag, Truck, X } from 'lucide-react';
 import Layout from '@/components/Layout';
 import ProductSheet from '@/components/partner-shop/ProductSheet';
 import { usePageSeo } from '@/hooks/usePageSeo';
@@ -79,12 +79,6 @@ export default function PartnerShop() {
   const perCategory = useMemo(() => products.reduce<Record<string, number>>((m, p) => ({ ...m, [p.category]: (m[p.category] || 0) + 1 }), {}), [products]);
   const zone = shop?.delivery.find(z => z.name === form.zone);
   const freeZones = (shop?.delivery || []).filter(z => isFree(z.price)).map(z => z.name);
-  const cover = useMemo(() => {  // one photo from each of the first categories shows the range at a glance
-    const firsts = new Map<string, ShopProduct>();
-    for (const p of products) if (p.image && !firsts.has(p.category)) firsts.set(p.category, p);
-    return [...firsts.values()].slice(0, 3);
-  }, [products]);
-  const lowest = products.length ? Math.min(...products.map(p => p.price)) : 0;
 
   const change = (sku: string, delta: number) => setCart(c => {
     const qty = Math.max(0, Math.min(20, (c[sku] || 0) + delta));
@@ -107,74 +101,54 @@ export default function PartnerShop() {
 
   const input = 'w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base dark:border-gray-700 dark:bg-gray-900';
   const call = phoneLink(shop?.phone || ''), wa = whatsappLink(shop?.whatsapp || '');
-  return <Layout><div className="mx-auto max-w-6xl px-4 pb-40 pt-4 sm:px-6">
-    <Link to="/partners" className="mb-3 inline-flex min-h-11 items-center gap-2 text-sm text-gray-500"><ArrowLeft className="h-4 w-4" />Партнёры района</Link>
-    {error ? <div role="alert" className="rounded-3xl border p-8 text-center">{error}</div> : !shop ? <p role="status" className="py-16 text-center text-gray-500">Загружаем каталог…</p> : <>
-      <header className="overflow-hidden rounded-[28px] text-white sm:grid sm:grid-cols-[1.15fr_1fr]" style={{ background: accent }}>
-        <div className="flex flex-col p-5 sm:p-8">
-          <div className="flex items-center gap-3">
-            {shop.logo && <img src={shop.logo} alt="" className="h-14 w-14 shrink-0 rounded-full border-2 border-white/70 object-cover" />}
-            <p className="text-sm text-white/80">Магазин-партнёр<br />Сортировка 24</p>
-          </div>
-          <h1 className="mt-5 text-[2.1rem] font-black leading-[1.05] tracking-tight sm:text-5xl">{shop.name}</h1>
-          {shop.headline && <p className="mt-3 max-w-md text-lg leading-snug text-white/90">{shop.headline}</p>}
-          <ul className="mt-5 flex flex-wrap gap-2 text-sm">
-            <li className="rounded-full bg-white/15 px-3 py-1.5">{products.length} товаров · от {money(lowest)}</li>
-            {shop.hours && <li className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5"><Clock className="h-4 w-4" />{shop.hours}</li>}
-            {freeZones.length > 0 && <li className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5"><Truck className="h-4 w-4" />Бесплатно: {freeZones.join(', ')}</li>}
-          </ul>
-          <div className="mt-6 flex flex-wrap gap-2 sm:mt-auto sm:pt-6">
-            {call && <a href={call} className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-white px-4 font-semibold" style={{ color: accent }}><Phone className="h-4 w-4" />Позвонить</a>}
-            {wa && <a href={wa} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-white/40 px-4 font-semibold"><MessageCircle className="h-4 w-4" />WhatsApp</a>}
-          </div>
+  return <Layout><div className="mx-auto max-w-6xl px-4 pb-40 pt-3 sm:px-6">
+    {error ? <div role="alert" className="mt-4 rounded-3xl border p-8 text-center">{error}</div> : !shop ? <p role="status" className="py-16 text-center text-gray-500">Загружаем каталог…</p> : <>
+      <header className="flex items-center gap-3">
+        <Link to="/" aria-label="На главную" className="-ml-2 flex h-11 w-9 shrink-0 items-center justify-center text-gray-500"><ArrowLeft className="h-5 w-5" /></Link>
+        {shop.logo && <img src={shop.logo} alt="" className="h-12 w-12 shrink-0 rounded-full border border-gray-200 object-cover dark:border-gray-700" />}
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-xl font-extrabold leading-tight">{shop.name}</h1>
+          <p className="truncate text-sm text-gray-500">Интернет-магазин · {shop.hours || 'заказ онлайн'}</p>
         </div>
-        {cover.length === 3 && <div className="grid grid-cols-3 gap-1.5 p-1.5 pt-0 sm:grid-cols-2 sm:grid-rows-2 sm:p-2 sm:pl-0" aria-hidden="true">
-          {cover.map((p, i) => <img key={p.sku} src={p.image!} alt="" className={`aspect-[4/5] h-full w-full rounded-[20px] object-cover sm:aspect-auto ${i === 0 ? 'sm:row-span-2' : ''}`} />)}
-        </div>}
+        {call && <a href={call} aria-label="Позвонить в магазин" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900" style={{ color: accent }}><Phone className="h-5 w-5" /></a>}
+        {wa && <a href={wa} target="_blank" rel="noopener noreferrer" aria-label="Написать в WhatsApp" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900" style={{ color: accent }}><MessageCircle className="h-5 w-5" /></a>}
       </header>
 
-      <ol className="mt-4 grid gap-2 text-sm sm:grid-cols-3" aria-label="Как заказать">
-        {['Выберите растения и положите в корзину', 'Укажите адрес и удобное время', `${shop.name} позвонит, подтвердит и привезёт. Оплата при получении`].map((step, i) =>
-          <li key={step} className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-bold text-white" style={{ background: accent }}>{i + 1}</span>{step}</li>)}
-      </ol>
+      <p className="mt-3 flex items-start gap-2 rounded-2xl px-4 py-3 text-sm font-medium text-white" style={{ background: accent }}>
+        <Truck className="mt-0.5 h-4 w-4 shrink-0" />
+        <span>{freeZones.length > 0 ? `Бесплатная доставка: ${freeZones.join(', ')}` : 'Доставка до двери'} · оплата при получении</span>
+      </p>
 
-      <div className="sticky top-14 z-10 -mx-4 mt-4 bg-[#F8FAFC]/95 px-4 pb-2 pt-3 backdrop-blur dark:bg-gray-950/95">
+      <div className="sticky top-14 z-10 -mx-4 mt-2 bg-[#F8FAFC]/95 px-4 pb-2 pt-2 backdrop-blur dark:bg-gray-950/95">
         <label className="relative block"><span className="sr-only">Поиск по каталогу</span>
           <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-          <input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Найти: монстера, кактус, кашпо…" className={`${input} pl-12`} />
+          <input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder={`Поиск среди ${products.length} товаров`} className={`${input} pl-12`} />
         </label>
         <nav aria-label="Категории" className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1">
-          {['', ...shop.categories].map(c => <button key={c || 'all'} onClick={() => setCategory(c)} aria-pressed={category === c}
+          {['', ...shop.categories].map(c => <button key={c || 'all'} onClick={() => { setCategory(c); window.scrollTo({ top: 0 }); }} aria-pressed={category === c}
             className="shrink-0 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold dark:border-gray-700 dark:bg-gray-900"
             style={category === c ? { background: accent, borderColor: accent, color: '#fff' } : undefined}>{c || 'Все'}{c && <span aria-hidden="true" className="ml-1.5 opacity-60">{perCategory[c]}</span>}</button>)}
         </nav>
       </div>
 
       {visible.length === 0 && <p className="py-12 text-center text-gray-500">Ничего не нашли. Попробуйте другое слово или позвоните магазину — подскажут.</p>}
-      <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {visible.map(p => {
-          const qty = cart[p.sku] || 0;
-          return <article key={p.sku} className="group flex flex-col overflow-hidden rounded-[22px] border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-            <button onClick={() => setViewing(p)} className="relative block aspect-[4/5] overflow-hidden bg-[#eef2ee] text-left dark:bg-gray-800" aria-label={`Подробнее: ${p.name}`}>
-              {p.image ? <img src={p.image} alt={p.name} loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" /> : <span className="flex h-full items-center justify-center text-4xl">🪴</span>}
-              {p.easy && <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-[11px] font-semibold text-gray-900"><Leaf className="h-3 w-3" style={{ color: accent }} />Неприхотливое</span>}
-            </button>
-            <div className="flex flex-1 flex-col p-3">
-              <h3 className="text-sm font-semibold leading-snug"><button onClick={() => setViewing(p)} className="text-left">{p.name}</button></h3>
-              {sizeOf(p) && <p className="mt-1 text-xs text-gray-500">{sizeOf(p)}</p>}
-              <p className="mt-auto pt-2 text-lg font-extrabold">{money(p.price)}</p>
-              {qty ? <div className="mt-2 flex items-center justify-between rounded-xl border-2" style={{ borderColor: accent }}>
-                <button aria-label={`Убрать ${p.name}`} onClick={() => change(p.sku, -1)} className="flex h-10 w-10 items-center justify-center"><Minus className="h-4 w-4" /></button>
-                <span className="font-bold" aria-live="polite">{qty}</span>
-                <button aria-label={`Добавить ещё ${p.name}`} onClick={() => change(p.sku, 1)} className="flex h-10 w-10 items-center justify-center"><Plus className="h-4 w-4" /></button>
-              </div> : <button onClick={() => change(p.sku, 1)} className="mt-2 min-h-10 rounded-xl text-sm font-semibold text-white" style={{ background: accent }}>В корзину</button>}
-            </div>
-          </article>;
-        })}
-      </div>
+      {(category || needle ? [{ name: '', items: visible }] : shop.categories.map(c => ({ name: c, items: visible.filter(p => p.category === c) })))
+        .filter(group => group.items.length).map(group => <section key={group.name || 'found'} aria-label={group.name || 'Товары'} className="mt-3">
+          {group.name && <h2 className="mb-2 mt-4 flex items-baseline justify-between text-lg font-extrabold">{group.name}
+            <button onClick={() => { setCategory(group.name); window.scrollTo({ top: 0 }); }} className="text-sm font-semibold" style={{ color: accent }}>Все {group.items.length}</button></h2>}
+          <div className={group.name ? '-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:grid-cols-4' : 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'}>
+            {(group.name ? group.items.slice(0, 8) : group.items).map(p => <ProductCard key={p.sku} p={p} qty={cart[p.sku] || 0} accent={accent} rail={!!group.name}
+              onOpen={() => setViewing(p)} onChange={d => change(p.sku, d)} />)}
+          </div>
+        </section>)}
 
-      <section className="mt-10 grid gap-3 sm:grid-cols-2" aria-label="Доставка">
+      <ol className="mt-10 grid gap-2 text-sm sm:grid-cols-3" aria-label="Как заказать">
+        {['Положите товары в корзину', 'Укажите адрес и удобное время', `${shop.name} позвонит, подтвердит и привезёт. Оплата при получении`].map((step, i) =>
+          <li key={step} className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-bold text-white" style={{ background: accent }}>{i + 1}</span>{step}</li>)}
+      </ol>
+
+      <section className="mt-3 grid gap-3 sm:grid-cols-2" aria-label="Доставка">
         <div className="rounded-[22px] border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
           <h2 className="flex items-center gap-2 text-lg font-bold"><Truck className="h-5 w-5" style={{ color: accent }} />Доставка</h2>
           <ul className="mt-3 divide-y divide-gray-100 text-sm dark:divide-gray-800">{shop.delivery.map(z => <li key={z.name} className="flex justify-between gap-3 py-2">
@@ -223,4 +197,27 @@ export default function PartnerShop() {
       </div>}
     </>}
   </div></Layout>;
+}
+
+type CardProps = { p: ShopProduct; qty: number; accent: string; rail: boolean; onOpen: () => void; onChange: (delta: number) => void };
+
+function ProductCard({ p, qty, accent, rail, onOpen, onChange }: CardProps) {
+  return <article className={`group flex flex-col overflow-hidden rounded-[20px] border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 ${rail ? 'w-[44vw] max-w-[200px] shrink-0 snap-start sm:w-auto sm:max-w-none' : ''}`}>
+    <button onClick={onOpen} className="relative block aspect-[4/5] overflow-hidden bg-[#eef2ee] text-left dark:bg-gray-800" aria-label={`Подробнее: ${p.name}`}>
+      {p.image ? <img src={p.image} alt={p.name} loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" /> : <span className="flex h-full items-center justify-center text-4xl">🪴</span>}
+      {p.easy && <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-[11px] font-semibold text-gray-900"><Leaf className="h-3 w-3" style={{ color: accent }} />Неприхотливое</span>}
+    </button>
+    <div className="flex flex-1 flex-col p-3">
+      <p className="text-lg font-extrabold leading-none">{money(p.price)}</p>
+      <h3 className="mt-1.5 line-clamp-2 text-sm leading-snug"><button onClick={onOpen} className="text-left">{p.name}</button></h3>
+      {sizeOf(p) && <p className="mt-1 text-xs text-gray-500">{sizeOf(p)}</p>}
+      <div className="mt-auto pt-2">
+        {qty ? <div className="flex items-center justify-between rounded-xl border-2" style={{ borderColor: accent }}>
+          <button aria-label={`Убрать ${p.name}`} onClick={() => onChange(-1)} className="flex h-10 w-10 items-center justify-center"><Minus className="h-4 w-4" /></button>
+          <span className="font-bold" aria-live="polite">{qty}</span>
+          <button aria-label={`Добавить ещё ${p.name}`} onClick={() => onChange(1)} className="flex h-10 w-10 items-center justify-center"><Plus className="h-4 w-4" /></button>
+        </div> : <button onClick={() => onChange(1)} className="min-h-10 w-full rounded-xl text-sm font-semibold text-white" style={{ background: accent }}>В корзину</button>}
+      </div>
+    </div>
+  </article>;
 }

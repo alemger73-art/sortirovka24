@@ -100,8 +100,12 @@ async def storefront(slug: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/{slug}/orders", status_code=201)
-async def order(slug: str, body: OrderBody, db: AsyncSession = Depends(get_db)):
-    return await svc.place_order(db, slug, body.model_dump())
+async def order(slug: str, body: OrderBody, db: AsyncSession = Depends(get_db),
+                authorization: Optional[str] = Header(default=None, alias="Authorization")):
+    """A signed-in resident's order also lands in the order history of their personal cabinet."""
+    from services.store_order_account import optional_account_user, user_id_for_order
+    user = await optional_account_user(db, authorization)
+    return await svc.place_order(db, slug, body.model_dump(), user_id_for_order(user))
 
 
 @router.put("/admin/{slug}", dependencies=[Depends(owner)])

@@ -1672,6 +1672,10 @@ async def cabinet(
             for r in rows[:100]
         )
 
+    if modules.get("business", True):  # orders from the district's partner shops
+        from services.partner_shop import orders_of_user
+        merged_orders.extend(await orders_of_user(db, str(user.id)))
+
     merged_orders.sort(key=lambda item: str(item.get("created_at") or ""), reverse=True)
 
     return {

@@ -663,7 +663,7 @@ export default function Cabinet() {
     const orders: CabinetOrderRow[] = rows.orders || [];
     if (orderFilter === "food") return orders.filter((o) => o.type === "food");
     if (orderFilter === "store") {
-      return orders.filter((o) => ["volna", "gastronom", "pharmacy", "prorab", "park"].includes(o.type));
+      return orders.filter((o) => ["volna", "gastronom", "pharmacy", "prorab", "park", "shop"].includes(o.type));
     }
     return orders;
   }, [rows.orders, orderFilter]);

@@ -72,6 +72,8 @@ async def _create(db) -> None:
         "ALTER TABLE partner_shop_products ADD COLUMN IF NOT EXISTS easy BOOLEAN NOT NULL DEFAULT FALSE",
         "ALTER TABLE partner_shop_codes ADD COLUMN IF NOT EXISTS chat_id VARCHAR(32)",
         "ALTER TABLE partner_shop_orders ADD COLUMN IF NOT EXISTS updated_at VARCHAR(32)",
+        "ALTER TABLE partner_shop_orders ADD COLUMN IF NOT EXISTS user_id VARCHAR(64)",  # a signed-in resident's account
+        "CREATE INDEX IF NOT EXISTS partner_shop_orders_user ON partner_shop_orders (user_id)",
     ):
         await db.execute(text(stmt))
     await db.commit()
@@ -156,7 +158,7 @@ def _text(value: Any, field: str, limit: int, required: bool = True) -> str:
     return out[:limit]
 
 
-async def place_order(db, slug: str, body: dict[str, Any]) -> dict[str, Any]:
+async def place_order(db, slug: str, body: dict[str, Any], user_id: Optional[str] = None) -> dict[str, Any]:
     shop = await _shop(db, slug)
     name = _text(body.get("name"), "Имя", 80)
     phone = _phone(str(body.get("phone") or ""))
@@ -198,10 +200,10 @@ async def place_order(db, slug: str, body: dict[str, Any]) -> dict[str, Any]:
         raise HTTPException(429, "Слишком много заказов с этого номера. Позвоните магазину.")
 
     order_id = await db.scalar(text(
-        "INSERT INTO partner_shop_orders (shop, items, total, customer_name, phone, address, zone, wanted, comment, created_at) "
-        "VALUES (:s, :i, :t, :n, :p, :a, :z, :w, :c, :d) RETURNING id"),
+        "INSERT INTO partner_shop_orders (shop, items, total, customer_name, phone, address, zone, wanted, comment, created_at, user_id) "
+        "VALUES (:s, :i, :t, :n, :p, :a, :z, :w, :c, :d, :u) RETURNING id"),
         {"s": slug, "i": json.dumps(lines, ensure_ascii=False), "t": total, "n": name, "p": phone, "a": address,
-         "z": zone, "w": wanted, "c": comment, "d": now().isoformat()})
+         "z": zone, "w": wanted, "c": comment, "d": now().isoformat(), "u": user_id})
     await db.commit()
     order = {"id": order_id, "lines": lines, "total": total, "name": name, "phone": phone, "address": address,
              "zone": zone, "wanted": wanted, "comment": comment}
@@ -367,6 +369,29 @@ async def replace_products(db, slug: str, products: list[dict[str, Any]]) -> int
             {"shop": slug, "description": None, "light": None, "water": None, "easy": False, **p, "sort": sort})
     await db.commit()
     return len(products)
+
+
+async def orders_of_user(db, user_id: str, limit: int = 100) -> list[dict[str, Any]]:
+    """A resident's shop orders for the personal cabinet's order history."""
+    await ensure_tables(db)
+    rows = (await db.execute(text(
+        "SELECT o.id, o.shop, o.items, o.total, o.status, o.customer_name, o.phone, o.address, o.zone, o.wanted, o.comment, "
+        "o.created_at, s.settings FROM partner_shop_orders o LEFT JOIN partner_shops s ON s.slug = o.shop "
+        "WHERE o.user_id = :u ORDER BY o.id DESC LIMIT :l"), {"u": user_id, "l": limit})).mappings().all()
+    out = []
+    for r in rows:
+        name = _settings(r["settings"]).get("name") or r["shop"]
+        items = json.loads(r["items"])
+        out.append({
+            "id": f"shop_{r['id']}", "type": "shop", "status": r["status"], "amount": r["total"],
+            "details": f"{name} — заказ #{r['id']}", "store_label": name, "store_path": f"/shop/{r['shop']}",
+            "order_number": r["id"], "order_items": json.dumps([{"name": i["name"], "quantity": i["qty"], "price": i["price"]} for i in items], ensure_ascii=False),
+            "customer_name": r["customer_name"], "customer_phone": r["phone"],
+            "customer_address": " · ".join(x for x in (r["address"], r["zone"]) if x),
+            "comment": " · ".join(x for x in (r["wanted"], r["comment"]) if x), "payment_method": "cash",
+            "created_at": r["created_at"],
+        })
+    return out
 
 
 async def recent_orders(db, slug: str, limit: int = 100) -> list[dict[str, Any]]:

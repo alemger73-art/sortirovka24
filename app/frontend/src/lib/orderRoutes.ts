@@ -84,6 +84,6 @@ export interface CabinetOrderRow {
 
 export function orderDetailId(order: CabinetOrderRow): { source: string; id: number } | null {
   const num = order.order_number ?? order.food_order_id;
-  if (!order.type || num == null) return null;
+  if (!order.type || num == null || order.type === 'shop') return null;  // partner shops have no receipt page
   return { source: order.type, id: Number(num) };
 }
