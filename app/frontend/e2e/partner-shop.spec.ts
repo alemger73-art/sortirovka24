@@ -105,3 +105,21 @@ test('the partner signs in from the Telegram link, takes an order and changes a 
   await expect(page.getByText('Сохранено')).toBeVisible();
   expect(calls.find(c => c.path.endsWith('/products/10001'))?.body).toEqual({ price: 5200 });
 });
+
+test('a signed-in resident finds name, phone and home address already filled in', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('account_token', 'resident-token');
+    localStorage.setItem('account_user_profile', JSON.stringify({ id: 5, name: 'Алем', phone: '+77001234567' }));
+    localStorage.setItem('s24_shop_cart_magazin-cvetok', JSON.stringify({ '40001': 1 }));
+  });
+  await setup(page);
+  await page.route('**/api/v1/account/me', r => r.fulfill({ json: { id: 5, name: 'Алем', phone: '+77001234567', email: '' } }));
+  await page.route('**/api/v1/account/me/addresses', r => r.fulfill({ json: [
+    { id: 1, address: 'Ермекова 3, кв 7', is_default: false }, { id: 2, address: 'Ерубаева 12, кв 40', is_default: true }] }));
+  await page.goto('/shop/magazin-cvetok');
+  await page.getByRole('button', { name: /Корзина · 1/ }).click();
+  const dialog = page.getByRole('dialog', { name: 'Оформление заказа' });
+  await expect(dialog.getByLabel('Имя')).toHaveValue('Алем');
+  await expect(dialog.getByLabel('Телефон')).toHaveValue('+77001234567');
+  await expect(dialog.getByLabel('Адрес')).toHaveValue('Ерубаева 12, кв 40');
+});

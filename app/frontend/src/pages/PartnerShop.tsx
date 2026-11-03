@@ -6,6 +6,8 @@ import Layout from '@/components/Layout';
 import ProductSheet from '@/components/partner-shop/ProductSheet';
 import { usePageSeo } from '@/hooks/usePageSeo';
 import { phoneLink, whatsappLink } from '@/lib/directoryContent';
+import { accountApi, getAccountToken } from '@/lib/accountApi';
+import { cacheAccountProfile, getAccountPrefill, onAuthChanged } from '@/lib/localAuth';
 import { money, partnerShop, sizeOf, type Shop, type ShopProduct } from '@/lib/partnerShop';
 
 type Cart = Record<string, number>;
@@ -39,6 +41,30 @@ export default function PartnerShop() {
     return () => { live = false; };
   }, [slug]);
   useEffect(() => saveCart(slug, cart), [slug, cart]);
+
+  // A signed-in resident is not asked again: name, phone and the default address come from the account.
+  useEffect(() => {
+    let live = true;
+    const apply = () => {
+      const known = getAccountPrefill();
+      setForm(f => ({ ...f, name: f.name || known.name, phone: f.phone || known.phone }));
+      return known;
+    };
+    const known = apply();
+    if (getAccountToken()) {
+      if (!known.name || !known.phone) {
+        accountApi.me().then(me => {
+          if (live && me?.id) { cacheAccountProfile({ id: me.id, name: me.name, phone: me.phone, email: me.email, avatar: me.avatar }); apply(); }
+        }).catch(() => { /* the fields stay editable */ });
+      }
+      accountApi.listAddresses().then(list => {
+        const home = list.find(a => a.is_default) || list[0];
+        if (live && home) setForm(f => ({ ...f, address: f.address || home.address }));
+      }).catch(() => { /* typed by hand */ });
+    }
+    const stop = onAuthChanged(() => { apply(); });
+    return () => { live = false; stop(); };
+  }, []);
   usePageSeo({ title: shop ? `${shop.name} — заказать с доставкой, Сортировка 24` : undefined, description: shop?.headline, image: shop?.logo });
 
   const products = shop?.products || [];
