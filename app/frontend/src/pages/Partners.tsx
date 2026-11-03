@@ -6,6 +6,7 @@ import Layout from '@/components/Layout';
 import StorageImg from '@/components/StorageImg';
 import { PartnerCard } from '@/components/PartnerCards';
 import { partnerProfiles, type PartnerProfile } from '@/lib/partnerProfiles';
+import { partnerShop } from '@/lib/partnerShop';
 import { phoneLink, whatsappLink, httpsLink } from '@/lib/directoryContent';
 import { usePageSeo } from '@/hooks/usePageSeo';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -19,6 +20,8 @@ export default function Partners() {
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
   const [search, setSearch] = useState('');
+  const [shops, setShops] = useState<string[]>([]);
+  useEffect(() => { partnerShop.slugs().then(setShops).catch(() => {}); }, []);
   useEffect(() => {
     let active = true; setLoading(true); setError(''); setProfile(null);
     (slug ? partnerProfiles.get(slug).then(p => { if(active) setProfile(p); }) : partnerProfiles.list().then(r => { if(active) setItems(r.items); }))
@@ -43,7 +46,7 @@ export default function Partners() {
         <div className="max-w-2xl px-6 py-8 sm:p-10 lg:p-12">
           <div className="flex items-center gap-4">{profile.logo && <StorageImg objectKey={profile.logo} alt={`Логотип ${profile.name}`} className="h-16 w-16 shrink-0 rounded-full sm:h-20 sm:w-20" />}<div><p className="text-xs font-semibold uppercase tracking-widest text-blue-400">{lang === 'kz' ? 'Біздің серіктес' : 'Наш партнёр'}</p><h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">{profile.name}</h1></div></div>
           <p className="mt-7 max-w-lg text-xl font-semibold leading-relaxed sm:text-2xl">{profile.headline}</p><p className="mt-5 flex gap-2 text-sm text-slate-300"><MapPin className="h-5 w-5 shrink-0" />{profile.area}</p>
-          <div className="mt-7 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">{whatsappLink(profile.whatsapp) && <a href={`${whatsappLink(profile.whatsapp)}?text=${encodeURIComponent(`Здравствуйте! Нашёл ${profile.name} на Сортировка 24. Хочу узнать об услугах.`)}`} target="_blank" rel="noopener noreferrer" className={`${button} bg-blue-500 text-slate-950`}><MessageCircle className="h-5 w-5" />WhatsApp</a>}{phoneLink(profile.phone) && <a href={phoneLink(profile.phone)!} className={`${button} border border-white/25`}><Phone className="h-5 w-5" />{lang === 'kz' ? 'Қоңырау шалу' : 'Позвонить'}</a>}</div>
+          <div className="mt-7 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">{shops.includes(profile.slug) && <Link to={`/shop/${profile.slug}`} className={`${button} col-span-2 bg-white text-slate-950`}>{lang === 'kz' ? 'Каталог және тапсырыс' : 'Каталог и заказ'}<ArrowUpRight className="h-5 w-5" /></Link>}{whatsappLink(profile.whatsapp) && <a href={`${whatsappLink(profile.whatsapp)}?text=${encodeURIComponent(`Здравствуйте! Нашёл ${profile.name} на Сортировка 24. Хочу узнать об услугах.`)}`} target="_blank" rel="noopener noreferrer" className={`${button} bg-blue-500 text-slate-950`}><MessageCircle className="h-5 w-5" />WhatsApp</a>}{phoneLink(profile.phone) && <a href={phoneLink(profile.phone)!} className={`${button} border border-white/25`}><Phone className="h-5 w-5" />{lang === 'kz' ? 'Қоңырау шалу' : 'Позвонить'}</a>}</div>
         </div>
       </section>
       <nav aria-label="Разделы компании" className="my-6 flex flex-wrap gap-2 text-sm font-semibold">{[['about','О компании'],['services','Услуги'],['works','Работы'],['contacts','Контакты']].map(([id,label])=><a key={id} href={`#${id}`} className="rounded-full border px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-950">{label}</a>)}</nav>

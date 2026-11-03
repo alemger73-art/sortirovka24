@@ -64,10 +64,9 @@ class PartnerShowcasesTests(unittest.IsolatedAsyncioTestCase):
             await seed_partner_profiles(session)
             await seed_partner_profiles(session)
         self.assertEqual((await self.client.get('/api/v1/partners/krovlya-365')).status_code,404)
-        self.assertEqual((await self.client.get('/api/v1/partners')).json()['items'],[])
-        saved=(await self.client.get('/api/v1/partners/admin',headers=self.admin)).json()['items']
-        self.assertEqual(len(saved),1)
-        self.assertEqual(saved[0]['headline'],hidden['headline'])
+        self.assertNotIn('krovlya-365',[p['slug'] for p in (await self.client.get('/api/v1/partners')).json()['items']])
+        saved={p['slug']:p for p in (await self.client.get('/api/v1/partners/admin',headers=self.admin)).json()['items']}
+        self.assertEqual(saved['krovlya-365']['headline'],hidden['headline'])  # the seed never overwrites an admin edit
 
     async def test_module_disabled_and_missing_company(self):
         self.assertEqual((await self.client.get('/api/v1/partners/missing')).status_code,404)

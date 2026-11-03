@@ -1,0 +1,783 @@
+{
+ "slug": "magazin-cvetok",
+ "enabled": true,
+ "settings": {
+  "name": "Magazin.cvetok",
+  "headline": "Комнатные цветы, кашпо, грунт и удобрения с доставкой до двери",
+  "logo": "/partners/magazin-cvetok/logo.webp",
+  "accent": "#2f5a34",
+  "hours": "Ежедневно 10:00–19:00",
+  "phone": "+77711800297",
+  "whatsapp": "+77711800297",
+  "instagram": "https://www.instagram.com/magazin.cvetok.krg/",
+  "delivery": [
+   {
+    "name": "Сортировка",
+    "price": "бесплатно"
+   },
+   {
+    "name": "Пришахтинск",
+    "price": "бесплатно"
+   },
+   {
+    "name": "Майкудук",
+    "price": "бесплатно"
+   },
+   {
+    "name": "Город",
+    "price": "inDrive за счёт покупателя"
+   },
+   {
+    "name": "Юго-Восток",
+    "price": "inDrive за счёт покупателя"
+   },
+   {
+    "name": "Михайловка",
+    "price": "inDrive за счёт покупателя"
+   }
+  ],
+  "delivery_note": "Магазин перезвонит, подтвердит заказ и время. Оплата — магазину при получении.",
+  "min_order": 0,
+  "categories": [
+   "Цветущие",
+   "Лиственные",
+   "Пальмы",
+   "Кактусы и суккуленты",
+   "Грунт",
+   "Удобрения",
+   "Кашпо"
+  ]
+ },
+ "products": [
+  {
+   "sku": "10001",
+   "category": "Цветущие",
+   "name": "Орхидея фаленопсис",
+   "kind": "Орхидея",
+   "height_cm": 37,
+   "pot_cm": 8,
+   "price": 4900,
+   "image": "/partners/magazin-cvetok/items/10001.webp"
+  },
+  {
+   "sku": "10002",
+   "category": "Цветущие",
+   "name": "Орхидея фаленопсис. Голландия",
+   "kind": "Орхидея",
+   "height_cm": 67,
+   "pot_cm": 12,
+   "price": 7600,
+   "image": "/partners/magazin-cvetok/items/10002.webp"
+  },
+  {
+   "sku": "10003",
+   "category": "Цветущие",
+   "name": "Кливия",
+   "kind": "Кливия",
+   "height_cm": 45,
+   "pot_cm": 12,
+   "price": 6900,
+   "image": "/partners/magazin-cvetok/items/10003.webp"
+  },
+  {
+   "sku": "10004",
+   "category": "Цветущие",
+   "name": "Спатифиллум. Женское счастье",
+   "kind": "Спатифиллум",
+   "height_cm": 40,
+   "pot_cm": 9,
+   "price": 3700,
+   "image": "/partners/magazin-cvetok/items/10004.webp"
+  },
+  {
+   "sku": "20001",
+   "category": "Лиственные",
+   "name": "Алоказия Полли",
+   "kind": "Алоказия",
+   "height_cm": 30,
+   "pot_cm": 10,
+   "price": 3990,
+   "image": "/partners/magazin-cvetok/items/20001.webp"
+  },
+  {
+   "sku": "20002",
+   "category": "Лиственные",
+   "name": "Хлорофитум",
+   "kind": "Хлорофитум",
+   "height_cm": 25,
+   "pot_cm": 11,
+   "price": 2590,
+   "image": "/partners/magazin-cvetok/items/20002.webp"
+  },
+  {
+   "sku": "20003",
+   "category": "Лиственные",
+   "name": "Хойя грацилис",
+   "kind": "Хойя",
+   "height_cm": 11,
+   "pot_cm": 12,
+   "price": 4200,
+   "image": "/partners/magazin-cvetok/items/20003.webp"
+  },
+  {
+   "sku": "20004",
+   "category": "Лиственные",
+   "name": "Пеперомия тетрагона",
+   "kind": "Пеперомия",
+   "height_cm": 35,
+   "pot_cm": 9,
+   "price": 4290,
+   "image": "/partners/magazin-cvetok/items/20004.webp"
+  },
+  {
+   "sku": "20005",
+   "category": "Лиственные",
+   "name": "Хойя билобата",
+   "kind": "Хойя",
+   "height_cm": 50,
+   "pot_cm": 9,
+   "price": 4500,
+   "image": "/partners/magazin-cvetok/items/20005.webp"
+  },
+  {
+   "sku": "20006",
+   "category": "Лиственные",
+   "name": "Фикус. Альтиссима жёлтый бриллиант",
+   "kind": "Фикус",
+   "height_cm": 62,
+   "pot_cm": 12,
+   "price": 6500,
+   "image": "/partners/magazin-cvetok/items/20006.webp"
+  },
+  {
+   "sku": "20007",
+   "category": "Лиственные",
+   "name": "Монстера. Тайское созвездие",
+   "kind": "Монстера",
+   "height_cm": 65,
+   "pot_cm": 17,
+   "price": 7900,
+   "image": "/partners/magazin-cvetok/items/20007.webp"
+  },
+  {
+   "sku": "20008",
+   "category": "Лиственные",
+   "name": "Асплениум папоротник",
+   "kind": "Асплениум",
+   "height_cm": 40,
+   "pot_cm": 11,
+   "price": 4200,
+   "image": "/partners/magazin-cvetok/items/20008.webp"
+  },
+  {
+   "sku": "20009",
+   "category": "Лиственные",
+   "name": "Аглаонема. Aglaonema China Red",
+   "kind": "Аглаонема",
+   "height_cm": 31,
+   "pot_cm": 11,
+   "price": 4900,
+   "image": "/partners/magazin-cvetok/items/20009.webp"
+  },
+  {
+   "sku": "20010",
+   "category": "Лиственные",
+   "name": "Замиокулькас. Долларовое дерево",
+   "kind": "Замиокулькас",
+   "height_cm": 40,
+   "pot_cm": 9,
+   "price": 4600,
+   "image": "/partners/magazin-cvetok/items/20010.webp"
+  },
+  {
+   "sku": "20011",
+   "category": "Лиственные",
+   "name": "Диффенбахия",
+   "kind": "Диффенбахия",
+   "height_cm": 37,
+   "pot_cm": 11,
+   "price": 3990,
+   "image": "/partners/magazin-cvetok/items/20011.webp"
+  },
+  {
+   "sku": "20012",
+   "category": "Лиственные",
+   "name": "Лавровое дерево. Лавровый лист",
+   "kind": "Лавровое дерево",
+   "height_cm": 36,
+   "pot_cm": 9,
+   "price": 5600,
+   "image": "/partners/magazin-cvetok/items/20012.webp"
+  },
+  {
+   "sku": "20013",
+   "category": "Лиственные",
+   "name": "Диффенбахия пятнистая",
+   "kind": "Диффенбахия",
+   "height_cm": 64,
+   "pot_cm": 9,
+   "price": 3990,
+   "image": "/partners/magazin-cvetok/items/20013.webp"
+  },
+  {
+   "sku": "20014",
+   "category": "Лиственные",
+   "name": "Замиокулькас пирамидальный",
+   "kind": "Замиокулькас",
+   "height_cm": 36,
+   "pot_cm": 11,
+   "price": 3990,
+   "image": "/partners/magazin-cvetok/items/20014.webp"
+  },
+  {
+   "sku": "20015",
+   "category": "Лиственные",
+   "name": "Фикус каучуконосный Шривериана",
+   "kind": "Фикус",
+   "height_cm": 38,
+   "pot_cm": 11,
+   "price": 4600,
+   "image": "/partners/magazin-cvetok/items/20015.webp"
+  },
+  {
+   "sku": "20016",
+   "category": "Лиственные",
+   "name": "Папоротник Асплениум Парвати",
+   "kind": "Асплениум",
+   "height_cm": 30,
+   "pot_cm": 14,
+   "price": 3990,
+   "image": "/partners/magazin-cvetok/items/20016.webp"
+  },
+  {
+   "sku": "20017",
+   "category": "Лиственные",
+   "name": "Аглаонема Крит",
+   "kind": "Аглаонема",
+   "height_cm": 37,
+   "pot_cm": 12,
+   "price": 5200,
+   "image": "/partners/magazin-cvetok/items/20017.webp"
+  },
+  {
+   "sku": "20018",
+   "category": "Лиственные",
+   "name": "Калатея Медальон",
+   "kind": "Калатея",
+   "height_cm": 28,
+   "pot_cm": 12,
+   "price": 3700,
+   "image": "/partners/magazin-cvetok/items/20018.webp"
+  },
+  {
+   "sku": "20019",
+   "category": "Лиственные",
+   "name": "Сциндапсус расписной",
+   "kind": "Сциндапсус",
+   "height_cm": 15,
+   "pot_cm": 10,
+   "price": 3900,
+   "image": "/partners/magazin-cvetok/items/20019.webp"
+  },
+  {
+   "sku": "20020",
+   "category": "Лиственные",
+   "name": "Хойя подвесная",
+   "kind": "Хойя",
+   "height_cm": 45,
+   "pot_cm": 13,
+   "price": 4600,
+   "image": "/partners/magazin-cvetok/items/20020.webp"
+  },
+  {
+   "sku": "20021",
+   "category": "Лиственные",
+   "name": "Аглаонема Даймонд",
+   "kind": "Аглаонема",
+   "height_cm": 40,
+   "pot_cm": 12,
+   "price": 6400,
+   "image": "/partners/magazin-cvetok/items/20021.webp"
+  },
+  {
+   "sku": "20022",
+   "category": "Лиственные",
+   "name": "Филодендрон Меланохризум",
+   "kind": "Филодендрон",
+   "height_cm": 68,
+   "pot_cm": 10,
+   "price": 6300,
+   "image": "/partners/magazin-cvetok/items/20022.webp"
+  },
+  {
+   "sku": "20023",
+   "category": "Лиственные",
+   "name": "Шеффлера Schefflera arboricola",
+   "kind": "Шеффлера",
+   "height_cm": 45,
+   "pot_cm": 26,
+   "price": 6900,
+   "image": "/partners/magazin-cvetok/items/20023.webp"
+  },
+  {
+   "sku": "20024",
+   "category": "Лиственные",
+   "name": "Рафидафора",
+   "kind": "Рафидафора",
+   "height_cm": 39,
+   "pot_cm": 12,
+   "price": 5400,
+   "image": "/partners/magazin-cvetok/items/20024.webp"
+  },
+  {
+   "sku": "20025",
+   "category": "Лиственные",
+   "name": "Диффенбахия",
+   "kind": "Диффенбахия",
+   "height_cm": 45,
+   "pot_cm": 12,
+   "price": 3900,
+   "image": "/partners/magazin-cvetok/items/20025.webp"
+  },
+  {
+   "sku": "20026",
+   "category": "Лиственные",
+   "name": "Диффенбахия",
+   "kind": "Диффенбахия",
+   "height_cm": 43,
+   "pot_cm": 19,
+   "price": 4200,
+   "image": "/partners/magazin-cvetok/items/20026.webp"
+  },
+  {
+   "sku": "20027",
+   "category": "Лиственные",
+   "name": "Аглаонема",
+   "kind": "Аглаонема",
+   "height_cm": 25,
+   "pot_cm": 8,
+   "price": 3400,
+   "image": "/partners/magazin-cvetok/items/20027.webp"
+  },
+  {
+   "sku": "20028",
+   "category": "Лиственные",
+   "name": "Монстера Адансона",
+   "kind": "Монстера",
+   "height_cm": 32,
+   "pot_cm": 12,
+   "price": 4600,
+   "image": "/partners/magazin-cvetok/items/20028.webp"
+  },
+  {
+   "sku": "20029",
+   "category": "Лиственные",
+   "name": "Толстянка денежное дерево",
+   "kind": "Толстянка",
+   "height_cm": 17,
+   "pot_cm": 10,
+   "price": 2700,
+   "image": "/partners/magazin-cvetok/items/20029.webp"
+  },
+  {
+   "sku": "30001",
+   "category": "Пальмы",
+   "name": "Бамбук в керамическом горшке",
+   "kind": "Бамбук",
+   "height_cm": 25,
+   "pot_cm": 9,
+   "price": 5300,
+   "image": "/partners/magazin-cvetok/items/30001.webp"
+  },
+  {
+   "sku": "30002",
+   "category": "Пальмы",
+   "name": "Бамбук плетеный",
+   "kind": "Бамбук",
+   "height_cm": 63,
+   "pot_cm": 10,
+   "price": 7500,
+   "image": "/partners/magazin-cvetok/items/30002.webp"
+  },
+  {
+   "sku": "30003",
+   "category": "Пальмы",
+   "name": "Пахира коса",
+   "kind": "Пахира",
+   "height_cm": 30,
+   "pot_cm": 7,
+   "price": 3800,
+   "image": "/partners/magazin-cvetok/items/30003.webp"
+  },
+  {
+   "sku": "30004",
+   "category": "Пальмы",
+   "name": "Пахира",
+   "kind": "Пахира",
+   "height_cm": 50,
+   "pot_cm": 9,
+   "price": 4300,
+   "image": "/partners/magazin-cvetok/items/30004.webp"
+  },
+  {
+   "sku": "30005",
+   "category": "Пальмы",
+   "name": "Пальма Драцена душистая",
+   "kind": "Драцена",
+   "height_cm": 40,
+   "pot_cm": 11,
+   "price": 3390,
+   "image": "/partners/magazin-cvetok/items/30005.webp"
+  },
+  {
+   "sku": "30006",
+   "category": "Пальмы",
+   "name": "Пальма Драцена душистая «Лемон»",
+   "kind": "Драцена",
+   "height_cm": 49,
+   "pot_cm": 18,
+   "price": 4800,
+   "image": "/partners/magazin-cvetok/items/30006.webp"
+  },
+  {
+   "sku": "30007",
+   "category": "Пальмы",
+   "name": "Хамедорея изящная",
+   "kind": "Хамедорея",
+   "height_cm": 95,
+   "pot_cm": 11,
+   "price": 6900,
+   "image": "/partners/magazin-cvetok/items/30007.webp"
+  },
+  {
+   "sku": "30008",
+   "category": "Пальмы",
+   "name": "Пахира водная",
+   "kind": "Пахира",
+   "height_cm": 33,
+   "pot_cm": 11,
+   "price": 2990,
+   "image": "/partners/magazin-cvetok/items/30008.webp"
+  },
+  {
+   "sku": "30009",
+   "category": "Пальмы",
+   "name": "Бамбук на гидропонике",
+   "kind": "Бамбук",
+   "height_cm": 27,
+   "pot_cm": 7,
+   "price": 3700,
+   "image": "/partners/magazin-cvetok/items/30009.webp"
+  },
+  {
+   "sku": "40001",
+   "category": "Кактусы и суккуленты",
+   "name": "Кактус",
+   "kind": "Кактус",
+   "height_cm": 7,
+   "pot_cm": 5,
+   "price": 1800,
+   "image": "/partners/magazin-cvetok/items/40001.webp"
+  },
+  {
+   "sku": "40002",
+   "category": "Кактусы и суккуленты",
+   "name": "Кактус крашеный",
+   "kind": "Кактус",
+   "height_cm": 15,
+   "pot_cm": 8,
+   "price": 2700,
+   "image": "/partners/magazin-cvetok/items/40002.webp"
+  },
+  {
+   "sku": "40003",
+   "category": "Кактусы и суккуленты",
+   "name": "Алоэ вера",
+   "kind": "Алоэ",
+   "height_cm": 27,
+   "pot_cm": 9,
+   "price": 2500,
+   "image": "/partners/magazin-cvetok/items/40003.webp"
+  },
+  {
+   "sku": "40004",
+   "category": "Кактусы и суккуленты",
+   "name": "Кактус",
+   "kind": "Кактус",
+   "height_cm": 38,
+   "pot_cm": 6,
+   "price": 4300,
+   "image": "/partners/magazin-cvetok/items/40004.webp"
+  },
+  {
+   "sku": "40005",
+   "category": "Кактусы и суккуленты",
+   "name": "Кактус в керамике",
+   "kind": "Кактус",
+   "height_cm": 10,
+   "pot_cm": 5,
+   "price": 1990,
+   "image": "/partners/magazin-cvetok/items/40005.webp"
+  },
+  {
+   "sku": "40006",
+   "category": "Кактусы и суккуленты",
+   "name": "Молочай",
+   "kind": "Молочай",
+   "height_cm": 66,
+   "pot_cm": 10,
+   "price": 5900,
+   "image": "/partners/magazin-cvetok/items/40006.webp"
+  },
+  {
+   "sku": "40007",
+   "category": "Кактусы и суккуленты",
+   "name": "Кактус зайчи ушки",
+   "kind": "Кактус",
+   "height_cm": 45,
+   "pot_cm": 12,
+   "price": 3700,
+   "image": "/partners/magazin-cvetok/items/40007.webp"
+  },
+  {
+   "sku": "40008",
+   "category": "Кактусы и суккуленты",
+   "name": "Сансевиерия",
+   "kind": "Сансевиерия",
+   "height_cm": 45,
+   "pot_cm": 11,
+   "price": 2700,
+   "image": "/partners/magazin-cvetok/items/40008.webp"
+  },
+  {
+   "sku": "40009",
+   "category": "Кактусы и суккуленты",
+   "name": "Сансевиерия Ханни",
+   "kind": "Сансевиерия",
+   "height_cm": 22,
+   "pot_cm": 10,
+   "price": 2700,
+   "image": "/partners/magazin-cvetok/items/40009.webp"
+  },
+  {
+   "sku": "40010",
+   "category": "Кактусы и суккуленты",
+   "name": "Кактус",
+   "kind": "Кактус",
+   "height_cm": 17,
+   "pot_cm": 11,
+   "price": 3600,
+   "image": "/partners/magazin-cvetok/items/40010.webp"
+  },
+  {
+   "sku": "70001",
+   "category": "Грунт",
+   "name": "Грунт для кактусов и суккулентов 3л",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 1000,
+   "image": "/partners/magazin-cvetok/items/70001.webp"
+  },
+  {
+   "sku": "70002",
+   "category": "Грунт",
+   "name": "Грунт. Универсальный 5л",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 1500,
+   "image": "/partners/magazin-cvetok/items/70002.webp"
+  },
+  {
+   "sku": "70003",
+   "category": "Грунт",
+   "name": "Грунт для пальм фикусов 3л",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 1000,
+   "image": "/partners/magazin-cvetok/items/70003.webp"
+  },
+  {
+   "sku": "70004",
+   "category": "Грунт",
+   "name": "Агро вермикулит 1л",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 890,
+   "image": "/partners/magazin-cvetok/items/70004.webp"
+  },
+  {
+   "sku": "80001",
+   "category": "Удобрения",
+   "name": "Удобрение для орхидей. Нежная орхидея. 350мл",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 1200,
+   "image": "/partners/magazin-cvetok/items/80001.webp"
+  },
+  {
+   "sku": "80002",
+   "category": "Удобрения",
+   "name": "Удобрение для цветущих растений. 350мл",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 1200,
+   "image": "/partners/magazin-cvetok/items/80002.webp"
+  },
+  {
+   "sku": "80003",
+   "category": "Удобрения",
+   "name": "Удобрение для фикусов. 350мл",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 1200,
+   "image": "/partners/magazin-cvetok/items/80003.webp"
+  },
+  {
+   "sku": "80004",
+   "category": "Удобрения",
+   "name": "Удобрение для фикусов и пальм. 300мл",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 1300,
+   "image": "/partners/magazin-cvetok/items/80004.webp"
+  },
+  {
+   "sku": "80005",
+   "category": "Удобрения",
+   "name": "Удобрение для орхидей. 300мл",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 1300,
+   "image": "/partners/magazin-cvetok/items/80005.webp"
+  },
+  {
+   "sku": "80006",
+   "category": "Удобрения",
+   "name": "Удобрение для лиственных растений. 300мл",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 1300,
+   "image": "/partners/magazin-cvetok/items/80006.webp"
+  },
+  {
+   "sku": "90001",
+   "category": "Кашпо",
+   "name": "Кашпо керамика 3л. Рисунок монстера",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 3900,
+   "image": "/partners/magazin-cvetok/items/90001.webp"
+  },
+  {
+   "sku": "90002",
+   "category": "Кашпо",
+   "name": "Кашпо керамика 3л. Рисунок кактусы",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 3900,
+   "image": "/partners/magazin-cvetok/items/90002.webp"
+  },
+  {
+   "sku": "90003",
+   "category": "Кашпо",
+   "name": "Кашпо железное на подставке 4л",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 3900,
+   "image": "/partners/magazin-cvetok/items/90003.webp"
+  },
+  {
+   "sku": "90004",
+   "category": "Кашпо",
+   "name": "Кашпо керамика с котиками",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 1700,
+   "image": "/partners/magazin-cvetok/items/90004.webp"
+  },
+  {
+   "sku": "90005",
+   "category": "Кашпо",
+   "name": "Кашпо керамика на железные подставке 200мл",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 3500,
+   "image": "/partners/magazin-cvetok/items/90005.webp"
+  },
+  {
+   "sku": "90006",
+   "category": "Кашпо",
+   "name": "Кашпо керамика 1 шт.",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 1390,
+   "image": "/partners/magazin-cvetok/items/90006.webp"
+  },
+  {
+   "sku": "90007",
+   "category": "Кашпо",
+   "name": "Горшки пластмасс набор 3 шт.",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 1200,
+   "image": "/partners/magazin-cvetok/items/90007.webp"
+  },
+  {
+   "sku": "90008",
+   "category": "Кашпо",
+   "name": "Кашпо керамика смайл",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 2500,
+   "image": "/partners/magazin-cvetok/items/90008.webp"
+  },
+  {
+   "sku": "90009",
+   "category": "Кашпо",
+   "name": "Кашпо слон",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 1900,
+   "image": "/partners/magazin-cvetok/items/90009.webp"
+  },
+  {
+   "sku": "90010",
+   "category": "Кашпо",
+   "name": "Кашпо цветы диаметр 10 см",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 1500,
+   "image": "/partners/magazin-cvetok/items/90010.webp"
+  },
+  {
+   "sku": "90011",
+   "category": "Кашпо",
+   "name": "Кашпо подвесное смайл",
+   "kind": null,
+   "height_cm": null,
+   "pot_cm": null,
+   "price": 2500,
+   "image": "/partners/magazin-cvetok/items/90011.webp"
+  }
+ ]
+}

@@ -84,6 +84,7 @@
 .a-partner-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .a-partner-actions a { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--a-line); font-size: 14px; font-weight: 600; }
 .a-partner-actions a:first-child { background: var(--a-accent-soft); border-color: transparent; color: var(--a-accent) !important; }
+.a-partner-actions a.a-partner-shop { background: var(--a-accent); color: #fff !important; }
 .a-invite { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 14px 16px; }
 .a-invite strong { display: block; font-size: 15px; font-weight: 600; }
 .a-invite small { display: block; font-size: 13px; color: var(--a-muted); }
