@@ -86,7 +86,6 @@ async def test_storefront_in_partner_order(env):
     shop = (await client.get('/api/v1/shops/cvety')).json()
     assert shop['categories'] == ['Цветущие', 'Кактусы']
     assert [p['sku'] for p in shop['products']] == ['40001', '10001']
-    assert (await client.get('/api/v1/shops')).json()['items'] == ['cvety']
     assert (await client.get('/api/v1/shops/nope')).status_code == 404
 
 
@@ -159,3 +158,76 @@ async def test_shops_shipped_with_code_are_seeded_once(env):
         await db.commit()
         await seed_partner_shops(db)  # the next start keeps the partner's later changes
     assert {p['sku']: p['price'] for p in (await client.get('/api/v1/shops/magazin-cvetok')).json()['products']}['10001'] == 1
+
+
+async def cabinet_token(client, maker, fake, chat_id=555):
+    """The partner presses «🛠 Кабинет магазина» in the bot and opens the one-time link."""
+    await link(maker, fake, chat_id)
+    async with maker() as db:
+        assert await svc.handle_callback(db, None, 'sh:k', chat_id, {}, {}) == 'Ссылка на кабинет — ниже'
+    url = fake.calls[-1][1]['reply_markup']['inline_keyboard'][0][0]['url']
+    assert url.startswith('https://www.sortirovka24.kz/shop/cvety/cabinet#code=')
+    r = await client.post('/api/v1/shops/cvety/cabinet/login', json={'code': url.split('code=')[1]})
+    assert r.status_code == 200, r.text
+    assert (await client.post('/api/v1/shops/cvety/cabinet/login', json={'code': url.split('code=')[1]})).status_code == 401  # one use
+    return {'Authorization': 'Shop ' + r.json()['token']}
+
+
+async def test_cabinet_sign_in_only_through_linked_telegram(env):
+    client, maker, fake = env
+    async with maker() as db:  # a stranger writes «Кабинет»: not ours, the other bot features handle it
+        assert not await svc.handle_message(db, None, {'chat': {'id': 1, 'type': 'private'}, 'from': {}, 'text': 'Кабинет'})
+    assert (await client.get('/api/v1/shops/cvety/cabinet')).status_code == 401
+    assert (await client.get('/api/v1/shops/cvety/cabinet', headers={'Authorization': 'Shop forged.token'})).status_code == 401
+    auth = await cabinet_token(client, maker, fake)
+    data = (await client.get('/api/v1/shops/cvety/cabinet', headers=auth)).json()
+    assert data['name'] == 'Цветы' and len(data['products']) == 2 and data['telegram'][0]['name'] == 'Айгуль'
+    async with maker() as db:  # the chat is unlinked: its token stops working at once
+        await db.execute(text('DELETE FROM partner_shop_telegram'))
+        await db.commit()
+    assert (await client.get('/api/v1/shops/cvety/cabinet', headers=auth)).status_code == 401
+
+
+async def test_cabinet_prices_stock_and_orders(env):
+    client, maker, fake = env
+    auth = await cabinet_token(client, maker, fake)
+    assert (await client.get('/api/v1/shops/other-shop/cabinet', headers=auth)).status_code == 401  # this shop only
+    r = await client.patch('/api/v1/shops/cvety/cabinet/products/40001', headers=auth, json={'price': 2100, 'description': 'Колючий'})
+    assert r.json()['price'] == 2100
+    await client.patch('/api/v1/shops/cvety/cabinet/products/10001', headers=auth, json={'active': False})
+    shop = (await client.get('/api/v1/shops/cvety')).json()
+    assert [(p['sku'], p['price'], p['description']) for p in shop['products']] == [('40001', 2100, 'Колючий')]
+    assert (await client.patch('/api/v1/shops/cvety/cabinet/products/40001', headers=auth, json={'price': 0})).status_code == 422
+
+    oid = (await client.post('/api/v1/shops/cvety/orders', json=order(items=[{'sku': '40001', 'qty': 2}]))).json()['id']
+    data = (await client.get('/api/v1/shops/cvety/cabinet', headers=auth)).json()
+    assert data['stats'] == {'new': 1, 'month_orders': 1, 'month_total': 4200}
+    assert data['orders'][0]['phone'] == '+77070000000' and data['orders'][0]['status'] == 'new'
+    r = await client.post(f'/api/v1/shops/cvety/cabinet/orders/{oid}/status', headers=auth, json={'status': 'accepted'})
+    assert r.json()['accepted_by'] == 'Айгуль'
+    r = await client.post(f'/api/v1/shops/cvety/cabinet/orders/{oid}/status', headers=auth, json={'status': 'done'})
+    assert r.json()['status'] == 'done'
+    assert (await client.post('/api/v1/shops/cvety/cabinet/orders/999/status', headers=auth, json={'status': 'done'})).status_code == 404
+    invite = (await client.post('/api/v1/shops/cvety/cabinet/telegram-link', headers=auth)).json()
+    assert invite['url'].startswith('https://t.me/shop_bot?start=shop_') and invite['linked'] == 1
+
+
+async def test_public_list_summarises_open_shops(env):
+    client, _, _ = env
+    assert (await client.get('/api/v1/shops')).json()['items'] == [{
+        'slug': 'cvety', 'name': 'Цветы', 'headline': '', 'logo': '', 'accent': '#2f5a34', 'free_zones': ['Сортировка'],
+        'products': 2, 'from_price': 1800, 'photos': ['/p/10001.webp']}]
+
+
+async def test_shop_link_preview(env):
+    _, maker, _ = env
+    from unittest.mock import patch
+    from core.database import db_manager
+    from services.seo_renderer import build_seo_page
+    with patch.object(db_manager, 'async_session_maker', maker):
+        page = await build_seo_page('/shop/cvety')
+        assert page.status_code == 200 and page.title.startswith('Цветы — заказать') and page.image.endswith('/p/10001.webp')
+        assert 'Орхидея — 4900 ₸' in page.body
+        assert (await build_seo_page('/shop/nope')).status_code == 404
+        cabinet = await build_seo_page('/shop/cvety/cabinet')
+        assert cabinet.status_code == 200 and cabinet.robots == 'noindex, nofollow'

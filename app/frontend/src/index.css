@@ -376,3 +376,8 @@ html.pwa-standalone body { padding-left: env(safe-area-inset-left, 0px); padding
 /* Reserve system-bar space in older native WebViews with zero CSS env insets. */
 html.native-app .site-header { padding-top: max(32px, env(safe-area-inset-top, 0px)); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
 html.native-app .site-bottom-nav { padding-bottom: max(24px, env(safe-area-inset-bottom, 0px)); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+
+/* Partner shop: product and cart sheets rise from the bottom when opened. */
+@keyframes shop-sheet-in { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.shop-sheet { animation: shop-sheet-in .22s ease-out; }
+@media (prefers-reduced-motion: reduce) { .shop-sheet { animation: none; } }

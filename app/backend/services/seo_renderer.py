@@ -244,6 +244,8 @@ async def build_seo_page(path: str) -> SeoPage:
         return await _toy_seo_page(path, toy.group(1))
     if path == "/partners" or path.startswith("/partners/"):
         return await _partner_seo_page(path)
+    if path.startswith("/shop/"):
+        return await _shop_seo_page(path)
     page = _base_page(path)
     disabled = await _disabled_modules()
     if _module_for(path) in disabled:
@@ -494,6 +496,36 @@ def _sitemap_date(value: Any) -> str | None:
     raw = _text(value, 40)
     match = re.match(r"^(\d{4}-\d{2}-\d{2})", raw)
     return match.group(1) if match else None
+
+
+async def _shop_seo_page(path: str) -> SeoPage:
+    """/shop/<slug>: a partner's catalog (link previews show the shop and its goods); /shop/<slug>/cabinet is private."""
+    slug, _, rest = path.removeprefix("/shop/").partition("/")
+    page = SeoPage("Магазин не найден | Сортировка 24", "Магазин закрыт или ещё не открыт.", path, "Магазин не найден",
+                   "", robots="noindex, follow", status_code=404)
+    if rest == "cabinet":
+        return SeoPage("Кабинет магазина | Сортировка 24", "Кабинет магазина-партнёра.", path, "Кабинет магазина", "", robots="noindex, nofollow")
+    if rest or not db_manager.async_session_maker:
+        return page
+    try:
+        from services import partner_shop
+        async with db_manager.async_session_maker() as session:
+            if not await is_module_enabled(session, "business"):
+                return page
+            shop = await partner_shop.storefront(session, slug)
+    except Exception:  # unknown or closed shop, or the database is away
+        return page
+    products = shop["products"]
+    page = SeoPage(f"{shop['name']} — заказать с доставкой, Караганда | Сортировка 24",
+                   f"{shop.get('headline') or 'Магазин района'}. {len(products)} товаров, заказ онлайн, доставка по Сортировке.",
+                   path, shop["name"], shop.get("headline") or "")
+    image = next((p["image"] for p in products if p.get("image")), shop.get("logo") or "")
+    if image.startswith("/") and not image.startswith("//"):
+        page.image = SITE_URL + image
+    page.body = "<ul>" + "".join(f"<li>{html.escape(p['name'])} — {p['price']} ₸</li>" for p in products[:60]) + "</ul>"
+    page.schemas.append({"@context": "https://schema.org", "@type": "Store", "name": shop["name"], "url": page.canonical,
+                         "telephone": shop.get("phone") or ""})
+    return page
 
 
 async def _partner_seo_page(path: str) -> SeoPage:

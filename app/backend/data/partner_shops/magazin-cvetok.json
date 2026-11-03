@@ -57,7 +57,11 @@
    "height_cm": 37,
    "pot_cm": 8,
    "price": 4900,
-   "image": "/partners/magazin-cvetok/items/10001.webp"
+   "image": "/partners/magazin-cvetok/items/10001.webp",
+   "description": "Цветёт несколько месяцев подряд, после цветения выпускает новые стрелки. Любит светлый подоконник без прямого солнца; полив погружением раз в 7–10 дней, когда корни посветлеют.",
+   "light": "diffused",
+   "water": "moderate",
+   "easy": false
   },
   {
    "sku": "10002",
@@ -67,7 +71,11 @@
    "height_cm": 67,
    "pot_cm": 12,
    "price": 7600,
-   "image": "/partners/magazin-cvetok/items/10002.webp"
+   "image": "/partners/magazin-cvetok/items/10002.webp",
+   "description": "Цветёт несколько месяцев подряд, после цветения выпускает новые стрелки. Любит светлый подоконник без прямого солнца; полив погружением раз в 7–10 дней, когда корни посветлеют.",
+   "light": "diffused",
+   "water": "moderate",
+   "easy": false
   },
   {
    "sku": "10003",
@@ -77,7 +85,11 @@
    "height_cm": 45,
    "pot_cm": 12,
    "price": 6900,
-   "image": "/partners/magazin-cvetok/items/10003.webp"
+   "image": "/partners/magazin-cvetok/items/10003.webp",
+   "description": "Тёмные блестящие листья и яркие оранжевые соцветия-зонтики. Не любит частых пересадок и перелива — поливайте, когда верх земли подсохнет.",
+   "light": "diffused",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "10004",
@@ -87,7 +99,11 @@
    "height_cm": 40,
    "pot_cm": 9,
    "price": 3700,
-   "image": "/partners/magazin-cvetok/items/10004.webp"
+   "image": "/partners/magazin-cvetok/items/10004.webp",
+   "description": "«Женское счастье»: белые цветы-паруса над сочной зеленью. Сам подсказывает, когда пора поливать, — листья слегка опускаются. Хорошо растёт в полутени.",
+   "light": "partial",
+   "water": "often",
+   "easy": true
   },
   {
    "sku": "20001",
@@ -97,7 +113,11 @@
    "height_cm": 30,
    "pot_cm": 10,
    "price": 3990,
-   "image": "/partners/magazin-cvetok/items/20001.webp"
+   "image": "/partners/magazin-cvetok/items/20001.webp",
+   "description": "Эффектные листья-стрелы с белыми прожилками — растение-акцент для интерьера. Любит тепло, влажный воздух и яркий рассеянный свет.",
+   "light": "diffused",
+   "water": "moderate",
+   "easy": false
   },
   {
    "sku": "20002",
@@ -107,7 +127,11 @@
    "height_cm": 25,
    "pot_cm": 11,
    "price": 2590,
-   "image": "/partners/magazin-cvetok/items/20002.webp"
+   "image": "/partners/magazin-cvetok/items/20002.webp",
+   "description": "Одно из самых неприхотливых растений: быстро растёт, даёт «деток» на длинных усах и хорошо переносит редкий полив.",
+   "light": "partial",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "20003",
@@ -117,7 +141,11 @@
    "height_cm": 11,
    "pot_cm": 12,
    "price": 4200,
-   "image": "/partners/magazin-cvetok/items/20003.webp"
+   "image": "/partners/magazin-cvetok/items/20003.webp",
+   "description": "Восковой плющ с плотными листьями; со временем цветёт ароматными звёздочками. Можно выращивать в подвесном кашпо или на опоре. Поливать после просыхания земли.",
+   "light": "diffused",
+   "water": "rare",
+   "easy": true
   },
   {
    "sku": "20004",
@@ -127,7 +155,11 @@
    "height_cm": 35,
    "pot_cm": 9,
    "price": 4290,
-   "image": "/partners/magazin-cvetok/items/20004.webp"
+   "image": "/partners/magazin-cvetok/items/20004.webp",
+   "description": "Компактная, с сочными узорчатыми листьями — подойдёт для стола или полки. Не любит перелива, достаточно полива раз в неделю.",
+   "light": "partial",
+   "water": "rare",
+   "easy": true
   },
   {
    "sku": "20005",
@@ -137,7 +169,11 @@
    "height_cm": 50,
    "pot_cm": 9,
    "price": 4500,
-   "image": "/partners/magazin-cvetok/items/20005.webp"
+   "image": "/partners/magazin-cvetok/items/20005.webp",
+   "description": "Восковой плющ с плотными листьями; со временем цветёт ароматными звёздочками. Можно выращивать в подвесном кашпо или на опоре. Поливать после просыхания земли.",
+   "light": "diffused",
+   "water": "rare",
+   "easy": true
   },
   {
    "sku": "20006",
@@ -147,7 +183,11 @@
    "height_cm": 62,
    "pot_cm": 12,
    "price": 6500,
-   "image": "/partners/magazin-cvetok/items/20006.webp"
+   "image": "/partners/magazin-cvetok/items/20006.webp",
+   "description": "Крупные выразительные листья, растёт в красивое деревце. Любит постоянное место у светлого окна и полив, когда земля подсохнет на 2–3 см.",
+   "light": "diffused",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "20007",
@@ -157,7 +197,11 @@
    "height_cm": 65,
    "pot_cm": 17,
    "price": 7900,
-   "image": "/partners/magazin-cvetok/items/20007.webp"
+   "image": "/partners/magazin-cvetok/items/20007.webp",
+   "description": "Знаменитые резные листья — главный тренд интерьеров. Быстро растёт, любит опору, рассеянный свет и опрыскивание.",
+   "light": "diffused",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "20008",
@@ -167,7 +211,11 @@
    "height_cm": 40,
    "pot_cm": 11,
    "price": 4200,
-   "image": "/partners/magazin-cvetok/items/20008.webp"
+   "image": "/partners/magazin-cvetok/items/20008.webp",
+   "description": "Папоротник с волнистыми глянцевыми листьями-лентами. Любит полутень, влажный воздух и равномерно влажную землю.",
+   "light": "partial",
+   "water": "often",
+   "easy": false
   },
   {
    "sku": "20009",
@@ -177,7 +225,11 @@
    "height_cm": 31,
    "pot_cm": 11,
    "price": 4900,
-   "image": "/partners/magazin-cvetok/items/20009.webp"
+   "image": "/partners/magazin-cvetok/items/20009.webp",
+   "description": "Яркие пёстрые листья с розовыми, красными или серебристыми узорами. Спокойно переносит полутень и сухой воздух — хороший выбор для квартиры и офиса.",
+   "light": "partial",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "20010",
@@ -187,7 +239,11 @@
    "height_cm": 40,
    "pot_cm": 9,
    "price": 4600,
-   "image": "/partners/magazin-cvetok/items/20010.webp"
+   "image": "/partners/magazin-cvetok/items/20010.webp",
+   "description": "«Долларовое дерево» — почти не требует ухода: запасает воду в клубнях, переносит тень и редкий полив раз в 2–3 недели.",
+   "light": "partial",
+   "water": "rare",
+   "easy": true
   },
   {
    "sku": "20011",
@@ -197,7 +253,11 @@
    "height_cm": 37,
    "pot_cm": 11,
    "price": 3990,
-   "image": "/partners/magazin-cvetok/items/20011.webp"
+   "image": "/partners/magazin-cvetok/items/20011.webp",
+   "description": "Крупные пятнистые листья, быстро растёт и освежает комнату. Любит рассеянный свет и регулярный полив. Сок растения раздражает кожу — ставьте подальше от детей и животных.",
+   "light": "diffused",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "20012",
@@ -207,7 +267,11 @@
    "height_cm": 36,
    "pot_cm": 9,
    "price": 5600,
-   "image": "/partners/magazin-cvetok/items/20012.webp"
+   "image": "/partners/magazin-cvetok/items/20012.webp",
+   "description": "Настоящий благородный лавр: ароматные листья можно использовать на кухне. Любит свет, прохладную зиму и умеренный полив.",
+   "light": "bright",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "20013",
@@ -217,7 +281,11 @@
    "height_cm": 64,
    "pot_cm": 9,
    "price": 3990,
-   "image": "/partners/magazin-cvetok/items/20013.webp"
+   "image": "/partners/magazin-cvetok/items/20013.webp",
+   "description": "Крупные пятнистые листья, быстро растёт и освежает комнату. Любит рассеянный свет и регулярный полив. Сок растения раздражает кожу — ставьте подальше от детей и животных.",
+   "light": "diffused",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "20014",
@@ -227,7 +295,11 @@
    "height_cm": 36,
    "pot_cm": 11,
    "price": 3990,
-   "image": "/partners/magazin-cvetok/items/20014.webp"
+   "image": "/partners/magazin-cvetok/items/20014.webp",
+   "description": "«Долларовое дерево» — почти не требует ухода: запасает воду в клубнях, переносит тень и редкий полив раз в 2–3 недели.",
+   "light": "partial",
+   "water": "rare",
+   "easy": true
   },
   {
    "sku": "20015",
@@ -237,7 +309,11 @@
    "height_cm": 38,
    "pot_cm": 11,
    "price": 4600,
-   "image": "/partners/magazin-cvetok/items/20015.webp"
+   "image": "/partners/magazin-cvetok/items/20015.webp",
+   "description": "Крупные выразительные листья, растёт в красивое деревце. Любит постоянное место у светлого окна и полив, когда земля подсохнет на 2–3 см.",
+   "light": "diffused",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "20016",
@@ -247,7 +323,11 @@
    "height_cm": 30,
    "pot_cm": 14,
    "price": 3990,
-   "image": "/partners/magazin-cvetok/items/20016.webp"
+   "image": "/partners/magazin-cvetok/items/20016.webp",
+   "description": "Папоротник с волнистыми глянцевыми листьями-лентами. Любит полутень, влажный воздух и равномерно влажную землю.",
+   "light": "partial",
+   "water": "often",
+   "easy": false
   },
   {
    "sku": "20017",
@@ -257,7 +337,11 @@
    "height_cm": 37,
    "pot_cm": 12,
    "price": 5200,
-   "image": "/partners/magazin-cvetok/items/20017.webp"
+   "image": "/partners/magazin-cvetok/items/20017.webp",
+   "description": "Яркие пёстрые листья с розовыми, красными или серебристыми узорами. Спокойно переносит полутень и сухой воздух — хороший выбор для квартиры и офиса.",
+   "light": "partial",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "20018",
@@ -267,7 +351,11 @@
    "height_cm": 28,
    "pot_cm": 12,
    "price": 3700,
-   "image": "/partners/magazin-cvetok/items/20018.webp"
+   "image": "/partners/magazin-cvetok/items/20018.webp",
+   "description": "«Молитвенное растение»: вечером поднимает узорчатые листья вверх. Любит полутень, мягкую воду и влажный воздух.",
+   "light": "partial",
+   "water": "often",
+   "easy": false
   },
   {
    "sku": "20019",
@@ -277,7 +365,11 @@
    "height_cm": 15,
    "pot_cm": 10,
    "price": 3900,
-   "image": "/partners/magazin-cvetok/items/20019.webp"
+   "image": "/partners/magazin-cvetok/items/20019.webp",
+   "description": "Ампельная лиана с серебристыми пятнами на листьях — красиво свисает с полки или кашпо. Неприхотлив, переносит полутень.",
+   "light": "partial",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "20020",
@@ -287,7 +379,11 @@
    "height_cm": 45,
    "pot_cm": 13,
    "price": 4600,
-   "image": "/partners/magazin-cvetok/items/20020.webp"
+   "image": "/partners/magazin-cvetok/items/20020.webp",
+   "description": "Восковой плющ с плотными листьями; со временем цветёт ароматными звёздочками. Можно выращивать в подвесном кашпо или на опоре. Поливать после просыхания земли.",
+   "light": "diffused",
+   "water": "rare",
+   "easy": true
   },
   {
    "sku": "20021",
@@ -297,7 +393,11 @@
    "height_cm": 40,
    "pot_cm": 12,
    "price": 6400,
-   "image": "/partners/magazin-cvetok/items/20021.webp"
+   "image": "/partners/magazin-cvetok/items/20021.webp",
+   "description": "Яркие пёстрые листья с розовыми, красными или серебристыми узорами. Спокойно переносит полутень и сухой воздух — хороший выбор для квартиры и офиса.",
+   "light": "partial",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "20022",
@@ -307,7 +407,11 @@
    "height_cm": 68,
    "pot_cm": 10,
    "price": 6300,
-   "image": "/partners/magazin-cvetok/items/20022.webp"
+   "image": "/partners/magazin-cvetok/items/20022.webp",
+   "description": "Бархатные листья с медным отливом и светлыми прожилками — коллекционный вид. Любит опору, тепло и рассеянный свет.",
+   "light": "diffused",
+   "water": "moderate",
+   "easy": false
   },
   {
    "sku": "20023",
@@ -317,7 +421,11 @@
    "height_cm": 45,
    "pot_cm": 26,
    "price": 6900,
-   "image": "/partners/magazin-cvetok/items/20023.webp"
+   "image": "/partners/magazin-cvetok/items/20023.webp",
+   "description": "Пышное деревце с листьями-«зонтиками». Быстро растёт, легко формируется обрезкой, любит светлое место.",
+   "light": "diffused",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "20024",
@@ -327,7 +435,11 @@
    "height_cm": 39,
    "pot_cm": 12,
    "price": 5400,
-   "image": "/partners/magazin-cvetok/items/20024.webp"
+   "image": "/partners/magazin-cvetok/items/20024.webp",
+   "description": "Компактная лиана с резными листьями, похожая на мини-монстеру. Быстро растёт, хорошо смотрится на опоре.",
+   "light": "diffused",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "20025",
@@ -337,7 +449,11 @@
    "height_cm": 45,
    "pot_cm": 12,
    "price": 3900,
-   "image": "/partners/magazin-cvetok/items/20025.webp"
+   "image": "/partners/magazin-cvetok/items/20025.webp",
+   "description": "Крупные пятнистые листья, быстро растёт и освежает комнату. Любит рассеянный свет и регулярный полив. Сок растения раздражает кожу — ставьте подальше от детей и животных.",
+   "light": "diffused",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "20026",
@@ -347,7 +463,11 @@
    "height_cm": 43,
    "pot_cm": 19,
    "price": 4200,
-   "image": "/partners/magazin-cvetok/items/20026.webp"
+   "image": "/partners/magazin-cvetok/items/20026.webp",
+   "description": "Крупные пятнистые листья, быстро растёт и освежает комнату. Любит рассеянный свет и регулярный полив. Сок растения раздражает кожу — ставьте подальше от детей и животных.",
+   "light": "diffused",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "20027",
@@ -357,7 +477,11 @@
    "height_cm": 25,
    "pot_cm": 8,
    "price": 3400,
-   "image": "/partners/magazin-cvetok/items/20027.webp"
+   "image": "/partners/magazin-cvetok/items/20027.webp",
+   "description": "Яркие пёстрые листья с розовыми, красными или серебристыми узорами. Спокойно переносит полутень и сухой воздух — хороший выбор для квартиры и офиса.",
+   "light": "partial",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "20028",
@@ -367,7 +491,11 @@
    "height_cm": 32,
    "pot_cm": 12,
    "price": 4600,
-   "image": "/partners/magazin-cvetok/items/20028.webp"
+   "image": "/partners/magazin-cvetok/items/20028.webp",
+   "description": "Знаменитые резные листья — главный тренд интерьеров. Быстро растёт, любит опору, рассеянный свет и опрыскивание.",
+   "light": "diffused",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "20029",
@@ -377,7 +505,11 @@
    "height_cm": 17,
    "pot_cm": 10,
    "price": 2700,
-   "image": "/partners/magazin-cvetok/items/20029.webp"
+   "image": "/partners/magazin-cvetok/items/20029.webp",
+   "description": "«Денежное дерево» с мясистыми листьями. Почти не требует ухода: солнечное окно и полив раз в 2–3 недели.",
+   "light": "bright",
+   "water": "rare",
+   "easy": true
   },
   {
    "sku": "30001",
@@ -387,7 +519,11 @@
    "height_cm": 25,
    "pot_cm": 9,
    "price": 5300,
-   "image": "/partners/magazin-cvetok/items/30001.webp"
+   "image": "/partners/magazin-cvetok/items/30001.webp",
+   "description": "Драцена Сандера — «бамбук счастья», символ удачи. Растёт в воде или в земле, любит рассеянный свет; воду меняйте раз в 1–2 недели.",
+   "light": "diffused",
+   "water": "often",
+   "easy": true
   },
   {
    "sku": "30002",
@@ -397,7 +533,11 @@
    "height_cm": 63,
    "pot_cm": 10,
    "price": 7500,
-   "image": "/partners/magazin-cvetok/items/30002.webp"
+   "image": "/partners/magazin-cvetok/items/30002.webp",
+   "description": "Драцена Сандера — «бамбук счастья», символ удачи. Растёт в воде или в земле, любит рассеянный свет; воду меняйте раз в 1–2 недели.",
+   "light": "diffused",
+   "water": "often",
+   "easy": true
   },
   {
    "sku": "30003",
@@ -407,7 +547,11 @@
    "height_cm": 30,
    "pot_cm": 7,
    "price": 3800,
-   "image": "/partners/magazin-cvetok/items/30003.webp"
+   "image": "/partners/magazin-cvetok/items/30003.webp",
+   "description": "Пахира водная с плетёным стволом — «денежное дерево». Любит светлое место и умеренный полив, не переносит застоя воды.",
+   "light": "diffused",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "30004",
@@ -417,7 +561,11 @@
    "height_cm": 50,
    "pot_cm": 9,
    "price": 4300,
-   "image": "/partners/magazin-cvetok/items/30004.webp"
+   "image": "/partners/magazin-cvetok/items/30004.webp",
+   "description": "Пахира водная с плетёным стволом — «денежное дерево». Любит светлое место и умеренный полив, не переносит застоя воды.",
+   "light": "diffused",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "30005",
@@ -427,7 +575,11 @@
    "height_cm": 40,
    "pot_cm": 11,
    "price": 3390,
-   "image": "/partners/magazin-cvetok/items/30005.webp"
+   "image": "/partners/magazin-cvetok/items/30005.webp",
+   "description": "Стройная «пальма» с длинными листьями. Неприхотлива, переносит полутень и сухой воздух, полив — по мере просыхания земли.",
+   "light": "partial",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "30006",
@@ -437,7 +589,11 @@
    "height_cm": 49,
    "pot_cm": 18,
    "price": 4800,
-   "image": "/partners/magazin-cvetok/items/30006.webp"
+   "image": "/partners/magazin-cvetok/items/30006.webp",
+   "description": "Стройная «пальма» с длинными листьями. Неприхотлива, переносит полутень и сухой воздух, полив — по мере просыхания земли.",
+   "light": "partial",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "30007",
@@ -447,7 +603,11 @@
    "height_cm": 95,
    "pot_cm": 11,
    "price": 6900,
-   "image": "/partners/magazin-cvetok/items/30007.webp"
+   "image": "/partners/magazin-cvetok/items/30007.webp",
+   "description": "Изящная комнатная пальма с перистыми листьями. Хорошо растёт даже вдали от окна, любит опрыскивание.",
+   "light": "partial",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "30008",
@@ -457,7 +617,11 @@
    "height_cm": 33,
    "pot_cm": 11,
    "price": 2990,
-   "image": "/partners/magazin-cvetok/items/30008.webp"
+   "image": "/partners/magazin-cvetok/items/30008.webp",
+   "description": "Пахира водная с плетёным стволом — «денежное дерево». Любит светлое место и умеренный полив, не переносит застоя воды.",
+   "light": "diffused",
+   "water": "moderate",
+   "easy": true
   },
   {
    "sku": "30009",
@@ -467,7 +631,11 @@
    "height_cm": 27,
    "pot_cm": 7,
    "price": 3700,
-   "image": "/partners/magazin-cvetok/items/30009.webp"
+   "image": "/partners/magazin-cvetok/items/30009.webp",
+   "description": "Драцена Сандера — «бамбук счастья», символ удачи. Растёт в воде или в земле, любит рассеянный свет; воду меняйте раз в 1–2 недели.",
+   "light": "diffused",
+   "water": "often",
+   "easy": true
   },
   {
    "sku": "40001",
@@ -477,7 +645,11 @@
    "height_cm": 7,
    "pot_cm": 5,
    "price": 1800,
-   "image": "/partners/magazin-cvetok/items/40001.webp"
+   "image": "/partners/magazin-cvetok/items/40001.webp",
+   "description": "Неприхотливый кактус для подоконника или стола. Любит солнце, зимой почти не нуждается в поливе.",
+   "light": "bright",
+   "water": "rare",
+   "easy": true
   },
   {
    "sku": "40002",
@@ -487,7 +659,11 @@
    "height_cm": 15,
    "pot_cm": 8,
    "price": 2700,
-   "image": "/partners/magazin-cvetok/items/40002.webp"
+   "image": "/partners/magazin-cvetok/items/40002.webp",
+   "description": "Неприхотливый кактус для подоконника или стола. Любит солнце, зимой почти не нуждается в поливе.",
+   "light": "bright",
+   "water": "rare",
+   "easy": true
   },
   {
    "sku": "40003",
@@ -497,7 +673,11 @@
    "height_cm": 27,
    "pot_cm": 9,
    "price": 2500,
-   "image": "/partners/magazin-cvetok/items/40003.webp"
+   "image": "/partners/magazin-cvetok/items/40003.webp",
+   "description": "Алоэ вера — и украшение, и домашняя аптечка: сок листьев используют для ухода за кожей. Любит солнце и редкий полив.",
+   "light": "bright",
+   "water": "rare",
+   "easy": true
   },
   {
    "sku": "40004",
@@ -507,7 +687,11 @@
    "height_cm": 38,
    "pot_cm": 6,
    "price": 4300,
-   "image": "/partners/magazin-cvetok/items/40004.webp"
+   "image": "/partners/magazin-cvetok/items/40004.webp",
+   "description": "Неприхотливый кактус для подоконника или стола. Любит солнце, зимой почти не нуждается в поливе.",
+   "light": "bright",
+   "water": "rare",
+   "easy": true
   },
   {
    "sku": "40005",
@@ -517,7 +701,11 @@
    "height_cm": 10,
    "pot_cm": 5,
    "price": 1990,
-   "image": "/partners/magazin-cvetok/items/40005.webp"
+   "image": "/partners/magazin-cvetok/items/40005.webp",
+   "description": "Неприхотливый кактус для подоконника или стола. Любит солнце, зимой почти не нуждается в поливе.",
+   "light": "bright",
+   "water": "rare",
+   "easy": true
   },
   {
    "sku": "40006",
@@ -527,7 +715,11 @@
    "height_cm": 66,
    "pot_cm": 10,
    "price": 5900,
-   "image": "/partners/magazin-cvetok/items/40006.webp"
+   "image": "/partners/magazin-cvetok/items/40006.webp",
+   "description": "Эффектный суккулент-«колонна» для светлого места. Почти не требует полива. Млечный сок едкий — работайте в перчатках.",
+   "light": "bright",
+   "water": "rare",
+   "easy": true
   },
   {
    "sku": "40007",
@@ -537,7 +729,11 @@
    "height_cm": 45,
    "pot_cm": 12,
    "price": 3700,
-   "image": "/partners/magazin-cvetok/items/40007.webp"
+   "image": "/partners/magazin-cvetok/items/40007.webp",
+   "description": "Неприхотливый кактус для подоконника или стола. Любит солнце, зимой почти не нуждается в поливе.",
+   "light": "bright",
+   "water": "rare",
+   "easy": true
   },
   {
    "sku": "40008",
@@ -547,7 +743,11 @@
    "height_cm": 45,
    "pot_cm": 11,
    "price": 2700,
-   "image": "/partners/magazin-cvetok/items/40008.webp"
+   "image": "/partners/magazin-cvetok/items/40008.webp",
+   "description": "«Щучий хвост» — одно из самых выносливых растений: переносит тень, сухой воздух и полив раз в 2–3 недели.",
+   "light": "partial",
+   "water": "rare",
+   "easy": true
   },
   {
    "sku": "40009",
@@ -557,7 +757,11 @@
    "height_cm": 22,
    "pot_cm": 10,
    "price": 2700,
-   "image": "/partners/magazin-cvetok/items/40009.webp"
+   "image": "/partners/magazin-cvetok/items/40009.webp",
+   "description": "«Щучий хвост» — одно из самых выносливых растений: переносит тень, сухой воздух и полив раз в 2–3 недели.",
+   "light": "partial",
+   "water": "rare",
+   "easy": true
   },
   {
    "sku": "40010",
@@ -567,7 +771,11 @@
    "height_cm": 17,
    "pot_cm": 11,
    "price": 3600,
-   "image": "/partners/magazin-cvetok/items/40010.webp"
+   "image": "/partners/magazin-cvetok/items/40010.webp",
+   "description": "Неприхотливый кактус для подоконника или стола. Любит солнце, зимой почти не нуждается в поливе.",
+   "light": "bright",
+   "water": "rare",
+   "easy": true
   },
   {
    "sku": "70001",
@@ -577,7 +785,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 1000,
-   "image": "/partners/magazin-cvetok/items/70001.webp"
+   "image": "/partners/magazin-cvetok/items/70001.webp",
+   "description": "Лёгкий рыхлый грунт для кактусов и суккулентов, 3 л.",
+   "light": null,
+   "water": null,
+   "easy": false
   },
   {
    "sku": "70002",
@@ -587,7 +799,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 1500,
-   "image": "/partners/magazin-cvetok/items/70002.webp"
+   "image": "/partners/magazin-cvetok/items/70002.webp",
+   "description": "Универсальный грунт для большинства комнатных растений, 5 л.",
+   "light": null,
+   "water": null,
+   "easy": false
   },
   {
    "sku": "70003",
@@ -597,7 +813,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 1000,
-   "image": "/partners/magazin-cvetok/items/70003.webp"
+   "image": "/partners/magazin-cvetok/items/70003.webp",
+   "description": "Питательный грунт для пальм и фикусов, 3 л.",
+   "light": null,
+   "water": null,
+   "easy": false
   },
   {
    "sku": "70004",
@@ -607,7 +827,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 890,
-   "image": "/partners/magazin-cvetok/items/70004.webp"
+   "image": "/partners/magazin-cvetok/items/70004.webp",
+   "description": "Вермикулит улучшает рыхлость грунта и удерживает влагу; добавляют в грунт при пересадке, 1 л.",
+   "light": null,
+   "water": null,
+   "easy": false
   },
   {
    "sku": "80001",
@@ -617,7 +841,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 1200,
-   "image": "/partners/magazin-cvetok/items/80001.webp"
+   "image": "/partners/magazin-cvetok/items/80001.webp",
+   "description": "Жидкое удобрение для подкормки в период роста: разводится водой по инструкции на флаконе.",
+   "light": null,
+   "water": null,
+   "easy": false
   },
   {
    "sku": "80002",
@@ -627,7 +855,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 1200,
-   "image": "/partners/magazin-cvetok/items/80002.webp"
+   "image": "/partners/magazin-cvetok/items/80002.webp",
+   "description": "Жидкое удобрение для подкормки в период роста: разводится водой по инструкции на флаконе.",
+   "light": null,
+   "water": null,
+   "easy": false
   },
   {
    "sku": "80003",
@@ -637,7 +869,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 1200,
-   "image": "/partners/magazin-cvetok/items/80003.webp"
+   "image": "/partners/magazin-cvetok/items/80003.webp",
+   "description": "Жидкое удобрение для подкормки в период роста: разводится водой по инструкции на флаконе.",
+   "light": null,
+   "water": null,
+   "easy": false
   },
   {
    "sku": "80004",
@@ -647,7 +883,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 1300,
-   "image": "/partners/magazin-cvetok/items/80004.webp"
+   "image": "/partners/magazin-cvetok/items/80004.webp",
+   "description": "Жидкое удобрение для подкормки в период роста: разводится водой по инструкции на флаконе.",
+   "light": null,
+   "water": null,
+   "easy": false
   },
   {
    "sku": "80005",
@@ -657,7 +897,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 1300,
-   "image": "/partners/magazin-cvetok/items/80005.webp"
+   "image": "/partners/magazin-cvetok/items/80005.webp",
+   "description": "Жидкое удобрение для подкормки в период роста: разводится водой по инструкции на флаконе.",
+   "light": null,
+   "water": null,
+   "easy": false
   },
   {
    "sku": "80006",
@@ -667,7 +911,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 1300,
-   "image": "/partners/magazin-cvetok/items/80006.webp"
+   "image": "/partners/magazin-cvetok/items/80006.webp",
+   "description": "Жидкое удобрение для подкормки в период роста: разводится водой по инструкции на флаконе.",
+   "light": null,
+   "water": null,
+   "easy": false
   },
   {
    "sku": "90001",
@@ -677,7 +925,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 3900,
-   "image": "/partners/magazin-cvetok/items/90001.webp"
+   "image": "/partners/magazin-cvetok/items/90001.webp",
+   "description": "Декоративное кашпо, чтобы растение красиво смотрелось в интерьере.",
+   "light": null,
+   "water": null,
+   "easy": false
   },
   {
    "sku": "90002",
@@ -687,7 +939,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 3900,
-   "image": "/partners/magazin-cvetok/items/90002.webp"
+   "image": "/partners/magazin-cvetok/items/90002.webp",
+   "description": "Декоративное кашпо, чтобы растение красиво смотрелось в интерьере.",
+   "light": null,
+   "water": null,
+   "easy": false
   },
   {
    "sku": "90003",
@@ -697,7 +953,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 3900,
-   "image": "/partners/magazin-cvetok/items/90003.webp"
+   "image": "/partners/magazin-cvetok/items/90003.webp",
+   "description": "Декоративное кашпо, чтобы растение красиво смотрелось в интерьере.",
+   "light": null,
+   "water": null,
+   "easy": false
   },
   {
    "sku": "90004",
@@ -707,7 +967,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 1700,
-   "image": "/partners/magazin-cvetok/items/90004.webp"
+   "image": "/partners/magazin-cvetok/items/90004.webp",
+   "description": "Декоративное кашпо, чтобы растение красиво смотрелось в интерьере.",
+   "light": null,
+   "water": null,
+   "easy": false
   },
   {
    "sku": "90005",
@@ -717,7 +981,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 3500,
-   "image": "/partners/magazin-cvetok/items/90005.webp"
+   "image": "/partners/magazin-cvetok/items/90005.webp",
+   "description": "Декоративное кашпо, чтобы растение красиво смотрелось в интерьере.",
+   "light": null,
+   "water": null,
+   "easy": false
   },
   {
    "sku": "90006",
@@ -727,7 +995,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 1390,
-   "image": "/partners/magazin-cvetok/items/90006.webp"
+   "image": "/partners/magazin-cvetok/items/90006.webp",
+   "description": "Декоративное кашпо, чтобы растение красиво смотрелось в интерьере.",
+   "light": null,
+   "water": null,
+   "easy": false
   },
   {
    "sku": "90007",
@@ -737,7 +1009,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 1200,
-   "image": "/partners/magazin-cvetok/items/90007.webp"
+   "image": "/partners/magazin-cvetok/items/90007.webp",
+   "description": "Набор из трёх пластиковых горшков для пересадки.",
+   "light": null,
+   "water": null,
+   "easy": false
   },
   {
    "sku": "90008",
@@ -747,7 +1023,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 2500,
-   "image": "/partners/magazin-cvetok/items/90008.webp"
+   "image": "/partners/magazin-cvetok/items/90008.webp",
+   "description": "Декоративное кашпо, чтобы растение красиво смотрелось в интерьере.",
+   "light": null,
+   "water": null,
+   "easy": false
   },
   {
    "sku": "90009",
@@ -757,7 +1037,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 1900,
-   "image": "/partners/magazin-cvetok/items/90009.webp"
+   "image": "/partners/magazin-cvetok/items/90009.webp",
+   "description": "Декоративное кашпо, чтобы растение красиво смотрелось в интерьере.",
+   "light": null,
+   "water": null,
+   "easy": false
   },
   {
    "sku": "90010",
@@ -767,7 +1051,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 1500,
-   "image": "/partners/magazin-cvetok/items/90010.webp"
+   "image": "/partners/magazin-cvetok/items/90010.webp",
+   "description": "Декоративное кашпо, чтобы растение красиво смотрелось в интерьере.",
+   "light": null,
+   "water": null,
+   "easy": false
   },
   {
    "sku": "90011",
@@ -777,7 +1065,11 @@
    "height_cm": null,
    "pot_cm": null,
    "price": 2500,
-   "image": "/partners/magazin-cvetok/items/90011.webp"
+   "image": "/partners/magazin-cvetok/items/90011.webp",
+   "description": "Декоративное кашпо, чтобы растение красиво смотрелось в интерьере.",
+   "light": null,
+   "water": null,
+   "easy": false
   }
  ]
 }

@@ -15,7 +15,7 @@ export default function HomePartners() {
   useEffect(() => {
     let live = true;
     partnerProfiles.list().then((r) => { if (live) setItems(r.items.filter((p) => p.published)); }).catch(() => {});
-    partnerShop.slugs().then((s) => { if (live) setShops(s); }).catch(() => {});
+    partnerShop.list().then((s) => { if (live) setShops(s.map((x) => x.slug)); }).catch(() => {});
     return () => { live = false; };
   }, []);
   return (

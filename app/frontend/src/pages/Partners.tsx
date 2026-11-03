@@ -21,7 +21,7 @@ export default function Partners() {
   const [retry, setRetry] = useState(0);
   const [search, setSearch] = useState('');
   const [shops, setShops] = useState<string[]>([]);
-  useEffect(() => { partnerShop.slugs().then(setShops).catch(() => {}); }, []);
+  useEffect(() => { partnerShop.list().then((s) => setShops(s.map((x) => x.slug))).catch(() => {}); }, []);
   useEffect(() => {
     let active = true; setLoading(true); setError(''); setProfile(null);
     (slug ? partnerProfiles.get(slug).then(p => { if(active) setProfile(p); }) : partnerProfiles.list().then(r => { if(active) setItems(r.items); }))

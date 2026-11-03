@@ -65,6 +65,13 @@ async def _create(db) -> None:
         "tg_name VARCHAR(120), linked_at VARCHAR(32), PRIMARY KEY (shop, chat_id))",
         "CREATE TABLE IF NOT EXISTS partner_shop_codes (code VARCHAR(48) PRIMARY KEY, shop VARCHAR(80) NOT NULL, "
         "expires_at VARCHAR(32) NOT NULL)",
+        # 2026-11: product cards with a description and care hints; one-time cabinet login codes carry the chat
+        "ALTER TABLE partner_shop_products ADD COLUMN IF NOT EXISTS description VARCHAR(600)",
+        "ALTER TABLE partner_shop_products ADD COLUMN IF NOT EXISTS light VARCHAR(10)",
+        "ALTER TABLE partner_shop_products ADD COLUMN IF NOT EXISTS water VARCHAR(10)",
+        "ALTER TABLE partner_shop_products ADD COLUMN IF NOT EXISTS easy BOOLEAN NOT NULL DEFAULT FALSE",
+        "ALTER TABLE partner_shop_codes ADD COLUMN IF NOT EXISTS chat_id VARCHAR(32)",
+        "ALTER TABLE partner_shop_orders ADD COLUMN IF NOT EXISTS updated_at VARCHAR(32)",
     ):
         await db.execute(text(stmt))
     await db.commit()
@@ -91,16 +98,37 @@ def _zones(shop: dict[str, Any]) -> list[dict[str, str]]:
 
 
 # ---------------- public ----------------
-async def enabled_slugs(db) -> list[str]:
+PRODUCT_FIELDS = "sku, category, name, kind, height_cm, pot_cm, price, image, description, light, water, easy"
+
+
+async def enabled_shops(db) -> list[dict[str, Any]]:
+    """Open shops for banners: name, look, how many items, the cheapest price and a few photos."""
     await ensure_tables(db)
-    return list((await db.scalars(text("SELECT slug FROM partner_shops WHERE enabled ORDER BY slug"))).all())
+    rows = (await db.execute(text("SELECT slug, settings FROM partner_shops WHERE enabled ORDER BY slug"))).all()
+    out = []
+    for row in rows:
+        shop = _settings(row.settings)
+        stats = (await db.execute(text(
+            "SELECT COUNT(*) AS n, MIN(price) AS low FROM partner_shop_products WHERE shop = :s AND active"), {"s": row.slug})).first()
+        pictured = (await db.execute(text(
+            "SELECT category, image FROM partner_shop_products WHERE shop = :s AND active AND image IS NOT NULL ORDER BY sort, id"),
+            {"s": row.slug})).all()
+        firsts = {}  # one photo per category shows the range at a glance
+        for category, image in pictured:
+            firsts.setdefault(category, image)
+        photos = list(firsts.values())[:4]
+        out.append({"slug": row.slug, "name": shop.get("name") or row.slug, "headline": shop.get("headline") or "",
+                    "logo": shop.get("logo") or "", "accent": shop.get("accent") or "#2f5a34",
+                    "free_zones": [z["name"] for z in _zones(shop) if "бесплат" in (z.get("price") or "").lower()],
+                    "products": int(stats.n or 0), "from_price": int(stats.low or 0), "photos": photos})
+    return out
 
 
 async def storefront(db, slug: str) -> dict[str, Any]:
     shop = await _shop(db, slug)
     rows = (await db.execute(text(
-        "SELECT sku, category, name, kind, height_cm, pot_cm, price, image FROM partner_shop_products "
-        "WHERE shop = :s AND active ORDER BY sort, id"), {"s": slug})).mappings().all()
+        f"SELECT {PRODUCT_FIELDS} FROM partner_shop_products WHERE shop = :s AND active ORDER BY sort, id"),
+        {"s": slug})).mappings().all()
     order = [c for c in shop.get("categories") or [] if isinstance(c, str)]
     present = list(dict.fromkeys(r["category"] for r in rows))
     categories = [c for c in order if c in present] + [c for c in present if c not in order]
@@ -244,11 +272,18 @@ async def link_url(db, slug: str) -> dict[str, Any]:
 
 
 async def handle_message(db, client: httpx.AsyncClient, message: dict[str, Any]) -> bool:
-    """/start shop_<code> links this private chat to the shop. True when the message was ours."""
+    """/start shop_<code> links this private chat to the shop; «Кабинет» from a linked chat sends a sign-in link.
+    True when the message was ours."""
     from services.news_agent import tg
+    from services import partner_shop_cabinet as cabinet
     chat = message.get("chat") or {}
-    words = str(message.get("text") or "").strip().split()
-    if chat.get("type") != "private" or len(words) != 2 or words[0] != "/start" or not words[1].startswith(START_PREFIX):
+    said = str(message.get("text") or "").strip()
+    words = said.split()
+    if chat.get("type") != "private":
+        return False
+    if said.lower() in cabinet.LOGIN_WORDS:
+        return await cabinet.send_login(db, client, chat.get("id"))
+    if len(words) != 2 or words[0] != "/start" or not words[1].startswith(START_PREFIX):
         return False
     await ensure_tables(db)
     code = words[1][len(START_PREFIX):]
@@ -266,7 +301,10 @@ async def handle_message(db, client: httpx.AsyncClient, message: dict[str, Any])
         shop = await _shop(db, row.shop, enabled_only=False)
         answer = (f"✅ Готово! Заказы «{shop.get('name') or row.shop}» с Сортировка 24 будут приходить сюда.\n\n"
                   "В каждом заказе — товары, сумма, имя, телефон и адрес клиента. Позвоните клиенту, "
-                  "подтвердите заказ и нажмите «✅ Принял».")
+                  "подтвердите заказ и нажмите «✅ Принял».\n\n"
+                  "Цены, наличие и все заказы — в кабинете магазина: кнопка ниже или слово «Кабинет».")
+        await tg(client, "sendMessage", {"chat_id": chat.get("id"), "text": answer, "reply_markup": cabinet.cabinet_button()})
+        return True
     await tg(client, "sendMessage", {"chat_id": chat.get("id"), "text": answer})
     return True
 
@@ -274,6 +312,9 @@ async def handle_message(db, client: httpx.AsyncClient, message: dict[str, Any])
 async def handle_callback(db, client: httpx.AsyncClient, data: str, chat_id: Any, sender: dict, message: dict) -> str:
     """«✅ Принял» under an order: the first press marks it taken and shows who took it."""
     from services.news_agent import tg
+    from services import partner_shop_cabinet as cabinet
+    if data == f"{CALLBACK_PREFIX}k":
+        return "Ссылка на кабинет — ниже" if await cabinet.send_login(db, client, chat_id) else "Этот чат не подключён к магазину"
     try:
         order_id = int(data.split(":")[2])
     except (IndexError, ValueError):
@@ -282,12 +323,12 @@ async def handle_callback(db, client: httpx.AsyncClient, data: str, chat_id: Any
     row = (await db.execute(text("SELECT * FROM partner_shop_orders WHERE id = :i"), {"i": order_id})).mappings().first()
     if not row or str(chat_id) not in await chats(db, row["shop"]):
         return "Этот чат не подключён к магазину"
-    who = row["accepted_by"]
     if row["status"] == "new":
-        who = " ".join(x for x in (sender.get("first_name"), sender.get("last_name")) if x) or sender.get("username") or "сотрудник"
-        await db.execute(text("UPDATE partner_shop_orders SET status = 'accepted', accepted_by = :w WHERE id = :i AND status = 'new'"),
-                         {"w": who[:120], "i": order_id})
+        name = " ".join(x for x in (sender.get("first_name"), sender.get("last_name")) if x) or sender.get("username") or "сотрудник"
+        await db.execute(text("UPDATE partner_shop_orders SET status = 'accepted', accepted_by = :w, updated_at = :t "
+                              "WHERE id = :i AND status = 'new'"), {"w": name[:120], "t": now().isoformat(), "i": order_id})
         await db.commit()
+    who = await db.scalar(text("SELECT accepted_by FROM partner_shop_orders WHERE id = :i"), {"i": order_id}) or ""
     shop = await _shop(db, row["shop"], enabled_only=False)
     order = {"id": row["id"], "lines": json.loads(row["items"]), "total": row["total"], "name": row["customer_name"],
              "phone": row["phone"], "address": row["address"], "zone": row["zone"], "wanted": row["wanted"],
@@ -317,11 +358,13 @@ async def replace_products(db, slug: str, products: list[dict[str, Any]]) -> int
     await db.execute(text("UPDATE partner_shop_products SET active = FALSE WHERE shop = :s"), {"s": slug})
     for sort, p in enumerate(products):
         await db.execute(text(
-            "INSERT INTO partner_shop_products (shop, sku, category, name, kind, height_cm, pot_cm, price, image, active, sort) "
-            "VALUES (:shop, :sku, :category, :name, :kind, :height_cm, :pot_cm, :price, :image, TRUE, :sort) "
+            "INSERT INTO partner_shop_products (shop, sku, category, name, kind, height_cm, pot_cm, price, image, "
+            "description, light, water, easy, active, sort) VALUES (:shop, :sku, :category, :name, :kind, :height_cm, :pot_cm, "
+            ":price, :image, :description, :light, :water, :easy, TRUE, :sort) "
             "ON CONFLICT (shop, sku) DO UPDATE SET category = :category, name = :name, kind = :kind, height_cm = :height_cm, "
-            "pot_cm = :pot_cm, price = :price, image = :image, active = TRUE, sort = :sort"),
-            {"shop": slug, **p, "sort": sort})
+            "pot_cm = :pot_cm, price = :price, image = :image, description = :description, light = :light, water = :water, "
+            "easy = :easy, active = TRUE, sort = :sort"),
+            {"shop": slug, "description": None, "light": None, "water": None, "easy": False, **p, "sort": sort})
     await db.commit()
     return len(products)
 
