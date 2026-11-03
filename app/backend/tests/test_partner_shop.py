@@ -145,3 +145,17 @@ async def test_stale_link_and_rate_limit(env):
     async with maker() as db:
         stored = json.loads((await db.execute(text('SELECT items FROM partner_shop_orders LIMIT 1'))).scalar())
     assert stored[0] == {'sku': '10001', 'name': 'Орхидея', 'price': 4900, 'qty': 2}
+
+
+async def test_shops_shipped_with_code_are_seeded_once(env):
+    client, maker, _ = env
+    from services.partner_shop_seed import seed_partner_shops
+    async with maker() as db:
+        await seed_partner_shops(db)
+    shop = (await client.get('/api/v1/shops/magazin-cvetok')).json()
+    assert len(shop['products']) == 73 and shop['delivery'][0] == {'name': 'Сортировка', 'price': 'бесплатно'}
+    async with maker() as db:
+        await db.execute(text("UPDATE partner_shop_products SET price = 1 WHERE shop = 'magazin-cvetok' AND sku = '10001'"))
+        await db.commit()
+        await seed_partner_shops(db)  # the next start keeps the partner's later changes
+    assert {p['sku']: p['price'] for p in (await client.get('/api/v1/shops/magazin-cvetok')).json()['products']}['10001'] == 1

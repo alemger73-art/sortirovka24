@@ -127,6 +127,13 @@ async def _run_startup_initialization():
                 await seed_partner_profiles(session)
         except Exception as e:
             logger.warning(f"Partner profiles seed skipped: {e}")
+        try:
+            from services.partner_shop_seed import seed_partner_shops
+            from core.database import db_manager
+            async with db_manager.async_session_maker() as session:
+                await seed_partner_shops(session)
+        except Exception as e:
+            logger.warning(f"Partner shops seed skipped: {e}")
 
         if not is_production() and "MGX_IGNORE_INIT_DATA" not in os.environ:
             try:
