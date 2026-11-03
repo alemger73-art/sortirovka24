@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SMART QALA — цифровой мониторинг уличного освещения</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;600&family=Unbounded:wght@600&display=swap">
+<style>
+:root { --bg: #0b121c; --panel: #141f2d; --line: #26374a; --ink: #f4f2ec; --muted: #9aa8ba; --amber: #e8a33d; }
+* { box-sizing: border-box; }
+body { margin: 0; background: radial-gradient(ellipse at 80% 0%, #22324a, var(--bg) 60%) fixed; color: var(--ink); font: 17px/1.55 "Golos Text", system-ui, sans-serif; }
+main { max-width: 1040px; margin: 0 auto; padding: 56px 20px 40px; display: grid; gap: 40px; }
+.eyebrow { color: var(--amber); font-weight: 600; letter-spacing: .2em; text-transform: uppercase; font-size: 13px; }
+h1 { font: 600 clamp(44px, 9vw, 96px)/1 Unbounded, sans-serif; margin: 14px 0 0; }
+.kz { color: var(--amber); font: 600 20px/1.2 Unbounded, sans-serif; margin-top: 12px; }
+.sub { font-size: clamp(20px, 3vw, 28px); color: #d5dbe3; max-width: 720px; margin: 22px 0 0; }
+.cta { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 30px; }
+.btn { display: inline-block; padding: 16px 28px; border-radius: 40px; font-weight: 600; text-decoration: none; font-size: 18px; }
+.btn-main { background: var(--amber); color: #0e1622; }
+.btn-ghost { border: 1.5px solid var(--line); color: var(--ink); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; }
+.card b { display: block; font-size: 19px; margin-bottom: 6px; }
+.card span { color: var(--muted); font-size: 15px; }
+.num { font: 600 34px/1 Unbounded, sans-serif; color: var(--amber); display: block; margin-bottom: 8px; }
+h2 { font: 600 24px/1.2 Unbounded, sans-serif; margin: 0 0 16px; }
+footer { color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); padding-top: 18px; }
+</style>
+</head>
+<body>
+<main>
+  <section>
+    <div class="eyebrow">Проект умного города · Караганда</div>
+    <h1>SMART QALA</h1>
+    <div class="kz">ақылды қала</div>
+    <p class="sub">Цифровой мониторинг уличного освещения города Караганда. Пилотный район — Сортировка.</p>
+    <div class="cta">
+      <a class="btn btn-main" href="/demo">Открыть демо-платформу</a>
+      <a class="btn btn-ghost" href="/smartqala-docs.pdf" target="_blank">Документация (PDF)</a>
+    </div>
+  </section>
+  <section>
+    <h2>Видео о проекте</h2>
+    <video src="/smartqala-video.mp4" controls preload="metadata" playsinline style="width:100%;border-radius:16px;border:1px solid var(--line);background:#000"></video>
+  </section>
+  <section>
+    <h2>Что делает система</h2>
+    <div class="grid">
+      <div class="card"><span class="num">30 с</span><b>Данные из каждого шкафа</b><span>напряжение, ток, расход, контактор, дверь, температура</span></div>
+      <div class="card"><span class="num">1 мин</span><b>Авария — диспетчеру</b><span>система сама находит неисправность и сообщает в Telegram</span></div>
+      <div class="card"><span class="num">Заявка</span><b>С готовым диагнозом</b><span>что случилось, состояние шкафа и что проверить на месте</span></div>
+      <div class="card"><span class="num">Отчёт</span><b>Для акимата — сам</b><span>расход, потери в тенге, аварии, сроки ремонта; казахский и русский</span></div>
+    </div>
+  </section>
+  <section>
+    <h2>Что получает город</h2>
+    <div class="grid">
+      <div class="card"><b>Ремонт в тот же день</b><span>а не после жалоб через неделю</span></div>
+      <div class="card"><b>Свет не горит впустую</b><span>видно, где и сколько энергии уходит зря</span></div>
+      <div class="card"><b>Прозрачность</b><span>каждая авария и каждый ремонт — с датой и временем</span></div>
+      <div class="card"><b>Связь с жителями</b><span>Telegram-бот: сообщить о фонаре и получить ответ</span></div>
+    </div>
+  </section>
+  <section class="card">
+    <b>Как посмотреть демо</b>
+    <span>Нажмите «Открыть демо-платформу» и выберите роль: «Наблюдатель (акимат)» — карта, аварии, заявки и отчёты; «Диспетчер»; «Электрик» — вид с телефона. В демо показаны условные данные, аварии появляются сами.</span>
+  </section>
+  <footer>Интеллектуальная собственность: Кошакаев А.А. · Проект разработан в г. Караганда</footer>
+</main>
+</body>
+</html>

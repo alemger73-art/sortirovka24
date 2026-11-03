@@ -1,0 +1,7 @@
+{
+  "name": "smart-qala-site",
+  "private": true,
+  "description": "SMART QALA — страница проекта и демо-платформа",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=20" }
+}
