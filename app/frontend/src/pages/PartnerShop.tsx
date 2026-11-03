@@ -103,15 +103,15 @@ export default function PartnerShop() {
   const call = phoneLink(shop?.phone || ''), wa = whatsappLink(shop?.whatsapp || '');
   return <Layout><div className="mx-auto max-w-6xl px-4 pb-40 pt-3 sm:px-6">
     {error ? <div role="alert" className="mt-4 rounded-3xl border p-8 text-center">{error}</div> : !shop ? <p role="status" className="py-16 text-center text-gray-500">Загружаем каталог…</p> : <>
-      <header className="flex items-center gap-3">
+      <header className="flex items-center gap-2.5">
         <Link to="/" aria-label="На главную" className="-ml-2 flex h-11 w-9 shrink-0 items-center justify-center text-gray-500"><ArrowLeft className="h-5 w-5" /></Link>
-        {shop.logo && <img src={shop.logo} alt="" className="h-12 w-12 shrink-0 rounded-full border border-gray-200 object-cover dark:border-gray-700" />}
+        {shop.logo && <img src={shop.logo} alt="" className="h-10 w-10 shrink-0 rounded-full border border-gray-200 object-cover dark:border-gray-700" />}
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-xl font-extrabold leading-tight">{shop.name}</h1>
-          <p className="truncate text-sm text-gray-500">Интернет-магазин · {shop.hours || 'заказ онлайн'}</p>
+          <h1 className="truncate text-lg font-extrabold leading-tight sm:text-xl">{shop.name}</h1>
+          <p className="truncate text-xs text-gray-500 sm:text-sm">{shop.hours || 'Заказ онлайн'}</p>
         </div>
-        {call && <a href={call} aria-label="Позвонить в магазин" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900" style={{ color: accent }}><Phone className="h-5 w-5" /></a>}
-        {wa && <a href={wa} target="_blank" rel="noopener noreferrer" aria-label="Написать в WhatsApp" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900" style={{ color: accent }}><MessageCircle className="h-5 w-5" /></a>}
+        {call && <a href={call} aria-label="Позвонить в магазин" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900" style={{ color: accent }}><Phone className="h-5 w-5" /></a>}
+        {wa && <a href={wa} target="_blank" rel="noopener noreferrer" aria-label="Написать в WhatsApp" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900" style={{ color: accent }}><MessageCircle className="h-5 w-5" /></a>}
       </header>
 
       <p className="mt-3 flex items-start gap-2 rounded-2xl px-4 py-3 text-sm font-medium text-white" style={{ background: accent }}>
@@ -136,7 +136,7 @@ export default function PartnerShop() {
         .filter(group => group.items.length).map(group => <section key={group.name || 'found'} aria-label={group.name || 'Товары'} className="mt-3">
           {group.name && <h2 className="mb-2 mt-4 flex items-baseline justify-between text-lg font-extrabold">{group.name}
             <button onClick={() => { setCategory(group.name); window.scrollTo({ top: 0 }); }} className="text-sm font-semibold" style={{ color: accent }}>Все {group.items.length}</button></h2>}
-          <div className={group.name ? '-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:grid-cols-4' : 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'}>
+          <div className={group.name ? '-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:grid-cols-4' : 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'}>
             {(group.name ? group.items.slice(0, 8) : group.items).map(p => <ProductCard key={p.sku} p={p} qty={cart[p.sku] || 0} accent={accent} rail={!!group.name}
               onOpen={() => setViewing(p)} onChange={d => change(p.sku, d)} />)}
           </div>
