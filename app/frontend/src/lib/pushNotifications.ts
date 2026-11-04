@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { pushApiClient } from '@/lib/pushApi';
 import { isPwaStandalone, pwaPlatform, safeInternalPath, pwaEvent } from '@/lib/pwa';
+import { loadNotificationPrefs, saveNotificationPrefs } from '@/lib/cabinetPreferences';
 
 let registeredToken: string | null = null;
 let listenersBound = false;
@@ -124,7 +125,9 @@ export async function getPushPermissionState(): Promise<PushPermissionState> {
   return (await currentWebSubscription()) ? 'enabled' : 'disabled';
 }
 
-export async function enablePushNotifications(): Promise<PushPermissionState> {
+/** `withNews`: the person agreed to a prompt that names district news and offers, so those are switched on too
+ *  (the cabinet toggles can turn them off any time). The plain on/off switch in settings leaves them as they are. */
+export async function enablePushNotifications({ withNews = false }: { withNews?: boolean } = {}): Promise<PushPermissionState> {
   if (Capacitor.isNativePlatform()) {
     if (!pushEnabledInBuild()) return 'unsupported';
     const { PushNotifications } = await import('@capacitor/push-notifications');
@@ -141,6 +144,7 @@ export async function enablePushNotifications(): Promise<PushPermissionState> {
   const permission = await Notification.requestPermission();
   pwaEvent(permission === 'granted' ? 'push_permission_granted' : 'push_permission_denied');
   if (permission !== 'granted') return permission === 'denied' ? 'denied' : 'disabled';
+  if (withNews) await saveNotificationPrefs({ ...await loadNotificationPrefs(), news: true, marketing: true });
   const key = await pushApiClient.webKey();
   if (!key.enabled || !key.public_key) throw new Error('Web Push пока не настроен на сервере');
   const registration = await readyForPush();
