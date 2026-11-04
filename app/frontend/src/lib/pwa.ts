@@ -7,7 +7,14 @@ export function pwaPlatform() {
     : /CriOS|Chrome/i.test(ua) && !/Edg|SamsungBrowser/i.test(ua) ? 'chrome'
     : /SamsungBrowser/i.test(ua) ? 'samsung' : /Edg/i.test(ua) ? 'edge'
     : /FxiOS|Firefox/i.test(ua) ? 'firefox' : /Safari/i.test(ua) ? 'safari' : 'other';
-  return { platform, browser, ios, embedded: /Instagram|FBAN|FBAV|; wv\)|Telegram/i.test(ua) };
+  // On iPhone an in-app window (Instagram, Facebook, Telegram, VK…) is a web view without the «Safari/» mark.
+  const embedded = /Instagram|FBAN|FBAV|; wv\)|Telegram|VKClient|WhatsApp|Line\//i.test(ua) || (ios && !/Safari\//.test(ua));
+  return { platform, browser, ios, embedded };
+}
+/** Safari 26 (iOS 26) keeps «Поделиться» inside the «•••» menu; its user agent still says iOS 18, so the Safari version decides. */
+export function iosSafariMenuLayout(): boolean {
+  const version = Number(navigator.userAgent.match(/Version\/(\d+)/)?.[1] || 0);
+  return version >= 26;
 }
 /** Major version of the current browser (diagnostics only). */
 export function browserVersion(): string | undefined {

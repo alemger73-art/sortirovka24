@@ -181,7 +181,7 @@ async function readyForPush(): Promise<ServiceWorkerRegistration> {
   let timer: ReturnType<typeof setTimeout>;
   try {
     return await Promise.race([navigator.serviceWorker.ready, new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error('Приложение ещё не готово к push. Обновите страницу и повторите.')), 10000);
+      timer = setTimeout(() => reject(new Error('Приложение ещё загружается. Подождите полминуты и нажмите ещё раз.')), 30000);
     })]);
   } finally { clearTimeout(timer!); }
 }

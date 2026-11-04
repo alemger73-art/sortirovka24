@@ -70,3 +70,59 @@ test.describe('android chrome', () => {
     await expect(page.locator('[data-install-banner]')).toHaveCount(0);
   });
 });
+
+const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko)';
+const IOS = {
+  safari26: `${IPHONE} Version/26.0 Mobile/15E148 Safari/604.1`,
+  safari17: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
+  chrome: `${IPHONE} CriOS/130.0.6723.90 Mobile/15E148 Safari/604.1`,
+  instagram: `${IPHONE} Mobile/15E148 Instagram 350.0.0.29.104 (iPhone15,2; iOS 18_6; ru_RU; ru)`,
+  webview: `${IPHONE} Mobile/15E148`,
+  yandex: `${IPHONE} Version/18.0 YaBrowser/24.10.5.414.10 SA/3 Mobile/15E148 Safari/604.1`,
+};
+
+async function iosHelp(page: Page) {
+  await open(page, '/');
+  await page.locator('[data-install-banner]').getByRole('button', { name: 'Установить' }).click();
+  return page.getByRole('dialog');
+}
+
+for (const [name, ua, first] of [
+  ['safari 26 (iOS 26): «•••» then «Поделиться»', IOS.safari26, '«•••» в строке адреса внизу'],
+  ['safari 17: «Поделиться» at the bottom', IOS.safari17, '«Поделиться» внизу экрана'],
+  ['chrome on iPhone: share in the address bar', IOS.chrome, 'справа в адресной строке'],
+] as const) {
+  test.describe(`iphone ${name}`, () => {
+    test.use({ userAgent: ua, viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, serviceWorkers: 'block' });
+    test('steps for this browser, then «На экран „Домой“» and «Добавить»', async ({ page }) => {
+      const help = await iosHelp(page);
+      await expect(help.getByText(first)).toBeVisible();
+      await expect(help.getByText('«На экран „Домой“»')).toBeVisible();
+      await expect(help.getByText('Нажмите «Добавить»')).toBeVisible();
+      await expect(help.getByText('Скопировать ссылку')).toHaveCount(0);
+    });
+  });
+}
+
+for (const [name, ua, inApp] of [['instagram', IOS.instagram, true], ['telegram/whatsapp web view', IOS.webview, true], ['yandex', IOS.yandex, false]] as const) {
+  test.describe(`iphone ${name}`, () => {
+    test.use({ userAgent: ua, viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, serviceWorkers: 'block', permissions: ['clipboard-read', 'clipboard-write'] });
+    test('asks to open the site in Safari and copies the link', async ({ page }) => {
+      const help = await iosHelp(page);
+      await expect(help.getByText('Открыть в Safari')).toHaveCount(inApp ? 1 : 0);
+      await expect(help.getByText(inApp ? 'внутри другого приложения' : 'удобнее всего из Safari')).toBeVisible();
+      await help.getByRole('button', { name: 'Скопировать ссылку для Safari' }).click();
+      await expect(help.getByText('Ссылка скопирована')).toBeVisible();
+      expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('http://127.0.0.1:3174/');
+    });
+  });
+}
+
+test.describe('android instagram web view', () => {
+  test.use({ userAgent: `Mozilla/5.0 (Linux; Android 14; SM-A546B; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/129.0.0.0 Mobile Safari/537.36 Instagram 350.0.0.0.0 Android`, viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+  test('in-app window is sent to Chrome', async ({ page }) => {
+    const events = await open(page, '/');
+    await page.locator('[data-install-banner]').getByRole('button', { name: 'Установить' }).click();
+    await expect.poll(() => events.some(e => e.event === 'pwa_open_in_chrome' && e.embedded === true)).toBe(true);
+  });
+});

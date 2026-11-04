@@ -39,7 +39,12 @@ export default defineConfig(({ mode }) => ({
         skipWaiting: false,
         globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
         // Photos load when viewed; installing the app should not download every cover.
-        globIgnores: ['news-covers/**', 'partners/**', 'food-hero-reference.png', '**/*-v2.png', '**/*-v3.png', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
+        globIgnores: ['news-covers/**', 'partners/**', 'food-hero-reference.png', '**/*-v2.png', '**/*-v3.png', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png',
+          // Staff screens and maps load on demand: residents installing the app should not download them.
+          'assets/Admin*', 'assets/admin*', 'assets/Partner*Admin*', 'assets/PartnerAdminShell*', 'assets/CabinetAdmin*',
+          'assets/CabinetDriver*', 'assets/CabinetPartner*', 'assets/Dam{Operator,AlemCourier}*', 'assets/TaxiDriverHub*',
+          'assets/DriverDocUpload*', 'assets/crm*', 'assets/leaflet*', 'assets/{ParkMap,TaxiLiveMap,Polygon}*', 'assets/PwaDiagnostics*',
+          'assets/*-{vietnamese,latin-ext,cyrillic-ext}-*'],
         navigateFallback: undefined,
         // Public pages must reach the server so every navigation receives
         // route-specific metadata and the server-rendered SEO shell.

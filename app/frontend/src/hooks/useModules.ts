@@ -6,6 +6,14 @@ const CLOSED_MODULES = Object.fromEntries(MODULE_KEYS.map(key => [key, false])) 
 let pending: Promise<ModulesMap> | null = null;
 let cached: { data: ModulesMap; at: number } | null = null;
 const TTL_MS = 10_000;
+const SAVED_KEY = 's24_modules_last';
+
+function savedModules(): ModulesMap | null {
+  try {
+    const data = JSON.parse(localStorage.getItem(SAVED_KEY) || 'null');
+    return data && typeof data === 'object' ? { ...CLOSED_MODULES, ...data } : null;
+  } catch { return null; }
+}
 
 export async function fetchModules(): Promise<ModulesMap> {
   if (cached && Date.now() - cached.at < TTL_MS) {
@@ -14,7 +22,13 @@ export async function fetchModules(): Promise<ModulesMap> {
   if (!pending) {
     pending = modulesApi.list().then(data => {
       cached = { data, at: Date.now() };
+      try { localStorage.setItem(SAVED_KEY, JSON.stringify(data)); } catch { /* storage optional */ }
       return data;
+    }, (err) => {
+      // Offline or the server is unreachable: the last confirmed map keeps sections open.
+      const saved = savedModules();
+      if (saved) return saved;
+      throw err;
     }).finally(() => { pending = null; });
   }
   return pending;

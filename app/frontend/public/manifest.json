@@ -2,7 +2,7 @@
   "id": "/",
   "name": "Сортировка 24",
   "short_name": "Сортировка",
-  "description": "Вся Сортировка в одном месте: доставка DÄM ALEM, объявления, мастера, такси, новости района",
+  "description": "Вся Сортировка в одном месте: еда с доставкой, магазины района, объявления, справочник и новости",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
@@ -18,9 +18,45 @@
   "lang": "ru",
   "shortcuts": [
     {
-      "name": "Курьер DÄM ALEM",
-      "short_name": "Курьер",
-      "url": "/food/courier",
+      "name": "Еда с доставкой",
+      "short_name": "Еда",
+      "url": "/food?source=shortcut",
+      "icons": [
+        {
+          "src": "/icon-192-v4.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Магазины района",
+      "short_name": "Магазины",
+      "url": "/shops?source=shortcut",
+      "icons": [
+        {
+          "src": "/icon-192-v4.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Объявления",
+      "short_name": "Объявления",
+      "url": "/announcements?source=shortcut",
+      "icons": [
+        {
+          "src": "/icon-192-v4.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Личный кабинет",
+      "short_name": "Кабинет",
+      "url": "/cabinet?source=shortcut",
       "icons": [
         {
           "src": "/icon-192-v4.png",
