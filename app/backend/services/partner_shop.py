@@ -378,6 +378,8 @@ async def replace_products(db, slug: str, products: list[dict[str, Any]]) -> int
 
 async def orders_of_user(db, user_id: str, limit: int = 100) -> list[dict[str, Any]]:
     """A resident's shop orders for the personal cabinet's order history."""
+    if db.bind.dialect.name != "postgresql":  # partner shops live only in the Postgres database
+        return []
     await ensure_tables(db)
     rows = (await db.execute(text(
         "SELECT o.id, o.shop, o.items, o.total, o.status, o.customer_name, o.phone, o.address, o.zone, o.wanted, o.comment, "
