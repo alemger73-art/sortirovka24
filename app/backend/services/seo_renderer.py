@@ -58,6 +58,11 @@ class SeoPage:
 
 
 PUBLIC_PAGES: dict[str, tuple[str, str, str]] = {
+    "/shops": (
+        "Магазины района — заказ с доставкой | Сортировка 24",
+        "Магазины Сортировки с онлайн-заказом: каталог, корзина и доставка до двери.",
+        "Магазины района",
+    ),
     "/": (
         "Сортировка Караганда — сервисы района | Сортировка 24",
         "Район Сортировка в Караганде онлайн: доставка еды DÄM ALEM, справочник и телефоны служб, участковые, «Мой дом» для соседей, объявления и приглашения на той.",
@@ -141,7 +146,7 @@ def _facts(values: list[tuple[str, Any]]) -> str:
 PATH_MODULE = {
     "/news": "news", "/announcements": "announcements", "/real-estate": "real_estate",
     "/jobs": "jobs", "/food": "food", "/directory": "directory", "/transport": "transport",
-    "/inspectors": "inspectors", "/business": "business", "/masters": "masters",
+    "/inspectors": "inspectors", "/business": "business", "/shops": "business", "/masters": "masters",
     "/salons": "salons", "/questions": "questions", "/complaints": "complaints", "/toy": "toy",
 }
 
