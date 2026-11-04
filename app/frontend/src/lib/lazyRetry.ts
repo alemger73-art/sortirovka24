@@ -6,6 +6,7 @@
 import { lazy, type ComponentType } from 'react';
 
 const KEY = 's24_chunk_reload_at';
+let reloading = false;
 const CHUNK_ERROR = /Importing a module script failed|Failed to fetch dynamically imported module|error loading dynamically imported module|Loading chunk|ChunkLoadError|Unable to preload CSS/i;
 
 export function isChunkError(err: unknown): boolean {
@@ -23,13 +24,23 @@ export function reloadForNewRelease(): boolean {
   const fresh = fetch(window.location.href, { cache: 'reload', credentials: 'same-origin' }).catch(() => undefined);
   const worker = navigator.serviceWorker?.getRegistration().then((reg) => reg?.update()).catch(() => undefined);
   const timeout = new Promise((resolve) => setTimeout(resolve, 2500));
+  reloading = true;
   void Promise.race([Promise.all([fresh, worker]), timeout]).then(() => window.location.reload());
   return true;
 }
 
+/** A page part that never arrives: the page is reloading, so nothing is drawn meanwhile. */
+const whileReloading = <M,>() => new Promise<M>(() => { /* page is reloading */ });
+
 export function lazyRetry<T extends ComponentType<any>>(factory: () => Promise<{ default: T }>) {
-  return lazy(() => factory().catch((err) => {
-    if (isChunkError(err) && reloadForNewRelease()) return new Promise<{ default: T }>(() => { /* page is reloading */ });
+  return lazy(() => factory().then((mod) => {
+    // When the preload of a page part fails, installChunkReload() swallows the error to reload the page,
+    // and the import then resolves empty. Without this check React reads `.default` of undefined.
+    if (mod?.default) return mod;
+    if (reloading || reloadForNewRelease()) return whileReloading<{ default: T }>();
+    throw new Error('Importing a module script failed: the page part came back empty');
+  }, (err) => {
+    if (isChunkError(err) && (reloading || reloadForNewRelease())) return whileReloading<{ default: T }>();
     throw err;
   }));
 }
