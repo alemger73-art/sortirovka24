@@ -14,13 +14,13 @@ export default function HomePartners() {
   const [shops, setShops] = useState<string[]>([]);
   useEffect(() => {
     let live = true;
-    partnerProfiles.list().then((r) => { if (live) setItems(r.items.filter((p) => p.published)); }).catch(() => {});
+    partnerProfiles.list().then((r) => { if (live) setItems(r.items.filter((p) => p.published && !p.featured)); }).catch(() => {});  // the main partner has its own card higher up
     partnerShop.list().then((s) => { if (live) setShops(s.map((x) => x.slug)); }).catch(() => {});
     return () => { live = false; };
   }, []);
   return (
     <section className="home-partners a-section" aria-label={kz ? 'Жоба серіктестері' : 'Партнёры проекта'}>
-      <div className="a-head">
+      {items.length > 0 && <><div className="a-head">
         <div><span className="a-kicker">{kz ? 'Жақын жердегі қызметтер' : 'Услуги рядом'}</span><h2>{kz ? 'Жоба серіктестері' : 'Партнёры проекта'}</h2></div>
         <Link to="/partners" className="a-more">{kz ? 'Барлығы' : 'Все'}<ArrowRight size={15} /></Link>
       </div>
@@ -42,7 +42,7 @@ export default function HomePartners() {
             </article>
           );
         })}
-      </div>
+      </div></>}
       <Link to="/business" className="a-card a-invite">
         <Building2 size={22} strokeWidth={1.8} style={{ color: 'var(--a-accent)', flex: 'none' }} />
         <span style={{ flex: 1 }}><strong>{kz ? 'Ауданда жұмыс істейсіз бе?' : 'Работаете в Сортировке?'}</strong><small>{kz ? 'Өтінім қалдырыңыз — ынтымақтастықты талқылаймыз' : 'Оставьте заявку — обсудим сотрудничество'}</small></span>

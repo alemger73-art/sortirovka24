@@ -3,6 +3,7 @@
  * account card with «my stuff» shortcuts → main services as tiles → the rest as a short list → help → small legal links.
  * Disabled modules are hidden automatically; nothing is listed twice.
  */
+import FeaturedPartner from '@/components/FeaturedPartner';
 import { getLegalDocuments } from '@/content/legal';
 import { Link } from 'react-router-dom';
 import {
@@ -135,6 +136,8 @@ export default function More() {
         </section>
 
         <InstallAppBanner manual />
+
+        <FeaturedPartner variant="compact" place="more" />
 
         {/* Main services */}
         {visibleTiles.length > 0 && (

@@ -4,6 +4,7 @@
  * so nothing has to be found by scrolling. Each section opens in place (?section=), the page stays short.
  * Contacts come from the admin (directory_entries).
  */
+import FeaturedPartner from '@/components/FeaturedPartner';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -122,6 +123,7 @@ export default function Directory() {
             <MenuTile icon={Globe} active={view === 'services'} onClick={() => openView('services')} title={say('Госуслуги онлайн', 'Онлайн қызметтер')} sub={say('eGov, ЦОН, eOtinish, 1414', 'eGov, ХҚКО, eOtinish, 1414')} />
             <MenuTile icon={MessageCircle} to="/report-problem" title={say('Сообщить о проблеме', 'Хабарлау')} sub={say('Или об ошибке в номере', 'Мәселе не нөмір қатесі')} />
           </nav>
+          <FeaturedPartner variant="compact" place="directory" className="mt-3" />
 
           {view === 'contacts' && <>
           <section id="dir-situations" aria-labelledby="dir-sit-h">
