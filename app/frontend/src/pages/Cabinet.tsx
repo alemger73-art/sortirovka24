@@ -567,7 +567,7 @@ export default function Cabinet() {
     if (contentMutation.current) return;
     if (boostPrice.paid && !window.confirm(lang === "kz"
       ? `${boostPrice.days} күнге ${boostPrice.price} ₸-ге көтеру керек пе? Шот Kaspi-ге келеді.`
-      : `Поднять в топ на ${boostPrice.days} дней за ${boostPrice.price} ₸? Счёт придёт в Kaspi.`)) return;
+      : `Поднять в топ на ${boostPrice.days} дней за ${boostPrice.price} ₸? Счёт придёт в Kaspi. Условия: sortirovka24.kz/legal/boost-offer`)) return;
     contentMutation.current = true;
     setContentBusy(true);
     setError("");
@@ -634,7 +634,7 @@ export default function Cabinet() {
     if (contentMutation.current) return;
     if (boostPrice.paid && !window.confirm(lang === "kz"
       ? `${boostPrice.days} күнге ${boostPrice.price} ₸-ге көтеру керек пе? Шот Kaspi-ге келеді.`
-      : `Поднять в топ на ${boostPrice.days} дней за ${boostPrice.price} ₸? Счёт придёт в Kaspi.`)) return;
+      : `Поднять в топ на ${boostPrice.days} дней за ${boostPrice.price} ₸? Счёт придёт в Kaspi. Условия: sortirovka24.kz/legal/boost-offer`)) return;
     contentMutation.current = true;
     setContentBusy(true);
     setError("");

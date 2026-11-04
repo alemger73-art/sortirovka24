@@ -85,6 +85,9 @@ test('3-step form: vacancy with schedule, validation, prefilled contacts, previe
   await expect(page.getByText('WhatsApp на этом же номере')).toBeVisible();
   await expect(page.getByText('250 000 ₸')).toBeVisible();
   await page.screenshot({ path: info.outputPath('step3.png'), fullPage: true });
+  await page.getByTestId('ad-submit').click();  // the public-visibility consent is required first
+  await expect(page.getByText('Отметьте согласие на публикацию объявления')).toBeVisible();
+  await page.getByTestId('ad-public-consent').check();
   await page.getByTestId('ad-submit').click();
   await expect(page.getByRole('heading', { name: 'Объявление отправлено!' })).toBeVisible();
   expect(writes).toHaveLength(1);
@@ -103,11 +106,12 @@ test('form refuses a wrong phone and «Отдам даром» needs no price', 
   await page.getByLabel('Заголовок').fill('Детские вещи');
   await page.getByLabel('Описание').fill('Отдам пакет вещей на 2–3 года');
   await page.getByTestId('ad-next').click();
-  await page.getByLabel('Телефон').fill('123');
+  await page.getByLabel('Телефон', { exact: true }).fill('123');
   await page.getByTestId('ad-submit').click();
   await expect(page.getByText(/Укажите номер телефона/).first()).toBeVisible();
   expect(writes).toHaveLength(0);
-  await page.getByLabel('Телефон').fill('8 701 111 22 33');
+  await page.getByLabel('Телефон', { exact: true }).fill('8 701 111 22 33');
+  await page.getByTestId('ad-public-consent').check();
   await page.getByTestId('ad-submit').click();
   await expect(page.getByRole('heading', { name: 'Объявление отправлено!' })).toBeVisible();
   expect(writes[0]).toMatchObject({ ann_type: 'free', price: 'Бесплатно', phone: '+77011112233' });

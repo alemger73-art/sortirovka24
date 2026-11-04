@@ -29,7 +29,7 @@ export default function HomePartners() {
           const phone = phoneLink(p.phone), wa = whatsappLink(p.whatsapp);
           return (
             <article key={p.slug} className="a-card a-partner">
-              <small>{kz ? 'Жоба серіктесі' : 'Партнёр проекта'}</small>
+              <small>{kz ? 'Жарнама · Жоба серіктесі' : 'Реклама · Партнёр проекта'}</small>
               <h3><Link to={`/partners/${p.slug}`}>{p.name}</Link></h3>
               {p.headline && <p>{p.headline}</p>}
               <div className="a-partner-actions">

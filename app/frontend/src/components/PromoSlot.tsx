@@ -170,7 +170,7 @@ export default function PromoSlot({ placement, context = '', prefer, className =
         {(p.cover || p.logo) && <StorageImg objectKey={p.cover || p.logo} alt={p.name} className="h-full w-full object-cover" />}
       </Link>
       <div className="min-w-0 flex-1 pr-6">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{kz ? 'Жоба серіктесі' : 'Партнёр'} · {p.name}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{kz ? 'Жарнама' : 'Реклама'} · {p.name}</p>
         <p className="mt-0.5 line-clamp-2 text-[15px] font-bold leading-snug text-gray-900 dark:text-slate-100">{p.headline}</p>
         {p.offer && <p className="mt-0.5 line-clamp-1 text-sm text-emerald-700 dark:text-emerald-300">{p.offer}</p>}
         <div className="mt-2 flex flex-wrap items-center gap-2">

@@ -34,7 +34,7 @@ export default function FeaturedPartner({ variant = 'banner', place, className }
 
   const page = `/partners/${partner.slug}`;
   const phone = phoneLink(partner.phone);
-  const label = kz ? 'Жобаның басты серіктесі' : 'Главный партнёр проекта';
+  const label = kz ? 'Жарнама · Жобаның басты серіктесі' : 'Реклама · Главный партнёр проекта';
   const click = (what: string) => track('promo_click', { promo: 'featured_partner', place, what });
 
   if (variant === 'compact') {
@@ -53,7 +53,7 @@ export default function FeaturedPartner({ variant = 'banner', place, className }
     <Link to={page} onClick={() => click('card')} className="flex min-w-0 flex-1 items-center gap-3">
       {partner.logo && <StorageImg objectKey={partner.logo} alt="" className="h-10 w-10 shrink-0 rounded-xl object-cover" />}
       <span className="min-w-0">
-        <b className="block truncate text-[15px] leading-tight">{partner.name} <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">· {kz ? 'басты серіктес' : 'главный партнёр'}</span></b>
+        <b className="block truncate text-[15px] leading-tight">{partner.name} <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">· {kz ? 'басты серіктес · жарнама' : 'главный партнёр · реклама'}</span></b>
         {partner.offer && <span className="block truncate text-[13px] text-gray-600 dark:text-gray-300">{partner.offer}</span>}
       </span>
     </Link>

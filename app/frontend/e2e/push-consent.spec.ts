@@ -1,7 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 
-/** Agreeing to the notifications card (its text names news and offers) subscribes the device with news and
- *  offers switched on; asking again waits a week after «×». Browser push is stubbed: no real push service. */
+/** The notifications card subscribes to orders and bonuses; district news and offers need their own unticked box
+ *  (separate advertising consent). Browser push is stubbed: no real push service. */
+
 /** A signed-in resident whose browser can push (stubbed); registrations land in `registered`. */
 async function stubPush(page: Page, registered: unknown[]) {
   await page.addInitScript(() => {
@@ -31,13 +32,14 @@ async function stubPush(page: Page, registered: unknown[]) {
   });
 }
 
-test('the welcome card subscribes the device with news and offers on', async ({ page }) => {
+test('news and offers come only with their own box ticked on the welcome card', async ({ page }) => {
   const registered: unknown[] = [];
   await stubPush(page, registered);
   await page.goto('/cabinet');
-  const card = page.getByText('Заказы и бонусы, а ещё новости района, новые магазины и акции', { exact: false });
+  const card = page.getByText('О заказах и бонусах. Отключить можно в настройках.', { exact: false });
   await expect(card).toBeVisible({ timeout: 15000 });
-  await page.getByRole('button', { name: 'Включить уведомления' }).click();
+  await page.getByLabel('Также присылать новости района, новые магазины и акции (реклама)').check();
+  await page.getByRole('button', { name: 'Включить уведомления' }).first().click();
   await expect.poll(() => registered.length).toBe(1);
   expect((registered[0] as { preferences: { news: boolean; marketing: boolean; orders: boolean } }).preferences)
     .toMatchObject({ news: true, marketing: true, orders: true });
@@ -111,4 +113,15 @@ test('when the phone push service never answers, the person gets a plain Russian
   await expect(page.getByRole('alert')).toContainText('Служба уведомлений телефона (Google) не ответила', { timeout: 15000 });
   await expect(page.getByText('push service error')).toHaveCount(0);
   expect(registered).toHaveLength(0);
+});
+
+test('without ticking the news box the card subscribes to orders and bonuses only', async ({ page }) => {
+  const registered: unknown[] = [];
+  await stubPush(page, registered);
+  await page.goto('/cabinet');
+  await expect(page.getByText('О заказах и бонусах. Отключить можно в настройках.')).toBeVisible({ timeout: 15000 });
+  await page.getByRole('button', { name: 'Включить уведомления' }).first().click();
+  await expect.poll(() => registered.length).toBe(1);
+  expect((registered[0] as { preferences: { news: boolean; marketing: boolean; orders: boolean } }).preferences)
+    .toMatchObject({ news: false, marketing: false, orders: true });
 });

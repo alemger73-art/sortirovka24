@@ -7,14 +7,16 @@ import InstallAppBanner from '@/components/InstallAppBanner';
 const DISMISS_KEY = 's24_push_prompt_dismissed_at';
 const ASK_AGAIN_DAYS = 7;
 
-/** Short card that offers notifications at the moment they matter (after sign-in, on an open order). Its text names
- *  news and offers, so agreeing switches those on too. Asks again a week after «×».
+/** Short card that offers notifications at the moment they matter (after sign-in, on an open order). Order and bonus
+ *  notifications come with the button; district news and offers only with their own unticked box (separate consent).
+ *  Asks again a week after «×».
  *  Shows nothing when push is already on, blocked, unsupported or recently dismissed. */
 export default function PushPromptCard({ reason = 'order', className = '' }: { reason?: 'order' | 'cabinet'; className?: string }) {
   const { lang } = useLanguage();
   const kz = lang === 'kz';
   const [state, setState] = useState<PushPermissionState | null>(null);
   const [busy, setBusy] = useState(false);
+  const [withNews, setWithNews] = useState(false);
   const [hidden, setHidden] = useState(() => {
     try { return Date.now() - Number(localStorage.getItem(DISMISS_KEY)) < ASK_AGAIN_DAYS * 86400000; } catch { return false; }
   });
@@ -30,8 +32,8 @@ export default function PushPromptCard({ reason = 'order', className = '' }: { r
     ? (kz ? 'Тапсырыс күйі туралы хабарландыру' : 'Узнавайте о заказе сразу')
     : (kz ? 'Хабарландыруларды қосыңыз' : 'Включите уведомления');
   const text = reason === 'order'
-    ? (kz ? 'Тапсырыс қабылданғанда, курьер шыққанда және жеткізілгенде хабарлаймыз. Аудан жаңалықтары мен акциялары туралы да айтамыз.' : 'Сообщим, когда заказ примут, курьер выедет и заказ будет доставлен. А ещё — о новостях, новых магазинах и акциях района.')
-    : (kz ? 'Тапсырыстар, бонустар, аудан жаңалықтары, жаңа дүкендер мен акциялар.' : 'Заказы и бонусы, а ещё новости района, новые магазины и акции. Отключить можно в настройках.');
+    ? (kz ? 'Тапсырыс қабылданғанда, курьер шыққанда және жеткізілгенде хабарлаймыз.' : 'Сообщим, когда заказ примут, курьер выедет и заказ будет доставлен.')
+    : (kz ? 'Тапсырыстар мен бонустар туралы. Баптауларда өшіруге болады.' : 'О заказах и бонусах. Отключить можно в настройках.');
 
   if (state === 'needs-install') {
     return <div className={`${className} rounded-2xl border border-blue-200 bg-blue-50 p-4 text-blue-950 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-50`}>
@@ -46,13 +48,17 @@ export default function PushPromptCard({ reason = 'order', className = '' }: { r
   async function enable() {
     if (busy) return;
     setBusy(true);
-    try { setState(await enablePushNotifications({ withNews: true })); } catch { setState('unsupported'); } finally { setBusy(false); }
+    try { setState(await enablePushNotifications({ withNews })); } catch { setState('unsupported'); } finally { setBusy(false); }
   }
   return <div className={`${className} flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-blue-950 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-50`}>
     <Bell className="mt-0.5 h-5 w-5 shrink-0" />
     <div className="min-w-0 flex-1">
       <p className="font-semibold">{title}</p>
       <p className="mt-1 text-sm">{text}</p>
+      <label className="mt-2 flex items-start gap-2 text-sm">
+        <input type="checkbox" checked={withNews} onChange={(e) => setWithNews(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded accent-blue-600" />
+        <span>{kz ? 'Аудан жаңалықтарын, жаңа дүкендер мен акцияларды да жіберу (жарнама)' : 'Также присылать новости района, новые магазины и акции (реклама)'}</span>
+      </label>
       <button disabled={busy} onClick={() => void enable()} className="mt-3 min-h-11 rounded-xl bg-blue-600 px-4 py-2 font-semibold text-white disabled:opacity-60">
         {busy ? (kz ? 'Қосылуда…' : 'Включаем…') : (kz ? 'Хабарландыруларды қосу' : 'Включить уведомления')}
       </button>

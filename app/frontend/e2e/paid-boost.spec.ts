@@ -26,6 +26,6 @@ test('lifting an ad sends a Kaspi invoice instead of lifting it for free', async
   await page.getByRole('button', { name: 'Поднять · 500 ₸' }).click();
   await expect(page.getByText('Счёт на 500 ₸ отправлен в Kaspi')).toBeVisible();
   await expect(page.getByText('На номер +77001234567')).toBeVisible();
-  expect(asked).toBe('Поднять в топ на 7 дней за 500 ₸? Счёт придёт в Kaspi.');
+  expect(asked).toBe('Поднять в топ на 7 дней за 500 ₸? Счёт придёт в Kaspi. Условия: sortirovka24.kz/legal/boost-offer');
   expect(boosts).toHaveLength(1);
 });

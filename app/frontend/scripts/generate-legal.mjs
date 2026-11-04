@@ -16,7 +16,8 @@ for (const [language, list] of Object.entries(documents)) {
     } else await writeFile(path, html, 'utf8');
   }
 }
-console.log(check ? 'Legal HTML matches canonical documents (8 pages).' : 'Generated 8 legal pages.');
+const pages = Object.values(documents).reduce((n, list) => n + Object.keys(list).length, 0);
+console.log(check ? `Legal HTML matches canonical documents (${pages} pages).` : `Generated ${pages} legal pages.`);
 // Archive exact accepted texts with hashes alongside the backend receipt reader.
 const manifest = { version: legalVersion, documents: Object.fromEntries(Object.entries(documents).map(([lang, list]) => [lang,
   Object.fromEntries(Object.entries(list).map(([key, doc]) => [key, { sha256: createHash('sha256').update(JSON.stringify(doc)).digest('hex'), document: doc }]))])) };

@@ -113,6 +113,7 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState<{ id?: number } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [publicConsent, setPublicConsent] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
   const info = draft.kind ? AD_KIND_MAP[draft.kind] : undefined;
 
@@ -168,8 +169,15 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
     };
   }
 
+  function checkPublicConsent() {
+    if (editing || publicConsent) return true;
+    setErrors((e) => ({ ...e, publicConsent: 'required' }));
+    toast.error(tx('Отметьте согласие на публикацию объявления', 'Хабарландыруды жариялауға келісімді белгілеңіз'));
+    return false;
+  }
+
   async function submit() {
-    if (sending || !checkStep2() || !checkStep3()) return;
+    if (sending || !checkStep2() || !checkStep3() || !checkPublicConsent()) return;
     setSending(true);
     if (editId) {
       try {
@@ -363,9 +371,13 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
               <p className="mb-2 text-sm font-semibold text-gray-900 dark:text-slate-100">{tx('Так увидят ваше объявление', 'Хабарландыруыңыз осылай көрінеді')}</p>
               <AdCard ad={{ ...preview, created_at: new Date().toISOString() }} preview />
             </div>
+            {!editing && <label className={`flex items-start gap-3 rounded-xl border p-3 text-sm ${errors.publicConsent ? 'border-red-400' : 'border-gray-200 dark:border-slate-700'}`}>
+              <input type="checkbox" data-testid="ad-public-consent" checked={publicConsent} onChange={(e) => { setPublicConsent(e.target.checked); setErrors(({ publicConsent: _drop, ...rest }) => rest); }} className="mt-0.5 h-5 w-5 shrink-0 rounded accent-[#3864ed]" />
+              <span className="text-gray-700 dark:text-slate-200">{tx('Согласен, что объявление с моим телефоном и фото увидят все посетители и оно может появиться в Telegram-канале «Сортировка Официал».', 'Хабарландыруды телефоным мен фотомен барлық келушілер көретініне және ол «Сортировка Официал» Telegram-арнасында шығуы мүмкін екеніне келісемін.')}</span>
+            </label>}
             <p className="text-xs leading-relaxed text-gray-500 dark:text-slate-400">
               {tx('Нажимая «Опубликовать», вы соглашаетесь с ', '«Жариялау» түймесін басу арқылы сіз ')}
-              <Link to="/legal/terms" target="_blank" rel="noopener noreferrer" className="underline">{tx('правилами сайта', 'сайт ережелерімен')}</Link>
+              <Link to="/legal/ads-rules" target="_blank" rel="noopener noreferrer" className="underline">{tx('правилами размещения объявлений', 'хабарландыру орналастыру ережелерімен')}</Link>
               {tx('. Запрещены оружие, лекарства, алкоголь, табак, услуги для взрослых и любые просьбы о предоплате.', ' келісесіз. Қару, дәрі, алкоголь, темекі, ересектерге арналған қызметтер және алдын ала төлем сұрауға тыйым салынады.')}
             </p>
           </section>
