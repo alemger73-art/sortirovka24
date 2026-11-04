@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 START_PREFIX = "shop_"
 CALLBACK_PREFIX = "sh:"
-LINK_MINUTES = 60 * 24
+LINK_MINUTES = 60 * 24 * 7  # a partner may open the invite days later
 ORDERS_PER_PHONE_HOUR = 5
 
 _ready: set[int] = set()

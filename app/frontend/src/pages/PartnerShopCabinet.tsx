@@ -192,7 +192,7 @@ function Team({ data, slug, token, accent }: Section) {
     </div>
     <div className="rounded-[22px] p-4" style={{ background: `${accent}14` }}>
       <h2 className="font-bold">Добавить сотрудника</h2>
-      <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">Создайте ссылку и отправьте её сотруднику. Он откроет её в Telegram, нажмёт «Старт» — и тоже начнёт получать заказы. Ссылка действует сутки.</p>
+      <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">Создайте ссылку и отправьте её сотруднику. Он откроет её в Telegram, нажмёт «Старт» — и тоже начнёт получать заказы. Ссылка действует неделю.</p>
       {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
       {invite ? <div className="mt-3 flex gap-2">
         <input readOnly value={invite} aria-label="Ссылка для сотрудника" className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-white px-3 text-sm dark:border-gray-700 dark:bg-gray-950" onFocus={e => e.target.select()} />
