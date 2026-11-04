@@ -76,3 +76,39 @@ test('«Уведомления» in the cabinet always offers to switch push on,
   expect(registered).toHaveLength(1);
   expect((registered[0] as { preferences: { news: boolean; orders: boolean } }).preferences).toMatchObject({ news: false, orders: true });
 });
+
+/** The phone's push service fails `fails` times before answering (Android «Registration failed - push service error»). */
+async function flakyPushService(page: Page, fails: number) {
+  await page.addInitScript((count: number) => {
+    void navigator.serviceWorker.ready.then((reg) => {
+      const subscribe = reg.pushManager.subscribe.bind(reg.pushManager);
+      let calls = 0;
+      reg.pushManager.subscribe = async (options?: PushSubscriptionOptionsInit) => {
+        calls += 1;
+        if (calls <= count) throw new DOMException('Registration failed - push service error', 'AbortError');
+        return subscribe(options);
+      };
+    });
+  }, fails);
+}
+
+test('a busy phone push service is retried and the device still subscribes', async ({ page }) => {
+  const registered: unknown[] = [];
+  await stubPush(page, registered);
+  await flakyPushService(page, 2);
+  await page.goto('/cabinet?tab=notifications');
+  await page.locator('[data-push-status="disabled"]').getByRole('button', { name: 'Включить уведомления' }).click();
+  await expect(page.locator('[data-push-status="enabled"]')).toBeVisible({ timeout: 15000 });
+  expect(registered).toHaveLength(1);
+});
+
+test('when the phone push service never answers, the person gets a plain Russian explanation', async ({ page }) => {
+  const registered: unknown[] = [];
+  await stubPush(page, registered);
+  await flakyPushService(page, 10);
+  await page.goto('/cabinet?tab=notifications');
+  await page.locator('[data-push-status="disabled"]').getByRole('button', { name: 'Включить уведомления' }).click();
+  await expect(page.getByRole('alert')).toContainText('Служба уведомлений телефона (Google) не ответила', { timeout: 15000 });
+  await expect(page.getByText('push service error')).toHaveCount(0);
+  expect(registered).toHaveLength(0);
+});

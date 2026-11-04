@@ -148,11 +148,7 @@ export async function enablePushNotifications({ withNews = false }: { withNews?:
   const key = await pushApiClient.webKey();
   if (!key.enabled || !key.public_key) throw new Error('Web Push пока не настроен на сервере');
   const registration = await readyForPush();
-  const existing = await registration.pushManager.getSubscription();
-  const subscription = existing || await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: decodeVapidKey(key.public_key),
-  });
+  const subscription = await subscribeWithRetry(registration, decodeVapidKey(key.public_key));
   await pushApiClient.registerWeb(subscription.toJSON());
   pwaEvent('push_subscription_created');
   return 'enabled';
@@ -175,6 +171,30 @@ export async function disablePushNotifications(accountToken?: string): Promise<P
     await subscription.unsubscribe();
   }
   return 'Notification' in window && Notification.permission === 'denied' ? 'denied' : 'disabled';
+}
+
+export const PUSH_SERVICE_ERROR = 'Служба уведомлений телефона (Google) не ответила. Проверьте интернет и что «Сервисы Google Play» '
+  + 'обновлены и не ограничены экономией батареи, затем нажмите ещё раз.';
+
+/** Android sometimes answers the first subscribe with «push service error» (the phone's Google push service was busy
+ *  or holds a stale subscription). Drop the old subscription and try again a few times before giving up. */
+async function subscribeWithRetry(registration: ServiceWorkerRegistration, key: BufferSource): Promise<PushSubscription> {
+  const existing = await registration.pushManager.getSubscription();
+  if (existing) return existing;
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+    } catch (err) {
+      const serviceError = (err as Error)?.name === 'AbortError' || /push service/i.test(String((err as Error)?.message));
+      if (!serviceError || attempt >= 3) {
+        pwaEvent('push_subscribe_failed');
+        throw serviceError ? new Error(PUSH_SERVICE_ERROR) : err;
+      }
+      pwaEvent('push_subscribe_retried');
+      await (await registration.pushManager.getSubscription())?.unsubscribe().catch(() => false);
+      await new Promise(resolve => setTimeout(resolve, attempt * 1500));
+    }
+  }
 }
 
 async function readyForPush(): Promise<ServiceWorkerRegistration> {

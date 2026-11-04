@@ -191,7 +191,7 @@ async def diagnostics_access(request: Request, db: AsyncSession = Depends(get_db
 
 
 class PwaEvent(BaseModel):
-    event: str = Field(pattern='^(pwa_install_cta_shown|pwa_install_cta_clicked|pwa_install_prompt_shown|pwa_install_accepted|pwa_install_dismissed|pwa_appinstalled|pwa_standalone_open|push_prompt_shown|push_permission_granted|push_permission_denied|push_subscription_created|push_notification_clicked|pwa_open_in_chrome|pwa_install_help_shown|pwa_chrome_missing)$')
+    event: str = Field(pattern='^(pwa_install_cta_shown|pwa_install_cta_clicked|pwa_install_prompt_shown|pwa_install_accepted|pwa_install_dismissed|pwa_appinstalled|pwa_standalone_open|push_prompt_shown|push_permission_granted|push_permission_denied|push_subscription_created|push_subscribe_retried|push_subscribe_failed|push_notification_clicked|pwa_open_in_chrome|pwa_install_help_shown|pwa_chrome_missing)$')
     platform: str = Field(pattern='^(ios|android|desktop)$')
     browser: str = Field(pattern='^(chrome|safari|samsung|edge|firefox|yandex|opera|vendor|other)$')
     source: str = Field(pattern='^(pwa|browser)$')
