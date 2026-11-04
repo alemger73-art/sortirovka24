@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import InstallAppBanner from '@/components/InstallAppBanner';
+import MyShopLink from '@/components/MyShopLink';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTaxiEnabled } from '@/hooks/useTaxiEnabled';
 import { useModules } from '@/hooks/useModules';
@@ -135,6 +136,8 @@ export default function More() {
             </div>
           )}
         </section>
+
+        {loggedIn && <MyShopLink />}
 
         <InstallAppBanner manual />
 

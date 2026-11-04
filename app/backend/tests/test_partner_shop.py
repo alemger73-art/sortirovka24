@@ -242,3 +242,45 @@ async def test_resident_order_reaches_personal_cabinet(env):
     assert [h['order_number'] for h in history] == [mine['id']]
     assert history[0]['store_label'] == 'Цветы' and history[0]['store_path'] == '/shop/cvety' and history[0]['amount'] == 11600
     assert json.loads(history[0]['order_items'])[0] == {'name': 'Орхидея', 'quantity': 2, 'price': 4900}
+
+
+async def test_owner_opens_cabinet_by_the_shop_number(env, monkeypatch):
+    """The owner signs in to the app by the shop's number: «Мой магазин» and the cabinet open without the bot."""
+    from datetime import datetime, timezone
+    from models.auth import User
+    client, maker, _ = env
+    async with maker() as db:
+        await svc.save_settings(db, 'cvety', True, {**SETTINGS, 'phone': '+7 771 180 02 97', 'owner_phones': ['87015550000']})
+        db.add_all([User(id='owner', phone='+77711800297', phone_verified_at=datetime.now(timezone.utc), name='Альбина'),
+                    User(id='helper', phone='+77015550000', phone_verified_at=datetime.now(timezone.utc)),
+                    User(id='unconfirmed', phone='+77711800298'), User(id='stranger', phone='+77079999999',
+                                                                       phone_verified_at=datetime.now(timezone.utc))])
+        await db.commit()
+    signed_in = {'Bearer owner': 'owner', 'Bearer helper': 'helper', 'Bearer unconfirmed': 'unconfirmed', 'Bearer stranger': 'stranger'}
+
+    async def account(db, authorization):
+        return await db.get(User, signed_in[authorization]) if authorization in signed_in else None
+    monkeypatch.setattr(router_module, 'optional_account_user', account)
+
+    def mine(who):
+        return client.get('/api/v1/shops/mine', headers={'Authorization': f'Bearer {who}'})
+    assert [s['slug'] for s in (await mine('owner')).json()['items']] == ['cvety']
+    assert [s['slug'] for s in (await mine('helper')).json()['items']] == ['cvety']  # listed in owner_phones
+    assert (await mine('stranger')).json()['items'] == [] and (await mine('unconfirmed')).json()['items'] == []
+    assert (await client.get('/api/v1/shops/mine')).json()['items'] == []
+
+    login = '/api/v1/shops/cvety/cabinet/account-login'
+    assert (await client.post(login)).status_code == 401
+    assert (await client.post(login, headers={'Authorization': 'Bearer stranger'})).status_code == 403
+    assert (await client.post(login, headers={'Authorization': 'Bearer unconfirmed'})).status_code == 403
+    r = await client.post(login, headers={'Authorization': 'Bearer owner'})
+    assert r.status_code == 200 and r.json()['name'] == 'Цветы'
+    auth = {'Authorization': 'Shop ' + r.json()['token']}
+    assert (await client.get('/api/v1/shops/cvety/cabinet', headers=auth)).json()['name'] == 'Цветы'
+    oid = (await client.post('/api/v1/shops/cvety/orders', json=order())).json()['id']
+    r = await client.post(f'/api/v1/shops/cvety/cabinet/orders/{oid}/status', headers=auth, json={'status': 'accepted'})
+    assert r.json()['accepted_by'] == 'Альбина'
+
+    async with maker() as db:  # the shop changes its number: the old owner's cabinet closes at once
+        await svc.save_settings(db, 'cvety', True, {**SETTINGS, 'phone': '+77000000000'})
+    assert (await client.get('/api/v1/shops/cvety/cabinet', headers=auth)).status_code == 401

@@ -1,14 +1,18 @@
 /** The partner's cabinet: orders with the customer's details, prices and stock, who receives orders in Telegram.
- *  Sign-in comes from the shop's Telegram bot («🛠 Кабинет магазина»): a one-time #code becomes a 30-day token. */
+ *  Sign-in: the app account with the shop's number opens it by itself; otherwise the shop's Telegram bot
+ *  («🛠 Кабинет магазина») gives a one-time #code. Either becomes a 30-day token. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
+import { getAccountToken } from '@/lib/accountApi';
 import { Check, Copy, ExternalLink, LogOut, MapPin, MessageSquare, Phone, RefreshCw, Search, Send, Store } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { money, shopCabinet, sizeOf, type Cabinet, type CabinetOrder, type CabinetProduct, type OrderStatus } from '@/lib/partnerShop';
 
 const tokenKey = (slug: string) => `s24_shop_cabinet_${slug}`;
 const readToken = (slug: string) => { try { return localStorage.getItem(tokenKey(slug)) || ''; } catch { return ''; } };
-const writeToken = (slug: string, token: string) => { try { token ? localStorage.setItem(tokenKey(slug), token) : localStorage.removeItem(tokenKey(slug)); } catch { /* memory only */ } };
+const writeToken = (slug: string, token: string) => {
+  try { if (token) localStorage.setItem(tokenKey(slug), token); else localStorage.removeItem(tokenKey(slug)); } catch { /* memory only */ }
+};
 const when = (iso: string) => new Date(iso).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
 const STATUS_STYLE: Record<OrderStatus, string> = {
   new: 'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100', accepted: 'bg-sky-100 text-sky-900 dark:bg-sky-900/40 dark:text-sky-100',
@@ -27,8 +31,16 @@ export default function PartnerShopCabinet() {
   const load = useCallback(async () => {
     if (!token) return;
     try { setData(await shopCabinet.get(slug, token)); setError(''); }
-    catch (e) { (e as { status?: number }).status === 401 ? signOut((e as Error).message) : setError((e as Error).message); }
+    catch (e) { if ((e as { status?: number }).status === 401) signOut((e as Error).message); else setError((e as Error).message); }
   }, [slug, token, signOut]);
+
+  useEffect(() => {  // signed in to the app by the shop's number: no link from the bot needed
+    if (token || !getAccountToken() || window.location.hash.includes('code=')) return;
+    let live = true;
+    shopCabinet.accountLogin(slug).then(r => { if (live) { writeToken(slug, r.token); setToken(r.token); } })
+      .catch(e => { if (live && (e as { status?: number }).status === 403) setError((e as Error).message); });
+    return () => { live = false; };
+  }, [slug, token]);
 
   useEffect(() => {  // a fresh sign-in link from the bot: #code=…
     const code = new URLSearchParams(window.location.hash.slice(1)).get('code');
@@ -73,11 +85,17 @@ export default function PartnerShopCabinet() {
 }
 
 function SignIn({ error }: { error: string }) {
+  const { pathname } = useLocation();
+  const signedIn = !!getAccountToken();
   return <div className="mx-auto max-w-md py-10 text-center">
-    <Send className="mx-auto h-12 w-12 text-sky-500" />
+    <Store className="mx-auto h-12 w-12 text-emerald-600" />
     <h1 className="mt-4 text-2xl font-extrabold">Кабинет магазина</h1>
     {error && <p role="alert" className="mt-3 rounded-2xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-    <p className="mt-3 text-gray-600 dark:text-gray-300">Вход — через Telegram, куда приходят заказы. Откройте чат с ботом Сортировка 24 и нажмите «🛠 Кабинет магазина» (или напишите слово «Кабинет»). Бот пришлёт кнопку для входа.</p>
+    {signedIn && !error ? <p role="status" className="mt-3 text-gray-500">Открываем кабинет…</p> : <>
+      <p className="mt-3 text-gray-600 dark:text-gray-300">Войдите в «Сортировка 24» по номеру телефона магазина — кабинет будет открываться сам, без ссылок.</p>
+      {!signedIn && <Link to={`/account?redirect=${encodeURIComponent(pathname)}`} className="mt-4 inline-flex min-h-12 items-center justify-center rounded-xl bg-emerald-700 px-6 font-semibold text-white">Войти по номеру магазина</Link>}
+      <p className="mt-6 flex items-start gap-2 text-left text-sm text-gray-500 dark:text-gray-400"><Send className="mt-0.5 h-4 w-4 shrink-0 text-sky-500" />Или через Telegram: в боте Сортировка 24 нажмите «🛠 Кабинет магазина» — бот пришлёт кнопку для входа.</p>
+    </>}
   </div>;
 }
 

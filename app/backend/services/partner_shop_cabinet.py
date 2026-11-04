@@ -1,9 +1,11 @@
-"""The partner's own cabinet: no passwords — the shop's linked Telegram is the key.
+"""The partner's own cabinet: no passwords. Two keys open it:
 
-A person whose Telegram chat is linked to the shop presses «🛠 Кабинет магазина» in the bot and gets a
-one-time link (15 minutes). The site trades it for a 30-day cabinet token signed with a key of its own
-(not a site login: it opens only this shop's cabinet). Unlinking the chat closes the cabinet at once,
-because every request checks that the chat is still linked.
+* the site account whose confirmed phone number is the shop's phone or WhatsApp (or listed in the shop's
+  `owner_phones`) — the owner signs in to the app by that number and the cabinet opens by itself;
+* the shop's linked Telegram: «🛠 Кабинет магазина» in the bot gives a one-time link (15 minutes).
+
+Either way the site issues a 30-day cabinet token signed with a key of its own (it opens only this shop's
+cabinet). Every request re-checks the key: an unlinked chat or a changed shop number closes the cabinet at once.
 
 In the cabinet the partner sees orders with the customer's details and moves them through
 new → accepted → done / cancelled, changes prices, descriptions and «в наличии», and invites colleagues
@@ -14,6 +16,7 @@ import base64
 import hashlib
 import hmac
 import json
+import re
 import secrets
 import time
 from datetime import timedelta
@@ -29,6 +32,7 @@ SITE_URL = "https://www.sortirovka24.kz"
 LOGIN_MINUTES = 15
 TOKEN_DAYS = 30
 STATUSES = {"new": "Новый", "accepted": "Принят", "done": "Выполнен", "cancelled": "Отменён"}
+ACCOUNT = "account:"  # cabinet tokens issued to a site account carry this instead of a chat id
 LOGIN_WORDS = {"/kabinet", "/cabinet", "кабинет", "🛠 кабинет магазина"}
 
 
@@ -57,10 +61,51 @@ async def authorize(db, slug: str, authorization: Optional[str]) -> str:
     except (ValueError, TypeError):
         data = {}
     if not data or data.get("s") != slug or int(data.get("e", 0)) < time.time():
-        raise HTTPException(401, "Войдите в кабинет через Telegram-бота")
-    if str(data["c"]) not in await chats(db, slug):
+        raise HTTPException(401, "Войдите в кабинет: по номеру магазина в приложении или через Telegram-бота")
+    key = str(data["c"])
+    if key.startswith(ACCOUNT):
+        if slug not in await _slugs_of_user(db, await _user(db, key.removeprefix(ACCOUNT))):
+            raise HTTPException(401, "Этот номер больше не привязан к магазину")
+    elif key not in await chats(db, slug):
         raise HTTPException(401, "Этот Telegram больше не подключён к магазину")
-    return str(data["c"])
+    return key
+
+
+# ---------------- sign-in by the site account ----------------
+def _digits(value: Any) -> str:
+    return re.sub(r"\D", "", str(value or ""))[-10:]
+
+
+async def _user(db, user_id: str):
+    from models.auth import User
+    return await db.get(User, user_id)
+
+
+async def shops_of_user(db, user) -> list[dict[str, str]]:
+    """Shops whose phone, WhatsApp or `owner_phones` is this account's confirmed number."""
+    mine = _digits(getattr(user, "phone", ""))
+    if not user or len(mine) != 10 or not user.phone_verified_at or getattr(user, "status", "active") != "active":
+        return []
+    await ensure_tables(db)
+    found = []
+    for row in (await db.execute(text("SELECT slug, settings FROM partner_shops ORDER BY slug"))).all():
+        shop = shop_svc._settings(row.settings)
+        if mine in {_digits(p) for p in (shop.get("phone"), shop.get("whatsapp"), *(shop.get("owner_phones") or []))}:
+            found.append({"slug": row.slug, "name": shop.get("name") or row.slug, "logo": shop.get("logo") or ""})
+    return found
+
+
+async def _slugs_of_user(db, user) -> set[str]:
+    return {s["slug"] for s in await shops_of_user(db, user)}
+
+
+async def account_login(db, slug: str, user) -> dict[str, Any]:
+    if not user:
+        raise HTTPException(401, "Войдите в приложение по номеру магазина")
+    if slug not in await _slugs_of_user(db, user):
+        raise HTTPException(403, "Этот номер не привязан к магазину. Войдите по номеру магазина или через Telegram-бота.")
+    shop = await _shop(db, slug, enabled_only=False)
+    return {"token": issue_token(slug, ACCOUNT + str(user.id)), "name": shop.get("name") or slug}
 
 
 async def login_link(db, slug: str, chat_id: str) -> str:
@@ -105,7 +150,9 @@ async def send_login(db, client, chat_id: Any) -> bool:
         shop = await _shop(db, slug, enabled_only=False)
         await tg(client, "sendMessage", {
             "chat_id": chat_id,
-            "text": f"Кабинет «{shop.get('name') or slug}»: заказы, цены и наличие. Ссылка действует {LOGIN_MINUTES} минут.",
+            "text": f"Кабинет «{shop.get('name') or slug}»: заказы, цены и наличие. Ссылка действует {LOGIN_MINUTES} минут.\n\n"
+                    f"Чтобы не входить каждый раз: войдите в приложение «Сортировка 24» по номеру магазина — "
+                    f"кабинет откроется сам («Ещё» → «Мой магазин»).",
             "reply_markup": {"inline_keyboard": [[{"text": "Открыть кабинет", "url": await login_link(db, slug, chat_id)}]]}})
     return True
 
@@ -167,5 +214,8 @@ async def set_status(db, slug: str, order_id: int, status: str, who: str) -> dic
 
 
 async def chat_name(db, slug: str, chat_id: str) -> str:
+    if chat_id.startswith(ACCOUNT):
+        user = await _user(db, chat_id.removeprefix(ACCOUNT))
+        return (getattr(user, "name", "") or "владелец")[:120]
     return await db.scalar(text("SELECT tg_name FROM partner_shop_telegram WHERE shop = :s AND chat_id = :c"),
                            {"s": slug, "c": chat_id}) or "сотрудник"

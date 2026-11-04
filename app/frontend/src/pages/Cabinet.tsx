@@ -10,6 +10,7 @@ import { getPublicLocale } from '@/i18n/publicLocale';
 import { useEffect, useMemo, useState, useRef } from "react";
 import Layout from "@/components/Layout";
 import PushPromptCard from '@/components/PushPromptCard';
+import MyShopLink from '@/components/MyShopLink';
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Camera, Save, UserCircle2, Wrench, MapPin, Plus, Trash2, Star, Pencil, X, Loader2, CheckCircle2, AlertCircle, Search, Megaphone, EyeOff, Home, ArrowLeft } from "lucide-react";
 import CabinetNav from "@/components/cabinet/CabinetNav";
@@ -834,6 +835,7 @@ export default function Cabinet() {
       <div className="cabinet-page min-h-screen bg-gray-50 px-4 py-8 text-gray-900 dark:bg-[#0B0F19] dark:text-white">
         <div className="mx-auto max-w-7xl">
           {(hubView || (!narrow && activeTab === 'orders')) && <PushPromptCard reason="cabinet" className="mb-4" />}
+          {hubView && <MyShopLink className="mb-2" />}
           {sectionView && (
             <button type="button" onClick={backToHub} data-testid="cabinet-back"
               className="mb-3 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white py-2 pl-2.5 pr-4 text-sm font-semibold text-gray-800 shadow-sm active:scale-[0.98] dark:border-[#2a3347] dark:bg-[#111827] dark:text-slate-100">

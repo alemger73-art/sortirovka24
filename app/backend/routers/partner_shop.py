@@ -10,6 +10,7 @@ from services import partner_shop as svc
 from services import partner_shop_cabinet as cabinet
 from services.content_access import is_owner_admin
 from services.module_settings import require_module
+from services.store_order_account import optional_account_user, user_id_for_order
 
 router = APIRouter(prefix="/api/v1/shops", tags=["partner shops"], dependencies=[Depends(require_module("business"))])
 Slug = Path(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$", max_length=80)
@@ -51,6 +52,7 @@ class ShopSettings(BaseModel):
     hours: str = Field(default="", max_length=80)
     phone: str = Field(default="", max_length=20)
     whatsapp: str = Field(default="", max_length=20)
+    owner_phones: list[str] = Field(default_factory=list, max_length=10)  # more numbers that open the cabinet
     instagram: str = Field(default="", max_length=300)
     delivery: list[Zone] = Field(default_factory=list, max_length=20)
     delivery_note: str = Field(default="", max_length=300)
@@ -94,6 +96,12 @@ async def shops(db: AsyncSession = Depends(get_db)):
     return {"items": await svc.enabled_shops(db)}
 
 
+@router.get("/mine")
+async def my_shops(authorization: Optional[str] = Header(default=None, alias="Authorization"), db: AsyncSession = Depends(get_db)):
+    """Shops the signed-in account manages (its confirmed number is the shop's): shown as «Мой магазин»."""
+    return {"items": await cabinet.shops_of_user(db, await optional_account_user(db, authorization))}
+
+
 @router.get("/{slug}")
 async def storefront(slug: str, db: AsyncSession = Depends(get_db)):
     return await svc.storefront(db, slug)
@@ -103,7 +111,6 @@ async def storefront(slug: str, db: AsyncSession = Depends(get_db)):
 async def order(slug: str, body: OrderBody, db: AsyncSession = Depends(get_db),
                 authorization: Optional[str] = Header(default=None, alias="Authorization")):
     """A signed-in resident's order also lands in the order history of their personal cabinet."""
-    from services.store_order_account import optional_account_user, user_id_for_order
     user = await optional_account_user(db, authorization)
     return await svc.place_order(db, slug, body.model_dump(), user_id_for_order(user))
 
@@ -141,6 +148,13 @@ async def partner(slug: str = Slug, authorization: Optional[str] = Header(defaul
 @router.post("/{slug}/cabinet/login")
 async def cabinet_login(body: CabinetLogin, slug: str = Slug, db: AsyncSession = Depends(get_db)):
     return await cabinet.login(db, slug, body.code)
+
+
+@router.post("/{slug}/cabinet/account-login")
+async def cabinet_account_login(slug: str = Slug, authorization: Optional[str] = Header(default=None, alias="Authorization"),
+                                db: AsyncSession = Depends(get_db)):
+    """The owner signed in to the app by the shop's number: the cabinet opens without the bot."""
+    return await cabinet.account_login(db, slug, await optional_account_user(db, authorization))
 
 
 @router.get("/{slug}/cabinet")

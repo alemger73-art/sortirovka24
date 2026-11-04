@@ -70,14 +70,19 @@ test('a product card opens with its photo, care hints and description', async ({
   await expect(page.getByRole('dialog', { name: 'Оформление заказа' })).toContainText('Орхидея фаленопсис');
 });
 
-test('the partner signs in from the Telegram link, takes an order and changes a price', async ({ page }) => {
-  const calls: { path: string; body: unknown; auth: string | null }[] = [];
-  const order = { id: 7, items: [{ sku: '10001', name: 'Орхидея фаленопсис', price: 4900, qty: 1 }], total: 4900, name: 'Айгерим',
+type Call = { path: string; body: unknown; auth: string | null };
+const cabinetOrder = { id: 7, items: [{ sku: '10001', name: 'Орхидея фаленопсис', price: 4900, qty: 1 }], total: 4900, name: 'Айгерим',
     phone: '+77070000000', address: 'Ерубаева 12', zone: 'Сортировка', wanted: '', comment: 'на подарок', status: 'new', accepted_by: '', created_at: '2026-11-03T08:00:00+00:00' };
+
+/** The shop cabinet API; every request is recorded in `calls`. */
+async function cabinetApi(page: Page, calls: Call[]) {
+  const order = cabinetOrder;
   await page.route('**/*', r => new URL(r.request().url()).hostname === '127.0.0.1' ? r.continue() : r.abort());
   await page.route('**/api/**', async r => {
     const path = new URL(r.request().url()).pathname;
     calls.push({ path, body: r.request().postDataJSON(), auth: r.request().headers().authorization || null });
+    if (path.endsWith('/shops/mine')) return r.fulfill({ json: { items: [{ slug: 'magazin-cvetok', name: 'Magazin.cvetok', logo: '' }] } });
+    if (path.endsWith('/cabinet/account-login')) return r.fulfill({ json: { token: 'acc-tok', name: 'Magazin.cvetok' } });
     if (path.endsWith('/cabinet/login')) return r.fulfill({ json: { token: 'tok', name: 'Magazin.cvetok' } });
     if (path.endsWith('/cabinet/orders/7/status')) return r.fulfill({ json: { ...order, status: 'accepted', accepted_by: 'Айгуль' } });
     if (path.endsWith('/cabinet/products/10001')) return r.fulfill({ json: { ...shop.products[0], price: 5200, active: true } });
@@ -89,6 +94,11 @@ test('the partner signs in from the Telegram link, takes an order and changes a 
     if (path.endsWith('/modules')) return r.fulfill({ json: { business: true } });
     return r.fulfill({ json: { items: [], total: 0 } });
   });
+}
+
+test('the partner signs in from the Telegram link, takes an order and changes a price', async ({ page }) => {
+  const calls: Call[] = [];
+  await cabinetApi(page, calls);
   await page.goto('/shop/magazin-cvetok/cabinet#code=one-time-code-123');
   await expect(page.getByRole('heading', { name: 'Magazin.cvetok' })).toBeVisible();
   expect(page.url()).not.toContain('code=');
@@ -122,4 +132,25 @@ test('a signed-in resident finds name, phone and home address already filled in'
   await expect(dialog.getByLabel('Имя')).toHaveValue('Алем');
   await expect(dialog.getByLabel('Телефон')).toHaveValue('+77001234567');
   await expect(dialog.getByLabel('Адрес')).toHaveValue('Ерубаева 12, кв 40');
+});
+
+test('the owner signed in to the app by the shop number opens «Мой магазин» without the bot', async ({ page }) => {
+  const calls: Call[] = [];
+  await page.addInitScript(() => {
+    localStorage.setItem('account_token', 'owner-token');
+    localStorage.setItem('account_user_profile', JSON.stringify({ id: 9, name: 'Альбина', phone: '+77711800297' }));
+  });
+  await cabinetApi(page, calls);
+  await page.goto('/more');
+  await page.getByRole('link', { name: /Мой магазин/ }).click();
+  await expect(page.getByRole('heading', { name: 'Magazin.cvetok' })).toBeVisible();
+  expect(calls.find(c => c.path.endsWith('/account-login'))?.auth).toBe('Bearer owner-token');
+  expect(calls.find(c => c.path.endsWith('/shops/magazin-cvetok/cabinet'))?.auth).toBe('Shop acc-tok');
+});
+
+test('a guest on the cabinet page is offered to sign in by the shop number', async ({ page }) => {
+  await cabinetApi(page, []);
+  await page.goto('/shop/magazin-cvetok/cabinet');
+  await expect(page.getByRole('link', { name: 'Войти по номеру магазина' })).toHaveAttribute('href', '/account?redirect=%2Fshop%2Fmagazin-cvetok%2Fcabinet');
+  await expect(page.getByText('«🛠 Кабинет магазина»')).toBeVisible();
 });

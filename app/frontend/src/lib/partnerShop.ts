@@ -60,7 +60,13 @@ export const partnerShop = {
   order: (slug: string, order: ShopOrder) => call<{ id: number; total: number; notified: number }>(`${at(slug)}/orders`, { body: order, account: true }),
 };
 
+export type MyShop = { slug: string; name: string; logo: string };
+
 export const shopCabinet = {
+  /** Shops whose number is the signed-in account's confirmed number. */
+  mine: () => (getAccountToken() ? call<{ items: MyShop[] }>('/mine', { account: true }).then(r => r.items) : Promise.resolve([] as MyShop[])),
+  /** The owner signed in to the app by the shop's number: a cabinet token without the bot. */
+  accountLogin: (slug: string) => call<{ token: string; name: string }>(`${at(slug)}/cabinet/account-login`, { method: 'POST', account: true }),
   login: (slug: string, code: string) => call<{ token: string; name: string }>(`${at(slug)}/cabinet/login`, { body: { code } }),
   get: (slug: string, token: string) => call<Cabinet>(`${at(slug)}/cabinet`, { token }),
   product: (slug: string, token: string, sku: string, change: Partial<Pick<CabinetProduct, 'price' | 'active' | 'description'>>) =>
