@@ -253,6 +253,21 @@ async def _run_paid_services() -> None:
         logging.getLogger(__name__).warning("Paid services reminders stopped: %s", exc)
 
 
+async def _run_ad_expiry() -> None:
+    """Remind authors a few days before their ads end."""
+    from core.database import db_manager
+    from services.ad_expiry import run_forever
+
+    while not (db_manager._initialized and db_manager.async_session_maker):
+        await asyncio.sleep(5)
+    try:
+        await run_forever(db_manager.async_session_maker)
+    except asyncio.CancelledError:
+        raise
+    except Exception as exc:
+        logging.getLogger(__name__).warning("Ad expiry reminders stopped: %s", exc)
+
+
 async def _run_admin_summary_watch() -> None:
     """Broadcast admin dashboard updates to WebSocket clients."""
     logger = logging.getLogger(__name__)
@@ -287,11 +302,12 @@ async def lifespan(app: FastAPI):
     app.state._news_agent_task = asyncio.create_task(_run_news_agent())
     app.state._site_report_task = asyncio.create_task(_run_site_report())
     app.state._paid_services_task = asyncio.create_task(_run_paid_services())
+    app.state._ad_expiry_task = asyncio.create_task(_run_ad_expiry())
 
     logger.info("=== Application startup completed (initialization running in background) ===")
     yield
 
-    for name in ("_news_agent_task", "_site_report_task", "_paid_services_task"):
+    for name in ("_news_agent_task", "_site_report_task", "_paid_services_task", "_ad_expiry_task"):
         task = getattr(app.state, name, None)
         if task:
             task.cancel()
