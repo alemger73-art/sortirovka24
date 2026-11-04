@@ -90,9 +90,30 @@ async def shops_of_user(db, user) -> list[dict[str, str]]:
     found = []
     for row in (await db.execute(text("SELECT slug, settings FROM partner_shops ORDER BY slug"))).all():
         shop = shop_svc._settings(row.settings)
-        if mine in {_digits(p) for p in (shop.get("phone"), shop.get("whatsapp"), *(shop.get("owner_phones") or []))}:
+        if mine in _owner_numbers(shop):
             found.append({"slug": row.slug, "name": shop.get("name") or row.slug, "logo": shop.get("logo") or ""})
     return found
+
+
+def _owner_numbers(shop: dict[str, Any]) -> set[str]:
+    return {n for n in (_digits(p) for p in (shop.get("phone"), shop.get("whatsapp"), *(shop.get("owner_phones") or []))) if len(n) == 10}
+
+
+async def notify_owners(db, slug: str, shop: dict[str, Any], order: dict[str, Any]) -> int:
+    """A new order also arrives as a push in the app of everyone signed in by the shop's number."""
+    from services.user_notifications import notify_user_by_id
+    numbers = _owner_numbers(shop)
+    if not numbers:
+        return 0
+    owners = (await db.scalars(text(
+        "SELECT id FROM users WHERE phone_verified_at IS NOT NULL AND status = 'active' "
+        "AND right(regexp_replace(phone, '\\D', '', 'g'), 10) = ANY(:n)"), {"n": sorted(numbers)})).all()
+    for user_id in owners:
+        await notify_user_by_id(db, user_id=user_id, category="store", event_key=f"shop:{slug}:order:{order['id']}",
+                                title=f"Новый заказ №{order['id']} · {shop_svc._money(order['total'])}",
+                                body=f"{order['name']}, {order['address']}. Откройте, чтобы принять.",
+                                path=f"/shop/{slug}/cabinet", entity_type="partner_shop_order", entity_id=str(order["id"]))
+    return len(owners)
 
 
 async def _slugs_of_user(db, user) -> set[str]:

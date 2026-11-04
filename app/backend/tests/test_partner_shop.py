@@ -284,3 +284,27 @@ async def test_owner_opens_cabinet_by_the_shop_number(env, monkeypatch):
     async with maker() as db:  # the shop changes its number: the old owner's cabinet closes at once
         await svc.save_settings(db, 'cvety', True, {**SETTINGS, 'phone': '+77000000000'})
     assert (await client.get('/api/v1/shops/cvety/cabinet', headers=auth)).status_code == 401
+
+
+async def test_new_order_also_pushed_to_owner_app(env, monkeypatch):
+    """Telegram gets the order card, and the owner signed in by the shop number gets a push in the app."""
+    from datetime import datetime, timezone
+    from models.auth import User
+    import services.user_notifications as notes
+    _, maker, fake = env
+    sent = []
+
+    async def capture(db, **kw):
+        sent.append(kw)
+    monkeypatch.setattr(notes, 'notify_user_by_id', capture)
+    async with maker() as db:
+        await svc.save_settings(db, 'cvety', True, {**SETTINGS, 'phone': '+77711800297'})
+        db.add_all([User(id='owner', phone='+77711800297', phone_verified_at=datetime.now(timezone.utc)),
+                    User(id='other', phone='+77711800290', phone_verified_at=datetime.now(timezone.utc))])
+        await db.commit()
+    await link(maker, fake)
+    async with maker() as db:
+        placed = await svc.place_order(db, 'cvety', order())
+    assert placed['notified'] == 1 and 'Новый заказ' in fake.calls[-1][1]['text']
+    assert [(s['user_id'], s['category'], s['path']) for s in sent] == [('owner', 'store', '/shop/cvety/cabinet')]
+    assert sent[0]['title'] == f"Новый заказ №{placed['id']} · 11 600 ₸"

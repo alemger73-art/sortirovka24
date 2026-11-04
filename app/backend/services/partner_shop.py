@@ -208,6 +208,11 @@ async def place_order(db, slug: str, body: dict[str, Any], user_id: Optional[str
     order = {"id": order_id, "lines": lines, "total": total, "name": name, "phone": phone, "address": address,
              "zone": zone, "wanted": wanted, "comment": comment}
     delivered = await notify(db, slug, shop, order)
+    try:
+        from services.partner_shop_cabinet import notify_owners
+        await notify_owners(db, slug, shop, order)
+    except Exception as exc:  # the order is saved and sent to Telegram; a failed push must not lose it
+        logger.warning("[PartnerShop] app push for order %s failed: %s", order_id, exc)
     return {"id": order_id, "total": total, "notified": delivered}
 
 
