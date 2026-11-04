@@ -60,6 +60,7 @@ class Profile(BaseModel):
     offer_terms: str = Field(default="", max_length=500)
     services: list[str] = Field(default_factory=list, max_length=20)
     works: list[Work] = Field(default_factory=list, max_length=12)
+    featured: bool = False  # the main partner: shown first and on the prominent spots of the site
     published: bool = False
 
     @field_validator("instagram")
@@ -123,7 +124,8 @@ async def save_profile(slug: str, body: Profile, db: AsyncSession = Depends(get_
 async def public_list(db: AsyncSession = Depends(get_db)):
     rows = (await db.execute(select(PartnerShowcase).where(PartnerShowcase.published.is_(True))
                             .order_by(PartnerShowcase.slug))).scalars().all()
-    return {"items": [payload(row) for row in rows]}
+    items = [payload(row) for row in rows]
+    return {"items": sorted(items, key=lambda p: not p.get("featured"))}  # the main partner first
 
 
 @router.get("/{slug}", response_model=Profile)

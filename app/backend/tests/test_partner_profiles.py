@@ -94,3 +94,17 @@ class PartnerShowcasesTests(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class FeaturedPartnerTests(PartnerShowcasesTests):
+    async def test_main_partner_is_listed_first_and_its_page_opens(self):
+        other = {**self.data, "slug": "aaa-first-by-name", "name": "Другая компания", "featured": False, "published": True}
+        main = {**self.data, "featured": True, "published": True}
+        for body in (other, main):
+            response = await self.client.put(f"/api/v1/partners/admin/{body['slug']}", json=body, headers=self.admin)
+            self.assertEqual(response.status_code, 200, response.text)
+        items = (await self.client.get('/api/v1/partners')).json()['items']
+        self.assertEqual([p['slug'] for p in items], ['krovlya-365', 'aaa-first-by-name'])
+        page = await self.client.get('/api/v1/partners/krovlya-365')
+        self.assertEqual(page.status_code, 200, page.text)
+        self.assertTrue(page.json()['featured'])
