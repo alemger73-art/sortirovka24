@@ -76,7 +76,7 @@ from services.google_oauth import (
     fetch_google_userinfo,
     google_oauth_enabled,
 )
-from services import telegram_login
+from services import paid_boost, telegram_login
 from services.sms import SMSDeliveryError, available_channels, send_verification_code, should_expose_code_on_screen, telegram_bot_mode
 from services.storage import StorageService
 from sqlalchemy import and_, desc, func, or_, select, update
@@ -2161,6 +2161,8 @@ async def boost_my_announcement(
     expires = _parse_iso_datetime(row.expires_at)
     if row.status not in {"approved", "published"} or not row.active or (expires and expires <= datetime.now(timezone.utc)):
         raise HTTPException(status_code=400, detail="Поднять можно только опубликованное объявление")
+    if paid_boost.paid():  # a Kaspi invoice; the ad goes up when it is paid
+        return {"success": True, "payment": await paid_boost.request(db, "announcement", row.id, user)}
     now = datetime.now(timezone.utc)
     active_until = _parse_iso_datetime(row.promoted_until)
     if active_until and active_until > now and row.promotion_tier:
@@ -2320,6 +2322,8 @@ async def boost_my_real_estate(
     row = await _get_owned_real_estate(db, user, listing_id)
     if row.status not in {"approved", "published"}:
         raise HTTPException(status_code=400, detail="Поднять можно только опубликованное объявление")
+    if paid_boost.paid():
+        return {"success": True, "payment": await paid_boost.request(db, "real_estate", row.id, user)}
     now = datetime.now(timezone.utc)
     active_until = _parse_iso_datetime(row.promoted_until)
     if active_until and active_until > now and row.promotion_tier:

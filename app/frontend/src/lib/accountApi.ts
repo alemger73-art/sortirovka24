@@ -1,3 +1,4 @@
+import type { BoostPayment } from '@/lib/boostPayment';
 export type OtpChannel = 'whatsapp' | 'telegram' | 'sms';
 import { LEGAL_VERSION } from '@/content/legal';
 import { getAPIBaseURL } from "@/lib/config";
@@ -203,7 +204,7 @@ export const accountApi = {
   extendMyAnnouncement: (id: number) =>
     api<{ success: boolean; announcement: any }>(`/api/v1/account/me/announcements/${id}/extend`, { method: "POST" }),
   boostMyAnnouncement: (id: number) =>
-    api<{ success: boolean; announcement: any }>(`/api/v1/account/me/announcements/${id}/boost`, { method: "POST" }),
+    api<{ success: boolean; announcement?: any; payment?: BoostPayment }>(`/api/v1/account/me/announcements/${id}/boost`, { method: "POST" }),
   getMyRealEstate: (id: number) => api<any>(`/api/v1/account/me/real-estate/${id}`),
   updateMyRealEstate: (id: number, body: Record<string, unknown>) =>
     api<{ success: boolean; listing: any }>(`/api/v1/account/me/real-estate/${id}`, {
@@ -217,7 +218,7 @@ export const accountApi = {
   extendMyRealEstate: (id: number) =>
     api<{ success: boolean; listing: any }>(`/api/v1/account/me/real-estate/${id}/extend`, { method: "POST" }),
   boostMyRealEstate: (id: number) =>
-    api<{ success: boolean; listing: any }>(`/api/v1/account/me/real-estate/${id}/boost`, { method: "POST" }),
+    api<{ success: boolean; listing?: any; payment?: BoostPayment }>(`/api/v1/account/me/real-estate/${id}/boost`, { method: "POST" }),
   approveBecomeMasterRequest: (requestId: number) =>
     api<{ success: boolean; master_id: number; role_assigned: boolean }>(
       `/api/v1/account/admin/masters/approve-become-request/${requestId}`,

@@ -12,6 +12,7 @@ import Layout from "@/components/Layout";
 import PushPromptCard from '@/components/PushPromptCard';
 import MyShopLink from '@/components/MyShopLink';
 import PushDeviceStatus from '@/components/cabinet/PushDeviceStatus';
+import { invoiceSentText, useBoostPrice } from '@/lib/boostPayment';
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Camera, Save, UserCircle2, Wrench, MapPin, Plus, Trash2, Star, Pencil, X, Loader2, CheckCircle2, AlertCircle, Search, Megaphone, EyeOff, Home, ArrowLeft } from "lucide-react";
 import CabinetNav from "@/components/cabinet/CabinetNav";
@@ -123,6 +124,7 @@ export default function Cabinet() {
   const [profileForm, setProfileForm] = useState({ name: "", email: "", avatar: "", language: "ru" });
   const [error, setError] = useState("");
   const contentMutation = useRef(false);
+  const boostPrice = useBoostPrice();
   const [contentBusy, setContentBusy] = useState(false);
   const [success, setSuccess] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
@@ -563,11 +565,19 @@ export default function Cabinet() {
 
   const boostAnnouncement = async (id: number) => {
     if (contentMutation.current) return;
+    if (boostPrice.paid && !window.confirm(lang === "kz"
+      ? `${boostPrice.days} күнге ${boostPrice.price} ₸-ге көтеру керек пе? Шот Kaspi-ге келеді.`
+      : `Поднять в топ на ${boostPrice.days} дней за ${boostPrice.price} ₸? Счёт придёт в Kaspi.`)) return;
     contentMutation.current = true;
     setContentBusy(true);
     setError("");
     try {
-      await accountApi.boostMyAnnouncement(id);
+      const result = await accountApi.boostMyAnnouncement(id);
+      if (result.payment) {
+        const note = invoiceSentText(result.payment, lang === "kz");
+        toast.success(note.title, { description: note.body, duration: 15000 });
+        return;
+      }
       try { await refreshCabinet(); } catch { setError(t("cabinet.refreshAfterSave")); }
       toast.success(t("cabinet.announcements.boosted"));
     } catch (e: unknown) {
@@ -622,11 +632,19 @@ export default function Cabinet() {
 
   const boostRealEstate = async (id: number) => {
     if (contentMutation.current) return;
+    if (boostPrice.paid && !window.confirm(lang === "kz"
+      ? `${boostPrice.days} күнге ${boostPrice.price} ₸-ге көтеру керек пе? Шот Kaspi-ге келеді.`
+      : `Поднять в топ на ${boostPrice.days} дней за ${boostPrice.price} ₸? Счёт придёт в Kaspi.`)) return;
     contentMutation.current = true;
     setContentBusy(true);
     setError("");
     try {
-      await accountApi.boostMyRealEstate(id);
+      const result = await accountApi.boostMyRealEstate(id);
+      if (result.payment) {
+        const note = invoiceSentText(result.payment, lang === "kz");
+        toast.success(note.title, { description: note.body, duration: 15000 });
+        return;
+      }
       try { await refreshCabinet(); } catch { setError(t("cabinet.refreshAfterSave")); }
       toast.success(t("cabinet.realEstate.boosted"));
     } catch (e: unknown) {
@@ -1291,7 +1309,7 @@ export default function Cabinet() {
                     </Link>
                   </div>
                   <MyAdsList items={rows.announcements || []} busy={contentBusy} kz={lang === "kz"}
-                    onBoost={boostAnnouncement} onUnpublish={unpublishAnnouncement} onExtend={extendAnnouncement} onDelete={deleteAnnouncement} />
+                    onBoost={boostAnnouncement} boostPrice={boostPrice.paid ? boostPrice.price : 0} onUnpublish={unpublishAnnouncement} onExtend={extendAnnouncement} onDelete={deleteAnnouncement} />
                 </DarkCard>
               )}
 
@@ -1366,7 +1384,7 @@ export default function Cabinet() {
                                     onClick={() => boostRealEstate(Number(r.id))}
                                     className="inline-flex items-center gap-1 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-500/30 dark:text-blue-200 dark:hover:bg-blue-500/10"
                                   >
-                                    {t("cabinet.realEstate.boost")}
+                                    {t("cabinet.realEstate.boost")}{boostPrice.paid ? ` · ${boostPrice.price} ₸` : ""}
                                   </button>
                                   <button
                                     type="button"

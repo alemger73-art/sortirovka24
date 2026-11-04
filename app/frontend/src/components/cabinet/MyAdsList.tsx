@@ -18,6 +18,8 @@ interface Props {
   busy: boolean;
   kz: boolean;
   onBoost: (id: number) => void;
+  /** Price of «Поднять» in tenge; 0 while lifting is free. */
+  boostPrice?: number;
   onUnpublish: (id: number) => void;
   onExtend: (id: number) => void;
   onDelete: (id: number) => void;
@@ -42,7 +44,7 @@ export function adState(a: Ad): { key: 'live' | 'pending' | 'rejected' | 'hidden
   return { key: 'hidden', ru: 'Снято с публикации', kz: 'Жарияланымнан алынды', cls: 'bg-gray-100 text-gray-600 dark:bg-slate-700/60 dark:text-slate-300' };
 }
 
-export default function MyAdsList({ items, busy, kz, onBoost, onUnpublish, onExtend, onDelete }: Props) {
+export default function MyAdsList({ items, busy, kz, onBoost, boostPrice = 0, onUnpublish, onExtend, onDelete }: Props) {
   const tx = (ru: string, k: string) => (kz ? k : ru);
   const [open, setOpen] = useState<number | null>(null);
   if (!items.length) {
@@ -102,7 +104,7 @@ export default function MyAdsList({ items, busy, kz, onBoost, onUnpublish, onExt
               {st.key === 'expired' || st.key === 'hidden' ? (
                 <button type="button" disabled={busy} onClick={() => onExtend(id)} className={`${btn} flex-1 bg-emerald-600 text-white`}><RefreshCw className="h-4 w-4" />{st.key === 'hidden' ? tx('Разместить', 'Жариялау') : tx('Продлить', 'Ұзарту')}</button>
               ) : st.key === 'live' ? (
-                <button type="button" disabled={busy || promoted} onClick={() => onBoost(id)} className={`${btn} flex-1 bg-amber-500 text-white`}><Rocket className="h-4 w-4" />{promoted ? tx('Уже поднято', 'Көтерілген') : tx('Поднять', 'Көтеру')}</button>
+                <button type="button" disabled={busy || promoted} onClick={() => onBoost(id)} className={`${btn} flex-1 bg-amber-500 text-white`}><Rocket className="h-4 w-4" />{promoted ? tx('Уже поднято', 'Көтерілген') : tx('Поднять', 'Көтеру')}{!promoted && boostPrice > 0 ? ` · ${boostPrice} ₸` : ''}</button>
               ) : null}
               <details className="relative">
                 <summary aria-label={tx('Ещё действия', 'Басқа әрекеттер')} className={`${btn} cursor-pointer list-none bg-gray-100 px-2.5 text-gray-700 dark:bg-[#1a2336] dark:text-slate-200 [&::-webkit-details-marker]:hidden`}><MoreHorizontal className="h-4 w-4" /></summary>
