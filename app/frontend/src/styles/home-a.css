@@ -30,7 +30,7 @@
 .a-section { padding-top: 28px; }
 .a-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .a-kicker { display: block; font-size: 12px; letter-spacing: .1em; font-weight: 700; color: var(--a-accent); text-transform: uppercase; }
-.a-head h2 { margin: 2px 0 0; font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+.a-head :is(h1, h2) { margin: 2px 0 0; font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
 .a-more { display: inline-flex; align-items: center; gap: 4px; min-height: 40px; font-size: 14px; font-weight: 600; color: var(--a-accent) !important; white-space: nowrap; }
 .a-food .a-kicker, .a-food .a-more { color: var(--a-food) !important; }
 .a-scroll { display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px 4px; scroll-padding-inline: 16px; }

@@ -78,6 +78,7 @@ const FoodPark = lazyRetry(() => import("./pages/FoodPark"));
 const BusinessPage = lazyRetry(() => import("./pages/Business"));
 const PartnersPage = lazyRetry(() => import("./pages/Partners"));
 const PartnerShopPage = lazyRetry(() => import("./pages/PartnerShop"));
+const ShopsPage = lazyRetry(() => import("./pages/Shops"));
 const PartnerShopCabinetPage = lazyRetry(() => import("./pages/PartnerShopCabinet"));
 const SupportPage = lazyRetry(() => import("./pages/Support"));
 const ReportProblemPage = lazyRetry(() => import("./pages/ReportProblem"));
@@ -253,6 +254,7 @@ function App() {
               <Route path="/business" element={<ModuleRoute module="business"><BusinessPage /></ModuleRoute>} />
               <Route path="/partners" element={<ModuleRoute module="business"><PartnersPage /></ModuleRoute>} />
               <Route path="/partners/:slug" element={<ModuleRoute module="business"><PartnersPage /></ModuleRoute>} />
+              <Route path="/shops" element={<ModuleRoute module="business"><ShopsPage /></ModuleRoute>} />
               <Route path="/shop/:slug" element={<ModuleRoute module="business"><PartnerShopPage /></ModuleRoute>} />
               <Route path="/shop/:slug/cabinet" element={<ModuleRoute module="business"><PartnerShopCabinetPage /></ModuleRoute>} />
               <Route path="/support" element={<SupportPage />} />

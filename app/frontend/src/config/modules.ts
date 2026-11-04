@@ -56,7 +56,7 @@ export const MODULE_DEFS: ModuleDef[] = [
   { key: 'questions', label: 'Вопросы и ответы', paths: ['/questions'] },
   { key: 'complaints', label: 'Жалобы', paths: ['/complaints'] },
   { key: 'news', label: 'Новости', paths: ['/news'] },
-  { key: 'business', label: 'Для бизнеса', paths: ['/business', '/partners'] },
+  { key: 'business', label: 'Для бизнеса', paths: ['/business', '/partners', '/shops', '/shop'] },
   { key: 'history', label: 'История района', paths: ['/history'] },
   { key: 'toy', label: 'Приглашения на той', paths: ['/toy'] },
 ];

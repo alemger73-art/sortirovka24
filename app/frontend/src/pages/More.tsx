@@ -45,6 +45,7 @@ export default function More() {
     { path: '/toy', icon: Mail, tone: 'bg-rose-600', ru: 'Приглашение на той', kz: 'Тойға шақыру', subRu: 'Красивое приглашение для WhatsApp', subKz: 'WhatsApp-қа әдемі шақыру' },
     { path: '/news', icon: Newspaper, tone: 'bg-sky-600', ru: 'Новости', kz: 'Жаңалықтар', subRu: 'Что происходит рядом', subKz: 'Маңайда не болып жатыр' },
     { path: '/transport', icon: Bus, tone: 'bg-emerald-600', ru: 'Транспорт', kz: 'Көлік', subRu: 'Автобусы и расписание', subKz: 'Автобустар мен кесте' },
+    { path: '/shops', icon: Store, tone: 'bg-green-700', ru: 'Магазины района', kz: 'Аудан дүкендері', subRu: 'Цветы и товары с доставкой', subKz: 'Гүлдер мен тауарлар жеткізумен' },
     { path: '/directory', icon: BookOpen, tone: 'bg-violet-600', ru: 'Справочник', kz: 'Анықтамалық', subRu: 'Полезные телефоны', subKz: 'Пайдалы телефондар' },
     { path: '/inspectors', icon: Shield, tone: 'bg-slate-600', ru: 'Участковые', kz: 'Учаскелік', subRu: 'Найти своего участкового', subKz: 'Учаскеліңізді табыңыз' },
     { path: '/taxi', icon: Car, tone: 'bg-yellow-500', ru: 'Такси', kz: 'Такси', subRu: 'Вызвать машину', subKz: 'Көлік шақыру', hidden: taxiEnabled !== true },
