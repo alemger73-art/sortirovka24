@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import Layout from "@/components/Layout";
 import PushPromptCard from '@/components/PushPromptCard';
 import MyShopLink from '@/components/MyShopLink';
+import PushDeviceStatus from '@/components/cabinet/PushDeviceStatus';
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Camera, Save, UserCircle2, Wrench, MapPin, Plus, Trash2, Star, Pencil, X, Loader2, CheckCircle2, AlertCircle, Search, Megaphone, EyeOff, Home, ArrowLeft } from "lucide-react";
 import CabinetNav from "@/components/cabinet/CabinetNav";
@@ -1131,6 +1132,7 @@ export default function Cabinet() {
 
               {activeTab === "notifications" && (
                 <DarkCard>
+                  <PushDeviceStatus className="mb-4" />
                   {notificationError && <p role="alert" className="mb-3 text-sm text-red-600">{notificationError} <button type="button" onClick={() => void refreshNotifications()}>{t("cabinet.retry")}</button></p>}
                   <CabinetNotifications
                     items={notifications.filter(item => notificationVisible(item, isEnabled, taxiEnabled))}
