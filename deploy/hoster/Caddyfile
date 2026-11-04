@@ -30,3 +30,31 @@ www.sortirovka24.kz, sortirovka24.kz {
 		}
 	}
 }
+
+# Test copy of the site for checking a new version before release: the next build's pages from
+# /opt/s24/preview (uploaded by hand), live data from the same app. Hidden from search engines.
+test.sortirovka24.kz {
+	tls /certs/origin.pem /certs/origin-key.pem
+	encode zstd gzip
+	request_body {
+		max_size 25MB
+	}
+	header X-Robots-Tag "noindex, nofollow"
+	handle /robots.txt {
+		respond <<TXT
+			User-agent: *
+			Disallow: /
+			TXT 200
+	}
+	handle /api/* {
+		reverse_proxy app:8000 {
+			header_up X-Forwarded-For {client_ip}
+		}
+	}
+	handle {
+		root * /srv/preview
+		try_files {path} /index.html
+		header /index.html Cache-Control "no-store"
+		file_server
+	}
+}
