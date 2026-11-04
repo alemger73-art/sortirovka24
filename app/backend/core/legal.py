@@ -4,10 +4,10 @@ from pathlib import Path
 
 from fastapi import HTTPException
 
-LEGAL_VERSION = "2026-10-19"
+LEGAL_VERSION = "2026-11-04"
 # The previous edition stays acceptable for a transition period: pages opened before the update and
 # the installed mobile app still show it. Each receipt records the exact edition the person saw.
-PREVIOUS_VERSIONS = ("2026-10-09",)
+PREVIOUS_VERSIONS = ("2026-10-19", "2026-10-09")
 MANIFESTS = {v: json.loads((Path(__file__).parent / "legal-archive" / f"{v}.json").read_text(encoding="utf-8"))
              for v in (LEGAL_VERSION, *PREVIOUS_VERSIONS)}
 MANIFEST = MANIFESTS[LEGAL_VERSION]

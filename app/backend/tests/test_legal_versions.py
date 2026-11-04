@@ -7,8 +7,8 @@ from core import legal
 
 def test_current_and_previous_editions_are_accepted_with_their_own_hashes():
     now = legal.acceptance_payload(legal.LEGAL_VERSION, accepted=True, subject_name="Иванов Иван")
-    old = legal.acceptance_payload("2026-10-09", accepted=True, subject_name="Иванов Иван")
-    assert now["version"] == "2026-10-19" and old["version"] == "2026-10-09"
+    old = legal.acceptance_payload("2026-10-19", accepted=True, subject_name="Иванов Иван")
+    assert now["version"] == "2026-11-04" and old["version"] == "2026-10-19"
     assert now["documents"]["privacy"] != old["documents"]["privacy"]  # privacy text changed
     assert now["documents"]["terms"] == legal.MANIFEST["documents"]["ru"]["terms"]["sha256"]
 
@@ -23,3 +23,13 @@ def test_current_privacy_says_data_is_in_kazakhstan():
     doc = legal.MANIFEST["documents"]["ru"]["privacy"]["document"]
     text = " ".join(s["body"] for s in doc["sections"])
     assert "Hoster.kz" in text and "Railway" not in text
+
+
+def test_server_accepts_the_edition_the_site_shows():
+    """The site sends its own legalVersion with every sign-up: the server must know it, or nobody can register."""
+    import re
+    from pathlib import Path
+    source = (Path(__file__).resolve().parents[2] / "frontend" / "src" / "content" / "legal-data.mjs").read_text(encoding="utf-8")
+    shown = re.search(r"legalVersion = '([0-9-]+)'", source).group(1)
+    assert shown == legal.LEGAL_VERSION
+    assert legal.acceptance_payload(shown, accepted=True, subject_name="Иванов Иван")["version"] == shown
