@@ -1,4 +1,4 @@
-import { track } from '@/lib/analytics';
+import { reportError, track } from '@/lib/analytics';
 import { LEGAL_VERSION } from '@/content/legal';
 import KzPhoneInput from '@/components/KzPhoneInput';
 import { isCompleteKzPhone } from '@/lib/kzPhone';
@@ -24,6 +24,14 @@ function loadDraft(): Draft | null {
   } catch { return null; }
 }
 function saveDraft(d: Draft) { try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...d, savedAt: Date.now() })); } catch { /* optional */ } }
+/** A sign-in the person could not finish because of us (not a typo, wrong code or too many tries) reaches the
+ *  owner at once as a site error in Telegram: e.g. a document edition the server does not know blocks everyone. */
+function reportAuthFailure(error: unknown, step: string) {
+  const status = (error as { status?: number })?.status ?? 0;
+  if (status === 409 || status === 428 || status >= 500) {
+    reportError(new Error(`Регистрация/вход не прошли на шаге «${step}» (HTTP ${status}): ${(error as Error)?.message || ''}`.slice(0, 600)), 'auth');
+  }
+}
 export function clearLoginDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch { /* optional */ } }
 
 export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin: () => void }) {
@@ -95,7 +103,7 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
         : via === 'whatsapp' ? text('Код пришёл в WhatsApp от «Сортировка 24» (+7 700 428 02 80).', 'Код WhatsApp-қа «Сортировка 24»-тен (+7 700 428 02 80) келді.')
         : via === 'telegram' ? text('Код пришёл в Telegram.', 'Код Telegram-ға келді.')
         : text('Код отправлен по SMS.', 'Код SMS арқылы жіберілді.')));
-    } catch (e) { setError(humanizeApiError(e)); }
+    } catch (e) { setError(humanizeApiError(e)); reportAuthFailure(e, 'код'); }
     finally { setBusy(false); }
   }
 
@@ -110,7 +118,7 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
       try { const me = await accountApi.me(); cacheAccountProfile({ id: me.id, name: me.name, phone: me.phone, email: me.email, avatar: me.avatar }); } catch { /* Cabinet can retry its profile fetch. */ }
       const target = new URLSearchParams(location.search).get('redirect');
       navigate(target ? safeInternalPath(target, '/cabinet') : r.role === 'seller' ? '/cabinet/partner' : r.role === 'master' ? '/cabinet/master' : '/cabinet', { replace: true });
-    } catch (e) { setError(humanizeApiError(e)); }
+    } catch (e) { setError(humanizeApiError(e)); reportAuthFailure(e, 'вход'); }
     finally { setBusy(false); }
   }
 
