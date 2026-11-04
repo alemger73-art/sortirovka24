@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Check, Copy, Download, Share, X } from 'lucide-react';
 import { isNativeApp } from '@/lib/native';
-import { currentInstallPrompt, takeInstallPrompt, isPwaStandalone, pwaEvent, pwaPlatform, chromeIntentUrl, needsChromeForInstall, takeInstallLinkMark, iosSafariMenuLayout } from '@/lib/pwa';
+import { currentInstallPrompt, takeInstallPrompt, isPwaStandalone, pwaEvent, pwaPlatform, chromeIntentUrl, needsChromeForInstall, takeInstallLinkMark, iosSafariMenuLayout, takeChromeTried } from '@/lib/pwa';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 /** One-tap install. Chrome on Android and Edge/Samsung when they offer it: the system install
@@ -33,7 +33,9 @@ export default function InstallAppBanner({ manual = false }: { manual?: boolean 
     pwaEvent('pwa_install_cta_clicked');
     const prompt = takeInstallPrompt();
     if (!prompt) {
-      if (needsChromeForInstall()) { pwaEvent('pwa_open_in_chrome'); window.location.href = chromeIntentUrl(); return; }
+      // Any Android window without the system offer (other browsers, in-app windows, the «✕» window opened from
+      // WhatsApp/Telegram) → full Chrome, where a sheet with one big button waits.
+      if (environment.platform === 'android' && !(environment.browser === 'chrome' && takeChromeTried())) { pwaEvent('pwa_open_in_chrome'); window.location.href = chromeIntentUrl(); return; }
       pwaEvent('pwa_install_help_shown'); setHelp(true); return;
     }
     setBusy(true);
@@ -104,7 +106,7 @@ function InstallHelp({ open, onOpenChange, noChrome = false }: { open: boolean; 
       <span className={`${stepIcon} text-xl font-bold`}>⋮</span>
       <p>{noChrome ? 'На телефоне нет Chrome. Откройте меню браузера (⋮ или ☰) и выберите «Добавить на главный экран».'
         : environment.browser === 'samsung' ? 'Откройте меню ☰ внизу и выберите «Добавить страницу на» → «Главный экран».'
-        : 'Откройте меню ⋮ вверху справа и выберите «Установить приложение» или «Добавить на главный экран». Если там «Открыть приложение» — оно уже установлено.'}</p>
+        : 'Откройте меню ⋮ вверху справа и выберите «Установить приложение» или «Добавить на главный экран». Если вверху крестик ✕ — сначала ⋮ → «Открыть в Chrome». Если в меню «Открыть приложение» — оно уже установлено.'}</p>
     </div></DialogDescription>}
   </DialogContent></Dialog>;
 }

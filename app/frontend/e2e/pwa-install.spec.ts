@@ -126,3 +126,19 @@ test.describe('android instagram web view', () => {
     await expect.poll(() => events.some(e => e.event === 'pwa_open_in_chrome' && e.embedded === true)).toBe(true);
   });
 });
+
+test.describe('android: window opened from WhatsApp/Telegram (no install offer)', () => {
+  test.use({ userAgent: UA.chrome, viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+  test('«Установить» in «Ещё» opens the page in full Chrome', async ({ page }) => {
+    const events = await open(page, '/more');
+    await page.locator('[data-install-banner]').getByRole('button', { name: 'Установить' }).click();
+    await expect.poll(() => events.some(e => e.event === 'pwa_open_in_chrome' && e.browser === 'chrome')).toBe(true);
+  });
+  test('a second tap in the same window explains the menu instead of looping', async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem('s24_chrome_tried', '1'));
+    const events = await open(page, '/more');
+    await page.locator('[data-install-banner]').getByRole('button', { name: 'Установить' }).click();
+    await expect(page.getByRole('dialog')).toContainText('Если вверху крестик');
+    expect(events.some(e => e.event === 'pwa_open_in_chrome')).toBe(false);
+  });
+});

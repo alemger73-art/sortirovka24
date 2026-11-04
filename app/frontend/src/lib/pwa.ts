@@ -40,6 +40,15 @@ export function chromeIntentUrl() {
   back.searchParams.set(INSTALL_PARAM, 'nochrome');
   return `intent://${url.host}${url.pathname}${url.search}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(back.toString())};end`;
 }
+/** Chrome with no install offer is sent to Chrome once (that leaves an in-app «✕» window); the second tap
+ *  in the same tab shows the menu instructions instead of looping. */
+export function takeChromeTried(): boolean {
+  try {
+    const tried = sessionStorage.getItem('s24_chrome_tried') === '1';
+    sessionStorage.setItem('s24_chrome_tried', '1');
+    return tried;
+  } catch { return false; }
+}
 /** 'chrome' = arrived from another browser to install; 'nochrome' = Chrome is missing. Clears the mark. */
 export function takeInstallLinkMark(): '1' | 'nochrome' | null {
   const url = new URL(window.location.href);
