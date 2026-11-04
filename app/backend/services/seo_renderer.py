@@ -142,7 +142,7 @@ PATH_MODULE = {
     "/news": "news", "/announcements": "announcements", "/real-estate": "real_estate",
     "/jobs": "jobs", "/food": "food", "/directory": "directory", "/transport": "transport",
     "/inspectors": "inspectors", "/business": "business", "/masters": "masters",
-    "/salons": "salons", "/questions": "questions", "/complaints": "complaints",
+    "/salons": "salons", "/questions": "questions", "/complaints": "complaints", "/toy": "toy",
 }
 
 

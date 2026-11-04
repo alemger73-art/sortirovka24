@@ -15,7 +15,7 @@ import InstallAppBanner from '@/components/InstallAppBanner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTaxiEnabled } from '@/hooks/useTaxiEnabled';
 import { useModules } from '@/hooks/useModules';
-import { moduleForPath } from '@/config/modules';
+import { moduleForPath, COMING_SOON } from '@/config/modules';
 import { getAccountToken } from '@/lib/accountApi';
 import { getCurrentUser } from '@/lib/localAuth';
 import { formatKzPhone } from '@/lib/adKinds';
@@ -32,7 +32,9 @@ export default function More() {
   const { isEnabled } = useModules();
   const loggedIn = Boolean(getAccountToken());
   const user = loggedIn ? getCurrentUser() : null;
-  const on = (i: Item) => !i.hidden && isEnabled(moduleForPath(i.path));
+  const soon = (i: Item) => { const key = moduleForPath(i.path); return Boolean(key && !isEnabled(key) && COMING_SOON[key]); };
+  const on = (i: Item) => !i.hidden && (isEnabled(moduleForPath(i.path)) || soon(i));
+  const marked = (i: Item): Item => (soon(i) ? { ...i, subRu: 'Скоро — идёт загрузка', subKz: 'Жақында — жүктелуде' } : i);
   const prefetch = (path: string) => { const page = routeToPage(path); if (page) prefetchPage(page); };
 
   // Main services: big tiles, two per row. DAM ALEM and «Объявления» are already in the bottom menu.
@@ -87,7 +89,7 @@ export default function More() {
     );
   };
   const group = (title: string, items: Item[]) => {
-    const visible = items.filter(on);
+    const visible = items.filter(on).map(marked);
     if (!visible.length) return null;
     return (
       <section>
@@ -96,7 +98,7 @@ export default function More() {
       </section>
     );
   };
-  const visibleTiles = tiles.filter(on);
+  const visibleTiles = tiles.filter(on).map(marked);
   const initial = (user?.name || '').trim().charAt(0).toUpperCase();
 
   return (

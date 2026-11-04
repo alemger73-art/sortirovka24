@@ -36,6 +36,7 @@ MODULE_KEYS: tuple[str, ...] = (
     "news",
     "business",
     "history",
+    "toy",
 )
 
 # Every module is enabled by default.

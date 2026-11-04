@@ -1,11 +1,13 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useModules } from '@/hooks/useModules';
-import { moduleForPath, type ModuleKey } from '@/config/modules';
+import { COMING_SOON, moduleForPath, type ModuleKey } from '@/config/modules';
+import ComingSoon from '@/components/ComingSoon';
 import { Loader2 } from 'lucide-react';
 
 /**
  * Guards a route that belongs to a toggleable module. When the module is
- * disabled in admin, the route redirects home so a direct link cannot reach it.
+ * disabled in admin, the route redirects home so a direct link cannot reach it —
+ * except a section that is being filled, which says «скоро».
  *
  * Pass `module` explicitly, or let it be inferred from the current path.
  */
@@ -30,6 +32,8 @@ export default function ModuleRoute({
     );
   }
   if (error) return <div role="alert" className="mx-auto max-w-md p-6"><p>Не удалось проверить доступность раздела. Проверьте соединение.</p><button className="mt-4 min-h-12 rounded-xl border px-4" onClick={retry}>Повторить загрузку</button></div>;
+  const soon = key && !isEnabled(key) ? COMING_SOON[key] : undefined;
+  if (soon) return <ComingSoon title={soon} />;
   if ((anyOf && !anyOf.some(isEnabled)) || (key && !isEnabled(key))) return <Navigate to="/" replace />;
   return children;
 }

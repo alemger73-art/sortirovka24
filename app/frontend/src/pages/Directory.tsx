@@ -116,8 +116,8 @@ export default function Directory() {
         <div className="dir-w dir-body">
           <nav id="dir-menu" className="dir-menu" aria-label={say('Разделы справочника', 'Анықтамалық бөлімдері')}>
             <MenuTile icon={BookUser} active={view === 'contacts'} onClick={() => openView('contacts')} title={say('Службы и контакты', 'Байланыстар')} sub={entries.length ? say(`${entries.length} номеров: вода, свет, врачи, школы`, `${entries.length} нөмір: су, жарық, дәрігер, мектеп`) : say('Вода, свет, врачи, школы', 'Су, жарық, дәрігер, мектеп')} />
-            {isEnabled('inspectors') && <MenuTile icon={ShieldCheck} to="/inspectors" title={say('Участковые', 'Учаскелік')} sub={say('Найти своего по адресу', 'Мекенжай бойынша табу')} />}
-            {isEnabled('transport') && <MenuTile icon={Bus} to="/transport" title={say('Автобусы', 'Автобустар')} sub={say('Маршруты и остановки', 'Бағыттар мен аялдамалар')} />}
+            <MenuTile icon={ShieldCheck} to="/inspectors" title={say('Участковые', 'Учаскелік')} sub={isEnabled('inspectors') ? say('Найти своего по адресу', 'Мекенжай бойынша табу') : say('Скоро — идёт загрузка', 'Жақында — жүктелуде')} />
+            <MenuTile icon={Bus} to="/transport" title={say('Автобусы', 'Автобустар')} sub={isEnabled('transport') ? say('Маршруты и остановки', 'Бағыттар мен аялдамалар') : say('Скоро — идёт загрузка', 'Жақында — жүктелуде')} />
             <MenuTile icon={Users} active={view === 'leadership'} onClick={() => openView('leadership')} title={say('Руководство района', 'Аудан басшылығы')} sub={say('Аким, заместители, приём', 'Әкім, орынбасарлар, қабылдау')} />
             <MenuTile icon={Globe} active={view === 'services'} onClick={() => openView('services')} title={say('Госуслуги онлайн', 'Онлайн қызметтер')} sub={say('eGov, ЦОН, eOtinish, 1414', 'eGov, ХҚКО, eOtinish, 1414')} />
             <MenuTile icon={MessageCircle} to="/report-problem" title={say('Сообщить о проблеме', 'Хабарлау')} sub={say('Или об ошибке в номере', 'Мәселе не нөмір қатесі')} />

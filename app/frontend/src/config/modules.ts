@@ -28,7 +28,8 @@ export type ModuleKey =
   | 'complaints'
   | 'news'
   | 'business'
-  | 'history';
+  | 'history'
+  | 'toy';
 
 export interface ModuleDef {
   key: ModuleKey;
@@ -57,7 +58,14 @@ export const MODULE_DEFS: ModuleDef[] = [
   { key: 'news', label: 'Новости', paths: ['/news'] },
   { key: 'business', label: 'Для бизнеса', paths: ['/business', '/partners'] },
   { key: 'history', label: 'История района', paths: ['/history'] },
+  { key: 'toy', label: 'Приглашения на той', paths: ['/toy'] },
 ];
+
+/** Sections that are being filled: while switched off they show «скоро» instead of disappearing. */
+export const COMING_SOON: Partial<Record<ModuleKey, { ru: string; kz: string }>> = {
+  inspectors: { ru: 'Участковые района', kz: 'Аудан учаскелік инспекторлары' },
+  transport: { ru: 'Расписание автобусов', kz: 'Автобус кестесі' },
+};
 
 export const MODULE_KEYS: ModuleKey[] = MODULE_DEFS.map((m) => m.key);
 

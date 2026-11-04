@@ -200,10 +200,10 @@ function App() {
               <Route path="/surveys" element={<SurveysPage />} />
               <Route path="/surveys/:id" element={<SurveyRunPage />} />
               <Route path="/dom/post/:id" element={<RequireUserAuth><NeighborPostPage /></RequireUserAuth>} />
-              <Route path="/toy" element={<ToyLanding />} />
-              <Route path="/toy/new" element={<ToyBuilder />} />
-              <Route path="/toy/edit/:id" element={<RequireUserAuth><ToyBuilder /></RequireUserAuth>} />
-              <Route path="/toy/my" element={<RequireUserAuth><ToyMine /></RequireUserAuth>} />
+              <Route path="/toy" element={<ModuleRoute module="toy"><ToyLanding /></ModuleRoute>} />
+              <Route path="/toy/new" element={<ModuleRoute module="toy"><ToyBuilder /></ModuleRoute>} />
+              <Route path="/toy/edit/:id" element={<ModuleRoute module="toy"><RequireUserAuth><ToyBuilder /></RequireUserAuth></ModuleRoute>} />
+              <Route path="/toy/my" element={<ModuleRoute module="toy"><RequireUserAuth><ToyMine /></RequireUserAuth></ModuleRoute>} />
               <Route path="/toy/:slug" element={<ToyPublic />} />
               <Route path="/announcements/official" element={<ModuleRoute module="announcements"><OfficialAdPage /></ModuleRoute>} />
               <Route path="/announcements/new" element={<ModuleRoute module="announcements"><RequireUserAuth><NewAnnouncementForm /></RequireUserAuth></ModuleRoute>} />

@@ -12,7 +12,7 @@ export default function Hero() {
   const kz = lang === 'kz';
   const { isEnabled } = useModules();
   const tiles = [
-    { to: '/directory', label: kz ? 'Анықтамалық' : 'Справочник', detail: kz ? 'Учаскелік инспекторлар және автобус кестесі' : 'Участковые и расписание автобусов', on: isEnabled('directory') },
+    { to: '/directory', label: kz ? 'Анықтамалық' : 'Справочник', detail: kz ? 'Ауданның пайдалы телефондары' : 'Полезные телефоны района', on: isEnabled('directory') },
     { to: '/food', label: 'DAM ALEM 2.0', detail: kz ? 'Ыстық тағам жеткізу' : 'Горячая еда с доставкой', on: isEnabled('food') },
   ].filter((t) => t.on);
   return (
