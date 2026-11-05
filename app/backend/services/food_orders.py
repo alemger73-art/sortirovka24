@@ -85,9 +85,11 @@ class Food_ordersService:
             except Exception as bonus_err:
                 logger.warning("[Bonus] Food order reward skipped: %s", bonus_err)
             try:
-                from services.food_telegram_flow import notify_operator_new_order
-
-                if not dam_order:
+                if dam_order:
+                    from services.operator_telegram import notify_new_order
+                    notify_new_order(obj)
+                else:
+                    from services.food_telegram_flow import notify_operator_new_order
                     await notify_operator_new_order(obj)
             except Exception as tg_err:
                 logger.warning("[Telegram] Food order notification skipped: %s", tg_err)

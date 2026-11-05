@@ -622,6 +622,9 @@ async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dic
         from services import courier_telegram
         if await courier_telegram.handle_message(db, client, message):
             return
+        from services import operator_telegram
+        if await operator_telegram.handle_message(db, client, message):
+            return
         from services import partner_shop
         if await partner_shop.handle_message(db, client, message):
             return

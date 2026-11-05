@@ -65,6 +65,8 @@ def add_event(db, order, message, actor='Система', notify=True):
         notification='pending' if should_notify else 'none',
     )
     db.add(event)
+    from services.operator_telegram import remember_event
+    remember_event(db, order, message, actor)
     return event
 
 async def credentials(db):
