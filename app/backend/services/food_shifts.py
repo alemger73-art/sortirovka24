@@ -187,11 +187,36 @@ async def require_partner_shift(db: AsyncSession, claims: dict) -> FoodShift | N
 
 
 async def require_courier_shift(db: AsyncSession, profile: CourierProfile) -> FoodShift | None:
+    row = await active_shift(db, "courier", profile.user_id)
+    if row:
+        return row  # opened by the courier's PIN or by an assignment to a Telegram-linked courier
     if not profile.pin_hash:
         raise HTTPException(409, "Владелец должен назначить курьеру PIN-код")
-    row = await active_shift(db, "courier", profile.user_id)
-    if not row:
-        raise HTTPException(409, "Сначала откройте смену курьера")
+    raise HTTPException(409, "Сначала откройте смену курьера")
+
+
+async def courier_shift_for_assignment(db: AsyncSession, courier_id: str, courier_name: str) -> FoodShift | None:
+    """The courier's open shift; a courier who linked Telegram gets one opened by the assignment itself.
+
+    Owner's decision (Nov 2026): a Telegram-linked courier is reachable, so an order may be sent to them without a PIN
+    login first. The shift still exists, so cash, payouts and the shift report work exactly as with a PIN shift.
+    """
+    row = await active_shift(db, "courier", courier_id)
+    if row:
+        return row
+    from services.courier_telegram import chat_for
+    if not await chat_for(db, courier_id):
+        return None
+    row = FoodShift(staff_type="courier", staff_id=str(courier_id), staff_name=(courier_name or "Курьер")[:255],
+                    role="courier", active_key=staff_key("courier", courier_id), opened_at=utcnow(),
+                    opened_by="Назначение заказа (Telegram)")
+    try:
+        async with db.begin_nested():
+            db.add(row)
+            await db.flush()
+    except IntegrityError:
+        return await active_shift(db, "courier", courier_id)  # opened at the same moment by another request
+    record_action(db, row, "shift_opened", entity_type="shift", entity_id=str(row.id), details={"via": "telegram_assignment"})
     return row
 
 

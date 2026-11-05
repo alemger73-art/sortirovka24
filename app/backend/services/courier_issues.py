@@ -68,8 +68,11 @@ async def reassign(db, order, body, claims):
     user=await db.get(User,body.courier_id)
     from services.courier_money import lock_wallet
     profile=await lock_wallet(db,body.courier_id)
-    if not user or not user.is_active or user.status!='active' or not profile.is_verified or not await active_shift(db,'courier',body.courier_id):
-        raise HTTPException(409,'Новый курьер должен иметь активный доступ и открытую смену')
+    if not user or not user.is_active or user.status!='active' or not profile.is_verified:
+        raise HTTPException(409,'Новый курьер должен иметь активный доступ')
+    from services.food_shifts import courier_shift_for_assignment
+    if not await courier_shift_for_assignment(db,body.courier_id,user.name or profile.phone or user.phone):
+        raise HTTPException(409,'Новый курьер должен открыть смену или подключить Telegram')
     await claim(db,order,body.expected_version)
     previous=task.courier_id
     task.courier_id=body.courier_id;task.status='assigned';task.handed_at=now();task.picked_up_at=None;task.departed_at=None;task.arrived_at=None

@@ -166,3 +166,30 @@ async def test_payment_needs_a_second_tap_and_online_unpaid_waits_for_money(tg):
     assert (await order(maker)).payment_status != 'paid'  # one tap only asks
     assert await click(maker, press(fake, 'Да, деньги получены', 'editMessageText')) == 'Оплата отмечена'
     assert (await order(maker)).payment_status == 'paid'
+
+
+async def test_a_telegram_linked_courier_gets_the_order_without_a_pin_shift(tg):
+    """Owner's rule: a courier who linked Telegram is reachable — the assignment opens their shift."""
+    _, maker, fake = tg
+    from sqlalchemy import delete, select, text
+    from models.food_shifts import FoodShift
+    from services import courier_telegram as ct
+    async with maker() as db:
+        await db.execute(delete(FoodShift).where(FoodShift.staff_type == 'courier'))
+        row = await db.get(Food_orders, 1)
+        row.status, row.version = 'ready', 3
+        await db.commit()
+    await linked(maker, fake)
+    await say(maker, '2222')
+    await click(maker, f'{oc.CB}c:1')
+    assert not any('Courier' in b['text'] for b in buttons(fake, 'editMessageText'))  # no shift, no Telegram: not offered
+    async with maker() as db:
+        await ct.ensure_tables(db)
+        await db.execute(text("INSERT INTO courier_telegram (user_id, chat_id) VALUES ('courier', '555')"))
+        await db.commit()
+    await click(maker, f'{oc.CB}c:1')
+    assert await click(maker, press(fake, 'через Telegram', 'editMessageText')) == 'Заказ передан курьеру'
+    async with maker() as db:
+        shift = await db.scalar(select(FoodShift).where(FoodShift.staff_type == 'courier', FoodShift.closed_at.is_(None)))
+        assert shift and shift.opened_by == 'Назначение заказа (Telegram)'
+    assert (await order(maker)).status == 'in_progress'

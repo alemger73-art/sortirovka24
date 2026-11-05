@@ -59,9 +59,9 @@ async def assign_dam_delivery(db: AsyncSession, task: LogisticsTask, courier_use
         raise ValueError("Доступ курьера отключён")
     if not profile.is_verified:
         raise ValueError("Курьер не подтверждён")
-    from services.food_shifts import active_shift
-    if not await active_shift(db, 'courier', courier_user.id):
-        raise ValueError("Курьер не на смене")
+    from services.food_shifts import courier_shift_for_assignment
+    if not await courier_shift_for_assignment(db, str(courier_user.id), courier_user.name or profile.phone or courier_user.phone):
+        raise ValueError("Курьер не на смене и не подключил Telegram")
     # DAM dispatch is an explicit operator decision: workload/online presence
     # is informative. Verification, active access and a personal shift are required.
     from services.dam_order_workflow import lock_courier_order

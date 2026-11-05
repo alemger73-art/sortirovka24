@@ -388,6 +388,8 @@ async def couriers(db: AsyncSession = Depends(get_db)):
     items = []
     for user, profile in rows:
         on_shift = bool(await active_shift(db, 'courier', user.id))
+        from services.courier_telegram import chat_for
+        telegram = bool(await chat_for(db, str(user.id)))
         active = int(await db.scalar(select(func.count()).select_from(LogisticsTask).where(
             LogisticsTask.courier_id == str(user.id),
             LogisticsTask.status.in_(['assigned', 'picked_up', 'on_the_way', 'arrived'])
@@ -397,7 +399,9 @@ async def couriers(db: AsyncSession = Depends(get_db)):
             'id': str(user.id), 'name': user.name or profile.phone or user.phone or 'Курьер',
             'phone': profile.phone or user.phone or '', 'online': bool(profile.is_online),
             'on_shift': on_shift, 'active_delivery': bool(active), 'active_deliveries': active,
-            'assignable': enabled and on_shift,
+            'telegram': telegram,
+            # A Telegram-linked courier can be sent an order without a PIN shift: the assignment opens it.
+            'assignable': enabled and (on_shift or telegram),
         })
     return {'items': items}
 

@@ -504,12 +504,14 @@ async def _act(db, client, staff, chat_id, msg_id, action: str, oid: int, args: 
         return await show("Оплата отмечена")
     if action == "c":
         couriers = (await api(db, staff, "GET", f"{OPS}/couriers")).get("items") or []
-        rows = [[_b(f"{c['name']}" + (" · в доставке" if c.get("active_deliveries") else " · свободен"), f"{CB}ca:{oid}:{c['id']}")]
+        rows = [[_b(f"{c['name']}" + (" · в доставке" if c.get("active_deliveries") else " · свободен")
+                    + ("" if c.get("on_shift") else " · через Telegram"), f"{CB}ca:{oid}:{c['id']}")]
                 for c in couriers if c.get("assignable")]
         absent = [html.escape(c["name"]) for c in couriers if not c.get("assignable")]
-        note = "<b>Выберите курьера</b>" if rows else "<b>Нет курьеров на смене.</b> Курьер должен открыть смену в своём кабинете."
+        note = "<b>Выберите курьера</b>" if rows else ("<b>Нет доступных курьеров.</b> Курьер должен открыть смену "
+                                                     "в своём кабинете или подключить Telegram.")
         if absent:
-            note += "\nНе на смене: " + ", ".join(absent[:10])
+            note += "\nНе на смене и без Telegram: " + ", ".join(absent[:10])
         return await show(None, extra=rows + [back], note=note)
     if action == "ca":
         courier = args[0] if args else ""
