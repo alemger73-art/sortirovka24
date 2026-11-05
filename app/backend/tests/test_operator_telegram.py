@@ -43,7 +43,8 @@ async def link(maker, fake):
         assert links['links'][0].startswith('https://t.me/dam_test_bot?start=op_')
         chat = {'id': 777, 'type': 'private', 'first_name': 'Оператор'}
         assert await ot.handle_message(db, None, {'chat': chat, 'text': f'/start {code}'})
-        assert 'подключён к заказам DÄM ALEM' in fake.last('sendMessage')['text']
+        said = [p['text'] for m, p in fake.calls if m == 'sendMessage']
+        assert 'подключён к заказам DÄM ALEM' in said[-2] and 'PIN оператора' in said[-1]  # then the console asks for the PIN
         assert await ot.handle_message(db, None, {'chat': {'id': 778, 'type': 'private'}, 'text': f'/start {code}'})
         assert 'устарела' in fake.last('sendMessage')['text']  # a link works once
         assert not await ot.handle_message(db, None, {'chat': {'id': -100, 'type': 'group'}, 'text': f'/start {links["links"][1].split("start=")[1]}'})

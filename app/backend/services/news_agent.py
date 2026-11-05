@@ -695,6 +695,11 @@ async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dic
         answer = await toy_invites.handle_callback(db, client, data, chat_id, msg) or "Готово"
         await tg(client, "answerCallbackQuery", {"callback_query_id": callback_id, "text": answer[:190]})
         return
+    if data.startswith("op:"):
+        from services import operator_console
+        answer = await operator_console.handle_callback(db, client, data, chat_id, msg) or "Готово"
+        await tg(client, "answerCallbackQuery", {"callback_query_id": callback_id, "text": answer[:190]})
+        return
     if data.startswith("cr:"):
         from services import courier_telegram
         answer = await courier_telegram.handle_callback(db, client, data, chat_id, msg) or "Готово"

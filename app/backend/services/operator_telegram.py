@@ -5,8 +5,9 @@ only: adding the bot to a new group would make that group the news workspace (ne
 each new DÄM ALEM order arrives as a full card — who, phone, address, what was ordered, money, payment — and every later event of the order (payment,
 courier, change request, status) arrives as a short line under the order number.
 
-Telegram only informs here: accepting, changing and closing orders stays in the operator cabinet, which keeps the
-shift, the order version and the audit. A broken Telegram never blocks an order: sending runs in the background.
+Once the operator also sends their PIN (services.operator_console), the chat becomes a console: the new order arrives
+as the cabinet's order card with its buttons, and each event line has a button to open the order. A broken Telegram
+never blocks an order: sending runs in the background.
 """
 from __future__ import annotations
 
@@ -109,7 +110,7 @@ async def _link(db, code: str, chat: dict) -> str:
     await db.commit()
     return ("✅ Этот чат подключён к заказам DÄM ALEM.\n\nСюда будут приходить новые заказы: имя и телефон клиента, "
             "адрес, состав, сумма и оплата. А под номером заказа — всё, что с ним происходит дальше: оплата, курьер, "
-            "изменения.\n\nПринимать и менять заказы — в кабинете оператора, как обычно.\nОтключить — команда /stop_orders.")
+            "изменения.\nОтключить — команда /stop_orders.")
 
 
 async def handle_message(db, client: httpx.AsyncClient, message: dict[str, Any]) -> bool:
@@ -122,16 +123,23 @@ async def handle_message(db, client: httpx.AsyncClient, message: dict[str, Any])
     if not words:
         return False
     command = words[0]
+    from services import operator_console as console
     if command == "/start" and len(words) == 2 and words[1].startswith(START_PREFIX):
         answer = await _link(db, words[1][len(START_PREFIX):], chat)
-    elif command == "/stop_orders" and str(chat.get("id")) in await chats(db):
-        await db.execute(text("DELETE FROM operator_telegram WHERE chat_id = :c"), {"c": str(chat.get("id"))})
+        await tg(client, "sendMessage", {"chat_id": chat.get("id"), "text": answer})
+        if str(chat.get("id")) in await chats(db):
+            staff = await console.staff_of(db, chat.get("id"))
+            await console._ask_pin(db, client, chat.get("id"), staff)
+        return True
+    if command == "/stop_orders" and str(chat.get("id")) in await chats(db):
+        await console.ensure_tables(db)
+        for table in ("operator_telegram", "operator_telegram_staff"):
+            await db.execute(text(f"DELETE FROM {table} WHERE chat_id = :c"), {"c": str(chat.get("id"))})
         await db.commit()
-        answer = "Заказы DÄM ALEM сюда больше не приходят. Заказы по-прежнему видны в кабинете оператора."
-    else:
-        return False
-    await tg(client, "sendMessage", {"chat_id": chat.get("id"), "text": answer})
-    return True
+        await tg(client, "sendMessage", {"chat_id": chat.get("id"), "reply_markup": {"remove_keyboard": True},
+                                         "text": "Заказы DÄM ALEM сюда больше не приходят. Заказы по-прежнему видны в кабинете оператора."})
+        return True
+    return await console.handle_text(db, client, chat, message)
 
 
 # ---------------- the order card ----------------
@@ -217,24 +225,32 @@ def _schedule(coro) -> None:
 def notify_new_order(order: Any) -> None:
     """Called after the new order is saved; the card is built now, sent in the background."""
     if enabled():
-        _schedule(_send_all(card(order)))
+        _schedule(_send_all(card(order), [order.id], new=True))
 
 
-async def _send_all(message: str) -> None:
+async def _send_all(message: str, order_ids: list[int], *, new: bool = False) -> None:
+    """Plain chats get the text; console chats get the order card with buttons (new) or «open» buttons (events)."""
     from core.database import db_manager
-    from services.news_agent import tg
+    from services import operator_console as console
     try:
         async with db_manager.async_session_maker() as db:
             targets = await chats(db)
-        if not targets:
-            return
-        async with httpx.AsyncClient(timeout=20) as client:
-            for chat_id in targets:
-                try:
-                    await tg(client, "sendMessage", {"chat_id": chat_id, "text": message, "parse_mode": "HTML",
-                                                     "disable_web_page_preview": True})
-                except Exception as exc:
-                    logger.warning("[OperatorTG] chat %s not reached: %s", chat_id, exc)
+            if not targets:
+                return
+            async with httpx.AsyncClient(timeout=20) as client:
+                for chat_id in targets:
+                    try:
+                        staff = await console.staff_of(db, chat_id)
+                        if staff and staff.staff_id and new:
+                            await console.send_card(db, client, staff, chat_id, order_ids[0], f"🍽 <b>НОВЫЙ ЗАКАЗ №{order_ids[0]}</b>")
+                            continue
+                        keyboard = None
+                        if staff and staff.staff_id:
+                            keyboard = {"inline_keyboard": [[{"text": f"Открыть №{oid}", "callback_data": f"{console.CB}o:{oid}"}
+                                                             for oid in list(dict.fromkeys(order_ids))[:4]]]}
+                        await console._send(client, chat_id, message, keyboard)
+                    except Exception as exc:
+                        logger.warning("[OperatorTG] chat %s not reached: %s", chat_id, exc)
     except Exception as exc:
         logger.warning("[OperatorTG] not sent: %s", exc)
 
@@ -249,14 +265,14 @@ def remember_event(db, order: Any, message: str, actor: str) -> None:
     line = f"📋 <b>Заказ №{order.id}</b>: {html.escape(str(message))[:600]}"
     if actor and actor not in ("Система",):
         line += f"\n<i>{html.escape(str(actor))[:80]}</i>"
-    info.setdefault(PENDING_KEY, []).append(line)
+    info.setdefault(PENDING_KEY, []).append((int(order.id), line))
 
 
 @event.listens_for(Session, "after_commit")
 def _after_commit(session: Session) -> None:
-    lines = session.info.pop(PENDING_KEY, None)
-    if lines:
-        _schedule(_send_all("\n\n".join(lines)))
+    pending = session.info.pop(PENDING_KEY, None)
+    if pending:
+        _schedule(_send_all("\n\n".join(line for _, line in pending), [oid for oid, _ in pending]))
 
 
 @event.listens_for(Session, "after_rollback")
