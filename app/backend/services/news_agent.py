@@ -614,6 +614,9 @@ async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dic
     message = update.get("message")
     if isinstance(message, dict):
         chat = message.get("chat") or {}
+        from services import courier_invite  # before the login handler: an invited courier's contact is theirs
+        if await courier_invite.handle_message(db, client, message):
+            return
         from services import telegram_login
         if await telegram_login.handle_message(db, client, message):
             return
