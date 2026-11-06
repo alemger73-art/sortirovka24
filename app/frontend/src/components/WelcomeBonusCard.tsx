@@ -6,12 +6,22 @@ import { track } from '@/lib/analytics';
 
 /**
  * A guest's first reason to register: 300 bonuses, said plainly, one button.
- * Shown a few seconds into a guest's visit; «Позже» hides it for three days.
+ * Shown once, 20 seconds into a guest's visit; «Позже» or ✕ hides it for two weeks.
  * After registration the regular install banner takes over (Layout shows one or the other).
  */
 const HIDDEN_UNTIL = 's24_welcome_hidden_until';
-const DELAY_MS = 4000;
-const HIDE_DAYS = 3;
+const DELAY_MS = 20000; // not on arrival: first let the visitor look around
+const HIDE_DAYS = 14;
+
+// Pages each mount their own Layout, so the 20 seconds count from the start of the visit, not of the page.
+function visitStart(): number {
+  try {
+    const saved = Number(sessionStorage.getItem('s24_visit_started') || 0);
+    if (saved) return saved;
+    sessionStorage.setItem('s24_visit_started', String(Date.now()));
+  } catch { /* private mode: count from this page */ }
+  return Date.now();
+}
 
 export function welcomeBonusDue(): boolean {
   if (getAccountToken()) return false;
@@ -27,7 +37,7 @@ export default function WelcomeBonusCard({ onClose }: { onClose: () => void }) {
     const timer = window.setTimeout(() => {
       if (!welcomeBonusDue()) { onClose(); return; }
       setShown(true); track('welcome_bonus_shown');
-    }, DELAY_MS);
+    }, Math.max(1000, visitStart() + DELAY_MS - Date.now()));
     return () => window.clearTimeout(timer);
   }, [onClose]);
 
