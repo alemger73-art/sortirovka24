@@ -74,3 +74,9 @@ def test_whatsapp_request_shape(monkeypatch):
     assert sent["url"].endswith("/555/messages")
     tpl = sent["json"]["template"]
     assert tpl["name"] == "s24_login" and tpl["components"][0]["parameters"][0]["text"] == "111222"
+
+
+def test_an_undelivered_code_is_not_a_gateway_error():
+    """Cloudflare swaps any 5xx-gateway answer for its own HTML page; the person must see «Попробуйте Telegram»."""
+    from routers.account_v2 import DELIVERY_FAILED
+    assert 400 <= DELIVERY_FAILED < 500

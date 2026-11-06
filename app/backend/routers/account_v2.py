@@ -92,6 +92,10 @@ async def account_module_guard(request: Request, db: AsyncSession = Depends(get_
             return
 
 
+# A code that could not be delivered is the person's problem to solve (another channel), not a gateway failure:
+# Cloudflare replaces any 502 from the site with its own HTML page, and the person never sees «Попробуйте Telegram».
+DELIVERY_FAILED = 422
+
 router = APIRouter(prefix="/api/v1/account", tags=["account-v2"], dependencies=[Depends(account_module_guard)])
 logger = logging.getLogger(__name__)
 
@@ -744,7 +748,7 @@ async def register_request_sms(
 async def _with_bot_link(response: RequestSmsCodeResponse) -> RequestSmsCodeResponse:
     link = await telegram_login.bot_link()
     if not link:
-        raise HTTPException(502, "Telegram сейчас недоступен. Выберите другой способ.")
+        raise HTTPException(DELIVERY_FAILED, "Telegram сейчас недоступен. Выберите другой способ.")
     response.channel = "telegram"
     response.bot_url = link
     response.on_screen_code_hint = ("Откройте нашего бота в Telegram, нажмите «Старт», затем «Поделиться номером» — "
@@ -827,7 +831,7 @@ async def _request_phone_code(phone, http_request, db, *, allow_existing=False, 
             await db.commit()
         logger_msg = str(exc)
         raise HTTPException(
-            status_code=502,
+            status_code=DELIVERY_FAILED,
             detail=logger_msg if channel in ("whatsapp", "telegram") else f"Не удалось отправить код. {logger_msg}",
         ) from exc
 
