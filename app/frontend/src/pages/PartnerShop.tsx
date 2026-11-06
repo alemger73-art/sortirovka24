@@ -124,7 +124,7 @@ export default function PartnerShop() {
           <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
           <input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder={`Поиск среди ${products.length} товаров`} className={`${input} pl-12`} />
         </label>
-        <nav aria-label="Категории" className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1">
+        <nav aria-label="Категории" className="scrollbar-hide -mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1">
           {['', ...shop.categories].map(c => <button key={c || 'all'} onClick={() => { setCategory(c); window.scrollTo({ top: 0 }); }} aria-pressed={category === c}
             className="shrink-0 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold dark:border-gray-700 dark:bg-gray-900"
             style={category === c ? { background: accent, borderColor: accent, color: '#fff' } : undefined}>{c || 'Все'}{c && <span aria-hidden="true" className="ml-1.5 opacity-60">{perCategory[c]}</span>}</button>)}
@@ -136,7 +136,7 @@ export default function PartnerShop() {
         .filter(group => group.items.length).map(group => <section key={group.name || 'found'} aria-label={group.name || 'Товары'} className="mt-3">
           {group.name && <h2 className="mb-2 mt-4 flex items-baseline justify-between text-lg font-extrabold">{group.name}
             <button onClick={() => { setCategory(group.name); window.scrollTo({ top: 0 }); }} className="text-sm font-semibold" style={{ color: accent }}>Все {group.items.length}</button></h2>}
-          <div className={group.name ? '-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:grid-cols-4' : 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'}>
+          <div className={group.name ? 'scrollbar-hide -mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:grid-cols-4' : 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'}>
             {(group.name ? group.items.slice(0, 8) : group.items).map(p => <ProductCard key={p.sku} p={p} qty={cart[p.sku] || 0} accent={accent} rail={!!group.name}
               onOpen={() => setViewing(p)} onChange={d => change(p.sku, d)} />)}
           </div>

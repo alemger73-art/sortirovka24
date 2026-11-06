@@ -132,6 +132,10 @@ html.pwa-standalone body { padding-left: env(safe-area-inset-left, 0px); padding
 }
 
 @layer utilities {
+  /* Horizontal strips (chips, product rows) scroll by swipe; their scrollbar showed as a stray grey line on phones. */
+  .scrollbar-hide, .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+  .scrollbar-hide::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar { display: none; }
+
   .safe-area-pt {
     padding-top: env(safe-area-inset-top, 0px);
   }

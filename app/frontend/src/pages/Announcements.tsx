@@ -554,7 +554,7 @@ export function AdsList() {
         </header>
 
         <div className="ads-shell">
-          <div className="sticky top-14 z-20 -mx-4 bg-[var(--ads-bg)]/95 px-4 pb-3 pt-4 backdrop-blur sm:-mx-6 sm:px-6">
+          <div className="pb-3 pt-4">{/* not sticky: on a phone a pinned search covered the listings */}
             <div className="flex flex-col gap-3">
               <label className="relative block lg:max-w-[560px]">
                 <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--ads-muted)]" />
