@@ -9,8 +9,9 @@ import { AUTH_PROMPT_EVENT } from '@/lib/localAuth';
 import AuthPromptModal from '@/components/ui/AuthPromptModal';
 import { useTaxiEnabled } from '@/hooks/useTaxiEnabled';
 
-import InstallAppBanner, { InstallFromLink } from '@/components/InstallAppBanner';
+import { InstallFromLink } from '@/components/InstallAppBanner';
 import WelcomeBonusCard, { welcomeBonusDue } from '@/components/WelcomeBonusCard';
+import PushOfferFloat from '@/components/PushOfferFloat';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import OfflineBanner from '@/components/OfflineBanner';
 import SafetyTipBar from '@/components/SafetyTipBar';
@@ -179,7 +180,7 @@ export default function Layout({
       </footer>}
 
       {showBottomNav && <MobileBottomNav />}
-      {showInstallBanner && (welcomeDue ? <WelcomeBonusCard onClose={closeWelcome} /> : <InstallAppBanner />)}
+      {showInstallBanner && (welcomeDue ? <WelcomeBonusCard onClose={closeWelcome} /> : <PushOfferFloat />)}
       <InstallFromLink />
     </div>
   );

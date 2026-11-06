@@ -39,3 +39,17 @@ test('a signed-in visitor is not offered registration', async ({ page }) => {
   await page.waitForTimeout(500);
   await expect(page.getByTestId('welcome-bonus')).toHaveCount(0);
 });
+
+test('a signed-in visitor is offered notifications once, news and offers only with their own box', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('account_token', 'x'));
+  await open(page);
+  const offer = page.getByTestId('push-offer');
+  await page.clock.fastForward(11_000); // waits 10 s into the page
+  await expect(offer).toContainText('Включите уведомления');
+  await expect(offer.getByRole('checkbox')).not.toBeChecked(); // marketing is a separate, unticked consent
+  await offer.getByRole('button', { name: 'Закрыть' }).click();
+  await expect(offer.getByText('Включите уведомления')).toHaveCount(0);
+  await page.reload();
+  await page.clock.fastForward(11_000);
+  await expect(page.getByText('Включите уведомления')).toHaveCount(0); // «×» = not again for a week
+});
