@@ -119,7 +119,7 @@ export default function PartnerShop() {
         <span>{freeZones.length > 0 ? `Бесплатная доставка: ${freeZones.join(', ')}` : 'Доставка до двери'} · оплата при получении</span>
       </p>
 
-      <div className="sticky top-14 z-10 -mx-4 mt-2 bg-[#F8FAFC]/95 px-4 pb-2 pt-2 backdrop-blur dark:bg-gray-950/95">
+      <div className="mt-3">{/* not sticky: on a phone a pinned search covered the products */}
         <label className="relative block"><span className="sr-only">Поиск по каталогу</span>
           <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
           <input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder={`Поиск среди ${products.length} товаров`} className={`${input} pl-12`} />
