@@ -6,6 +6,7 @@
  */
 import FeaturedPartner from '@/components/FeaturedPartner';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { track } from '@/lib/analytics';
 import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -87,6 +88,13 @@ export default function Directory() {
   const intro = (e: DirectoryEntry) => (directoryHelp(e, kz).intro || directoryPublicCopy(e).intro || '').trim();
   const haystack = (e: DirectoryEntry) => [e.entry_name, e.category, e.address, e.phone, intro(e)].join(' ');
   const shown = entries.filter((e) => (!group || groupOf(e.category) === group) && smartMatch(haystack(e), query));
+  // What people look for — and whether the directory had it — tells the owner what to add.
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 3 || !entries.length) return;
+    const timer = window.setTimeout(() => track('search', { area: 'справочник', q: q.slice(0, 60), results: shown.length }), 1500);
+    return () => window.clearTimeout(timer);
+  }, [query, entries.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const groupsUsed = useMemo(() => [...GROUPS, OTHER_GROUP].filter((g) => entries.some((e) => groupOf(e.category) === g.id)), [entries]);
   const sitEntries = sit ? entries.filter(sit.pick) : [];
   const akimat = entries.filter((e) => groupOf(e.category) === 'akimat');

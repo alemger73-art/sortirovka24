@@ -1,6 +1,7 @@
 /** A partner's shop inside Сортировка 24: catalog with product cards, cart, order straight to the partner's Telegram. */
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { track } from '@/lib/analytics';
 import { ArrowLeft, Check, Leaf, MessageCircle, Minus, Phone, Plus, Search, ShoppingBag, Truck, X } from 'lucide-react';
 import Layout from '@/components/Layout';
 import ProductSheet from '@/components/partner-shop/ProductSheet';
@@ -76,6 +77,11 @@ export default function PartnerShop() {
   const needle = query.trim().toLowerCase();
   const visible = products.filter(p => (!category || p.category === category)
     && (!needle || `${p.name} ${p.kind || ''} ${p.category}`.toLowerCase().includes(needle)));
+  useEffect(() => {
+    if (needle.length < 3 || !products.length) return;
+    const timer = window.setTimeout(() => track('search', { area: `магазин ${slug || ''}`.trim(), q: needle.slice(0, 60), results: visible.length }), 1500);
+    return () => window.clearTimeout(timer);
+  }, [needle, products.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const perCategory = useMemo(() => products.reduce<Record<string, number>>((m, p) => ({ ...m, [p.category]: (m[p.category] || 0) + 1 }), {}), [products]);
   const zone = shop?.delivery.find(z => z.name === form.zone);
   const freeZones = (shop?.delivery || []).filter(z => isFree(z.price)).map(z => z.name);
