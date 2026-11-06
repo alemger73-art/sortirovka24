@@ -12,6 +12,8 @@ import { useTaxiEnabled } from '@/hooks/useTaxiEnabled';
 import { InstallFromLink } from '@/components/InstallAppBanner';
 import WelcomeBonusCard, { welcomeBonusDue } from '@/components/WelcomeBonusCard';
 import PushOfferFloat from '@/components/PushOfferFloat';
+import { refreshWebPushSubscription } from '@/lib/pushNotifications';
+import { getAccountToken } from '@/lib/accountApi';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import OfflineBanner from '@/components/OfflineBanner';
 import SafetyTipBar from '@/components/SafetyTipBar';
@@ -55,6 +57,8 @@ export default function Layout({
   // A guest is first offered the registration bonus; the install banner comes after (or once that is put off).
   const [welcomeDue, setWelcomeDue] = useState(welcomeBonusDue);
   useEffect(() => { setWelcomeDue(welcomeBonusDue()); }, [pathname]); // signed in meanwhile → no offer
+  // Keep a signed-in phone's notification subscription deliverable (once per visit; see refreshWebPushSubscription).
+  useEffect(() => { if (getAccountToken()) void refreshWebPushSubscription(); }, [pathname]);
   const closeWelcome = useCallback(() => setWelcomeDue(false), []);
   const [authRedirectTo, setAuthRedirectTo] = useState('/login');
   const [authMessage, setAuthMessage] = useState<{ title: string; text: string } | null>(null);

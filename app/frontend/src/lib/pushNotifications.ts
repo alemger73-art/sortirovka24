@@ -154,6 +154,36 @@ export async function enablePushNotifications({ withNews = false }: { withNews?:
   return 'enabled';
 }
 
+/** True when the subscription was made with this server key (or the browser does not say which key it used). */
+function madeWithKey(subscription: PushSubscription, key: ArrayBuffer): boolean {
+  const used = subscription.options?.applicationServerKey;
+  if (!used) return true;
+  const a = new Uint8Array(used), b = new Uint8Array(key);
+  return a.length === b.length && a.every((value, i) => value === b[i]);
+}
+
+/** Once per visit for a signed-in person with notifications allowed: make sure the phone's subscription is one the
+ *  server can still deliver to (replacing one made with an old key, or one the push service dropped) and that the
+ *  server has it on file as active. Otherwise the app says «включены» while nothing arrives. */
+export async function refreshWebPushSubscription(): Promise<void> {
+  if (Capacitor.isNativePlatform() || !webPushSupported() || Notification.permission !== 'granted') return;
+  try {
+    if (sessionStorage.getItem('s24_push_refreshed')) return;
+    sessionStorage.setItem('s24_push_refreshed', '1');
+  } catch { /* private mode: refresh anyway */ }
+  try {
+    const key = await pushApiClient.webKey();
+    if (!key.enabled || !key.public_key) return;
+    const registration = await readyForPush();
+    const before = await registration.pushManager.getSubscription();
+    const subscription = await subscribeWithRetry(registration, decodeVapidKey(key.public_key));
+    await pushApiClient.registerWeb(subscription.toJSON());
+    if (!before || before.endpoint !== subscription.endpoint) pwaEvent('push_subscription_refreshed');
+  } catch (err) {
+    console.warn('[push] refresh failed:', err);
+  }
+}
+
 export async function syncWebPushSubscriptionToAccount(): Promise<void> {
   if (Capacitor.isNativePlatform() || !webPushSupported() || Notification.permission !== 'granted') return;
   const subscription = await currentWebSubscription();
@@ -178,9 +208,11 @@ export const PUSH_SERVICE_ERROR = 'Служба уведомлений теле�
 
 /** Android sometimes answers the first subscribe with «push service error» (the phone's Google push service was busy
  *  or holds a stale subscription). Drop the old subscription and try again a few times before giving up. */
-async function subscribeWithRetry(registration: ServiceWorkerRegistration, key: BufferSource): Promise<PushSubscription> {
+async function subscribeWithRetry(registration: ServiceWorkerRegistration, key: ArrayBuffer): Promise<PushSubscription> {
   const existing = await registration.pushManager.getSubscription();
-  if (existing) return existing;
+  if (existing && madeWithKey(existing, key)) return existing;
+  // Made with an earlier server key: the push service refuses every message to it (403), so replace it.
+  if (existing) await existing.unsubscribe().catch(() => false);
   for (let attempt = 1; ; attempt += 1) {
     try {
       return await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
