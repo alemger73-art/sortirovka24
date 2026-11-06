@@ -433,8 +433,7 @@ def approval_text(news: News, source: str, url: str) -> str:
     e = html.escape
     full = " ".join(x for x in (news.short_description, _body(news.content or "")) if x)
     return (f"📰 <b>Новость на согласование</b>\n\n<b>{e(news.title or '')}</b>\n\n{e(full)}\n\n"
-            + (f"Источник: <a href=\"{e(url, quote=True)}\">{e(source or 'открыть')}</a>\n" if url
-               else f"{e(source)}\n" if source else "Ваша новость\n")
+            + (f"Источник: <a href=\"{e(url, quote=True)}\">{e(source or 'открыть')}</a>\n" if url else "Ваша новость\n")
             + f"Раздел: {e(news.category or '')}")
 
 
@@ -618,9 +617,6 @@ async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dic
         from services import courier_invite  # before the login handler: an invited courier's contact is theirs
         if await courier_invite.handle_message(db, client, message):
             return
-        from services import poster_partners  # an organisation's poster chat (its /start pp_ link and posters)
-        if await poster_partners.handle_message(db, client, message):
-            return
         from services import telegram_login
         if await telegram_login.handle_message(db, client, message):
             return
@@ -737,9 +733,6 @@ async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dic
         await tg(client, "answerCallbackQuery", {"callback_query_id": callback_id, "text": answer})
         return
     answer, news = await decide(db, int(news_match.group(2)), news_match.group(1) == "p")
-    if answer in ("Опубликовано на сайте", "Отклонено"):
-        from services import poster_partners
-        await poster_partners.after_decision(db, client, int(news_match.group(2)), answer != "Отклонено")
     if news and answer == "Опубликовано на сайте":
         try:
             where = await post_to_channel(db, client, news)
