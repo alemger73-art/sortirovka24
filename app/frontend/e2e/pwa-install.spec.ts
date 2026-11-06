@@ -9,6 +9,8 @@ const UA = {
 
 async function open(page: Page, path: string) {
   const events: Record<string, unknown>[] = [];
+  // These cases are about installing: the guest's registration offer (welcome-bonus.spec) is put off.
+  await page.addInitScript(() => localStorage.setItem('s24_welcome_hidden_until', String(Date.now() + 86_400_000)));
   await page.route('**/*', r => new URL(r.request().url()).hostname === '127.0.0.1' ? r.continue() : r.abort());
   await page.route('**/api/**', async r => {
     if (r.request().url().includes('/push/analytics')) events.push(r.request().postDataJSON());

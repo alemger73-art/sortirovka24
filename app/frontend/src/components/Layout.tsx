@@ -10,6 +10,7 @@ import AuthPromptModal from '@/components/ui/AuthPromptModal';
 import { useTaxiEnabled } from '@/hooks/useTaxiEnabled';
 
 import InstallAppBanner, { InstallFromLink } from '@/components/InstallAppBanner';
+import WelcomeBonusCard, { welcomeBonusDue } from '@/components/WelcomeBonusCard';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import OfflineBanner from '@/components/OfflineBanner';
 import SafetyTipBar from '@/components/SafetyTipBar';
@@ -50,6 +51,10 @@ export default function Layout({
   const { promoEnabled: supportPromoEnabled } = useSupportSettings();
   const { isEnabled } = useModules();
   const [authPromptOpen, setAuthPromptOpen] = useState(false);
+  // A guest is first offered the registration bonus; the install banner comes after (or once that is put off).
+  const [welcomeDue, setWelcomeDue] = useState(welcomeBonusDue);
+  useEffect(() => { setWelcomeDue(welcomeBonusDue()); }, [pathname]); // signed in meanwhile → no offer
+  const closeWelcome = useCallback(() => setWelcomeDue(false), []);
   const [authRedirectTo, setAuthRedirectTo] = useState('/login');
   const [authMessage, setAuthMessage] = useState<{ title: string; text: string } | null>(null);
 
@@ -174,7 +179,7 @@ export default function Layout({
       </footer>}
 
       {showBottomNav && <MobileBottomNav />}
-      {showInstallBanner && <InstallAppBanner />}
+      {showInstallBanner && (welcomeDue ? <WelcomeBonusCard onClose={closeWelcome} /> : <InstallAppBanner />)}
       <InstallFromLink />
     </div>
   );
