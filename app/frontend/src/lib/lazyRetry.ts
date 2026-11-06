@@ -40,7 +40,11 @@ export function lazyRetry<T extends ComponentType<any>>(factory: () => Promise<{
     if (reloading || reloadForNewRelease()) return whileReloading<{ default: T }>();
     throw new Error('Importing a module script failed: the page part came back empty');
   }, (err) => {
-    if (isChunkError(err) && (reloading || reloadForNewRelease())) return whileReloading<{ default: T }>();
+    // App.tsx picks a named page out of the module (`m => ({ default: m.AdDetail })`), so an empty module
+    // fails there with «undefined is not an object (evaluating 'e.AdDetail')» before the check above.
+    // The page is already reloading in that case: wait quietly instead of showing the error screen.
+    if (reloading) return whileReloading<{ default: T }>();
+    if (isChunkError(err) && reloadForNewRelease()) return whileReloading<{ default: T }>();
     throw err;
   }));
 }
