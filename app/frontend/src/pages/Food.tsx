@@ -317,7 +317,11 @@ export default function Food() {
     if (pending && getAccountToken()) void clientLoyalty('/referral', {code:pending}).then(() => sessionStorage.removeItem('dam_referral')).catch(() => { /* Client cabinet exposes the explicit retry and reason. */ });
   }, []);
 
-  const [useBonuses, setUseBonuses] = useState(false);
+  const [useBonuses, setUseBonusesState] = useState(false);
+  // Bonuses are the customer's money: they are applied by default once the balance is known, until the person
+  // unticks them (or a promo code replaces them) — then their choice stands.
+  const bonusChoiceMade = useRef(false);
+  const setUseBonuses = useCallback((on: boolean) => { bonusChoiceMade.current = true; setUseBonusesState(on); }, []);
   const [selectedGiftId, setSelectedGiftId] = useState<string | null>(null);
   const [bonusRules, setBonusRules] = useState({ enabled: false, tenge_rate: 1, max_order_percent: 0 });
   const BONUS_MAX_PERCENT = bonusRules.max_order_percent;
@@ -376,11 +380,15 @@ export default function Food() {
   useEffect(() => {
     if (!getAccountToken()) {
       setBonusBalance(0);
-      setUseBonuses(false);
+      setUseBonusesState(false);
       return;
     }
     clientLoyalty<MyLoyalty>('/me')
-      .then((me) => setBonusBalance(Number(me?.balance || 0)))
+      .then((me) => {
+        const balance = Number(me?.balance || 0);
+        setBonusBalance(balance);
+        if (balance > 0 && !bonusChoiceMade.current) setUseBonusesState(true);
+      })
       .catch(() => setBonusBalance(0));
     accountApi.bonusRules().then(setBonusRules).catch(() => setBonusRules({ enabled: false, tenge_rate: 1, max_order_percent: 0 }));
   }, [checkoutOpen, activeTab]);
