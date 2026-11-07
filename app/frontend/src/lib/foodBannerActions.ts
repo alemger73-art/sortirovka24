@@ -60,7 +60,7 @@ export function foodBannerActionUrl(action: FoodBannerAction): string {
 export function foodBannerCtaLabel(action: FoodBannerAction, custom?: string): string {
   if (custom?.trim()) return custom.trim();
   switch (action.type) {
-    case 'product': return 'В корзину';
+    case 'product': return 'Что внутри';
     case 'promo': return `Применить ${action.code}`;
     case 'category': return 'Выбрать блюда';
     case 'popular': return 'Смотреть хиты';

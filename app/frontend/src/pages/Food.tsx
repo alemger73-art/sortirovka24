@@ -1713,9 +1713,7 @@ export default function Food() {
     if (action.type === 'product') {
       const item = items.find(candidate => candidate.id === action.itemId && candidate.is_active !== false && candidate.available !== false);
       if (!item) { toast.info(st("Это комбо сейчас недоступно")); return; }
-      void quickAdd(item);
-      if (itemHasGroups(item.id)) toast.info(st("Выберите параметры комбо"));
-      else toast.success(st("Комбо добавлено в корзину"));
+      void openItemModal(item); // the full card: what is inside, then «Добавить в корзину»
       return;
     }
     if (action.type === 'promo') {

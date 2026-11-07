@@ -17,9 +17,9 @@ async function setup(page: Page, initial: Banner[] = []) {
     if (path.includes('food_restaurants')) body = { items: [{ id: 1, name: 'DAM ALEM 2.0' }] };
     const categories = [{ id: 1, name: 'Пицца', slug: 'pizza', restaurant_id: 1 }, { id: 2, name: 'Напитки', slug: 'napitki', restaurant_id: 1 }];
     if (path === '/api/categories') body = { categories };
-    if (path === '/api/v1/dam-alem/menu/catalog') body = {business_id:'dam_alem',restaurant_id:1,categories,products:[{id:1,restaurant_id:1,category_id:1,name:'Маргарита',description:'Моцарелла и томаты',price:2500,image_url:image,available:true,is_active:true,sellable:true,modifiers_enabled:false,modifier_groups:[]},{id:2,restaurant_id:1,category_id:2,name:'Лимонад',price:600,image_url:image,available:true,is_active:true,sellable:true,modifiers_enabled:false,modifier_groups:[]}],groups:[],options:[],links:[]};
+    if (path === '/api/v1/dam-alem/menu/catalog') body = {business_id:'dam_alem',restaurant_id:1,categories,products:[{id:1,restaurant_id:1,category_id:1,name:'Маргарита',description:'Моцарелла и томаты',price:2500,image_url:image,available:true,is_active:true,sellable:true,modifiers_enabled:false,modifier_groups:[]},{id:2,restaurant_id:1,category_id:2,name:'Лимонад',price:600,image_url:image,available:true,is_active:true,sellable:true,modifiers_enabled:false,modifier_groups:[]},{id:3,restaurant_id:1,category_id:1,name:'Орбита Биф',description:'Говяжий UFO-бургер, хрустящий картофель фри, соус и Coca-Cola 0,5 л — сытный готовый набор.',price:4000,image_url:image,is_combo:true,available:true,is_active:true,sellable:true,modifiers_enabled:false,modifier_groups:[]}],groups:[],options:[],links:[]};
     if (path.includes('/entities/food_categories')) body = { items: categories };
-    if (path === '/api/products') body = { products: [{ id: 1, category_id: 1, title: 'Маргарита', description: 'Моцарелла и томаты', price: 2500, image, available: true }, { id: 2, category_id: 2, title: 'Лимонад', price: 600, image, available: true }] };
+    if (path === '/api/products') body = { products: [{ id: 1, category_id: 1, title: 'Маргарита', description: 'Моцарелла и томаты', price: 2500, image, available: true }, { id: 2, category_id: 2, title: 'Лимонад', price: 600, image, available: true }, { id: 3, category_id: 1, title: 'Орбита Биф', description: 'Говяжий UFO-бургер, хрустящий картофель фри, соус и Coca-Cola 0,5 л — сытный готовый набор.', price: 4000, image, is_combo: true, available: true }] };
     if (path.includes('food_settings')) body = { items: Object.entries({ promo_codes: JSON.stringify([{ code: 'TEST10', type: 'percent', value: 10, active: true, min_order: 0 }]), loyalty_gifts: '[]', min_order_amount: '0', kitchen_open: '00:00', kitchen_close: '00:00' }).map(([setting_key, setting_value]) => ({ setting_key, setting_value })) };
     if (path.includes('validate-promo')) body = { valid: true, code: 'TEST10', discount: 250, free_delivery: false, label: 'Скидка 10%' };
     if (path.startsWith('/api/v1/entities/banners')) {
@@ -201,4 +201,17 @@ test('responsive header, safe insets and compact banner fit all screen sizes', a
   await expect(page.locator('.dam-market-offer h1')).toBeVisible();
   // Warm dark banner with light text (2026-10 refresh).
   await expect(page.locator('.dam-market-offer')).toHaveCSS('color', 'rgb(255, 247, 239)');
+});
+
+test('a combo banner opens the full card that lists what is inside', async ({ page }) => {
+  await setup(page, [{ id: 1, title: 'Орбита Биф', button_url: '/food#product=3', banner_type: 'food_delivery', active: true }]);
+  await page.goto('/food', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('food-banner-1')).toContainText('Что внутри');
+  await page.getByTestId('food-banner-1').click();
+  const contents = page.getByTestId('combo-contents');
+  await expect(contents).toBeVisible();
+  await expect(contents.locator('li')).toHaveText([/Говяжий UFO-бургер/, /Хрустящий картофель фри/, /Соус/, /Coca-Cola 0,5 л/]);
+  await expect(page.getByRole('dialog')).toContainText('Сытный готовый набор');
+  await expect(page.getByText('Комбо добавлено в корзину')).toHaveCount(0);
+  await expect(page.getByTestId('dam-product-add')).toBeVisible();
 });

@@ -4,7 +4,23 @@ import {useEffect, useId, useState} from 'react';
 import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription} from '@/components/ui/dialog';
 import {Button} from '@/components/ui/button';
 import DamAlemImage from './DamAlemImage';
+import {comboContents, comboTagline} from '@/lib/comboContents';
 import {activeGroups, emptySelection, estimateSelection, menuMoney, quoteMenuLine, selectionErrors, type MenuProduct, type MenuSelection, type LineSnapshot} from '@/lib/damMenu';
+
+/** «Что внутри» a combo: one row per part with an icon and the quantity, so people see exactly what they get. */
+function ComboContentsList({product}: {product: MenuProduct}) {
+  const st=useStoreTranslations();
+  const parts=comboContents(product);
+  if (!parts.length) return null;
+  return <section data-testid="combo-contents" className="rounded-2xl border bg-muted/40 p-4">
+    <p className="font-semibold">{st("Что внутри")}</p>
+    <ul className="mt-3 divide-y">{parts.map(part=><li key={part.name} className="flex items-center gap-3 py-2.5">
+      <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background text-xl">{part.icon}</span>
+      <span className="flex-1 font-medium">{part.name}</span>
+      {part.quantity>1 && <span className="text-sm font-semibold text-muted-foreground">{st("×")}{part.quantity}</span>}
+    </li>)}</ul>
+  </section>;
+}
 
 export function MenuSelectionFields({product, value, onChange}: {product: MenuProduct; value: MenuSelection; onChange: (s: MenuSelection)=>void}) {
   const st=useStoreTranslations(); const instance=useId();
@@ -15,7 +31,7 @@ export function MenuSelectionFields({product, value, onChange}: {product: MenuPr
     onChange({...value, modifiers: [...others, ...(quantity ? [{option_id: oid, quantity}] : [])]});
   }
   return <div className="space-y-5">
-    {!!product.combo?.components.length && <div className="rounded-xl bg-muted p-3"><p className="font-semibold">{st("В составе")}</p><ul className="mt-2 space-y-1 text-sm">{product.combo.components.map(p=><li key={p.item_id}>{p.name}{" " + st("×")}{p.quantity}</li>)}</ul></div>}
+    <ComboContentsList product={product}/>
     {(product.combo?.groups || []).map(g=><fieldset key={g.id} className="space-y-2"><legend className="font-semibold">{g.name} <span className="text-xs font-normal text-muted-foreground">{g.min_select ? st('Обязательно') : st('По желанию')}{" " + st("· до") + " "}{g.max_select}</span></legend>{g.options.filter(o=>o.available!==false).map(o=>{
       const checked = value.choices.some(c=>c.group_id===g.id && c.item_id===o.item_id);
       const count = value.choices.filter(c=>c.group_id===g.id).length;
@@ -46,5 +62,5 @@ export default function MenuSelectionDialog({product, initial, initialQuantity=1
     return ()=>{alive=false;clearTimeout(timer);};
   },[key, valid, preview, retry, product.id]);
   const current=quote?.key===key ? quote.row:null;
-  return <Dialog open onOpenChange={open=>{if(!open)onClose();}}><DialogContent className="w-[calc(100%-1rem)] max-w-xl max-h-[92dvh] flex flex-col overflow-hidden p-0"><div className="min-h-0 overflow-y-auto pb-5">{product.image_url && <DamAlemImage src={product.image_url} alt={product.name} className="aspect-[4/3] w-full object-cover"/>}<DialogHeader className="px-5 pt-4 pr-12 text-left"><DialogTitle className="text-xl">{product.name}</DialogTitle><DialogDescription className="text-left">{preview?st('Предпросмотр карточки клиента'):product.description || st('Выберите состав и количество')}</DialogDescription></DialogHeader><div className="space-y-5 px-5 pt-4"><p className="text-xl font-bold">{menuMoney(product.price)}</p><MenuSelectionFields product={product} value={selection} onChange={setSelection}/><div className="flex items-center justify-between"><span>{st("Количество")}</span><div className="flex items-center gap-4"><Button variant="outline" size="icon" aria-label={st("Уменьшить количество")} disabled={quantity<=1} onClick={()=>setQuantity(q=>q-1)}>{st("−")}</Button><span>{quantity}</span><Button variant="outline" size="icon" aria-label={st("Увеличить количество")} disabled={quantity>=99} onClick={()=>setQuantity(q=>q+1)}>{st("+")}</Button></div></div>{errors.map(x=><p key={x} className="text-sm text-amber-700">{x}</p>)}{product.unavailable_reasons?.map(x=><p key={x} role="alert">{x}</p>)}{error && <div role="alert" className="text-sm text-red-600">{error}<Button variant="link" onClick={()=>setRetry(x=>x+1)}>{st("Повторить расчёт")}</Button></div>}</div></div><div className="border-t bg-background p-4"><Button data-testid="dam-product-add" className="min-h-12 w-full whitespace-normal rounded-xl bg-red-600 text-base font-semibold text-white hover:bg-red-700" disabled={!preview && (!valid || !current || !!error)} onClick={()=>preview?onClose():current&&onConfirm?.(selection,quantity,current)}>{preview?st('Закрыть предпросмотр — {0}', [menuMoney(estimateSelection(product,selection)*quantity)]):current?`${st(confirmLabel)} — ${menuMoney(current.sum)}`:st('Проверяем состав и цену…')}</Button></div></DialogContent></Dialog>;
+  return <Dialog open onOpenChange={open=>{if(!open)onClose();}}><DialogContent className="w-[calc(100%-1rem)] max-w-xl max-h-[92dvh] flex flex-col overflow-hidden p-0"><div className="min-h-0 overflow-y-auto pb-5">{product.image_url && <DamAlemImage src={product.image_url} alt={product.name} className="aspect-[4/3] w-full object-cover"/>}<DialogHeader className="px-5 pt-4 pr-12 text-left"><DialogTitle className="text-xl">{product.name}</DialogTitle><DialogDescription className="text-left">{preview?st('Предпросмотр карточки клиента'):(comboContents(product).length ? comboTagline(product.description) : product.description) || st('Выберите состав и количество')}</DialogDescription></DialogHeader><div className="space-y-5 px-5 pt-4"><p className="text-xl font-bold">{menuMoney(product.price)}</p><MenuSelectionFields product={product} value={selection} onChange={setSelection}/><div className="flex items-center justify-between"><span>{st("Количество")}</span><div className="flex items-center gap-4"><Button variant="outline" size="icon" aria-label={st("Уменьшить количество")} disabled={quantity<=1} onClick={()=>setQuantity(q=>q-1)}>{st("−")}</Button><span>{quantity}</span><Button variant="outline" size="icon" aria-label={st("Увеличить количество")} disabled={quantity>=99} onClick={()=>setQuantity(q=>q+1)}>{st("+")}</Button></div></div>{errors.map(x=><p key={x} className="text-sm text-amber-700">{x}</p>)}{product.unavailable_reasons?.map(x=><p key={x} role="alert">{x}</p>)}{error && <div role="alert" className="text-sm text-red-600">{error}<Button variant="link" onClick={()=>setRetry(x=>x+1)}>{st("Повторить расчёт")}</Button></div>}</div></div><div className="border-t bg-background p-4"><Button data-testid="dam-product-add" className="min-h-12 w-full whitespace-normal rounded-xl bg-red-600 text-base font-semibold text-white hover:bg-red-700" disabled={!preview && (!valid || !current || !!error)} onClick={()=>preview?onClose():current&&onConfirm?.(selection,quantity,current)}>{preview?st('Закрыть предпросмотр — {0}', [menuMoney(estimateSelection(product,selection)*quantity)]):current?`${st(confirmLabel)} — ${menuMoney(current.sum)}`:st('Проверяем состав и цену…')}</Button></div></DialogContent></Dialog>;
 }
