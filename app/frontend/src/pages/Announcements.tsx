@@ -426,6 +426,25 @@ function OfficialPromo({ adId, compact }: { adId?: number; compact?: boolean }) 
 }
 
 const TIP_KEY = 's24_ads_tip_v1';
+/** The author does not get call buttons on his own ad, so show him which contacts buyers see and where to change them. */
+function OwnerContacts({ adId, phone, whatsapp }: { adId: number; phone: string; whatsapp: string }) {
+  const { tx } = useTx();
+  const waLine = !whatsapp
+    ? tx('без WhatsApp', 'WhatsApp жоқ')
+    : whatsapp === phone ? tx('WhatsApp — на этот же номер', 'WhatsApp — осы нөмірде') : `WhatsApp: ${formatKzPhone(whatsapp)}`;
+  return (
+    <div data-testid="owner-contacts" className="flex items-start gap-3 rounded-2xl bg-[var(--ads-soft)] p-3 text-sm">
+      <Phone className="mt-0.5 h-5 w-5 shrink-0 text-[var(--ads-accent)]" />
+      <div className="flex-1">
+        <p className="text-[var(--ads-muted)]">{tx('Покупатели видят:', 'Сатып алушылар көреді:')}</p>
+        <p className="font-semibold">{phone ? formatKzPhone(phone) : tx('номер не указан', 'нөмір көрсетілмеген')}</p>
+        <p>{waLine}</p>
+        <Link to={`/announcements/${adId}/edit`} className="mt-1 inline-block font-semibold text-[var(--ads-accent)]">{tx('Изменить номер', 'Нөмірді өзгерту')}</Link>
+      </div>
+    </div>
+  );
+}
+
 function GentleTip() {
   const { tx } = useTx();
   const [hidden, setHidden] = useState(() => { try { return localStorage.getItem(TIP_KEY) === '1'; } catch { return false; } });
@@ -804,6 +823,7 @@ export function AdDetail() {
                     <span className="flex-1">{tx('Посмотрели: ', 'Қарады: ')}<b>{Number(ad.views_count) || 0}</b>{tx(' · статистика в кабинете', ' · статистика кабинетте')}</span>
                     <ArrowRight className="h-4 w-4 text-[var(--ads-muted)]" />
                   </Link>
+                  <OwnerContacts adId={Number(ad.id)} phone={phoneDigits} whatsapp={waDigits} />
                   <OfficialPromo adId={Number(ad.id)} compact />
                   <div className="flex flex-wrap gap-2 border-t border-[var(--ads-line)] pt-3">
                     <Link to={`/announcements/${ad.id}/edit`} className="ads-btn ads-btn-primary min-h-[42px] px-4 text-sm"><Pencil className="h-4 w-4" />{tx('Изменить', 'Өзгерту')}</Link>

@@ -140,6 +140,10 @@ test('owner sees pending notice and edit action; /jobs opens work ads', async ({
   await expect(page.getByText(/на проверке/)).toBeVisible();
   await expect(page.getByRole('link', { name: 'Изменить', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Позвонить' })).toHaveCount(0);
+  const contacts = page.getByTestId('owner-contacts');
+  await expect(contacts).toContainText('Покупатели видят');
+  await expect(contacts).toContainText('+7 700 123 45 67');
+  await expect(contacts.getByRole('link', { name: 'Изменить номер' })).toHaveAttribute('href', '/announcements/1/edit');
   await page.goto('/jobs');
   await expect(page).toHaveURL(/\/announcements\?type=job/);
 });
