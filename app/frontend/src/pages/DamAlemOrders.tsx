@@ -38,6 +38,30 @@ function Items({ raw }: { raw: string }) {
   return <div className="divide-y">{items.length ? items.map((item, i) => <div key={i} className="flex justify-between gap-3 py-3 text-sm"><span className="break-words">{item.name || adminT('admin.dam.final.049')} × {Number(item.quantity || 1).toLocaleString(locale)}{item.combo_components?.map((p,j)=><small className="block text-muted-foreground" key={j}>{p.group_name?`${p.group_name}: `:''}{p.name} ×{p.quantity}</small>)}{Array.isArray(item.modifiers) && item.modifiers.length > 0 && <small className="block text-muted-foreground">{item.modifiers.map(m => m?.name + ((m.quantity || 1)>1?` ×${m.quantity}`:'')).filter(Boolean).join(', ')}</small>}</span><strong className="shrink-0">{money(((item.price || 0) + (item.modTotal || 0)) * (item.quantity || 1))}</strong></div>) : <p>{adminT('admin.dam.final.134')}</p>}</div>;
 }
 
+/** The money side of an order the way the customer saw it: food, delivery, promo, bonuses, total. */
+function OrderBreakdown({ order }: { order: OperatorOrder }) {
+  const { lang } = useLanguage();
+  const locale = getPublicLocale(lang);
+  const money = (value: number) => `${Number(value || 0).toLocaleString(locale)} ₸`;
+  let breakdown: { subtotal?: number; delivery_fee?: number; service_fee?: number } = {};
+  let promoCode = '';
+  try { const p = JSON.parse(order.pricing_snapshot || '{}'); breakdown = p.breakdown || {}; promoCode = p.promo_code || ''; } catch { /* older orders carry no snapshot */ }
+  const promo = Number(order.promo_discount_amount || 0);
+  const bonus = Number(order.bonus_discount_amount || 0);
+  const lines: [string, number, string?][] = [
+    ['Еда', Number(breakdown.subtotal ?? 0)],
+    ...(Number(breakdown.delivery_fee) > 0 ? [['Доставка', Number(breakdown.delivery_fee)] as [string, number]] : order.delivery_method === 'delivery' ? [['Доставка', 0, 'бесплатно'] as [string, number, string]] : []),
+    ...(Number(breakdown.service_fee) > 0 ? [['Сервисный сбор', Number(breakdown.service_fee)] as [string, number]] : []),
+    ...(promo > 0 ? [[`Промокод ${promoCode}`.trim(), -promo] as [string, number]] : []),
+    ...(bonus > 0 ? [['Оплачено бонусами', -bonus] as [string, number]] : []),
+  ];
+  if (!breakdown.subtotal) return null;
+  return <dl data-testid="order-breakdown" className="space-y-1 rounded-xl bg-muted/40 p-3 text-sm">
+    {lines.map(([label, value, note]) => <div key={label} className="flex justify-between gap-3"><dt>{label}</dt><dd className={value < 0 ? 'font-semibold text-green-700 dark:text-green-400' : ''}>{note || (value < 0 ? `−${money(-value)}` : money(value))}</dd></div>)}
+    <div className="flex justify-between gap-3 border-t pt-2 text-base font-bold"><dt>К оплате</dt><dd>{money(order.total_amount)}</dd></div>
+  </dl>;
+}
+
 export default function DamAlemOrders({ operatorMode = false }: { operatorMode?: boolean }) {
   const money = (value: number) => `${Number(value || 0).toLocaleString(locale)} ₸`;
 
@@ -185,7 +209,7 @@ export default function DamAlemOrders({ operatorMode = false }: { operatorMode?:
     lock.current = true; setBusy(true);
     try {
       await foodOperations(`/orders/${detail.order.id}/${reassignment?'reassign-courier':'assign-courier'}`, 'POST', { courier_id: courierId,...(reassignment?{expected_version:detail.order.version,reason}:{} ) });
-      setRows(current => current.map(item => item.id === detail.order.id ? { ...item, status: 'in_progress' } : item));
+      if (detail.order.status === 'ready') setRows(current => current.map(item => item.id === detail.order.id ? { ...item, status: 'in_progress' } : item));
       await Promise.all([refreshDetail(), load(), refreshQueueCounts()]);
       toast.success(lang === 'kz' ? 'Тапсырыс курьерге берілді' : 'Заказ передан курьеру');
     } catch (e) { toast.error((e as Error).message); }
@@ -244,6 +268,7 @@ export default function DamAlemOrders({ operatorMode = false }: { operatorMode?:
           {order.scheduled_for && <div className="rounded-xl bg-sky-50 p-3 text-sky-950 dark:bg-sky-950 dark:text-sky-100"><strong>Предзаказ: {scheduleLabel(order.scheduled_for)}</strong><p className="text-sm">{order.is_future_preorder?`Начало рабочего окна: ${scheduleLabel(order.preparation_due_at)}`:'В рабочей очереди'}</p>{['new','confirmed'].includes(order.status)&&<Button variant="outline" onClick={()=>{setNewSchedule(scheduleLocal(order.scheduled_for));setScheduleEdit(true);}}>Перенести предзаказ</Button>}</div>}
           <p className="font-semibold">{orderLabels[order.status] || order.status} · {order.delivery_method === 'dine_in' ? adminT('workflow.onsite') : order.delivery_method === 'pickup' ? adminT('admin.dam.final.025') : adminT('admin.dam.final.026')}</p>
           <div className="space-y-2 break-words"><p>{order.customer_name}</p><a className="text-blue-700 underline block" href={`tel:${(order.customer_phone || '').replace(/[^+\d]/g, '')}`}>{order.customer_phone}</a>{isDelivery && <p>{order.delivery_address}</p>}{order.comment && <p className="rounded-xl bg-amber-50 dark:bg-amber-950/30 p-3">{adminT('admin.dam.final.161')} {order.comment}</p>}</div>
+          <section data-testid="order-contents" aria-label="Состав заказа" className="rounded-xl border-2 border-red-200 p-4 dark:border-red-900"><h4 className="font-semibold">Состав заказа</h4><Items raw={order.order_items} /><OrderBreakdown order={order} /></section>
           {order.pricing_snapshot && (()=>{try{const p=JSON.parse(order.pricing_snapshot);return p.promo_code?<p className="rounded-xl bg-muted p-3 text-sm">Промокод: <strong>{p.promo_code}</strong> · Скидка по промокоду: {money(Number((order as OperatorOrder & {promo_discount_amount?:number}).promo_discount_amount)||0)}</p>:null;}catch{return null;}})()}
           {!closed && !['in_progress'].includes(order.status) && <Button variant="outline" disabled={busy} onClick={() => setReceiptEditor('edit')}>{adminT('workflow.edit')}</Button>}
           {isDelivery && <p className="rounded-xl border bg-muted/30 p-4 text-sm">{adminT('dam.delivery.operatorHelp')}</p>}
@@ -268,8 +293,8 @@ export default function DamAlemOrders({ operatorMode = false }: { operatorMode?:
             {historyOnly && order.status === 'done' && remaining > 0 && <p className="text-sm text-muted-foreground">Заказ завершён без подтверждения денег. {canConfirmPayment ? 'Подтвердите оплату только после проверки фактического получения денег.' : 'Онлайн-оплату подтверждает банк; при проблеме обратитесь к владельцу.'}</p>}
           </section>
           <div className="flex flex-wrap gap-2"><PrintReceiptButton order={order} />{['preparing','ready','in_progress','done'].includes(order.status) && <PrintReceiptButton order={order} kitchen />}</div>
-          {isDelivery && ['preparing','ready','in_progress'].includes(order.status) && <div className="rounded-xl border border-violet-300 bg-violet-50 p-4 space-y-3 dark:bg-violet-950/30"><label className="block font-semibold">{lang === 'kz' ? 'Курьерді таңдаңыз' : 'Выберите курьера'}<select className="mt-2 w-full rounded-lg border bg-background p-3" value={courierId} onChange={e => setCourierId(e.target.value)}><option value="">{lang === 'kz' ? 'Курьер таңдалмаған' : 'Курьер не выбран'}</option>{couriers.map(c => <option key={c.id} value={c.id} disabled={!c.assignable}>{c.name}{c.phone ? ` · ${c.phone}` : ''}{c.on_shift ? ' · на смене' : ' · не на смене'}{c.active_deliveries ? ` · ${c.active_deliveries} активных доставок` : c.active_delivery ? ' · в доставке' : ' · свободен'}{!c.online ? ' · не на линии' : ''}</option>)}</select></label><Button className="w-full min-h-12" disabled={busy || !couriers.some(c => c.id === courierId && c.assignable)} onClick={() => void assignCourier()}>{order.status==='in_progress'?'Переназначить курьера':lang === 'kz' ? 'Курьерге берілді' : 'Назначить курьера'}</Button>{!couriers.length && <p className="text-sm text-destructive">{lang === 'kz' ? 'Расталған курьерлер жоқ' : 'Нет подтверждённых курьеров. Сначала добавьте или одобрите курьера.'}</p>}</div>}
-          {isDelivery && (order.status === 'in_progress' || (['preparing','ready'].includes(order.status) && detail?.delivery?.courier_name)) && <p className="rounded-xl bg-blue-50 p-4 font-medium text-blue-900 dark:bg-blue-950/30 dark:text-blue-100">{detail?.delivery?.courier_name ? `Курьер: ${detail.delivery.courier_name}${detail.delivery.courier_phone ? ` · ${detail.delivery.courier_phone}` : ''}` : (lang === 'kz' ? 'Тапсырыс курьерде' : 'Заказ у курьера')} · {detail?.delivery?.status === 'assigned' ? 'Передан курьеру' : detail?.delivery?.status === 'picked_up' ? 'Курьер принял заказ' : detail?.delivery?.status === 'arrived' ? 'Курьер на месте' : detail?.delivery?.status === 'on_the_way' ? 'В пути' : detail?.delivery?.status === 'delivered' ? 'Доставлено' : 'Ожидаем обновления курьера'}</p>}
+          {isDelivery && ['preparing','ready','in_progress'].includes(order.status) && <div className="rounded-xl border border-violet-300 bg-violet-50 p-4 space-y-3 dark:bg-violet-950/30"><label className="block font-semibold">{lang === 'kz' ? 'Курьерді таңдаңыз' : 'Выберите курьера'}<select className="mt-2 w-full rounded-lg border bg-background p-3" value={courierId} onChange={e => setCourierId(e.target.value)}><option value="">{lang === 'kz' ? 'Курьер таңдалмаған' : 'Курьер не выбран'}</option>{couriers.map(c => <option key={c.id} value={c.id} disabled={!c.assignable}>{c.name}{c.phone ? ` · ${c.phone}` : ''}{c.on_shift ? ' · на смене' : ' · не на смене'}{c.active_deliveries ? ` · ${c.active_deliveries} активных доставок` : c.active_delivery ? ' · в доставке' : ' · свободен'}{!c.online ? ' · не на линии' : ''}</option>)}</select></label><Button className="w-full min-h-12" disabled={busy || !couriers.some(c => c.id === courierId && c.assignable)} onClick={() => void assignCourier()}>{order.status==='in_progress'?'Переназначить курьера':order.status==='preparing'?(lang === 'kz' ? 'Курьерді алдын ала тағайындау' : 'Назначить курьера заранее'):(lang === 'kz' ? 'Курьерге беру' : 'Передать курьеру')}</Button>{!couriers.length && <p className="text-sm text-destructive">{lang === 'kz' ? 'Расталған курьерлер жоқ' : 'Нет подтверждённых курьеров. Сначала добавьте или одобрите курьера.'}</p>}</div>}
+          {isDelivery && (order.status === 'in_progress' || (['preparing','ready'].includes(order.status) && detail?.delivery?.courier_name)) && <p className="rounded-xl bg-blue-50 p-4 font-medium text-blue-900 dark:bg-blue-950/30 dark:text-blue-100">{detail?.delivery?.courier_name ? `Курьер: ${detail.delivery.courier_name}${detail.delivery.courier_phone ? ` · ${detail.delivery.courier_phone}` : ''}` : (lang === 'kz' ? 'Тапсырыс курьерде' : 'Заказ у курьера')} · {detail?.delivery?.status === 'assigned' ? (order.status === 'in_progress' ? 'Передан курьеру' : 'Курьер назначен заранее — заберёт, когда заказ будет готов') : detail?.delivery?.status === 'picked_up' ? 'Курьер принял заказ' : detail?.delivery?.status === 'arrived' ? 'Курьер на месте' : detail?.delivery?.status === 'on_the_way' ? 'В пути' : detail?.delivery?.status === 'delivered' ? 'Доставлено' : 'Ожидаем обновления курьера'}</p>}
           {isDelivery && order.status === 'in_progress' && <><Button variant="outline" disabled={busy} onClick={()=>setManualDelivery(true)}>Завершить доставку вручную</Button><Button variant="outline" disabled={busy} onClick={()=>setDeliveryIssueOpen(true)}>Проблема доставки</Button></>}
           {isDelivery && !closed && detail?.delivery?.courier_payout == null && <Button variant="outline" disabled={busy} onClick={()=>setZoneDialog(true)}>Уточнить зону доставки</Button>}
           {zoneDialog && <DeliveryZoneDialog orderId={order.id} version={order.version || 0} onClose={()=>setZoneDialog(false)} onSaved={()=>{setZoneDialog(false);void refreshDetail();}}/>}
@@ -286,7 +311,6 @@ export default function DamAlemOrders({ operatorMode = false }: { operatorMode?:
                 </div>
               </div>
             : <Button disabled={busy} onClick={() => {if(window.confirm(paymentConfirmation)) void change({ payment_status: 'paid' });}}>{adminT('admin.dam.final.169')}</Button>)}
-          <Items raw={order.order_items} />
           {!closed && cancelOpen && <div className="rounded-xl bg-red-50 dark:bg-red-950/30 p-3 space-y-2"><label className="block">{adminT('admin.dam.final.171')}<Input aria-label={adminT('admin.dam.final.171')} maxLength={500} value={reason} onChange={e => setReason(e.target.value)} /></label><p className="text-sm">{adminT('admin.dam.final.172')}</p><Button disabled={busy || !reason.trim()} onClick={() => void change({ status: 'cancelled', cancellation_reason: reason.trim() })}>{adminT('admin.dam.final.173')}</Button></div>}
           {order.cancellation_reason && <p className="text-red-700">{adminT('admin.dam.final.174')} {order.cancellation_reason}</p>}
           {order.operator_note && !editing && <p className="rounded-xl bg-muted/50 p-3 break-words">{adminT('admin.dam.final.175')} {order.operator_note}</p>}

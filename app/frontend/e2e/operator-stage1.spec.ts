@@ -64,7 +64,8 @@ test('new alert, explicit acceptance, kitchen and eligible courier',async({page}
   const select=page.getByLabel('Выберите курьера');
   await expect(select.locator('option[value="offline"]')).toHaveJSProperty('disabled',true);
   await expect(select.locator('option[value="busy"]')).toHaveJSProperty('disabled',false);
-  await select.selectOption('ready');await page.getByRole('button',{name:'Назначить курьера',exact:true}).click();
+  await expect(page.getByTestId('order-contents')).toBeVisible();
+  await select.selectOption('ready');await page.getByRole('button',{name:'Передать курьеру',exact:true}).click();
   await expect(page.getByText(/Курьер: Алсу/)).toBeVisible();
   expect(state.order.payment_status).toBe('pending');
   await expect(page.getByRole('region',{name:'Оплата заказа'})).toContainText('Ожидает оплаты');
@@ -98,7 +99,7 @@ test('refresh preserves session, lock requires PIN, close is separate',async({pa
 for(const fulfillment of ['pickup','dine_in'])test(`${fulfillment} does not require a courier; closed history is read-only`,async({page})=>{
   const state=await setup(page,fulfillment,'whatsapp');state.order.status='ready';
   await page.goto('/partner/dam-alem/operator?section=orders&order=71');
-  await expect(page.getByRole('button',{name:'Назначить курьера',exact:true})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:/курьер/i})).toHaveCount(0);
   await page.getByRole('button',{name:'Выдать заказ',exact:true}).click();
   expect(state.order.status).toBe('done');expect(state.order.order_source).toBe('whatsapp');
   await expect(page.getByText(/Заказ завершён без подтверждения денег/)).toBeVisible();
