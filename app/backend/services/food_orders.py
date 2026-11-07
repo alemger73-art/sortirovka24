@@ -15,6 +15,15 @@ logger = logging.getLogger(__name__)
 
 
 # ------------------ Service Layer ------------------
+OPERATOR_DELIVERY_KEY = 'operator_runs_delivery'
+
+
+def operator_runs_delivery(settings) -> bool:
+    """The owner's switch (food_settings «operator_runs_delivery» = 1): the operator moves a delivery to «Выехал»
+    and «Доставлено» himself, without a courier app, and confirms the cash on delivery."""
+    return str((settings or {}).get(OPERATOR_DELIVERY_KEY) or '').strip().lower() in ('1', 'true', 'yes', 'on')
+
+
 class Food_ordersService:
     """Service layer for Food_orders operations"""
 
@@ -194,13 +203,16 @@ class Food_ordersService:
                     raise HTTPException(422, 'Способ оплаты зафиксирован: отмените неоплаченный заказ и оформите новый')
                 if update_data.get('payment_status') == 'paid' and not manual_confirmation_allowed(obj.payment_method):
                     raise HTTPException(403, 'Kaspi/Halyk подтверждает только платёжный провайдер')
-                if update_data.get('payment_status') == 'paid' and obj.payment_method == 'cash' and obj.delivery_method in ('delivery', 'доставка') and obj.status == 'in_progress':
+                from services.food_preorders import schedule_view, schedule_settings, validate_schedule
+                settings = await schedule_settings(self.db)
+                # «Оператор ведёт доставку сам»: no courier app, the operator marks «Выехал» and «Доставлено»
+                # and takes the cash in on delivery.
+                operator_delivery = operator_runs_delivery(settings)
+                if update_data.get('payment_status') == 'paid' and obj.payment_method == 'cash' and obj.delivery_method in ('delivery', 'доставка') and obj.status == 'in_progress' and not operator_delivery:
                     raise HTTPException(409, 'Получение денег у курьера отметьте через завершение доставки')
                 target = update_data.get('status', old_status)
                 if target == 'preparing' and target != old_status and obj.payment_method != 'cash' and paid(obj) < money(obj.total_amount):
                     raise HTTPException(409, 'Передача на кухню доступна после подтверждения онлайн-оплаты')
-                from services.food_preorders import schedule_view, schedule_settings, validate_schedule
-                settings = await schedule_settings(self.db)
                 if target == 'preparing' and old_status in ('new', 'confirmed') and schedule_view(obj, settings)['is_future_preorder'] and not early:
                     raise HTTPException(409, 'Подтвердите раннее начало приготовления предзаказа')
                 if 'scheduled_for' in update_data:
@@ -215,14 +227,14 @@ class Food_ordersService:
                 transitions = {'new': {'confirmed', 'preparing', 'cancelled'}, 'confirmed': {'preparing', 'cancelled'}, 'preparing': {'ready', 'cancelled'}, 'ready': {'in_progress', 'done', 'cancelled'}, 'in_progress': {'done', 'cancelled'}}
                 if target == 'in_progress' and obj.delivery_method in ('pickup', 'dine_in'):
                     raise HTTPException(422, "Самовывоз не передаётся в доставку")
-                if target != old_status and target == 'in_progress' and obj.delivery_method in ('delivery', 'доставка'):
+                if target != old_status and target == 'in_progress' and obj.delivery_method in ('delivery', 'доставка') and not operator_delivery:
                     raise HTTPException(409, "Выберите курьера и нажмите «Отдано курьеру»")
-                if target == 'done' and old_status == 'in_progress' and obj.delivery_method in ('delivery', 'доставка'):
+                if target == 'done' and old_status == 'in_progress' and obj.delivery_method in ('delivery', 'доставка') and not operator_delivery:
                     raise HTTPException(409, "Доставку завершает назначенный курьер")
                 if target != old_status and target not in transitions.get(old_status, set()):
                     raise HTTPException(409, "Недопустимый переход статуса")
                 if target != old_status and obj.delivery_method in ('delivery', 'доставка') and target == 'done' and old_status != 'in_progress':
-                    raise HTTPException(409, 'Сначала отметьте «Доставка уехала»')
+                    raise HTTPException(409, 'Сначала отметьте «Выехал»' if operator_delivery else 'Сначала отметьте «Доставка уехала»')
                 if target == 'cancelled' and not (update_data.get('cancellation_reason') or '').strip():
                     raise HTTPException(422, "Укажите причину отмены")
                 if update_data.get('delivery_address') is not None and obj.delivery_method != 'pickup' and not update_data['delivery_address'].strip():

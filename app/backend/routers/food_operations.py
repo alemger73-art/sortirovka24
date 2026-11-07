@@ -354,7 +354,10 @@ async def detail(order_id: int, db: AsyncSession = Depends(get_db)):
     if payment:
         payment_view['payment_id'] = payment.id
     payment_view.update(invoice_view(payment))
-    return {'order': {**serialize(obj), **payment_view, **schedule_view(obj, await schedule_settings(db))}, 'events': [serialize(e) for e in events], 'delivery': delivery_data}
+    settings = await schedule_settings(db)
+    from services.food_orders import operator_runs_delivery
+    return {'order': {**serialize(obj), **payment_view, **schedule_view(obj, settings), 'operator_runs_delivery': operator_runs_delivery(settings)},
+            'events': [serialize(e) for e in events], 'delivery': delivery_data}
 
 class OrderChange(BaseModel):
     schedule_reason: str | None = Field(None, min_length=3, max_length=500)

@@ -134,3 +134,15 @@ test('customer checkout offers pickup and reserves dine-in for staff',async({pag
   await expect(page.getByTestId('dam-checkout')).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
+
+test('operator runs the delivery himself: no courier, «Выехал», then «Доставлено» takes the cash in',async({page})=>{
+  const state=await setup(page);Object.assign(state.order,{status:'ready',operator_runs_delivery:true});
+  await page.goto('/partner/dam-alem/operator?section=orders&order=71');
+  await expect(page.getByTestId('order-contents')).toContainText('Пицца');
+  await expect(page.getByLabel('Выберите курьера')).toHaveCount(0);
+  await page.getByRole('button',{name:'Выехал',exact:true}).click();
+  await expect.poll(()=>state.order.status).toBe('in_progress');
+  await page.getByRole('button',{name:/Доставлено · получено/}).click();
+  await expect.poll(()=>state.order.status).toBe('done');
+  expect(state.order.payment_status).toBe('paid');
+});

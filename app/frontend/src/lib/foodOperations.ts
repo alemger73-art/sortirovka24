@@ -39,7 +39,7 @@ export interface OperatorOrder {
   loyalty_snapshot?: Record<string,unknown>|null; pickup_snapshot?: import('@/components/damalem/PreorderFields').PickupLocation|null;
   cash_given_amount?: number | null; change_amount?: number | null; workflow_state?: string; payment_state?: string;
   preorder_bucket?: string; scheduled_for?: string | null; is_future_preorder?: boolean; preparation_due_at?: string | null; pricing_snapshot?: string;
-  order_source?: string | null; bonus_discount_amount?: number | null; promo_discount_amount?: number | null;
+  order_source?: string | null; bonus_discount_amount?: number | null; promo_discount_amount?: number | null; operator_runs_delivery?: boolean;
   paid_amount?: number | null; receipt_revision?: number;
   settlement_state?: string; is_debt?: boolean; debt_amount?: number; refund_due?: number;
   id: number; version: number | null; status: string; customer_name: string; customer_phone: string;
