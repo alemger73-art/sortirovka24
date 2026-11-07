@@ -126,6 +126,10 @@ html.pwa-standalone body { padding-left: env(safe-area-inset-left, 0px); padding
     @apply border-border;
   }
 
+  html {
+    /* Between pages and in overscroll the canvas shows the theme colour, never white. */
+    @apply bg-background;
+  }
   body {
     @apply bg-background text-foreground;
   }

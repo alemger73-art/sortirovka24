@@ -121,16 +121,16 @@ function PageLoader() {
     );
   }
   return (
-    <div className="min-h-screen bg-[#f5f5f5]">
-      <div className="h-16 bg-white shadow-sm" />
+    <div className="min-h-screen bg-background">
+      <div className="h-16 bg-card shadow-sm" />
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="space-y-4">
-          <div className="h-8 w-48 bg-gray-200 rounded-lg animate-pulse" />
-          <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
-          <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse" />
+          <div className="h-8 w-48 bg-muted rounded-lg animate-pulse" />
+          <div className="h-4 w-full bg-muted rounded animate-pulse" />
+          <div className="h-4 w-3/4 bg-muted rounded animate-pulse" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-48 bg-gray-200 rounded-2xl animate-pulse" />
+              <div key={i} className="h-48 bg-muted rounded-2xl animate-pulse" />
             ))}
           </div>
         </div>
@@ -171,7 +171,8 @@ function App() {
     <ThemeProvider>
       <LanguageProvider>
         {showWelcome && <AppWelcomeSplash onHidden={dismissWelcome} />}
-        <BrowserRouter>
+        {/* startTransition: while the next page's code loads, the current page stays on screen instead of a blank skeleton. */}
+        <BrowserRouter future={{ v7_startTransition: true }}>
           <SeoManager />
           <PageViewTracker />
           <Toaster position="top-center" richColors />

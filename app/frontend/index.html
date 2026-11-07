@@ -71,6 +71,11 @@
         }
       }
     </script>
+    <style>
+      /* Paint the page in the theme colour before the stylesheet arrives: no white flash in dark mode. */
+      html.dark { background-color: hsl(217 39% 9%); color-scheme: dark; }
+      html.light { background-color: #ffffff; color-scheme: light; }
+    </style>
     <script>
       (function () {
         try {
