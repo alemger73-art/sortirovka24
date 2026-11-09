@@ -201,7 +201,7 @@ ALLOWED_UPLOAD_EXTENSIONS = {
 # Max object key length for public uploads
 MAX_PUBLIC_OBJECT_KEY_LENGTH = 256
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
-MAX_VIDEO_UPLOAD_BYTES = 100 * 1024 * 1024  # 100 MB: a short phone video
+MAX_VIDEO_UPLOAD_BYTES = 90 * 1024 * 1024  # 90 MB: a short phone video (Cloudflare caps requests at 100 MB)
 
 
 @router.post("/public/upload-url", response_model=FileUpDownResponse)

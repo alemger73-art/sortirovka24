@@ -300,7 +300,7 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
 
             <div>
               <p className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-gray-800 dark:text-slate-200"><Video className="h-4 w-4" />{tx('Видео (до 60 секунд)', 'Бейне (60 секундқа дейін)')} <span className="font-normal text-gray-400">· {tx('необязательно', 'міндетті емес')}</span></p>
-              <VideoUpload value={draft.video} onChange={(v: string) => set({ video: v })} folder="announcements/videos" maxMb={100} maxSeconds={60} camera={false} />
+              <VideoUpload value={draft.video} onChange={(v: string) => set({ video: v })} folder="announcements/videos" maxMb={90} maxSeconds={60} camera={false} />
             </div>
 
             {info.price && (
