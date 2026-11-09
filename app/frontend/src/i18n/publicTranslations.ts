@@ -1454,8 +1454,12 @@ export const publicTranslations: Translations = {
     "kz": "Тек MP4, MOV, WebM қолдау көрсетіледі"
   },
   "public.VideoUpload.text364": {
-    "ru": "Максимальный размер видео — 50 МБ",
-    "kz": "Бейненің ең үлкен көлемі — 50 МБ"
+    "ru": "Максимальный размер видео — {v0} МБ",
+    "kz": "Бейненің ең үлкен көлемі — {v0} МБ"
+  },
+  "public.VideoUpload.tooLong": {
+    "ru": "Видео длиннее {v0} секунд — обрежьте его и загрузите снова",
+    "kz": "Бейне {v0} секундтан ұзақ — қысқартып, қайта жүктеңіз"
   },
   "public.VideoUpload.text365": {
     "ru": "Видео загружено",
@@ -1482,8 +1486,8 @@ export const publicTranslations: Translations = {
     "kz": "Басыңыз немесе бейнені сүйреңіз"
   },
   "public.VideoUpload.text371": {
-    "ru": "MP4, MOV, WebM до 50 МБ",
-    "kz": "MP4, MOV, WebM, 50 МБ дейін"
+    "ru": "MP4, MOV, WebM до {v0} МБ",
+    "kz": "MP4, MOV, WebM, {v0} МБ дейін"
   },
   "public.extra.0": {
     "ru": "Слишком много запросов SMS. Подождите 15 минут и попробуйте снова.",

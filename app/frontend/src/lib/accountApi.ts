@@ -199,6 +199,8 @@ export const accountApi = {
     api<{ success: boolean; announcement: any }>(`/api/v1/account/me/announcements/${id}/unpublish`, {
       method: "POST",
     }),
+  markMyAnnouncementSold: (id: number) =>
+    api<{ success: boolean; announcement: any }>(`/api/v1/account/me/announcements/${id}/sold`, { method: "POST" }),
   deleteMyAnnouncement: (id: number) =>
     api<{ success: boolean }>(`/api/v1/account/me/announcements/${id}`, { method: "DELETE" }),
   extendMyAnnouncement: (id: number) =>

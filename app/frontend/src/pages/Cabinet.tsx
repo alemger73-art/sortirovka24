@@ -533,6 +533,22 @@ export default function Cabinet() {
     } finally { contentMutation.current = false; setContentBusy(false); }
   };
 
+  const markAnnouncementSold = async (id: number) => {
+    const kz = lang === "kz";
+    if (!window.confirm(kz ? "Сатылды деп белгілеу керек пе? Хабарландыру сайттан алынады." : "Отметить как проданное? Объявление уйдёт с сайта.")) return;
+    if (contentMutation.current) return;
+    contentMutation.current = true;
+    setContentBusy(true);
+    setError("");
+    try {
+      await accountApi.markMyAnnouncementSold(id);
+      try { await refreshCabinet(); } catch { setError(t("cabinet.refreshAfterSave")); }
+      toast.success(kz ? "Сатылды деп белгіленді" : "Отмечено как продано");
+    } catch (e: unknown) {
+      setError(humanizeApiError(e));
+    } finally { contentMutation.current = false; setContentBusy(false); }
+  };
+
   const deleteAnnouncement = async (id: number) => {
     if (!window.confirm(t("cabinet.announcements.deleteConfirm"))) return;
     if (contentMutation.current) return;
@@ -1309,7 +1325,7 @@ export default function Cabinet() {
                     </Link>
                   </div>
                   <MyAdsList items={rows.announcements || []} busy={contentBusy} kz={lang === "kz"}
-                    onBoost={boostAnnouncement} boostPrice={boostPrice.paid ? boostPrice.price : 0} onUnpublish={unpublishAnnouncement} onExtend={extendAnnouncement} onDelete={deleteAnnouncement} />
+                    onBoost={boostAnnouncement} boostPrice={boostPrice.paid ? boostPrice.price : 0} onUnpublish={unpublishAnnouncement} onSold={markAnnouncementSold} onExtend={extendAnnouncement} onDelete={deleteAnnouncement} />
                 </DarkCard>
               )}
 

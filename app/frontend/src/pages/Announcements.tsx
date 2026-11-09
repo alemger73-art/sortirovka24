@@ -8,13 +8,14 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner';
 import {
   ArrowLeft, ArrowRight, BadgeCheck, BarChart3, Briefcase, Camera, Check, ChevronLeft, ChevronRight, Clock, Eye, EyeOff, Flag, Gift, Heart,
-  KeyRound, LayoutGrid, Lightbulb, Loader2, MapPin, Megaphone, MessageCircle, Pencil, Phone, Plus, Search, Share2, ShieldCheck,
-  ShoppingCart, Tag, Trash2, UserRound, Wrench, X, type LucideIcon,
+  KeyRound, LayoutGrid, Lightbulb, Loader2, MapPin, Megaphone, MessageCircle, Pencil, Phone, Play, Plus, Search, Share2, ShieldCheck,
+  ShoppingCart, Tag, Trash2, UserRound, Video, Wrench, X, type LucideIcon,
 } from 'lucide-react';
 import '@/styles/ads.css';
 import Layout from '@/components/Layout';
 import StorageImg from '@/components/StorageImg';
 import MultiImageUpload from '@/components/MultiImageUpload';
+import VideoUpload from '@/components/VideoUpload';
 import SafetyAlert from '@/components/SafetyAlert';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { client, withRetry, timeAgo, formatDate } from '@/lib/api';
@@ -41,9 +42,9 @@ function useTx() {
 const DRAFT_KEY = 's24_ad_draft_v1';
 type Draft = {
   kind: AdKind | ''; title: string; description: string; price: string; extra: string; address: string;
-  photos: string; name: string; phone: string; whatsappSame: boolean; whatsapp: string;
+  photos: string; video: string; name: string; phone: string; whatsappSame: boolean; whatsapp: string;
 };
-const EMPTY: Draft = { kind: '', title: '', description: '', price: '', extra: '', address: '', photos: '', name: '', phone: '', whatsappSame: true, whatsapp: '' };
+const EMPTY: Draft = { kind: '', title: '', description: '', price: '', extra: '', address: '', photos: '', video: '', name: '', phone: '', whatsappSame: true, whatsapp: '' };
 
 function loadDraft(): Draft {
   try { return { ...EMPTY, ...(JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null') || {}) }; } catch { return EMPTY; }
@@ -74,7 +75,7 @@ function draftFromAd(a: any): Draft {
   return {
     kind, title: String(a.title || ''), description, extra,
     price: kind === 'free' ? '' : String(a.price || ''), address: String(a.address || ''),
-    photos: String(a.gallery_images || a.image_url || ''), name: String(a.author_name || ''), phone,
+    photos: String(a.gallery_images || a.image_url || ''), video: String(a.video_key || ''), name: String(a.author_name || ''), phone,
     whatsappSame: same, whatsapp: same ? '' : wa,
   };
 }
@@ -166,6 +167,7 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
     return {
       ann_type: draft.kind, title: draft.title.trim(), description: desc, price: info?.price ? draft.price.trim() : (draft.kind === 'free' ? 'Бесплатно' : ''),
       address: draft.address.trim(), phone, whatsapp, author_name: draft.name.trim(), gallery_images: photos.join(','), image_url: photos[0] || null,
+      video_key: draft.video,
     };
   }
 
@@ -294,6 +296,11 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
               <p className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-gray-800 dark:text-slate-200"><Camera className="h-4 w-4" />{tx('Фото', 'Фото')} <span className="font-normal text-gray-400">· {tx('до 5 шт.', '5 данаға дейін')}</span></p>
               <p className="mb-2 text-xs text-gray-500 dark:text-slate-400">{bi(info.photoHint)}</p>
               <MultiImageUpload value={draft.photos} onChange={(v: string) => set({ photos: v })} folder="announcements" maxImages={5} />
+            </div>
+
+            <div>
+              <p className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-gray-800 dark:text-slate-200"><Video className="h-4 w-4" />{tx('Видео (до 60 секунд)', 'Бейне (60 секундқа дейін)')} <span className="font-normal text-gray-400">· {tx('необязательно', 'міндетті емес')}</span></p>
+              <VideoUpload value={draft.video} onChange={(v: string) => set({ video: v })} folder="announcements/videos" maxMb={100} maxSeconds={60} camera={false} />
             </div>
 
             {info.price && (
@@ -477,6 +484,7 @@ function AdCard({ ad, preview, favorite, onFavorite }: { ad: any; preview?: bool
         {cover ? <StorageImg objectKey={cover} alt={ad.title} className="h-full w-full object-cover" />
           : <div className="ads-noimg" aria-hidden><Icon className="h-12 w-12" strokeWidth={1.5} /></div>}
         {k && <span className="ads-tag absolute left-2.5 top-2.5"><Icon className="h-3.5 w-3.5" />{bi(k.title)}</span>}
+        {(ad.video_url || ad.video_key) && <span data-testid="ad-video-badge" className="ads-tag absolute bottom-2.5 left-2.5"><Play className="h-3.5 w-3.5 fill-current" />{tx('Видео', 'Бейне')}</span>}
         {onFavorite && (
           <button type="button" onClick={onFavorite} aria-pressed={favorite} aria-label={tx('В избранное', 'Таңдаулыға')} className="absolute right-2.5 top-2.5 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 shadow">
             <Heart className={`h-4 w-4 ${favorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
@@ -671,6 +679,10 @@ export function AdDetail() {
   const k = ad ? kindOf(ad) : undefined;
   const KindIcon = kindIcon(ad?.ann_type);
   const photos: string[] = ad ? Array.from(new Set([ad.image_url, ...String(ad.gallery_images || '').split(',')].map((s) => String(s || '').trim()).filter(Boolean))) : [];
+  // The video is the first slide; `photo` counts slides, photoAt is the photo shown (-1 — the video).
+  const video: string | null = ad?.video_url || null;
+  const slides = photos.length + (video ? 1 : 0);
+  const photoAt = photo - (video ? 1 : 0);
   const description = ad ? String(ad.description || ad.title || '').replace(/\s+/g, ' ').trim().slice(0, 160) : '';
 
   usePageSeo({
@@ -731,6 +743,12 @@ export function AdDetail() {
     try { await accountApi.unpublishMyAnnouncement(Number(ad.id)); invalidateAllCaches(); toast.success(tx('Снято с сайта', 'Сайттан алынды')); navigate('/cabinet?tab=announcements'); }
     catch { toast.error(tx('Не получилось. Попробуйте ещё раз.', 'Болмады. Қайталап көріңіз.')); } finally { setBusy(false); }
   }
+  async function markSold() {
+    if (!window.confirm(tx('Отметить как проданное? Объявление уйдёт с сайта.', 'Сатылды деп белгілеу керек пе? Хабарландыру сайттан алынады.'))) return;
+    setBusy(true);
+    try { await accountApi.markMyAnnouncementSold(Number(ad.id)); invalidateAllCaches(); toast.success(tx('Отмечено как продано', 'Сатылды деп белгіленді')); navigate('/cabinet?tab=announcements'); }
+    catch { toast.error(tx('Не получилось. Попробуйте ещё раз.', 'Болмады. Қайталап көріңіз.')); } finally { setBusy(false); }
+  }
   async function remove() {
     if (!window.confirm(tx('Удалить объявление навсегда?', 'Хабарландыруды біржола жою керек пе?'))) return;
     setBusy(true);
@@ -743,7 +761,7 @@ export function AdDetail() {
   if (error) return shell(<div role="alert" className="ads-panel mx-auto max-w-lg p-10 text-center"><p>{tx('Не удалось загрузить объявление.', 'Хабарландыру жүктелмеді.')}</p><button type="button" className="ads-btn ads-btn-primary mt-4" onClick={() => setRetry((v) => v + 1)}>{tx('Повторить', 'Қайталау')}</button></div>);
   if (!ad || (!isPublic && !isOwner)) return shell(<div className="ads-panel mx-auto max-w-lg px-6 py-12 text-center"><span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--ads-accent-soft)] text-[var(--ads-accent)]"><Search className="h-7 w-7" /></span><p className="mt-4 font-semibold">{tx('Объявление снято или ещё на проверке', 'Хабарландыру алынды немесе тексерілуде')}</p><Link to="/announcements" className="mt-4 inline-block font-semibold text-[var(--ads-accent)]">{tx('Все объявления', 'Барлық хабарландырулар')}</Link></div>);
 
-  const statusText: Record<string, Bi> = { pending: { ru: 'на проверке — обычно до часа', kz: 'тексерілуде — әдетте бір сағатқа дейін' }, rejected: { ru: 'не прошло проверку — исправьте и сохраните', kz: 'тексеруден өтпеді — түзетіп, сақтаңыз' } };
+  const statusText: Record<string, Bi> = { pending: { ru: 'на проверке — обычно до часа', kz: 'тексерілуде — әдетте бір сағатқа дейін' }, rejected: { ru: 'не прошло проверку — исправьте и сохраните', kz: 'тексеруден өтпеді — түзетіп, сақтаңыз' }, sold: { ru: 'отмечено как проданное и снято с сайта', kz: 'сатылды деп белгіленіп, сайттан алынды' } };
   const contactBar = !isOwner && isPublic && phoneDigits.length >= 11;
   const callProps = { href: `tel:+${phoneDigits}`, onClick: () => { track('ad_contact', { id: ad.id, way: 'call', kind: ad.ann_type }); adEvent(ad.id, 'phone', true); } };
   const waProps = { href: `https://wa.me/${waDigits}?text=${waText}`, target: '_blank', rel: 'noopener noreferrer', onClick: () => { track('ad_contact', { id: ad.id, way: 'whatsapp', kind: ad.ann_type }); adEvent(ad.id, 'whatsapp', true); } };
@@ -769,21 +787,23 @@ export function AdDetail() {
             <div className="min-w-0 space-y-5">
               <div className="ads-panel overflow-hidden">
                 <div className="relative aspect-[4/3] bg-[var(--ads-soft)] lg:aspect-auto lg:h-[520px]">
-                  {photos.length ? <StorageImg objectKey={photos[photo]} alt={ad.title} className="h-full w-full object-contain" />
+                  {video && photoAt < 0 ? <video key={video} src={video} poster={ad.video_poster_url || undefined} controls playsInline preload="none" className="h-full w-full bg-black object-contain" />
+                    : photos.length ? <StorageImg objectKey={photos[photoAt]} alt={ad.title} className="h-full w-full object-contain" />
                     : <div className="ads-noimg" aria-hidden><KindIcon className="h-20 w-20" strokeWidth={1.25} /></div>}
-                  {photos.length > 1 && <>
-                    <button type="button" aria-label={tx('Предыдущее фото', 'Алдыңғы фото')} onClick={() => setPhoto((p) => (p - 1 + photos.length) % photos.length)} className={`absolute left-3 top-1/2 -translate-y-1/2 ${iconBtn}`}><ArrowLeft className="h-5 w-5" /></button>
-                    <button type="button" aria-label={tx('Следующее фото', 'Келесі фото')} onClick={() => setPhoto((p) => (p + 1) % photos.length)} className={`absolute right-3 top-1/2 -translate-y-1/2 ${iconBtn}`}><ArrowRight className="h-5 w-5" /></button>
-                    <span className="absolute bottom-3 right-3 rounded-full bg-black/60 px-2.5 py-0.5 text-xs text-white">{photo + 1}/{photos.length}</span>
+                  {slides > 1 && <>
+                    <button type="button" aria-label={tx('Предыдущее фото', 'Алдыңғы фото')} onClick={() => setPhoto((p) => (p - 1 + slides) % slides)} className={`absolute left-3 top-1/2 -translate-y-1/2 ${iconBtn}`}><ArrowLeft className="h-5 w-5" /></button>
+                    <button type="button" aria-label={tx('Следующее фото', 'Келесі фото')} onClick={() => setPhoto((p) => (p + 1) % slides)} className={`absolute right-3 top-1/2 -translate-y-1/2 ${iconBtn}`}><ArrowRight className="h-5 w-5" /></button>
+                    {photoAt >= 0 && <span className="absolute bottom-3 right-3 rounded-full bg-black/60 px-2.5 py-0.5 text-xs text-white">{photo + 1}/{slides}</span>}
                   </>}
                   <div className="absolute right-3 top-3 flex gap-2 lg:hidden">
                     <button type="button" onClick={() => void share()} aria-label={tx('Поделиться', 'Бөлісу')} className={iconBtn}><Share2 className="h-5 w-5" /></button>
                     <button type="button" onClick={() => { const next = toggleAnnFavorite(Number(ad.id)); setFav(next.includes(Number(ad.id))); }} aria-pressed={fav} aria-label={tx('В избранное', 'Таңдаулыға')} className={iconBtn}><Heart className={`h-5 w-5 ${fav ? 'fill-red-500 text-red-500' : ''}`} /></button>
                   </div>
                 </div>
-                {photos.length > 1 && (
+                {slides > 1 && (
                   <div className="no-scrollbar flex gap-2 overflow-x-auto p-3">
-                    {photos.map((p, i) => <button key={p} type="button" onClick={() => setPhoto(i)} aria-label={`${tx('Фото', 'Фото')} ${i + 1}`} className={`h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 ${i === photo ? 'border-[#3864ed]' : 'border-transparent opacity-80 hover:opacity-100'}`}><StorageImg objectKey={p} alt="" className="h-full w-full object-cover" /></button>)}
+                    {video && <button type="button" onClick={() => setPhoto(0)} aria-label={tx('Видео', 'Бейне')} className={`relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 bg-black ${photoAt < 0 ? 'border-[#3864ed]' : 'border-transparent opacity-80 hover:opacity-100'}`}>{ad.video_poster_url && <img src={ad.video_poster_url} alt="" className="absolute inset-0 h-full w-full object-cover" />}<Play className="relative h-6 w-6 fill-white text-white drop-shadow" /></button>}
+                    {photos.map((p, i) => <button key={p} type="button" onClick={() => setPhoto(i + (video ? 1 : 0))} aria-label={`${tx('Фото', 'Фото')} ${i + 1}`} className={`h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 ${i === photoAt ? 'border-[#3864ed]' : 'border-transparent opacity-80 hover:opacity-100'}`}><StorageImg objectKey={p} alt="" className="h-full w-full object-cover" /></button>)}
                   </div>
                 )}
               </div>
@@ -826,6 +846,7 @@ export function AdDetail() {
                   <OwnerContacts adId={Number(ad.id)} phone={phoneDigits} whatsapp={waDigits} />
                   <OfficialPromo adId={Number(ad.id)} compact />
                   <div className="flex flex-wrap gap-2 border-t border-[var(--ads-line)] pt-3">
+                    {isPublic && <button type="button" disabled={busy} onClick={() => void markSold()} className="ads-btn min-h-[42px] bg-[#16a34a] px-4 text-sm text-white hover:bg-[#15803d]"><Check className="h-4 w-4" />{tx('Продано', 'Сатылды')}</button>}
                     <Link to={`/announcements/${ad.id}/edit`} className="ads-btn ads-btn-primary min-h-[42px] px-4 text-sm"><Pencil className="h-4 w-4" />{tx('Изменить', 'Өзгерту')}</Link>
                     {isPublic && <button type="button" disabled={busy} onClick={() => void unpublish()} className="ads-btn min-h-[42px] border border-[var(--ads-line)] px-4 text-sm"><EyeOff className="h-4 w-4" />{tx('Снять с сайта', 'Сайттан алу')}</button>}
                     <button type="button" disabled={busy} onClick={() => void remove()} className="ads-btn min-h-[42px] border border-red-200 px-4 text-sm text-red-600 dark:border-red-900"><Trash2 className="h-4 w-4" />{tx('Удалить', 'Жою')}</button>

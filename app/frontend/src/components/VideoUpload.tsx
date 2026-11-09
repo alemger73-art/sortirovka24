@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { X, Loader2, Video, CloudUpload, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ensureBucket, uploadFile } from '@/lib/storage';
+import { formatPublicText } from '@/i18n/publicLocale';
 
-const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
 const ACCEPTED_FORMATS = '.mp4,.mov,.webm';
 const ACCEPTED_MIME = ['video/mp4', 'video/quicktime', 'video/webm'];
 
@@ -14,9 +14,28 @@ interface VideoUploadProps {
   onChange: (objectKey: string) => void;
   folder?: string;
   className?: string;
+  /** Size limit in MB (the upload proxy takes videos up to 100 MB). */
+  maxMb?: number;
+  /** Longest allowed video; read in the browser from the file's metadata. */
+  maxSeconds?: number;
+  /** Open the camera right away on a phone; off — the person can also pick a saved video. */
+  camera?: boolean;
 }
 
-export default function VideoUpload({ value, onChange, folder = 'general', className = '' }: VideoUploadProps) {
+/** Duration in seconds from a hidden <video>; 0 when the browser cannot read this file's metadata. */
+function videoDuration(file: File): Promise<number> {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    const url = URL.createObjectURL(file);
+    const done = (seconds: number) => { URL.revokeObjectURL(url); resolve(Number.isFinite(seconds) ? seconds : 0); };
+    video.preload = 'metadata';
+    video.onloadedmetadata = () => done(video.duration);
+    video.onerror = () => done(0);
+    video.src = url;
+  });
+}
+
+export default function VideoUpload({ value, onChange, folder = 'general', className = '', maxMb = 50, maxSeconds, camera = true }: VideoUploadProps) {
   const { t: publicT } = useLanguage();
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -30,8 +49,12 @@ export default function VideoUpload({ value, onChange, folder = 'general', class
       toast.error(publicT("public.VideoUpload.text363"));
       return;
     }
-    if (file.size > MAX_VIDEO_SIZE) {
-      toast.error(publicT("public.VideoUpload.text364"));
+    if (file.size > maxMb * 1024 * 1024) {
+      toast.error(formatPublicText(publicT, "public.VideoUpload.text364", { v0: maxMb }));
+      return;
+    }
+    if (maxSeconds && (await videoDuration(file)) > maxSeconds + 1) {
+      toast.error(formatPublicText(publicT, "public.VideoUpload.tooLong", { v0: maxSeconds }));
       return;
     }
 
@@ -61,7 +84,7 @@ export default function VideoUpload({ value, onChange, folder = 'general', class
     } finally {
       setUploading(false);
     }
-  }, [folder, onChange, publicT]);
+  }, [folder, onChange, publicT, maxMb, maxSeconds]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -87,7 +110,7 @@ export default function VideoUpload({ value, onChange, folder = 'general', class
         ref={fileInputRef}
         type="file"
         accept={ACCEPTED_FORMATS}
-        capture="environment"
+        capture={camera ? 'environment' : undefined}
         onChange={handleFileChange}
         className="hidden"
       />
@@ -135,7 +158,7 @@ export default function VideoUpload({ value, onChange, folder = 'general', class
             <div className="space-y-1">
               <CloudUpload className="h-6 w-6 text-gray-400 mx-auto" />
               <p className="text-sm text-gray-500">{publicT("public.VideoUpload.text370")}</p>
-              <p className="text-xs text-gray-400">{publicT("public.VideoUpload.text371")}</p>
+              <p className="text-xs text-gray-400">{formatPublicText(publicT, "public.VideoUpload.text371", { v0: maxMb })}</p>
             </div>
           )}
         </div>

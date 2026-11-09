@@ -201,6 +201,7 @@ ALLOWED_UPLOAD_EXTENSIONS = {
 # Max object key length for public uploads
 MAX_PUBLIC_OBJECT_KEY_LENGTH = 256
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
+MAX_VIDEO_UPLOAD_BYTES = 100 * 1024 * 1024  # 100 MB: a short phone video
 
 
 @router.post("/public/upload-url", response_model=FileUpDownResponse)
@@ -250,23 +251,27 @@ async def public_upload_file(request: FileUpDownRequest, http_request: Request):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка хранилища. Попробуйте ещё раз.")
 
 
+def _upload_limit(token: str) -> int:
+    try:
+        return MAX_VIDEO_UPLOAD_BYTES if StorageService().is_video_token(token) else MAX_UPLOAD_BYTES
+    except ValueError:
+        return MAX_UPLOAD_BYTES  # a bad token is refused below, after the bounded read
+
+
 @router.put("/upload-proxy/{token}", response_model=UploadImageResponse)
 async def upload_via_proxy(token: str, request: Request):
     """Receive raw file bytes and upload to Cloudinary using a signed token."""
+    limit = _upload_limit(token)
+    too_large = f"File too large (max {limit // (1024 * 1024)} MB)"
     # Bound allocation even when Content-Length is absent or forged.
     chunks = bytearray()
     async for chunk in request.stream():
-        if len(chunks) + len(chunk) > MAX_UPLOAD_BYTES:
-            raise HTTPException(413, "File too large (max 20 MB)")
+        if len(chunks) + len(chunk) > limit:
+            raise HTTPException(413, too_large)
         chunks.extend(chunk)
     body = bytes(chunks)
     if not body:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty upload body")
-    if len(body) > MAX_UPLOAD_BYTES:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="File too large (max 20 MB)",
-        )
 
     content_type = request.headers.get("content-type", "application/octet-stream")
     try:

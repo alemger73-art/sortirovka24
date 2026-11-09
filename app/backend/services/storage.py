@@ -173,6 +173,20 @@ def _optimize_image_pair(file_bytes: bytes) -> Tuple[bytes, bytes]:
     return main_bytes, thumb_bytes
 
 
+def video_delivery_urls(object_key: str) -> Optional[tuple[str, str]]:
+    """Playable URL (format and quality picked by Cloudinary) and a poster frame of an uploaded video."""
+    cloud_name = _resolve_cloudinary_config()[0]
+    public_id, _ = _split_public_id_and_format(object_key)
+    if not cloud_name or not public_id:
+        return None
+    options = {"resource_type": "video", "type": "upload", "secure": True, "cloud_name": cloud_name}
+    video, _ = cloudinary.utils.cloudinary_url(
+        public_id, format="mp4", transformation=[{"fetch_format": "auto", "quality": "auto"}], **options)
+    poster, _ = cloudinary.utils.cloudinary_url(
+        public_id, format="jpg", transformation=[{"start_offset": 1, "quality": "auto"}], **options)
+    return video, poster
+
+
 def _resolve_cloudinary_config() -> tuple[str, str, str]:
     """Resolve Cloudinary config from settings + env aliases."""
     # Prefer standard single-variable config when present to avoid key/secret mismatch.
@@ -262,6 +276,10 @@ class StorageService:
         if int(payload.get("exp", 0)) < int(time.time()):
             raise ValueError("Upload token has expired")
         return payload
+
+    def is_video_token(self, token: str) -> bool:
+        """Video uploads may be larger than photos; the token says which one is coming."""
+        return _extract_extension(self._parse_upload_token(token)["object_key"]) in VIDEO_EXTENSIONS
 
     def _build_proxy_upload_url(self, token: str) -> str:
         return f"/api/v1/storage/upload-proxy/{token}"
@@ -446,6 +464,8 @@ class StorageService:
             object_key=object_key,
             payload_bytes=file_bytes,
             content_type=content_type,
+            # A phone may send a video without a proper Content-Type; it must still be stored as a video.
+            force_resource_type="video" if _extract_extension(object_key) in VIDEO_EXTENSIONS else None,
         )
         return {
             "image_url": image_url,

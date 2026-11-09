@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdStatsPanel from '@/components/cabinet/AdStatsPanel';
-import { BadgeCheck, BarChart3, ChevronDown, Eye, Heart, Megaphone, MoreHorizontal, Pencil, Phone, RefreshCw, Rocket, Trash2, EyeOff } from 'lucide-react';
+import { BadgeCheck, BarChart3, Check, ChevronDown, Eye, Heart, Megaphone, MoreHorizontal, Pencil, Phone, RefreshCw, Rocket, Trash2, EyeOff } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
 import { formatAdPrice, kindOf } from '@/lib/adKinds';
 import { isAnnouncementExpired, isAnnouncementPromoted } from '@/lib/announcements';
@@ -21,6 +21,7 @@ interface Props {
   /** Price of «Поднять» in tenge; 0 while lifting is free. */
   boostPrice?: number;
   onUnpublish: (id: number) => void;
+  onSold: (id: number) => void;
   onExtend: (id: number) => void;
   onDelete: (id: number) => void;
 }
@@ -35,16 +36,17 @@ function shortDate(raw?: string | null) {
   try { return new Date(raw).toLocaleDateString(getPublicLocale(), { day: 'numeric', month: 'long' }); } catch { return ''; }
 }
 
-export function adState(a: Ad): { key: 'live' | 'pending' | 'rejected' | 'hidden' | 'expired'; ru: string; kz: string; cls: string } {
+export function adState(a: Ad): { key: 'live' | 'pending' | 'rejected' | 'hidden' | 'sold' | 'expired'; ru: string; kz: string; cls: string } {
   const published = ['approved', 'published'].includes(a.status);
   if (published && isAnnouncementExpired(a)) return { key: 'expired', ru: 'Срок истёк', kz: 'Мерзімі өтті', cls: 'bg-gray-100 text-gray-600 dark:bg-slate-700/60 dark:text-slate-300' };
   if (published && a.active !== false) return { key: 'live', ru: 'Опубликовано', kz: 'Жарияланды', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' };
   if (a.status === 'pending') return { key: 'pending', ru: 'На проверке', kz: 'Тексерілуде', cls: 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' };
+  if (a.status === 'sold') return { key: 'sold', ru: 'Продано', kz: 'Сатылды', cls: 'bg-[#e3ece6] text-[#3f6150] dark:bg-[#3f6150]/25 dark:text-[#b5cbbd]' };
   if (a.status === 'rejected') return { key: 'rejected', ru: 'Отклонено', kz: 'Қабылданбады', cls: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300' };
   return { key: 'hidden', ru: 'Снято с публикации', kz: 'Жарияланымнан алынды', cls: 'bg-gray-100 text-gray-600 dark:bg-slate-700/60 dark:text-slate-300' };
 }
 
-export default function MyAdsList({ items, busy, kz, onBoost, boostPrice = 0, onUnpublish, onExtend, onDelete }: Props) {
+export default function MyAdsList({ items, busy, kz, onBoost, boostPrice = 0, onUnpublish, onSold, onExtend, onDelete }: Props) {
   const tx = (ru: string, k: string) => (kz ? k : ru);
   const [open, setOpen] = useState<number | null>(null);
   if (!items.length) {
@@ -101,8 +103,8 @@ export default function MyAdsList({ items, busy, kz, onBoost, boostPrice = 0, on
             {open === id ? <div className="mt-3"><AdStatsPanel id={id} kz={kz} hasPhoto={Boolean(a.image_url)} live={st.key === 'live'} /></div> : null}
             <div className="mt-3 flex items-center gap-2 border-t border-gray-100 pt-3 dark:border-[#26324a]">
               <Link to={`/announcements/${a.id}/edit`} className={`${btn} flex-1 bg-gray-100 text-gray-800 dark:bg-[#1a2336] dark:text-slate-100`}><Pencil className="h-4 w-4" />{tx('Изменить', 'Өзгерту')}</Link>
-              {st.key === 'expired' || st.key === 'hidden' ? (
-                <button type="button" disabled={busy} onClick={() => onExtend(id)} className={`${btn} flex-1 bg-emerald-600 text-white`}><RefreshCw className="h-4 w-4" />{st.key === 'hidden' ? tx('Разместить', 'Жариялау') : tx('Продлить', 'Ұзарту')}</button>
+              {st.key === 'expired' || st.key === 'hidden' || st.key === 'sold' ? (
+                <button type="button" disabled={busy} onClick={() => onExtend(id)} className={`${btn} flex-1 bg-emerald-600 text-white`}><RefreshCw className="h-4 w-4" />{st.key === 'expired' ? tx('Продлить', 'Ұзарту') : tx('Разместить', 'Жариялау')}</button>
               ) : st.key === 'live' ? (
                 <button type="button" disabled={busy || promoted} onClick={() => onBoost(id)} className={`${btn} flex-1 bg-amber-500 text-white`}><Rocket className="h-4 w-4" />{promoted ? tx('Уже поднято', 'Көтерілген') : tx('Поднять', 'Көтеру')}{!promoted && boostPrice > 0 ? ` · ${boostPrice} ₸` : ''}</button>
               ) : null}
@@ -110,6 +112,7 @@ export default function MyAdsList({ items, busy, kz, onBoost, boostPrice = 0, on
                 <summary aria-label={tx('Ещё действия', 'Басқа әрекеттер')} className={`${btn} cursor-pointer list-none bg-gray-100 px-2.5 text-gray-700 dark:bg-[#1a2336] dark:text-slate-200 [&::-webkit-details-marker]:hidden`}><MoreHorizontal className="h-4 w-4" /></summary>
                 <div className="absolute bottom-full right-0 z-20 mb-2 w-52 overflow-hidden rounded-2xl border border-gray-100 bg-white py-1 shadow-xl dark:border-[#26324a] dark:bg-[#111827]">
                   {st.key === 'live' ? <button type="button" disabled={busy} onClick={(e) => { closeMenu(e); onExtend(id); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-[#1a2336]"><RefreshCw className="h-4 w-4 text-emerald-600" />{tx('Продлить срок', 'Мерзімін ұзарту')}</button> : null}
+                  {st.key === 'live' ? <button type="button" disabled={busy} onClick={(e) => { closeMenu(e); onSold(id); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-[#1a2336]"><Check className="h-4 w-4 text-emerald-600" />{tx('Продано', 'Сатылды')}</button> : null}
                   {st.key === 'live' ? <button type="button" disabled={busy} onClick={(e) => { closeMenu(e); onUnpublish(id); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-[#1a2336]"><EyeOff className="h-4 w-4 text-gray-500" />{tx('Снять с публикации', 'Жарияланымнан алу')}</button> : null}
                   <Link to={`/announcements/official?ad=${id}`} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-[#1a2336]"><BadgeCheck className="h-4 w-4 text-sky-600" />{tx('В Sortirovka Official', 'Sortirovka Official-ға')}</Link>
                   <button type="button" disabled={busy} onClick={(e) => { closeMenu(e); onDelete(id); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10"><Trash2 className="h-4 w-4" />{tx('Удалить', 'Жою')}</button>

@@ -76,7 +76,7 @@ from services.google_oauth import (
     fetch_google_userinfo,
     google_oauth_enabled,
 )
-from services import paid_boost, telegram_login
+from services import ad_videos, paid_boost, telegram_login
 from services.sms import SMSDeliveryError, available_channels, send_verification_code, should_expose_code_on_screen, telegram_bot_mode
 from services.storage import StorageService
 from sqlalchemy import and_, desc, func, or_, select, update
@@ -272,8 +272,20 @@ def _announcement_to_dict(row: Announcements) -> dict:
     }
 
 
+async def _add_videos(db: AsyncSession, items: list[dict]) -> list[dict]:
+    keys = await ad_videos.keys_for(db, [int(i["id"]) for i in items])
+    for item in items:
+        key = keys.get(int(item["id"]))
+        item.update(video_key=key, **ad_videos.urls(key))
+    return items
+
+
+async def _announcement_out(db: AsyncSession, row: Announcements) -> dict:
+    return (await _add_videos(db, [_announcement_to_dict(row)]))[0]
+
+
 async def _announcements_with_stats(db: AsyncSession, rows: list) -> list[dict]:
-    items = [_announcement_to_dict(a) for a in rows]
+    items = await _add_videos(db, [_announcement_to_dict(a) for a in rows])
     try:
         from services.ad_stats import summaries
         stats = await summaries(db, [int(i["id"]) for i in items])
@@ -1979,7 +1991,7 @@ async def get_my_announcement(
 ):
     user = await _current_user(db, authorization)
     row = await _get_owned_announcement(db, user, announcement_id)
-    return _announcement_to_dict(row)
+    return await _announcement_out(db, row)
 
 
 @router.get("/me/announcements/{announcement_id}/stats")
@@ -2008,6 +2020,7 @@ async def update_my_announcement(
     from services.announcements import validate_announcement_fields
     try:
         validate_announcement_fields(request.model_dump(exclude_none=True))
+        video_key = ad_videos.clean_key(request.video_key)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     changed = False
@@ -2057,6 +2070,8 @@ async def update_my_announcement(
         first = (gallery.split(",")[0] or "").strip() if gallery else None
         row.image_url = first or None
         changed = True
+    if request.video_key is not None and await ad_videos.set_video(db, row.id, video_key):
+        changed = True
     if changed:
         row.status = "pending"
         row.active = True
@@ -2072,10 +2087,10 @@ async def update_my_announcement(
         try:  # back to the owner's Telegram for one-tap approval, like a new ad
             from services.ad_moderation import send_for_moderation
             await db.refresh(row)
-            await send_for_moderation(row)
+            await send_for_moderation(row, await ad_videos.video_url(db, row.id))
         except Exception:
             logger.warning('Announcement was not sent to Telegram moderation', exc_info=True)
-    return {"success": True, "announcement": _announcement_to_dict(row)}
+    return {"success": True, "announcement": await _announcement_out(db, row)}
 
 
 @router.post("/me/announcements/{announcement_id}/unpublish")
@@ -2090,7 +2105,23 @@ async def unpublish_my_announcement(
     row.active = False
     await db.commit()
     await _log_action(db, str(user.id), "announcement_unpublish", "announcements", str(row.id))
-    return {"success": True, "announcement": _announcement_to_dict(row)}
+    return {"success": True, "announcement": await _announcement_out(db, row)}
+
+
+@router.post("/me/announcements/{announcement_id}/sold")
+async def mark_my_announcement_sold(
+    announcement_id: int,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+):
+    """«Продано»: the ad leaves the site like «Снять», but the cabinet shows why."""
+    user = await _current_user(db, authorization)
+    row = await _get_owned_announcement(db, user, announcement_id)
+    row.status = "sold"
+    row.active = False
+    await db.commit()
+    await _log_action(db, str(user.id), "announcement_sold", "announcements", str(row.id))
+    return {"success": True, "announcement": await _announcement_out(db, row)}
 
 
 @router.delete("/me/announcements/{announcement_id}")
@@ -2103,6 +2134,7 @@ async def delete_my_announcement(
     row = await _get_owned_announcement(db, user, announcement_id)
     await db.delete(row)
     await db.commit()
+    await ad_videos.set_video(db, announcement_id, None)
     await _log_action(db, str(user.id), "announcement_delete", "announcements", str(announcement_id))
     return {"success": True}
 
@@ -2135,7 +2167,7 @@ async def extend_my_announcement(
         base = now
     row.expires_at = (base + timedelta(days=30)).isoformat()
     row.active = True
-    if row.status == "hidden":
+    if row.status in {"hidden", "sold"}:
         row.status = "pending"
     await db.commit()
     await _log_action(db, str(user.id), "announcement_extend", "announcements", str(row.id))
@@ -2148,10 +2180,10 @@ async def extend_my_announcement(
         try:  # back to the owner's Telegram for one-tap approval, like a new ad
             from services.ad_moderation import send_for_moderation
             await db.refresh(row)
-            await send_for_moderation(row)
+            await send_for_moderation(row, await ad_videos.video_url(db, row.id))
         except Exception:
             logger.warning('Announcement was not sent to Telegram moderation', exc_info=True)
-    return {"success": True, "announcement": _announcement_to_dict(row)}
+    return {"success": True, "announcement": await _announcement_out(db, row)}
 
 
 @router.post("/me/announcements/{announcement_id}/boost")
@@ -2175,7 +2207,7 @@ async def boost_my_announcement(
     row.promotion_tier = "boost"
     await db.commit()
     await _log_action(db, str(user.id), "announcement_boost", "announcements", str(row.id))
-    return {"success": True, "announcement": _announcement_to_dict(row)}
+    return {"success": True, "announcement": await _announcement_out(db, row)}
 
 
 @router.get("/me/real-estate/{listing_id}")

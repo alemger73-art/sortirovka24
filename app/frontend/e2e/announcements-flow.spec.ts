@@ -249,3 +249,37 @@ test('owner opening own ad does not send a view', async ({ page }) => {
   await page.waitForTimeout(2500);
   expect(writes.filter((w: any) => w.events)).toHaveLength(0);
 });
+
+test('owner marks a live ad as sold', async ({ page }) => {
+  await setup(page, { auth: true });
+  let sold = 0;
+  await page.route((url) => url.pathname.endsWith('/entities/announcements/2'), (route) => route.fulfill({ json: { ...entries[1], user_id: 'alice' } }));
+  await page.route('**/api/v1/account/me/announcements/2/sold', (route) => { sold += Number(route.request().method() === 'POST'); return route.fulfill({ json: { success: true, announcement: { ...entries[1], status: 'sold', active: false } } }); });
+  page.on('dialog', (dialog) => { expect(dialog.message()).toBe('Отметить как проданное? Объявление уйдёт с сайта.'); void dialog.accept(); });
+  await page.goto('/announcements/2');
+  await page.getByRole('button', { name: 'Продано' }).click();
+  await expect.poll(() => sold).toBe(1);
+  await expect(page.getByText('Отмечено как продано')).toBeVisible();
+  await expect(page).toHaveURL(/\/cabinet\?tab=announcements/);
+});
+
+test('an ad with a video: the video is the first slide, no autoplay; the card shows «Видео»', async ({ page }) => {
+  await setup(page);
+  const withVideo = { ...entries[0], gallery_images: 'https://example.test/a.jpg,https://example.test/b.jpg', video_url: 'https://example.test/clip.mp4', video_poster_url: 'https://example.test/clip.jpg' };
+  await page.route((url) => url.pathname.endsWith('/entities/announcements/1'), (route) => route.fulfill({ json: withVideo }));
+  await page.route((url) => url.pathname.endsWith('/entities/announcements'), (route) => route.fulfill({ json: { items: [withVideo, ...entries.slice(1, 5)], total: 5 } }));
+  await page.goto('/announcements');
+  await expect(page.getByTestId('ad-video-badge')).toHaveCount(1);
+  await expect(page.locator('a[href="/announcements/1"]').getByTestId('ad-video-badge')).toHaveText('Видео');
+  await page.goto('/announcements/1');
+  const video = page.locator('video');
+  await expect(video).toBeVisible();
+  await expect(video).toHaveAttribute('src', withVideo.video_url);
+  await expect(video).toHaveAttribute('poster', withVideo.video_poster_url);
+  await expect(video).toHaveAttribute('preload', 'none');
+  expect(await video.evaluate((v: HTMLVideoElement) => [v.controls, v.autoplay, v.paused])).toEqual([true, false, true]);
+  await expect(page.getByRole('button', { name: 'Видео', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Следующее фото' }).click();
+  await expect(page.locator('video')).toHaveCount(0);
+  await expect(page.getByText('2/3')).toBeVisible();
+});

@@ -91,6 +91,7 @@ class AnnouncementUpdateRequest(BaseModel):
     phone: Optional[str] = None
     whatsapp: Optional[str] = None
     author_name: Optional[str] = None
+    video_key: Optional[str] = None  # '' removes the video
 
 
 class RealEstateUpdateRequest(BaseModel):

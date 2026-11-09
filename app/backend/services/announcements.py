@@ -223,7 +223,7 @@ class AnnouncementsService:
                 previous_expiry = parse_announcement_date(obj.expires_at)
                 if obj.status not in VISIBLE_STATUSES or not previous_expiry or previous_expiry <= datetime.now(timezone.utc):
                     update_data.setdefault("expires_at", (datetime.now(timezone.utc) + timedelta(days=30)).isoformat())
-            elif update_data.get("status") in {"hidden", "rejected"}:
+            elif update_data.get("status") in {"hidden", "rejected", "sold"}:
                 update_data = {**update_data, "active": False}
             for key, value in update_data.items():
                 if hasattr(obj, key):

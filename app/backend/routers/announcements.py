@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
+from services import ad_videos
 from services.account_session import resolve_account_user
 from services.announcements import AnnouncementsService, validate_announcement_fields
 from services.cabinet_history import owns_content
@@ -57,6 +58,7 @@ class AnnouncementsData(BaseModel):
     promoted_until: str = None
     promotion_tier: str = None
     views_count: int = None
+    video_key: str = None  # object key of the ad's one video (announcement_videos)
 
 
 class AnnouncementsUpdateData(BaseModel):
@@ -80,6 +82,7 @@ class AnnouncementsUpdateData(BaseModel):
     promoted_until: Optional[str] = None
     promotion_tier: Optional[str] = None
     views_count: Optional[int] = None
+    video_key: Optional[str] = None  # '' removes the video
 
 
 class AnnouncementsResponse(BaseModel):
@@ -105,9 +108,17 @@ class AnnouncementsResponse(BaseModel):
     promoted_until: Optional[str] = None
     promotion_tier: Optional[str] = None
     views_count: Optional[int] = None
+    video_url: Optional[str] = None
+    video_poster_url: Optional[str] = None
 
     class Config:
         from_attributes = True
+
+
+async def _with_videos(db: AsyncSession, rows) -> List[AnnouncementsResponse]:
+    """Rows → responses with video_url / video_poster_url, one query for the whole page."""
+    videos = await ad_videos.urls_for(db, [row.id for row in rows])
+    return [AnnouncementsResponse.model_validate(row).model_copy(update=videos[row.id]) for row in rows]
 
 
 class AnnouncementsListResponse(BaseModel):
@@ -173,6 +184,7 @@ async def query_announcementss(
             sort=sort,
         )
         logger.debug(f"Found {result['total']} announcementss")
+        result["items"] = await _with_videos(db, result["items"])
         return result
     except HTTPException:
         raise
@@ -214,6 +226,7 @@ async def query_announcementss_all(
             sort=sort
         )
         logger.debug(f"Found {result['total']} announcementss")
+        result["items"] = await _with_videos(db, result["items"])
         return result
     except HTTPException:
         raise
@@ -246,7 +259,7 @@ async def get_announcements(
             raise HTTPException(status_code=404, detail="Announcements not found")
 
         # Views are counted by POST /events (once per person per day, without bots and the owner).
-        return result
+        return (await _with_videos(db, [result]))[0]
     except HTTPException:
         raise
     except Exception as e:
@@ -266,6 +279,7 @@ async def create_announcements(
     service = AnnouncementsService(db)
     try:
         payload = data.model_dump()
+        video_key = ad_videos.clean_key(payload.pop("video_key", None))
         admin = await is_content_admin(db, authorization)
         account_user = await resolve_account_user(db, authorization)
         if not admin:
@@ -289,6 +303,8 @@ async def create_announcements(
             raise HTTPException(status_code=400, detail="Failed to create announcements")
         
         logger.info(f"Announcements created successfully with id: {result.id}")
+        if video_key:
+            await ad_videos.set_video(db, result.id, video_key)
         status = (payload.get("status") or getattr(result, "status", None) or "pending").lower()
         if status in ("pending", ""):
             try:
@@ -303,8 +319,8 @@ async def create_announcements(
                 await db.refresh(result)
             except Exception:
                 pass
-            await send_for_moderation(result)
-        return result
+            await send_for_moderation(result, ad_videos.urls(video_key)["video_url"])
+        return (await _with_videos(db, [result]))[0]
     except HTTPException:
         raise
     except ValueError as e:
@@ -461,13 +477,17 @@ async def update_announcements(
     try:
         # Only include non-None values for partial updates
         update_dict = {k: v for k, v in data.model_dump().items() if v is not None}
+        video_key = update_dict.pop("video_key", None)
+        new_video = ad_videos.clean_key(video_key) if video_key is not None else None
         result = await service.update(id, update_dict)
         if not result:
             logger.warning(f"Announcements with id {id} not found for update")
             raise HTTPException(status_code=404, detail="Announcements not found")
-        
+        if video_key is not None:
+            await ad_videos.set_video(db, id, new_video)
+
         logger.info(f"Announcements {id} updated successfully")
-        return result
+        return (await _with_videos(db, [result]))[0]
     except HTTPException:
         raise
     except ValueError as e:
@@ -517,6 +537,7 @@ async def delete_announcements(
         if not success:
             logger.warning(f"Announcements with id {id} not found for deletion")
             raise HTTPException(status_code=404, detail="Announcements not found")
+        await ad_videos.set_video(db, id, None)
         
         logger.info(f"Announcements {id} deleted successfully")
         return {"message": "Announcements deleted successfully", "id": id}

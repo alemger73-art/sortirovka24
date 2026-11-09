@@ -64,7 +64,7 @@ def _photo(ann: Announcements) -> Optional[str]:
     return None
 
 
-def card_text(ann: Announcements) -> str:
+def card_text(ann: Announcements, video_url: Optional[str] = None) -> str:
     esc = lambda v: html.escape(str(v or ""))  # noqa: E731
     lines = [f"📢 <b>Объявление на проверку</b> · {esc(TYPE_LABELS.get(ann.ann_type or '', 'Объявление'))}",
              "", f"<b>{esc(ann.title)}</b>"]
@@ -76,7 +76,9 @@ def card_text(ann: Announcements) -> str:
     lines.append(f"👤 {esc(ann.author_name or '—')} · {esc(ann.phone or '—')}")
     photos = len([k for k in (ann.gallery_images or "").split(",") if k.strip()])
     lines.append(f"📷 Фото: {photos}" if photos else "📷 Без фото")
-    return "\n".join(lines)[:1000]
+    # The video link goes last but is never cut off: the owner must be able to watch it before approving.
+    video = f'\n🎬 <a href="{esc(video_url)}">Смотреть видео</a>' if video_url else ""
+    return "\n".join(lines)[:1000 - len(video)] + video
 
 
 def keyboard(ann_id: int) -> dict[str, Any]:
@@ -90,21 +92,22 @@ def keyboard(ann_id: int) -> dict[str, Any]:
     ]}
 
 
-async def send_for_moderation(ann: Announcements) -> bool:
+async def send_for_moderation(ann: Announcements, video_url: Optional[str] = None) -> bool:
     from services.news_agent import approval_chat, bot_token, tg
     if not (bot_token() and approval_chat()):
         return False
+    text = card_text(ann, video_url)
     try:
         async with httpx.AsyncClient(timeout=25) as client:
             photo = _photo(ann)
             if photo:
                 try:
-                    await tg(client, "sendPhoto", {"chat_id": approval_chat(), "photo": photo, "caption": card_text(ann),
+                    await tg(client, "sendPhoto", {"chat_id": approval_chat(), "photo": photo, "caption": text,
                                                    "parse_mode": "HTML", "reply_markup": keyboard(ann.id)}, timeout=25)
                     return True
                 except Exception as exc:
                     logger.info("[Ads] photo card failed, sending text: %s", exc)
-            await tg(client, "sendMessage", {"chat_id": approval_chat(), "text": card_text(ann), "parse_mode": "HTML",
+            await tg(client, "sendMessage", {"chat_id": approval_chat(), "text": text, "parse_mode": "HTML",
                                              "reply_markup": keyboard(ann.id), "disable_web_page_preview": True})
         return True
     except Exception as exc:
