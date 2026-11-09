@@ -18,9 +18,14 @@ def msg(body, *, chat="77011234567@c.us", from_me=False, mid=None, **extra):
     return {"event": "message.any", "session": "default", "payload": payload}
 
 
+DIRECTORY = [{"category": "Экстренные", "name": "Скорая помощь", "phone": "103", "whatsapp": "", "address": "", "hours": ""},
+             {"category": "Медицина", "name": "Поликлиника №3", "phone": "+7 7212 00 00 00", "whatsapp": "", "address": "ул. Пример, 1", "hours": "8:00–20:00"}]
+
+
 @pytest.fixture(autouse=True)
 def clean(monkeypatch):
     support_bot._chats.clear(); support_bot._seen_ids.clear()
+    monkeypatch.setattr(support_bot, "_directory_cache", (float("inf"), DIRECTORY))
     monkeypatch.setenv("WAHA_URL", "http://waha:3000"); monkeypatch.setenv("WAHA_API_KEY", "k")
     monkeypatch.setenv("NEWS_TELEGRAM_BOT_TOKEN", "1:t"); monkeypatch.setenv("NEWS_TELEGRAM_CHAT_ID", "555")
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False); monkeypatch.delenv("WHISPER_URL", raising=False)
@@ -107,3 +112,21 @@ async def test_webhook_requires_key(monkeypatch):
         assert (await c.post("/api/v1/support-bot/waha?key=wrong", json={})).status_code == 403
         with patch.object(support_bot, "handle_event") as h:
             assert (await c.post("/api/v1/support-bot/waha?key=secret", json={"event": "session.status"})).status_code == 200
+
+
+async def test_prompt_knows_directory_dam_alem_and_consulting(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+    log = []
+    async with httpx.AsyncClient(transport=transport(log)) as client:
+        await support_bot.handle_event(msg("телефон поликлиники?"), client, MODULES)
+    system = next(b for u, b in log if "anthropic" in u)["system"]
+    assert "[Медицина]" in system and "Поликлиника №3; тел. +7 7212 00 00 00; адрес ул. Пример, 1; часы 8:00–20:00" in system
+    assert "+7 747 030 40 96" in system and "https://wa.me/77470304096" in system
+    assert "живой консультант" in system and "не придумывай" in system
+
+
+async def test_without_ai_dam_alem_question_gets_its_whatsapp():
+    log = []
+    async with httpx.AsyncClient(transport=transport(log)) as client:
+        out = await support_bot.handle_event(msg("Как заказать в Дам Алем?"), client, MODULES)
+    assert out.action == "replied" and "wa.me/77470304096" in out.reply and "/food" in out.reply

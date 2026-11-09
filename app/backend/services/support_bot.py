@@ -100,9 +100,34 @@ MODULE_INFO = {
 }
 
 
-def system_prompt(modules: dict[str, bool]) -> str:
+DAM_ALEM_WHATSAPP = "+7 747 030 40 96"
+DAM_ALEM_WA_LINK = "https://wa.me/77470304096"
+DAM_ALEM_ASK = re.compile(r"д[аә]м\s*[аә]лем|d[aä]m\s*alem|заказать\s+еду|\bменю\b")
+
+
+def directory_block(entries: list[dict[str, str]]) -> str:
+    """The district directory as compact lines the bot may quote: only what is published on the site."""
+    lines, category = [], None
+    for e in entries:
+        if e.get("category") != category:
+            category = e.get("category")
+            lines.append(f"[{category or 'Разное'}]")
+        parts = [e.get("name") or ""]
+        for key, label in (("phone", "тел."), ("whatsapp", "WhatsApp"), ("address", "адрес"), ("hours", "часы")):
+            if e.get(key):
+                parts.append(f"{label} {e[key]}")
+        lines.append("- " + "; ".join(p for p in parts if p))
+    return "\n".join(lines)
+
+
+def system_prompt(modules: dict[str, bool], directory: Optional[list[dict[str, str]]] = None) -> str:
     on = [MODULE_INFO[k] for k, v in modules.items() if v and k in MODULE_INFO]
     sections = "\n".join(f"- {t}: {u} — {d}" for t, u, d in on) or "- (разделы уточняются)"
+    contacts = directory_block(directory or [])
+    directory_part = (
+        f"\nСправочник района (это опубликовано на {SITE}/directory — отвечай телефонами и адресами ТОЛЬКО отсюда, дословно):\n{contacts}\n"
+        if contacts else f"\nСправочник района: {SITE}/directory\n"
+    )
     return f"""Ты — помощник поддержки портала «Сортировка 24» (sortirovka24.kz) в WhatsApp. Портал района Сортировка в Караганде.
 Отвечай на языке собеседника (русский или казахский), коротко, тепло и по-доброму.
 Оформление (это WhatsApp): короткие абзацы с пустой строкой между ними, не сплошным текстом; списки — каждый пункт с новой строки со своим эмодзи; жирный — одной звёздочкой: *так* (не **, не #); 1–3 уместных эмодзи.
@@ -119,9 +144,17 @@ def system_prompt(modules: dict[str, bool]) -> str:
 - Стать партнёром (кафе, магазин, услуги): заявка на {SITE}/business — с вами свяжутся.
 - Политика конфиденциальности: {SITE}/legal/privacy. Почта поддержки: srt-group.24@mail.ru.
 - Такси на портале пока не работает.
+- Бонусы DÄM ALEM: 300 за регистрацию, 2% с каждого заказа возвращаются бонусами, бонусами можно оплатить до 20% еды.
+- Объявления жителей на сайте ({SITE}/announcements) — бесплатно, публикуются после проверки. Платное размещение в канале «Сортировка Официал» (около 30 000 подписчиков): бизнес — 5 000 ₸, недвижимость и услуги — 3 000 ₸, вакансии и частные объявления — 1 500 ₸; для оформления передай оператору.
+- Свой интернет-магазин или витрина для бизнеса на портале: условия обсуждает владелец — передай оператору.
+{directory_part}
+DÄM ALEM (кафе-доставка: бургеры, пицца, закуски, коктейли, чаи):
+- Если спрашивают про DÄM ALEM, еду, меню, доставку или хотят заказать — дай ссылку на меню {SITE}/food и WhatsApp DÄM ALEM для заказа и вопросов: {DAM_ALEM_WHATSAPP} ({DAM_ALEM_WA_LINK}). Скажи, что там ответят по наличию и времени доставки.
+- Наш номер — поддержка портала, заказы здесь не принимаем.
 
 Правила:
-- Отвечай только про портал «Сортировка 24» и его разделы. На посторонние темы вежливо скажи, что помогаешь только по порталу.
+- Ты живой консультант по проекту «Сортировка 24»: подробно и по-человечески объясняй, как пользоваться порталом, разделами, кабинетом, объявлениями, бонусами, как стать партнёром. На темы, не связанные с порталом и районом, вежливо скажи, что помогаешь только по порталу.
+- Если нужного телефона нет в справочнике выше — не придумывай, дай ссылку {SITE}/directory.
 - Никогда не выдумывай цены, время работы, сроки доставки, наличие блюд, статусы конкретных заказов и личные данные — ты их не видишь. В таких случаях дай ссылку или передай оператору.
 - Никогда не проси коды из сообщений, пароли и данные карт. Если человек прислал код — скажи, что код никому сообщать нельзя.
 - Если человек просит живого человека, жалуется, у него проблема с конкретным заказом или оплатой, или ты не знаешь ответа — ответь, что передал вопрос оператору и он скоро напишет здесь же, и добавь в самом конце ответа метку {HANDOFF_TAG}.
@@ -135,19 +168,23 @@ def fallback_reply(text: str) -> tuple[str, bool]:
         return ("Здравствуйте! Это поддержка портала «Сортировка 24» 👋\n"
                 f"Заказать еду DÄM ALEM: {SITE}/food\nЛичный кабинет: {SITE}/cabinet\n"
                 "Напишите ваш вопрос — ответим здесь."), False
+    if DAM_ALEM_ASK.search(low):
+        return (f"DÄM ALEM 🍔\nМеню и заказ на сайте: {SITE}/food\n"
+                f"WhatsApp DÄM ALEM: {DAM_ALEM_WHATSAPP} — {DAM_ALEM_WA_LINK}"), False
     return ("Спасибо! Передал ваш вопрос оператору — он ответит здесь же в ближайшее время.\n"
             f"Пока можно заглянуть на {SITE}"), True
 
 
-async def ask_ai(client: httpx.AsyncClient, chat: Chat, modules: dict[str, bool]) -> Optional[str]:
+async def ask_ai(client: httpx.AsyncClient, chat: Chat, modules: dict[str, bool],
+                 directory: Optional[list[dict[str, str]]] = None) -> Optional[str]:
     key = (os.getenv("ANTHROPIC_API_KEY") or "").strip()
     if not key:
         return None
     resp = await client.post(
         "https://api.anthropic.com/v1/messages",
         headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-        json={"model": os.getenv("SUPPORT_BOT_MODEL", "claude-haiku-5-5"), "max_tokens": 600,
-              "system": system_prompt(modules), "messages": chat.turns[-HISTORY_TURNS:]},
+        json={"model": os.getenv("SUPPORT_BOT_MODEL", "claude-haiku-5-5"), "max_tokens": 900,
+              "system": system_prompt(modules, directory), "messages": chat.turns[-HISTORY_TURNS:]},
         timeout=40,
     )
     resp.raise_for_status()
@@ -225,6 +262,30 @@ async def _modules() -> dict[str, bool]:
         return {k: k in {"food", "news", "transport", "directory", "business", "inspectors"} for k in MODULE_INFO}
 
 
+_directory_cache: tuple[float, list[dict[str, str]]] = (0.0, [])
+
+
+async def _directory() -> list[dict[str, str]]:
+    """Published directory entries, refreshed every 10 minutes."""
+    global _directory_cache
+    if time.time() - _directory_cache[0] < 600:
+        return _directory_cache[1]
+    try:
+        from core.database import db_manager
+        from sqlalchemy import select
+        from models.directory_entries import Directory_entries as D
+        async with db_manager.async_session_maker() as db:
+            rows = (await db.execute(
+                select(D).where(D.is_published.isnot(False)).order_by(D.category, D.sort_order, D.id).limit(300)
+            )).scalars().all()
+        entries = [{"category": r.category or "", "name": r.entry_name or "", "phone": r.phone or "",
+                    "whatsapp": r.whatsapp or "", "address": r.address or "", "hours": r.opening_hours or ""} for r in rows]
+        _directory_cache = (time.time(), entries)
+    except Exception as exc:
+        logger.warning("[SupportBot] directory load failed: %s", exc)
+    return _directory_cache[1]
+
+
 @dataclass
 class Outcome:
     action: str  # ignored | muted | replied | handed_off | limited
@@ -292,7 +353,7 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient, modules
     reply: Optional[str] = None
     handoff = False
     try:
-        reply = await ask_ai(client, chat, modules if modules is not None else await _modules())
+        reply = await ask_ai(client, chat, modules if modules is not None else await _modules(), await _directory())
     except Exception as exc:
         logger.warning("[SupportBot] AI failed: %s", exc)
     if reply is None:
