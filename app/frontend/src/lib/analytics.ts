@@ -84,11 +84,36 @@ export function trackPageView(path: string) {
   schedule();
 }
 
+/** A readable line for things thrown that are not Error objects (a fetch Response, a DOM event, a geolocation
+ * error…): JSON.stringify shows their fields as just "{}", which tells nothing about where it came from. */
+export function describeNonError(value: unknown): string {
+  try {
+    if (value === null || typeof value !== 'object') return String(value);
+    const v = value as Record<string, unknown>;
+    const kind = (value as object).constructor?.name || 'Object';
+    const parts: string[] = [];
+    for (const key of ['name', 'message', 'code', 'type', 'status', 'statusText', 'url', 'reason']) {
+      let field: unknown;
+      try { field = v[key]; } catch { continue; }
+      if (field === undefined || field === null || field === '' || typeof field === 'function' || typeof field === 'object') continue;
+      parts.push(`${key}=${String(field).slice(0, 120)}`);
+    }
+    const target = (v.target as { tagName?: string; src?: string } | null | undefined);
+    if (target && typeof target === 'object' && target.tagName) parts.push(`target=${target.tagName}${target.src ? ` ${String(target.src).slice(0, 120)}` : ''}`);
+    let json = '';
+    try { json = JSON.stringify(value) || ''; } catch { /* circular */ }
+    if (json && json !== '{}') parts.push(json.slice(0, 200));
+    return `${kind === 'Object' ? 'объект' : kind}${parts.length ? ` ${parts.join(' ')}` : ' без полей'}`.slice(0, 300);
+  } catch {
+    return 'Unknown error';
+  }
+}
+
 const reported = new Set<string>();
 /** Error watch: tell the server when something breaks for this person (each error once per page load). */
 export function reportError(error: unknown, extra = '') {
   try {
-    const err = error instanceof Error ? error : new Error(typeof error === 'string' ? error : JSON.stringify(error)?.slice(0, 300) || 'Unknown error');
+    const err = error instanceof Error ? error : new Error(typeof error === 'string' ? error : describeNonError(error));
     const message = `${err.name || 'Error'}: ${err.message || ''}${extra ? ` (${extra})` : ''}`.slice(0, 2000);
     if (/ResizeObserver loop|Script error\.?$|Non-Error promise rejection captured|AbortError/i.test(message) || reported.has(message)) return;
     reported.add(message);
