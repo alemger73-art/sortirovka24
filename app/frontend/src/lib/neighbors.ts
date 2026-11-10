@@ -24,7 +24,7 @@ export type NbAddress = { kind: 'flat' | 'private'; street: string; house: strin
 
 type Bi = { ru: string; kz: string };
 export const KINDS: { id: NbKind; emoji: string; title: Bi; hint: Bi }[] = [
-  { id: 'alarm', emoji: '⚡', title: { ru: 'Авария', kz: 'Апат' }, hint: { ru: 'Нет света, воды, тепла, лифт, течь', kz: 'Жарық, су, жылу жоқ, лифт, ағып жатыр' } },
+  { id: 'alarm', emoji: '⚡', title: { ru: 'Авария', kz: 'Апат' }, hint: { ru: 'Нет света, воды, тепла, течь', kz: 'Жарық, су, жылу жоқ, ағып жатыр' } },
   { id: 'question', emoji: '❓', title: { ru: 'Вопрос', kz: 'Сұрақ' }, hint: { ru: 'Спросить соседей', kz: 'Көршілерден сұрау' } },
   { id: 'notice', emoji: '📢', title: { ru: 'Объявление', kz: 'Хабарландыру' }, hint: { ru: 'Собрание, сбор, ремонт', kz: 'Жиналыс, жинау, жөндеу' } },
   { id: 'lost', emoji: '🔍', title: { ru: 'Потеряно / найдено', kz: 'Жоғалды / табылды' }, hint: { ru: 'Ключи, животные, вещи', kz: 'Кілт, жануар, зат' } },
