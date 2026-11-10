@@ -6,7 +6,7 @@ type Opts = { auth?: boolean; member?: 'none' | 'confirmed' | 'blocked'; lang?: 
 
 async function setup(page: Page, opts: Opts = {}) {
   const writes: any[] = [];
-  const memberBase = { id: 5, kind: 'flat', street: 'Жекибаева', house: '135', entrance: 3, flat: '41', display_name: 'Алия', anonymous: false, role: 'member', custom_street: 0, title: 'ул. Жекибаева, 135', public_name: 'Алия' };
+  const memberBase = { id: 5, kind: 'flat', street: 'Жекибаева', house: '135', entrance: 3, flat: '41', display_name: 'Алия', anonymous: false, role: 'member', custom_street: 0, title: 'ул. Жекибаева, 135', public_name: 'Алия', invite: 'INVTOKEN.sig' };
   let member: any = opts.member === 'none' || !opts.member ? null : { ...memberBase, status: opts.member };
   let confirm = { confirmed_in_house: 4, needed: 2, got: 0, proof_sent: false, proof_waiting: false };
   const reported: number[] = [];
@@ -30,6 +30,10 @@ async function setup(page: Page, opts: Opts = {}) {
     const json = (j: unknown, status = 200) => route.fulfill({ status, json: j });
     if (path.endsWith('/account/me') || path.endsWith('/auth/me')) return json(profile);
     if (path.endsWith('/neighbors/streets')) return json({ streets: ['Жекибаева', 'Локомотивная', 'Маншук Маметовой', 'Победы', 'Дружбы', 'Серова'], stats: { neighbours: 214, houses: 31 } });
+    const inv = path.match(/\/neighbors\/invite\/([^/]+)$/);
+    if (inv) return decodeURIComponent(inv[1]) === 'GOODINV.sig'
+      ? json({ kind: 'flat', street: 'Локомотивная', house: '12а', title: 'ул. Локомотивная, 12а' })
+      : json({ detail: 'Ссылка-приглашение устарела или неверна' }, 404);
     if (path.endsWith('/neighbors/me') && m === 'GET') return json(member ? { member, confirm } : { member: null, suggested_name: 'Алия' });
     if (path.endsWith('/neighbors/me') && m === 'PUT') {
       const a = req.postDataJSON(); writes.push({ save: a });
@@ -73,7 +77,7 @@ test('guest sees what «Мой дом» is and a login button that comes back to
   await page.goto('/dom');
   await expect(page.getByRole('heading', { name: 'Мой дом' })).toBeVisible();
   await expect(page.getByTestId('dom-login')).toHaveAttribute('href', '/account?redirect=%2Fdom');
-  await expect(page.getByText('Уже 214 соседей из 31 домов')).toBeVisible();
+  await expect(page.getByText('Уже 214 соседей из 31 дома')).toBeVisible();
   expect(await noOverflow(page)).toBe(true);
   await page.screenshot({ path: info.outputPath('landing.png'), fullPage: true });
 });
@@ -214,4 +218,75 @@ test('desktop: house page and compose dialog are centred and readable', async ({
   await page.waitForTimeout(400);
   await expect(page.getByTestId('dom-send')).toBeInViewport();
   await page.screenshot({ path: info.outputPath('desktop-compose.png') });
+});
+
+test('invite link: a logged-out neighbour logs in and lands in the inviter\'s house, flat not shared', async ({ page }, info) => {
+  await setup(page);
+  await page.goto('/dom?inv=GOODINV.sig');
+  await expect(page.getByTestId('dom-invited')).toContainText('ул. Локомотивная, 12а');
+  await expect(page.getByTestId('dom-login')).toHaveAttribute('href', `/account?redirect=${encodeURIComponent('/dom?inv=GOODINV.sig')}`);
+  await page.screenshot({ path: info.outputPath('invite-landing.png'), fullPage: true });
+  // logs in (another page load in the same tab); even if the redirect loses ?inv, the tab remembers it
+  await page.evaluate(() => { localStorage.setItem('account_token', 'test-token'); localStorage.setItem('account_user_profile', JSON.stringify({ id: 'bob', name: 'Боб', phone: '+77000000000', role: 'user' })); });
+  const writes = await setup(page, { auth: true, member: 'none' });
+  await page.goto('/dom');
+  const house = page.getByTestId('dom-invite-house');
+  await expect(house).toContainText('ул. Локомотивная, 12а');
+  await expect(page.locator('#dom-street')).toHaveCount(0);   // no typing the street or house — no typo into another house
+  await expect(page.locator('#dom-house')).toHaveCount(0);
+  await page.locator('#dom-entrance').fill('2');
+  await page.locator('#dom-consent').check();
+  expect(await noOverflow(page)).toBe(true);
+  await page.screenshot({ path: info.outputPath('invite-form.png'), fullPage: true });
+  await page.getByTestId('dom-save').click();
+  await expect(page.getByRole('heading', { name: 'ул. Локомотивная, 12а' })).toBeVisible();
+  expect(writes[0].save).toMatchObject({ kind: 'flat', street: 'Локомотивная', house: '12а', entrance: '2' });
+  expect(await page.evaluate(() => sessionStorage.getItem('s24_dom_invite'))).toBeNull();   // used up
+});
+
+test('invite link: «Это не мой дом» unlocks the address; a broken link is ignored', async ({ page }) => {
+  await setup(page, { auth: true, member: 'none' });
+  await page.goto('/dom?inv=GOODINV.sig');
+  await page.getByTestId('dom-invite-house').getByRole('button', { name: 'Это не мой дом' }).click();
+  await expect(page.locator('#dom-street')).toHaveValue('Локомотивная');
+  await expect(page.locator('#dom-house')).toHaveValue('12а');
+  await page.locator('#dom-house').fill('14');
+  await expect(page.locator('#dom-house')).toHaveValue('14');
+  await page.goto('/dom?inv=BROKEN.x');
+  await expect(page.getByRole('heading', { name: 'Где вы живёте?' })).toBeVisible();
+  await expect(page.getByTestId('dom-invite-house')).toHaveCount(0);
+  await expect(page.locator('#dom-street')).toHaveValue('');
+});
+
+test('house: «В вашем доме N соседей — позовите ещё» and the share text carries the personal link', async ({ page }) => {
+  await setup(page, { auth: true, member: 'confirmed' });
+  await page.goto('/dom');
+  const grow = page.getByTestId('dom-grow');
+  await expect(grow).toContainText('В вашем доме 4 соседа — позовите ещё');
+  const href = decodeURIComponent((await grow.getByRole('link').getAttribute('href')) || '');
+  expect(href).toContain('Я уже в нашем доме на Сортировка 24, присоединяйся');
+  expect(href).toContain('/dom?inv=INVTOKEN.sig');
+  expect(href).not.toContain('41');   // never the inviter's flat
+  expect(href).not.toContain('+7700');
+});
+
+test('home page card: invitation for guests, neighbour count for residents, both lead to /dom', async ({ page }, info) => {
+  await setup(page);
+  await page.goto('/');
+  const card = page.getByTestId('home-neighbors');
+  await expect(card).toContainText('Мой дом — найдите соседей');
+  await expect(card).toHaveAttribute('href', '/dom');
+
+  await setup(page, { auth: true, member: 'none' });
+  await page.goto('/');
+  await expect(card).toHaveAttribute('data-state', 'add');
+
+  await setup(page, { auth: true, member: 'confirmed' });
+  await page.goto('/');
+  await expect(card).toContainText('В вашем доме 4 соседа');
+  await expect(card).toContainText('ул. Жекибаева, 135');
+  await card.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: info.outputPath('home-card.png') });
+  await card.click();
+  await expect(page).toHaveURL(/\/dom$/);
 });

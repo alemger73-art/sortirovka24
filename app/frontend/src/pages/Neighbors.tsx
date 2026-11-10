@@ -16,12 +16,12 @@ import { timeAgo } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePageSeo } from '@/hooks/usePageSeo';
 import {
-  KINDS, helpFor, kindInfo, kzEntrance, nbApi,
-  type NbAddress, type NbConfirm, type NbHouse, type NbPerson, type NbKind, type NbMember, type NbPost, type NbPostFull,
+  KINDS, helpFor, inviteText, kindInfo, kzEntrance, nbApi, pendingInvite, plural,
+  type NbAddress, type NbConfirm, type NbHouse, type NbInvite, type NbPerson, type NbKind, type NbMember, type NbPost, type NbPostFull,
 } from '@/lib/neighbors';
+import { track } from '@/lib/analytics';
 import '@/styles/dom.css';
 
-const SITE = 'https://www.sortirovka24.kz';
 type Say = (ru: string, kz: string) => string;
 function useSay(): [Say, boolean, 'ru' | 'kz'] {
   const { lang } = useLanguage();
@@ -29,7 +29,31 @@ function useSay(): [Say, boolean, 'ru' | 'kz'] {
   return [(ru, k) => (kz ? k : ru), kz, kz ? 'kz' : 'ru'];
 }
 const errText = (e: unknown) => (e instanceof Error ? e.message : 'Не получилось, попробуйте ещё раз');
-const inviteText = (title: string) => `Соседи (${title})! На Сортировка 24 появился «Мой дом» — пишем про аварии, собрания и вопросы по дому, видно кто из соседей уже здесь. Присоединяйтесь: ${SITE}/dom`;
+const inviteHref = (m: NbMember) => `https://wa.me/?text=${encodeURIComponent(inviteText(m.title, m.invite))}`;
+
+/** «Позвать соседей» — WhatsApp with the invite to this very house; each tap is counted. */
+function InviteButton({ member, where, label, className = '' }: { member: NbMember; where: string; label: string; className?: string }) {
+  return (
+    <a className={`dom-btn dom-btn--wa ${className}`} href={inviteHref(member)} target="_blank" rel="noopener noreferrer"
+      onClick={() => track('dom_invite_share', { where })} data-testid={`dom-invite-${where}`}>
+      <MessageCircle size={18} />{label}
+    </a>
+  );
+}
+
+/** An invite link (/dom?inv=…) opened in this tab: the house it points to, kept until the address is saved. */
+function useInvite(): NbInvite | null {
+  const [params] = useSearchParams();
+  const [invite, setInvite] = useState<NbInvite | null>(null);
+  const fromUrl = params.get('inv') || '';
+  useEffect(() => {
+    const token = fromUrl || pendingInvite.get();
+    if (!token) return;
+    if (fromUrl && fromUrl !== pendingInvite.get()) { pendingInvite.set(fromUrl); track('dom_invite_open'); }
+    nbApi.invite(token).then((r) => setInvite({ ...r, token })).catch(() => pendingInvite.clear());
+  }, [fromUrl]);
+  return invite;
+}
 
 /* ============================== /dom ============================== */
 export function NeighborsPage() {
@@ -40,6 +64,7 @@ export function NeighborsPage() {
   const editing = params.get('edit') === '1';
   const [state, setState] = useState<{ member: NbMember | null; confirm?: NbConfirm; suggested_name?: string } | null>(null);
   const [error, setError] = useState('');
+  const invite = useInvite();
 
   const load = useCallback(async () => {
     setError('');
@@ -47,15 +72,15 @@ export function NeighborsPage() {
   }, []);
   useEffect(() => { if (authed) void load(); }, [authed, load]);
 
-  if (!authed) return <Layout><Landing /></Layout>;
+  if (!authed) return <Layout><Landing invite={invite} /></Layout>;
   if (error) return <Layout><div className="dom"><div className="dom-w dom-pad"><Problem text={error} onRetry={() => void load()} /></div></div></Layout>;
   if (!state) return <Layout><div className="dom"><Skeleton /></div></Layout>;
   if (!state.member || editing) {
     return (
       <Layout>
         <div className="dom">
-          <AddressForm member={state.member} suggested={state.suggested_name || ''}
-            onSaved={(r) => { setState(r); setParams({}, { replace: true }); window.scrollTo({ top: 0 }); }}
+          <AddressForm member={state.member} suggested={state.suggested_name || ''} invite={state.member ? null : invite}
+            onSaved={(r) => { if (!state.member && pendingInvite.get()) track('dom_invite_joined'); pendingInvite.clear(); setState(r); setParams({}, { replace: true }); window.scrollTo({ top: 0 }); }}
             onCancel={state.member ? () => setParams({}, { replace: true }) : undefined}
             onLeft={() => { setState({ member: null, suggested_name: state.suggested_name }); setParams({}, { replace: true }); toast.success(say('Адрес и ваши записи удалены', 'Мекенжай мен жазбаларыңыз жойылды')); }} />
         </div>
@@ -67,8 +92,8 @@ export function NeighborsPage() {
 }
 
 /* ---------------- landing for guests ---------------- */
-function Landing() {
-  const [say] = useSay();
+function Landing({ invite }: { invite: NbInvite | null }) {
+  const [say, kz] = useSay();
   const [stats, setStats] = useState<{ neighbours: number; houses: number } | null>(null);
   useEffect(() => { nbApi.streets().then((r) => setStats(r.stats)).catch(() => {}); }, []);
   const points: [typeof Users, string, string][] = [
@@ -83,8 +108,9 @@ function Landing() {
           <span className="dom-kicker">{say('Сортировка 24 · новое', 'Сортировка 24 · жаңа')}</span>
           <h1>{say('Мой дом', 'Менің үйім')}</h1>
           <p>{say('Соседи вашего дома в одном месте: аварии, собрания, вопросы и находки. Без шумных общих чатов.', 'Үйіңіздің көршілері бір жерде: апаттар, жиналыстар, сұрақтар. Шулы чаттарсыз.')}</p>
-          <Link className="dom-btn dom-btn--light" to="/account?redirect=%2Fdom" data-testid="dom-login">{say('Войти и указать адрес', 'Кіру және мекенжайды көрсету')}<ArrowUpRight size={18} /></Link>
-          {stats && stats.neighbours > 0 && <p className="dom-hero-stat">{say(`Уже ${stats.neighbours} соседей из ${stats.houses} домов`, `${stats.houses} үйден ${stats.neighbours} көрші қосылды`)}</p>}
+          {invite && <p className="dom-invited" data-testid="dom-invited"><Users size={18} />{say(`Соседи зовут вас в дом: ${invite.title}`, `Көршілер сізді үйге шақырады: ${invite.title}`)}</p>}
+          <Link className="dom-btn dom-btn--light" to={`/account?redirect=${encodeURIComponent(invite?.token ? `/dom?inv=${invite.token}` : '/dom')}`} data-testid="dom-login">{invite ? say('Войти и присоединиться', 'Кіру және қосылу') : say('Войти и указать адрес', 'Кіру және мекенжайды көрсету')}<ArrowUpRight size={18} /></Link>
+          {stats && stats.neighbours > 0 && <p className="dom-hero-stat">{districtStat(stats, kz)}</p>}
         </div>
       </header>
       <div className="dom-w dom-pad">
@@ -113,8 +139,8 @@ function PreviewCard() {
 }
 
 /* ---------------- address form ---------------- */
-function AddressForm({ member, suggested, onSaved, onCancel, onLeft }: {
-  member: NbMember | null; suggested: string;
+function AddressForm({ member, suggested, invite, onSaved, onCancel, onLeft }: {
+  member: NbMember | null; suggested: string; invite: NbInvite | null;
   onSaved: (r: { member: NbMember; confirm: NbConfirm }) => void; onCancel?: () => void; onLeft: () => void;
 }) {
   const [say] = useSay();
@@ -124,6 +150,13 @@ function AddressForm({ member, suggested, onSaved, onCancel, onLeft }: {
     flat: member?.flat || '', display_name: member?.display_name || suggested, anonymous: member?.anonymous || false, consent: Boolean(member),
   }));
   const [open, setOpen] = useState(false);
+  // Came by a neighbour's invite: their street and house are fixed, so nobody lands in another house by a typo.
+  const [locked, setLocked] = useState(false);
+  useEffect(() => {
+    if (!invite || member) return;
+    setA((x) => ({ ...x, kind: invite.kind, street: invite.street, house: invite.house }));
+    setLocked(true);
+  }, [invite, member]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [leaving, setLeaving] = useState(false);
@@ -157,6 +190,13 @@ function AddressForm({ member, suggested, onSaved, onCancel, onLeft }: {
         </div>
       </header>
       <form className="dom-w dom-pad dom-form" onSubmit={submit} noValidate>
+        {locked && invite ? (
+          <div className="dom-invite-house" data-testid="dom-invite-house">
+            <span><Building2 size={20} /></span>
+            <div><b>{invite.title}</b><small>{say('Дом, куда вас пригласили соседи', 'Көршілер шақырған үй')}</small></div>
+            <button type="button" onClick={() => setLocked(false)}>{say('Это не мой дом', 'Бұл менің үйім емес')}</button>
+          </div>
+        ) : <>
         <div className="dom-seg" role="radiogroup" aria-label={say('Тип дома', 'Үй түрі')}>
           {(['flat', 'private'] as const).map((k) => (
             <button key={k} type="button" role="radio" aria-checked={a.kind === k} onClick={() => set('kind', k)}>
@@ -181,10 +221,11 @@ function AddressForm({ member, suggested, onSaved, onCancel, onLeft }: {
             <small className="dom-note">{say('Такой улицы нет в нашем списке — проверим вручную.', 'Бұл көше тізімде жоқ — қолмен тексереміз.')}</small>
           )}
         </label>
+        </>}
 
-        <div className={flat ? 'dom-row3' : 'dom-row1'}>
-          <label className="dom-field"><span>{say('Дом', 'Үй')}</span>
-            <input id="dom-house" value={a.house} inputMode="text" placeholder="135" onChange={(e) => set('house', e.target.value)} /></label>
+        <div className={locked ? (flat ? 'dom-row2' : 'dom-row0') : flat ? 'dom-row3' : 'dom-row1'}>
+          {!locked && <label className="dom-field"><span>{say('Дом', 'Үй')}</span>
+            <input id="dom-house" value={a.house} inputMode="text" placeholder="135" onChange={(e) => set('house', e.target.value)} /></label>}
           {flat && <label className="dom-field"><span>{say('Подъезд', 'Кіреберіс')}</span>
             <input id="dom-entrance" value={a.entrance} inputMode="numeric" placeholder="3" onChange={(e) => set('entrance', e.target.value.replace(/\D/g, '').slice(0, 2))} /></label>}
           {flat && <label className="dom-field"><span>{say('Кв.', 'Пәтер')} <small className="dom-opt">{say('не обяз.', 'міндетті емес')}</small></span>
@@ -252,6 +293,14 @@ function House({ member }: { member: NbMember }) {
       </header>
 
       <div className="dom-w dom-pad">
+        {confirmed && house && (
+          <div className="dom-grow" data-testid="dom-grow">
+            <p>{house.total > 1
+              ? say(`В вашем доме ${house.total} ${plural(house.total, 'сосед', 'соседа', 'соседей')} — позовите ещё`, `Үйіңізде ${house.total} көрші — тағы шақырыңыз`)
+              : say('Вы пока один в доме — позовите соседей', 'Үйде әзірге жалғызсыз — көршілерді шақырыңыз')}</p>
+            <InviteButton member={member} where="house" label={say('Позвать', 'Шақыру')} />
+          </div>
+        )}
         <div className="dom-tabs" role="tablist">
           <button type="button" role="tab" aria-selected={tab === 'feed'} onClick={() => setParams({}, { replace: true })}>{say('Лента дома', 'Үй таспасы')}</button>
           <button type="button" role="tab" aria-selected={tab === 'people'} onClick={() => setParams({ tab: 'people' }, { replace: true })}>
@@ -318,7 +367,7 @@ function Feed({ member, confirmed }: { member: NbMember; confirmed: boolean }) {
             <div className="dom-empty">
               <b>{filter ? say('Здесь пока пусто', 'Әзірге бос') : say('В доме пока тихо', 'Үйде әзірге тыныш')}</b>
               <p>{confirmed ? say('Напишите первым — например, про собрание или неисправный лифт. И позовите соседей:', 'Бірінші болып жазыңыз. Көршілерді шақырыңыз:') : say('Как только соседи что-то напишут, это появится здесь.', 'Көршілер жазғанда осында пайда болады.')}</p>
-              <a className="dom-btn dom-btn--wa" href={`https://wa.me/?text=${encodeURIComponent(inviteText(member.title))}`} target="_blank" rel="noopener noreferrer"><MessageCircle size={18} />{say('Позвать соседей', 'Көршілерді шақыру')}</a>
+              <InviteButton member={member} where="feed" label={say('Позвать соседей', 'Көршілерді шақыру')} />
             </div>
           ) : (
             <div className="dom-list">
@@ -458,7 +507,7 @@ function People({ member, house, reload }: { member: NbMember; house: NbHouse | 
         </div>
       ))}
       {house.total > 1 && <p className="dom-note"><Flag size={14} />{say('Видите человека, который не живёт в доме? Нажмите флажок рядом с ним. После 3 отметок соседей он пропадёт из дома.', 'Үйде тұрмайтын адамды көрсеңіз, жанындағы жалаушаны басыңыз. 3 белгіден кейін ол үйден жоғалады.')}</p>}
-      <a className="dom-btn dom-btn--wa dom-invite" href={`https://wa.me/?text=${encodeURIComponent(inviteText(member.title))}`} target="_blank" rel="noopener noreferrer"><MessageCircle size={18} />{say('Позвать соседей в WhatsApp', 'Көршілерді WhatsApp арқылы шақыру')}</a>
+      <InviteButton member={member} where="people" className="dom-invite" label={say('Позвать соседей в WhatsApp', 'Көршілерді WhatsApp арқылы шақыру')} />
     </section>
   );
 }
@@ -506,9 +555,10 @@ function Blocked() {
   );
 }
 
-function plural(n: number, one: string, few: string, many: string) {
-  const a = n % 10, b = n % 100;
-  return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many;
+/** «Уже 21 сосед из 1 дома» — Russian needs the plural for both numbers; Kazakh nouns stay singular after a number. */
+function districtStat(st: { neighbours: number; houses: number }, kz: boolean) {
+  if (kz) return `${st.houses} үйден ${st.neighbours} көрші қосылды`;
+  return `Уже ${st.neighbours} ${plural(st.neighbours, 'сосед', 'соседа', 'соседей')} из ${st.houses} ${plural(st.houses, 'дома', 'домов', 'домов')}`;
 }
 
 /* ============================== /dom/post/:id ============================== */

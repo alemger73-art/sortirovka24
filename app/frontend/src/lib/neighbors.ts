@@ -6,8 +6,10 @@ export type NbKind = 'alarm' | 'question' | 'notice' | 'lost';
 export type NbMember = {
   id: number; kind: 'flat' | 'private'; street: string; house: string; entrance: number | null; flat: string;
   display_name: string; anonymous: boolean; status: 'pending' | 'confirmed' | 'blocked'; role: 'member' | 'elder'; custom_street: number;
-  title: string; public_name: string;
+  title: string; public_name: string; invite?: string;
 };
+/** The house an invite link points to: only the street, the house and its type. */
+export type NbInvite = { kind: 'flat' | 'private'; street: string; house: string; title: string; token?: string };
 export type NbConfirm = { confirmed_in_house: number; needed: number; got: number; proof_sent: boolean; proof_waiting: boolean };
 export type NbAuthor = { name: string; entrance: number | null; elder: boolean };
 export type NbPost = {
@@ -49,6 +51,25 @@ export function kzEntrance(n: number | null | undefined, kz: boolean) {
 
 export { shrinkPhoto } from '@/lib/photo';
 
+/** Russian plural: 1 сосед, 2 соседа, 5 соседей (Kazakh nouns after a number don't change). */
+export function plural(n: number, one: string, few: string, many: string) {
+  const a = n % 10, b = n % 100;
+  return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many;
+}
+
+const SITE = 'https://www.sortirovka24.kz';
+const INVITE_KEY = 's24_dom_invite';
+/** Invite link to the inviter's own house (address pre-filled for the neighbour). */
+export const inviteUrl = (token?: string) => (token ? `${SITE}/dom?inv=${encodeURIComponent(token)}` : `${SITE}/dom`);
+export const inviteText = (title: string, token?: string) =>
+  `Я уже в нашем доме на Сортировка 24, присоединяйся! ${title}: аварии, собрания и вопросы соседей — в одном месте. ${inviteUrl(token)}`;
+/** The invite survives the login round-trip in this tab. */
+export const pendingInvite = {
+  get: () => { try { return sessionStorage.getItem(INVITE_KEY) || ''; } catch { return ''; } },
+  set: (token: string) => { try { sessionStorage.setItem(INVITE_KEY, token); } catch { /* private mode */ } },
+  clear: () => { try { sessionStorage.removeItem(INVITE_KEY); } catch { /* private mode */ } },
+};
+
 function base() { return `${getAPIBaseURL().replace(/\/$/, '')}/api/v1/neighbors`; }
 function adminToken() {
   try { return localStorage.getItem('_sp924_token') || localStorage.getItem('token') || getAccountToken() || ''; } catch { return getAccountToken() || ''; }
@@ -75,6 +96,7 @@ export type NbAdmin = {
 
 export const nbApi = {
   streets: () => call<{ streets: string[]; stats: { neighbours: number; houses: number } }>('/streets', {}, ''),
+  invite: (token: string) => call<NbInvite>(`/invite/${encodeURIComponent(token)}`, {}, ''),
   me: () => call<{ member: NbMember | null; confirm?: NbConfirm; suggested_name?: string }>('/me'),
   save: (a: NbAddress) => call<{ member: NbMember; confirm: NbConfirm }>('/me', { method: 'PUT', body: JSON.stringify(a) }),
   leave: () => call<{ ok: boolean }>('/me', { method: 'DELETE' }),

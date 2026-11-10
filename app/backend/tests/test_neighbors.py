@@ -209,3 +209,28 @@ async def test_old_pending_members_are_opened(env):
         svc._ready.clear()
         await svc.ensure_tables(db)
     assert (await c.get(B + '/me', headers=h['alice'])).json()['member']['status'] == 'confirmed'
+
+
+async def test_invite_link_prefills_the_house_without_the_flat(env):
+    c, h = env
+    me = (await c.put(f'{B}/me', json=addr(), headers=h['alice'])).json()['member']
+    token = me['invite']
+    got = await c.get(f'{B}/invite/{token}')   # works without login
+    assert got.status_code == 200
+    body = got.json()
+    assert body == {'kind': 'flat', 'street': 'Жекибаева', 'house': '135', 'title': 'ул. Жекибаева, 135'}
+    assert '41' not in str(body) and 'Alice' not in str(body)
+    # a forged or edited token is refused
+    assert (await c.get(f'{B}/invite/{token[:-2]}xx')).status_code == 404
+    assert (await c.get(f'{B}/invite/{token.split(".")[0]}.')).status_code == 404
+    assert (await c.get(f'{B}/invite/' + 'Ж' * 10)).status_code == 404
+    # the invited neighbour saves the pre-filled address and lands in the same house
+    bob = (await c.put(f'{B}/me', json=addr(street=body['street'], house=body['house'], entrance=1, flat=''), headers=h['bob'])).json()['member']
+    assert bob['title'] == me['title'] and bob['invite'] == token
+
+
+async def test_private_house_invite_carries_only_the_street(env):
+    c, h = env
+    me = (await c.put(f'{B}/me', json=addr(kind='private', house='12', entrance=None, flat=''), headers=h['alice'])).json()['member']
+    body = (await c.get(f'{B}/invite/{me["invite"]}')).json()
+    assert body == {'kind': 'private', 'street': 'Жекибаева', 'house': '', 'title': 'ул. Жекибаева'}

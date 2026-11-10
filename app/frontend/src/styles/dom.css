@@ -248,3 +248,16 @@
 .dom-ask button { min-height: 34px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
 .dom-ask button.is-red { background: var(--alarm); border-color: var(--alarm); color: #fff; }
 .dom-ok-chip--muted { color: var(--muted); }
+
+/* invite: the house a neighbour invited you to, and the «позовите ещё» strip */
+.dom-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dom-row0 { display: none; }
+.dom-invited { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; padding: 10px 14px; border-radius: 14px; background: rgba(255,255,255,.16); font-weight: 600; }
+.dom-invite-house { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 16px; background: var(--dom-soft, #eef4ff); }
+.dom-invite-house > span { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: #fff; flex: none; }
+.dom-invite-house > div { display: grid; flex: 1; min-width: 0; }
+.dom-invite-house small { opacity: .7; }
+.dom-invite-house > button { background: none; border: 0; padding: 6px; font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; color: inherit; opacity: .8; }
+.dom-grow { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; padding: 12px 14px; border-radius: 16px; background: var(--dom-soft, #eef4ff); }
+.dom-grow p { margin: 0; font-weight: 600; }
+.dom-grow .dom-btn { flex: none; padding: 8px 14px; min-height: 0; }

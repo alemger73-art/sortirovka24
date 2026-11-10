@@ -14,7 +14,10 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import hashlib
+import hmac
 import html
+import json
 import logging
 import os
 import re
@@ -395,6 +398,37 @@ async def district_stats(db) -> dict:
     r = (await db.execute(text(
         "SELECT COUNT(*), COUNT(DISTINCT building) FROM nb_members WHERE status = 'confirmed'"))).first()
     return {"neighbours": int(r[0] or 0), "houses": int(r[1] or 0)}
+
+
+# ── Invite links ───────────────────────────────────────────────────────────
+# «/dom?inv=<token>» opens the section with the inviter's house pre-filled, so the neighbour can't land in another
+# house by a typo. The token carries only the street, the house and the house type (never the flat, name or phone)
+# and is signed, so it can't be forged or enumerated.
+
+def _invite_sig(payload: str) -> str:
+    from core.auth import _get_jwt_secret_key
+    raw = hmac.new(f"nb-invite|{_get_jwt_secret_key()}".encode(), payload.encode(), hashlib.sha256).digest()
+    return base64.urlsafe_b64encode(raw[:12]).decode().rstrip("=")
+
+
+def invite_token(m: dict) -> str:
+    house = m["house"] if m["kind"] == "flat" else ""
+    payload = base64.urlsafe_b64encode(json.dumps([m["kind"], m["street"], house], ensure_ascii=False).encode()).decode().rstrip("=")
+    return f"{payload}.{_invite_sig(payload)}"
+
+
+def read_invite(token: str) -> Optional[dict]:
+    """The pre-filled address of a valid invite, or None."""
+    payload, _, sig = str(token or "").partition(".")
+    if not payload or len(token) > 300 or not hmac.compare_digest(sig.encode(), _invite_sig(payload).encode()):
+        return None
+    try:
+        kind, street, house = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+    except (ValueError, TypeError):
+        return None
+    kind = "private" if kind == "private" else "flat"
+    return {"kind": kind, "street": str(street), "house": str(house) if kind == "flat" else "",
+            "title": building_title({"kind": kind, "street": street, "house": house})}
 
 
 async def house_preview(db, building: str) -> dict:

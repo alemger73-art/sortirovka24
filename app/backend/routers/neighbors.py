@@ -74,12 +74,21 @@ async def _member(db, authorization, confirmed: bool = False) -> dict:
 def _me(m: dict) -> dict:
     keys = ("id", "kind", "street", "house", "entrance", "flat", "display_name", "anonymous", "status", "role", "custom_street")
     return {k: m.get(k) for k in keys} | {"anonymous": bool(m.get("anonymous")), "title": svc.building_title(m),
-                                          "public_name": svc.public_name(m)}
+                                          "public_name": svc.public_name(m), "invite": svc.invite_token(m)}
 
 
 @router.get("/streets")
 async def streets(db: AsyncSession = Depends(get_db)):
     return {"streets": list(svc.STREETS), "stats": await svc.district_stats(db)}
+
+
+@router.get("/invite/{token}")
+async def invite(token: str):
+    """Public: the house an invite link points to (street, house, type — nothing about the inviter)."""
+    found = svc.read_invite(token)
+    if not found:
+        raise HTTPException(404, "Ссылка-приглашение устарела или неверна")
+    return found
 
 
 @router.get("/me")
