@@ -163,7 +163,19 @@ def directory_block(entries: list[dict[str, str]]) -> str:
     return "\n".join(lines)
 
 
-def system_prompt(modules: dict[str, bool], directory: Optional[list[dict[str, str]]] = None) -> str:
+def menu_block(menu: list[dict[str, str]]) -> str:
+    """DÄM ALEM's live menu: categories with dishes and prices, exactly as on the site."""
+    lines, category = [], None
+    for m in menu:
+        if m.get("category") != category:
+            category = m.get("category")
+            lines.append(f"[{category or 'Разное'}]")
+        lines.append(f"- {m.get('name')} — {m.get('price')} ₸")
+    return "\n".join(lines)
+
+
+def system_prompt(modules: dict[str, bool], directory: Optional[list[dict[str, str]]] = None,
+                  menu: Optional[list[dict[str, str]]] = None) -> str:
     on = [MODULE_INFO[k] for k, v in modules.items() if v and k in MODULE_INFO]
     sections = "\n".join(f"- {t}: {u} — {d}" for t, u, d in on) or "- (разделы уточняются)"
     contacts = directory_block(directory or [])
@@ -171,8 +183,13 @@ def system_prompt(modules: dict[str, bool], directory: Optional[list[dict[str, s
         f"\nСправочник района (это опубликовано на {SITE}/directory — отвечай телефонами и адресами ТОЛЬКО отсюда, дословно):\n{contacts}\n"
         if contacts else f"\nСправочник района: {SITE}/directory\n"
     )
+    dishes = menu_block(menu or [])
+    menu_part = f"Меню сейчас (цены с сайта, называй только их):\n{dishes}\n" if dishes else ""
     return f"""Ты — помощник поддержки портала «Сортировка 24» (sortirovka24.kz) в WhatsApp. Портал района Сортировка в Караганде.
 Отвечай на языке собеседника (русский или казахский), коротко, тепло и по-доброму.
+Пиши как живой, внимательный человек из команды района, а не как робот: обращайся по имени, если оно известно; отвечай по сути первой же фразой; без канцелярита («Ваш запрос принят», «Уважаемый клиент»); если вопрос неясен — задай один уточняющий вопрос; не повторяй приветствие в каждом сообщении; на «спасибо» — коротко и по-доброму.
+Если спросят, бот ты или человек, — честно скажи, что ты автоматический помощник «Сортировки 24», и предложи позвать живого человека.
+Тебе могут прислать голосовое (ты получаешь его расшифровку) или фото. По фото: опиши коротко, что видишь, и помоги по делу (скриншот ошибки сайта — объясни, что делать; фото товара — подскажи, как подать объявление; фото документа с личными данными — не пересказывай данные). Если по фото непонятно, что нужно, — спроси.
 Оформление (это WhatsApp): короткие абзацы с пустой строкой между ними, не сплошным текстом; списки — каждый пункт с новой строки со своим эмодзи; жирный — одной звёздочкой: *так* (не **, не #); 1–3 уместных эмодзи.
 
 Сейчас на портале работают разделы:
@@ -194,11 +211,11 @@ def system_prompt(modules: dict[str, bool], directory: Optional[list[dict[str, s
 DÄM ALEM (кафе-доставка: бургеры, пицца, закуски, коктейли, чаи):
 - Если спрашивают про DÄM ALEM, еду, меню, доставку или хотят заказать — дай ссылку на меню {SITE}/food и WhatsApp DÄM ALEM для заказа и вопросов: {DAM_ALEM_WHATSAPP} ({DAM_ALEM_WA_LINK}). Скажи, что там ответят по наличию и времени доставки.
 - Наш номер — поддержка портала, заказы здесь не принимаем.
-
+{menu_part}
 Правила:
 - Ты живой консультант по проекту «Сортировка 24»: подробно и по-человечески объясняй, как пользоваться порталом, разделами, кабинетом, объявлениями, бонусами, как стать партнёром. На темы, не связанные с порталом и районом, вежливо скажи, что помогаешь только по порталу.
 - Если нужного телефона нет в справочнике выше — не придумывай, дай ссылку {SITE}/directory.
-- Никогда не выдумывай цены, время работы, сроки доставки, наличие блюд, статусы конкретных заказов и личные данные — ты их не видишь. В таких случаях дай ссылку или передай оператору.
+- Никогда не выдумывай цены (кроме цен из меню выше), время работы, сроки доставки, наличие блюд, статусы конкретных заказов и личные данные — ты их не видишь. В таких случаях дай ссылку или передай оператору.
 - Никогда не проси коды из сообщений, пароли и данные карт. Если человек прислал код — скажи, что код никому сообщать нельзя.
 - Если человек просит живого человека, жалуется, у него проблема с конкретным заказом или оплатой, или ты не знаешь ответа — ответь, что передал вопрос оператору и он скоро напишет здесь же, и добавь в самом конце ответа метку {HANDOFF_TAG}.
 - Не обещай того, чего нет на портале."""
@@ -219,15 +236,22 @@ def fallback_reply(text: str) -> tuple[str, bool]:
 
 
 async def ask_ai(client: httpx.AsyncClient, chat: Chat, modules: dict[str, bool],
-                 directory: Optional[list[dict[str, str]]] = None) -> Optional[str]:
+                 directory: Optional[list[dict[str, str]]] = None,
+                 menu: Optional[list[dict[str, str]]] = None,
+                 image: Optional[tuple[str, str]] = None) -> Optional[str]:
+    """image = (media_type, base64) of a photo attached to the latest message; it is sent once, not kept in history."""
     key = (os.getenv("ANTHROPIC_API_KEY") or "").strip()
     if not key:
         return None
+    messages = [dict(t) for t in chat.turns[-HISTORY_TURNS:]]
+    if image and messages and messages[-1]["role"] == "user":
+        messages[-1]["content"] = [{"type": "image", "source": {"type": "base64", "media_type": image[0], "data": image[1]}},
+                                   {"type": "text", "text": messages[-1]["content"]}]
     resp = await client.post(
         "https://api.anthropic.com/v1/messages",
         headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
         json={"model": os.getenv("SUPPORT_BOT_MODEL", "claude-haiku-5-5"), "max_tokens": 900,
-              "system": system_prompt(modules, directory), "messages": chat.turns[-HISTORY_TURNS:]},
+              "system": system_prompt(modules, directory, menu), "messages": messages},
         timeout=40,
     )
     resp.raise_for_status()
@@ -273,6 +297,25 @@ async def transcribe(client: httpx.AsyncClient, media: dict[str, Any]) -> Option
     return r.text.strip() or None
 
 
+IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+MAX_IMAGE_BYTES = 5 * 1024 * 1024
+
+
+async def fetch_image(client: httpx.AsyncClient, media: dict[str, Any]) -> Optional[tuple[str, str]]:
+    """A photo the person sent → (media_type, base64) for the AI. None for other files or too big."""
+    import base64
+    kind = str((media or {}).get("mimetype") or "").split(";")[0].strip().lower()
+    url = str((media or {}).get("url") or "")
+    if kind not in IMAGE_TYPES or not url:
+        return None
+    base, headers = _waha()
+    r = await client.get(re.sub(r"^https?://[^/]+", base, url), headers=headers, timeout=30)
+    r.raise_for_status()
+    if not r.content or len(r.content) > MAX_IMAGE_BYTES:
+        return None
+    return kind, base64.b64encode(r.content).decode()
+
+
 async def notify_owner(client: httpx.AsyncClient, chat_id: str, chat: Chat, last: str) -> None:
     """Tell the owner in Telegram that a person needs a human."""
     from services.news_agent import approval_chat, bot_token, tg
@@ -306,6 +349,31 @@ async def _modules() -> dict[str, bool]:
 
 
 _directory_cache: tuple[float, list[dict[str, str]]] = (0.0, [])
+_menu_cache: tuple[float, list[dict[str, str]]] = (0.0, [])
+
+
+async def _menu() -> list[dict[str, str]]:
+    """DÄM ALEM dishes that are on sale now, refreshed every 10 minutes."""
+    global _menu_cache
+    if time.time() - _menu_cache[0] < 600:
+        return _menu_cache[1]
+    try:
+        from core.database import db_manager
+        from sqlalchemy import select
+        from models.food_categories import Food_categories as C
+        from models.food_items import Food_items as I
+        async with db_manager.async_session_maker() as db:
+            rows = (await db.execute(
+                select(I.name, I.price, C.name).outerjoin(C, C.id == I.category_id)
+                .where(I.is_active.is_(True), I.available.isnot(False), I.archived_at.is_(None),
+                       (I.business_id == "dam_alem") | I.business_id.is_(None))
+                .order_by(C.sort_order, I.sort_order, I.id).limit(200)
+            )).all()
+        menu = [{"category": c or "", "name": n or "", "price": f"{p:,.0f}".replace(",", " ")} for n, p, c in rows if n and p]
+        _menu_cache = (time.time(), menu)
+    except Exception as exc:
+        logger.warning("[SupportBot] menu load failed: %s", exc)
+    return _menu_cache[1]
 
 
 async def _directory() -> list[dict[str, str]]:
@@ -387,8 +455,16 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient, modules
             await send_text(client, chat_id, reply)
             return Outcome("replied", reply)
         text = heard
-    elif p.get("hasMedia") and not text:
-        text = "(прислал фото или файл без подписи)"
+    image = None
+    if p.get("hasMedia") and not is_voice:
+        try:
+            image = await fetch_image(client, media)
+        except Exception as exc:
+            logger.warning("[SupportBot] photo download failed: %s", exc)
+        if image:
+            text = f"[прислал фото] {text}".strip()
+        elif not text:
+            text = "(прислал файл без подписи)"
     if not text:
         return Outcome("ignored")
     chat.turns.append({"role": "user", "content": text[:2000]})
@@ -403,7 +479,8 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient, modules
     reply: Optional[str] = None
     handoff = False
     try:
-        reply = await ask_ai(client, chat, modules if modules is not None else await _modules(), await _directory())
+        reply = await ask_ai(client, chat, modules if modules is not None else await _modules(),
+                             await _directory(), await _menu(), image)
     except Exception as exc:
         logger.warning("[SupportBot] AI failed: %s", exc)
     if reply is None:

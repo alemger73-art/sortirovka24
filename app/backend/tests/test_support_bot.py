@@ -18,6 +18,8 @@ def msg(body, *, chat="77011234567@c.us", from_me=False, mid=None, **extra):
     return {"event": "message.any", "session": "default", "payload": payload}
 
 
+MENU = [{"category": "Пиццы", "name": "Пепперони", "price": "3 200"}, {"category": "Пиццы", "name": "Маргарита", "price": "2 400"}]
+
 DIRECTORY = [{"category": "Экстренные", "name": "Скорая помощь", "phone": "103", "whatsapp": "", "address": "", "hours": ""},
              {"category": "Медицина", "name": "Поликлиника №3", "phone": "+7 7212 00 00 00", "whatsapp": "", "address": "ул. Пример, 1", "hours": "8:00–20:00"}]
 
@@ -27,6 +29,7 @@ def clean(monkeypatch):
     support_bot._chats.clear(); support_bot._seen_ids.clear(); support_bot._aliases.clear()
     monkeypatch.setattr(support_bot, "REPLY_GRACE_SECONDS", 0)
     monkeypatch.setattr(support_bot, "_directory_cache", (float("inf"), DIRECTORY))
+    monkeypatch.setattr(support_bot, "_menu_cache", (float("inf"), MENU))
     monkeypatch.setenv("WAHA_URL", "http://waha:3000"); monkeypatch.setenv("WAHA_API_KEY", "k")
     monkeypatch.setenv("NEWS_TELEGRAM_BOT_TOKEN", "1:t"); monkeypatch.setenv("NEWS_TELEGRAM_CHAT_ID", "555")
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False); monkeypatch.delenv("WHISPER_URL", raising=False)
@@ -167,3 +170,40 @@ async def test_a_burst_of_messages_gets_one_answer(monkeypatch):
         second = await support_bot.handle_event(msg("как заказать еду?", mid="b"), client, MODULES)
         assert (await first).action == "ignored" and second.action == "replied"
     assert len([u for u, _ in log if "sendText" in u]) == 1
+
+
+async def test_prompt_has_live_menu_and_human_tone(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+    log = []
+    async with httpx.AsyncClient(transport=transport(log)) as client:
+        await support_bot.handle_event(msg("сколько стоит пепперони?"), client, MODULES)
+    system = next(b for u, b in log if "anthropic" in u)["system"]
+    assert "[Пиццы]" in system and "- Пепперони — 3 200 ₸" in system
+    assert "как живой" in system and "честно скажи, что ты автоматический помощник" in system
+
+
+async def test_photo_goes_to_the_ai_once(monkeypatch):
+    import base64
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+    log = []
+    png = b"\x89PNG\r\n\x1a\nfake"
+
+    def handler(request):
+        url = str(request.url)
+        if "/api/files/" in url:
+            return httpx.Response(200, content=png)
+        body = json.loads(request.content) if request.content and request.headers.get("content-type", "").startswith("application/json") else {}
+        log.append((url, body))
+        if "anthropic" in url:
+            return httpx.Response(200, json={"content": [{"type": "text", "text": "Вижу скриншот — нажмите «Обновить»."}]})
+        return httpx.Response(200, json={})
+
+    photo = msg("что это за ошибка?", hasMedia=True,
+                media={"url": "https://public.example/api/files/default/x.png", "mimetype": "image/png"})
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        out = await support_bot.handle_event(photo, client, MODULES)
+    assert out.action == "replied"
+    sent = next(b for u, b in log if "anthropic" in u)["messages"][-1]["content"]
+    assert sent[0]["type"] == "image" and sent[0]["source"]["data"] == base64.b64encode(png).decode()
+    assert sent[1]["text"].startswith("[прислал фото]")
+    assert isinstance(support_bot._chats[next(iter(support_bot._chats))].turns[0]["content"], str)  # history keeps text only
