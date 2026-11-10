@@ -37,6 +37,8 @@ logger = logging.getLogger(__name__)
 
 IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "heic", "heif"}
 VIDEO_EXTENSIONS = {"mp4", "webm", "mov", "avi", "mkv"}
+AD_VIDEO_FOLDER = "announcements/videos"
+AD_VIDEO_EXTENSIONS = {"mp4", "mov", "webm"}
 MAX_IMAGE_SIZE = 1200
 THUMBNAIL_SIZE = 300
 WEBP_QUALITY = 78
@@ -185,6 +187,34 @@ def video_delivery_urls(object_key: str) -> Optional[tuple[str, str]]:
     poster, _ = cloudinary.utils.cloudinary_url(
         public_id, format="jpg", transformation=[{"start_offset": 1, "quality": "auto"}], **options)
     return video, poster
+
+
+def video_upload_signature(object_key: str) -> dict:
+    """Signed params for the browser to upload an ad video straight to Cloudinary, in chunks.
+
+    A 90 MB phone video does not fit through Cloudflare's 100 s proxy timeout, so it skips our server.
+    The folder stays inside public_id, as in the proxy upload, so the stored key and video_delivery_urls match.
+    Cloudinary has no signed size limit: the 90 MB check is the browser's.
+    """
+    folder, _, filename = object_key.rpartition("/")
+    extension = _extract_extension(filename)
+    if folder != AD_VIDEO_FOLDER or extension not in AD_VIDEO_EXTENSIONS:
+        raise ValueError(f"Only MP4, MOV or WebM videos under {AD_VIDEO_FOLDER}/ can be uploaded directly")
+    cloud_name, api_key, api_secret = _resolve_cloudinary_config()
+    if not cloud_name or not api_key or not api_secret:
+        raise RuntimeError("Cloudinary is not configured")
+    stored_key = f"{AD_VIDEO_FOLDER}/{uuid4().hex}.{extension}"
+    public_id, _ = _split_public_id_and_format(stored_key)
+    # overwrite=false: the signature stays valid for an hour and must not replace a video already moderated.
+    params = {"public_id": public_id, "timestamp": int(time.time()), "overwrite": "false"}
+    return {
+        **params,
+        "signature": cloudinary.utils.api_sign_request(params, api_secret),
+        "api_key": api_key,
+        "cloud_name": cloud_name,
+        "resource_type": "video",
+        "object_key": stored_key,
+    }
 
 
 def _resolve_cloudinary_config() -> tuple[str, str, str]:

@@ -109,6 +109,19 @@ class UploadImageResponse(BaseModel):
     thumbnail_object_key: str = Field(default="", description="Stored thumbnail object key")
 
 
+class VideoUploadSignatureResponse(BaseModel):
+    """What the browser posts with every chunk of a signed upload to Cloudinary (never the API secret)."""
+
+    cloud_name: str
+    api_key: str
+    timestamp: int
+    signature: str
+    public_id: str
+    overwrite: str
+    resource_type: str
+    object_key: str = Field(..., description="Stored object key, the same shape as from upload-url")
+
+
 class RenameRequest(OSSBaseModel):
     source_key: str = ""
     target_key: str = ""

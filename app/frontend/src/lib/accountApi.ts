@@ -51,6 +51,18 @@ export interface UserNotificationItem {
   created_at?: string | null;
 }
 
+/** Signed params for a direct, chunked upload of an ad video to Cloudinary. */
+export interface VideoUploadSignature {
+  cloud_name: string;
+  api_key: string;
+  timestamp: number;
+  signature: string;
+  public_id: string;
+  overwrite: string;
+  resource_type: string;
+  object_key: string;
+}
+
 export function getAccountToken(): string {
   return readAccountToken();
 }
@@ -148,6 +160,11 @@ export const accountApi = {
       object_key?: string;
       thumbnail_object_key?: string;
     }>('/api/v1/account/me/avatar-upload-url', { method: 'POST' }),
+  videoUploadSignature: (objectKey: string) =>
+    api<VideoUploadSignature>('/api/v1/storage/video-upload-signature', {
+      method: 'POST',
+      body: JSON.stringify({ bucket_name: 'portal-images', object_key: objectKey }),
+    }),
   cabinet: () => api<any>("/api/v1/account/cabinet"),
   orderDetail: (source: string, orderId: number | string) =>
     api<any>(`/api/v1/account/orders/${encodeURIComponent(source)}/${orderId}`),

@@ -3,7 +3,7 @@ import { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Loader2, Video, CloudUpload, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { ensureBucket, uploadFile } from '@/lib/storage';
+import { uploadVideo } from '@/lib/storage';
 import { formatPublicText } from '@/i18n/publicLocale';
 
 const ACCEPTED_FORMATS = '.mp4,.mov,.webm';
@@ -14,7 +14,7 @@ interface VideoUploadProps {
   onChange: (objectKey: string) => void;
   folder?: string;
   className?: string;
-  /** Size limit in MB (the upload proxy takes videos up to 100 MB). */
+  /** Size limit in MB (the server takes videos up to 90 MB). */
   maxMb?: number;
   /** Longest allowed video; read in the browser from the file's metadata. */
   maxSeconds?: number;
@@ -62,25 +62,17 @@ export default function VideoUpload({ value, onChange, folder = 'general', class
     setUploadProgress(0);
     setUploadSuccess(false);
 
-    // Simulate progress
-    const progressInterval = setInterval(() => {
-      setUploadProgress(prev => Math.min(prev + 8, 85));
-    }, 200);
-
     try {
-      const result = await uploadFile(file, folder);
-
-      clearInterval(progressInterval);
+      const objectKey = await uploadVideo(file, folder, setUploadProgress);
       setUploadProgress(100);
 
-      onChange(result.objectKey);
+      onChange(objectKey);
       setUploadSuccess(true);
       toast.success(publicT("public.VideoUpload.text365"));
       setTimeout(() => setUploadSuccess(false), 2000);
     } catch (err) {
       console.error('Video upload error:', err);
       toast.error(publicT("public.VideoUpload.text366"));
-      clearInterval(progressInterval);
     } finally {
       setUploading(false);
     }

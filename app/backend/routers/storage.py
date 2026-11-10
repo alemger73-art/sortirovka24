@@ -17,8 +17,9 @@ from schemas.storage import (
     RenameRequest,
     RenameResponse,
     UploadImageResponse,
+    VideoUploadSignatureResponse,
 )
-from services.storage import StorageService
+from services.storage import StorageService, video_upload_signature
 from utils.rate_limit import check_ip_rate_limit
 
 logger = logging.getLogger(__name__)
@@ -142,6 +143,18 @@ async def upload_file(request: FileUpDownRequest, _current_user: UserResponse = 
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to generate upload URL: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка хранилища. Попробуйте ещё раз.")
+
+
+@router.post("/video-upload-signature", response_model=VideoUploadSignatureResponse)
+async def create_video_upload_signature(request: FileUpDownRequest, _current_user: UserResponse = Depends(get_current_user)):
+    """Signed params for a direct, chunked browser upload of an ad video to Cloudinary."""
+    try:
+        return video_upload_signature(request.object_key)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to sign video upload: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка хранилища. Попробуйте ещё раз.")
 
 

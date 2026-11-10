@@ -1,6 +1,6 @@
 """One short video per ad («Видео до 60 секунд»).
 
-The file goes to Cloudinary through the usual upload proxy; here we keep only its object key,
+The browser uploads the file straight to Cloudinary (storage video-upload-signature); here we keep only its object key,
 in a table of its own that is created on first use (no migration, the ads table is unchanged).
 """
 from __future__ import annotations

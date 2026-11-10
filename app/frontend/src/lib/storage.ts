@@ -7,7 +7,7 @@
  */
 import { client, withRetry } from '@/lib/api';
 import { apiUrl, resolveServiceUrl } from '@/lib/config';
-import { accountApi } from '@/lib/accountApi';
+import { accountApi, type VideoUploadSignature } from '@/lib/accountApi';
 
 export const BUCKET_NAME = 'portal-images';
 
@@ -555,6 +555,86 @@ export async function uploadFile(
   }
 
   return { objectKey, downloadUrl, thumbnailObjectKey, thumbnailUrl };
+}
+
+// ─── Ad videos: straight from the browser to Cloudinary ─────────
+// A 90 MB phone video on 4G outlasts Cloudflare's 100 s proxy timeout, so it does not go through our server.
+const DIRECT_VIDEO_FOLDER = 'announcements/videos';
+const VIDEO_CHUNK_BYTES = 6 * 1024 * 1024;
+const VIDEO_UPLOAD_ERROR = 'Не удалось загрузить видео — проверьте интернет и попробуйте ещё раз';
+
+/** One chunk of Cloudinary's chunked upload; XHR because fetch does not report upload progress. */
+function postVideoChunk(url: string, form: FormData, headers: Record<string, string>, onSent: (bytes: number) => void): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    Object.entries(headers).forEach(([name, value]) => xhr.setRequestHeader(name, value));
+    xhr.upload.onprogress = (e) => onSent(e.loaded);
+    xhr.onload = () => {
+      if (xhr.status < 200 || xhr.status >= 300) return reject(new Error(`Cloudinary ${xhr.status}: ${xhr.responseText}`));
+      try { resolve(JSON.parse(xhr.responseText || '{}')); } catch { resolve({}); }
+    };
+    xhr.onerror = () => reject(new Error('Cloudinary: network error'));
+    xhr.send(form);
+  });
+}
+
+async function uploadVideoToCloudinary(file: File, sig: VideoUploadSignature, onProgress: (percent: number) => void): Promise<string> {
+  const url = `https://api.cloudinary.com/v1_1/${sig.cloud_name}/${sig.resource_type}/upload`;
+  const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const total = file.size;
+  let result: any = {};
+  for (let start = 0; start < total; start += VIDEO_CHUNK_BYTES) {
+    const end = Math.min(start + VIDEO_CHUNK_BYTES, total);
+    const send = () => {
+      const form = new FormData();
+      form.append('file', file.slice(start, end), file.name);
+      form.append('api_key', sig.api_key);
+      form.append('timestamp', String(sig.timestamp));
+      form.append('public_id', sig.public_id);
+      form.append('overwrite', sig.overwrite);
+      form.append('signature', sig.signature);
+      const headers = { 'X-Unique-Upload-Id': uploadId, 'Content-Range': `bytes ${start}-${end - 1}/${total}` };
+      return postVideoChunk(url, form, headers, (sent) => onProgress(Math.floor(((start + Math.min(sent, end - start)) / total) * 99)));
+    };
+    try {
+      result = await send();
+    } catch (err) {
+      console.warn('[uploadVideo] Chunk failed, retrying once:', start, err);
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      result = await send().catch((retryErr) => {
+        console.error('[uploadVideo] Chunk failed again:', start, retryErr);
+        throw new Error(VIDEO_UPLOAD_ERROR);
+      });
+    }
+    onProgress(Math.floor((end / total) * 99));
+  }
+  if (result?.public_id !== sig.public_id) throw new Error(VIDEO_UPLOAD_ERROR);
+  return sig.object_key;
+}
+
+/**
+ * Upload a video and return its object key.
+ * Ad videos go to Cloudinary directly in 6 MB chunks with real progress;
+ * other videos, and ad videos when signing fails, take the upload proxy.
+ */
+export async function uploadVideo(file: File, folder: string, onProgress: (percent: number) => void): Promise<string> {
+  if (folder === DIRECT_VIDEO_FOLDER) {
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'mp4';
+    const sig = await accountApi.videoUploadSignature(`${folder}/${Date.now()}.${ext}`).catch((err) => {
+      console.warn('[uploadVideo] No direct upload signature, using the upload proxy:', err);
+      return null;
+    });
+    if (sig) return uploadVideoToCloudinary(file, sig, onProgress);
+  }
+  // The proxy reports no progress: creep towards 85% while it runs.
+  let shown = 0;
+  const timer = setInterval(() => onProgress((shown = Math.min(shown + 8, 85))), 200);
+  try {
+    return (await uploadFile(file, folder)).objectKey;
+  } finally {
+    clearInterval(timer);
+  }
 }
 
 /** Upload profile avatar via authenticated endpoint (works in web + Capacitor). */
