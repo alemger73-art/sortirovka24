@@ -24,7 +24,8 @@ DIRECTORY = [{"category": "Экстренные", "name": "Скорая помо
 
 @pytest.fixture(autouse=True)
 def clean(monkeypatch):
-    support_bot._chats.clear(); support_bot._seen_ids.clear()
+    support_bot._chats.clear(); support_bot._seen_ids.clear(); support_bot._aliases.clear()
+    monkeypatch.setattr(support_bot, "REPLY_GRACE_SECONDS", 0)
     monkeypatch.setattr(support_bot, "_directory_cache", (float("inf"), DIRECTORY))
     monkeypatch.setenv("WAHA_URL", "http://waha:3000"); monkeypatch.setenv("WAHA_API_KEY", "k")
     monkeypatch.setenv("NEWS_TELEGRAM_BOT_TOKEN", "1:t"); monkeypatch.setenv("NEWS_TELEGRAM_CHAT_ID", "555")
@@ -130,3 +131,39 @@ async def test_without_ai_dam_alem_question_gets_its_whatsapp():
     async with httpx.AsyncClient(transport=transport(log)) as client:
         out = await support_bot.handle_event(msg("Как заказать в Дам Алем?"), client, MODULES)
     assert out.action == "replied" and "wa.me/77470304096" in out.reply and "/food" in out.reply
+
+
+async def test_owner_reply_mutes_the_chat_even_when_whatsapp_uses_a_lid():
+    """The customer writes from a phone id, the owner's reply goes to the customer's lid: still one chat."""
+    log = []
+    customer = msg("здравствуйте", chat="77011234567@c.us",
+                   _data={"pushName": "Асия", "Info": {"Sender": "123456789@lid", "SenderAlt": "77011234567@s.whatsapp.net"}})
+    owner = msg("Добрый день, это Алемгер", from_me=True, chat="123456789@lid")
+    async with httpx.AsyncClient(transport=transport(log)) as client:
+        assert (await support_bot.handle_event(customer, client, MODULES)).action == "replied"
+        assert (await support_bot.handle_event(owner, client, MODULES)).action == "muted"
+        assert (await support_bot.handle_event(msg("а сколько стоит?", mid="m2"), client, MODULES)).action == "muted"
+
+
+async def test_bot_waits_and_stays_silent_if_the_owner_answers_first(monkeypatch):
+    import asyncio
+    monkeypatch.setattr(support_bot, "REPLY_GRACE_SECONDS", 0.2)
+    log = []
+    async with httpx.AsyncClient(transport=transport(log)) as client:
+        waiting = asyncio.create_task(support_bot.handle_event(msg("вопрос"), client, MODULES))
+        await asyncio.sleep(0.05)
+        await support_bot.handle_event(msg("Сейчас отвечу", from_me=True), client, MODULES)
+        assert (await waiting).action == "muted"
+    assert not [u for u, _ in log if "sendText" in u]
+
+
+async def test_a_burst_of_messages_gets_one_answer(monkeypatch):
+    import asyncio
+    monkeypatch.setattr(support_bot, "REPLY_GRACE_SECONDS", 0.2)
+    log = []
+    async with httpx.AsyncClient(transport=transport(log)) as client:
+        first = asyncio.create_task(support_bot.handle_event(msg("привет", mid="a"), client, MODULES))
+        await asyncio.sleep(0.05)
+        second = await support_bot.handle_event(msg("как заказать еду?", mid="b"), client, MODULES)
+        assert (await first).action == "ignored" and second.action == "replied"
+    assert len([u for u, _ in log if "sendText" in u]) == 1

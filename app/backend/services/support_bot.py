@@ -15,6 +15,7 @@ for support chat); handoffs and mutes are also in memory.
 
 from __future__ import annotations
 
+import asyncio
 import html
 import logging
 import os
@@ -31,6 +32,9 @@ SITE = "https://www.sortirovka24.kz"
 HISTORY_TURNS = 12
 HISTORY_TTL = 24 * 3600
 MUTE_AFTER_OWNER = 12 * 3600
+# The bot waits this long before answering, so the owner can reply first (then the bot stays silent),
+# and a burst of several messages gets one answer.
+REPLY_GRACE_SECONDS = float(os.getenv("SUPPORT_BOT_REPLY_GRACE", "45"))
 MAX_PER_HOUR = 30
 HANDOFF_TAG = "[ОПЕРАТОР]"
 MAX_REPLY_CHARS = 1200
@@ -46,9 +50,12 @@ class Chat:
     recent: list[float] = field(default_factory=list)
     name: str = ""
     sent: list[str] = field(default_factory=list)  # texts the bot itself sent (they come back as fromMe)
+    last_user_at: float = 0.0
 
 
 _chats: dict[str, Chat] = {}
+# WhatsApp names one person by several ids (phone@c.us, phone@s.whatsapp.net, xxx@lid): all map to one chat key.
+_aliases: dict[str, str] = {}
 _seen_ids: dict[str, float] = {}
 
 
@@ -58,6 +65,42 @@ def enabled() -> bool:
 
 def hook_key() -> str:
     return (os.getenv("SUPPORT_BOT_HOOK_KEY") or os.getenv("WAHA_API_KEY") or "").strip()
+
+
+def _bare(jid: str) -> str:
+    """'77001234567:12@s.whatsapp.net' / '77001234567@c.us' → '77001234567@c.us'; lids keep their own form."""
+    jid = (jid or "").strip()
+    if not jid or "@" not in jid:
+        return ""
+    user, server = jid.split("@", 1)
+    user = user.split(":", 1)[0]
+    return f"{user}@lid" if server == "lid" else f"{user}@c.us"
+
+
+def _peer_ids(p: dict[str, Any]) -> list[str]:
+    """Every id WhatsApp gives for the OTHER person in this chat (never our own number)."""
+    info = (p.get("_data") or {}).get("Info") or {}
+    if p.get("fromMe"):
+        cands = [p.get("to"), info.get("Chat"), info.get("RecipientAlt"), info.get("ChatAlt")]
+    else:
+        cands = [p.get("from"), info.get("Chat"), info.get("Sender"), info.get("SenderAlt"), info.get("ChatAlt")]
+    seen: list[str] = []
+    for c in cands:
+        jid = _bare(str(c or ""))
+        if jid and jid not in seen:
+            seen.append(jid)
+    return seen
+
+
+def _chat_key(p: dict[str, Any]) -> str:
+    """One key per person: the first id seen for them; every other id of theirs is remembered as an alias."""
+    ids = _peer_ids(p)
+    if not ids:
+        return ""
+    key = next((_aliases[i] for i in ids if i in _aliases), ids[0])
+    for i in ids:
+        _aliases[i] = key
+    return key
 
 
 def _chat(chat_id: str) -> Chat:
@@ -308,7 +351,7 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient, modules
     from services.dam_wa_bot import _phone_from
     if _phone_from(chat_id, p) in OWN_NUMBERS:
         return Outcome("ignored")
-    chat = _chat(chat_id)
+    chat = _chat(_chat_key(p) or chat_id)
     now = time.time()
     if p.get("fromMe"):
         body = str(p.get("body") or "").strip()
@@ -349,6 +392,13 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient, modules
     if not text:
         return Outcome("ignored")
     chat.turns.append({"role": "user", "content": text[:2000]})
+    arrived = chat.last_user_at = time.time()
+    if REPLY_GRACE_SECONDS > 0:
+        await asyncio.sleep(REPLY_GRACE_SECONDS)
+        if time.time() < chat.muted_until:
+            return Outcome("muted")  # the owner answered while the bot was waiting
+        if chat.last_user_at != arrived:
+            return Outcome("ignored")  # a newer message came in; that one gets the answer
 
     reply: Optional[str] = None
     handoff = False
