@@ -136,7 +136,7 @@ MARKETING_SETTING_KEYS: Dict[str, str] = {
     "hero_banner_title": "DAM ALEM 2.0",
     "min_order_amount": "2000",
     "delivery_price": "500",
-    "service_fee_rate": "10",
+    "service_fee_rate": "0",
     "free_delivery_from": "15000",
     "apartment_delivery_price": "300",
     "apartment_free_from": "15000",

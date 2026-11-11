@@ -15,7 +15,7 @@ def test_marketing_copy_and_checkout_defaults_match_rules():
  assert any('1 500' in line for line in promo_slide['lines'])
  assert MARKETING_SETTING_KEYS['min_order_amount']=='2000'
  assert MARKETING_SETTING_KEYS['delivery_price']=='500'
- assert MARKETING_SETTING_KEYS['service_fee_rate']=='10'
+ assert MARKETING_SETTING_KEYS['service_fee_rate']=='0'
 
 def test_previous_default_promo_slides_are_upgraded_but_owner_copy_is_preserved():
  from services.dam_alem_marketing_seed import _is_legacy_promo_slides

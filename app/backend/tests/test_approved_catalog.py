@@ -84,7 +84,7 @@ async def test_clean_database_bootstraps_restaurant_catalog_and_marketing(monkey
   settings={row.setting_key:row.setting_value for row in (await db.scalars(select(Food_settings))).all()}
   assert settings['min_order_amount']=='2000'
   assert settings['delivery_price']=='500'
-  assert settings['service_fee_rate']=='10'
+  assert settings['service_fee_rate']=='0'
   active_banners=(await db.scalars(select(Banners).where(Banners.banner_type=='food_delivery',Banners.active.is_(True)))).all()
   assert {banner.title for banner in active_banners}=={'Орбита Чикен','Орбита Биф'}
  await engine.dispose()
