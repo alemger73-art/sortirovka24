@@ -17,6 +17,8 @@ export type ToyData = {
 export type ToyStatus = 'draft' | 'pending' | 'published' | 'rejected' | 'archived';
 export type ToyInvite = {
   id: number; slug: string; status: ToyStatus; data: ToyData; price?: number | null; views?: number; link: string;
+  /** Kaspi payment link while the invitation waits for payment (shown on the site — we never write first in WhatsApp). */
+  pay_link?: string | null;
   created_at?: string; paid_at?: string | null; guests?: { coming: number; people: number; declined: number };
 };
 export type ToyGuest = { name: string; coming: boolean; guests: number; wish: string; at?: string };

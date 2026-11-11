@@ -1,6 +1,6 @@
-"""«Sortirovka Official»: request → owner picks a category → WhatsApp with price and Kaspi link → paid → published."""
+"""«Sortirovka Official»: request → owner picks a category → price and Kaspi link on the site and in the cabinet → paid → published.
+Nothing goes out through WhatsApp."""
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock
 
 import pytest
 from fastapi import FastAPI
@@ -42,16 +42,15 @@ async def env(monkeypatch):
     app.dependency_overrides[get_db] = database
     sent, owner = [], []
 
-    async def fake_wa(phone, body):
-        sent.append((phone, body))
-        return True
+    async def fake_cabinet(db, req, title, body):
+        sent.append((req['phone'], body))
 
     async def fake_owner(db, req):
         owner.append(req)
         return True
-    monkeypatch.setattr(svc, '_whatsapp', fake_wa)
     monkeypatch.setattr(svc, 'send_to_owner', fake_owner)
-    monkeypatch.setattr(svc, '_cabinet', AsyncMock())
+    monkeypatch.setattr(svc, '_cabinet', fake_cabinet)
+    assert not hasattr(svc, '_whatsapp')
     svc._ready.clear()
     headers = {'alice': {'Authorization': 'Bearer ' + create_access_token({'sub': 'alice', 'role': 'user', 'jti': 'alice-s'})},
                'panel': {'Authorization': 'Bearer ' + admin_auth._create_admin_jwt('stage-admin')}}

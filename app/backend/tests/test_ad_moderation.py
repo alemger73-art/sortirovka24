@@ -22,9 +22,9 @@ def bot(monkeypatch):
     monkeypatch.setattr('services.news_agent.tg', tg)
     monkeypatch.setattr('services.news_agent.bot_token', lambda: 'token')
     monkeypatch.setattr('services.news_agent.approval_chat', lambda: '42')
-    wa = AsyncMock()
-    monkeypatch.setattr('services.customer_payment_notice._whatsapp', wa)
-    return calls, wa
+    notices = AsyncMock()  # cabinet + push; the WhatsApp number never writes first
+    monkeypatch.setattr('services.user_notifications.notify_user_by_id', notices)
+    return calls, notices
 
 
 async def test_new_ad_goes_to_owner_with_photo_and_buttons_then_one_tap_publishes(security_env, bot):
@@ -41,7 +41,8 @@ async def test_new_ad_goes_to_owner_with_photo_and_buttons_then_one_tap_publishe
         answer = await ad_moderation.handle_callback(db, http, f'ad:p:{ad_id}', '42', {'message_id': 7})
     assert answer == 'Опубликовано на сайте'
     assert calls[-1][0] == 'editMessageReplyMarkup'
-    assert wa.await_args.args[0] == '+77001234567' and 'опубликовано' in wa.await_args.args[1]
+    assert wa.await_args.kwargs['title'] == 'Объявление опубликовано'
+    assert not hasattr(__import__('services.customer_payment_notice').customer_payment_notice, '_whatsapp')
     assert (await client.get(BASE)).json()['total'] == 1
     row = (await client.get(f'{BASE}/{ad_id}')).json()
     assert datetime.fromisoformat(row['expires_at']) > datetime.now(timezone.utc)
@@ -57,7 +58,7 @@ async def test_reject_with_reason_tells_author_and_hides(security_env, bot):
     async with maker() as db, httpx.AsyncClient() as http:
         answer = await ad_moderation.handle_callback(db, http, f'ad:r:{ad_id}:banned', '42', {'message_id': 8})
     assert answer.startswith('Отклонено: товар или услуга запрещены')
-    assert 'не прошло проверку' in wa.await_args.args[1]
+    assert 'не прошло проверку' in wa.await_args.kwargs['title']
     assert (await client.get(BASE)).json()['total'] == 0
 
 

@@ -49,9 +49,11 @@ async def _own(db, invite_id: int, authorization) -> dict:
     return inv
 
 
-def _for_owner(inv: dict) -> dict:
+def _for_owner(inv: dict, kaspi_link: str = "") -> dict:
+    """kaspi_link: the payment button shown on the site while the invitation waits for payment."""
     keys = ("id", "slug", "status", "data", "price", "views", "created_at", "updated_at", "paid_at")
-    return {k: inv.get(k) for k in keys} | {"link": svc.link_for(inv)}
+    pay_link = kaspi_link if inv.get("status") == "pending" and kaspi_link else None
+    return {k: inv.get(k) for k in keys} | {"link": svc.link_for(inv), "pay_link": pay_link}
 
 
 @router.get("/config")
@@ -76,17 +78,19 @@ async def create(body: InviteBody, authorization: str | None = Header(default=No
 @router.get("/invites/mine")
 async def mine(authorization: str | None = Header(default=None, alias="Authorization"), db: AsyncSession = Depends(get_db)):
     user = await _user(db, authorization)
+    kaspi = (await svc.get_settings(db))["kaspi_link"]
     items = []
     for inv in await svc.list_for_user(db, str(user.id)):
         summary = await svc.guests(db, inv["id"])
-        items.append(_for_owner(inv) | {"guests": {k: summary[k] for k in ("coming", "people", "declined")}})
+        items.append(_for_owner(inv, kaspi) | {"guests": {k: summary[k] for k in ("coming", "people", "declined")}})
     return {"items": items}
 
 
 @router.get("/invites/{invite_id}")
 async def get_one(invite_id: int, authorization: str | None = Header(default=None, alias="Authorization"),
                   db: AsyncSession = Depends(get_db)):
-    return _for_owner(await _own(db, invite_id, authorization))
+    inv = await _own(db, invite_id, authorization)
+    return _for_owner(inv, (await svc.get_settings(db))["kaspi_link"])
 
 
 @router.put("/invites/{invite_id}")
@@ -98,7 +102,7 @@ async def update(invite_id: int, body: InviteBody, authorization: str | None = H
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from None
     data["photos"] = await svc.own_photos(db, str(inv["user_id"]), data["photos"])
-    return _for_owner(await svc.update_data(db, inv["id"], data))
+    return _for_owner(await svc.update_data(db, inv["id"], data), (await svc.get_settings(db))["kaspi_link"])
 
 
 class PhotoBody(BaseModel):
@@ -149,8 +153,8 @@ async def publish(invite_id: int, request: Request, authorization: str | None = 
     if inv["status"] == "published":
         return _for_owner(inv)
     if not inv.get("phone"):
-        raise HTTPException(400, "Добавьте номер телефона в профиле — на него придёт ссылка на оплату")
-    return _for_owner(await svc.request_payment(db, inv))
+        raise HTTPException(400, "Добавьте номер телефона в профиле — он нужен для заказа")
+    return _for_owner(await svc.request_payment(db, inv), cfg["kaspi_link"])
 
 
 @router.get("/invites/{invite_id}/guests")

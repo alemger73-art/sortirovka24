@@ -155,6 +155,9 @@ class RequestSmsCodeResponse(BaseModel):
     on_screen_code_hint: Optional[str] = None
     # Telegram without the paid Gateway: open this bot link to receive the code.
     bot_url: Optional[str] = None
+    # WhatsApp: the person sends our number the ready text from this link; the page polls with login_id.
+    wa_url: Optional[str] = None
+    login_id: Optional[str] = None
 
 
 class ConfirmRegistrationRequest(RegisterV2Request):

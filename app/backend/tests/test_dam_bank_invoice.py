@@ -4,7 +4,6 @@ import json
 from uuid import uuid4
 import pytest
 from sqlalchemy import select
-from unittest.mock import AsyncMock
 from models.food_payment import FoodPayment
 from models.user_notifications import UserNotification
 from tests.test_dam_order_workflow import env, BASE
@@ -25,8 +24,8 @@ async def checkout(env, method='kaspi_qr', **extra):
 @pytest.mark.parametrize('method', ['kaspi_qr', 'halyk_qr'])
 async def test_customer_bank_order_flow(env, method):
     client, maker, operator, patch = env
-    whatsapp = AsyncMock()
-    patch.setattr('services.customer_payment_notice._whatsapp', whatsapp)
+    import services.customer_payment_notice as notice
+    assert not hasattr(notice, '_whatsapp')  # cabinet + push only: our WhatsApp number never writes first
     uid, headers, made = await checkout(env, method, payment_phone='8 701 555 66 77')
     assert made.status_code == 201, made.text
     oid = made.json()['id']
@@ -41,9 +40,6 @@ async def test_customer_bank_order_flow(env, method):
 
     sent = await client.post(BASE + f'/orders/{oid}/invoice-sent', headers=operator)
     assert sent.status_code == 200, sent.text
-    whatsapp.assert_awaited_once()
-    assert whatsapp.await_args.args[0] == '+77015556677'
-    assert whatsapp.await_args.args[1].startswith('🔔 Сортировка 24')
     async with maker() as db:
         note = await db.scalar(select(UserNotification).where(UserNotification.user_id == uid,
                                UserNotification.event_key.like(f'food:invoice:{oid}:%')))

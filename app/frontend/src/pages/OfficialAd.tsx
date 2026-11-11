@@ -1,7 +1,7 @@
 /**
  * «Разместить в Sortirovka Official»: why it pays off (30 000 local subscribers), the three prices,
  * how it works, then the text + photos. The owner checks it in Telegram and picks the category;
- * the person gets the price and a Kaspi link in WhatsApp. Payment happens only after the check.
+ * the person sees the price and a Kaspi button here and in the cabinet (we never write first in WhatsApp). Payment happens only after the check.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -79,7 +79,7 @@ export default function OfficialAd() {
   async function submit() {
     if (sending) return;
     if (body.trim().length < 10) { toast.error(tx('Напишите текст объявления — хотя бы одно предложение', 'Хабарландыру мәтінін жазыңыз')); return; }
-    if (normalizeKzPhone(phone).length < 11) { toast.error(tx('Укажите номер WhatsApp — туда придёт сумма и ссылка на оплату', 'WhatsApp нөмірін жазыңыз')); return; }
+    if (normalizeKzPhone(phone).length < 11) { toast.error(tx('Укажите номер WhatsApp для связи', 'Байланыс үшін WhatsApp нөмірін жазыңыз')); return; }
     setSending(true);
     try {
       const req = await officialAds.create({ body: body.trim(), photos: photoList, phone: `+${normalizeKzPhone(phone)}`, name: name.trim(), ann_id: adId, wish: wish || undefined });
@@ -96,7 +96,7 @@ export default function OfficialAd() {
       <div className="mx-auto max-w-md px-4 py-14 text-center">
         <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-[#eef3ff] dark:bg-[#1c2f50]"><Send className="h-9 w-9 text-[#3864ed]" /></div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{tx('Заявка отправлена', 'Өтінім жіберілді')}</h1>
-        <p className="mt-3 text-gray-600 dark:text-slate-300">{tx('Мы проверим объявление и определим категорию. В WhatsApp на номер ', 'Хабарландыруды тексеріп, санатын анықтаймыз. WhatsApp-қа ')}<b>{formatKzPhone(done.phone || phone)}</b>{tx(' придёт сумма и ссылка на оплату через Kaspi.', ' сома мен Kaspi сілтемесі келеді.')}</p>
+        <p className="mt-3 text-gray-600 dark:text-slate-300">{tx('Мы проверим объявление и определим категорию. Сумма и кнопка оплаты Kaspi появятся на этой странице и в уведомлениях кабинета. Номер для связи: ', 'Хабарландыруды тексеріп, санатын анықтаймыз. Сома мен Kaspi төлем батырмасы осы бетте және кабинет хабарламаларында шығады. Байланыс нөмірі: ')}<b>{formatKzPhone(done.phone || phone)}</b></p>
         <ol className="mt-6 space-y-2 text-left text-sm">
           {[tx('Заявка у нас', 'Өтінім бізде'), tx('Проверяем и выбираем категорию', 'Тексеріп, санатын таңдаймыз'), tx('Оплата по ссылке Kaspi', 'Kaspi арқылы төлем'), tx('Публикуем в канале', 'Арнада жариялаймыз')].map((s, i) => (
             <li key={s} className="flex items-center gap-3 rounded-xl bg-white p-3 dark:bg-slate-900">
@@ -169,7 +169,7 @@ export default function OfficialAd() {
             {[
               { i: Send, t: tx('Отправляете текст и фото', 'Мәтін мен фото жібересіз') },
               { i: Clock, t: tx('Проверяем и подбираем категорию', 'Тексеріп, санатын таңдаймыз') },
-              { i: MessageCircle, t: tx('В WhatsApp — сумма и ссылка Kaspi', 'WhatsApp-қа сома мен Kaspi сілтемесі') },
+              { i: MessageCircle, t: tx('На сайте — сумма и кнопка Kaspi', 'Сайтта — сома мен Kaspi батырмасы') },
               { i: BadgeCheck, t: tx('После оплаты публикуем в канале', 'Төлемнен кейін арнада жариялаймыз') },
             ].map(({ i: Icon, t }, n) => (
               <li key={t} className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 sm:flex-col sm:items-start">
@@ -215,7 +215,7 @@ export default function OfficialAd() {
                   <input id="of-name" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} className={field} />
                 </div>
               </div>
-              <p className="flex items-start gap-2 text-xs leading-relaxed text-gray-500 dark:text-slate-400"><CreditCard className="mt-0.5 h-4 w-4 shrink-0" />{tx('Сейчас ничего платить не нужно. Оплата — только после проверки, по ссылке Kaspi, которая придёт в WhatsApp от Сортировка 24.', 'Қазір төлеудің қажеті жоқ. Төлем тек тексерістен кейін, WhatsApp-қа келетін Kaspi сілтемесі арқылы.')}</p>
+              <p className="flex items-start gap-2 text-xs leading-relaxed text-gray-500 dark:text-slate-400"><CreditCard className="mt-0.5 h-4 w-4 shrink-0" />{tx('Сейчас ничего платить не нужно. Оплата — только после проверки, по кнопке Kaspi на этой странице.', 'Қазір төлеудің қажеті жоқ. Төлем тек тексерістен кейін, осы беттегі Kaspi батырмасы арқылы.')}</p>
               <button type="button" data-testid="official-submit" disabled={sending || !cfg.enabled} onClick={() => void submit()} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#3864ed] font-semibold text-white hover:bg-[#2c55d6] disabled:opacity-60">
                 {sending ? <><Loader2 className="h-5 w-5 animate-spin" />{tx('Отправляем…', 'Жіберілуде…')}</> : <><Send className="h-5 w-5" />{cfg.enabled ? tx('Отправить на проверку', 'Тексеруге жіберу') : tx('Приём временно закрыт', 'Қабылдау уақытша жабық')}</>}
               </button>

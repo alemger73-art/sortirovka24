@@ -739,11 +739,11 @@ async def register(
 
 
 @router.get("/otp-channels")
-async def otp_channels():
-    """Messengers that can deliver the login code right now (WhatsApp, Telegram, SMS)."""
+async def otp_channels(purpose: str = Query("", max_length=16)):
+    """Ways to confirm the phone right now. WhatsApp only for sign-in (the person writes to us first)."""
     from services.sms import refresh_waha_status
     await refresh_waha_status()
-    return {"channels": available_channels()}
+    return {"channels": available_channels(include_whatsapp=purpose == "signin")}
 
 
 @router.post("/register/request-sms", response_model=RequestSmsCodeResponse)
@@ -1000,10 +1000,8 @@ async def login(
     return await _issue_account_session(user, http_request, db)
 
 
-class PhoneSignInConfirm(BaseModel):
+class PhoneSignInConsent(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    phone: str = Field(max_length=32)
-    code: str = Field(pattern=r"^[0-9]{6}$")
     language: Literal["ru", "kz"] = "ru"
     agreement_accepted: bool = False
     privacy_accepted: bool = False
@@ -1011,16 +1009,81 @@ class PhoneSignInConfirm(BaseModel):
     legal_subject_name: str | None = Field(None, max_length=255)
 
 
+class PhoneSignInConfirm(PhoneSignInConsent):
+    phone: str = Field(max_length=32)
+    code: str = Field(pattern=r"^[0-9]{6}$")
+
+
+class WhatsAppSignInStatus(PhoneSignInConsent):
+    login_id: str = Field(min_length=16, max_length=64)
+
+
 @router.post("/signin/request-sms", response_model=RequestSmsCodeResponse)
 async def signin_request_sms(body: RequestSmsCodeRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
     receipt = acceptance_payload(body.legal_version, accepted=body.agreement_accepted and body.privacy_accepted,
                                  language=body.language, channel='sms_request', subject_name=body.legal_subject_name)
+    if body.channel == "whatsapp":
+        return await _start_whatsapp_signin(body.phone, http_request, db, receipt)
     return await _request_phone_code(body.phone, http_request, db, allow_existing=True, purpose="signin", legal_receipt=receipt, channel=body.channel)
+
+
+async def _start_whatsapp_signin(phone, http_request, db, legal_receipt) -> RequestSmsCodeResponse:
+    """Nothing is sent: the person sends us «Вход на Сортировка 24: code» from their own WhatsApp."""
+    from services import wa_login
+    from services.sms import refresh_waha_status
+    normalized_phone = _normalize_phone(phone)
+    if not normalized_phone or not _is_valid_kz_phone(normalized_phone):
+        raise HTTPException(status_code=400, detail="Invalid phone")
+    await refresh_waha_status()
+    if "whatsapp" not in available_channels(include_whatsapp=True):
+        raise HTTPException(DELIVERY_FAILED, "Вход через WhatsApp сейчас недоступен. Войдите через Telegram.")
+    client_ip = http_request.client.host if http_request.client else "unknown"
+    window_sec = SMS_REQUEST_WINDOW.total_seconds()
+    check_keyed_rate_limit(f"sms:phone:{normalized_phone}", window_seconds=window_sec, max_hits=MAX_SMS_REQUESTS_PER_WINDOW,
+                           message="Слишком много запросов SMS. Подождите 15 минут и попробуйте снова.")
+    check_keyed_rate_limit(f"sms:ip:{client_ip}", window_seconds=window_sec, max_hits=MAX_SMS_REQUESTS_PER_WINDOW,
+                           message="Слишком много запросов SMS с вашего IP. Попробуйте позже.")
+    login_id, code = await wa_login.start(db, normalized_phone)
+    add_acceptance(db, None, legal_receipt, entity='phone_verifications', entity_id=normalized_phone, action='legal_sms_consent')
+    await db.commit()
+    await _log_action(db, None, "whatsapp_login_requested", "phone_verifications", normalized_phone)
+    return RequestSmsCodeResponse(
+        success=True, channel="whatsapp", ttl_seconds=wa_login.TTL_SECONDS, resend_after_seconds=SMS_RESEND_COOLDOWN_SECONDS,
+        wa_url=wa_login.wa_url(code), login_id=login_id,
+        on_screen_code_hint=f"Откройте WhatsApp и отправьте нам готовое сообщение «{wa_login.message_text(code)}» — "
+                            "с того номера, который вы ввели. Вход завершится сам.",
+    )
+
+
+@router.post("/signin/whatsapp/status")
+async def signin_whatsapp_status(body: WhatsAppSignInStatus, http_request: Request, db: AsyncSession = Depends(get_db)):
+    """The login page polls this until our WhatsApp number has received the person's message."""
+    from services import wa_login
+    check_keyed_rate_limit(f"walogin:{body.login_id}", window_seconds=600, max_hits=400, message="Слишком частые запросы.")
+    state, phone = await wa_login.state(db, body.login_id)
+    if state == "expired":
+        raise HTTPException(410, "Время входа вышло. Нажмите «Войти через WhatsApp» ещё раз.")
+    if state == "pending":
+        return {"status": "pending"}
+
+    async def verify():
+        if not await wa_login.consume(db, body.login_id):
+            raise HTTPException(410, "Время входа вышло. Нажмите «Войти через WhatsApp» ещё раз.")
+    session = await _finish_phone_signin(body, phone, verify, http_request, db)
+    return {"status": "done", **session.model_dump()}
 
 
 @router.post("/signin/confirm", response_model=AuthV2Response)
 async def signin_confirm(body: PhoneSignInConfirm, http_request: Request, db: AsyncSession = Depends(get_db)):
     phone = _normalize_phone(body.phone)
+
+    async def verify():
+        await _consume_phone_code(db, phone, body.code, purpose="signin")
+    return await _finish_phone_signin(body, phone, verify, http_request, db)
+
+
+async def _finish_phone_signin(body: PhoneSignInConsent, phone: str, verify, http_request: Request, db: AsyncSession) -> AuthV2Response:
+    """The phone is proven by *verify* (code typed on the site, or a WhatsApp message from that number)."""
     from services import crm
     await crm.lock(db)
     user = (await db.execute(select(User).where(User.phone == phone).with_for_update())).scalar_one_or_none()
@@ -1035,7 +1098,7 @@ async def signin_confirm(body: PhoneSignInConfirm, http_request: Request, db: As
         raise HTTPException(403, "Это служебный аккаунт администратора — войдите через «Вход для сотрудников» внизу страницы.")
     if not user and not (body.agreement_accepted and body.privacy_accepted):
         raise HTTPException(400, "Agreement and privacy acceptance required")
-    await _consume_phone_code(db, phone, body.code, purpose="signin")
+    await verify()
     if not user:
         # Reuse registration/CRM handling without creating a usable password.
         return await _create_user_and_login(RegisterV2Request(

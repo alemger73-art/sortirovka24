@@ -1,6 +1,5 @@
 """«Шақыру»: build → preview by the owner only → pay request → owner marks paid → guests answer → host sees the list."""
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock
 
 import pytest
 from fastapi import FastAPI
@@ -47,11 +46,10 @@ async def env(monkeypatch):
     app.dependency_overrides[get_db] = database
     sent = []
 
-    async def fake_wa(phone, body):
-        sent.append((phone, body))
-        return True
-    monkeypatch.setattr(svc, '_whatsapp', fake_wa)
-    monkeypatch.setattr(svc, '_cabinet', AsyncMock())
+    async def fake_cabinet(db, inv, title, body):
+        sent.append((inv['phone'], body))
+    monkeypatch.setattr(svc, '_cabinet', fake_cabinet)
+    assert not hasattr(svc, '_whatsapp')
     monkeypatch.setattr('services.news_agent.bot_token', lambda: '')
     svc._ready.clear()
     h = {u: {'Authorization': 'Bearer ' + create_access_token({'sub': u, 'role': 'user', 'jti': u + '-s'})} for u in ('alice', 'bob')}
@@ -79,11 +77,12 @@ async def test_full_invitation_flow(env):
     assert (await client.post(f'{BASE}/public/{slug}/rsvp', json={'name': 'Ерлан'})).status_code == 404
     assert (await client.put(f"{BASE}/invites/{inv['id']}", json={'data': DATA}, headers=h['bob'])).status_code == 404
 
-    # Price and Kaspi link from the admin; the person gets them in WhatsApp.
+    # Price and Kaspi link from the admin; the person sees them on the site and in the cabinet (never WhatsApp).
     await client.put(BASE + '/admin/settings', json={'price': 5990, 'kaspi_link': 'https://pay.kaspi.kz/pay/toy'}, headers=h['panel'])
     assert (await client.get(BASE + '/config')).json()['price'] == 5990
     r = await client.post(f"{BASE}/invites/{inv['id']}/publish", headers=h['alice'])
-    assert r.json()['status'] == 'pending' and r.json()['price'] == 5990
+    assert r.json()['status'] == 'pending' and r.json()['price'] == 5990 and r.json()['pay_link'] == 'https://pay.kaspi.kz/pay/toy'
+    assert (await client.get(BASE + '/invites/mine', headers=h['alice'])).json()['items'][0]['pay_link'] == 'https://pay.kaspi.kz/pay/toy'
     assert sent[-1][0] == '+77001234567' and '5 990 тг' in sent[-1][1] and 'https://pay.kaspi.kz/pay/toy' in sent[-1][1]
 
     # Owner marks it paid → open for guests.

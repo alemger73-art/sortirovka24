@@ -150,20 +150,16 @@ async def notify_author(db: AsyncSession, ann: Announcements, published: bool, r
         body = (f"«{ann.title}»: {REJECT_REASONS.get(reason_code, REJECT_REASONS['other'])}. "
                 "Исправьте его в личном кабинете или подайте заново.")
     path = f"/announcements/{ann_id}" if published else "/cabinet?tab=announcements"
-    try:
+    notice = dict(category="announcements", event_key=f"ad:{ann_id}:{'ok' if published else 'no'}:{status}",
+                  title=title, body=body, path=path, entity_type="announcement", entity_id=str(ann_id))
+    try:  # cabinet + push only: our WhatsApp number never writes first
+        from services.user_notifications import notify_user_by_id, notify_user_by_phone
         if user_id:
-            from services.user_notifications import notify_user_by_id
-            await notify_user_by_id(db, user_id=str(user_id), category="announcements",
-                                    event_key=f"ad:{ann_id}:{'ok' if published else 'no'}:{status}",
-                                    title=title, body=body, path=path, entity_type="announcement", entity_id=str(ann_id))
+            await notify_user_by_id(db, user_id=str(user_id), **notice)
+        elif phone:
+            await notify_user_by_phone(db, phone=phone, **notice)
     except Exception as exc:
         logger.info("[Ads] cabinet notice skipped: %s", exc)
-    if phone:
-        try:
-            from services.customer_payment_notice import SERVICE_PREFIX, _whatsapp
-            await _whatsapp(phone, f"{SERVICE_PREFIX} · {title}\n\n{body}\n{SITE}{path}")
-        except Exception as exc:
-            logger.info("[Ads] WhatsApp notice skipped: %s", exc)
 
 
 async def handle_callback(db: AsyncSession, client: httpx.AsyncClient, data: str, chat_id: Any, message: dict) -> Optional[str]:

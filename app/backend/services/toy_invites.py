@@ -1,7 +1,8 @@
 """«Шақыру» — electronic invitations to a той, sold on Сортировка 24.
 
 A person builds an invitation (kind, names, date, place, programme, design), sees a preview, then asks to publish it.
-The owner gets the order in Telegram; the support WhatsApp number sends the person the price and the Kaspi link.
+The owner gets the order in Telegram; the person sees the price and the Kaspi button on the site (and a cabinet/push
+notice) — our WhatsApp number never writes first.
 The owner taps «Оплачено» → the invitation opens for guests at /toy/<slug>. Guests answer «Приду / Не смогу»,
 the host sees the list in «Мои приглашения». Tables are created on first use (no migration), like ad_stats.
 """
@@ -352,24 +353,14 @@ def pay_message(inv: dict, price: int, kaspi: str) -> str:
     d = inv["data"]
     who = " и ".join(p for p in (d.get("name1"), d.get("name2")) if p)
     lines = [f"Здравствуйте! Ваше приглашение «{who}» готово.", f"Стоимость — {money(price)}."]
-    lines.append(f"Оплатить можно по ссылке: {kaspi}" if kaspi else "Ссылку на оплату пришлём следующим сообщением.")
+    lines.append(f"Оплатить можно по ссылке: {kaspi}" if kaspi else "Ссылку на оплату пришлём отдельным уведомлением.")
     lines.append("После оплаты приглашение сразу откроется для гостей, и его можно будет разослать: " + link_for(inv))
     return "\n".join(lines)
 
 
 PUBLISHED_MESSAGE = ("Оплата получена, спасибо! Приглашение открыто для гостей: {link}\n"
                      "Ответы гостей — в разделе «Мои приглашения» на сайте.")
-REJECT_MESSAGE = "Не получилось опубликовать приглашение. Если есть вопросы — просто ответьте на это сообщение."
-
-
-async def _whatsapp(phone: str, body: str) -> bool:
-    try:
-        from services.customer_payment_notice import _whatsapp as send
-        await send(phone, body)
-        return True
-    except Exception as exc:
-        logger.warning("[Toy] WhatsApp failed: %s", exc)
-        return False
+REJECT_MESSAGE = "Не получилось опубликовать приглашение. Если есть вопросы — напишите нам в WhatsApp +7 700 428 02 80."
 
 
 async def _cabinet(db, inv: dict, title: str, body: str) -> None:
@@ -394,7 +385,7 @@ def card_text(inv: dict, price: int) -> str:
         f"📍 {esc(d.get('place'))} {esc(d.get('address'))}".strip(),
         f"👤 {esc(inv.get('phone'))} · к оплате {money(price)}",
         f"Предпросмотр: {link_for(inv)}",
-        "", "Клиенту отправлена ссылка на оплату. Как деньги придут в Kaspi — нажмите «Оплачено».",
+        "", "Клиент видит ссылку на оплату на сайте. Как деньги придут в Kaspi — нажмите «Оплачено».",
     ])[:4000]
 
 
@@ -402,7 +393,7 @@ async def request_payment(db, inv: dict) -> dict:
     cfg = await get_settings(db)
     price = cfg["price"]
     inv = await set_status(db, inv["id"], "pending", price=price)
-    await _whatsapp(inv["phone"], pay_message(inv, price, cfg["kaspi_link"]))
+    await _cabinet(db, inv, f"Оплата приглашения: {money(price)}", pay_message(inv, price, cfg["kaspi_link"]))
     from services.news_agent import approval_chat, bot_token, tg
     if bot_token() and approval_chat():
         try:
@@ -425,13 +416,11 @@ async def decide(db, invite_id: int, paid: bool) -> tuple[str, Optional[dict]]:
     if paid:
         inv = await set_status(db, invite_id, "published", paid_at=now_iso())
         msg = PUBLISHED_MESSAGE.format(link=link_for(inv))
-        await _whatsapp(inv["phone"], msg)
         await _cabinet(db, inv, "Приглашение опубликовано", msg)
-        return "Опубликовано, клиенту написали", inv
+        return "Опубликовано, клиенту пришло уведомление", inv
     inv = await set_status(db, invite_id, "rejected")
-    await _whatsapp(inv["phone"], REJECT_MESSAGE)
     await _cabinet(db, inv, "Приглашение не опубликовано", REJECT_MESSAGE)
-    return "Отклонено, клиенту написали", inv
+    return "Отклонено, клиенту пришло уведомление", inv
 
 
 async def handle_callback(db, client: httpx.AsyncClient, data: str, chat_id: Any, message: dict) -> Optional[str]:

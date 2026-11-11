@@ -1,5 +1,5 @@
-"""A few days before an ad's 30 days run out, its author is told once — in the cabinet, by push and in
-WhatsApp — and can extend it with one tap in the cabinet. Extending moves the end date, so the next
+"""A few days before an ad's 30 days run out, its author is told once — in the cabinet and by push
+(never WhatsApp: our number does not write first) — and can extend it with one tap in the cabinet. Extending moves the end date, so the next
 period gets its own reminder. Reminders go out in the daytime only."""
 from __future__ import annotations
 
@@ -13,7 +13,6 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import select, text
 
 from models.announcements import Announcements
-from services.ad_moderation import SITE
 
 logger = logging.getLogger(__name__)
 REMIND_DAYS = 3
@@ -42,9 +41,9 @@ def reminder_text(title: str, ends: datetime) -> tuple[str, str]:
             f"«{title}» будет на сайте до {day}. Продлить ещё на 30 дней можно одной кнопкой в личном кабинете.")
 
 
-async def remind_expiring(db, now: Optional[datetime] = None, send_whatsapp=None) -> int:
+async def remind_expiring(db, now: Optional[datetime] = None) -> int:
     """Remind authors whose published ads end within REMIND_DAYS. Returns how many were reminded."""
-    from services.user_notifications import notify_user_by_id
+    from services.user_notifications import notify_user_by_id, notify_user_by_phone
     now = now or datetime.now(timezone.utc)
     await ensure_table(db)
     rows = (await db.execute(select(Announcements).where(
@@ -61,17 +60,12 @@ async def remind_expiring(db, now: Optional[datetime] = None, send_whatsapp=None
         if not claimed.rowcount:  # already reminded for this end date
             continue
         title, body = reminder_text(ad.title or "Объявление", ends)
-        await notify_user_by_id(db, user_id=ad.user_id, category="announcements", event_key=f"ad:{ad.id}:expiring:{ad.expires_at}",
-                                title=title, body=body, path=PATH, entity_type="announcement", entity_id=str(ad.id))
-        if ad.phone:
-            try:
-                if send_whatsapp is None:
-                    from services.customer_payment_notice import SERVICE_PREFIX, _whatsapp
-                    await _whatsapp(ad.phone, f"{SERVICE_PREFIX} · {title}\n\n{body}\n{SITE}{PATH}")
-                else:
-                    await send_whatsapp(ad.phone, body)
-            except Exception as exc:
-                logger.info("[Ads] expiry WhatsApp skipped for %s: %s", ad.id, exc)
+        notice = dict(category="announcements", event_key=f"ad:{ad.id}:expiring:{ad.expires_at}",
+                      title=title, body=body, path=PATH, entity_type="announcement", entity_id=str(ad.id))
+        if ad.user_id:  # cabinet + push only: our WhatsApp number never writes first
+            await notify_user_by_id(db, user_id=ad.user_id, **notice)
+        else:
+            await notify_user_by_phone(db, phone=ad.phone, **notice)
         sent += 1
     return sent
 

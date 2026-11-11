@@ -41,7 +41,7 @@ export default function AdminToyInvites() {
       {open && (
         <div className="space-y-4 border-t border-violet-200 p-4">
           {!cfg ? <Loader2 className="h-5 w-5 animate-spin" /> : <>
-            {!cfg.kaspi_link && <p className="rounded-lg bg-amber-100 px-3 py-2 text-sm text-amber-900">Вставьте ссылку Kaspi на оплату. Пока её нет, клиенту придёт сообщение «ссылку пришлём отдельно».</p>}
+            {!cfg.kaspi_link && <p className="rounded-lg bg-amber-100 px-3 py-2 text-sm text-amber-900">Вставьте ссылку Kaspi на оплату. Пока её нет, клиент увидит «ссылку на оплату пришлём уведомлением» — отправьте её сами.</p>}
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={cfg.enabled} onChange={(e) => setCfg({ ...cfg, enabled: e.target.checked })} className="h-4 w-4" />Принимать заказы</label>
             <div className="grid gap-3 sm:grid-cols-[160px_1fr]">
               <div><p className="mb-1 text-xs font-medium text-gray-600">Цена, ₸</p><Input inputMode="numeric" value={String(cfg.price)} onChange={(e) => setCfg({ ...cfg, price: Number(e.target.value.replace(/\D/g, '')) || 0 })} /></div>

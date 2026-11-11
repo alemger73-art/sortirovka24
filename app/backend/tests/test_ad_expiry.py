@@ -38,19 +38,15 @@ def ad(id_, days, **over):
 
 async def test_reminds_once_per_period(maker):
     make, notices = maker
-    sent_wa = []
-
-    async def wa(phone, body):
-        sent_wa.append((phone, body))
     async with make() as db:
         db.add_all([ad(1, 2), ad(2, 10), ad(3, -1), ad(4, 1, status='hidden'), ad(5, 1, active=False)])
         await db.commit()
-        assert await ad_expiry.remind_expiring(db, NOW, wa) == 1
-        assert await ad_expiry.remind_expiring(db, NOW, wa) == 0  # already told
+        assert await ad_expiry.remind_expiring(db, NOW) == 1
+        assert await ad_expiry.remind_expiring(db, NOW) == 0  # already told
     assert [n['entity_id'] for n in notices] == ['1'] and notices[0]['path'] == '/cabinet?tab=announcements'
-    assert '«Ad 1» будет на сайте до 06.11' in sent_wa[0][1]
+    assert '«Ad 1» будет на сайте до 06.11' in notices[0]['body']
     async with make() as db:  # the author extended: a new end date gets its own reminder later
         row = await db.get(Announcements, 1)
         row.expires_at = (NOW + timedelta(days=32)).isoformat()
         await db.commit()
-        assert await ad_expiry.remind_expiring(db, NOW + timedelta(days=30), wa) == 1
+        assert await ad_expiry.remind_expiring(db, NOW + timedelta(days=30)) == 1

@@ -1,9 +1,9 @@
 """«Разместить в Sortirovka Official» — paid placement in the district Telegram channel.
 
 Flow: a person sends the text and photos from the site → the owner gets them in Telegram with buttons
-«Бизнес / Недвижимость и услуги / Вакансии и частные» → the support WhatsApp number sends the person
-the chosen category, the price and the Kaspi payment link → the owner taps «Оплачено», then «Опубликовано»
-(the person gets a WhatsApp message each time, and sees the status in the cabinet).
+«Бизнес / Недвижимость и услуги / Вакансии и частные» → the person sees the chosen category, the price and
+the Kaspi payment button on the request page (plus a cabinet/push notice) → the owner taps «Оплачено», then
+«Опубликовано» (a cabinet/push notice each time). Our WhatsApp number never writes first: it gets restricted for that.
 Prices, descriptions and Kaspi links are edited in the admin. Tables are created on first use (no migration).
 """
 from __future__ import annotations
@@ -47,7 +47,7 @@ DEFAULTS: dict[str, Any] = {
     ],
 }
 REJECT_TEXT = ("К сожалению, это объявление мы не можем разместить в Sortirovka Official. "
-               "Если есть вопросы — просто ответьте на это сообщение.")
+               "Если есть вопросы — напишите нам в WhatsApp +7 700 428 02 80.")
 
 _ready: set[int] = set()
 
@@ -193,23 +193,13 @@ async def _update(db, req_id: int, **fields) -> None:
 
 # ---------------- messages ----------------
 def priced_message(cat: dict, link: str) -> str:
-    return (f"Здравствуйте! Ваше объявление относится к категории «{cat['title']}». "
+    return (f"Ваше объявление относится к категории «{cat['title']}». "
             f"Стоимость размещения — {money(cat['price'])}. Оплатить можно по ссылке: {link}\n\n"
-            "После оплаты ответьте на это сообщение — мы опубликуем объявление в Sortirovka Official.")
+            "После оплаты мы опубликуем объявление в Sortirovka Official.")
 
 
 PAID_MESSAGE = "Оплата получена, спасибо! Публикуем ваше объявление в Sortirovka Official в ближайшее время."
 PUBLISHED_MESSAGE = "Ваше объявление опубликовано в Sortirovka Official. Спасибо, что вы с нами!"
-
-
-async def _whatsapp(phone: str, body: str) -> bool:
-    try:
-        from services.customer_payment_notice import _whatsapp as send
-        await send(phone, body)
-        return True
-    except Exception as exc:
-        logger.warning("[Official] WhatsApp failed: %s", exc)
-        return False
 
 
 async def _cabinet(db, req: dict, title: str, body: str) -> None:
@@ -235,7 +225,7 @@ def card_text(req: dict, cfg: dict) -> str:
     if req.get("ann_id"):
         lines.append(f"На сайте: {SITE}/announcements/{req['ann_id']}")
     lines.append(f"📷 Фото: {len(req['photos'])}" if req["photos"] else "📷 Без фото")
-    lines += ["", esc(req.get("body") or ""), "", "<b>Выберите категорию — бот отправит человеку цену и ссылку Kaspi в WhatsApp:</b>"]
+    lines += ["", esc(req.get("body") or ""), "", "<b>Выберите категорию — человек увидит цену и кнопку оплаты Kaspi на сайте:</b>"]
     return "\n".join(lines)[:4000]
 
 
@@ -292,19 +282,16 @@ async def decide(db, req_id: int, action: str, code: str = "") -> tuple[str, Opt
         link = cat["kaspi_link"]
         if not link:
             return "Сначала добавьте ссылку Kaspi для этой категории: Админка → Объявления → Sortirovka Official", req, None
-        sent = await _whatsapp(req["phone"], priced_message(cat, link))
         await _update(db, req_id, status="priced", category=cat["code"], price=cat["price"], pay_link=link)
         req = await get_request(db, req_id)
-        await _cabinet(db, req, "Заявка в Sortirovka Official проверена",
-                       f"Категория «{cat['title']}», стоимость {money(cat['price'])}. Ссылка на оплату — в WhatsApp и на странице заявки.")
-        answer = f"{cat['title']}: {money(cat['price'])}. " + ("Сообщение отправлено в WhatsApp" if sent else "WhatsApp не ушёл — напишите человеку сами")
+        await _cabinet(db, req, "Заявка в Sortirovka Official проверена", priced_message(cat, link))
+        answer = f"{cat['title']}: {money(cat['price'])}. Человек увидит цену и кнопку оплаты в кабинете и на странице заявки"
         return answer, req, after_price_keyboard(req_id)
     if action == "p":
         if status != "priced":
             return "Сначала выберите категорию" if status == "new" else "Уже отмечено", req, None
         await _update(db, req_id, status="paid")
         req = await get_request(db, req_id)
-        await _whatsapp(req["phone"], PAID_MESSAGE)
         await _cabinet(db, req, "Оплата получена", PAID_MESSAGE)
         return "Отмечено как оплачено", req, after_paid_keyboard(req_id)
     if action == "d":
@@ -312,7 +299,6 @@ async def decide(db, req_id: int, action: str, code: str = "") -> tuple[str, Opt
             return "Сначала отметьте оплату" if status in ("new", "priced") else "Уже отмечено", req, None
         await _update(db, req_id, status="published")
         req = await get_request(db, req_id)
-        await _whatsapp(req["phone"], PUBLISHED_MESSAGE)
         await _cabinet(db, req, "Объявление опубликовано в Sortirovka Official", PUBLISHED_MESSAGE)
         return "Готово: опубликовано", req, None
     if action == "r":
@@ -322,9 +308,8 @@ async def decide(db, req_id: int, action: str, code: str = "") -> tuple[str, Opt
             return "Уже отклонено", req, None
         await _update(db, req_id, status="rejected")
         req = await get_request(db, req_id)
-        await _whatsapp(req["phone"], REJECT_TEXT)
         await _cabinet(db, req, "Заявка в Sortirovka Official отклонена", REJECT_TEXT)
-        return "Отклонено, человеку написали", req, None
+        return "Отклонено, человеку пришло уведомление на сайте", req, None
     return "Готово", req, None
 
 

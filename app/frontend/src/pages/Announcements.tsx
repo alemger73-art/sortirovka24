@@ -213,7 +213,7 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
       <div className="mx-auto max-w-md px-4 py-14 text-center">
         <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40"><Check className="h-10 w-10 text-green-600" /></div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{tx('Объявление отправлено!', 'Хабарландыру жіберілді!')}</h1>
-        <p className="mt-3 text-gray-600 dark:text-slate-300">{tx('Мы проверим его в ближайшее время — обычно в течение часа днём. Как только оно появится на сайте, придёт сообщение в WhatsApp и в личный кабинет.', 'Біз оны жақын арада тексереміз — әдетте күндіз бір сағат ішінде. Сайтқа шыққанда WhatsApp пен жеке кабинетке хабар келеді.')}</p>
+        <p className="mt-3 text-gray-600 dark:text-slate-300">{tx('Мы проверим его в ближайшее время — обычно в течение часа днём. Как только оно появится на сайте, придёт уведомление в личный кабинет.', 'Біз оны жақын арада тексереміз — әдетте күндіз бір сағат ішінде. Сайтқа шыққанда жеке кабинетке хабарлама келеді.')}</p>
         <div className="mt-5 rounded-2xl bg-[#eef3ff] p-4 text-left text-sm text-[#1e3a8a] dark:bg-[#1c2f50] dark:text-[#c7d7ff]">
           <p className="font-semibold">{tx('Объявление бесплатное и висит 30 дней.', 'Хабарландыру тегін, 30 күн тұрады.')}</p>
           <p className="mt-1">{tx('Снять, изменить или продлить можно в личном кабинете.', 'Жеке кабинетте алып тастауға, өзгертуге болады.')}</p>

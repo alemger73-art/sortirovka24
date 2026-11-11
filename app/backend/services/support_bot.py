@@ -26,6 +26,8 @@ from typing import Any, Optional
 
 import httpx
 
+from services import wa_guard, wa_login
+
 logger = logging.getLogger(__name__)
 
 SITE = "https://www.sortirovka24.kz"
@@ -196,7 +198,7 @@ def system_prompt(modules: dict[str, bool], directory: Optional[list[dict[str, s
 {sections}
 
 Как всё устроено:
-- Вход и регистрация на сайте — только по номеру телефона, код приходит в WhatsApp (с этого номера) или в Telegram. Пароль не нужен. За регистрацию — 300 бонусов, тратятся в DÄM ALEM (1 бонус = 1 ₸ скидки).
+- Вход и регистрация на сайте — только по номеру телефона, через WhatsApp или Telegram. Для WhatsApp на сайте есть кнопка: человек сам отправляет на этот номер готовое сообщение «Вход на Сортировка 24: код» и сразу входит. Пароль не нужен. За регистрацию — 300 бонусов, тратятся в DÄM ALEM (1 бонус = 1 ₸ скидки).
 - Личный кабинет: {SITE}/cabinet — история заказов, бонусы, уведомления, адреса, удаление аккаунта (подтверждается кодом).
 - Приложение: открыть сайт в Chrome (Android) и нажать «Установить»; на iPhone — «Поделиться» → «На экран Домой».
 - Заказать еду: {SITE}/food. Статус заказа виден в кабинете, там же кнопка «Отследить».
@@ -265,16 +267,26 @@ def _waha() -> tuple[str, dict[str, str]]:
             {"X-Api-Key": os.getenv("WAHA_API_KEY", "").strip()})
 
 
-async def send_text(client: httpx.AsyncClient, chat_id: str, text: str) -> None:
+async def send_text(client: httpx.AsyncClient, chat_id: str, text: str) -> bool:
+    """The only way this number sends anything. False when the hourly/daily limits say «stay silent»."""
+    if not wa_guard.allow(chat_id):
+        logger.info("[SupportBot] send limit reached — staying silent")
+        return False
     base, headers = _waha()
     session = os.getenv("WAHA_SESSION", "default")
     try:  # look human: mark read and "typing…" briefly
         await client.post(f"{base}/api/sendSeen", headers=headers, json={"session": session, "chatId": chat_id}, timeout=10)
     except httpx.HTTPError:
         pass
-    r = await client.post(f"{base}/api/sendText", headers=headers,
-                          json={"session": session, "chatId": chat_id, "text": text[:MAX_REPLY_CHARS]}, timeout=20)
-    r.raise_for_status()
+    try:
+        r = await client.post(f"{base}/api/sendText", headers=headers,
+                              json={"session": session, "chatId": chat_id, "text": text[:MAX_REPLY_CHARS]}, timeout=20)
+        r.raise_for_status()
+    except httpx.HTTPError:
+        await wa_guard.failed()
+        raise
+    wa_guard.sent(chat_id)
+    return True
 
 
 async def transcribe(client: httpx.AsyncClient, media: dict[str, Any]) -> Optional[str]:
@@ -399,7 +411,7 @@ async def _directory() -> list[dict[str, str]]:
 
 @dataclass
 class Outcome:
-    action: str  # ignored | muted | replied | handed_off | limited
+    action: str  # ignored | muted | replied | handed_off | limited | login
     reply: str = ""
 
 
@@ -421,9 +433,18 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient, modules
         return Outcome("ignored")
     chat = _chat(_chat_key(p) or chat_id)
     now = time.time()
+    code = None if p.get("fromMe") else wa_login.login_code(str(p.get("body") or ""))
+    if code:  # «Вход на Сортировка 24: 4821» — a sign-in, never a question for the AI
+        from core.database import db_manager
+        async with db_manager.async_session_maker() as db:
+            reply = await wa_login.confirm(db, p, code)
+        if reply:
+            chat.sent = (chat.sent + [reply])[-20:]
+            await send_text(client, chat_id, reply)
+        return Outcome("login", reply)
     if p.get("fromMe"):
         body = str(p.get("body") or "").strip()
-        if body.startswith(("Ваш код для входа", "🔔 Сортировка 24")) or body in chat.sent:
+        if body.startswith(("Ваш код для входа", "🔔 Сортировка 24")) or body in chat.sent or body in wa_login.REPLIES:
             return Outcome("ignored")  # our own login code or bot reply echoed back
         # The owner wrote from the phone: the human takes over this chat for a while.
         chat.muted_until = now + MUTE_AFTER_OWNER
@@ -475,6 +496,8 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient, modules
             return Outcome("muted")  # the owner answered while the bot was waiting
         if chat.last_user_at != arrived:
             return Outcome("ignored")  # a newer message came in; that one gets the answer
+    if not wa_guard.allow(chat_id):
+        return Outcome("limited")  # the number's hourly/daily limit: stay silent, the owner still sees the chat
 
     reply: Optional[str] = None
     handoff = False

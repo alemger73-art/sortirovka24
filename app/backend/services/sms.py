@@ -1,4 +1,5 @@
-"""Phone verification code delivery: Telegram (Gateway or our bot), WhatsApp (Wazzup or Cloud API), SMS (Mobizon)."""
+"""Phone verification code delivery: Telegram (Gateway or our bot), SMS (Mobizon).
+WhatsApp is offered for sign-in only, in reverse: the person writes to our number (services/wa_login)."""
 
 import logging
 import os
@@ -107,131 +108,44 @@ async def refresh_waha_status(force: bool = False) -> bool:
     except (httpx.HTTPError, ValueError):
         _waha_state["working"] = False
     _waha_state["checked"] = time.monotonic()
+    from services import wa_guard
+    await wa_guard.observe_session(bool(_waha_state["working"]))
     return bool(_waha_state["working"])
 
 
-async def _send_waha(phone: str, code: str) -> SMSDeliveryResult:
-    base = os.getenv("WAHA_URL", "").rstrip("/")
-    headers = {"X-Api-Key": os.getenv("WAHA_API_KEY", "").strip()}
-    digits = _digits_only(phone)
-    text = (f"Ваш код для входа на «Сортировка 24»: {code}\n\n"
-            "Никому не сообщайте этот код. Если вы не запрашивали код — просто проигнорируйте сообщение.")
-    try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            check = await client.get(f"{base}/api/contacts/check-exists",
-                                     params={"phone": digits, "session": _waha_session()}, headers=headers)
-            info = check.json() if check.status_code == 200 else {}
-            if check.status_code == 200 and info.get("numberExists") is False:
-                raise SMSDeliveryError("На этом номере нет WhatsApp. Выберите Telegram.")
-            chat_id = info.get("chatId") or f"{digits}@c.us"
-            response = await client.post(f"{base}/api/sendText", headers=headers,
-                                         json={"session": _waha_session(), "chatId": chat_id, "text": text})
-            payload = response.json() if response.content else {}
-    except (httpx.HTTPError, ValueError) as exc:
-        _waha_state["checked"] = 0.0  # re-check the session next time
-        raise SMSDeliveryError("WhatsApp сейчас недоступен. Попробуйте Telegram.") from exc
-    if response.status_code in (200, 201):
-        message_id = payload.get("id") if isinstance(payload, dict) else None
-        if isinstance(message_id, dict):
-            message_id = message_id.get("_serialized") or message_id.get("id")
-        return SMSDeliveryResult(delivered=True, pending_moderation=False, message_id=str(message_id or ""), provider_message="whatsapp")
-    logger.warning("[OTP] WAHA send status=%s", response.status_code)
-    _waha_state["checked"] = 0.0
-    raise SMSDeliveryError("Не удалось отправить код в WhatsApp. Попробуйте Telegram.")
-
-
-def _wazzup_ready() -> bool:
-    return bool(os.getenv("WAZZUP_API_KEY", "").strip())
-
-
 def _whatsapp_ready() -> bool:
-    return _waha_ready() or _wazzup_ready() or bool(os.getenv("WHATSAPP_ACCESS_TOKEN", "").strip() and os.getenv("WHATSAPP_PHONE_NUMBER_ID", "").strip()
-                and os.getenv("WHATSAPP_OTP_TEMPLATE", "").strip())
+    """WhatsApp login works only one way: the person writes to our WAHA number first (see services/wa_login)."""
+    from services import wa_guard
+    return _waha_ready() and wa_guard.offer_login()
 
 
 def _sms_ready() -> bool:
     return _provider() == "mobizon" and bool(os.getenv("MOBIZON_API_KEY", "").strip())
 
 
-def available_channels() -> list[str]:
-    """Channels a customer can pick for the login code, in display order."""
-    ready = {"whatsapp": _whatsapp_ready(), "telegram": _telegram_ready(), "sms": _sms_ready()}
+def available_channels(include_whatsapp: bool = False) -> list[str]:
+    """Channels a customer can pick, in display order. WhatsApp only for sign-in, where the person writes to us."""
+    ready = {"whatsapp": include_whatsapp and _whatsapp_ready(), "telegram": _telegram_ready(), "sms": _sms_ready()}
     return [c for c in OTP_CHANNEL_ORDER if ready[c]]
 
 
 async def send_verification_code(phone: str, code: str, channel: str | None = None) -> SMSDeliveryResult:
-    """Send a login code to *phone* through the chosen messenger (or the first one configured)."""
-    await refresh_waha_status()
+    """Send a login code to *phone* through Telegram or SMS. WhatsApp never gets a code from us:
+    the number was restricted for writing first to people who had not written to it."""
+    if channel == "whatsapp":
+        raise SMSDeliveryError("Код в WhatsApp больше не отправляется. Выберите Telegram.")
     channels = available_channels()
     if channel and channel not in channels:
         raise SMSDeliveryError("Этот способ получения кода сейчас недоступен. Выберите другой.")
     chosen = channel or (channels[0] if channels else None)
-    if chosen in ("whatsapp", "telegram"):
+    if chosen == "telegram":
         if not external_side_effects_allowed():
             logger.info("OTP side effects disabled. Skipping %s message.", chosen)
             return SMSDeliveryResult(delivered=False, pending_moderation=False, provider_message="external_side_effects_disabled")
-        if chosen == "telegram":
-            if telegram_bot_mode():
-                return SMSDeliveryResult(delivered=False, pending_moderation=False, provider_message="telegram_bot")
-            return await _send_telegram_gateway(phone, code)
-        if _waha_ready():
-            return await _send_waha(phone, code)
-        if _wazzup_ready():
-            return await _send_wazzup(phone, code)
-        return await _send_whatsapp_template(phone, code)
+        if telegram_bot_mode():
+            return SMSDeliveryResult(delivered=False, pending_moderation=False, provider_message="telegram_bot")
+        return await _send_telegram_gateway(phone, code)
     return await _send_sms_code(phone, code)
-
-
-_wazzup_channel: dict[str, Any] = {"id": None}
-WAZZUP_BASE = os.getenv("WAZZUP_API_URL", "https://api.wazzup24.com").rstrip("/")
-
-
-async def _wazzup_channel_id(client: httpx.AsyncClient, token: str) -> str | None:
-    """The WhatsApp channel to send from: WAZZUP_CHANNEL_ID, or the active one whose number is WAZZUP_PHONE
-    (or the only active WhatsApp channel)."""
-    configured = os.getenv("WAZZUP_CHANNEL_ID", "").strip()
-    if configured:
-        return configured
-    if _wazzup_channel["id"]:
-        return _wazzup_channel["id"]
-    response = await client.get(f"{WAZZUP_BASE}/v3/channels", headers={"Authorization": f"Bearer {token}"})
-    channels = response.json() if response.status_code == 200 else []
-    wanted = _digits_only(os.getenv("WAZZUP_PHONE", ""))
-    active = [c for c in channels if isinstance(c, dict) and c.get("transport") == "whatsapp" and c.get("state") == "active"]
-    match = [c for c in active if wanted and _digits_only(str(c.get("plainId", ""))) == wanted] or (active if len(active) == 1 else [])
-    if not match:
-        logger.warning("[OTP] Wazzup: no active WhatsApp channel (found %s)", [(c.get("plainId", "")[-4:], c.get("state")) for c in channels if isinstance(c, dict)])
-        return None
-    _wazzup_channel["id"] = match[0].get("channelId")
-    return _wazzup_channel["id"]
-
-
-async def _send_wazzup(phone: str, code: str) -> SMSDeliveryResult:
-    """WhatsApp via Wazzup: an ordinary message from the portal's own WhatsApp number."""
-    import uuid
-    token = os.getenv("WAZZUP_API_KEY", "").strip()
-    text = (f"Ваш код для входа на «Сортировка 24»: {code}\n\n"
-            "Никому не сообщайте этот код. Если вы не запрашивали код — просто проигнорируйте сообщение.")
-    try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            channel_id = await _wazzup_channel_id(client, token)
-            if not channel_id:
-                raise SMSDeliveryError("WhatsApp сейчас недоступен. Выберите Telegram.")
-            response = await client.post(f"{WAZZUP_BASE}/v3/message", headers={"Authorization": f"Bearer {token}"},
-                json={"channelId": channel_id, "chatType": "whatsapp", "chatId": _digits_only(phone),
-                      "text": text, "crmMessageId": str(uuid.uuid4())})
-            payload = response.json() if response.content else {}
-    except (httpx.HTTPError, ValueError) as exc:
-        raise SMSDeliveryError("WhatsApp сейчас недоступен. Попробуйте Telegram.") from exc
-    if response.status_code in (200, 201) and isinstance(payload, dict) and payload.get("messageId"):
-        return SMSDeliveryResult(delivered=True, pending_moderation=False, message_id=str(payload["messageId"]), provider_message="whatsapp")
-    error = str((payload or {}).get("error") or "") if isinstance(payload, dict) else ""
-    logger.warning("[OTP] Wazzup error=%s status=%s", error[:40], response.status_code)
-    if error == "BAD_CONTACT":
-        raise SMSDeliveryError("На этом номере нет WhatsApp. Выберите Telegram.")
-    if error in ("CHANNEL_NOT_FOUND",):
-        _wazzup_channel["id"] = None
-    raise SMSDeliveryError("Не удалось отправить код в WhatsApp. Попробуйте Telegram.")
 
 
 async def _send_telegram_gateway(phone: str, code: str) -> SMSDeliveryResult:
@@ -256,37 +170,6 @@ async def _send_telegram_gateway(phone: str, code: str) -> SMSDeliveryResult:
         raise SMSDeliveryError("Не удалось отправить код в Telegram. Попробуйте WhatsApp.")
     result = payload.get("result") or {}
     return SMSDeliveryResult(delivered=True, pending_moderation=False, message_id=str(result.get("request_id") or ""), provider_message="telegram")
-
-
-async def _send_whatsapp_template(phone: str, code: str) -> SMSDeliveryResult:
-    """WhatsApp Cloud API authentication template with a copy-code button."""
-    token = os.getenv("WHATSAPP_ACCESS_TOKEN", "").strip()
-    number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "").strip()
-    template = os.getenv("WHATSAPP_OTP_TEMPLATE", "").strip()
-    language = os.getenv("WHATSAPP_OTP_LANGUAGE", "ru").strip() or "ru"
-    version = os.getenv("WHATSAPP_API_VERSION", "v21.0").strip() or "v21.0"
-    base = os.getenv("WHATSAPP_GRAPH_BASE_URL", "https://graph.facebook.com").rstrip("/")
-    body = {
-        "messaging_product": "whatsapp", "to": _digits_only(phone), "type": "template",
-        "template": {"name": template, "language": {"code": language}, "components": [
-            {"type": "body", "parameters": [{"type": "text", "text": code}]},
-            {"type": "button", "sub_type": "url", "index": "0", "parameters": [{"type": "text", "text": code}]},
-        ]},
-    }
-    try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            response = await client.post(f"{base}/{version}/{number_id}/messages",
-                headers={"Authorization": f"Bearer {token}"}, json=body)
-            payload = response.json()
-    except (httpx.HTTPError, ValueError) as exc:
-        raise SMSDeliveryError("WhatsApp сейчас недоступен. Попробуйте Telegram.") from exc
-    if response.status_code >= 400 or not isinstance(payload, dict) or not payload.get("messages"):
-        err = (payload.get("error") or {}) if isinstance(payload, dict) else {}
-        logger.warning("[OTP] WhatsApp error code=%s", str(err.get("code", ""))[:12])
-        if str(err.get("code")) in ("131026", "131030"):
-            raise SMSDeliveryError("На этом номере нет WhatsApp. Выберите Telegram.")
-        raise SMSDeliveryError("Не удалось отправить код в WhatsApp. Попробуйте Telegram.")
-    return SMSDeliveryResult(delivered=True, pending_moderation=False, message_id=str(payload["messages"][0].get("id", "")), provider_message="whatsapp")
 
 
 async def _send_sms_code(phone: str, code: str) -> SMSDeliveryResult:

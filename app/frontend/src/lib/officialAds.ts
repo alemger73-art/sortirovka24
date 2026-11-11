@@ -61,7 +61,7 @@ export const officialAds = {
 
 export const STATUS_INFO: Record<OfficialStatus, { ru: string; kz: string; hint: { ru: string; kz: string }; tone: string }> = {
   new: { ru: 'На проверке', kz: 'Тексерілуде', tone: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200',
-    hint: { ru: 'Смотрим объявление и подбираем категорию. Ответ с суммой придёт в WhatsApp.', kz: 'Хабарландыруды қарап, санатын таңдаймыз. Сомасы WhatsApp-қа келеді.' } },
+    hint: { ru: 'Смотрим объявление и подбираем категорию. Сумма и кнопка оплаты появятся здесь.', kz: 'Хабарландыруды қарап, санатын таңдаймыз. Сомасы мен төлем батырмасы осында шығады.' } },
   priced: { ru: 'Ожидает оплаты', kz: 'Төлем күтілуде', tone: 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200',
     hint: { ru: 'Проверено. Оплатите по ссылке Kaspi — и мы опубликуем.', kz: 'Тексерілді. Kaspi сілтемесі арқылы төлеңіз — жариялаймыз.' } },
   paid: { ru: 'Оплачено', kz: 'Төленді', tone: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200',

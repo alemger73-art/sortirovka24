@@ -218,7 +218,7 @@ export function ToyBuilder() {
     const saved = await save();
     if (!saved) return;
     setBusy(true);
-    try { const inv = await toyApi.publish(saved.id); setInvite(inv); track('toy_publish', { kind: data!.kind }); toast.success('Ссылка на оплату отправлена в WhatsApp'); }
+    try { const inv = await toyApi.publish(saved.id); setInvite(inv); track('toy_publish', { kind: data!.kind }); toast.success('Заказ принят — оплатите по кнопке Kaspi'); }
     catch (e: any) { setError(e?.message || 'Не получилось отправить'); } finally { setBusy(false); }
   }
 
@@ -402,10 +402,11 @@ export function ToyBuilder() {
                     <p className="mt-2 text-[var(--ads-muted)]">Изменения сохранены — гости уже видят новую версию.</p>
                   </> : invite.status === 'pending' ? <>
                     <h2 className="text-xl font-bold">Ждём оплату</h2>
-                    <p className="mt-2 text-[var(--ads-muted)]">Ссылка на оплату Kaspi отправлена вам в WhatsApp. Как только оплата придёт, приглашение откроется для гостей, и мы сообщим об этом.</p>
+                    <p className="mt-2 text-[var(--ads-muted)]">{invite.pay_link ? 'Оплатите по кнопке ниже.' : 'Ссылку на оплату пришлём уведомлением в личный кабинет.'} Как только оплата придёт, приглашение откроется для гостей, и мы сообщим об этом в кабинете.</p>
+                    {invite.pay_link && <a href={invite.pay_link} target="_blank" rel="noopener noreferrer" data-testid="toy-kaspi" className="ads-btn ads-btn-primary mt-4">Оплатить в Kaspi{invite.price ? ` · ${tenge(invite.price)}` : ''}</a>}
                   </> : <>
                     <h2 className="text-xl font-bold">Сохранено</h2>
-                    <p className="mt-2 text-[var(--ads-muted)]">Посмотрите приглашение так, как его увидят гости. Если всё нравится — опубликуйте: ссылка на оплату придёт в WhatsApp.</p>
+                    <p className="mt-2 text-[var(--ads-muted)]">Посмотрите приглашение так, как его увидят гости. Если всё нравится — опубликуйте и оплатите по кнопке Kaspi.</p>
                   </>}
                   <div className="mt-5 flex flex-wrap gap-3">
                     <Link to={`/toy/${invite.slug}`} className="ads-btn border border-[var(--ads-line)]"><Eye className="h-5 w-5" />Посмотреть как гость</Link>
@@ -476,7 +477,7 @@ export function ToyMine() {
                       {inv.status === 'published' && (
                         <p className="mt-1 text-sm text-[var(--ads-muted)]">Открыли: <b className="text-[var(--ads-ink)]">{inv.views || 0}</b> · придут: <b className="text-[var(--ads-ink)]">{inv.guests?.people || 0}</b> чел. ({inv.guests?.coming || 0} ответов) · не смогут: {inv.guests?.declined || 0}</p>
                       )}
-                      {inv.status === 'pending' && <p className="mt-1 text-sm text-[var(--ads-muted)]">Ссылка на оплату {inv.price ? tenge(inv.price) : ''} в WhatsApp. После оплаты приглашение откроется для гостей.</p>}
+                      {inv.status === 'pending' && <p className="mt-1 text-sm text-[var(--ads-muted)]">Ждём оплату {inv.price ? tenge(inv.price) : ''}. После оплаты приглашение откроется для гостей.</p>}
                       <div className="mt-4 flex flex-wrap gap-2">
                         <Link to={`/toy/${inv.slug}`} className="ads-btn min-h-[42px] border border-[var(--ads-line)] px-4 text-sm"><Eye className="h-4 w-4" />Открыть</Link>
                         <Link to={`/toy/edit/${inv.id}`} className="ads-btn min-h-[42px] border border-[var(--ads-line)] px-4 text-sm"><Pencil className="h-4 w-4" />Изменить</Link>
@@ -486,6 +487,8 @@ export function ToyMine() {
                           <button type="button" onClick={() => void toggleGuests(inv.id)} aria-expanded={open === inv.id} className="ads-btn ads-btn-primary min-h-[42px] px-4 text-sm"><Users className="h-4 w-4" />Гости<ChevronDown className={`h-4 w-4 transition ${open === inv.id ? 'rotate-180' : ''}`} /></button>
                         </> : inv.status !== 'pending' ? (
                           <Link to={`/toy/edit/${inv.id}`} onClick={() => track('toy_pay_from_list')} className="ads-btn ads-btn-primary min-h-[42px] px-4 text-sm"><Send className="h-4 w-4" />Опубликовать</Link>
+                        ) : inv.pay_link ? (
+                          <a href={inv.pay_link} target="_blank" rel="noopener noreferrer" className="ads-btn ads-btn-primary min-h-[42px] px-4 text-sm">Оплатить в Kaspi</a>
                         ) : null}
                         <button type="button" onClick={() => void remove(inv)} aria-label="Удалить" className="ads-btn min-h-[42px] border border-red-200 px-3 text-sm text-red-600 dark:border-red-900"><Trash2 className="h-4 w-4" /></button>
                       </div>
