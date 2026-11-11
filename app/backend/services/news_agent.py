@@ -644,6 +644,9 @@ async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dic
                      "Чтобы опубликовать свою новость, пришлите сюда текст (первая строка — заголовок) "
                      "и, если хотите, фото с подписью."})
             return
+        from services import telegram_support  # last: only what no other flow claimed
+        if await telegram_support.handle_message(db, client, message):
+            return
         if not (message.get("photo") or message.get("text") or message.get("caption")):
             return
         chat_id = str(chat.get("id", ""))
