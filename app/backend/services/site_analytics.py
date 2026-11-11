@@ -168,9 +168,9 @@ def affected(row: SiteError) -> int:
 
 # ── summary ─────────────────────────────────────────────────────────────────
 
-FUNNEL = [("food_view", "Открыли меню Дам Алем"), ("add_to_cart", "Положили в корзину"),
-          ("checkout_open", "Начали оформление"), ("checkout_step2", "Дошли до оплаты"),
-          ("checkout_step3", "Дошли до подтверждения"), ("order_placed", "Оформили заказ")]
+# Cart and checkout are one screen (2026-11): opening the cart with dishes is the start of checkout.
+FUNNEL = [("food_view", "Открыли меню Дам Алем"), ("dish_view", "Открыли блюдо"), ("add_to_cart", "Положили в корзину"),
+          ("checkout_open", "Открыли корзину"), ("order_placed", "Оформили заказ")]
 
 
 def _props(event: SiteEvent) -> dict[str, Any]:
@@ -320,7 +320,7 @@ def report_text(s: dict[str, Any]) -> str:
     if s["sections"]:
         lines.append("Смотрели: " + ", ".join(f"{_esc(x['name'])} {x['count']}" for x in s["sections"][:6]))
     funnel = " → ".join(str(x["visitors"]) for x in s["funnel"])
-    lines.append(f"Дам Алем (меню → корзина → оформление → оплата → подтверждение → заказ): {funnel}")
+    lines.append(f"Дам Алем (меню → блюдо → в корзину → корзина → заказ): {funnel}")
     if s["orders"]["count"]:
         lines.append(f"Заказов с сайта: {s['orders']['count']} на {s['orders']['sum']} ₸")
     if s["dishes_added"]:

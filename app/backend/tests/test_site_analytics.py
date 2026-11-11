@@ -74,7 +74,7 @@ async def test_visits_funnel_searches_and_privacy(env):
     s = (await client.get('/api/v1/site-analytics/summary?days=7', headers=admin)).json()
     assert s['visitors'] == 2 and s['new_visitors'] == 2 and s['pageviews'] == 2 and s['app_users'] == 1
     assert {x['name'] for x in s['sources']} == {'instagram.com', 'Напрямую / закладка'}
-    assert [x['visitors'] for x in s['funnel']] == [2, 1, 1, 1, 1, 1]
+    assert [x['visitors'] for x in s['funnel']] == [2, 1, 1, 1, 1]
     assert s['searches_without_results'] == [{'name': 'меню: шаурма', 'count': 1}]
     assert s['orders'] == {'count': 1, 'sum': 3700, 'payment': {'kaspi_qr': 1}, 'method': {'delivery': 1}}
     assert s['dishes_added'][0]['name'] == 'Пепперони'

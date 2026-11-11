@@ -18,7 +18,6 @@ export type FoodCheckoutContext = {
   apartment: string;
   customerName: string;
   customerPhone: string;
-  loggedIn: boolean;
 };
 
 export function foodCheckoutBlockReason(ctx: FoodCheckoutContext): string | null {
@@ -53,7 +52,6 @@ export function foodCheckoutBlockReason(ctx: FoodCheckoutContext): string | null
   }
   if (!ctx.customerName.trim()) return 'Укажите имя';
   if (!ctx.customerPhone.trim()) return 'Укажите номер телефона';
-  if (!ctx.loggedIn) return 'Войдите, чтобы оформить заказ';
   return null;
 }
 

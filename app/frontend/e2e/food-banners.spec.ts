@@ -66,7 +66,7 @@ test('all banners are reachable, category and promo clicks work, search stays fo
   ]);
   await page.goto('/food', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.dam-market-brand strong')).toHaveText('DAM ALEM 2.0');
-  await expect(page.locator('.dam-market-offer__content')).toContainText('UFO-бургеры, пицца и любимые напитки');
+  await expect(page.getByRole('region', { name: 'Условия доставки' })).toBeVisible();
   const track = page.getByTestId('food-banner-track');
   await expect(track.locator('.food-campaign')).toHaveCount(5);
   await expect(page.getByTestId('food-banner-6')).toHaveCount(0);
@@ -79,7 +79,7 @@ test('all banners are reachable, category and promo clicks work, search stays fo
   await expect(page.getByText('Промокод TEST10 применён', { exact: true })).toBeVisible();
   await page.getByRole('searchbox', { name: 'Найти блюдо' }).fill('Лимонад');
   await expect(track).toHaveCount(0);
-  await expect(page.locator('.dam-market-offer')).toHaveCount(0);
+  await expect(page.locator('.dam-menu-facts')).toHaveCount(0);
   await page.getByRole('button', { name: 'Очистить поиск' }).click();
   await expect(track).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
@@ -161,7 +161,7 @@ test('upload keeps edited text and saves a resolvable image key', async ({ page 
   await expect.poll(() => photo.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
 });
 
-test('responsive header, safe insets and compact banner fit all screen sizes', async ({ page }, info) => {
+test('responsive header, safe insets and delivery facts fit all screen sizes', async ({ page }, info) => {
   await setup(page);
   await page.route('**/api/v1/entities/food_settings*', route => route.fulfill({ json: { items: [
     { setting_key: 'hero_banner_image', setting_value: 'banners/hero.jpg' },
@@ -169,7 +169,7 @@ test('responsive header, safe insets and compact banner fit all screen sizes', a
     { setting_key: 'kitchen_close', setting_value: '00:00' },
   ] } }));
   await page.goto('/food');
-  await expect(page.locator('.dam-market-offer--compact')).toBeVisible();
+  await expect(page.locator('.dam-menu-facts')).toBeVisible();
   for (const width of [320, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.evaluate((native) => {
@@ -180,7 +180,7 @@ test('responsive header, safe insets and compact banner fit all screen sizes', a
     await expect(brand).toBeInViewport();
     await expect.poll(async () => (await brand.boundingBox())!.y).toBeGreaterThanOrEqual(width < 1024 ? 32 : 0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    for (const selector of ['.dam-market-header__main', '.dam-market-search', '.dam-market-cart-button', '.dam-market-offer', '.dam-market-offer__cta']) {
+    for (const selector of ['.dam-market-header__main', '.dam-market-search', '.dam-market-cart-button', '.dam-menu-facts']) {
       const box = await page.locator(selector).boundingBox();
       expect(box!.x).toBeGreaterThanOrEqual(0);
       expect(box!.x + box!.width).toBeLessThanOrEqual(width + 1);
@@ -196,11 +196,8 @@ test('responsive header, safe insets and compact banner fit all screen sizes', a
     const stored = parseFloat((document.querySelector('.dam-page') as HTMLElement).style.getPropertyValue('--dam-header-height'));
     return Math.abs(header.getBoundingClientRect().height - stored);
   })).toBeLessThan(1);
-  // Banner remains readable without a photo dependency.
-  await expect(page.locator('.dam-market-offer__photo img')).toHaveCount(0);
-  await expect(page.locator('.dam-market-offer h1')).toBeVisible();
-  // Warm dark banner with light text (2026-10 refresh).
-  await expect(page.locator('.dam-market-offer')).toHaveCSS('color', 'rgb(255, 247, 239)');
+  // Delivery time and price stay readable at the top of the menu (2026-11 simple order).
+  await expect(page.locator('.dam-menu-facts')).toContainText('до двери');
 });
 
 test('a combo banner opens the full card that lists what is inside', async ({ page }) => {

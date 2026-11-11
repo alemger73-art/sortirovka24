@@ -38,21 +38,20 @@ test('cart totals, minimum, persistence, removal and checkout', async ({ page },
   await expect(page.locator('.dam-grid-card__tag').filter({ hasText: '200 г' })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
   await page.screenshot({ path: test.info().outputPath(`menu-${info.project.name}.png`), fullPage: true, animations: 'disabled' });
-  await page.locator('.dam-grid-card').filter({ hasText: 'Маргарита' }).first().getByRole('button', { name: 'В корзину', exact: true }).click();
+  await page.locator('#dam-menu .dam-grid-card').filter({ hasText: 'Маргарита' }).first().getByRole('button', { name: 'Добавить: Маргарита', exact: true }).click();
   await page.getByTestId('dam-cart-open').click();
-  await expect(page.getByTestId('dam-cart-checkout')).toBeDisabled();
-  await expect(page.locator('.dam-cart-totals__pay strong')).toContainText('2 500');
+  const screen = page.getByTestId('dam-order-screen');
+  await screen.getByRole('group', { name: 'Способ получения' }).getByRole('button', { name: 'Самовывоз' }).click();
+  await expect(page.getByTestId('dam-checkout-block-reason')).toHaveText('Минимальная сумма заказа — 3 000 ₸');
+  await expect(page.getByTestId('dam-checkout-submit')).toHaveText('Заказать · 2 500 ₸');
   await page.getByTestId('dam-cart-qty-plus').click();
-  await expect(page.getByTestId('dam-cart-qty-value')).toHaveText('2');
-  await expect(page.getByTestId('dam-cart-checkout')).toBeEnabled();
+  await expect(page.getByTestId('dam-cart-line')).toContainText('2');
+  await expect(page.getByTestId('dam-checkout-block-reason')).toHaveCount(0);
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await expect(page.getByTestId('dam-cart-qty-value')).toHaveText('2');
-  await expect(page.locator('.dam-cart-totals__pay strong')).toContainText('5 000');
+  await screen.getByRole('group', { name: 'Способ получения' }).getByRole('button', { name: 'Самовывоз' }).click();
+  await expect(page.getByTestId('dam-checkout-submit')).toHaveText('Заказать · 5 000 ₸');
   await page.screenshot({ path: test.info().outputPath(`cart-${info.project.name}.png`), fullPage: true, animations: 'disabled' });
-  await page.getByTestId('dam-cart-checkout').click();
-  await expect(page.getByTestId('dam-checkout')).toBeVisible();
-  await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Удалить Маргарита', exact: true }).click();
+  for (let i = 0; i < 2; i++) await page.getByRole('button', { name: 'Убрать одну порцию: Маргарита', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Корзина пуста' })).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -82,22 +81,25 @@ test('configured promo applies and server rejection never invents a discount', a
     ? route.fulfill({ status: 400, json: { detail: 'Промокод больше не действует' } })
     : route.fulfill({ json: { valid: true, code: 'TEST10', discount: 250, free_delivery: false, label: 'Скидка 10%' } }));
   await page.goto('/food', { waitUntil: 'domcontentloaded' });
-  await page.locator('.dam-grid-card').filter({ hasText: 'Маргарита' }).first().getByRole('button', { name: 'В корзину', exact: true }).click();
+  await page.locator('#dam-menu .dam-grid-card').filter({ hasText: 'Маргарита' }).first().getByRole('button', { name: 'Добавить: Маргарита', exact: true }).click();
   await page.getByTestId('dam-cart-open').click();
+  await page.getByTestId('dam-order-screen').getByRole('group', { name: 'Способ получения' }).getByRole('button', { name: 'Самовывоз' }).click();
+  const submit = page.getByTestId('dam-checkout-submit');
+  await page.getByTestId('dam-promo-toggle').click();
   await page.getByLabel('Промокод', { exact: true }).fill('TEST10');
   await page.getByRole('button', { name: 'Применить', exact: true }).click();
-  await expect(page.locator('.dam-cart-promo__ok')).toContainText('TEST10');
-  await expect(page.locator('.dam-cart-totals__pay strong')).toContainText('2 250');
+  await expect(page.getByTestId('dam-order-summary')).toContainText('Промокод TEST10');
+  await expect(submit).toHaveText('Заказать · 2 250 ₸');
   await page.getByRole('button', { name: 'Сбросить', exact: true }).click();
   reject = true;
   await page.getByLabel('Промокод', { exact: true }).fill('TEST10');
   await page.getByRole('button', { name: 'Применить', exact: true }).click();
   await expect(page.getByText('Промокод больше не действует', { exact: true })).toBeVisible();
-  await expect(page.locator('.dam-cart-promo__ok')).toHaveCount(0);
-  await expect(page.locator('.dam-cart-totals__pay strong')).toContainText('2 500');
+  await expect(page.getByTestId('dam-order-summary')).not.toContainText('Промокод');
+  await expect(submit).toHaveText('Заказать · 2 500 ₸');
 });
 
-test('checkout shows every eligible gift and requires an explicit choice', async ({ page }) => {
+test('every eligible gift is offered: the first is picked for the customer and «Сменить» takes the other', async ({ page }) => {
   await mockCatalog(page);
   const gifts = [
     { id: 'gift-cotton', min_amount: 2000, title: 'Сладкая вата', product_name: 'Сладкая вата', description: 'Десерт в подарок', is_active: true, sort_order: 1 },
@@ -110,22 +112,19 @@ test('checkout shows every eligible gift and requires an explicit choice', async
     { id: 11, restaurant_id:1, category_id: 2, name: 'Вафли с фруктами', price: 1200, available: true,is_active:true,sellable:true,modifiers_enabled:false,modifier_groups:[] },
   ],groups:[],options:[],links:[] } }));
 
+  const orders: Record<string, unknown>[] = [];
+  await page.route('**/api/v1/entities/food_orders', route => { orders.push(route.request().postDataJSON()); return route.fulfill({ json: { id: 7 } }); });
   await page.goto('/food', { waitUntil: 'domcontentloaded' });
-  await page.locator('.dam-grid-card').filter({ hasText: 'Маргарита' }).first().getByRole('button', { name: 'В корзину', exact: true }).click();
+  await page.locator('#dam-menu .dam-grid-card').filter({ hasText: 'Маргарита' }).first().getByRole('button', { name: 'Добавить: Маргарита', exact: true }).click();
   await page.getByTestId('dam-cart-open').click();
-  await page.getByTestId('dam-cart-checkout').click();
-  await page.getByTestId('dam-checkout-overlay').getByText('Самовывоз',{exact:true}).click();
-  await page.getByTestId('dam-checkout-next').click();
-
-  const giftChoice = page.locator('#dam-checkout-gift-choice');
-  await expect(giftChoice.getByText('Выберите один подарок бесплатно', { exact: true })).toBeVisible();
-  await expect(giftChoice.getByRole('button')).toHaveCount(2);
-  await expect(page.getByTestId('dam-contact-card')).toContainText('Тест');  // from the account, not typed again
-  await page.getByTestId('dam-checkout-next').click();
-  await expect(page.getByText('Выберите один бесплатный подарок', { exact: true }).last()).toBeVisible();
-  await expect(page.getByText('Контактные данные', { exact: true })).toBeVisible();
-
-  await giftChoice.getByRole('button').filter({ hasText: 'Сладкая вата' }).click();
-  await page.getByTestId('dam-checkout-next').click();
-  await expect(page.getByTestId('dam-checkout-submit')).toBeVisible();
+  const screen = page.getByTestId('dam-order-screen');
+  await screen.getByRole('group', { name: 'Способ получения' }).getByRole('button', { name: 'Самовывоз' }).click();
+  const gift = page.getByTestId('dam-gift');
+  await expect(gift).toContainText('Ваш подарок: Сладкая вата');
+  await gift.click();
+  await expect(gift).toContainText('Ваш подарок: Вафли с фруктами');
+  await expect(screen.getByLabel('Имя')).toHaveValue('Тест');  // from the account, not typed again
+  await page.getByTestId('dam-checkout-submit').click();
+  await expect.poll(() => orders.length).toBe(1);
+  expect(orders[0]).toMatchObject({ selected_gift_id: 'gift-waffle', customer_name: 'Тест' });
 });

@@ -84,11 +84,12 @@ export default function DamAlemProductCard({
         ? 'dam-grid-card__badge--combo'
         : 'dam-grid-card__badge--new';
 
+  const addControl = (
+    <AddControl name={name} qty={qtyInCart} onAdd={onAdd} onRemove={onRemove} />
+  );
   return (
     <article className={`dam-grid-card dam-animate-in${isHero ? ' dam-grid-card--hero' : ''}`}>
-      <div
-        className="dam-grid-card__media"
-      >
+      <div className="dam-grid-card__media">
         <DamAlemImage src={imageUrl} alt="" className="h-full w-full object-cover" width={640} />
         <button type="button" className="absolute inset-0 z-[1]" onClick={onOpen} aria-label={name} />
         {badgeLabel ? <span className={`dam-grid-card__badge ${badgeClass}`}>{badgeLabel}</span> : null}
@@ -102,27 +103,48 @@ export default function DamAlemProductCard({
             <Heart className={`h-4 w-4 ${isFavorite ? 'fill-[#FF3B30] text-[#FF3B30]' : 'text-white drop-shadow'}`} />
           </button>
         ) : null}
-        <div className="dam-grid-card__add-wrap">
-          {qtyInCart > 0 ? (
-            <QtyControl qty={qtyInCart} onAdd={onAdd} onRemove={onRemove} floating />
-          ) : (
-            <button type="button" onClick={e => { e.stopPropagation(); onAdd(); }} className="dam-grid-card__add" aria-label={st("В корзину")}>
-              <Plus className="h-5 w-5 lg:h-6 lg:w-6" />
-              <span>{st("Добавить")}</span>
-            </button>
-          )}
+        {isHero ? <div className="dam-grid-card__add-wrap">{addControl}</div> : null}
+      </div>
+      <div className="dam-grid-card__body">
+        <button type="button" className="dam-grid-card__open" onClick={onOpen}>
+          <h3 className="dam-grid-card__title">{name}</h3>
+          {description ? <p className="dam-grid-card__desc">{description}</p> : null}
+          {weight || hasOptions ? (
+            <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              {weight ? <span className="dam-grid-card__tag">{weight}</span> : null}
+              {hasOptions ? <span className="dam-grid-card__tag dam-grid-card__tag--opt">{optionsLabel}</span> : null}
+            </span>
+          ) : null}
+        </button>
+        <div className="dam-grid-card__footer">
+          <p className="dam-grid-card__price">{priceLabel}</p>
+          {isHero ? null : addControl}
         </div>
       </div>
-      <button type="button" className="dam-grid-card__body text-left w-full text-zinc-900" onClick={onOpen}>
-        <h3 className="dam-grid-card__title">{name}</h3>
-        {description ? <p className="dam-grid-card__desc">{description}</p> : null}
-        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-          {weight ? <span className="dam-grid-card__tag">{weight}</span> : null}
-          {hasOptions ? <span className="dam-grid-card__tag dam-grid-card__tag--opt">{optionsLabel}</span> : null}
-        </div>
-        <p className="dam-grid-card__price">{priceLabel}</p>
-      </button>
     </article>
+  );
+}
+
+/** «+» puts the dish into the cart right from the menu; once there it becomes a −/+ stepper. */
+function AddControl({ name, qty, onAdd, onRemove }: { name: string; qty: number; onAdd: () => void; onRemove: () => void }) {
+  const st = useStoreTranslations();
+  if (qty <= 0) {
+    return (
+      <button type="button" onClick={e => { e.stopPropagation(); onAdd(); }} className="dam-grid-card__add" aria-label={st("Добавить: {0}", [name])}>
+        <Plus className="h-5 w-5" strokeWidth={2.6} aria-hidden="true" />
+      </button>
+    );
+  }
+  return (
+    <div className="dam-grid-qty" onClick={e => e.stopPropagation()}>
+      <button type="button" onClick={onRemove} aria-label={st("Убрать одну порцию: {0}", [name])}>
+        <Minus className="h-4 w-4" aria-hidden="true" />
+      </button>
+      <span aria-live="polite">{qty}</span>
+      <button type="button" onClick={onAdd} aria-label={st("Добавить ещё порцию: {0}", [name])}>
+        <Plus className="h-4 w-4" aria-hidden="true" />
+      </button>
+    </div>
   );
 }
 
@@ -130,18 +152,15 @@ function QtyControl({
   qty,
   onAdd,
   onRemove,
-  floating,
 }: {
   qty: number;
   onAdd: () => void;
   onRemove: () => void;
-  floating?: boolean;
 }) {
   const st = useStoreTranslations();
 
-  const cls = floating ? 'dam-grid-qty' : 'dam-qty-pill';
   return (
-    <div className={cls} onClick={e => e.stopPropagation()}>
+    <div className="dam-qty-pill" onClick={e => e.stopPropagation()}>
       <button type="button" onClick={onRemove} className="flex h-8 w-8 items-center justify-center rounded-full active:scale-90" aria-label={st("Убрать")}>
         <Minus className="h-4 w-4" />
       </button>
