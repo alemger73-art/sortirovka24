@@ -13,6 +13,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import CourierControlPanel from '@/components/damalem/CourierControlPanel';
 import { useSearchParams } from 'react-router-dom';
 import { foodBusiness, foodOperations, type OperatorOrder, type OrderDetail } from '@/lib/foodOperations';
+import { collectsCashOnStep, isDeliveryOrder, nextOrderStatus, operatorRunsDelivery } from '@/lib/damOrderSteps';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -23,7 +24,6 @@ function getNotifyLabels(adminT: (key: string) => string) {
 const notifyLabels: Record<string, string> = { pending: adminT('admin.dam.final.128'), sending: adminT('admin.dam.final.129'), sent: adminT('admin.dam.final.130'), failed: adminT('admin.dam.final.131'), unknown: adminT('admin.dam.final.132'), none: adminT('admin.dam.final.133') };
 return notifyLabels;
 }
-const next: Record<string, string> = { new: 'preparing', confirmed: 'preparing', preparing: 'ready' };
 
 interface CourierChoice { id: string; name: string; phone: string; online: boolean; active_delivery: boolean; active_deliveries?: number; on_shift: boolean; assignable: boolean }
 
@@ -216,18 +216,16 @@ export default function DamAlemOrders({ operatorMode = false }: { operatorMode?:
     finally { lock.current = false; setBusy(false); }
   }
   const order = detail?.order;
-  const isDelivery = ['delivery', 'доставка'].includes(order?.delivery_method || '');
+  const isDelivery = !!order && isDeliveryOrder(order);
   const closed = order && ['done', 'cancelled'].includes(order.status);
   const historyOnly = Boolean(operatorMode && closed);
   const received = order ? Number(order.paid_amount ?? (order.payment_status === 'paid' ? order.total_amount : 0)) : 0;
   const remaining = order ? Math.max(0, order.total_amount - received) : 0;
   const canConfirmPayment = order?.manual_payment_confirmation ?? (order?.payment_method === 'cash');
   const paymentConfirmation = order?.payment_method === 'cash' ? 'Подтверждаете, что наличные фактически получены в кассу?' : `Подтверждаете, что поступление ${remaining.toLocaleString('ru-RU')} ₸ по ${order?.payment_method === 'kaspi_qr' ? 'Kaspi' : 'Halyk'} проверено? Оплату отметите вы, а не банк.`;
-  // The operator runs the delivery himself (owner's switch): no couriers, «Выехал» and «Доставлено» are his buttons.
-  const operatorDelivery = Boolean(isDelivery && order?.operator_runs_delivery);
-  const target = order?.status === 'new' && order.is_future_preorder ? 'confirmed' : order?.status === 'ready' && !isDelivery ? 'done'
-    : operatorDelivery && order?.status === 'ready' ? 'in_progress' : operatorDelivery && order?.status === 'in_progress' ? 'done' : next[order?.status || ''];
-  const collectsCash = operatorDelivery && target === 'done' && order?.payment_method === 'cash' && order.payment_status !== 'paid';
+  const operatorDelivery = !!order && operatorRunsDelivery(order);
+  const target = order ? nextOrderStatus(order) : undefined;
+  const collectsCash = !!order && collectsCashOnStep(order, target);
   const statusTabs = [
     {key:'debt',label:'Задолженность / ожидается оплата',count:queueCounts.debt,style:'border-amber-300 bg-amber-50 text-amber-950 dark:bg-amber-950/40 dark:text-amber-100'},
     {key:'preorders',label:'Предзаказы',count:queueCounts.preorders,style:'border-sky-300 bg-sky-50 text-sky-950 dark:bg-sky-950 dark:text-sky-100'},

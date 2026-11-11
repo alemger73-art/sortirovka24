@@ -4,9 +4,11 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { damOwnerTranslations } from './damOwnerTranslations';
 import { clientLoyaltyTranslations } from './clientLoyaltyTranslations';
 import { damCourierTranslations } from './damCourierTranslations';
+import { damSimpleTranslations } from './damSimpleTranslations';
 
 /** Store UI only. Never pass entity fields or persisted order data to this lookup. */
 const storeTranslations: Record<string, string> = {
+  ...damSimpleTranslations,
   ...damOwnerTranslations,
   ...clientLoyaltyTranslations,
   ...damCourierTranslations,

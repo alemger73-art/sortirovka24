@@ -102,6 +102,6 @@ test('zero, one and many arrivals: one toolbar, finite toast and no repeated sou
  await toolbar.getByRole('button',{name:'Выключить звук'}).click();
  state.orders.push({id:77,status:'new'});await page.clock.runFor(5000);await expect(toolbar).toContainText('Ждут принятия: 7');
  expect(await page.evaluate(()=>(window as any).soundNotes)).toBe(6);
- await toolbar.getByRole('button',{name:'К заказам',exact:true}).click();await expect(page).toHaveURL(/section=orders.*status=new/);
+ await toolbar.getByRole('button',{name:'К заказам',exact:true}).click();await expect(page).toHaveURL(/section=board/);
  state.orders=[];await page.clock.runFor(5000);await expect(toolbar).toHaveCount(0);
 });
