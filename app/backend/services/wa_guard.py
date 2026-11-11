@@ -120,11 +120,11 @@ async def _trip(reason: str) -> None:
         return
     _fuse["notified"] = True
     logger.warning("[WAGuard] fuse tripped: %s", reason)
-    from services.news_agent import approval_chat, bot_token, tg
+    from services.news_agent import approval_chat, bot_token, owner_send
     if not bot_token() or not approval_chat():
         return
     try:
         async with httpx.AsyncClient(timeout=15) as client:
-            await tg(client, "sendMessage", {"chat_id": approval_chat(), "text": f"{FUSE_NOTICE}\n\nПричина: {reason}."})
+            await owner_send(client, "alerts", "sendMessage", {"text": f"{FUSE_NOTICE}\n\nПричина: {reason}."})
     except Exception as exc:
         logger.warning("[WAGuard] owner notice failed: %s", exc)

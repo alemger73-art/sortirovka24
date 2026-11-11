@@ -417,8 +417,14 @@ def url_id(url: str) -> str:
 
 # ── Telegram ────────────────────────────────────────────────────────────────
 
-async def tg(client: httpx.AsyncClient, method: str, payload: dict[str, Any], timeout: float = 20) -> dict[str, Any]:
-    resp = await client.post(f"https://api.telegram.org/bot{bot_token()}/{method}", json=payload, timeout=timeout)
+async def tg(client: httpx.AsyncClient, method: str, payload: dict[str, Any], timeout: float = 20,
+             files: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+    url = f"https://api.telegram.org/bot{bot_token()}/{method}"
+    if files:  # an uploaded file goes as multipart; nested fields are JSON there
+        form = {k: json.dumps(v) if isinstance(v, (dict, list)) else str(v) for k, v in payload.items()}
+        resp = await client.post(url, data=form, files=files, timeout=timeout)
+    else:
+        resp = await client.post(url, json=payload, timeout=timeout)
     data = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
     if not data.get("ok"):
         raise RuntimeError(f"Telegram {method}: {data.get('description') or resp.status_code}")
@@ -492,46 +498,224 @@ async def post_to_channel(db: AsyncSession, client: httpx.AsyncClient, news: New
     return channel.get("title") or "канал"
 
 
-# The owner's working group: approvals go into its topics instead of the private chat.
-TOPICS = {"news": "📰 Новости на согласование", "leads": "🤝 Заявки партнёров"}
+# The owner's working group: every notice for him goes into its own topic there.
+# Login codes and the operator/courier consoles are personal and stay in private chats.
+TOPICS = {
+    "news": ("📰 Новости", "новости на согласование. Свою новость пишите прямо в эту тему: "
+                          "первая строка — заголовок, можно с фото"),
+    "leads": ("🤝 Заявки партнёров", "новые заявки и напоминания о них"),
+    "ads": ("📢 Объявления на проверку", "новые и изменённые объявления, жалобы посетителей"),
+    "paid": ("⭐ Sortirovka Official и игрушки", "платные публикации и приглашения: отметка оплаты"),
+    "support": ("💬 Помощник: нужен человек", "WhatsApp- и Telegram-помощник зовёт человека, новости от жителей. "
+                                            "Ответ человеку в Telegram — ответом на сообщение (свайп → «Ответить»)"),
+    "home": ("🏠 Мой дом", "квитанции жителей на проверку и жалобы соседей"),
+    "dam": ("🍔 DÄM ALEM", "клиенту в WhatsApp DÄM ALEM нужен сотрудник"),
+    "reports": ("📊 Отчёты и оплаты", "итоги дня по сайту и напоминания об оплате сервисов"),
+    "alerts": ("⚠️ Сбои", "ошибки сайта, остановка WhatsApp, сертификат сайта"),
+}
+WORKSPACE_TTL = 60  # seconds a sender may trust the cached group settings
+DUPLICATE_WINDOW = 600  # the very same notice within this time is sent once
+TOPIC_GONE = re.compile(r"thread not found|TOPIC_DELETED|TOPIC_ID_INVALID", re.I)
+
+_workspace_cache: dict[str, Any] = {"at": float("-inf"), "ws": {}}
+_recent_sends: dict[str, tuple[float, dict[str, Any]]] = {}
 
 
-async def destination(db: AsyncSession, kind: str) -> dict[str, Any]:
-    """sendMessage target for approvals of `kind` ("news" or "leads")."""
-    _, state = await load_state(db)
-    await db.commit()
-    ws = state.get("workspace") or {}
-    if ws.get("id"):
-        target: dict[str, Any] = {"chat_id": ws["id"]}
-        thread = (ws.get("topics") or {}).get(kind)
-        if thread:
-            target["message_thread_id"] = thread
-        return target
+def reset_owner_cache() -> None:
+    _workspace_cache.update(at=float("-inf"), ws={})
+    _recent_sends.clear()
+
+
+def _remember_workspace(ws: dict[str, Any]) -> None:
+    import time
+    _workspace_cache.update(at=time.monotonic(), ws=json.loads(json.dumps(ws)))
+
+
+async def _read_workspace(db: AsyncSession) -> dict[str, Any]:
+    """The workspace without locking the state row (senders only read it)."""
+    value = await db.scalar(select(ModuleSettings.value).where(ModuleSettings.key == STATE_KEY))
+    try:
+        state = json.loads(value or "{}")
+    except ValueError:
+        state = {}
+    ws = state.get("workspace") if isinstance(state, dict) else None
+    return ws if isinstance(ws, dict) else {}
+
+
+async def _workspace(db: Optional[AsyncSession] = None) -> dict[str, Any]:
+    import time
+    if db is not None:
+        _remember_workspace(await _read_workspace(db))
+    elif time.monotonic() - _workspace_cache["at"] >= WORKSPACE_TTL:
+        from core.database import db_manager
+        try:
+            if db_manager.async_session_maker:
+                async with db_manager.async_session_maker() as own:
+                    _remember_workspace(await _read_workspace(own))
+        except Exception as exc:  # keep the last known settings
+            logger.info("[NewsAgent] workspace read failed: %s", exc)
+    return _workspace_cache["ws"]
+
+
+async def owner_target(kind: str, db: Optional[AsyncSession] = None) -> dict[str, Any]:
+    """Where a notice of `kind` (a TOPICS key) goes: its topic in the forum workspace, else the owner's private chat."""
+    ws = await _workspace(db)
+    thread = (ws.get("topics") or {}).get(kind) if ws.get("forum") else None
+    if ws.get("id") and thread:
+        return {"chat_id": ws["id"], "message_thread_id": thread}
     return {"chat_id": approval_chat()}
 
 
-async def ensure_topics(db: AsyncSession, client: httpx.AsyncClient) -> Optional[str]:
-    """Create missing topics in a forum workspace. Returns an error text for the owner, or None."""
+async def owner_send(client: httpx.AsyncClient, kind: str, method: str, payload: dict[str, Any], timeout: float = 20,
+                     files: Optional[dict[str, Any]] = None, db: Optional[AsyncSession] = None) -> dict[str, Any]:
+    """Send a notice to the owner into the topic of `kind`. A deleted topic is recreated once, then the
+    private chat is used. Returns Telegram's reply plus "target": where the message actually went."""
+    import time
+    now = time.monotonic()
+    for key in [k for k, (at, _) in _recent_sends.items() if now - at > DUPLICATE_WINDOW]:
+        _recent_sends.pop(key, None)
+    key = hashlib.sha1(json.dumps([kind, method, payload], sort_keys=True, default=str).encode()).hexdigest()
+    if key in _recent_sends:
+        logger.info("[NewsAgent] duplicate %s notice skipped", kind)
+        return _recent_sends[key][1]
+    target = await owner_target(kind, db)
+    extra = {"files": files} if files else {}
+    replaced = False
+    while True:
+        try:
+            data = await tg(client, method, {**payload, **target}, timeout, **extra)
+            break
+        except RuntimeError as exc:
+            if "message_thread_id" not in target or not TOPIC_GONE.search(str(exc)):
+                raise
+            logger.info("[NewsAgent] topic %s is gone: %s", kind, exc)
+            target = {"chat_id": approval_chat()} if replaced else await _replace_topic(client, kind, target["message_thread_id"])
+            replaced = True
+    result = {**data, "target": target}
+    _recent_sends[key] = (now, result)
+    return result
+
+
+async def _replace_topic(client: httpx.AsyncClient, kind: str, dead: Any) -> dict[str, Any]:
+    """The owner deleted a topic: forget it and create it anew."""
+    topics = _workspace_cache["ws"].get("topics") or {}
+    if topics.get(kind) == dead:
+        topics.pop(kind)
+    from core.database import db_manager
+    try:
+        if db_manager.async_session_maker:
+            async with db_manager.async_session_maker() as db:
+                row, state = await load_state(db)
+                stored = (state.get("workspace") or {}).get("topics") or {}
+                if stored.get(kind) == dead:
+                    stored.pop(kind)
+                save_state(row, state)
+                await db.commit()
+                await ensure_topics(db, client)
+    except Exception as exc:
+        logger.warning("[NewsAgent] topic %s not recreated: %s", kind, exc)
+    return await owner_target(kind)
+
+
+def topics_text() -> str:
+    lines = [f"{name} — {hint}" for name, hint in TOPICS.values()]
+    return ("📌 <b>Куда приходят уведомления «Сортировка 24»</b>\n\n" + "\n\n".join(html.escape(l) for l in lines)
+            + "\n\nКоды для входа и пульт оператора остаются в личном чате с ботом. Кнопки и ответы работают "
+              "у владельца и администраторов группы, сообщения остальных участников бот не обрабатывает.")
+
+
+async def _announce(client: httpx.AsyncClient, ws: dict[str, Any]) -> None:
+    """Topics are ready: the map goes into the group (pinned), a one-line note into the private chat."""
+    try:
+        data = await tg(client, "sendMessage", {"chat_id": ws["id"], "text": topics_text(), "parse_mode": "HTML"})
+        await tg(client, "pinChatMessage", {"chat_id": ws["id"], "message_id": data["result"]["message_id"],
+                                            "disable_notification": True})
+    except Exception as exc:
+        logger.info("[NewsAgent] topics map not posted: %s", exc)
+    try:
+        await tg(client, "sendMessage", {"chat_id": approval_chat(), "text":
+                 f"Теперь уведомления приходят в группу «{ws.get('title') or 'группа'}» по темам. Список тем — /topics"})
+    except Exception as exc:
+        logger.info("[NewsAgent] private note failed: %s", exc)
+
+
+async def ensure_topics(db: AsyncSession, client: httpx.AsyncClient, refresh: bool = False) -> Optional[str]:
+    """Create missing topics in a forum workspace (also ones added in a newer version).
+    `refresh` re-reads the group first: the owner may have switched «Темы» on or off.
+    Returns an error text for the owner, or None."""
     row, state = await load_state(db)
     ws = state.get("workspace") or {}
-    if not ws.get("id") or not ws.get("forum"):
+    if not ws.get("id"):
         await db.commit()
+        _remember_workspace({})
         return None
-    topics = ws.setdefault("topics", {})
-    problem = None
-    for kind, name in TOPICS.items():
-        if topics.get(kind):
-            continue
+    if refresh:
         try:
-            data = await tg(client, "createForumTopic", {"chat_id": ws["id"], "name": name})
-            topics[kind] = data["result"]["message_thread_id"]
+            chat = (await tg(client, "getChat", {"chat_id": ws["id"]}))["result"]
+            ws["forum"] = bool(chat.get("is_forum"))
+            ws["title"] = chat.get("title") or ws.get("title")
         except Exception as exc:
-            problem = f"Не получилось создать тему «{name}»: дайте мне право «Управление темами». ({exc})"
-            break
+            logger.info("[NewsAgent] workspace check failed: %s", exc)
+    problem = None
+    if ws.get("forum"):
+        topics = ws.setdefault("topics", {})
+        for kind, (name, _) in TOPICS.items():
+            if topics.get(kind):
+                continue
+            try:
+                data = await tg(client, "createForumTopic", {"chat_id": ws["id"], "name": name})
+                topics[kind] = data["result"]["message_thread_id"]
+            except Exception as exc:
+                problem = (f"Не получилось создать тему «{name}»: сделайте меня администратором группы "
+                           f"с правом «Управление темами». ({exc})")
+                break
+    announce = bool(ws.get("forum")) and not problem and not ws.get("announced")
+    if announce:
+        ws["announced"] = True
     state["workspace"] = ws
     save_state(row, state)
     await db.commit()
+    _remember_workspace(ws)
+    if announce:
+        await _announce(client, ws)
     return problem
+
+
+async def migrate_workspace(db: AsyncSession, client: httpx.AsyncClient, message: dict[str, Any]) -> None:
+    """Switching «Темы» on turns a basic group into a supergroup with a new id."""
+    new_id = message.get("migrate_to_chat_id")
+    if not new_id:
+        return
+    row, state = await load_state(db)
+    ws = state.get("workspace") or {}
+    if str(ws.get("id", "")) != str((message.get("chat") or {}).get("id", "")):
+        await db.commit()
+        return
+    ws.update(id=new_id, type="supergroup", topics={})
+    ws.pop("announced", None)
+    state["workspace"] = ws
+    save_state(row, state)
+    await db.commit()
+    await ensure_topics(db, client, refresh=True)
+
+
+async def topics_command(db: AsyncSession, client: httpx.AsyncClient, message: dict[str, Any]) -> None:
+    """/topics from the owner or a group admin: what goes where (topics are created first if missing)."""
+    chat = message.get("chat") or {}
+    chat_id = str(chat.get("id", ""))
+    if not await may_decide(client, db, chat_id, str((message.get("from") or {}).get("id", ""))):
+        return
+    problem = await ensure_topics(db, client, refresh=True)
+    ws = await _workspace(db)
+    if problem:
+        text = html.escape(problem)
+    elif ws.get("forum"):
+        text = topics_text()
+    else:
+        text = ("Рабочая группа не подключена или в ней выключены «Темы», поэтому уведомления приходят сюда.\n"
+                "Создайте группу, включите в ней «Темы» и добавьте меня администратором с правом «Управление темами».")
+    thread = {"message_thread_id": message["message_thread_id"]} if message.get("message_thread_id") else {}
+    await tg(client, "sendMessage", {"chat_id": chat_id, "text": text, "parse_mode": "HTML", **thread})
 
 
 async def bind_channel(db: AsyncSession, client: httpx.AsyncClient, member: dict[str, Any]) -> None:
@@ -557,7 +741,7 @@ async def bind_channel(db: AsyncSession, client: httpx.AsyncClient, member: dict
             entry["topics"] = current.get("topics") or {}
         state[key] = entry
         text = (f"Канал «{title}» подключён: одобренные новости будут выходить и там." if key == "channel" else
-                f"Группа «{title}» подключена: новости на согласование и заявки партнёров будут приходить туда.")
+                f"Группа «{title}» подключена.")
     else:
         if (state.get(key) or {}).get("id") == chat.get("id"):
             state.pop(key, None)
@@ -565,14 +749,17 @@ async def bind_channel(db: AsyncSession, client: httpx.AsyncClient, member: dict
                 f"В «{title}» сделайте меня администратором, чтобы я мог публиковать.")
     save_state(row, state)
     await db.commit()
+    if key == "workspace":
+        _remember_workspace(state.get(key) or {})
     if active and key == "workspace":
         problem = await ensure_topics(db, client)
         if problem:
             text += "\n" + problem
         elif state[key].get("forum"):
-            text += " Темы «Новости» и «Заявки партнёров» готовы."
+            return  # ensure_topics has posted the map of topics and told the owner
         else:
-            text += " Совет: включите в группе «Темы», и я разложу новости и заявки по отдельным темам."
+            text += (" Включите в группе «Темы» (настройки группы → «Темы»), и я разложу все уведомления "
+                     "по отдельным темам. Пока они приходят сюда.")
     await tg(client, "sendMessage", {"chat_id": approval_chat(), "text": text})
 
 
@@ -614,6 +801,10 @@ async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dic
     message = update.get("message")
     if isinstance(message, dict):
         chat = message.get("chat") or {}
+        await migrate_workspace(db, client, message)
+        if str(message.get("text") or "").strip().split("@")[0] == "/topics":
+            await topics_command(db, client, message)
+            return
         from services import courier_invite  # before the login handler: an invited courier's contact is theirs
         if await courier_invite.handle_message(db, client, message):
             return
@@ -717,7 +908,8 @@ async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dic
         await tg(client, "answerCallbackQuery", {"callback_query_id": callback_id, "text": answer[:190]})
         return
     if data.startswith("ps:") and data != "ps:x":
-        answer = await paid_services.handle_callback(db, client, data, chat_id, callback.get("from") or {}, msg) or "Готово"
+        answer = await paid_services.handle_callback(db, client, data, chat_id, callback.get("from") or {}, msg,
+                                                     trusted=allowed) or "Готово"
         await tg(client, "answerCallbackQuery", {"callback_query_id": callback_id, "text": answer[:190]})
         return
     if allowed and data.startswith("nb:") and data != "nb:x":
@@ -874,7 +1066,6 @@ async def _collect(db: AsyncSession, client: httpx.AsyncClient, report: dict[str
 
 async def send_approval(client: httpx.AsyncClient, db: AsyncSession, news: News, source: str, url: str) -> int:
     """Approval card with the picture; falls back to plain text if Telegram can't fetch the photo."""
-    target = await destination(db, "news")
     text = approval_text(news, source, url)
     photo = news.image_url or ""
     if photo.startswith("/"):
@@ -882,13 +1073,13 @@ async def send_approval(client: httpx.AsyncClient, db: AsyncSession, news: News,
     if photo.startswith("http"):
         caption = text if len(text) <= 1000 else text[:990].rsplit(" ", 1)[0] + "…"
         try:
-            data = await tg(client, "sendPhoto", {**target, "photo": photo, "caption": caption, "parse_mode": "HTML",
-                                                  "reply_markup": approval_keyboard(news.id)})
+            data = await owner_send(client, "news", "sendPhoto", {"photo": photo, "caption": caption, "parse_mode": "HTML",
+                                                                  "reply_markup": approval_keyboard(news.id)}, db=db)
             return int(data["result"]["message_id"])
         except Exception as exc:
             logger.info("[NewsAgent] photo card failed, sending text: %s", exc)
-    data = await tg(client, "sendMessage", {**target, "text": text, "parse_mode": "HTML",
-                                            "disable_web_page_preview": True, "reply_markup": approval_keyboard(news.id)})
+    data = await owner_send(client, "news", "sendMessage", {"text": text, "parse_mode": "HTML", "disable_web_page_preview": True,
+                                                            "reply_markup": approval_keyboard(news.id)}, db=db)
     return int(data["result"]["message_id"])
 
 
@@ -935,13 +1126,11 @@ async def is_own_post_place(db: AsyncSession, message: dict[str, Any]) -> bool:
     chat = message.get("chat") or {}
     if chat.get("type") == "private":
         return True
-    _, state = await load_state(db)
-    await db.commit()
-    ws = state.get("workspace") or {}
+    ws = await _workspace(db)
     if str(ws.get("id", "")) != str(chat.get("id", "")):
         return False
     news_topic = (ws.get("topics") or {}).get("news")
-    return not news_topic or message.get("message_thread_id") == news_topic
+    return bool(ws.get("forum") and news_topic) and message.get("message_thread_id") == news_topic
 
 
 async def create_own_news(db: AsyncSession, client: httpx.AsyncClient, message: dict[str, Any]) -> Optional[str]:
@@ -1005,7 +1194,7 @@ async def run_forever(session_maker) -> None:
 
     await asyncio.sleep(20)
     offset: Optional[int] = None
-    next_reminder = 0.0
+    next_reminder = next_topics = 0.0
     collecting: Optional[asyncio.Task] = None
     async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}) as client:
         while True:
@@ -1017,6 +1206,15 @@ async def run_forever(session_maker) -> None:
                     # Collection reads many sites; it runs aside so login codes and taps stay instant.
                     collecting = asyncio.create_task(_collect_once(session_maker, client))
                 async with session_maker() as db:
+                    if asyncio.get_running_loop().time() >= next_topics:
+                        # Topics added in a newer version appear in an already bound group, and «Темы»
+                        # switched on later are noticed.
+                        next_topics = asyncio.get_running_loop().time() + 600
+                        try:
+                            await ensure_topics(db, client, refresh=True)
+                        except Exception as exc:
+                            await db.rollback()
+                            logger.warning("[NewsAgent] topics check failed: %s", exc)
                     if partner_agent.enabled():
                         try:
                             await partner_agent.process_new(db, client)

@@ -471,18 +471,16 @@ def proof_caption(m: dict) -> str:
 
 
 async def _send_proof_to_owner(m: dict, raw: bytes) -> None:
-    from services.news_agent import approval_chat, bot_token
+    from services.news_agent import approval_chat, bot_token, owner_send
     if not (bot_token() and approval_chat()):
         return
-    import json as _json
     markup = {"inline_keyboard": [[{"text": "✅ Подтвердить жителя", "callback_data": f"nb:a:{m['id']}"},
                                    {"text": "❌ Не совпадает", "callback_data": f"nb:r:{m['id']}"}]]}
     try:
         async with httpx.AsyncClient(timeout=40) as client:
-            await client.post(f"https://api.telegram.org/bot{bot_token()}/sendPhoto",
-                              data={"chat_id": approval_chat(), "caption": proof_caption(m)[:1000], "parse_mode": "HTML",
-                                    "reply_markup": _json.dumps(markup)},
-                              files={"photo": ("receipt.jpg", raw, "image/jpeg")})
+            await owner_send(client, "home", "sendPhoto", {"caption": proof_caption(m)[:1000], "parse_mode": "HTML",
+                                                           "reply_markup": markup},
+                             timeout=40, files={"photo": ("receipt.jpg", raw, "image/jpeg")})
     except Exception as exc:
         logger.warning("[Neighbors] proof to Telegram failed: %s", exc)
 
@@ -789,12 +787,12 @@ async def _notify_house(author: dict, post: dict) -> None:
 
 
 async def _tell_owner(message: str) -> None:
-    from services.news_agent import approval_chat, bot_token, tg
+    from services.news_agent import approval_chat, bot_token, owner_send
     if not (bot_token() and approval_chat()):
         return
     try:
         async with httpx.AsyncClient(timeout=20) as client:
-            await tg(client, "sendMessage", {"chat_id": approval_chat(), "text": message[:3500]})
+            await owner_send(client, "home", "sendMessage", {"text": message[:3500]})
     except Exception as exc:
         logger.info("[Neighbors] owner message failed: %s", exc)
 

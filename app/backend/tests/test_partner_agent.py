@@ -158,10 +158,10 @@ async def test_working_group_topics_route_news_and_leads(maker):
         _, state = await news_agent.load_state(db)
         assert "channel" not in state
         topics = state["workspace"]["topics"]
-        assert set(topics) == {"news", "leads"} and topics["news"] != topics["leads"]
-        assert "Темы «Новости» и «Заявки партнёров» готовы" in sent[-1][1]["text"]
+        assert set(topics) == set(news_agent.TOPICS) and len(set(topics.values())) == len(topics)
+        assert sent[-1][1] == {"chat_id": "555", "text": "Теперь уведомления приходят в группу «S24» по темам. Список тем — /topics"}
 
-        assert await news_agent.destination(db, "leads") == {"chat_id": -100555, "message_thread_id": topics["leads"]}
+        assert await news_agent.owner_target("leads") == {"chat_id": -100555, "message_thread_id": topics["leads"]}
 
         db.add(lead(name="Новая"))
         await db.commit()

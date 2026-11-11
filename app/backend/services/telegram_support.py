@@ -8,8 +8,8 @@ taps stay instant while the AI thinks.
 
 Same brain as the WhatsApp bot (support_bot: prompt, directory, DÄM ALEM menu,
 fallback, handoff tag), plus voice notes (Whisper) and photos. On a handoff the
-owner gets a note in his Telegram chat with the person's name and a link; the
-bot then stays silent in that chat for TELEGRAM_SUPPORT_SILENCE_HOURS. The
+owner gets a note (the working group's «Помощник» topic, or his private chat)
+with the person's name and a link; the bot then stays silent in that chat for TELEGRAM_SUPPORT_SILENCE_HOURS. The
 owner's reply to that note is sent to the person by the bot.
 
 The bot never writes first. Like the WhatsApp bot, state lives in memory.
@@ -51,7 +51,7 @@ TELEGRAM_NOTE = f"""
 _chats: dict[str, Chat] = {}
 _seen: dict[str, float] = {}
 _global_recent: list[float] = []
-_notices: dict[int, str] = {}  # message id in the owner's chat → the person's chat id
+_notices: dict[tuple[str, int], str] = {}  # (owner's chat or group, message id) → the person's chat id
 _tasks: set[asyncio.Task] = set()
 
 
@@ -111,10 +111,12 @@ def _limited(chat: Chat, now: float) -> bool:
     return False
 
 
-def _remember_notice(message_id: Any, chat_id: str) -> None:
+def _remember_notice(sent: dict[str, Any], chat_id: str) -> None:
+    """`sent` is news_agent.owner_send's reply: the message id and where it went."""
+    message_id = (sent.get("result") or {}).get("message_id")
     if isinstance(message_id, int):
-        _notices[message_id] = chat_id
-        for key in sorted(_notices)[:-500]:
+        _notices[(str(sent["target"]["chat_id"]), message_id)] = chat_id
+        for key in list(_notices)[:-500]:
             _notices.pop(key, None)
 
 
@@ -133,7 +135,7 @@ async def handle_message(db, client: httpx.AsyncClient, message: dict[str, Any])
     """True when the message is ours: the owner's reply to a handoff note, or a person's private message."""
     if not enabled():
         return False
-    if await relay_owner_reply(client, message):
+    if await relay_owner_reply(db, client, message):
         return True
     chat = message.get("chat") or {}
     sender = message.get("from") or {}
@@ -240,7 +242,8 @@ async def respond(client: httpx.AsyncClient, message: dict[str, Any]) -> Outcome
         await notify_owner(client, chat_id, chat, sender, "💬 <b>Telegram-бот «Сортировка 24»: нужен оператор</b>")
     elif news:
         await notify_owner(client, chat_id, chat, sender, "📰 <b>Новость от жителя через Telegram-бот</b>")
-        await _forward_to_owner(client, chat_id, message)
+        if any(message.get(k) for k in MEDIA_KEYS):  # the text is in the note already; only media needs the original
+            await _forward_to_owner(client, chat_id, message)
     return Outcome("handed_off" if handoff else "replied", reply)
 
 
@@ -317,8 +320,8 @@ async def send(client: httpx.AsyncClient, chat_id: str, text: str) -> None:
 
 
 async def notify_owner(client: httpx.AsyncClient, chat_id: str, chat: Chat, user: dict[str, Any], title: str) -> None:
-    """A note in the owner's chat; his reply to it goes to the person."""
-    from services.news_agent import approval_chat, bot_token, tg
+    """A note in the owner's «Помощник» topic (or private chat); his reply to it goes to the person."""
+    from services.news_agent import approval_chat, bot_token, owner_send
     if not bot_token() or not approval_chat():
         return
     e = html.escape
@@ -333,30 +336,30 @@ async def notify_owner(client: httpx.AsyncClient, chat_id: str, chat: Chat, user
             else "Ответьте на это сообщение — бот перешлёт ответ человеку.")
     text = f"{title}\n\n{' · '.join(who)}\n\n{history}\n\n{tail}"
     try:
-        data = await tg(client, "sendMessage", {"chat_id": approval_chat(), "text": text[:4000], "parse_mode": "HTML"})
-        _remember_notice((data.get("result") or {}).get("message_id"), chat_id)
+        _remember_notice(await owner_send(client, "support", "sendMessage", {"text": text[:4000], "parse_mode": "HTML"}),
+                         chat_id)
     except Exception as exc:
         logger.warning("[TgSupport] owner notify failed: %s", exc)
 
 
 async def _forward_to_owner(client: httpx.AsyncClient, chat_id: str, message: dict[str, Any]) -> None:
-    from services.news_agent import approval_chat, tg
+    from services.news_agent import approval_chat, owner_send
     if not approval_chat():
         return
     try:
-        data = await tg(client, "forwardMessage", {"chat_id": approval_chat(), "from_chat_id": chat_id,
-                                                   "message_id": message.get("message_id")})
-        _remember_notice((data.get("result") or {}).get("message_id"), chat_id)
+        _remember_notice(await owner_send(client, "support", "forwardMessage", {
+            "from_chat_id": chat_id, "message_id": message.get("message_id")}), chat_id)
     except Exception as exc:
         logger.info("[TgSupport] forward to owner failed: %s", exc)
 
 
-async def relay_owner_reply(client: httpx.AsyncClient, message: dict[str, Any]) -> bool:
-    """The owner replied to a handoff note (or a forwarded message) → the bot sends his answer to the person."""
-    from services.news_agent import approval_chat, tg
+async def relay_owner_reply(db, client: httpx.AsyncClient, message: dict[str, Any]) -> bool:
+    """The owner (or a working group admin) replied to a handoff note or a forwarded message,
+    in the private chat or in the group's topic → the bot sends the answer to the person."""
+    from services.news_agent import may_decide, tg
     chat_id = str((message.get("chat") or {}).get("id", ""))
-    target = _notices.get((message.get("reply_to_message") or {}).get("message_id"))
-    if not target or chat_id != approval_chat() or str((message.get("from") or {}).get("id", "")) not in _owner_ids():
+    target = _notices.get((chat_id, (message.get("reply_to_message") or {}).get("message_id")))
+    if not target or not await may_decide(client, db, chat_id, str((message.get("from") or {}).get("id", ""))):
         return False
     try:
         await tg(client, "copyMessage", {"chat_id": target, "from_chat_id": chat_id, "message_id": message.get("message_id")})
@@ -369,5 +372,7 @@ async def relay_owner_reply(client: httpx.AsyncClient, message: dict[str, Any]) 
         said = str(message.get("text") or message.get("caption") or "").strip()
         if said:
             chat.turns.append({"role": "assistant", "content": said})
-    await tg(client, "sendMessage", {"chat_id": chat_id, "text": answer, "reply_to_message_id": message.get("message_id")})
+    thread = {"message_thread_id": message["message_thread_id"]} if message.get("message_thread_id") else {}
+    await tg(client, "sendMessage", {"chat_id": chat_id, "text": answer, "reply_to_message_id": message.get("message_id"),
+                                     **thread})
     return True

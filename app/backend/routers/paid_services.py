@@ -61,7 +61,7 @@ async def mark_paid(service_id: int, db: AsyncSession = Depends(get_db)):
 async def send_test(db: AsyncSession = Depends(get_db)):
     """Send the current list to the reminders chat — to check that the bot reaches it."""
     chat_id = await svc.target(db)
-    if not chat_id:
+    if chat_id is None:
         raise HTTPException(400, "Телеграм-бот не настроен на сервере")
     try:
         async with httpx.AsyncClient(timeout=20) as client:

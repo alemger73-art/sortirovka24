@@ -161,6 +161,6 @@ async def test_payments_group(env):
         assert 'оплачено' in answer
         # the bot is removed from the group → reminders go back to the owner
         assert await svc.handle_member(db, None, {**member, 'chat': {**member['chat'], 'id': -100777}, 'new_chat_member': {'status': 'left'}})
-        assert await svc.target(db) == '111'
+        assert await svc.target(db) == ''  # the owner: his «Отчёты и оплаты» topic or private chat
     r = await client.post(f'{B}/test', headers=h['owner'])
     assert r.status_code == 200

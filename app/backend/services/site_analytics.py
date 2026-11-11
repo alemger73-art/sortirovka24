@@ -277,14 +277,14 @@ def _esc(text: Any) -> str:
     return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-async def telegram(text: str) -> bool:
-    from services.news_agent import approval_chat, bot_token, tg
+async def telegram(text: str, kind: str = "reports") -> bool:
+    from services.news_agent import approval_chat, bot_token, owner_send
     if not (bot_token() and approval_chat()):
         return False
     try:
         async with httpx.AsyncClient(timeout=20) as client:
-            await tg(client, "sendMessage", {"chat_id": approval_chat(), "text": text[:4000], "parse_mode": "HTML",
-                                              "disable_web_page_preview": True})
+            await owner_send(client, kind, "sendMessage", {"text": text[:4000], "parse_mode": "HTML",
+                                                           "disable_web_page_preview": True})
         return True
     except Exception as exc:
         logger.warning("[SiteWatch] Telegram failed: %s", exc)
@@ -307,7 +307,7 @@ async def alert_new_error(row: SiteError) -> None:
             f"Страница: {_esc(row.path or '—')}\nБраузер: {_esc(row.browser or '—')}\n"
             f"<code>{_esc(row.message[:400])}</code>\n\n"
             "Подробности — в админке, раздел «Посещаемость» → «Ошибки».")
-    await telegram(text)
+    await telegram(text, "alerts")
 
 
 def report_text(s: dict[str, Any]) -> str:

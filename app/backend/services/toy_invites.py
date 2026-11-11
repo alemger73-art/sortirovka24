@@ -394,14 +394,14 @@ async def request_payment(db, inv: dict) -> dict:
     price = cfg["price"]
     inv = await set_status(db, inv["id"], "pending", price=price)
     await _cabinet(db, inv, f"Оплата приглашения: {money(price)}", pay_message(inv, price, cfg["kaspi_link"]))
-    from services.news_agent import approval_chat, bot_token, tg
+    from services.news_agent import approval_chat, bot_token, owner_send
     if bot_token() and approval_chat():
         try:
             async with httpx.AsyncClient(timeout=25) as client:
-                await tg(client, "sendMessage", {"chat_id": approval_chat(), "text": card_text(inv, price), "parse_mode": "HTML",
-                         "disable_web_page_preview": True, "reply_markup": {"inline_keyboard": [
-                             [{"text": f"💰 Оплачено — {money(price)}", "callback_data": f"ty:p:{inv['id']}"}],
-                             [{"text": "❌ Отклонить", "callback_data": f"ty:r:{inv['id']}"}]]}})
+                await owner_send(client, "paid", "sendMessage", {"text": card_text(inv, price), "parse_mode": "HTML",
+                                 "disable_web_page_preview": True, "reply_markup": {"inline_keyboard": [
+                                     [{"text": f"💰 Оплачено — {money(price)}", "callback_data": f"ty:p:{inv['id']}"}],
+                                     [{"text": "❌ Отклонить", "callback_data": f"ty:r:{inv['id']}"}]]}})
         except Exception as exc:
             logger.warning("[Toy] owner card failed: %s", exc)
     return inv

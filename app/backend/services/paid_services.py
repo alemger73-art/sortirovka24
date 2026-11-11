@@ -5,7 +5,7 @@ Every morning the agent looks at the dates and writes to Telegram 7, 3 and 1 day
 and every day while a payment is overdue. Each reminder has an «Оплачено» button that moves the date
 to the next period. Reminders go to a separate Telegram group: the owner creates a group whose name
 contains «оплат» (for example «Оплаты сервисов») and adds the bot — or writes /payments in any group.
-Until then they go to the owner's private chat with the bot.
+Until then they go to the owner's «Отчёты и оплаты» topic of the working group (or his private chat).
 The site's TLS certificate is checked as well, so an expiring one is never a surprise.
 """
 from __future__ import annotations
@@ -329,19 +329,26 @@ def overview_text(data: dict[str, Any]) -> str:
 
 
 async def target(db) -> Optional[str]:
+    """The payments group id; "" — the owner (his «Отчёты и оплаты» topic or private chat); None — no bot."""
     from services.news_agent import approval_chat, bot_token
     if not bot_token():
         return None
     _, state = await load_state(db)
-    return str((state.get("chat") or {}).get("id") or approval_chat() or "") or None
+    group = (state.get("chat") or {}).get("id")
+    return str(group) if group else ("" if approval_chat() else None)
 
 
-async def send(client: httpx.AsyncClient, chat_id: str, text_: str, markup: Optional[dict] = None) -> None:
-    from services.news_agent import tg
-    payload: dict[str, Any] = {"chat_id": chat_id, "text": text_[:4000], "parse_mode": "HTML", "disable_web_page_preview": True}
+async def send(client: httpx.AsyncClient, chat_id: str, text_: str, markup: Optional[dict] = None,
+               kind: str = "reports") -> None:
+    """To `chat_id`, or with an empty one to the owner's topic of `kind`."""
+    from services.news_agent import owner_send, tg
+    payload: dict[str, Any] = {"text": text_[:4000], "parse_mode": "HTML", "disable_web_page_preview": True}
     if markup:
         payload["reply_markup"] = markup
-    await tg(client, "sendMessage", payload)
+    if chat_id:
+        await tg(client, "sendMessage", {"chat_id": chat_id, **payload})
+    else:
+        await owner_send(client, kind, "sendMessage", payload)
 
 
 async def cert_days(host: str) -> Optional[int]:
@@ -366,7 +373,7 @@ async def daily_check(db, client: httpx.AsyncClient, now: Optional[date] = None)
     now = now or today()
     data = await list_services(db, now)
     chat_id = await target(db)
-    if not chat_id:
+    if chat_id is None:
         return 0
     sent = 0
     items = data["items"]
@@ -386,7 +393,7 @@ async def daily_check(db, client: httpx.AsyncClient, now: Optional[date] = None)
         await db.commit()
         if days <= CERT_WARN_DAYS:
             await send(client, chat_id, f"🔐 <b>Сертификат сайта</b> {html.escape(host)} истекает через {days} "
-                       f"{plural(days, 'день', 'дня', 'дней')}. Проверьте Cloudflare → SSL/TLS.")
+                       f"{plural(days, 'день', 'дня', 'дней')}. Проверьте Cloudflare → SSL/TLS.", kind="alerts")
             sent += 1
     if now.weekday() == 0 and any(it["active"] and not it["due_date"] for it in items):
         await send(client, chat_id, overview_text(data))
@@ -490,14 +497,15 @@ async def handle_message(db, client: httpx.AsyncClient, message: dict[str, Any])
 
 
 async def handle_callback(db, client: httpx.AsyncClient, data: str, chat_id: str, sender: dict[str, Any],
-                          message: dict[str, Any]) -> Optional[str]:
+                          message: dict[str, Any], trusted: bool = False) -> Optional[str]:
+    """«Оплачено» tap; `trusted` — the bot loop already knows the sender may decide here (owner, working group admin)."""
     match = CALLBACK_RE.fullmatch(data or "")
     if not match:
         return None
     await ensure_tables(db)
     _, state = await load_state(db)
     in_group = str((state.get("chat") or {}).get("id", "")) == chat_id
-    if not (in_group or _trusted(str(sender.get("id", "")))):
+    if not (in_group or trusted or _trusted(str(sender.get("id", "")))):
         return "Нет доступа"
     who = " ".join(x for x in (sender.get("first_name"), sender.get("last_name")) if x) or sender.get("username") or ""
     answer, _ = await mark_paid(db, int(match.group(1)), match.group(2) or "", who)

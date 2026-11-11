@@ -93,7 +93,7 @@ def keyboard(ann_id: int) -> dict[str, Any]:
 
 
 async def send_for_moderation(ann: Announcements, video_url: Optional[str] = None) -> bool:
-    from services.news_agent import approval_chat, bot_token, tg
+    from services.news_agent import approval_chat, bot_token, owner_send
     if not (bot_token() and approval_chat()):
         return False
     text = card_text(ann, video_url)
@@ -102,13 +102,13 @@ async def send_for_moderation(ann: Announcements, video_url: Optional[str] = Non
             photo = _photo(ann)
             if photo:
                 try:
-                    await tg(client, "sendPhoto", {"chat_id": approval_chat(), "photo": photo, "caption": text,
-                                                   "parse_mode": "HTML", "reply_markup": keyboard(ann.id)}, timeout=25)
+                    await owner_send(client, "ads", "sendPhoto", {"photo": photo, "caption": text, "parse_mode": "HTML",
+                                                                  "reply_markup": keyboard(ann.id)}, timeout=25)
                     return True
                 except Exception as exc:
                     logger.info("[Ads] photo card failed, sending text: %s", exc)
-            await tg(client, "sendMessage", {"chat_id": approval_chat(), "text": text, "parse_mode": "HTML",
-                                             "reply_markup": keyboard(ann.id), "disable_web_page_preview": True})
+            await owner_send(client, "ads", "sendMessage", {"text": text, "parse_mode": "HTML",
+                                                            "reply_markup": keyboard(ann.id), "disable_web_page_preview": True})
         return True
     except Exception as exc:
         logger.warning("[Ads] moderation card failed: %s", exc)
@@ -184,16 +184,16 @@ async def handle_callback(db: AsyncSession, client: httpx.AsyncClient, data: str
 
 async def report_to_owner(ann: Announcements, reason: str) -> bool:
     """A visitor complained about an ad: the owner sees it with the same buttons."""
-    from services.news_agent import approval_chat, bot_token, tg
+    from services.news_agent import approval_chat, bot_token, owner_send
     if not (bot_token() and approval_chat()):
         return False
     text = (f"⚠️ <b>Жалоба на объявление</b>\nПричина: {html.escape(reason[:300])}\n\n" + card_text(ann)
             + f"\n\n{SITE}/announcements/{ann.id}")
     try:
         async with httpx.AsyncClient(timeout=20) as client:
-            await tg(client, "sendMessage", {"chat_id": approval_chat(), "text": text[:4000], "parse_mode": "HTML",
-                                             "disable_web_page_preview": True, "reply_markup": {"inline_keyboard": [
-                                                 [{"text": "Снять с сайта", "callback_data": f"ad:r:{ann.id}:other"}]]}})
+            await owner_send(client, "ads", "sendMessage", {"text": text[:4000], "parse_mode": "HTML",
+                                                            "disable_web_page_preview": True, "reply_markup": {"inline_keyboard": [
+                                                                [{"text": "Снять с сайта", "callback_data": f"ad:r:{ann.id}:other"}]]}})
         return True
     except Exception as exc:
         logger.warning("[Ads] report failed: %s", exc)

@@ -148,9 +148,12 @@ async def test_news_from_resident_reaches_owner_without_silence(maker):
     fake = Fake(ai_text="Спасибо! Передал редакции. [НОВОСТЬ]")
     await run(maker, fake, private("На Защитной прорвало трубу\nВода течёт с утра", mid=7))
     assert "[НОВОСТЬ]" not in fake.calls("/sendMessage")[0]["text"]
-    assert "Новость от жителя" in fake.calls("/sendMessage")[-1]["text"]
-    assert fake.calls("/forwardMessage")[-1]["message_id"] == 7
+    note = fake.calls("/sendMessage")[-1]["text"]
+    assert "Новость от жителя" in note and "прорвало трубу" in note
+    assert not fake.calls("/forwardMessage")  # the text is in the note already: no second copy
     assert telegram_support._chats["42"].muted_until == 0
+    await run(maker, fake, private(mid=8, photo=[{"file_id": "p", "file_size": 100, "width": 90}], caption="Фото трубы"))
+    assert fake.calls("/forwardMessage")[-1]["message_id"] == 8  # a photo is forwarded as is
 
 
 async def test_groups_bots_and_commands_are_ignored(maker):

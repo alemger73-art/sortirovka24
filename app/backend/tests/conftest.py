@@ -16,6 +16,8 @@ def _reset_account_rate_limiters():
     from utils import rate_limit
 
     wa_guard.reset()  # the WhatsApp number's send counters are process-wide too
+    from services import news_agent
+    news_agent.reset_owner_cache()  # the working group settings and recent owner notices too
     account_v2.LOGIN_ATTEMPTS.clear()
     account_v2.SMS_REQUEST_ATTEMPTS.clear()
     rate_limit._RATE_BUCKETS.clear()

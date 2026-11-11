@@ -330,7 +330,7 @@ async def fetch_image(client: httpx.AsyncClient, media: dict[str, Any]) -> Optio
 
 async def notify_owner(client: httpx.AsyncClient, chat_id: str, chat: Chat, last: str) -> None:
     """Tell the owner in Telegram that a person needs a human."""
-    from services.news_agent import approval_chat, bot_token, tg
+    from services.news_agent import approval_chat, bot_token, owner_send
     if not bot_token() or not approval_chat():
         return
     who = html.escape(chat.name or "Клиент")
@@ -340,7 +340,7 @@ async def notify_owner(client: httpx.AsyncClient, chat_id: str, chat: Chat, last
     text = (f"💬 <b>WhatsApp «Сортировка 24»: нужен оператор</b>\n\n<b>{who}</b> · {phone}\n\n{history}\n\n"
             "Ответьте человеку в WhatsApp с телефона +7 700 428 02 80 — бот в этом чате замолчит на 12 часов.")
     try:
-        await tg(client, "sendMessage", {"chat_id": approval_chat(), "text": text[:4000], "parse_mode": "HTML"})
+        await owner_send(client, "support", "sendMessage", {"text": text[:4000], "parse_mode": "HTML"})
     except Exception as exc:
         logger.warning("[SupportBot] owner notify failed: %s", exc)
 

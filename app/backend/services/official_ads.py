@@ -246,7 +246,7 @@ def after_paid_keyboard(req_id: int) -> dict:
 
 
 async def send_to_owner(db, req: dict) -> bool:
-    from services.news_agent import approval_chat, bot_token, tg
+    from services.news_agent import approval_chat, bot_token, owner_send
     if not (bot_token() and approval_chat()):
         return False
     cfg = await get_settings(db)
@@ -254,12 +254,12 @@ async def send_to_owner(db, req: dict) -> bool:
         async with httpx.AsyncClient(timeout=30) as client:
             photos = [p for p in req["photos"] if p.startswith("https://")]
             if len(photos) == 1:
-                await tg(client, "sendPhoto", {"chat_id": approval_chat(), "photo": photos[0]}, timeout=30)
+                await owner_send(client, "paid", "sendPhoto", {"photo": photos[0]}, timeout=30)
             elif photos:
-                await tg(client, "sendMediaGroup", {"chat_id": approval_chat(),
-                         "media": [{"type": "photo", "media": p} for p in photos[:10]]}, timeout=30)
-            await tg(client, "sendMessage", {"chat_id": approval_chat(), "text": card_text(req, cfg), "parse_mode": "HTML",
-                     "disable_web_page_preview": True, "reply_markup": keyboard(req["id"], cfg)})
+                await owner_send(client, "paid", "sendMediaGroup",
+                                 {"media": [{"type": "photo", "media": p} for p in photos[:10]]}, timeout=30)
+            await owner_send(client, "paid", "sendMessage", {"text": card_text(req, cfg), "parse_mode": "HTML",
+                             "disable_web_page_preview": True, "reply_markup": keyboard(req["id"], cfg)})
         return True
     except Exception as exc:
         logger.warning("[Official] owner card failed: %s", exc)

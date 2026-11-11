@@ -617,7 +617,7 @@ async def transcribe(client: httpx.AsyncClient, media: dict[str, Any]) -> Option
 
 
 async def notify_owner(client: httpx.AsyncClient, chat_id: str, chat: Chat, reason: str) -> None:
-    from services.news_agent import approval_chat, bot_token, tg
+    from services.news_agent import approval_chat, bot_token, owner_send
     if not bot_token() or not approval_chat() or time.time() - chat.handed_off_at < 900:
         return
     chat.handed_off_at = time.time()
@@ -626,7 +626,7 @@ async def notify_owner(client: httpx.AsyncClient, chat_id: str, chat: Chat, reas
     text = (f"🍔 <b>WhatsApp DAM ALEM: нужен сотрудник</b>\n<b>{html.escape(chat.name or 'Клиент')}</b> · {chat.phone or 'номер скрыт'}\n"
             f"Причина: {html.escape(reason[:200])}\n\n{history}\n\nОтветьте клиенту в WhatsApp DAM ALEM с телефона — бот в этом чате замолчит.")
     try:
-        await tg(client, "sendMessage", {"chat_id": approval_chat(), "text": text[:4000], "parse_mode": "HTML"})
+        await owner_send(client, "dam", "sendMessage", {"text": text[:4000], "parse_mode": "HTML"})
     except Exception as exc:
         logger.warning("[DamWA] owner notify failed: %s", exc)
 
