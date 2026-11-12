@@ -314,7 +314,11 @@ def system_prompt(facts: str, name: str, memory: str = "", menu: str = "") -> st
 - Каждое блюдо — с новой строки, со своим эмодзи: 🍔 бургеры, 🍕 пицца, 🍟 закуски, 🥟 манты, 🍜 горячее, 🥤 напитки, ☕ кофе, 🍵 чай, 🥛 коктейли, 🎁 подарок.
   Пример: 🍕 *Пепперони* — 3 200 ₸
 - Жирный шрифт — одна звёздочка с двух сторон: *так*. Не используй **, #, таблицы и ссылки в скобках.
-- В одном сообщении показывай не больше 5–6 блюд; полное меню с фото — ссылкой.
+- Пиши коротко: обычно 2–4 строки и один вопрос в конце. Длинные сообщения — только меню и итог заказа.
+- Когда просят меню («меню», «что есть», «прайс», «цены») — присылай ВСЁ меню из раздела ниже одним сообщением, компактно:
+  категория жирным с эмодзи, под ней каждое блюдо строкой «Название (порция) — цена», без описаний и без id.
+  В конце одна строка: ссылка на меню с фото {SITE}/food и вопрос о поводе: «Для какого случая выбираете — обед, семья, компания, праздник? 😊»
+- В остальных сообщениях показывай не больше 5–6 блюд.
 - 2–4 уместных эмодзи на сообщение (😊🔥👌🧡), без перебора.
 - Итог заказа после quote_order оформляй строго так:
 🧾 *Ваш заказ:*
@@ -330,8 +334,12 @@ def system_prompt(facts: str, name: str, memory: str = "", menu: str = "") -> st
 
 Сейчас: {facts}
 
-Как продавать (ты продавец, твоя цель — вкусный и выгодный для клиента заказ на хорошую сумму):
-- Узнай, на сколько человек и что любят. Сразу предлагай 2–3 конкретных блюда или комбо с ценой — не перечисляй всё меню.
+Как продавать (ты лучший продавец: дружелюбный, внимательный, без давления; цель — чтобы клиент заказал сейчас и остался доволен):
+- Узнай повод и на сколько человек: обед, ужин с семьёй, друзья, праздник, день рождения. Под повод подбирай готовое решение.
+- День рождения: у нас скидка 10% имениннику — промокод BIRTHDAY, курьеру нужно показать удостоверение. Если заказ ко дню рождения — поздравь, предложи сет на компанию и примени BIRTHDAY в quote_order. Сам про скидку на ДР говори, когда повод — праздник.
+- Мягко веди к заказу: после каждого ответа — один простой следующий шаг («Оформим?», «Куда доставить?», «Наличными или Kaspi?»). Не дави и не повторяй одно предложение дважды.
+- Если клиент сомневается или отвечает «подумаю» — один раз напомни выгоду (подарок, бонусы, скидка, быстрая доставка — время в разделе «Сейчас») и спроси, оформлять ли.
+- Узнай, что любят. Сразу предлагай 2–3 конкретных блюда или комбо с ценой (всё меню — только если его попросили).
 - Обязательно, до расчёта, сделай одно дружелюбное допредложение (один раз, без давления):
   • к пицце и бургерам — соус (если у блюда есть соусы в меню) и напиток 🥤;
   • к одному блюду — закуску: картофель фри, наггетсы, луковые кольца 🍟;
@@ -358,6 +366,10 @@ def system_prompt(facts: str, name: str, memory: str = "", menu: str = "") -> st
 - Бонусы: расскажи о них, когда это к месту (после первого заказа, на вопрос о скидках) — правила в разделе «Сейчас». Баланс — get_bonus_balance. В этом чате бонусами оплатить нельзя — только при заказе на сайте {SITE}/food.
 - Хиты, которые чаще всего берут: манты жареные, жареный лагман, UFO бургеры, пицца. Если клиент не знает, что выбрать, — начни с них.
 - Если просят то, чего нет в меню (суши, шашлык, роллы и т. п.): честно скажи, что сейчас этого нет, предложи похожее из меню и добавь, что передадим пожелание кухне.
+- Фото от клиента ты видишь. Это может быть: блюдо или скрин из меню («хочу такое») — найди похожее в меню; адрес, дом или подъезд — используй для доставки;
+  чек или скрин перевода Kaspi — поблагодари, но не пиши «оплата получена»: сотрудник сверит, вызови call_operator; фото с жалобой на блюдо — извинись и сразу вызови call_operator.
+  Если в чате «открыть фото не получилось» — попроси описать словами.
+- Голосовые сообщения приходят тебе уже текстом — отвечай как на обычное сообщение, не упоминай, что это расшифровка.
 - Размер порции указан в скобках у блюда (5 шт, 30 см, 50 мл). Если размера нет — не выдумывай граммы, предложи посмотреть фото на сайте или позови сотрудника.
 - Сообщение «✅ Заказ №… оформлен!» отправляет система после «Да» клиента — это правда, заказ создан. Никогда не опровергай его.
 - В итоге показывай строки из расчёта: позиции, доставку (сумму или «бесплатно»), скидку и промокод, если есть, и итог. Не пиши, что промокод «не применился», если в расчёте он есть.
@@ -533,7 +545,8 @@ def _text_only(exchanges: list[list[dict[str, Any]]]) -> list[dict[str, Any]]:
     return out
 
 
-async def ask_ai(client: httpx.AsyncClient, db, ctx, chat: Chat, text: str, message_id: str, chat_id: str) -> Optional[str]:
+async def ask_ai(client: httpx.AsyncClient, db, ctx, chat: Chat, text: str, message_id: str, chat_id: str,
+                 image: Optional[dict[str, Any]] = None) -> Optional[str]:
     key = (os.getenv("ANTHROPIC_API_KEY") or "").strip()
     if not key:
         return None
@@ -550,7 +563,8 @@ async def ask_ai(client: httpx.AsyncClient, db, ctx, chat: Chat, text: str, mess
         memory_parts.append("Сотрудник DAM ALEM писал клиенту сам: " + " | ".join(str(t["content"])[:200] for t in staff[-3:]))
     memory = "Память о клиенте:\n- " + "\n- ".join(p for p in memory_parts if p)
     history = [m for ex in chat.history[-HISTORY_EXCHANGES:] for m in ex]
-    exchange: list[dict[str, Any]] = [{"role": "user", "content": text[:2000]}]
+    first: Any = [image, {"type": "text", "text": text[:2000]}] if image else text[:2000]
+    exchange: list[dict[str, Any]] = [{"role": "user", "content": first}]
     reply: Optional[str] = None
     async def call(msgs: list[dict[str, Any]]) -> httpx.Response:
         return await client.post(
@@ -588,6 +602,8 @@ async def ask_ai(client: httpx.AsyncClient, db, ctx, chat: Chat, text: str, mess
     if reply is None:
         reply = "Секунду, уточняю детали — сотрудник подключится, если понадобится 🙏"
         exchange.append({"role": "assistant", "content": reply})
+    if image:
+        exchange[0] = {"role": "user", "content": text[:2000]}  # the photo itself is not kept in memory
     chat.history = (chat.history + [_compact(exchange)])[-HISTORY_EXCHANGES:]
     return reply
 
@@ -630,6 +646,25 @@ async def transcribe(client: httpx.AsyncClient, media: dict[str, Any]) -> Option
                           files={"audio_file": ("voice.ogg", audio.content, media.get("mimetype") or "audio/ogg")}, timeout=120)
     r.raise_for_status()
     return r.text.strip() or None
+
+
+IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+MAX_IMAGE_BYTES = 4 * 1024 * 1024
+
+
+async def fetch_image(client: httpx.AsyncClient, media: dict[str, Any]) -> Optional[dict[str, Any]]:
+    """The customer's photo as an image block for the AI (None if it is not a picture we can show)."""
+    import base64
+    mime = str((media or {}).get("mimetype") or "").split(";")[0].strip().lower()
+    url = str((media or {}).get("url") or "")
+    if mime not in IMAGE_TYPES or not url:
+        return None
+    base, headers, _ = _waha()
+    r = await client.get(re.sub(r"^https?://[^/]+", base, url), headers=headers, timeout=30)
+    r.raise_for_status()
+    if not r.content or len(r.content) > MAX_IMAGE_BYTES:
+        return None
+    return {"type": "image", "source": {"type": "base64", "media_type": mime, "data": base64.b64encode(r.content).decode()}}
 
 
 async def notify_owner(client: httpx.AsyncClient, chat_id: str, chat: Chat, reason: str) -> None:
@@ -771,6 +806,7 @@ async def _handle(db, chat: Chat, chat_id: str, p: dict[str, Any], client: httpx
         text = (f"(клиент отправил геолокацию в WhatsApp: {point['lat']:.5f}, {point['lng']:.5f}"
                 + (f", {point['desc']}" if point["desc"] else "") + ". Используй её для доставки — пересчитай заказ quote_order.)")
     media = p.get("media") if isinstance(p.get("media"), dict) else {}
+    image: Optional[dict[str, Any]] = None
     if p.get("hasMedia") and str(media.get("mimetype") or "").startswith("audio"):
         heard = None
         try:
@@ -782,8 +818,14 @@ async def _handle(db, chat: Chat, chat_id: str, p: dict[str, Any], client: httpx
             await send_text(client, chat_id, reply, chat)
             return Outcome("replied", reply)
         text = heard
+    elif p.get("hasMedia") and str(media.get("mimetype") or "").startswith("image"):
+        try:
+            image = await fetch_image(client, media)
+        except Exception as exc:
+            logger.warning("[DamWA] photo download failed: %s", exc)
+        text = (f"(клиент прислал фото с подписью: {text})" if text else "(клиент прислал фото)") + ("" if image else " — открыть фото не получилось")
     elif p.get("hasMedia") and not text and not point:
-        text = "(прислал фото или файл)"
+        text = "(прислал файл)"
     if not text:
         logger.info("[DamWA] empty message, payload keys: %s", sorted(k for k in p.keys() if not k.startswith("_"))[:20])
         return Outcome("ignored")
@@ -846,7 +888,7 @@ async def _handle(db, chat: Chat, chat_id: str, p: dict[str, Any], client: httpx
             await notify_owner(client, chat_id, chat, text)
         reply: Optional[str] = None
         try:
-            reply = await ask_ai(client, db, ctx, chat, text, str(p.get("id") or f"t{now}"), chat_id)
+            reply = await ask_ai(client, db, ctx, chat, text, str(p.get("id") or f"t{now}"), chat_id, image=image)
         except Exception as exc:
             logger.warning("[DamWA] AI failed: %s", exc)
         if not reply:

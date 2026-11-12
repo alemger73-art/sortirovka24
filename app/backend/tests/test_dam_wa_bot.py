@@ -261,3 +261,31 @@ async def test_bot_knows_portions_bonuses_and_pay_on_delivery(bot):
     prompt = B.system_prompt(facts, "Айгерим", menu=menu)
     assert "только при получении" in prompt and "счетов мы не выставляем" in prompt
     assert "ОПЛАЧЕН" not in prompt
+
+
+async def test_customer_photo_is_shown_to_the_ai_but_not_kept_in_memory(bot, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+    log, script = [], [[{"type": "text", "text": "Похоже на наши *Манты жареные* 🥟 Добавить?"}]]
+    base = transport(log, script)
+
+    def handler(request):
+        if "/api/files/" in str(request.url):
+            return httpx.Response(200, content=b"\xff\xd8\xff photo")
+        return base.handle_request(request)
+    event = msg("", mid="photo-1")
+    event["payload"].update(hasMedia=True, media={"url": "http://localhost:3000/api/files/default/p.jpg", "mimetype": "image/jpeg"})
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        out = await B.handle_event(event, client)
+    assert out.action == "replied" and "Манты" in out.reply
+    first = next(b for u, b in log if "anthropic" in u)["messages"][-1]["content"]
+    assert first[0]["type"] == "image" and first[0]["source"]["media_type"] == "image/jpeg"
+    assert "прислал фото" in first[1]["text"]
+    stored = B._chats["77015556677@c.us"].history[-1][0]["content"]
+    assert isinstance(stored, str) and "прислал фото" in stored
+
+
+def test_sales_manner_full_menu_occasion_and_birthday():
+    prompt = B.system_prompt("Кухня открыта", "Айгерим", menu="#1 Пепперони (30 см) — 3 200 ₸")
+    assert "присылай ВСЁ меню" in prompt and "повод" in prompt
+    assert "BIRTHDAY" in prompt and "удостоверение" in prompt
+    assert "2–4 строки" in prompt
