@@ -259,7 +259,7 @@ async def test_bot_knows_portions_bonuses_and_pay_on_delivery(bot):
     assert f"{item.name} (5 шт)" in menu
     assert "Бонусы DAM ALEM" in facts and "%" in facts
     prompt = B.system_prompt(facts, "Айгерим", menu=menu)
-    assert "только при получении" in prompt and "счетов мы не выставляем" in prompt
+    assert "наличными при получении" in prompt and "kaspi_phone" in prompt
     assert "ОПЛАЧЕН" not in prompt
 
 
@@ -299,3 +299,25 @@ def test_whatsapp_only_promo_is_refused_at_site_checkout():
     with pytest.raises(HTTPException) as err:
         _resolve_promo("birthday", 5000, cfg, public_checkout=True)
     assert "WhatsApp" in err.value.detail
+
+
+async def test_kaspi_needs_a_number_and_the_confirmation_lists_everything(bot, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+    base = {"items": [{"id": 2, "quantity": 2}], "customer_name": "Айгерим", "delivery_method": "pickup", "payment_method": "kaspi_transfer"}
+    script = [
+        [{"type": "tool_use", "id": "a", "name": "quote_order", "input": base}],
+        [{"type": "tool_use", "id": "b", "name": "quote_order", "input": {**base, "kaspi_phone": "+77015556677"}}],
+        [{"type": "text", "text": "Итого 600 ₸. Ответьте Да"}],
+    ]
+    log = []
+    async with httpx.AsyncClient(transport=transport(log, script)) as client:
+        await B.handle_event(msg("2 штуки, самовывоз, каспи"), client)
+        refused = [b for u, b in log if "anthropic" in u][1]["messages"][-1]["content"][0]["content"]
+        assert "kaspi_phone" in refused
+        out = await B.handle_event(msg("да"), client)
+    assert out.action == "order_created"
+    assert "Drink × 2" in out.reply and "Самовывоз" in out.reply and "600" in out.reply
+    assert "счёт выставим на номер +77015556677" in out.reply
+    async with bot() as db:
+        row = (await db.scalars(select(Food_orders).where(Food_orders.order_source == "whatsapp"))).one()
+        assert "+77015556677" in (row.comment or "")

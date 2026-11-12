@@ -327,7 +327,8 @@ def system_prompt(facts: str, name: str, memory: str = "", menu: str = "") -> st
 
 🚚 Доставка: ул. ..., кв. ... — 500 ₸ (или «бесплатно»; при самовывозе 🏃 Самовывоз)
 🏷️ Промокод PIZZA500: −500 ₸ (если есть)
-💳 Оплата: наличными / Kaspi переводом при получении
+⏰ Предзаказ на 14.11 19:00 (если предзаказ)
+💳 Оплата: наличными при получении / счёт Kaspi на номер +7 …
 💰 *Итого: 4 000 ₸*
 
 Чтобы оформить, ответьте *Да* ✅
@@ -342,6 +343,8 @@ def system_prompt(facts: str, name: str, memory: str = "", menu: str = "") -> st
   Никогда не пересказывай и не записывай номер документа, ИИН и адрес с удостоверения — только проверь дату.
   Сам про скидку на ДР говори, когда повод — праздник.
 - Мягко веди к заказу: после каждого ответа — один простой следующий шаг («Оформим?», «Куда доставить?», «Наличными или Kaspi?»). Не дави и не повторяй одно предложение дважды.
+- Время: если клиент хочет не сейчас, а к определённому времени или на другой день — это предзаказ. Уточни дату и время, вызови get_preorder_slots, предложи ближайшие свободные слоты и передай выбранный в scheduled_for. Если кухня закрыта — сразу предложи предзаказ.
+- Перед расчётом проверь, что знаешь всё: блюда и количество, имя, адрес (улица, дом, подъезд, квартира) или самовывоз, время (сейчас или предзаказ), оплату (наличные — с какой суммы сдача; Kaspi — номер для счёта).
 - Если клиент сомневается или отвечает «подумаю» — один раз напомни выгоду (подарок, бонусы, скидка, быстрая доставка — время в разделе «Сейчас») и спроси, оформлять ли.
 - Узнай, что любят. Сразу предлагай 2–3 конкретных блюда или комбо с ценой (всё меню — только если его попросили).
 - Обязательно, до расчёта, сделай одно дружелюбное допредложение (один раз, без давления):
@@ -356,7 +359,7 @@ def system_prompt(facts: str, name: str, memory: str = "", menu: str = "") -> st
 - Блюда, цены и варианты бери ТОЛЬКО из меню ниже (это всё актуальное меню целиком). Никогда не выдумывай блюда, цены, скидки и сроки.
   Если блюда нет в меню ниже — значит, сейчас его нет; предложи похожее.
 - Если у блюда есть обязательный выбор (размер, количество, состав комбо) — уточни у клиента.
-- Для заказа нужны: блюда и количество, имя, доставка (адрес: улица и дом, подъезд/квартира) или самовывоз, оплата при получении: наличными (спроси, с какой суммы сдача) или Kaspi переводом. Спрашивай недостающее по одному вопросу.
+- Для заказа нужны: блюда и количество, имя, доставка (адрес: улица и дом, подъезд/квартира) или самовывоз, время (сейчас или предзаказ), оплата: наличными (спроси, с какой суммы сдача) или Kaspi (спроси номер для счёта). Спрашивай недостающее по одному вопросу.
 - Когда всё собрано — вызови quote_order. Покажи клиенту итог из ответа инструмента по образцу выше (блюда, доставка, оплата, итого) и попроси ответить «Да».
 - Сам ты заказ не создаёшь: его создаст система, когда клиент ответит «Да». Не пиши «заказ оформлен», пока система этого не сообщила.
   Если клиент согласился, но заказ не оформился (система не прислала «✅ Заказ №… оформлен!»), не пиши «система сейчас оформит» — попроси ответить одним словом *Да*.
@@ -364,7 +367,7 @@ def system_prompt(facts: str, name: str, memory: str = "", menu: str = "") -> st
 - Геолокацию из WhatsApp ты получаешь автоматически: когда клиент её отправит, в чате будет «(клиент отправил геолокацию в WhatsApp: …)» — сразу пересчитай заказ с доставкой. Не говори, что не можешь принять геолокацию.
   Пока такой строки нет — геолокация НЕ пришла; не пиши «получила», а подскажи, как отправить.
 - Статус уже сделанного заказа — get_my_last_order. Бонусы — get_bonus_balance.
-- ОПЛАТА только при получении: наличными или Kaspi переводом курьеру (при самовывозе — на месте). Заранее платить не нужно, счетов мы не выставляем. Не проси перевод заранее и не придумывай номера Kaspi — курьер подскажет при получении.
+- ОПЛАТА: наличными при получении или Kaspi. Для Kaspi обязательно спроси, на какой номер выставить счёт («На этот номер WhatsApp выставить счёт Kaspi или на другой?») и передай его в kaspi_phone. Счёт выставит сотрудник; номера Kaspi для перевода не придумывай.
   Ты не видишь деньги: никогда не пиши «оплата получена». Если клиент пишет «оплатил» — поблагодари; если есть сомнения, вызови call_operator.
 - Как идёт заказ: «принят, ждёт подтверждения» → сотрудник нажал «Принять» → «готовится» → «в пути» (доставка) или «готов к выдаче» (самовывоз) → «доставлен». О каждом шаге клиенту приходит сообщение. На вопрос «где мой заказ» — вызови get_my_last_order и скажи статус простыми словами.
 - Бонусы: расскажи о них, когда это к месту (после первого заказа, на вопрос о скидках) — правила в разделе «Сейчас». Баланс — get_bonus_balance. В этом чате бонусами оплатить нельзя — только при заказе на сайте {SITE}/food.
@@ -406,8 +409,9 @@ TOOLS = [
          "customer_name": {"type": "string"},
          "delivery_method": {"type": "string", "enum": ["delivery", "pickup"]},
          "delivery_address": {"type": "string", "description": "Улица и дом, подъезд, квартира. Город Караганда."},
-         "payment_method": {"type": "string", "enum": ["cash", "kaspi_transfer"], "description": "cash — наличными, kaspi_transfer — Kaspi переводом при получении"},
+         "payment_method": {"type": "string", "enum": ["cash", "kaspi_transfer"], "description": "cash — наличными при получении, kaspi_transfer — счёт Kaspi на номер клиента"},
          "cash_given_amount": {"type": "number", "description": "С какой суммы нужна сдача (для наличных)"},
+         "kaspi_phone": {"type": "string", "description": "Для оплаты Kaspi: номер, на который выставить счёт (спроси у клиента)"},
          "scheduled_for": {"type": "string", "description": "Время предзаказа из get_preorder_slots, если нужно"},
          "promo_code": {"type": "string"},
          "selected_gift_id": {"type": "string"},
@@ -420,6 +424,50 @@ TOOLS = [
 
 STATUS_RU = {"new": "принят, ждёт подтверждения сотрудника", "accepted": "подтверждён", "preparing": "готовится",
              "ready": "готов к выдаче", "in_progress": "в пути", "done": "выполнен", "cancelled": "отменён"}
+
+
+def _quote_parts(q: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
+    """(dish lines, price breakdown, pricing snapshot) of a server quote."""
+    try:
+        items = json.loads(q.get("order_items") or "[]") if isinstance(q.get("order_items"), str) else (q.get("order_items") or [])
+    except ValueError:
+        items = []
+    try:
+        snap = json.loads(q.get("pricing_snapshot") or "{}") if isinstance(q.get("pricing_snapshot"), str) else (q.get("pricing_snapshot") or {})
+    except ValueError:
+        snap = {}
+    return items, snap.get("breakdown") or {}, snap
+
+
+def order_summary(order_id: Any, q: dict[str, Any], kaspi_phone: str = "") -> str:
+    """The customer's confirmation after «Да»: everything they ordered, where, when and how much."""
+    from services.operator_telegram import _local
+    items, b, snap = _quote_parts(q)
+    lines = [f"✅ *Заказ №{order_id} оформлен!*", "", "🧾 *Вы заказали:*"]
+    for it in items:
+        mods = ", ".join(m.get("name", "") for m in it.get("modifiers") or [])
+        lines.append(f"• {it.get('name')} × {it.get('quantity')}" + (f" ({mods})" if mods else "")
+                     + (" — 🎁 подарок" if it.get("is_gift") else f" — {money(it.get('sum', 0))}"))
+    lines.append("")
+    if q.get("delivery_method") == "delivery":
+        fee = float(b.get("delivery_fee") or 0)
+        lines.append(f"🚚 Доставка: {q.get('delivery_address') or ''} — {money(fee) if fee else 'бесплатно'}")
+    else:
+        lines.append("🏃 Самовывоз")
+    if q.get("scheduled_for"):
+        lines.append(f"⏰ Предзаказ на {_local(q.get('scheduled_for'))}")
+    if float(b.get("discount") or 0):
+        promo = snap.get("promo_code")
+        lines.append(f"🏷️ Скидка{(' по промокоду ' + promo) if promo else ''}: −{money(b.get('discount'))}")
+    lines.append(f"💰 *Итого: {money(q.get('total_amount'))}*")
+    if q.get("payment_method") == "kaspi_transfer":
+        lines.append(f"💳 Оплата Kaspi: счёт выставим на номер {kaspi_phone}" if kaspi_phone else "💳 Оплата Kaspi")
+    elif q.get("payment_method") in ("kaspi_qr", "halyk_qr"):
+        lines.append(f"💳 Оплата {'Kaspi' if q.get('payment_method') == 'kaspi_qr' else 'Halyk'}: счёт придёт в приложение банка")
+    else:
+        lines.append("💵 Оплата наличными при получении" + (f", сдача с {money(q.get('cash_given_amount'))}" if q.get("cash_given_amount") else ""))
+    lines += ["", "📲 Статус заказа будем присылать сюда.", "Спасибо, что выбрали DAM ALEM 2.0 🧡"]
+    return "\n".join(lines)
 
 
 def _quote_view(q: dict[str, Any]) -> str:
@@ -470,7 +518,7 @@ async def run_tool(db, ctx, chat: Chat, name: str, args: dict[str, Any], message
                 return "У клиента ещё нет заказов."
             paid = str(row.payment_status or "") in ("paid", "succeeded", "completed")
             if row.payment_method in ("cash", "kaspi_transfer"):
-                pay = "оплачен" if paid else ("наличными" if row.payment_method == "cash" else "Kaspi переводом") + " при получении"
+                pay = "оплачен" if paid else ("наличными при получении" if row.payment_method == "cash" else "Kaspi по счёту")
             else:
                 pay = "ОПЛАЧЕН (подтверждено сотрудником)" if paid else "ЕЩЁ НЕ ОПЛАЧЕН — сотрудник выставляет счёт и сам подтверждает поступление"
             return json.dumps({"номер": row.id, "статус": STATUS_RU.get(row.status, row.status), "сумма": money(row.total_amount),
@@ -481,6 +529,14 @@ async def run_tool(db, ctx, chat: Chat, name: str, args: dict[str, Any], message
             return "Сотрудник уведомлён (ночью может ответить позже). Скажи клиенту, что сотрудник подключится, а пока ты продолжаешь помогать."
         if name == "quote_order":
             draft = {k: v for k, v in args.items() if v not in (None, "")}
+            kaspi_phone = str(draft.pop("kaspi_phone", "") or "").strip()
+            if draft.get("payment_method") == "kaspi_transfer":
+                if not kaspi_phone:
+                    return "Ошибка: для оплаты Kaspi спроси у клиента, на какой номер выставить счёт (можно этот WhatsApp-номер), и передай kaspi_phone."
+                note = f"Счёт Kaspi выставить на номер {kaspi_phone}"
+                draft["comment"] = f"{note}. {draft['comment']}" if draft.get("comment") else note
+            else:
+                kaspi_phone = ""
             from services.menu_configuration import restaurants
             rests = await restaurants(db, crm.DAM)
             draft["restaurant_id"] = rests[0].id if rests else 0
@@ -494,7 +550,10 @@ async def run_tool(db, ctx, chat: Chat, name: str, args: dict[str, Any], message
                     draft["delivery_address"] = chat.location.get("desc") or "Точка на карте (геолокация из WhatsApp)"
             q = await C.tool(db, ctx, "quote", draft, message_id=message_id)
             await db.commit()
-            chat.pending = {"id": q["confirmation_id"], "total": q.get("total_amount"), "payment": q.get("payment_method"), "at": time.time()}
+            chat.pending = {"id": q["confirmation_id"], "total": q.get("total_amount"), "payment": q.get("payment_method"), "at": time.time(),
+                            "quote": {k: q.get(k) for k in ("order_items", "pricing_snapshot", "delivery_method", "delivery_address", "scheduled_for",
+                                                            "total_amount", "payment_method", "cash_given_amount")},
+                            "kaspi_phone": kaspi_phone}
             chat.draft_note = _quote_view(q)
             return "Расчёт готов. Покажи клиенту и попроси ответить «Да»: " + chat.draft_note
         return "Неизвестный инструмент"
@@ -874,12 +933,8 @@ async def _handle(db, chat: Chat, chat_id: str, p: dict[str, Any], client: httpx
                 await send_text(client, chat_id, reply, chat)
                 return Outcome("confirm_failed", reply)
             chat.last_order_id = order.get("id")
-            pay = pending.get("payment")
-            pay_line = {"kaspi_transfer": "📱 Оплата Kaspi переводом при получении.",
-                        "kaspi_qr": "💳 Счёт Kaspi придёт в приложение банка в течение 1–3 минут — оплатите уведомление «Оплатить». Готовить начнём после оплаты.",
-                        "halyk_qr": "💳 Счёт Halyk придёт в приложение банка в течение 1–3 минут. Готовить начнём после оплаты."}.get(pay, "💵 Оплата при получении.")
-            reply = (f"✅ *Заказ №{order.get('id')} оформлен!*\n\n💰 Сумма: *{money(order.get('total_amount'))}*\n{pay_line}\n\n"
-                     f"📲 Статус заказа будем присылать сюда.\nСпасибо, что выбрали DAM ALEM 2.0 🧡")
+            reply = order_summary(order.get("id"), {**(pending.get("quote") or {}), "total_amount": order.get("total_amount")},
+                                  pending.get("kaspi_phone", ""))
             chat.turns += [{"role": "user", "content": text}, {"role": "assistant", "content": reply}]
             chat.history = (chat.history + [[{"role": "user", "content": text}, {"role": "assistant", "content": reply}]])[-HISTORY_EXCHANGES:]
             await send_text(client, chat_id, reply, chat)

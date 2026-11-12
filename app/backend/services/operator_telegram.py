@@ -181,10 +181,22 @@ def _cabinet_url() -> str:
     return f"{base}/partner/dam-alem/operator"
 
 
+def _pricing(order: Any) -> tuple[dict, str]:
+    """(price breakdown, promo code) saved with the order."""
+    try:
+        snap = json.loads(order.pricing_snapshot or "{}")
+    except (TypeError, ValueError):
+        snap = {}
+    if not isinstance(snap, dict):
+        return {}, ""
+    return snap.get("breakdown") or {}, str(snap.get("promo_code") or "")
+
+
 def card(order: Any) -> str:
     e = html.escape
     delivery = (order.delivery_method or "delivery") in ("delivery", "доставка")
-    lines = [f"🍽 <b>НОВЫЙ ЗАКАЗ №{order.id}</b> · DÄM ALEM", "<i>Позвоните клиенту и примите заказ в кабинете</i>", ""]
+    source = " · из WhatsApp" if (order.order_source or "") == "whatsapp" else ""
+    lines = [f"🍽 <b>НОВЫЙ ЗАКАЗ №{order.id}</b> · DÄM ALEM{source}", "<i>Позвоните клиенту и примите заказ в кабинете</i>", ""]
     lines.append(f"👤 {e(order.customer_name or 'Клиент')}")
     if order.customer_phone:
         lines.append(f"📞 {e(order.customer_phone)}")
@@ -199,6 +211,12 @@ def card(order: Any) -> str:
     if items:
         lines += ["", "<b>Состав:</b>", *items[:30]]
     lines.append("")
+    breakdown, promo = _pricing(order)
+    if delivery and breakdown:
+        fee = float(breakdown.get("delivery_fee") or 0)
+        lines.append(f"🚚 Доставка: {_money(fee) if fee else 'бесплатно'}")
+    if order.promo_discount_amount:
+        lines.append(f"🏷 Скидка{(' ' + e(promo)) if promo else ''}: −{_money(order.promo_discount_amount)}")
     lines.append(f"💰 <b>Итого: {_money(order.total_amount)}</b>")
     if order.bonus_points_used:
         lines.append(f"🎁 Списано бонусов: {round(float(order.bonus_points_used))}")
