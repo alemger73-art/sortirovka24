@@ -293,6 +293,7 @@ def _resolve_promo(
     subtotal: float,
     settings: Dict[str, str],
     on: Optional[str] = None,
+    public_checkout: bool = False,
 ) -> Tuple[float, bool]:
     """Return (discount, free_delivery) for a promo code.
 
@@ -311,6 +312,8 @@ def _resolve_promo(
         break
     if not matched:
         raise HTTPException(status_code=400, detail="Промокод не найден или недействителен")
+    if public_checkout and matched.get("site") is False:
+        raise HTTPException(status_code=400, detail="Этот промокод действует только при заказе через WhatsApp DÄM ALEM")
 
     today = on or datetime.now(timezone(timedelta(hours=5))).date().isoformat()
     valid_from = str(matched.get("valid_from") or "").strip()
@@ -501,6 +504,7 @@ async def validate_food_order(
     bonus_points_to_use: Optional[float] = None,
     staff_quote: bool = False,
     server_pricing: bool = False,
+    public_checkout: bool = False,
     staff_delivery_fee: Optional[float] = None,
     staff_delivery_zone_id: Optional[str] = None,
     catalog_only: bool = False,
@@ -728,7 +732,7 @@ async def validate_food_order(
     promo_discount = 0.0
     promo_free_delivery = False
     if promo_code:
-        promo_discount, promo_free_delivery = _resolve_promo(promo_code, subtotal, settings)
+        promo_discount, promo_free_delivery = _resolve_promo(promo_code, subtotal, settings, public_checkout=public_checkout)
         if promo_free_delivery:
             delivery_fee = 0.0
 

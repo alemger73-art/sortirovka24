@@ -287,5 +287,15 @@ async def test_customer_photo_is_shown_to_the_ai_but_not_kept_in_memory(bot, mon
 def test_sales_manner_full_menu_occasion_and_birthday():
     prompt = B.system_prompt("Кухня открыта", "Айгерим", menu="#1 Пепперони (30 см) — 3 200 ₸")
     assert "присылай ВСЁ меню" in prompt and "повод" in prompt
-    assert "BIRTHDAY" in prompt and "удостоверение" in prompt
+    assert "BIRTHDAY" in prompt and "удостоверения" in prompt and "ИИН" in prompt
     assert "2–4 строки" in prompt
+
+
+def test_whatsapp_only_promo_is_refused_at_site_checkout():
+    from fastapi import HTTPException
+    from services.food_order_validation import _resolve_promo
+    cfg = {"promo_codes": json.dumps([{"code": "BIRTHDAY", "type": "percent", "value": 10, "active": True, "site": False}])}
+    assert _resolve_promo("BIRTHDAY", 5000, cfg) == (500, False)  # WhatsApp / staff pricing
+    with pytest.raises(HTTPException) as err:
+        _resolve_promo("birthday", 5000, cfg, public_checkout=True)
+    assert "WhatsApp" in err.value.detail

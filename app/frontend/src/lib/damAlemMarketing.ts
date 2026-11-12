@@ -17,8 +17,7 @@ export const REFERRAL_SHARE_MESSAGE =
   'Привет! Заказываю в DAM ALEM 2.0 — доставка по Сортировке.\nПромокод DAMALEM10 — скидка 10% на заказ от 2 500 ₸';
 
 export function resolvePromoCodes(raw?: string): FoodPromoCode[] {
-  const parsed = parsePromoCodes(raw);
-  return parsed;
+  return parsePromoCodes(raw).filter((promo) => promo.site !== false);
 }
 
 export const DEFAULT_LOYALTY_GIFTS: LoyaltyGift[] = [

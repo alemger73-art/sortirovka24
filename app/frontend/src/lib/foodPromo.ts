@@ -10,6 +10,8 @@ export interface FoodPromoCode {
   valid_until?: string;
   active?: boolean;
   label?: string;
+  /** false: the code works only in the DAM ALEM WhatsApp chat (e.g. birthday — the ID is checked there). */
+  site?: boolean;
 }
 
 export function parsePromoCodes(raw?: string): FoodPromoCode[] {
@@ -31,6 +33,7 @@ export function parsePromoCodes(raw?: string): FoodPromoCode[] {
           typeof p.active === 'string' ? p.active.toLowerCase() : p.active,
         ),
         label: p.label ? String(p.label) : undefined,
+        site: p.site === false ? false : undefined,
       }))
       .filter((p) => p.code.length > 0);
   } catch {

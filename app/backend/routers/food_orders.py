@@ -298,6 +298,7 @@ async def create_food_orders(
             zone_name=zone_name,
             account_user=account_user,
             bonus_points_to_use=bonus_points_to_use,
+            public_checkout=True,
         )
     except HTTPException:
         raise
