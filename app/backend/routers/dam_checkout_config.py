@@ -43,7 +43,9 @@ class Configuration(BaseModel):
 async def view(db=Depends(get_db)):
     settings = await schedule_settings(db)
     from services.crm import pickup_location
-    return {**available_slots(settings), 'pickup': await pickup_location(db), 'working_hours': settings.get('working_hours','')}
+    from services.food_orders import couriers_enabled
+    return {**available_slots(settings), 'pickup': await pickup_location(db), 'working_hours': settings.get('working_hours',''),
+            'couriers_enabled': couriers_enabled(settings)}
 
 @router.put('')
 async def save(body: Configuration, claims=Depends(food_owner), db=Depends(get_db)):

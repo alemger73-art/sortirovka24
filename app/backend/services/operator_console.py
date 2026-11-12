@@ -29,14 +29,16 @@ SHIFTS = "/api/v1/dam-alem/shifts"
 LOCAL = ZoneInfo("Asia/Almaty")
 DELIVERY = ("delivery", "доставка")
 NEXT = {"new": "preparing", "confirmed": "preparing", "preparing": "ready"}
-STATUS = {"new": "🆕 Новый", "confirmed": "Принят", "preparing": "👨‍🍳 Готовится", "ready": "✅ Готов",
-          "in_progress": "🛵 У курьера", "done": "Завершён", "cancelled": "❌ Отменён"}
+STATUS = {"new": "🆕 Новый", "confirmed": "Принят", "preparing": "👨‍🍳 Готовится", "ready": "✅ Готов к выдаче",
+          "in_progress": "🚗 В пути", "done": "Завершён", "cancelled": "❌ Отменён"}
 DELIVERY_STATUS = {"assigned": "передан курьеру", "picked_up": "курьер забрал", "on_the_way": "в пути",
                    "arrived": "курьер на месте", "delivered": "доставлено"}
-PAYMENT = {"cash": "💵 наличные", "kaspi_qr": "📱 Kaspi", "halyk_qr": "📱 Halyk"}
+PAYMENT = {"cash": "💵 наличные", "kaspi_transfer": "📱 Kaspi переводом", "kaspi_qr": "📱 Kaspi", "halyk_qr": "📱 Halyk"}
 ISSUES = {"no_answer": "Клиент не отвечает", "wrong_address": "Неверный адрес", "refused": "Отказ клиента",
           "payment": "Проблема с оплатой", "transport": "Проблема с транспортом", "other": "Другое"}
-MENU = {"📋 Активные": "active", "🆕 Новые": "new", "🛵 Ждут курьера": "courier", "💳 Долги": "debt"}
+MENU = {"📋 Активные": "active", "🆕 Новые": "new", "🚗 В пути": "in_progress", "💳 Долги": "debt"}
+# Buttons of an older menu keyboard still kept in operators' chats.
+OLD_MENU = {"🛵 Ждут курьера": "courier"}
 SHIFT_BUTTON = "🕐 Смена"
 PIN_ATTEMPTS, PIN_WINDOW = 6, 900
 
@@ -171,10 +173,23 @@ def facts(order: dict) -> dict:
     paid = order.get("payment_status") == "paid"
     received = float(order["paid_amount"]) if order.get("paid_amount") is not None else (total if paid else 0)
     preorder = bool(order.get("is_future_preorder"))
-    target = "confirmed" if status == "new" and preorder else "done" if status == "ready" and not delivery else NEXT.get(status)
+    own = delivery and bool(order.get("operator_runs_delivery"))  # no courier: the operator takes it the whole way
+    if status == "new" and preorder:
+        target = "confirmed"
+    elif status == "preparing" and own:
+        target = "in_progress"
+    elif status == "ready":
+        target = "in_progress" if own else None if delivery else "done"
+    elif status == "in_progress":
+        target = "done" if own else None
+    else:
+        target = NEXT.get(status)
     confirm = order.get("manual_payment_confirmation")
     return {"delivery": delivery, "status": status, "closed": status in ("done", "cancelled"), "paid": paid,
-            "remaining": max(0.0, total - received), "preorder": preorder, "target": target,
+            "remaining": max(0.0, total - received), "preorder": preorder, "target": target, "own": own,
+            "couriers": order.get("couriers_enabled", True) is not False,
+            "payment_steps": order.get("payment_steps", True) is not False,
+            "waiting_payment": order.get("workflow_state") == "WAITING_PAYMENT",
             "can_confirm": bool(order.get("payment_method") == "cash" if confirm is None else confirm)}
 
 
@@ -183,8 +198,13 @@ def target_label(f: dict) -> str:
         return "✅ Подтвердить предзаказ"
     if f["preorder"] and f["target"] == "preparing":
         return "👨‍🍳 Начать приготовление раньше"
-    return {"confirmed": "✅ Принять заказ", "preparing": "👨‍🍳 Передать на кухню", "ready": "✅ Готово",
-            "done": "📦 Выдать заказ"}.get(f["target"], f["target"])
+    if f["target"] == "preparing":
+        return "✅ Принять" if f["status"] == "new" else "👨‍🍳 Начать готовить"
+    if f["target"] == "in_progress":
+        return "✅ Готово" if f["status"] == "preparing" else "🚗 В путь"
+    if f["target"] == "done":
+        return "📦 Доставлен" if f["delivery"] else "📦 Выдан"
+    return {"confirmed": "✅ Принять заказ", "ready": "✅ Готово"}.get(f["target"], f["target"])
 
 
 def card_text(data: dict) -> str:
@@ -215,18 +235,23 @@ def card_text(data: dict) -> str:
                 lines.append(f"• {e(str(row['name']))} × {qty} — {_money(price)}")
     lines.append("")
     pay = PAYMENT.get(o.get("payment_method") or "", o.get("payment_method") or "—")
-    state = "оплачено" if f["paid"] else f"ждём {_money(f['remaining'])}"
+    if f["paid"]:
+        state = "оплачено"
+    elif f["payment_steps"] or f["closed"]:
+        state = f"ждём {_money(f['remaining'])}"
+    else:
+        state = "оплата при получении"
     lines.append(f"💰 <b>{_money(o.get('total_amount'))}</b> · {pay} · {state}")
     if o.get("payment_method") == "cash" and o.get("cash_given_amount") and o.get("change_amount"):
         lines.append(f"Клиент даст {_money(o['cash_given_amount'])}, сдача {_money(o['change_amount'])}")
-    if o.get("invoice_sent_at"):
+    if f["payment_steps"] and o.get("invoice_sent_at"):
         lines.append("📲 Счёт клиенту выставлен")
     if d.get("courier_name"):
         lines.append(f"🛵 {e(d['courier_name'])}" + (f" · {e(d['courier_phone'])}" if d.get("courier_phone") else "")
                      + f" · {DELIVERY_STATUS.get(d.get('status'), d.get('status') or '')}")
     if o.get("cancellation_reason") and f["status"] == "cancelled":
         lines.append(f"Причина отмены: {e(o['cancellation_reason'])}")
-    if f["target"] == "preparing" and o.get("payment_method") != "cash" and f["remaining"] > 0 and not f["closed"]:
+    if f["target"] == "preparing" and f["waiting_payment"] and not f["closed"]:
         lines.append("⏳ На кухню — после оплаты")
     if not f["closed"]:
         lines.append("<i>Состав, адрес и перенос предзаказа — в кабинете</i>")
@@ -241,22 +266,23 @@ def card_keyboard(data: dict) -> dict:
     o, d = data["order"], data.get("delivery") or {}
     f, oid = facts(o), o["id"]
     rows: list[list[dict]] = []
-    blocked = f["target"] == "preparing" and o.get("payment_method") != "cash" and f["remaining"] > 0
+    blocked = f["target"] == "preparing" and f["waiting_payment"]
     if not f["closed"] and f["target"] and not blocked:
         rows.append([_b(target_label(f), f"{CB}s:{oid}:{f['status']}:{f['target']}")])
     unpaid = o.get("payment_status") != "paid"
-    if not f["closed"] and o.get("payment_method") != "cash" and unpaid and o.get("invoice_phone"):
+    if f["payment_steps"] and not f["closed"] and o.get("payment_method") != "cash" and unpaid and o.get("invoice_phone"):
         rows.append([_b("📲 Счёт выставлен клиенту", f"{CB}i:{oid}")])
-    if f["can_confirm"] and unpaid:
+    # Without payment steps money is taken with «Доставлен» / «Выдан»; only an old unpaid order is settled here.
+    if f["can_confirm"] and unpaid and (f["payment_steps"] or f["status"] == "done"):
         if f["status"] == "done" and f["delivery"] and o.get("payment_method") == "cash" and d.get("courier_name"):
             rows.append([_b("💵 Деньги у курьера", f"{CB}pk:{oid}"), _b("💵 Уже в кассе", f"{CB}pb:{oid}")])
         elif f["status"] != "cancelled":
             rows.append([_b("💰 Оплата получена", f"{CB}p:{oid}")])
-    if f["delivery"] and f["status"] in ("preparing", "ready", "in_progress"):
+    if f["couriers"] and f["delivery"] and f["status"] in ("preparing", "ready", "in_progress"):
         rows.append([_b("🛵 Переназначить курьера" if f["status"] == "in_progress" else "🛵 Назначить курьера", f"{CB}c:{oid}")])
-    if f["delivery"] and f["status"] == "in_progress":
+    if f["couriers"] and f["delivery"] and f["status"] == "in_progress":
         rows.append([_b("✅ Доставлено (вручную)", f"{CB}m:{oid}"), _b("⚠️ Проблема", f"{CB}q:{oid}")])
-    if f["delivery"] and d and d.get("courier_payout") is None and not f["closed"]:
+    if f["couriers"] and f["delivery"] and d and d.get("courier_payout") is None and not f["closed"]:
         rows.append([_b("🪙 Зафиксировать тариф курьера", f"{CB}t:{oid}")])
     last = [_b("🔄 Обновить", f"{CB}r:{oid}")]
     if not f["closed"]:
@@ -324,8 +350,8 @@ async def handle_text(db, client, chat: dict, message: dict) -> bool:
                 pass
         await _answer(db, client, chat_id, staff, awaiting, said)
         return True
-    if bound and said in MENU:
-        await _list(db, client, chat_id, staff, MENU[said], said)
+    if bound and (said in MENU or said in OLD_MENU):
+        await _list(db, client, chat_id, staff, MENU.get(said) or OLD_MENU[said], said)
         return True
     if bound and said == SHIFT_BUTTON:
         await _shift(db, client, chat_id, staff)
@@ -487,7 +513,7 @@ async def _act(db, client, staff, chat_id, msg_id, action: str, oid: int, args: 
                               note="Начать приготовление раньше? Заказ сразу перейдёт в работу.")
         body = {"expected_version": version, "status": target, **({"start_early": True} if action == "S" else {})}
         await api(db, staff, "PATCH", f"{OPS}/orders/{oid}", body)
-        return await show(STATUS.get(target, "Готово") if target != "done" else "Заказ выдан")
+        return await show(STATUS.get(target, "Готово") if target != "done" else "Заказ доставлен" if f["delivery"] else "Заказ выдан")
     if action == "i":
         await api(db, staff, "POST", f"{OPS}/orders/{oid}/invoice-sent")
         return await show("Клиенту сообщили: счёт ждёт его в приложении банка")

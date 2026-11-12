@@ -45,3 +45,13 @@ def _customer_password_login_for_legacy_tests(monkeypatch, request):
     with a password as a shortcut. test_customer_password_login_closed checks the default."""
     if "customer_password_login_closed" not in request.node.name:
         monkeypatch.setenv("CUSTOMER_PASSWORD_LOGIN", "1")
+
+
+@pytest.fixture(autouse=True)
+def _couriers_and_invoices_for_legacy_tests(monkeypatch, request):
+    """Production runs DÄM ALEM orders the simple way: no couriers, no Kaspi/Halyk invoices. Older tests exercise
+    the courier and invoice flows that can be switched back on, so they run with both on.
+    Tests named «simple_flow» check the default."""
+    if "simple_flow" not in request.node.name:
+        monkeypatch.setenv("DAM_COURIERS", "on")
+        monkeypatch.setenv("DAM_BANK_INVOICE", "manual")

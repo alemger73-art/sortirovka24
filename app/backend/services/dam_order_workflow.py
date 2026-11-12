@@ -73,7 +73,8 @@ async def sync_task(db, order, *, prepare_assignment=False):
     if order.delivery_method not in ('delivery', 'доставка'):
         return
     task = await task_for(db, order)
-    if not task and (order.status == 'ready' or prepare_assignment and order.status == 'preparing'):
+    from services.food_orders import couriers_on
+    if not task and (order.status == 'ready' or prepare_assignment and order.status == 'preparing') and await couriers_on(db):
         from models.logistics import LogisticsSettings
         from services.logistics_service import DEFAULT_LOGISTICS_SETTINGS
         cfg = dict(DEFAULT_LOGISTICS_SETTINGS)

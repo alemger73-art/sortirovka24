@@ -12,6 +12,7 @@ import {
   setCourierToken,
 } from "@/lib/courierSession";
 import { logisticsApi } from "@/lib/logisticsApi";
+import { checkoutConfig } from "@/components/damalem/PreorderFields";
 
 export default function DamAlemCourier() {
   const {lang,setLang}=useLanguage();const say=(ru:string,kz:string)=>lang==='kz'?kz:ru;
@@ -21,6 +22,13 @@ export default function DamAlemCourier() {
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
   const [sessionKey, setSessionKey] = useState(() => getCourierToken());
+  /** The owner keeps couriers off for now (the default): the cabinet says so instead of asking for a PIN. */
+  const [couriersOff, setCouriersOff] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    checkoutConfig().then(config => { if (alive) setCouriersOff(config.couriers_enabled === false); }).catch(() => { /* the PIN screen stays */ });
+    return () => { alive = false; };
+  }, []);
 
   useEffect(() => {
     const sync = () => {setSessionKey(getCourierToken());setAuthenticated(Boolean(getCourierToken()));};
@@ -57,6 +65,16 @@ export default function DamAlemCourier() {
     clearCourierToken();
     setAuthenticated(false);
     setPin("");
+  }
+
+  if (couriersOff) {
+    return <main className="min-h-[100dvh] bg-[#090f1d] text-white flex items-center justify-center px-4 py-8">
+      <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-slate-900/90 p-6 text-center shadow-2xl" role="status">
+        <Bike className="mx-auto h-10 w-10 text-orange-400" aria-hidden="true" />
+        <h1 className="mt-3 text-2xl font-black">{say("Кабинет курьера временно отключён","Курьер кабинеті уақытша өшірулі")}</h1>
+        <p className="mt-2 text-sm text-slate-400">{say("Сейчас доставку ведёт оператор DÄM ALEM.","Қазір жеткізуді DÄM ALEM операторы жүргізеді.")}</p>
+      </div>
+    </main>;
   }
 
   if (authenticated && !busy) {

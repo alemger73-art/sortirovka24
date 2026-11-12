@@ -6,9 +6,9 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useStoreTranslations } from '@/i18n/storeTranslations';
 import { getPublicLocale } from '@/i18n/publicLocale';
 import { foodOperations, type OperatorOrder, type OrderDetail } from '@/lib/foodOperations';
-import { collectsCashOnStep, isDeliveryOrder, nextOrderStatus, operatorRunsDelivery } from '@/lib/damOrderSteps';
+import { isDeliveryOrder, nextOrderStatus, nextStepLabel, operatorRunsDelivery, waitsForPayment } from '@/lib/damOrderSteps';
 
-const PAYMENT: Record<string, string> = { cash: 'Наличными', kaspi_qr: 'Kaspi', halyk_qr: 'Halyk' };
+const PAYMENT: Record<string, string> = { cash: 'Наличными', kaspi_transfer: 'Kaspi переводом', kaspi_qr: 'Kaspi', halyk_qr: 'Halyk' };
 /** How far along the order is, on the 4-segment bar. */
 const PROGRESS: Record<string, number> = { new: 0, confirmed: 1, preparing: 1, ready: 2, in_progress: 3, done: 4 };
 const PILL: Record<string, string> = {
@@ -75,10 +75,7 @@ export default function DamOperatorBoard({ openOrder }: { openOrder: (id: number
     if (lock.current) return;
     lock.current = true; setBusy(true);
     try {
-      await foodOperations(`/orders/${order.id}`, 'PATCH', {
-        expected_version: order.version || 0, status: target,
-        ...(collectsCashOnStep(order, target) ? { payment_status: 'paid' } : {}),
-      });
+      await foodOperations(`/orders/${order.id}`, 'PATCH', { expected_version: order.version || 0, status: target });
       await Promise.all([load(), loadDetail(order.id)]);
     } catch (e) { toast.error((e as Error).message); }
     finally { lock.current = false; setBusy(false); }
@@ -87,22 +84,11 @@ export default function DamOperatorBoard({ openOrder }: { openOrder: (id: number
   /** The big button: a status change when the server allows one, otherwise the full card where the step is done. */
   function nextAction(order: OperatorOrder): { label: string; run: () => void; accent: boolean } | null {
     const target = nextOrderStatus(order);
-    const delivery = isDeliveryOrder(order);
-    const remaining = Math.max(0, order.total_amount - Number(order.paid_amount ?? (order.payment_status === 'paid' ? order.total_amount : 0)));
     const card = (label: string) => ({ label, run: () => openOrder(order.id), accent: false });
-    if (!target) return order.status === 'ready' && delivery && !operatorRunsDelivery(order) ? card(st('Передать курьеру')) : null;
+    if (!target) return order.status === 'ready' && isDeliveryOrder(order) && !operatorRunsDelivery(order) ? card(st('Передать курьеру')) : null;
     if (target === 'preparing' && order.is_future_preorder) return card(st('Начать предзаказ раньше'));
-    if (target === 'preparing' && order.payment_method !== 'cash' && remaining > 0) return card(st('Ждём оплату {0} — открыть', [PAYMENT[order.payment_method] || '']));
-    const labels: Record<string, string> = {
-      confirmed: st('Подтвердить предзаказ'),
-      preparing: order.status === 'new' ? st('Принять') : st('Готовится'),
-      ready: st('Готово'),
-      in_progress: st('Отправлен'),
-      done: delivery
-        ? (collectsCashOnStep(order, target) ? st('Доставлен · получено {0}', [money(remaining)]) : st('Доставлен'))
-        : st('Выдан'),
-    };
-    return { label: labels[target] || adminT(`admin.dam.orderStatus.${target}`), run: () => void advance(order, target), accent: order.status === 'new' };
+    if (target === 'preparing' && waitsForPayment(order)) return card(st('Ждём оплату {0} — открыть', [PAYMENT[order.payment_method] || '']));
+    return { label: st(nextStepLabel(order, target)), run: () => void advance(order, target), accent: order.status === 'new' };
   }
 
   if (!orders) return <p role={error ? 'alert' : 'status'} className="p-4">{error || st('Загружаем заказы…')}</p>;
@@ -146,6 +132,7 @@ export default function DamOperatorBoard({ openOrder }: { openOrder: (id: number
             <span>{delivery ? order.delivery_address : order.delivery_method === 'dine_in' ? st('В заведении') : st('Самовывоз')}</span></p>
           <p className="flex items-start gap-2"><Wallet className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <span><strong>{st(PAYMENT[order.payment_method] || order.payment_method)} · {money(order.total_amount)}</strong>
+              {' · '}{order.payment_status === 'paid' ? st('оплачено') : st('при получении')}
               {(bonus > 0 || order.cash_given_amount != null) && <span className="block text-sm text-muted-foreground">
                 {bonus > 0 ? st('Списано бонусов: {0}', [money(bonus)]) : ''}{bonus > 0 && order.cash_given_amount != null ? ' · ' : ''}
                 {order.cash_given_amount != null ? st('Сдача с {0}', [money(order.cash_given_amount)]) : ''}</span>}</span></p>
@@ -153,7 +140,7 @@ export default function DamOperatorBoard({ openOrder }: { openOrder: (id: number
           {action && <button type="button" disabled={busy} onClick={action.run} data-testid="dam-board-next"
             className={`min-h-16 w-full rounded-2xl px-4 text-lg font-bold text-white disabled:opacity-60 ${action.accent ? 'bg-[#E3261B] hover:bg-[#C21F15]' : 'bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900'}`}>
             {action.label}</button>}
-          {!action && detail?.id === order.id && order.status === 'in_progress' && <p className="rounded-xl bg-sky-50 p-3 text-sky-950 dark:bg-sky-950/40 dark:text-sky-100">{st('Заказ у курьера — доставку завершит курьер.')}</p>}
+          {!action && detail?.id === order.id && order.status === 'in_progress' && !operatorRunsDelivery(order) && <p className="rounded-xl bg-sky-50 p-3 text-sky-950 dark:bg-sky-950/40 dark:text-sky-100">{st('Заказ у курьера — доставку завершит курьер.')}</p>}
           <button type="button" onClick={() => openOrder(order.id)} className="min-h-11 w-full rounded-xl text-sm font-semibold underline">{st('Все детали заказа')}</button>
         </div>}
       </article>;

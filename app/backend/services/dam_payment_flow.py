@@ -13,13 +13,15 @@ from services.food_preorders import lock_dam_operations
 
 PROVIDERS = {'cash': 'CASH', 'kaspi_qr': 'KASPI', 'halyk_qr': 'HALYK'}
 BANK_LABELS = {'kaspi_qr': 'Kaspi', 'halyk_qr': 'Halyk'}
+# Paid to the operator when the order is handed over, like cash: no payment row, no invoice.
+OFFLINE_METHODS = ('cash', 'kaspi_transfer')
 
 
 def bank_invoice_mode() -> bool:
-    """Without a bank API the operator issues the invoice by hand in Kaspi Pay /
-    Halyk on the number the customer gave, then confirms the money. On by default;
-    DAM_BANK_INVOICE=off hides bank payment from customers."""
-    return os.getenv('DAM_BANK_INVOICE', 'manual').strip().lower() not in ('off', '0', 'false', 'no')
+    """The Kaspi/Halyk invoice flow (the operator issues an invoice in Kaspi Pay / Halyk on the customer's number,
+    the kitchen waits for the money) is switched off: customers pay cash or by Kaspi transfer on delivery.
+    DAM_BANK_INVOICE=manual switches it back on."""
+    return os.getenv('DAM_BANK_INVOICE', 'off').strip().lower() not in ('off', '0', 'false', 'no', '')
 
 
 def invoice_phone(raw, fallback=''):
@@ -45,7 +47,7 @@ def invoice_view(payment):
 
 
 def manual_confirmation_allowed(method):
-    if method == 'cash':
+    if method in OFFLINE_METHODS:
         return True
     if method not in ('kaspi_qr', 'halyk_qr'):
         return False
@@ -62,6 +64,8 @@ def manual_confirmation_allowed(method):
 async def synchronize_staff_confirmation(db, order, actor):
     if order.payment_method == 'cash':
         return await synchronize_cash(db, order, actor)
+    if order.payment_method not in PROVIDERS:
+        return  # a Kaspi transfer has no payment row: the money journal records it
     row = await current_payment(db, order)
     if paid(order) < money(order.total_amount):
         return
@@ -233,7 +237,7 @@ def payment_state(order, payment=None):
 
 def workflow_state(order, delivery_status=None):
     if order.status in ('new', 'confirmed'):
-        if order.payment_method in ('kaspi_qr', 'halyk_qr') and paid(order) < money(order.total_amount):
+        if order.payment_method in BANK_LABELS and bank_invoice_mode() and paid(order) < money(order.total_amount):
             return 'WAITING_PAYMENT'
         return 'READY_FOR_OPERATOR'
     if order.status == 'in_progress' and delivery_status in ('on_the_way', 'arrived'):
@@ -244,6 +248,8 @@ def workflow_state(order, delivery_status=None):
 
 async def mark_invoice_sent(db, order, actor):
     """Operator says: the invoice is issued in the bank app. Customer sees it at once."""
+    if not bank_invoice_mode():
+        raise HTTPException(409, 'Счета Kaspi/Halyk отключены: клиент платит при получении')
     if order.payment_method not in BANK_LABELS:
         raise HTTPException(409, 'Счёт выставляется только для Kaspi или Halyk')
     if order.status == 'cancelled' or paid(order) >= money(order.total_amount):

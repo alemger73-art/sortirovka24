@@ -66,7 +66,7 @@ export function createReceiptData(order: PrintableOrder) {
   const method = text(order.delivery_method).toLowerCase();
   const fulfillment = ['pickup', 'самовывоз'].includes(method) ? 'pickup'
     : ['dine_in', 'в заведении', 'на месте'].includes(method) ? 'dine_in' : 'delivery';
-  const methodName = ({kaspi: 'KASPI', kaspi_qr: 'KASPI', halyk: 'HALYK', halyk_qr: 'HALYK', cash: 'НАЛИЧНЫЕ'} as Record<string, string>)[text(order.payment_method).toLowerCase()] || text(order.payment_method) || 'Не указан';
+  const methodName = ({kaspi: 'KASPI', kaspi_transfer: 'KASPI ПЕРЕВОД', kaspi_qr: 'KASPI', halyk: 'HALYK', halyk_qr: 'HALYK', cash: 'НАЛИЧНЫЕ'} as Record<string, string>)[text(order.payment_method).toLowerCase()] || text(order.payment_method) || 'Не указан';
   const status = ({paid: 'ОПЛАЧЕНО', pending: 'НЕ ОПЛАЧЕНО', unpaid: 'НЕ ОПЛАЧЕНО',
     partial: 'ЧАСТИЧНО ОПЛАЧЕНО', refunded: 'ВОЗВРАТ ОПЛАТЫ'} as Record<string, string>)[text(order.payment_status)]
     || (due === 0 && paid > 0 ? 'ОПЛАЧЕНО' : paid > 0 ? 'ЧАСТИЧНО ОПЛАЧЕНО' : 'НЕ ОПЛАЧЕНО');

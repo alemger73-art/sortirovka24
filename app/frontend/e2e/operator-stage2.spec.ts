@@ -73,7 +73,7 @@ test('preorder reschedule and early kitchen require explicit action',async({page
  await expect.poll(()=>s.order.scheduled_for).toBe('2099-10-02T08:00:00.000Z');
  await page.getByRole('button',{name:'Подтвердить предзаказ',exact:true}).click();
  await expect.poll(()=>s.order.status).toBe('confirmed');expect(s.order.is_future_preorder).toBe(true);
- await page.getByRole('button',{name:'Начать приготовление раньше',exact:true}).click();expect(s.order.status).toBe('confirmed');
+ await page.getByRole('button',{name:'Начать предзаказ раньше',exact:true}).click();expect(s.order.status).toBe('confirmed');
  await expect(page.getByRole('dialog')).toContainText('будет блокировать закрытие смены');
  await page.getByRole('button',{name:'Да, начать приготовление'}).click();
  await expect.poll(()=>s.order.status).toBe('preparing');expect(s.writes.at(-1).start_early).toBe(true);

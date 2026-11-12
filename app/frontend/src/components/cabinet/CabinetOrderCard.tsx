@@ -49,6 +49,7 @@ const STORE_STATUS: Record<string, { key: string; badge: string }> = {
 
 const PAYMENT_LABELS: Record<string, string> = {
   cash: "payment.cash",
+  kaspi_transfer: "payment.kaspiTransfer",
   kaspi_qr: "payment.kaspiQr",
   halyk_qr: "payment.halykQr",
 };

@@ -58,8 +58,8 @@ test('new alert, explicit acceptance, kitchen and eligible courier',async({page}
   await page.goto('/partner/dam-alem/operator?section=orders&order=71');
   await expect(page.getByRole('button',{name:'Принять заказ',exact:true})).toHaveCount(0);
   await expect(page).toHaveTitle(/^\(31\)/);
-  await expect(page.getByRole('button',{name:'Передать на кухню',exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'Передать на кухню',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Принять',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Принять',exact:true}).click();
   await page.getByRole('button',{name:'Готово',exact:true}).click();
   const select=page.getByLabel('Выберите курьера');
   await expect(select.locator('option[value="offline"]')).toHaveJSProperty('disabled',true);
@@ -100,7 +100,7 @@ for(const fulfillment of ['pickup','dine_in'])test(`${fulfillment} does not requ
   const state=await setup(page,fulfillment,'whatsapp');state.order.status='ready';
   await page.goto('/partner/dam-alem/operator?section=orders&order=71');
   await expect(page.getByRole('button',{name:/курьер/i})).toHaveCount(0);
-  await page.getByRole('button',{name:'Выдать заказ',exact:true}).click();
+  await page.getByRole('button',{name:'Выдан',exact:true}).click();
   expect(state.order.status).toBe('done');expect(state.order.order_source).toBe('whatsapp');
   await expect(page.getByText(/Заказ завершён без подтверждения денег/)).toBeVisible();
   await expect(page.getByRole('button',{name:'Изменить состав заказа',exact:true})).toHaveCount(0);
@@ -135,14 +135,16 @@ test('customer checkout offers pickup and reserves dine-in for staff',async({pag
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
 
-test('operator runs the delivery himself: no courier, «Выехал», then «Доставлено» takes the cash in',async({page})=>{
-  const state=await setup(page);Object.assign(state.order,{status:'ready',operator_runs_delivery:true});
+test('couriers off: «Готово» sends the delivery on its way, «Доставлен» closes it without a payment step',async({page})=>{
+  const state=await setup(page);Object.assign(state.order,{status:'preparing',operator_runs_delivery:true,couriers_enabled:false,payment_steps:false});
   await page.goto('/partner/dam-alem/operator?section=orders&order=71');
   await expect(page.getByTestId('order-contents')).toContainText('Пицца');
   await expect(page.getByLabel('Выберите курьера')).toHaveCount(0);
-  await page.getByRole('button',{name:'Выехал',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Подтвердить получение оплаты',exact:true})).toHaveCount(0);
+  await page.getByRole('button',{name:'Готово',exact:true}).click();
   await expect.poll(()=>state.order.status).toBe('in_progress');
-  await page.getByRole('button',{name:/Доставлено · получено/}).click();
+  await page.getByRole('button',{name:'Доставлен',exact:true}).click();
   await expect.poll(()=>state.order.status).toBe('done');
-  expect(state.order.payment_status).toBe('paid');
+  // The server takes the money in with «Доставлен»; the cabinet sends only the status.
+  expect(state.order.payment_status).toBe('pending');
 });

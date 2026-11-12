@@ -49,8 +49,9 @@ def period(start, end):
     return lambda day: day is not None and start <= day <= end
 
 @router.get('/me')
-async def me(claims=Depends(food_staff)):
-    return {'role':claims['access_role'],'name':actor(claims)}
+async def me(db:AsyncSession=Depends(get_db),claims=Depends(food_staff)):
+    from services.food_orders import couriers_on
+    return {'role':claims['access_role'],'name':actor(claims),'couriers_enabled':await couriers_on(db)}
 
 @router.get('/today')
 async def today(db:AsyncSession=Depends(get_db),claims=Depends(food_staff)):

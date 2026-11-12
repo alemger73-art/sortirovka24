@@ -1,5 +1,6 @@
 import logging
 import json
+import os
 from typing import Optional, Dict, Any, List
 
 from sqlalchemy import select, func, update as sql_update
@@ -16,12 +17,30 @@ logger = logging.getLogger(__name__)
 
 # ------------------ Service Layer ------------------
 OPERATOR_DELIVERY_KEY = 'operator_runs_delivery'
+COURIERS_KEY = 'couriers_enabled'
+
+
+def _on(value) -> bool:
+    return str(value or '').strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def couriers_enabled(settings) -> bool:
+    """Couriers are off by default: no courier assignment, no courier messages, the operator takes a delivery the
+    whole way. The owner turns them back on with the food setting «couriers_enabled» = 1 (DAM_COURIERS=on does it
+    for the whole server when the setting is not saved)."""
+    value = (settings or {}).get(COURIERS_KEY)
+    return _on(os.getenv('DAM_COURIERS', 'off') if value is None or not str(value).strip() else value)
+
+
+async def couriers_on(db) -> bool:
+    from services.food_preorders import schedule_settings
+    return couriers_enabled(await schedule_settings(db))
 
 
 def operator_runs_delivery(settings) -> bool:
-    """The owner's switch (food_settings «operator_runs_delivery» = 1): the operator moves a delivery to «Выехал»
-    and «Доставлено» himself, without a courier app, and confirms the cash on delivery."""
-    return str((settings or {}).get(OPERATOR_DELIVERY_KEY) or '').strip().lower() in ('1', 'true', 'yes', 'on')
+    """The operator moves a delivery to «В пути» and «Доставлен» himself, without a courier app: always while couriers
+    are off, and with the owner's old switch (food_settings «operator_runs_delivery» = 1)."""
+    return _on((settings or {}).get(OPERATOR_DELIVERY_KEY)) or not couriers_enabled(settings)
 
 
 class Food_ordersService:
@@ -197,7 +216,7 @@ class Food_ordersService:
                     raise HTTPException(409, "Закрытый заказ нельзя изменять")
                 if obj.payment_status == 'paid' and update_data.get('payment_status', 'paid') != 'paid':
                     raise HTTPException(422, 'Полученную оплату нельзя стереть. Возврат отмечается владельцем отдельно.')
-                from services.dam_payment_flow import emit, manual_confirmation_allowed, synchronize_staff_confirmation
+                from services.dam_payment_flow import emit, manual_confirmation_allowed, synchronize_staff_confirmation, bank_invoice_mode, BANK_LABELS
                 from services.dam_order_workflow import paid, money
                 if 'payment_method' in update_data and update_data['payment_method'] != obj.payment_method:
                     raise HTTPException(422, 'Способ оплаты зафиксирован: отмените неоплаченный заказ и оформите новый')
@@ -211,7 +230,9 @@ class Food_ordersService:
                 if update_data.get('payment_status') == 'paid' and obj.payment_method == 'cash' and obj.delivery_method in ('delivery', 'доставка') and obj.status == 'in_progress' and not operator_delivery:
                     raise HTTPException(409, 'Получение денег у курьера отметьте через завершение доставки')
                 target = update_data.get('status', old_status)
-                if target == 'preparing' and target != old_status and obj.payment_method != 'cash' and paid(obj) < money(obj.total_amount):
+                is_delivery = obj.delivery_method in ('delivery', 'доставка')
+                # Only the switched-on Kaspi/Halyk invoice flow waits for the money; otherwise accepting is never blocked.
+                if target == 'preparing' and target != old_status and obj.payment_method in BANK_LABELS and bank_invoice_mode() and paid(obj) < money(obj.total_amount):
                     raise HTTPException(409, 'Передача на кухню доступна после подтверждения онлайн-оплаты')
                 if target == 'preparing' and old_status in ('new', 'confirmed') and schedule_view(obj, settings)['is_future_preorder'] and not early:
                     raise HTTPException(409, 'Подтвердите раннее начало приготовления предзаказа')
@@ -225,6 +246,9 @@ class Food_ordersService:
                     add_event(self.db, obj, f"Предзаказ перенесён: {previous_schedule or 'сейчас'} → {update_data['scheduled_for']}. {schedule_reason}", actor)
                     emit(self.db, obj, 'PREORDER_RESCHEDULED', actor, key=f'reschedule:{obj.id}:{obj.version}', old=previous_schedule, new=update_data['scheduled_for'], reason=schedule_reason)
                 transitions = {'new': {'confirmed', 'preparing', 'cancelled'}, 'confirmed': {'preparing', 'cancelled'}, 'preparing': {'ready', 'cancelled'}, 'ready': {'in_progress', 'done', 'cancelled'}, 'in_progress': {'done', 'cancelled'}}
+                if is_delivery and operator_delivery:
+                    # «Готово» sends the operator's own delivery straight on its way.
+                    transitions['preparing'] = transitions['preparing'] | {'in_progress'}
                 if target == 'in_progress' and obj.delivery_method in ('pickup', 'dine_in'):
                     raise HTTPException(422, "Самовывоз не передаётся в доставку")
                 if target != old_status and target == 'in_progress' and obj.delivery_method in ('delivery', 'доставка') and not operator_delivery:
@@ -241,6 +265,10 @@ class Food_ordersService:
                     raise HTTPException(422, "Адрес доставки не может быть пустым")
                 if any(k in update_data for k in ('total_amount', 'order_items', 'user_id', 'restaurant_id', 'restaurant_name', 'created_at', 'order_source')):
                     raise HTTPException(422, "Состав и сумма принятого заказа зафиксированы. Для замены оформите новый заказ.")
+                if target == 'done' and old_status != 'done' and 'payment_status' not in update_data and obj.payment_status != 'paid' \
+                        and not bank_invoice_mode() and manual_confirmation_allowed(obj.payment_method):
+                    # «Доставлен» / «Выдан» closes the order: the customer paid at the door, no separate payment step.
+                    update_data['payment_status'] = 'paid'
                 claimed = await self.db.execute(sql_update(Food_orders).where(Food_orders.id == obj_id, func.coalesce(Food_orders.version, 0) == version).values(version=version + 1).execution_options(synchronize_session=False))
                 if not claimed.rowcount:
                     raise HTTPException(409, "Заказ изменён другим оператором. Обновите карточку.")
@@ -317,7 +345,7 @@ class Food_ordersService:
             await self.db.commit()
             await self.db.refresh(obj)
             if "status" in update_data and update_data["status"] != old_status:
-                if dam_order and obj.status in ('ready','cancelled'):
+                if dam_order and obj.status in ('ready','cancelled') and await couriers_on(self.db):
                     from services.dam_order_workflow import task_for
                     from services.courier_notifications import notify_courier_task
                     task = await task_for(self.db, obj)

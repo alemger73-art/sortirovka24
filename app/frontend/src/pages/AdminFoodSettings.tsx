@@ -124,6 +124,7 @@ function getSETTING_FIELDS(adminT: (key: string) => string) {
 
   { key: 'delivery_price', label: adminT("admin.ui.0556"), icon: Truck, placeholder: '500', description: adminT("admin.ui.0557"), type: 'text' as const },
   { key: 'courier_payout', label: 'Оплата курьеру за доставку', icon: Truck, placeholder: '800', description: 'Обязательный явный тариф: без него нельзя подготовить доставку. Фиксируется для заказа; изменение настройки влияет только на новые задания. Бесплатная доставка клиенту не уменьшает выплату курьеру.', type: 'text' as const },
+  { key: 'couriers_enabled', label: 'Курьеры', icon: Truck, placeholder: '0', description: 'Пусто или 0 — курьеры отключены: доставку ведёт оператор (Принять → Готово → Доставлен), курьерам ничего не приходит. 1 — включить курьеров: назначение курьера, кабинет курьера и сообщения курьерам.', type: 'text' as const },
 
   { key: 'free_delivery_from', label: adminT("admin.ui.0558"), icon: Truck, placeholder: '15000', description: adminT("admin.ui.0559"), type: 'text' as const },
 

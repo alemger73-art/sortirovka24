@@ -19,14 +19,14 @@ test('operator pickup lifecycle, payment and responsive layout',async({page},inf
  await page.goto('/partner/dam-alem?section=orders&order=71');
  await expect(page.getByRole('heading',{name:'Заказ №71',exact:true})).toBeVisible();
  await expect(page.getByText('Тестовое блюдо × 2')).toBeVisible();
- await page.getByRole('button',{name:'Передать на кухню',exact:true}).click();
+ await page.getByRole('button',{name:'Принять',exact:true}).click();
  await expect.poll(()=>s.order.status).toBe('preparing');
  await page.getByRole('button',{name:'Готово',exact:true}).click();
  await expect(page.getByRole('region',{name:'Карточка заказа'}).getByRole('button',{name:'В доставке',exact:true})).toHaveCount(0);
  page.once('dialog',dialog=>dialog.accept());
  await page.getByRole('button',{name:'Подтвердить получение оплаты'}).click();
  await expect.poll(()=>s.order.payment_status).toBe('paid');
- await page.getByRole('button',{name:'Выдать заказ'}).click();
+ await page.getByRole('button',{name:'Выдан',exact:true}).click();
  await expect.poll(()=>s.order.status).toBe('done');
  await expect.poll(()=>s.writes).toBe(4);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -39,7 +39,7 @@ test('search and conflict never show false success',async({page})=>{
  await expect(page.getByText('По выбранному фильтру заказов нет.')).toBeVisible();
  expect(s.query).toContain('q=');s.conflict=true;
  await page.goto('/partner/dam-alem?section=orders&order=71');
- await page.getByRole('button',{name:'Передать на кухню',exact:true}).click();
+ await page.getByRole('button',{name:'Принять',exact:true}).click();
  await expect(page.getByText('Заказ уже изменён другим оператором. Обновите карточку.')).toBeVisible();
  expect(s.order.status).toBe('new');expect(s.writes).toBe(1);
 });
@@ -65,15 +65,15 @@ test('late automatic refresh cannot overwrite an operator draft or its version',
  await page.getByRole('button',{name:'Сохранить изменения',exact:true}).click();
  expect((await request).postDataJSON().expected_version).toBe(0);
 });
-test('kaspi order: operator copies number, marks invoice sent, then confirms money',async({page},info)=>{
+test('kaspi invoice flow switched back on: operator copies number, marks invoice sent, then confirms money',async({page},info)=>{
  const s=await setup(page);
- Object.assign(s.order,{payment_method:'kaspi_qr',invoice_phone:'+77015556677',invoice_sent_at:null,manual_payment_confirmation:true,payment_state:'WAITING'});
+ Object.assign(s.order,{payment_method:'kaspi_qr',invoice_phone:'+77015556677',invoice_sent_at:null,manual_payment_confirmation:true,payment_state:'WAITING',workflow_state:'WAITING_PAYMENT',payment_steps:true});
  let sent=0;
  await page.route('**/operations/orders/71/invoice-sent',async r=>{sent++;Object.assign(s.order,{invoice_sent_at:'2026-10-20T05:42:00Z'});await r.fulfill({json:{ok:true}});});
  await page.goto('/partner/dam-alem?section=orders&order=71');
  await expect(page.getByText('1. Выставьте счёт в Kaspi Pay')).toBeVisible();
  await expect(page.getByText('+77015556677')).toBeVisible();
- await expect(page.getByRole('button',{name:'Передать на кухню',exact:true})).toBeDisabled();
+ await expect(page.getByRole('button',{name:'Принять',exact:true})).toBeDisabled();
  await page.getByRole('button',{name:'2. Счёт выставлен — сообщить клиенту'}).click();
  await expect.poll(()=>sent).toBe(1);
  await expect(page.getByText(/Счёт выставлен в .* — ждём оплату/)).toBeVisible();

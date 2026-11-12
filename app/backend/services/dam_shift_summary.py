@@ -45,7 +45,8 @@ async def summary(db, shift):
         if amount < 0:
             refunds -= amount
         else:
-            method = data.get('method') if data.get('method') in methods else 'unknown'
+            method = 'kaspi_qr' if data.get('method') == 'kaspi_transfer' else data.get('method')  # all Kaspi money in one line
+            method = method if method in methods else 'unknown'
             methods[method] = methods.get(method, money(0)) + amount
     from services.dam_settlement import is_debt, settlement_view
     debts=[{'id':o.id, **settlement_view(o)} for o in orders if is_debt(o)]

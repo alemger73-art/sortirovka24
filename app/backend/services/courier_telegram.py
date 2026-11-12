@@ -44,7 +44,7 @@ KIND_TITLES = {
     "assigned": "🛵 Новая доставка", "ready": "🔔 Заказ готов — можно забирать", "reassigned": "↩️ Доставку передали другому курьеру",
     "cancelled": "⛔ Заказ отменён", "issue_resolved": "✅ Оператор ответил по проблеме", "status": "Доставка",
 }
-PAYMENT_LABELS = {"cash": "наличные", "kaspi_qr": "Kaspi", "halyk_qr": "Halyk"}
+PAYMENT_LABELS = {"cash": "наличные", "kaspi_transfer": "Kaspi переводом", "kaspi_qr": "Kaspi", "halyk_qr": "Halyk"}
 
 _ready: set[int] = set()
 _bot_name: dict[str, str] = {}

@@ -39,7 +39,9 @@ async def dashboard(db,claims):
         payment_entries.append({'id':event.id,'order_id':event.order_id,'amount':float(amount),
             'method':data['method'],'actor':event.actor,'created_at':at.isoformat(),'cash_location':data.get('cash_location')})
         if amount<0:totals['refunds']-=amount
-        else:totals[data['method'] if data['method'] in totals and data['method']!='refunds' else 'other']+=amount
+        else:
+            method='kaspi_qr' if data['method']=='kaspi_transfer' else data['method']  # all Kaspi money in one line
+            totals[method if method in totals and method!='refunds' else 'other']+=amount
     entries=(await db.scalars(select(FoodCashEntry))).all()
     configured=any(e.entry_key=='opening' for e in entries)
     prior=sum((money(e.amount) for e in entries if utc(e.created_at) and utc(e.created_at)<start),Decimal(0))

@@ -226,8 +226,6 @@
 .dam-done__head p span { color: var(--ds-muted); }
 .dam-done__eta { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 0; }
 .dam-done__eta small { font-size: 13px; color: var(--ds-muted); }
-.dam-done__invoice { background: var(--ds-gold-soft); color: var(--ds-gold-ink); }
-.dam-done__invoice p { margin: 0; font-size: 14px; }
 .dam-done__bonus { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 20px; background: var(--ds-gold-soft); }
 .dam-done__bonus .dam-os-coin { width: 40px; height: 40px; }
 .dam-done__bonus span { display: flex; flex-direction: column; gap: 2px; }

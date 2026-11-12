@@ -178,9 +178,15 @@ async def resolve_delivery_issue(issue_id:int,body:IssueResolution,request:Reque
     await notify_courier_task(db,task,'issue_resolved',version=issue.id)
     return {'ok':True}
 
+async def require_couriers(db):
+    from services.food_orders import couriers_on
+    if not await couriers_on(db):
+        raise HTTPException(409, 'Курьеры временно отключены: доставку ведёт оператор')
+
 @router.post('/orders/{order_id}/reassign-courier')
 async def reassign_courier(order_id:int,body:CourierReassignment,request:Request,db:AsyncSession=Depends(get_db)):
     await lock_dam_operations(db)
+    await require_couriers(db)
     claims=await food_staff(request,db);await require_partner_shift(db,claims)
     if not body.reason.strip():raise HTTPException(422,'Укажите причину переназначения')
     from services.courier_issues import reassign
@@ -347,16 +353,19 @@ async def detail(order_id: int, db: AsyncSession = Depends(get_db)):
             'delivered_at': task.delivered_at,
             'courier_payout':task.courier_payout,
         }
-    from services.dam_payment_flow import current_payment, payment_state, workflow_state, manual_confirmation_allowed, invoice_view
+    from services.dam_payment_flow import current_payment, payment_state, workflow_state, manual_confirmation_allowed, invoice_view, bank_invoice_mode
     payment = await current_payment(db, obj)
     payment_view = {'payment_state':payment_state(obj, payment), 'manual_payment_confirmation':manual_confirmation_allowed(obj.payment_method),
+        # Invoices and «оплата получена» as separate operator steps exist only with the Kaspi/Halyk invoice flow on.
+        'payment_steps':bank_invoice_mode(),
         'workflow_state':workflow_state(obj, delivery_data['status'] if delivery_data else None)}
     if payment:
         payment_view['payment_id'] = payment.id
     payment_view.update(invoice_view(payment))
     settings = await schedule_settings(db)
-    from services.food_orders import operator_runs_delivery
-    return {'order': {**serialize(obj), **payment_view, **schedule_view(obj, settings), 'operator_runs_delivery': operator_runs_delivery(settings)},
+    from services.food_orders import operator_runs_delivery, couriers_enabled
+    return {'order': {**serialize(obj), **payment_view, **schedule_view(obj, settings), 'operator_runs_delivery': operator_runs_delivery(settings),
+                      'couriers_enabled': couriers_enabled(settings)},
             'events': [serialize(e) for e in events], 'delivery': delivery_data}
 
 class OrderChange(BaseModel):
@@ -414,6 +423,7 @@ async def assign_courier(order_id: int, body: CourierAssignment, request: Reques
     order = await order_for_panel(db, order_id)
     if order.delivery_method not in ('delivery', 'доставка') or order.status not in ('preparing', 'ready'):
         raise HTTPException(409, 'Сначала передайте заказ на кухню')
+    await require_couriers(db)
     actor = await food_staff(request, db)
     shift = await require_partner_shift(db, actor)
     from models.auth import User
@@ -575,7 +585,7 @@ class ManualOrder(BaseModel):
     delivery_method: Literal['pickup', 'delivery', 'dine_in'] = 'delivery'
     delivery_fee: float | None = Field(None, ge=0, le=50_000, allow_inf_nan=False)
     cash_given_amount: float | None = Field(None, ge=0, le=100000000, allow_inf_nan=False)
-    payment_method: Literal['cash', 'kaspi_qr', 'halyk_qr'] = 'cash'
+    payment_method: Literal['cash', 'kaspi_transfer', 'kaspi_qr', 'halyk_qr'] = 'cash'
     comment: str = Field('', max_length=1000)
     items: list[ReceiptLine] = Field(min_length=1, max_length=100)
     quoted_total: float | None = Field(None, ge=0, allow_inf_nan=False)

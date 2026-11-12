@@ -40,6 +40,8 @@ export interface OperatorOrder {
   cash_given_amount?: number | null; change_amount?: number | null; workflow_state?: string; payment_state?: string;
   preorder_bucket?: string; scheduled_for?: string | null; is_future_preorder?: boolean; preparation_due_at?: string | null; pricing_snapshot?: string;
   order_source?: string | null; bonus_discount_amount?: number | null; promo_discount_amount?: number | null; operator_runs_delivery?: boolean;
+  /** Couriers are switched on by the owner (off by default). */ couriers_enabled?: boolean;
+  /** Kaspi/Halyk invoices and «оплата получена» as separate operator steps (off by default). */ payment_steps?: boolean;
   paid_amount?: number | null; receipt_revision?: number;
   settlement_state?: string; is_debt?: boolean; debt_amount?: number; refund_due?: number;
   id: number; version: number | null; status: string; customer_name: string; customer_phone: string;
@@ -54,7 +56,7 @@ export interface OrderDelivery {
   picked_up_at: string | null; delivered_at: string | null;
 }
 export interface OrderDetail { order: OperatorOrder; events: OrderEvent[]; delivery: OrderDelivery | null }
-export const orderLabels: Record<string, string> = { new: 'Новый', confirmed: 'Принят', preparing: 'Готовится', ready: 'Готов к выдаче', in_progress: 'В доставке', done: 'Завершён', cancelled: 'Отменён' };
+export const orderLabels: Record<string, string> = { new: 'Новый', confirmed: 'Принят', preparing: 'Готовится', ready: 'Готов к выдаче', in_progress: 'В пути', done: 'Завершён', cancelled: 'Отменён' };
 
 export const foodBusiness = <T,>(path: string, method = 'GET', body?: unknown) => foodOperations<T>(path, method, body, 'business');
 

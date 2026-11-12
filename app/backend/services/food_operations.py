@@ -30,7 +30,7 @@ class RedactBotToken(logging.Filter):
 logging.getLogger('httpx').addFilter(RedactBotToken())
 logging.getLogger('httpcore.http11').addFilter(RedactBotToken())
 log = logging.getLogger(__name__)
-LABELS = {'new': 'Новый', 'confirmed': 'Принят', 'preparing': 'Готовится', 'ready': 'Готов к выдаче', 'in_progress': 'В доставке', 'done': 'Завершён', 'cancelled': 'Отменён'}
+LABELS = {'new': 'Новый', 'confirmed': 'Принят', 'preparing': 'Готовится', 'ready': 'Готов к выдаче', 'in_progress': 'В пути', 'done': 'Завершён', 'cancelled': 'Отменён'}
 
 def now():
     return datetime.now(timezone.utc).isoformat()

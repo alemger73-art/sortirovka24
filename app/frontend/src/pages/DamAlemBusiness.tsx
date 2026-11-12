@@ -20,7 +20,7 @@ const categoryLabels: Record<string, string> = { products: adminT('admin.dam.fin
 return categoryLabels;
 }
 function getPaymentLabels(adminT: (key: string) => string) {
-const paymentLabels: Record<string, string> = { cash: adminT('admin.dam.final.006'), kaspi_qr: 'Kaspi', halyk_qr: 'Halyk', unknown: adminT('admin.dam.final.007') };
+const paymentLabels: Record<string, string> = { cash: adminT('admin.dam.final.006'), kaspi_qr: 'Kaspi', kaspi_transfer: 'Kaspi переводом', halyk_qr: 'Halyk', unknown: adminT('admin.dam.final.007') };
 return paymentLabels;
 }
 function getStatusLabels(adminT: (key: string) => string) {

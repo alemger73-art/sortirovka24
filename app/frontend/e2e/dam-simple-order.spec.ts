@@ -188,11 +188,17 @@ test('one screen: prefilled contacts, gift, bonus toggle, promo, WhatsApp, order
   });
   const done = page.getByTestId('dam-order-done');
   await expect(done.getByRole('heading', { name: /Заказ принят/ })).toBeVisible();
-  await expect(done).toContainText('Перезвоним за 2 минуты');
+  await expect(done).toContainText('Ждём подтверждения');
   await expect(done).toContainText('После доставки начислим 183 бонуса');
+  await expect(done).toContainText('оплата при получении');
+  await expect(done.getByRole('progressbar')).toHaveAttribute('aria-valuetext', 'Ждём подтверждения');
+  // The operator pressed «Принять»: the customer sees «Готовится», then «Готов к выдаче» and «Выдан».
   state.status = 'preparing';
   await expect(done.getByRole('progressbar')).toHaveAttribute('aria-valuetext', /Готовится/, { timeout: 12_000 });
   await shot(page, '3-done', true);
+  await shot(page, 'simple2-client-status', true);
+  state.status = 'ready';
+  await expect(done.getByRole('progressbar')).toHaveAttribute('aria-valuetext', 'Готов к выдаче', { timeout: 12_000 });
 });
 
 test('guest orders without signing in; the banner and «Заберите бонусы» offer sign-in', async ({ page }) => {
@@ -212,15 +218,23 @@ test('guest orders without signing in; the banner and «Заберите бон�
   await screen.getByLabel('Адрес', { exact: true }).fill('ул. Защитная, 12');
   await screen.getByLabel('Имя').fill('Ерлан');
   await screen.getByLabel('Телефон').fill('+77054121890');
-  await screen.getByRole('group', { name: 'Оплата' }).getByRole('button', { name: 'Kaspi' }).click();
-  await expect(screen.getByLabel('Номер для счёта в Kaspi')).toHaveValue('+77054121890');
+  // Two ways to pay, both on delivery: no invoice number, no prepayment.
+  const payment = screen.getByRole('group', { name: 'Оплата' });
+  await expect(payment.getByRole('button')).toHaveText(['Наличными', 'Kaspi переводом']);
+  await payment.getByRole('button', { name: 'Kaspi переводом' }).click();
+  await expect(screen).toContainText('Оплата при получении');
+  await expect(screen.getByText(/счёт/i)).toHaveCount(0);
+  await payment.scrollIntoViewIfNeeded();
+  await shot(page, 'simple2-checkout-payment');
   await page.getByTestId('dam-checkout-submit').click();
   await expect.poll(() => orders.length).toBe(1);
-  expect(orders[0]).toMatchObject({ customer_name: 'Ерлан', delivery_method: 'delivery', payment_method: 'kaspi_qr', payment_phone: '+77054121890' });
+  expect(orders[0]).toMatchObject({ customer_name: 'Ерлан', delivery_method: 'delivery', payment_method: 'kaspi_transfer' });
+  expect(orders[0].payment_phone).toBeUndefined();
   expect(orders[0].bonus_points_to_use).toBeUndefined();
   expect(String(orders[0].delivery_address)).toContain('ул. Защитная, 12');
   const done = page.getByTestId('dam-order-done');
-  await expect(done).toContainText('Ожидайте счёт в Kaspi');
+  await expect(done).toContainText('Kaspi переводом');
+  await expect(done).not.toContainText('счёт');
   await expect(done).toContainText('Заберите 183 бонуса за этот заказ — войдите');
   await shot(page, '3b-done-guest', true);
   await page.getByTestId('dam-done-login').click();
@@ -238,14 +252,16 @@ test('guest sign-in from the cart keeps the cart and returns to the same screen'
   expect(redirect).toMatch(/^\/food\?.*tab=cart.*checkout=resume/);
 });
 
-test('operator board: new order, call, one big next-status button', async ({ page }) => {
+test('operator board: Принять → Готово → Доставлен, no courier, no payment step', async ({ page }) => {
   const order = {
     id: 1047, version: 1, status: 'new', created_at: new Date().toISOString(), customer_name: 'Айгерим', customer_phone: '+77012345678',
     delivery_method: 'delivery', delivery_address: 'ул. Защитная, 12, кв. 4', total_amount: 6900, payment_method: 'cash', payment_status: 'pending',
     order_items: JSON.stringify([{ name: 'Пепперони', quantity: 1, price: 3200 }, { name: 'UFO Бургер куриный', quantity: 2, price: 1600 }]),
     comment: '', operator_note: null, cancellation_reason: null, bonus_discount_amount: 300, operator_runs_delivery: true,
+    couriers_enabled: false, payment_steps: false, workflow_state: 'READY_FOR_OPERATOR',
   };
   const patches: Record<string, unknown>[] = [];
+  const courierCalls: string[] = [];
   await page.addInitScript(theme => {
     localStorage.setItem('app_lang', 'ru');
     localStorage.setItem('sortirovka-theme', theme);
@@ -260,7 +276,8 @@ test('operator board: new order, call, one big next-status button', async ({ pag
     let json: unknown = { items: [], total: 0 };
     if (path.endsWith('/modules')) json = { food: true, dam_alem: true };
     if (path.endsWith('/shifts/me')) json = { staff: { id: 1, name: 'Айжан', role: 'operator', pin_set: true }, shift: { id: 9, staff_name: 'Айжан', role: 'operator', active: true, opened_at: new Date().toISOString() } };
-    if (path.endsWith('/business/me')) json = { role: 'operator', name: 'Айжан' };
+    if (path.endsWith('/business/me')) json = { role: 'operator', name: 'Айжан', couriers_enabled: false };
+    if (path.endsWith('/couriers')) courierCalls.push(path);  // couriers are off: the cabinet must not ask for them
     // Shift summary and money screens are not part of this test: they show their own load error.
     if (path.endsWith('/business/today') || path.endsWith('/cashbox/dashboard')) return route.fulfill({ status: 503, json: { detail: 'Нет данных' } });
     if (path.endsWith('/operations/orders')) json = { items: [order], total: 1 };
@@ -285,23 +302,89 @@ test('operator board: new order, call, one big next-status button', async ({ pag
   // Shift and money are in «Учёт», not on the main screen.
   await expect(page.getByRole('button', { name: 'Учёт' })).toBeVisible();
   await expect(page.getByRole('button', { name: /Закрыть смену/ })).toBeHidden();
+  await expect(item).toContainText('Наличными · 6 900 ₸ · при получении');
   await shot(page, '4-operator', true);
+  await shot(page, 'simple2-operator-new-orders', true);
 
   const next = item.getByTestId('dam-board-next');
   await expect(next).toHaveText('Принять');
   await next.click();
   await expect.poll(() => patches.length).toBe(1);
   expect(patches[0]).toEqual({ expected_version: 1, status: 'preparing' });
+  await expect(item).toContainText('Готовится');
   await expect(next).toHaveText('Готово');
   await next.click();
-  await expect(next).toHaveText('Отправлен');
+  await expect.poll(() => patches.length).toBe(2);
+  expect(patches[1]).toEqual({ expected_version: 2, status: 'in_progress' });
+  await expect(item).toContainText('В пути');
+  await expect(next).toHaveText('Доставлен');
+  expect(courierCalls).toEqual([]);
+  await expect(item).not.toContainText('курьер');
   await next.click();
-  await expect(next).toHaveText('Доставлен · получено 6 900 ₸');
-  await next.click();
-  await expect.poll(() => patches.length).toBe(4);
-  expect(patches[3]).toEqual({ expected_version: 4, status: 'done', payment_status: 'paid' });
+  await expect.poll(() => patches.length).toBe(3);
+  // The money is taken with «Доставлен» on the server: no separate payment step.
+  expect(patches[2]).toEqual({ expected_version: 3, status: 'done' });
 
   await page.getByRole('button', { name: 'Учёт' }).click();
-  await expect(page.getByRole('navigation', { name: 'Учёт' }).getByRole('button', { name: 'Общая касса' })).toBeVisible();
+  const accounting = page.getByRole('navigation', { name: 'Учёт' });
+  await expect(accounting.getByRole('button', { name: 'Общая касса' })).toBeVisible();
+  await expect(accounting.getByRole('button', { name: 'Доставки' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /Закрыть смену/ })).toBeVisible();
+  expect(courierCalls).toEqual([]);
+});
+
+test('full order card: one next-step button, payment on delivery, no invoice or courier blocks', async ({ page }) => {
+  const order = {
+    id: 1048, version: 2, status: 'preparing', created_at: new Date().toISOString(), customer_name: 'Ерлан', customer_phone: '+77054121890',
+    delivery_method: 'delivery', delivery_address: 'ул. Защитная, 12', total_amount: 5300, payment_method: 'kaspi_transfer', payment_status: 'pending',
+    order_items: JSON.stringify([{ name: 'Пепперони', quantity: 1, price: 3200 }, { name: 'Картофель фри', quantity: 1, price: 1500 }]),
+    pricing_snapshot: JSON.stringify({ breakdown: { subtotal: 4700, delivery_fee: 600, service_fee: 0 } }),
+    comment: '', operator_note: null, cancellation_reason: null, operator_runs_delivery: true, couriers_enabled: false, payment_steps: false,
+    workflow_state: 'COOKING', manual_payment_confirmation: true, order_source: 'app',
+  };
+  const patches: Record<string, unknown>[] = [];
+  const courierCalls: string[] = [];
+  await page.addInitScript(theme => {
+    localStorage.setItem('app_lang', 'ru');
+    localStorage.setItem('sortirovka-theme', theme);
+    sessionStorage.setItem('dam_workstation_session', 'operator');
+    sessionStorage.setItem('s24_welcome_done', '1');
+    localStorage.setItem('dam_alem_order_alert_sound', 'off');
+  }, THEME);
+  await page.route('**/*', route => LOCAL.has(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
+  await page.route('**/api/**', async route => {
+    const req = route.request();
+    const path = new URL(req.url()).pathname;
+    let json: unknown = { items: [], total: 0 };
+    if (path.endsWith('/modules')) json = { food: true, dam_alem: true };
+    if (path.endsWith('/shifts/me')) json = { staff: { id: 1, name: 'Айжан', role: 'operator', pin_set: true }, shift: { id: 9, staff_name: 'Айжан', role: 'operator', active: true, opened_at: new Date().toISOString() } };
+    if (path.endsWith('/business/me')) json = { role: 'operator', name: 'Айжан', couriers_enabled: false };
+    if (path.endsWith('/couriers')) courierCalls.push(path);  // couriers are off: the cabinet must not ask for them
+    if (path.endsWith('/business/today') || path.endsWith('/cashbox/dashboard')) return route.fulfill({ status: 503, json: { detail: 'Нет данных' } });
+    if (path.endsWith('/operations/order-counts')) json = { all: 1, new: 0, working: 1, preparing: 1 };
+    if (path.endsWith('/operations/orders')) json = { items: [order], total: 1 };
+    if (path.endsWith('/operations/orders/1048')) {
+      if (req.method() === 'PATCH') {
+        const body = req.postDataJSON();
+        patches.push(body);
+        Object.assign(order, { status: body.status, version: order.version + 1 });
+      }
+      json = { order, events: [], delivery: null };
+    }
+    await route.fulfill({ json });
+  });
+  await page.goto('/partner/dam-alem/operator?section=orders&order=1048');
+  const payment = page.getByRole('region', { name: 'Оплата заказа' });
+  await expect(payment).toContainText('Оплата · При получении', { timeout: 30_000 });
+  await expect(payment).toContainText('Kaspi переводом');
+  await expect(page.getByText(/Выставьте счёт|Счёт выставлен|Выберите курьера/)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Подтвердить получение оплаты|Оплата получена|Деньги пришли/ })).toHaveCount(0);
+  const next = page.getByTestId('order-next-step');
+  await expect(next).toHaveText('Готово');
+  await shot(page, 'simple2-order-card', true);
+  await next.click();
+  await expect.poll(() => patches.length).toBe(1);
+  expect(patches[0]).toEqual({ expected_version: 2, status: 'in_progress' });
+  await expect(next).toHaveText('Доставлен');
+  expect(courierCalls).toEqual([]);
 });

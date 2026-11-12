@@ -1751,7 +1751,7 @@ export const adminTranslations: Translations = {
   "admin.dam.orderStatus.confirmed": {"ru":"Принят","kz":"Қабылданған"},
   "admin.dam.orderStatus.preparing": {"ru":"Готовится","kz":"Әзірленуде"},
   "admin.dam.orderStatus.ready": {"ru":"Готов к выдаче","kz":"Беруге дайын"},
-  "admin.dam.orderStatus.in_progress": {"ru":"В доставке","kz":"Жеткізілуде"},
+  "admin.dam.orderStatus.in_progress": {"ru":"В пути","kz":"Жолда"},
   "admin.dam.orderStatus.done": {"ru":"Завершён","kz":"Аяқталған"},
   "admin.dam.orderStatus.cancelled": {"ru":"Отменён","kz":"Бас тартылған"},
   "admin.dam.final.184": {"ru":"Настройки сохранены","kz":"Баптаулар сақталды"},

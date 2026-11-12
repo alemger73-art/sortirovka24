@@ -8,12 +8,11 @@ export interface OrderDoneInfo {
   id: number;
   total: number;
   paymentLabel: string;
-  paymentMethod: 'cash' | 'kaspi_qr' | 'halyk_qr';
+  paymentMethod: 'cash' | 'kaspi_transfer';
   name: string;
   phone: string;
   address: string;
   deliveryMethod: 'delivery' | 'pickup' | 'dine_in';
-  invoicePhone?: string;
   itemsText: string;
   giftTitle?: string;
   /** Bonuses the order earns after delivery (cashback rate × food after discounts). */
@@ -21,7 +20,7 @@ export interface OrderDoneInfo {
   guest: boolean;
 }
 
-/** «Заказ принят»: what happens next, the live status and the bonuses to come. */
+/** «Заказ принят ✓, ждём подтверждения»: the live status (Готовится → В пути / Готов к выдаче → Доставлен) and the bonuses to come. */
 export default function DamOrderDone({ info, status, live, deliveryTime, maxBonusPercent, restaurantPhone, formatPrice, onMenu, onLogin, onWhatsApp }: {
   info: OrderDoneInfo;
   status: string;
@@ -41,18 +40,13 @@ export default function DamOrderDone({ info, status, live, deliveryTime, maxBonu
     <section className="dam-done__head">
       <span className="dam-done__check" aria-hidden="true"><Check className="h-7 w-7" strokeWidth={3} /></span>
       <h1 id="dam-done-title">{st('Заказ принят')}{info.id > 0 ? <small> № {info.id}</small> : null}</h1>
-      <p>{st('Перезвоним за 2 минуты, чтобы подтвердить.')} <span>{info.phone}</span></p>
+      <p>{st('Ждём подтверждения. Когда оператор примет заказ, статус сменится на «Готовится».')} <span>{info.phone}</span></p>
     </section>
 
     <section className="dam-os-card" aria-label={st('Статус заказа')}>
       <p className="dam-done__eta"><strong>{st('Ориентир: {0}', [deliveryTime])}</strong>{live ? <small>{st('обновляется само')}</small> : null}</p>
       <FoodOrderStatusBar status={status} deliveryMethod={info.deliveryMethod} />
     </section>
-
-    {info.paymentMethod !== 'cash' ? <section className="dam-os-card dam-done__invoice">
-      <strong>{st('Ожидайте счёт в')} {info.paymentLabel}</strong>
-      <p>{st('Оператор выставит счёт на')} {info.invoicePhone || info.phone} {st('— обычно за 1–3 минуты. Откройте приложение и оплатите. Статус оплаты — в «Мои заказы».')}</p>
-    </section> : null}
 
     {info.cashback > 0 && !info.guest ? <section className="dam-done__bonus">
       <span className="dam-os-coin" aria-hidden="true">+</span>
@@ -70,7 +64,7 @@ export default function DamOrderDone({ info, status, live, deliveryTime, maxBonu
       <strong>{info.itemsText}</strong>
       {info.giftTitle ? <span>{st('Подарок: {0}', [info.giftTitle])}</span> : null}
       <span>{info.deliveryMethod === 'delivery' ? info.address : info.deliveryMethod === 'dine_in' ? st('В заведении') : st('Самовывоз')}</span>
-      <span>{st(info.paymentLabel)} · {formatPrice(info.total)}</span>
+      <span>{st(info.paymentLabel)} · {formatPrice(info.total)} · {st('оплата при получении')}</span>
     </section>
 
     <div className="dam-done__actions">

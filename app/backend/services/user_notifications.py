@@ -186,9 +186,9 @@ async def notify_food_order_customer(db: AsyncSession, *, order_id: int, phone: 
 
 FOOD_STATUS_MESSAGES: dict[str, tuple[str, str]] = {
     "confirmed": ("Заказ подтверждён", "Оператор принял заказ"),
-    "preparing": ("Заказ передан на кухню", "Кухня приступила к приготовлению"),
-    "ready": ("Заказ готов", "Заказ готов к выдаче"),
-    "in_progress": ("Заказ передан курьеру", "Ваш заказ передан курьеру"),
+    "preparing": ("Заказ готовится", "Оператор принял заказ — уже готовим"),
+    "ready": ("Заказ готов к выдаче", "Можно забирать"),
+    "in_progress": ("Заказ в пути", "Заказ уже едет к вам"),
     "done": ("Ваш заказ доставлен", "Приятного аппетита! Спасибо за заказ."),
     "cancelled": ("Заказ отменён", "Если списали бонусы — они вернутся на баланс"),
 }
@@ -205,8 +205,8 @@ async def notify_food_order_created(db: AsyncSession, order: Any) -> None:
         phone=getattr(order, "customer_phone", None),
         category="food",
         event_key=f"food:created:{order_id}",
-        title="Заказ создан",
-        body=f"{name} · заказ №{order_id}{amount_txt}. Ожидает принятия оператором.",
+        title="Заказ принят",
+        body=f"{name} · заказ №{order_id}{amount_txt}. Ждём подтверждения оператора.",
         path=f"/cabinet/orders/food/{order_id}",
         entity_type="food_orders",
         entity_id=str(order_id),
@@ -224,7 +224,7 @@ async def notify_food_order_status(db: AsyncSession, order: Any, old_status: str
     from services.dam_settlement import is_debt,settlement_view
     # Cash is handed to the courier at the door; "payment expected" there only
     # alarmed customers who had already paid. Keep it for unpaid online methods.
-    if new_status=='done' and is_debt(order) and getattr(order, 'payment_method', None) != 'cash':
+    if new_status=='done' and is_debt(order) and getattr(order, 'payment_method', None) not in ('cash', 'kaspi_transfer'):
         body=f"Заказ доставлен. Ожидается оплата {settlement_view(order)['debt_amount']:g} ₸."
     if new_status == "done" and getattr(order, "delivery_method", None) in ("pickup", "dine_in"):
         title = "Ваш заказ выдан"

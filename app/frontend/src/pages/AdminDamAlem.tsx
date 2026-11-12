@@ -85,10 +85,12 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
   const requested = params.get('section') as Section;
   const [section, setSection] = useState<Section>(requested === 'board' || TABS.some(t => t.id === requested) ? requested : initialSection);
   const [access, setAccess] = useState<'owner' | 'operator' | null>(null);
+  /** Couriers are off by default: no «Доставки» tab, no courier alerts, no courier assignment. */
+  const [couriersEnabled, setCouriersEnabled] = useState(false);
   const [activeShift, setActiveShift] = useState<DamShift | null>(null);
   const [accessError, setAccessError] = useState('');
-  useEffect(() => { let alive = true; business<{role: 'owner' | 'operator'}>('/me').then(v => { if (alive && ['owner', 'operator'].includes(v.role)) setAccess(v.role); else if (alive) setAccessError(adminT("admin.ui.0247")); }).catch(e => { if (alive) setAccessError(e.message); }); return () => { alive = false; }; }, []);
-  const tabs = TABS.filter(tab => (access === 'owner' || OPERATOR_SECTIONS.includes(tab.id)));
+  useEffect(() => { let alive = true; business<{role: 'owner' | 'operator'; couriers_enabled?: boolean}>('/me').then(v => { if (alive) setCouriersEnabled(v.couriers_enabled !== false); if (alive && ['owner', 'operator'].includes(v.role)) setAccess(v.role); else if (alive) setAccessError(adminT("admin.ui.0247")); }).catch(e => { if (alive) setAccessError(e.message); }); return () => { alive = false; }; }, []);
+  const tabs = TABS.filter(tab => (access === 'owner' || OPERATOR_SECTIONS.includes(tab.id)) && (couriersEnabled || tab.id !== 'deliveries'));
   const groupOf = (id: string) => {
     if (access === 'operator') return id === 'board' ? 'board' : 'accounting';
     if (id === 'loyalty' || id === 'crm') return id;
@@ -149,7 +151,7 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
         </div>
       </div>}
       {(access === 'operator' || access === 'owner') && <DamAlemNewOrderAlert owner={access === 'owner'} onOpen={() => access === 'operator' ? navigate('board') : navigate('orders', undefined, 'new')} />}
-      {access === 'operator' && <CourierIssueAlert onOpen={() => navigate('deliveries')} />}
+      {access === 'operator' && couriersEnabled && <CourierIssueAlert onOpen={() => navigate('deliveries')} />}
 
       {access === 'operator' && <div hidden={group === 'board'}><DamShiftPanel onChange={setActiveShift} onLock={onLock} /></div>}
 
@@ -159,7 +161,7 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
       <nav aria-label={adminT("admin.ui.0255")} className={`${access === 'owner' ? 'hidden sm:flex' : 'flex'} flex-wrap gap-2`}>{groups.map(g => <button key={g.id} aria-pressed={group === g.id} onClick={() => navigate(groupEntry(g.id))} className={`min-h-11 rounded-xl px-4 py-3 text-sm font-semibold ${group === g.id ? 'bg-[#FF3B30] text-white' : 'bg-card border text-foreground hover:bg-muted'}`}>{st(g.label)}</button>)}</nav>
 
       {access === 'operator' && group === 'accounting' && <nav aria-label="Учёт" className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-        {OPERATOR_ACCOUNTING.map(tab => <button key={tab.id} type="button" aria-pressed={section === tab.id} onClick={() => navigate(tab.id)}
+        {OPERATOR_ACCOUNTING.filter(tab => couriersEnabled || tab.id !== 'deliveries').map(tab => <button key={tab.id} type="button" aria-pressed={section === tab.id} onClick={() => navigate(tab.id)}
           className={`min-h-11 shrink-0 rounded-xl px-4 text-sm font-semibold ${section === tab.id ? 'bg-[#FF3B30] text-white' : 'bg-card text-foreground ring-1 ring-border hover:bg-muted'}`}>{st(tab.label)}</button>)}
       </nav>}
 
@@ -207,7 +209,7 @@ export default function AdminDamAlem({ initialSection = 'today', partnerMode = f
       )}
       {section === 'telegram' && <DamAlemTelegram />}
       {section === 'modifiers' && <AdminDamAlemModifiers />}
-      {section === 'orders' && <DamAlemOrders operatorMode={access === 'operator'} />}
+      {section === 'orders' && <DamAlemOrders operatorMode={access === 'operator'} couriersEnabled={couriersEnabled} />}
       {section === 'settings' && (
         <>
           {!partnerMode && <AdminPartnerAccess partnerType="dam_alem" />}

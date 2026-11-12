@@ -69,7 +69,7 @@ async def test_invoice_number_defaults_to_contact_phone_and_rejects_garbage(env)
 async def test_bank_payment_can_be_switched_off(env):
     env[3].setenv('DAM_BANK_INVOICE', 'off')
     _, _, made = await checkout(env)
-    assert made.status_code == 503
+    assert made.status_code == 400 and 'Kaspi переводом при получении' in made.json()['detail']
 
 
 @pytest.mark.asyncio

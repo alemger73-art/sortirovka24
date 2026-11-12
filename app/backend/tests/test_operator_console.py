@@ -85,7 +85,7 @@ async def test_buttons_drive_the_order_through_the_cabinet_rules(tg):
     assert await click(maker, press(fake, '№1')) == 'Открыт заказ №1'
     card = text_of(fake)
     assert 'Заказ №1' in card and '+77000000000' in card and 'Test street 1' in card
-    to_kitchen = press(fake, 'Передать на кухню')
+    to_kitchen = press(fake, 'Принять')
     assert await click(maker, to_kitchen) == '👨‍🍳 Готовится'
     assert (await order(maker)).status == 'preparing'
     assert 'Заказ уже изменён' in await click(maker, to_kitchen)  # a stale button never acts twice
@@ -142,7 +142,7 @@ async def test_new_order_arrives_as_a_card_with_buttons_in_a_console_chat(tg):
     ot.notify_new_order(await order(maker))
     while ot._background:
         await asyncio.gather(*list(ot._background))
-    assert 'НОВЫЙ ЗАКАЗ №1' in text_of(fake) and press(fake, 'Передать на кухню')
+    assert 'НОВЫЙ ЗАКАЗ №1' in text_of(fake) and press(fake, 'Принять')
 
 
 async def test_payment_needs_a_second_tap_and_online_unpaid_waits_for_money(tg):
@@ -155,7 +155,7 @@ async def test_payment_needs_a_second_tap_and_online_unpaid_waits_for_money(tg):
         await db.commit()
     await click(maker, f'{oc.CB}o:1')
     assert 'На кухню — после оплаты' in text_of(fake)
-    assert not any('Передать на кухню' in b['text'] for b in buttons(fake))  # the cabinet would not offer it either
+    assert not any('Принять' in b['text'] for b in buttons(fake))  # the cabinet would not offer it either
     async with maker() as db:
         row = await db.get(Food_orders, 1)
         row.payment_method = 'cash'

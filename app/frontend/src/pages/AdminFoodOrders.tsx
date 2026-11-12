@@ -49,6 +49,7 @@ function getSTATUS_CONFIG(adminT: (key: string) => string) {
 function getPAYMENT_LABELS(adminT: (key: string) => string) {
   const PAYMENT_LABELS: Record<string, string> = {
   cash: adminT("admin.ui.0515"),
+  kaspi_transfer: 'Kaspi переводом',
   kaspi_qr: 'Kaspi QR',
   halyk_qr: 'Halyk QR',
 };

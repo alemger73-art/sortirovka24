@@ -138,21 +138,13 @@ function orderCashback(snapshot: CreatedOrder['loyalty_snapshot']): number | nul
   return Number.isFinite(eligible) && Number.isFinite(rate) ? Math.round(eligible * rate / 100) : null;
 }
 
-/** +7 7XX XXX XX XX for a Kaspi/Halyk invoice, or '' when the number is incomplete. */
-function invoicePhoneValue(raw: string): string {
-  let d = raw.replace(/\D/g, '');
-  if (d.length === 11 && d.startsWith('8')) d = '7' + d.slice(1);
-  if (d.length === 10) d = '7' + d;
-  return d.length === 11 && d.startsWith('77') ? `+${d}` : '';
-}
-
 type BonusRules = Awaited<ReturnType<typeof accountApi.bonusRules>>;
 const NO_BONUS_RULES: BonusRules = { enabled: false, tenge_rate: 1, max_order_percent: 0 };
 
-const PAYMENT_LABELS: Record<'cash' | 'kaspi_qr' | 'halyk_qr', string> = {
-  cash: 'Наличные',
-  kaspi_qr: 'Kaspi',
-  halyk_qr: 'Halyk',
+/** Paid on delivery or pickup: no invoices, no prepayment. */
+const PAYMENT_LABELS: Record<'cash' | 'kaspi_transfer', string> = {
+  cash: 'Наличными',
+  kaspi_transfer: 'Kaspi переводом',
 };
 
 interface CartItemSelection { [groupId: number]: number[]; }
@@ -276,8 +268,7 @@ export default function Food() {
   const [preorder,setPreorder]=useState(false),[schedule,setSchedule]=useState('');
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup' | 'dine_in'>('delivery');
   const [cashGiven, setCashGiven] = useState('');
-  const [invoicePhone, setInvoicePhone] = useState('');
-  const [payment, setPayment] = useState<'cash' | 'kaspi_qr' | 'halyk_qr'>('cash');
+  const [payment, setPayment] = useState<'cash' | 'kaspi_transfer'>('cash');
   const [orderSuccess, setOrderSuccess] = useState<OrderDoneInfo | null>(null);
   const [orderStatus, setOrderStatus] = useState('new');
   const [submitting, setSubmitting] = useState(false);
@@ -1341,7 +1332,6 @@ export default function Food() {
     if (submittingRef.current) return;
     if (customerName.trim().length < 2 || !customerPhone.trim()) { toast.error(st('Укажите имя и телефон')); return; }
     if (payment === 'cash' && cashGiven !== '' && (!Number.isFinite(Number(cashGiven)) || Number(cashGiven) < checkoutGrandTotal)) {toast.error(st('Проверьте сумму наличных для сдачи')); return;}
-    if (payment !== 'cash' && !invoicePhoneValue(invoicePhone || customerPhone)) {toast.error(st('Укажите номер, на который выставить счёт в ') + PAYMENT_LABELS[payment]); return;}
     if (checkoutFinalBlockReason) { toast.error(checkoutFinalBlockReason); return; }
 
     const aptPart = apartment.trim() ? `, кв. ${apartment.trim()}` : '';
@@ -1390,7 +1380,6 @@ export default function Food() {
             delivery_method: deliveryMethod,
             payment_method: payment,
             cash_given_amount: payment === 'cash' && cashGiven !== '' ? Number(cashGiven) : undefined,
-            payment_phone: payment !== 'cash' ? invoicePhoneValue(invoicePhone || customerPhone) : undefined,
       };
       const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(orderData)));
       const fingerprint = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
@@ -1455,7 +1444,6 @@ export default function Food() {
         phone: customerPhone,
         address: deliveryMethod === 'delivery' ? fullAddress : deliveryMethod === 'dine_in' ? 'В заведении' : 'Самовывоз',
         deliveryMethod,
-        invoicePhone: payment !== 'cash' ? invoicePhoneValue(invoicePhone || customerPhone) : undefined,
         itemsText: cart.map(ci => `${ci.item.name} × ${ci.quantity}`).join(', '),
         giftTitle: loyaltyGift?.title,
         cashback: orderCashback(createdOrder?.loyalty_snapshot) ?? expectedCashback,
@@ -1471,7 +1459,7 @@ export default function Food() {
       quotedAddress.current = '';
       setComment('');
       setDeliverToApartment(false);
-      setPayment('cash');setCashGiven('');setInvoicePhone('');
+      setPayment('cash');setCashGiven('');
     } catch (e) {
       console.error('Error creating order:', e);
       toast.error(publicOrderErrorMessage(e, st));
@@ -1858,7 +1846,7 @@ export default function Food() {
     ...(loyaltyGift ? [`Подарок: ${loyaltyGift.title}`] : []),
     deliveryMethod === 'delivery' ? `Доставка${deliveryAddress.trim() ? `: ${deliveryAddress.trim()}${apartment.trim() ? `, кв. ${apartment.trim()}` : ''}` : ''}` : 'Самовывоз',
     ...(customerName.trim() || customerPhone.trim() ? [[customerName.trim(), customerPhone.trim()].filter(Boolean).join(', ')] : []),
-    `Оплата: ${payment === 'cash' ? 'наличными' : PAYMENT_LABELS[payment]}`,
+    `Оплата при получении: ${PAYMENT_LABELS[payment].toLowerCase()}`,
     `Итого: ${formatPrice(checkoutGrandTotal)}`,
   ].join('\n'))}` : '';
   const addressStatus = deliveryMethod !== 'delivery' || !hasDeliveryZones ? null
@@ -2176,18 +2164,11 @@ export default function Food() {
               <div className="dam-os-field">
                 <span className="dam-os-label">{st("Оплата")}</span>
                 <Segmented<typeof payment> label={st("Оплата")} value={payment}
-                  options={[{ id: 'cash', label: st("Наличными") }, { id: 'kaspi_qr', label: 'Kaspi' }, { id: 'halyk_qr', label: 'Halyk' }]}
+                  options={[{ id: 'cash', label: st("Наличными") }, { id: 'kaspi_transfer', label: st("Kaspi переводом") }]}
                   onChange={setPayment} />
               </div>
-              {payment === 'cash' ? <>
-                <p className="dam-os-hint">{st("Оплата при получении")}</p>
-                <Disclosure label={st("Нужна сдача?")} defaultOpen={cashGiven !== ''}><CashAmount total={checkoutGrandTotal} value={cashGiven} onChange={setCashGiven} /></Disclosure>
-              </> : (
-                <Field label={st("Номер для счёта в {0}", [PAYMENT_LABELS[payment]])}
-                  hint={<p className="dam-os-hint">{st("Счёт на {0} придёт в приложение {1}. Готовить начнём сразу после оплаты.", [formatPrice(checkoutGrandTotal), PAYMENT_LABELS[payment]])}</p>}>
-                  {id => <input id={id} type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 7XX XXX XX XX" value={invoicePhone || customerPhone} onChange={e => setInvoicePhone(e.target.value)} />}
-                </Field>
-              )}
+              <p className="dam-os-hint">{st("Оплата при получении")}</p>
+              {payment === 'cash' ? <Disclosure label={st("Нужна сдача?")} defaultOpen={cashGiven !== ''}><CashAmount total={checkoutGrandTotal} value={cashGiven} onChange={setCashGiven} /></Disclosure> : null}
             </section>
 
             {maxBonusPoints > 0 ? (

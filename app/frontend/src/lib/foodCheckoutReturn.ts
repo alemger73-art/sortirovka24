@@ -13,7 +13,7 @@ export interface FoodCheckoutReturn {
   preorder: boolean;
   schedule: string;
   cashGiven: string;
-  payment: 'cash' | 'kaspi_qr' | 'halyk_qr';
+  payment: 'cash' | 'kaspi_transfer';
   selectedGiftId: string | null;
 }
 
@@ -32,7 +32,7 @@ export function takeFoodCheckoutReturn(): FoodCheckoutReturn | null {
     if (!value || typeof value !== 'object' || typeof value.savedAt !== 'number'
       || Date.now() - value.savedAt > MAX_AGE || value.savedAt > Date.now()) return null;
     if (![1, 2, 3].includes(value.step) || !['delivery', 'pickup', 'dine_in'].includes(value.deliveryMethod)
-      || !['cash', 'kaspi_qr', 'halyk_qr'].includes(value.payment)) return null;
+      || !['cash', 'kaspi_transfer'].includes(value.payment)) return null;
     for (const field of ['customerName', 'customerPhone', 'deliveryAddress', 'apartment', 'comment', 'schedule', 'cashGiven']) {
       if (typeof value[field] !== 'string' || value[field].length > 2000) return null;
     }

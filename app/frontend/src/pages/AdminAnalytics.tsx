@@ -23,7 +23,7 @@ const LABELS: Record<string, string> = {
   mobile: 'Телефон', tablet: 'Планшет', desktop: 'Компьютер', other: 'Другое', android: 'Android', ios: 'iPhone', windows: 'Windows',
   mac: 'Mac', chrome: 'Chrome', safari: 'Safari', yandex: 'Яндекс', samsung: 'Samsung', instagram: 'Внутри Instagram',
   telegram: 'Внутри Telegram', whatsapp: 'Внутри WhatsApp', facebook: 'Внутри Facebook', opera: 'Opera', edge: 'Edge',
-  xiaomi: 'Браузер Xiaomi', firefox: 'Firefox', kaspi_qr: 'Kaspi', halyk_qr: 'Halyk', cash: 'Наличные', delivery: 'Доставка',
+  xiaomi: 'Браузер Xiaomi', firefox: 'Firefox', kaspi_qr: 'Kaspi', kaspi_transfer: 'Kaspi переводом', halyk_qr: 'Halyk', cash: 'Наличные', delivery: 'Доставка',
   pickup: 'Самовывоз', dine_in: 'В заведении',
 };
 const label = (v: string) => LABELS[v] || v;

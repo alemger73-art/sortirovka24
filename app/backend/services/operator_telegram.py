@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 START_PREFIX = "op_"
 CODE_HOURS = 24
 LOCAL = ZoneInfo("Asia/Almaty")
-PAYMENT_LABELS = {"cash": "💵 наличные", "kaspi_qr": "📱 Kaspi", "halyk_qr": "📱 Halyk"}
+PAYMENT_LABELS = {"cash": "💵 наличные", "kaspi_transfer": "📱 Kaspi переводом", "kaspi_qr": "📱 Kaspi", "halyk_qr": "📱 Halyk"}
 PENDING_KEY = "operator_telegram_events"
 # The full card is sent for a new order; its creation event is not repeated as a line.
 SKIP_EVENTS = {"Заказ создан"}
@@ -204,7 +204,7 @@ def card(order: Any) -> str:
         lines.append(f"🎁 Списано бонусов: {round(float(order.bonus_points_used))}")
     payment = PAYMENT_LABELS.get(order.payment_method or "", order.payment_method or "—")
     paid = (order.payment_status or "") == "paid"
-    lines.append(f"Оплата: {payment}" + (" · оплачено" if paid else ""))
+    lines.append(f"Оплата: {payment}" + (" · оплачено" if paid else " · при получении"))
     if order.payment_method == "cash" and order.cash_given_amount and float(order.cash_given_amount) > float(order.total_amount or 0):
         lines.append(f"Клиент даст {_money(order.cash_given_amount)}, сдача {_money(order.change_amount)}")
     lines += ["", f'<a href="{_cabinet_url()}">Открыть кабинет оператора</a>']

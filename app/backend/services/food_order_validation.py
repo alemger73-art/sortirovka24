@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_SERVICE_FEE_RATE = 0.10
 APARTMENT_DELIVERY_FEE = 300.0
-VALID_PAYMENT_METHODS = frozenset({"cash", "kaspi_qr", "halyk_qr"})
+VALID_PAYMENT_METHODS = frozenset({"cash", "kaspi_transfer", "kaspi_qr", "halyk_qr"})
 CLIENT_OWNED_TRANSIENT = (
     "promo_code",
     "selected_gift_id",
@@ -807,6 +807,8 @@ async def validate_food_order(
     sanitized.pop("payment_phone", None)
     if payment_method in ("kaspi_qr", "halyk_qr"):
         from services.dam_payment_flow import bank_invoice_mode, invoice_phone
+        if not bank_invoice_mode() and brand(getattr(rest, 'name', ''), getattr(rest, 'merchant_key', None)):
+            raise HTTPException(status_code=400, detail="Счёт Kaspi/Halyk сейчас не выставляем. Выберите «Наличными» или «Kaspi переводом при получении».")
         if bank_invoice_mode():
             # The operator issues the Kaspi/Halyk invoice on this number.
             sanitized["payment_phone"] = invoice_phone(data.get("payment_phone"), data.get("customer_phone"))

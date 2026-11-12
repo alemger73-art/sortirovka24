@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// Signed-in customer: name/phone come from the account, no consent checkbox, Kaspi invoice number.
+// Signed-in customer: name/phone come from the account, no consent checkbox, Kaspi transfer on delivery.
 async function setup(page: Page) {
   const orders: Record<string, unknown>[] = [];
   await page.addInitScript(() => {
@@ -25,7 +25,7 @@ async function setup(page: Page) {
   return orders;
 }
 
-test('signed-in checkout: no consent checkbox, no name re-entry, Kaspi number', async ({ page }) => {
+test('signed-in checkout: no consent checkbox, no name re-entry, Kaspi transfer on delivery', async ({ page }) => {
   const orders = await setup(page);
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
@@ -38,15 +38,16 @@ test('signed-in checkout: no consent checkbox, no name re-entry, Kaspi number', 
   await expect(screen.getByLabel('Имя')).toHaveValue('Алия');
   await expect(screen.getByLabel('Телефон')).toHaveValue('+77011234567');
   await expect(page.getByText(/Фамилия/)).toHaveCount(0);
-  await screen.getByRole('group', { name: 'Оплата' }).getByRole('button', { name: 'Kaspi', exact: true }).click();
-  await expect(screen.getByLabel(/Номер для счёта/)).toHaveValue('+77011234567');
+  await screen.getByRole('group', { name: 'Оплата' }).getByRole('button', { name: 'Kaspi переводом', exact: true }).click();
+  await expect(screen.getByText('Оплата при получении')).toBeVisible();
   await expect(page.getByRole('checkbox')).toHaveCount(0);
   await expect(page.getByText(/Нажимая «Заказать»/)).toBeVisible();
   await page.screenshot({ path: test.info().outputPath('order-screen.png'), fullPage: true });
   await page.getByTestId('dam-checkout-submit').click();
   await expect.poll(() => orders.length).toBe(1);
-  expect(orders[0]).toMatchObject({ customer_name: 'Алия', customer_phone: '+77011234567', legal_accepted: true, payment_method: 'kaspi_qr', payment_phone: '+77011234567' });
-  await expect(page.getByText('Ожидайте счёт в Kaspi')).toBeVisible();
+  expect(orders[0]).toMatchObject({ customer_name: 'Алия', customer_phone: '+77011234567', legal_accepted: true, payment_method: 'kaspi_transfer' });
+  expect(orders[0].payment_phone).toBeUndefined();
+  await expect(page.getByTestId('dam-order-done')).toContainText('Kaspi переводом');
   await page.screenshot({ path: test.info().outputPath('success.png'), fullPage: true });
   expect(errors).toEqual([]);
 });
