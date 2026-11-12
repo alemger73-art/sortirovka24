@@ -133,16 +133,22 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
   useEffect(() => {
     if (step !== 'whatsapp' || !loginId) return;
     let stopped = false;
-    const timer = window.setInterval(async () => {
+    let inFlight = false;
+    const check = async () => {
+      if (stopped || inFlight) return;
+      inFlight = true;
       try {
         const r = await accountApi.whatsAppSignInStatus({ login_id: loginId, language: lang, agreement_accepted: accepted, privacy_accepted: dataAccepted, legal_version: LEGAL_VERSION, legal_subject_name: subjectName.trim() });
         if (r.status === 'done' && !stopped) { stopped = true; window.clearInterval(timer); await signedIn(r); }
       } catch (e) {
         const status = (e as { status?: number })?.status ?? 0;
-        if (status >= 400 && status < 500 && status !== 429) { stopped = true; window.clearInterval(timer); setLoginId(''); setError(humanizeApiError(e)); reportAuthFailure(e, 'вход WhatsApp'); }
-      }
-    }, 2500);
-    return () => { stopped = true; window.clearInterval(timer); };
+        if (!stopped && status >= 400 && status < 500 && status !== 429) { stopped = true; window.clearInterval(timer); setLoginId(''); setError(humanizeApiError(e)); reportAuthFailure(e, 'вход WhatsApp'); }
+      } finally { inFlight = false; }
+    };
+    const timer = window.setInterval(() => void check(), 2500);
+    const onReturn = () => { if (document.visibilityState === 'visible') void check(); };
+    document.addEventListener('visibilitychange', onReturn);
+    return () => { stopped = true; window.clearInterval(timer); document.removeEventListener('visibilitychange', onReturn); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, loginId]);
 
@@ -196,8 +202,13 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
       </form>}
       {step === 'whatsapp' && <div className="mt-5 space-y-3">
         <p className="text-sm dark:text-white">{text('Подтвердите номер', 'Нөмірді растаңыз')} <strong>{phone}</strong> {text('через WhatsApp', 'WhatsApp арқылы')}</p>
-        {loginId && expires > 0 && <a href={waUrl} target="_blank" rel="noopener noreferrer" className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1f9d55] px-4 py-4 text-lg font-semibold text-white hover:bg-[#17864a]"><MessageCircle className="h-5 w-5" />{text('Открыть WhatsApp и отправить', 'WhatsApp-ты ашып, жіберу')}</a>}
-        <p className="text-sm text-gray-600 dark:text-gray-300">{text('Откроется чат «Сортировка 24» (+7 700 428 02 80) с готовым сообщением. Отправьте его с этого же номера — и вход завершится сам. Мы сами вам первыми не пишем.', '«Сортировка 24» (+7 700 428 02 80) чаты дайын хабарламамен ашылады. Оны осы нөмірден жіберіңіз — кіру өзі аяқталады. Біз сізге бірінші жазбаймыз.')}</p>
+        {loginId && expires > 0 && <a href={waUrl} target="_blank" rel="noopener noreferrer" onClick={() => track('login_wa_opened')} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1f9d55] px-4 py-4 text-lg font-semibold text-white hover:bg-[#17864a]"><MessageCircle className="h-5 w-5" />{text('Открыть WhatsApp и отправить', 'WhatsApp-ты ашып, жіберу')}</a>}
+        <ol className="list-decimal space-y-1 pl-5 text-sm text-gray-700 dark:text-gray-200">
+          <li>{text('Нажмите зелёную кнопку — откроется WhatsApp с готовым сообщением.', 'Жасыл батырманы басыңыз — WhatsApp дайын хабарламамен ашылады.')}</li>
+          <li>{text('В WhatsApp нажмите «Отправить» ➤. Писать ничего не нужно.', 'WhatsApp-та «Жіберу» ➤ батырмасын басыңыз. Ештеңе жазудың қажеті жоқ.')}</li>
+          <li>{text('Вернитесь сюда — вход завершится сам.', 'Осында оралыңыз — кіру өзі аяқталады.')}</li>
+        </ol>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{text('Отправьте с WhatsApp на номере', 'WhatsApp нөмірінен жіберіңіз:')} {phone}. {text('Чат «Сортировка 24» (+7 700 428 02 80). Мы сами вам первыми не пишем.', '«Сортировка 24» чаты (+7 700 428 02 80). Біз сізге бірінші жазбаймыз.')}</p>
         {loginId && expires > 0 && <p role="status" className="flex items-center gap-2 text-xs text-gray-500"><Loader2 className="h-4 w-4 animate-spin" />{text('Ждём ваше сообщение…', 'Хабарламаңызды күтеміз…')} {text('Действует ещё', 'Жарамдылық мерзімі')} {Math.floor(expires / 60)}:{String(expires % 60).padStart(2, '0')}</p>}
         {(!loginId || expires === 0) && <button type="button" disabled={busy} onClick={() => void sendCode('whatsapp')} className={button}>{text('Время вышло — начать заново', 'Уақыт бітті — қайта бастау')}</button>}
         {channels.filter(ch => ch !== 'whatsapp').map(ch => <button key={ch} type="button" disabled={busy} onClick={() => void sendCode(ch)} className="w-full py-1 text-sm text-gray-600 underline dark:text-gray-300">{text('Не получается? Войти через ', 'Болмай жатыр ма? Кіру: ')}{ch === 'telegram' ? 'Telegram' : 'SMS'}</button>)}
