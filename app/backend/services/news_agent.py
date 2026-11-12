@@ -825,9 +825,10 @@ async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dic
         sender_id = str((message.get("from") or {}).get("id", ""))
         if chat.get("type") == "private" and str(message.get("text") or "").strip() == "/start" \
                 and sender_id != approval_chat() and sender_id not in admin_ids():
-            # A customer who opened the bot without the login link.
-            await tg(client, "sendMessage", {"chat_id": chat.get("id"), "text": telegram_login.ASK_TEXT,
-                     "reply_markup": telegram_login.contact_keyboard()})
+            # A resident who opened the bot without the login link: the helper greets them.
+            from services import telegram_support
+            await tg(client, "sendMessage", {"chat_id": chat.get("id"), "text": telegram_support.GREETING,
+                     "reply_markup": {"remove_keyboard": True}})
             return
         if chat.get("type") == "private" and str(message.get("text") or "").strip().split("@")[0] in ("/start", "/id"):
             await tg(client, "sendMessage", {"chat_id": chat.get("id"), "text":

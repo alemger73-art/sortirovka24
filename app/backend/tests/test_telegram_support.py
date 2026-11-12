@@ -192,7 +192,8 @@ async def test_login_flows_keep_priority(maker):
     await run(maker, fake, contact, private("/start code", mid=2), private("/start", mid=3))
     texts = [b["text"] for b in fake.calls("/sendMessage")]
     assert "своим номером" in texts[0]
-    assert all("Поделиться номером" in t for t in texts[1:]) and len(texts) == 3
+    assert "Поделиться номером" in texts[1] and len(texts) == 3
+    assert "помощник" in texts[2] and "/code" in texts[2]  # plain /start: the helper greets, no login keyboard
     assert not fake.calls("anthropic")
 
 

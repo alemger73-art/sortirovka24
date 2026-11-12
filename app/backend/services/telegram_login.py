@@ -166,7 +166,7 @@ async def issue_code(db: AsyncSession, raw_phone: str, telegram_user: Any) -> st
     if not row or _as_aware_utc(row.expires_at) < now:
         return ("Для номера " + phone + " код на сайте не запрошен или устарел.\n\n"
                 "Откройте сайт sortirovka24.kz, введите этот номер, выберите «Telegram» — и снова нажмите "
-                "«Поделиться номером» здесь.")
+                "«Поделиться номером» здесь.\n\nА если у вас вопрос — просто напишите его сюда, я отвечу.")
     if row.attempts >= MAX_SMS_VERIFY_ATTEMPTS:
         return "Слишком много неверных попыток. Запросите новый код на сайте."
     code = f"{secrets.randbelow(1_000_000):06d}"

@@ -79,11 +79,12 @@ class TelegramBotLoginTests(base.QuickAccountAuthTests):
         self.assertIn("своим номером", await self.share(owner=99))
         self.assertIn("не запрошен", await self.share(phone="77009999999"))
 
-    async def test_plain_start_from_customer_shows_login_help(self):
+    async def test_plain_start_from_customer_gets_helper_greeting(self):
         async with self.sessions() as db:
             await news_agent.handle_update(db, self.tg, {"message": {
                 "message_id": 1, "chat": {"id": 42, "type": "private"}, "from": {"id": 42}, "text": "/start"}})
-        self.assertIn("Поделиться номером", self.sent[-1][1]["text"])
+        self.assertIn("помощник", self.sent[-1][1]["text"])
+        self.assertIn("/code", self.sent[-1][1]["text"])
 
     async def test_second_login_code_arrives_by_itself(self):
         await self.ask()
