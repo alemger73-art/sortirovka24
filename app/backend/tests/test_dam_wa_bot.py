@@ -244,3 +244,20 @@ def test_is_yes_last_line():
     assert is_yes("Всё верно, проверила.\n\nДа")
     assert not is_yes("Да, но уберите лагман")
     assert not is_yes("нет")
+
+
+async def test_bot_knows_portions_bonuses_and_pay_on_delivery(bot):
+    """What the AI is taught: portion size next to the dish, live bonus rules, payment only on delivery."""
+    from models.food_items import Food_items
+    async with bot() as db:
+        item = (await db.execute(select(Food_items).where(Food_items.is_active.is_not(False)).limit(1))).scalar_one()
+        item.weight = "5 шт"
+        await db.commit()
+        B._menu_cache.update(at=0.0, text="")
+        menu = await B.menu_text(db)
+        facts = await B.store_facts(db)
+    assert f"{item.name} (5 шт)" in menu
+    assert "Бонусы DAM ALEM" in facts and "%" in facts
+    prompt = B.system_prompt(facts, "Айгерим", menu=menu)
+    assert "только при получении" in prompt and "счетов мы не выставляем" in prompt
+    assert "ОПЛАЧЕН" not in prompt
