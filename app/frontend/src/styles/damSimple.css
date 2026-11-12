@@ -64,7 +64,8 @@
 .dam-page .dam-grid-card--hero .dam-grid-card__fav, .dam-page .dam-grid-card--hero .dam-grid-card__desc { display: none; }
 .dam-page .dam-grid-card--hero .dam-grid-card__body { padding: 8px 4px 0; background: transparent; }
 .dam-page .dam-grid-card--hero .dam-grid-card__title { min-height: 0; font-size: 14px; font-weight: 500; }
-.dam-page .dam-grid-card--hero .dam-grid-card__open > span { display: none; }
+.dam-page .dam-grid-card--hero .dam-grid-card__open > span { margin-top: 2px; }
+.dam-page .dam-grid-card--hero .dam-grid-card__tag--opt { display: none; }
 .dam-page .dam-grid-card--hero .dam-grid-card__footer { order: -1; padding: 0 0 2px; }
 .dam-page .dam-grid-card--hero .dam-grid-qty { min-width: 0; width: calc(100% - 0px); }
 .dam-page .dam-grid-card--hero .dam-grid-card__add-wrap:has(.dam-grid-qty) { left: 8px; }
