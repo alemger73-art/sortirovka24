@@ -63,6 +63,7 @@ class Chat:
     sent_ids: list[str] = field(default_factory=list)
     pending: Optional[dict[str, Any]] = None  # last quote waiting for «да»
     last_order_id: Optional[int] = None
+    last_order_line: str = ""  # one line about the order made in this chat: number, total, payment, address, time
     handed_off_at: float = 0.0
     history: list[list[dict[str, Any]]] = field(default_factory=list)  # full AI exchanges incl. tool calls
     draft_note: str = ""  # last calculated order, shown to the AI every time
@@ -439,6 +440,22 @@ def _quote_parts(q: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Any
     return items, snap.get("breakdown") or {}, snap
 
 
+PAYMENT_RU = {"kaspi_transfer": "Kaspi счёт", "kaspi_qr": "Kaspi QR", "halyk_qr": "Halyk QR", "cash": "наличные"}
+
+
+def order_line(q: dict[str, Any], kaspi_phone: str = "") -> str:
+    """Total, payment, where and when of a quote or order — one line for the staff."""
+    from services.operator_telegram import _local
+    parts = [f"итого {money(q.get('total_amount'))}"]
+    pay = PAYMENT_RU.get(str(q.get("payment_method") or ""), str(q.get("payment_method") or ""))
+    if pay:
+        parts.append(pay + (f" на {kaspi_phone}" if kaspi_phone and q.get("payment_method") == "kaspi_transfer" else ""))
+    parts.append(f"доставка: {q.get('delivery_address') or 'адрес не указан'}" if q.get("delivery_method") == "delivery" else "самовывоз")
+    if q.get("scheduled_for"):
+        parts.append(f"к {_local(q.get('scheduled_for'))}")
+    return " · ".join(parts)
+
+
 def order_summary(order_id: Any, q: dict[str, Any], kaspi_phone: str = "") -> str:
     """The customer's confirmation after «Да»: everything they ordered, where, when and how much."""
     from services.operator_telegram import _local
@@ -730,6 +747,18 @@ async def fetch_image(client: httpx.AsyncClient, media: dict[str, Any]) -> Optio
     return {"type": "image", "source": {"type": "base64", "media_type": mime, "data": base64.b64encode(r.content).decode()}}
 
 
+def order_block(chat: Chat) -> str:
+    """The money part of a hand-off: the order made in this chat and/or the calculation waiting for «Да»."""
+    lines = []
+    if chat.last_order_line:
+        lines.append(f"🧾 <b>{html.escape(chat.last_order_line)}</b>")
+    elif chat.last_order_id:
+        lines.append(f"🧾 <b>Заказ №{chat.last_order_id}</b>")
+    if chat.pending and chat.pending.get("quote"):
+        lines.append(f"⏳ Расчёт ждёт «Да» клиента: {html.escape(order_line(chat.pending['quote'], chat.pending.get('kaspi_phone', '')))}")
+    return ("\n" + "\n".join(lines) + "\n") if lines else ""
+
+
 async def notify_owner(client: httpx.AsyncClient, chat_id: str, chat: Chat, reason: str) -> None:
     from services.news_agent import approval_chat, bot_token, owner_send
     if not bot_token() or not approval_chat() or time.time() - chat.handed_off_at < 900:
@@ -738,7 +767,7 @@ async def notify_owner(client: httpx.AsyncClient, chat_id: str, chat: Chat, reas
     history = "\n".join(f"{'👤' if t['role'] == 'user' else '🤖'} {html.escape(str(t['content'])[:250])}"
                         for t in chat.turns[-6:] if isinstance(t.get("content"), str))
     text = (f"🍔 <b>WhatsApp DAM ALEM: нужен сотрудник</b>\n<b>{html.escape(chat.name or 'Клиент')}</b> · {chat.phone or 'номер скрыт'}\n"
-            f"Причина: {html.escape(reason[:200])}\n\n{history}\n\nОтветьте клиенту в WhatsApp DAM ALEM с телефона — бот в этом чате замолчит.")
+            f"Причина: {html.escape(reason[:200])}\n{order_block(chat)}\n{history}\n\nОтветьте клиенту в WhatsApp DAM ALEM с телефона — бот в этом чате замолчит.")
     try:
         await owner_send(client, "dam", "sendMessage", {"text": text[:4000], "parse_mode": "HTML"})
     except Exception as exc:
@@ -933,8 +962,9 @@ async def _handle(db, chat: Chat, chat_id: str, p: dict[str, Any], client: httpx
                 await send_text(client, chat_id, reply, chat)
                 return Outcome("confirm_failed", reply)
             chat.last_order_id = order.get("id")
-            reply = order_summary(order.get("id"), {**(pending.get("quote") or {}), "total_amount": order.get("total_amount")},
-                                  pending.get("kaspi_phone", ""))
+            placed = {**(pending.get("quote") or {}), "total_amount": order.get("total_amount")}
+            chat.last_order_line = f"Заказ №{order.get('id')}: {order_line(placed, pending.get('kaspi_phone', ''))}"
+            reply = order_summary(order.get("id"), placed, pending.get("kaspi_phone", ""))
             chat.turns += [{"role": "user", "content": text}, {"role": "assistant", "content": reply}]
             chat.history = (chat.history + [[{"role": "user", "content": text}, {"role": "assistant", "content": reply}]])[-HISTORY_EXCHANGES:]
             await send_text(client, chat_id, reply, chat)

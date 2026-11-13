@@ -321,3 +321,15 @@ async def test_kaspi_needs_a_number_and_the_confirmation_lists_everything(bot, m
     async with bot() as db:
         row = (await db.scalars(select(Food_orders).where(Food_orders.order_source == "whatsapp"))).one()
         assert "+77015556677" in (row.comment or "")
+    chat = B._chats[next(iter(B._chats))]
+    block = B.order_block(chat)
+    assert f"Заказ №{row.id}" in block and "итого 600 ₸" in block and "Kaspi счёт на +77015556677" in block
+
+
+def test_hand_off_shows_the_waiting_calculation_total():
+    chat = B.Chat(pending={"id": "c1", "at": 0, "kaspi_phone": "",
+                           "quote": {"total_amount": 12900, "payment_method": "cash", "delivery_method": "delivery",
+                                     "delivery_address": "Серова 74а"}})
+    block = B.order_block(chat)
+    assert "итого 12 900 ₸" in block and "наличные" in block and "Серова 74а" in block
+    assert B.order_block(B.Chat()) == ""
