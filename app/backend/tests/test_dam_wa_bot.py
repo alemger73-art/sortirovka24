@@ -288,7 +288,7 @@ def test_sales_manner_full_menu_occasion_and_birthday():
     prompt = B.system_prompt("Кухня открыта", "Айгерим", menu="#1 Пепперони (30 см) — 3 200 ₸")
     assert "присылай ВСЁ меню" in prompt and "повод" in prompt
     assert "BIRTHDAY" in prompt and "удостоверения" in prompt and "ИИН" in prompt
-    assert "2–4 строки" in prompt
+    assert "1–2 строки" in prompt and "не больше одного" in prompt
 
 
 def test_whatsapp_only_promo_is_refused_at_site_checkout():
@@ -333,3 +333,22 @@ def test_hand_off_shows_the_waiting_calculation_total():
     block = B.order_block(chat)
     assert "итого 12 900 ₸" in block and "наличные" in block and "Серова 74а" in block
     assert B.order_block(B.Chat()) == ""
+
+
+def test_catalog_order_and_status_reply_are_read():
+    order = {"_data": {"Message": {"orderMessage": {"itemCount": 3, "orderTitle": "Манты", "totalAmount1000": 9600000}}}}
+    text = B.special_text(order)
+    assert "каталога" in text and "3 поз." in text and "9600 ₸" in text
+    assert "ответ на сообщение" in B.special_text({"replyTo": {"body": "Пицца Пепперони"}})
+    assert B.special_text({"_data": {"Message": {"extendedTextMessage": {"text": "хочу манты"}}}}) == "хочу манты"
+    assert B.special_text({}) == ""
+
+
+async def test_unreadable_message_is_answered_and_staff_called(bot, monkeypatch):
+    called = []
+    async def fake_notify(client, chat_id, chat, reason):
+        called.append(reason)
+    monkeypatch.setattr(B, "notify_owner", fake_notify)
+    async with httpx.AsyncClient(transport=transport([], [])) as client:
+        out = await B.handle_event(msg(""), client)
+    assert out.action == "unreadable" and called

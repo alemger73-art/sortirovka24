@@ -315,12 +315,12 @@ def system_prompt(facts: str, name: str, memory: str = "", menu: str = "") -> st
 - Каждое блюдо — с новой строки, со своим эмодзи: 🍔 бургеры, 🍕 пицца, 🍟 закуски, 🥟 манты, 🍜 горячее, 🥤 напитки, ☕ кофе, 🍵 чай, 🥛 коктейли, 🎁 подарок.
   Пример: 🍕 *Пепперони* — 3 200 ₸
 - Жирный шрифт — одна звёздочка с двух сторон: *так*. Не используй **, #, таблицы и ссылки в скобках.
-- Пиши коротко: обычно 2–4 строки и один вопрос в конце. Длинные сообщения — только меню и итог заказа.
+- Пиши коротко: обычно 1–2 строки и один вопрос в конце. Длинные сообщения — только меню и итог заказа.
 - Когда просят меню («меню», «что есть», «прайс», «цены») — присылай ВСЁ меню из раздела ниже одним сообщением, компактно:
   категория жирным с эмодзи, под ней каждое блюдо строкой «Название (порция) — цена», без описаний и без id.
   В конце одна строка: ссылка на меню с фото {SITE}/food и вопрос о поводе: «Для какого случая выбираете — обед, семья, компания, праздник? 😊»
 - В остальных сообщениях показывай не больше 5–6 блюд.
-- 2–4 уместных эмодзи на сообщение (😊🔥👌🧡), без перебора.
+- Эмодзи — не больше одного на сообщение (кроме меню и итога, где у блюд свои значки). В коротких ответах можно без эмодзи. Не ставь 🧡 и 😊 в каждом сообщении.
 - Итог заказа после quote_order оформляй строго так:
 🧾 *Ваш заказ:*
 🍕 Пепперони × 1 — 3 200 ₸
@@ -337,7 +337,10 @@ def system_prompt(facts: str, name: str, memory: str = "", menu: str = "") -> st
 Сейчас: {facts}
 
 Как продавать (ты лучший продавец: дружелюбный, внимательный, без давления; цель — чтобы клиент заказал сейчас и остался доволен):
-- Узнай повод и на сколько человек: обед, ужин с семьёй, друзья, праздник, день рождения. Под повод подбирай готовое решение.
+- Один раз узнай повод или на сколько человек; если клиент не ответил — больше не спрашивай. Под повод подбирай готовое решение.
+- Список хитов с ценами показывай один раз за разговор. Не повторяй одни и те же блюда и вопросы из сообщения в сообщение.
+- Если человек пишет не про еду (личная переписка, «приятного ему», «я выходной», вопросы про другого человека) — коротко и вежливо ответь один раз без меню и вызови call_operator: это, скорее всего, знакомый сотрудника.
+- Если клиент раздражён, пишет «я же уже выбирала», «не понимаешь», «отключи бота», «ты бот?» с недовольством, или ты дважды не понял его — сразу извинись одной фразой и вызови call_operator. Не переспрашивай.
 - День рождения: имениннику скидка 10% (промокод BIRTHDAY, действует только здесь, в WhatsApp). Если заказ ко дню рождения — поздравь и предложи сет на компанию.
   Скидку применяй только после фото удостоверения личности, где видна дата рождения: день рождения должен быть сегодня или в пределах 3 дней до/после.
   Подходит — примени BIRTHDAY в quote_order и скажи, что курьеру нужно будет показать удостоверение. Не подходит или фото нет — вежливо объясни условие.
@@ -842,6 +845,52 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient) -> Outc
             await save_chat(db, chat_id, chat)
 
 
+def _raw_message(p: dict[str, Any]) -> dict[str, Any]:
+    """The WhatsApp message proto as WAHA passes it in _data (shape differs between engines)."""
+    data = p.get("_data") if isinstance(p.get("_data"), dict) else {}
+    m = data.get("Message") or data.get("message") or {}
+    return m if isinstance(m, dict) else {}
+
+
+def special_text(p: dict[str, Any]) -> str:
+    """Text of WhatsApp messages that come without a plain body: catalog orders and products, captions,
+    button and list answers, replies to our status. Empty when there is nothing to read."""
+    m = _raw_message(p)
+    pick = lambda d, *keys: next((str(d.get(k)).strip() for k in keys if isinstance(d, dict) and d.get(k)), "")
+    order = m.get("orderMessage") or {}
+    if order:
+        parts = [f"{order.get('itemCount') or '?'} поз."]
+        if order.get("orderTitle"):
+            parts.append(f"«{order['orderTitle']}»")
+        if order.get("totalAmount1000"):
+            try:
+                parts.append(f"на {int(order['totalAmount1000']) // 1000} ₸")
+            except (TypeError, ValueError):
+                pass
+        note = pick(order, "message")
+        return ("(клиент отправил заказ из каталога WhatsApp: " + ", ".join(parts) + (f"; комментарий: {note}" if note else "")
+                + ". Состав каталожного заказа тебе не виден — попроси назвать блюда текстом или вызови call_operator.)")
+    product = (m.get("productMessage") or {}).get("product") or {}
+    if product:
+        price = ""
+        try:
+            price = f", {int(product.get('priceAmount1000')) // 1000} ₸" if product.get("priceAmount1000") else ""
+        except (TypeError, ValueError):
+            pass
+        return f"(клиент прислал товар из каталога: {pick(product, 'title', 'name') or 'без названия'}{price})"
+    text = (pick(m, "conversation") or pick(m.get("extendedTextMessage") or {}, "text")
+            or pick(m.get("imageMessage") or {}, "caption") or pick(m.get("videoMessage") or {}, "caption")
+            or pick(m.get("documentMessage") or {}, "caption", "fileName")
+            or pick(m.get("buttonsResponseMessage") or {}, "selectedDisplayText")
+            or pick(m.get("templateButtonReplyMessage") or {}, "selectedDisplayText")
+            or pick(m.get("listResponseMessage") or {}, "title"))
+    reply = p.get("replyTo") if isinstance(p.get("replyTo"), dict) else {}
+    quoted = pick(reply, "body")
+    if quoted:
+        return (text + "\n" if text else "") + f"(это ответ на сообщение: «{quoted[:300]}»)"
+    return text
+
+
 async def _handle(db, chat: Chat, chat_id: str, p: dict[str, Any], client: httpx.AsyncClient) -> Outcome:
     now = time.time()
     body = str(p.get("body") or "").strip()
@@ -897,6 +946,10 @@ async def _handle(db, chat: Chat, chat_id: str, p: dict[str, Any], client: httpx
         chat.location = point
         text = (f"(клиент отправил геолокацию в WhatsApp: {point['lat']:.5f}, {point['lng']:.5f}"
                 + (f", {point['desc']}" if point["desc"] else "") + ". Используй её для доставки — пересчитай заказ quote_order.)")
+    if not text:
+        text = special_text(p)
+    elif isinstance(p.get("replyTo"), dict) and str(p["replyTo"].get("body") or "").strip():
+        text += f"\n(это ответ на сообщение: «{str(p['replyTo']['body']).strip()[:300]}»)"
     media = p.get("media") if isinstance(p.get("media"), dict) else {}
     image: Optional[dict[str, Any]] = None
     if p.get("hasMedia") and str(media.get("mimetype") or "").startswith("audio"):
@@ -919,8 +972,14 @@ async def _handle(db, chat: Chat, chat_id: str, p: dict[str, Any], client: httpx
     elif p.get("hasMedia") and not text and not point:
         text = "(прислал файл)"
     if not text:
-        logger.info("[DamWA] empty message, payload keys: %s", sorted(k for k in p.keys() if not k.startswith("_"))[:20])
-        return Outcome("ignored")
+        logger.info("[DamWA] unreadable message, kinds: %s", sorted(_raw_message(p).keys())[:10])
+        if p.get("fromMe"):
+            return Outcome("ignored")
+        reply = "Не получилось открыть это сообщение 🙏 Напишите, пожалуйста, текстом, что выбрали — или подождите, сотрудник сейчас посмотрит."
+        chat.turns += [{"role": "user", "content": "(клиент прислал сообщение, которое бот не может прочитать)"}, {"role": "assistant", "content": reply}]
+        await notify_owner(client, chat_id, chat, "клиент прислал сообщение, которое бот не смог прочитать (заказ из каталога, ответ на статус и т. п.) — посмотрите его в WhatsApp")
+        await send_text(client, chat_id, reply, chat)
+        return Outcome("unreadable", reply)
 
     from services import business_channel as C, crm
     if True:
