@@ -56,6 +56,7 @@ import { calcPromoDiscount, isPromoCurrent } from '@/lib/foodPromo';
 import DamAlemPageSkeleton from '@/components/damalem/DamAlemPageSkeleton';
 import LoadErrorState from '@/components/LoadErrorState';
 import DamAlemPromoBanners, { type FoodBanner } from '@/components/damalem/DamAlemPromoBanners';
+import DamAlemMoments from '@/components/damalem/DamAlemMoments';
 import DamAlemPromoStrip from '@/components/damalem/DamAlemPromoStrip';
 import DeliveryZonesPreview from '@/components/damalem/DeliveryZonesPreview';
 import { resolveLoyaltyGifts, resolvePromoCodes, type FoodBannerAction } from '@/lib/damAlemMarketing';
@@ -2006,6 +2007,8 @@ export default function Food() {
                   </div>
                 </section>
               ) : null}
+
+              <DamAlemMoments />
 
               <div className="mt-3">
                 <DamAlemPromoStrip
