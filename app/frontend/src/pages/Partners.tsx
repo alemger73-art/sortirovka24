@@ -23,6 +23,7 @@ export default function Partners() {
   const [search, setSearch] = useState('');
   const [shops, setShops] = useState<string[]>([]);
   const [choice, setChoice] = useState('');
+  const [formInView, setFormInView] = useState(false);
   const toLead = (pick = '') => { if (pick) setChoice(pick); document.getElementById('lead')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
   useEffect(() => { partnerShop.list().then((s) => setShops(s.map((x) => x.slug))).catch(() => {}); }, []);
   useEffect(() => {
@@ -31,6 +32,18 @@ export default function Partners() {
       .catch(e => { if(active) setError(e.message); }).finally(() => { if(active) setLoading(false); });
     return () => { active = false; };
   }, [slug, retry]);
+  useEffect(() => {
+    const anchor = window.location.hash.slice(1);
+    if (profile && anchor) requestAnimationFrame(() => document.getElementById(anchor)?.scrollIntoView({ block: 'start' }));
+  }, [profile]);
+  // the bottom «Записаться» bar hides while the form itself is on screen
+  useEffect(() => {
+    const form = profile?.lead.enabled ? document.getElementById('lead') : null;
+    if (!form || !('IntersectionObserver' in window)) return;
+    const watch = new IntersectionObserver(([entry]) => setFormInView(entry.isIntersecting), { threshold: 0.15 });
+    watch.observe(form);
+    return () => watch.disconnect();
+  }, [profile]);
   usePageSeo({ title: profile ? `${profile.name} — ${profile.category}, Караганда` : slug ? undefined : 'Партнёры района Сортировка', description: profile?.headline || (slug ? undefined : 'Местные компании: услуги, работы и контакты. Свяжитесь с партнёром напрямую.'), image: profile?.cover });
   const button = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl px-3 sm:px-5 py-3 text-sm sm:text-base font-semibold transition hover:opacity-90';
   const contact = profile && (whatsappLink(profile.whatsapp) || phoneLink(profile.phone));
@@ -66,7 +79,7 @@ export default function Partners() {
         {profile.offer && <div className="rounded-3xl bg-blue-50 p-6 dark:bg-blue-950"><p className="text-xs font-bold uppercase tracking-widest text-blue-700 dark:text-blue-400">Для жителей района</p><h2 className="mt-3 text-xl font-bold">{profile.offer}</h2>{profile.offer_terms && <p className="mt-3 text-sm leading-relaxed text-gray-600 dark:text-gray-300">{profile.offer_terms}</p>}{contact && <a href={contact} className={`${button} mt-4 w-full bg-blue-600 text-white`}>Уточнить условия</a>}</div>}
         </aside>
       </div>
-      {profile.lead.enabled && <div className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-30 border-t bg-white/95 p-3 backdrop-blur lg:hidden dark:bg-gray-950/95"><button type="button" onClick={() => toLead()} className="min-h-12 w-full rounded-2xl bg-blue-600 font-semibold text-white">{profile.lead.button}</button></div>}
+      {profile.lead.enabled && !formInView && <div className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-30 border-t bg-white/95 p-3 backdrop-blur lg:hidden dark:bg-gray-950/95"><button type="button" onClick={() => toLead()} className="min-h-12 w-full rounded-2xl bg-blue-600 font-semibold text-white">{profile.lead.button}</button></div>}
     </>}
   </div></Layout>;
 }

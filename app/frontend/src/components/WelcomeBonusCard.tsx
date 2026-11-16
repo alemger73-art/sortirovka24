@@ -23,6 +23,11 @@ function visitStart(): number {
   return Date.now();
 }
 
+function typing(): boolean {
+  const field = document.activeElement;
+  return !!field && ['INPUT', 'TEXTAREA', 'SELECT'].includes(field.tagName);
+}
+
 export function welcomeBonusDue(): boolean {
   if (getAccountToken()) return false;
   try { return Number(localStorage.getItem(HIDDEN_UNTIL) || 0) < Date.now(); } catch { return true; }
@@ -34,10 +39,13 @@ export default function WelcomeBonusCard({ onClose }: { onClose: () => void }) {
   const { pathname, search } = useLocation();
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
+    let timer = 0;
+    const show = () => {
       if (!welcomeBonusDue()) { onClose(); return; }
+      if (typing()) { timer = window.setTimeout(show, 5000); return; }  // never cover a form the visitor is filling in
       setShown(true); track('welcome_bonus_shown');
-    }, Math.max(1000, visitStart() + DELAY_MS - Date.now()));
+    };
+    timer = window.setTimeout(show, Math.max(1000, visitStart() + DELAY_MS - Date.now()));
     return () => window.clearTimeout(timer);
   }, [onClose]);
 

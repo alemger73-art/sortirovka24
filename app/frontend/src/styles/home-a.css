@@ -85,6 +85,11 @@
 .a-partner-actions a { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--a-line); font-size: 14px; font-weight: 600; }
 .a-partner-actions a:first-child { background: var(--a-accent-soft); border-color: transparent; color: var(--a-accent) !important; }
 .a-partner-actions a.a-partner-shop { background: var(--a-accent); color: #fff !important; }
+.a-partner-title { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+.a-partner-logo { width: 44px; height: 44px; flex: none; border-radius: 12px; overflow: hidden; border: 1px solid var(--a-line); }
+.a-partner-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--a-accent-soft); font-size: 14px; }
+.a-partner-price b { font-size: 18px; font-weight: 800; color: var(--a-accent); }
+.a-partner-price s { color: var(--a-muted); font-size: 13px; }
 .a-invite { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 14px 16px; }
 .a-invite strong { display: block; font-size: 15px; font-weight: 600; }
 .a-invite small { display: block; font-size: 13px; color: var(--a-muted); }
