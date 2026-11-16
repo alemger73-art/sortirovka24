@@ -22,6 +22,11 @@ services:
   app:
     image: s24-app:${APP_TAG:-current}
     restart: unless-stopped
+    # The hosting provider's resolver (89.35.125.5) stops answering at times; every
+    # external lookup then hangs ~8 s and Caddy's health check pulls the app (503).
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     env_file: .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-railway}
