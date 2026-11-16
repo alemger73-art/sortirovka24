@@ -85,12 +85,18 @@ export function trackPageView(path: string) {
 }
 
 const reported = new Set<string>();
+/**
+ * Errors that are not the site's: browser quirks, and scripts that in-app browsers
+ * (Instagram, Facebook) inject into every page — e.g. «Java object is gone» from
+ * Instagram's navigation_performance_logger_android when the user leaves the page.
+ */
+const FOREIGN_ERROR = /ResizeObserver loop|Script error\.?$|Non-Error promise rejection captured|AbortError|Java object is gone|navigation_performance_logger|Error invoking postMessage/i;
 /** Error watch: tell the server when something breaks for this person (each error once per page load). */
 export function reportError(error: unknown, extra = '') {
   try {
     const err = error instanceof Error ? error : new Error(typeof error === 'string' ? error : JSON.stringify(error)?.slice(0, 300) || 'Unknown error');
     const message = `${err.name || 'Error'}: ${err.message || ''}${extra ? ` (${extra})` : ''}`.slice(0, 2000);
-    if (/ResizeObserver loop|Script error\.?$|Non-Error promise rejection captured|AbortError/i.test(message) || reported.has(message)) return;
+    if (FOREIGN_ERROR.test(message) || reported.has(message)) return;
     reported.add(message);
     const body = JSON.stringify({ message, stack: (err.stack || '').slice(0, 8000), path: location.pathname + location.search,
       release: String(import.meta.env.VITE_APP_BUILD_ID || '').slice(0, 40), visitor: visitorId() });
