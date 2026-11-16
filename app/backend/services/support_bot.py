@@ -53,6 +53,9 @@ class Chat:
     name: str = ""
     sent: list[str] = field(default_factory=list)  # texts the bot itself sent (they come back as fromMe)
     last_user_at: float = 0.0
+    # Photos waiting for the next answer: (index of their turn in `turns`, (media_type, base64)).
+    # A burst «photo + "вот ошибка"» is answered once, after the last message, so the photo must survive until then.
+    images: list[tuple[int, tuple[str, str]]] = field(default_factory=list)
 
 
 _chats: dict[str, Chat] = {}
@@ -112,6 +115,7 @@ def _chat(chat_id: str) -> Chat:
         c = _chats[chat_id] = Chat()
     if now - c.updated > HISTORY_TTL:
         c.turns = []
+        c.images = []
     c.updated = now
     return c
 
@@ -191,7 +195,8 @@ def system_prompt(modules: dict[str, bool], directory: Optional[list[dict[str, s
 Отвечай на языке собеседника (русский или казахский), коротко, тепло и по-доброму.
 Пиши как живой, внимательный человек из команды района, а не как робот: обращайся по имени, если оно известно; отвечай по сути первой же фразой; без канцелярита («Ваш запрос принят», «Уважаемый клиент»); если вопрос неясен — задай один уточняющий вопрос; не повторяй приветствие в каждом сообщении; на «спасибо» — коротко и по-доброму.
 Если спросят, бот ты или человек, — честно скажи, что ты автоматический помощник «Сортировки 24», и предложи позвать живого человека.
-Тебе могут прислать голосовое (ты получаешь его расшифровку) или фото. По фото: опиши коротко, что видишь, и помоги по делу (скриншот ошибки сайта — объясни, что делать; фото товара — подскажи, как подать объявление; фото документа с личными данными — не пересказывай данные). Если по фото непонятно, что нужно, — спроси.
+Пиши простыми словами, как объяснял бы соседу: без терминов и умных слов («кэш», «браузер», «авторизация» — только если без них никак, и тогда поясни). Лучше одно точное действие, чем список общих советов.
+Тебе могут прислать голосовое (ты получаешь его расшифровку) или фото. Фото ты видишь сам — внимательно прочитай всё, что на нём написано, особенно текст ошибки, и отвечай по нему конкретно: что случилось и что нажать. Скриншот ошибки сайта — объясни, что делать; если ошибка не уходит после одной повторной попытки — передай оператору. Фото товара — подскажи, как подать объявление. Фото документа с личными данными — не пересказывай данные. Если фото не открылось («прислал файл, который не получилось открыть») — попроси прислать скриншот ещё раз. Если по фото непонятно, что нужно, — спроси.
 Оформление (это WhatsApp): короткие абзацы с пустой строкой между ними, не сплошным текстом; списки — каждый пункт с новой строки со своим эмодзи; жирный — одной звёздочкой: *так* (не **, не #); 1–3 уместных эмодзи.
 
 Сейчас на портале работают разделы:
@@ -238,22 +243,28 @@ def fallback_reply(text: str) -> tuple[str, bool]:
             f"Пока можно заглянуть на {SITE}"), True
 
 
+MAX_IMAGES_PER_ANSWER = 4
+
+
 async def ask_ai(client: httpx.AsyncClient, chat: Chat, modules: dict[str, bool],
                  directory: Optional[list[dict[str, str]]] = None,
-                 menu: Optional[list[dict[str, str]]] = None,
-                 image: Optional[tuple[str, str]] = None) -> Optional[str]:
-    """image = (media_type, base64) of a photo attached to the latest message; it is sent once, not kept in history."""
+                 menu: Optional[list[dict[str, str]]] = None) -> Optional[str]:
+    """Photos waiting in chat.images go with the turns they belong to; they are sent once, never kept in history."""
     key = (os.getenv("ANTHROPIC_API_KEY") or "").strip()
     if not key:
         return None
-    messages = [dict(t) for t in chat.turns[-HISTORY_TURNS:]]
-    if image and messages and messages[-1]["role"] == "user":
-        messages[-1]["content"] = [{"type": "image", "source": {"type": "base64", "media_type": image[0], "data": image[1]}},
-                                   {"type": "text", "text": messages[-1]["content"]}]
+    first = max(0, len(chat.turns) - HISTORY_TURNS)
+    messages = [dict(t) for t in chat.turns[first:]]
+    for index, (media_type, data) in chat.images[-MAX_IMAGES_PER_ANSWER:]:
+        i = index - first
+        if 0 <= i < len(messages) and messages[i]["role"] == "user":
+            content = messages[i]["content"]
+            parts = content if isinstance(content, list) else [{"type": "text", "text": content}]
+            messages[i]["content"] = [{"type": "image", "source": {"type": "base64", "media_type": media_type, "data": data}}] + parts
     resp = await client.post(
         "https://api.anthropic.com/v1/messages",
         headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-        json={"model": os.getenv("SUPPORT_BOT_MODEL", "claude-haiku-5-5"), "max_tokens": 900,
+        json={"model": os.getenv("SUPPORT_BOT_MODEL", "claude-sonnet-5-5"), "max_tokens": 900,
               "system": system_prompt(modules, directory, menu), "messages": messages},
         timeout=40,
     )
@@ -486,9 +497,11 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient, modules
         if image:
             text = f"[прислал фото] {text}".strip()
         elif not text:
-            text = "(прислал файл без подписи)"
+            text = "(прислал файл, который не получилось открыть)"
     if not text:
         return Outcome("ignored")
+    if image:
+        chat.images.append((len(chat.turns), image))
     chat.turns.append({"role": "user", "content": text[:2000]})
     arrived = chat.last_user_at = time.time()
     if REPLY_GRACE_SECONDS > 0:
@@ -504,7 +517,7 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient, modules
     handoff = False
     try:
         reply = await ask_ai(client, chat, modules if modules is not None else await _modules(),
-                             await _directory(), await _menu(), image)
+                             await _directory(), await _menu())
     except Exception as exc:
         logger.warning("[SupportBot] AI failed: %s", exc)
     if reply is None:
@@ -514,6 +527,7 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient, modules
         reply = reply.replace(HANDOFF_TAG, "").strip()
     reply = reply or "Передал ваш вопрос оператору — он скоро ответит здесь."
     chat.turns.append({"role": "assistant", "content": reply})
+    chat.images = []  # answered: the photos are not sent again
     chat.sent = (chat.sent + [reply[:MAX_REPLY_CHARS].strip()])[-20:]
     await send_text(client, chat_id, reply)
     if handoff and now - chat.handed_off_at > 1800:

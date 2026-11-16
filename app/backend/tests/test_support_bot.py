@@ -55,7 +55,7 @@ async def test_ai_answer_and_owner_takeover(monkeypatch):
         out = await support_bot.handle_event(msg("как заказать еду?"), client, MODULES)
         assert out.action == "replied"
         ai = next(b for u, b in log if "anthropic" in u)
-        assert ai["model"] == "claude-haiku-5-5" and "DÄM ALEM" in ai["system"] and "Работа" not in ai["system"]
+        assert ai["model"] == "claude-sonnet-5-5" and "DÄM ALEM" in ai["system"] and "Работа" not in ai["system"]
         sent = [b for u, b in log if u.endswith("/sendText")][-1]
         assert sent["chatId"] == "77011234567@c.us" and "/food" in sent["text"]
         # The bot's own reply echoes back as fromMe — must not mute the chat.
@@ -207,3 +207,43 @@ async def test_photo_goes_to_the_ai_once(monkeypatch):
     assert sent[0]["type"] == "image" and sent[0]["source"]["data"] == base64.b64encode(png).decode()
     assert sent[1]["text"].startswith("[прислал фото]")
     assert isinstance(support_bot._chats[next(iter(support_bot._chats))].turns[0]["content"], str)  # history keeps text only
+
+
+async def test_photo_then_text_burst_keeps_the_photo(monkeypatch):
+    """«скриншот» and then «вот ошибка» a few seconds later: the one answer still sees the photo."""
+    import asyncio
+    import base64
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+    monkeypatch.setattr(support_bot, "REPLY_GRACE_SECONDS", 0.2)
+    log = []
+    png = b"\x89PNG\r\n\x1a\nscreenshot"
+
+    def handler(request):
+        url = str(request.url)
+        if "/api/files/" in url:
+            return httpx.Response(200, content=png)
+        body = json.loads(request.content) if request.content and request.headers.get("content-type", "").startswith("application/json") else {}
+        log.append((url, body))
+        if "anthropic" in url:
+            return httpx.Response(200, json={"content": [{"type": "text", "text": "Вижу: «Не сохранено». Нажмите «Опубликовать» ещё раз."}]})
+        return httpx.Response(200, json={})
+
+    photo = msg("", mid="p", hasMedia=True, media={"url": "https://public.example/api/files/default/s.jpg", "mimetype": "image/jpeg"})
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        first = asyncio.create_task(support_bot.handle_event(photo, client, MODULES))
+        await asyncio.sleep(0.05)
+        second = await support_bot.handle_event(msg("Вот ошибка которую выдает", mid="t"), client, MODULES)
+        assert (await first).action == "ignored" and second.action == "replied"
+    calls = [b for u, b in log if "anthropic" in u]
+    assert len(calls) == 1
+    turns = calls[0]["messages"]
+    with_photo = [t for t in turns if isinstance(t["content"], list)]
+    assert len(with_photo) == 1 and with_photo[0]["content"][0]["source"]["data"] == base64.b64encode(png).decode()
+    assert turns[-1]["content"] == "Вот ошибка которую выдает"
+    chat = support_bot._chats[next(iter(support_bot._chats))]
+    assert chat.images == [] and all(isinstance(t["content"], str) for t in chat.turns)
+
+
+async def test_prompt_asks_for_plain_words_and_reads_the_photo():
+    system = support_bot.system_prompt(MODULES)
+    assert "простыми словами" in system and "Фото ты видишь сам" in system
