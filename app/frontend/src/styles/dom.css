@@ -259,7 +259,8 @@
 .dom-invite-house small { opacity: .7; }
 .dom-invite-house > button { background: none; border: 0; padding: 6px; font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; color: inherit; opacity: .8; }
 .dom-grow { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; padding: 12px 14px; border-radius: 16px; background: var(--dom-soft, #eef4ff); }
-.dom-grow p { margin: 0; font-weight: 600; }
+.dom-grow p { margin: 0; font-weight: 600; color: var(--ink); }
+.dark .dom-grow { background: var(--soft); }
 .dom-grow .dom-btn { flex: none; padding: 8px 14px; min-height: 0; }
 .dom-whom { margin-bottom: 12px; }
 .dom-whom button { min-height: 48px; font-weight: 600; font-size: 14px; }

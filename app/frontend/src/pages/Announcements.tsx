@@ -113,6 +113,7 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
   const [step, setStep] = useState<1 | 2 | 3>(() => (draft.kind ? 2 : 1));
   const [editingContacts, setEditingContacts] = useState(false);
   const [sending, setSending] = useState(false);
+  const [photosUploading, setPhotosUploading] = useState(false);
   const [done, setDone] = useState<{ id?: number } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [publicConsent, setPublicConsent] = useState(false);
@@ -180,6 +181,10 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
   }
 
   async function submit() {
+    if (photosUploading) {
+      toast(tx('Фото ещё загружаются — подождите пару секунд', 'Фото әлі жүктелуде — бірнеше секунд күтіңіз'));
+      return;
+    }
     if (sending || !checkStep2() || !checkStep3() || !checkPublicConsent()) return;
     setSending(true);
     if (editId) {
@@ -296,7 +301,7 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
             <div>
               <p className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-gray-800 dark:text-slate-200"><Camera className="h-4 w-4" />{tx('Фото', 'Фото')} <span className="font-normal text-gray-400">· {tx('до 5 шт.', '5 данаға дейін')}</span></p>
               <p className="mb-2 text-xs text-gray-500 dark:text-slate-400">{bi(info.photoHint)}</p>
-              <MultiImageUpload value={draft.photos} onChange={(v: string) => set({ photos: v })} folder="announcements" maxImages={5} />
+              <MultiImageUpload value={draft.photos} onChange={(v: string) => set({ photos: v })} folder="announcements" maxImages={5} onUploadingChange={setPhotosUploading} />
             </div>
 
             <div>
@@ -399,8 +404,9 @@ function AdWizard({ editId, initial }: { editId?: number; initial?: Draft } = {}
             {step === 2 ? (
               <button type="button" data-testid="ad-next" onClick={() => { if (checkStep2()) setStep(3); }} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#3864ed] font-semibold text-white hover:bg-[#2c55d6]">{tx('Дальше', 'Әрі қарай')} <ArrowRight className="h-5 w-5" /></button>
             ) : (
-              <button type="button" data-testid="ad-submit" disabled={sending} onClick={() => void submit()} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#3864ed] font-semibold text-white hover:bg-[#2c55d6] disabled:opacity-60">
-                {sending ? <><Loader2 className="h-5 w-5 animate-spin" />{tx('Отправляем…', 'Жіберілуде…')}</> : <><Check className="h-5 w-5" />{editing ? tx('Сохранить', 'Сақтау') : tx('Опубликовать', 'Жариялау')}</>}
+              <button type="button" data-testid="ad-submit" disabled={sending || photosUploading} onClick={() => void submit()} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#3864ed] font-semibold text-white hover:bg-[#2c55d6] disabled:opacity-60">
+                {photosUploading ? <><Loader2 className="h-5 w-5 animate-spin" />{tx('Загружаем фото…', 'Фото жүктелуде…')}</>
+                  : sending ? <><Loader2 className="h-5 w-5 animate-spin" />{tx('Отправляем…', 'Жіберілуде…')}</> : <><Check className="h-5 w-5" />{editing ? tx('Сохранить', 'Сақтау') : tx('Опубликовать', 'Жариялау')}</>}
               </button>
             )}
           </div>

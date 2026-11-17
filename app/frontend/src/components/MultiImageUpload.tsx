@@ -28,6 +28,8 @@ interface MultiImageUploadProps {
   className?: string;
   maxImages?: number;
   allowUrl?: boolean;
+  /** True while any photo is still uploading — a form must not be sent meanwhile, or the photo is lost. */
+  onUploadingChange?: (uploading: boolean) => void;
 }
 
 interface ImageItem {
@@ -45,9 +47,12 @@ export default function MultiImageUpload({
   className = '',
   maxImages = MAX_IMAGES,
   allowUrl = true,
+  onUploadingChange,
 }: MultiImageUploadProps) {
   const { t: publicT } = useLanguage();
   const [images, setImages] = useState<ImageItem[]>([]);
+  const busy = images.some(i => i.uploading);
+  useEffect(() => { onUploadingChange?.(busy); }, [busy, onUploadingChange]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -167,18 +172,16 @@ export default function MultiImageUpload({
           URL.revokeObjectURL(placeholders[idx].localPreview!);
         }
 
+        // Keep this photo right away, in its place: a slow third photo must not hold back the first two.
+        setImages(prev => {
+          const next = prev.flatMap(img => (img.key === placeholders[idx].key ? (result ? [result] : []) : [img]));
+          onChange(next.filter(i => !i.uploading && i.key).map(i => i.key).join(','));
+          return next;
+        });
+
         return { placeholder: placeholders[idx], result };
       })
     );
-
-    setImages(prev => {
-      const updated = prev.filter(img => !results.some(r => r.placeholder.key === img.key));
-      const successful = results.filter(r => r.result).map(r => r.result!);
-      const final = [...updated, ...successful];
-      const keys = final.filter(i => !i.uploading && i.key).map(i => i.key).join(',');
-      onChange(keys);
-      return final;
-    });
 
     const successCount = results.filter(r => r.result).length;
     const failCount = results.length - successCount;
