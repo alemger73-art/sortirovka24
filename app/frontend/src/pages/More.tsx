@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 import {
   User, Bus, BookOpen, Car, Newspaper, AlertTriangle, HelpCircle, ShoppingBag, Shield, Heart, Landmark, Store,
   ChevronRight, LogIn, Cross, Wine, Bug, Megaphone, Package, Bell, Wrench, Scissors, Building2,
-  MessageCircle, Hammer, History, Mail, Home as HomeIcon, Gift,
+  MessageCircle, Hammer, History, Mail, Home as HomeIcon, Gift, Gamepad2,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import InstallAppBanner from '@/components/InstallAppBanner';
@@ -25,6 +25,8 @@ import { prefetchPage, routeToPage } from '@/lib/prefetch';
 
 type Item = { path: string; icon: typeof User; tone: string; ru: string; kz: string; subRu?: string; subKz?: string; hidden?: boolean };
 const SUPPORT_WA = 'https://wa.me/77004280280';
+// The game is a standalone static page (public/games/aripter), so it opens with a plain link, not the router.
+const LETTERS_GAME_URL = '/games/aripter/index.html';
 
 export default function More() {
   const { lang } = useLanguage();
@@ -142,6 +144,17 @@ export default function More() {
         <InstallAppBanner manual />
 
         <FeaturedPartner variant="compact" place="more" />
+
+        {/* Kazakh letters game */}
+        <a href={LETTERS_GAME_URL}
+          className="flex min-h-[72px] items-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-600 to-sky-700 px-4 py-3 text-white shadow-sm active:opacity-90">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15"><Gamepad2 className="h-6 w-6" aria-hidden /></span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-bold">{tx('Игра «Әріптер жолы»', '«Әріптер жолы» ойыны')}</span>
+            <span className="block truncate text-xs text-white/80">{tx('Учим казахские слова на бегу', 'Қазақ сөздерін ойнап үйренеміз')}</span>
+          </span>
+          <ChevronRight className="h-5 w-5 shrink-0 text-white/70" aria-hidden />
+        </a>
 
         {/* Main services */}
         {visibleTiles.length > 0 && (

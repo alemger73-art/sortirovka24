@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Әріптер жолы</title>
+<style>
+  :root {
+    /* Рассвет над степью, цвета флага на буквах. Колонка: задание-слово сверху, рельсы под ним. */
+    --ink: #10202F;
+    --card: #1B3147;
+    --flag-blue: #00AFCA;
+    --gold: #FEC50C;
+    --paper: #FFF8E8;
+    --muted: #9DB0C4;
+    --danger: #E5484D;
+    --body: "Golos Text", "Segoe UI", Roboto, "Noto Sans", sans-serif;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { height: 100%; margin: 0; }
+
+  body {
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--body);
+    display: flex;
+    justify-content: center;
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .shell {
+    width: 100%;
+    max-width: 460px;
+    height: 100%;
+    min-height: 540px;
+    padding: 10px 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+  .back { font-size: 13px; font-weight: 600; color: var(--muted); text-decoration: none; white-space: nowrap; }
+
+  .back:focus-visible { outline: 2px solid var(--paper); outline-offset: 3px; }
+
+  .bar__name { margin: 0 auto 0 0; font-weight: 800; font-size: 17px; letter-spacing: 0.02em; color: var(--gold); }
+
+  .sound {
+    font: 600 12px var(--body);
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--card);
+    border-radius: 4px;
+    padding: 6px 10px;
+    cursor: pointer;
+  }
+
+  .sound[aria-pressed="true"] { color: var(--paper); border-color: var(--flag-blue); }
+
+  .task {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--card);
+    border-radius: 8px;
+  }
+
+  .task__row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+
+  .task__ru { margin: 0 auto 0 0; font-size: 20px; font-weight: 600; line-height: 1.1; }
+
+  .listen {
+    font: 600 12px var(--body);
+    color: var(--paper);
+    background: transparent;
+    border: 1px solid var(--flag-blue);
+    border-radius: 4px;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+
+  .listen:focus-visible { outline: 2px solid var(--paper); outline-offset: 3px; }
+
+  .task__phase {
+    margin: 0;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: var(--gold);
+    border-radius: 3px;
+    padding: 3px 6px;
+    white-space: nowrap;
+  }
+
+  .tiles { display: flex; flex-wrap: wrap; gap: 5px; min-height: 38px; }
+
+  .tile {
+    width: 32px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 21px;
+    border-radius: 5px;
+    border: 2px solid rgba(157, 176, 196, 0.35);
+    color: var(--muted);
+  }
+
+  .tile--got { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+
+  .tile--next { border-color: var(--flag-blue); color: var(--paper); box-shadow: 0 0 0 2px rgba(0, 175, 202, 0.3); }
+
+  .stats { display: flex; gap: 18px; margin: 0; font-size: 12px; color: var(--muted); }
+
+  .stats div { display: flex; gap: 6px; align-items: baseline; }
+
+  .stats dt { letter-spacing: 0.06em; text-transform: uppercase; font-size: 10px; }
+
+  .stats dd { margin: 0; font-weight: 800; font-size: 15px; color: var(--paper); font-variant-numeric: tabular-nums; }
+
+  .stats .hearts { letter-spacing: 2px; color: var(--danger); }
+
+  .ticker { margin: 0; min-height: 1.35em; font-size: 13px; line-height: 1.35; color: var(--muted); }
+
+  .ticker strong { color: var(--paper); }
+
+  .stage { position: relative; flex: 1; min-height: 0; }
+
+  #track {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    touch-action: none;
+  }
+
+  .pop {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 30%;
+    margin: 0;
+    text-align: center;
+    font-weight: 800;
+    font-size: 34px;
+    color: var(--gold);
+    text-shadow: 0 2px 0 rgba(16, 32, 47, 0.7);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .pop--bad { color: var(--danger); font-size: 24px; }
+
+  .pop--show { animation: pop-rise 0.8s ease-out; }
+
+  @keyframes pop-rise {
+    0% { opacity: 1; transform: translateY(14px); }
+    100% { opacity: 0; transform: translateY(-30px); }
+  }
+
+  .veil {
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    background: var(--danger);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .veil--show { animation: veil-fade 0.4s ease-out; }
+
+  @keyframes veil-fade {
+    0% { opacity: 0.4; }
+    100% { opacity: 0; }
+  }
+
+  .fail { position: absolute; inset: 0; margin: 0; padding: 24px; display: flex; align-items: center; text-align: center; font-size: 15px; line-height: 1.45; }
+
+  .fail[hidden] { display: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pop--show { animation-duration: 0.01s; }
+  }
+
+  .sheet {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+    background: rgba(16, 32, 47, 0.9);
+    border-radius: 8px;
+    overflow-y: auto;
+  }
+
+  .sheet[hidden] { display: none; }
+
+  .sheet > :first-child { margin-top: auto; }
+
+  .sheet > :last-child { margin-bottom: auto; }
+
+  .levels { display: grid; grid-template-columns: repeat(5, 44px); gap: 8px; }
+
+  .level {
+    height: 44px;
+    font: 800 16px var(--body);
+    color: var(--paper);
+    background: transparent;
+    border: 2px solid var(--flag-blue);
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  .level--current { background: var(--flag-blue); color: var(--ink); }
+
+  .level:disabled { border-color: rgba(157, 176, 196, 0.3); color: rgba(157, 176, 196, 0.45); cursor: default; }
+
+  .level:focus-visible { outline: 2px solid var(--paper); outline-offset: 3px; }
+
+  .sheet h1, .sheet h2 { margin: 0; font-weight: 800; font-size: clamp(30px, 9vw, 40px); line-height: 1.04; text-wrap: balance; }
+
+  .sheet h1 span { display: block; font-size: 15px; font-weight: 600; color: var(--flag-blue); letter-spacing: 0.04em; margin-top: 6px; }
+
+  .sheet p { margin: 0; font-size: 15px; line-height: 1.45; max-width: 34ch; }
+
+  .rules { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.35; color: var(--muted); }
+
+  .rules li { padding-left: 12px; border-left: 3px solid var(--gold); }
+
+  .rules b { color: var(--paper); font-weight: 600; }
+
+  .words { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; font-size: 14px; }
+
+  .words b { color: var(--gold); font-weight: 800; }
+
+  .go {
+    align-self: flex-start;
+    font: 800 17px var(--body);
+    color: var(--ink);
+    background: var(--gold);
+    border: 0;
+    border-radius: 6px;
+    padding: 14px 26px;
+    cursor: pointer;
+  }
+
+  .go:active { transform: translateY(1px); }
+
+  .go:focus-visible, .sound:focus-visible { outline: 2px solid var(--paper); outline-offset: 3px; }
+
+  .note { font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main class="shell">
+  <header class="bar">
+    <a class="back" href="/more">← На сайт</a>
+    <p class="bar__name">Әріптер жолы</p>
+    <button class="sound" id="soundToggle" type="button" aria-pressed="true">Звук включён</button>
+  </header>
+
+  <section class="task" aria-label="Задание">
+    <div class="task__row">
+      <p class="task__ru" id="taskRu">привет</p>
+      <button class="listen" id="listenButton" type="button">Слушать</button>
+      <p class="task__phase" id="taskPhase">Учим</p>
+    </div>
+    <div class="tiles" id="tiles" aria-live="polite"></div>
+    <dl class="stats">
+      <div><dt>Уровень</dt><dd id="statLevel">1</dd></div>
+      <div><dt>Очки</dt><dd id="statScore">0</dd></div>
+      <div><dt>Жизни</dt><dd class="hearts" id="statLives">♥♥♥</dd></div>
+    </dl>
+  </section>
+
+  <p class="ticker" id="ticker" aria-live="polite">Собери слово по буквам на бегу.</p>
+
+  <div class="stage" id="stage">
+    <canvas id="track" aria-label="Игровое поле: три железнодорожных пути"></canvas>
+    <div class="veil" id="veil"></div>
+    <p class="pop" id="pop" aria-hidden="true"></p>
+    <p class="fail" id="fail" hidden>Телефон или браузер не смог показать 3D-графику. Открой страницу в свежем Chrome или Safari.</p>
+
+    <section class="sheet" id="startSheet">
+      <h1>Әріптер жолы <span>Дорога букв</span></h1>
+      <p>Беги по путям и собирай казахские слова по буквам.</p>
+      <ul class="rules">
+        <li><b>Смахни влево или вправо</b>, чтобы сменить путь. <b>Вверх</b> прыжок, <b>вниз</b> подкат.</li>
+        <li><b>Лови следующую букву слова.</b> Чужая буква и препятствия отнимают жизнь, собранное слово её возвращает.</li>
+        <li><b>В конце уровня экзамен:</b> те же слова по памяти.</li>
+      </ul>
+      <div class="levels" id="levels" role="group" aria-label="Выбор уровня"></div>
+      <button class="go" id="startButton" type="button">Побежали</button>
+      <p class="note" id="startNote"></p>
+    </section>
+
+    <section class="sheet" id="doneSheet" hidden>
+      <h2 id="doneTitle">Уровень пройден</h2>
+      <p id="doneText"></p>
+      <ul class="words" id="doneWords"></ul>
+      <button class="go" id="nextButton" type="button">Следующий уровень</button>
+    </section>
+
+    <section class="sheet" id="overSheet" hidden>
+      <h2>Жизни закончились</h2>
+      <p id="overText"></p>
+      <ul class="words" id="overWords"></ul>
+      <button class="go" id="againButton" type="button">Ещё раз</button>
+    </section>
+  </div>
+</main>
+
+<script src="three.min.js"></script>
+<script src="GLTFLoader.js"></script>
+<script src="hero-model.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  /* LOGIC-START */
+  const LANES = 3;
+  const TRACK = { spawnDistance: 64, rowGap: 15, hitLine: 0.8, despawn: -24 };
+  const MOVES = { jumpSeconds: 0.62, slideSeconds: 0.6, jumpHeight: 1.9 };
+  const RULES = {
+    lives: 3,
+    letterPoints: 10,
+    wordPoints: 50,
+    examFactor: 2,
+    baseSpeed: 17,
+    speedPerLevel: 1.2,
+    maxSpeed: 28,
+    examBoost: 1.1,
+    graceSeconds: 1.1,
+  };
+
+  const LEVELS = [
+    { topic: 'Приветствия', words: [['да', 'иә'], ['нет', 'жоқ'], ['друг', 'дос'], ['привет', 'сәлем'], ['хорошо', 'жақсы'], ['спасибо', 'рақмет']] },
+    { topic: 'Еда', words: [['вода', 'су'], ['мясо', 'ет'], ['хлеб', 'нан'], ['чай', 'шай'], ['молоко', 'сүт'], ['яблоко', 'алма']] },
+    { topic: 'Семья', words: [['мама', 'ана'], ['дедушка', 'ата'], ['папа', 'әке'], ['старший брат', 'аға'], ['бабушка', 'әже'], ['ребёнок', 'бала']] },
+    { topic: 'Город', words: [['дом', 'үй'], ['дорога', 'жол'], ['город', 'қала'], ['улица', 'көше'], ['поезд', 'пойыз'], ['школа', 'мектеп']] },
+    { topic: 'Числа', words: [['три', 'үш'], ['один', 'бір'], ['два', 'екі'], ['пять', 'бес'], ['четыре', 'төрт'], ['шесть', 'алты']] },
+    { topic: 'Природа', words: [['луна', 'ай'], ['солнце', 'күн'], ['снег', 'қар'], ['ветер', 'жел'], ['гора', 'тау'], ['степь', 'дала']] },
+    { topic: 'Цвета', words: [['белый', 'ақ'], ['синий', 'көк'], ['чёрный', 'қара'], ['жёлтый', 'сары'], ['красный', 'қызыл'], ['зелёный', 'жасыл']] },
+    { topic: 'Животные', words: [['собака', 'ит'], ['лошадь', 'ат'], ['овца', 'қой'], ['птица', 'құс'], ['верблюд', 'түйе'], ['кошка', 'мысық']] },
+    { topic: 'Тело', words: [['голова', 'бас'], ['рука', 'қол'], ['глаз', 'көз'], ['нога', 'аяқ'], ['рот', 'ауыз'], ['ухо', 'құлақ']] },
+    { topic: 'Время', words: [['утро', 'таң'], ['ночь', 'түн'], ['вечер', 'кеш'], ['вчера', 'кеше'], ['сегодня', 'бүгін'], ['завтра', 'ертең']] },
+  ].map((level, levelIndex) => ({
+    topic: level.topic,
+    words: level.words.map(([ru, kk], wordIndex) => ({ ru, kk, id: `w${levelIndex}-${wordIndex}` })),
+  }));
+
+  // Похожие буквы, которые легко перепутать: ими чаще всего и проверяем.
+  const TWINS = { а: 'ә', ә: 'а', о: 'ө', ө: 'о', у: 'ұ', ұ: 'ү', ү: 'у', к: 'қ', қ: 'к', г: 'ғ', ғ: 'г', н: 'ң', ң: 'н', і: 'и', и: 'і', ы: 'і', х: 'һ', һ: 'х' };
+  const ALPHABET = Array.from('аәбвгғдежзийкқлмнңоөпрстуұүфхһшыі');
+
+  const obstacleKindsFor = (levelIndex) =>
+    (levelIndex >= 2 ? ['wagon', 'barrier', 'beam'] : levelIndex >= 1 ? ['wagon', 'barrier'] : ['wagon']);
+  const blockedLanesFor = (levelIndex) => (levelIndex >= 3 ? 3 : levelIndex >= 1 ? 2 : 1);
+
+  function createRun(levelIndex, random = Math.random) {
+    const level = LEVELS[levelIndex];
+    const state = {
+      levelIndex,
+      phase: 'learn',
+      queue: level.words.slice(),
+      word: null,
+      letterIndex: 0,
+      planIndex: 0,
+      hint: false,
+      lives: RULES.lives,
+      score: 0,
+      lane: 1,
+      air: 0,
+      slide: 0,
+      grace: 0,
+      distance: 0,
+      nextRowAt: 0,
+      lastWasBlock: true,
+      rows: [],
+      learned: [],
+      taught: [],
+      finished: false,
+      over: false,
+    };
+    let events = [];
+
+    const pick = (list) => list[Math.floor(random() * list.length)];
+
+    function shuffled(list) {
+      const copy = list.slice();
+      for (let index = copy.length - 1; index > 0; index -= 1) {
+        const other = Math.floor(random() * (index + 1));
+        [copy[index], copy[other]] = [copy[other], copy[index]];
+      }
+      return copy;
+    }
+
+    const speed = () =>
+      Math.min(RULES.maxSpeed, RULES.baseSpeed + RULES.speedPerLevel * levelIndex) * (state.phase === 'exam' ? RULES.examBoost : 1);
+    const factor = () => (state.phase === 'exam' ? RULES.examFactor : 1);
+    const charOf = (item) => (item.role === 'next' ? state.word.kk[item.index] : item.char);
+    const expected = () => state.word.kk[state.letterIndex];
+    const jumpHeight = () =>
+      (state.air > 0 ? Math.sin(Math.PI * (1 - state.air / MOVES.jumpSeconds)) * MOVES.jumpHeight : 0);
+
+    function decoyFor(char) {
+      const twin = TWINS[char];
+      if (twin && random() < 0.6) return twin;
+      let other = pick(ALPHABET);
+      while (other === char) other = pick(ALPHABET);
+      return other;
+    }
+
+    function nextWord() {
+      if (!state.queue.length) {
+        if (state.phase === 'exam') {
+          state.finished = true;
+          events.push({ type: 'levelDone' });
+          return;
+        }
+        state.phase = 'exam';
+        state.queue = shuffled(level.words);
+        events.push({ type: 'exam' });
+      }
+      state.word = state.queue.shift();
+      state.letterIndex = 0;
+      state.planIndex = 0;
+      state.hint = false;
+      events.push({ type: 'newWord', word: state.word });
+    }
+
+    function letterItems(lanes) {
+      const char = state.word.kk[state.planIndex];
+      const items = [
+        { lane: lanes[0], kind: 'letter', role: 'next', index: state.planIndex, taken: false },
+        { lane: lanes[1], kind: 'letter', role: 'decoy', char: decoyFor(char), taken: false },
+      ];
+      if (random() < Math.min(0.9, 0.3 + 0.08 * levelIndex)) {
+        items.push({ lane: lanes[2], kind: 'letter', role: 'decoy', char: decoyFor(char), taken: false });
+      }
+      state.planIndex += 1;
+      return items;
+    }
+
+    function obstacleItems(lanes) {
+      const kinds = obstacleKindsFor(levelIndex);
+      const count = 1 + Math.floor(random() * blockedLanesFor(levelIndex));
+      const items = lanes.slice(0, count).map((lane) => ({ lane, kind: pick(kinds) }));
+      if (count === LANES && items.every((item) => item.kind === 'wagon')) items[0].kind = 'barrier';
+      items.forEach((item) => {
+        if (item.kind === 'wagon' || state.taught.includes(item.kind)) return;
+        state.taught.push(item.kind);
+        events.push({ type: 'teach', kind: item.kind });
+      });
+      return items;
+    }
+
+    function spawnRow() {
+      const lanes = shuffled([0, 1, 2]);
+      const planDone = state.planIndex >= state.word.kk.length;
+      if (planDone && state.lastWasBlock) {
+        state.lastWasBlock = false;
+        return;
+      }
+      const blockChance = Math.min(0.5, 0.25 + 0.04 * levelIndex);
+      const wantLetters = !planDone && (state.lastWasBlock || random() >= blockChance);
+      const items = wantLetters ? letterItems(lanes) : obstacleItems(lanes);
+      state.lastWasBlock = !wantLetters;
+      state.rows.push({ d: TRACK.spawnDistance, items, resolved: false });
+    }
+
+    /** После пропуска буквы заново раздаём буквы ещё не доехавшим рядам. */
+    function resync() {
+      let index = state.letterIndex;
+      const length = state.word.kk.length;
+      state.rows.filter((row) => !row.resolved).forEach((row) => {
+        const next = row.items.find((item) => item.role === 'next');
+        if (!next) return;
+        if (index >= length) {
+          row.items = row.items.filter((item) => item !== next);
+          return;
+        }
+        next.index = index;
+        const char = state.word.kk[index];
+        row.items.forEach((item) => {
+          if (item.role === 'decoy' && item.char === char) item.char = decoyFor(char);
+        });
+        index += 1;
+      });
+      state.planIndex = index;
+    }
+
+    function loseLife() {
+      state.lives -= 1;
+      state.grace = RULES.graceSeconds;
+      if (state.lives <= 0) {
+        state.over = true;
+        events.push({ type: 'over' });
+      }
+    }
+
+    function collect(item) {
+      const char = charOf(item);
+      state.letterIndex += 1;
+      state.hint = false;
+      state.score += RULES.letterPoints * factor();
+      events.push({ type: 'letter', char, step: state.letterIndex });
+      if (state.letterIndex < state.word.kk.length) return;
+      state.score += RULES.wordPoints * factor();
+      if (!state.learned.includes(state.word)) state.learned.push(state.word);
+      state.lives = Math.min(RULES.lives, state.lives + 1);
+      events.push({ type: 'word', word: state.word, exam: state.phase === 'exam' });
+      nextWord();
+    }
+
+    const CLEARED = {
+      wagon: () => false,
+      barrier: () => state.air > 0,
+      beam: () => state.slide > 0,
+    };
+
+    function resolveRow(row) {
+      row.resolved = true;
+      const item = row.items.find((candidate) => candidate.lane === state.lane);
+      const next = row.items.find((candidate) => candidate.role === 'next');
+      let collected = false;
+      if (item && item.kind !== 'letter') {
+        if (!CLEARED[item.kind]() && state.grace <= 0) {
+          events.push({ type: 'crash', kind: item.kind });
+          loseLife();
+        }
+      } else if (item) {
+        item.taken = true;
+        if (item === next) {
+          collected = true;
+          collect(item);
+        } else {
+          state.hint = true;
+          events.push({ type: 'wrong', char: item.char, expected: expected() });
+          loseLife();
+        }
+      }
+      if (next && !collected && !state.over) resync();
+    }
+
+    function update(dt) {
+      if (state.over || state.finished) return;
+      state.grace = Math.max(0, state.grace - dt);
+      state.air = Math.max(0, state.air - dt);
+      state.slide = Math.max(0, state.slide - dt);
+      const step = speed() * dt;
+      state.distance += step;
+      state.rows.forEach((row) => { row.d -= step; });
+      while (state.distance >= state.nextRowAt) {
+        spawnRow();
+        state.nextRowAt += TRACK.rowGap;
+      }
+      for (const row of state.rows) {
+        if (state.over || state.finished) break;
+        if (!row.resolved && row.d <= TRACK.hitLine) resolveRow(row);
+      }
+      state.rows = state.rows.filter((row) => row.d > TRACK.despawn);
+    }
+
+    function move(direction) {
+      const lane = Math.max(0, Math.min(LANES - 1, state.lane + direction));
+      if (lane === state.lane) return false;
+      state.lane = lane;
+      return true;
+    }
+
+    function jump() {
+      if (state.air > 0) return false;
+      state.air = MOVES.jumpSeconds;
+      state.slide = 0;
+      return true;
+    }
+
+    function slide() {
+      if (state.slide > 0) return false;
+      state.slide = MOVES.slideSeconds;
+      state.air = 0;
+      return true;
+    }
+
+    function drainEvents() {
+      const drained = events;
+      events = [];
+      return drained;
+    }
+
+    nextWord();
+    return { state, update, move, jump, slide, drainEvents, charOf, expected, jumpHeight };
+  }
+  /* LOGIC-END */
+
+  if (typeof document === 'undefined') {
+    globalThis.AripterLogic = { createRun, LEVELS, LANES, TRACK, RULES };
+    return;
+  }
+
+  // ---------- Звук ----------
+  function createSound() {
+    let context = null;
+    let enabled = true;
+
+    function audio() {
+      if (!enabled) return null;
+      if (!context) {
+        const Ctor = window.AudioContext || window.webkitAudioContext;
+        if (!Ctor) return null;
+        try { context = new Ctor(); } catch (error) { return null; }
+      }
+      if (context.state === 'suspended') context.resume().catch(() => {});
+      return context;
+    }
+
+    function tone(frequency, duration, options = {}) {
+      const ctx = audio();
+      if (!ctx) return;
+      const { type = 'sine', volume = 0.07, delay = 0, slideTo = frequency } = options;
+      const start = ctx.currentTime + delay;
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, start);
+      oscillator.frequency.linearRampToValueAtTime(slideTo, start + duration);
+      gain.gain.setValueAtTime(volume, start);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+      oscillator.connect(gain).connect(ctx.destination);
+      oscillator.start(start);
+      oscillator.stop(start + duration + 0.02);
+    }
+
+    const chord = (notes, gap, length) => notes.forEach((note, index) => tone(note, length, { delay: index * gap }));
+
+    return {
+      unlock: audio,
+      setEnabled(value) { enabled = value; },
+      lane() { tone(700, 0.04, { type: 'square', volume: 0.025 }); },
+      jump() { tone(320, 0.18, { type: 'triangle', volume: 0.05, slideTo: 640 }); },
+      slide() { tone(420, 0.2, { type: 'triangle', volume: 0.05, slideTo: 190 }); },
+      letter(step) { tone(440 + step * 55, 0.12); },
+      wrong() { tone(180, 0.3, { type: 'sawtooth', volume: 0.09, slideTo: 95 }); },
+      crash() { tone(110, 0.35, { type: 'square', volume: 0.08, slideTo: 60 }); },
+      word() { chord([523, 659, 784], 0.08, 0.16); },
+      levelDone() { chord([523, 659, 784, 1047], 0.11, 0.22); },
+      over() { chord([392, 330, 262], 0.16, 0.24); },
+    };
+  }
+
+  // ---------- Голос: произношение слов ----------
+  function createVoice() {
+    const clips = new Map();
+    let enabled = true;
+    let timer = 0;
+    const sourceOf = (id) => (window.VOICE_DATA && window.VOICE_DATA[id]) || `audio/${id}.mp3`;
+
+    function play(id) {
+      if (!enabled) return;
+      let clip = clips.get(id);
+      if (!clip) {
+        clip = new Audio(sourceOf(id));
+        clips.set(id, clip);
+      }
+      clip.currentTime = 0;
+      const started = clip.play();
+      if (started) started.catch(() => { /* звук недоступен: игра идёт дальше */ });
+    }
+
+    return {
+      setEnabled(value) { enabled = value; },
+      say(id, delayMs = 0) {
+        clearTimeout(timer);
+        timer = setTimeout(() => play(id), delayMs);
+      },
+    };
+  }
+
+  // ---------- Экран ----------
+  const element = (id) => document.getElementById(id);
+
+  if (typeof THREE === 'undefined') {
+    element('fail').hidden = false;
+    return;
+  }
+
+  const stage = element('stage');
+  const canvas = element('track');
+  const calmMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const FONT = getComputedStyle(document.documentElement).getPropertyValue('--body').trim();
+  const PROGRESS_KEY = 'aripter-progress';
+  const WORLD = { laneGap: 2.5, gauge: 0.6, sleeperGap: 1.5, poleGap: 20, treePeriod: 60, wagonLength: 10.4, wagonGap: 0.9, sideTrainX: -8.4, sideTrainSpeed: 9 };
+  const laneX = (lane) => (lane - 1) * WORLD.laneGap;
+  const linear = (hex) => new THREE.Color(hex).convertSRGBToLinear();
+
+  /** Время суток и погода: каждая тема красит небо, туман, землю и свет. */
+  const THEMES = [
+    { sky: ['#17324d', '#c9785a', '#f2b06a'], fog: 0xf0b27a, steppe: 0xb8934a, ballast: 0x8a8178, hemi: [0xfff0dd, 0x6b5a48, 0.95], sun: [0xffd9a0, 1.0], hills: 0x4a4560 },
+    { sky: ['#3f8fd6', '#8fc6ee', '#d6ecf7'], fog: 0xd3e8f3, steppe: 0x93a45a, ballast: 0x8d8a84, hemi: [0xffffff, 0x7d8466, 1.0], sun: [0xfff6e0, 1.05], hills: 0x6f7f9a },
+    { sky: ['#2a1f4d', '#d0506a', '#ffb35c'], fog: 0xf0a070, steppe: 0xa9743f, ballast: 0x86796f, hemi: [0xffd8c0, 0x5a4638, 0.85], sun: [0xff9a5a, 1.05], hills: 0x3d2f52 },
+    { sky: ['#7f9cba', '#c5d5e4', '#eef2f6'], fog: 0xe6ecf2, steppe: 0xeef2f6, ballast: 0xb4b8bd, hemi: [0xffffff, 0xaab4c0, 1.05], sun: [0xffffff, 0.7], hills: 0x8a97ab, snow: true },
+    { sky: ['#050a18', '#0f1c3a', '#22355c'], fog: 0x16233f, steppe: 0x343d55, ballast: 0x4b5160, hemi: [0x8fa8e0, 0x1a2033, 0.7], sun: [0xaec4ff, 0.55], hills: 0x0c1226, stars: true },
+  ];
+
+  // ---------- Сборка моделей из простых фигур ----------
+  const paint = (hex) => new THREE.MeshLambertMaterial({ color: linear(hex) });
+  const PAINT = {
+    steel: paint(0x23262c),
+    rail: paint(0xb9bec6),
+    rust: paint(0x8a4b32),
+    rustDark: paint(0x5e3222),
+    tank: paint(0x46525e),
+    yellow: paint(0xf2c230),
+    green: paint(0x3f6b4f),
+    coal: paint(0x17181b),
+    red: paint(0xd93a2b),
+    white: paint(0xf2f2ee),
+    hoodie: paint(0x00afca),
+    pack: paint(0xfec50c),
+    cap: paint(0xd93a2b),
+    skin: paint(0xe8b48a),
+    trousers: paint(0x24364f),
+    shoe: paint(0xf2f2ee),
+    pole: paint(0x4a3f45),
+    tie: paint(0x4a3b30),
+    trunk: paint(0x5a4636),
+    leaf: paint(0x4f6b3c),
+  };
+
+  function part(parent, geometry, material, x, y, z) {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(x, y, z);
+    parent.add(mesh);
+    return mesh;
+  }
+
+  const box = (width, height, depth) => new THREE.BoxGeometry(width, height, depth);
+  const tube = (radius, length, sides = 14) => new THREE.CylinderGeometry(radius, radius, length, sides);
+
+  /** Склеивает модель из многих деталей в одну сетку: телефон рисует её за один проход. */
+  function fuse(group) {
+    group.updateMatrixWorld(true);
+    const positions = [];
+    const normals = [];
+    const colors = [];
+    group.traverse((node) => {
+      if (!node.isMesh) return;
+      const geometry = node.geometry.index ? node.geometry.toNonIndexed() : node.geometry.clone();
+      geometry.applyMatrix4(node.matrixWorld);
+      const { r, g, b } = node.material.color;
+      positions.push(...geometry.attributes.position.array);
+      normals.push(...geometry.attributes.normal.array);
+      for (let index = 0; index < geometry.attributes.position.count; index += 1) colors.push(r, g, b);
+    });
+    const fused = new THREE.BufferGeometry();
+    fused.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    fused.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    fused.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    const mesh = new THREE.Mesh(fused, new THREE.MeshLambertMaterial({ vertexColors: true }));
+    mesh.castShadow = true;
+    return mesh;
+  }
+
+  function addRunningGear(group, length) {
+    part(group, box(1.9, 0.26, length - 0.5), PAINT.steel, 0, 1.02, -length / 2);
+    [-1.9, -(length - 1.9)].forEach((z) => {
+      part(group, box(1.6, 0.3, 2.0), PAINT.steel, 0, 0.62, z);
+      [-0.65, 0.65].forEach((shift) => {
+        [-WORLD.gauge, WORLD.gauge].forEach((x) => {
+          part(group, tube(0.42, 0.14), PAINT.steel, x, 0.44, z + shift).rotation.z = Math.PI / 2;
+        });
+      });
+    });
+    [-0.75, 0.75].forEach((x) => {
+      part(group, tube(0.13, 0.4, 10), PAINT.steel, x, 1.12, -0.1).rotation.x = Math.PI / 2;
+      part(group, tube(0.2, 0.06, 10), PAINT.steel, x, 1.12, 0.12).rotation.x = Math.PI / 2;
+      part(group, new THREE.SphereGeometry(0.11, 10, 8), PAINT.red, x + Math.sign(x) * 0.2, 1.55, -0.26);
+    });
+    part(group, box(0.3, 0.3, 0.55), PAINT.steel, 0, 1.02, -0.05);
+  }
+
+  const WAGON_BUILDERS = [
+    function boxcar(length) {
+      const group = new THREE.Group();
+      const bodyLength = length - 0.6;
+      part(group, box(2.2, 2.4, bodyLength), PAINT.rust, 0, 2.35, -length / 2);
+      const roof = part(group, tube(1.14, bodyLength + 0.1, 16), PAINT.rustDark, 0, 3.5, -length / 2);
+      roof.rotation.x = Math.PI / 2;
+      roof.scale.z = 0.32;
+      [-1.12, 1.12].forEach((x) => {
+        for (let rib = 0; rib <= 6; rib += 1) {
+          part(group, box(0.07, 2.3, 0.12), PAINT.rustDark, x, 2.35, -0.5 - (rib * (bodyLength - 0.4)) / 6);
+        }
+        part(group, box(0.06, 2.0, 1.9), PAINT.rustDark, x * 1.01, 2.25, -length / 2);
+      });
+      part(group, box(1.9, 0.22, 0.05), PAINT.yellow, 0, 1.42, -0.28);
+      addRunningGear(group, length);
+      return fuse(group);
+    },
+    function tankCar(length) {
+      const group = new THREE.Group();
+      const bodyLength = length - 2.2;
+      part(group, tube(1.1, bodyLength, 20), PAINT.tank, 0, 2.3, -length / 2).rotation.x = Math.PI / 2;
+      [-1.1, -(length - 1.1)].forEach((z) => {
+        part(group, new THREE.SphereGeometry(1.1, 18, 12), PAINT.tank, 0, 2.3, z).scale.z = 0.45;
+      });
+      part(group, tube(1.13, 0.55, 20), PAINT.yellow, 0, 2.3, -length / 2).rotation.x = Math.PI / 2;
+      part(group, tube(0.42, 0.5, 14), PAINT.tank, 0, 3.55, -length / 2);
+      part(group, box(0.5, 0.06, bodyLength * 0.8), PAINT.steel, 0, 3.43, -length / 2);
+      [-2.6, -(length - 2.6)].forEach((z) => part(group, box(1.9, 0.5, 0.3), PAINT.steel, 0, 1.3, z));
+      addRunningGear(group, length);
+      return fuse(group);
+    },
+    function coalGondola(length) {
+      const group = new THREE.Group();
+      const bodyLength = length - 0.6;
+      part(group, box(2.2, 0.2, bodyLength), PAINT.green, 0, 1.25, -length / 2);
+      [-1.04, 1.04].forEach((x) => {
+        part(group, box(0.12, 1.8, bodyLength), PAINT.green, x, 2.2, -length / 2);
+        for (let rib = 0; rib <= 5; rib += 1) {
+          part(group, box(0.08, 1.8, 0.14), PAINT.steel, x * 1.06, 2.2, -0.5 - (rib * (bodyLength - 0.4)) / 5);
+        }
+      });
+      [-0.36, -(length - 0.36)].forEach((z) => part(group, box(2.2, 1.8, 0.12), PAINT.green, 0, 2.2, z));
+      part(group, box(1.96, 0.5, bodyLength - 0.2), PAINT.coal, 0, 2.95, -length / 2);
+      for (let heap = 0; heap < 4; heap += 1) {
+        const mound = part(group, new THREE.SphereGeometry(0.95, 10, 8), PAINT.coal, 0, 3.15, -1.6 - heap * 2.4);
+        mound.scale.set(1, 0.5, 1.25);
+      }
+      addRunningGear(group, length);
+      return fuse(group);
+    },
+  ];
+
+  /** Полосатая планка из чередующихся цветных брусков. */
+  function stripedBar(group, materials, width, height, y, pieces, offset = 0) {
+    const piece = width / pieces;
+    for (let index = 0; index < pieces; index += 1) {
+      part(group, box(piece, height, 0.14), materials[(index + offset) % 2], -width / 2 + piece * (index + 0.5), y, 0);
+    }
+  }
+
+  function buildBarrier() {
+    const group = new THREE.Group();
+    [-1.05, 1.05].forEach((x) => part(group, box(0.14, 0.95, 0.14), PAINT.steel, x, 0.48, 0));
+    stripedBar(group, [PAINT.red, PAINT.white], 2.2, 0.24, 0.82, 6);
+    stripedBar(group, [PAINT.red, PAINT.white], 2.2, 0.2, 0.42, 6, 1);
+    return fuse(group);
+  }
+
+  function buildBeam() {
+    const group = new THREE.Group();
+    [-1.15, 1.15].forEach((x) => part(group, box(0.16, 3.2, 0.16), PAINT.steel, x, 1.6, 0));
+    stripedBar(group, [PAINT.yellow, PAINT.steel], 2.3, 1.3, 2.4, 6);
+    return fuse(group);
+  }
+
+  /** Бегун с суставами: бёдра, колени, плечи и локти двигаются отдельно. */
+  function buildRunner() {
+    const runner = new THREE.Group();
+    const solid = (parent, geometry, material, x, y, z) => {
+      const mesh = part(parent, geometry, material, x, y, z);
+      mesh.castShadow = true;
+      return mesh;
+    };
+    solid(runner, box(0.6, 0.72, 0.36), PAINT.hoodie, 0, 1.5, 0);
+    solid(runner, box(0.48, 0.52, 0.22), PAINT.pack, 0, 1.55, 0.28);
+    solid(runner, new THREE.SphereGeometry(0.23, 16, 12), PAINT.skin, 0, 2.08, 0);
+    solid(runner, new THREE.SphereGeometry(0.25, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), PAINT.cap, 0, 2.12, 0);
+    solid(runner, box(0.3, 0.05, 0.24), PAINT.cap, 0, 2.14, -0.3);
+
+    function limb(x, y, upper, lower, thickness, materials, withShoe) {
+      const root = new THREE.Group();
+      root.position.set(x, y, 0);
+      runner.add(root);
+      solid(root, box(thickness, upper, thickness), materials[0], 0, -upper / 2, 0);
+      const joint = new THREE.Group();
+      joint.position.y = -upper;
+      root.add(joint);
+      solid(joint, box(thickness * 0.9, lower, thickness * 0.9), materials[1], 0, -lower / 2, 0);
+      if (withShoe) solid(joint, box(thickness * 1.15, 0.12, 0.36), PAINT.shoe, 0, -lower, -0.08);
+      return { root, joint };
+    }
+
+    const legs = [-0.16, 0.16].map((x) => limb(x, 1.14, 0.52, 0.5, 0.2, [PAINT.trousers, PAINT.trousers], true));
+    const arms = [-0.39, 0.39].map((x) => limb(x, 1.8, 0.36, 0.34, 0.15, [PAINT.hoodie, PAINT.skin], false));
+    return { runner, legs, arms };
+  }
+
+  const POSES = {
+    run(figure, clock) {
+      const stride = clock * 12;
+      figure.runner.rotation.x = -0.14;
+      figure.runner.position.y = Math.abs(Math.sin(stride)) * 0.1;
+      figure.legs.forEach((leg, index) => {
+        const swing = stride + index * Math.PI;
+        leg.root.rotation.x = Math.sin(swing) * 0.85;
+        leg.joint.rotation.x = -(0.25 + 1.0 * Math.max(0, Math.sin(swing - 1.9)));
+      });
+      figure.arms.forEach((arm, index) => {
+        arm.root.rotation.x = -Math.sin(stride + index * Math.PI) * 0.9;
+        arm.joint.rotation.x = 1.1;
+      });
+    },
+    jump(figure, clock, height) {
+      figure.runner.rotation.x = -0.08;
+      figure.runner.position.y = height;
+      figure.legs.forEach((leg, index) => {
+        leg.root.rotation.x = index ? 0.35 : 1.0;
+        leg.joint.rotation.x = index ? -0.9 : -1.5;
+      });
+      figure.arms.forEach((arm) => {
+        arm.root.rotation.x = 2.3;
+        arm.joint.rotation.x = 0.3;
+      });
+    },
+    slide(figure) {
+      figure.runner.rotation.x = 1.3;
+      figure.runner.position.y = 0.2;
+      figure.legs.forEach((leg, index) => {
+        leg.root.rotation.x = index ? 0.1 : 0.45;
+        leg.joint.rotation.x = index ? 0 : -0.6;
+      });
+      figure.arms.forEach((arm) => {
+        arm.root.rotation.x = -0.5;
+        arm.joint.rotation.x = 0.4;
+      });
+    },
+    stand(figure, clock) {
+      figure.runner.rotation.x = 0;
+      figure.runner.position.y = Math.sin(clock * 2) * 0.02;
+      figure.legs.forEach((leg) => { leg.root.rotation.x = 0; leg.joint.rotation.x = 0; });
+      figure.arms.forEach((arm) => { arm.root.rotation.x = 0.1; arm.joint.rotation.x = 0.3; });
+    },
+  };
+
+  /** Готовая анимированная модель робота. Пока она не загрузилась, бежит простой бегун из фигур. */
+  const HERO_CLIPS = { run: 'Running', jump: 'Jump', slide: 'Sitting', stand: 'Idle', fall: 'Death', cheer: 'Dance' };
+  const HERO_ONE_SHOT = ['jump', 'fall'];
+  const HERO_HEIGHT = 2.3;
+
+  function decodeBase64(text) {
+    const binary = atob(text);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+    return bytes.buffer;
+  }
+
+  function createHero(scene) {
+    const holder = new THREE.Group();
+    scene.add(holder);
+    const hero = { holder, mixer: null, actions: {}, current: '' };
+
+    function adopt(gltf) {
+      const model = gltf.scene;
+      model.updateMatrixWorld(true);
+      const measured = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3()).y;
+      model.scale.setScalar(HERO_HEIGHT / (measured > 1 && measured < 10 ? measured : 4.4));
+      model.rotation.y = Math.PI;
+      model.traverse((node) => { if (node.isMesh) node.castShadow = true; });
+      holder.add(model);
+      hero.mixer = new THREE.AnimationMixer(model);
+      Object.entries(HERO_CLIPS).forEach(([pose, clipName]) => {
+        const clip = THREE.AnimationClip.findByName(gltf.animations, clipName);
+        if (!clip) return;
+        const action = hero.mixer.clipAction(clip);
+        if (HERO_ONE_SHOT.includes(pose)) {
+          action.setLoop(THREE.LoopOnce, 1);
+          action.clampWhenFinished = true;
+        }
+        hero.actions[pose] = action;
+      });
+      if (hero.actions.jump) hero.actions.jump.setDuration(MOVES.jumpSeconds * 1.1);
+      if (hero.actions.run) hero.actions.run.timeScale = 1.35;
+    }
+
+    hero.load = () => {
+      if (!THREE.GLTFLoader || !window.HERO_MODEL_BASE64) return;
+      try {
+        new THREE.GLTFLoader().parse(decodeBase64(window.HERO_MODEL_BASE64), '', adopt, () => {});
+      } catch (error) { /* остаётся простой бегун */ }
+    };
+
+    /** Включает нужную анимацию с плавным переходом. Возвращает false, пока модели нет. */
+    hero.show = (pose, dt) => {
+      if (!hero.mixer) return false;
+      const action = hero.actions[pose];
+      if (action && hero.current !== pose) {
+        const previous = hero.actions[hero.current];
+        action.reset().fadeIn(0.12).play();
+        if (previous && previous !== action) previous.fadeOut(0.12);
+        hero.current = pose;
+      }
+      hero.mixer.update(dt);
+      return true;
+    };
+
+    return hero;
+  }
+
+  const SIMPLE_POSE = { run: 'run', jump: 'jump', slide: 'slide', stand: 'stand', fall: 'stand', cheer: 'stand' };
+
+  function canvasTexture(width, height, painter) {
+    const sheet = document.createElement('canvas');
+    sheet.width = width;
+    sheet.height = height;
+    painter(sheet.getContext('2d'), width, height);
+    const texture = new THREE.CanvasTexture(sheet);
+    texture.encoding = THREE.sRGBEncoding;
+    return texture;
+  }
+
+  /** Светлая зернистая текстура: настоящий цвет ей задаёт тема через материал. */
+  function grainTexture(size) {
+    const texture = canvasTexture(size, size, (context) => {
+      context.fillStyle = '#e4e4e4';
+      context.fillRect(0, 0, size, size);
+      for (let index = 0; index < 2800; index += 1) {
+        const shade = Math.random() < 0.5 ? 0 : 255;
+        context.fillStyle = `rgba(${shade}, ${shade}, ${shade}, ${Math.random() * 0.16})`;
+        context.fillRect(Math.random() * size, Math.random() * size, 2, 2);
+      }
+    });
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    return texture;
+  }
+
+  function scatterPoints(count, place, material) {
+    const positions = new Float32Array(count * 3);
+    for (let index = 0; index < count; index += 1) positions.set(place(), index * 3);
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    return new THREE.Points(geometry, material);
+  }
+
+  // ---------- Сцена ----------
+  function createStageScene() {
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.25;
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0xffffff, 50, 170);
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x666666, 1);
+    const sun = new THREE.DirectionalLight(0xffffff, 1);
+    sun.position.set(-14, 18, 6);
+    sun.target.position.set(0, 0, -14);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.bias = -0.0015;
+    Object.assign(sun.shadow.camera, { left: -18, right: 18, top: 30, bottom: -30, near: 1, far: 90 });
+    scene.add(hemi, sun, sun.target);
+
+    const camera = new THREE.PerspectiveCamera(60, 1, 0.3, 400);
+
+    const steppeMap = grainTexture(256);
+    steppeMap.repeat.set(40, 40);
+    const steppe = part(scene, new THREE.PlaneGeometry(500, 500), new THREE.MeshLambertMaterial({ map: steppeMap }), 0, 0, -120);
+    steppe.rotation.x = -Math.PI / 2;
+    steppe.receiveShadow = true;
+
+    const ballastMap = grainTexture(128);
+    ballastMap.repeat.set(4, 60);
+    const ballast = part(scene, new THREE.PlaneGeometry(13.5, 260), new THREE.MeshLambertMaterial({ map: ballastMap }), -1.6, 0.02, -110);
+    ballast.rotation.x = -Math.PI / 2;
+    ballast.receiveShadow = true;
+
+    const railXs = [0, 1, 2].map(laneX).concat(WORLD.sideTrainX);
+    railXs.forEach((x) => {
+      [-WORLD.gauge, WORLD.gauge].forEach((shift) => part(scene, box(0.09, 0.16, 260), PAINT.rail, x + shift, 0.14, -110));
+    });
+
+    const scroll = { sleepers: new THREE.Group(), poles: new THREE.Group(), train: new THREE.Group(), trees: new THREE.Group() };
+
+    const sleeperCount = 110;
+    const sleepers = new THREE.InstancedMesh(box(2.0, 0.1, 0.3), PAINT.tie, sleeperCount * railXs.length);
+    const placement = new THREE.Object3D();
+    railXs.forEach((x, column) => {
+      for (let index = 0; index < sleeperCount; index += 1) {
+        placement.position.set(x, 0.07, 14 - index * WORLD.sleeperGap);
+        placement.updateMatrix();
+        sleepers.setMatrixAt(column * sleeperCount + index, placement.matrix);
+      }
+    });
+    sleepers.receiveShadow = true;
+    scroll.sleepers.add(sleepers);
+
+    const poleModel = new THREE.Group();
+    part(poleModel, tube(0.12, 8, 8), PAINT.pole, 0, 4, 0);
+    part(poleModel, box(2.2, 0.14, 0.14), PAINT.pole, 0, 7.2, 0);
+    part(poleModel, box(1.4, 0.12, 0.12), PAINT.pole, 0, 6.5, 0);
+    const pole = fuse(poleModel);
+    for (let index = 0; index < 10; index += 1) {
+      const copy = pole.clone();
+      copy.position.set(6.2, 0, 20 - index * WORLD.poleGap);
+      scroll.poles.add(copy);
+    }
+
+    // Тополя по обе стороны: один случайный отрезок повторяется, поэтому лента бесконечная.
+    const grove = [];
+    for (let index = 0; index < 16; index += 1) {
+      const side = index % 2 ? 1 : -1;
+      grove.push({ x: side * (11 + Math.random() * 16) - (side < 0 ? 4 : 0), z: -Math.random() * WORLD.treePeriod, size: 0.8 + Math.random() * 0.7 });
+    }
+    const repeats = 4;
+    const trunks = new THREE.InstancedMesh(tube(0.2, 3, 6), PAINT.trunk, grove.length * repeats);
+    const crowns = new THREE.InstancedMesh(new THREE.ConeGeometry(1.6, 8.5, 7), PAINT.leaf, grove.length * repeats);
+    for (let repeat = 0; repeat < repeats; repeat += 1) {
+      grove.forEach((tree, index) => {
+        const z = tree.z + 30 - repeat * WORLD.treePeriod;
+        placement.scale.setScalar(tree.size);
+        placement.position.set(tree.x, 1.5 * tree.size, z);
+        placement.updateMatrix();
+        trunks.setMatrixAt(repeat * grove.length + index, placement.matrix);
+        placement.position.set(tree.x, 7 * tree.size, z);
+        placement.updateMatrix();
+        crowns.setMatrixAt(repeat * grove.length + index, placement.matrix);
+      });
+    }
+    scroll.trees.add(trunks, crowns);
+
+    const wagonModels = WAGON_BUILDERS.map((build) => build(WORLD.wagonLength));
+    const step = WORLD.wagonLength + WORLD.wagonGap;
+    for (let index = 0; index < 15; index += 1) {
+      const copy = wagonModels[index % wagonModels.length].clone();
+      copy.position.set(WORLD.sideTrainX, 0, 34 - index * step);
+      scroll.train.add(copy);
+    }
+    scene.add(scroll.sleepers, scroll.poles, scroll.train, scroll.trees);
+
+    const hillMaterial = new THREE.MeshBasicMaterial({ color: 0x4a4560, fog: false });
+    [[-70, 30, 42], [64, 24, 34], [22, 15, 22]].forEach(([x, height, radius]) => {
+      part(scene, new THREE.ConeGeometry(radius, height, 24), hillMaterial, x, height / 2 - 1, -175);
+    });
+
+    const snow = scatterPoints(
+      420,
+      () => [(Math.random() - 0.5) * 30, Math.random() * 13, 8 - Math.random() * 60],
+      new THREE.PointsMaterial({ color: 0xffffff, size: 0.14, fog: false }),
+    );
+    const stars = scatterPoints(
+      220,
+      () => [(Math.random() - 0.5) * 420, 18 + Math.random() * 150, -210],
+      new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, fog: false }),
+    );
+    scene.add(snow, stars);
+
+    const figure = buildRunner();
+    scene.add(figure.runner);
+    const hero = createHero(scene);
+    hero.load();
+
+    const sparks = [];
+    const sparkGeometry = box(0.13, 0.13, 0.13);
+    const sparkMaterial = new THREE.MeshBasicMaterial({ color: 0xfec50c });
+    for (let index = 0; index < 16; index += 1) {
+      const spark = part(scene, sparkGeometry, sparkMaterial, 0, -5, 0);
+      spark.visible = false;
+      sparks.push({ mesh: spark, velocity: new THREE.Vector3(), life: 0 });
+    }
+
+    function setTheme(index) {
+      const theme = THEMES[index % THEMES.length];
+      if (scene.background) scene.background.dispose();
+      scene.background = canvasTexture(8, 256, (context, width, height) => {
+        const sky = context.createLinearGradient(0, 0, 0, height * 0.66);
+        theme.sky.forEach((color, stop) => sky.addColorStop(stop / (theme.sky.length - 1), color));
+        context.fillStyle = sky;
+        context.fillRect(0, 0, width, height);
+      });
+      scene.fog.color.copy(linear(theme.fog));
+      steppe.material.color.copy(linear(theme.steppe));
+      ballast.material.color.copy(linear(theme.ballast));
+      hillMaterial.color.set(theme.hills);
+      hemi.color.set(theme.hemi[0]);
+      hemi.groundColor.set(theme.hemi[1]);
+      hemi.intensity = theme.hemi[2];
+      sun.color.set(theme.sun[0]);
+      sun.intensity = theme.sun[1];
+      snow.visible = Boolean(theme.snow);
+      stars.visible = Boolean(theme.stars);
+    }
+
+    function resize() {
+      const width = stage.clientWidth || 360;
+      const height = stage.clientHeight || 520;
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      const needed = (2 * Math.atan(3.7 / 11 / camera.aspect) * 180) / Math.PI;
+      camera.fov = Math.max(55, Math.min(88, needed));
+      camera.updateProjectionMatrix();
+    }
+
+    return {
+      renderer, scene, camera, scroll, figure, hero, sparks, snow, wagonModels, ballastMap, steppeMap, setTheme, resize,
+      obstacleModels: { barrier: buildBarrier(), beam: buildBeam() },
+      trainPeriod: step * wagonModels.length,
+    };
+  }
+
+  // ---------- Буквы и препятствия на путях ----------
+  function createTrackObjects(view) {
+    const nodes = new Map();
+    const faces = new Map();
+    const discGeometry = tube(0.74, 0.14, 28);
+    const rimGeometry = new THREE.TorusGeometry(0.74, 0.075, 8, 28);
+    const faceGeometry = new THREE.PlaneGeometry(1.15, 1.15);
+    const discMaterial = paint(0x00afca);
+    const rimMaterial = paint(0xfec50c);
+
+    function faceMaterial(char) {
+      if (!faces.has(char)) {
+        const map = canvasTexture(128, 128, (context, width, height) => {
+          context.fillStyle = '#ffffff';
+          context.textAlign = 'center';
+          context.textBaseline = 'middle';
+          context.font = `800 96px ${FONT}`;
+          context.fillText(char.toUpperCase(), width / 2, height / 2 + 6);
+        });
+        faces.set(char, new THREE.MeshBasicMaterial({ map, transparent: true }));
+      }
+      return faces.get(char);
+    }
+
+    function makeLetter() {
+      const node = new THREE.Group();
+      part(node, discGeometry, discMaterial, 0, 0, 0).rotation.x = Math.PI / 2;
+      part(node, rimGeometry, rimMaterial, 0, 0, 0);
+      node.userData.face = part(node, faceGeometry, faceMaterial('а'), 0, 0, 0.09);
+      node.userData.char = '';
+      return node;
+    }
+
+    function makeNode(kind) {
+      if (kind === 'letter') return makeLetter();
+      if (kind === 'wagon') return view.wagonModels[Math.floor(Math.random() * view.wagonModels.length)].clone();
+      return view.obstacleModels[kind].clone();
+    }
+
+    function sync(game, clock) {
+      const alive = new Set();
+      game.state.rows.forEach((row) => row.items.forEach((item) => {
+        alive.add(item);
+        let node = nodes.get(item);
+        if (!node) {
+          node = makeNode(item.kind);
+          nodes.set(item, node);
+          view.scene.add(node);
+        }
+        node.position.x = laneX(item.lane);
+        node.position.z = -row.d;
+        if (item.kind !== 'letter') return;
+        node.visible = !item.taken;
+        node.position.y = 1.55 + (calmMotion ? 0 : Math.sin(clock * 4 + item.lane * 2) * 0.12);
+        const char = game.charOf(item);
+        if (node.userData.char !== char) {
+          node.userData.char = char;
+          node.userData.face.material = faceMaterial(char);
+        }
+      }));
+      nodes.forEach((node, item) => {
+        if (alive.has(item)) return;
+        view.scene.remove(node);
+        nodes.delete(item);
+      });
+    }
+
+    function clear() {
+      nodes.forEach((node) => view.scene.remove(node));
+      nodes.clear();
+    }
+
+    return { sync, clear };
+  }
+
+  // ---------- Состояние экрана ----------
+  let view;
+  try {
+    view = createStageScene();
+  } catch (error) {
+    element('fail').hidden = false;
+    return;
+  }
+  const trackObjects = createTrackObjects(view);
+  const sound = createSound();
+  const voice = createVoice();
+  let progress = { level: 0, unlocked: 0, learned: [] };
+  let run = createRun(0);
+  let running = false;
+  let playerX = 0;
+  let shake = 0;
+  let clock = 0;
+  let lastFrame = 0;
+  let tilesKey = '';
+
+  function readProgress(saved) {
+    if (!saved || !Number.isInteger(saved.level) || !Array.isArray(saved.learned)) return null;
+    const last = LEVELS.length - 1;
+    const level = Math.max(0, Math.min(last, saved.level));
+    const unlocked = Math.max(level, Math.min(last, Number.isInteger(saved.unlocked) ? saved.unlocked : level));
+    return { level, unlocked, learned: saved.learned };
+  }
+
+  function loadProgress() {
+    try {
+      return readProgress(JSON.parse(localStorage.getItem(PROGRESS_KEY) || 'null')) || { level: 0, unlocked: 0, learned: [] };
+    } catch (error) {
+      return { level: 0, unlocked: 0, learned: [] };
+    }
+  }
+
+  function saveProgress() {
+    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress)); } catch (error) { /* прогресс живёт до закрытия страницы */ }
+  }
+
+  function say(html) { element('ticker').innerHTML = html; }
+
+  function replay(node, className) {
+    node.classList.remove(className);
+    void node.offsetWidth;
+    node.classList.add(className);
+  }
+
+  function pop(text, bad) {
+    const node = element('pop');
+    node.textContent = text;
+    node.classList.toggle('pop--bad', Boolean(bad));
+    replay(node, 'pop--show');
+  }
+
+  function hurt() {
+    if (!calmMotion) {
+      replay(element('veil'), 'veil--show');
+      shake = 1;
+    }
+    try { if (navigator.vibrate) navigator.vibrate(100); } catch (error) { /* вибрация недоступна */ }
+  }
+
+  function burst() {
+    if (calmMotion) return;
+    view.sparks.forEach((spark) => {
+      spark.life = 0.45;
+      spark.mesh.visible = true;
+      spark.mesh.position.set(playerX, 1.6, -0.4);
+      spark.velocity.set((Math.random() - 0.5) * 7, 2 + Math.random() * 5, (Math.random() - 0.5) * 5);
+    });
+  }
+
+  function renderTask() {
+    const state = run.state;
+    const key = [state.word.kk, state.letterIndex, state.phase, state.hint, state.lives, state.score].join('|');
+    if (key === tilesKey) return;
+    tilesKey = key;
+    element('taskRu').textContent = state.word.ru;
+    element('taskPhase').textContent = state.phase === 'exam' ? 'Экзамен' : 'Учим';
+    const exam = state.phase === 'exam';
+    element('tiles').innerHTML = Array.from(state.word.kk).map((char, index) => {
+      const got = index < state.letterIndex;
+      const next = index === state.letterIndex;
+      const hidden = exam && !got && !(next && state.hint);
+      const classes = ['tile', got ? 'tile--got' : '', next ? 'tile--next' : ''].join(' ').trim();
+      return `<span class="${classes}">${hidden ? '?' : char.toUpperCase()}</span>`;
+    }).join('');
+    element('statLevel').textContent = `${state.levelIndex + 1} из ${LEVELS.length}`;
+    element('statScore').textContent = String(state.score);
+    const lives = Math.max(0, state.lives);
+    element('statLives').textContent = '♥'.repeat(lives) + '♡'.repeat(RULES.lives - lives);
+    element('statLives').setAttribute('aria-label', `Жизней: ${lives}`);
+  }
+
+  function wordList(listId, words) {
+    element(listId).innerHTML = words.map((word) => `<li><b>${word.kk}</b> ${word.ru}</li>`).join('');
+  }
+
+  const CRASH_TEXT = {
+    wagon: ['вагон!', 'На пути стоял вагон. Обегай его по соседнему пути.'],
+    barrier: ['барьер!', 'Низкий барьер нужно перепрыгнуть: смахни вверх.'],
+    beam: ['балка!', 'Под высокой балкой нужно проскользнуть: смахни вниз.'],
+  };
+  const TEACH_TEXT = {
+    barrier: 'Впереди низкий барьер. <strong>Смахни вверх</strong>, чтобы перепрыгнуть.',
+    beam: 'Впереди высокая балка. <strong>Смахни вниз</strong>, чтобы проскользнуть под ней.',
+  };
+
+  const reactions = {
+    letter(event) {
+      pop(event.char.toUpperCase(), false);
+      burst();
+      sound.letter(event.step);
+    },
+    wrong(event) {
+      pop('не та буква', true);
+      hurt();
+      sound.wrong();
+      say(`Это была <strong>${event.char.toUpperCase()}</strong>, а нужна <strong>${event.expected.toUpperCase()}</strong>.`);
+    },
+    crash(event) {
+      const [label, advice] = CRASH_TEXT[event.kind];
+      pop(label, true);
+      hurt();
+      sound.crash();
+      say(advice);
+    },
+    teach(event) { say(TEACH_TEXT[event.kind]); },
+    newWord(event) { voice.say(event.word.id, 550); },
+    word(event) {
+      sound.word();
+      say(`<strong>${event.word.kk.toUpperCase()}</strong> значит «${event.word.ru}».`);
+      if (!progress.learned.includes(event.word.kk)) progress.learned.push(event.word.kk);
+    },
+    exam() {
+      say('<strong>Экзамен.</strong> Те же слова, но буквы теперь скрыты.');
+    },
+    levelDone() { finishLevel(); },
+    over() { finishRun(); },
+  };
+
+  function renderLevels() {
+    element('levels').innerHTML = LEVELS.map((level, index) => {
+      const locked = index > progress.unlocked;
+      const current = index === progress.level;
+      return `<button class="level${current ? ' level--current' : ''}" type="button" data-level="${index}"${locked ? ' disabled' : ''} aria-label="Уровень ${index + 1}: ${level.topic}${locked ? ', закрыт' : ''}">${index + 1}</button>`;
+    }).join('');
+    element('startNote').textContent =
+      `Уровень ${progress.level + 1} из ${LEVELS.length}: ${LEVELS[progress.level].topic}. Выучено слов: ${progress.learned.length}. Это игра: в жизни по путям не ходят. Голос: ISSAI KazakhTTS (CC BY 4.0). Модель робота: Quaternius.`;
+    view.setTheme(progress.level);
+  }
+
+  function start() {
+    run = createRun(progress.level);
+    trackObjects.clear();
+    view.setTheme(progress.level);
+    tilesKey = '';
+    playerX = 0;
+    running = true;
+    ['startSheet', 'doneSheet', 'overSheet'].forEach((id) => { element(id).hidden = true; });
+    sound.unlock();
+    say(`Тема: <strong>${LEVELS[progress.level].topic}</strong>. Лови буквы по порядку.`);
+  }
+
+  function finishLevel() {
+    running = false;
+    const state = run.state;
+    const last = state.levelIndex === LEVELS.length - 1;
+    progress.level = last ? 0 : state.levelIndex + 1;
+    progress.unlocked = Math.max(progress.unlocked, last ? state.levelIndex : state.levelIndex + 1);
+    saveProgress();
+    element('doneTitle').textContent = last ? 'Все уровни пройдены' : 'Уровень пройден';
+    element('doneText').textContent = `Тема «${LEVELS[state.levelIndex].topic}», очков: ${state.score}. Эти слова ты теперь знаешь:`;
+    wordList('doneWords', LEVELS[state.levelIndex].words);
+    element('nextButton').textContent = last ? 'Начать сначала' : 'Следующий уровень';
+    element('doneSheet').hidden = false;
+    renderLevels();
+    sound.levelDone();
+    element('nextButton').focus({ preventScroll: true });
+  }
+
+  function finishRun() {
+    running = false;
+    const state = run.state;
+    saveProgress();
+    element('overText').textContent = state.learned.length
+      ? `Очков: ${state.score}. Слова, которые ты успел собрать:`
+      : `Очков: ${state.score}. Попробуй ещё раз: нужная буква подсвечена в задании.`;
+    wordList('overWords', state.learned);
+    element('overSheet').hidden = false;
+    sound.over();
+    element('againButton').focus({ preventScroll: true });
+  }
+
+  const ACTIONS = {
+    left() { if (run.move(-1)) sound.lane(); },
+    right() { if (run.move(1)) sound.lane(); },
+    jump() { if (run.jump()) sound.jump(); },
+    slide() { if (run.slide()) sound.slide(); },
+  };
+
+  function act(name) {
+    if (running) ACTIONS[name]();
+  }
+
+  function renderWorld(dt) {
+    const state = run.state;
+    const lean = laneX(state.lane) - playerX;
+    playerX += lean * Math.min(1, dt * 14);
+    const { figure, hero } = view;
+    const height = run.jumpHeight();
+    const resting = state.over ? 'fall' : state.finished ? 'cheer' : 'stand';
+    const pose = !running ? resting : state.slide > 0 ? 'slide' : state.air > 0 ? 'jump' : 'run';
+    const blinkedOut = state.grace > 0 && Math.floor(clock * 12) % 2 === 0;
+    const modelShown = hero.show(pose, dt);
+    hero.holder.visible = modelShown && !blinkedOut;
+    hero.holder.position.set(playerX, pose === 'jump' ? height * 0.75 : 0, pose === 'slide' ? 0.5 : 0);
+    hero.holder.rotation.set(pose === 'slide' ? 0.75 : 0, 0, -lean * 0.12);
+    POSES[SIMPLE_POSE[pose]](figure, clock, height);
+    figure.runner.position.x = playerX;
+    figure.runner.rotation.z = -lean * 0.12;
+    figure.runner.visible = !modelShown && !blinkedOut;
+
+    view.scroll.sleepers.position.z = state.distance % WORLD.sleeperGap;
+    view.scroll.poles.position.z = state.distance % WORLD.poleGap;
+    view.scroll.trees.position.z = state.distance % WORLD.treePeriod;
+    view.scroll.train.position.z = (state.distance + clock * WORLD.sideTrainSpeed) % view.trainPeriod;
+    view.ballastMap.offset.y = state.distance / (260 / 60);
+    view.steppeMap.offset.y = state.distance / (500 / 40);
+
+    if (view.snow.visible) {
+      const flakes = view.snow.geometry.attributes.position;
+      for (let index = 0; index < flakes.count; index += 1) {
+        let y = flakes.getY(index) - 2.6 * dt;
+        if (y < 0) y += 13;
+        flakes.setY(index, y);
+      }
+      flakes.needsUpdate = true;
+    }
+
+    view.sparks.forEach((spark) => {
+      if (spark.life <= 0) return;
+      spark.life -= dt;
+      spark.velocity.y -= 14 * dt;
+      spark.mesh.position.addScaledVector(spark.velocity, dt);
+      spark.mesh.visible = spark.life > 0;
+    });
+
+    shake = Math.max(0, shake - dt * 3.5);
+    const jolt = () => (Math.random() - 0.5) * 0.5 * shake;
+    view.camera.position.set(playerX * 0.6 + jolt(), 6.0 + height * 0.25 + jolt(), 9.2);
+    view.camera.lookAt(playerX * 0.45, 1.4, -16);
+    trackObjects.sync(run, clock);
+    view.renderer.render(view.scene, view.camera);
+  }
+
+  function frame(time) {
+    const dt = Math.min(0.05, (time - lastFrame) / 1000 || 0);
+    lastFrame = time;
+    clock += dt;
+    if (running) {
+      run.update(dt);
+      run.drainEvents().forEach((event) => reactions[event.type](event));
+    }
+    renderTask();
+    renderWorld(dt);
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- Управление ----------
+  const SWIPE = 24;
+  let touch = null;
+
+  canvas.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    touch = { id: event.pointerId, x: event.clientX, y: event.clientY, used: false };
+  });
+
+  canvas.addEventListener('pointermove', (event) => {
+    if (!touch || touch.id !== event.pointerId) return;
+    const dx = event.clientX - touch.x;
+    const dy = event.clientY - touch.y;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE) return;
+    if (Math.abs(dx) > Math.abs(dy)) act(dx < 0 ? 'left' : 'right');
+    else act(dy < 0 ? 'jump' : 'slide');
+    touch.x = event.clientX;
+    touch.y = event.clientY;
+    touch.used = true;
+  });
+
+  canvas.addEventListener('pointerup', (event) => {
+    if (!touch || touch.id !== event.pointerId) return;
+    if (!touch.used) {
+      const area = canvas.getBoundingClientRect();
+      act(event.clientX < area.left + area.width / 2 ? 'left' : 'right');
+    }
+    touch = null;
+  });
+
+  canvas.addEventListener('pointercancel', () => { touch = null; });
+
+  const KEYS = {
+    ArrowLeft: 'left', KeyA: 'left',
+    ArrowRight: 'right', KeyD: 'right',
+    ArrowUp: 'jump', KeyW: 'jump', Space: 'jump',
+    ArrowDown: 'slide', KeyS: 'slide',
+  };
+
+  window.addEventListener('keydown', (event) => {
+    const action = KEYS[event.code];
+    if (!action || !running) return;
+    event.preventDefault();
+    act(action);
+  });
+
+  ['startButton', 'nextButton', 'againButton'].forEach((id) => element(id).addEventListener('click', start));
+
+  element('levels').addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-level]');
+    if (!button || button.disabled) return;
+    progress.level = Number(button.dataset.level);
+    saveProgress();
+    renderLevels();
+  });
+
+  element('soundToggle').addEventListener('click', (event) => {
+    const button = event.currentTarget;
+    const enabled = button.getAttribute('aria-pressed') !== 'true';
+    button.setAttribute('aria-pressed', String(enabled));
+    button.textContent = enabled ? 'Звук включён' : 'Звук выключен';
+    sound.setEnabled(enabled);
+    voice.setEnabled(enabled);
+  });
+
+  element('listenButton').addEventListener('click', () => voice.say(run.state.word.id));
+
+  function boot(saved) {
+    progress = readProgress(saved) || loadProgress();
+    run = createRun(progress.level);
+    renderLevels();
+    view.resize();
+    if (typeof ResizeObserver === 'function') new ResizeObserver(view.resize).observe(stage);
+    window.addEventListener('resize', view.resize);
+    requestAnimationFrame(frame);
+  }
+
+  const hot = window.claude && window.claude.hot;
+  if (hot && hot.snapshot) hot.snapshot(() => progress);
+  if (hot && hot.ready) hot.ready(boot);
+  else boot((hot && hot.data) || null);
+})();
+</script>
+</body>
+</html>
