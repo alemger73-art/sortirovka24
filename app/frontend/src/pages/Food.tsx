@@ -1011,6 +1011,8 @@ export default function Food() {
     [deliveryAddress, settings.default_address],
   );
 
+  /** The address GPS filled in. GPS often lands on a neighbouring house, so it is shown as «check the house» until edited. */
+  const gpsAddress = useRef<string | null>(null);
   const runDeliveryQuote = useCallback(async (
     body: { address?: string; lat?: number; lng?: number },
     options?: { notify?: boolean; fillAddress?: boolean },
@@ -1024,6 +1026,7 @@ export default function Food() {
       setDeliveryQuote(quote);
       if (options?.fillAddress && quote.display_address) {
         quotedAddress.current = quote.display_address;
+        gpsAddress.current = quote.display_address;
         setDeliveryAddress(quote.display_address);
       }
       if (quote.location_warning) {
@@ -1853,6 +1856,7 @@ export default function Food() {
   const addressStatus = deliveryMethod !== 'delivery' || !hasDeliveryZones ? null
     : deliveryQuoteLoading ? { tone: 'busy', text: st("Проверяем адрес…") }
       : deliveryQuoteError || deliveryUnavailableMessage ? { tone: 'warn', text: String(deliveryQuoteError || deliveryUnavailableMessage) }
+        : gpsAddress.current && deliveryAddress === gpsAddress.current ? { tone: 'warn', text: st("Адрес найден по GPS примерно. Проверьте номер дома и допишите квартиру") }
         : deliveryReady && deliveryQuote ? { tone: 'ok', text: `${deliveryQuote.zone_name ? `${deliveryQuote.zone_name} · ` : ''}${st("доставка")} ${deliveryFeeLabel}` }
           : null;
 

@@ -484,6 +484,9 @@ async def reverse_geocode(lat: float, lng: float) -> Tuple[Optional[str], str]:
                 or ""
             )
             house = addr.get("house_number") or ""
+            # OpenStreetMap names Karaganda's city boundary «Карагандинская городская администрация».
+            if "администрац" in str(city).lower():
+                city = "Караганда"
             line = " ".join(p for p in (road, house) if p)
             if line and city:
                 return f"{line}, {city}", str(city)
