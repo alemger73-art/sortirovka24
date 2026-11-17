@@ -23,6 +23,14 @@ from models.food_payment import FoodPayment
 from models.courier_workflow import CourierDeliveryIssue
 
 
+
+@pytest.fixture(autouse=True)
+def accounting_switched_on(monkeypatch):
+    """These tests cover shifts and the cashbox, which work only while the owner has accounting on."""
+    async def on(db):
+        return True
+    monkeypatch.setattr("services.food_orders.accounting_on", on)
+
 @pytest.fixture
 async def shift_env():
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
@@ -194,3 +202,16 @@ async def test_owner_creation_does_not_require_pin(shift_env):
         row=await db.get(PartnerCredentials,response.json()['id'])
         assert row.access_role=='owner' and row.pin_hash is None
     assert (await client.post('/api/v1/dam-alem/business/staff',headers=owner,json={**body,'email':'missing-pin','role':'operator'})).status_code==422
+
+
+@pytest.mark.asyncio
+async def test_operator_works_without_a_shift_while_accounting_is_off(shift_env, monkeypatch):
+    """Accounting off (the default): no shift, no PIN check — the operator only moves orders and the stop-list."""
+    async def off(db):
+        return False
+    monkeypatch.setattr("services.food_orders.accounting_on", off)
+    client, maker, owner, operator = shift_env
+    me = (await client.get('/api/v1/dam-alem/business/me', headers=operator)).json()
+    assert me['accounting_enabled'] is False
+    response = await client.patch('/api/v1/dam-alem/business/availability/1', headers=operator, json={'available': False})
+    assert response.status_code == 200, response.text

@@ -11,6 +11,14 @@ from services import operator_telegram as ot
 from tests.test_courier_telegram import FakeTelegram
 from tests.test_dam_order_workflow import env  # noqa: F401  (the shared DAM workflow fixture: operator PIN 2222, shift open)
 
+
+@pytest.fixture(autouse=True)
+def accounting_switched_on(monkeypatch):
+    """These tests cover shifts and the cashbox, which work only while the owner has accounting on."""
+    async def on(db):
+        return True
+    monkeypatch.setattr("services.food_orders.accounting_on", on)
+
 CHAT = 901
 
 
@@ -193,3 +201,9 @@ async def test_a_telegram_linked_courier_gets_the_order_without_a_pin_shift(tg):
         shift = await db.scalar(select(FoodShift).where(FoodShift.staff_type == 'courier', FoodShift.closed_at.is_(None)))
         assert shift and shift.opened_by == 'Назначение заказа (Telegram)'
     assert (await order(maker)).status == 'in_progress'
+
+
+def test_menu_without_accounting_has_no_shift_or_debts():
+    from services.operator_console import SHIFT_BUTTON, menu_keyboard
+    texts = [b["text"] for row in menu_keyboard(False)["keyboard"] for b in row]
+    assert SHIFT_BUTTON not in texts and "💳 Долги" not in texts and "🆕 Новые" in texts

@@ -12,6 +12,14 @@ from models.food_orders import Food_orders
 from models.partner_auth import PartnerCredentials
 from services.food_payments import receive_outstanding, record, preserve_legacy_payment
 
+
+@pytest.fixture(autouse=True)
+def accounting_switched_on(monkeypatch):
+    """These tests cover shifts and the cashbox, which work only while the owner has accounting on."""
+    async def on(db):
+        return True
+    monkeypatch.setattr("services.food_orders.accounting_on", on)
+
 BASE = '/api/v1/dam-alem/cashbox'
 
 
