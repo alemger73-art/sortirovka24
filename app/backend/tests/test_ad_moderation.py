@@ -78,3 +78,21 @@ async def test_daily_limit_and_report(security_env, bot, monkeypatch):
     async with maker() as db, httpx.AsyncClient() as http:
         assert (await ad_moderation.handle_callback(db, http, f'ad:r:{ids[0]}:other', '42', {'message_id': 2})).startswith('Отклонено')
     assert (await client.get(BASE)).json()['total'] == 0
+
+
+async def test_author_deleting_a_published_ad_is_shown_on_its_card(security_env, bot):
+    """The owner published the ad, then the author deleted it: the card no longer says «Опубликовано»."""
+    from sqlalchemy import text
+    _, maker, _ = security_env
+    calls, _ = bot
+    async with maker() as db:
+        await ad_moderation._cards_table(db)
+        await db.execute(text("INSERT INTO ad_cards (ann_id, chat_id, message_id, created_at) VALUES (48, '-100', 7, 'x')"))
+        await db.commit()
+        await ad_moderation.author_withdrew(db, 48, 'Медсестра', deleted=True)
+        await ad_moderation.author_withdrew(db, 49, 'Нет карточки', deleted=True)  # never sent: nothing happens
+    edits = [p for m, p in calls if m == 'editMessageReplyMarkup']
+    assert len(edits) == 1 and edits[0]['message_id'] == 7
+    assert edits[0]['reply_markup']['inline_keyboard'][0][0]['text'].startswith('🗑 Автор удалил')
+    note = [p for m, p in calls if m == 'sendMessage'][-1]
+    assert 'Медсестра' in note['text'] and note['disable_notification'] is True

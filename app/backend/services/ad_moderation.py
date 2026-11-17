@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 import httpx
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.announcements import Announcements
@@ -92,23 +92,81 @@ def keyboard(ann_id: int) -> dict[str, Any]:
     ]}
 
 
+# ---- where each moderation card is, so the owner sees later what the author did with the ad ----
+_cards_ready: set[int] = set()
+
+
+async def _cards_table(db: AsyncSession) -> None:
+    key = id(getattr(db, "bind", None))
+    if key in _cards_ready:
+        return
+    await db.execute(text("CREATE TABLE IF NOT EXISTS ad_cards (ann_id INTEGER NOT NULL, chat_id VARCHAR(32) NOT NULL, "
+                          "message_id INTEGER NOT NULL, created_at VARCHAR(32) NOT NULL, PRIMARY KEY (ann_id, chat_id, message_id))"))
+    await db.commit()
+    _cards_ready.add(key)
+
+
+async def remember_card(ann_id: int, sent: dict[str, Any]) -> None:
+    """Keeps the chat and message of a card just sent (owner_send's reply)."""
+    message = (sent or {}).get("result") or {}
+    chat_id, message_id = (message.get("chat") or {}).get("id"), message.get("message_id")
+    if not (chat_id and message_id):
+        return
+    try:
+        from core.database import db_manager
+        async with db_manager.async_session_maker() as db:
+            await _cards_table(db)
+            await db.execute(text("INSERT INTO ad_cards (ann_id, chat_id, message_id, created_at) VALUES (:a, :c, :m, :t) "
+                                  "ON CONFLICT DO NOTHING"), {"a": ann_id, "c": str(chat_id), "m": message_id, "t": now().isoformat()})
+            await db.commit()
+    except Exception as exc:
+        logger.info("[Ads] card position not saved: %s", exc)
+
+
+async def author_withdrew(db: AsyncSession, ann_id: int, title: str, deleted: bool) -> None:
+    """The author deleted or hid the ad himself: its cards in Telegram say so, and a quiet reply explains it."""
+    from services.news_agent import bot_token, tg
+    if not bot_token():
+        return
+    try:
+        await _cards_table(db)
+        rows = (await db.execute(text("SELECT chat_id, message_id FROM ad_cards WHERE ann_id = :a"), {"a": ann_id})).all()
+    except Exception as exc:
+        logger.info("[Ads] cards lookup failed: %s", exc)
+        return
+    when = (now() + timedelta(hours=5)).strftime("%d.%m %H:%M")
+    what = "удалил" if deleted else "снял с сайта"
+    button = {"inline_keyboard": [[{"text": f"🗑 Автор {what} · {when}", "callback_data": "ad:x"}]]}
+    note = f"🗑 Автор сам {what} объявление «{title[:80]}» ({when}). На сайте его больше нет."
+    async with httpx.AsyncClient(timeout=15) as client:
+        for chat_id, message_id in rows:
+            try:
+                await tg(client, "editMessageReplyMarkup", {"chat_id": chat_id, "message_id": message_id, "reply_markup": button})
+                await tg(client, "sendMessage", {"chat_id": chat_id, "text": note, "disable_notification": True,
+                                                 "reply_parameters": {"message_id": message_id, "allow_sending_without_reply": True}})
+            except Exception as exc:
+                logger.info("[Ads] card %s/%s not updated: %s", chat_id, message_id, exc)
+
+
 async def send_for_moderation(ann: Announcements, video_url: Optional[str] = None) -> bool:
     from services.news_agent import approval_chat, bot_token, owner_send
     if not (bot_token() and approval_chat()):
         return False
-    text = card_text(ann, video_url)
+    text_ = card_text(ann, video_url)
     try:
         async with httpx.AsyncClient(timeout=25) as client:
             photo = _photo(ann)
             if photo:
                 try:
-                    await owner_send(client, "ads", "sendPhoto", {"photo": photo, "caption": text, "parse_mode": "HTML",
-                                                                  "reply_markup": keyboard(ann.id)}, timeout=25)
+                    sent = await owner_send(client, "ads", "sendPhoto", {"photo": photo, "caption": text_, "parse_mode": "HTML",
+                                                                         "reply_markup": keyboard(ann.id)}, timeout=25)
+                    await remember_card(ann.id, sent)
                     return True
                 except Exception as exc:
                     logger.info("[Ads] photo card failed, sending text: %s", exc)
-            await owner_send(client, "ads", "sendMessage", {"text": text, "parse_mode": "HTML",
-                                                            "reply_markup": keyboard(ann.id), "disable_web_page_preview": True})
+            sent = await owner_send(client, "ads", "sendMessage", {"text": text_, "parse_mode": "HTML",
+                                                                   "reply_markup": keyboard(ann.id), "disable_web_page_preview": True})
+            await remember_card(ann.id, sent)
         return True
     except Exception as exc:
         logger.warning("[Ads] moderation card failed: %s", exc)

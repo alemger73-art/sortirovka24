@@ -76,7 +76,7 @@ from services.google_oauth import (
     fetch_google_userinfo,
     google_oauth_enabled,
 )
-from services import ad_videos, paid_boost, telegram_login
+from services import ad_moderation, ad_videos, paid_boost, telegram_login
 from services.sms import SMSDeliveryError, available_channels, send_verification_code, should_expose_code_on_screen, telegram_bot_mode
 from services.storage import StorageService
 from sqlalchemy import and_, desc, func, or_, select, update
@@ -2164,10 +2164,13 @@ async def unpublish_my_announcement(
 ):
     user = await _current_user(db, authorization)
     row = await _get_owned_announcement(db, user, announcement_id)
+    was_live = row.status in ("approved", "published") and row.active
     row.status = "hidden"
     row.active = False
     await db.commit()
     await _log_action(db, str(user.id), "announcement_unpublish", "announcements", str(row.id))
+    if was_live:
+        await ad_moderation.author_withdrew(db, row.id, row.title or "", deleted=False)
     return {"success": True, "announcement": await _announcement_out(db, row)}
 
 
@@ -2195,10 +2198,12 @@ async def delete_my_announcement(
 ):
     user = await _current_user(db, authorization)
     row = await _get_owned_announcement(db, user, announcement_id)
+    title = row.title or ""
     await db.delete(row)
     await db.commit()
     await ad_videos.set_video(db, announcement_id, None)
     await _log_action(db, str(user.id), "announcement_delete", "announcements", str(announcement_id))
+    await ad_moderation.author_withdrew(db, announcement_id, title, deleted=True)
     return {"success": True}
 
 
