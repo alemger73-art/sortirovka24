@@ -256,7 +256,7 @@ def card_text(data: dict) -> str:
     if f["target"] == "preparing" and f["waiting_payment"] and not f["closed"]:
         lines.append("⏳ На кухню — после оплаты")
     if not f["closed"]:
-        lines.append("<i>Состав, адрес и перенос предзаказа — в кабинете</i>")
+        lines.append("<i>Адрес и перенос предзаказа — в кабинете</i>")
     return "\n".join(lines)
 
 
@@ -271,6 +271,8 @@ def card_keyboard(data: dict) -> dict:
     blocked = f["target"] == "preparing" and f["waiting_payment"]
     if not f["closed"] and f["target"] and not blocked:
         rows.append([_b(target_label(f), f"{CB}s:{oid}:{f['status']}:{f['target']}")])
+    if f["status"] in ("new", "confirmed", "preparing", "ready") and not (d and d.get("status") in ("picked_up", "on_the_way", "arrived")):
+        rows.append([_b("✏️ Изменить состав", f"{CB}e:{oid}")])
     unpaid = o.get("payment_status") != "paid"
     if f["payment_steps"] and not f["closed"] and o.get("payment_method") != "cash" and unpaid and o.get("invoice_phone"):
         rows.append([_b("📲 Счёт выставлен клиенту", f"{CB}i:{oid}")])
@@ -403,6 +405,9 @@ async def _ask_pin(db, client, chat_id, staff) -> None:
 
 async def _answer(db, client, chat_id, staff, awaiting: dict, said: str) -> None:
     kind = awaiting.get("kind")
+    if kind == "edit":
+        await _send(client, chat_id, f"Заказ №{awaiting.get('order')} меняется кнопками в его карточке выше. /cancel — отменить изменение.")
+        return
     if kind == "pin_link":
         if not (said.isdigit() and len(said) == 4):
             await _send(client, chat_id, "PIN — это 4 цифры. Пришлите ещё раз или /cancel.")
@@ -520,6 +525,60 @@ async def handle_callback(db, client, data: str, chat_id: Any, message: dict) ->
     return (result or "Готово")[:190]
 
 
+async def _edit_order(db, client, staff, chat_id, msg_id, action: str, o: dict, args: list[str], show) -> Optional[str]:
+    """«✏️ Изменить состав»: the card message becomes the editor (services.operator_order_edit)."""
+    from services import operator_order_edit as ed
+    oid = int(o["id"])
+    current = await staff_of(db, chat_id)
+    saved = json.loads(current.awaiting) if current and current.awaiting else None
+    draft = saved if saved and saved.get("kind") == "edit" and saved.get("order") == oid else None
+    if action == "ex":
+        await set_awaiting(db, chat_id, None)
+        return await show() or "Изменение отменено"
+    if o.get("status") not in ed.EDITABLE:
+        await set_awaiting(db, chat_id, None)
+        await show()
+        return "Заказ уже в пути или закрыт — состав не меняется"
+    if action == "e" or draft is None or draft["version"] != int(o.get("version") or 0):
+        draft = ed.draft_from_order(o)
+        await set_awaiting(db, chat_id, draft)
+        await _edit(client, chat_id, msg_id, ed.editor_text(draft), ed.editor_keyboard(draft, CB))
+        return "Изменение состава" if action == "e" else "Заказ изменился — начните заново"
+    if action == "eq" and len(args) == 2 and args[0].isdigit() and int(args[0]) < len(draft["lines"]):
+        ed.change_quantity(draft, int(args[0]), args[1])
+    elif action in ("ea", "ec", "ep"):
+        data = await ed.menu(db, o.get("restaurant_id"))
+        if action == "ea":
+            await _edit(client, chat_id, msg_id, ed.editor_text(draft, "<b>Выберите категорию:</b>"), ed.categories_keyboard(oid, data, CB))
+            return "Категории меню"
+        if action == "ec" and args and args[0].isdigit():
+            await _edit(client, chat_id, msg_id, ed.editor_text(draft, "<b>Выберите блюдо:</b>"), ed.products_keyboard(oid, int(args[0]), data, CB))
+            return "Блюда"
+        product = next((p for p in data["products"] if args and str(p["id"]) == args[0]), None)
+        if not product:
+            return "Блюдо недоступно"
+        ed.add_product(draft, product, data)
+    elif action in ("es", "eg", "ey"):
+        if not draft["lines"]:
+            return "Оставьте хотя бы одно блюдо — для полного отказа отмените заказ"
+        if action == "eg" and args and args[0].isdigit():
+            quote = await api(db, staff, "POST", f"{OPS}/orders/{oid}/receipt/quote", ed.payload(draft))
+            choices = quote.get("gift_choices") or []
+            if int(args[0]) < len(choices):
+                draft["gift"] = choices[int(args[0])]["id"]
+        quote = await api(db, staff, "POST", f"{OPS}/orders/{oid}/receipt/quote", ed.payload(draft))
+        if action == "ey" and not quote.get("gift_required"):
+            await api(db, staff, "POST", f"{OPS}/orders/{oid}/receipt", {**ed.payload(draft), "quoted_total": quote["total_amount"]})
+            await set_awaiting(db, chat_id, None)
+            return await show(f"Состав сохранён · {_money(quote['total_amount'])}")
+        await set_awaiting(db, chat_id, draft)
+        await _edit(client, chat_id, msg_id, ed.quote_text(draft, quote), ed.quote_keyboard(draft, quote, CB))
+        return "Проверьте новую сумму"
+    await set_awaiting(db, chat_id, draft)
+    await _edit(client, chat_id, msg_id, ed.editor_text(draft), ed.editor_keyboard(draft, CB))
+    return "Готово"
+
+
 async def _act(db, client, staff, chat_id, msg_id, action: str, oid: int, args: list[str]) -> Optional[str]:
     data = await api(db, staff, "GET", f"{OPS}/orders/{oid}")
     o, d = data["order"], data.get("delivery") or {}
@@ -532,6 +591,8 @@ async def _act(db, client, staff, chat_id, msg_id, action: str, oid: int, args: 
         return result
 
     back = [_b("↩️ Назад", f"{CB}r:{oid}")]
+    if action.startswith("e"):
+        return await _edit_order(db, client, staff, chat_id, msg_id, action, o, args, show)
     if action == "r":
         return await show() or "Обновлено"
     if action in ("s", "S"):

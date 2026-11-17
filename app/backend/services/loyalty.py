@@ -456,6 +456,10 @@ async def settle(db, order):
             await reward(db, referrer, order, 'REFERRAL', amount(p['referral_amount']), p['regular_days'], f'referral:{user.id}', r_risk)
     await refresh_receipt_snapshot(db, order, user)
     await db.flush()
+    earned_total = amount(order.loyalty_snapshot.get('bonus_earned') or 0)
+    if earned_total > 0:
+        from services.operator_telegram import remember_event
+        remember_event(db, order, f"Клиенту начислено {earned_total:g} бонусов · баланс {amount(user.bonus_balance):g}", 'Система', False)
 
 
 async def refresh_receipt_snapshot(db, order, user):

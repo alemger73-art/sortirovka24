@@ -4,10 +4,11 @@ import pytest
 from models.logistics import CourierProfile, LogisticsTask
 from services import logistics_tracking as service
 
-@pytest.mark.parametrize('stamp', [None, 'broken', '2026-01-01T00:00:00',
-    (datetime.now(timezone.utc)-timedelta(minutes=5)).isoformat(),
-    (datetime.now(timezone.utc)+timedelta(minutes=5)).isoformat()])
+@pytest.mark.parametrize('stamp', [None, 'broken', '2026-01-01T00:00:00', timedelta(minutes=-5), timedelta(minutes=5)])
 async def test_stale_or_invalid_gps_is_not_live(stamp, monkeypatch):
+    # Offsets become timestamps when the test runs: computed at collection, «5 minutes ahead» went stale in a long run.
+    if isinstance(stamp, timedelta):
+        stamp=(datetime.now(timezone.utc)+stamp).isoformat()
     routing=AsyncMock()
     monkeypatch.setattr(service,'road_eta_minutes',routing)
     result=await service.build_task_tracking(LogisticsTask(status='on_the_way',dropoff_lat=0,dropoff_lng=0),

@@ -119,3 +119,17 @@ async def test_one_change_relays_only_the_final_status(tg):
     await drain()
     lines = sent(fake)[before:]
     assert lines == ['<b>№1</b> · 🏁 Завершён · <i>Оператор</i>'], lines
+
+
+async def test_delivered_line_says_how_many_bonuses_the_customer_got(tg):
+    _, maker, _, fake = tg
+    await link(maker, fake)
+    before = len(sent(fake))
+    async with maker() as db:
+        from services.food_operations import add_event
+        order = await db.get(Food_orders, 1)
+        add_event(db, order, 'Статус: В пути → Завершён · Оплата: получена', 'Оператор')
+        ot.remember_event(db, order, 'Клиенту начислено 436 бонусов · баланс 436', 'Система', False)
+        await db.commit()
+    await drain()
+    assert sent(fake)[before:] == ['<b>№1</b> · 🏁 Завершён · <i>Оператор</i>\n   🎁 Клиенту начислено 436 бонусов · баланс 436']

@@ -292,6 +292,8 @@ def event_line(order_id: int, message: str, actor: str, notify: bool) -> tuple[s
         if new_status == "Отменён" and reason.strip():
             line += f" — {html.escape(reason.split(' · ')[0].strip()[:200])}"
         return "status", line + who
+    if text_.startswith("Клиенту начислено"):
+        return "bonus", f"   🎁 {html.escape(text_[:200])}"
     if text_.startswith(("Новый адрес:", "Предзаказ перенесён", "Состав изменён", "Клиент просит изменить состав")):
         return "note", f"{head} · ✏️ {html.escape(text_[:400])}{who}"
     if notify and text_ not in SKIP_EVENTS and not text_.isupper() and not text_.startswith(("Оплата", "Возврат")):

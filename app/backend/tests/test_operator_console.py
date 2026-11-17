@@ -207,3 +207,44 @@ def test_menu_without_accounting_has_no_shift_or_debts():
     from services.operator_console import SHIFT_BUTTON, menu_keyboard
     texts = [b["text"] for row in menu_keyboard(False)["keyboard"] for b in row]
     assert SHIFT_BUTTON not in texts and "💳 Долги" not in texts and "🆕 Новые" in texts
+
+
+async def test_operator_changes_the_order_in_telegram_after_a_call(tg):
+    """«✏️ Изменить состав»: ➖ ➕, add a dish from the menu, see the new total, save — through the cabinet's receipt API."""
+    _, maker, fake = tg
+    async with maker() as db:
+        row = await db.get(Food_orders, 1)
+        row.payment_method, row.payment_status, row.paid_amount = 'cash', 'pending', 0
+        await db.commit()
+    await linked(maker, fake)
+    await say(maker, '2222')
+    await click(maker, f'{oc.CB}o:1')
+    assert await click(maker, press(fake, 'Изменить состав')) == 'Изменение состава'
+    assert 'изменение состава' in text_of(fake, 'editMessageText') and 'Pizza × 1' in text_of(fake, 'editMessageText')
+    await click(maker, f'{oc.CB}eq:1:0:+')
+    assert 'Pizza × 2' in text_of(fake, 'editMessageText')
+    assert await click(maker, f'{oc.CB}ea:1') == 'Категории меню'
+    await click(maker, f'{oc.CB}ep:1:2')
+    assert 'Drink × 1' in text_of(fake, 'editMessageText')
+    assert await click(maker, f'{oc.CB}es:1') == 'Проверьте новую сумму'
+    summary = text_of(fake, 'editMessageText')
+    assert 'Было: 1 200 ₸' in summary and 'Станет:' in summary
+    assert (await click(maker, press(fake, 'Сохранить', 'editMessageText'))).startswith('Состав сохранён')
+    saved = await order(maker)
+    lines = json.loads(saved.order_items)
+    assert [(x['name'], x['quantity']) for x in lines if not x.get('is_gift')] == [('Pizza', 2), ('Drink', 1)]
+    assert saved.receipt_revision == 1 and saved.total_amount > 1200
+    async with maker() as db:
+        assert (await oc.staff_of(db, CHAT)).awaiting is None  # the draft is gone after saving
+
+
+async def test_order_edit_can_be_cancelled_and_typing_does_not_break_it(tg):
+    _, maker, fake = tg
+    await linked(maker, fake)
+    await say(maker, '2222')
+    await click(maker, f'{oc.CB}e:1')
+    await click(maker, f'{oc.CB}eq:1:0:-')
+    assert await say(maker, 'привет')
+    assert 'меняется кнопками' in text_of(fake)
+    await click(maker, f'{oc.CB}ex:1')
+    assert json.loads((await order(maker)).order_items)[0]['quantity'] == 1  # nothing saved
