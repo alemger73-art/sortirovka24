@@ -1,11 +1,12 @@
 /** Home page: fresh ads in a swipeable row, «Подать» in the heading and kinds as line-icon chips. */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Briefcase, Gift, ImageIcon, Plus, Tag, Wrench } from 'lucide-react';
+import { ArrowRight, Briefcase, Gift, Plus, Tag, Wrench } from 'lucide-react';
 import StorageImg from '@/components/StorageImg';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { client, withRetry } from '@/lib/api';
 import { fetchWithCache } from '@/lib/cache';
+import AdTextCover from '@/components/AdTextCover';
 import { filterPublicAnnouncements, getAnnouncementCover } from '@/lib/announcements';
 import { AD_FILTERS, formatAdPrice, kindOf } from '@/lib/adKinds';
 import { track } from '@/lib/analytics';
@@ -58,7 +59,7 @@ export default function HomeAds() {
           const price = formatAdPrice(ad.price);
           return (
             <Link key={ad.id} ref={seen(Number(ad.id))} to={`/announcements/${ad.id}`} className="a-card a-ad">
-              <span className="a-ad-img">{cover ? <StorageImg objectKey={cover} alt={ad.title} className="h-full w-full object-cover" /> : <ImageIcon size={28} strokeWidth={1.5} aria-label={k ? (kz ? k.title.kz : k.title.ru) : ''} />}</span>
+              <span className="a-ad-img">{cover ? <StorageImg objectKey={cover} alt={ad.title} className="h-full w-full object-cover" /> : <AdTextCover title={ad.title} kind={ad.ann_type} size="mini" />}</span>
               <span className="a-ad-body"><b>{price || (k ? (kz ? k.title.kz : k.title.ru) : '')}</b><span>{ad.title}</span></span>
             </Link>
           );

@@ -1,0 +1,32 @@
+/* An ad without a photo gets a calm coloured cover with its own title instead of an empty box. */
+.ad-text-cover { position: absolute; inset: 0; display: flex; overflow: hidden; align-items: flex-end;
+  padding: 44px 14px 14px; background: var(--atc-bg); color: var(--atc-ink); text-align: left; }
+.ad-text-cover__title { position: relative; z-index: 1; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
+  overflow: hidden; font-weight: 800; font-size: 16px; line-height: 1.18; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.ad-text-cover__mark { position: absolute; right: -14px; bottom: -14px; width: 96px; height: 96px; opacity: .14; transform: rotate(-12deg); }
+.ad-text-cover--big { padding: 64px 28px 28px; }
+.ad-text-cover--big .ad-text-cover__title { font-size: clamp(24px, 4.5vw, 40px); -webkit-line-clamp: 4; max-width: 85%; }
+.ad-text-cover--big .ad-text-cover__mark { width: 220px; height: 220px; right: -30px; bottom: -30px; }
+.ad-text-cover--mini { padding: 12px; align-items: center; }
+.ad-text-cover--mini .ad-text-cover__title { font-size: 14px; -webkit-line-clamp: 5; }
+.ad-text-cover--mini .ad-text-cover__mark { width: 70px; height: 70px; }
+
+.ad-text-cover[data-kind="services"] { --atc-bg: #ffe9b8; --atc-ink: #5b3a00; }
+.ad-text-cover[data-kind="job"]      { --atc-bg: #d3f1dc; --atc-ink: #0f4a29; }
+.ad-text-cover[data-kind="seek"]     { --atc-bg: #e4e8ef; --atc-ink: #23314a; }
+.ad-text-cover[data-kind="sell"]     { --atc-bg: #dce6ff; --atc-ink: #17306e; }
+.ad-text-cover[data-kind="buy"]      { --atc-bg: #d2f1f0; --atc-ink: #0d4747; }
+.ad-text-cover[data-kind="rent"]     { --atc-bg: #e8defd; --atc-ink: #3b2471; }
+.ad-text-cover[data-kind="free"]     { --atc-bg: #ffdfe9; --atc-ink: #761d3d; }
+.ad-text-cover[data-kind="lost"]     { --atc-bg: #ffe1d7; --atc-ink: #77230f; }
+.ad-text-cover { --atc-bg: #e6edff; --atc-ink: #16243b; }
+
+.dark .ad-text-cover { --atc-bg: #1d2a44; --atc-ink: #e6edff; }
+.dark .ad-text-cover[data-kind="services"] { --atc-bg: #3d2d0c; --atc-ink: #ffe3a3; }
+.dark .ad-text-cover[data-kind="job"]      { --atc-bg: #12331f; --atc-ink: #c4ecd2; }
+.dark .ad-text-cover[data-kind="seek"]     { --atc-bg: #252d3b; --atc-ink: #dfe5ef; }
+.dark .ad-text-cover[data-kind="sell"]     { --atc-bg: #182649; --atc-ink: #d6e1ff; }
+.dark .ad-text-cover[data-kind="buy"]      { --atc-bg: #10302f; --atc-ink: #c9efed; }
+.dark .ad-text-cover[data-kind="rent"]     { --atc-bg: #2a1d4a; --atc-ink: #e3d8fb; }
+.dark .ad-text-cover[data-kind="free"]     { --atc-bg: #3d1424; --atc-ink: #ffd5e3; }
+.dark .ad-text-cover[data-kind="lost"]     { --atc-bg: #3d1a10; --atc-ink: #ffd8cb; }

@@ -31,6 +31,7 @@ import {
   type AnnCategory, fetchAnnouncementCategories, filterPublicAnnouncements, getAnnouncementCover,
   loadAnnFavorites, sortAnnouncements, toggleAnnFavorite,
 } from '@/lib/announcements';
+import AdTextCover from '@/components/AdTextCover';
 import { AD_FILTERS, AD_KINDS, AD_KIND_MAP, type AdKind, type Bi, formatAdPrice, formatKzPhone, kindOf, normalizeKzPhone } from '@/lib/adKinds';
 
 function useTx() {
@@ -482,7 +483,7 @@ function AdCard({ ad, preview, favorite, onFavorite }: { ad: any; preview?: bool
     <>
       <div className="relative aspect-[4/3] overflow-hidden bg-[var(--ads-soft)]">
         {cover ? <StorageImg objectKey={cover} alt={ad.title} className="h-full w-full object-cover" />
-          : <div className="ads-noimg" aria-hidden><Icon className="h-12 w-12" strokeWidth={1.5} /></div>}
+          : <AdTextCover title={ad.title} kind={ad.ann_type} />}
         {k && <span className="ads-tag absolute left-2.5 top-2.5"><Icon className="h-3.5 w-3.5" />{bi(k.title)}</span>}
         {(ad.video_url || ad.video_key) && <span data-testid="ad-video-badge" className="ads-tag absolute bottom-2.5 left-2.5"><Play className="h-3.5 w-3.5 fill-current" />{tx('Видео', 'Бейне')}</span>}
         {onFavorite && (
@@ -789,7 +790,7 @@ export function AdDetail() {
                 <div className="relative aspect-[4/3] bg-[var(--ads-soft)] lg:aspect-auto lg:h-[520px]">
                   {video && photoAt < 0 ? <video key={video} src={video} poster={ad.video_poster_url || undefined} controls playsInline preload="none" className="h-full w-full bg-black object-contain" />
                     : photos.length ? <StorageImg objectKey={photos[photoAt]} alt={ad.title} className="h-full w-full object-contain" />
-                    : <div className="ads-noimg" aria-hidden><KindIcon className="h-20 w-20" strokeWidth={1.25} /></div>}
+                    : <AdTextCover title={ad.title} kind={ad.ann_type} size="big" />}
                   {slides > 1 && <>
                     <button type="button" aria-label={tx('Предыдущее фото', 'Алдыңғы фото')} onClick={() => setPhoto((p) => (p - 1 + slides) % slides)} className={`absolute left-3 top-1/2 -translate-y-1/2 ${iconBtn}`}><ArrowLeft className="h-5 w-5" /></button>
                     <button type="button" aria-label={tx('Следующее фото', 'Келесі фото')} onClick={() => setPhoto((p) => (p + 1) % slides)} className={`absolute right-3 top-1/2 -translate-y-1/2 ${iconBtn}`}><ArrowRight className="h-5 w-5" /></button>

@@ -38,7 +38,6 @@
 .ads-pill em { font-style: normal; opacity: .65; font-size: 12px; }
 .ads-card { display: flex; flex-direction: column; overflow: hidden; background: var(--ads-panel); border: 1px solid var(--ads-line); border-radius: 20px; transition: box-shadow .15s, transform .15s; min-width: 0; }
 a.ads-card:hover { box-shadow: 0 10px 28px #17345b14; transform: translateY(-2px); }
-.ads-noimg { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; background: linear-gradient(135deg, var(--ads-accent-soft), var(--ads-soft)); color: var(--ads-accent); }
 .ads-tag { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 3px 9px; font-size: 11px; font-weight: 650; background: #ffffffeb; color: #16243b; box-shadow: 0 1px 2px #0000001a; }
 .ads-chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 650; background: var(--ads-accent-soft); color: var(--ads-accent); }
 .ads-surface :is(a, button, input, textarea):focus-visible { outline: 3px solid #82a4ff; outline-offset: 2px; }
