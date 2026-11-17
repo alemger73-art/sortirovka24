@@ -690,6 +690,17 @@ export function AdDetail() {
   const video: string | null = ad?.video_url || null;
   const slides = photos.length + (video ? 1 : 0);
   const photoAt = photo - (video ? 1 : 0);
+  // Swipe left / right on the photo, like in any gallery; a mostly vertical move stays a page scroll.
+  const touch = useRef<{ x: number; y: number } | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => { touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const start = touch.current;
+    touch.current = null;
+    if (!start || slides < 2) return;
+    const dx = e.changedTouches[0].clientX - start.x, dy = e.changedTouches[0].clientY - start.y;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    setPhoto((p) => (dx < 0 ? (p + 1) % slides : (p - 1 + slides) % slides));
+  };
   const description = ad ? String(ad.description || ad.title || '').replace(/\s+/g, ' ').trim().slice(0, 160) : '';
 
   usePageSeo({
@@ -793,7 +804,7 @@ export function AdDetail() {
             {/* Left: photos and the text */}
             <div className="min-w-0 space-y-5">
               <div className="ads-panel overflow-hidden">
-                <div className="relative aspect-[4/3] bg-[var(--ads-soft)] lg:aspect-auto lg:h-[520px]">
+                <div className="relative aspect-[4/3] bg-[var(--ads-soft)] lg:aspect-auto lg:h-[520px]" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
                   {video && photoAt < 0 ? <video key={video} src={video} poster={ad.video_poster_url || undefined} controls playsInline preload="none" className="h-full w-full bg-black object-contain" />
                     : photos.length ? <StorageImg objectKey={photos[photoAt]} alt={ad.title} className="h-full w-full object-contain" />
                     : <AdTextCover title={ad.title} kind={ad.ann_type} size="big" />}
