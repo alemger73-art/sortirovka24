@@ -37,28 +37,28 @@ router = APIRouter(
 
 # ---------- Pydantic Schemas ----------
 class AnnouncementsData(BaseModel):
-    """Entity data schema (for create/update)"""
-    ann_type: str = None
-    title: str = None
-    description: str = None
-    price: str = None
-    address: str = None
-    image_url: str = None
-    gallery_images: str = None
-    phone: str = None
-    whatsapp: str = None
-    telegram: str = None
-    author_name: str = None
-    active: bool = None
-    status: str = None
-    created_at: str = None
-    user_id: str = None
-    category_id: int = None
-    expires_at: str = None
-    promoted_until: str = None
-    promotion_tier: str = None
-    views_count: int = None
-    video_key: str = None  # object key of the ad's one video (announcement_videos)
+    """Entity data schema (for create/update). Every field may be null: the ad form sends image_url: null when there is no photo."""
+    ann_type: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[str] = None
+    address: Optional[str] = None
+    image_url: Optional[str] = None
+    gallery_images: Optional[str] = None
+    phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    telegram: Optional[str] = None
+    author_name: Optional[str] = None
+    active: Optional[bool] = None
+    status: Optional[str] = None
+    created_at: Optional[str] = None
+    user_id: Optional[str] = None
+    category_id: Optional[int] = None
+    expires_at: Optional[str] = None
+    promoted_until: Optional[str] = None
+    promotion_tier: Optional[str] = None
+    views_count: Optional[int] = None
+    video_key: Optional[str] = None  # object key of the ad's one video (announcement_videos)
 
 
 class AnnouncementsUpdateData(BaseModel):

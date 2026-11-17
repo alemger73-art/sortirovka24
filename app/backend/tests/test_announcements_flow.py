@@ -141,3 +141,13 @@ async def test_real_ad_statistics_for_owner(security_env):
         mine = (await _announcements_with_stats(db, [row]))[0]
     assert mine['stats'] == {'views': 2, 'people': 2, 'saves': 1, 'contacts': 2, 'impressions': 1}
     assert mine['views_count'] == 2
+
+
+async def test_ad_without_photo_is_accepted_as_the_form_sends_it(security_env):
+    """The ad form sends image_url: null when no photo was added; that once rejected every photo-less ad."""
+    client, _maker, headers = security_env
+    form = {**BODY, 'price': '', 'address': '', 'whatsapp': '+77001234567', 'author_name': 'Алия',
+            'gallery_images': '', 'image_url': None, 'video_key': ''}
+    r = await client.post(BASE, headers=headers['alice'], json=form)
+    assert r.status_code == 201, r.text
+    assert r.json()['status'] == 'pending'
