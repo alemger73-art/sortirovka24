@@ -285,7 +285,7 @@ async def test_customer_photo_is_shown_to_the_ai_but_not_kept_in_memory(bot, mon
 
 
 def test_sales_manner_full_menu_occasion_and_birthday():
-    prompt = B.system_prompt("Кухня открыта", "Айгерим", menu="#1 Пепперони (30 см) — 3 200 ₸")
+    prompt = B.system_prompt("Кухня открыта. Действующие промокоды: BIRTHDAY: −10%", "Айгерим", menu="#1 Пепперони (30 см) — 3 200 ₸")
     assert "присылай ВСЁ меню" in prompt and "повод" in prompt
     assert "BIRTHDAY" in prompt and "удостоверения" in prompt and "ИИН" in prompt
     assert "1–2 строки" in prompt and "не больше одного" in prompt
@@ -352,3 +352,12 @@ async def test_unreadable_message_is_answered_and_staff_called(bot, monkeypatch)
     async with httpx.AsyncClient(transport=transport([], [])) as client:
         out = await B.handle_event(msg(""), client)
     assert out.action == "unreadable" and called
+
+
+def test_birthday_discount_is_promised_only_while_the_code_is_active():
+    from services.dam_wa_bot import system_prompt
+    active = system_prompt("Действующие промокоды: BIRTHDAY: −10%", "Алия")
+    assert "промокод BIRTHDAY" in active
+    off = system_prompt("Время доставки: 20–30 мин.", "Алия")
+    assert "промокод BIRTHDAY" not in off and "Скидок на день рождения сейчас нет" in off
+    assert "PIZZA500" not in off
