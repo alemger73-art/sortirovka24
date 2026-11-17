@@ -318,7 +318,8 @@ class Food_ordersService:
                     payment = await current_payment(self.db, obj)
                     if payment and payment.status in ('CREATED', 'WAITING') and not payment.external_id:
                         payment.status, payment.expired_at = 'EXPIRED', now()
-                message = f"Статус: {LABELS.get(old_status, old_status)} → {LABELS.get(target, target)}" if target != old_status else 'Данные заказа обновлены'
+                message = f"Статус: {LABELS.get(old_status, old_status)} → {LABELS.get(target, target)}" if target != old_status \
+                    else f"Новый адрес: {update_data['delivery_address'].strip()}" if update_data.get('delivery_address') else 'Данные заказа обновлены'
                 if target == 'cancelled':
                     message += ': ' + update_data['cancellation_reason'].strip()
                 if 'payment_status' in update_data:

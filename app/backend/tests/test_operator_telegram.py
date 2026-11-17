@@ -72,7 +72,7 @@ async def test_order_events_arrive_after_commit_and_never_after_rollback(tg):
     assert (await client.patch(BASE + '/orders/1', headers=headers, json={'expected_version': 0, 'status': 'confirmed'})).status_code == 200
     await drain()
     lines = sent(fake)[before:]
-    assert len(lines) == 1 and 'Заказ №1' in lines[0] and 'Принят' in lines[0]
+    assert len(lines) == 1 and '№1' in lines[0] and 'Принят' in lines[0]
 
     async with maker() as db:
         from services.food_operations import add_event
@@ -91,3 +91,31 @@ async def test_stop_unlinks_and_nothing_is_sent_without_the_bot(tg, monkeypatch)
         monkeypatch.delenv('NEWS_TELEGRAM_BOT_TOKEN')
         ot.notify_new_order(await db.get(Food_orders, 1))
     assert not ot._background
+
+
+def test_event_lines_are_short_and_skip_bookkeeping():
+    status = ot.event_line(56, 'Статус: В пути → Завершён · Оплата: получена', 'DAM ALEM 2.0', True)
+    assert status == ('status', '<b>№56</b> · 🏁 Завершён · <i>DAM ALEM 2.0</i>')
+    cancel = ot.event_line(7, 'Статус: Новый → Отменён: клиент передумал', 'Система', True)
+    assert cancel == ('status', '<b>№7</b> · ❌ Отменён — клиент передумал')
+    assert ot.event_line(56, 'Новый адрес: Локомотивная 149, кв. 18', 'Оператор', False)[1].startswith('<b>№56</b> · ✏️ Новый адрес')
+    for noise in ('ORDER_STATUS_CHANGED', 'Оплата: 7400.00 ₸', 'Оплата подтверждена', 'Доставлено', 'Передан на кухню'):
+        assert ot.event_line(56, noise, 'Оператор', False) is None, noise
+    assert ot.event_line(56, 'Оплата: 7400.00 ₸', 'Оператор', True) is None
+
+
+async def test_one_change_relays_only_the_final_status(tg):
+    _, maker, _, fake = tg
+    await link(maker, fake)
+    before = len(sent(fake))
+    async with maker() as db:
+        from services.food_operations import add_event
+        order = await db.get(Food_orders, 1)
+        add_event(db, order, 'Статус: Готовится → В пути', 'Оператор')
+        add_event(db, order, 'ORDER_STATUS_CHANGED', 'Оператор', notify=False)
+        add_event(db, order, 'Оплата: 1200.00 ₸', 'Оператор', notify=False)
+        add_event(db, order, 'Статус: В пути → Завершён · Оплата: получена', 'Оператор')
+        await db.commit()
+    await drain()
+    lines = sent(fake)[before:]
+    assert lines == ['<b>№1</b> · 🏁 Завершён · <i>Оператор</i>'], lines

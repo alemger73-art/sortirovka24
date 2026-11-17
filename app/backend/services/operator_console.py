@@ -308,6 +308,18 @@ async def keyboard(db) -> dict:
     return menu_keyboard(await accounting_on(db))
 
 
+async def refresh_menus(db, client, note: str) -> int:
+    """Sends the current menu to every operator console chat (Telegram keeps an old menu until a new one arrives)."""
+    from services.operator_telegram import chats
+    menu, count = await keyboard(db), 0
+    for chat_id in await chats(db):
+        staff = await staff_of(db, chat_id)
+        if staff and staff.staff_id:
+            await _send(client, chat_id, note, menu)
+            count += 1
+    return count
+
+
 # ---------------- Telegram plumbing ----------------
 async def _send(client, chat_id, message: str, keyboard: Optional[dict] = None) -> None:
     from services.news_agent import tg
@@ -362,6 +374,10 @@ async def handle_text(db, client, chat: dict, message: dict) -> bool:
         await _answer(db, client, chat_id, staff, awaiting, said)
         return True
     if bound and (said in MENU or said in OLD_MENU):
+        menu = await keyboard(db)
+        if said not in [b["text"] for row in menu["keyboard"] for b in row]:  # a button of an older menu
+            await _send(client, chat_id, "Меню обновлено: оставили только заказы — 📋 Активные, 🆕 Новые, 🚗 В пути.", menu)
+            return True
         await _list(db, client, chat_id, staff, MENU.get(said) or OLD_MENU[said], said)
         return True
     if bound and said == SHIFT_BUTTON:
@@ -369,7 +385,7 @@ async def handle_text(db, client, chat: dict, message: dict) -> bool:
         if await accounting_on(db):
             await _shift(db, client, chat_id, staff)
         else:
-            await _send(client, chat_id, "Смены отключены — просто меняйте статусы заказов.", await keyboard(db))
+            await _send(client, chat_id, "Меню обновлено: смены отключены, просто меняйте статусы заказов.", await keyboard(db))
         return True
     return False
 

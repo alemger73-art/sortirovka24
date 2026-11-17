@@ -273,24 +273,55 @@ async def _send_all(message: str, order_ids: list[int], *, new: bool = False) ->
         logger.warning("[OperatorTG] not sent: %s", exc)
 
 
-def remember_event(db, order: Any, message: str, actor: str) -> None:
-    """Order events are relayed only once their transaction has committed (a rolled back change never goes out)."""
-    if message in SKIP_EVENTS or not enabled():
+STATUS_ICONS = {"Принят": "✅", "Готовится": "👨‍🍳", "Готов к выдаче": "📦", "В пути": "🚗", "Завершён": "🏁", "Отменён": "❌"}
+
+
+def event_line(order_id: int, message: str, actor: str, notify: bool) -> tuple[str, str] | None:
+    """One short line an operator understands at a glance, or None for bookkeeping the operator does not need.
+
+    Status changes become «№56 · 🚗 В пути»; technical mirror events (codes, payment records, «Доставлено»
+    after «Завершён») are dropped. Returns (kind, line); kind «status» lets later status lines replace earlier ones.
+    """
+    text_ = str(message or "").strip()
+    who = f" · <i>{html.escape(actor[:60])}</i>" if actor and actor != "Система" else ""
+    head = f"<b>№{order_id}</b>"
+    if text_.startswith("Статус: ") and "→" in text_:
+        new_status, _, reason = text_.split("→", 1)[1].strip().partition(":")
+        new_status = new_status.split(" · ")[0].strip()
+        line = f"{head} · {STATUS_ICONS.get(new_status, '•')} {html.escape(new_status)}"
+        if new_status == "Отменён" and reason.strip():
+            line += f" — {html.escape(reason.split(' · ')[0].strip()[:200])}"
+        return "status", line + who
+    if text_.startswith(("Новый адрес:", "Предзаказ перенесён", "Состав изменён", "Клиент просит изменить состав")):
+        return "note", f"{head} · ✏️ {html.escape(text_[:400])}{who}"
+    if notify and text_ not in SKIP_EVENTS and not text_.isupper() and not text_.startswith(("Оплата", "Возврат")):
+        return "note", f"{head} · {html.escape(text_[:400])}{who}"
+    return None
+
+
+def remember_event(db, order: Any, message: str, actor: str, notify: bool = True) -> None:
+    """Order events are relayed only once their transaction has committed (a rolled back change never goes out).
+    Within one change only the order's final status is relayed."""
+    if not enabled():
         return
     info = getattr(db, "info", None)
     if info is None:
         return
-    line = f"📋 <b>Заказ №{order.id}</b>: {html.escape(str(message))[:600]}"
-    if actor and actor not in ("Система",):
-        line += f"\n<i>{html.escape(str(actor))[:80]}</i>"
-    info.setdefault(PENDING_KEY, []).append((int(order.id), line))
+    found = event_line(int(order.id), message, actor, notify)
+    if not found:
+        return
+    kind, line = found
+    pending = info.setdefault(PENDING_KEY, [])
+    if kind == "status":
+        pending[:] = [item for item in pending if not (item[0] == int(order.id) and item[2] == "status")]
+    pending.append((int(order.id), line, kind))
 
 
 @event.listens_for(Session, "after_commit")
 def _after_commit(session: Session) -> None:
     pending = session.info.pop(PENDING_KEY, None)
     if pending:
-        _schedule(_send_all("\n\n".join(line for _, line in pending), [oid for oid, _ in pending]))
+        _schedule(_send_all("\n".join(line for _, line, _ in pending), [oid for oid, _, _ in pending]))
 
 
 @event.listens_for(Session, "after_rollback")
