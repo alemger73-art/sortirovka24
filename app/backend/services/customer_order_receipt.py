@@ -29,10 +29,24 @@ def receipt_snapshot(order):
             'change_amount': getattr(order, 'change_amount', None)}
 
 
+CUSTOMER_CHANGES_KEY = 'customer_order_changes'
+CHANGES_OFF = 'Изменить заказ можно по телефону DÄM ALEM — оператор поменяет состав, сумма и бонусы пересчитаются.'
+
+
+async def customer_changes_on(db) -> bool:
+    """Customers change a placed order only by calling: the operator edits it in the cabinet. Off by default;
+    the food setting «customer_order_changes» = 1 brings back the customer's own edit and change request."""
+    from services.food_preorders import schedule_settings
+    from services.food_orders import _on
+    return _on((await schedule_settings(db)).get(CUSTOMER_CHANGES_KEY))
+
+
 async def customer_edit_allowed(db, order):
     from services.dam_order_workflow import paid
     from models.food_payment import FoodPayment
     from sqlalchemy import select, or_
+    if not await customer_changes_on(db):
+        return False
     if order.status != 'new' or paid(order) > 0 or order.payment_status in ('paid', 'refunded') or order.payment_method != 'cash':
         return False
     return not await db.scalar(select(FoodPayment.id).where(

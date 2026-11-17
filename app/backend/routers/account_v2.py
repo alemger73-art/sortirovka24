@@ -67,6 +67,7 @@ from schemas.customer_order_receipt import CustomerReceiptChange
 from services.account_profile import AvatarValidationError, normalize_avatar_url
 from services.gastronom_delivery import geocode_address, reverse_geocode
 from services.cabinet_history import owns_content, list_owned_history, legacy_food_id
+from services.customer_order_receipt import CHANGES_OFF, customer_changes_on
 from services.account_session import resolve_account_user
 from services.auth import AuthService
 from services.google_oauth import (
@@ -1840,7 +1841,7 @@ async def cabinet_order_detail(
         data.update(settlement_view(row))
         from models.food_operations import FoodOrderEvent
         from services.dam_order_workflow import paid
-        from services.customer_order_receipt import customer_edit_allowed, public_receipt_event
+        from services.customer_order_receipt import customer_changes_on, customer_edit_allowed, public_receipt_event
         from services.food_operations import is_dam_order
         data.update(receipt_revision=row.receipt_revision or 0, receipt_updated_at=row.receipt_updated_at,
             payment_status=row.payment_status, paid_amount=float(paid(row)), version=row.version or 0,
@@ -1852,7 +1853,7 @@ async def cabinet_order_detail(
         data.update(invoice_view(await current_payment(db, row)))
         dam = await is_dam_order(db, row)
         data['can_edit_receipt'] = dam and await customer_edit_allowed(db, row)
-        data['can_request_receipt_change'] = dam and row.status in ('new', 'confirmed', 'preparing', 'ready')
+        data['can_request_receipt_change'] = dam and row.status in ('new', 'confirmed', 'preparing', 'ready') and await customer_changes_on(db)
         return data
 
     for type_key, label, store_path, model in STORE_ORDER_SOURCES:
@@ -1911,6 +1912,8 @@ async def customer_receipt_save(order_id: int, body: CustomerReceiptChange, auth
     try:
         await lock_dam_operations(db)
         row = await _owned_dam_receipt_order(db, authorization, order_id)
+        if not await customer_changes_on(db):
+            raise HTTPException(403, CHANGES_OFF)
         await amend(db, row, body, 'Клиент', customer=True)
         return await cabinet_order_detail('food', order_id, authorization, db)
     except Exception:
@@ -1928,6 +1931,8 @@ async def customer_receipt_request(order_id: int, body: CustomerReceiptChange, a
     try:
         await lock_dam_operations(db)
         row = await _owned_dam_receipt_order(db, authorization, order_id)
+        if not await customer_changes_on(db):
+            raise HTTPException(403, CHANGES_OFF)
         quote = await quote_change(db, row, body)
         if quote['gift_required'] or body.quoted_total is None or money(body.quoted_total) != money(quote['total_amount']):
             raise HTTPException(409, 'Расчёт изменился. Проверьте новую сумму и подарок.')

@@ -17,6 +17,17 @@ from tests.test_dam_order_workflow import env, BASE  # noqa: F401
 CUSTOMER = '/api/v1/account/orders/food/1/receipt'
 
 
+
+@pytest.fixture(autouse=True)
+def customer_changes_switched_on(request, monkeypatch):
+    """These tests cover the customer's own edit, which works only while the owner switches it on."""
+    if 'customer_changes_off' in request.keywords:
+        return
+    async def on(db):
+        return True
+    monkeypatch.setattr('services.customer_order_receipt.customer_changes_on', on)
+    monkeypatch.setattr('routers.account_v2.customer_changes_on', on)
+
 async def customer_order(maker, monkeypatch, **values):
     user = SimpleNamespace(id='client', phone='+77000000000', phone_verified_at=datetime.now(timezone.utc))
     monkeypatch.setattr(account_v2, '_current_user', AsyncMock(return_value=user))
@@ -204,3 +215,18 @@ async def test_initial_receipt_survives_later_order_changes(env):
         assert unchanged == baseline
         assert unchanged['after']['total_amount'] == 1200
         assert unchanged['after']['items'][0]['quantity'] == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.customer_changes_off
+async def test_by_default_the_customer_changes_an_order_only_by_calling(env):
+    client, maker, _, monkeypatch = env
+    body = await customer_order(maker, monkeypatch)
+    detail = (await client.get('/api/v1/account/orders/food/1')).json()
+    assert detail['can_edit_receipt'] is False and detail['can_request_receipt_change'] is False
+    body['quoted_total'] = 2300
+    for path in (CUSTOMER, CUSTOMER + '/request'):
+        response = await client.post(path, json=body)
+        assert response.status_code == 403 and 'по телефону' in response.json()['detail'], response.text
+    async with maker() as db:
+        assert (await db.get(Food_orders, 1)).receipt_revision in (None, 0)
