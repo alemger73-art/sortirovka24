@@ -50,8 +50,8 @@ def period(start, end):
 
 @router.get('/me')
 async def me(db:AsyncSession=Depends(get_db),claims=Depends(food_staff)):
-    from services.food_orders import couriers_on
-    return {'role':claims['access_role'],'name':actor(claims),'couriers_enabled':await couriers_on(db)}
+    from services.food_orders import accounting_on, couriers_on
+    return {'role':claims['access_role'],'name':actor(claims),'couriers_enabled':await couriers_on(db),'accounting_enabled':await accounting_on(db)}
 
 @router.get('/today')
 async def today(db:AsyncSession=Depends(get_db),claims=Depends(food_staff)):

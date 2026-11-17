@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 # ------------------ Service Layer ------------------
 OPERATOR_DELIVERY_KEY = 'operator_runs_delivery'
 COURIERS_KEY = 'couriers_enabled'
+ACCOUNTING_KEY = 'accounting_enabled'
 
 
 def _on(value) -> bool:
@@ -35,6 +36,18 @@ def couriers_enabled(settings) -> bool:
 async def couriers_on(db) -> bool:
     from services.food_preorders import schedule_settings
     return couriers_enabled(await schedule_settings(db))
+
+
+def accounting_enabled(settings) -> bool:
+    """Shifts, cashbox, payroll and finance reports are off by default: the operator only moves order statuses
+    (in the cabinet or in Telegram) and needs no open shift. Nothing is deleted; the owner turns accounting back on
+    with the food setting «accounting_enabled» = 1."""
+    return _on((settings or {}).get(ACCOUNTING_KEY))
+
+
+async def accounting_on(db) -> bool:
+    from services.food_preorders import schedule_settings
+    return accounting_enabled(await schedule_settings(db))
 
 
 def operator_runs_delivery(settings) -> bool:

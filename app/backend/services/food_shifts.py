@@ -178,6 +178,9 @@ async def require_partner_shift(db: AsyncSession, claims: dict) -> FoodShift | N
     # Use the current database role rather than a potentially stale JWT claim.
     if credentials and (credentials.access_role or 'owner') == 'owner':
         return None
+    from services.food_orders import accounting_on
+    if not await accounting_on(db):
+        return None  # accounting is off: an operator only moves order statuses, without a shift
     if not credentials.pin_hash:
         raise HTTPException(409, "Владелец должен назначить сотруднику PIN-код")
     row = await active_shift(db, "partner", staff_id)

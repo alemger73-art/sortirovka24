@@ -104,8 +104,10 @@ async def bind(db, chat_id: Any, pin: str) -> str:
     await db.execute(text("INSERT INTO operator_telegram_staff (chat_id, staff_id, pin_version, staff_name) "
                           "VALUES (:c, :s, :v, :n)"), {"c": str(chat_id), "s": row.id, "v": _pin_version(row.pin_hash), "n": name[:160]})
     await db.commit()
+    from services.food_orders import accounting_on
+    shift = "Смена: кнопка «🕐 Смена». " if await accounting_on(db) else ""
     return (f"✅ {name}, вы вошли. Теперь заказами можно управлять прямо здесь: кнопки под заказом и меню внизу.\n\n"
-            "Смена: кнопка «🕐 Смена». Сменить сотрудника — команда /pin.")
+            f"{shift}Сменить сотрудника — команда /pin.")
 
 
 # ---------------- the cabinet's API, on behalf of the employee ----------------
@@ -291,10 +293,19 @@ def card_keyboard(data: dict) -> dict:
     return {"inline_keyboard": rows}
 
 
-def menu_keyboard() -> dict:
+def menu_keyboard(accounting: bool = True) -> dict:
+    """Order lists; «Долги» and «Смена» only while accounting (shifts, cashbox) is on."""
     names = list(MENU)
+    if not accounting:
+        return {"keyboard": [[{"text": names[0]}, {"text": names[1]}], [{"text": names[2]}]],
+                "resize_keyboard": True, "is_persistent": True}
     return {"keyboard": [[{"text": names[0]}, {"text": names[1]}], [{"text": names[2]}, {"text": names[3]}],
                          [{"text": SHIFT_BUTTON}]], "resize_keyboard": True, "is_persistent": True}
+
+
+async def keyboard(db) -> dict:
+    from services.food_orders import accounting_on
+    return menu_keyboard(await accounting_on(db))
 
 
 # ---------------- Telegram plumbing ----------------
@@ -340,7 +351,7 @@ async def handle_text(db, client, chat: dict, message: dict) -> bool:
         return True
     if awaiting and said.startswith("/"):
         await set_awaiting(db, chat_id, None)
-        await _send(client, chat_id, "Хорошо, отменено.", menu_keyboard() if bound else None)
+        await _send(client, chat_id, "Хорошо, отменено.", await keyboard(db) if bound else None)
         return True
     if awaiting:
         if awaiting.get("kind") in ("pin_link", "pin_shift"):
@@ -354,7 +365,11 @@ async def handle_text(db, client, chat: dict, message: dict) -> bool:
         await _list(db, client, chat_id, staff, MENU.get(said) or OLD_MENU[said], said)
         return True
     if bound and said == SHIFT_BUTTON:
-        await _shift(db, client, chat_id, staff)
+        from services.food_orders import accounting_on
+        if await accounting_on(db):
+            await _shift(db, client, chat_id, staff)
+        else:
+            await _send(client, chat_id, "Смены отключены — просто меняйте статусы заказов.", await keyboard(db))
         return True
     return False
 
@@ -380,7 +395,7 @@ async def _answer(db, client, chat_id, staff, awaiting: dict, said: str) -> None
         bound = await staff_of(db, chat_id)
         if bound and bound.staff_id:
             await set_awaiting(db, chat_id, None)
-        await _send(client, chat_id, html.escape(answer), menu_keyboard() if bound and bound.staff_id else None)
+        await _send(client, chat_id, html.escape(answer), await keyboard(db) if bound and bound.staff_id else None)
         return
     await set_awaiting(db, chat_id, None)
     if not staff or not staff.staff_id:
@@ -426,7 +441,7 @@ async def _list(db, client, chat_id, staff, status: str, title: str) -> None:
         return
     items = data.get("items") or []
     if not items:
-        await _send(client, chat_id, f"{title}: заказов нет.", menu_keyboard())
+        await _send(client, chat_id, f"{title}: заказов нет.", await keyboard(db))
         return
     lines = [f"<b>{title}</b> · {data.get('total', len(items))}"]
     buttons = []
