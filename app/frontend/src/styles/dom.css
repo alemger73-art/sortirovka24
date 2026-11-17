@@ -111,8 +111,8 @@
 .dom-ok svg { flex-shrink: 0; margin-top: 3px; }
 
 /* tabs and chips */
-.dom-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); position: sticky; top: 60px; z-index: 5; }
-.dom-tabs button { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; border: 0; border-radius: 10px; background: none; color: var(--muted); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+.dom-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); position: sticky; top: 60px; z-index: 5; }
+.dom-tabs button { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; padding: 4px 6px; border: 0; border-radius: 10px; background: none; color: var(--muted); font: inherit; font-size: 14px; line-height: 1.15; text-align: center; font-weight: 700; cursor: pointer; }
 .dom-tabs button[aria-selected="true"] { background: var(--accent); color: #fff; }
 .dark .dom-tabs button[aria-selected="true"] { color: #101a2c; }
 .dom-tabs small { font-size: 12px; opacity: .8; }
@@ -261,3 +261,6 @@
 .dom-grow { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; padding: 12px 14px; border-radius: 16px; background: var(--dom-soft, #eef4ff); }
 .dom-grow p { margin: 0; font-weight: 600; }
 .dom-grow .dom-btn { flex: none; padding: 8px 14px; min-height: 0; }
+.dom-whom { margin-bottom: 12px; }
+.dom-whom button { min-height: 48px; font-weight: 600; font-size: 14px; }
+.dom-scope-note { margin: 0 0 12px; color: var(--muted); font-size: 13px; line-height: 1.5; }

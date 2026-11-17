@@ -33,6 +33,7 @@ class PostBody(BaseModel):
     kind: str
     body: str
     only_entrance: bool = False
+    district: bool = False
 
 
 class CommentBody(BaseModel):
@@ -162,17 +163,17 @@ async def report_member(member_id: int, authorization: str | None = Auth, db: As
 
 
 @router.get("/feed")
-async def feed(before: str = "", kind: str = "", entrance: bool = False, authorization: str | None = Auth,
+async def feed(before: str = "", kind: str = "", entrance: bool = False, district: bool = False, authorization: str | None = Auth,
                db: AsyncSession = Depends(get_db)):
     m = await _member(db, authorization)
-    return await svc.feed(db, m, before=before[:40], kind=kind, my_entrance=entrance)
+    return await svc.feed(db, m, before=before[:40], kind=kind, my_entrance=entrance, district=district)
 
 
 @router.post("/posts", status_code=201)
 async def create_post(body: PostBody, authorization: str | None = Auth, db: AsyncSession = Depends(get_db)):
     m = await _member(db, authorization, confirmed=True)
     try:
-        return await svc.create_post(db, m, body.kind, body.body, body.only_entrance)
+        return await svc.create_post(db, m, body.kind, body.body, body.only_entrance, body.district)
     except (ValueError, PermissionError) as exc:
         _fail(exc)
 

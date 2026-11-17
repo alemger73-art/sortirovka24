@@ -11,10 +11,12 @@ export type NbMember = {
 /** The house an invite link points to: only the street, the house and its type. */
 export type NbInvite = { kind: 'flat' | 'private'; street: string; house: string; title: string; token?: string };
 export type NbConfirm = { confirmed_in_house: number; needed: number; got: number; proof_sent: boolean; proof_waiting: boolean };
-export type NbAuthor = { name: string; entrance: number | null; elder: boolean };
+export type NbAuthor = { name: string; entrance: number | null; elder: boolean; street?: string | null };
 export type NbPost = {
   id: number; kind: NbKind; body: string; entrance: number | null; pinned: boolean; me_too: number; i_me_too: boolean;
   comments: number; created_at: string; last_activity: string; author: NbAuthor; mine: boolean; can_moderate: boolean;
+  /** Written to the whole district («Вся Сортировка»), not to one house. */
+  district?: boolean;
 };
 export type NbComment = { id: number; body: string; created_at: string; mine: boolean; author: NbAuthor; is_author: boolean };
 export type NbPostFull = NbPost & { hidden: boolean; thread: NbComment[] };
@@ -104,11 +106,12 @@ export const nbApi = {
   house: () => call<NbHouse>('/house'),
   reportMember: (id: number) => call<{ blocked: boolean; marks: number }>(`/members/${id}/report`, { method: 'POST' }),
   confirm: (id: number) => call<{ confirmed: boolean; got?: number; needed?: number }>(`/confirm/${id}`, { method: 'POST' }),
-  feed: (q: { before?: string; kind?: string; entrance?: boolean }) => {
+  feed: (q: { before?: string; kind?: string; entrance?: boolean; district?: boolean }) => {
     const p = new URLSearchParams(); if (q.before) p.set('before', q.before); if (q.kind) p.set('kind', q.kind); if (q.entrance) p.set('entrance', 'true');
+    if (q.district) p.set('district', 'true');
     return call<{ items: NbPost[]; next: string }>(`/feed?${p}`);
   },
-  create: (kind: NbKind, body: string, only_entrance: boolean) => call<NbPost>('/posts', post({ kind, body, only_entrance })),
+  create: (kind: NbKind, body: string, only_entrance: boolean, district = false) => call<NbPost>('/posts', post({ kind, body, only_entrance, district })),
   get: (id: number) => call<NbPostFull>(`/posts/${id}`),
   remove: (id: number) => call<{ ok: boolean }>(`/posts/${id}`, { method: 'DELETE' }),
   comment: (id: number, body: string) => call<NbPostFull>(`/posts/${id}/comments`, post({ body })),

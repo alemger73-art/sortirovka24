@@ -269,8 +269,11 @@ function AddressForm({ member, suggested, invite, onSaved, onCancel, onLeft }: {
 function House({ member }: { member: NbMember }) {
   const [say, kz] = useSay();
   const [params, setParams] = useSearchParams();
-  const tab = params.get('tab') === 'people' ? 'people' : 'feed';
   const [house, setHouse] = useState<NbHouse | null>(null);
+  // Alone in the house, the district feed is where the neighbours are — it opens first.
+  const asked = params.get('tab');
+  const tab: 'feed' | 'district' | 'people' = asked === 'people' || asked === 'district' || asked === 'feed' ? asked
+    : house && house.total <= 1 ? 'district' : 'feed';
   const confirmed = member.status === 'confirmed';
   const loadHouse = useCallback(() => nbApi.house().then(setHouse).catch(() => {}), []);
   useEffect(() => { void loadHouse(); }, [loadHouse, member.status]);
@@ -302,12 +305,14 @@ function House({ member }: { member: NbMember }) {
           </div>
         )}
         <div className="dom-tabs" role="tablist">
-          <button type="button" role="tab" aria-selected={tab === 'feed'} onClick={() => setParams({}, { replace: true })}>{say('Лента дома', 'Үй таспасы')}</button>
+          <button type="button" role="tab" aria-selected={tab === 'feed'} onClick={() => setParams({ tab: 'feed' }, { replace: true })}>{say('Мой дом', 'Менің үйім')}</button>
+          <button type="button" role="tab" aria-selected={tab === 'district'} onClick={() => setParams({ tab: 'district' }, { replace: true })} data-testid="dom-tab-district">{say('Вся Сортировка', 'Бүкіл Сортировка')}</button>
           <button type="button" role="tab" aria-selected={tab === 'people'} onClick={() => setParams({ tab: 'people' }, { replace: true })}>
             {say('Соседи', 'Көршілер')}{house && house.total > 0 && <small>{house.total}</small>}
           </button>
         </div>
-        {tab === 'feed' ? <Feed member={member} confirmed={confirmed} /> : <People member={member} house={house} confirmed={confirmed} reload={loadHouse} />}
+        {tab === 'people' ? <People member={member} house={house} confirmed={confirmed} reload={loadHouse} />
+          : <Feed key={tab} member={member} confirmed={confirmed} district={tab === 'district'} />}
       </div>
     </div>
   );
@@ -319,7 +324,7 @@ const FILTERS: { id: string; ru: string; kz: string }[] = [
   ...KINDS.map((k) => ({ id: k.id, ru: `${k.emoji} ${k.title.ru}`, kz: `${k.emoji} ${k.title.kz}` })),
 ];
 
-function Feed({ member, confirmed }: { member: NbMember; confirmed: boolean }) {
+function Feed({ member, confirmed, district = false }: { member: NbMember; confirmed: boolean; district?: boolean }) {
   const [say, kz] = useSay();
   const [filter, setFilter] = useState('');
   const [items, setItems] = useState<NbPost[] | null>(null);
@@ -328,7 +333,7 @@ function Feed({ member, confirmed }: { member: NbMember; confirmed: boolean }) {
   const [error, setError] = useState('');
   const [writing, setWriting] = useState(false);
   const gen = useRef(0);
-  const query = (f: string, before = '') => ({ before, kind: f && f !== 'entrance' ? f : '', entrance: f === 'entrance' });
+  const query = (f: string, before = '') => ({ before, kind: f && f !== 'entrance' ? f : '', entrance: f === 'entrance', district });
 
   const load = useCallback(async (f: string) => {
     const v = ++gen.current; setError(''); setItems(null);
@@ -348,14 +353,15 @@ function Feed({ member, confirmed }: { member: NbMember; confirmed: boolean }) {
     try { const r = await nbApi.feed(query(filter, next)); setItems((x) => [...(x || []), ...r.items.filter((p) => !(x || []).some((o) => o.id === p.id))]); setNext(r.next); }
     catch (e) { toast.error(errText(e)); } finally { setBusy(false); }
   }
-  const filters = FILTERS.filter((f) => f.id !== 'entrance' || member.entrance);
+  const filters = FILTERS.filter((f) => f.id !== 'entrance' || (member.entrance && !district));
 
   return (
-    <section aria-label={say('Лента дома', 'Үй таспасы')}>
+    <section aria-label={district ? say('Вся Сортировка', 'Бүкіл Сортировка') : say('Лента дома', 'Үй таспасы')}>
+      {district && <p className="dom-scope-note">{say('Здесь пишут жители всех домов Сортировки. Видно только имя и улицу.', 'Мұнда Сортировканың барлық үйлерінің тұрғындары жазады. Тек аты мен көшесі көрінеді.')}</p>}
       {confirmed && (
         <button type="button" className="dom-compose-open" onClick={() => setWriting(true)} data-testid="dom-write">
           <span className="dom-compose-av"><Plus size={20} /></span>
-          <span><b>{say('Написать соседям', 'Көршілерге жазу')}</b><small>{say('Авария, вопрос, объявление или находка', 'Апат, сұрақ, хабарландыру немесе табылған зат')}</small></span>
+          <span><b>{district ? say('Написать всей Сортировке', 'Бүкіл Сортировкаға жазу') : say('Написать соседям по дому', 'Үй көршілеріне жазу')}</b><small>{say('Авария, вопрос, объявление или находка', 'Апат, сұрақ, хабарландыру немесе табылған зат')}</small></span>
         </button>
       )}
       <div className="dom-chips" role="group" aria-label={say('Фильтр', 'Сүзгі')}>
@@ -365,7 +371,7 @@ function Feed({ member, confirmed }: { member: NbMember; confirmed: boolean }) {
         : !items ? <div className="dom-list">{[0, 1, 2].map((i) => <div key={i} className="dom-post dom-skel" />)}</div>
           : !items.length ? (
             <div className="dom-empty">
-              <b>{filter ? say('Здесь пока пусто', 'Әзірге бос') : say('В доме пока тихо', 'Үйде әзірге тыныш')}</b>
+              <b>{filter ? say('Здесь пока пусто', 'Әзірге бос') : district ? say('В районе пока тихо', 'Ауданда әзірге тыныш') : say('В доме пока тихо', 'Үйде әзірге тыныш')}</b>
               <p>{confirmed ? say('Напишите первым — например, про собрание или холодные батареи. И позовите соседей:', 'Бірінші болып жазыңыз. Көршілерді шақырыңыз:') : say('Как только соседи что-то напишут, это появится здесь.', 'Көршілер жазғанда осында пайда болады.')}</p>
               <InviteButton member={member} where="feed" label={say('Позвать соседей', 'Көршілерді шақыру')} />
             </div>
@@ -375,14 +381,16 @@ function Feed({ member, confirmed }: { member: NbMember; confirmed: boolean }) {
               {next && <button type="button" className="dom-btn dom-btn--ghost dom-more" disabled={busy} onClick={() => void more()}>{busy ? <Loader2 className="dom-spin" size={16} /> : null}{say('Показать ещё', 'Тағы көрсету')}</button>}
             </div>
           )}
-      {writing && <Composer member={member} onClose={() => setWriting(false)} onPosted={(p) => { setWriting(false); setFilter(''); setItems((x) => [p, ...(x || [])]); }} />}
+      {writing && <Composer member={member} district={district} onClose={() => setWriting(false)}
+        onPosted={(p) => { setWriting(false); setFilter(''); if (Boolean(p.district) === district) setItems((x) => [p, ...(x || [])]); else toast.success(p.district ? say('Опубликовано во «Всей Сортировке»', '«Бүкіл Сортировкада» жарияланды') : say('Опубликовано в ленте дома', 'Үй таспасында жарияланды')); }} />}
     </section>
   );
 }
 
-function Composer({ member, onClose, onPosted }: { member: NbMember; onClose: () => void; onPosted: (p: NbPost) => void }) {
+function Composer({ member, district: startDistrict, onClose, onPosted }: { member: NbMember; district: boolean; onClose: () => void; onPosted: (p: NbPost) => void }) {
   const [say, kz] = useSay();
   const [kind, setKind] = useState<NbKind>('question');
+  const [district, setDistrict] = useState(startDistrict);
   const [body, setBody] = useState('');
   const [only, setOnly] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -402,7 +410,7 @@ function Composer({ member, onClose, onPosted }: { member: NbMember; onClose: ()
   async function send() {
     if (body.trim().length < 5) return toast.error(say('Напишите чуть подробнее', 'Толығырақ жазыңыз'));
     setBusy(true);
-    try { onPosted(await nbApi.create(kind, body, only)); toast.success(kind === 'alarm' || kind === 'notice' ? say('Опубликовано — соседи получат уведомление', 'Жарияланды — көршілерге хабар барады') : say('Опубликовано', 'Жарияланды')); }
+    try { onPosted(await nbApi.create(kind, body, only && !district, district)); toast.success(!district && (kind === 'alarm' || kind === 'notice') ? say('Опубликовано — соседи получат уведомление', 'Жарияланды — көршілерге хабар барады') : say('Опубликовано', 'Жарияланды')); }
     catch (e) { toast.error(errText(e)); } finally { setBusy(false); }
   }
   return (
@@ -410,6 +418,10 @@ function Composer({ member, onClose, onPosted }: { member: NbMember; onClose: ()
       <div className="dom-sheet" role="dialog" aria-modal="true" aria-labelledby="dom-sheet-h">
         <div className="dom-sheet-top"><h2 id="dom-sheet-h">{say('Написать соседям', 'Көршілерге жазу')}</h2>
           <button type="button" className="dom-icon-btn dom-icon-btn--soft" onClick={onClose} aria-label={say('Закрыть', 'Жабу')}><X size={18} /></button></div>
+        <div className="dom-seg dom-whom" role="radiogroup" aria-label={say('Кому', 'Кімге')}>
+          <button type="button" role="radio" aria-checked={!district} onClick={() => setDistrict(false)}><Home size={16} />{say('Соседям по дому', 'Үй көршілеріне')}</button>
+          <button type="button" role="radio" aria-checked={district} onClick={() => setDistrict(true)} data-testid="dom-whom-district"><Users size={16} />{say('Всей Сортировке', 'Бүкіл Сортировкаға')}</button>
+        </div>
         <div className="dom-kinds" role="radiogroup" aria-label={say('Что случилось', 'Не болды')}>
           {KINDS.map((k) => (
             <button key={k.id} type="button" role="radio" aria-checked={kind === k.id} data-kind={k.id} onClick={() => setKind(k.id)}>
@@ -419,11 +431,11 @@ function Composer({ member, onClose, onPosted }: { member: NbMember; onClose: ()
         </div>
         <textarea ref={area} id="dom-body" value={body} maxLength={1500} rows={4} placeholder={placeholders[kind][kz ? 1 : 0]} onChange={(e) => setBody(e.target.value)} />
         <div className="dom-sheet-foot">
-          {member.entrance ? <label className="dom-check dom-check--small"><input type="checkbox" checked={only} onChange={(e) => setOnly(e.target.checked)} />
+          {member.entrance && !district ? <label className="dom-check dom-check--small"><input type="checkbox" checked={only} onChange={(e) => setOnly(e.target.checked)} />
             <span>{say(`Только про ${member.entrance} подъезд`, `Тек ${member.entrance}-кіреберіс туралы`)}</span></label> : <span />}
           <span className="dom-count">{body.length}/1500</span>
         </div>
-        {(kind === 'alarm' || kind === 'notice') && <p className="dom-hint">{say('Соседи получат уведомление. Пишите по делу.', 'Көршілерге хабарлама барады. Іс бойынша жазыңыз.')}</p>}
+        {!district && (kind === 'alarm' || kind === 'notice') && <p className="dom-hint">{say('Соседи получат уведомление. Пишите по делу.', 'Көршілерге хабарлама барады. Іс бойынша жазыңыз.')}</p>}
         <button type="button" className="dom-btn dom-btn--main" disabled={busy} onClick={() => void send()} data-testid="dom-send">
           {busy ? <Loader2 className="dom-spin" size={18} /> : <Send size={18} />}{say('Опубликовать', 'Жариялау')}
         </button>
@@ -472,7 +484,7 @@ function PostCard({ post, confirmed, onChange, full = false }: { post: NbPost; c
           </div>
         )}
       </div>
-      <p className="dom-author">{post.author.name}{post.author.entrance && !post.author.name.includes('подъезд') ? ` · ${kzEntrance(post.author.entrance, kz)}` : ''}{post.author.elder && <span className="dom-elder"><Crown size={12} />{say('старший', 'үй ағасы')}</span>}{post.mine && <span className="dom-you">{say('вы', 'сіз')}</span>}</p>
+      <p className="dom-author">{post.author.name}{post.district && post.author.street ? ` · ${say('ул.', 'көш.')} ${post.author.street}` : ''}{post.author.entrance && !post.author.name.includes('подъезд') ? ` · ${kzEntrance(post.author.entrance, kz)}` : ''}{post.author.elder && <span className="dom-elder"><Crown size={12} />{say('старший', 'үй ағасы')}</span>}{post.mine && <span className="dom-you">{say('вы', 'сіз')}</span>}</p>
       {full ? <p className="dom-body">{post.body}</p> : <Link to={`/dom/post/${post.id}`} className="dom-body dom-body--clamp">{post.body}</Link>}
       {help && <Link className="dom-help" to={help.href}><ShieldCheck size={15} />{kz ? help.label.kz : help.label.ru}<ArrowUpRight size={14} /></Link>}
       <div className="dom-actions">
@@ -599,7 +611,7 @@ export function NeighborPostPage() {
     <Layout>
       <div className="dom">
         <div className="dom-w dom-pad dom-thread-page">
-          <Link to="/dom" className="dom-back dom-back--dark"><ArrowLeft size={18} />{say('Лента дома', 'Үй таспасы')}</Link>
+          <Link to={post?.district ? '/dom?tab=district' : '/dom?tab=feed'} className="dom-back dom-back--dark"><ArrowLeft size={18} />{post?.district ? say('Вся Сортировка', 'Бүкіл Сортировка') : say('Лента дома', 'Үй таспасы')}</Link>
           {error ? <Problem text={error} onRetry={() => void load()} />
             : !post ? <div className="dom-post dom-skel" />
               : (

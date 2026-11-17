@@ -234,3 +234,32 @@ async def test_private_house_invite_carries_only_the_street(env):
     me = (await c.put(f'{B}/me', json=addr(kind='private', house='12', entrance=None, flat=''), headers=h['alice'])).json()['member']
     body = (await c.get(f'{B}/invite/{me["invite"]}')).json()
     assert body == {'kind': 'private', 'street': 'Жекибаева', 'house': '', 'title': 'ул. Жекибаева'}
+
+
+async def test_district_feed_reaches_every_house_and_shows_only_the_street(env):
+    """Alone in the house: the «Вся Сортировка» feed still has neighbours. District posts show the street only."""
+    c, h = env
+    await c.put(B + '/me', json=addr(flat='12'), headers=h['alice'])
+    await c.put(B + '/me', json=addr(house='137', entrance=2), headers=h['dina'])
+    r = await c.post(B + '/posts', json={'kind': 'question', 'body': 'Где на Сортировке починить обувь?', 'district': True,
+                                          'only_entrance': True}, headers=h['alice'])
+    assert r.status_code == 201 and r.json()['district'] is True and r.json()['entrance'] is None
+    pid = r.json()['id']
+    seen = (await c.get(B + '/feed?district=true', headers=h['dina'])).json()['items']
+    assert [p['id'] for p in seen] == [pid]
+    assert seen[0]['author'] == {'name': 'Alice', 'entrance': None, 'elder': False, 'street': 'Жекибаева'}
+    assert '135' not in str(seen)  # never the house number
+    assert (await c.get(B + '/feed', headers=h['dina'])).json()['items'] == []  # not in anyone's house feed
+    assert (await c.get(B + f'/posts/{pid}', headers=h['dina'])).status_code == 200
+    assert (await c.post(B + f'/posts/{pid}/comments', json={'body': 'На Ермекова есть мастер'}, headers=h['dina'])).status_code == 200
+    house_post = (await c.post(B + '/posts', json={'kind': 'notice', 'body': 'Собрание у 3 подъезда в субботу'}, headers=h['alice'])).json()
+    assert house_post['district'] is False and 'street' not in house_post['author']
+
+
+async def test_anonymous_neighbour_in_the_district_is_just_a_neighbour_from_the_street(env):
+    c, h = env
+    await c.put(B + '/me', json=addr(anonymous=True), headers=h['bob'])
+    await c.put(B + '/me', json=addr(house='137'), headers=h['dina'])
+    await c.post(B + '/posts', json={'kind': 'lost', 'body': 'Нашёл ключи у остановки', 'district': True}, headers=h['bob'])
+    author = (await c.get(B + '/feed?district=true', headers=h['dina'])).json()['items'][0]['author']
+    assert author == {'name': 'Сосед', 'entrance': None, 'elder': False, 'street': 'Жекибаева'}

@@ -523,14 +523,20 @@ def clean_body(raw: Any, limit: int) -> str:
     return value[:limit]
 
 
+# Posts for the whole district live in nb_posts under this building key: every confirmed resident reads them, so a
+# person who is still alone in the house has neighbours to talk to.
+DISTRICT = "@district"
+
+
 async def _names(db, user_ids: set[str]) -> dict[str, dict]:
     if not user_ids:
         return {}
     ids = list(user_ids)
     marks = ", ".join(f":u{i}" for i in range(len(ids)))
-    rows = (await db.execute(text(f"SELECT user_id, display_name, anonymous, entrance, role FROM nb_members WHERE user_id IN ({marks})"),
+    rows = (await db.execute(text(f"SELECT user_id, display_name, anonymous, entrance, role, street FROM nb_members WHERE user_id IN ({marks})"),
                              {f"u{i}": v for i, v in enumerate(ids)})).all()
-    out = {r.user_id: {"name": public_name(_row(r)), "entrance": r.entrance, "elder": r.role == "elder"} for r in rows}
+    out = {r.user_id: {"name": public_name(_row(r)), "entrance": r.entrance, "elder": r.role == "elder", "street": r.street,
+                       "anonymous": bool(r.anonymous)} for r in rows}
     return out
 
 
@@ -538,14 +544,14 @@ def _since() -> str:
     return (now() - timedelta(days=FEED_DAYS)).isoformat(timespec="seconds")
 
 
-async def feed(db, m: dict, *, before: str = "", kind: str = "", my_entrance: bool = False) -> dict:
+async def feed(db, m: dict, *, before: str = "", kind: str = "", my_entrance: bool = False, district: bool = False) -> dict:
     where = ["building = :b", "status = 'active'", "last_activity >= :since",
              "user_id NOT IN (SELECT user_id FROM nb_members WHERE status = 'blocked')"]
-    params: dict[str, Any] = {"b": m["building"], "since": _since(), "lim": PAGE + 1}
+    params: dict[str, Any] = {"b": DISTRICT if district else m["building"], "since": _since(), "lim": PAGE + 1}
     if kind in KINDS:
         where.append("kind = :k")
         params["k"] = kind
-    if my_entrance and m.get("entrance"):
+    if my_entrance and m.get("entrance") and not district:
         where.append("(entrance = :e OR entrance IS NULL)")
         params["e"] = m["entrance"]
     if before:
@@ -571,13 +577,26 @@ async def feed(db, m: dict, *, before: str = "", kind: str = "", my_entrance: bo
     return {"items": items, "next": cursor}
 
 
+def _author(names: dict, user_id: str, district: bool) -> dict:
+    """In the district feed a neighbour is known by the street only (never the house or entrance); in the house — by entrance."""
+    author = names.get(user_id, {"name": "Бывший сосед", "entrance": None, "elder": False})
+    anonymous = author.get("anonymous")
+    author = {k: v for k, v in author.items() if k != "anonymous"}
+    if district:
+        # «Сосед из 2 подъезда» means nothing to the district: an anonymous neighbour is just «Сосед» from the street.
+        return {**author, "name": "Сосед" if anonymous else author["name"], "entrance": None, "elder": False}
+    return {k: v for k, v in author.items() if k != "street"}
+
+
 def _post_out(p: dict, viewer: dict, names: dict, me_too: bool) -> dict:
-    author = names.get(p["user_id"], {"name": "Бывший сосед", "entrance": None, "elder": False})
+    district = p["building"] == DISTRICT
+    author = _author(names, p["user_id"], district)
     return {"id": p["id"], "kind": p["kind"], "body": p["body"], "entrance": p["entrance"], "pinned": bool(p["pinned"]),
+            "district": district,
             "me_too": int(p["me_too"] or 0), "i_me_too": me_too, "comments": int(p["comments"] or 0),
             "created_at": p["created_at"], "last_activity": p["last_activity"], "author": author,
             "mine": p["user_id"] == viewer["user_id"],
-            "can_moderate": viewer.get("role") == "elder" and p["user_id"] != viewer["user_id"]}
+            "can_moderate": viewer.get("role") == "elder" and p["user_id"] != viewer["user_id"] and not district}
 
 
 async def _recent(db, table: str, user_id: str) -> int:
@@ -586,7 +605,7 @@ async def _recent(db, table: str, user_id: str) -> int:
                                  {"u": user_id, "s": since})).scalar() or 0)
 
 
-async def create_post(db, m: dict, kind: str, body: str, only_entrance: bool) -> dict:
+async def create_post(db, m: dict, kind: str, body: str, only_entrance: bool, district: bool = False) -> dict:
     if kind not in KINDS:
         raise ValueError("Выберите тип записи")
     body = clean_body(body, 1500)
@@ -595,15 +614,15 @@ async def create_post(db, m: dict, kind: str, body: str, only_entrance: bool) ->
     if await _recent(db, "nb_posts", m["user_id"]) >= POSTS_PER_HOUR:
         raise PermissionError("Слишком много записей за час — попробуйте позже")
     stamp = now_iso()
-    entrance = m["entrance"] if only_entrance and m.get("entrance") else None
+    entrance = m["entrance"] if only_entrance and m.get("entrance") and not district else None
     res = await db.execute(text(
         "INSERT INTO nb_posts (building, user_id, kind, entrance, body, status, pinned, reports, me_too, comments, created_at, last_activity) "
         "VALUES (:b, :u, :k, :e, :body, 'active', 0, 0, 0, 0, :t, :t) RETURNING id"),
-        {"b": m["building"], "u": m["user_id"], "k": kind, "e": entrance, "body": body, "t": stamp})
+        {"b": DISTRICT if district else m["building"], "u": m["user_id"], "k": kind, "e": entrance, "body": body, "t": stamp})
     pid = int(res.scalar())
     await db.commit()
     post = await get_post(db, pid)
-    if kind in ("alarm", "notice"):
+    if kind in ("alarm", "notice") and not district:  # the whole district is never pinged
         _spawn(_notify_house(m, post))
     return _post_out(post, m, await _names(db, {m["user_id"]}), False)
 
@@ -615,7 +634,7 @@ async def get_post(db, post_id: int) -> Optional[dict]:
 
 async def post_for(db, m: dict, post_id: int) -> dict:
     p = await get_post(db, post_id)
-    if not p or p["building"] != m["building"] or p["status"] == "deleted":
+    if not p or p["building"] not in (m["building"], DISTRICT) or p["status"] == "deleted":
         raise LookupError("Запись не найдена")
     if p["status"] == "hidden" and p["user_id"] != m["user_id"]:
         raise LookupError("Запись скрыта")
@@ -632,7 +651,7 @@ async def post_detail(db, m: dict, post_id: int) -> dict:
     return _post_out(p, m, names, bool(me)) | {
         "hidden": p["status"] == "hidden",
         "thread": [{"id": c["id"], "body": c["body"], "created_at": c["created_at"], "mine": c["user_id"] == m["user_id"],
-                    "author": names.get(c["user_id"], {"name": "Бывший сосед", "entrance": None, "elder": False}),
+                    "author": _author(names, c["user_id"], p["building"] == DISTRICT),
                     "is_author": c["user_id"] == p["user_id"]} for c in comments]}
 
 
@@ -698,7 +717,7 @@ async def delete_comment(db, m: dict, comment_id: int) -> None:
 
 async def pin_post(db, m: dict, post_id: int) -> dict:
     p = await post_for(db, m, post_id)
-    if m.get("role") != "elder":
+    if m.get("role") != "elder" or p["building"] != m["building"]:
         raise PermissionError("Закреплять может старший по дому")
     await db.execute(text("UPDATE nb_posts SET pinned = :v WHERE id = :p"), {"v": 0 if p["pinned"] else 1, "p": post_id})
     await db.commit()
@@ -708,13 +727,13 @@ async def pin_post(db, m: dict, post_id: int) -> dict:
 async def report(db, m: dict, target: str, target_id: int) -> dict:
     if target == "post":
         p = await post_for(db, m, target_id)
-        owner, table = p["user_id"], "nb_posts"
+        owner, table, building = p["user_id"], "nb_posts", p["building"]
     elif target == "comment":
         c = (await db.execute(text("SELECT * FROM nb_comments WHERE id = :i"), {"i": target_id})).first()
         if not c:
             raise LookupError("Комментарий не найден")
         c = _row(c)
-        await post_for(db, m, c["post_id"])
+        building = (await post_for(db, m, c["post_id"]))["building"]
         owner, table = c["user_id"], "nb_comments"
     else:
         raise ValueError("Неизвестная цель")
@@ -729,7 +748,8 @@ async def report(db, m: dict, target: str, target_id: int) -> dict:
                      {"t": key, "i": target_id, "u": m["user_id"], "c": now_iso()})
     await db.execute(text(f"UPDATE {table} SET reports = COALESCE(reports, 0) + 1 WHERE id = :i"), {"i": target_id})
     reports = int((await db.execute(text(f"SELECT reports FROM {table} WHERE id = :i"), {"i": target_id})).scalar() or 0)
-    hidden = reports >= HIDE_AFTER_REPORTS or m.get("role") == "elder"
+    # The house elder hides at once in their own house; in the district feed only neighbours' reports count.
+    hidden = reports >= HIDE_AFTER_REPORTS or (m.get("role") == "elder" and building == m["building"])
     if hidden:
         await db.execute(text(f"UPDATE {table} SET status = 'hidden' WHERE id = :i AND status = 'active'"), {"i": target_id})
         if target == "comment":
