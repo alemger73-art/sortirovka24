@@ -61,7 +61,7 @@ export default function PartnerProfileExtras({ edit, setEdit, saved }: Props) {
     </div>
 
     <div className="space-y-3 rounded-xl border p-4"><h3 className="font-semibold">Заявки от жителей</h3>
-      <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={lead.enabled} onChange={e => set({ lead: { ...lead, enabled: e.target.checked } })} />Показывать форму «Записаться» — заявки приходят компании в Telegram</label>
+      <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={lead.enabled} onChange={e => set({ lead: { ...lead, enabled: e.target.checked } })} />Показывать форму «Записаться» — с номером WhatsApp откроется чат с компанией, без него заявка придёт в Telegram</label>
       <div className="grid gap-2 sm:grid-cols-2">
         <label className="text-sm">Заголовок формы<input value={lead.title} onChange={e => set({ lead: { ...lead, title: e.target.value } })} className={box} /></label>
         <label className="text-sm">Текст кнопки<input value={lead.button} onChange={e => set({ lead: { ...lead, button: e.target.value } })} className={box} /></label>

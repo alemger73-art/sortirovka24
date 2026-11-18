@@ -61,7 +61,21 @@ export function PartnerFaq({ profile }: { profile: PartnerProfile }) {
   </section>;
 }
 
-/** The request form; options are the form's own list or the price titles. */
+/** A ready-made WhatsApp message to the company: the resident only has to press «Отправить». */
+export function whatsappLeadUrl(profile: PartnerProfile, lead: { name: string; choice: string; comment: string }): string | null {
+  const digits = profile.whatsapp.replace(/\D/g, '');
+  if (digits.length < 10) return null;
+  const text = [
+    'Здравствуйте! Пишу с сайта «Сортировка 24» (sortirovka24.kz).',
+    lead.choice ? `Хочу записаться: ${lead.choice}.` : 'Хочу записаться.',
+    `Меня зовут ${lead.name.trim()}.`,
+    lead.comment.trim(),
+  ].filter(Boolean).join('\n');
+  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
+}
+
+/** The request form; options are the form's own list or the price titles.
+ *  With a WhatsApp number it opens a chat with the company; otherwise the request goes to the company's Telegram. */
 export function PartnerLeadForm({ profile, choice, onChoice }: { profile: PartnerProfile; choice: string; onChoice: (v: string) => void }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -70,8 +84,15 @@ export function PartnerLeadForm({ profile, choice, onChoice }: { profile: Partne
   const [error, setError] = useState('');
   if (!profile.lead.enabled) return null;
   const options = profile.lead.options.length ? profile.lead.options : profile.prices.map(p => p.title);
+  const viaWhatsapp = !!whatsappLeadUrl(profile, { name: '', choice: '', comment: '' });
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const chat = whatsappLeadUrl(profile, { name, choice, comment });
+    if (chat) {
+      track('partner_lead_whatsapp', { partner: profile.slug, choice });
+      window.location.href = chat;
+      return;
+    }
     if (state === 'sending') return;
     setState('sending'); setError('');
     try {
@@ -91,12 +112,13 @@ export function PartnerLeadForm({ profile, choice, onChoice }: { profile: Partne
     : <form onSubmit={submit} className="mt-4 space-y-3">
       {profile.lead.note && <p className="text-sm text-gray-500">{profile.lead.note}</p>}
       <label className="block text-sm font-medium">Как к вам обращаться<input required minLength={2} maxLength={80} autoComplete="name" value={name} onChange={e => setName(e.target.value)} className={input} /></label>
-      <label className="block text-sm font-medium">Телефон<input required type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 7__ ___ __ __" value={phone} onChange={e => setPhone(e.target.value)} className={input} /></label>
+      {!viaWhatsapp && <label className="block text-sm font-medium">Телефон<input required type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 7__ ___ __ __" value={phone} onChange={e => setPhone(e.target.value)} className={input} /></label>}
       {!!options.length && <label className="block text-sm font-medium">Что интересует<select value={choice} onChange={e => onChoice(e.target.value)} className={input}><option value="">Выберите</option>{options.map(o => <option key={o}>{o}</option>)}</select></label>}
-      <label className="block text-sm font-medium">Вопрос или удобное время звонка<textarea maxLength={400} rows={2} value={comment} onChange={e => setComment(e.target.value)} className={input} /></label>
+      <label className="block text-sm font-medium">{viaWhatsapp ? 'Вопрос (если есть)' : 'Вопрос или удобное время звонка'}<textarea maxLength={400} rows={2} value={comment} onChange={e => setComment(e.target.value)} className={input} /></label>
       {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-      <button type="submit" disabled={state === 'sending'} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 font-semibold text-white hover:opacity-90 disabled:opacity-60"><Send className="h-5 w-5" />{state === 'sending' ? 'Отправляем…' : profile.lead.button}</button>
-      <p className="text-xs leading-relaxed text-gray-500">Нажимая «{profile.lead.button}», вы соглашаетесь передать имя и телефон компании {profile.name}, чтобы с вами связались. <Link to="/legal/privacy" target="_blank" rel="noopener noreferrer" className="underline">Конфиденциальность</Link></p>
+      <button type="submit" disabled={state === 'sending'} className={`flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl ${viaWhatsapp ? 'bg-green-600' : 'bg-blue-600'} px-4 font-semibold text-white hover:opacity-90 disabled:opacity-60`}><Send className="h-5 w-5" />{viaWhatsapp ? `${profile.lead.button} в WhatsApp` : state === 'sending' ? 'Отправляем…' : profile.lead.button}</button>
+      {viaWhatsapp ? !profile.lead.note && <p className="text-xs leading-relaxed text-gray-500">Откроется WhatsApp с готовым сообщением для {profile.name} — останется нажать «Отправить».</p>
+      : <p className="text-xs leading-relaxed text-gray-500">Нажимая «{profile.lead.button}», вы соглашаетесь передать имя и телефон компании {profile.name}, чтобы с вами связались. <Link to="/legal/privacy" target="_blank" rel="noopener noreferrer" className="underline">Конфиденциальность</Link></p>}
     </form>}
   </section>;
 }
