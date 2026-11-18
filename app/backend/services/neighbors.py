@@ -528,16 +528,35 @@ def clean_body(raw: Any, limit: int) -> str:
 DISTRICT = "@district"
 
 
+EDITORIAL = "s24-editorial"   # «Сортировка 24» itself: opens discussions of «Полезно знать» cards in the district feed
+EDITORIAL_AUTHOR = {"name": "Сортировка 24", "entrance": None, "elder": False, "street": "Полезно знать", "anonymous": False}
+
+
+async def editorial_post(db, body: str) -> int:
+    """A district post from the site itself; nobody is notified (the whole district is never pinged)."""
+    await ensure_tables(db)
+    stamp = now_iso()
+    res = await db.execute(text(
+        "INSERT INTO nb_posts (building, user_id, kind, entrance, body, status, pinned, reports, me_too, comments, created_at, last_activity) "
+        "VALUES (:b, :u, 'question', NULL, :body, 'active', 0, 0, 0, 0, :t, :t) RETURNING id"),
+        {"b": DISTRICT, "u": EDITORIAL, "body": clean_body(body, 1500), "t": stamp})
+    pid = int(res.scalar())
+    await db.commit()
+    return pid
+
+
 async def _names(db, user_ids: set[str]) -> dict[str, dict]:
+    editorial = {EDITORIAL: dict(EDITORIAL_AUTHOR)} if EDITORIAL in user_ids else {}
+    user_ids = user_ids - {EDITORIAL}
     if not user_ids:
-        return {}
+        return editorial
     ids = list(user_ids)
     marks = ", ".join(f":u{i}" for i in range(len(ids)))
     rows = (await db.execute(text(f"SELECT user_id, display_name, anonymous, entrance, role, street FROM nb_members WHERE user_id IN ({marks})"),
                              {f"u{i}": v for i, v in enumerate(ids)})).all()
     out = {r.user_id: {"name": public_name(_row(r)), "entrance": r.entrance, "elder": r.role == "elder", "street": r.street,
                        "anonymous": bool(r.anonymous)} for r in rows}
-    return out
+    return out | editorial
 
 
 def _since() -> str:
@@ -675,7 +694,7 @@ async def add_comment(db, m: dict, post_id: int, body: str) -> dict:
     await _recount_comments(db, post_id)
     await db.execute(text("UPDATE nb_posts SET last_activity = :t WHERE id = :p"), {"t": stamp, "p": post_id})
     await db.commit()
-    if p["user_id"] != m["user_id"]:
+    if p["user_id"] not in (m["user_id"], EDITORIAL):
         await _cabinet(db, p["user_id"], f"nb:c:{post_id}:{stamp}", "Ответ соседа в «Мой дом»",
                        f"{public_name(m)}: {body[:120]}", path=f"/dom/post/{post_id}")
     return await post_detail(db, m, post_id)
