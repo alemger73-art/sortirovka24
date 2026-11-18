@@ -31,7 +31,7 @@ CARD = {
 
 
 @pytest.fixture
-async def env():
+async def env(monkeypatch):
     import os
     from sqlalchemy import text as sql
     engine = create_async_engine(os.getenv('NB_TEST_PG') or 'sqlite+aiosqlite:///:memory:')
@@ -58,6 +58,8 @@ async def env():
     app.dependency_overrides[get_db] = database
     svc._ready.clear()
     nb._ready.clear()
+    from core.database import db_manager
+    monkeypatch.setattr(db_manager, 'async_session_maker', maker)
     h = {u: {'Authorization': 'Bearer ' + create_access_token({'sub': u, 'role': 'user', 'jti': u + '-s'})} for u in USERS}
     h['panel'] = {'Authorization': 'Bearer ' + admin_auth._create_admin_jwt('stage-admin')}
     async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client:
@@ -106,3 +108,16 @@ async def test_residents_vote_once_and_can_change_their_mind(env):
     assert res == {'counts': [0, 2, 0], 'total': 2, 'mine': 1}
     anonymous = (await c.get(f'{B}/skip-school')).json()['poll_results']
     assert anonymous == {'counts': [0, 2, 0], 'total': 2, 'mine': None}
+
+
+async def test_card_pages_have_their_own_title_picture_and_404(env):
+    from services.seo_renderer import build_seo_page
+    c, h = env
+    await c.put(f'{B}/admin/skip-school', json={'card': {**CARD, 'image_url': '/useful/skip-school.webp'}, 'published': True}, headers=h['panel'])
+    await c.put(f'{B}/admin/draft-card', json={'card': CARD, 'published': False}, headers=h['panel'])
+    listing = await build_seo_page('/useful')
+    assert listing.status_code == 200 and '/useful/skip-school' in listing.body and 'draft-card' not in listing.body
+    card = await build_seo_page('/useful/skip-school')
+    assert card.status_code == 200 and card.title.startswith(CARD['title']) and card.image.endswith('/useful/skip-school.webp')
+    assert (await build_seo_page('/useful/draft-card')).status_code == 404
+    assert (await build_seo_page('/useful/nothing')).status_code == 404

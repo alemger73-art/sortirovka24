@@ -34,7 +34,7 @@ async def seed_dam_alem_catalog(db, *, replace=True):
   restaurant=Food_restaurants(
    name='DAM ALEM 2.0',merchant_key='dam_alem',photo='',
    description='Доставка еды по Сортировке №1',
-   whatsapp_phone='+77470304096',working_hours='10:00 – 22:00',
+   whatsapp_phone='+77470304096',working_hours='11:00 – 22:00',
    min_order=2000,delivery_time='35–45 мин',
    cuisine_type='UFO-бургеры, пицца, закуски и напитки',rating=5,
    is_active=True,sort_order=1,created_at=datetime.now(timezone.utc).isoformat(),

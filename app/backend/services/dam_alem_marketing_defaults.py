@@ -142,7 +142,7 @@ MARKETING_SETTING_KEYS: Dict[str, str] = {
     "apartment_free_from": "15000",
     "loyalty_enabled": "1",
     "delivery_time": "35–45 мин",
-    "working_hours": "10:00 – 22:00",
+    "working_hours": "11:00 – 22:00",
     "hero_banner_subtitle": "Горячая еда с доставкой · 35–45 мин · Сортировка",
     "promo_codes": json.dumps(PROMO_CODES, ensure_ascii=False),
     "loyalty_gifts": json.dumps(LOYALTY_GIFTS, ensure_ascii=False),

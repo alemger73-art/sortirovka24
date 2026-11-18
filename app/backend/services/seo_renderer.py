@@ -251,6 +251,8 @@ async def build_seo_page(path: str) -> SeoPage:
         return await _partner_seo_page(path)
     if path.startswith("/shop/"):
         return await _shop_seo_page(path)
+    if path == "/useful" or path.startswith("/useful/"):
+        return await _useful_seo_page(path)
     page = _base_page(path)
     disabled = await _disabled_modules()
     if _module_for(path) in disabled:
@@ -530,6 +532,43 @@ async def _shop_seo_page(path: str) -> SeoPage:
     page.body = "<ul>" + "".join(f"<li>{html.escape(p['name'])} — {p['price']} ₸</li>" for p in products[:60]) + "</ul>"
     page.schemas.append({"@context": "https://schema.org", "@type": "Store", "name": shop["name"], "url": page.canonical,
                          "telephone": shop.get("phone") or ""})
+    return page
+
+
+async def _useful_seo_page(path: str) -> SeoPage:
+    """«Полезно знать»: the list and each card, with the card's own picture for link previews."""
+    from services import useful
+    page = SeoPage("Полезно знать — Сортировка 24", "Что меняется для жителей Сортировки и что делать: законы, выплаты, тарифы.",
+                   path, "Полезно знать", "Что меняется для жителей и что с этим делать — коротко и по делу.")
+    if not db_manager.async_session_maker:
+        page.robots = "noindex, follow"
+        return page
+    try:
+        async with db_manager.async_session_maker() as session:
+            if path == "/useful":
+                cards = await useful.listing(session)
+                page.body = "".join(_link(f"/useful/{c['slug']}", c.get("title"), c.get("summary")) for c in cards)
+                return page
+            card = await useful.get(session, path.removeprefix("/useful/"))
+    except Exception:
+        page.robots = "noindex, follow"
+        return page
+    if card is None:
+        page.title = page.heading = "Карточка не найдена"
+        page.robots = "noindex, follow"
+        page.status_code = 404
+        return page
+    page.title = f"{card['title']} | Сортировка 24"
+    page.heading = card["title"]
+    page.description = page.intro = card.get("summary") or card["title"]
+    image = card.get("image_url") or ""
+    if image.startswith("/") and not image.startswith("//"):
+        page.image = SITE_URL + image
+    elif image.startswith("https://"):
+        page.image = image
+    page.body = "<h2>Что меняется</h2><ul>" + "".join(f"<li>{html.escape(x)}</li>" for x in card.get("changes", [])) + "</ul>"
+    if card.get("actions"):
+        page.body += "<h2>Что делать</h2><ul>" + "".join(f"<li>{html.escape(x)}</li>" for x in card["actions"]) + "</ul>"
     return page
 
 
