@@ -2,7 +2,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Building2, MessageCircle, Phone } from 'lucide-react';
+import StorageImg from '@/components/StorageImg';
 import { partnerProfiles, type PartnerProfile } from '@/lib/partnerProfiles';
+import { track } from '@/lib/analytics';
 import { partnerShop } from '@/lib/partnerShop';
 import { phoneLink, whatsappLink } from '@/lib/directoryContent';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -27,15 +29,24 @@ export default function HomePartners() {
       <div className="a-partners-grid" style={{ display: 'grid', gap: 10 }}>
         {items.map((p) => {
           const phone = phoneLink(p.phone), wa = whatsappLink(p.whatsapp);
+          // the offer to point at: the highlighted price, otherwise the first one
+          const price = p.prices.find((x) => x.featured) || p.prices[0];
           return (
             <article key={p.slug} className="a-card a-partner">
               <small>{kz ? 'Жарнама · Жоба серіктесі' : 'Реклама · Партнёр проекта'}</small>
-              <h3><Link to={`/partners/${p.slug}`}>{p.name}</Link></h3>
+              <div className="a-partner-title">
+                {p.logo && <StorageImg objectKey={p.logo} alt="" className="a-partner-logo" />}
+                <h3><Link to={`/partners/${p.slug}`}>{p.name}</Link></h3>
+              </div>
               {p.headline && <p>{p.headline}</p>}
+              {price && <Link to={`/partners/${p.slug}#prices`} className="a-partner-price"><span>{price.title}</span><b>{price.price}</b>{price.old_price && <s>{price.old_price}</s>}</Link>}
               <div className="a-partner-actions">
-                {shops.includes(p.slug)
+                {p.lead.enabled
+                  ? <Link to={`/partners/${p.slug}#lead`} className="a-partner-shop" onClick={() => track('promo_click', { promo: 'partner_lead', place: 'home', partner: p.slug })}>{p.lead.button}<ArrowUpRight size={15} /></Link>
+                  : shops.includes(p.slug)
                   ? <Link to={`/shop/${p.slug}`} className="a-partner-shop">{kz ? 'Тапсырыс беру' : 'Выбрать и заказать'}<ArrowUpRight size={15} /></Link>
                   : <Link to={`/partners/${p.slug}`}>{kz ? 'Қызметтер' : 'Услуги'}<ArrowUpRight size={15} /></Link>}
+                {p.lead.enabled && <Link to={`/partners/${p.slug}`}>{kz ? 'Толығырақ' : 'Подробнее'}</Link>}
                 {phone && <a href={phone}><Phone size={16} strokeWidth={1.8} />{kz ? 'Қоңырау' : 'Позвонить'}</a>}
                 {wa && <a href={wa} target="_blank" rel="noopener noreferrer" aria-label={`${p.name}: WhatsApp`}><MessageCircle size={16} strokeWidth={1.8} />WhatsApp</a>}
               </div>

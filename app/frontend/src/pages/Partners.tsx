@@ -5,6 +5,7 @@ import '@/styles/portal-public.css';
 import Layout from '@/components/Layout';
 import StorageImg from '@/components/StorageImg';
 import { PartnerCard } from '@/components/PartnerCards';
+import { PartnerFacts, PartnerFaq, PartnerLeadForm, PartnerPrices, PartnerReviews, PartnerSteps } from '@/components/PartnerSections';
 import { partnerProfiles, type PartnerProfile } from '@/lib/partnerProfiles';
 import { partnerShop } from '@/lib/partnerShop';
 import { phoneLink, whatsappLink, httpsLink } from '@/lib/directoryContent';
@@ -21,6 +22,9 @@ export default function Partners() {
   const [retry, setRetry] = useState(0);
   const [search, setSearch] = useState('');
   const [shops, setShops] = useState<string[]>([]);
+  const [choice, setChoice] = useState('');
+  const [formInView, setFormInView] = useState(false);
+  const toLead = (pick = '') => { if (pick) setChoice(pick); document.getElementById('lead')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
   useEffect(() => { partnerShop.list().then((s) => setShops(s.map((x) => x.slug))).catch(() => {}); }, []);
   useEffect(() => {
     let active = true; setLoading(true); setError(''); setProfile(null);
@@ -28,6 +32,18 @@ export default function Partners() {
       .catch(e => { if(active) setError(e.message); }).finally(() => { if(active) setLoading(false); });
     return () => { active = false; };
   }, [slug, retry]);
+  useEffect(() => {
+    const anchor = window.location.hash.slice(1);
+    if (profile && anchor) requestAnimationFrame(() => document.getElementById(anchor)?.scrollIntoView({ block: 'start' }));
+  }, [profile]);
+  // the bottom «Записаться» bar hides while the form itself is on screen
+  useEffect(() => {
+    const form = profile?.lead.enabled ? document.getElementById('lead') : null;
+    if (!form || !('IntersectionObserver' in window)) return;
+    const watch = new IntersectionObserver(([entry]) => setFormInView(entry.isIntersecting), { threshold: 0.15 });
+    watch.observe(form);
+    return () => watch.disconnect();
+  }, [profile]);
   usePageSeo({ title: profile ? `${profile.name} — ${profile.category}, Караганда` : slug ? undefined : 'Партнёры района Сортировка', description: profile?.headline || (slug ? undefined : 'Местные компании: услуги, работы и контакты. Свяжитесь с партнёром напрямую.'), image: profile?.cover });
   const button = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl px-3 sm:px-5 py-3 text-sm sm:text-base font-semibold transition hover:opacity-90';
   const contact = profile && (whatsappLink(profile.whatsapp) || phoneLink(profile.phone));
@@ -46,18 +62,24 @@ export default function Partners() {
         <div className="max-w-2xl px-6 py-8 sm:p-10 lg:p-12">
           <div className="flex items-center gap-4">{profile.logo && <StorageImg objectKey={profile.logo} alt={`Логотип ${profile.name}`} className="h-16 w-16 shrink-0 rounded-full sm:h-20 sm:w-20" />}<div><p className="text-xs font-semibold uppercase tracking-widest text-blue-400">{lang === 'kz' ? 'Біздің серіктес' : 'Наш партнёр'}</p><h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">{profile.name}</h1></div></div>
           <p className="mt-7 max-w-lg text-xl font-semibold leading-relaxed sm:text-2xl">{profile.headline}</p><p className="mt-5 flex gap-2 text-sm text-slate-300"><MapPin className="h-5 w-5 shrink-0" />{profile.area}</p>
-          <div className="mt-7 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">{shops.includes(profile.slug) && <Link to={`/shop/${profile.slug}`} className={`${button} col-span-2 bg-white text-slate-950`}>{lang === 'kz' ? 'Каталог және тапсырыс' : 'Каталог и заказ'}<ArrowUpRight className="h-5 w-5" /></Link>}{whatsappLink(profile.whatsapp) && <a href={`${whatsappLink(profile.whatsapp)}?text=${encodeURIComponent(`Здравствуйте! Нашёл ${profile.name} на Сортировка 24. Хочу узнать об услугах.`)}`} target="_blank" rel="noopener noreferrer" className={`${button} bg-blue-500 text-slate-950`}><MessageCircle className="h-5 w-5" />WhatsApp</a>}{phoneLink(profile.phone) && <a href={phoneLink(profile.phone)!} className={`${button} border border-white/25`}><Phone className="h-5 w-5" />{lang === 'kz' ? 'Қоңырау шалу' : 'Позвонить'}</a>}</div>
+          <div className="mt-7 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">{profile.lead.enabled && <button type="button" onClick={() => toLead()} className={`${button} col-span-2 bg-white text-slate-950`}>{profile.lead.button}<ArrowUpRight className="h-5 w-5" /></button>}{shops.includes(profile.slug) && <Link to={`/shop/${profile.slug}`} className={`${button} col-span-2 bg-white text-slate-950`}>{lang === 'kz' ? 'Каталог және тапсырыс' : 'Каталог и заказ'}<ArrowUpRight className="h-5 w-5" /></Link>}{whatsappLink(profile.whatsapp) && <a href={`${whatsappLink(profile.whatsapp)}?text=${encodeURIComponent(`Здравствуйте! Нашёл ${profile.name} на Сортировка 24. Хочу узнать об услугах.`)}`} target="_blank" rel="noopener noreferrer" className={`${button} bg-blue-500 text-slate-950`}><MessageCircle className="h-5 w-5" />WhatsApp</a>}{phoneLink(profile.phone) && <a href={phoneLink(profile.phone)!} className={`${button} border border-white/25`}><Phone className="h-5 w-5" />{lang === 'kz' ? 'Қоңырау шалу' : 'Позвонить'}</a>}</div>
         </div>
       </section>
-      <nav aria-label="Разделы компании" className="my-6 flex flex-wrap gap-2 text-sm font-semibold">{[['about','О компании'],['services','Услуги'],['works','Работы'],['contacts','Контакты']].map(([id,label])=><a key={id} href={`#${id}`} className="rounded-full border px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-950">{label}</a>)}</nav>
+      <nav aria-label="Разделы компании" className="my-6 flex flex-wrap gap-2 text-sm font-semibold">{([['about','О компании'],['prices','Цены',profile.prices.length],['services','Услуги'],['works','Работы',profile.works.length],['reviews','Отзывы',profile.reviews.length || profile.instagram],['faq','Вопросы',profile.faq.length],['contacts','Контакты']] as [string,string,unknown?][]).filter(x=>x.length<3 || x[2]).map(([id,label])=><a key={id} href={`#${id}`} className="rounded-full border px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-950">{label}</a>)}</nav>
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
         <div className="space-y-10 min-w-0"><section id="about" className="scroll-mt-24"><h2 className="text-2xl font-bold">О компании</h2><p className="mt-4 whitespace-pre-line leading-relaxed text-gray-600 dark:text-gray-300">{profile.description}</p></section>
+        <PartnerFacts profile={profile} />
+        <PartnerPrices profile={profile} onPick={toLead} />
         <section id="services" className="scroll-mt-24"><h2 className="text-2xl font-bold">Чем можем помочь</h2><div className="mt-5 grid gap-3 sm:grid-cols-2">{profile.services.map(s=><div key={s} className="flex gap-3 rounded-2xl border p-4"><Check className="h-5 w-5 shrink-0 text-blue-600" /><span>{s}</span></div>)}</div></section>
         {!!profile.works.length && <section id="works" className="scroll-mt-24"><h2 className="text-2xl font-bold">Работы и видео</h2><p className="mt-2 text-sm text-gray-500">Материалы компании. Откройте публикацию, чтобы посмотреть все фото и видео.</p><div className="mt-5 grid gap-4 sm:grid-cols-2">{profile.works.map((w,i)=><article key={i} className="overflow-hidden rounded-2xl border"><a href={httpsLink(w.source) || undefined} target="_blank" rel="noopener noreferrer" className="group relative block"><StorageImg objectKey={w.image} alt={w.title} className="aspect-[4/3] w-full object-cover" />{w.kind==='video' && <span className="absolute inset-0 flex items-center justify-center"><Play className="h-14 w-14 rounded-full bg-black/60 p-4 text-white" /></span>}</a><div className="p-4"><h3 className="font-bold">{w.title}</h3>{w.caption && <p className="mt-2 text-sm text-gray-500">{w.caption}</p>}{httpsLink(w.source) && <a href={w.source} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-blue-600">{w.kind==='video' ? 'Смотреть видео' : 'Смотреть публикацию'}<ArrowUpRight className="h-4 w-4" /></a>}</div></article>)}</div></section>}
-        </div><aside id="contacts" className="scroll-mt-24 space-y-4"><div className="rounded-3xl border bg-white p-6 dark:bg-gray-900"><h2 className="text-xl font-bold">Контакты</h2><dl className="mt-5 space-y-5 text-sm">{[["Телефон",profile.phone],["Работаем",profile.area],["Адрес",profile.address],["Часы работы",profile.hours]].filter(([,v])=>v).map(([k,v])=><div key={k}><dt className="text-gray-500">{k}</dt><dd className="mt-1 font-medium break-words">{v}</dd></div>)}</dl>{!profile.address && <p className="mt-5 text-sm text-gray-500">Место встречи и выезд согласуйте с компанией.</p>}{httpsLink(profile.instagram) && <a href={profile.instagram} target="_blank" rel="noopener noreferrer" className={`${button} mt-5 w-full border`}>Instagram<ArrowUpRight className="h-4 w-4" /></a>}</div>
+        <PartnerSteps profile={profile} />
+        <PartnerReviews profile={profile} />
+        <PartnerFaq profile={profile} />
+        </div><aside id="contacts" className="scroll-mt-24 space-y-4"><PartnerLeadForm profile={profile} choice={choice} onChoice={setChoice} /><div className="rounded-3xl border bg-white p-6 dark:bg-gray-900"><h2 className="text-xl font-bold">Контакты</h2><dl className="mt-5 space-y-5 text-sm">{[["Телефон",profile.phone],["Работаем",profile.area],["Адрес",profile.address],["Часы работы",profile.hours]].filter(([,v])=>v).map(([k,v])=><div key={k}><dt className="text-gray-500">{k}</dt><dd className="mt-1 font-medium break-words">{v}</dd></div>)}</dl>{!profile.address && <p className="mt-5 text-sm text-gray-500">Место встречи и выезд согласуйте с компанией.</p>}{httpsLink(profile.instagram) && <a href={profile.instagram} target="_blank" rel="noopener noreferrer" className={`${button} mt-5 w-full border`}>Instagram<ArrowUpRight className="h-4 w-4" /></a>}</div>
         {profile.offer && <div className="rounded-3xl bg-blue-50 p-6 dark:bg-blue-950"><p className="text-xs font-bold uppercase tracking-widest text-blue-700 dark:text-blue-400">Для жителей района</p><h2 className="mt-3 text-xl font-bold">{profile.offer}</h2>{profile.offer_terms && <p className="mt-3 text-sm leading-relaxed text-gray-600 dark:text-gray-300">{profile.offer_terms}</p>}{contact && <a href={contact} className={`${button} mt-4 w-full bg-blue-600 text-white`}>Уточнить условия</a>}</div>}
         </aside>
       </div>
+      {profile.lead.enabled && !formInView && <div className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-30 border-t bg-white/95 p-3 backdrop-blur lg:hidden dark:bg-gray-950/95"><button type="button" onClick={() => toLead()} className="min-h-12 w-full rounded-2xl bg-blue-600 font-semibold text-white">{profile.lead.button}</button></div>}
     </>}
   </div></Layout>;
 }

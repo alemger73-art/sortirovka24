@@ -822,6 +822,9 @@ async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dic
         from services import partner_shop
         if await partner_shop.handle_message(db, client, message):
             return
+        from services import showcase_leads
+        if await showcase_leads.handle_message(db, client, message):
+            return
         sender_id = str((message.get("from") or {}).get("id", ""))
         if chat.get("type") == "private" and str(message.get("text") or "").strip() == "/start" \
                 and sender_id != approval_chat() and sender_id not in admin_ids():
@@ -906,6 +909,11 @@ async def handle_update(db: AsyncSession, client: httpx.AsyncClient, update: dic
     if data.startswith("sh:"):
         from services import partner_shop
         answer = await partner_shop.handle_callback(db, client, data, chat_id, callback.get("from") or {}, msg)
+        await tg(client, "answerCallbackQuery", {"callback_query_id": callback_id, "text": answer[:190]})
+        return
+    if data.startswith("ld:"):
+        from services import showcase_leads
+        answer = await showcase_leads.handle_callback(db, client, data, chat_id, callback.get("from") or {}, msg)
         await tg(client, "answerCallbackQuery", {"callback_query_id": callback_id, "text": answer[:190]})
         return
     if data.startswith("ps:") and data != "ps:x":

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { partnerProfiles, emptyPartner, type PartnerProfile } from '@/lib/partnerProfiles';
 import ImageUpload from '@/components/ImageUpload';
+import PartnerProfileExtras from '@/components/PartnerProfileExtras';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -23,7 +24,8 @@ export default function AdminPartnerProfiles() {
     event.preventDefault(); if(!edit || busy.current || uploading) return;
     if (!originalSlug.current && items.some(p=>p.slug===edit.slug)) { toast.error('Этот адрес уже занят. Выберите другой.'); return; }
     busy.current = true; setSaving(true);
-    try { await partnerProfiles.save({...edit,services:edit.services.map(s=>s.trim()).filter(Boolean)}); toast.success('Карточка сохранена'); setEdit(null); load(); }
+    const clean = (list: string[]) => list.map(s=>s.trim()).filter(Boolean);
+    try { await partnerProfiles.save({...edit,services:clean(edit.services),steps:clean(edit.steps),lead:{...edit.lead,options:clean(edit.lead.options)},prices:edit.prices.map(p=>({...p,includes:clean(p.includes)}))}); toast.success('Карточка сохранена'); setEdit(null); load(); }
     catch(e) { toast.error(e instanceof Error ? e.message : 'Не удалось сохранить'); }
     finally { busy.current = false; setSaving(false); }
   };
@@ -43,6 +45,7 @@ export default function AdminPartnerProfiles() {
       <label className="block text-sm font-medium">Услуги — каждая с новой строки<textarea rows={6} value={edit.services.join('\n')} onChange={e=>setEdit({...edit,services:e.target.value.split('\n')})} className="mt-1 w-full rounded-lg border bg-transparent p-3" /></label>
       {field('offer','Спецпредложение (необязательно)')}{field('offer_terms','Условия предложения',false,true)}
       <div><h3 className="font-semibold">Фотографии и видео</h3><p className="text-sm text-gray-500">Для видео добавьте обложку и ссылку на исходную публикацию. Видео не запускается автоматически.</p>{edit.works.map((w,i)=><div key={i} className="mt-4 space-y-3 rounded-xl border p-4"><label className="block text-sm">Название<input required value={w.title} onChange={e=>setEdit({...edit,works:edit.works.map((x,j)=>j===i?{...x,title:e.target.value}:x)})} className="mt-1 w-full rounded border bg-transparent p-2" /></label><ImageUpload folder="partners" value={w.image} onChange={image=>setEdit(p=>p&&({...p,works:p.works.map((x,j)=>j===i?{...x,image}:x)}))} onUploadingChange={v=>uploadState(`work-${i}`,v)} /><label className="block text-sm">Подпись<input value={w.caption} onChange={e=>setEdit({...edit,works:edit.works.map((x,j)=>j===i?{...x,caption:e.target.value}:x)})} className="mt-1 w-full rounded border bg-transparent p-2" /></label><label className="block text-sm">Ссылка на публикацию<input type="url" value={w.source} onChange={e=>setEdit({...edit,works:edit.works.map((x,j)=>j===i?{...x,source:e.target.value}:x)})} className="mt-1 w-full rounded border bg-transparent p-2" /></label><label className="flex gap-2 text-sm"><input type="checkbox" checked={w.kind==='video'} onChange={e=>setEdit({...edit,works:edit.works.map((x,j)=>j===i?{...x,kind:e.target.checked?'video':'photo'}:x)})} />Это видео</label><Button type="button" variant="outline" disabled={uploading} onClick={()=>setEdit({...edit,works:edit.works.filter((_,j)=>i!==j)})}>Убрать материал</Button></div>)}<Button type="button" className="mt-3" variant="outline" disabled={edit.works.length>=12 || uploading} onClick={()=>setEdit({...edit,works:[...edit.works,{title:'',image:'',source:'',kind:'photo',caption:''}]})}>Добавить фото / видео</Button></div>
+      <PartnerProfileExtras edit={edit} setEdit={setEdit} saved={!!originalSlug.current} />
       <label className="flex items-center gap-3 font-medium"><input type="checkbox" checked={edit.published} onChange={e=>setEdit({...edit,published:e.target.checked})} />Показывать компанию на сайте</label>
       <label className="flex items-center gap-3 font-medium"><input type="checkbox" checked={!!edit.featured} onChange={e=>setEdit({...edit,featured:e.target.checked})} />Главный партнёр — показывать на видных местах сайта</label>
       <Button type="submit" disabled={saving || uploading} className="w-full">{saving ? 'Сохраняем…' : uploading ? 'Дождитесь загрузки фото…' : 'Сохранить'}</Button>
