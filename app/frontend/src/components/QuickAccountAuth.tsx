@@ -161,6 +161,7 @@ export default function QuickAccountAuth({ onPasswordLogin }: { onPasswordLogin:
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950"><ShieldCheck /></div>
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{text('Вход в «Сортировка 24»', '«Сортировка 24» жүйесіне кіру')}</h1>
       <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{text('Вход и регистрация по номеру телефона — через WhatsApp или Telegram.', 'Телефон нөмірі арқылы кіру және тіркелу — WhatsApp немесе Telegram арқылы.')}</p>
+      <Link to="/instructions/install-and-register" className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600">▶ {text('Не получается? Видео по шагам', 'Шықпай жатыр ма? Қадамдық бейне')}</Link>
       {step === 'phone' && <div className="mt-4 space-y-2">
         <label htmlFor="legal-subject-name" className="block text-sm dark:text-white">{text('Ваше имя', 'Атыңыз')}</label>
         <input id="legal-subject-name" autoComplete="given-name" maxLength={120} value={subjectName} onChange={e => { setSubjectName(e.target.value); setError(''); }} placeholder={text('Например: Асия', 'Мысалы: Әсия')} className={field} />

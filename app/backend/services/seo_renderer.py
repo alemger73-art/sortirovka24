@@ -253,6 +253,8 @@ async def build_seo_page(path: str) -> SeoPage:
         return await _shop_seo_page(path)
     if path == "/useful" or path.startswith("/useful/"):
         return await _useful_seo_page(path)
+    if path == "/instructions" or path.startswith("/instructions/"):
+        return _instructions_seo_page(path)
     page = _base_page(path)
     disabled = await _disabled_modules()
     if _module_for(path) in disabled:
@@ -532,6 +534,28 @@ async def _shop_seo_page(path: str) -> SeoPage:
     page.body = "<ul>" + "".join(f"<li>{html.escape(p['name'])} — {p['price']} ₸</li>" for p in products[:60]) + "</ul>"
     page.schemas.append({"@context": "https://schema.org", "@type": "Store", "name": shop["name"], "url": page.canonical,
                          "telephone": shop.get("phone") or ""})
+    return page
+
+
+def _instructions_seo_page(path: str) -> SeoPage:
+    """«Инструкции»: the list of video guides and each guide with its poster and steps."""
+    from services import instructions
+    page = SeoPage("Инструкции — как пользоваться Сортировка 24", "Видео по шагам: как установить приложение, зарегистрироваться и пользоваться сервисами района.",
+                   path, "Инструкции", "Короткие видео: как установить приложение и пользоваться Сортировка 24.")
+    if path == "/instructions":
+        page.body = "".join(_link(f"/instructions/{i['slug']}", i["title"], i["summary"]) for i in instructions.listing())
+        return page
+    guide = instructions.get(path.removeprefix("/instructions/"))
+    if guide is None:
+        page.title = page.heading = "Инструкция не найдена"
+        page.robots = "noindex, follow"
+        page.status_code = 404
+        return page
+    page.title = f"{guide['title']} | Сортировка 24"
+    page.heading = guide["title"]
+    page.description = page.intro = guide["summary"]
+    page.image = SITE_URL + guide["poster"]
+    page.body = "<ol>" + "".join(f"<li>{html.escape(step)}</li>" for step in guide.get("steps", [])) + "</ol>"
     return page
 
 

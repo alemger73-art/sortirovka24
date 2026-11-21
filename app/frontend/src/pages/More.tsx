@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 import {
   User, Bus, BookOpen, Car, Newspaper, AlertTriangle, HelpCircle, ShoppingBag, Shield, Heart, Landmark, Store,
   ChevronRight, LogIn, Cross, Wine, Bug, Megaphone, Package, Bell, Wrench, Scissors, Building2,
-  MessageCircle, Hammer, History, Mail, Home as HomeIcon, Gift,
+  MessageCircle, Hammer, History, Mail, Home as HomeIcon, Gift, PlayCircle,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import InstallAppBanner from '@/components/InstallAppBanner';
@@ -140,6 +140,15 @@ export default function More() {
         {loggedIn && <MyShopLink />}
 
         <InstallAppBanner manual />
+
+        <Link to="/instructions" className="flex items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/40">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white"><PlayCircle className="h-5 w-5" aria-hidden /></span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-semibold text-gray-900 dark:text-white">{tx('Инструкции', 'Нұсқаулықтар')}</span>
+            <span className="block text-xs text-gray-600 dark:text-gray-300">{tx('Видео по шагам: установка, вход и другое', 'Қадамдық бейне: орнату, кіру және т.б.')}</span>
+          </span>
+          <ChevronRight className="h-5 w-5 text-gray-400" aria-hidden />
+        </Link>
 
         <FeaturedPartner variant="compact" place="more" />
 

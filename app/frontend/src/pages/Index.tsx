@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import HomeUseful from '@/components/HomeUseful';
+import HomeInstructions from '@/components/HomeInstructions';
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { client, withRetry, warmupBackend, resetWarmup, STATUS_LABELS, timeAgo, formatDate } from '@/lib/api';
@@ -249,6 +250,7 @@ export default function Index() {
       <Hero />
       <div>
         <div className="a-wrap">
+          <HomeInstructions />
           <HomeUseful />
           {isEnabled('news') && <section className="home-news a-section" aria-label={lang === 'kz' ? 'Жаңалықтар' : 'Новости'}>
             <div className="a-head"><div><span className="a-kicker">{lang === 'kz' ? 'Жаңасы' : 'Свежее'}</span><h2>{lang === 'kz' ? 'Жаңалықтар' : 'Новости'}</h2></div><Link to="/news" className="a-more">{lang === 'kz' ? 'Барлық жаңалықтар' : 'Все новости'}<ArrowRight size={15} /></Link></div>
