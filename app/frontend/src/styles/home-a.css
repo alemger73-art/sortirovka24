@@ -121,3 +121,7 @@
 .a-shop-photos { display: flex; gap: 4px; flex: none; }
 .a-shop-photos img { width: 52px; height: 66px; object-fit: cover; border-radius: 11px; }
 .a-shop-go { flex: none; opacity: .8; }
+
+/* survey + «Мой дом»: two compact tiles side by side; one tile takes the full row */
+.home-duo { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.home-duo:empty { display: none; }

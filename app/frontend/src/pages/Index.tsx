@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import HomeUseful from '@/components/HomeUseful';
-import HomeInstructions from '@/components/HomeInstructions';
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { client, withRetry, warmupBackend, resetWarmup, STATUS_LABELS, timeAgo, formatDate } from '@/lib/api';
@@ -250,18 +249,16 @@ export default function Index() {
       <Hero />
       <div>
         <div className="a-wrap">
-          <HomeInstructions />
           <HomeUseful />
           {isEnabled('news') && <section className="home-news a-section" aria-label={lang === 'kz' ? 'Жаңалықтар' : 'Новости'}>
             <div className="a-head"><div><span className="a-kicker">{lang === 'kz' ? 'Жаңасы' : 'Свежее'}</span><h2>{lang === 'kz' ? 'Жаңалықтар' : 'Новости'}</h2></div><Link to="/news" className="a-more">{lang === 'kz' ? 'Барлық жаңалықтар' : 'Все новости'}<ArrowRight size={15} /></Link></div>
             {news.length ? <div className="a-scroll">{news.slice(0, 8).map(item => <Link key={item.id} to={`/news/${item.id}`} className="a-card a-news"><span className="a-news-cover" style={{ background: newsCover(item.category) }}><span>{item.category ? getPublicCategoryLabel(item.category, t) : (lang === 'kz' ? 'Жаңалық' : 'Новости')}</span><span>S24 · {lang === 'kz' ? 'жаңалықтар' : 'новости'}</span></span><span className="a-news-body"><time>{formatDate(item.created_at, lang)}</time><h3>{localized(item, 'title')}</h3></span></Link>)}</div> : <p className="a-empty">{loading ? (lang === 'kz' ? 'Жаңалықтар жүктелуде…' : 'Новости загружаются…') : (lang === 'kz' ? 'Әзірге жаңалық жоқ.' : 'Новые публикации скоро появятся здесь.')}</p>}
           </section>}
-          <HomeSurveys />
-          <HomeNeighbors />
+          <div className="home-duo a-section"><HomeSurveys /><HomeNeighbors /></div>
           <FeaturedPartner place="home" className="a-section" />
           {isEnabled('business') && <HomeShops />}
-          {isEnabled('announcements') && <HomeAds />}
           {isEnabled('food') && <HomeFood banners={banners} heroImage={FOOD_IMG} />}
+          {isEnabled('announcements') && <HomeAds />}
           {isEnabled('business') && <HomePartners />}
 
           {/* ═══════════════════════════════════════════

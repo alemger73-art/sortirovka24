@@ -10,8 +10,8 @@ import '@/styles/useful.css';
 
 const dateLabel = (iso: string) => new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
 
-export function UsefulTeaserCard({ item, big = false }: { item: UsefulTeaser; big?: boolean }) {
-  return <Link to={`/useful/${item.slug}`} className={`uk-teaser${big ? ' uk-teaser--big' : ''}`} onClick={() => track('useful_open', { card: item.slug })}>
+export function UsefulTeaserCard({ item, big = false, mini = false }: { item: UsefulTeaser; big?: boolean; mini?: boolean }) {
+  return <Link to={`/useful/${item.slug}`} className={`uk-teaser${big ? ' uk-teaser--big' : ''}${mini ? ' uk-teaser--mini' : ''}`} onClick={() => track('useful_open', { card: item.slug })}>
     {item.image_url && <img src={item.image_url} alt="" loading="lazy" />}
     <span className="uk-teaser-body">
       {item.badge && <span className="uk-badge">{item.badge}</span>}

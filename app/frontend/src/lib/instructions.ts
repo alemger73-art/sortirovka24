@@ -1,7 +1,15 @@
 /** «Инструкции»: video guides — API client. */
 import { getAPIBaseURL } from '@/lib/config';
 
-export type Instruction = { slug: string; title: string; summary: string; video: string; poster: string; duration: string; steps: string[] };
+type GuideText = { title: string; summary: string; video: string; poster: string; duration: string; steps: string[] };
+export type GuideLang = 'ru' | 'kz';
+/** A guide in Russian, optionally with a Kazakh version of the same video and steps. */
+export type Instruction = GuideText & { slug: string; kz?: GuideText };
+
+/** The guide's text and video in the wanted language, falling back to Russian. */
+export function inLang(item: Instruction, lang: GuideLang): GuideText {
+  return lang === 'kz' && item.kz ? item.kz : item;
+}
 
 let cache: Promise<Instruction[]> | null = null;
 

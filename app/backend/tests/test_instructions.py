@@ -19,10 +19,12 @@ async def test_list_comes_from_the_api():
     assert items and items[0]["slug"] == "install-and-register"
 
 
-def test_every_guide_has_its_video_and_poster_files():
+def test_every_guide_has_its_video_and_poster_files_in_each_language():
     for guide in instructions.listing():
-        assert (PUBLIC / guide["video"].lstrip("/")).is_file(), guide["video"]
-        assert (PUBLIC / guide["poster"].lstrip("/")).is_file(), guide["poster"]
+        for version in filter(None, (guide, guide.get("kz"))):
+            assert version["title"] and version["steps"], guide["slug"]
+            assert (PUBLIC / version["video"].lstrip("/")).is_file(), version["video"]
+            assert (PUBLIC / version["poster"].lstrip("/")).is_file(), version["poster"]
 
 
 async def test_guide_pages_have_title_picture_and_404():

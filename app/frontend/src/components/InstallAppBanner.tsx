@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Check, Copy, Download, Share, X } from 'lucide-react';
 import { isNativeApp } from '@/lib/native';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { currentInstallPrompt, takeInstallPrompt, isPwaStandalone, pwaEvent, pwaPlatform, chromeIntentUrl, needsChromeForInstall, takeInstallLinkMark, iosSafariMenuLayout, takeChromeTried } from '@/lib/pwa';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
@@ -15,6 +16,8 @@ export default function InstallAppBanner({ manual = false }: { manual?: boolean 
   });
   const [installed, setInstalled] = useState(isPwaStandalone);
   const [busy, setBusy] = useState(false);
+  const { lang } = useLanguage();
+  const tx = (ru: string, kz: string) => (lang === 'kz' ? kz : ru);
   const environment = pwaPlatform();
   const viaChrome = !currentInstallPrompt() && needsChromeForInstall();
   const visible = !isNativeApp() && !installed && (manual || (!dismissed && (environment.ios || !!currentInstallPrompt() || viaChrome)));
@@ -51,9 +54,9 @@ export default function InstallAppBanner({ manual = false }: { manual?: boolean 
     <div data-install-banner data-ready={ready} className={manual ? '' : 'fixed inset-x-0 z-[45] p-3 bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] md:bottom-3'}>
       <div className="mx-auto flex max-w-lg gap-3 rounded-2xl border border-blue-200 bg-white p-4 shadow-lg dark:border-blue-900 dark:bg-gray-900">
         <img src="/icon-192-v4.png" alt="" className="h-12 w-12 rounded-xl" />
-        <div className="min-w-0 flex-1"><p className="font-semibold">Приложение «Сортировка 24»</p>
-          <p className="mt-1 text-sm text-gray-500">«Сортировка 24» появится на главном экране и будет открываться как приложение.</p>
-          <button disabled={busy} onClick={() => void install()} className="mt-3 flex min-h-11 items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-white"><Download size={18} />{busy ? 'Открываем…' : 'Установить'}</button>
+        <div className="min-w-0 flex-1"><p className="font-semibold">{tx('Приложение «Сортировка 24»', '«Сортировка 24» қолданбасы')}</p>
+          <p className="mt-1 text-sm text-gray-500">{tx('«Сортировка 24» появится на главном экране и будет открываться как приложение.', '«Сортировка 24» басты экранда пайда болып, қолданба ретінде ашылады.')}</p>
+          <button disabled={busy} onClick={() => void install()} className="mt-3 flex min-h-11 items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-white"><Download size={18} />{busy ? tx('Открываем…', 'Ашылуда…') : tx('Установить', 'Орнату')}</button>
         </div>
         {!manual && <button aria-label="Закрыть предложение установки" className="self-start p-2" onClick={() => { try { localStorage.setItem('s24_install_dismissed_at', String(Date.now())); } catch { /* storage optional */ } setDismissed(true); }}><X size={20} /></button>}
       </div>

@@ -1,9 +1,9 @@
 /* «Инструкции»: video guides. */
-.ins-page, .ins-home {
+.ins-page {
   --ink: #16243b; --muted: #66748a; --line: #e3e8f1; --surface: #fff; --accent: #2459e0; --accent-soft: #eaf0ff;
   color: var(--ink);
 }
-.dark .ins-page, .dark .ins-home {
+.dark .ins-page {
   --ink: #eef2f8; --muted: #a9b6ca; --line: #2b3954; --surface: #172239; --accent: #9ab8ff; --accent-soft: #1c2f50;
 }
 .ins-page { max-width: 720px; margin: 0 auto; padding: 20px 16px 120px; }
@@ -23,6 +23,8 @@
 .ins-h1 { margin-top: 16px; font-size: 24px; line-height: 1.2; font-weight: 800; }
 .ins-steps { margin-top: 14px; padding: 14px 16px 14px 36px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); display: grid; gap: 8px; list-style: decimal; font-size: 15px; line-height: 1.45; }
 .ins-help { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; margin-top: 14px; border-radius: 16px; background: #1f9d55; color: #fff; font-weight: 800; }
-/* home strip */
-.ins-home .ins-item { background: var(--accent-soft); border-color: transparent; }
-.ins-home .ins-thumb { width: 64px; height: 92px; }
+
+/* guide video language: Русский | Қазақша */
+.ins-langs { display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 12px; border-radius: 999px; background: var(--accent-soft); }
+.ins-langs button { min-height: 40px; padding: 0 18px; border-radius: 999px; font-weight: 700; color: var(--muted); }
+.ins-langs button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(15, 26, 46, .12); }

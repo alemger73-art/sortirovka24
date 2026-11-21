@@ -1,7 +1,7 @@
 /** Home: «Мой дом» card — how many neighbours are already in your house, or an invitation to add it. */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Building2 } from 'lucide-react';
+import { Building2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getAccountToken } from '@/lib/accountApi';
 import { nbApi, plural } from '@/lib/neighbors';
@@ -40,15 +40,14 @@ export default function HomeNeighbors() {
     : say('Укажите свой дом: аварии, собрания и вопросы соседей', 'Үйіңізді көрсетіңіз: апаттар, жиналыстар, көршілер сұрақтары');
 
   return (
-    <section className="a-section" aria-label={say('Мой дом', 'Менің үйім')}>
+    <section className="home-duo-tile" aria-label={say('Мой дом', 'Менің үйім')}>
       <Link to="/dom" data-testid="home-neighbors" data-state={view.kind}
-        className="flex items-center gap-4 rounded-2xl bg-gradient-to-r from-sky-600 to-indigo-600 p-4 text-white shadow-md transition hover:shadow-lg active:scale-[.99] md:p-5">
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-white/20"><Building2 size={26} /></span>
+        className="flex h-full flex-col gap-2 rounded-2xl bg-gradient-to-br from-sky-600 to-indigo-600 p-3.5 text-white shadow-md transition hover:shadow-lg active:scale-[.99] md:p-5">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/20"><Building2 size={26} /></span>
         <span className="min-w-0 flex-1">
-          <b className="block text-base md:text-lg">{title}</b>
-          <span className="block truncate text-sm text-white/90">{sub}</span>
+          <b className="block text-[15px] leading-tight md:text-lg">{title}</b>
+          <span className="mt-1 line-clamp-2 block text-xs text-white/85">{sub}</span>
         </span>
-        <ArrowRight size={22} className="shrink-0" />
       </Link>
     </section>
   );
