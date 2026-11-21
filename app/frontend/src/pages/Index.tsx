@@ -29,6 +29,7 @@ import VolnaImage from '@/components/volna/VolnaImage';
 import { VOLNA_INDEX_IMAGE } from '@/lib/volnaImages';
 import Hero from '@/components/landing/Hero';
 import NewYearCountdown from '@/components/seasonal/NewYearCountdown';
+import ContestTeaser from '@/components/seasonal/ContestTeaser';
 import HomeAds from '@/components/HomeAds';
 import HomeSurveys from '@/components/HomeSurveys';
 import HomeNeighbors from '@/components/HomeNeighbors';
@@ -249,6 +250,7 @@ export default function Index() {
       <div className="homeA">
       <Hero />
       <NewYearCountdown />
+      <div className="kn-teaser-wrap"><ContestTeaser /></div>
       <div>
         <div className="a-wrap">
           <HomeUseful />

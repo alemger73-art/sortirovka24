@@ -41,6 +41,7 @@ const ToyLanding = lazyRetry(() => import("./pages/Toy").then(m => ({ default: m
 const ToyBuilder = lazyRetry(() => import("./pages/Toy").then(m => ({ default: m.ToyBuilder })));
 const ToyMine = lazyRetry(() => import("./pages/Toy").then(m => ({ default: m.ToyMine })));
 const NeighborsPage = lazyRetry(() => import("./pages/Neighbors").then(m => ({ default: m.NeighborsPage })));
+const ContestPage = lazyRetry(() => import("./pages/Contest"));
 const SurveysPage = lazyRetry(() => import("./pages/Surveys").then(m => ({ default: m.SurveysPage })));
 const SurveyRunPage = lazyRetry(() => import("./pages/Surveys").then(m => ({ default: m.SurveyRunPage })));
 const UsefulPage = lazyRetry(() => import("./pages/Useful"));
@@ -203,6 +204,7 @@ function App() {
               <Route path="/complaints/new" element={<ModuleRoute module="complaints"><RequireUserAuth><NewComplaintForm /></RequireUserAuth></ModuleRoute>} />
               <Route path="/announcements" element={<ModuleRoute module="announcements"><AnnouncementsList /></ModuleRoute>} />
               <Route path="/dom" element={<NeighborsPage />} />
+              <Route path="/konkurs" element={<ContestPage />} />
               <Route path="/surveys" element={<SurveysPage />} />
               <Route path="/surveys/:id" element={<SurveyRunPage />} />
               <Route path="/useful" element={<UsefulPage />} />

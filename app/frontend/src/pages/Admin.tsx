@@ -37,6 +37,7 @@ import AdminProrab from './AdminProrab';
 import AdminPharmacy from './AdminPharmacy';
 import AdminSupport from './AdminSupport';
 import AdminSeasonal from './AdminSeasonal';
+import AdminContest from './AdminContest';
 import AdminPush from './AdminPush';
 import AdminPaidServices from './AdminPaidServices';
 import AdminSurveys from './AdminSurveys';
@@ -380,6 +381,7 @@ function AdminPanelContent({
       case 'partners-pharmacy': return <AdminPharmacy />;
       case 'support': return <AdminSupport />;
       case 'seasonal': return <AdminSeasonal />;
+      case 'contest': return <AdminContest />;
       case 'push': return <AdminPush />;
       case 'payments': return <AdminPaidServices />;
       case 'surveys': return <AdminSurveys />;

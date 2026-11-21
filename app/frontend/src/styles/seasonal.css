@@ -188,3 +188,18 @@ html.ny-still .ny-bulb, html.ny-still .ny-script, html.ny-still .ny-decor { anim
   .ny-decor-snowman { right: max(12px, calc(50% - 480px)); width: 170px; }
   .ny-decor-gift { width: 84px; }
 }
+
+/* ── Contest invitation on the home page ─────────────────── */
+.kn-teaser {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; margin: 16px auto 0; max-width: 1088px;
+  padding: 14px 16px; border-radius: 18px; text-decoration: none; color: #fff;
+  background: linear-gradient(135deg, var(--ny-berry-1, #96182f), var(--ny-berry-2, #4e0a1a)); border: 1px solid rgba(255, 175, 175, .45);
+  box-shadow: 0 10px 26px rgba(60, 0, 15, .3); position: relative;
+}
+.kn-teaser-wrap { padding: 0 16px; }
+.kn-teaser-icon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: rgba(255, 255, 255, .12); color: #f4c46a; }
+.kn-teaser-text strong { display: block; font-size: 16px; }
+.kn-teaser-text small { display: block; font-size: 13px; color: #ffdce2; margin-top: 2px; }
+.kn-teaser-cta { font-weight: 700; font-size: 14px; padding: 9px 14px; border-radius: 12px; background: #f4c46a; color: #3d2603; white-space: nowrap; }
+.kn-teaser:focus-visible { outline: 3px solid #82a4ff; outline-offset: 2px; }
+@media (max-width: 560px) { .kn-teaser { grid-template-columns: auto minmax(0, 1fr); } .kn-teaser-cta { grid-column: 1 / -1; text-align: center; } }
