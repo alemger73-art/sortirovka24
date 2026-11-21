@@ -23,6 +23,7 @@ import { directoryPublicCopy } from '@/lib/directoryPublicCopy';
 import { GROUPS, OTHER_GROUP, SITUATIONS, groupOf, smartMatch, type Situation } from '@/lib/directorySituations';
 import content from '@/content/directory-context';
 import '@/styles/dir.css';
+import SectionGuideLink from '@/components/SectionGuideLink';
 
 const SIT_ICONS: Record<string, LucideIcon> = { water: Droplets, power: Zap, heat: Thermometer, gas: Flame, trash: Trash2, police: ShieldCheck, doctor: HeartPulse, akimat: Landmark };
 const SOS_SHORT: Record<string, [string, string]> = { 112: ['Помощь', 'Көмек'], 101: ['Пожар', 'Өрт'], 102: ['Полиция', 'Полиция'], 103: ['Скорая', 'Жедел'], 104: ['Газ', 'Газ'] };
@@ -123,6 +124,7 @@ export default function Directory() {
         </header>
 
         <div className="dir-w dir-body">
+          <SectionGuideLink section="directory" />
           <nav id="dir-menu" className="dir-menu" aria-label={say('Разделы справочника', 'Анықтамалық бөлімдері')}>
             <MenuTile icon={BookUser} active={view === 'contacts'} onClick={() => openView('contacts')} title={say('Службы и контакты', 'Байланыстар')} sub={entries.length ? say(`${entries.length} номеров: вода, свет, врачи, школы`, `${entries.length} нөмір: су, жарық, дәрігер, мектеп`) : say('Вода, свет, врачи, школы', 'Су, жарық, дәрігер, мектеп')} />
             <MenuTile icon={ShieldCheck} to="/inspectors" title={say('Участковые', 'Учаскелік')} sub={isEnabled('inspectors') ? say('Найти своего по адресу', 'Мекенжай бойынша табу') : say('Скоро — идёт загрузка', 'Жақында — жүктелуде')} />

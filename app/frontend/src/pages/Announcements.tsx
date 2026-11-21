@@ -12,6 +12,7 @@ import {
   ShoppingCart, Tag, Trash2, UserRound, Video, Wrench, X, type LucideIcon,
 } from 'lucide-react';
 import '@/styles/ads.css';
+import SectionGuideLink from '@/components/SectionGuideLink';
 import Layout from '@/components/Layout';
 import StorageImg from '@/components/StorageImg';
 import MultiImageUpload from '@/components/MultiImageUpload';
@@ -588,6 +589,7 @@ export function AdsList() {
         </header>
 
         <div className="ads-shell">
+          <SectionGuideLink section="announcements" />
           <div className="pb-3 pt-4">{/* not sticky: on a phone a pinned search covered the listings */}
             <div className="flex flex-col gap-3">
               <label className="relative block lg:max-w-[560px]">

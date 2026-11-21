@@ -11,6 +11,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { usePageSeo } from '@/hooks/usePageSeo';
 import { answered, surveyApi, type Answer, type Question, type SubmitResult, type SurveyCard, type SurveyOpen } from '@/lib/surveys';
 import '@/styles/survey.css';
+import SectionGuideLink from '@/components/SectionGuideLink';
 
 type Say = (ru: string, kz: string) => string;
 function useSay(): Say {
@@ -42,6 +43,7 @@ export function SurveysPage() {
           </div>
         </header>
         <div className="sv-w sv-pad">
+          <SectionGuideLink section="bonuses" />
           {error && <p className="sv-error" role="alert">{error}</p>}
           {!items && !error && <div className="sv-skel" aria-label={say('Загрузка', 'Жүктелуде')}><span /><span /></div>}
           {items && !open.length && (

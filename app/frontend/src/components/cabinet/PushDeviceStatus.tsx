@@ -6,6 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { humanizeApiError } from '@/lib/apiErrors';
 import InstallAppBanner from '@/components/InstallAppBanner';
 import { disablePushNotifications, enablePushNotifications, getPushPermissionState, type PushPermissionState } from '@/lib/pushNotifications';
+import SectionGuideLink from '@/components/SectionGuideLink';
 
 export default function PushDeviceStatus({ withNews = false, className = '' }: { withNews?: boolean; className?: string }) {
   const { lang } = useLanguage();
@@ -51,6 +52,7 @@ export default function PushDeviceStatus({ withNews = false, className = '' }: {
       <p className="mt-1 text-sm">{text('На iPhone уведомления приходят только в установленное приложение. Установите его, откройте с экрана «Домой» и включите здесь.', 'iPhone-да хабарландырулар тек орнатылған қолданбаға келеді.')}</p>
       <div className="mt-3"><InstallAppBanner manual /></div>
     </>}
+    <SectionGuideLink section="notifications" className="mt-2" />
     {state === 'unsupported' && <p className="mt-1 text-sm">{text('Этот браузер не умеет уведомления. Откройте сайт в Chrome (Android) или Safari (iPhone).', 'Бұл браузер хабарландыруды қолдамайды. Chrome (Android) немесе Safari (iPhone) ашыңыз.')}</p>}
   </div>;
 }

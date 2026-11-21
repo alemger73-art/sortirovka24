@@ -21,6 +21,7 @@ import {
 } from '@/lib/neighbors';
 import { track } from '@/lib/analytics';
 import '@/styles/dom.css';
+import SectionGuideLink from '@/components/SectionGuideLink';
 
 type Say = (ru: string, kz: string) => string;
 function useSay(): [Say, boolean, 'ru' | 'kz'] {
@@ -190,6 +191,7 @@ function AddressForm({ member, suggested, invite, onSaved, onCancel, onLeft }: {
         </div>
       </header>
       <form className="dom-w dom-pad dom-form" onSubmit={submit} noValidate>
+        {!member && <SectionGuideLink section="neighbors" />}
         {locked && invite ? (
           <div className="dom-invite-house" data-testid="dom-invite-house">
             <span><Building2 size={20} /></span>
