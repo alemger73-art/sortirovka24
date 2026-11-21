@@ -61,6 +61,7 @@ import DamAlemPromoStrip from '@/components/damalem/DamAlemPromoStrip';
 import DeliveryZonesPreview from '@/components/damalem/DeliveryZonesPreview';
 import { resolveLoyaltyGifts, resolvePromoCodes, type FoodBannerAction } from '@/lib/damAlemMarketing';
 import { isFoodBanner } from '@/lib/foodBannerActions';
+import SectionGuideLink from '@/components/SectionGuideLink';
 import '@/styles/damAlem.css';
 import '@/styles/foodResponsive.css';
 import '@/styles/damRefresh.css';
@@ -1994,6 +1995,7 @@ export default function Food() {
                   {' · '}{String(settings.working_hours || `${kitchenStatus.opensAt} – ${kitchenStatus.closesAt}`)}
                 </p>
               </section>
+              <SectionGuideLink section="food" />
 
               {hitItems.length > 0 ? (
                 <section id="alem-hits" className="dam-market-hits">

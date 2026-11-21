@@ -28,3 +28,9 @@
 .ins-langs { display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 12px; border-radius: 999px; background: var(--accent-soft); }
 .ins-langs button { min-height: 40px; padding: 0 18px; border-radius: 999px; font-weight: 700; color: var(--muted); }
 .ins-langs button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(15, 26, 46, .12); }
+
+/* a section's own guide: one quiet line, e.g. in the DAM ALEM menu */
+.ins-guide-link { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 4px; font-size: 14px; font-weight: 600; color: #2459e0; }
+.ins-guide-link span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ins-guide-link small { flex: none; font-size: 12px; font-weight: 500; color: #66748a; }
+.dark .ins-guide-link { color: #9ab8ff; }

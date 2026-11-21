@@ -4,7 +4,7 @@ import { getAPIBaseURL } from '@/lib/config';
 type GuideText = { title: string; summary: string; video: string; poster: string; duration: string; steps: string[] };
 export type GuideLang = 'ru' | 'kz';
 /** A guide in Russian, optionally with a Kazakh version of the same video and steps. */
-export type Instruction = GuideText & { slug: string; kz?: GuideText };
+export type Instruction = GuideText & { slug: string; section?: string; kz?: GuideText };
 
 /** The guide's text and video in the wanted language, falling back to Russian. */
 export function inLang(item: Instruction, lang: GuideLang): GuideText {

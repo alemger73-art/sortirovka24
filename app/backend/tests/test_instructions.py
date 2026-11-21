@@ -33,3 +33,8 @@ async def test_guide_pages_have_title_picture_and_404():
     page = await build_seo_page("/instructions/install-and-register")
     assert page.status_code == 200 and page.title.startswith("Как установить") and page.image.endswith(".jpg")
     assert (await build_seo_page("/instructions/nothing")).status_code == 404
+
+
+def test_each_section_has_at_most_one_guide():
+    sections = [guide["section"] for guide in instructions.listing() if guide.get("section")]
+    assert len(sections) == len(set(sections)), sections
