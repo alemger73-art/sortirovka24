@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, FileText, Mail, MessageCircle, Phone, ShieldCheck, Trash2 } from 'lucide-react';
+import { ArrowRight, FileText, Instagram, Mail, MessageCircle, Phone, ShieldCheck, Trash2 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LEGAL_OPERATOR } from '@/content/legal';
@@ -24,6 +24,17 @@ export default function SupportPage() {
           </div>
         </header>
         <div className="ads-shell mt-8 grid gap-6 lg:grid-cols-2">
+          <section className="space-y-3 lg:col-span-2" aria-labelledby="about-project">
+            <h2 id="about-project" className="text-xl font-bold">{tx('О проекте', 'Жоба туралы')}</h2>
+            <div className="ads-panel p-5">
+              <p className="text-base leading-relaxed">{tx(
+                '«Сортировка 24» и паблик «Сортировка Official» создал житель района — Алемгер Амангельдиевич Кошакаев. Всё началось с паблика пять лет назад, а сегодня это 30 000 подписчиков и портал, где вся Сортировка в одном месте.',
+                '«Сортировка 24» порталы мен «Сортировка Official» пабликін аудан тұрғыны — Алемгер Амангельдиұлы Кошакаев құрды. Бәрі бес жыл бұрын пабликтен басталды, ал бүгін бұл — 30 000 жазылушы және бүкіл Сортировка бір жерде жиналған портал.')}</p>
+              <p className="mt-2 text-sm text-gray-500 dark:text-slate-400">{tx('Основатель «Сортировка 24» и «Сортировка Official»', '«Сортировка 24» және «Сортировка Official» негізін қалаушы')}</p>
+            </div>
+            <a className={card} href="https://www.instagram.com/sortirovka_official/" target="_blank" rel="noopener noreferrer"><span className={icon}><Instagram className="h-5 w-5" /></span><span className="flex-1"><b className="block">Сортировка Official</b><span className="text-sm text-gray-500 dark:text-slate-400">{tx('Паблик №1 в Сортировке · 30 000 подписчиков', 'Сортировкадағы №1 паблик · 30 000 жазылушы')}</span></span><ArrowRight className="h-5 w-5" /></a>
+            <a className={card} href="https://www.instagram.com/alemger_koshakaev/" target="_blank" rel="noopener noreferrer"><span className={icon}><Instagram className="h-5 w-5" /></span><span className="flex-1"><b className="block">Алемгер Кошакаев</b><span className="text-sm text-gray-500 dark:text-slate-400">{tx('Основатель · @alemger_koshakaev', 'Негізін қалаушы · @alemger_koshakaev')}</span></span><ArrowRight className="h-5 w-5" /></a>
+          </section>
           <section className="space-y-3">
             <h2 className="text-xl font-bold">{tx('Связаться с нами', 'Бізбен байланысу')}</h2>
             <a className={card} href="https://wa.me/77004280280" target="_blank" rel="noopener noreferrer"><span className={icon}><MessageCircle className="h-5 w-5" /></span><span className="flex-1"><b className="block">WhatsApp</b><span className="text-sm text-[var(--ads-muted)]">{tx('Быстрее всего отвечаем здесь', 'Мұнда ең жылдам жауап береміз')}</span></span><ArrowRight className="h-4 w-4 text-[var(--ads-muted)]" /></a>

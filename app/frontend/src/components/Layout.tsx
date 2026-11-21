@@ -123,6 +123,7 @@ export default function Layout({
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {t('footer.portalDescription')}
               </p>
+              <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">{t('footer.founder')}</p>
               <Link
                 to="/support"
                 onMouseEnter={() => handlePrefetch('/support')}

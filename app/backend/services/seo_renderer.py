@@ -35,6 +35,8 @@ SITE_NAME = "Сортировка 24"
 FALLBACK_IMAGE = f"{SITE_URL}/og-cover-v1.jpg"  # 1200×630 card for link previews
 LOGO_IMAGE = f"{SITE_URL}/icon-512-v4.png"
 PHONE = "+77004280280"
+FOUNDER = "Алемгер Амангельдиевич Кошакаев"
+FOUNDER_INSTAGRAM = "https://www.instagram.com/alemger_koshakaev/"
 EMAIL = "srt-group.24@mail.ru"
 
 
@@ -79,7 +81,7 @@ PUBLIC_PAGES: dict[str, tuple[str, str, str]] = {
     "/business": ("Бизнес и услуги Сортировки Караганда | Сортировка 24", "Местные компании, магазины, заведения и услуги района Сортировка.", "Бизнес района Сортировка"),
     "/masters": ("Мастера в Сортировке Караганда | Сортировка 24", "Каталог мастеров и бытовых услуг в районе Сортировка Караганды.", "Мастера и услуги в Сортировке"),
     "/salons": ("Салоны и заведения Сортировки Караганда | Сортировка 24", "Салоны, заведения и локальные услуги района Сортировка в Караганде.", "Салоны и заведения Сортировки"),
-    "/support": ("Поддержать проект Сортировка 24", "Поддержите развитие полезного цифрового портала района Сортировка.", "Поддержать Сортировка 24"),
+    "/support": ("О проекте и контакты | Сортировка 24", "Сортировка 24 и паблик «Сортировка Official» создал Алемгер Амангельдиевич Кошакаев. Поддержка и контакты портала района.", "О проекте Сортировка 24"),
     "/questions": ("Вопросы жителей Сортировки | Сортировка 24", "Вопросы и ответы жителей района Сортировка в Караганде.", "Вопросы жителей"),
     "/complaints": ("Обращения жителей Сортировки | Сортировка 24", "Обращения жителей о проблемах района Сортировка в Караганде.", "Обращения жителей"),
     "/announcements/official": ("Разместить в Sortirovka Official — 30 000 жителей Сортировки | Сортировка 24", "Покажем ваше объявление 30 000 подписчикам Sortirovka Official: бизнес, недвижимость и услуги, вакансии и частные объявления.", "Разместить в Sortirovka Official"),
@@ -283,6 +285,7 @@ async def build_seo_page(path: str) -> SeoPage:
             "image": FALLBACK_IMAGE, "email": EMAIL, "telephone": PHONE,
             "description": "Цифровой портал района Сортировка в Караганде: справочник, доставка еды, соседи, объявления и бизнес.",
             "address": {"@type": "PostalAddress", "addressLocality": "Караганда", "addressRegion": "Карагандинская область", "addressCountry": "KZ"},
+            "founder": {"@type": "Person", "name": FOUNDER, "sameAs": [FOUNDER_INSTAGRAM]},
             "contactPoint": {"@type": "ContactPoint", "telephone": PHONE, "contactType": "customer support",
                              "areaServed": "KZ", "availableLanguage": ["Russian", "Kazakh"]},
             "areaServed": {"@type": "AdministrativeArea", "name": "район Сортировка, Караганда"},
