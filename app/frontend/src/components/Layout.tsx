@@ -15,6 +15,7 @@ import PushOfferFloat from '@/components/PushOfferFloat';
 import { refreshWebPushSubscription } from '@/lib/pushNotifications';
 import { getAccountToken } from '@/lib/accountApi';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import SnowEffect from '@/components/seasonal/SnowEffect';
 import OfflineBanner from '@/components/OfflineBanner';
 import SafetyTipBar from '@/components/SafetyTipBar';
 import { useSupportSettings } from '@/hooks/useSupportSettings';
@@ -90,8 +91,9 @@ export default function Layout({
   }, []);
 
   return (
-    <div className={`min-h-screen bg-[#F8FAFC] dark:bg-gray-950 flex flex-col transition-colors duration-300 ${showBottomNav ? 'has-bottom-nav' : ''}`}>
+    <div className={`s24-shell min-h-screen bg-[#F8FAFC] dark:bg-gray-950 flex flex-col transition-colors duration-300 ${showBottomNav ? 'has-bottom-nav' : ''}`}>
       <OfflineBanner />
+      <SnowEffect light={pathname !== '/'} />
       {/* Header */}
       {!hideHeader && (
         <Header />

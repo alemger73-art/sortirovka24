@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Globe, Moon, Sun } from 'lucide-react';
 import AppLogo from '@/components/AppLogo';
+import ChristmasHeader from '@/components/seasonal/ChristmasHeader';
 import { useModules } from '@/hooks/useModules';
 import { moduleForPath } from '@/config/modules';
 import PlatformCartDrawer, { PlatformCartButton } from '@/components/PlatformCartDrawer';
@@ -191,6 +192,7 @@ export default function Header() {
           </nav>
         </div>
       )}
+      <ChristmasHeader />
       <PlatformCartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
     </header>
   );

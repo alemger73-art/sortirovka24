@@ -1,0 +1,190 @@
+/* New Year 2027 layer. Everything is scoped to html.ny, which SeasonalThemeProvider sets only while the theme is on,
+   so switching it off leaves the ordinary design untouched. html.ny-still = the viewer stopped motion. */
+
+/* ── Tokens ─────────────────────────────────────────────── */
+html.ny {
+  --ny-gold: #f4c46a;
+  --ny-gold-deep: #dc9c34;
+  --ny-gold-glow: rgba(255, 196, 92, .55);
+  --ny-ice: #cfe9ff;
+  --ny-ice-line: rgba(180, 220, 255, .6);
+  --ny-red: #c4213a;
+  --ny-berry-1: rgba(150, 26, 48, .9);
+  --ny-berry-2: rgba(78, 10, 26, .92);
+  --ny-night-1: #10275a;
+  --ny-night-2: #061231;
+  /* light theme: snowy white, pale blue, silver, soft gold */
+  --ny-page: linear-gradient(180deg, #e9f3ff 0, #f5f9ff 420px, #fbfdff 100%);
+  --ny-bar: linear-gradient(180deg, #ffffff, #f1f7ff);
+  --ny-bar-line: #d3e3f5;
+  --ny-ink: #0f1f3d;
+  --ny-muted: #4a5a76;
+  --ny-digit: #9a5a08;
+  --ny-cell: rgba(255, 255, 255, .78);
+  --ny-cell-line: #b7d3f2;
+  --ny-cd-bg: linear-gradient(180deg, #d9e9fd 0%, #eef5ff 70%, #f9fcff 100%);
+}
+html.ny.dark {
+  --ny-page: linear-gradient(180deg, #0b1d45 0, #081634 480px, #061231 100%);
+  --ny-bar: linear-gradient(180deg, #0a1838, #0d1f47);
+  --ny-bar-line: rgba(140, 185, 255, .2);
+  --ny-ink: #eef4ff;
+  --ny-muted: #a9b9d8;
+  --ny-digit: var(--ny-gold);
+  --ny-cell: rgba(255, 255, 255, .06);
+  --ny-cell-line: rgba(180, 220, 255, .55);
+  --ny-cd-bg: radial-gradient(ellipse at 50% 0%, #1a3a7a 0%, #0c1f4b 55%, #071433 100%);
+}
+
+/* ── Page shell, header, bottom bar ─────────────────────── */
+html.ny .s24-shell { background: var(--ny-page); }
+html.ny .site-header { background: var(--ny-bar); border-bottom-color: var(--ny-bar-line); }
+html.ny .site-bottom-nav { border-top-color: var(--ny-bar-line); }
+html.ny.dark .site-bottom-nav { background: rgba(8, 20, 50, .96); }
+html.ny .site-bottom-nav::before,
+html.ny .ny-frost::before,
+html.ny .homeA .a-card::before {
+  content: ''; position: absolute; pointer-events: none; z-index: 2;
+  background: url('/seasonal/snowcap.svg') center top / 100% 100% no-repeat;
+}
+html.ny .site-bottom-nav::before { left: 0; right: 0; top: -9px; height: 14px; filter: drop-shadow(0 -1px 1px rgba(10, 30, 70, .12)); }
+
+/* garland under the top bar */
+.ny-garland { position: absolute; left: 0; right: 0; top: calc(100% - 3px); height: 30px; overflow: hidden; pointer-events: none; z-index: 1; }
+.ny-garland svg { display: block; }
+.ny-garland-wire { fill: none; stroke: #2c3b2a; stroke-width: 1.3; }
+html.ny.dark .ny-garland-wire { stroke: #1d2a1f; }
+.ny-bulb-cap { fill: #6d6a5e; }
+.ny-bulb-glass { fill: #ffd47a; }
+.ny-bulb-1 .ny-bulb-glass { fill: #fff0c2; }
+.ny-bulb-2 .ny-bulb-glass { fill: #ffb44f; }
+.ny-bulb-glow { fill: var(--ny-gold-glow); filter: blur(3px); }
+.ny-bulb { animation: ny-twinkle 2.4s ease-in-out infinite alternate; }
+@keyframes ny-twinkle { from { opacity: .5; } to { opacity: 1; } }
+
+/* snow canvas: above content, below the bars, never takes taps */
+.ny-snow { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 45; pointer-events: none; }
+
+/* Santa hat on the logo */
+.ny-hat {
+  position: absolute; left: -24%; top: -40%; width: 82%; height: auto; max-width: none;
+  transform: rotate(-10deg); pointer-events: none; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .25));
+}
+
+/* ── Decorations ─────────────────────────────────────────── */
+.ny-decor { position: absolute; pointer-events: none; user-select: none; height: auto; animation: ny-in .9s ease both; }
+@keyframes ny-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* ── Frosted cards (shared) ──────────────────────────────── */
+html.ny .ny-frost { position: relative; }
+html.ny .ny-frost::before { left: -4px; right: -4px; top: -10px; height: 18px; filter: drop-shadow(0 2px 2px rgba(0, 20, 60, .28)); }
+html.ny .homeA .a-card { position: relative; }
+html.ny .homeA .a-card::before { left: 0; right: 0; top: -3px; height: 12px; }
+
+/* ── Home: hero ──────────────────────────────────────────── */
+html.ny .a-hero { background: var(--ny-night-2); }
+html.ny .a-hero > img { opacity: 1; z-index: 0; }
+html.ny .a-hero::before {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(180deg, rgba(6, 18, 49, .72) 0%, rgba(6, 18, 49, .18) 42%, rgba(6, 18, 49, .1) 62%, rgba(6, 18, 49, .7) 100%);
+}
+html.ny .a-hero-in { z-index: 2; min-height: 440px; }
+html.ny .a-kicker-hero { color: #a9c6ff; }
+.ny-hero-title { font-size: 30px !important; }
+.ny-script {
+  display: block; margin: 4px 0 0 -2px; font-family: 'Lobster', cursive; font-weight: 400; font-size: 46px; line-height: 1.05;
+  letter-spacing: 0; transform: rotate(-5deg); transform-origin: left bottom;
+  background: linear-gradient(180deg, #fff1c4 0%, #f4c46a 45%, #c8862a 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 10px rgba(255, 190, 90, .45));
+  animation: ny-glow 4s ease-in-out infinite alternate;
+}
+.ny-script-rest { display: block; margin: -2px 0 0 34px; font-size: 26px; font-weight: 800; color: #fff; text-shadow: 0 2px 12px rgba(0, 10, 40, .6); }
+@keyframes ny-glow { from { filter: drop-shadow(0 0 6px rgba(255, 190, 90, .3)); } to { filter: drop-shadow(0 0 14px rgba(255, 190, 90, .6)); } }
+.a-hero > img.ny-hero-spruce { inset: auto; left: -70px; bottom: 96px; width: 190px; height: auto; object-fit: contain; opacity: 1; z-index: 1; transform: rotate(10deg); }
+
+html.ny .a-hero-tile { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: start; padding: 14px 12px; border-radius: 18px; transition: transform .15s ease, box-shadow .2s; }
+html.ny .a-hero-tile > strong, html.ny .a-hero-tile > small { grid-column: 2; }
+html.ny .a-hero-tile > strong { letter-spacing: .01em; }
+.ny-tile-icon {
+  grid-row: span 2; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, .7); color: #fff; box-shadow: 0 0 12px rgba(255, 255, 255, .18);
+}
+html.ny .a-hero-tile.ny-frost-ice {
+  background: linear-gradient(135deg, rgba(64, 128, 226, .6), rgba(18, 48, 120, .72));
+  border-color: var(--ny-ice-line); box-shadow: inset 0 0 22px rgba(170, 215, 255, .28), 0 10px 26px rgba(0, 10, 40, .4);
+}
+html.ny .a-hero-tile.ny-frost-berry {
+  background: linear-gradient(135deg, var(--ny-berry-1), var(--ny-berry-2));
+  border-color: rgba(255, 175, 175, .5); box-shadow: inset 0 0 22px rgba(255, 150, 150, .18), 0 10px 26px rgba(30, 0, 10, .45);
+  padding-right: 34px;
+}
+html.ny .a-hero-tile small { color: #e3ecff; }
+.ny-decor-gift { right: -8px; bottom: -10px; width: 62px; z-index: 1; }
+
+/* ── Home: countdown ─────────────────────────────────────── */
+.ny-cd { position: relative; overflow: hidden; background: var(--ny-cd-bg); color: var(--ny-ink); border-bottom: 1px solid var(--ny-bar-line); }
+.ny-cd::after {
+  content: ''; position: absolute; left: -2%; right: -2%; bottom: -8px; height: 34px; pointer-events: none;
+  background: url('/seasonal/snowcap.svg') center top / 100% 100% no-repeat; filter: drop-shadow(0 -2px 6px rgba(150, 190, 255, .35));
+}
+.ny-cd-in { position: relative; z-index: 2; max-width: 640px; margin: 0 auto; padding: 22px 16px 34px; text-align: center; }
+.ny-cd-title {
+  display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0;
+  font-size: 15px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ny-ink);
+}
+.ny-cd-title b { color: var(--ny-digit); font-weight: inherit; }
+.ny-cd-tree { color: var(--ny-gold-deep); flex: none; }
+.ny-cd-cells { display: flex; justify-content: center; gap: 8px; margin-top: 18px; }
+.ny-cd-cell {
+  width: 64px; padding: 10px 0 8px; border-radius: 14px; background: var(--ny-cell); border: 1px solid var(--ny-cell-line);
+  box-shadow: inset 0 0 14px rgba(150, 200, 255, .22), 0 0 18px rgba(255, 190, 90, .14); backdrop-filter: blur(6px);
+}
+.ny-cd-cell strong { display: block; font-size: 30px; line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ny-digit); }
+html.ny.dark .ny-cd-cell strong { text-shadow: 0 0 12px rgba(255, 196, 92, .45); }
+.ny-cd-cell span { display: block; margin-top: 5px; font-size: 12px; color: var(--ny-muted); }
+.ny-cd-greeting { margin: 10px 0 4px; font-family: 'Lobster', cursive; font-size: 30px; line-height: 1.2; color: var(--ny-digit); }
+.ny-cd-still {
+  margin-top: 14px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--ny-cell-line); background: transparent;
+  font-size: 12px; color: var(--ny-muted); cursor: pointer;
+}
+.ny-cd-still:focus-visible { outline: 3px solid #82a4ff; outline-offset: 2px; }
+.ny-decor-lantern { left: -10px; bottom: 6px; width: 74px; z-index: 1; }
+.ny-decor-snowman { right: -14px; bottom: -2px; width: 118px; z-index: 1; transform-origin: 50% 100%; animation: ny-in .9s ease both, ny-sway 6s ease-in-out 1s infinite alternate; }
+@keyframes ny-sway { from { transform: rotate(-1.5deg); } to { transform: rotate(1.5deg); } }
+
+/* ── Home: sections below ────────────────────────────────── */
+html.ny .homeA {
+  --a-bg: #f1f7ff; --a-surface: #ffffff; --a-line: #d6e5f6; --a-soft: #e9f2fd; --a-accent: #1f56c8; --a-accent-soft: #e8f0ff;
+}
+html.ny.dark .homeA {
+  --a-bg: #081634; --a-surface: #0f2350; --a-line: rgba(140, 185, 255, .22); --a-soft: #132a5c; --a-accent: #8fb6ff; --a-accent-soft: #15295a;
+}
+
+/* ── Interaction ─────────────────────────────────────────── */
+html.ny:not(.ny-still) :is(.a-hero-tile, .homeA .a-card, .ny-cd-still):active { transform: scale(.97); }
+html.ny .a-hero-tile:hover { box-shadow: 0 0 0 1px rgba(255, 220, 150, .5), 0 12px 30px rgba(0, 10, 40, .45); }
+html.ny [role='dialog'] { box-shadow: 0 0 0 1px var(--ny-bar-line), 0 24px 60px rgba(4, 14, 40, .35); }
+
+/* ── Inner pages: calm, only a soft festive wash on top ──── */
+html.ny .s24-shell > main { background: transparent; }
+
+/* ── Motion off (viewer's switch or the system setting) ──── */
+html.ny-still .ny-bulb, html.ny-still .ny-script, html.ny-still .ny-decor { animation: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .ny-bulb, .ny-script, .ny-decor { animation: none !important; }
+}
+
+/* ── Wider screens ───────────────────────────────────────── */
+@media (min-width: 768px) {
+  html.ny .a-hero-in { min-height: 520px; }
+  .ny-hero-title { font-size: 44px !important; }
+  .ny-script { font-size: 72px; }
+  .ny-script-rest { font-size: 40px; margin-left: 60px; }
+  .a-hero > img.ny-hero-spruce { width: 300px; left: -100px; bottom: 110px; }
+  .ny-cd-cell { width: 92px; padding: 14px 0 10px; }
+  .ny-cd-cell strong { font-size: 44px; }
+  .ny-cd-title { font-size: 18px; }
+  .ny-decor-lantern { left: max(12px, calc(50% - 470px)); width: 110px; }
+  .ny-decor-snowman { right: max(12px, calc(50% - 480px)); width: 170px; }
+  .ny-decor-gift { width: 84px; }
+}

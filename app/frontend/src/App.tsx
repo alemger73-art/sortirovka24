@@ -14,6 +14,7 @@ import ModuleRoute from "@/components/ModuleRoute";
 import SeoManager from "@/components/SeoManager";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { SeasonalThemeProvider } from "@/components/seasonal/SeasonalThemeProvider";
 import { getAccountToken } from "@/lib/accountApi";
 import { refreshAccountProfile } from "@/lib/localAuth";
 
@@ -172,6 +173,7 @@ function App() {
   return (
     <ThemeProvider>
       <LanguageProvider>
+       <SeasonalThemeProvider>
         {showWelcome && <AppWelcomeSplash onHidden={dismissWelcome} />}
         {/* startTransition: while the next page's code loads, the current page stays on screen instead of a blank skeleton. */}
         <BrowserRouter future={{ v7_startTransition: true }}>
@@ -301,6 +303,7 @@ function App() {
           </Suspense>
           </ErrorBoundary>
         </BrowserRouter>
+       </SeasonalThemeProvider>
       </LanguageProvider>
     </ThemeProvider>
   );

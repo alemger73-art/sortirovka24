@@ -1,5 +1,6 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
+import ChristmasLogo from '@/components/seasonal/ChristmasLogo';
 
 type AppLogoProps = {
   className?: string;
@@ -18,11 +19,14 @@ export default function AppLogo({ className, size = 'md', showText = false }: Ap
   const { t: publicT } = useLanguage();
   return (
     <div className={cn('flex min-w-0 items-center gap-2.5', className)}>
-      <img
-        src="/icon-192-v4.png"
-        alt="Sortirovka24"
-        className={cn('shrink-0 rounded-2xl shadow-sm object-cover', sizes[size])}
-      />
+      <span className="ny-logo relative shrink-0">
+        <img
+          src="/icon-192-v4.png"
+          alt="Sortirovka24"
+          className={cn('block rounded-2xl shadow-sm object-cover', sizes[size])}
+        />
+        <ChristmasLogo />
+      </span>
       {showText && (
         <div className="min-w-0 leading-tight">
           <p className="truncate text-base font-bold text-gray-900 dark:text-white">Сортировка 24</p>
