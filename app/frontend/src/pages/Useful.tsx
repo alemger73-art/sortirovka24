@@ -63,7 +63,10 @@ function CardPage({ slug }: { slug: string }) {
   if (failed) return <p className="uk-empty">Карточка не найдена. <Link to="/useful">Все карточки</Link></p>;
   if (!card) return <p className="uk-empty">Загружаем…</p>;
   return <article className="uk-card">
-    {card.image_url && <img className="uk-cover" src={card.image_url} alt="" />}
+    {card.video_url
+      ? <video className="uk-video" src={card.video_url} poster={card.image_url || undefined} controls playsInline preload="metadata"
+          onPlay={() => track('useful_video', { card: card.slug })} />
+      : card.image_url && <img className="uk-cover" src={card.image_url} alt="" />}
     <div className="uk-head">
       {card.badge && <span className="uk-badge">{card.badge}</span>}
       <h1>{card.title}</h1>
