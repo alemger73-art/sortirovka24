@@ -8,7 +8,7 @@ export type UsefulResults = { counts: number[]; total: number; mine: number | nu
 export type UsefulCard = UsefulTeaser & {
   changes: string[]; actions: string[]; phones: { number: string; label: string }[];
   source: { title: string; url: string } | null; poll: UsefulPoll | null; poll_results: UsefulResults;
-  discussion_post_id: number | null;
+  discussion_post_id: number | null; video_url?: string;
 };
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {

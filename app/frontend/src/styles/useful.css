@@ -30,6 +30,7 @@
 /* the card */
 .uk-card { display: grid; gap: 12px; }
 .uk-cover { width: 100%; max-height: 360px; object-fit: cover; object-position: top; border-radius: 20px; }
+.uk-video { display: block; width: 100%; max-width: 420px; max-height: 75vh; margin: 0 auto; aspect-ratio: 9 / 16; background: #0b0e14; border-radius: 20px; }
 .uk-head h1 { margin-top: 8px; font-size: 24px; line-height: 1.2; font-weight: 800; }
 .uk-meta { margin-top: 6px; font-size: 13px; color: var(--muted); }
 .uk-block { padding: 14px 16px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); }
