@@ -16,7 +16,8 @@ export default function HomePartners() {
   const [shops, setShops] = useState<string[]>([]);
   useEffect(() => {
     let live = true;
-    partnerProfiles.list().then((r) => { if (live) setItems(r.items.filter((p) => p.published && !p.featured)); }).catch(() => {});  // the main partner has its own card higher up
+    // every published partner, the main ones (featured) first — the owner wants them side by side here too
+    partnerProfiles.list().then((r) => { if (live) setItems(r.items.filter((p) => p.published).sort((x, y) => Number(y.featured) - Number(x.featured))); }).catch(() => {});
     partnerShop.list().then((s) => { if (live) setShops(s.map((x) => x.slug)); }).catch(() => {});
     return () => { live = false; };
   }, []);
@@ -33,7 +34,7 @@ export default function HomePartners() {
           const price = p.prices.find((x) => x.featured) || p.prices[0];
           return (
             <article key={p.slug} className="a-card a-partner">
-              <small>{kz ? 'Жарнама · Жоба серіктесі' : 'Реклама · Партнёр проекта'}</small>
+              <small>{p.featured ? (kz ? 'Жарнама · Басты серіктес' : 'Реклама · Главный партнёр') : (kz ? 'Жарнама · Жоба серіктесі' : 'Реклама · Партнёр проекта')}</small>
               <div className="a-partner-title">
                 {p.logo && <StorageImg objectKey={p.logo} alt="" className="a-partner-logo" />}
                 <h3><Link to={`/partners/${p.slug}`}>{p.name}</Link></h3>
