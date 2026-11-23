@@ -2,12 +2,13 @@
 import { getAPIBaseURL } from '@/lib/config';
 import { getAccountToken } from '@/lib/accountApi';
 
-export type Nomination = 'yard' | 'house';
+export type Nomination = 'yard' | 'house' | 'window' | 'snowman' | 'pet';
 export type Phase = 'off' | 'soon' | 'apply' | 'wait' | 'vote' | 'results';
 export type EntryStatus = 'pending' | 'published' | 'rejected';
 
 export interface ContestSettings {
   apply_from: string; apply_to: string; vote_from: string; vote_to: string; prizes_ru: string; prizes_kz: string;
+  draw_ru: string; draw_kz: string; sponsors_ru: string; sponsors_kz: string;
 }
 export interface PublicEntry {
   id: number; nomination: Nomination; title: string; street: string; about: string; photos: string[];
@@ -19,10 +20,17 @@ export interface OwnEntry {
 }
 export interface ContestView {
   phase: Phase; settings: ContestSettings; entries: PublicEntry[]; signed_in: boolean;
-  mine: { entries: OwnEntry[]; votes: Partial<Record<Nomination, number>> };
+  /** votes: today's vote in each nomination; tickets: days voted — chances in the voters' draw. */
+  mine: { entries: OwnEntry[]; votes: Partial<Record<Nomination, number>>; tickets: number };
+  /** Voters' draw winners as «Имя, …12». */
+  draw: string[];
 }
 export interface AdminEntry extends OwnEntry { votes: number; user_name: string; user_phone: string; created_at: string }
-export interface AdminView { phase: Phase; settings: ContestSettings & { enabled: boolean }; entries: AdminEntry[] }
+export interface DrawWinner { name: string; phone: string; tickets: number }
+export interface AdminView {
+  phase: Phase; settings: ContestSettings & { enabled: boolean; draw_count: number }; entries: AdminEntry[];
+  draw: DrawWinner[]; voters: number; tickets: number;
+}
 export interface EntryInput { nomination: Nomination; title: string; street: string; about: string; photos: string[] }
 
 const base = () => `${getAPIBaseURL().replace(/\/$/, '')}/api/v1/contest`;
@@ -53,10 +61,14 @@ export const contestApi = {
   admin: {
     view: () => call<AdminView>('/admin', {}, adminToken()),
     settings: (settings: Partial<AdminView['settings']>) => call<AdminView['settings']>('/admin/settings', send('PUT', { settings }), adminToken()),
+    draw: () => call<{ draw: DrawWinner[] }>('/admin/draw', send('POST'), adminToken()),
     entry: (id: number, body: { status?: EntryStatus; reason?: string; place?: number; clear_place?: boolean }) =>
       call<{ ok: boolean }>(`/admin/entries/${id}`, send('POST', body), adminToken()),
   },
 };
+
+/** Link to one entry: the page opens its nomination and scrolls to it. */
+export const entryLink = (id: number) => `${window.location.origin}/konkurs?e=${id}`;
 
 /** 2026-12-21 → «21 декабря» / «21 желтоқсан». */
 export function dayLabel(iso: string, kz: boolean): string {

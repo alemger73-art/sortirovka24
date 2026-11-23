@@ -126,6 +126,14 @@ async def admin_settings(body: dict[str, Any], db: AsyncSession = Depends(get_db
         _fail(exc)
 
 
+@router.post("/admin/draw", dependencies=[Depends(_admin)])
+async def admin_draw(db: AsyncSession = Depends(get_db)):
+    try:
+        return {"draw": await svc.hold_draw(db)}
+    except svc.ContestError as exc:
+        _fail(exc)
+
+
 @router.post("/admin/entries/{entry_id}", dependencies=[Depends(_admin)])
 async def admin_entry(entry_id: int, body: AdminEntryBody, db: AsyncSession = Depends(get_db)):
     changes: dict[str, Any] = {}

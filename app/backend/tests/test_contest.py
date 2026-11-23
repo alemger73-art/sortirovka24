@@ -1,4 +1,4 @@
-"""«Новогодняя Сортировка»: apply with photos → owner publishes → one vote per nomination → owner marks winners."""
+"""«Новогодняя Сортировка»: apply with photos → owner publishes → a vote per nomination per day → winners and voters' draw."""
 import base64
 import io
 from datetime import datetime, timedelta, timezone
@@ -100,11 +100,12 @@ async def test_full_contest_flow(env):
     assert (await client.post(f'{BASE}/vote', json={'entry_id': entry['id']}, headers=h['alice'])).status_code == 400  # own entry
     assert (await client.post(f'{BASE}/vote', json={'entry_id': entry['id']}, headers=h['bob'])).status_code == 200
     again = await client.post(f'{BASE}/vote', json={'entry_id': entry['id']}, headers=h['bob'])
-    assert again.status_code == 400 and 'уже' in again.json()['detail']
+    assert again.status_code == 400 and 'завтра' in again.json()['detail']
     assert (await client.post(f'{BASE}/vote', json={'entry_id': entry['id']})).status_code == 401
 
     page = (await client.get(BASE, headers=h['bob'])).json()
     assert page['phase'] == 'vote' and page['entries'][0]['votes'] == 1 and page['mine']['votes'] == {'yard': entry['id']}
+    assert page['mine']['tickets'] == 1 and page['draw'] == []
 
     await client.post(f'{BASE}/admin/entries/{entry["id"]}', json={'place': 1}, headers=h['panel'])
     assert (await client.get(BASE)).json()['entries'][0]['place'] == 1
@@ -133,6 +134,38 @@ async def test_admin_needs_owner(env):
     client, h = env
     assert (await client.get(f'{BASE}/admin', headers=h['alice'])).status_code == 403
     assert (await client.put(f'{BASE}/admin/settings', json={'settings': {}})).status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_daily_votes_tickets_and_draw(env, monkeypatch):
+    client, h = env
+    await _settings(client, h, APPLY_NOW)
+    yard = await _apply(client, h, 'alice')
+    pet = await _apply(client, h, 'alice', nomination='pet', title='Кот Барсик в колпаке')
+    for e in (yard, pet):
+        await client.post(f'{BASE}/admin/entries/{e["id"]}', json={'status': 'published'}, headers=h['panel'])
+    await _settings(client, h, VOTE_NOW)
+
+    for day in (_day(0), _day(1)):  # bob comes back the next day: a new vote and a second ticket
+        monkeypatch.setattr(svc, 'today', lambda d=day: d)
+        assert (await client.post(f'{BASE}/vote', json={'entry_id': yard['id']}, headers=h['bob'])).status_code == 200
+    assert (await client.post(f'{BASE}/vote', json={'entry_id': pet['id']}, headers=h['bob'])).status_code == 200
+    assert (await client.post(f'{BASE}/vote', json={'entry_id': pet['id']}, headers=h['carol'])).status_code == 200
+    page = (await client.get(BASE, headers=h['bob'])).json()
+    assert page['mine']['tickets'] == 2 and page['mine']['votes'] == {'yard': yard['id'], 'pet': pet['id']}
+    assert {e['id']: e['votes'] for e in page['entries']} == {yard['id']: 2, pet['id']: 2}
+
+    early = await client.post(f'{BASE}/admin/draw', headers=h['panel'])
+    assert early.status_code == 400  # only after voting
+    monkeypatch.setattr(svc, 'today', lambda: _day(10))
+    await _settings(client, h, {'draw_count': 5})
+    drawn = await client.post(f'{BASE}/admin/draw', headers=h['panel'])
+    assert drawn.status_code == 200, drawn.text
+    assert sorted(w['phone'] for w in drawn.json()['draw']) == ['+77000000001', '+77000000002']  # nobody wins twice
+    assert (await client.post(f'{BASE}/admin/draw', headers=h['panel'])).status_code == 400  # held once
+    public = (await client.get(BASE)).json()
+    assert sorted(public['draw']) == ['Bob, …01', 'Carol, …02'] and 'phone' not in str(public['draw'])
+    assert (await client.post(f'{BASE}/admin/draw', headers=h['alice'])).status_code == 403
 
 
 def test_phase_order():

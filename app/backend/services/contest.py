@@ -1,9 +1,11 @@
-"""«Новогодняя Сортировка» — contest for the most festive yard and house of the district.
+"""«Новогодняя Сортировка» — contest of the district: yard, house, window/balcony, snowman and New Year pet.
 
-Residents send 1–5 photos of their yard (all neighbours together) or house / balcony / window. The owner checks each
-entry in the admin panel before it is shown. During voting every signed-in resident has one vote per nomination
-(sign-in is by phone number, so votes cannot be farmed anonymously). The owner marks the winners; they get gifts.
-Participants' names and phones are never public: only the title, the street and the photos are shown.
+Residents send 1–5 photos. The owner checks each entry in the admin panel before it is shown. During voting every
+signed-in resident has one vote per nomination per day (sign-in is by phone number, so votes cannot be farmed
+anonymously), which brings people back every day. Each day a resident voted is a ticket in the voters' prize draw,
+held by the owner once voting is over. The owner marks the winners of each nomination; they get gifts.
+Participants' names and phones are never public: only the title, the street and the photos are shown;
+draw winners are shown as a first name and the last two digits of the phone.
 Tables are created on first use (no migration), like toy_invites.
 """
 from __future__ import annotations
@@ -18,7 +20,7 @@ from typing import Any, Optional
 from sqlalchemy import text
 
 KZ = timezone(timedelta(hours=5))
-NOMINATIONS = ("yard", "house")
+NOMINATIONS = ("yard", "house", "window", "snowman", "pet")
 STATUSES = ("pending", "published", "rejected")
 MAX_PHOTOS = 5
 MAX_PHOTO_BYTES = 900_000
@@ -35,7 +37,14 @@ DEFAULTS: dict[str, Any] = {
                  "письмо от Сортировка 24, «Сортировка Официал» и спонсоров.",
     "prizes_kz": "Әр номинацияда 1, 2 және 3 орын — жаңажылдық сыйлық пен мақтау грамотасы. Әр қатысушы Сортировка 24, "
                  "«Сортировка Официал» және демеушілерден алғыс хат алады.",
+    "draw_ru": "Среди всех, кто голосовал, разыграем подарки от спонсоров. Каждый день голосования — ещё один билетик.",
+    "draw_kz": "Дауыс бергендердің арасында демеушілерден сыйлықтар ойнатамыз. Дауыс берген әр күн — тағы бір билет.",
+    "sponsors_ru": "",
+    "sponsors_kz": "",
+    "draw_count": 3,
 }
+TEXTS = ("prizes_ru", "prizes_kz", "draw_ru", "draw_kz", "sponsors_ru", "sponsors_kz")
+PUBLIC_SETTINGS = ("apply_from", "apply_to", "vote_from", "vote_to") + TEXTS
 _DATES = ("apply_from", "apply_to", "vote_from", "vote_to")
 _ready: set[int] = set()
 
@@ -74,8 +83,10 @@ async def _create_tables(db) -> None:
     await db.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS contest_entries_one ON contest_entries (user_id, nomination)"))
     await db.execute(text(
         f"CREATE TABLE IF NOT EXISTS contest_votes (id {pk}, user_id VARCHAR(64) NOT NULL, nomination VARCHAR(16) NOT NULL, "
-        "entry_id INTEGER NOT NULL, created_at VARCHAR(32))"))
-    await db.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS contest_votes_one ON contest_votes (user_id, nomination)"))
+        "entry_id INTEGER NOT NULL, day VARCHAR(10) NOT NULL, created_at VARCHAR(32))"))
+    await db.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS contest_votes_daily ON contest_votes (user_id, nomination, day)"))
+    await db.execute(text(
+        f"CREATE TABLE IF NOT EXISTS contest_draw (id {pk}, user_id VARCHAR(64) NOT NULL, tickets INTEGER, created_at VARCHAR(32))"))
     await db.execute(text(
         "CREATE TABLE IF NOT EXISTS contest_photos (key VARCHAR(24) PRIMARY KEY, user_id VARCHAR(64), data TEXT, created_at VARCHAR(32))"))
     await db.execute(text("CREATE TABLE IF NOT EXISTS contest_settings (id INTEGER PRIMARY KEY, data TEXT NOT NULL)"))
@@ -96,9 +107,14 @@ def clean_settings(raw: dict) -> dict:
         out["enabled"] = bool(raw["enabled"])
     for key in _DATES:
         out[key] = _valid_date(raw.get(key, out[key]), DEFAULTS[key])
-    for key in ("prizes_ru", "prizes_kz"):
-        if isinstance(raw.get(key), str) and raw[key].strip():
-            out[key] = raw[key].strip()[:600]
+    for key in TEXTS:
+        if isinstance(raw.get(key), str):
+            value = raw[key].strip()[:600]
+            out[key] = value if value or key.startswith("sponsors") else DEFAULTS[key]
+    try:
+        out["draw_count"] = min(max(int(raw.get("draw_count", out["draw_count"])), 1), 20)
+    except (TypeError, ValueError):
+        pass
     return out
 
 
@@ -235,6 +251,7 @@ async def withdraw(db, user_id: str, entry_id: int) -> None:
 
 
 async def vote(db, user_id: str, entry_id: int) -> None:
+    """One vote per nomination per day; the same entry may get the resident's vote again tomorrow."""
     if phase(await get_settings(db)) != "vote":
         raise ContestError("Голосование сейчас закрыто")
     entry = (await db.execute(text("SELECT id, user_id, nomination, status FROM contest_entries WHERE id = :id"), {"id": entry_id})).first()
@@ -242,13 +259,51 @@ async def vote(db, user_id: str, entry_id: int) -> None:
         raise ContestError("Участник не найден")
     if entry.user_id == user_id:
         raise ContestError("За свою заявку голосовать нельзя")
-    done = (await db.execute(text("SELECT 1 FROM contest_votes WHERE user_id = :u AND nomination = :n"),
-                             {"u": user_id, "n": entry.nomination})).first()
-    if done:
-        raise ContestError("Вы уже проголосовали в этой номинации")
-    await db.execute(text("INSERT INTO contest_votes (user_id, nomination, entry_id, created_at) VALUES (:u, :n, :e, :t)"),
-                     {"u": user_id, "n": entry.nomination, "e": entry_id, "t": now_iso()})
+    params = {"u": user_id, "n": entry.nomination, "e": entry_id, "d": today(), "t": now_iso()}
+    if (await db.execute(text("SELECT 1 FROM contest_votes WHERE user_id = :u AND nomination = :n AND day = :d"), params)).first():
+        raise ContestError("Сегодня вы уже голосовали в этой номинации — приходите завтра")
+    await db.execute(text("INSERT INTO contest_votes (user_id, nomination, entry_id, day, created_at) VALUES (:u, :n, :e, :d, :t)"),
+                     params)
     await db.commit()
+
+
+async def _tickets(db, user_id: Optional[str] = None) -> dict[str, int]:
+    """Draw tickets: the number of different days each resident voted on."""
+    where, params = ("WHERE user_id = :u ", {"u": user_id}) if user_id else ("", {})
+    rows = (await db.execute(text(f"SELECT user_id, COUNT(DISTINCT day) FROM contest_votes {where}GROUP BY user_id"), params)).all()
+    return {r[0]: int(r[1]) for r in rows}
+
+
+def _mask(name: str, phone: str) -> str:
+    first = (name or "").strip().split(" ")[0][:20] or "Житель"
+    digits = re.sub(r"\D", "", phone or "")
+    return f"{first}, …{digits[-2:]}" if len(digits) >= 2 else first
+
+
+async def _draw_rows(db) -> list:
+    return (await db.execute(text(
+        "SELECT d.user_id, d.tickets, u.name AS user_name, u.phone AS user_phone FROM contest_draw d "
+        "LEFT JOIN users u ON u.id = d.user_id ORDER BY d.id"))).all()
+
+
+async def hold_draw(db) -> list[dict]:
+    """Pick the voters' prize winners once voting is over: more voting days, more chances; nobody wins twice."""
+    settings = await get_settings(db)
+    if phase(settings) != "results":
+        raise ContestError("Розыгрыш — после окончания голосования")
+    if await _draw_rows(db):
+        raise ContestError("Розыгрыш уже проведён")
+    pool = await _tickets(db)
+    if not pool:
+        raise ContestError("Пока никто не голосовал")
+    rng = secrets.SystemRandom()
+    stamp = now_iso()
+    for _ in range(min(settings["draw_count"], len(pool))):
+        user_id = rng.choices(list(pool), weights=list(pool.values()))[0]
+        await db.execute(text("INSERT INTO contest_draw (user_id, tickets, created_at) VALUES (:u, :n, :t)"),
+                         {"u": user_id, "n": pool.pop(user_id), "t": stamp})
+    await db.commit()
+    return (await admin_view(db))["draw"]
 
 
 async def public_view(db, user_id: Optional[str]) -> dict:
@@ -264,14 +319,18 @@ async def public_view(db, user_id: Optional[str]) -> dict:
                        | {"votes": counts.get(e["id"], 0) if counts else None, "mine": e["user_id"] == user_id})
     if current in ("vote", "results"):
         entries.sort(key=lambda e: (e["place"] or 99, -(e["votes"] or 0), e["id"]))
-    mine: dict = {"entries": [], "votes": {}}
+    mine: dict = {"entries": [], "votes": {}, "tickets": 0}
     if user_id:
         own = (await db.execute(text("SELECT * FROM contest_entries WHERE user_id = :u ORDER BY id"), {"u": user_id})).all()
         mine["entries"] = [{k: v for k, v in _row(r).items() if k != "user_id"} for r in own]
-        voted = (await db.execute(text("SELECT nomination, entry_id FROM contest_votes WHERE user_id = :u"), {"u": user_id})).all()
+        voted = (await db.execute(text("SELECT nomination, entry_id FROM contest_votes WHERE user_id = :u AND day = :d"),
+                                  {"u": user_id, "d": today()})).all()
         mine["votes"] = {r[0]: int(r[1]) for r in voted}
-    public_settings = {k: settings[k] for k in ("apply_from", "apply_to", "vote_from", "vote_to", "prizes_ru", "prizes_kz")}
-    return {"phase": current, "settings": public_settings, "entries": entries, "mine": mine, "signed_in": bool(user_id)}
+        mine["tickets"] = (await _tickets(db, user_id)).get(user_id, 0)
+    draw = [_mask(r.user_name, r.user_phone) for r in await _draw_rows(db)]
+    public_settings = {k: settings[k] for k in PUBLIC_SETTINGS}
+    return {"phase": current, "settings": public_settings, "entries": entries, "mine": mine, "draw": draw,
+            "signed_in": bool(user_id)}
 
 
 # ---------------- admin ----------------
@@ -282,7 +341,10 @@ async def admin_view(db) -> dict:
         "SELECT e.*, u.name AS user_name, u.phone AS user_phone FROM contest_entries e "
         "LEFT JOIN users u ON u.id = e.user_id ORDER BY e.id DESC"))).all()
     entries = [_row(r) | {"votes": counts.get(r.id, 0), "user_name": r.user_name or "", "user_phone": r.user_phone or ""} for r in rows]
-    return {"settings": settings, "phase": phase(settings), "entries": entries}
+    tickets = await _tickets(db)
+    draw = [{"name": r.user_name or "", "phone": r.user_phone or "", "tickets": r.tickets} for r in await _draw_rows(db)]
+    return {"settings": settings, "phase": phase(settings), "entries": entries, "draw": draw,
+            "voters": len(tickets), "tickets": sum(tickets.values())}
 
 
 async def admin_update(db, entry_id: int, body: dict) -> None:

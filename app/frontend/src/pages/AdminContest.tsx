@@ -1,6 +1,6 @@
-/** Admin: «Новогодняя Сортировка» contest — dates and prizes, checking entries, votes and winners. */
+/** Admin: «Новогодняя Сортировка» contest — dates, prizes and sponsors, checking entries, votes, winners and the voters' draw. */
 import { useCallback, useEffect, useState } from 'react';
-import { Check, ExternalLink, Loader2, Phone, Save, Trophy, X } from 'lucide-react';
+import { Check, ExternalLink, Loader2, Phone, Save, Ticket, Trophy, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,12 @@ const PHASES: Record<AdminView['phase'], string> = {
   vote: 'идёт голосование', results: 'голосование закончено — отметьте победителей',
 };
 const STATUS: Record<EntryStatus, string> = { pending: 'Ждёт проверки', published: 'Опубликована', rejected: 'Возвращена' };
-const NOMS = { yard: 'Двор', house: 'Дом' } as const;
+const NOMS = { yard: 'Двор', house: 'Дом', window: 'Окно/балкон', snowman: 'Снеговик', pet: 'Питомец' } as const;
+const TEXTS = [
+  { key: 'prizes_ru', label: 'Подарки победителям (RU)' }, { key: 'prizes_kz', label: 'Подарки победителям (KZ)' },
+  { key: 'draw_ru', label: 'Розыгрыш для голосующих (RU)' }, { key: 'draw_kz', label: 'Розыгрыш для голосующих (KZ)' },
+  { key: 'sponsors_ru', label: 'Спонсоры (RU), можно пусто' }, { key: 'sponsors_kz', label: 'Спонсоры (KZ), можно пусто' },
+] as const;
 const DATES = [
   { key: 'apply_from', label: 'Заявки с' }, { key: 'apply_to', label: 'Заявки по' },
   { key: 'vote_from', label: 'Голосование с' }, { key: 'vote_to', label: 'Голосование по' },
@@ -60,6 +65,7 @@ export default function AdminContest() {
   const [view, setView] = useState<AdminView | null>(null);
   const [form, setForm] = useState<AdminView['settings'] | null>(null);
   const [saving, setSaving] = useState(false);
+  const [drawing, setDrawing] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -85,6 +91,14 @@ export default function AdminContest() {
     catch (e) { toast.error(String((e as Error)?.message || 'Не получилось')); }
   }
 
+  async function draw() {
+    if (!window.confirm('Провести розыгрыш среди голосующих? Повторить его будет нельзя.')) return;
+    setDrawing(true);
+    try { await contestApi.admin.draw(); toast.success('Розыгрыш проведён'); await load(); }
+    catch (e) { toast.error(String((e as Error)?.message || 'Не получилось')); }
+    finally { setDrawing(false); }
+  }
+
   const pending = view.entries.filter((e) => e.status === 'pending');
   const rest = view.entries.filter((e) => e.status !== 'pending').sort((a, b) => b.votes - a.votes);
 
@@ -104,11 +118,28 @@ export default function AdminContest() {
               <Input type="date" value={form[d.key]} onChange={(e) => setForm({ ...form, [d.key]: e.target.value })} /></label>
           ))}
         </div>
-        <label className="block text-sm"><span className="mb-1 block font-medium text-gray-900">Подарки (RU)</span>
-          <textarea className="w-full rounded-md border border-gray-300 p-2 text-sm" rows={2} maxLength={600} value={form.prizes_ru} onChange={(e) => setForm({ ...form, prizes_ru: e.target.value })} /></label>
-        <label className="block text-sm"><span className="mb-1 block font-medium text-gray-900">Подарки (KZ)</span>
-          <textarea className="w-full rounded-md border border-gray-300 p-2 text-sm" rows={2} maxLength={600} value={form.prizes_kz} onChange={(e) => setForm({ ...form, prizes_kz: e.target.value })} /></label>
+        {TEXTS.map((t) => (
+          <label key={t.key} className="block text-sm"><span className="mb-1 block font-medium text-gray-900">{t.label}</span>
+            <textarea className="w-full rounded-md border border-gray-300 p-2 text-sm" rows={2} maxLength={600} value={form[t.key]} onChange={(e) => setForm({ ...form, [t.key]: e.target.value })} /></label>
+        ))}
+        <label className="block text-sm"><span className="mb-1 block font-medium text-gray-900">Сколько подарков в розыгрыше</span>
+          <Input type="number" min={1} max={20} className="w-28" value={form.draw_count} onChange={(e) => setForm({ ...form, draw_count: Number(e.target.value) || 1 })} /></label>
         <Button onClick={() => void save()} disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}Сохранить</Button>
+      </div>
+
+      <div className="space-y-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-2"><Ticket className="h-5 w-5 text-amber-500" /><h3 className="font-bold text-gray-900">Розыгрыш для голосующих</h3></div>
+        <p className="text-sm text-gray-500">Голосовали: {view.voters} чел., билетиков: {view.tickets}. Билетик — каждый день, когда человек голосовал.</p>
+        {view.draw.length > 0 ? (
+          <ul className="space-y-1 text-sm">{view.draw.map((w, i) => (
+            <li key={`${w.phone}-${i}`}>{i + 1}. <b>{w.name || 'Без имени'}</b> · <a className="text-blue-700" href={`tel:${w.phone}`}>{w.phone}</a> · билетиков {w.tickets}</li>
+          ))}</ul>
+        ) : (
+          <Button onClick={() => void draw()} disabled={drawing || view.phase !== 'results'}>
+            {drawing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Ticket className="mr-2 h-4 w-4" />}Провести розыгрыш
+          </Button>
+        )}
+        {view.phase !== 'results' && view.draw.length === 0 && <p className="text-xs text-gray-500">Кнопка заработает после окончания голосования.</p>}
       </div>
 
       {pending.length > 0 && <h3 className="font-bold text-gray-900">Ждут проверки</h3>}

@@ -21,8 +21,10 @@ export default function ContestTeaser() {
     <Link to="/konkurs" className="kn-teaser">
       <span className="kn-teaser-icon" aria-hidden="true"><Trophy size={22} /></span>
       <span className="kn-teaser-text">
-        <strong>{kz ? 'Ең жаңажылдық аула мен үй' : 'Самый новогодний двор и дом'}</strong>
-        <small>{text}. {kz ? 'Жеңімпаздарға — сыйлық' : 'Победителям — подарки'}</small>
+        <strong>{kz ? 'Жаңажылдық Сортировка: аула, үй, аққала, үй жануары' : 'Новогодняя Сортировка: двор, дом, снеговик, питомец'}</strong>
+        <small>{text}. {view.phase === 'vote'
+          ? (kz ? 'Күн сайын дауыс беріп, сыйлық ұтыңыз' : 'Голосуйте каждый день — розыгрыш подарков')
+          : (kz ? 'Жеңімпаздарға — сыйлық' : 'Победителям — подарки')}</small>
       </span>
       <span className="kn-teaser-cta">{view.phase === 'vote' ? (kz ? 'Дауыс беру' : 'Голосовать') : (kz ? 'Қатысу' : 'Участвовать')}</span>
     </Link>
