@@ -259,7 +259,7 @@ async def test_bot_knows_portions_bonuses_and_pay_on_delivery(bot):
     assert f"{item.name} (5 шт)" in menu
     assert "Бонусы DAM ALEM" in facts and "%" in facts
     prompt = B.system_prompt(facts, "Айгерим", menu=menu)
-    assert "наличными при получении" in prompt and "kaspi_phone" in prompt
+    assert "наличными при получении" in prompt and "kaspi_phone" not in prompt and "номер для счёта не спрашивай" in prompt
     assert "ОПЛАЧЕН" not in prompt
 
 
@@ -301,33 +301,52 @@ def test_whatsapp_only_promo_is_refused_at_site_checkout():
     assert "WhatsApp" in err.value.detail
 
 
-async def test_kaspi_needs_a_number_and_the_confirmation_lists_everything(bot, monkeypatch):
+async def test_kaspi_is_paid_on_delivery_and_the_confirmation_lists_everything(bot, monkeypatch):
+    """Since 12.11.2026 there are no Kaspi invoices: the bot never asks for a number, Kaspi is a transfer on delivery."""
     monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
     base = {"items": [{"id": 2, "quantity": 2}], "customer_name": "Айгерим", "delivery_method": "pickup", "payment_method": "kaspi_transfer"}
     script = [
         [{"type": "tool_use", "id": "a", "name": "quote_order", "input": base}],
-        [{"type": "tool_use", "id": "b", "name": "quote_order", "input": {**base, "kaspi_phone": "+77015556677"}}],
         [{"type": "text", "text": "Итого 600 ₸. Ответьте Да"}],
     ]
     log = []
     async with httpx.AsyncClient(transport=transport(log, script)) as client:
         await B.handle_event(msg("2 штуки, самовывоз, каспи"), client)
-        refused = [b for u, b in log if "anthropic" in u][1]["messages"][-1]["content"][0]["content"]
-        assert "kaspi_phone" in refused
+        result = [b for u, b in log if "anthropic" in u][1]["messages"][-1]["content"][0]["content"]
+        assert "Расчёт готов" in result
         out = await B.handle_event(msg("да"), client)
     assert out.action == "order_created"
     assert "Drink × 2" in out.reply and "Самовывоз" in out.reply and "600" in out.reply
-    assert "счёт выставим на номер +77015556677" in out.reply
+    assert "Kaspi переводом при получении" in out.reply and "счёт" not in out.reply
     async with bot() as db:
         row = (await db.scalars(select(Food_orders).where(Food_orders.order_source == "whatsapp"))).one()
-        assert "+77015556677" in (row.comment or "")
+        assert row.payment_method == "kaspi_transfer"
     chat = B._chats[next(iter(B._chats))]
     block = B.order_block(chat)
-    assert f"Заказ №{row.id}" in block and "итого 600 ₸" in block and "Kaspi счёт на +77015556677" in block
+    assert f"Заказ №{row.id}" in block and "итого 600 ₸" in block and "Kaspi переводом при получении" in block
+
+
+async def test_a_dead_ai_key_is_reported_to_the_owner_once(monkeypatch):
+    from services import ai_health
+    sent = []
+
+    async def fake_send(client, kind, method, payload, **kw):
+        sent.append(payload["text"])
+        return {}
+    monkeypatch.setattr("services.news_agent.owner_send", fake_send)
+    monkeypatch.setattr("services.news_agent.bot_token", lambda: "t")
+    monkeypatch.setattr("services.news_agent.approval_chat", lambda: "c")
+    ai_health._last_notice.clear()
+    err = httpx.HTTPStatusError("401", request=httpx.Request("POST", "https://api.anthropic.com/v1/messages"),
+                                response=httpx.Response(401))
+    async with httpx.AsyncClient() as client:
+        await ai_health.report_ai_failure(client, "DAM ALEM", err)
+        await ai_health.report_ai_failure(client, "DAM ALEM", err)
+    assert len(sent) == 1 and "401" in sent[0] and "DAM ALEM" in sent[0]
 
 
 def test_hand_off_shows_the_waiting_calculation_total():
-    chat = B.Chat(pending={"id": "c1", "at": 0, "kaspi_phone": "",
+    chat = B.Chat(pending={"id": "c1", "at": 0,
                            "quote": {"total_amount": 12900, "payment_method": "cash", "delivery_method": "delivery",
                                      "delivery_address": "Серова 74а"}})
     block = B.order_block(chat)
