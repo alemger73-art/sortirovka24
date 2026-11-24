@@ -426,7 +426,7 @@ async def _directory() -> list[dict[str, str]]:
 
 @dataclass
 class Outcome:
-    action: str  # ignored | muted | replied | handed_off | limited | login
+    action: str  # ignored | muted | replied | handed_off | limited | login | operator
     reply: str = ""
 
 
@@ -442,8 +442,18 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient, modules
         return Outcome("ignored")
     if _duplicate(str(p.get("id") or "")):
         return Outcome("ignored")
-    # Never talk to another bot of ours (DAM ALEM sales number), whatever id format WhatsApp uses.
     from services.dam_wa_bot import _phone_from
+    from services import operator_whatsapp
+    body = str(p.get("body") or "")
+    if not p.get("fromMe") and not wa_login.login_code(body) and operator_whatsapp.is_operator(_phone_from(chat_id, p)):
+        # A DAM ALEM operator answering an order: «1», «58 3», «PIN 1234» — never a question for the AI.
+        from core.database import db_manager
+        quoted = str((p.get("replyTo") or {}).get("body") or "") if isinstance(p.get("replyTo"), dict) else ""
+        async with db_manager.async_session_maker() as db:
+            reply = await operator_whatsapp.handle_message(db, _phone_from(chat_id, p), body, quoted)
+        await send_text(client, chat_id, reply)
+        return Outcome("operator", reply)
+    # Never talk to another bot of ours (DAM ALEM sales number), whatever id format WhatsApp uses.
     if _phone_from(chat_id, p) in OWN_NUMBERS:
         return Outcome("ignored")
     chat = _chat(_chat_key(p) or chat_id)

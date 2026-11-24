@@ -323,7 +323,10 @@ def remember_event(db, order: Any, message: str, actor: str, notify: bool = True
 def _after_commit(session: Session) -> None:
     pending = session.info.pop(PENDING_KEY, None)
     if pending:
-        _schedule(_send_all("\n".join(line for _, line, _ in pending), [oid for oid, _, _ in pending]))
+        lines = "\n".join(line for _, line, _ in pending)
+        _schedule(_send_all(lines, [oid for oid, _, _ in pending]))
+        from services.operator_whatsapp import relay_events
+        relay_events(lines)
 
 
 @event.listens_for(Session, "after_rollback")
