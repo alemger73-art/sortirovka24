@@ -309,6 +309,10 @@ export default function Food() {
   const BONUS_MAX_PERCENT = bonusRules.max_order_percent;
   const checkoutAttempt = useRef<{ fingerprint: string; key: string } | null>(null);
   const returnDeliveryAddress = useRef<string | null>(null);
+  // Back from sign-in with a full cart: people took the WhatsApp sign-in message for the order itself (23.11.2026),
+  // so the order screen says plainly that one step is left and brings them to the address.
+  const [justSignedIn, setJustSignedIn] = useState(false);
+  const deliveryFormRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => { loadData(); }, []);
 
@@ -333,6 +337,8 @@ export default function Food() {
     const params = new URLSearchParams(searchParams);
     params.delete('checkout');
     setSearchParams(params, { replace: true });
+    setJustSignedIn(true);
+    window.setTimeout(() => deliveryFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400);
   }, [searchParams, setSearchParams, loading, cart.length]);
 
   useEffect(() => {
@@ -1400,6 +1406,7 @@ export default function Food() {
       const createdOrder = createdAny?.data ?? createdAny;
       const orderId = Number(createdOrder?.id ?? 0);
       track('order_placed', { total: checkoutGrandTotal, payment, method: deliveryMethod, items: cart.length });
+      setJustSignedIn(false);
       const orderItemsSnapshot = JSON.stringify(
         cart.map(ci => ({
           id: ci.item.id,
@@ -2112,6 +2119,13 @@ export default function Food() {
 
             {cartAvailabilityNotice && <div role="alert" className="dam-os-card dam-os-notice"><p>{cartAvailabilityNotice}</p><button type="button" className="dam-os-link" onClick={() => setCartAvailabilityNotice('')}>{st('Понятно')}</button></div>}
 
+            {loggedIn && justSignedIn && (
+              <section className="dam-os-guest dam-os-signed" role="status" data-testid="dam-signed-in-banner">
+                <p>{st("Вы вошли ✅ Заказ ещё не отправлен")}</p>
+                <small>{st("Остался один шаг: укажите адрес и нажмите «Заказать» внизу")}</small>
+              </section>
+            )}
+
             {!loggedIn && (
               <section className="dam-os-guest" data-testid="dam-guest-banner">
                 <p>{signInBonus > 0
@@ -2138,7 +2152,7 @@ export default function Food() {
               ) : null}
             </section>
 
-            <section className="dam-os-card">
+            <section className="dam-os-card" ref={deliveryFormRef}>
               <Segmented<'delivery' | 'pickup'> label={st("Способ получения")} value={deliveryMethod === 'dine_in' ? 'pickup' : deliveryMethod}
                 options={[{ id: 'delivery', label: t('food.delivery') }, { id: 'pickup', label: t('food.pickup') }]}
                 onChange={setDeliveryMethod} />

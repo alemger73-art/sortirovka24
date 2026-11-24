@@ -252,6 +252,18 @@ test('guest sign-in from the cart keeps the cart and returns to the same screen'
   expect(redirect).toMatch(/^\/food\?.*tab=cart.*checkout=resume/);
 });
 
+test('back from sign-in with a full cart: «Вы вошли, заказ ещё не отправлен», one step left', async ({ page }) => {
+  await setup(page, { signedIn: true });
+  await openMenu(page);
+  await card(page, 'Пепперони').getByRole('button', { name: 'Добавить: Пепперони' }).click();
+  await page.goto('/food?tab=cart&checkout=resume');
+  const banner = page.getByTestId('dam-signed-in-banner');
+  await expect(banner).toContainText('Заказ ещё не отправлен');
+  await expect(banner).toContainText('нажмите «Заказать»');
+  await expect(page).not.toHaveURL(/checkout=resume/);
+  await shot(page, '6-signed-in-one-step');
+});
+
 test('operator board: Принять → Готово → Доставлен, no courier, no payment step', async ({ page }) => {
   const order = {
     id: 1047, version: 1, status: 'new', created_at: new Date().toISOString(), customer_name: 'Айгерим', customer_phone: '+77012345678',

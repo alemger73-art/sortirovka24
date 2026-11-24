@@ -202,6 +202,8 @@
 .dam-os-guest p { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.35; }
 .dam-os-guest button { min-height: 48px; border-radius: 14px; background: #fff; color: #242320; font-size: 15px; font-weight: 700; }
 .dam-os-guest small { font-size: 13px; color: var(--ds-bar-muted); }
+.dam-os-signed { scroll-margin-top: 12px; }
+.dam-os-signed small { font-size: 14px; color: var(--ds-bar-ink); }
 
 .dam-os-footer {
   position: fixed; z-index: 40; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; gap: 8px;
