@@ -27,7 +27,7 @@ def test_the_card_reads_well_in_whatsapp():
     from services.operator_telegram import card
     text = ow.whatsapp_text(card(order()))
     assert '*НОВЫЙ ЗАКАЗ №58*' in text and 'Алия <VIP>' in text and 'Уранова 10, кв 5' in text
-    assert '*Итого: 4 800 ₸*' in text.replace(' ', ' ') or 'Итого' in text
+    assert '*Итого:' in text
     assert '<b>' not in text and '<a' not in text and 'Открыть кабинет оператора: http' in text
 
 
