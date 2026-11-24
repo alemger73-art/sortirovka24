@@ -128,7 +128,9 @@ class Food_ordersService:
             try:
                 if dam_order:
                     from services.operator_telegram import notify_new_order
+                    from services.operator_whatsapp import notify_new_order as notify_new_order_whatsapp
                     notify_new_order(obj)
+                    notify_new_order_whatsapp(obj)
                 else:
                     from services.food_telegram_flow import notify_operator_new_order
                     await notify_operator_new_order(obj)
