@@ -152,12 +152,30 @@ async def test_shops_shipped_with_code_are_seeded_once(env):
     async with maker() as db:
         await seed_partner_shops(db)
     shop = (await client.get('/api/v1/shops/magazin-cvetok')).json()
-    assert len(shop['products']) == 73 and shop['delivery'][0] == {'name': 'Сортировка', 'price': 'бесплатно'}
+    assert len(shop['products']) == 119 and shop['delivery'][0] == {'name': 'Сортировка', 'price': 'бесплатно'}
     async with maker() as db:
         await db.execute(text("UPDATE partner_shop_products SET price = 1 WHERE shop = 'magazin-cvetok' AND sku = '10001'"))
         await db.commit()
         await seed_partner_shops(db)  # the next start keeps the partner's later changes
     assert {p['sku']: p['price'] for p in (await client.get('/api/v1/shops/magazin-cvetok')).json()['products']}['10001'] == 1
+
+
+async def test_new_items_are_added_without_touching_the_partners_changes(env):
+    client, maker, _ = env
+    from scripts.add_partner_products import add_new
+    from services.partner_shop_seed import load_shop
+    async with maker() as db:
+        await load_shop(db, 'magazin-cvetok')
+        await db.execute(text("UPDATE partner_shop_products SET price = 1, active = FALSE WHERE shop = 'magazin-cvetok' AND sku = '10001'"))
+        await db.execute(text("DELETE FROM partner_shop_products WHERE shop = 'magazin-cvetok' AND sku IN ('10005', '91012')"))
+        await db.execute(text("UPDATE partner_shops SET settings = REPLACE(settings, ', \"Упаковка и прочее\"', '') WHERE slug = 'magazin-cvetok'"))
+        await db.commit()
+        assert await add_new(db, 'magazin-cvetok') == (2, 1)
+        assert await add_new(db, 'magazin-cvetok') == (0, 0)  # a second run changes nothing
+    shop = (await client.get('/api/v1/shops/magazin-cvetok')).json()
+    by_sku = {p['sku']: p for p in shop['products']}
+    assert '10001' not in by_sku and by_sku['10005']['name'] == 'Стрелиция Регина' and '91012' in by_sku
+    assert shop['categories'][-1] == 'Упаковка и прочее'
 
 
 async def cabinet_token(client, maker, fake, chat_id=555):
