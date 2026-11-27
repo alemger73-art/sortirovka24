@@ -268,6 +268,21 @@ async def _run_ad_expiry() -> None:
         logging.getLogger(__name__).warning("Ad expiry reminders stopped: %s", exc)
 
 
+async def _run_pos_menu_sync() -> None:
+    """ДАМ АЛЕМ dishes and prices follow the cashier (Касса Dam Alem)."""
+    from core.database import db_manager
+    from services.pos_menu_sync import run_forever
+
+    while not (db_manager._initialized and db_manager.async_session_maker):
+        await asyncio.sleep(5)
+    try:
+        await run_forever(db_manager.async_session_maker)
+    except asyncio.CancelledError:
+        raise
+    except Exception as exc:
+        logging.getLogger(__name__).warning("Menu from the cashier stopped: %s", exc)
+
+
 async def _run_admin_summary_watch() -> None:
     """Broadcast admin dashboard updates to WebSocket clients."""
     logger = logging.getLogger(__name__)
@@ -303,11 +318,12 @@ async def lifespan(app: FastAPI):
     app.state._site_report_task = asyncio.create_task(_run_site_report())
     app.state._paid_services_task = asyncio.create_task(_run_paid_services())
     app.state._ad_expiry_task = asyncio.create_task(_run_ad_expiry())
+    app.state._pos_menu_task = asyncio.create_task(_run_pos_menu_sync())
 
     logger.info("=== Application startup completed (initialization running in background) ===")
     yield
 
-    for name in ("_news_agent_task", "_site_report_task", "_paid_services_task", "_ad_expiry_task"):
+    for name in ("_news_agent_task", "_site_report_task", "_paid_services_task", "_ad_expiry_task", "_pos_menu_task"):
         task = getattr(app.state, name, None)
         if task:
             task.cancel()
