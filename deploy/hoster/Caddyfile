@@ -13,6 +13,18 @@
 
 www.sortirovka24.kz, sortirovka24.kz {
 	tls /certs/origin.pem /certs/origin-key.pem
+	# The Dam Alem cashier (separate container, own database): www.sortirovka24.kz/kassa
+	redir /kassa /kassa/
+	handle_path /kassa/* {
+		reverse_proxy damalem-pos:8000 {
+			header_up X-Forwarded-For {client_ip}
+		}
+	}
+	# The courier Android app (Dam Alem) opens full screen only if the site vouches for its signing key
+	handle /.well-known/assetlinks.json {
+		header Content-Type application/json
+		respond `[{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "kz.sortirovka24.damalem.courier", "sha256_cert_fingerprints": ["31:19:2E:97:0A:A9:BB:92:06:53:91:43:F5:2A:96:73:26:A1:B7:55:C5:C3:D3:27:93:A3:28:60:51:1C:EB:BD"] } }]` 200
+	}
 	encode zstd gzip
 	request_body {
 		max_size 25MB
