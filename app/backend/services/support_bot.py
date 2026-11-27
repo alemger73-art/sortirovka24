@@ -456,6 +456,14 @@ async def handle_event(event: dict[str, Any], client: httpx.AsyncClient, modules
     # Never talk to another bot of ours (DAM ALEM sales number), whatever id format WhatsApp uses.
     if _phone_from(chat_id, p) in OWN_NUMBERS:
         return Outcome("ignored")
+    from services import pos_bonus
+    stop = None if p.get("fromMe") else pos_bonus.stop_word(body)
+    if stop is not None and _phone_from(chat_id, p):   # «СТОП» / «СТАРТ» to the bonus messages — never a question for the AI
+        from core.database import db_manager
+        async with db_manager.async_session_maker() as db:
+            reply = await pos_bonus.answer_stop(db, _phone_from(chat_id, p), stop)
+        await send_text(client, chat_id, reply)
+        return Outcome("stop", reply)
     chat = _chat(_chat_key(p) or chat_id)
     now = time.time()
     code = None if p.get("fromMe") else wa_login.login_code(str(p.get("body") or ""))
