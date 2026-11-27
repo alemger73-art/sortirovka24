@@ -22,7 +22,8 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const useful = {
-  list: () => call<{ items: UsefulTeaser[] }>('').then(r => r.items),
+  // Ответ без списка (пустой/HTML от прокси при сбое) → пустой список, а не undefined: иначе главная падает на items.length.
+  list: () => call<{ items?: UsefulTeaser[] }>('').then(r => (Array.isArray(r?.items) ? r.items : [])),
   get: (slug: string) => call<UsefulCard>(`/${encodeURIComponent(slug)}`),
   vote: (slug: string, choice: number) => call<UsefulResults>(`/${encodeURIComponent(slug)}/vote`, { method: 'POST', body: JSON.stringify({ choice }) }),
 };
